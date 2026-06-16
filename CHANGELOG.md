@@ -16,11 +16,18 @@ change before `1.0`.
 
 ### Added
 
-- Cross-engine COSE crypto parity, slice 1 (#15): a Rust `cose` module
-  (`ed25519-dalek`, pure Rust / wasm-friendly) implementing COSE_Sign1 Ed25519
-  `sign_id`/`verify_sig` byte-compatible with the Python reference, plus a frozen
-  shared vector set (`vectors/cose/*.json` + `scripts/gen_cose_vectors.py`) that
-  both engines gate against. Go and TypeScript to follow.
+- **Cross-engine crypto parity (#15): COSE_Sign1 + emojihash in all four engines.**
+  - **COSE_Sign1 Ed25519** (`sign_id`/`verify_sig`, detached over the frame id,
+    §9.2) in Rust (`ed25519-dalek`), Go (`crypto/ed25519`), and TypeScript
+    (`@noble/ed25519`) — byte-compatible with the Python reference and gated by a
+    frozen shared vector set (`vectors/cose/*.json` + `scripts/gen_cose_vectors.py`).
+    Ed25519 is deterministic, so every engine reproduces the exact COSE bytes and
+    verifies them.
+  - **emojihash** (BLAKE3-XOF → 6-bit → 64-emoji visual hash) in Rust, Go, and
+    TypeScript, byte-identical to Python, gated by `vectors/emojihash/*.json`.
+  - All crypto stays pure / wasm-friendly (the Rust `wasm32` build is still green).
+  - Signing/verification file-level integration (Writer/reader/CLI) and COSE_Encrypt0
+    remain as tracked follow-ups on #15.
 
 - `gts extract-key <file>` (Python CLI, #12): prints the embedded transport
   (verification) key for a signed GTS — `kid`, OpenPGP fingerprint, emojihash,

@@ -11,3 +11,5 @@ export { compactStreamable, CompactRefusedError } from "./compact.js";
 export * as wire from "./wire.js";
 export * as codec from "./codec.js";
 export * as stream from "./stream.js";
+export * as cose from "./cose.js";
+export * as emojihash from "./emojihash.js";

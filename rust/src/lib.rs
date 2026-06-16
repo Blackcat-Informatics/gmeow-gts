@@ -17,6 +17,7 @@
 pub mod codec;
 pub mod compact;
 pub mod cose;
+pub mod emojihash;
 pub mod files;
 pub mod model;
 pub mod nquads;
