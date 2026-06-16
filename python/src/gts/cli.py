@@ -256,6 +256,42 @@ def _cmd_from_nq(path: str, out: str | None) -> int:
     return _write_out(out, data)
 
 
+_DB_EXTRA_HINT = "requires the [db] extra: pip install 'gmeow-gts[db]'"
+
+
+def _cmd_to_sqlite(path: str, out: str) -> int:
+    """Export a folded graph to a SQLite database (stdlib, §14)."""
+    from gts.db import to_sqlite
+
+    to_sqlite(read(_load(path)), out)
+    return 0
+
+
+def _cmd_to_duckdb(path: str, out: str) -> int:
+    """Export a folded graph to a DuckDB database (needs the [db] extra)."""
+    from gts.db import to_duckdb
+
+    try:
+        to_duckdb(read(_load(path)), out)
+    except ImportError:
+        print(f"gts to-duckdb: {_DB_EXTRA_HINT}", file=sys.stderr)
+        return 2
+    return 0
+
+
+def _cmd_to_parquet(path: str, out_dir: str) -> int:
+    """Export a folded graph to Parquet, one file per table (needs [db])."""
+    from gts.db import to_parquet
+
+    try:
+        for written in to_parquet(read(_load(path)), out_dir):
+            print(written)
+    except ImportError:
+        print(f"gts to-parquet: {_DB_EXTRA_HINT}", file=sys.stderr)
+        return 2
+    return 0
+
+
 def _all_quads_suppressed(g: Graph) -> bool:
     """True iff the fold has quads and EVERY one is hidden by a suppression.
 
@@ -540,6 +576,27 @@ def main(argv: list[str] | None = None) -> int:
     p_from_nq.add_argument("file")
     p_from_nq.add_argument("-o", "--out", default=None)
 
+    p_to_sqlite = sub.add_parser(
+        "to-sqlite", help="export a folded graph to a SQLite database (§14)"
+    )
+    p_to_sqlite.add_argument("file")
+    p_to_sqlite.add_argument("out")
+
+    p_to_duckdb = sub.add_parser(
+        "to-duckdb",
+        help="export a folded graph to a DuckDB database (needs the [db] extra)",
+    )
+    p_to_duckdb.add_argument("file")
+    p_to_duckdb.add_argument("out")
+
+    p_to_parquet = sub.add_parser(
+        "to-parquet",
+        help="export a folded graph to Parquet, one file per table "
+        "(needs the [db] extra)",
+    )
+    p_to_parquet.add_argument("file")
+    p_to_parquet.add_argument("out_dir")
+
     p_extract = sub.add_parser(
         "extract",
         help="extract one blob by content digest; --mt asserts the declared "
@@ -619,6 +676,12 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_extract_key(args.file)
     if args.command == "from-nq":
         return _cmd_from_nq(args.file, args.out)
+    if args.command == "to-sqlite":
+        return _cmd_to_sqlite(args.file, args.out)
+    if args.command == "to-duckdb":
+        return _cmd_to_duckdb(args.file, args.out)
+    if args.command == "to-parquet":
+        return _cmd_to_parquet(args.file, args.out_dir)
     if args.command == "extract":
         return _cmd_extract(
             args.file, args.digest, args.out, args.mt, args.include_suppressed

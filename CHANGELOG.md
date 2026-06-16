@@ -24,6 +24,11 @@ change before `1.0`.
   handles IRIs, blank nodes, language/datatyped literals, named graphs, and the
   RDF 1.2 reifying style. `-` reads stdin, so `rdflib → n-quads → gts` pipes. Also
   exported as `gts.from_nquads`.
+- Relational export (Python CLI, #13): `gts to-sqlite`, `gts to-duckdb`,
+  `gts to-parquet` load a folded graph into the integer-id, dictionary-encoded
+  five-table schema (`terms`/`quads`/`reifiers`/`annotations`/`blobs`). SQLite
+  uses the standard library; DuckDB and Parquet need the new `[db]` extra
+  (`pip install 'gmeow-gts[db]'`). Library API: `gts.db.to_sqlite/to_duckdb/to_parquet`.
 
 ### Fixed
 

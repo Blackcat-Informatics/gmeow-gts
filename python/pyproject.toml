@@ -25,12 +25,14 @@ dependencies = [
 
 [project.optional-dependencies]
 rdf = ["rdflib>=7.6"]
+db = ["duckdb>=1.0"]
 
 [dependency-groups]
 dev = [
     "pytest>=8",
     "ruff>=0.6",
     "mypy>=1.11",
+    "duckdb>=1.0",
 ]
 
 [project.urls]

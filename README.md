@@ -202,12 +202,16 @@ gts unpack <file> -C <dir>    extract a files profile (refuses path traversal)
 gts extract <file> <digest>   write a single content-addressed blob
 gts compact <file>            compact a streamable segment into a self-contained one
 gts diff <file> <directory>   compare a files profile to a directory
+gts to-sqlite <file> <out>    export the folded graph to a SQLite database
+gts to-duckdb <file> <out>    export to a DuckDB database (needs the [db] extra)
+gts to-parquet <file> <dir>   export to Parquet, one file per table (needs [db])
 ```
 
 Exit codes: `0` clean · `1` diagnostics or input refused · `2` usage/IO error.
 
-`extract-key` and `from-nq` are currently Python-CLI extensions (signing/verification
-is Python-only today); cross-engine parity for them is in progress.
+`extract-key`, `from-nq`, and the `to-*` relational exports are currently Python-CLI
+extensions (crypto and the DB load are Python-only today); cross-engine parity is in
+progress. The relational exports need `pip install 'gmeow-gts[db]'` for DuckDB/Parquet.
 
 `cat` is raw byte concatenation with validation *added*, transformation *never*: it refuses
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
