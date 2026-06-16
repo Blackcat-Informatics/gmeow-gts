@@ -16,6 +16,12 @@ change before `1.0`.
 
 ### Added
 
+- Cross-engine COSE crypto parity, slice 1 (#15): a Rust `cose` module
+  (`ed25519-dalek`, pure Rust / wasm-friendly) implementing COSE_Sign1 Ed25519
+  `sign_id`/`verify_sig` byte-compatible with the Python reference, plus a frozen
+  shared vector set (`vectors/cose/*.json` + `scripts/gen_cose_vectors.py`) that
+  both engines gate against. Go and TypeScript to follow.
+
 - `gts extract-key <file>` (Python CLI, #12): prints the embedded transport
   (verification) key for a signed GTS — `kid`, OpenPGP fingerprint, emojihash,
   and the armored public key.
