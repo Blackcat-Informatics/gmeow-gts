@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# Pre-commit linter suite — repo hygiene, run locally (`pre-commit install`)
+# and in CI (`pre-commit run --all-files`). Python lint/type-check (ruff + mypy)
+# and per-language gates (cargo fmt, golangci, eslint) run in their CI jobs;
+# this file covers cross-cutting hygiene: formatting, spelling, YAML/TOML/JSON,
+# Markdown, shell, GitHub Actions (lint + security), and secrets.
+default_language_version:
+  python: python3.13
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Whitespace fixers skip license texts and the binary-ish conformance
+      # corpus (vectors/*.gts) so they stay byte-faithful — stripping a trailing
+      # byte inside a CBOR frame would corrupt the vector.
+      - id: trailing-whitespace
+        exclude: &keep-verbatim >
+          (?x)^(
+            LICENSE.*|
+            vectors/.*\.gts|
+            ts/package-lock.json|
+            rust/Cargo.lock
+          )$
+      - id: end-of-file-fixer
+        exclude: *keep-verbatim
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+        exclude: *keep-verbatim
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+        files: ^python/
+      - id: ruff-format
+        files: ^python/
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        additional_dependencies: ["tomli"]
+        exclude: '^(vectors/.*|ts/package-lock.json|rust/Cargo.lock)$'
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.7
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.17.2
+    hooks:
+      - id: markdownlint-cli2
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.5.2
+    hooks:
+      - id: zizmor
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.0
+    hooks:
+      - id: gitleaks
+
+  # SPDX / REUSE compliance — every file must declare copyright + license,
+  # either inline or via REUSE.toml. Runs locally and in the CI `lint` job.
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v5.0.2
+    hooks:
+      - id: reuse

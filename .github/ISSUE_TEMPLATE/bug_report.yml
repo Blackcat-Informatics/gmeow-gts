@@ -1,0 +1,107 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Bug report
+description: Report a reproducible defect in a GTS engine, the CLI, or the spec.
+title: "[bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please provide a minimal, reproducible report.
+        A failing `.gts` input or conformance vector is the most useful thing you can attach.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I searched existing issues first.
+          required: true
+        - label: I can reproduce this on the current `main` branch or latest release.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the project does this affect?
+      options:
+        - Rust engine / crate
+        - Python engine / package
+        - Go engine / module
+        - TypeScript engine / package
+        - "`gts` CLI"
+        - Conformance corpus (a vector)
+        - Specification (GTS-SPEC.md)
+        - Documentation
+        - CI / release
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Which engine version or commit are you using?
+      placeholder: "gmeow-gts 0.1.2 (Python) or commit SHA"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and language toolchain (rustc / Python / Go / Node) version.
+      placeholder: "Ubuntu 24.04; Python 3.13.5 / rustc 1.x / go 1.26 / node 22.16"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest sequence that reproduces the problem.
+      placeholder: |
+        1. `gts verify sample.gts` (attach sample.gts), or
+        2. a short code snippet using the library
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: crossengine
+    attributes:
+      label: Cross-engine check
+      description: >-
+        If you can, note whether the other engines (Rust / Python / Go / TypeScript)
+        behave the same on the same input — divergence is itself a bug.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      render: shell
+      description: Paste command output, diagnostics, or stack traces.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else that helps explain the issue.

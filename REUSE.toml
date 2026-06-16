@@ -1,0 +1,43 @@
+version = 1
+SPDX-PackageName = "gmeow-gts"
+SPDX-PackageSupplier = "Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-PackageDownloadLocation = "https://github.com/Blackcat-Informatics/gmeow-gts"
+
+# License declarations for files that cannot (or conventionally do not) carry an
+# inline SPDX header: JSON manifests/config, generated lockfiles, the binary
+# conformance corpus, type markers, test fixtures, and dotfiles. Every other
+# file in the repository carries an inline `SPDX-License-Identifier` header.
+
+[[annotations]]
+path = [
+  "go/go.mod",
+  "go/go.sum",
+  "ts/package.json",
+  "ts/package-lock.json",
+  "ts/tsconfig.json",
+  "ts/tsconfig.test.json",
+  "ts/.gitignore",
+  "rust/Cargo.lock",
+  "python/uv.lock",
+  "python/src/gts/py.typed",
+  "CITATION.cff",
+  ".gitignore",
+  ".gitattributes",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+# The frozen conformance corpus (canonical bytes + oracle expectations).
+[[annotations]]
+path = "vectors/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+# Test fixtures (a throwaway OpenPGP test keypair and its fingerprint).
+[[annotations]]
+path = "python/tests/fixtures/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0"

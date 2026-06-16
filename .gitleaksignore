@@ -1,0 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# Non-sensitive OpenPGP test keypair used by python/tests. These fixtures replace
+# live gpg-agent invocations and are not secrets.
+python/tests/fixtures/test_key.sec.asc:private-key:1

@@ -1,0 +1,79 @@
+<!--
+SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+SPDX-License-Identifier: MIT OR Apache-2.0
+-->
+# Contributing to gmeow-gts
+
+Thanks for your interest in GTS. This repository holds four interoperable engines
+(Rust, Python, Go, TypeScript) for the Graph Transport Substrate, the wire-format
+specification, and the frozen conformance corpus. Issues and pull requests are welcome.
+
+## Ways to contribute
+
+- **Report a bug or request a feature** — open an issue with a minimal reproduction
+  (ideally a `.gts` file or a failing conformance vector).
+- **Fix a bug or add a feature** — open a pull request against `main`.
+- **Improve the spec or docs** — corrections and clarifications to
+  [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) and the per-engine guides are very welcome.
+
+## The conformance corpus is the contract
+
+The four engines are interchangeable only because they all fold the **same bytes** to the
+**same expectations**. The frozen corpus lives in [`vectors/`](./vectors); the Python
+reference implementation (`gts.vectors`) is its single source of truth.
+
+- A change to format behaviour MUST update the corpus and keep all four engines green.
+- Regenerate the committed corpus and prove it is reproducible byte-for-byte:
+
+  ```bash
+  cd python && uv run python scripts/gen_vectors.py
+  git diff --exit-code vectors        # no changes ⇒ reproducible
+  ```
+
+- If you change one engine's observable behaviour, change the others to match (or open an
+  issue first to discuss whether the spec itself should change).
+
+## Development
+
+Each implementation builds and tests independently from its own directory:
+
+```bash
+cd rust   && cargo test                              # unit + CLI + conformance
+cd go     && go test ./...                            # unit + conformance
+cd ts     && npm ci && npm test                       # compiles, runs against vectors/
+cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
+```
+
+## Before you open a pull request
+
+- Run the relevant engine's test suite (above) and make sure it is green.
+- Run repo-wide hygiene: `pre-commit run --all-files` (formatting, SPDX headers,
+  YAML/Markdown/shell, secret scanning).
+- Per-language gates: `cargo fmt --check` + `cargo clippy`, `go vet` + `golangci-lint`,
+  `npm run lint`, `ruff check` + `mypy`.
+- Every source file must carry an SPDX `MIT OR Apache-2.0` license header.
+- Keep changes focused; describe **what** changed and **why** in the PR description.
+
+CI runs all four engines plus a lint lane on every pull request.
+
+## Licensing of contributions
+
+Contributions to **gmeow-gts** are accepted under **Apache-2.0 OR MIT** and, under the
+project CLA, under terms that permit separate proprietary/commercial licensing.
+
+For context, contributions to **GMEOW tooling/code** elsewhere in the project (the
+[`gmeow-ontology`](https://github.com/Blackcat-Informatics/gmeow-ontology) repository) are
+accepted under **AGPL-3.0-only** and, under the project CLA, under terms that permit Blackcat
+Informatics® Inc. to relicense them under separate proprietary/commercial terms. gmeow-gts is
+the deliberately permissive, dependency-light engine layer, so it carries the permissive
+`Apache-2.0 OR MIT` terms rather than AGPL.
+
+By submitting a contribution you agree to license it under the terms above. For the
+dual-licensing reservation to extend to your contribution, you agree to license it to
+Blackcat Informatics® Inc. under terms that permit relicensing, including under proprietary
+terms. A Contributor License Agreement (CLA) may be required before substantial
+contributions are merged. See [`LICENSING.md`](./LICENSING.md) for the full licensing scheme.
+
+## Conduct
+
+Be respectful and constructive. Harassment and abuse are not tolerated.

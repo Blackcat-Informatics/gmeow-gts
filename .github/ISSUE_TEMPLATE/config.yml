@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+blank_issues_enabled: false
+contact_links:
+  - name: GTS specification
+    url: https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md
+    about: Read the authoritative wire-format specification.
+  - name: Security policy
+    url: https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/SECURITY.md
+    about: Report vulnerabilities privately using the process described in SECURITY.md.
+  - name: Questions & discussion
+    url: https://github.com/Blackcat-Informatics/gmeow-gts/discussions
+    about: Ask usage questions or discuss the format and engines.

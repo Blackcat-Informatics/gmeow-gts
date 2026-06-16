@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use GTS, please cite it as below."
+title: "GTS — Graph Transport Substrate"
+abstract: >-
+  GTS (Graph Transport Substrate) is a single-file, content-addressed, append-only transport
+  for an RDF 1.2 graph — statements and statement-level metadata — together with any
+  content-addressed binary the graph references. A GTS file is a CBOR Sequence of one or more
+  append-only segments, each a header followed by frames chained by BLAKE3 content-id; the
+  logical graph is the deterministic fold (replay) of the log. Growth is an append,
+  "deletion" is suppression rather than physical removal, and optimisation is a separate,
+  explicitly lossy compaction. Concatenating valid GTS files (`cat`) yields a valid GTS file
+  whose fold is the value-union of the inputs, so memory grows by append, never by rewrite.
+  Integrity is content-addressed (parallel BLAKE3 verification, optional layered COSE
+  signing and encryption); the format is deliberately reader-simple — a conformant baseline
+  reader needs only a CBOR library. This repository provides four interoperable engines
+  (Rust, Python, Go, and TypeScript) that all gate against one frozen, byte-exact conformance
+  corpus, plus the specification that defines them.
+type: software
+authors:
+  - name: "Blackcat Informatics® Inc."
+    website: "https://blackcatinformatics.ca/"
+  - family-names: "Audley"
+    given-names: "Patrick"
+    orcid: "https://orcid.org/0000-0003-4382-7625"
+version: "0.1.2"
+date-released: "2026-06-16"
+license:
+  - Apache-2.0
+  - MIT
+url: "https://github.com/Blackcat-Informatics/gmeow-gts"
+repository-code: "https://github.com/Blackcat-Informatics/gmeow-gts"
+keywords:
+  - rdf
+  - rdf-star
+  - cbor
+  - knowledge-graph
+  - linked-data
+  - content-addressed
+  - append-only
+  - gts

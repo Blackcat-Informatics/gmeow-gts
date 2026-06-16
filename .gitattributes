@@ -1,0 +1,8 @@
+# The conformance corpus is byte-exact binary data — never normalize line
+# endings or treat as text.
+vectors/*.gts -text -diff
+
+# Lockfiles are generated; collapse in diffs/reviews.
+ts/package-lock.json linguist-generated=true -diff
+rust/Cargo.lock linguist-generated=true -diff
+go/go.sum linguist-generated=true -diff

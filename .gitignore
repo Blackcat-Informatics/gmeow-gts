@@ -1,0 +1,23 @@
+# Rust
+rust/target/
+
+# Go
+go/bin/
+
+# Node / TypeScript
+ts/node_modules/
+ts/dist/
+
+# Python
+python/.venv/
+python/dist/
+python/build/
+**/__pycache__/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environments / tooling
+.venv/
+.cache/
