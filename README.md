@@ -271,8 +271,15 @@ cd ts     && npm ci && npm test                       # compiles, runs against v
 cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
 ```
 
-Repo-wide hygiene (formatting, SPDX headers, YAML/Markdown/shell, secrets) runs through
-`pre-commit run --all-files`. CI runs all four engines plus a lint lane on every pull request.
+Or use the [`justfile`](./justfile): `just test` (all engines), `just lint`, `just fmt`,
+`just gen-vectors`, `just interop`, `just fuzz-rust` / `just fuzz-go`, `just audit`, `just wasm`.
+
+Repo-wide hygiene (formatting, SPDX/REUSE headers, YAML/Markdown/shell, secrets) runs through
+`pre-commit run --all-files`. CI runs all four engines on Linux, macOS, and Windows, plus a
+[live cross-engine interop check](./scripts/interop.sh) (each engine reads every other's
+output), reader [fuzzing](./.github/workflows/fuzz.yml), and per-ecosystem
+[supply-chain scanning](./.github/workflows/security.yml). Changes are tracked in
+[`CHANGELOG.md`](./CHANGELOG.md).
 
 ## Versioning & releases
 

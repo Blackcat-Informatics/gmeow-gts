@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: Fuzz
+
+# The readers parse untrusted, content-addressed, compressed input — the top
+# attack surface (SECURITY.md). Fuzz them as a fast PR smoke test and a longer
+# weekly run. Both readers are seeded from the frozen conformance corpus.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install Rust (nightly) + cargo-fuzz
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # nightly
+        with:
+          toolchain: nightly
+      - run: cargo install cargo-fuzz --locked
+
+      - name: Seed the fuzz corpus from the conformance vectors
+        run: |
+          mkdir -p rust/fuzz/corpus/read
+          cp vectors/*.gts rust/fuzz/corpus/read/
+
+      - name: Fuzz the reader
+        working-directory: rust
+        # 60s on PR/push smoke; 10 minutes on the weekly schedule.
+        run: |
+          dur=60
+          if [ "${{ github.event_name }}" = "schedule" ]; then dur=600; fi
+          cargo fuzz run read -- -max_total_time="$dur" -rss_limit_mb=4096
+
+      - name: Upload crash artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: rust-fuzz-artifacts
+          path: rust/fuzz/artifacts/
+
+  fuzz-go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+
+      - name: Fuzz the reader
+        working-directory: go
+        run: |
+          dur=60s
+          if [ "${{ github.event_name }}" = "schedule" ]; then dur=10m; fi
+          CGO_ENABLED=0 go test -run='^$' -fuzz=FuzzRead -fuzztime="$dur" ./reader
+
+      - name: Upload failing seeds (on failure)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: go-fuzz-testdata
+          path: go/reader/testdata/

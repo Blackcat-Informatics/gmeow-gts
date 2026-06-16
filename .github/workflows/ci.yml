@@ -27,6 +27,9 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Engine versions agree (lockstep release)
+        run: bash scripts/check-versions.sh
+
       - name: Cache pre-commit hook environments
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
@@ -35,12 +38,16 @@ jobs:
           restore-keys: |
             pre-commit-${{ runner.os }}-
 
-      - name: Pre-commit (format, spelling, YAML/MD/shell/actions, secrets)
+      - name: Pre-commit (format, spelling, YAML/MD/shell/actions, secrets, REUSE)
         run: pipx run pre-commit run --all-files --show-diff-on-failure
 
-  # Rust engine: pure stable Rust, gates against the frozen corpus in vectors/.
+  # Rust engine: build + test on every OS; format/clippy/wasm once on Linux.
   rust:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -50,6 +57,7 @@ jobs:
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           components: clippy, rustfmt
+          targets: wasm32-unknown-unknown
 
       - name: Cache Cargo dependencies
         uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
@@ -57,10 +65,12 @@ jobs:
           workspaces: rust
 
       - name: Format gate
+        if: runner.os == 'Linux'
         working-directory: rust
         run: cargo fmt --check
 
       - name: Clippy (warnings are errors)
+        if: runner.os == 'Linux'
         working-directory: rust
         run: cargo clippy --all-targets -- -D warnings
 
@@ -68,9 +78,20 @@ jobs:
         working-directory: rust
         run: cargo test
 
-  # Go engine: gates against the same frozen corpus and CLI surface.
+      - name: Library builds for wasm32 (wasm-friendly claim)
+        if: runner.os == 'Linux'
+        working-directory: rust
+        run: cargo build --lib --target wasm32-unknown-unknown
+
+  # Go engine: build + test on every OS; staticcheck/golangci once on Linux.
   go:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -82,15 +103,16 @@ jobs:
           go-version-file: go/go.mod
           cache-dependency-path: go/go.sum
 
-      - name: Build (no CGO)
+      - name: Build
         working-directory: go
-        run: CGO_ENABLED=0 go build ./...
+        run: go build ./...
 
       - name: Vet
         working-directory: go
         run: go vet ./...
 
       - name: staticcheck
+        if: runner.os == 'Linux'
         uses: dominikh/staticcheck-action@672a31696676d1592844bf0164b3bbfd855a4d50 # v1.4.1
         with:
           version: "2026.1"
@@ -98,19 +120,24 @@ jobs:
           working-directory: go
 
       - name: golangci-lint
+        if: runner.os == 'Linux'
         uses: golangci/golangci-lint-action@db582008a42febd596419635a5abc9d9815daa9c # v9.2.1
         with:
           version: v2.12.2
           working-directory: go
           args: --timeout=5m
 
-      - name: Conformance corpus + CLI tests (no CGO)
+      - name: Conformance corpus + CLI tests
         working-directory: go
-        run: CGO_ENABLED=0 go test ./...
+        run: go test ./...
 
-  # TypeScript engine: lint, test (compiles + runs against vectors/), and build.
+  # TypeScript engine: build + test on every OS; lint once on Linux.
   ts:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -126,6 +153,7 @@ jobs:
         run: npm ci
 
       - name: Lint
+        if: runner.os == 'Linux'
         working-directory: ts
         run: npm run lint
 
@@ -137,9 +165,13 @@ jobs:
         working-directory: ts
         run: npm run build
 
-  # Python reference engine + the conformance oracle (defines the corpus).
+  # Python reference engine: build + test on every OS; lint/types/corpus once on Linux.
   python:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -155,10 +187,12 @@ jobs:
         run: uv sync --extra rdf
 
       - name: Lint (ruff)
+        if: runner.os == 'Linux'
         working-directory: python
         run: uv run ruff check .
 
       - name: Type-check (mypy)
+        if: runner.os == 'Linux'
         working-directory: python
         run: uv run mypy
 
@@ -167,7 +201,41 @@ jobs:
         run: uv run pytest
 
       - name: Corpus is reproducible from the oracle
+        if: runner.os == 'Linux'
         working-directory: python
         run: |
           uv run python scripts/gen_vectors.py
           git diff --exit-code ../vectors
+
+  # Live cross-engine interoperability: each engine reads every other's output.
+  interop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          workspaces: rust
+
+      - name: Set up Go
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: ts/package.json
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+
+      - name: Cross-engine interop
+        run: bash scripts/interop.sh

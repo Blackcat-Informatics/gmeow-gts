@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: Supply chain
+
+# Fail the build on a dependency with a known vulnerability, per ecosystem.
+# Dependabot opens upgrade PRs; this gate stops a known-vulnerable dependency
+# from shipping. Runs on PRs touching a lockfile, on main, and weekly (so newly
+# disclosed advisories surface even without a code change).
+
+on:
+  pull_request:
+    paths:
+      - "rust/Cargo.lock"
+      - "go/go.sum"
+      - "ts/package-lock.json"
+      - "python/uv.lock"
+      - ".github/workflows/security.yml"
+  push:
+    branches: [main]
+  schedule:
+    - cron: "13 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      - run: cargo install cargo-audit --locked
+      - name: cargo audit
+        working-directory: rust
+        run: cargo audit
+
+  go-vuln:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: govulncheck
+        working-directory: go
+        run: govulncheck ./...
+
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: ts/package.json
+      - name: npm audit
+        working-directory: ts
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
+  python-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+      - name: pip-audit
+        working-directory: python
+        run: |
+          uv sync --extra rdf
+          uv run --with pip-audit pip-audit
