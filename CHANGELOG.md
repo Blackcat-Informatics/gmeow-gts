@@ -14,6 +14,8 @@ change before `1.0`.
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-06-16
+
 ### Added
 
 - Live cross-engine interoperability check (`scripts/interop.sh`): every engine
@@ -21,7 +23,8 @@ change before `1.0`.
   results — interop coverage beyond the Python-generated frozen corpus.
 - Fuzzing for the readers: Rust `cargo-fuzz` target and Go native `FuzzRead`,
   seeded from the conformance corpus, run on a schedule and as a PR smoke test.
-- Supply-chain vulnerability scanning across all four lockfiles (osv-scanner).
+- Per-ecosystem supply-chain vulnerability scanning (`cargo audit`,
+  `govulncheck`, `npm audit`, `pip-audit`) on lockfile changes, on main, and weekly.
 - Cross-platform CI (Linux, macOS, Windows) for every engine's build and tests.
 - `wasm32-unknown-unknown` build gate for the Rust library.
 - Developer `justfile`, a lockstep version-sync check, and this changelog.
@@ -40,5 +43,6 @@ change before `1.0`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.2...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.3...HEAD
+[0.1.3]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.2...py-v0.1.3
 [0.1.2]: https://github.com/Blackcat-Informatics/gmeow-gts/releases/tag/py-v0.1.2

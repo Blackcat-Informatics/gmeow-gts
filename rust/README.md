@@ -105,7 +105,7 @@ Add to `Cargo.toml`:
 
 ```toml
 [dependencies]
-gmeow-gts = "0.1.2"
+gmeow-gts = "0.1.3"
 ```
 
 ---
