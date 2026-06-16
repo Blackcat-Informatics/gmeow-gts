@@ -25,6 +25,11 @@ change before `1.0`.
 - Cross-platform CI (Linux, macOS, Windows) for every engine's build and tests.
 - `wasm32-unknown-unknown` build gate for the Rust library.
 - Developer `justfile`, a lockstep version-sync check, and this changelog.
+- Full release attestations across all four engines: SLSA build-provenance
+  attestations and SPDX SBOMs for the crate, the npm tarball (in addition to
+  npm's sigstore provenance), the Python distributions, and the Go binaries.
+- npm releases use trusted publishing (OIDC); the Go release cross-builds and
+  publishes attested binaries (replacing the Pro-only goreleaser monorepo setup).
 
 ## [0.1.2] — 2026-06-16
 

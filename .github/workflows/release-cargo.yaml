@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 name: Release Cargo gmeow-gts
 
-# On a rust-v* tag, verify and publish the gmeow-gts crate to crates.io.
+# On a rust-v* tag, verify, attest, and publish the gmeow-gts crate to crates.io.
 
 on:
   push:
@@ -19,6 +19,10 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -40,8 +44,31 @@ jobs:
 
       - name: Verify package builds and tests
         working-directory: rust
-        run: cargo test
+        run: cargo test --locked
+
+      - name: Package the crate
+        working-directory: rust
+        run: cargo package --locked
+
+      - name: Attest build provenance for the crate
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        with:
+          subject-path: rust/target/package/*.crate
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: rust
+          format: spdx-json
+          output-file: sbom-rust-gmeow-gts.spdx.json
+          upload-artifact: false
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sbom-rust-gmeow-gts
+          path: sbom-rust-gmeow-gts.spdx.json
 
       - name: Publish to crates.io
         working-directory: rust
-        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked --no-verify --token ${{ secrets.CARGO_REGISTRY_TOKEN }}

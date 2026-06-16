@@ -2,34 +2,85 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 name: Release Go GTS
 
+# On a go-v* tag, cross-build the gts CLI, attest provenance, generate an SBOM,
+# and publish a GitHub Release with the archives + checksums.
+
 on:
   push:
     tags:
       - 'go-v*'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub Release
+      id-token: write # provenance attestation
+      attestations: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
         with:
           go-version-file: go/go.mod
-          cache: false
+          cache-dependency-path: go/go.sum
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+      - name: Cross-build the gts CLI
+        run: |
+          VERSION="${GITHUB_REF_NAME#go-v}"
+          mkdir -p dist
+          cd go
+          for os in linux darwin windows; do
+            for arch in amd64 arm64; do
+              ext=""
+              [ "$os" = windows ] && ext=".exe"
+              CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
+                go build -trimpath -ldflags "-s -w" -o "gts$ext" ./cmd/gts
+              base="gts_${VERSION}_${os}_${arch}"
+              if [ "$os" = windows ]; then
+                zip -qj "../dist/${base}.zip" "gts$ext"
+              else
+                tar czf "../dist/${base}.tar.gz" "gts$ext"
+              fi
+              rm -f "gts$ext"
+            done
+          done
+          cd ../dist && sha256sum ./* > checksums.txt
+          ls -la
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
         with:
-          version: latest
-          args: release --clean --config go/.goreleaser.yaml
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: go
+          format: spdx-json
+          output-file: dist/sbom-go-gts.spdx.json
+          upload-artifact: false
+
+      - name: Publish GitHub Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "GTS Go ${GITHUB_REF_NAME#go-}" \
+            --notes "Pre-built \`gts\` CLI binaries for \`go.blackcatinformatics.ca/gts\`.
+
+          Verify build provenance:
+          \`\`\`
+          gh attestation verify <archive> --repo $GITHUB_REPOSITORY
+          \`\`\`"
