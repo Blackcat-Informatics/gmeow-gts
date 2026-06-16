@@ -19,6 +19,11 @@ change before `1.0`.
 - `gts extract-key <file>` (Python CLI, #12): prints the embedded transport
   (verification) key for a signed GTS — `kid`, OpenPGP fingerprint, emojihash,
   and the armored public key.
+- `gts from-nq <in.nq> -o <out.gts>` (Python CLI, #14): build a GTS from
+  N-Quads — the inverse of `fold`. Native N-Quads(-star) parser (no rdflib);
+  handles IRIs, blank nodes, language/datatyped literals, named graphs, and the
+  RDF 1.2 reifying style. `-` reads stdin, so `rdflib → n-quads → gts` pipes. Also
+  exported as `gts.from_nquads`.
 
 ### Fixed
 

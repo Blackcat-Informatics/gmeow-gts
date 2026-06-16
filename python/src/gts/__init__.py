@@ -16,6 +16,7 @@ owns the format, nothing else.
 from __future__ import annotations
 
 from gts.crypto import InMemoryKeys, KeyProvider, Signer
+from gts.from_nquads import from_nquads
 from gts.model import (
     Diagnostic,
     Graph,
@@ -41,6 +42,7 @@ __all__ = [
     "Term",
     "TermKind",
     "Writer",
+    "from_nquads",
     "read",
     "read_segments",
     "to_nquads",

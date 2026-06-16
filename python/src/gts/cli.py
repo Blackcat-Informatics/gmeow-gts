@@ -235,6 +235,27 @@ def _cmd_extract_key(path: str) -> int:
     return 0
 
 
+def _cmd_from_nq(path: str, out: str | None) -> int:
+    """Build a GTS from N-Quads text — the inverse of ``fold`` (§14).
+
+    Reads ``path`` (or stdin when ``path`` is ``-``); writes GTS to ``out`` (or
+    stdout). Lets RDF producers delegate the GTS encoding to the binary.
+    """
+    from gts.from_nquads import NQuadsParseError, from_nquads
+
+    try:
+        text = sys.stdin.read() if path == "-" else _load(path).decode("utf-8")
+    except OSError as exc:
+        print(f"gts from-nq: cannot read {path}: {exc}", file=sys.stderr)
+        return 2
+    try:
+        data = from_nquads(text)
+    except NQuadsParseError as exc:
+        print(f"gts from-nq: {exc}", file=sys.stderr)
+        return 1
+    return _write_out(out, data)
+
+
 def _all_quads_suppressed(g: Graph) -> bool:
     """True iff the fold has quads and EVERY one is hidden by a suppression.
 
@@ -512,6 +533,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_extract_key.add_argument("file")
 
+    p_from_nq = sub.add_parser(
+        "from-nq",
+        help="build a GTS from N-Quads — the inverse of fold; '-' reads stdin",
+    )
+    p_from_nq.add_argument("file")
+    p_from_nq.add_argument("-o", "--out", default=None)
+
     p_extract = sub.add_parser(
         "extract",
         help="extract one blob by content digest; --mt asserts the declared "
@@ -589,6 +617,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_ls(args.file)
     if args.command == "extract-key":
         return _cmd_extract_key(args.file)
+    if args.command == "from-nq":
+        return _cmd_from_nq(args.file, args.out)
     if args.command == "extract":
         return _cmd_extract(
             args.file, args.digest, args.out, args.mt, args.include_suppressed

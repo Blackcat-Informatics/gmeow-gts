@@ -192,7 +192,9 @@ spec — the engines are CLI-compatible by conformance test):
 ```text
 gts info <file>...            per-segment composition ledger
 gts fold <file>               fold to N-Quads on stdout
+gts from-nq <in.nq> -o <out>  build a GTS from N-Quads (inverse of fold; '-' = stdin)
 gts verify <file>...          verify chains; exit 1 on any diagnostic
+gts extract-key <file>        print the embedded transport/verification key
 gts cat -o <out> <file>...    validating composer: refuse degenerate inputs, then concatenate
 gts ls <file>...              list segment digests, sizes, and media types
 gts pack <dir> -o <out>       package a directory into a GTS files profile
@@ -203,6 +205,9 @@ gts diff <file> <directory>   compare a files profile to a directory
 ```
 
 Exit codes: `0` clean · `1` diagnostics or input refused · `2` usage/IO error.
+
+`extract-key` and `from-nq` are currently Python-CLI extensions (signing/verification
+is Python-only today); cross-engine parity for them is in progress.
 
 `cat` is raw byte concatenation with validation *added*, transformation *never*: it refuses
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
