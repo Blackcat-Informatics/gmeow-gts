@@ -3,7 +3,10 @@
 name: Release npm gmeow-gts
 
 # On an npm-v* tag, verify and publish the @blackcatinformatics/gmeow-gts
-# package to the npm registry.
+# package to the npm registry via npm trusted publishing (OIDC) — no NPM_TOKEN.
+# Requires a Trusted Publisher configured on npmjs.com for this package:
+#   Publisher: GitHub Actions · Owner: Blackcat-Informatics · Repo: gmeow-gts
+#   Workflow: release-npm.yaml · Environment: (none)
 
 on:
   push:
@@ -43,6 +46,9 @@ jobs:
           node-version-file: ts/package.json
           registry-url: https://registry.npmjs.org
 
+      - name: Upgrade npm (trusted publishing needs npm >= 11.5.1)
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         working-directory: ts
         run: npm ci
@@ -55,8 +61,8 @@ jobs:
         working-directory: ts
         run: npm run build
 
-      - name: Publish to npm
+      - name: Publish to npm (trusted publishing / OIDC)
         working-directory: ts
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # No NODE_AUTH_TOKEN: npm authenticates via the GitHub OIDC token and the
+        # configured Trusted Publisher; provenance is generated automatically.
+        run: npm publish --access public
