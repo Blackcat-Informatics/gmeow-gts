@@ -129,7 +129,10 @@ function guessMediaType(path: string): string {
 
 function formatDateTime(ts: number): string {
     const d = new Date(ts * 1000);
-    return d.toISOString();
+    // Second-precision RFC 3339 to match the Rust/Go/Python engines; JS
+    // toISOString() always emits milliseconds (".000Z"), which diverges on the
+    // wire and over-specifies the xsd:dateTime literal.
+    return d.toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
 /** Pack files/directories into a deterministic GTS files-profile archive. */
@@ -183,7 +186,7 @@ export function pack(sources: string[]): Uint8Array {
             literalTerm(relpath),
             literalTerm(digest),
             literalTerm(String(size), xsdIntegerID),
-            literalTerm(mode.toString(8), xsdIntegerID),
+            literalTerm(mode.toString(10), xsdIntegerID),
             literalTerm(formatDateTime(mtime), xsdDateTimeID),
             literalTerm(mt),
         );
@@ -348,7 +351,9 @@ export function unpack(
         writeFileSync(target, data);
 
         if (entry.mode) {
-            const m = parseInt(entry.mode, 8);
+            // The mode is the decimal integer value of the permission bits
+            // (xsd:integer), matching the other engines — not an octal string.
+            const m = parseInt(entry.mode, 10);
             if (!Number.isNaN(m)) chmodSync(target, m);
         }
         if (entry.modified) {

@@ -225,7 +225,7 @@ func Pack(sources []string) ([]byte, error) {
 		pathTerm := literalTerm(relpath, nil)
 		digestTerm := literalTerm(digest, nil)
 		sizeTerm := literalTerm(strconv.FormatInt(size, 10), &xsdIntegerID)
-		modeTerm := literalTerm(strconv.FormatUint(uint64(mode), 8), &xsdIntegerID)
+		modeTerm := literalTerm(strconv.FormatUint(uint64(mode), 10), &xsdIntegerID)
 		modifiedTerm := literalTerm(formatDateTime(mtime), &xsdDateTimeID)
 		mediaTerm := literalTerm(mt, nil)
 
@@ -499,7 +499,7 @@ func Unpack(g *model.Graph, dest string, includeSuppressed bool) error {
 		}
 
 		if modeStr, ok := entry["mode"]; ok {
-			if m, err := strconv.ParseUint(modeStr, 8, 32); err == nil {
+			if m, err := strconv.ParseUint(modeStr, 10, 32); err == nil {
 				_ = os.Chmod(target, os.FileMode(m))
 			}
 		}

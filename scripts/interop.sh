@@ -61,30 +61,35 @@ for e in "${ENGINES[@]}"; do
   printf '  %-7s -> packed_%s.gts (%s bytes)\n' "$e" "$e" "$(wc -c < "$WORK/packed_$e.gts")"
 done
 
-# Informational: are the packed bytes identical across engines? (strong
-# determinism signal, but not the hard gate — encodings may legitimately differ.)
-if [ "$(sha256sum "$WORK"/packed_*.gts | awk '{print $1}' | sort -u | wc -l)" -eq 1 ]; then
-  log "All four engines produced BYTE-IDENTICAL packages"
-else
-  log "Packages differ at the byte level (folds are still gated below)"
-fi
-
 fail=0
 
-# --- cross-fold: every engine folds every package; folds must match -------- #
-log "Cross-fold: every engine folds every package (sorted N-Quads must match)"
+# --- byte-identity gate: identical input MUST pack to identical bytes ------- #
+# Hard gate (#5): GTS is content-addressed and cat-append composable, so the same
+# fixture must serialize identically regardless of which engine wrote it.
+log "Byte-identity: all engines must pack the fixture to identical bytes"
+if [ "$(sha256sum "$WORK"/packed_*.gts | awk '{print $1}' | sort -u | wc -l)" -eq 1 ]; then
+  printf '  all four packages are byte-identical\n'
+else
+  echo "  MISMATCH: engines produced byte-divergent packages:" >&2
+  sha256sum "$WORK"/packed_*.gts | sed 's/^/    /' >&2
+  fail=1
+fi
+
+# --- cross-fold: EVERY package must fold to the SAME graph in every engine -- #
+# One global reference: this catches both reader disagreement and writer drift.
+log "Cross-fold: every package folds to the same graph in every engine"
+ref=""
 for writer in "${ENGINES[@]}"; do
-  ref=""
   for reader in "${ENGINES[@]}"; do
     out="$(gts "$reader" fold "$WORK/packed_$writer.gts" | LC_ALL=C sort)"
     if [ -z "$ref" ]; then
       ref="$out"
     elif [ "$out" != "$ref" ]; then
-      echo "  MISMATCH: $reader folding $writer's package differs from the others" >&2
+      echo "  MISMATCH: $reader folding $writer's package differs from the reference" >&2
       fail=1
     fi
   done
-  printf '  package from %-7s folds identically in all engines\n' "$writer"
+  printf '  package from %-7s folds identically everywhere\n' "$writer"
 done
 
 # --- cross-unpack: every engine unpacks rust's package to the original ------ #

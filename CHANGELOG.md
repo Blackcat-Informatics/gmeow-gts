@@ -14,6 +14,16 @@ change before `1.0`.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cross-engine `pack` byte parity (#5).** The TypeScript and Go engines encoded
+  the files-profile `mode` as an octal string (`"644"`) instead of the decimal
+  `xsd:integer` value (`"420"`) the Rust and Python engines use, and TypeScript
+  emitted millisecond-precision `modified` timestamps (`…20.000Z`). All four
+  engines now pack identical fixtures to byte-identical output. The `interop`
+  check promotes byte-identity to a hard gate and folds every package against a
+  single global reference, so writer drift (not just reader disagreement) fails CI.
+
 ## [0.1.3] — 2026-06-16
 
 ### Added
