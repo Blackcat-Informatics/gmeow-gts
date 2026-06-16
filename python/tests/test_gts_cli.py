@@ -530,3 +530,40 @@ def test_writer_rejects_unsupported_layout_claim() -> None:
     claim must fail at construction, not persist into the header."""
     with pytest.raises(ValueError, match="unsupported layout claim"):
         Writer(layout="streamabel")
+
+
+def test_extract_key_prints_embedded_transport_key(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """§9.2: `gts extract-key` prints kid, fingerprint, emojihash, and the key."""
+    from gts.crypto import Signer
+
+    fx = Path(__file__).parent / "fixtures"
+    pub = (fx / "test_key.pub.asc").read_text(encoding="utf-8")
+    sec = (fx / "test_key.sec.asc").read_text(encoding="utf-8")
+    signer = Signer.from_gpg_secret_key(sec)
+    w = Writer(profile="dist", signer=signer)
+    w.add_meta({"gts:transportKey": {"kid": signer.kid, "gpg": pub}})
+    w.add_terms([Term(TermKind.IRI, CAT)])
+    path = tmp_path / "signed.gts"
+    path.write_bytes(w.to_bytes())
+
+    assert main(["extract-key", str(path)]) == 0
+    out = capsys.readouterr().out
+    assert "BEGIN PGP PUBLIC KEY BLOCK" in out
+    assert "kid:" in out
+    assert "fingerprint:" in out
+    assert "emojihash:" in out
+
+
+def test_extract_key_missing_returns_1(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An unsigned file has no embedded transport key — exit 1."""
+    w = Writer()
+    w.add_terms([Term(TermKind.IRI, CAT)])
+    path = tmp_path / "plain.gts"
+    path.write_bytes(w.to_bytes())
+
+    assert main(["extract-key", str(path)]) == 1
+    assert "no embedded transport key" in capsys.readouterr().err

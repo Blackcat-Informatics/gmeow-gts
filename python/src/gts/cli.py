@@ -203,6 +203,38 @@ def _cmd_verify(paths: list[str]) -> int:
     return 1 if problems else 0
 
 
+def _cmd_extract_key(path: str) -> int:
+    """Print the embedded transport (verification) key for a signed GTS (§9.2).
+
+    Emits the ``kid``, the OpenPGP fingerprint, an emojihash for eyeball
+    verification, and the armored public key. Exit 1 if no key is embedded.
+    """
+    from gts.verify import extract_transport_key, format_fingerprint
+
+    key = extract_transport_key(read(_load(path)))
+    if key is None:
+        print(f"{path}: no embedded transport key", file=sys.stderr)
+        return 1
+
+    armored = key["gpg"]
+    print(f"kid:         {key['kid']}")
+    try:
+        from cryptography.hazmat.primitives import serialization
+
+        from gts.emojihash import emojihash
+        from gts.openpgp import load_public_key, public_key_fingerprint
+
+        raw = load_public_key(armored).public_bytes(
+            serialization.Encoding.Raw, serialization.PublicFormat.Raw
+        )
+        print(f"fingerprint: {format_fingerprint(public_key_fingerprint(armored))}")
+        print(f"emojihash:   {emojihash(raw)}")
+    except Exception:  # noqa: BLE001 - malformed embedded key still prints below
+        print(f"fingerprint: {format_fingerprint(key['kid'])}")
+    print(armored)
+    return 0
+
+
 def _all_quads_suppressed(g: Graph) -> bool:
     """True iff the fold has quads and EVERY one is hidden by a suppression.
 
@@ -473,6 +505,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_ls.add_argument("file")
 
+    p_extract_key = sub.add_parser(
+        "extract-key",
+        help="print the embedded transport/verification key: kid, fingerprint, "
+        "emojihash, armored public key (§9.2)",
+    )
+    p_extract_key.add_argument("file")
+
     p_extract = sub.add_parser(
         "extract",
         help="extract one blob by content digest; --mt asserts the declared "
@@ -548,6 +587,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_verify(args.files)
     if args.command == "ls":
         return _cmd_ls(args.file)
+    if args.command == "extract-key":
+        return _cmd_extract_key(args.file)
     if args.command == "extract":
         return _cmd_extract(
             args.file, args.digest, args.out, args.mt, args.include_suppressed

@@ -14,6 +14,12 @@ change before `1.0`.
 
 ## [Unreleased]
 
+### Added
+
+- `gts extract-key <file>` (Python CLI, #12): prints the embedded transport
+  (verification) key for a signed GTS — `kid`, OpenPGP fingerprint, emojihash,
+  and the armored public key.
+
 ### Fixed
 
 - **Cross-engine `pack` byte parity (#5).** The TypeScript and Go engines encoded
