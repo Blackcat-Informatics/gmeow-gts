@@ -59,6 +59,10 @@ impl TrustPolicy {
     }
 
     /// True when `kid` satisfies the high-privacy opaque-profile shape.
+    ///
+    /// The default pattern is implemented as the documented
+    /// `anon:[0-9a-fA-F]{32,}` shape without pulling in a regex dependency. If
+    /// `pseudonymous_kid_pattern` is customized, it is matched literally.
     pub fn is_pseudonymous_recipient(&self, kid: &str) -> bool {
         if self.pseudonymous_kid_pattern != DEFAULT_PSEUDONYMOUS_KID_PATTERN {
             return kid == self.pseudonymous_kid_pattern;
@@ -363,15 +367,24 @@ fn term_iri_value(graph: &Graph, tid: usize) -> Option<&str> {
 
 fn used_vocabs(graph: &Graph) -> HashSet<&'static str> {
     let mut out = HashSet::new();
+    let term_vocabs: Vec<Option<&'static str>> = graph
+        .terms
+        .iter()
+        .map(|term| match (term.kind, term.value.as_deref()) {
+            (TermKind::Iri, Some(iri)) => {
+                let ns = namespace(iri);
+                PROFILE_VOCABS
+                    .iter()
+                    .find(|&&(_, vocab)| ns == vocab)
+                    .map(|&(_, vocab)| vocab)
+            }
+            _ => None,
+        })
+        .collect();
     for &(s, p, o, g) in &graph.quads {
         for tid in [Some(s), Some(p), Some(o), g].into_iter().flatten() {
-            let Some(iri) = term_iri_value(graph, tid) else {
-                continue;
-            };
-            for &(_profile, vocab) in PROFILE_VOCABS {
-                if namespace(iri) == vocab {
-                    out.insert(vocab);
-                }
+            if let Some(&Some(vocab)) = term_vocabs.get(tid) {
+                out.insert(vocab);
             }
         }
     }
@@ -415,11 +428,19 @@ fn stream_vocab_findings(graph: &Graph, segment_index: Option<usize>) -> Vec<Pro
     if claimed {
         return Vec::new();
     }
+    let term_uses_stream: Vec<bool> = graph
+        .terms
+        .iter()
+        .map(|term| match (term.kind, term.value.as_deref()) {
+            (TermKind::Iri, Some(iri)) => iri.starts_with(STREAM_NS),
+            _ => false,
+        })
+        .collect();
     let uses = graph.quads.iter().any(|&(s, p, o, g)| {
         [Some(s), Some(p), Some(o), g]
             .into_iter()
             .flatten()
-            .any(|tid| term_iri_value(graph, tid).is_some_and(|iri| iri.starts_with(STREAM_NS)))
+            .any(|tid| term_uses_stream.get(tid).copied().unwrap_or(false))
     });
     if !uses {
         return Vec::new();

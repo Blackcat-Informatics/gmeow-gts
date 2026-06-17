@@ -67,26 +67,30 @@ fn visit(
     subgraphs: &mut Vec<(String, Graph)>,
 ) -> Graph {
     let mut graph = read(data, true, None);
-    let nested: Vec<(String, Vec<u8>)> = graph
+    let nested_digests: Vec<String> = graph
         .blob_meta
         .iter()
         .filter_map(|(digest, meta)| {
             if blob_media_type(meta) == Some(GTS_MEDIA_TYPE) {
-                graph
-                    .blobs
-                    .iter()
-                    .find(|(d, _)| d == digest)
-                    .map(|(_, bytes)| (digest.clone(), bytes.clone()))
+                Some(digest.clone())
             } else {
                 None
             }
         })
         .collect();
 
-    for (digest, nested_bytes) in nested {
+    for digest in nested_digests {
         if seen.contains(&digest) {
             continue;
         }
+        let Some(nested_bytes) = graph
+            .blobs
+            .iter()
+            .find(|(d, _)| d == &digest)
+            .map(|(_, bytes)| bytes.clone())
+        else {
+            continue;
+        };
         if depth >= max_depth {
             graph.diagnostics.push(Diagnostic {
                 code: "RecursionLimit".to_string(),
