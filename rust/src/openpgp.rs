@@ -1,15 +1,17 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Minimal OpenPGP reader for Ed25519 armored public keys (`extract-key`, §9.2).
+//! Minimal OpenPGP reader for Ed25519 armored public/secret keys (§9.2).
 //!
 //! This mirrors the Python `gts.openpgp` reference: it parses only the
-//! unencrypted armored public-key certificates GPG emits for Ed25519 (OpenPGP
-//! algorithm 22) keys, extracting the raw 32-byte key and computing the v4
-//! fingerprint so GTS tooling can show the embedded transport key without
-//! shelling out to `gpg`. Everything else (other algorithms, encrypted secret
-//! keys, v5/v6 packets) is rejected with a clear error.
+//! unencrypted armored public-key certificates and secret-key blocks GPG emits
+//! for Ed25519 (OpenPGP algorithm 22) keys, extracting raw key material and
+//! computing the v4 fingerprint so GTS tooling can sign or show the embedded
+//! transport key without shelling out to `gpg`. Everything else (other
+//! algorithms, encrypted secret keys, v5/v6 packets) is rejected with a clear
+//! error.
 
+use ed25519_dalek::SigningKey;
 use sha1::{Digest, Sha1};
 
 /// OpenPGP public-key algorithm id for EdDSA (RFC 9580 §9.1).
@@ -42,6 +44,42 @@ pub struct TransportKey {
     pub raw_public: [u8; 32],
     /// Uppercase 40-hex-character OpenPGP v4 fingerprint.
     pub fingerprint: String,
+}
+
+/// Signing material loaded from an unencrypted OpenPGP Ed25519 secret-key block.
+#[derive(Clone)]
+pub struct OpenPgpSigningKey {
+    signing_key: SigningKey,
+    kid: String,
+    fingerprint: String,
+    raw_public: [u8; 32],
+}
+
+impl OpenPgpSigningKey {
+    /// Ed25519 signing key extracted from the OpenPGP secret-key packet.
+    pub fn signing_key(&self) -> &SigningKey {
+        &self.signing_key
+    }
+
+    /// COSE key id to use for signatures.
+    pub fn kid(&self) -> &str {
+        &self.kid
+    }
+
+    /// OpenPGP v4 fingerprint of the public-key material.
+    pub fn fingerprint(&self) -> &str {
+        &self.fingerprint
+    }
+
+    /// Raw 32-byte Ed25519 public key derived from the OpenPGP public material.
+    pub fn raw_public(&self) -> &[u8; 32] {
+        &self.raw_public
+    }
+
+    /// Consume the wrapper and return the key material used by [`crate::writer::Writer`].
+    pub fn into_parts(self) -> (SigningKey, String) {
+        (self.signing_key, self.kid)
+    }
 }
 
 /// Decode the packet bytes from an ASCII-armored OpenPGP block.
@@ -277,6 +315,41 @@ fn parse_ed25519_public_material(body: &[u8]) -> Result<([u8; 32], usize)> {
     Ok((raw, end))
 }
 
+/// Parse the secret scalar from a v4 Ed25519 secret-key packet body.
+fn parse_ed25519_secret_material(body: &[u8]) -> Result<([u8; 32], [u8; 32])> {
+    let (raw_public, mut offset) = parse_ed25519_public_material(body)?;
+
+    if offset >= body.len() {
+        return err("truncated secret-key packet");
+    }
+    let s2k_usage = body[offset];
+    offset += 1;
+    if s2k_usage != 0 {
+        return err(
+            "encrypted secret keys are not supported; export an unencrypted Ed25519 secret key",
+        );
+    }
+
+    let (mpi, _) = read_mpi(body, offset)?;
+    let raw_secret: [u8; 32] = match mpi.as_slice() {
+        [0, rest @ ..] if rest.len() == 32 => rest.try_into().expect("len checked"),
+        bytes if bytes.len() == 32 => bytes.try_into().expect("len checked"),
+        bytes => {
+            return Err(OpenPgpError(format!(
+                "unexpected Ed25519 secret MPI length {}",
+                bytes.len()
+            )))
+        }
+    };
+
+    let signing_key = SigningKey::from_bytes(&raw_secret);
+    if signing_key.verifying_key().to_bytes() != raw_public {
+        return err("OpenPGP secret key does not match public key material");
+    }
+
+    Ok((raw_public, raw_secret))
+}
+
 /// Compute the OpenPGP v4 fingerprint of a public-key packet body.
 ///
 /// `SHA-1(0x99 || u16-be(len(body)) || body)`, uppercased. SHA-1 is mandated by
@@ -316,6 +389,34 @@ pub fn parse_transport_key(armored: &str) -> Result<TransportKey> {
     err("no public-key packet found")
 }
 
+/// Parse an armored unencrypted OpenPGP Ed25519 secret key into signing material.
+///
+/// When `kid_override` is `None`, the COSE key id defaults to the OpenPGP v4
+/// fingerprint of the secret key's public material, matching the Python
+/// `Signer.from_gpg_secret_key` behavior.
+pub fn parse_secret_signing_key(
+    armored: &str,
+    kid_override: Option<&str>,
+) -> Result<OpenPgpSigningKey> {
+    let data = strip_armor(armored)?;
+    for (tag, body) in iter_packets(&data)? {
+        if tag != 5 {
+            continue;
+        }
+        let (raw_public, raw_secret) = parse_ed25519_secret_material(&body)?;
+        let (_, pub_end) = parse_ed25519_public_material(&body)?;
+        let fingerprint = fingerprint(&body[..pub_end]);
+        let kid = kid_override.unwrap_or(&fingerprint).to_string();
+        return Ok(OpenPgpSigningKey {
+            signing_key: SigningKey::from_bytes(&raw_secret),
+            kid,
+            fingerprint,
+            raw_public,
+        });
+    }
+    err("no secret-key packet found")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -323,6 +424,80 @@ mod tests {
 
     fn vectors_dir() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../vectors/openpgp")
+    }
+
+    fn fixtures_dir() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../python/tests/fixtures")
+    }
+
+    fn fixture(name: &str) -> String {
+        std::fs::read_to_string(fixtures_dir().join(name)).unwrap()
+    }
+
+    fn b64_encode(data: &[u8]) -> String {
+        const ALPHABET: &[u8; 64] =
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut out = String::new();
+        for chunk in data.chunks(3) {
+            let b0 = chunk[0];
+            let b1 = chunk.get(1).copied().unwrap_or(0);
+            let b2 = chunk.get(2).copied().unwrap_or(0);
+            out.push(ALPHABET[(b0 >> 2) as usize] as char);
+            out.push(ALPHABET[(((b0 & 0x03) << 4) | (b1 >> 4)) as usize] as char);
+            if chunk.len() > 1 {
+                out.push(ALPHABET[(((b1 & 0x0f) << 2) | (b2 >> 6)) as usize] as char);
+            } else {
+                out.push('=');
+            }
+            if chunk.len() > 2 {
+                out.push(ALPHABET[(b2 & 0x3f) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+        out
+    }
+
+    fn encode_packet(tag: u8, body: &[u8]) -> Vec<u8> {
+        let mut out = vec![0xc0 | tag];
+        let len = body.len();
+        if len < 192 {
+            out.push(len as u8);
+        } else if len < 8384 {
+            let encoded = len - 192;
+            out.push(((encoded >> 8) as u8) + 192);
+            out.push(encoded as u8);
+        } else {
+            out.push(255);
+            out.extend_from_slice(&(len as u32).to_be_bytes());
+        }
+        out.extend_from_slice(body);
+        out
+    }
+
+    fn armor_private_key(data: &[u8]) -> String {
+        let b64 = b64_encode(data);
+        let mut wrapped = String::new();
+        for line in b64.as_bytes().chunks(64) {
+            wrapped.push_str(std::str::from_utf8(line).unwrap());
+            wrapped.push('\n');
+        }
+        format!("-----BEGIN PGP PRIVATE KEY BLOCK-----\n\n{wrapped}-----END PGP PRIVATE KEY BLOCK-----\n")
+    }
+
+    fn secret_packet_body() -> Vec<u8> {
+        let data = strip_armor(&fixture("test_key.sec.asc")).unwrap();
+        iter_packets(&data)
+            .unwrap()
+            .into_iter()
+            .find_map(|(tag, body)| (tag == 5).then_some(body))
+            .unwrap()
+    }
+
+    fn mutated_secret_armor(mut mutate: impl FnMut(&mut Vec<u8>)) -> String {
+        let mut body = secret_packet_body();
+        mutate(&mut body);
+        armor_private_key(&encode_packet(5, &body))
     }
 
     #[test]
@@ -347,5 +522,86 @@ mod tests {
     #[test]
     fn rejects_non_pgp() {
         assert!(parse_transport_key("not a key").is_err());
+    }
+
+    #[test]
+    fn parses_secret_signing_key_with_default_fingerprint_kid() {
+        let public_armor = fixture("test_key.pub.asc");
+        let secret_armor = fixture("test_key.sec.asc");
+        let expected_fingerprint = fixture("test_key.fingerprint").trim().to_string();
+
+        let transport = parse_transport_key(&public_armor).unwrap();
+        let signer = parse_secret_signing_key(&secret_armor, None).unwrap();
+
+        assert_eq!(signer.kid(), expected_fingerprint);
+        assert_eq!(signer.fingerprint(), expected_fingerprint);
+        assert_eq!(signer.raw_public(), &transport.raw_public);
+        assert_eq!(
+            signer.signing_key().verifying_key().to_bytes(),
+            transport.raw_public
+        );
+    }
+
+    #[test]
+    fn parses_secret_signing_key_with_kid_override() {
+        let signer =
+            parse_secret_signing_key(&fixture("test_key.sec.asc"), Some("did:example:test"))
+                .unwrap();
+
+        assert_eq!(signer.kid(), "did:example:test");
+        assert_eq!(signer.fingerprint(), fixture("test_key.fingerprint").trim());
+    }
+
+    #[test]
+    fn secret_signing_key_rejects_public_armor() {
+        let err = parse_secret_signing_key(&fixture("test_key.pub.asc"), None)
+            .err()
+            .expect("public armor is rejected as signing material");
+        assert!(err.0.contains("no secret-key packet"));
+    }
+
+    #[test]
+    fn secret_signing_key_rejects_encrypted_secret_packets() {
+        let armor = mutated_secret_armor(|body| {
+            let (_, pub_end) = parse_ed25519_public_material(body).unwrap();
+            body[pub_end] = 254;
+        });
+
+        let err = parse_secret_signing_key(&armor, None)
+            .err()
+            .expect("encrypted secret key is rejected");
+        assert!(err.0.contains("encrypted secret keys are not supported"));
+    }
+
+    #[test]
+    fn secret_signing_key_rejects_public_secret_mismatch() {
+        let armor = mutated_secret_armor(|body| {
+            let (_, pub_end) = parse_ed25519_public_material(body).unwrap();
+            body[pub_end - 1] ^= 0x01;
+        });
+
+        let err = parse_secret_signing_key(&armor, None)
+            .err()
+            .expect("mismatched public and secret material is rejected");
+        assert!(err.0.contains("does not match public key material"));
+    }
+
+    #[test]
+    fn secret_signing_key_rejects_unsupported_algorithms_and_versions() {
+        let wrong_algorithm = mutated_secret_armor(|body| {
+            body[5] = 1;
+        });
+        let err = parse_secret_signing_key(&wrong_algorithm, None)
+            .err()
+            .expect("unsupported algorithm is rejected");
+        assert!(err.0.contains("unsupported public-key algorithm 1"));
+
+        let v5 = mutated_secret_armor(|body| {
+            body[0] = 5;
+        });
+        let err = parse_secret_signing_key(&v5, None)
+            .err()
+            .expect("unsupported OpenPGP version is rejected");
+        assert!(err.0.contains("only OpenPGP v4 public keys are supported"));
     }
 }
