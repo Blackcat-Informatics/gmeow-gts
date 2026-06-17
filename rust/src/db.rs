@@ -145,7 +145,7 @@ fn sql_blob(bytes: &[u8], dialect: SqlDialect) -> String {
     }
 }
 
-fn table_sql(graph: &Graph, dialect: SqlDialect) -> TableSql {
+fn table_sql(graph: &Graph, dialect: SqlDialect) -> Result<TableSql, DbExportError> {
     let terms = graph
         .terms
         .iter()
@@ -179,21 +179,24 @@ fn table_sql(graph: &Graph, dialect: SqlDialect) -> TableSql {
     let blobs = graph
         .blobs
         .iter()
-        .map(|(digest, bytes)| {
-            format!(
+        .map(|(digest, entry)| {
+            let bytes = entry.decoded_bytes().map_err(|err| {
+                DbExportError::new(format!("cannot decode blob {digest}: {err:?}"))
+            })?;
+            Ok(format!(
                 "({},{})",
                 sql_text(Some(digest.as_str())),
-                sql_blob(bytes, dialect)
-            )
+                sql_blob(bytes.as_ref(), dialect)
+            ))
         })
-        .collect();
-    TableSql {
+        .collect::<Result<Vec<_>, DbExportError>>()?;
+    Ok(TableSql {
         terms,
         quads,
         reifiers,
         annotations,
         blobs,
-    }
+    })
 }
 
 fn build_load_script(rows: &TableSql) -> String {
@@ -321,7 +324,7 @@ fn export_database_file(program: &str, out: &Path, script: &str) -> Result<(), D
 /// Write a folded graph to a SQLite database.
 pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
-    let rows = table_sql(graph, SqlDialect::Sqlite);
+    let rows = table_sql(graph, SqlDialect::Sqlite)?;
     let script = build_load_script(&rows);
     export_database_file("sqlite3", out, &script)?;
     Ok(out.to_path_buf())
@@ -331,7 +334,7 @@ pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExp
 #[cfg(feature = "duckdb")]
 pub fn to_duckdb(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
-    let rows = table_sql(graph, SqlDialect::Duckdb);
+    let rows = table_sql(graph, SqlDialect::Duckdb)?;
     let script = build_load_script(&rows);
     export_database_file("duckdb", out, &script)?;
     Ok(out.to_path_buf())
@@ -351,7 +354,7 @@ pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBu
             staged_dir.display()
         ))
     })?;
-    let rows = table_sql(graph, SqlDialect::Duckdb);
+    let rows = table_sql(graph, SqlDialect::Duckdb)?;
     let mut script = build_load_script(&rows);
     let mut written = Vec::new();
     for table in TABLES {

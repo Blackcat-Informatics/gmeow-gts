@@ -21,7 +21,7 @@ use crate::model::{
 };
 use crate::stream::DIGEST as STREAM_DIGEST;
 use crate::wire::{
-    content_id, digest_str, header_id, iter_items, map_get, unwrap_header, MAGIC, VERSION,
+    content_id, digest_str, header_id, hex, iter_items, map_get, unwrap_header, MAGIC, VERSION,
 };
 
 fn as_i128(v: &Value) -> Option<i128> {
@@ -61,6 +61,18 @@ fn diag_code_for(reason: &str) -> &'static str {
     match reason {
         "missing-key" => "MissingKey",
         _ => "UnknownCodec",
+    }
+}
+
+fn pub_digest(value: &Value) -> Option<String> {
+    let Value::Map(entries) = value else {
+        return None;
+    };
+    match map_get(entries, "digest") {
+        Some(Value::Text(text)) if text.starts_with("blake3:") => Some(text.clone()),
+        Some(Value::Text(text)) => Some(format!("blake3:{text}")),
+        Some(Value::Bytes(bytes)) if bytes.len() == 32 => Some(format!("blake3:{}", hex(bytes))),
+        _ => None,
     }
 }
 
@@ -151,7 +163,11 @@ impl Folder<'_> {
     /// payload degrades to a `damaged` opaque node — the reader never aborts.
     fn fold_frame(&mut self, frame: &[(Value, Value)], index: usize) {
         let ftype = text_or(map_get(frame, "t"), "").to_string();
-        let payload = match self.payload(frame, ftype == "blob") {
+        if ftype == "blob" {
+            self.h_blob_frame(frame, index);
+            return;
+        }
+        let payload = match self.payload(frame, false) {
             Err(PayloadError::Unavailable { reason, detail }) => {
                 self.opaque(frame, &ftype, reason);
                 self.diag(diag_code_for(reason), detail, Some(index));
@@ -173,7 +189,6 @@ impl Folder<'_> {
             "quads" => self.h_quads(&payload, index),
             "reifies" => self.h_reifies(&payload, index),
             "annot" => self.h_annot(&payload, index),
-            "blob" => self.h_blob(&payload, frame, index),
             "meta" => self.h_meta(&payload),
             "suppress" => self.h_suppress(&payload),
             "snapshot" => self.h_snapshot(&payload, index),
@@ -333,21 +348,107 @@ impl Folder<'_> {
         }
     }
 
-    fn h_blob(&mut self, payload: &Value, frame: &[(Value, Value)], index: usize) {
-        if let Value::Bytes(b) = payload {
-            let digest = digest_str(b);
-            if let Some(pub_meta) = map_get(frame, "pub") {
-                if matches!(pub_meta, Value::Map(_)) {
-                    self.g.set_blob_meta(digest.clone(), pub_meta.clone());
+    fn h_blob_frame(&mut self, frame: &[(Value, Value)], index: usize) {
+        let d = map_get(frame, "d");
+        let pub_meta = map_get(frame, "pub")
+            .filter(|value| matches!(value, Value::Map(_)))
+            .cloned();
+
+        let chain = match map_get(frame, "x") {
+            Some(Value::Array(ids)) if !ids.is_empty() => match self.resolve_codecs(ids) {
+                Ok(chain) => chain,
+                Err(PayloadError::Unavailable { reason, detail }) => {
+                    self.opaque(frame, "blob", reason);
+                    self.diag(diag_code_for(reason), detail, Some(index));
+                    return;
+                }
+                Err(PayloadError::Damaged(detail)) => {
+                    self.opaque(frame, "blob", "damaged");
+                    self.diag(
+                        "DamagedFrame",
+                        format!("payload decode failed: {detail}"),
+                        Some(index),
+                    );
+                    return;
+                }
+            },
+            _ => Vec::new(),
+        };
+
+        if chain.iter().any(|codec| codec.cls == "encrypt") {
+            match self.payload(frame, true) {
+                Ok(Value::Bytes(bytes)) => {
+                    let digest = digest_str(&bytes);
+                    if let Some(meta) = pub_meta {
+                        self.g.set_blob_meta(digest.clone(), meta);
+                    }
+                    self.blob_events.push((
+                        index,
+                        digest.clone(),
+                        self.described.contains(&digest),
+                    ));
+                    self.g.set_blob(digest, bytes);
+                }
+                Ok(_) => {}
+                Err(PayloadError::Unavailable { reason, detail }) => {
+                    self.opaque(frame, "blob", reason);
+                    self.diag(diag_code_for(reason), detail, Some(index));
+                }
+                Err(PayloadError::Damaged(detail)) => {
+                    self.opaque(frame, "blob", "damaged");
+                    self.diag(
+                        "DamagedFrame",
+                        format!("payload decode failed: {detail}"),
+                        Some(index),
+                    );
                 }
             }
-            // Layout bookkeeping (§3.3): was this delivery presaged by a
-            // stream:digest description in an earlier frame?
+            return;
+        }
+
+        if let Some(digest) = pub_meta.as_ref().and_then(pub_digest) {
+            if let Some(meta) = pub_meta {
+                self.g.set_blob_meta(digest.clone(), meta);
+            }
+            if let Some(Value::Bytes(raw)) = d {
+                if chain.is_empty() {
+                    self.g.set_blob(digest.clone(), raw.clone());
+                } else {
+                    self.g.set_lazy_blob(digest.clone(), raw.clone(), chain);
+                }
+            }
             self.blob_events
                 .push((index, digest.clone(), self.described.contains(&digest)));
-            self.g.set_blob(digest, b.clone());
+            return;
         }
-        // else: external blob — bytes live elsewhere, referenced by "pub".digest (§12).
+
+        let Some(Value::Bytes(_)) = d else {
+            return;
+        };
+        match self.payload(frame, true) {
+            Ok(Value::Bytes(bytes)) => {
+                let digest = digest_str(&bytes);
+                if let Some(meta) = pub_meta {
+                    self.g.set_blob_meta(digest.clone(), meta);
+                }
+                self.blob_events
+                    .push((index, digest.clone(), self.described.contains(&digest)));
+                self.g.set_blob(digest, bytes);
+            }
+            Ok(_) => {}
+            Err(PayloadError::Unavailable { reason, detail }) => {
+                self.opaque(frame, "blob", reason);
+                self.diag(diag_code_for(reason), detail, Some(index));
+            }
+            Err(PayloadError::Damaged(detail)) => {
+                self.opaque(frame, "blob", "damaged");
+                self.diag(
+                    "DamagedFrame",
+                    format!("payload decode failed: {detail}"),
+                    Some(index),
+                );
+            }
+        }
     }
 
     fn h_meta(&mut self, payload: &Value) {
@@ -1115,8 +1216,8 @@ fn union_segments(segments: &[Graph]) -> Graph {
             );
             u.out.annotations.push(row);
         }
-        for (digest, bytes) in &seg.blobs {
-            u.out.set_blob(digest.clone(), bytes.clone());
+        for (digest, entry) in &seg.blobs {
+            u.out.set_blob_entry(digest.clone(), entry.clone());
         }
         for (digest, meta) in &seg.blob_meta {
             u.out.set_blob_meta(digest.clone(), meta.clone());

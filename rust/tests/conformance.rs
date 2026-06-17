@@ -16,8 +16,8 @@ use gmeow_gts::wire::hex;
 use serde_json::{json, Map, Value};
 
 /// Rebuild the `.expected.json` summary shape from a folded graph.
-fn summarize(g: &Graph, mode: &str) -> Value {
-    let mut nquads: Vec<String> = to_nquads(g).lines().map(str::to_string).collect();
+fn summarize(g: Graph, mode: &str) -> Value {
+    let mut nquads: Vec<String> = to_nquads(&g).lines().map(str::to_string).collect();
     nquads.sort();
     let mut opaque_reasons: Vec<String> = g.opaque.iter().map(|o| o.reason.clone()).collect();
     opaque_reasons.sort();
@@ -31,7 +31,7 @@ fn summarize(g: &Graph, mode: &str) -> Value {
         "profiles": g.segment_profiles.clone(),
         "opaque_reasons": opaque_reasons,
         "suppressions": g.suppressions.len(),
-        "blobs": blob_summary(g),
+        "blobs": blob_summary(&g),
         "streamable": g.segment_streamable.iter().map(|info| json!({
             "claimed": info.claimed,
             "covered": info.covered,
@@ -45,7 +45,7 @@ fn summarize(g: &Graph, mode: &str) -> Value {
 /// and metadata retention (§12) across implementations.
 fn blob_summary(g: &Graph) -> Value {
     let mut out = Map::new();
-    for (digest, data) in &g.blobs {
+    for (digest, entry) in &g.blobs {
         let mt =
             g.blob_meta
                 .iter()
@@ -63,7 +63,10 @@ fn blob_summary(g: &Graph) -> Value {
                         None
                     }
                 });
-        out.insert(digest.clone(), json!({"size": data.len(), "mt": mt}));
+        let size = entry
+            .decoded_len()
+            .expect("conformance blobs must decode for size summaries");
+        out.insert(digest.clone(), json!({"size": size, "mt": mt}));
     }
     Value::Object(out)
 }
@@ -107,7 +110,7 @@ fn corpus_matches_frozen_expectations() {
         .expect("expected json parses");
         let mode = expected["mode"].as_str().expect("mode field");
         let g = read(&data, mode != "pre-segment", None);
-        let actual = summarize(&g, mode);
+        let actual = summarize(g, mode);
         assert_eq!(
             actual, expected,
             "vector {name}: Rust fold diverges from the frozen oracle expectation"

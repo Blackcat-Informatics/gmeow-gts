@@ -430,7 +430,12 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
             .blobs
             .iter()
             .find(|(d, _)| d == digest)
-            .map(|(_, b)| b.clone())
+            .map(|(_, entry)| {
+                entry
+                    .decoded_vec()
+                    .map_err(|err| format!("decode inline blob for {path}: {err:?}"))
+            })
+            .transpose()?
             .ok_or(format!("missing inline blob for {path}: {digest}"))?;
         if digest_string(&data) != *digest {
             return Err(format!("integrity failure for {path}: {digest}"));
