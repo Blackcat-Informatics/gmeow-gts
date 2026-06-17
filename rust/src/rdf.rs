@@ -8,7 +8,7 @@
 //! users do not inherit an RDF toolkit or embedded graph database dependency.
 
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 
 use oxrdf::{
@@ -82,19 +82,27 @@ pub fn to_oxrdf_dataset_with_options(
     options: ExportOptions,
 ) -> Result<Dataset, RdfAdapterError> {
     let mut dataset = Dataset::new();
+    let bnode_labels = BnodeLabels::for_graph(graph);
 
     for &(s, p, o, graph_name) in &graph.quads {
-        if let Some(quad) = graph_quad_to_oxrdf(graph, s, p, o, graph_name, options)? {
+        if let Some(quad) = graph_quad_to_oxrdf(graph, &bnode_labels, s, p, o, graph_name, options)?
+        {
             dataset.insert(quad.as_ref());
         }
     }
 
     let rdf_reifies = named_node(RDF_REIFIES, "rdf:reifies predicate")?;
     for &(rid, (s, p, o)) in &graph.reifiers {
-        let Some(subject) = named_or_blank_term(graph, rid, "reifier subject", options)? else {
+        if is_internal_triple_self_binding(graph, rid) {
+            continue;
+        }
+        let Some(subject) =
+            named_or_blank_term(graph, &bnode_labels, rid, "reifier subject", options)?
+        else {
             continue;
         };
-        let Some(object) = quoted_triple(graph, s, p, o, "reified triple", options)? else {
+        let Some(object) = quoted_triple(graph, &bnode_labels, s, p, o, "reified triple", options)?
+        else {
             continue;
         };
         dataset.insert(
@@ -109,7 +117,7 @@ pub fn to_oxrdf_dataset_with_options(
     }
 
     for &(s, p, o) in &graph.annotations {
-        if let Some(quad) = graph_quad_to_oxrdf(graph, s, p, o, None, options)? {
+        if let Some(quad) = graph_quad_to_oxrdf(graph, &bnode_labels, s, p, o, None, options)? {
             dataset.insert(quad.as_ref());
         }
     }
@@ -145,14 +153,14 @@ pub fn from_oxrdf_dataset_with_profile(
             let OxTermRef::Triple(triple) = quad.object else {
                 unreachable!("matched above")
             };
-            let binding = interner.triple_ref(triple.into(), &mut reifiers);
-            reifiers.insert(rid, binding);
+            let binding = interner.triple_ref(triple.into(), &mut reifiers)?;
+            insert_reifier(&mut reifiers, rid, binding)?;
             continue;
         }
 
         let s = interner.named_or_blank_ref(quad.subject);
         let p = interner.named_node_ref(quad.predicate);
-        let o = interner.term_ref(quad.object, &mut reifiers);
+        let o = interner.term_ref(quad.object, &mut reifiers)?;
         let g = graph_name_id(quad.graph_name, &mut interner);
         quads.push((s, p, o, g));
     }
@@ -178,22 +186,24 @@ pub fn from_dataset(dataset: &Dataset) -> Result<Vec<u8>, RdfAdapterError> {
 
 fn graph_quad_to_oxrdf(
     graph: &Graph,
+    bnode_labels: &BnodeLabels,
     s: usize,
     p: usize,
     o: usize,
     graph_name: Option<usize>,
     options: ExportOptions,
 ) -> Result<Option<OxQuad>, RdfAdapterError> {
-    let Some(subject) = named_or_blank_term(graph, s, "quad subject", options)? else {
+    let Some(subject) = named_or_blank_term(graph, bnode_labels, s, "quad subject", options)?
+    else {
         return Ok(None);
     };
     let Some(predicate) = predicate_term(graph, p, "quad predicate", options)? else {
         return Ok(None);
     };
-    let Some(object) = oxrdf_term(graph, o, "quad object", options)? else {
+    let Some(object) = oxrdf_term(graph, bnode_labels, o, "quad object", options)? else {
         return Ok(None);
     };
-    let Some(graph_name) = graph_name_term(graph, graph_name, options)? else {
+    let Some(graph_name) = graph_name_term(graph, bnode_labels, graph_name, options)? else {
         return Ok(None);
     };
     Ok(Some(OxQuad::new(subject, predicate, object, graph_name)))
@@ -227,6 +237,7 @@ fn blank_node(value: &str, role: &str) -> Result<BlankNode, RdfAdapterError> {
 
 fn named_or_blank_term(
     graph: &Graph,
+    bnode_labels: &BnodeLabels,
     id: usize,
     role: &str,
     options: ExportOptions,
@@ -235,7 +246,7 @@ fn named_or_blank_term(
     match term.kind {
         TermKind::Iri => Ok(Some(named_node(term_value(term, role, id)?, role)?.into())),
         TermKind::Bnode => {
-            let label = bnode_label(term, id);
+            let label = bnode_labels.label(term, id);
             Ok(Some(blank_node(&label, role)?.into()))
         }
         TermKind::Triple if options.allow_rdf12_lossy => Ok(None),
@@ -269,6 +280,7 @@ fn predicate_term(
 
 fn oxrdf_term(
     graph: &Graph,
+    bnode_labels: &BnodeLabels,
     id: usize,
     role: &str,
     options: ExportOptions,
@@ -277,7 +289,7 @@ fn oxrdf_term(
     match term.kind {
         TermKind::Iri => Ok(Some(named_node(term_value(term, role, id)?, role)?.into())),
         TermKind::Bnode => {
-            let label = bnode_label(term, id);
+            let label = bnode_labels.label(term, id);
             Ok(Some(blank_node(&label, role)?.into()))
         }
         TermKind::Literal => Ok(Some(literal_term(graph, term, id, role)?.into())),
@@ -290,7 +302,7 @@ fn oxrdf_term(
                     "{role} term id {id} is an unbound RDF 1.2 quoted triple"
                 )));
             };
-            Ok(quoted_triple(graph, s, p, o, role, options)?
+            Ok(quoted_triple(graph, bnode_labels, s, p, o, role, options)?
                 .map(|triple| OxTerm::Triple(Box::new(triple))))
         }
     }
@@ -298,6 +310,7 @@ fn oxrdf_term(
 
 fn graph_name_term(
     graph: &Graph,
+    bnode_labels: &BnodeLabels,
     id: Option<usize>,
     options: ExportOptions,
 ) -> Result<Option<GraphName>, RdfAdapterError> {
@@ -308,7 +321,7 @@ fn graph_name_term(
     match term.kind {
         TermKind::Iri => Ok(Some(named_node(term_value(term, "graph name", id)?, "graph name")?.into())),
         TermKind::Bnode => {
-            let label = bnode_label(term, id);
+            let label = bnode_labels.label(term, id);
             Ok(Some(blank_node(&label, "graph name")?.into()))
         }
         TermKind::Triple if options.allow_rdf12_lossy => Ok(None),
@@ -323,19 +336,20 @@ fn graph_name_term(
 
 fn quoted_triple(
     graph: &Graph,
+    bnode_labels: &BnodeLabels,
     s: usize,
     p: usize,
     o: usize,
     role: &str,
     options: ExportOptions,
 ) -> Result<Option<OxTriple>, RdfAdapterError> {
-    let Some(subject) = named_or_blank_term(graph, s, role, options)? else {
+    let Some(subject) = named_or_blank_term(graph, bnode_labels, s, role, options)? else {
         return Ok(None);
     };
     let Some(predicate) = predicate_term(graph, p, role, options)? else {
         return Ok(None);
     };
-    let Some(object) = oxrdf_term(graph, o, role, options)? else {
+    let Some(object) = oxrdf_term(graph, bnode_labels, o, role, options)? else {
         return Ok(None);
     };
     Ok(Some(OxTriple::new(subject, predicate, object)))
@@ -367,10 +381,57 @@ fn literal_term(
     }
 }
 
-fn bnode_label(term: &Term, id: usize) -> Cow<'_, str> {
-    match &term.value {
-        Some(value) => Cow::Borrowed(value),
-        None => Cow::Owned(format!("b{id}")),
+fn is_internal_triple_self_binding(graph: &Graph, rid: usize) -> bool {
+    matches!(
+        graph.terms.get(rid),
+        Some(Term {
+            kind: TermKind::Triple,
+            reifier: Some(reifier),
+            ..
+        }) if *reifier == rid
+    )
+}
+
+struct BnodeLabels {
+    generated: HashMap<usize, String>,
+}
+
+impl BnodeLabels {
+    fn for_graph(graph: &Graph) -> Self {
+        let mut used: HashSet<String> = graph
+            .terms
+            .iter()
+            .filter(|term| term.kind == TermKind::Bnode)
+            .filter_map(|term| term.value.clone())
+            .collect();
+        let mut generated = HashMap::new();
+
+        for (id, term) in graph.terms.iter().enumerate() {
+            if term.kind != TermKind::Bnode || term.value.is_some() {
+                continue;
+            }
+            let mut label = format!("b{id}");
+            let mut suffix = 0usize;
+            while used.contains(&label) {
+                suffix += 1;
+                label = format!("gts_b{id}_{suffix}");
+            }
+            used.insert(label.clone());
+            generated.insert(id, label);
+        }
+
+        Self { generated }
+    }
+
+    fn label<'a>(&'a self, term: &'a Term, id: usize) -> Cow<'a, str> {
+        match &term.value {
+            Some(value) => Cow::Borrowed(value),
+            None => Cow::Borrowed(
+                self.generated
+                    .get(&id)
+                    .expect("missing blank-node labels are allocated for every graph term"),
+            ),
+        }
     }
 }
 
@@ -468,16 +529,20 @@ impl Interner {
         })
     }
 
-    fn term_ref(&mut self, term: OxTermRef<'_>, reifiers: &mut BTreeMap<usize, Triple3>) -> usize {
+    fn term_ref(
+        &mut self,
+        term: OxTermRef<'_>,
+        reifiers: &mut BTreeMap<usize, Triple3>,
+    ) -> Result<usize, RdfAdapterError> {
         match term {
-            OxTermRef::NamedNode(node) => self.named_node_ref(node),
-            OxTermRef::BlankNode(node) => self.blank_node_ref(node),
-            OxTermRef::Literal(literal) => self.literal_ref(literal),
+            OxTermRef::NamedNode(node) => Ok(self.named_node_ref(node)),
+            OxTermRef::BlankNode(node) => Ok(self.blank_node_ref(node)),
+            OxTermRef::Literal(literal) => Ok(self.literal_ref(literal)),
             OxTermRef::Triple(triple) => {
-                let (s, p, o) = self.triple_ref(triple.into(), reifiers);
+                let (s, p, o) = self.triple_ref(triple.into(), reifiers)?;
                 let key = TermKey::Triple(s, p, o);
                 if let Some(id) = self.ids.get(&key) {
-                    return *id;
+                    return Ok(*id);
                 }
                 let id = self.terms.len();
                 self.terms.push(Term {
@@ -488,8 +553,8 @@ impl Interner {
                     reifier: Some(id),
                 });
                 self.ids.insert(key, id);
-                reifiers.insert(id, (s, p, o));
-                id
+                insert_reifier(reifiers, id, (s, p, o))?;
+                Ok(id)
             }
         }
     }
@@ -498,12 +563,12 @@ impl Interner {
         &mut self,
         triple: OxTripleRef<'_>,
         reifiers: &mut BTreeMap<usize, Triple3>,
-    ) -> Triple3 {
-        (
+    ) -> Result<Triple3, RdfAdapterError> {
+        Ok((
             self.named_or_blank_ref(triple.subject),
             self.named_node_ref(triple.predicate),
-            self.term_ref(triple.object, reifiers),
-        )
+            self.term_ref(triple.object, reifiers)?,
+        ))
     }
 
     fn intern(&mut self, key: TermKey, make: impl FnOnce() -> Term) -> usize {
@@ -515,4 +580,21 @@ impl Interner {
         self.ids.insert(key, id);
         id
     }
+}
+
+fn insert_reifier(
+    reifiers: &mut BTreeMap<usize, Triple3>,
+    rid: usize,
+    spo: Triple3,
+) -> Result<(), RdfAdapterError> {
+    if let Some(existing) = reifiers.get(&rid) {
+        if *existing != spo {
+            return Err(RdfAdapterError::new(format!(
+                "conflicting rdf:reifies binding for term id {rid}: existing {existing:?}, new {spo:?}"
+            )));
+        }
+        return Ok(());
+    }
+    reifiers.insert(rid, spo);
+    Ok(())
 }

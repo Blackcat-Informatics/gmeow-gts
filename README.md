@@ -193,10 +193,10 @@ Path("cat.gts").write_bytes(w.to_bytes())
 ```toml
 # Cargo.toml
 [dependencies]
-gmeow-gts = "0.1"
+gmeow-gts = "0.2"
 
 # Optional native RDF data-model adapter:
-# gmeow-gts = { version = "0.1", default-features = false, features = ["rdf"] }
+# gmeow-gts = { version = "0.2", default-features = false, features = ["rdf"] }
 ```
 
 ```rust
