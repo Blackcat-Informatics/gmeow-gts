@@ -34,6 +34,16 @@ linters:
       excludes:
         - G115
 
+  exclusions:
+    rules:
+      # G304 (file inclusion via variable) fires on tests that read the frozen
+      # conformance corpus by a computed path. The inputs are repo-local test
+      # vectors, not untrusted data; keep G304 active for non-test code.
+      - path: _test\.go
+        text: G304
+        linters:
+          - gosec
+
 run:
   timeout: 5m
   modules-download-mode: readonly

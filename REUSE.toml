@@ -36,6 +36,14 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
 
+# Go fuzzing corpus / regression seeds (strict `go test fuzz v1` format — no
+# inline header possible).
+[[annotations]]
+path = "go/reader/testdata/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+
 # Test fixtures (a throwaway OpenPGP test keypair and its fingerprint).
 [[annotations]]
 path = "python/tests/fixtures/**"

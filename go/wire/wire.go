@@ -234,18 +234,21 @@ func cborItemLength(data []byte, offset int) (int, error) {
 					if nmajor != major || ninfo == 31 {
 						return 0, fmt.Errorf("invalid indefinite string chunk")
 					}
+					offset++ // consume the chunk head byte
 					var nlen int64
-					nextra := 0
 					if ninfo <= 23 {
 						nlen = int64(ninfo)
 					} else {
-						var err error
+						var (
+							nextra int
+							err    error
+						)
 						nlen, nextra, err = readLength(data, offset, ninfo)
 						if err != nil {
 							return 0, err
 						}
+						offset += nextra
 					}
-					offset += nextra
 					if int64(len(data)-offset) < nlen {
 						return 0, io.ErrUnexpectedEOF
 					}

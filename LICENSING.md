@@ -18,7 +18,7 @@ offered under your choice of either:
 You may use the software under the terms of **MIT _or_ Apache-2.0, at your option**.
 This is expressed in every source file and package manifest with the SPDX identifier:
 
-```
+```text
 SPDX-License-Identifier: MIT OR Apache-2.0
 ```
 
