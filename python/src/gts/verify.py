@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 """Embedded-key signature verification for GTS files (issue #434).
 
-The default verification path trusts the transport key embedded in the first
+The default verification path resolves the transport key embedded in the first
 ``meta`` frame of the file itself.  That key is an armored OpenPGP Ed25519
 certificate; the GTS reader verifies every ``COSE_Sign1`` signature against it
 as the file is folded.  ``verify_file`` wraps this in a friendly result object
@@ -11,7 +11,7 @@ suitable for CLI reporting.
 A caller with an out-of-band trusted key can pass ``armored_key`` to override
 the embedded key.  In either case the reported ``kid`` is the OpenPGP
 fingerprint, and the visual hashes are computed from the raw Ed25519 public
-key bytes.
+key bytes. Deployment trust remains a separate :class:`gts.policy.TrustPolicy`.
 """
 
 from __future__ import annotations
@@ -25,6 +25,12 @@ from gts.crypto import InMemoryKeys, KeyProvider
 from gts.emojihash import emojihash, emojihash_labels, randomart
 from gts.model import Diagnostic, Graph
 from gts.openpgp import load_public_key, public_key_fingerprint
+from gts.policy import (
+    ProfileFinding,
+    TrustPolicy,
+    evaluate_profile_policy,
+    signature_trust,
+)
 from gts.reader import read
 
 _HEX = frozenset("0123456789ABCDEF")
@@ -43,10 +49,12 @@ class VerificationResult:
     frames: int = 0
     signed: int = 0
     valid: int = 0
+    trusted: int = 0
     invalid: int = 0
     unverified: int = 0
     errors: list[str] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)
+    profile_findings: list[ProfileFinding] = field(default_factory=list)
 
 
 def format_fingerprint(fingerprint: str) -> str:
@@ -91,6 +99,7 @@ def verify_file(
     *,
     armored_key: str | None = None,
     require_signatures: bool = True,
+    trust_policy: TrustPolicy | None = None,
 ) -> VerificationResult:
     """Verify a GTS file's embedded signatures.
 
@@ -101,12 +110,15 @@ def verify_file(
             used; if there is none, verification fails.
         require_signatures: when ``True`` (the release default), a file that
             carries no signed frames is treated as a verification failure.
+        trust_policy: optional deployment policy for profile-level trust checks.
+            This does not affect cryptographic signature verification.
 
     Returns:
         A :class:`VerificationResult` with per-frame counts and a summary
         ``ok`` boolean.  The result is never raised; malformed files are
         surfaced through ``diagnostics`` and ``errors``.
     """
+    trust_policy = trust_policy or TrustPolicy()
     provider: KeyProvider | None = None
     public_raw: bytes | None = None
     fingerprint: str | None = None
@@ -158,8 +170,10 @@ def verify_file(
 
     signed = len(graph.signatures)
     valid = sum(1 for s in graph.signatures if s.status == "valid")
+    trusted = sum(1 for s in signature_trust(graph, trust_policy) if s.trusted)
     invalid = sum(1 for s in graph.signatures if s.status == "invalid")
     unverified = sum(1 for s in graph.signatures if s.status == "unverified")
+    profile_findings = evaluate_profile_policy(graph, trust_policy)
 
     if invalid:
         errors.append(f"{invalid} signature(s) invalid")
@@ -168,7 +182,12 @@ def verify_file(
     if require_signatures and signed == 0:
         errors.append("no signed frames found")
 
-    ok = not errors and invalid == 0 and unverified == 0
+    ok = (
+        not errors
+        and invalid == 0
+        and unverified == 0
+        and not any(f.severity == "error" for f in profile_findings)
+    )
 
     return VerificationResult(
         ok=ok,
@@ -184,8 +203,10 @@ def verify_file(
         frames=len(graph.signatures),
         signed=signed,
         valid=valid,
+        trusted=trusted,
         invalid=invalid,
         unverified=unverified,
         errors=errors,
         diagnostics=diagnostics,
+        profile_findings=profile_findings,
     )

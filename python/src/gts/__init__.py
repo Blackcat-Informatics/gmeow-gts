@@ -26,7 +26,15 @@ from gts.model import (
     Term,
     TermKind,
 )
+from gts.nested import GTS_MEDIA_TYPE, NestedReadResult, read_nested
 from gts.nquads import to_nquads
+from gts.policy import (
+    ProfileFinding,
+    SignatureTrust,
+    TrustPolicy,
+    evaluate_profile_policy,
+    signature_trust,
+)
 from gts.rdf import (
     RDF12UnsupportedError,
     from_rdflib,
@@ -40,21 +48,29 @@ from gts.writer import Writer
 __all__ = [
     "Diagnostic",
     "Graph",
+    "GTS_MEDIA_TYPE",
     "InMemoryKeys",
     "KeyProvider",
+    "NestedReadResult",
     "OpaqueNode",
+    "ProfileFinding",
     "RDF12UnsupportedError",
     "Signature",
+    "SignatureTrust",
     "Signer",
     "Suppression",
     "Term",
     "TermKind",
     "Writer",
+    "TrustPolicy",
+    "evaluate_profile_policy",
     "from_nquads",
     "from_rdflib",
     "from_rdflib_dataset",
     "read",
+    "read_nested",
     "read_segments",
+    "signature_trust",
     "to_nquads",
     "to_rdflib",
     "to_rdflib_dataset",

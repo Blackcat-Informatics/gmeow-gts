@@ -958,6 +958,11 @@ recipients MAY share one sealed payload (each unwraps the content-encryption key
 key). Key escrow, rotation, and revocation are the **issuer's** responsibility and are out of
 scope; a payload encrypted to a retired key MAY become permanently opaque.
 
+This draft's v1 conformance surface implements and tests `COSE_Encrypt0` for one direct
+recipient. Multi-recipient `COSE_Encrypt` envelopes and ECDH key-wrap are deferred outside v1
+until dedicated vectors, key-management policy, and cross-engine interop tests exist; see
+[`GTS-SECURITY-POLICY.md`](./GTS-SECURITY-POLICY.md).
+
 ### 9.4 The opacity invariant (normative)
 
 > Opacity hides **content** — never **existence**, **provenance**, or **position**.
@@ -1120,6 +1125,8 @@ carrier is a `blob` whose `"pub".mt` is `application/vnd.blackcat.gts+cbor-seq`.
   budget (§18).
 
 This composition needs no new frame type: nesting is "a blob that happens to be a GTS."
+The v1 Full Reader helper and negative security vectors for recursion limits are tracked in
+[`GTS-SECURITY-POLICY.md`](./GTS-SECURITY-POLICY.md).
 
 ## 13. Profiles
 

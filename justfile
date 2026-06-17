@@ -66,6 +66,10 @@ check-advanced-contract:
 check-ecosystem-contract:
     python scripts/check_ecosystem_contract.py
 
+# Fail if security/trust policy docs drift from current APIs and deferrals.
+check-security-contract:
+    python scripts/check_security_contract.py
+
 # Live cross-engine interoperability check (each engine reads every other's output).
 interop:
     bash scripts/interop.sh

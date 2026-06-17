@@ -438,6 +438,8 @@ artifact with `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gt
   index/MMR/proof, replication, range-fetch, and benchmark contract.
 - [`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](./docs/GTS-ECOSYSTEM-INTEGRATIONS.md) — RDF, data,
   browser, service, and object-store integration contract.
+- [`docs/GTS-SECURITY-POLICY.md`](./docs/GTS-SECURITY-POLICY.md) — trust/profile-policy
+  separation, nested-GTS budgets, and v1 crypto deferrals.
 - [`docs/positioning.md`](./docs/positioning.md) — the project framing, narrow-waist
   architecture, application families, and engine feature matrix.
 - [`docs/gts-reference.md`](./docs/gts-reference.md) — Python reference-implementation guide.

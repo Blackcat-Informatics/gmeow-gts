@@ -108,6 +108,7 @@ class _Folder:
         self.keys = keys
         # A key-bound decryptor for encrypt-class codecs; None ⇒ encrypt → missing-key.
         self._decryptor = (lambda b: decrypt0(b, keys)) if keys is not None else None
+        self.sigstats: dict[bytes, str] = {}
         # Layout-state bookkeeping (§3.3): intact index frames seen, digests the
         # graph has described via stream:digest so far, and each inline blob's
         # arrival (frame index, digest, was-it-described-at-arrival).
@@ -561,7 +562,10 @@ class _Folder:
                 id=fid if isinstance(fid, bytes) else b"",
                 frame_type=ftype,
                 reason=reason,
-                sigstat="unverified" if "sig" in frame else "none",
+                sigstat=self.sigstats.get(
+                    fid if isinstance(fid, bytes) else b"",
+                    "unverified" if "sig" in frame else "none",
+                ),
                 pub=frame.get("pub"),
                 recipients=[t for t in to if isinstance(t, Mapping)]
                 if isinstance(to, list)
@@ -770,11 +774,14 @@ def _read_segment(
             if not isinstance(sig, bytes):
                 # present but malformed — record as invalid, never silently drop
                 g.signatures.append(Signature(computed, None, "invalid"))
+                folder.sigstats[computed] = "invalid"
             elif keys is not None:
                 status, kid = verify_sig(sig, computed, keys)
                 g.signatures.append(Signature(computed, kid, status, sig))
+                folder.sigstats[computed] = status
             else:
                 g.signatures.append(Signature(computed, None, "unverified", sig))
+                folder.sigstats[computed] = "unverified"
         folder.fold_frame(frame, abs_index)
 
     g.segment_heads.append(expected_prev)
