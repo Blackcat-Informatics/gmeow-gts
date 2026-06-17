@@ -142,7 +142,9 @@ use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bytes = fs::read("package.gts")?;
-    let graph = gmeow_gts::reader::read(&bytes)?;
+    // read is total: (data, allow_segments, expected_head) -> Graph (never errors;
+    // undecodable frames degrade to opaque nodes surfaced as diagnostics).
+    let graph = gmeow_gts::reader::read(&bytes, false, None);
     println!("{}", gmeow_gts::nquads::to_nquads(&graph));
     Ok(())
 }
@@ -211,9 +213,24 @@ Exit codes: `0` clean · `1` diagnostics or input refused · `2` usage/IO error.
 
 `verify --key` and `extract-key` are cross-engine (all four `gts` binaries parse the
 embedded OpenPGP transport key to the same fingerprint and emojihash, and verify COSE
-signatures identically). `from-nq` and the `to-*` relational exports remain Python-CLI
-extensions for now; the relational exports need `pip install 'gmeow-gts[db]'` for
-DuckDB/Parquet.
+signatures identically). For example, `gts extract-key` prints a key's identity three ways —
+the hex fingerprint for machines and an **emojihash** for humans to compare at a glance:
+
+```console
+$ gts extract-key signed.gts
+kid:         93F32F9F1439F0FBA266331B6F4732092D747581
+fingerprint: 93F3 2F9F 1439 F0FB A266 331B 6F47 3209 2D74 7581
+emojihash:   🐷 🦆 🐵 🦋 🍎 🍐 🦊 🐸 🐟 🍒 🍎
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+…
+```
+
+The emojihash (and OpenSSH-style randomart) are also published standalone as the
+[`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which this repo's Rust
+engine depends on and re-exports as `gmeow_gts::emojihash`.
+
+`from-nq` and the `to-*` relational exports remain Python-CLI extensions for now; the
+relational exports need `pip install 'gmeow-gts[db]'` for DuckDB/Parquet.
 
 `cat` is raw byte concatenation with validation *added*, transformation *never*: it refuses
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
@@ -266,6 +283,7 @@ gmeow-gts/
 ├── python/      # Python package `gmeow-gts` (module `gts`) + reference corpus generator
 ├── go/          # Go module go.blackcatinformatics.ca/gts
 ├── ts/          # TypeScript/npm package @blackcatinformatics/gmeow-gts
+├── visual-hashing/ # Standalone `visual-hashing` crate (emojihash + randomart)
 ├── vectors/     # Frozen conformance corpus (*.gts + *.expected.json)
 ├── docs/        # GTS-SPEC.md (normative) + gts-reference.md
 └── .github/     # CI (all four engines) + per-language release workflows
