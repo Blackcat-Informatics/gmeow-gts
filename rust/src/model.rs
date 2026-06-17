@@ -6,8 +6,9 @@
 //!
 //! A [`Term`] is a single RDF term carried by integer id (§7.1). The folded
 //! [`Graph`] is the deterministic replay of the append-only frame log (§7.5):
-//! four id-keyed tables, content-addressed blobs, plus opaque/damaged nodes
-//! and reader diagnostics. `reifiers` and `meta` are insertion-ordered maps
+//! terms, quads, reifiers, annotations, content-addressed blobs, metadata,
+//! suppressions, opaque nodes, signatures, and reader diagnostics. `reifiers` and `meta`
+//! are insertion-ordered maps
 //! (Python `dict` semantics): re-binding an existing key replaces the value
 //! but keeps the original position.
 
@@ -42,7 +43,7 @@ impl TermKind {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Term {
     pub kind: TermKind,
-    /// IRI string, literal lexical form, or blank-node label (file-local).
+    /// IRI string, literal lexical form, or blank-node label (scope-local).
     pub value: Option<String>,
     /// Term-id of the literal's datatype IRI, when explicit.
     pub datatype: Option<usize>,

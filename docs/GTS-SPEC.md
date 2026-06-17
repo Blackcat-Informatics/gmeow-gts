@@ -567,11 +567,62 @@ serve as a recovery anchor even though the last intact `index` is preferred for 
 
 ## 7. Graph data model and fold
 
-The folded graph is four tables built from the log.
+A fold is the deterministic projection of an ordered frame log into a value-indexed graph
+state. Term ids are local compression artifacts used while reading a segment; the exposed
+file graph is defined by the value-union rules below.
+
+**Folded state model (normative).** A reader folds each segment into this logical state:
+
+- `terms`: an ordered vector of segment-local term values.
+- `quads`: a set of asserted RDF quads over term values.
+- `reifiers`: a partial map from a reifier term value to exactly one quoted triple value.
+- `annotations`: an ordered multiset of `(reifier, predicate, value)` rows over term values.
+- `blobs`: a content-addressed map from BLAKE3 digest to inline bytes or an external
+  content reference.
+- `blob_meta`: a shallow metadata map per blob digest, built from blob `"pub"` maps.
+- `meta`: a shallow segment metadata map, plus a file-level shallow merge (§7.5).
+- `suppressions`: an ordered list of display/precedence directives (§11).
+- `opaque`: an ordered list of frames intentionally or necessarily carried without decoded
+  payload semantics (§7.6).
+- `signatures` and `diagnostics`: ordered reader observations about frames. They are part of
+  the folded GTS state but not part of the RDF dataset.
+- `segment_heads`, `segment_profiles`, `segment_meta`, and segment layout state: the ordered
+  segment ledger needed to preserve cat-append identity, profile requirements, per-segment
+  metadata, and streamable-layout claims.
+
+**File fold (normative).** A file fold is the ordered value-union of its segment folds:
+segments are processed in file order; every term id is first resolved within its own segment;
+then quads, reifier bindings, annotations, blob declarations, metadata, suppressions, opaque
+nodes, signatures, diagnostics, and segment ledgers are merged by the rules in §7.5 and §7.8.
+The union MUST NOT compare raw term ids across segments. Cross-segment identity is always
+value identity.
+
+**RDF substrate (normative).** GTS uses the RDF 1.2 abstract data model for IRIs, blank
+nodes, literals, datasets, quoted triple terms, and `rdf:reifies`. A Baseline Reader need not
+implement an RDF parser, query language, entailment regime, or canonicalization algorithm; it
+only needs the term, quad, reifier, annotation, and dataset mapping defined here.
+
+**Value equality (normative).** The fold compares values as follows:
+
+| value kind | equality rule |
+|---|---|
+| IRI | Exact Unicode string equality after CBOR decoding. No percent, case, Unicode, base-IRI, or prefix normalization is applied by core GTS. |
+| Literal | Same lexical string, same datatype IRI value after defaulting (§7.1), and same language-tag string when present. Datatype lexical canonicalization is not applied; `"01"^^xsd:int` and `"1"^^xsd:int` are distinct transport values. |
+| Language tag | Exact string equality in core GTS. Profiles and projections MAY apply language-range matching, preferred BCP 47 casing, or public/private tag translation (§13.1), but that is not term identity. |
+| Datatype | Equality of the datatype IRI value, not the local term id that names it. |
+| Blank node | Equality is scoped to the blank-node scope plus the non-empty label. Blank nodes from different segments or nested GTS files are never equal. A blank node with absent or empty `"v"` is anonymous: each term entry is a distinct blank node within its scope. |
+| Quoted triple term | Equality of the resolved subject, predicate, and object term values of the quoted triple. Quotation alone does not assert the triple (§7.3). |
+| Graph name | Equality of the graph-name term value. An absent graph slot is the default graph and is not equal to any named graph. |
+| Blob | Equality of the normalized BLAKE3 digest (`blake3:<hex>` or raw digest bytes normalized to that form); inline byte equality is proved by the digest. |
+| Opaque node | Equality of an opaque occurrence is its segment identity plus frame content id. Exact duplicate presentations MAY be collapsed by a display layer, but the fold preserves occurrence order. |
+| Metadata | Map keys compare by exact string; values compare by deterministic CBOR data-model equality. The file-level view is a shallow later-wins merge, while per-segment originals remain addressable (§7.5). |
+| Suppression | A suppression target first resolves in its own segment and then applies value-wise to the file union (§11). Repeated directives have idempotent display effect but are retained as ordered fold state. |
 
 ### 7.1 Terms (`terms` frame)
 
-Payload: an **ordered array** of terms. Ids are assigned by append order across the whole log.
+Payload: an **ordered array** of terms. Ids are assigned by append order within the current
+segment dictionary (or within a `snapshot` dictionary before it is shifted into the enclosing
+segment).
 
 ```cddl
 terms-payload = [+ term]
@@ -588,9 +639,13 @@ term = {
 tag) is present and `"dt"` is absent, the datatype is `rdf:langString`; if both `"l"` and
 `"dt"` are absent, the datatype is `xsd:string`.
 
-**Blank-node labels (normative).** A `k:2` (blank node) term's `"v"` label is **local to the
-GTS file** and MUST NOT be treated as a globally stable identifier; transforms MAY relabel blank
-nodes while preserving blank-node isomorphism.
+**Blank-node labels (normative).** A `k:2` (blank node) term's non-empty `"v"` label is local
+to the current blank-node scope: the segment for ordinary frames, the snapshot dictionary for
+a `snapshot`, or the nested GTS file for recursive composition (§12.1). It MUST NOT be treated
+as a globally stable identifier and MUST NOT be merged with the same label in another segment
+or nested GTS. If `"v"` is absent or the empty string, the term is anonymous and denotes a
+fresh blank node for that term entry within the scope. Transforms MAY relabel blank nodes while
+preserving blank-node isomorphism and scope separation.
 
 ### 7.2 Term-id assignment (normative)
 
@@ -617,11 +672,24 @@ reifies-payload = { * term-id => [term-id, term-id, term-id] }  ; reifier => (s,
 
 A quoted triple used as a node is a term with `"k": 3` and `"rf"` pointing at its reifier.
 
-**RDF 1.2 mapping (normative).** A `reifies` binding `R => (S,P,O)` means the triple
-`R rdf:reifies <<( S P O )>>`; a `k:3` term denotes that triple term, reached through its
-reifier `R`; and each `annot` row `(R, P', V')` is the triple `R P' V'`. **Quotation does not
-imply assertion:** referencing a triple term (via a reifier or a `k:3` term) does NOT assert the
-base triple `(S P O)`. The base triple is asserted iff it also appears in a `quads` frame.
+**RDF dataset mapping (normative).** A folded GTS graph maps to an RDF 1.2 dataset as follows:
+each `quads` row `(S,P,O,G?)` asserts the RDF triple `(S,P,O)` in the default graph when `G`
+is absent, or in the named graph `G` when `G` is present. A `reifies` binding `R => (S,P,O)`
+asserts the triple `R rdf:reifies <<( S P O )>>` in the default graph. A `k:3` term denotes
+that triple term, reached through its reifier `R`. Each `annot` row `(R, P', V')` asserts the
+triple `R P' V'` in the default graph. Profiles MAY define additional graph-placement
+conventions for projection, but the core mapping above is the interoperable baseline.
+
+**Quotation does not imply assertion (normative).** Referencing a triple term, either via a
+reifier or a `k:3` term, does NOT assert the base triple `(S P O)`. The base triple is asserted
+iff it also appears in a `quads` frame.
+
+**RDF 1.1 degradation (informative).** RDF 1.1 has no quoted triple term. A lossy RDF 1.1
+projection MAY replace a quoted triple term with its reifier resource and emit ordinary
+reification-style triples such as `R rdf:subject S`, `R rdf:predicate P`, and `R rdf:object O`,
+or carry `R rdf:reifies` as an extension predicate understood by the consumer. Such a projection
+MUST NOT assert `(S P O)` merely because the GTS file quoted it, and tooling SHOULD label the
+projection as lossy whenever a triple term was present.
 
 ### 7.4 Quads and annotations
 
@@ -633,6 +701,10 @@ annot-payload = [+ [term-id, term-id, term-id]]             ; reifier, predicate
 Statement-level metadata (confidence, validity interval, standpoint/vantage, modality, …) is
 expressed as `annot` rows on a reifier. **Contested claims coexist**: several `annot` rows on
 one reifier, or several reifiers over one (s,p,o), are all retained — none is privileged.
+Annotations are an ordered multiset in the folded GTS state: readers MUST preserve row order
+within each segment and concatenate segment annotation rows in file order. Exact duplicate
+annotation rows are retained in the GTS fold; an RDF dataset projection MAY collapse identical
+emitted RDF triples because RDF datasets are set-valued.
 
 **Position constraints (normative).** In a `quads` row the predicate `p` MUST be an IRI (`k:0`);
 the subject `s` MUST be an IRI, blank node, or quoted triple (`k:0|2|3`); the object `o` MAY be
@@ -643,31 +715,37 @@ constraints. In an `annot` row the predicate MUST be an IRI.
 ### 7.5 Fold algorithm (normative)
 
 ```text
-result := empty union state (graph, reif, annot, blobs, meta, suppressed, opaque[])
+result := empty file state
+          (terms, quads, reifiers, annotations, blobs, blob_meta, meta,
+           suppressions, opaque, signatures, diagnostics, segment ledger)
 for segment in file order:                      # §3.1; single-segment files: one iteration
   verify each frame's id (self-hash) and prev-link within the segment;
   record sig status if "sig" present
-  terms := []   graph := {}   reif := {}   meta := {}   blobs := {}   suppressed := {}
+  terms := []   graph := {}   reif := {}   annot := []
+  blobs := {}   blob_meta := {}   meta := {}   suppressed := []   opaque := []
+  diagnostics := []
   for frame in segment log order:
     P := resolve payload (§6.1); if undecodable -> add opaque node (§7.6); continue
     switch frame.t:
       "terms"    : append each term (assign next id); each "dt"/"rf" MUST name an
                    already-introduced term-id (no forward references)
-      "quads"    : add each (s,p,o,g) to graph
-      "reifies"  : reif[reifier] := (s,p,o)
-      "annot"    : record (reifier, predicate, value)
+      "quads"    : add each (s,p,o,g) value tuple to graph
+      "reifies"  : bind reifier to (s,p,o), keeping the first non-conflicting binding (§7.8)
+      "annot"    : append (reifier, predicate, value)
       "blob"     : if "d" present -> blobs[BLAKE3(decoded "d")] := bytes (inline);
-                   else -> register external blob by "pub".digest
-      "suppress" : mark referenced subgraph/frame in `suppressed` (display contract; §11)
+                   else -> register external blob by "pub".digest;
+                   shallow-merge "pub" into blob_meta[digest]
+      "suppress" : append directive to `suppressed` (display contract; §11)
       "snapshot" : load a self-contained fold wholesale (§10)
-      "meta"     : shallow-merge map into global meta (later keys overwrite earlier)
+      "meta"     : shallow-merge map into segment meta (later keys overwrite earlier)
       "opaque"   : add explicit opaque node
   union segment fold into result BY TERM VALUE     # ids resolve locally, never cross segments;
-                                                   # bnode labels stay segment-local (§3.1)
+                                                   # bnodes keep their scope (§3.1, §12.1)
 result
 ```
 
-The fold is deterministic: the same log yields the same graph in every conformant reader.
+The fold is deterministic: the same intact log yields the same value state in every conformant
+reader.
 Within a segment, `meta` accumulates as a shallow union over one map — a later frame's keys
 replace earlier ones; values are not concatenated. **Across segments**, each segment's folded
 `meta` is exposed per segment (keyed by segment head id) AND shallow-merged in file order into
@@ -726,14 +804,22 @@ resolve-and-materialise OOM failure mode is avoided by construction.
 
 ### 7.8 Duplicates and conflicts (normative)
 
-- **Duplicate terms.** A writer SHOULD intern terms, but if two term entries are byte-identical
-  they denote the **same RDF term** (each still gets its own id); resolution is unaffected.
-- **Duplicate quads.** The folded graph is a **set**: identical `(s,p,o,g)` rows collapse to one.
-- **Reifier bindings.** A reifier SHOULD have exactly one `reifies` binding. Repeated bindings
-  for the same reifier MUST be identical; a **conflicting** binding is a data-quality error — the
-  reader surfaces a diagnostic and keeps the first binding.
-- **Annotations.** Multiple `annot` rows on a reifier coexist (contested claims, §7.4); they are
-  not deduplicated beyond exact-row identity.
+All duplicate and conflict behavior is defined here so frame handlers do not invent local
+policy:
+
+| item | fold behavior |
+|---|---|
+| Duplicate terms | A writer SHOULD intern repeated terms, but each term entry still receives its own segment-local id. Non-blank values that compare equal by §7 are the same value in the file union. Anonymous blank nodes (`"v"` absent or empty) are fresh per term entry. |
+| Duplicate quads | The folded graph is a set: identical `(s,p,o,g)` value rows collapse to one without diagnostic. |
+| Reifier bindings | A reifier SHOULD have exactly one `reifies` binding. Repeated identical bindings are harmless. A conflicting binding is a data-quality error: the reader surfaces `ConflictingReifier`, keeps the first binding in file order, and ignores the conflicting binding for the reifier map. |
+| Annotations | Annotation rows are an ordered multiset (§7.4). Multiple rows on one reifier coexist; exact duplicate rows are retained in the GTS fold. RDF dataset projections may collapse identical emitted triples. |
+| Blob bytes | Blobs are addressed by digest. Repeating the same digest/bytes is idempotent; a content-addressed view stores one byte value per digest. Validating extraction re-hashes inline bytes against the requested digest (§14.1). |
+| Blob metadata | `blob_meta[digest]` is a shallow map built in file order. Later metadata keys for the same digest replace earlier keys in the file-level view; earlier declarations remain in the original frames. |
+| Suppressions | Suppression directives are additive. Repeating an equivalent directive has idempotent display effect but remains present in the ordered suppression list. There is no unsuppress frame (§11). |
+| Metadata keys | Segment `meta` is shallow later-wins; file `meta` is the shallow later-wins merge of segment metadata in file order. Per-segment metadata remains addressable (§7.5). |
+| Malformed frames | A frame whose payload cannot be decoded or whose handler cannot safely fold it becomes an opaque node with a diagnostic when recovery is possible (§7.6, §9.1). Surviving later frames are still foldable when item boundaries are known. |
+| Unknown structural frame types | A Baseline Reader does not assign graph semantics to an unknown frame type. It MUST preserve chain verification and MAY surface an opaque node or diagnostic; a profile-aware Full Reader MAY interpret the frame. |
+| Profile conflicts | Profile declarations and profile requirements union across segments (§3.1, §13). Unsupported profile requirements degrade the affected segment's unsupported payloads to opaque nodes or profile diagnostics; they do not invalidate core wire-format folding by themselves. |
 
 ## 8. Transform catalog
 
@@ -874,8 +960,8 @@ neither can read.
 
 Compaction folds a log and re-emits it as a single self-contained `snapshot` frame (re-interned
 dictionary, deduplicated quads, dropped self-loops, optionally a materialised entailment
-closure). A `snapshot`'s payload is a self-contained fold — the four tables plus inline blobs
-and meta:
+closure). A `snapshot`'s payload is a self-contained graph fold — terms, quads, reifiers,
+annotations, inline blobs, and meta:
 
 ```cddl
 snapshot-payload = {
@@ -1006,6 +1092,9 @@ carrier is a `blob` whose `"pub".mt` is `application/vnd.blackcat.gts+cbor-seq`.
   rules), then fold the inner bytes as an independent GTS, exposing its result as a **subgraph**
   the parent graph references by the blob's digest. A Baseline Reader MAY treat a nested GTS as
   an ordinary blob (no recursion).
+- **Blank-node scope.** The inner GTS has an independent blank-node scope. If a Full Reader
+  exposes the inner fold beside the parent fold, it MUST relabel or scope inner blank nodes so
+  labels cannot collide with the parent or with sibling nested GTS files.
 - **Independent integrity.** The inner GTS has its own header, id/prev chain, and signatures. The
   **outer** chain proves the nested blob is present and intact at its position; the **inner**
   chain proves the nested log is intact. The two guarantees compose but do not depend on each

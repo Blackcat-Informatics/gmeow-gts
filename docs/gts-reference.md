@@ -11,8 +11,9 @@ and TypeScript engines also gate against.
 
 ## What it covers
 
-- **CBOR append-only log** + the four-table RDF 1.2 fold (`terms` / `quads` /
-  `reifies` / `annot`), content-addressed blobs, and `snapshot` folding (§7).
+- **CBOR append-only log** + the RDF 1.2 folded state (`terms` / `quads` /
+  `reifies` / `annot`, blobs, metadata, suppressions, opaque nodes, and diagnostics),
+  and `snapshot` folding (§7).
 - **Integrity** — deterministic CBOR + per-frame BLAKE3 self-`id` and the `prev`
   content-id chain, with the header-genesis preimage rule (§5, §9.1).
 - **Transform catalog** — `identity` / `gzip` / `zstd`; the capability model degrades

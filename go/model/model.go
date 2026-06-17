@@ -18,7 +18,7 @@ const (
 	Iri TermKind = iota
 	// Literal is a lexical value, optionally with a datatype or language tag.
 	Literal
-	// Bnode is a file-local blank node label.
+	// Bnode is a scope-local blank node label.
 	Bnode
 	// Triple is a quoted triple (RDF 1.2 triple term) carried by reifier id.
 	Triple
@@ -41,7 +41,7 @@ func FromWire(k int64) TermKind {
 // Term is a single RDF term carried by append-order id.
 type Term struct {
 	Kind TermKind
-	// IRI string, literal lexical form, or blank-node label (file-local).
+	// IRI string, literal lexical form, or blank-node label (scope-local).
 	Value string
 	// Term-id of the literal's datatype IRI, when explicit.
 	Datatype *int
