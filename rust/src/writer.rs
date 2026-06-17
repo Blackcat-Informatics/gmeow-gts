@@ -1,19 +1,19 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! A minimal GTS writer: build frames, maintain the id/prev chain, emit a CBOR
+//! A GTS writer: build frames, maintain the id/prev chain, emit a CBOR
 //! Sequence.
 //!
-//! This is the encoder counterpart to [`crate::reader`]. It currently supports
-//! the frame types needed for the `files` profile (§13.2) and the conformance
-//! vectors added with it. Deterministic CBOR and BLAKE3 self-hashes are handled
-//! by [`crate::wire`].
+//! This is the encoder counterpart to [`crate::reader`]. It supports the core
+//! graph/file frame families plus transformed, encrypted, and signed payloads.
+//! Deterministic CBOR and BLAKE3 self-hashes are handled by [`crate::wire`].
 
 use std::collections::HashMap;
+use std::fmt;
 
 use ciborium::value::Value;
 
-use crate::codec::{Codec, CodecError};
+use crate::codec::{encode_chain, Codec, CodecError};
 use crate::model::{Graph, Quad, Suppression, Term, TermKind, Triple3};
 use crate::wire::{canonical, content_id, digest_str, header_id, SELF_DESCRIBE_TAG};
 
@@ -37,6 +37,129 @@ pub fn term_to_wire(t: &Term) -> Value {
         entries.push(("rf".into(), iv(rf as i64)));
     }
     Value::Map(entries)
+}
+
+/// Writer construction options for header-level parity with the Python writer.
+#[derive(Clone, Debug)]
+pub struct WriterOptions {
+    /// Optional transform catalog. When omitted, the default GTS catalog is used.
+    pub catalog: Option<Vec<(i64, Codec)>>,
+    /// Optional header metadata carried in the header `"meta"` key.
+    pub meta: Option<Value>,
+    /// Prefix the header with CBOR self-describe tag 55799.
+    pub magic_tag: bool,
+    /// Optional layout-state claim. Only `"streamable"` is defined in this revision.
+    pub layout: Option<String>,
+}
+
+impl Default for WriterOptions {
+    fn default() -> Self {
+        Self {
+            catalog: None,
+            meta: None,
+            magic_tag: true,
+            layout: None,
+        }
+    }
+}
+
+/// COSE_Encrypt0 frame-authorship options.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Encrypt0Options {
+    /// Recipient key id.
+    pub kid: String,
+    /// 32-byte AES-256-GCM content key.
+    pub key: [u8; 32],
+}
+
+/// Advanced frame-authorship options matching Python `Writer.add_frame`.
+#[derive(Clone, Debug, Default)]
+pub struct FrameOptions {
+    /// Structured CBOR payload. Mutually exclusive with [`FrameOptions::raw`].
+    pub payload: Option<Value>,
+    /// Raw byte payload. Mutually exclusive with [`FrameOptions::payload`].
+    pub raw: Option<Vec<u8>>,
+    /// Codec names applied in array order before optional encryption.
+    pub transform: Vec<String>,
+    /// Public frame metadata (`"pub"`).
+    pub pub_meta: Option<Value>,
+    /// Recipient metadata rows (`"to"`).
+    pub recipients: Vec<Value>,
+    /// Explicit COSE_Sign1 bytes. When omitted, the writer's configured signer is used.
+    pub signature: Option<Vec<u8>>,
+    /// Encrypt the transformed payload as COSE_Encrypt0 and append `cose-encrypt0` to `"x"`.
+    pub encrypt: Option<Encrypt0Options>,
+}
+
+/// Errors raised by advanced writer construction.
+#[derive(Debug)]
+pub enum WriterError {
+    /// Invalid caller options.
+    InvalidFrame(String),
+    /// The writer catalog cannot satisfy a requested codec.
+    MissingCatalogEntry(String),
+    /// Codec encode failure.
+    Codec(CodecError),
+}
+
+impl fmt::Display for WriterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidFrame(detail) => f.write_str(detail),
+            Self::MissingCatalogEntry(name) => {
+                write!(f, "writer catalog has no entry for codec '{name}'")
+            }
+            Self::Codec(err) => write!(f, "{err}"),
+        }
+    }
+}
+
+impl std::error::Error for WriterError {}
+
+impl From<CodecError> for WriterError {
+    fn from(value: CodecError) -> Self {
+        Self::Codec(value)
+    }
+}
+
+fn default_catalog() -> Vec<(i64, Codec)> {
+    vec![
+        (
+            0,
+            Codec {
+                name: "identity".to_string(),
+                cls: "encode".to_string(),
+            },
+        ),
+        (
+            1,
+            Codec {
+                name: "gzip".to_string(),
+                cls: "compress".to_string(),
+            },
+        ),
+        (
+            2,
+            Codec {
+                name: "zstd".to_string(),
+                cls: "compress".to_string(),
+            },
+        ),
+        (
+            3,
+            Codec {
+                name: "zstd-rsyncable".to_string(),
+                cls: "compress".to_string(),
+            },
+        ),
+        (
+            7,
+            Codec {
+                name: "cose-encrypt0".to_string(),
+                cls: "encrypt".to_string(),
+            },
+        ),
+    ]
 }
 
 /// Accumulate a GTS log as a CBOR Sequence.
@@ -193,51 +316,32 @@ impl Writer {
     /// Create a writer with a header layout-state claim (§3.3;
     /// `"streamable"` is the only value this revision defines).
     pub fn with_layout(profile: &str, layout: Option<&str>) -> Self {
+        let options = WriterOptions {
+            layout: layout.map(str::to_string),
+            ..WriterOptions::default()
+        };
+        Self::with_options(profile, options).expect("unsupported layout claim")
+    }
+
+    /// Create a writer with explicit header options.
+    pub fn with_options(profile: &str, options: WriterOptions) -> Result<Self, WriterError> {
         // §5: "streamable" is the only layout this revision defines; a typo'd
         // claim would persist into the tamper-evident header.
-        assert!(
-            layout.is_none() || layout == Some("streamable"),
-            "unsupported layout claim {layout:?} (§3.3)"
-        );
-        let catalog: HashMap<i64, Codec> = [
-            (
-                0i64,
-                Codec {
-                    name: "identity".to_string(),
-                    cls: "encode".to_string(),
-                },
-            ),
-            (
-                1,
-                Codec {
-                    name: "gzip".to_string(),
-                    cls: "compress".to_string(),
-                },
-            ),
-            (
-                2,
-                Codec {
-                    name: "zstd".to_string(),
-                    cls: "compress".to_string(),
-                },
-            ),
-            (
-                3,
-                Codec {
-                    name: "zstd-rsyncable".to_string(),
-                    cls: "compress".to_string(),
-                },
-            ),
-            (
-                7,
-                Codec {
-                    name: "cose-encrypt0".to_string(),
-                    cls: "encrypt".to_string(),
-                },
-            ),
-        ]
-        .into_iter()
-        .collect();
+        if options
+            .layout
+            .as_deref()
+            .is_some_and(|layout| layout != "streamable")
+        {
+            return Err(WriterError::InvalidFrame(format!(
+                "unsupported layout claim {:?} (§3.3)",
+                options.layout
+            )));
+        }
+        let catalog: HashMap<i64, Codec> = options
+            .catalog
+            .unwrap_or_else(default_catalog)
+            .into_iter()
+            .collect();
         let name_to_id: HashMap<String, i64> = catalog
             .iter()
             .map(|(id, c)| (c.name.clone(), *id))
@@ -261,20 +365,27 @@ impl Writer {
             ("prof".into(), profile.into()),
             ("cat".into(), Value::Map(cat_entries)),
         ];
-        if let Some(layout) = layout {
+        if let Some(layout) = options.layout {
             // The layout-state claim is part of the header content, so it is
             // covered by the genesis self-hash (§3.3, §5).
             header.push(("layout".into(), layout.into()));
+        }
+        if let Some(meta) = options.meta {
+            header.push(("meta".into(), meta));
         }
         header.sort_by_key(|a| canonical(&a.0));
         let id = header_id(&header);
         header.push(("id".into(), Value::Bytes(id.clone())));
         header.sort_by_key(|a| canonical(&a.0));
 
-        let tagged = Value::Tag(SELF_DESCRIBE_TAG, Box::new(Value::Map(header)));
-        let buf = canonical(&tagged);
+        let header_value = Value::Map(header);
+        let buf = if options.magic_tag {
+            canonical(&Value::Tag(SELF_DESCRIBE_TAG, Box::new(header_value)))
+        } else {
+            canonical(&header_value)
+        };
 
-        Self {
+        Ok(Self {
             name_to_id,
             prev: id,
             buf,
@@ -282,7 +393,7 @@ impl Writer {
             types: Vec::new(),
             frame_ids: Vec::new(),
             signer: None,
-        }
+        })
     }
 
     /// Sign every subsequently appended frame's id with this Ed25519 key (§9.2).
@@ -310,8 +421,16 @@ impl Writer {
         &self.prev
     }
 
-    fn chain_ids(&self, chain: &[String]) -> Vec<i64> {
-        chain.iter().map(|name| self.name_to_id[name]).collect()
+    fn chain_ids(&self, chain: &[String]) -> Result<Vec<i64>, WriterError> {
+        chain
+            .iter()
+            .map(|name| {
+                self.name_to_id
+                    .get(name)
+                    .copied()
+                    .ok_or_else(|| WriterError::MissingCatalogEntry(name.clone()))
+            })
+            .collect()
     }
 
     /// Append one frame and return its `"id"`.
@@ -323,51 +442,112 @@ impl Writer {
         transform: Option<&[String]>,
         pub_meta: Option<Value>,
     ) -> Vec<u8> {
-        assert!(
-            payload.is_none() || raw.is_none(),
-            "payload and raw are mutually exclusive"
-        );
+        let mut options = FrameOptions {
+            payload,
+            raw,
+            pub_meta,
+            ..FrameOptions::default()
+        };
+        if let Some(transform) = transform {
+            options.transform = transform.to_vec();
+        }
+        self.add_frame_with_options(frame_type, options)
+            .expect("invalid frame options")
+    }
+
+    /// Append one frame with explicit transform/encryption/signature options.
+    pub fn add_frame_with_options(
+        &mut self,
+        frame_type: &str,
+        options: FrameOptions,
+    ) -> Result<Vec<u8>, WriterError> {
+        if options.payload.is_some() && options.raw.is_some() {
+            return Err(WriterError::InvalidFrame(
+                "payload and raw are mutually exclusive".to_string(),
+            ));
+        }
+        if (!options.transform.is_empty() || options.encrypt.is_some())
+            && options.payload.is_none()
+            && options.raw.is_none()
+        {
+            return Err(WriterError::InvalidFrame(
+                "transform/encrypt requires a payload or raw source".to_string(),
+            ));
+        }
         let mut frame: Vec<(Value, Value)> = vec![("t".into(), frame_type.into())];
 
-        let data: Option<Value> = match (transform, &payload, &raw) {
-            (Some(chain), _, _) if !chain.is_empty() => {
-                assert!(
-                    raw.is_some() || payload.is_some(),
-                    "transform requires a raw or payload source"
-                );
-                let source = match (raw.as_ref(), payload.as_ref()) {
-                    (Some(r), _) => r.clone(),
-                    (None, Some(p)) => canonical(p),
-                    (None, None) => panic!("transform requires a raw or payload source"),
-                };
-                // For the files profile we only need identity; compression is
-                // intentionally not implemented in this minimal writer.
-                assert!(
-                    chain.iter().all(|n| n == "identity"),
-                    "non-identity transforms require the Python producer"
-                );
-                let x_ids: Vec<Value> = self.chain_ids(chain).into_iter().map(iv).collect();
-                frame.push(("x".into(), Value::Array(x_ids)));
-                Some(Value::Bytes(source))
+        #[cfg(not(target_arch = "wasm32"))]
+        let mut recipients = options.recipients;
+        #[cfg(target_arch = "wasm32")]
+        let recipients = options.recipients;
+        let data: Option<Value> = if !options.transform.is_empty() || options.encrypt.is_some() {
+            let mut source = match (options.raw.as_ref(), options.payload.as_ref()) {
+                (Some(raw), _) => raw.clone(),
+                (None, Some(payload)) => canonical(payload),
+                (None, None) => unreachable!("validated transform source above"),
+            };
+            #[cfg(not(target_arch = "wasm32"))]
+            let mut x_ids: Vec<i64> = self.chain_ids(&options.transform)?;
+            #[cfg(target_arch = "wasm32")]
+            let x_ids: Vec<i64> = self.chain_ids(&options.transform)?;
+            if !options.transform.is_empty() {
+                source = encode_chain(&options.transform, &source)?;
             }
-            (None, _, Some(r)) => Some(Value::Bytes(r.clone())),
-            (None, Some(p), None) => Some(p.clone()),
-            _ => None,
+            if let Some(encrypt) = options.encrypt {
+                #[cfg(target_arch = "wasm32")]
+                {
+                    let _ = encrypt;
+                    return Err(WriterError::InvalidFrame(
+                        "random-IV COSE_Encrypt0 authoring requires a non-wasm target".into(),
+                    ));
+                }
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    let encrypt_id = self
+                        .name_to_id
+                        .get("cose-encrypt0")
+                        .copied()
+                        .ok_or_else(|| WriterError::MissingCatalogEntry("cose-encrypt0".into()))?;
+                    source = crate::cose::encrypt0(&source, &encrypt.kid, &encrypt.key);
+                    x_ids.push(encrypt_id);
+                    recipients.push(Value::Map(vec![("kid".into(), encrypt.kid.into())]));
+                }
+            }
+            frame.push((
+                "x".into(),
+                Value::Array(x_ids.into_iter().map(iv).collect()),
+            ));
+            Some(Value::Bytes(source))
+        } else {
+            match (options.raw, options.payload) {
+                (Some(raw), _) => Some(Value::Bytes(raw)),
+                (None, Some(payload)) => Some(payload),
+                _ => None,
+            }
         };
         if let Some(data) = data {
             frame.push(("d".into(), data));
         }
 
-        if let Some(meta) = pub_meta {
+        if let Some(meta) = options.pub_meta {
             frame.push(("pub".into(), meta));
+        }
+        if !recipients.is_empty() {
+            frame.push(("to".into(), Value::Array(recipients)));
         }
         frame.push(("prev".into(), Value::Bytes(self.prev.clone())));
 
         frame.sort_by_key(|a| canonical(&a.0));
         let id = content_id(&frame);
         frame.push(("id".into(), Value::Bytes(id.clone())));
-        if let Some((key, kid)) = &self.signer {
-            let sig = crate::cose::sign_id(&id, key, kid);
+        let sig = match options.signature {
+            Some(sig) => Some(sig),
+            None => self
+                .signer
+                .as_ref()
+                .map(|(key, kid)| crate::cose::sign_id(&id, key, kid)),
+        };
+        if let Some(sig) = sig {
             frame.push(("sig".into(), Value::Bytes(sig)));
         }
         frame.sort_by_key(|a| canonical(&a.0));
@@ -377,7 +557,7 @@ impl Writer {
         self.frame_ids.push(id.clone());
         self.buf.extend_from_slice(&canonical(&Value::Map(frame)));
         self.prev = id.clone();
-        id
+        Ok(id)
     }
 
     /// Append a `terms` frame.

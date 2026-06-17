@@ -79,9 +79,11 @@ a GTS file.
 ## What this crate provides
 
 - **`gmeow_gts::reader`** — read a GTS byte slice into a `Graph`, verify chains, detect
-  torn appends, and handle opaque/degraded frames.
+  torn appends, decrypt `COSE_Encrypt0` frames when a content-key resolver is supplied, and
+  handle opaque/degraded frames.
 - **`gmeow_gts::writer`** — build frames and emit full GTS files, including
-  `Writer::deterministic(&graph, profile)` for reproducible graph authoring.
+  `Writer::deterministic(&graph, profile)` for reproducible graph authoring and
+  `FrameOptions` for transformed, encrypted, explicitly signed, or recipient-addressed frames.
 - **`gmeow_gts::cose`** — COSE_Sign1 signing and verification of frame ids (§9.2), plus
   COSE_Encrypt0 AES-256-GCM payload encryption (§9.3).
 - **`gmeow_gts::openpgp`** — parse an embedded OpenPGP transport key to its fingerprint.
@@ -202,6 +204,19 @@ they are read. Use `Graph::blob_entry` to inspect presence without decoding, `Gr
 or `Graph::blob_bytes_cloned` to decode and cache a single blob, and `Graph::decoded_blobs` to
 materialize the insertion-ordered table.
 
+Readers that hold content keys can use `ReadOptions::with_content_key` to decrypt
+`COSE_Encrypt0` frames during the same total fold. Missing or wrong keys still degrade to
+opaque nodes with `MissingKey` diagnostics instead of aborting the read:
+
+```rust
+let key = [7u8; 32];
+let resolver = |kid: &str| (kid == "did:example:recipient").then_some(key);
+let graph = gmeow_gts::reader::read_with_options(
+    &bytes,
+    gmeow_gts::reader::ReadOptions::new(false, None).with_content_key(&resolver),
+);
+```
+
 Write a minimal graph. A `Writer` is created with a profile (e.g. `"dist"`), then frames are
 appended: a `terms` frame interns the RDF terms by append-order id, and a `quads` frame
 references them by those ids (the fourth tuple slot is the graph name, `None` for the default
@@ -240,6 +255,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::write("cat.gts", writer.to_bytes())?;
     Ok(())
 }
+```
+
+Advanced frame authorship uses `FrameOptions`, matching the Python writer's transform and
+encryption surface without adding new Rust dependencies:
+
+```rust
+use ciborium::value::Value;
+use gmeow_gts::writer::{Encrypt0Options, FrameOptions, Writer};
+
+let key = [7u8; 32];
+let mut writer = Writer::new("opaque");
+writer.add_frame_with_options(
+    "meta",
+    FrameOptions {
+        payload: Some(Value::Map(vec![("private".into(), Value::Bool(true))])),
+        transform: vec!["zstd".into()],
+        encrypt: Some(Encrypt0Options {
+            kid: "did:example:recipient".into(),
+            key,
+        }),
+        ..FrameOptions::default()
+    },
+)?;
 ```
 
 For the full API, see [docs.rs/gmeow-gts](https://docs.rs/gmeow-gts).

@@ -9,7 +9,7 @@
 //! (no keys in the baseline) degrades to an opaque node (§7.6, §8.3).
 
 use std::fmt;
-use std::io::Read;
+use std::io::{Read, Write};
 
 /// A catalog entry (§5, §8.5).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -96,14 +96,84 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
     }
 }
 
+const RSYNCABLE_BLOCK_SIZE: usize = 65_536;
+
+fn encode_zstd(data: &[u8]) -> Vec<u8> {
+    ruzstd::encoding::compress_to_vec(data, ruzstd::encoding::CompressionLevel::Fastest)
+}
+
+fn encode_zstd_rsyncable(data: &[u8]) -> Vec<u8> {
+    let mut out = Vec::new();
+    for block in data.chunks(RSYNCABLE_BLOCK_SIZE) {
+        out.extend(encode_zstd(block));
+    }
+    out
+}
+
+fn encode_one(name: &str, data: &[u8]) -> Result<Vec<u8>, CodecError> {
+    match name {
+        "identity" => Ok(data.to_vec()),
+        "gzip" => {
+            let mut encoder = flate2::GzBuilder::new()
+                .mtime(0)
+                .write(Vec::new(), flate2::Compression::default());
+            encoder
+                .write_all(data)
+                .map_err(|e| CodecError::Failed(format!("gzip encode failed: {e}")))?;
+            encoder
+                .finish()
+                .map_err(|e| CodecError::Failed(format!("gzip encode failed: {e}")))
+        }
+        "zstd" => Ok(encode_zstd(data)),
+        "zstd-rsyncable" => Ok(encode_zstd_rsyncable(data)),
+        other => Err(CodecError::Unavailable {
+            reason: "unknown-codec",
+            detail: format!("writer cannot encode with codec '{other}'"),
+        }),
+    }
+}
+
+/// Encode `data` through codec names in array order (§8.2).
+pub fn encode_chain(chain: &[String], data: &[u8]) -> Result<Vec<u8>, CodecError> {
+    let mut current = data.to_vec();
+    for name in chain {
+        current = encode_one(name, &current)?;
+    }
+    Ok(current)
+}
+
 /// Reverse a resolved codec chain, last to first (§6.1, §8.2).
 ///
 /// The baseline carries no keys, so every `encrypt`-class codec degrades to
 /// `missing-key` (matching the Python reader with `keys=None`).
 pub fn decode_chain(chain: &[Codec], data: &[u8]) -> Result<Vec<u8>, CodecError> {
+    decode_chain_with_decrypt(chain, data, None)
+}
+
+/// A caller-supplied encrypt-class transform resolver.
+pub type Decryptor<'a> = dyn Fn(&Codec, &[u8]) -> Result<Vec<u8>, CodecError> + 'a;
+
+/// Reverse a resolved codec chain, handing encrypt-class transforms to `decrypt`.
+pub fn decode_chain_with_decrypt(
+    chain: &[Codec],
+    data: &[u8],
+    decrypt: Option<&Decryptor<'_>>,
+) -> Result<Vec<u8>, CodecError> {
     let mut current = data.to_vec();
     for codec in chain.iter().rev() {
-        current = decode_one(codec, &current)?;
+        if codec.cls == "encrypt" {
+            current = match decrypt {
+                Some(decrypt) => decrypt(codec, &current)?,
+                None => {
+                    return Err(CodecError::Unavailable {
+                        reason: "missing-key",
+                        detail: format!("no key for encrypt codec '{}'", codec.name),
+                    })
+                }
+            };
+        } else {
+            current = decode_one(codec, &current)?;
+        }
     }
     Ok(current)
 }
@@ -111,6 +181,36 @@ pub fn decode_chain(chain: &[Codec], data: &[u8]) -> Result<Vec<u8>, CodecError>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn encoded_core_codecs_round_trip() {
+        let payload = b"stable payload for writer transform parity".repeat(8);
+        for name in ["identity", "gzip", "zstd", "zstd-rsyncable"] {
+            let encoded = encode_chain(&[name.to_string()], &payload).expect("encodes");
+            let decoded = decode_chain(
+                &[Codec {
+                    name: name.to_string(),
+                    cls: if name == "identity" {
+                        "encode".into()
+                    } else {
+                        "compress".into()
+                    },
+                }],
+                &encoded,
+            )
+            .expect("decodes");
+            assert_eq!(decoded, payload);
+        }
+    }
+
+    #[test]
+    fn gzip_encoding_is_deterministic() {
+        let payload = b"stable gzip payload".repeat(16);
+        assert_eq!(
+            encode_chain(&["gzip".to_string()], &payload).unwrap(),
+            encode_chain(&["gzip".to_string()], &payload).unwrap()
+        );
+    }
 
     #[test]
     fn zstd_rsyncable_decodes_concatenated_frames() {
