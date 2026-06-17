@@ -237,6 +237,8 @@ Graph.to_nquads(out)        # §14
 
 This API shape is intentionally small: it exposes the folded tables, diagnostics, and common
 projection path without requiring an RDF text parser, prefix resolver, query engine, or reasoner.
+The cross-language API and CLI parity contract is maintained in
+[`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
 
 ### 2.4 Reader diagnostics
 

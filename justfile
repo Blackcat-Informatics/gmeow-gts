@@ -54,6 +54,10 @@ gen-vectors:
 check-vectors: gen-vectors
     git diff --exit-code vectors
 
+# Fail if the CLI parity contract drifts from implementation or README docs.
+check-cli-parity:
+    python scripts/check_cli_parity.py
+
 # Live cross-engine interoperability check (each engine reads every other's output).
 interop:
     bash scripts/interop.sh

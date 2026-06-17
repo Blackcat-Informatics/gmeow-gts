@@ -65,6 +65,8 @@ A tool can claim multiple tiers. A command-line package that exposes `read`, `ve
 `compact`, and `files` archive commands might claim Baseline Reader, Writer, Validating Tool,
 and Profile-Aware Tool (`files`), while not claiming Full Reader if it cannot decrypt or
 recurse into nested GTS blobs.
+The cross-language API and command matrix for those public surfaces is maintained in
+[`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
 
 ## 4. Expected Graph Format
 
