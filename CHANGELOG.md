@@ -16,6 +16,24 @@ change before `1.0`.
 
 ### Added
 
+- **Cross-engine COSE_Encrypt0 (#18): AES-256-GCM payload encryption in all four engines.**
+  - `encrypt0` / `decrypt0` / `recipient_kid` (§9.3) in Rust (pure-Rust
+    `aes-gcm`), Go (`crypto/aes` + `crypto/cipher`), and TypeScript
+    (`@noble/ciphers`) — byte-compatible with the Python reference. The COSE
+    structure is `16([protected{1:3}, unprotected{4:kid, 5:iv}, ciphertext])`
+    with the Enc_structure (`["Encrypt0", protected, b""]`) bound as AAD.
+  - Because AES-GCM uses a random 12-byte IV, the seal is not deterministic, so
+    conformance is gated two ways: a **fixed-IV vector**
+    (`vectors/encrypt0/basic.json` + `scripts/gen_encrypt0_vectors.py`) freezes
+    the exact transform (every engine reproduces the sealed bytes and opens
+    them), and each engine round-trips a **random-IV** seal. Verified live
+    across engine boundaries (e.g. Go seals → Python/Rust open).
+  - The Rust seal/open paths stay pure / wasm-friendly: `aes-gcm` is built with
+    `getrandom` off, and the random-IV `encrypt0` convenience (the only RNG user)
+    is gated off `wasm32`, so the `wasm32-unknown-unknown` build is still green.
+  - This was the last tracked crypto-parity follow-up from #15; signing (#15),
+    `extract-key` (#17), and now encryption (#18) all reach four-engine parity.
+
 - **Cross-engine `extract-key` (#17): OpenPGP key inspection in all four engines.**
   - A minimal OpenPGP reader (de-armor → packet parse → raw Ed25519 key + v4
     SHA-1 fingerprint) in Rust (`openpgp.rs`, pure-Rust `sha1`), Go
@@ -32,7 +50,7 @@ change before `1.0`.
     emojihash, and the CLI reproduces the Python-generated stdout byte-for-byte.
   - The Rust OpenPGP reader stays pure / wasm-friendly (the `wasm32` build is
     still green).
-  - COSE_Encrypt0 (random-IV AES-GCM, #18) remains the last tracked follow-up.
+  - COSE_Encrypt0 landed as #18 (above) — four-engine crypto parity is complete.
 
 - **Cross-engine crypto parity (#15): COSE_Sign1 + emojihash in all four engines.**
   - **COSE_Sign1 Ed25519** (`sign_id`/`verify_sig`, detached over the frame id,

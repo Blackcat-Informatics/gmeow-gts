@@ -7,6 +7,8 @@
 //! carries the `kid` (label 4). Ed25519 is deterministic (RFC 8032), so the same
 //! key + id always yields the same signature — gated by `vectors/cose/*.json`.
 
+use aes_gcm::aead::{Aead, KeyInit, Payload};
+use aes_gcm::{Aes256Gcm, Nonce};
 use ciborium::value::{Integer, Value};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 
@@ -15,8 +17,11 @@ use crate::wire;
 
 const ALG: i64 = 1;
 const KID: i64 = 4;
+const IV: i64 = 5;
 const ALG_EDDSA: i64 = -8;
+const ALG_A256GCM: i64 = 3;
 const TAG_SIGN1: u64 = 18;
+const TAG_ENCRYPT0: u64 = 16;
 
 /// The verification outcome for a detached COSE_Sign1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -128,4 +133,164 @@ pub fn verify_signatures(
         }
         .to_string();
     }
+}
+
+// -- COSE_Encrypt0 (AES-256-GCM, keyed by kid) — GTS-SPEC §9.3 -----------------
+
+/// Why a `decrypt0` could not return plaintext.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Encrypt0Error {
+    /// The COSE_Encrypt0 structure could not be parsed.
+    Malformed,
+    /// No content key was resolved for the recipient `kid`.
+    MissingKey,
+    /// AES-GCM authentication failed (wrong key or tampered ciphertext).
+    AuthFailed,
+}
+
+impl std::fmt::Display for Encrypt0Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let msg = match self {
+            Self::Malformed => "malformed COSE_Encrypt0",
+            Self::MissingKey => "no content key for recipient",
+            Self::AuthFailed => "authentication failed (AES-GCM tag mismatch)",
+        };
+        f.write_str(msg)
+    }
+}
+
+impl std::error::Error for Encrypt0Error {}
+
+/// The protected header for A256GCM: `{1: 3}` (canonical CBOR).
+fn encrypt0_protected() -> Vec<u8> {
+    wire::encode(&Value::Map(vec![(
+        Value::Integer(Integer::from(ALG)),
+        Value::Integer(Integer::from(ALG_A256GCM)),
+    )]))
+}
+
+/// The COSE `Enc_structure` bound as AAD (RFC 9052 §5.3): no external AAD.
+fn enc_structure(protected: &[u8]) -> Vec<u8> {
+    wire::encode(&Value::Array(vec![
+        Value::Text("Encrypt0".to_string()),
+        Value::Bytes(protected.to_vec()),
+        Value::Bytes(Vec::new()),
+    ]))
+}
+
+/// Seal `plaintext` as a COSE_Encrypt0 with an explicit 12-byte `iv` (§9.3).
+///
+/// Splitting the IV out keeps the transform deterministic so it can be frozen
+/// in `vectors/encrypt0/*.json`; [`encrypt0`] is the production entry point and
+/// always draws a fresh random IV.
+pub fn encrypt0_with_iv(plaintext: &[u8], kid: &str, key: &[u8; 32], iv: &[u8; 12]) -> Vec<u8> {
+    let protected = encrypt0_protected();
+    let aad = enc_structure(&protected);
+    let cipher = Aes256Gcm::new(key.into());
+    let ciphertext = cipher
+        .encrypt(
+            Nonce::from_slice(iv),
+            Payload {
+                msg: plaintext,
+                aad: &aad,
+            },
+        )
+        .expect("AES-256-GCM encryption cannot fail for a valid key/nonce");
+    // Unprotected header keys in canonical order: kid (4) before iv (5).
+    let cose = Value::Tag(
+        TAG_ENCRYPT0,
+        Box::new(Value::Array(vec![
+            Value::Bytes(protected),
+            Value::Map(vec![
+                (
+                    Value::Integer(Integer::from(KID)),
+                    Value::Bytes(kid.as_bytes().to_vec()),
+                ),
+                (Value::Integer(Integer::from(IV)), Value::Bytes(iv.to_vec())),
+            ]),
+            Value::Bytes(ciphertext),
+        ])),
+    );
+    wire::canonical(&cose)
+}
+
+/// Seal `plaintext` as a COSE_Encrypt0 to the recipient `kid` (§9.3).
+///
+/// Draws a fresh random 12-byte IV from the OS CSPRNG; only available off wasm
+/// (the deterministic [`encrypt0_with_iv`] / [`decrypt0`] paths cover wasm).
+#[cfg(not(target_arch = "wasm32"))]
+pub fn encrypt0(plaintext: &[u8], kid: &str, key: &[u8; 32]) -> Vec<u8> {
+    let mut iv = [0u8; 12];
+    getrandom::getrandom(&mut iv).expect("OS CSPRNG is available");
+    encrypt0_with_iv(plaintext, kid, key, &iv)
+}
+
+/// The cleartext fields of a parsed COSE_Encrypt0.
+struct Encrypt0Parts {
+    kid: String,
+    protected: Vec<u8>,
+    iv: Vec<u8>,
+    ciphertext: Vec<u8>,
+}
+
+/// Parse a COSE_Encrypt0 into its cleartext fields, or `None` if malformed.
+fn parse_encrypt0(blob: &[u8]) -> Option<Encrypt0Parts> {
+    let value: Value = ciborium::de::from_reader(blob).ok()?;
+    let body = match value {
+        Value::Tag(_, inner) => *inner,
+        other => other,
+    };
+    let array = body.as_array()?;
+    if array.len() != 3 {
+        return None;
+    }
+    let protected = array[0].as_bytes()?.clone();
+    let unprotected = array[1].as_map()?;
+    let ciphertext = array[2].as_bytes()?.clone();
+    let kid_target = Integer::from(KID);
+    let iv_target = Integer::from(IV);
+    let kid = unprotected.iter().find_map(|(k, v)| match (k, v) {
+        (Value::Integer(i), Value::Bytes(b)) if *i == kid_target => {
+            String::from_utf8(b.clone()).ok()
+        }
+        _ => None,
+    })?;
+    let iv = unprotected.iter().find_map(|(k, v)| match (k, v) {
+        (Value::Integer(i), Value::Bytes(b)) if *i == iv_target => Some(b.clone()),
+        _ => None,
+    })?;
+    Some(Encrypt0Parts {
+        kid,
+        protected,
+        iv,
+        ciphertext,
+    })
+}
+
+/// The recipient `kid` of a COSE_Encrypt0 (for key lookup), or `None`.
+pub fn recipient_kid(blob: &[u8]) -> Option<String> {
+    parse_encrypt0(blob).map(|p| p.kid)
+}
+
+/// Open a COSE_Encrypt0 using a content key resolved by `kid` (§9.3).
+pub fn decrypt0(
+    blob: &[u8],
+    resolve: impl Fn(&str) -> Option<[u8; 32]>,
+) -> Result<Vec<u8>, Encrypt0Error> {
+    let parts = parse_encrypt0(blob).ok_or(Encrypt0Error::Malformed)?;
+    let key = resolve(&parts.kid).ok_or(Encrypt0Error::MissingKey)?;
+    if parts.iv.len() != 12 {
+        return Err(Encrypt0Error::Malformed);
+    }
+    let aad = enc_structure(&parts.protected);
+    let cipher = Aes256Gcm::new((&key).into());
+    cipher
+        .decrypt(
+            Nonce::from_slice(&parts.iv),
+            Payload {
+                msg: &parts.ciphertext,
+                aad: &aad,
+            },
+        )
+        .map_err(|_| Encrypt0Error::AuthFailed)
 }

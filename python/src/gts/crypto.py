@@ -163,16 +163,25 @@ def verify_sig(
 # -- COSE_Encrypt0 (AES-256-GCM, keyed by kid) --------------------------------
 
 
-def encrypt0(plaintext: bytes, kid: str, key: bytes) -> bytes:
-    """Seal ``plaintext`` as a ``COSE_Encrypt0`` to the recipient ``kid`` (§9.3)."""
+def _encrypt0_with_iv(plaintext: bytes, kid: str, key: bytes, iv: bytes) -> bytes:
+    """Seal ``plaintext`` with an explicit 12-byte ``iv`` (§9.3).
+
+    Splitting the IV out makes the COSE_Encrypt0 transform deterministic, so the
+    cross-engine conformance vector can freeze exact bytes; :func:`encrypt0` is
+    the production entry point and always supplies a fresh random IV.
+    """
     protected = cbor2.dumps({_ALG: _ALG_A256GCM}, canonical=True)
-    iv = os.urandom(12)
     aad = cbor2.dumps(["Encrypt0", protected, b""], canonical=True)
     ciphertext = AESGCM(key).encrypt(iv, plaintext, aad)
     cose = cbor2.CBORTag(
         _TAG_ENCRYPT0, [protected, {_IV: iv, _KID: kid.encode()}, ciphertext]
     )
     return cbor2.dumps(cose, canonical=True)
+
+
+def encrypt0(plaintext: bytes, kid: str, key: bytes) -> bytes:
+    """Seal ``plaintext`` as a ``COSE_Encrypt0`` to the recipient ``kid`` (§9.3)."""
+    return _encrypt0_with_iv(plaintext, kid, key, os.urandom(12))
 
 
 def decrypt0(blob: bytes, provider: KeyProvider) -> bytes:
