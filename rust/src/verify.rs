@@ -23,7 +23,9 @@ use crate::reader::read;
 /// The embedded `gts:transportKey` metadata value.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EmbeddedTransportKey {
+    /// The key id used by COSE signatures in this file.
     pub kid: String,
+    /// ASCII-armored OpenPGP Ed25519 public-key certificate.
     pub gpg: String,
 }
 
@@ -77,20 +79,37 @@ impl VerifyOptions {
 /// Outcome of verifying a GTS file's signatures and profile trust policy.
 #[derive(Clone, Debug, Default)]
 pub struct VerificationResult {
+    /// True when no cryptographic errors, unresolved signatures, or profile
+    /// policy errors were found under the supplied options.
     pub ok: bool,
+    /// Key id used for verification, either embedded or derived from the
+    /// out-of-band OpenPGP fingerprint.
     pub kid: Option<String>,
+    /// Uppercase OpenPGP v4 fingerprint of the resolved transport key.
     pub fingerprint: Option<String>,
+    /// Emoji visual hash of the raw Ed25519 public key.
     pub emojihash: Option<String>,
+    /// Speakable labels corresponding to [`Self::emojihash`].
     pub emojihash_labels: Option<String>,
+    /// OpenSSH-style randomart of the raw Ed25519 public key.
     pub randomart: Option<String>,
+    /// Number of signed frames inspected. This mirrors Python's result shape.
     pub frames: usize,
+    /// Number of COSE_Sign1 frame signatures present.
     pub signed: usize,
+    /// Number of signatures cryptographically valid under the resolved key.
     pub valid: usize,
+    /// Number of valid signatures whose signer is trusted by the policy.
     pub trusted: usize,
+    /// Number of signatures that failed cryptographic verification.
     pub invalid: usize,
+    /// Number of signatures whose key id could not be resolved.
     pub unverified: usize,
+    /// Human-readable verification errors.
     pub errors: Vec<String>,
+    /// Reader diagnostics produced while folding the file.
     pub diagnostics: Vec<Diagnostic>,
+    /// Profile and trust-policy findings layered above core verification.
     pub profile_findings: Vec<ProfileFinding>,
 }
 
