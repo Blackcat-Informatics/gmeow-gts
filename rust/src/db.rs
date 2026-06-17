@@ -15,6 +15,7 @@ use std::fmt;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::model::{Graph, TermKind};
 use crate::wire::hex;
@@ -250,31 +251,83 @@ fn sql_path(path: &Path) -> String {
     path.to_string_lossy().replace('\'', "''")
 }
 
+fn temp_sibling_path(path: &Path, suffix: &str) -> PathBuf {
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy())
+        .unwrap_or_else(|| "export".into());
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    parent.join(format!(
+        ".{name}.{}.{}.{}",
+        std::process::id(),
+        nanos,
+        suffix
+    ))
+}
+
+fn replace_file(staged: &Path, out: &Path) -> Result<(), DbExportError> {
+    if out.is_dir() {
+        return Err(DbExportError::new(format!(
+            "cannot replace directory {} with exported file",
+            out.display()
+        )));
+    }
+    if out.exists() {
+        let backup = temp_sibling_path(out, "bak");
+        let _ = std::fs::remove_file(&backup);
+        std::fs::rename(out, &backup).map_err(|e| {
+            DbExportError::new(format!(
+                "cannot stage replacement for {}: {e}",
+                out.display()
+            ))
+        })?;
+        if let Err(err) = std::fs::rename(staged, out) {
+            let _ = std::fs::rename(&backup, out);
+            return Err(DbExportError::new(format!(
+                "cannot replace {}: {err}",
+                out.display()
+            )));
+        }
+        let _ = std::fs::remove_file(&backup);
+        return Ok(());
+    }
+    std::fs::rename(staged, out)
+        .map_err(|e| DbExportError::new(format!("cannot write {}: {e}", out.display())))
+}
+
+fn export_database_file(program: &str, out: &Path, script: &str) -> Result<(), DbExportError> {
+    let staged = temp_sibling_path(out, "tmp");
+    let _ = std::fs::remove_file(&staged);
+    let staged_arg = staged.to_string_lossy().into_owned();
+    if let Err(err) = run_sql_tool(program, &[staged_arg.as_str()], script) {
+        let _ = std::fs::remove_file(&staged);
+        return Err(err);
+    }
+    replace_file(&staged, out)
+}
+
 /// Write a folded graph to a SQLite database.
 pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
-    let _ = std::fs::remove_file(out);
     let rows = table_sql(graph, SqlDialect::Sqlite);
     let script = build_load_script(&rows);
-    let out_arg = out.to_string_lossy().into_owned();
-    if let Err(err) = run_sql_tool("sqlite3", &[out_arg.as_str()], &script) {
-        let _ = std::fs::remove_file(out);
-        return Err(err);
-    }
+    export_database_file("sqlite3", out, &script)?;
     Ok(out.to_path_buf())
 }
 
 /// Write a folded graph to a DuckDB database.
 pub fn to_duckdb(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
-    let _ = std::fs::remove_file(out);
     let rows = table_sql(graph, SqlDialect::Duckdb);
     let script = build_load_script(&rows);
-    let out_arg = out.to_string_lossy().into_owned();
-    if let Err(err) = run_sql_tool("duckdb", &[out_arg.as_str()], &script) {
-        let _ = std::fs::remove_file(out);
-        return Err(err);
-    }
+    export_database_file("duckdb", out, &script)?;
     Ok(out.to_path_buf())
 }
 
@@ -283,6 +336,14 @@ pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBu
     let target = out_dir.as_ref();
     std::fs::create_dir_all(target)
         .map_err(|e| DbExportError::new(format!("cannot create {}: {e}", target.display())))?;
+    let staged_dir = temp_sibling_path(target, "tmpdir");
+    let _ = std::fs::remove_dir_all(&staged_dir);
+    std::fs::create_dir_all(&staged_dir).map_err(|e| {
+        DbExportError::new(format!(
+            "cannot create staging directory {}: {e}",
+            staged_dir.display()
+        ))
+    })?;
     let rows = table_sql(graph, SqlDialect::Duckdb);
     let mut script = build_load_script(&rows);
     let mut written = Vec::new();
@@ -290,19 +351,28 @@ pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBu
         if rows.count(table) == 0 {
             continue;
         }
+        let staged = staged_dir.join(format!("{table}.parquet"));
         let out = target.join(format!("{table}.parquet"));
-        let _ = std::fs::remove_file(&out);
         script.push_str(&format!(
             "COPY {table} TO '{}' (FORMAT parquet);\n",
-            sql_path(&out)
+            sql_path(&staged)
         ));
-        written.push(out);
+        written.push((staged, out));
     }
     if let Err(err) = run_sql_tool("duckdb", &[], &script) {
-        for path in &written {
-            let _ = std::fs::remove_file(path);
-        }
+        let _ = std::fs::remove_dir_all(&staged_dir);
         return Err(err);
     }
-    Ok(written)
+    let mut final_paths = Vec::new();
+    for (staged, out) in &written {
+        replace_file(staged, out)?;
+        final_paths.push(out.clone());
+    }
+    for table in TABLES {
+        if rows.count(table) == 0 {
+            let _ = std::fs::remove_file(target.join(format!("{table}.parquet")));
+        }
+    }
+    let _ = std::fs::remove_dir_all(&staged_dir);
+    Ok(final_paths)
 }

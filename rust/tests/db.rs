@@ -3,6 +3,8 @@
 
 //! Relational export CLI tests.
 
+use std::ffi::OsString;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
@@ -29,6 +31,44 @@ fn gts(args: &[&str]) -> Output {
         .args(args)
         .output()
         .expect("gts binary runs")
+}
+
+fn gts_with_path(args: &[&str], path: OsString) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_gts"))
+        .args(args)
+        .env("PATH", path)
+        .output()
+        .expect("gts binary runs")
+}
+
+fn prepend_path(dir: &Path) -> OsString {
+    let mut paths = vec![dir.to_path_buf()];
+    if let Some(path) = std::env::var_os("PATH") {
+        paths.extend(std::env::split_paths(&path));
+    }
+    std::env::join_paths(paths).unwrap()
+}
+
+#[cfg(unix)]
+fn fake_failing_tool(dir: &Path, program: &str) {
+    use std::os::unix::fs::PermissionsExt;
+
+    std::fs::create_dir_all(dir).unwrap();
+    let path = dir.join(program);
+    std::fs::write(&path, "#!/bin/sh\nexit 7\n").unwrap();
+    let mut permissions = std::fs::metadata(&path).unwrap().permissions();
+    permissions.set_mode(0o755);
+    std::fs::set_permissions(path, permissions).unwrap();
+}
+
+#[cfg(windows)]
+fn fake_failing_tool(dir: &Path, program: &str) {
+    std::fs::create_dir_all(dir).unwrap();
+    std::fs::write(
+        dir.join(format!("{program}.bat")),
+        "@echo off\r\nexit /b 7\r\n",
+    )
+    .unwrap();
 }
 
 fn stdout(output: Output) -> String {
@@ -109,6 +149,29 @@ fn to_sqlite_refuses_damaged_input_before_writing() {
     assert!(err.contains("DamagedFrame"), "stderr lists diagnostics");
     assert!(err.contains("refusing export"), "stderr names refusal");
     assert!(!db.exists(), "no database should be written");
+}
+
+#[test]
+fn to_sqlite_preserves_existing_output_when_tool_fails() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let db = tmp.join("existing.sqlite");
+    std::fs::write(&db, b"keep me").unwrap();
+    let fake_bin = tmp.join("bin");
+    fake_failing_tool(&fake_bin, "sqlite3");
+
+    let out = gts_with_path(
+        &[
+            "to-sqlite",
+            vectors().join("01-minimal.gts").to_str().unwrap(),
+            db.to_str().unwrap(),
+        ],
+        prepend_path(&fake_bin),
+    );
+
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(std::fs::read(&db).unwrap(), b"keep me");
 }
 
 #[test]
