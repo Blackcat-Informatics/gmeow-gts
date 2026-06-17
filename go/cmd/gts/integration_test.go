@@ -5,6 +5,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -422,5 +424,44 @@ func TestVerifyEnforcesDeclaredVsComputedProfiles(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "profile warning: segment declares 'files'") {
 		t.Fatalf("missing profile warning, got:\n%s", stderr.String())
+	}
+}
+
+// TestExtractKeyMatchesFrozenStdout pins `gts extract-key` output (kid,
+// fingerprint, emojihash, armored key) to the Python-generated vector.
+func TestExtractKeyMatchesFrozenStdout(t *testing.T) {
+	raw, err := os.ReadFile(vector(t, filepath.Join("openpgp", "extract-key.json")))
+	if err != nil {
+		t.Fatalf("vectors/openpgp/extract-key.json must exist: %v", err)
+	}
+	var c struct {
+		GTS    string `json:"gts"`
+		Stdout string `json:"stdout"`
+	}
+	if err := json.Unmarshal(raw, &c); err != nil {
+		t.Fatal(err)
+	}
+	data, err := hex.DecodeString(c.GTS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := filepath.Join(t.TempDir(), "signed.gts")
+	if err := os.WriteFile(f, data, 0o644); err != nil { //nolint:gosec // test fixture.
+		t.Fatal(err)
+	}
+
+	cmd, stdout, _ := run(t, "extract-key", f)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("exit = %d, want 0", cmd.ProcessState.ExitCode())
+	}
+	if stdout.String() != c.Stdout {
+		t.Errorf("stdout mismatch:\n got %q\nwant %q", stdout.String(), c.Stdout)
+	}
+}
+
+func TestExtractKeyMissingExits1(t *testing.T) {
+	cmd, _, _ := run(t, "extract-key", vector(t, "01-minimal.gts"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Errorf("exit = %d, want 1", cmd.ProcessState.ExitCode())
 	}
 }

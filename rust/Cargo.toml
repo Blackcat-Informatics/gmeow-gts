@@ -27,6 +27,9 @@ time = { version = "0.3", features = ["formatting", "parsing"] }
 filetime = "0.2"
 # pure-Rust Ed25519 (COSE_Sign1, §9.2) — deterministic per RFC 8032, wasm-friendly
 ed25519-dalek = "2"
+# pure-Rust SHA-1 — only for OpenPGP v4 key fingerprints (RFC 4880 §12.2), not
+# used as a general-purpose hash; wasm-friendly
+sha1 = "0.10"
 
 [dev-dependencies]
 serde_json = "1"

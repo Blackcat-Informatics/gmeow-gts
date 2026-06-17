@@ -8,6 +8,8 @@ import { pack, unpack, diff, suppressedBlobDigests } from "../files.js";
 import { compactStreamable, CompactRefusedError } from "../compact.js";
 import { STREAM_NS } from "../stream.js";
 import { verifySignatures } from "../cose.js";
+import { parseTransportKey } from "../openpgp.js";
+import { emojihash } from "../emojihash.js";
 import {
     hex,
     mapGet,
@@ -26,6 +28,8 @@ commands:
   info <file>...            per-segment composition ledger
   fold <file>               fold to N-Quads on stdout
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
+  extract-key <file>        print the embedded transport key: kid, OpenPGP
+                            fingerprint, emojihash, and armored public key
   ls <file>                 list inline blobs: digest, size, declared media type
   extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
                             extract one blob by content digest
@@ -684,6 +688,53 @@ function cmdDiff(args: string[]): number {
     return lines.length > 0 ? 1 : 0;
 }
 
+/** Find the embedded gts:transportKey (kid, gpg) in a graph's file-level meta. */
+function transportKey(g: Graph): { kid: string; gpg: string } | null {
+    for (const e of g.meta) {
+        if (e.key !== "gts:transportKey") continue;
+        if (!(e.value instanceof Map)) return null;
+        const kid = asText(mapGet(e.value, "kid"));
+        const gpg = asText(mapGet(e.value, "gpg"));
+        if (kid !== undefined && gpg !== undefined) return { kid, gpg };
+        return null;
+    }
+    return null;
+}
+
+/** Group a hex fingerprint into space-separated 4-character blocks. */
+function formatFingerprint(fp: string): string {
+    const compact = fp.replace(/\s/g, "").toUpperCase();
+    if (compact === "" || !/^[0-9A-F]+$/.test(compact)) return fp;
+    return (compact.match(/.{1,4}/g) ?? []).join(" ");
+}
+
+/** `extract-key`: print the embedded transport (verification) key (§9.2). */
+function cmdExtractKey(args: string[]): number {
+    if (args.length === 0) {
+        console.error(usage);
+        return 2;
+    }
+    const path = args[0];
+    const data = load(path);
+    const g = Read(data, true);
+    const key = transportKey(g);
+    if (key === null) {
+        console.error(`${path}: no embedded transport key`);
+        return 1;
+    }
+    console.log(`kid:         ${key.kid}`);
+    try {
+        const parsed = parseTransportKey(key.gpg);
+        console.log(`fingerprint: ${formatFingerprint(parsed.fingerprint)}`);
+        console.log(`emojihash:   ${emojihash(parsed.rawPublic)}`);
+    } catch {
+        // A malformed embedded key still prints the kid + armored block below.
+        console.log(`fingerprint: ${formatFingerprint(key.kid)}`);
+    }
+    console.log(key.gpg);
+    return 0;
+}
+
 function main(argv: string[]): number {
     if (argv.length === 0) {
         console.log(usage);
@@ -698,6 +749,8 @@ function main(argv: string[]): number {
             return cmdFold(args);
         case "verify":
             return cmdVerify(args);
+        case "extract-key":
+            return cmdExtractKey(args);
         case "ls":
             return cmdLs(args);
         case "extract":

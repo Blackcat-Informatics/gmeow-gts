@@ -16,6 +16,24 @@ change before `1.0`.
 
 ### Added
 
+- **Cross-engine `extract-key` (#17): OpenPGP key inspection in all four engines.**
+  - A minimal OpenPGP reader (de-armor → packet parse → raw Ed25519 key + v4
+    SHA-1 fingerprint) in Rust (`openpgp.rs`, pure-Rust `sha1`), Go
+    (`openpgp` package, `crypto/sha1`), and TypeScript (`openpgp.ts`,
+    `@noble/hashes/sha1`) — narrow by design: only the unencrypted armored
+    Ed25519 (algorithm 22) certificates GPG emits, mirroring the Python
+    `gts.openpgp` reference. SHA-1 appears solely because RFC 4880 mandates it
+    for v4 fingerprints; it is not a general-purpose hash here.
+  - **`gts extract-key <file>`** in the Rust, Go, and TypeScript CLIs (Python
+    already had it, #12): prints the embedded transport key's `kid`, OpenPGP
+    fingerprint, emojihash, and armored public key. Gated by a frozen shared
+    vector set (`vectors/openpgp/*.json` + `scripts/gen_openpgp_vectors.py`):
+    every engine parses the same key to the same raw bytes / fingerprint /
+    emojihash, and the CLI reproduces the Python-generated stdout byte-for-byte.
+  - The Rust OpenPGP reader stays pure / wasm-friendly (the `wasm32` build is
+    still green).
+  - COSE_Encrypt0 (random-IV AES-GCM, #18) remains the last tracked follow-up.
+
 - **Cross-engine crypto parity (#15): COSE_Sign1 + emojihash in all four engines.**
   - **COSE_Sign1 Ed25519** (`sign_id`/`verify_sig`, detached over the frame id,
     §9.2) in Rust (`ed25519-dalek`), Go (`crypto/ed25519`), and TypeScript
@@ -35,8 +53,8 @@ change before `1.0`.
     COSE signatures against raw Ed25519 public keys (repeatable; exit 1 on any
     invalid signature).
   - All crypto stays pure / wasm-friendly (the Rust `wasm32` build is still green).
-  - Cross-engine `extract-key` (needs OpenPGP parsing) and COSE_Encrypt0
-    (random-IV AES-GCM) remain tracked on #15 as separate follow-ups.
+  - Cross-engine `extract-key` landed as #17 (above); COSE_Encrypt0
+    (random-IV AES-GCM) remains tracked as #18.
 
 - `gts extract-key <file>` (Python CLI, #12): prints the embedded transport
   (verification) key for a signed GTS — `kid`, OpenPGP fingerprint, emojihash,

@@ -725,3 +725,31 @@ fn verify_declared_files_profile_object_only_is_not_unused() {
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(!err.contains("profile warning"), "stderr: {err}");
 }
+
+#[test]
+fn extract_key_matches_frozen_stdout() {
+    // §9.2: `gts extract-key` prints kid, fingerprint, emojihash, and the
+    // armored key — byte-identical to the Python-generated vector.
+    let raw = std::fs::read_to_string(vectors().join("openpgp/extract-key.json")).unwrap();
+    let case: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let bytes: Vec<u8> = (0..case["gts"].as_str().unwrap().len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&case["gts"].as_str().unwrap()[i..i + 2], 16).unwrap())
+        .collect();
+    let tmp = std::env::temp_dir().join("gts-extract-key-test.gts");
+    std::fs::write(&tmp, &bytes).unwrap();
+
+    let out = gts(&["extract-key", tmp.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(
+        String::from_utf8(out.stdout).unwrap(),
+        case["stdout"].as_str().unwrap()
+    );
+}
+
+#[test]
+fn extract_key_missing_exits_1() {
+    let v = vectors().join("01-minimal.gts");
+    let out = gts(&["extract-key", v.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+}

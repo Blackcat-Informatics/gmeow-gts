@@ -16,9 +16,11 @@ import (
 
 	"go.blackcatinformatics.ca/gts/compact"
 	"go.blackcatinformatics.ca/gts/cose"
+	"go.blackcatinformatics.ca/gts/emojihash"
 	"go.blackcatinformatics.ca/gts/files"
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/nquads"
+	"go.blackcatinformatics.ca/gts/openpgp"
 	"go.blackcatinformatics.ca/gts/reader"
 	"go.blackcatinformatics.ca/gts/stream"
 	"go.blackcatinformatics.ca/gts/wire"
@@ -30,6 +32,8 @@ commands:
   info <file>...            per-segment composition ledger
   fold <file>               fold to N-Quads on stdout
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
+  extract-key <file>        print the embedded transport key: kid, OpenPGP
+                            fingerprint, emojihash, and armored public key
   ls <file>                 list inline blobs: digest, size, declared media type
   extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
                             extract one blob by content digest
@@ -59,6 +63,8 @@ func main() {
 		os.Exit(cmdFold(args[1:]))
 	case "verify":
 		os.Exit(cmdVerify(args[1:]))
+	case "extract-key":
+		os.Exit(cmdExtractKey(args[1:]))
 	case "ls":
 		os.Exit(cmdLs(args[1:]))
 	case "extract":
@@ -398,6 +404,77 @@ func cmdVerify(args []string) int {
 	if problems {
 		return 1
 	}
+	return 0
+}
+
+// transportKey finds the embedded gts:transportKey (kid, gpg) in file-level meta.
+func transportKey(g *model.Graph) (kid, gpg string, ok bool) {
+	for _, e := range g.Meta {
+		if e.Key != "gts:transportKey" {
+			continue
+		}
+		m, isMap := e.Value.(map[interface{}]interface{})
+		if !isMap {
+			return "", "", false
+		}
+		k, kOK := m["kid"].(string)
+		p, pOK := m["gpg"].(string)
+		if kOK && pOK {
+			return k, p, true
+		}
+		return "", "", false
+	}
+	return "", "", false
+}
+
+// formatFingerprint groups a hex fingerprint into space-separated 4-char blocks.
+func formatFingerprint(fp string) string {
+	compact := strings.ToUpper(strings.Join(strings.Fields(fp), ""))
+	if compact == "" {
+		return fp
+	}
+	for _, c := range compact {
+		if !strings.ContainsRune("0123456789ABCDEF", c) {
+			return fp
+		}
+	}
+	var groups []string
+	for i := 0; i < len(compact); i += 4 {
+		end := i + 4
+		if end > len(compact) {
+			end = len(compact)
+		}
+		groups = append(groups, compact[i:end])
+	}
+	return strings.Join(groups, " ")
+}
+
+// cmdExtractKey prints the embedded transport (verification) key (§9.2).
+func cmdExtractKey(args []string) int {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, usage)
+		return 2
+	}
+	path := args[0]
+	data, code := load(path)
+	if code != 0 {
+		return code
+	}
+	g := reader.Read(data, true, nil)
+	kid, gpg, ok := transportKey(g)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "%s: no embedded transport key\n", path)
+		return 1
+	}
+	fmt.Printf("kid:         %s\n", kid)
+	if key, err := openpgp.ParseTransportKey(gpg); err == nil {
+		fmt.Printf("fingerprint: %s\n", formatFingerprint(key.Fingerprint))
+		fmt.Printf("emojihash:   %s\n", emojihash.Emojihash(key.RawPublic, 11))
+	} else {
+		// A malformed embedded key still prints the kid + armored block below.
+		fmt.Printf("fingerprint: %s\n", formatFingerprint(kid))
+	}
+	fmt.Println(gpg)
 	return 0
 }
 

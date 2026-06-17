@@ -21,6 +21,7 @@ pub mod emojihash;
 pub mod files;
 pub mod model;
 pub mod nquads;
+pub mod openpgp;
 pub mod reader;
 pub mod stream;
 pub mod wire;

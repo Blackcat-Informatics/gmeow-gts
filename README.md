@@ -209,9 +209,11 @@ gts to-parquet <file> <dir>   export to Parquet, one file per table (needs [db])
 
 Exit codes: `0` clean · `1` diagnostics or input refused · `2` usage/IO error.
 
-`extract-key`, `from-nq`, and the `to-*` relational exports are currently Python-CLI
-extensions (crypto and the DB load are Python-only today); cross-engine parity is in
-progress. The relational exports need `pip install 'gmeow-gts[db]'` for DuckDB/Parquet.
+`verify --key` and `extract-key` are cross-engine (all four `gts` binaries parse the
+embedded OpenPGP transport key to the same fingerprint and emojihash, and verify COSE
+signatures identically). `from-nq` and the `to-*` relational exports remain Python-CLI
+extensions for now; the relational exports need `pip install 'gmeow-gts[db]'` for
+DuckDB/Parquet.
 
 `cat` is raw byte concatenation with validation *added*, transformation *never*: it refuses
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
