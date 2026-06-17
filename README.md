@@ -220,7 +220,9 @@ crate. `--features oxigraph-adapter` adds `gmeow_gts::oxigraph` helpers and
 Oxigraph's in-memory store. `--features policy-config` adds JSON `TrustPolicy`
 file loading and `gts verify --policy <file>` for release/profile verification;
 `--features policy-config-yaml` adds YAML policy files. None of these features
-affect default transport users.
+affect default transport users. `--features duckdb` enables the DuckDB/Parquet CLI
+exports without adding a Rust dependency; those commands invoke the `duckdb` binary
+on `PATH`.
 
 For streaming projections, implement `gmeow_gts::reader::StreamingSink` and call
 `gmeow_gts::reader::read_to_sink(&bytes, allow_segments, expected_head, sink)`.
@@ -230,6 +232,16 @@ while returning final diagnostics and segment heads. It adds no crate dependency
 For folded graph consumers, `Graph::into_quads()` and `IntoIterator for Graph`
 consume raw quad-id rows without cloning the `Vec<Quad>`, while
 `Graph::quad_terms()` lazily resolves ids to borrowed `Term` references.
+Call `reader::read_with_options` or `read_to_sink_with_options` with
+`ReadOptions::with_content_key` to decrypt `COSE_Encrypt0` payloads while preserving
+the same total-read behavior: missing or wrong keys become opaque nodes with `MissingKey`
+diagnostics.
+
+Rust writers support transformed and encrypted frames through
+`writer::FrameOptions`: apply `gzip`, `zstd`, or `zstd-rsyncable` transforms, attach
+recipient metadata, pass explicit signature bytes, or add `Encrypt0Options` for
+`COSE_Encrypt0` authoring. This uses the existing codec and COSE modules and keeps the
+default dependency set unchanged.
 
 Rust signing works with raw Ed25519 keys or with an unencrypted Ed25519
 OpenPGP secret-key block. The OpenPGP helper keeps the same narrow parser used

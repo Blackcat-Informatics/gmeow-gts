@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-#[cfg(not(feature = "rdf"))]
+#[cfg(not(any(feature = "rdf", feature = "duckdb")))]
 #[test]
-fn rdf_and_oxigraph_adapters_are_not_enabled_by_default() {
+fn optional_adapters_are_not_enabled_by_default() {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let output = std::process::Command::new(cargo)
         .args(["metadata", "--no-deps", "--format-version", "1"])
@@ -26,6 +26,7 @@ fn rdf_and_oxigraph_adapters_are_not_enabled_by_default() {
         .expect("gmeow-gts package is present");
 
     assert_eq!(package["features"]["default"], serde_json::json!([]));
+    assert_eq!(package["features"]["duckdb"], serde_json::json!([]));
     assert_eq!(package["features"]["rdf"], serde_json::json!(["dep:oxrdf"]));
     assert_eq!(
         package["features"]["oxigraph-adapter"],
@@ -69,6 +70,15 @@ fn rdf_and_oxigraph_adapters_are_not_enabled_by_default() {
             .unwrap_or_else(|| panic!("{name} dependency is present"));
         assert_eq!(dependency["optional"], serde_json::json!(true));
     }
+
+    assert!(
+        !package["dependencies"]
+            .as_array()
+            .expect("metadata dependencies are an array")
+            .iter()
+            .any(|dependency| dependency["name"] == "duckdb"),
+        "duckdb feature must stay a no-dependency runtime shell-out"
+    );
 }
 
 #[cfg(feature = "rdf")]

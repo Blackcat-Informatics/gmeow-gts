@@ -6,15 +6,16 @@
 //!
 //! Implements the Baseline Reader contract (§2.1): chain verification (§9.1),
 //! the value-union fold (§7.5), opaque/damaged degradation (§7.6), torn-append
-//! detection (§3), and the canonical diagnostics (§2.3). This baseline
-//! carries no keys: `sig` frames record as `"unverified"` and
-//! `encrypt`-class frames degrade to `missing-key` opaque nodes.
+//! detection (§3), and the canonical diagnostics (§2.3). The default
+//! [`read`] path carries no content keys: `sig` frames record as
+//! `"unverified"` and `encrypt`-class frames degrade to `missing-key` opaque
+//! nodes. Callers that hold content keys can use [`read_with_options`].
 
 use std::collections::{HashMap, HashSet};
 
 use ciborium::value::Value;
 
-use crate::codec::{decode_chain, Codec, CodecError};
+use crate::codec::{decode_chain, decode_chain_with_decrypt, Codec, CodecError};
 use crate::mmr;
 use crate::model::{
     Diagnostic, Graph, OpaqueNode, Quad, Signature, StreamableInfo, Suppression, Term, TermKind,
@@ -106,6 +107,23 @@ impl From<CodecError> for PayloadError {
     }
 }
 
+fn decrypt_codec(
+    codec: &Codec,
+    data: &[u8],
+    content_key: &ContentKeyResolver<'_>,
+) -> Result<Vec<u8>, CodecError> {
+    if codec.name != "cose-encrypt0" {
+        return Err(CodecError::Unavailable {
+            reason: "missing-key",
+            detail: format!("no decryptor for encrypt codec '{}'", codec.name),
+        });
+    }
+    crate::cose::decrypt0(data, |kid| content_key(kid)).map_err(|err| CodecError::Unavailable {
+        reason: "missing-key",
+        detail: format!("{} decrypt failed: {err}", codec.name),
+    })
+}
+
 /// Final state returned by [`read_to_sink`].
 ///
 /// The streaming API emits rows as segment-local events and does not construct
@@ -156,6 +174,37 @@ pub trait StreamingSink {
     fn streamable_layout(&mut self, _segment_index: usize, _info: &StreamableInfo) {}
 }
 
+/// Resolves a 32-byte content key by COSE recipient `kid`.
+pub type ContentKeyResolver<'a> = dyn Fn(&str) -> Option<[u8; 32]> + 'a;
+
+/// Reader options for keyed/full-reader paths.
+#[derive(Clone, Copy, Default)]
+pub struct ReadOptions<'a> {
+    /// Permit multi-segment `cat` composition.
+    pub allow_segments: bool,
+    /// Expected last segment head for freshness/truncation checks.
+    pub expected_head: Option<&'a [u8]>,
+    /// Optional content-key provider for `COSE_Encrypt0` payloads.
+    pub content_key: Option<&'a ContentKeyResolver<'a>>,
+}
+
+impl<'a> ReadOptions<'a> {
+    /// Build options matching the legacy [`read`] signature.
+    pub fn new(allow_segments: bool, expected_head: Option<&'a [u8]>) -> Self {
+        Self {
+            allow_segments,
+            expected_head,
+            content_key: None,
+        }
+    }
+
+    /// Add a content-key provider for decrypting `COSE_Encrypt0` frames.
+    pub fn with_content_key(mut self, resolver: &'a ContentKeyResolver<'a>) -> Self {
+        self.content_key = Some(resolver);
+        self
+    }
+}
+
 fn push_diagnostic(
     g: &mut Graph,
     sink: &mut Option<&mut dyn StreamingSink>,
@@ -192,9 +241,10 @@ fn absorb_segment_result(result: &mut StreamingReadResult, segment: &Graph) {
 }
 
 /// Mutable fold state; one per segment (and shared by the snapshot handler).
-struct Folder<'g, 's> {
+struct Folder<'g, 's, 'k> {
     g: &'g mut Graph,
     sink: Option<&'s mut dyn StreamingSink>,
+    content_key: Option<&'k ContentKeyResolver<'k>>,
     segment_index: usize,
     catalog: HashMap<i128, Codec>,
     // Layout-state bookkeeping (§3.3): intact index frames seen, digests the
@@ -205,7 +255,7 @@ struct Folder<'g, 's> {
     blob_events: Vec<(usize, String, bool)>,
 }
 
-impl Folder<'_, '_> {
+impl Folder<'_, '_, '_> {
     fn with_sink(&mut self, f: impl FnOnce(usize, &mut dyn StreamingSink)) {
         if let Some(sink) = self.sink.as_deref_mut() {
             f(self.segment_index, sink);
@@ -272,7 +322,13 @@ impl Folder<'_, '_> {
                     ));
                 };
                 let chain = self.resolve_codecs(ids)?;
-                let decoded = decode_chain(&chain, db)?;
+                let decoded = if let Some(content_key) = self.content_key {
+                    let decrypt =
+                        |codec: &Codec, data: &[u8]| decrypt_codec(codec, data, content_key);
+                    decode_chain_with_decrypt(&chain, db, Some(&decrypt))?
+                } else {
+                    decode_chain(&chain, db)?
+                };
                 if blob {
                     return Ok(Value::Bytes(decoded));
                 }
@@ -854,6 +910,11 @@ fn catalog_from(header: &[(Value, Value)]) -> HashMap<i128, Codec> {
 /// it is folded (§16, vector 17). `expected_head`, when given, is compared
 /// against the LAST segment's head; a mismatch records `TruncatedLog`.
 pub fn read(data: &[u8], allow_segments: bool, expected_head: Option<&[u8]>) -> Graph {
+    read_with_options(data, ReadOptions::new(allow_segments, expected_head))
+}
+
+/// Read and fold a GTS file using explicit options.
+pub fn read_with_options(data: &[u8], options: ReadOptions<'_>) -> Graph {
     let (items, torn) = iter_items(data);
     if items.is_empty() {
         let mut g = Graph::default();
@@ -881,8 +942,8 @@ pub fn read(data: &[u8], allow_segments: bool, expected_head: Option<&[u8]>) -> 
         });
         return g;
     }
-    if bounds.len() > 1 && !allow_segments {
-        let mut g = read_segment(&items[..bounds[1]], 0);
+    if bounds.len() > 1 && !options.allow_segments {
+        let mut g = read_segment_with_sink(&items[..bounds[1]], 0, 0, None, options.content_key);
         g.diagnostics.push(Diagnostic {
             code: "SegmentBoundary".to_string(),
             detail: format!(
@@ -900,7 +961,7 @@ pub fn read(data: &[u8], allow_segments: bool, expected_head: Option<&[u8]>) -> 
     let folded: Vec<Graph> = bounds
         .iter()
         .zip(ends)
-        .map(|(&a, b)| read_segment(&items[a..b], a))
+        .map(|(&a, b)| read_segment_with_sink(&items[a..b], a, 0, None, options.content_key))
         .collect();
 
     let mut g = if folded.len() == 1 {
@@ -909,7 +970,7 @@ pub fn read(data: &[u8], allow_segments: bool, expected_head: Option<&[u8]>) -> 
         union_segments(&folded)
     };
 
-    if let Some(expected) = expected_head {
+    if let Some(expected) = options.expected_head {
         let last_head = g.segment_heads.last().cloned().unwrap_or_default();
         if last_head != expected {
             g.diagnostics.push(Diagnostic {
@@ -940,6 +1001,15 @@ pub fn read_to_sink(
     data: &[u8],
     allow_segments: bool,
     expected_head: Option<&[u8]>,
+    sink: &mut dyn StreamingSink,
+) -> StreamingReadResult {
+    read_to_sink_with_options(data, ReadOptions::new(allow_segments, expected_head), sink)
+}
+
+/// Read a GTS file into a [`StreamingSink`] using explicit options.
+pub fn read_to_sink_with_options(
+    data: &[u8],
+    options: ReadOptions<'_>,
     sink: &mut dyn StreamingSink,
 ) -> StreamingReadResult {
     let (items, torn) = iter_items(data);
@@ -978,8 +1048,14 @@ pub fn read_to_sink(
         );
         return result;
     }
-    if bounds.len() > 1 && !allow_segments {
-        let segment = read_segment_with_sink(&items[..bounds[1]], 0, 0, Some(&mut *sink));
+    if bounds.len() > 1 && !options.allow_segments {
+        let segment = read_segment_with_sink(
+            &items[..bounds[1]],
+            0,
+            0,
+            Some(&mut *sink),
+            options.content_key,
+        );
         absorb_segment_result(&mut result, &segment);
         push_result_diagnostic(
             &mut result,
@@ -1000,11 +1076,17 @@ pub fn read_to_sink(
 
     let ends = bounds.iter().skip(1).copied().chain([items.len()]);
     for (segment_index, (&a, b)) in bounds.iter().zip(ends).enumerate() {
-        let segment = read_segment_with_sink(&items[a..b], a, segment_index, Some(&mut *sink));
+        let segment = read_segment_with_sink(
+            &items[a..b],
+            a,
+            segment_index,
+            Some(&mut *sink),
+            options.content_key,
+        );
         absorb_segment_result(&mut result, &segment);
     }
 
-    if let Some(expected) = expected_head {
+    if let Some(expected) = options.expected_head {
         let last_head = result.segment_heads.last().cloned().unwrap_or_default();
         if last_head != expected {
             push_result_diagnostic(
@@ -1095,7 +1177,7 @@ pub fn read_file_segments(data: &[u8]) -> FileSegments {
 /// `index_offset` is the segment's absolute position in the file's item
 /// sequence, so multi-segment diagnostics report ABSOLUTE indices.
 fn read_segment(items: &[(usize, Value)], index_offset: usize) -> Graph {
-    read_segment_with_sink(items, index_offset, 0, None)
+    read_segment_with_sink(items, index_offset, 0, None, None)
 }
 
 fn read_segment_with_sink(
@@ -1103,6 +1185,7 @@ fn read_segment_with_sink(
     index_offset: usize,
     segment_index: usize,
     mut sink: Option<&mut dyn StreamingSink>,
+    content_key: Option<&ContentKeyResolver<'_>>,
 ) -> Graph {
     let mut g = Graph::default();
     let (_, raw_header) = &items[0];
@@ -1162,6 +1245,7 @@ fn read_segment_with_sink(
         let mut folder = Folder {
             g: &mut g,
             sink: sink.take(),
+            content_key,
             segment_index,
             catalog,
             index_records: Vec::new(),
