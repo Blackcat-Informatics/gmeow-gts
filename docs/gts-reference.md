@@ -76,6 +76,9 @@ gts pack ./my-dir -o archive.gts      # package a directory (files profile)
 gts unpack archive.gts -C ./restore   # extract a files profile
 ```
 
+The cross-engine API shape, CLI parity matrix, and Python-only command gaps are maintained in
+[`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
+
 ## Conformance
 
 `python/tests/test_gts.py` implements the non-COSE subset of the spec's §18 vectors

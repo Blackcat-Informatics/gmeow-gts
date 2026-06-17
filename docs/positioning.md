@@ -94,4 +94,6 @@ GTS supports several application families without making any of them the project
 | Package registry | PyPI | crates.io | Go module | npm |
 
 This matrix is descriptive, not a conformance claim. The authoritative compatibility check is
-the versioned vector corpus under `vectors/`, which every engine gates against.
+the versioned vector corpus under `vectors/`, which every engine gates against. Command-level
+parity and intentional gaps are maintained in
+[`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).

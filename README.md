@@ -245,26 +245,36 @@ Requires Node.js ≥ 22.16.0; ships as ES modules with type declarations.
 ## Command-line interface
 
 `cargo install gmeow-gts`, `pip install gmeow-gts`, `npm i -g @blackcatinformatics/gmeow-gts`,
-or `go install …` each install a `gts` binary with the **same verb surface** (§14.1 of the
-spec — the engines are CLI-compatible by conformance test):
+or `go install ...` each install a `gts` binary. The common verb surface is the cross-engine
+contract; Python also ships the explicit extensions listed after it. The full API/CLI parity
+contract lives in [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md).
 
+<!-- cli-common:start -->
 ```text
 gts info <file>...            per-segment composition ledger
 gts fold <file>               fold to N-Quads on stdout
-gts from-nq <in.nq> -o <out>  build a GTS from N-Quads (inverse of fold; '-' = stdin)
 gts verify <file>... [--key KID:HEXPUB]   verify chains + COSE signatures
 gts extract-key <file>        print the embedded transport/verification key
-gts cat -o <out> <file>...    validating composer: refuse degenerate inputs, then concatenate
 gts ls <file>...              list segment digests, sizes, and media types
-gts pack <dir> -o <out>       package a directory into a GTS files profile
-gts unpack <file> -C <dir>    extract a files profile (refuses path traversal)
-gts extract <file> <digest>   write a single content-addressed blob
-gts compact <file>            compact a streamable segment into a self-contained one
-gts diff <file> <directory>   compare a files profile to a directory
+gts extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+gts cat -o <out> <file>...    validating composer: refuse degenerate inputs, then concatenate
+gts compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+gts pack <dir|file>... -o <out>   package files/directories into a GTS files profile
+gts unpack <file> [-C <dir>] [--include-suppressed]   extract a files profile
+gts diff <file> <directory>       compare a files profile to a directory
+```
+<!-- cli-common:end -->
+
+Python-only extensions:
+
+<!-- cli-python-extensions:start -->
+```text
+gts from-nq <in.nq> -o <out>  build a GTS from N-Quads (inverse of fold; '-' = stdin)
 gts to-sqlite <file> <out>    export the folded graph to a SQLite database
 gts to-duckdb <file> <out>    export to a DuckDB database (needs the [db] extra)
 gts to-parquet <file> <dir>   export to Parquet, one file per table (needs [db])
 ```
+<!-- cli-python-extensions:end -->
 
 Exit codes: `0` clean · `1` diagnostics or input refused · `2` usage/IO error.
 
@@ -287,7 +297,8 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 engine depends on and re-exports as `gmeow_gts::emojihash`.
 
 `from-nq` and the `to-*` relational exports remain Python-CLI extensions for now; the
-relational exports need `pip install 'gmeow-gts[db]'` for DuckDB/Parquet.
+relational exports need `pip install 'gmeow-gts[db]'` for DuckDB/Parquet. The CLI parity matrix
+is checked in CI against the four implemented command dispatch surfaces.
 
 `cat` is raw byte concatenation with validation *added*, transformation *never*: it refuses
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
@@ -309,7 +320,8 @@ folded quad.
 | Package registry | PyPI | crates.io | Go module | npm |
 
 The frozen vector corpus remains the compatibility oracle. The matrix summarizes public package
-surfaces; it is not a replacement for conformance tests.
+surfaces; it is not a replacement for conformance tests. The command-level contract is maintained
+in [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md).
 
 ## The file format in one minute
 
@@ -420,6 +432,8 @@ artifact with `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gt
 - [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) — the authoritative, normative wire-format specification.
 - [`docs/GTS-CONFORMANCE.md`](./docs/GTS-CONFORMANCE.md) — conformance tiers, vector subsets,
   manifest schema, diagnostics registry, and read/verify modes.
+- [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md) — cross-language API shape, CLI
+  parity matrix, intentional gaps, and drift guard.
 - [`docs/positioning.md`](./docs/positioning.md) — the project framing, narrow-waist
   architecture, application families, and engine feature matrix.
 - [`docs/gts-reference.md`](./docs/gts-reference.md) — Python reference-implementation guide.
