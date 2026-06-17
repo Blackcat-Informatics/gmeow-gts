@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -28,7 +29,11 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	binPath = filepath.Join(dir, "gts")
+	binName := "gts"
+	if runtime.GOOS == "windows" {
+		binName += ".exe" // Windows needs the extension to locate/exec the binary.
+	}
+	binPath = filepath.Join(dir, binName)
 	//nolint:gosec // subprocess is intentional test scaffolding for the CLI binary.
 	cmd := exec.Command("go", "build", "-o", binPath, "go.blackcatinformatics.ca/gts/cmd/gts")
 	if out, err := cmd.CombinedOutput(); err != nil {
