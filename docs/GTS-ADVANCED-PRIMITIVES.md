@@ -17,11 +17,11 @@ and what is intentionally deferred from the v1 surface.
 | Index footer fields | Writers emit `count`, `head`, `off`, and `ti`; readers consume `count`/`head` for layout validation. | Full-reader random access from `off`/`ti` is not claimed yet. |
 | Segment heads | `gts info` reports per-segment heads and layout state. | Replication verbs are not public yet. |
 | Blob introspection | `gts ls` lists content-addressed blob digests, sizes, and media types. | Range fetch still needs a verified index or a boundary scan. |
-| Memory benchmark helper | `scripts/bench_reader_memory.py` reports full-reader materialization separately from a frame-scan baseline and a deferred streaming-fold row. | The frame scan is not a Streaming Reader fold. |
+| Memory benchmark helper | `scripts/bench_reader_memory.py` reports full-reader materialization, a frame-scan baseline, and a Rust `read_to_sink` streaming-fold row when Cargo is available. | The frame scan is not a Streaming Reader fold; the Rust row is the sink API evidence. |
 
-The current Rust, Python, Go, and TypeScript packages SHOULD NOT claim the `Streaming Reader`
-tier for a sink API, an MMR/proof tier, or replication CLI support until the deferred gates below
-land.
+The current Rust package may claim the `Streaming Reader` tier for its `read_to_sink` API.
+Python, Go, and TypeScript SHOULD NOT claim the sink tier yet. No package should claim an
+MMR/proof tier or replication CLI support until the deferred gates below land.
 
 ## Deferred Advanced CLI Verbs
 
@@ -51,8 +51,8 @@ Minimum requirements:
 
 - verify the header id and frame id/prev chain while streaming;
 - retain or spill the term dictionary as needed, because term ids are segment-local;
-- emit term, quad, reifier, annotation, suppression, blob, opaque, signature, and diagnostic
-  events in frame order;
+- emit term, quad, reifier, annotation, suppression, blob, opaque, signature, diagnostic,
+  segment-head, and streamable-layout events in frame order;
 - record the same final diagnostics and segment head ids as the full reader for the same input;
 - report memory behavior with `scripts/bench_reader_memory.py` or an equivalent benchmark.
 
@@ -148,8 +148,8 @@ The helper emits three rows per file:
 
 - `full-reader`: materializes a `Graph` with the current Python reader;
 - `frame-scan`: decodes one CBOR item at a time and counts headers/frames without folding;
-- `streaming-fold`: currently reports `deferred` so benchmark tables do not imply a sink API
-  exists.
+- `streaming-fold`: runs the Rust `read_to_sink` benchmark helper when Cargo is available and
+  reports the Rust process high-water RSS (`VmHWM`) on Linux.
 
-Future streaming implementations should replace the deferred row with an engine-specific sink
-benchmark that reports peak memory by distinct terms, frames, triples, and blob sizes.
+Future non-Rust streaming implementations should replace fallback rows with engine-specific sink
+benchmarks that report peak memory by distinct terms, frames, triples, and blob sizes.

@@ -9,6 +9,8 @@ import argparse
 import gc
 import io
 import json
+import shutil
+import subprocess
 import sys
 import time
 import tracemalloc
@@ -98,7 +100,7 @@ def row_from_result(
     size: int,
     mode: str,
     result: dict[str, int | None],
-    peak_kib: float,
+    peak_kib: float | None,
     elapsed_ms: float,
     note: str,
 ) -> BenchmarkRow:
@@ -111,17 +113,56 @@ def row_from_result(
         terms=result.get("terms"),
         quads=result.get("quads"),
         blobs=result.get("blobs"),
-        peak_kib=round(peak_kib, 1),
+        peak_kib=round(peak_kib, 1) if peak_kib is not None else None,
         elapsed_ms=round(elapsed_ms, 2),
         note=note,
     )
+
+
+def rust_example_path() -> Path:
+    suffix = ".exe" if sys.platform == "win32" else ""
+    return ROOT / "rust" / "target" / "debug" / "examples" / f"streaming_sink_bench{suffix}"
+
+
+def rust_streaming_fold(path: Path) -> tuple[dict[str, int | None], float | None, float]:
+    cargo = shutil.which("cargo")
+    if cargo is None:
+        raise RuntimeError("cargo not found on PATH")
+    subprocess.run(
+        [
+            cargo,
+            "build",
+            "--quiet",
+            "--manifest-path",
+            str(ROOT / "rust" / "Cargo.toml"),
+            "--example",
+            "streaming_sink_bench",
+        ],
+        cwd=ROOT,
+        check=True,
+    )
+    exe = rust_example_path()
+    start = time.perf_counter()
+    completed = subprocess.run(
+        [str(exe), str(path.resolve())],
+        cwd=ROOT,
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    elapsed_ms = (time.perf_counter() - start) * 1000.0
+    result = json.loads(completed.stdout)
+    peak = result.get("peak_kib")
+    peak_kib = float(peak) if isinstance(peak, (int, float)) else None
+    return result, peak_kib, elapsed_ms
 
 
 def benchmark(path: Path) -> list[BenchmarkRow]:
     data = path.read_bytes()
     full, full_peak, full_elapsed = measure(lambda: full_read(data))
     scan, scan_peak, scan_elapsed = measure(lambda: scan_items(data))
-    return [
+    rows = [
         row_from_result(
             path,
             len(data),
@@ -140,20 +181,38 @@ def benchmark(path: Path) -> list[BenchmarkRow]:
             scan_elapsed,
             "CBOR item scan only; not a streaming fold",
         ),
-        BenchmarkRow(
-            path=str(path),
-            bytes=len(data),
-            mode="streaming-fold",
-            items=None,
-            frames=None,
-            terms=None,
-            quads=None,
-            blobs=None,
-            peak_kib=None,
-            elapsed_ms=None,
-            note="deferred: no current engine claims a streaming sink API",
-        ),
     ]
+    try:
+        rust, rust_peak, rust_elapsed = rust_streaming_fold(path)
+    except (OSError, RuntimeError, subprocess.CalledProcessError) as exc:
+        rows.append(
+            BenchmarkRow(
+                path=str(path),
+                bytes=len(data),
+                mode="streaming-fold",
+                items=None,
+                frames=None,
+                terms=None,
+                quads=None,
+                blobs=None,
+                peak_kib=None,
+                elapsed_ms=None,
+                note=f"Rust streaming sink unavailable: {exc}",
+            )
+        )
+    else:
+        rows.append(
+            row_from_result(
+                path,
+                len(data),
+                "streaming-fold",
+                rust,
+                rust_peak,
+                rust_elapsed,
+                "Rust read_to_sink; peak_kib is VmHWM when available",
+            )
+        )
+    return rows
 
 
 def format_cell(value: object) -> str:
@@ -187,7 +246,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Benchmark current full-reader memory separately from a frame-scan "
-            "baseline. True streaming fold remains deferred."
+            "baseline and the Rust streaming sink API."
         )
     )
     parser.add_argument("files", nargs="+", type=Path)
