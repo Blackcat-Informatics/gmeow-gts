@@ -263,6 +263,7 @@ For full details, read [`docs/GTS-SPEC.md`](https://github.com/Blackcat-Informat
 
 - [GTS Specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) — the authoritative, normative wire-format spec.
 - [GTS Reference Guide](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md) — the reference-implementation guide.
+- [GTS Ecosystem Integration Contract](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-ECOSYSTEM-INTEGRATIONS.md) — browser, range-fetch, and WebCrypto integration status.
 - [`CONTRIBUTING.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/CONTRIBUTING.md) — development workflow and PR checklist.
 - [`CODE_OF_CONDUCT.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/CODE_OF_CONDUCT.md) — community expectations.
 - [`SECURITY.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/SECURITY.md) — how to report a vulnerability.

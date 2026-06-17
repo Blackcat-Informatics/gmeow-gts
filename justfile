@@ -62,6 +62,10 @@ check-cli-parity:
 check-advanced-contract:
     python scripts/check_advanced_contract.py
 
+# Fail if ecosystem integration docs drift from current APIs and deferrals.
+check-ecosystem-contract:
+    python scripts/check_ecosystem_contract.py
+
 # Live cross-engine interoperability check (each engine reads every other's output).
 interop:
     bash scripts/interop.sh

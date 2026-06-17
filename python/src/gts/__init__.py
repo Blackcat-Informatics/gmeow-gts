@@ -27,6 +27,13 @@ from gts.model import (
     TermKind,
 )
 from gts.nquads import to_nquads
+from gts.rdf import (
+    RDF12UnsupportedError,
+    from_rdflib,
+    from_rdflib_dataset,
+    to_rdflib,
+    to_rdflib_dataset,
+)
 from gts.reader import read, read_segments
 from gts.writer import Writer
 
@@ -36,6 +43,7 @@ __all__ = [
     "InMemoryKeys",
     "KeyProvider",
     "OpaqueNode",
+    "RDF12UnsupportedError",
     "Signature",
     "Signer",
     "Suppression",
@@ -43,7 +51,11 @@ __all__ = [
     "TermKind",
     "Writer",
     "from_nquads",
+    "from_rdflib",
+    "from_rdflib_dataset",
     "read",
     "read_segments",
     "to_nquads",
+    "to_rdflib",
+    "to_rdflib_dataset",
 ]
