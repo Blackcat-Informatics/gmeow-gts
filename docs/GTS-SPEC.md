@@ -11,8 +11,8 @@
 
 GTS (Graph Transport Substrate) is an ontology-independent binary container and transport
 format for RDF 1.2 datasets and content-addressed binary payloads. A GTS file is a CBOR
-Sequence of one or more append-only segments. Each segment consists of a deterministic-CBOR
-header followed by deterministic-CBOR frames linked by BLAKE3 content identifiers. The logical
+Sequence of one or more append-only segments. Each segment consists of a deterministic CBOR
+header followed by deterministic CBOR frames linked by BLAKE3 content identifiers. The logical
 dataset is obtained by a deterministic fold over the segment sequence. GTS supports partial
 readability, opaque encrypted or unknown-codec frames, append-only suppression, optional
 signatures and encryption, and cross-language conformance through a shared vector corpus.
@@ -171,7 +171,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHOULD**, **MAY
 
 This specification separates the following conformance scopes:
 
-- **Wire-format conformance** covers the byte-level CBOR Sequence structure, deterministic-CBOR
+- **Wire-format conformance** covers the byte-level CBOR Sequence structure, deterministic CBOR
   encoding, header and frame grammar, content-id preimages, and segment boundaries.
 - **Reader conformance** covers parsing, chain verification, payload resolution, fold behavior,
   diagnostics, opaque-node handling, and resource-bound behavior.
