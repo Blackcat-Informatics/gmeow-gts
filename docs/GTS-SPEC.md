@@ -2177,6 +2177,6 @@ preimages, signature subjects, or fold semantics (§2.1, §13).
 
 ---
 
-*GTS is the transport waist of the GMEOW toolchain: one `RDF 1.2 → GTS` producer, many thin
-`GTS → *` shims. Because every projection derives from one folded GTS, the projections cannot
-drift from one another or from the ontology.*
+*GTS is intentionally a transport format, not an ontology or graph store. A conforming
+implementation preserves the append-only, content-addressed fold so independent projections can
+be regenerated from the same bytes.*

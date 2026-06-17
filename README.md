@@ -193,10 +193,10 @@ Path("cat.gts").write_bytes(w.to_bytes())
 ```toml
 # Cargo.toml
 [dependencies]
-gmeow-gts = "0.2"
+gmeow-gts = "0.2.0"
 
 # Optional native RDF data-model adapter:
-# gmeow-gts = { version = "0.2", default-features = false, features = ["rdf"] }
+# gmeow-gts = { version = "0.2.0", default-features = false, features = ["rdf"] }
 ```
 
 ```rust
@@ -273,6 +273,10 @@ console.log(toNQuads(graph));
 ```
 
 Requires Node.js ≥ 22.16.0; ships as ES modules with type declarations.
+
+Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.4 are intentional
+manifest floors. Older runtimes are unsupported so the engines can share one current CI and
+release matrix and use current standard-library/toolchain behavior without compatibility shims.
 
 ## Command-line interface
 
@@ -428,7 +432,7 @@ modes are defined in [`docs/GTS-CONFORMANCE.md`](./docs/GTS-CONFORMANCE.md).
 
 Current CI-gated conformance status:
 
-| Engine | Baseline Reader | Streaming Reader | Writer | Validating Tool | Profile-Aware Tool |
+| Engine | Baseline Reader | Streaming / Prefix Evidence | Writer | Validating Tool | Profile-Aware Tool |
 |---|---|---|---|---|---|
 | Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `read_to_sink` API plus prefix-fold corpus gate | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
