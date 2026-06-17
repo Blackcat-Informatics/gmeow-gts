@@ -6,12 +6,14 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import json
 import sys
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+ROOT_RESOLVED = ROOT.resolve()
 VECTORS = ROOT / "vectors"
 MANIFEST = VECTORS / "manifest.json"
 SCHEMA = "https://blackcatinformatics.ca/gts/vector-manifest/v1"
@@ -293,10 +295,30 @@ def require_string_list(value: Any, field: str) -> None:
     require(all(isinstance(item, str) for item in value), f"{field} must be strings")
 
 
+def require_safe_id(vector_id: str) -> None:
+    require(
+        all((char.isascii() and char.isalnum()) or char in "-_" for char in vector_id),
+        f"{vector_id}: id must use ASCII alphanumerics, hyphens, or underscores",
+    )
+
+
+def repo_path(path_text: str, field: str, vector_id: str) -> Path:
+    path = Path(path_text)
+    require(not path.is_absolute(), f"{vector_id}: {field} must be relative")
+    require(".." not in path.parts, f"{vector_id}: {field} escapes root")
+    resolved = (ROOT / path).resolve()
+    try:
+        resolved.relative_to(ROOT_RESOLVED)
+    except ValueError as exc:
+        raise ManifestError(f"{vector_id}: {field} escapes root") from exc
+    return resolved
+
+
 def validate_entry(entry: Any, ids: set[str]) -> None:
     require(isinstance(entry, dict), "vector entry must be an object")
     vector_id = entry.get("id")
     require(isinstance(vector_id, str) and vector_id, "id must be a non-empty string")
+    require_safe_id(vector_id)
     require(vector_id not in ids, f"duplicate vector id: {vector_id}")
     ids.add(vector_id)
 
@@ -321,12 +343,11 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
         in {"application/vnd.blackcat.gts+cbor-seq", "application/json"},
         f"{vector_id}: unsupported input media_type",
     )
-    resolved_input = ROOT / input_path
+    resolved_input = repo_path(input_path, "input.path", vector_id)
     require(
         resolved_input.is_file(),
         f"{vector_id}: missing input path {input_path}",
     )
-    require(".." not in Path(input_path).parts, f"{vector_id}: input path escapes root")
 
     expected = entry.get("expected")
     require(isinstance(expected, dict), f"{vector_id}: expected must be an object")
@@ -334,7 +355,8 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
     graph = expected["graph"]
     require(graph is None or isinstance(graph, str), f"{vector_id}: graph must be string/null")
     if graph is not None:
-        require((ROOT / graph).is_file(), f"{vector_id}: missing expected graph path")
+        resolved_graph = repo_path(graph, "expected.graph", vector_id)
+        require(resolved_graph.is_file(), f"{vector_id}: missing expected graph path")
     require_string_list(expected.get("diagnostics"), f"{vector_id}.expected.diagnostics")
     require(
         "expected_head" in expected
@@ -343,7 +365,8 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
     )
 
 
-def validate_manifest(manifest: dict[str, Any]) -> None:
+def validate_manifest(manifest: Any) -> None:
+    require(isinstance(manifest, dict), "manifest must be a JSON object")
     require(manifest.get("schema") == SCHEMA, "manifest schema mismatch")
     require(manifest.get("manifest_version") == 1, "manifest_version must be 1")
     require(
@@ -436,6 +459,35 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         )
 
 
+def expect_invalid(manifest: Any, text: str) -> None:
+    try:
+        validate_manifest(manifest)
+    except ManifestError as exc:
+        require(text in str(exc), f"expected {text!r} in self-test error {exc!r}")
+        return
+    raise ManifestError(f"self-test expected invalid manifest containing {text!r}")
+
+
+def mutated_manifest() -> dict[str, Any]:
+    return deepcopy(build_manifest())
+
+
+def run_self_tests() -> None:
+    expect_invalid([], "JSON object")
+
+    manifest = mutated_manifest()
+    manifest["vectors"][0]["id"] = "../bad"
+    expect_invalid(manifest, "id must use ASCII")
+
+    manifest = mutated_manifest()
+    manifest["vectors"][0]["input"]["path"] = "/tmp/outside.gts"
+    expect_invalid(manifest, "input.path must be relative")
+
+    manifest = mutated_manifest()
+    manifest["vectors"][0]["expected"]["graph"] = "../outside.expected.json"
+    expect_invalid(manifest, "expected.graph escapes root")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -443,12 +495,22 @@ def main() -> int:
         action="store_true",
         help="rewrite vectors/manifest.json from the current corpus files",
     )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="run validator rejection self-tests",
+    )
     args = parser.parse_args()
 
     try:
+        if args.self_test:
+            run_self_tests()
         if args.write:
             manifest = build_manifest()
-            MANIFEST.write_text(json.dumps(manifest, indent=2, sort_keys=False) + "\n")
+            MANIFEST.write_text(
+                json.dumps(manifest, indent=2, sort_keys=False) + "\n",
+                encoding="utf-8",
+            )
         else:
             if not MANIFEST.is_file():
                 raise ManifestError(f"missing {rel(MANIFEST)}")
