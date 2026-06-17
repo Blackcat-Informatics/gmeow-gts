@@ -265,11 +265,16 @@ gts diff <file> <directory>       compare a files profile to a directory
 ```
 <!-- cli-common:end -->
 
+Python/Rust extension:
+
+```text
+gts from-nq <in.nq> [-o <out>]  build a GTS from N-Quads (inverse of fold; '-' = stdin)
+```
+
 Python-only extensions:
 
 <!-- cli-python-extensions:start -->
 ```text
-gts from-nq <in.nq> -o <out>  build a GTS from N-Quads (inverse of fold; '-' = stdin)
 gts to-sqlite <file> <out>    export the folded graph to a SQLite database
 gts to-duckdb <file> <out>    export to a DuckDB database (needs the [db] extra)
 gts to-parquet <file> <dir>   export to Parquet, one file per table (needs [db])
@@ -296,9 +301,9 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 [`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which this repo's Rust
 engine depends on and re-exports as `gmeow_gts::emojihash`.
 
-`from-nq` and the `to-*` relational exports remain Python-CLI extensions for now; the
-relational exports need `pip install 'gmeow-gts[db]'` for DuckDB/Parquet. The CLI parity matrix
-is checked in CI against the four implemented command dispatch surfaces.
+`from-nq` is available in Python and Rust. The `to-*` relational exports remain Python-CLI
+extensions for now and need `pip install 'gmeow-gts[db]'` for DuckDB/Parquet. The CLI parity
+matrix is checked in CI against the four implemented command dispatch surfaces.
 
 `cat` is raw byte concatenation with validation *added*, transformation *never*: it refuses
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
@@ -315,7 +320,7 @@ folded quad.
 | COSE Encrypt0 helpers | yes | yes | yes | yes |
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes |
-| `from-nq` inverse | yes | no | no | no |
+| `from-nq` inverse | yes | yes | no | no |
 | SQLite/DuckDB/Parquet exports | yes | no | no | no |
 | Package registry | PyPI | crates.io | Go module | npm |
 

@@ -16,6 +16,7 @@ use ciborium::value::Value;
 use ed25519_dalek::VerifyingKey;
 use gmeow_gts::cose::verify_signatures;
 use gmeow_gts::emojihash::emojihash;
+use gmeow_gts::from_nquads::from_nquads;
 use gmeow_gts::model::{Graph, Suppression, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::{read, read_file_segments, FileSegments};
@@ -26,6 +27,7 @@ const USAGE: &str = "usage: gts <command> [args]
 commands:
   info <file>...            per-segment composition ledger (§14.1)
   fold <file>               fold to N-Quads on stdout
+  from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
   extract-key <file>        print the embedded transport key: kid, OpenPGP
                             fingerprint, emojihash, and armored public key (§9.2)
@@ -54,6 +56,7 @@ fn main() -> ExitCode {
     match cmd.as_str() {
         "info" => cmd_info(&args[1..]),
         "fold" => cmd_fold(&args[1..]),
+        "from-nq" => cmd_from_nq(&args[1..]),
         "verify" => cmd_verify(&args[1..]),
         "extract-key" => cmd_extract_key(&args[1..]),
         "ls" => cmd_ls(&args[1..]),
@@ -303,6 +306,71 @@ fn cmd_fold(paths: &[String]) -> ExitCode {
     // `gts fold … && publish` pipelines fail on damage.
     if !g.diagnostics.is_empty() || g.segment_heads.is_empty() {
         return ExitCode::from(1);
+    }
+    ExitCode::SUCCESS
+}
+
+fn cmd_from_nq(args: &[String]) -> ExitCode {
+    let mut out_path: Option<&str> = None;
+    let mut inputs: Vec<&str> = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-o" | "--out" => match it.next() {
+                Some(p) => out_path = Some(p),
+                None => {
+                    eprintln!("gts from-nq: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            other => inputs.push(other),
+        }
+    }
+    let [path] = inputs[..] else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+
+    let text = if path == "-" {
+        let mut input = String::new();
+        let mut stdin = std::io::stdin();
+        if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
+            eprintln!("gts from-nq: cannot read stdin: {e}");
+            return ExitCode::from(2);
+        }
+        input
+    } else {
+        match std::fs::read_to_string(path) {
+            Ok(text) => text,
+            Err(e) => {
+                eprintln!("gts from-nq: cannot read {path}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    };
+
+    let bytes = match from_nquads(&text) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            eprintln!("gts from-nq: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    match out_path {
+        Some(p) => {
+            if let Err(e) = std::fs::write(p, &bytes) {
+                eprintln!("gts from-nq: cannot write {p}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+        None => {
+            use std::io::Write;
+            if let Err(e) = std::io::stdout().write_all(&bytes) {
+                eprintln!("gts from-nq: cannot write stdout: {e}");
+                return ExitCode::from(2);
+            }
+        }
     }
     ExitCode::SUCCESS
 }
