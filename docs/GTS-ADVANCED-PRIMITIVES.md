@@ -16,29 +16,25 @@ and what is intentionally deferred from the v1 surface.
 | Streamable layout | `gts compact --streamable` rewrites delivery order and appends an `index` footer; readers validate the claim and report accretive tails. | This is a Validating Tool/Profile Layout feature. |
 | Index footer fields | Writers emit `count`, `head`, `off`, and `ti`; Rust writers can opt in to `mmr`, and Rust readers validate `mmr` roots when present. | Full-reader random access from `off`/`ti` is not claimed yet. |
 | MMR proof JSON | Rust exposes `Writer::add_index_with_mmr`, validates optional `index.mmr`, and implements `gts prove` / `gts verify-proof`. | This is a Rust-only proof surface until the other engines implement the same preimages and fixtures. |
-| Segment heads | `gts info` reports per-segment heads and layout state. | Replication verbs are not public yet. |
+| Replication inventory | Rust exposes `gts heads`, `gts segments`, `gts missing`, and `gts resume` for machine-readable head comparison and byte-range resume. | This is a Rust-only replication surface until the other engines implement the same JSON shapes. |
 | Blob introspection | `gts ls` lists content-addressed blob digests, sizes, and media types. | Range fetch still needs a verified index or a boundary scan. |
 | Memory benchmark helper | `scripts/bench_reader_memory.py` reports full-reader materialization, a frame-scan baseline, and a Rust `read_to_sink` streaming-fold row when Cargo is available. | The frame scan is not a Streaming Reader fold; the Rust row is the sink API evidence. |
 
 The current Rust package may claim the `Streaming Reader` tier for its `read_to_sink` API and
 the Rust-only MMR/proof surface for the fixture set in `vectors/proofs/`. Python, Go, and
-TypeScript SHOULD NOT claim the sink or proof tiers yet. No package should claim replication CLI
-support until the deferred gates below land.
+TypeScript SHOULD NOT claim the sink, proof, or replication tiers yet.
 
 ## Deferred Advanced CLI Verbs
 
-These verbs are planned vocabulary, not current public commands. The guard script
+The rows below, when present, are planned vocabulary rather than current public commands. The guard script
 [`scripts/check_advanced_contract.py`](../scripts/check_advanced_contract.py) fails if any of
 these verbs appear in an engine dispatch surface or in the public CLI parity matrix before this
-table is updated.
+table is updated. The table may be empty when every currently planned advanced CLI verb has been
+promoted.
 
 <!-- advanced-cli-deferred:start -->
 | verb | status | next implementation gate |
 |---|---|---|
-| `heads` | deferred | Define machine-readable segment-head output and peer comparison semantics. |
-| `segments` | deferred | Define segment inventory output with byte ranges, heads, profiles, and layout state. |
-| `missing` | deferred | Define `--from-head` semantics and output ranges without assuming remote trust. |
-| `resume` | deferred | Define `--after` boundary handling and prove the resumed bytes start on a frame boundary. |
 <!-- advanced-cli-deferred:end -->
 
 ## Streaming Sink API
@@ -108,14 +104,7 @@ derived from scanned item boundaries.
 
 ## Replication Workflow
 
-Current tools can inspect heads but do not implement replication verbs:
-
-```bash
-gts info package.gts
-gts ls package.gts
-```
-
-The planned workflow is:
+Rust tools implement the replication verbs:
 
 ```bash
 gts heads local.gts
@@ -124,7 +113,15 @@ gts missing --from-head <peer-head> local.gts
 gts resume --after <frame-id> local.gts
 ```
 
-Required semantics before those commands become public:
+The stable Rust JSON shapes are:
+
+```text
+gts-replication-heads-v1
+gts-replication-segments-v1
+gts-replication-missing-v1
+```
+
+Rust semantics:
 
 - `heads` reports segment heads in file order and an aggregate view suitable for peer comparison;
 - `segments` reports each segment's byte range, profile, head, frame count, and layout state;

@@ -313,6 +313,15 @@ gts prove <file> <frame-id>      emit detached JSON proof from an index.mmr root
 gts verify-proof <proof.json>    verify detached proof JSON without the GTS file
 ```
 
+Rust-only replication extensions:
+
+```text
+gts heads <file>                 emit JSON segment heads and aggregate comparison digest
+gts segments <file>              emit JSON segment byte ranges and layout inventory
+gts missing --from-head <head> <file>   emit JSON byte ranges needed after a peer head
+gts resume --after <frame-id> <file>    emit bytes after a verified frame boundary
+```
+
 Python-only extensions:
 
 <!-- cli-python-extensions:start -->

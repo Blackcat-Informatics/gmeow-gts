@@ -222,6 +222,120 @@ fn prove_and_verify_proof_round_trip() {
 }
 
 #[test]
+fn replication_verbs_report_ranges_and_resume_bytes() {
+    use gmeow_gts::reader::read;
+    use gmeow_gts::wire::hex;
+
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let first_path = vectors().join("01-minimal.gts");
+    let second_path = vectors().join("14-bnode-label.gts");
+    let first = std::fs::read(&first_path).unwrap();
+    let second = std::fs::read(&second_path).unwrap();
+    let mut data = first.clone();
+    data.extend_from_slice(&second);
+    let path = tmp.join("multi.gts");
+    std::fs::write(&path, &data).unwrap();
+    let first_head = hex(read(&first, true, None).segment_heads.last().unwrap());
+
+    let out = gts(&["heads", path.to_str().unwrap()]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let heads: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(heads["schema"], "gts-replication-heads-v1");
+    assert_eq!(heads["clean"], true);
+    assert_eq!(heads["segment_heads"].as_array().unwrap().len(), 2);
+    assert_eq!(heads["aggregate"]["count"], 2);
+
+    let out = gts(&["segments", path.to_str().unwrap()]);
+    assert!(out.status.success());
+    let segments: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let rows = segments["segments"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0]["byte_range"]["start"], 0);
+    assert_eq!(rows[0]["byte_range"]["end"], first.len());
+    assert_eq!(rows[1]["byte_range"]["start"], first.len());
+    assert!(rows[0]["frame_count"].as_u64().unwrap() > 0);
+
+    let out = gts(&[
+        "missing",
+        "--from-head",
+        &first_head,
+        path.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+    let missing: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(missing["status"], "ranges");
+    assert_eq!(missing["ranges"][0]["start"], first.len());
+    assert_eq!(missing["ranges"][0]["end"], data.len());
+    assert_eq!(missing["scan_required"], false);
+
+    let out = gts(&["resume", "--after", &first_head, path.to_str().unwrap()]);
+    assert!(out.status.success());
+    assert_eq!(out.stdout, second);
+}
+
+#[test]
+fn replication_verbs_handle_streamable_unknown_and_torn_inputs() {
+    use gmeow_gts::reader::read;
+    use gmeow_gts::wire::hex;
+
+    let streamable = vectors().join("25b-streamable-compacted.gts");
+    let out = gts(&["segments", streamable.to_str().unwrap()]);
+    assert!(out.status.success());
+    let segments: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let row = &segments["segments"][0];
+    assert_eq!(row["layout"]["claimed"], true);
+    assert!(row["layout"]["covered"].as_u64().unwrap() > 0);
+    assert!(row["frame_count"].as_u64().unwrap() >= row["layout"]["covered"].as_u64().unwrap());
+
+    let data = std::fs::read(&streamable).unwrap();
+    let full_head = hex(read(&data, true, None).segment_heads.last().unwrap());
+    let out = gts(&[
+        "missing",
+        "--from-head",
+        &full_head,
+        streamable.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+    let complete: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(complete["status"], "complete");
+    assert!(complete["ranges"].as_array().unwrap().is_empty());
+
+    let unknown = "0000000000000000000000000000000000000000000000000000000000000000";
+    let out = gts(&[
+        "missing",
+        "--from-head",
+        unknown,
+        streamable.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+    let missing: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(missing["status"], "unknown");
+    assert_eq!(missing["scan_required"], true);
+
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let torn_path = tmp.join("torn.gts");
+    let mut torn = std::fs::read(vectors().join("01-minimal.gts")).unwrap();
+    torn.pop();
+    std::fs::write(&torn_path, torn).unwrap();
+
+    let out = gts(&["heads", torn_path.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+    let heads: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert!(heads["torn_at"].is_number());
+
+    let out = gts(&["resume", "--after", unknown, torn_path.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+}
+
+#[test]
 fn pack_unpack_round_trip_bit_for_bit() {
     let tmp = tmpdir();
     let _ = std::fs::remove_dir_all(&tmp);

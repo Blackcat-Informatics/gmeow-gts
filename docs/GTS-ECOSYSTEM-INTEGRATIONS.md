@@ -231,12 +231,13 @@ format diagnostics into Go errors.
 
 For current services:
 
-- Use `gts info` or `reader.ReadFileSegments` to inventory segment heads.
+- Use Rust `gts heads` / `gts segments`, or `gts info` / `reader.ReadFileSegments` in engines
+  without the replication verbs, to inventory segment heads.
 - Use `gts ls` or folded `Graph.Blobs`/`BlobMeta` to inventory inline objects.
 - Use the range rules above when serving byte ranges from HTTP or object stores.
-- Treat proof/MMR and replication verbs as deferred until
-  [GTS-ADVANCED-PRIMITIVES.md](./GTS-ADVANCED-PRIMITIVES.md) promotes stable
-  `heads`, `segments`, `missing`, and `resume` semantics.
+- Rust `gts missing` and `gts resume` provide the first stable byte-range resume surface. Other
+  engines should treat replication verbs as deferred until they match the
+  [GTS-ADVANCED-PRIMITIVES.md](./GTS-ADVANCED-PRIMITIVES.md) JSON shapes and boundary rules.
 
 ## Contract Guard
 

@@ -88,6 +88,10 @@ actual dispatch surfaces.
 | `to-parquet` | yes | yes | no | no | Python/Rust extension |
 | `prove` | no | yes | no | no | Rust proof extension |
 | `verify-proof` | no | yes | no | no | Rust proof extension |
+| `heads` | no | yes | no | no | Rust replication extension |
+| `segments` | no | yes | no | no | Rust replication extension |
+| `missing` | no | yes | no | no | Rust replication extension |
+| `resume` | no | yes | no | no | Rust replication extension |
 <!-- cli-parity-matrix:end -->
 
 ### Intentional Gaps
@@ -98,10 +102,13 @@ actual dispatch surfaces.
 - Go and TypeScript do not yet expose `from-nq` or relational exports.
 - Rust implements the first `index.mmr` proof verbs. Python, Go, and TypeScript should not expose
   `prove` or `verify-proof` until they implement the same proof JSON and preimages.
+- Rust implements the first replication verbs. Python, Go, and TypeScript should not expose
+  `heads`, `segments`, `missing`, or `resume` until they implement the same JSON shapes and
+  boundary rules.
 - Future nested-GTS recursion and encryption policy verbs are not part of the stable CLI surface
   yet. They should be added to this matrix before package-specific docs claim them.
-- Advanced `heads`, `segments`, `missing`, and `resume` verbs are
-  deferred in [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md) and guarded by
+- Remaining advanced deferred verbs, if any, are tracked in
+  [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md) and guarded by
   `scripts/check_advanced_contract.py`.
 
 ## Drift Guard
