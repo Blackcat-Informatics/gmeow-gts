@@ -26,7 +26,7 @@ signatures and encryption, and cross-language conformance through a shared vecto
 | Wire-format major version | 1, encoded in the segment header `"v"` field |
 | Date | 2026-06-11 |
 | Stability | Wire-format changes remain possible until v1.0 |
-| Change control | Blackcat Informatics / GTS specification process |
+| Change control | Blackcat Informatics / [GTS governance process](./GTS-GOVERNANCE.md) |
 | Conformance | Defined by this document and the versioned vector corpus (§19) |
 | Implementation versions | Package versions are independent release artifacts |
 | Corpus version | The corpus is versioned separately from package releases |
@@ -34,7 +34,9 @@ signatures and encryption, and cross-language conformance through a shared vecto
 This specification is maintained in the
 [`gmeow-gts`](https://github.com/Blackcat-Informatics/gmeow-gts) repository, alongside four
 interoperable reference engines (Rust, Python, Go, TypeScript) that gate against the shared
-vector corpus. Report errata and propose changes there.
+vector corpus. Report errata and propose changes there. Core semantic changes, registry
+additions, and optional-standard profile promotion follow the
+[GTS governance process](./GTS-GOVERNANCE.md).
 
 GTS is ontology-independent. GMEOW is a primary downstream consumer and distribution use case
 for GTS, but GTS readers and writers do not require GMEOW vocabulary, tooling, or semantics.
@@ -1187,6 +1189,9 @@ A profile definition MUST state that it does not change header/frame grammar, se
 detection, content-id or signature/hash preimages, transform-catalog resolution, or the core fold
 semantics in §7. New profile behavior must be expressed as graph vocabulary, existing frame
 types, transform capabilities, metadata, or profile-aware validation rules.
+
+The registry change policy, reserved namespaces, and optional-standard profile promotion process
+are maintained in [`GTS-GOVERNANCE.md`](./GTS-GOVERNANCE.md).
 
 ### 13.1 Language-tag discipline (profile-level normative)
 
