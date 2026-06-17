@@ -11,6 +11,12 @@ repository = "https://github.com/Blackcat-Informatics/gmeow-gts"
 readme = "README.md"
 keywords = ["rdf", "rdf-star", "cbor", "knowledge-graph", "linked-data"]
 
+[features]
+default = []
+# Enables DuckDB/Parquet relational exports. This feature intentionally adds no
+# Cargo dependencies; it shells out to a `duckdb` binary on PATH at runtime.
+duckdb = []
+
 # The package is named gmeow-gts on crates.io, but the CLI binary keeps the
 # shorter `gts` name for ergonomics.
 [[bin]]

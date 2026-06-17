@@ -22,7 +22,10 @@ use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::{read, read_file_segments, FileSegments};
 use gmeow_gts::wire::{digest_str, hex};
 
-const USAGE: &str = "usage: gts <command> [args]
+macro_rules! usage_text {
+    ($relational:literal) => {
+        concat!(
+            "usage: gts <command> [args]
 
 commands:
   info <file>...            per-segment composition ledger (§14.1)
@@ -46,10 +49,27 @@ commands:
   unpack <archive> [-C dir] [--include-suppressed]
                             unpack a files-profile archive
   diff <archive> <dir>      compare archive to directory by digest
-  to-sqlite <file> <out>    export the folded graph to SQLite (needs sqlite3)
+  to-sqlite <file> <out>    export the folded graph to SQLite (needs sqlite3)",
+            $relational
+        )
+    };
+}
+
+#[cfg(feature = "duckdb")]
+const USAGE: &str = usage_text!(
+    "
   to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
   to-parquet <file> <dir>   export Parquet files, one per non-empty table
-                            (needs duckdb)";
+                            (needs duckdb)"
+);
+
+#[cfg(not(feature = "duckdb"))]
+const USAGE: &str = usage_text!(
+    "
+optional:
+  to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
+  to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
+);
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -71,8 +91,12 @@ fn main() -> ExitCode {
         "unpack" => cmd_unpack(&args[1..]),
         "diff" => cmd_diff(&args[1..]),
         "to-sqlite" => cmd_to_sqlite(&args[1..]),
+        #[cfg(feature = "duckdb")]
         "to-duckdb" => cmd_to_duckdb(&args[1..]),
+        #[cfg(feature = "duckdb")]
         "to-parquet" => cmd_to_parquet(&args[1..]),
+        #[cfg(not(feature = "duckdb"))]
+        "to-duckdb" | "to-parquet" => cmd_duckdb_disabled(cmd),
         "-h" | "--help" | "help" => {
             println!("{USAGE}");
             ExitCode::SUCCESS
@@ -82,6 +106,15 @@ fn main() -> ExitCode {
             ExitCode::from(2)
         }
     }
+}
+
+#[cfg(not(feature = "duckdb"))]
+fn cmd_duckdb_disabled(cmd: &str) -> ExitCode {
+    eprintln!(
+        "gts {cmd}: optional DuckDB/Parquet exports are disabled; rebuild with \
+         `--features duckdb` and keep the `duckdb` binary on PATH"
+    );
+    ExitCode::from(2)
 }
 
 fn load(path: &str) -> Result<Vec<u8>, ExitCode> {
@@ -413,6 +446,7 @@ fn cmd_to_sqlite(args: &[String]) -> ExitCode {
     }
 }
 
+#[cfg(feature = "duckdb")]
 fn cmd_to_duckdb(args: &[String]) -> ExitCode {
     let [path, out] = args else {
         eprintln!("{USAGE}");
@@ -431,6 +465,7 @@ fn cmd_to_duckdb(args: &[String]) -> ExitCode {
     }
 }
 
+#[cfg(feature = "duckdb")]
 fn cmd_to_parquet(args: &[String]) -> ExitCode {
     let [path, out_dir] = args else {
         eprintln!("{USAGE}");

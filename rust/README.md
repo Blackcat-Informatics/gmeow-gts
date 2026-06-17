@@ -286,8 +286,8 @@ gts info <file>...              per-segment composition ledger
 gts fold <file>                 fold to N-Quads on stdout
 gts from-nq <in.nq> [-o out]    build a GTS from N-Quads (`-` reads stdin)
 gts to-sqlite <file> <out>      export to SQLite (requires sqlite3)
-gts to-duckdb <file> <out>      export to DuckDB (requires duckdb)
-gts to-parquet <file> <dir>     export to Parquet files (requires duckdb)
+gts to-duckdb <file> <out>      export to DuckDB (--features duckdb; requires duckdb)
+gts to-parquet <file> <dir>     export to Parquet (--features duckdb; requires duckdb)
 gts verify <file>... [--key KID:HEXPUB]
                                 verify chains + COSE signatures; exit 1 on any
 gts extract-key <file>          print the embedded transport/verification key:
@@ -313,8 +313,9 @@ Exit codes:
 OpenPGP transport key to the same fingerprint and emojihash, and verify COSE signatures
 identically. `from-nq` and the relational `to-sqlite`/`to-duckdb`/`to-parquet` exports are
 implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
-integer table model as Python and require `sqlite3` for SQLite or `duckdb` for DuckDB/Parquet
-on `PATH`.
+integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`
+on `PATH`; `to-duckdb` and `to-parquet` require the optional no-dependency `duckdb`
+Cargo feature plus the `duckdb` binary on `PATH`.
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
 refuses dirty inputs, contributes-nothing segments, and compositions whose suppressions

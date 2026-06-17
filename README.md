@@ -272,8 +272,8 @@ Python/Rust extensions:
 ```text
 gts from-nq <in.nq> [-o <out>]  build a GTS from N-Quads (inverse of fold; '-' = stdin)
 gts to-sqlite <file> <out>      export the folded graph to a SQLite database
-gts to-duckdb <file> <out>      export to a DuckDB database
-gts to-parquet <file> <dir>     export to Parquet, one file per non-empty table
+gts to-duckdb <file> <out>      export to DuckDB (Rust: --features duckdb)
+gts to-parquet <file> <dir>     export to Parquet (Rust: --features duckdb)
 ```
 
 Python-only extensions:
@@ -305,8 +305,9 @@ engine depends on and re-exports as `gmeow_gts::emojihash`.
 
 `from-nq` and the `to-*` relational exports are available in Python and Rust. Python
 DuckDB/Parquet exports need `pip install 'gmeow-gts[db]'`; Rust SQLite export shells out to
-`sqlite3`, and Rust DuckDB/Parquet exports shell out to `duckdb`. The CLI parity matrix is
-checked in CI against the four implemented command dispatch surfaces.
+`sqlite3` by default. Rust DuckDB/Parquet exports are behind the no-dependency Cargo
+feature `duckdb` and shell out to the `duckdb` binary. The CLI parity matrix is checked
+in CI against the four implemented command dispatch surfaces.
 
 `cat` is raw byte concatenation with validation *added*, transformation *never*: it refuses
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
@@ -324,7 +325,7 @@ folded quad.
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | no | no |
-| SQLite/DuckDB/Parquet exports | yes | yes | no | no |
+| SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no |
 | Package registry | PyPI | crates.io | Go module | npm |
 
 The frozen vector corpus remains the compatibility oracle. The matrix summarizes public package
