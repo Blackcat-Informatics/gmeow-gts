@@ -94,10 +94,10 @@ core format.
 - [12. Binary and content-addressing](#12-binary-and-content-addressing)
   - [12.1 Nested GTS (recursive composition)](#121-nested-gts-recursive-composition)
 - [13. Profiles](#13-profiles)
-  - [13.1 Language-tag discipline (normative)](#131-language-tag-discipline-normative)
-  - [13.2 The `files` profile (normative)](#132-the-files-profile-normative)
-  - [13.3 The `stream` vocabulary (normative)](#133-the-stream-vocabulary-normative)
-  - [13.4 The `music-package` profile (normative)](#134-the-music-package-profile-normative)
+  - [13.1 Language-tag discipline (profile-level normative)](#131-language-tag-discipline-profile-level-normative)
+  - [13.2 The `files` profile (optional-standard)](#132-the-files-profile-optional-standard)
+  - [13.3 The `stream` vocabulary (optional-standard)](#133-the-stream-vocabulary-optional-standard)
+  - [13.4 Domain profile example: `music-package` (informative)](#134-domain-profile-example-music-package-informative)
 - [14. Transforms out](#14-transforms-out)
   - [14.1 Composition tooling requirements (normative for conformant tools)](#141-composition-tooling-requirements-normative-for-conformant-tools)
   - [14.2 Archive tooling (`files` profile)](#142-archive-tooling-files-profile)
@@ -187,6 +187,17 @@ This specification separates the following conformance scopes:
 
 The conformance classes below define reader and writer behavior. Tool, profile, and deployment
 requirements are scoped explicitly in the sections that define them.
+
+Baseline reader/writer conformance is independent of profile validation, CLI verbs, transform
+targets, and HTTP deployment behavior. A locally valid GTS file remains locally valid when it
+declares an unsupported profile; a reader records the profile declaration and folds the bytes
+according to its reader class, while a profile-aware tool MAY apply additional checks in the
+profile conformance scope.
+
+Profiles, tools, and deployments MUST NOT change header or frame grammar, segment-boundary
+detection, content-id or signature/hash preimages, transform-catalog resolution, or the core
+fold semantics in §7. A stricter profile MAY reject an otherwise valid artifact only as a
+profile-level validation failure, not by redefining core GTS validity.
 
 ### 2.2 Reader and writer conformance classes
 
@@ -1000,27 +1011,67 @@ This composition needs no new frame type: nesting is "a blob that happens to be 
 
 ## 13. Profiles
 
-A profile is a named set of conventions over the one format (declared in header `"prof"`):
+A profile is a named set of conventions over the one format, declared in the segment header
+`"prof"` field. Profiles can define vocabulary expectations, validation rules, trust policy,
+capability requirements, and publication workflows, but they sit above the core wire format.
 
-| profile      | shape                                                                              |
-|--------------|------------------------------------------------------------------------------------|
-| `generic`    | any conformant log.                                                                |
-| `dist`       | a single compacted `snapshot`: vocabulary + definitions + materialised closure.    |
-| `evidence`   | append-only, signatures REQUIRED, **never compacted**; the file is a custody chain.|
-| `image`      | a `blob` (or several representations) + descriptive metadata + analysis frames.    |
-| `ai-package` | a concept + logic + observations + opinions + refuted claims + embeddings + data.  |
-| `opaque`     | `encrypt`-class frames; signatures + pseudonymous `kid`s REQUIRED; selective disclosure. |
-| `bundle`    | a GTS whose `blob`s are themselves GTS files (`mt: application/vnd.blackcat.gts+cbor-seq`); §12.1. |
-| `files`        | a GTS archive of file-tree entries: each file is a blob described by path, size, mode, mtime, and media type (§13.2). |
-| `music-package`| a frame-relative musical work/expression: segments, voices, tuning/time frames, tone events, degrees of freedom, and analysis claims, plus lossy projections to notation formats (§13.4). |
+The status values used by this specification are:
 
-Profiles constrain conventions, not the wire format; a `generic` reader reads them all. The
-`evidence` profile additionally REQUIRES a head commitment (§9, item 4), and writers SHOULD emit
-a checkpoint `index` at least every 1024 frames or 64 MiB, whichever comes first, so a damaged
-log recovers robustly (§9.1). In a multi-segment file each segment declares its own profile;
-the file's effective requirement set is the union (§3.1).
+- **core-required**: part of baseline wire-format, reader, or writer conformance.
+- **optional-standard**: specified here as interoperable infrastructure, but not required for a
+  Baseline Reader or Writer.
+- **experimental**: described for early interoperability; details can change without changing
+  core GTS.
+- **domain-specific**: owned by an application or downstream community, not by core GTS.
 
-### 13.1 Language-tag discipline (normative)
+| profile or family | status | profile-level meaning | core impact |
+|---|---|---|---|
+| `generic` | core-required default | Any conformant log with no extra profile validation. | None; this is the absence of profile-specific requirements. |
+| `dist` | optional-standard | A compacted distribution `snapshot`: vocabulary, definitions, and materialised closure. | None. |
+| `evidence` | optional-standard | Append-only custody chain; profile validators require signatures and a head commitment. | None; signatures remain optional in core GTS. |
+| `opaque` | optional-standard | Selective-disclosure convention over `encrypt`-class frames, signatures, and pseudonymous `kid`s. | None; encryption remains optional in core GTS. |
+| `bundle` | optional-standard | A GTS whose `blob`s are themselves GTS files (`mt: application/vnd.blackcat.gts+cbor-seq`), using §12.1. | None. |
+| `files` | optional-standard | A portable file-tree archive profile defined in §13.2 and §14.2. | None; baseline readers fold its graph normally. |
+| `stream` | optional-standard | Streaming vocabulary and publication layout support used by §3.3 and §10.1. | None; layout checks are reader/tool diagnostics, not new frame grammar. |
+| `image` | experimental | Blob representations plus descriptive metadata and analysis frames. | None. |
+| `ai-package` | experimental | A concept plus logic, observations, opinions, refuted claims, embeddings, and data. | None. |
+| `music-package` | domain-specific | GMEOW music transport conventions; informative here, specified by the downstream profile. | None. |
+| GMEOW distribution profiles | domain-specific | Downstream GMEOW package conventions layered on GTS distribution artifacts. | None. |
+| `agent-memory` | domain-specific | Application conventions for memory, belief revision, suppression, and provenance. | None. |
+
+Profiles constrain conventions, not the wire format; a `generic` reader reads all profile
+declarations it can parse. A reader that does not implement a named profile still parses,
+verifies, and folds the file under its reader class, then reports the unsupported profile in
+diagnostics or metadata. In a multi-segment file each segment declares its own profile; the
+file's effective requirement set is the union (§3.1).
+
+The `evidence` profile requires a head commitment (§9, item 4) at profile level, and writers
+SHOULD emit a checkpoint `index` at least every 1024 frames or 64 MiB, whichever comes first,
+so a damaged log recovers robustly (§9.1). That requirement does not make signatures, indexes,
+or evidence-profile support mandatory for baseline GTS.
+
+**Third-party profile registration template.** A third-party profile definition SHOULD publish:
+
+- Stable profile name used in the header `"prof"` field.
+- Owner, change-control process, contact URI, and specification URI.
+- Status (`experimental`, `optional-standard`, or `domain-specific`) and intended compatibility
+  policy.
+- Vocabulary namespace IRIs, term shapes, and any profile-specific validation rules.
+- Required codecs, keys, signature algorithms, trust anchors, or deployment assumptions.
+- Failure taxonomy: which violations are errors, warnings, or informative diagnostics for a
+  profile-aware tool.
+- Interaction with segments, `cat` composition, suppression, compaction, and nested GTS blobs.
+- Conformance vectors, including unsupported-profile behavior for baseline readers.
+- Security and privacy considerations.
+
+A profile definition MUST state that it does not change header/frame grammar, segment-boundary
+detection, content-id or signature/hash preimages, transform-catalog resolution, or the core fold
+semantics in §7. New profile behavior must be expressed as graph vocabulary, existing frame
+types, transform capabilities, metadata, or profile-aware validation rules.
+
+### 13.1 Language-tag discipline (profile-level normative)
+
+This subsection defines a profile/projection-writer rule, not a Baseline Reader requirement.
 
 A producer's graph payload MAY carry **internal private-use language tags** (e.g. GMEOW's
 `x-gmeow-*`): the payload of a `dist` or `ai-package` segment *is* the canonical form, and
@@ -1032,11 +1083,13 @@ file: one package legitimately carries a canonical payload with internal tags be
 public-tagged docs sections. (This mirrors the GMEOW generator framework's internal-tag leak
 gate; the reference producer reuses its `retag` machinery at the section boundary.)
 
-### 13.2 The `files` profile (normative)
+### 13.2 The `files` profile (optional-standard)
 
-The `files` profile is a portable, content-addressed archive of a file tree. It is the GTS
-answer to tar's `c`/`x`/`d`: pack a directory into a single-segment GTS, unpack it later, and
-`diff` it against a directory without byte comparison.
+The `files` profile is an optional-standard, content-addressed archive of a file tree. It is the
+GTS answer to tar's `c`/`x`/`d`: pack a directory into a single-segment GTS, unpack it later, and
+`diff` it against a directory without byte comparison. The rules below are profile-level
+conformance requirements for `files` writers and validators; a Baseline Reader folds the graph
+without implementing archive tooling.
 
 **Namespace.** The profile owns a small, spec-defined vocabulary at
 `https://w3id.org/gts/files#` (prefix `files`). GTS independence means an unpacker MUST NOT
@@ -1085,16 +1138,16 @@ terms align by reference to common surface vocabularies: `files:size` ↔ schema
 `fileLastModified`, `files:path` ↔ NFO `fileName`. These alignments live in GMEOW's mapping
 DSL; the files profile itself does not depend on them.
 
-### 13.3 The `stream` vocabulary (normative)
+### 13.3 The `stream` vocabulary (optional-standard)
 
 The streamable layout state (§3.3) and streamable compaction (§10.1) use a small,
-spec-defined vocabulary at `https://w3id.org/gts/stream#` (prefix `stream`) — the same
-independence decision as the `files` profile (§13.2): no GMEOW or external ontology is
-required to stream a photo archive; the terms are authored here and carried as literal IRIs
-in the graph. The vocabulary is deliberately distinct from `files#` (the two compose: a
-`files` archive that is also streamable describes each file once as a `files:FileEntry` and
-once as a `stream:Manifestation` — the profile check (§14.1) and the layout check (§3.3)
-stay independent).
+optional-standard vocabulary at `https://w3id.org/gts/stream#` (prefix `stream`) — the same
+independence decision as the `files` profile (§13.2): no GMEOW or external ontology is required
+to stream a photo archive; the terms are authored here and carried as literal IRIs in the graph.
+The vocabulary is deliberately distinct from `files#` (the two compose: a `files` archive that
+is also streamable describes each file once as a `files:FileEntry` and once as a
+`stream:Manifestation` — the profile check (§14.1) and the layout check (§3.3) stay
+independent).
 
 **Streaming-index terms** — one `stream:Manifestation` per promised blob, emitted in the
 leading streaming index before any `blob` frame (§3.3):
@@ -1144,24 +1197,28 @@ _:s0 a stream:DetachedSignature ;
 legitimately survive `gts → nq → gts` round trips and re-accretion after appends. The error
 class is reserved for the opposite rot — a claimed layout the bytes contradict (§3.3).
 
-### 13.4 The `music-package` profile (normative)
+### 13.4 Domain profile example: `music-package` (informative)
 
-The `music-package` profile is a single-segment GTS that carries frame-relative musical content:
-a `MusicalWork`/`MusicalExpression`, its `Voice`s and `MusicalSegment`s, `TuningSystem` and
-`MusicalTimeFrame` reference frames, atomic `ToneEvent`s, `DegreeOfFreedom` declarations, and
-standpoint-indexed analysis claims. It is the canonical transport form for the GMEOW music slice
-and the input to every notation projection.
+This subsection is an informative example of a domain-specific profile. A Baseline Reader,
+Writer, or verifier is not required to implement GMEOW vocabulary, music-domain rules, notation
+projection rules, or the `music-package` validator to be conformant with core GTS.
+
+The `music-package` profile can be defined as a single-segment GTS that carries frame-relative
+musical content: a `MusicalWork`/`MusicalExpression`, its `Voice`s and `MusicalSegment`s,
+`TuningSystem` and `MusicalTimeFrame` reference frames, atomic `ToneEvent`s,
+`DegreeOfFreedom` declarations, and standpoint-indexed analysis claims. It is the canonical
+transport form for the GMEOW music slice and the input to notation projections.
 
 **Namespace.** The profile reuses the GMEOW music vocabulary
 (`https://blackcatinformatics.ca/gmeow/`). A `music-package` is not required to be a `dist`
 profile: it may carry only the musical content graph plus any projection blobs, and it MAY rely on
 an external `dist` snapshot for vocabulary definitions.
 
-**Header.** A `music-package` segment declares `"prof": "music-package"`. The profile is
-append-only for new claims; existing triples are never deleted, only superseded by statement-layer
+**Header.** A `music-package` segment declares `"prof": "music-package"`. The profile can be
+append-only for new claims; existing triples are not deleted, only superseded by statement-layer
 provenance (§7.3).
 
-**Core quad shape.** A minimal package contains:
+**Example quad shape.** A minimal package can contain:
 
 ```text
 @prefix gmeow: <https://blackcatinformatics.ca/gmeow/> .
@@ -1194,21 +1251,23 @@ Time and pitch are **frame-relative**: `toneEventPitchValue` points to a
 `PitchValue` interpreted under the event's voice tuning frame, and offsets/durations are rational
 values interpreted under the voice time frame.
 
-**Projections.** A `music-package` MAY contain `blob` frames whose bytes are down-projected
+**Projections.** A `music-package` can contain `blob` frames whose bytes are down-projected
 representations (MusicXML, MEI, ABC, LilyPond, Humdrum **kern, MIDI, Scala `.scl`, tablature,
-mensural, graphic notation). Each projection MUST be accompanied by a declared-loss manifest that
-lists the `NotationProjectionProfile` used, the `MusicalParameter`s it can represent, and the
-`ProjectionLoss`es it incurs. The manifest is a Turtle sidecar or an embedded header/comment and
-is considered part of the projection, not the canonical graph.
+mensural, graphic notation). A music-package profile validator can require each projection to be
+accompanied by a declared-loss manifest that lists the `NotationProjectionProfile` used, the
+`MusicalParameter`s it can represent, and the `ProjectionLoss`es it incurs. The manifest can be a
+Turtle sidecar or an embedded header/comment and is considered part of the projection, not the
+canonical graph.
 
 **Bundle profile coupling.** A `bundle` profile (§12.1) whose blobs are `music-package` segments
 provides the multi-movement / multi-version transport case. Each nested segment keeps its own
 profile declaration; the outer bundle does not impose additional conventions.
 
-**Verification.** A conformant `gts verify` over a `music-package` segment checks that every
-`NotationSystem` referenced by a projection blob has a corresponding `NotationProjectionProfile`,
-and that the profile accounts for every `MusicalParameter` declared in the music slice (no silent
-omissions).
+**Verification.** A music-package-aware verifier can check that every `NotationSystem`
+referenced by a projection blob has a corresponding `NotationProjectionProfile`, and that the
+profile accounts for every `MusicalParameter` declared in the music slice (no silent omissions).
+Baseline `gts verify` is not required to implement this profile; it can report the unsupported
+profile without failing wire-format validity.
 
 ## 14. Transforms out
 
@@ -1230,6 +1289,12 @@ descriptions and re-import as ordinary quads, not as opaque frames.
 
 ### 14.1 Composition tooling requirements (normative for conformant tools)
 
+This section defines tool conformance only. A Baseline Reader or Writer need not ship these CLI
+verbs, transform targets, archive commands, or publication policies to be core-conformant.
+Profile-aware tools enforce only the profile validators they claim to support; unsupported
+profiles are surfaced as diagnostics or metadata unless the user explicitly requested that
+profile's validation.
+
 Raw `cat` always works (§3.1); a conformant **validating composer** (`gts cat`) and verifier
 (`gts verify`) add the refuse-don't-trust posture:
 
@@ -1237,10 +1302,10 @@ Raw `cat` always works (§3.1); a conformant **validating composer** (`gts cat`)
   whose fold yields zero quads and zero blobs (almost always a wiring bug, never a real
   package), or an output in which a suppress-only segment would hide every prior frame.
   Publish-class tools never trust a pathological state to be intentional.
-- **`gts verify` MUST check declared-vs-computed requirements**: a segment whose graph uses a
-  profile's vocabulary without declaring the profile is an **error**; a declared-but-unused
-  profile is a warning. Declarations a tool reads (the CLI dependency report, §13) must not be
-  able to rot against the content they describe.
+- **`gts verify` MUST check declared-vs-computed requirements for supported profiles**: a
+  segment whose graph uses a supported profile's vocabulary without declaring the profile is an
+  **error**; a declared-but-unused supported profile is a warning. Declarations a tool reads
+  (the CLI dependency report, §13) must not be able to rot against the content they describe.
 - **`gts verify` SHOULD report per-segment**: head id, signer set, profile, term/quad counts,
   opaque-node count with reasons — the composition ledger of the file.
 - **`gts verify` MUST check the layout claim** (§3.3): a segment claiming
@@ -1376,8 +1441,10 @@ verifiable subgraph.
 
 ## 16. Media type and HTTP serving contract
 
-GTS files are published artifacts. A conformant deployment MUST advertise the
-media type, support range requests, and set cache headers that respect the format's immutability.
+GTS files are published artifacts. This section defines deployment conformance: a locally stored
+GTS file can be wire-format valid, reader-conformant, and writer-conformant even when it is never
+served over HTTP. A conformant deployment MUST advertise the media type, support range requests,
+and set cache headers that respect the format's immutability.
 
 ### 16.1 Media type and file extension (normative)
 
