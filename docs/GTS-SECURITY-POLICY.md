@@ -20,9 +20,11 @@ caller resolved. It does not mean:
 - the signed RDF claim is true.
 
 Deployment trust is represented by `gts.policy.TrustPolicy` in Python and
-`gmeow_gts::policy::TrustPolicy` in Rust. A profile-aware tool can require a
-trusted signer, while a baseline reader can still return the recoverable graph
-plus signature status.
+`gmeow_gts::policy::TrustPolicy` in Rust. High-level file verification is exposed
+as `gts.verify.verify_file` in Python and `gmeow_gts::verify::verify_file` in Rust;
+both report cryptographic signature status separately from deployment trust. A
+profile-aware tool can require a trusted signer, while a baseline reader can still
+return the recoverable graph plus signature status.
 
 ## Profile Enforcement
 
