@@ -51,13 +51,29 @@ fn safe_archive_path(name: &str) -> Result<(), String> {
     if name.is_empty() {
         return Err("empty archive path".to_string());
     }
-    if name.starts_with('/') {
-        return Err(format!("absolute path not allowed in archive: {name}"));
+    let normalized = name.replace('\\', "/");
+    let drive_relative =
+        name.len() >= 2 && name.as_bytes()[1] == b':' && name.as_bytes()[0].is_ascii_alphabetic();
+    if drive_relative || normalized.starts_with('/') {
+        return Err(format!(
+            "absolute or drive-relative path not allowed in archive: {name}"
+        ));
     }
-    for part in name.split('/') {
-        if part == ".." {
+    let parts: Vec<&str> = normalized.split('/').collect();
+    for part in &parts {
+        if *part == ".." {
             return Err(format!("path traversal not allowed in archive: {name}"));
         }
+    }
+    if name.contains('\\') {
+        return Err(format!(
+            "backslash path separator not allowed in archive: {name}"
+        ));
+    }
+    if parts.iter().any(|part| part.is_empty() || *part == ".") {
+        return Err(format!(
+            "empty or current-directory path component not allowed in archive: {name}"
+        ));
     }
     Ok(())
 }
@@ -104,7 +120,10 @@ fn resolve_sources(sources: &[&Path]) -> Result<Vec<(std::path::PathBuf, String)
     let mut entries: Vec<(std::path::PathBuf, String)> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
     for src in sources {
-        let meta = fs::metadata(src).map_err(|e| format!("{src:?}: {e}"))?;
+        let meta = fs::symlink_metadata(src).map_err(|e| format!("{src:?}: {e}"))?;
+        if meta.file_type().is_symlink() {
+            return Err(format!("symlink not supported: {}", src.display()));
+        }
         if meta.is_file() {
             let name = src
                 .file_name()
@@ -322,22 +341,29 @@ fn read_file_entries(graph: &Graph) -> Result<BTreeMap<String, BTreeMap<String, 
 }
 
 fn dest_path(dest: &Path, archive_path: &str) -> Result<std::path::PathBuf, String> {
-    if archive_path.starts_with('/') {
-        return Err(format!("absolute path in archive: {archive_path}"));
-    }
-    for part in archive_path.split('/') {
-        if part == ".." {
-            return Err(format!("path traversal in archive: {archive_path}"));
-        }
-    }
-    // Resolve the destination itself (e.g. `/tmp` -> `/private/tmp` on macOS)
-    // before joining the relative archive path, so symlinked parents do not
-    // trigger false-positive traversal errors. Then resolve the target if it
-    // already exists to catch symlinked escapes inside the destination.
-    let dest_canon = dest.canonicalize().unwrap_or_else(|_| dest.to_path_buf());
+    safe_archive_path(archive_path)?;
+    // Resolve the destination itself (e.g. `/tmp` -> `/private/tmp` on macOS),
+    // then resolve the closest existing target ancestor so an existing
+    // symlinked directory below the destination cannot redirect writes.
+    let dest_canon = dest
+        .canonicalize()
+        .map_err(|e| format!("resolve destination {dest:?}: {e}"))?;
     let target = dest_canon.join(archive_path);
-    let target_canon = target.canonicalize().unwrap_or_else(|_| target.clone());
-    if !target_canon.starts_with(&dest_canon) {
+
+    let mut ancestor = target
+        .parent()
+        .unwrap_or(dest_canon.as_path())
+        .to_path_buf();
+    while !ancestor.exists() {
+        let Some(parent) = ancestor.parent() else {
+            break;
+        };
+        ancestor = parent.to_path_buf();
+    }
+    let ancestor_canon = ancestor
+        .canonicalize()
+        .map_err(|e| format!("resolve target ancestor {ancestor:?}: {e}"))?;
+    if !ancestor_canon.starts_with(&dest_canon) {
         return Err(format!("path escapes destination: {archive_path}"));
     }
     Ok(target)

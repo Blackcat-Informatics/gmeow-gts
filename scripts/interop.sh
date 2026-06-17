@@ -17,6 +17,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 ENGINES=(rust python go ts)
+NODE_BIN="${NODE_BIN:-node}"
 
 log() { printf '\033[1m== %s\033[0m\n' "$*"; }
 
@@ -39,7 +40,7 @@ gts() {
   case "$engine" in
     rust)   "$RUST_BIN" "$@" ;;
     go)     "$GO_BIN" "$@" ;;
-    ts)     node "$TS_BIN" "$@" ;;
+    ts)     "$NODE_BIN" "$TS_BIN" "$@" ;;
     python) ( cd "$ROOT/python" && uv run --quiet gts "$@" ) ;;
   esac
 }
@@ -103,6 +104,48 @@ for reader in "${ENGINES[@]}"; do
     echo "  MISMATCH: $reader unpack of rust's package differs from the original" >&2
     fail=1
   fi
+done
+
+# --- cross-diff: every engine compares every package consistently ----------- #
+log "Cross-diff: every engine accepts matching trees for every package"
+for writer in "${ENGINES[@]}"; do
+  for reader in "${ENGINES[@]}"; do
+    err="$WORK/diff_${reader}_${writer}.err"
+    set +e
+    out="$(gts "$reader" diff "$WORK/packed_$writer.gts" "$FIX" 2>"$err")"
+    code=$?
+    set -e
+    if [ "$code" -ne 0 ] || [ -n "$out" ]; then
+      echo "  MISMATCH: $reader diff of $writer's matching package failed" >&2
+      printf '    exit=%s stdout=%q stderr=%q\n' "$code" "$out" "$(cat "$err")" >&2
+      fail=1
+    fi
+  done
+  printf '  package from %-7s diffs cleanly everywhere\n' "$writer"
+done
+
+MUT="$WORK/mutated"
+cp -R "$FIX" "$MUT"
+printf 'changed content\n' > "$MUT/a.txt"
+rm "$MUT/sub/b.txt"
+printf 'new content\n' > "$MUT/new.txt"
+expected_diff=$'added: new.txt\nmodified: a.txt\nremoved: sub/b.txt'
+
+log "Cross-diff: every engine reports the same changed-tree lines"
+for writer in "${ENGINES[@]}"; do
+  for reader in "${ENGINES[@]}"; do
+    err="$WORK/diff_changed_${reader}_${writer}.err"
+    set +e
+    out="$(gts "$reader" diff "$WORK/packed_$writer.gts" "$MUT" 2>"$err")"
+    code=$?
+    set -e
+    if [ "$code" -ne 1 ] || [ "$out" != "$expected_diff" ]; then
+      echo "  MISMATCH: $reader changed-tree diff of $writer's package diverged" >&2
+      printf '    exit=%s stdout=%q stderr=%q\n' "$code" "$out" "$(cat "$err")" >&2
+      fail=1
+    fi
+  done
+  printf '  package from %-7s reports changed trees identically everywhere\n' "$writer"
 done
 
 # --- cross-fold a frozen corpus vector ------------------------------------- #

@@ -372,10 +372,10 @@ Current CI-gated conformance status:
 
 | Engine | Baseline Reader | Streaming Reader | Writer | Validating Tool | Profile-Aware Tool |
 |---|---|---|---|---|---|
-| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | prefix-fold property over `vectors/*.gts` | deterministic compact oracle `25b` | CLI verify diagnostics | files profile in interop |
-| Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack |
-| Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile in interop |
-| TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate | writer and compact tests | CLI verify diagnostics | files profile in interop |
+| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | prefix-fold property over `vectors/*.gts` | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 
 ## Repository layout
 

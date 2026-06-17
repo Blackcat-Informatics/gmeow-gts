@@ -127,6 +127,37 @@ def _make_tree(tmp_path: Path) -> Path:
     return src
 
 
+def _files_archive_with_path(tmp_path: Path, archive_path: str) -> Path:
+    w = Writer(profile="files")
+    w.add_terms(
+        [
+            Term(TermKind.IRI, "https://w3id.org/gts/files#FileEntry"),
+            Term(TermKind.IRI, "https://w3id.org/gts/files#path"),
+            Term(TermKind.IRI, "https://w3id.org/gts/files#digest"),
+            Term(TermKind.IRI, "https://w3id.org/gts/files#size"),
+            Term(TermKind.IRI, "https://w3id.org/gts/files#mode"),
+            Term(TermKind.IRI, "https://w3id.org/gts/files#modified"),
+            Term(TermKind.IRI, "https://w3id.org/gts/files#mediaType"),
+            Term(TermKind.IRI, "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            Term(TermKind.IRI, "http://www.w3.org/2001/XMLSchema#integer"),
+            Term(TermKind.IRI, "http://www.w3.org/2001/XMLSchema#dateTime"),
+            Term(TermKind.BNODE, "e0"),
+            Term(TermKind.LITERAL, archive_path),
+            Term(TermKind.LITERAL, "blake3:" + "0" * 64),
+        ]
+    )
+    w.add_quads(
+        [
+            (10, 7, 0, None),  # e0 a FileEntry
+            (10, 1, 11, None),  # e0 files:path
+            (10, 2, 12, None),  # e0 files:digest
+        ]
+    )
+    archive = tmp_path / "unsafe-path.gts"
+    archive.write_bytes(w.to_bytes())
+    return archive
+
+
 def test_pack_round_trips_bit_for_bit(tmp_path: Path) -> None:
     src = _make_tree(tmp_path)
     archive = tmp_path / "out.gts"
@@ -160,47 +191,75 @@ def test_pack_deduplicates_identical_content(tmp_path: Path) -> None:
 def test_unpack_refuses_traversal(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    from gts import Writer
-
-    w = Writer(profile="files")
-    # Add the minimal shared terms so unpack recognises a files profile.
-    w.add_terms(
-        [
-            Term(TermKind.IRI, "https://w3id.org/gts/files#FileEntry"),
-            Term(TermKind.IRI, "https://w3id.org/gts/files#path"),
-            Term(TermKind.IRI, "https://w3id.org/gts/files#digest"),
-            Term(TermKind.IRI, "https://w3id.org/gts/files#size"),
-            Term(TermKind.IRI, "https://w3id.org/gts/files#mode"),
-            Term(TermKind.IRI, "https://w3id.org/gts/files#modified"),
-            Term(TermKind.IRI, "https://w3id.org/gts/files#mediaType"),
-            Term(TermKind.IRI, "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
-            Term(TermKind.IRI, "http://www.w3.org/2001/XMLSchema#integer"),
-            Term(TermKind.IRI, "http://www.w3.org/2001/XMLSchema#dateTime"),
-        ]
-    )
-    # Craft a FileEntry with a traversal path and a digest, but no blob.
     # Unpack must refuse the traversal path before it complains about the
     # missing blob.
-    w.add_terms(
-        [
-            Term(TermKind.BNODE, "e0"),
-            Term(TermKind.LITERAL, "../escape.txt"),
-            Term(TermKind.LITERAL, "blake3:" + "0" * 64),
-        ]
-    )
-    w.add_quads(
-        [
-            (10, 7, 0, None),  # e0 a FileEntry
-            (10, 1, 11, None),  # e0 path "../escape.txt"
-            (10, 2, 12, None),  # e0 digest ...
-        ]
-    )
-    archive = tmp_path / "traversal.gts"
-    archive.write_bytes(w.to_bytes())
+    archive = _files_archive_with_path(tmp_path, "../escape.txt")
 
     assert main(["unpack", str(archive), "-C", str(tmp_path / "dst")]) == 1
     stderr = capsys.readouterr().err
     assert "traversal" in stderr or "escapes" in stderr, stderr
+
+
+def test_unpack_refuses_windows_style_paths(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    archive = _files_archive_with_path(tmp_path, "..\\..\\etc\\passwd")
+    assert main(["unpack", str(archive), "-C", str(tmp_path / "dst")]) == 1
+    assert "traversal" in capsys.readouterr().err
+
+    archive = _files_archive_with_path(tmp_path, "C:\\secret.txt")
+    assert main(["unpack", str(archive), "-C", str(tmp_path / "dst2")]) == 1
+    assert "drive-relative" in capsys.readouterr().err
+
+
+def test_unpack_refuses_destination_symlink_escape(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    dest = tmp_path / "dst"
+    outside = tmp_path / "outside"
+    dest.mkdir()
+    outside.mkdir()
+    try:
+        (dest / "link").symlink_to(outside, target_is_directory=True)
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    archive = _files_archive_with_path(tmp_path, "link/escape.txt")
+    assert main(["unpack", str(archive), "-C", str(dest)]) == 1
+    assert "escapes" in capsys.readouterr().err
+    assert not (outside / "escape.txt").exists()
+
+
+def test_pack_refuses_symlink_entry(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    src = _make_tree(tmp_path)
+    link = src / "linked.txt"
+    try:
+        link.symlink_to(src / "a.txt")
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    archive = tmp_path / "out.gts"
+    assert main(["pack", str(src), "-o", str(archive)]) == 1
+    assert "symlink" in capsys.readouterr().err
+
+
+def test_diff_refuses_symlink_entry(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    src = _make_tree(tmp_path)
+    archive = tmp_path / "out.gts"
+    assert main(["pack", str(src), "-o", str(archive)]) == 0
+
+    link = src / "linked.txt"
+    try:
+        link.symlink_to(src / "a.txt")
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    assert main(["diff", str(archive), str(src)]) == 1
+    assert "symlink" in capsys.readouterr().err
 
 
 def test_diff_reports_changes(tmp_path: Path) -> None:

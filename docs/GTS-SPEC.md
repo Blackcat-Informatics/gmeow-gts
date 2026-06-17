@@ -1221,7 +1221,7 @@ authored in the spec and carried as literal IRIs in the graph.
 | `path` | `https://w3id.org/gts/files#path` | Relative path string, `/` separators, no leading `/`, no `..` components. |
 | `digest` | `https://w3id.org/gts/files#digest` | `blake3:<hex>` content digest of the file bytes. |
 | `size` | `https://w3id.org/gts/files#size` | Byte size as `xsd:integer`. |
-| `mode` | `https://w3id.org/gts/files#mode` | POSIX file mode/permissions as `xsd:integer` (e.g. `0o100644`). |
+| `mode` | `https://w3id.org/gts/files#mode` | POSIX permission bits as a decimal `xsd:integer` (for example, `420` for `0o644`). File-type bits are not recorded. |
 | `modified` | `https://w3id.org/gts/files#modified` | Modification time as `xsd:dateTime` in UTC. |
 | `mediaType` | `https://w3id.org/gts/files#mediaType` | Declared IANA media type string. |
 
@@ -1240,16 +1240,28 @@ _:entry a files:FileEntry ;
 **Determinism.** A `files` archive MUST be byte-reproducible for the same input tree:
 
 - Paths are sorted lexicographically by their UTF-8 byte sequence before emission.
+- Stored paths use `/` separators and MUST be non-empty relative paths. Writers, unpackers, and
+  diff tools MUST refuse absolute paths, Windows drive-relative paths, `..` components, `.`
+  components, empty components, and backslash separators before touching file bytes.
 - Modification times are normalised to UTC and serialised as `xsd:dateTime` with second
-  precision (fractional seconds MAY be retained when present on the source).
+  precision. Fractional seconds MUST be truncated before emission.
 - Only POSIX mode and mtime are recorded; ownership, uid/gid, xattrs, and ACLs are deliberately
   excluded — they are tar's portability tarpit.
+- Symlinks are deliberately excluded. `pack` and `diff` MUST refuse symlink entries rather than
+  following them; `unpack` MUST also refuse any destination escape through an existing symlink
+  below the output directory.
 
 **Inline and external blobs.** A file's bytes MAY be carried as an inline `blob` frame
 (`"d"` present, digest = BLAKE3(decoded `"d")`) or as an external blob (`"d"` absent,
-`pub.digest` names bytes held elsewhere, §12). By default all files are inline; a writer MAY
-store files larger than a configured threshold externally by reference. Identical bytes
-appearing under multiple paths are stored once by convention.
+`pub.digest` names bytes held elsewhere, §12). Identical bytes appearing under multiple paths
+are stored once by convention. The standard `gts pack` command emits inline blobs only.
+Implementations MAY add an explicit external-blob mode, but it MUST be opt-in and documented.
+`gts unpack` MUST refuse an unsuppressed `FileEntry` whose inline blob is absent; `gts diff`
+MAY compare by `files:digest` without fetching external bytes.
+
+**Suppression.** A blob-targeted suppression (§11) hides matching file bytes from default
+extraction. `gts unpack` and `gts extract` skip/refuse suppressed blobs by default and expose an
+explicit `--include-suppressed` override when the operator intentionally wants retained history.
 
 **Relationship to other vocabularies.** The profile is deliberately self-contained, but the
 terms align by reference to common surface vocabularies: `files:size` ↔ schema.org
@@ -1458,7 +1470,9 @@ rather than trusting them to be intentional.
   archived: a file is added under its basename; a directory is added recursively. The resulting
   archive contains, in order, the `terms` and `quads` describing every `files:FileEntry`,
   followed by the inline `blob` frames for the file contents. The command MUST refuse:
-  - inputs that contain `..` components or absolute paths in their stored path;
+  - inputs that contain unsafe stored paths: absolute paths, drive-relative paths, `..`, `.`,
+    empty components, or backslash separators;
+  - symlinks;
   - inputs that are not readable or that disappear during the walk.
 
 - **`gts unpack <archive> [-C dir]`**
@@ -1476,6 +1490,18 @@ rather than trusting them to be intentional.
   Report added, removed, and modified paths. Exit `0` if the directory matches the archive
   exactly; exit `1` if any path differs or if the input is refused. No byte comparison is
   needed: content addressing makes the operation O(read) on the directory.
+
+**Archive workflow comparison.**
+
+| workflow | usual table of contents | GTS `files` profile behavior |
+|---|---|---|
+| `tar` | Header records are interleaved with file bytes; path and metadata interpretation is tool policy. | The manifest is RDF quads, so path, digest, size, mode, mtime, and media type are queryable before or beside blobs. |
+| `zip` | Central directory enables random access but is a rewrite-oriented footer. | GTS stays append-only; optional indexes accelerate access without making the footer the archive identity. |
+| BagIt-style package | Payload files plus sidecar manifests/checksums. | The graph-native manifest and content bytes travel in one verifiable CBOR Sequence; external blobs remain content-addressed when used. |
+
+The value proposition is not compression ratio. Use a compression transform or an outer transport
+when size dominates. The `files` profile is for graph-native manifests, digest-addressed
+deduplication, append composition, and consistent safety policy across engines.
 
 ## 15. Worked examples
 

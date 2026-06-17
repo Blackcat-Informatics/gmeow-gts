@@ -9,8 +9,18 @@ import {
     writeFileSync,
     chmodSync,
     utimesSync,
+    lstatSync,
+    realpathSync,
 } from "node:fs";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import {
+    basename,
+    dirname,
+    isAbsolute,
+    join,
+    relative,
+    resolve,
+    sep,
+} from "node:path";
 import * as wire from "./wire.js";
 import { Writer, digestString } from "./writer.js";
 import { Graph, Quad, Term, TermKind } from "./model.js";
@@ -34,12 +44,24 @@ function bnodeTerm(label: string): Term {
 
 function safeArchivePath(name: string): void {
     if (name === "") throw new Error("empty archive path");
-    if (name.startsWith("/"))
-        throw new Error(`absolute path not allowed in archive: ${name}`);
-    for (const part of name.split("/")) {
+    const normalized = name.replaceAll("\\", "/");
+    if (/^[a-zA-Z]:/.test(name) || normalized.startsWith("/"))
+        throw new Error(
+            `absolute or drive-relative path not allowed in archive: ${name}`,
+        );
+    const parts = normalized.split("/");
+    for (const part of parts) {
         if (part === "..")
             throw new Error(`path traversal not allowed in archive: ${name}`);
     }
+    if (name.includes("\\"))
+        throw new Error(
+            `backslash path separator not allowed in archive: ${name}`,
+        );
+    if (parts.some((part) => part === "" || part === "."))
+        throw new Error(
+            `empty or current-directory path component not allowed in archive: ${name}`,
+        );
 }
 
 function walkDirSorted(dir: string): string[] {
@@ -68,7 +90,10 @@ function resolveSources(sources: string[]): Array<[string, string]> {
     const entries: Array<[string, string]> = [];
     const seen = new Set<string>();
     for (const src of sources) {
-        const info = statSync(src);
+        const info = lstatSync(src);
+        if (info.isSymbolicLink()) {
+            throw new Error(`symlink not supported: ${src}`);
+        }
         if (info.isDirectory()) {
             const files = walkDirSorted(src);
             for (const fpath of files) {
@@ -80,13 +105,15 @@ function resolveSources(sources: string[]): Array<[string, string]> {
                 seen.add(relpath);
                 entries.push([fpath, relpath]);
             }
-        } else {
+        } else if (info.isFile()) {
             const name = basename(src);
             safeArchivePath(name);
             if (seen.has(name))
                 throw new Error(`duplicate archive path: ${name}`);
             seen.add(name);
             entries.push([src, name]);
+        } else {
+            throw new Error(`unsupported source type: ${src}`);
         }
     }
     entries.sort((a, b) => a[1].localeCompare(b[1]));
@@ -299,16 +326,30 @@ export function suppressedBlobDigests(g: Graph): Set<string> {
 }
 
 function destPath(dest: string, archivePath: string): string {
-    const normalized = archivePath.replace(/\\/g, "/");
-    if (normalized.startsWith("/") || /^[a-zA-Z]:/.test(normalized))
-        throw new Error(
-            `absolute or drive-relative path not allowed in archive: ${archivePath}`,
-        );
-    for (const part of normalized.split("/")) {
-        if (part === "..")
-            throw new Error(`path traversal in archive: ${archivePath}`);
+    safeArchivePath(archivePath);
+    const destCanon = realpathSync(dest);
+    const target = resolve(destCanon, archivePath);
+
+    let ancestor = dirname(target);
+    while (true) {
+        try {
+            lstatSync(ancestor);
+            break;
+        } catch (err) {
+            const code = (err as NodeJS.ErrnoException).code;
+            if (code !== "ENOENT" && code !== "ENOTDIR") throw err;
+            const parent = dirname(ancestor);
+            if (parent === ancestor) break;
+            ancestor = parent;
+        }
     }
-    return resolve(dest, normalized);
+
+    const ancestorCanon = realpathSync(ancestor);
+    const rel = relative(destCanon, ancestorCanon);
+    if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+        throw new Error(`path escapes destination: ${archivePath}`);
+    }
+    return target;
 }
 
 /** Extract FileEntry quads from a folded graph into dest. */
@@ -325,9 +366,6 @@ export function unpack(
         : suppressedBlobDigests(g);
 
     mkdirSync(dest, { recursive: true });
-    const destCanon = resolve(dest);
-    const prefix = destCanon.replace(/\/$/, "") + sep;
-
     for (const [path, entry] of Object.entries(entries)) {
         const target = destPath(dest, path);
         const digest = entry.digest;
@@ -340,10 +378,6 @@ export function unpack(
             throw new Error(`integrity failure for ${path}: ${digest}`);
         }
 
-        const targetCanon = resolve(target);
-        if (!targetCanon.startsWith(prefix)) {
-            throw new Error(`path escapes destination: ${path}`);
-        }
         const parent = dirname(target);
         if (parent !== "" && parent !== ".") {
             mkdirSync(parent, { recursive: true });

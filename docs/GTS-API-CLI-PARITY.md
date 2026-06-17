@@ -118,3 +118,27 @@ The CI lint job runs the same command. The check fails when:
 
 When adding or removing a CLI verb, update the implementation, this matrix, the README command
 blocks, and package-specific README text in the same change.
+
+## Files Profile Command Contract
+
+`pack`, `unpack`, and `diff` are common commands in all four engines. Their observable behavior
+is part of the parity surface:
+
+- `pack <dir|file>... -o out.gts` emits a single `files` segment with catalog terms/quads before
+  inline blobs, stores each path once, and deduplicates identical content by digest.
+- Stored archive paths are `/`-separated relative paths. Every engine refuses empty paths,
+  absolute paths, Windows drive-relative paths, `..`, `.`, empty components, and backslash
+  separators before reading or writing file bytes.
+- Symlinks are not archived. `pack` and `diff` refuse symlink entries rather than following
+  them; `unpack` refuses paths that escape the destination directory, including escapes through
+  existing symlinks below that directory.
+- `unpack` re-hashes inline blob bytes before writing. An unsuppressed `FileEntry` whose inline
+  blob is absent is a refusal; suppressed blob digests are skipped by default and extracted only
+  with `--include-suppressed`.
+- `diff` compares the archive manifest to a directory by `files:digest` and returns sorted
+  `added:`, `modified:`, and `removed:` lines. Exit `0` means no differences; exit `1` means
+  either a difference or a refused input.
+
+The live cross-engine guard is [`scripts/interop.sh`](../scripts/interop.sh): each engine packs
+the same fixture, every engine folds and unpacks every package, and every engine diffs both the
+matching tree and a changed tree against every package.

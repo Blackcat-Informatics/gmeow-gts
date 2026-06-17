@@ -5,12 +5,18 @@
 // xsd:integer and `modified` at second precision, matching the Rust/Go/Python
 // engines so the same fixture packs to byte-identical output everywhere.
 
-import { mkdtempSync, writeFileSync, chmodSync, utimesSync } from "node:fs";
+import {
+    mkdtempSync,
+    writeFileSync,
+    chmodSync,
+    utimesSync,
+    symlinkSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pack } from "../src/files.js";
+import { diff, pack } from "../src/files.js";
 import { Read } from "../src/reader.js";
 import { toNQuads } from "../src/nquads.js";
 
@@ -38,6 +44,22 @@ test("files profile: second-precision modified, decimal mode (#5)", () => {
             nq.includes('"420"^^<http://www.w3.org/2001/XMLSchema#integer>'),
             "mode must be the decimal integer 420",
         );
-        assert.ok(!nq.includes('"644"'), "mode must not be the octal string 644");
+        assert.ok(
+            !nq.includes('"644"'),
+            "mode must not be the octal string 644",
+        );
     }
+});
+
+test("files profile refuses symlink entries for pack and diff", () => {
+    if (process.platform === "win32") return;
+
+    const dir = mkdtempSync(join(tmpdir(), "gts-symlink-"));
+    const f = join(dir, "a.txt");
+    writeFileSync(f, "hello");
+    const archive = Read(pack([dir]), false);
+    symlinkSync(f, join(dir, "linked.txt"));
+
+    assert.throws(() => pack([dir]), /symlink/);
+    assert.throws(() => diff(archive, dir), /symlink/);
 });
