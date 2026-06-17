@@ -138,7 +138,9 @@ gts to-duckdb package.gts package.duckdb
 ```
 
 GTS itself is not a database or query engine — these exports hand the graph off
-to a transform target for random-access query.
+to a transform target for random-access query. RDF/data-frame integration details,
+including rdflib round-trip limits and performance expectations, are tracked in
+[`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-ECOSYSTEM-INTEGRATIONS.md).
 
 ## Example: grounded agent memory
 

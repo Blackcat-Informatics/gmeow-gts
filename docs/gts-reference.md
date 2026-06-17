@@ -24,10 +24,11 @@ and TypeScript engines also gate against. Tier claims and vector subsets are def
   canonical diagnostics (§2.4), including `EmptyFile`, `TornAppendError`,
   `DamagedFrame`, `BrokenChain`, `UnknownCodec`, `MissingKey`, `ConflictingReifier`,
   `PositionConstraint`, `ForwardReference`, `SegmentBoundary`, and `UnknownFrameType`.
-- **`RDF → GTS` interop** — with the optional `[rdf]` extra (rdflib), an rdflib
+- **`RDF -> GTS` interop** — with the optional `[rdf]` extra (rdflib), an rdflib
   `Graph`/`Dataset` (RDF 1.1 base graph) can be interned into a GTS dictionary
-  (`rdf:reifies` triple-terms → `reifies`, annotations → `annot`). Higher-level
-  producers that compile a full ontology snapshot live in downstream consumers.
+  with `gts.from_rdflib`; `gts.to_rdflib` is strict about RDF 1.2 quoted-triple
+  limitations. The integration contract lives in
+  [GTS-ECOSYSTEM-INTEGRATIONS.md](./GTS-ECOSYSTEM-INTEGRATIONS.md).
 - **Transforms out** — `gts → nquads` (§14) and `gts → {sqlite,duckdb}` (the
   integer-id, dictionary-encoded relational load; the engine resolves ids via join).
 - **COSE signing (§9.2)** — `Writer(signer=…)` COSE_Sign1-signs each frame over its

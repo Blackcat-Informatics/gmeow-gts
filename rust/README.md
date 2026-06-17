@@ -268,6 +268,7 @@ For full details, read [`docs/GTS-SPEC.md`](https://github.com/Blackcat-Informat
 
 - [GTS Specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) — the authoritative, normative wire-format specification.
 - [GTS Reference Guide](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md) — the Python reference-implementation guide.
+- [GTS Ecosystem Integration Contract](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-ECOSYSTEM-INTEGRATIONS.md) — RDF crate adapter status and deferrals.
 - [`CONTRIBUTING.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/CONTRIBUTING.md) — development workflow.
 - [`CODE_OF_CONDUCT.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/CODE_OF_CONDUCT.md) — community standards.
 - [`SECURITY.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/SECURITY.md) — vulnerability reporting.

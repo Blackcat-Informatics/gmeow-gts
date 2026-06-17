@@ -181,6 +181,8 @@ go test ./...        # unit + conformance against ../vectors/
   — the authoritative, normative wire-format specification.
 - [`docs/gts-reference.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md)
   — reference-implementation guide.
+- [`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-ECOSYSTEM-INTEGRATIONS.md)
+  — Go service/object-store integration examples and deferrals.
 - API reference: [pkg.go.dev/go.blackcatinformatics.ca/gts](https://pkg.go.dev/go.blackcatinformatics.ca/gts).
 
 ## Contributing
