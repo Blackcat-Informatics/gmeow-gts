@@ -19,9 +19,10 @@ caller resolved. It does not mean:
 - the signer is authorized for the profile;
 - the signed RDF claim is true.
 
-Deployment trust is represented by `gts.policy.TrustPolicy`. A profile-aware
-tool can require a trusted signer, while a baseline reader can still return the
-recoverable graph plus signature status.
+Deployment trust is represented by `gts.policy.TrustPolicy` in Python and
+`gmeow_gts::policy::TrustPolicy` in Rust. A profile-aware tool can require a
+trusted signer, while a baseline reader can still return the recoverable graph
+plus signature status.
 
 ## Profile Enforcement
 
@@ -34,7 +35,8 @@ recoverable graph plus signature status.
 
 ## Nested GTS Budgets
 
-Full Reader callers use `gts.read_nested(...)` to recurse into blobs whose
+Full Reader callers use `gts.read_nested(...)` in Python or
+`gmeow_gts::nested::read_nested(...)` in Rust to recurse into blobs whose
 declared media type is `application/vnd.blackcat.gts+cbor-seq`. The result
 exposes nested subgraphs by the containing blob digest. Recursion stops when
 `max_depth` or `max_decoded_bytes` is exceeded and records `RecursionLimit`.
@@ -58,6 +60,6 @@ The committed security-vector descriptors live in `vectors/security/`:
 - `profile-policy.json` records the trust/profile findings proving that
   cryptographic validity, deployment trust, and claim truth are separate.
 
-Python unit tests instantiate these vectors directly. Cross-engine byte vectors
-can be promoted into the top-level corpus once more engines expose nested
-Full Reader and profile-policy APIs.
+Python and Rust unit tests instantiate these vectors directly. Cross-engine byte
+vectors can be promoted into the top-level corpus once more engines expose
+nested Full Reader and profile-policy APIs.
