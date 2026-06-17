@@ -16,6 +16,10 @@ default = []
 # Enables DuckDB/Parquet relational exports. This feature intentionally adds no
 # Cargo dependencies; it shells out to a `duckdb` binary on PATH at runtime.
 duckdb = []
+# Enables native RDF dataset interop through `oxrdf`'s data-model crate. This is
+# intentionally opt-in so default transport users do not inherit RDF toolkit or
+# graph-store dependencies.
+rdf = ["dep:oxrdf"]
 
 # The package is named gmeow-gts on crates.io, but the CLI binary keeps the
 # shorter `gts` name for ergonomics.
@@ -44,6 +48,7 @@ sha1 = "0.10"
 # build stays clean; the random-IV nonce comes from `getrandom` below, which is
 # only pulled in on non-wasm targets (the deterministic seal/open paths need no RNG).
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
+oxrdf = { version = "0.3.3", default-features = false, features = ["rdf-12"], optional = true }
 
 # The random-IV `encrypt0` convenience needs an OS CSPRNG; restrict it to
 # non-wasm targets so `wasm32-unknown-unknown` never tries to link getrandom.
