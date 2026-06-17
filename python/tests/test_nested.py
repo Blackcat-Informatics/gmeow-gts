@@ -6,7 +6,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
+import pytest
+
+import gts.nested as nested_module
 from gts import GTS_MEDIA_TYPE, Term, TermKind, Writer, read_nested
 from gts.wire import digest_str
 
@@ -98,6 +102,29 @@ def test_read_nested_charges_duplicate_nested_digest_once() -> None:
     assert digest_str(child_b) in result.subgraphs
     assert digest_str(grandchild) in result.subgraphs
     assert "RecursionLimit" not in [d.code for d in result.diagnostics]
+
+
+def test_read_nested_records_nested_parse_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    child = _tiny_graph("child")
+    outer = _bundle(child)
+    original_read = nested_module.read
+
+    def raising_read(data: bytes, **kwargs: Any) -> Any:
+        if data == child:
+            raise ValueError("bad nested payload")
+        return original_read(data, **kwargs)
+
+    monkeypatch.setattr(nested_module, "read", raising_read)
+
+    result = read_nested(outer)
+
+    assert digest_str(child) not in result.subgraphs
+    assert any(
+        d.code == "DamagedFrame" and "could not be parsed" in d.detail
+        for d in result.diagnostics
+    )
 
 
 def test_nested_recursion_security_vector_descriptor() -> None:

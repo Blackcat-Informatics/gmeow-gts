@@ -84,7 +84,17 @@ def read_nested(
                 )
                 continue
             remaining -= len(nested_bytes)
-            child = visit(nested_bytes, depth + 1)
+            try:
+                child = visit(nested_bytes, depth + 1)
+            except Exception as exc:  # noqa: BLE001 - nested payload is untrusted input
+                graph.diagnostics.append(
+                    Diagnostic(
+                        "DamagedFrame",
+                        f"nested GTS blob {digest} could not be parsed: {exc}",
+                        None,
+                    )
+                )
+                continue
             subgraphs[digest] = child
         return graph
 
