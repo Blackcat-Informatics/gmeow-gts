@@ -9,10 +9,15 @@ use std::path::{Path, PathBuf};
 
 use visual_hashing::{emoji_indices, emojihash, emojihash_labels, randomart};
 
-fn vectors_dir(kind: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
+/// The shared conformance corpus lives in the gmeow-gts monorepo at `../vectors`
+/// and does not ship inside the published crate tarball. Returns `None` (so the
+/// test skips) when it is absent — e.g. when someone runs `cargo test` on the
+/// crate downloaded from crates.io. In the source repo it is always present.
+fn vectors_dir(kind: &str) -> Option<PathBuf> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../vectors")
-        .join(kind)
+        .join(kind);
+    dir.is_dir().then_some(dir)
 }
 
 fn unhex(s: &str) -> Vec<u8> {
@@ -24,7 +29,10 @@ fn unhex(s: &str) -> Vec<u8> {
 
 #[test]
 fn emojihash_vectors() {
-    let dir = vectors_dir("emojihash");
+    let Some(dir) = vectors_dir("emojihash") else {
+        eprintln!("skipping: shared vectors/emojihash corpus not present");
+        return;
+    };
     let mut count = 0;
     for entry in std::fs::read_dir(&dir).expect("vectors/emojihash must exist") {
         let path = entry.unwrap().path();
@@ -55,7 +63,10 @@ fn emojihash_vectors() {
 
 #[test]
 fn randomart_vectors() {
-    let dir = vectors_dir("randomart");
+    let Some(dir) = vectors_dir("randomart") else {
+        eprintln!("skipping: shared vectors/randomart corpus not present");
+        return;
+    };
     let mut count = 0;
     for entry in std::fs::read_dir(&dir).expect("vectors/randomart must exist") {
         let path = entry.unwrap().path();
