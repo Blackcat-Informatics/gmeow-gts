@@ -62,26 +62,32 @@ jobs:
       - name: Cache Cargo dependencies
         uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
-          workspaces: rust
+          workspaces: |
+            rust
+            visual-hashing
 
       - name: Format gate
         if: runner.os == 'Linux'
-        working-directory: rust
-        run: cargo fmt --check
+        run: |
+          cargo fmt --manifest-path visual-hashing/Cargo.toml --check
+          cargo fmt --manifest-path rust/Cargo.toml --check
 
       - name: Clippy (warnings are errors)
         if: runner.os == 'Linux'
-        working-directory: rust
-        run: cargo clippy --all-targets -- -D warnings
+        run: |
+          cargo clippy --manifest-path visual-hashing/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
 
       - name: Conformance corpus + CLI tests
-        working-directory: rust
-        run: cargo test
+        run: |
+          cargo test --manifest-path visual-hashing/Cargo.toml
+          cargo test --manifest-path rust/Cargo.toml
 
       - name: Library builds for wasm32 (wasm-friendly claim)
         if: runner.os == 'Linux'
-        working-directory: rust
-        run: cargo build --lib --target wasm32-unknown-unknown
+        run: |
+          cargo build --manifest-path visual-hashing/Cargo.toml --lib --target wasm32-unknown-unknown
+          cargo build --manifest-path rust/Cargo.toml --lib --target wasm32-unknown-unknown
 
   # Go engine: build + test on every OS; staticcheck/golangci once on Linux.
   go:

@@ -16,6 +16,20 @@ change before `1.0`.
 
 ### Added
 
+- **`visual-hashing` standalone Rust crate (#16).** The emojihash utility
+  (BLAKE3-XOF → 6-bit → 64-emoji visual hash) is GTS-independent, so it now lives
+  in its own crate, `visual-hashing/`, ready to publish to crates.io
+  independently of GTS. It also carries **randomart** (the OpenSSH "Drunken
+  Bishop" ASCII-art fingerprint) — ported to Rust from the Python reference and
+  gated by a new frozen corpus (`vectors/randomart/*.json` +
+  `scripts/gen_randomart_vectors.py`), so the Rust art reproduces Python's
+  byte-for-byte. The `gmeow-gts` crate now depends on `visual-hashing` and
+  re-exports it as `gmeow_gts::emojihash`, so existing paths keep working. The
+  crate's only dependency is `blake3`; it stays `wasm32`-friendly. (Rust-only
+  for now; other-language parity and the actual crates.io publish are follow-ups
+  — publishing requires `visual-hashing` to land on crates.io before the next
+  `gmeow-gts` crate release, since the latter now depends on it.)
+
 - **Cross-engine COSE_Encrypt0 (#18): AES-256-GCM payload encryption in all four engines.**
   - `encrypt0` / `decrypt0` / `recipient_kid` (§9.3) in Rust (pure-Rust
     `aes-gcm`), Go (`crypto/aes` + `crypto/cipher`), and TypeScript

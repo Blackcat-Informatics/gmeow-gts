@@ -1,18 +1,22 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
-//! Human-friendly emoji visual hash for keys and checksums.
-//!
-//! A BLAKE3-XOF digest is sliced into 6-bit symbols indexing a fixed, nameable
-//! 64-emoji alphabet. Byte-compatible with the Python reference; gated by
-//! `vectors/emojihash/*.json`.
 
-const EMOJI: [&str; 64] = [
+//! A nameable 64-emoji visual hash.
+//!
+//! A BLAKE3-XOF digest is sliced into 6-bit symbols, each indexing a fixed
+//! alphabet that favours common animals and then familiar foods over abstract,
+//! confusable symbols — a fingerprint only helps if a human can read it back.
+
+/// The 64-entry emoji alphabet (a 6-bit digit set).
+pub const EMOJI: [&str; 64] = [
     "🐵", "🐶", "🐺", "🦊", "🐱", "🦁", "🐯", "🐴", "🦄", "🦓", "🦌", "🐮", "🐷", "🐗", "🐭", "🐹",
     "🐰", "🐻", "🐼", "🐨", "🐸", "🐲", "🐔", "🐧", "🦆", "🦅", "🦉", "🦇", "🐢", "🐍", "🦎", "🐊",
     "🐳", "🐬", "🐟", "🐠", "🐡", "🦈", "🐙", "🦑", "🦀", "🦞", "🦐", "🦋", "🐌", "🐞", "🐝", "🐜",
     "🦂", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍒", "🍍", "🥝", "🍑", "🥥", "🥕", "🌽",
 ];
-const LABELS: [&str; 64] = [
+
+/// The stable label for each entry in [`EMOJI`], by index.
+pub const LABELS: [&str; 64] = [
     "monkey",
     "dog",
     "wolf",
@@ -117,7 +121,7 @@ pub fn emojihash(data: &[u8], length: usize) -> String {
         .join(" ")
 }
 
-/// The stable label names for [`emojihash`] output.
+/// The stable label names for [`emojihash`] output (space-joined).
 pub fn emojihash_labels(data: &[u8], length: usize) -> String {
     emoji_indices(data, length)
         .into_iter()

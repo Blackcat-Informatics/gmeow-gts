@@ -1,5 +1,6 @@
 # Rust
 rust/target/
+visual-hashing/target/
 
 # Go
 go/bin/

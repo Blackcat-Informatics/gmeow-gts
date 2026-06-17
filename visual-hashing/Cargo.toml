@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "visual-hashing"
+description = "Human-friendly visual fingerprints for keys and checksums: a nameable 64-emoji BLAKE3 hash (emojihash) and OpenSSH-style drunken-bishop randomart"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.81"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Blackcat-Informatics/gmeow-gts"
+readme = "README.md"
+keywords = ["fingerprint", "randomart", "blake3", "emoji", "visualization"]
+categories = ["cryptography", "visualization"]
+
+[dependencies]
+# the only dependency: emojihash slices a BLAKE3-XOF digest into 6-bit symbols
+blake3 = "1"
+
+[dev-dependencies]
+serde_json = "1"
