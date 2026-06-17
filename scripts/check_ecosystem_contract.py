@@ -47,11 +47,15 @@ def fail(message: str) -> None:
 
 
 def main() -> int:
+    if not DOC.is_file():
+        fail(f"missing contract document: {DOC.relative_to(ROOT)}")
     text = DOC.read_text(encoding="utf-8")
     for marker in REQUIRED_DOC_MARKERS:
         if marker not in text:
             fail(f"{DOC.relative_to(ROOT)} missing marker: {marker}")
     for path in LINK_TARGETS:
+        if not path.is_file():
+            fail(f"missing link target: {path.relative_to(ROOT)}")
         if "GTS-ECOSYSTEM-INTEGRATIONS.md" not in path.read_text(encoding="utf-8"):
             fail(f"{path.relative_to(ROOT)} does not link the ecosystem contract")
     print("check_ecosystem_contract: OK")

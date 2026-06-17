@@ -149,7 +149,12 @@ func handleGTS(w http.ResponseWriter, r *http.Request) {
 The same API works for object-store SDK readers:
 
 ```go
-obj, _ := client.GetObject(ctx, bucket, key)
+obj, err := client.GetObject(ctx, bucket, key)
+if err != nil {
+    return nil, err
+}
+defer obj.Body.Close()
+
 graph, err := reader.ReadFrom(ctx, obj.Body, reader.Options{
     AllowSegments: true,
     ExpectedHead:  expectedHead,
