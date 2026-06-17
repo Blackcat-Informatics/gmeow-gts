@@ -21,6 +21,7 @@ pub mod cose;
 // re-exported here so `gmeow_gts::emojihash::…` paths keep resolving.
 pub use visual_hashing as emojihash;
 pub mod files;
+pub mod from_nquads;
 pub mod model;
 pub mod nquads;
 pub mod openpgp;

@@ -208,6 +208,7 @@ For the full API, see [docs.rs/gmeow-gts](https://docs.rs/gmeow-gts).
 ```text
 gts info <file>...              per-segment composition ledger
 gts fold <file>                 fold to N-Quads on stdout
+gts from-nq <in.nq> [-o out]    build a GTS from N-Quads (`-` reads stdin)
 gts verify <file>... [--key KID:HEXPUB]
                                 verify chains + COSE signatures; exit 1 on any
 gts extract-key <file>          print the embedded transport/verification key:
@@ -231,8 +232,9 @@ Exit codes:
 
 `verify --key` and `extract-key` are cross-engine: all four `gts` binaries parse the embedded
 OpenPGP transport key to the same fingerprint and emojihash, and verify COSE signatures
-identically. The `from-nq` and relational `to-sqlite`/`to-duckdb`/`to-parquet` exports remain
-Python-CLI extensions and are **not** part of this Rust binary.
+identically. `from-nq` is implemented by the Rust and Python CLIs. The relational
+`to-sqlite`/`to-duckdb`/`to-parquet` exports remain Python-CLI extensions and are **not** part
+of this Rust binary yet.
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
 refuses dirty inputs, contributes-nothing segments, and compositions whose suppressions
