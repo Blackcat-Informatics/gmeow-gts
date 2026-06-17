@@ -66,3 +66,21 @@ def test_rdflib_export_refuses_rdf12_quoted_triples_without_lossy_flag() -> None
 
     lossy = to_rdflib(folded, allow_rdf12_lossy=True)
     assert _nquads(lossy) == []
+
+
+def test_rdflib_export_allows_literal_text_that_mentions_quoted_triples() -> None:
+    writer = Writer(profile="dist")
+    writer.add_terms(
+        [
+            Term(TermKind.IRI, "https://example.org/note"),
+            Term(TermKind.IRI, "https://example.org/text"),
+            Term(TermKind.LITERAL, 'literal text says "<<( not syntax"'),
+        ]
+    )
+    writer.add_quads([(0, 1, 2, None)])
+    folded = read(writer.to_bytes())
+
+    dataset = to_rdflib(folded)
+    lines = _nquads(dataset)
+    assert len(lines) == 1
+    assert "literal text says" in lines[0]

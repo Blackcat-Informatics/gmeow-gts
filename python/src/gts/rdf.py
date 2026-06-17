@@ -27,7 +27,7 @@ def _as_text(value: object) -> str:
 
 
 def _strict_rdf11(text: str) -> str:
-    quoted = [line for line in text.splitlines() if "<<(" in line]
+    quoted = [line for line in text.splitlines() if _has_quoted_triple(line)]
     if quoted:
         raise RDF12UnsupportedError(
             "rdflib RDF 1.1 interop cannot represent RDF 1.2 quoted-triple "
@@ -37,8 +37,28 @@ def _strict_rdf11(text: str) -> str:
 
 
 def _lossy_rdf11(text: str) -> str:
-    lines = [line for line in text.splitlines() if "<<(" not in line]
+    lines = [line for line in text.splitlines() if not _has_quoted_triple(line)]
     return "\n".join(lines) + ("\n" if lines else "")
+
+
+def _has_quoted_triple(line: str) -> bool:
+    outside: list[str] = []
+    in_literal = False
+    escaped = False
+    for ch in line:
+        if in_literal:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_literal = False
+            continue
+        if ch == '"':
+            in_literal = True
+        else:
+            outside.append(ch)
+    return "<<(" in "".join(outside)
 
 
 def to_rdflib(graph: Graph, *, allow_rdf12_lossy: bool = False) -> Any:

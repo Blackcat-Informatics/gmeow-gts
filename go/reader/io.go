@@ -55,27 +55,21 @@ func readAllContext(ctx context.Context, r io.Reader, maxBytes int64) ([]byte, e
 	if maxBytes < 0 {
 		return nil, errors.New("gts reader: MaxBytes must be >= 0")
 	}
+	if maxBytes > 0 {
+		r = io.LimitReader(r, maxBytes+1)
+	}
 	var out bytes.Buffer
 	buf := make([]byte, 32*1024)
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		readBuf := buf
-		if maxBytes > 0 {
-			remaining := maxBytes - int64(out.Len())
-			if remaining <= 0 {
-				readBuf = buf[:1]
-			} else if remaining < int64(len(buf)) {
-				readBuf = buf[:remaining]
-			}
-		}
-		n, err := r.Read(readBuf)
+		n, err := r.Read(buf)
 		if n > 0 {
-			if maxBytes > 0 && int64(out.Len()+n) > maxBytes {
+			if maxBytes > 0 && int64(out.Len())+int64(n) > maxBytes {
 				return nil, ErrReadLimitExceeded
 			}
-			out.Write(readBuf[:n])
+			out.Write(buf[:n])
 		}
 		if err != nil {
 			if errors.Is(err, io.EOF) {
