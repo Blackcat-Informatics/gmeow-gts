@@ -147,19 +147,14 @@ pub trait StreamingSink {
     fn streamable_layout(&mut self, _segment_index: usize, _info: &StreamableInfo) {}
 }
 
-type SinkPtr<'a> = *mut (dyn StreamingSink + 'a);
-
-fn with_sink(sink: Option<SinkPtr<'_>>, f: impl FnOnce(&mut dyn StreamingSink)) {
-    if let Some(sink) = sink {
-        // SAFETY: SinkPtr is created only from the live `&mut dyn StreamingSink`
-        // passed to read_segment_with_sink, used synchronously, and never stored
-        // beyond that call.
-        unsafe { f(&mut *sink) };
+fn push_diagnostic(
+    g: &mut Graph,
+    sink: &mut Option<&mut dyn StreamingSink>,
+    diagnostic: Diagnostic,
+) {
+    if let Some(sink) = sink.as_deref_mut() {
+        sink.diagnostic(&diagnostic);
     }
-}
-
-fn push_diagnostic(g: &mut Graph, sink: Option<SinkPtr<'_>>, diagnostic: Diagnostic) {
-    with_sink(sink, |sink| sink.diagnostic(&diagnostic));
     g.diagnostics.push(diagnostic);
 }
 
@@ -190,7 +185,7 @@ fn absorb_segment_result(result: &mut StreamingReadResult, segment: &Graph) {
 /// Mutable fold state; one per segment (and shared by the snapshot handler).
 struct Folder<'g, 's> {
     g: &'g mut Graph,
-    sink: Option<SinkPtr<'s>>,
+    sink: Option<&'s mut dyn StreamingSink>,
     segment_index: usize,
     catalog: HashMap<i128, Codec>,
     // Layout-state bookkeeping (§3.3): intact index frames seen, digests the
@@ -202,10 +197,16 @@ struct Folder<'g, 's> {
 }
 
 impl Folder<'_, '_> {
+    fn with_sink(&mut self, f: impl FnOnce(usize, &mut dyn StreamingSink)) {
+        if let Some(sink) = self.sink.as_deref_mut() {
+            f(self.segment_index, sink);
+        }
+    }
+
     fn diag(&mut self, code: &str, detail: String, index: Option<usize>) {
         push_diagnostic(
             self.g,
-            self.sink,
+            &mut self.sink,
             Diagnostic {
                 code: code.to_string(),
                 detail,
@@ -221,20 +222,16 @@ impl Folder<'_, '_> {
             .iter()
             .find(|(stored, _)| stored == digest)
             .map(|(_, meta)| meta.clone());
-        with_sink(self.sink, |sink| {
-            sink.blob(self.segment_index, digest, meta.as_ref());
-        });
+        self.with_sink(|segment_index, sink| sink.blob(segment_index, digest, meta.as_ref()));
     }
 
     fn push_opaque(&mut self, opaque: OpaqueNode) {
-        with_sink(self.sink, |sink| sink.opaque(self.segment_index, &opaque));
+        self.with_sink(|segment_index, sink| sink.opaque(segment_index, &opaque));
         self.g.opaque.push(opaque);
     }
 
     fn push_signature(&mut self, signature: Signature) {
-        with_sink(self.sink, |sink| {
-            sink.signature(self.segment_index, &signature);
-        });
+        self.with_sink(|segment_index, sink| sink.signature(segment_index, &signature));
         self.g.signatures.push(signature);
     }
 
@@ -364,9 +361,9 @@ impl Folder<'_, '_> {
                 lang,
                 reifier: rf,
             });
-            with_sink(self.sink, |sink| {
+            if let Some(sink) = self.sink.as_deref_mut() {
                 sink.term(self.segment_index, term_id, &self.g.terms[term_id]);
-            });
+            }
         }
     }
 
@@ -394,7 +391,7 @@ impl Folder<'_, '_> {
             }
             let quad = (s, p, o, gslot);
             self.g.quads.push(quad);
-            with_sink(self.sink, |sink| sink.quad(self.segment_index, quad));
+            self.with_sink(|segment_index, sink| sink.quad(segment_index, quad));
             // Layout bookkeeping (§3.3): a stream:digest quad describes an
             // upcoming manifestation — record the IOU for the blob check.
             if self.g.terms[p].value.as_deref() == Some(STREAM_DIGEST) {
@@ -439,9 +436,7 @@ impl Folder<'_, '_> {
                 }
             }
             self.g.set_reifier(rid, triple);
-            with_sink(self.sink, |sink| {
-                sink.reifier(self.segment_index, rid, triple);
-            });
+            self.with_sink(|segment_index, sink| sink.reifier(segment_index, rid, triple));
         }
     }
 
@@ -475,9 +470,7 @@ impl Folder<'_, '_> {
             }
             let annotation = (r, p, v);
             self.g.annotations.push(annotation);
-            with_sink(self.sink, |sink| {
-                sink.annotation(self.segment_index, annotation);
-            });
+            self.with_sink(|segment_index, sink| sink.annotation(segment_index, annotation));
         }
     }
 
@@ -614,9 +607,7 @@ impl Folder<'_, '_> {
                 .map(str::to_string),
             by: map_get(entries, "by").and_then(as_idx),
         };
-        with_sink(self.sink, |sink| {
-            sink.suppression(self.segment_index, &suppression);
-        });
+        self.with_sink(|segment_index, sink| sink.suppression(segment_index, &suppression));
         self.g.suppressions.push(suppression);
     }
 
@@ -1095,7 +1086,6 @@ fn read_segment_with_sink(
     segment_index: usize,
     mut sink: Option<&mut dyn StreamingSink>,
 ) -> Graph {
-    let sink_ptr: Option<SinkPtr<'_>> = sink.as_mut().map(|sink| &mut **sink as SinkPtr<'_>);
     let mut g = Graph::default();
     let (_, raw_header) = &items[0];
     let header = match unwrap_header(raw_header) {
@@ -1103,7 +1093,7 @@ fn read_segment_with_sink(
         Err(e) => {
             push_diagnostic(
                 &mut g,
-                sink_ptr,
+                &mut sink,
                 Diagnostic {
                     code: "DamagedFrame".to_string(),
                     detail: format!("invalid header: {e}"),
@@ -1120,7 +1110,7 @@ fn read_segment_with_sink(
     if stored_hid.as_deref() != Some(&header_id(header)[..]) {
         push_diagnostic(
             &mut g,
-            sink_ptr,
+            &mut sink,
             Diagnostic {
                 code: "DamagedFrame".to_string(),
                 detail: "header self-hash mismatch".to_string(),
@@ -1133,7 +1123,7 @@ fn read_segment_with_sink(
     {
         push_diagnostic(
             &mut g,
-            sink_ptr,
+            &mut sink,
             Diagnostic {
                 code: "DamagedFrame".to_string(),
                 detail: format!(
@@ -1149,11 +1139,11 @@ fn read_segment_with_sink(
     // per-frame chain ids, by 0-based frame position
     let mut frame_ids: Vec<Vec<u8>> = Vec::new();
 
-    let (index_records, blob_events) = {
+    let (index_records, blob_events, restored_sink) = {
         let catalog = catalog_from(header);
         let mut folder = Folder {
             g: &mut g,
-            sink: sink_ptr,
+            sink: sink.take(),
             segment_index,
             catalog,
             index_records: Vec::new(),
@@ -1217,18 +1207,19 @@ fn read_segment_with_sink(
             }
             folder.fold_frame(frame, abs_index);
         }
-        (folder.index_records, folder.blob_events)
+        (folder.index_records, folder.blob_events, folder.sink)
     };
+    sink = restored_sink;
 
     g.segment_heads.push(expected_prev);
-    with_sink(sink_ptr, |sink| {
+    if let Some(sink) = sink.as_deref_mut() {
         sink.segment_head(
             segment_index,
             g.segment_heads
                 .last()
                 .expect("segment head was just pushed"),
         );
-    });
+    }
     let seg_meta = g.meta.clone();
     g.segment_meta.push(seg_meta);
     g.segment_profiles
@@ -1240,17 +1231,17 @@ fn read_segment_with_sink(
         &blob_events,
         &frame_ids,
         index_offset,
-        sink_ptr,
+        &mut sink,
     );
     g.segment_streamable.push(info);
-    with_sink(sink_ptr, |sink| {
+    if let Some(sink) = sink {
         sink.streamable_layout(
             segment_index,
             g.segment_streamable
                 .last()
                 .expect("streamable info was just pushed"),
         );
-    });
+    }
     g
 }
 
@@ -1269,7 +1260,7 @@ fn layout_check(
     blob_events: &[(usize, String, bool)],
     frame_ids: &[Vec<u8>],
     index_offset: usize,
-    sink: Option<SinkPtr<'_>>,
+    sink: &mut Option<&mut dyn StreamingSink>,
 ) -> StreamableInfo {
     let claimed = matches!(map_get(header, "layout"), Some(Value::Text(t)) if t == "streamable");
     let total = frame_ids.len();
