@@ -245,6 +245,7 @@ MAY map them to error returns or structured warnings):
 
 | class | meaning |
 |---|---|
+| `EmptyFile` | empty byte stream or no segment header; return an empty result with a fatal diagnostic rather than aborting (§3) |
 | `TornAppendError` | trailing incomplete CBOR item at EOF (§3) |
 | `DamagedFrame` | self-`"id"` mismatch / invalid frame hash (content corruption); opaque `reason:"damaged"` (§7.6) |
 | `BrokenChain` | valid frame hash, but `"prev"` ≠ the previous item's `"id"` (insertion / reorder / splice) (§9.1) |
@@ -252,8 +253,12 @@ MAY map them to error returns or structured warnings):
 | `UnknownCodec` | a transform names a codec the reader lacks; opaque `reason:"unknown-codec"` |
 | `MissingKey` | an `encrypt` codec the reader cannot decrypt; opaque `reason:"missing-key"` |
 | `ConflictingReifier` | a reifier rebound to a different triple (§7.8) |
+| `PositionConstraint` | a term appears in an illegal subject, predicate, object, or graph-name position; reject/diagnose the offending row (§7.4) |
+| `ForwardReference` | a term-id reference names a term not introduced by an earlier frame in the same segment (§7.2, §7.5) |
+| `SegmentBoundary` | a compatibility reader reaches a later segment header where file-global term ids would misfold; stop with a fatal diagnostic (§3.1, §19) |
 | `RecursionLimit` | nested-GTS depth or decoded-size budget exceeded (§12.1, §18) |
 | `StreamableLayoutError` | a segment claims `"layout": "streamable"` but its covered region violates delivery ordering, or its index footer is missing or contradicts the frames it covers (§3.3) |
+| `UnknownFrameType` | a frame type is not understood by the reader/profile; preserve chain verification and either ignore it or surface it as opaque until a profile handles it (§7.8) |
 
 ## 3. File structure
 
@@ -1959,6 +1964,7 @@ opaque-node = {
 
 sig-status = "none" / "valid" / "invalid" / "unverified"
 opaque-reason = "unknown-codec" / "missing-key" / "damaged"
+/ "unknown-frame-type"
 
 diagnostic = {
   "code": diagnostic-code,
@@ -1967,11 +1973,13 @@ diagnostic = {
   * extension-key => any,
 }
 
-diagnostic-code = "TornAppendError" / "DamagedFrame" / "BrokenChain"
+diagnostic-code = "EmptyFile"
+/ "TornAppendError" / "DamagedFrame" / "BrokenChain"
 / "TruncatedLog" / "UnknownCodec" / "MissingKey"
 / "ConflictingReifier" / "RecursionLimit"
 / "StreamableLayoutError" / "PositionConstraint"
-/ "ForwardReference" / "SegmentBoundary" / tstr
+/ "ForwardReference" / "SegmentBoundary"
+/ "UnknownFrameType" / tstr
 
 profile-status = "core-required" / "optional-standard" / "experimental"
 / "domain-specific"
