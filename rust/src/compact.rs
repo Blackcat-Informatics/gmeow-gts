@@ -18,6 +18,8 @@
 //! agent string is a constant, and the timestamp is a parameter — never
 //! ambient time.
 
+use std::borrow::Cow;
+
 use ciborium::value::Value;
 
 use crate::model::{Graph, Quad, Suppression, Term, TermKind};
@@ -170,13 +172,16 @@ fn blob_decoded_len(g: &Graph, digest: &str) -> Result<Option<usize>, CompactRef
 }
 
 /// Look up a blob's decoded bytes in the insertion-ordered table.
-fn blob_bytes(g: &Graph, digest: &str) -> Result<Option<Vec<u8>>, CompactRefusedError> {
+fn blob_bytes<'a>(
+    g: &'a Graph,
+    digest: &str,
+) -> Result<Option<Cow<'a, [u8]>>, CompactRefusedError> {
     g.blobs
         .iter()
         .find(|(d, _)| d == digest)
         .map(|(_, entry)| {
             entry
-                .decoded_vec()
+                .decoded_bytes()
                 .map_err(|err| blob_decode_refused(digest, err))
         })
         .transpose()
@@ -390,18 +395,19 @@ pub fn compact_streamable(
     timestamp: &str,
     seal_original: bool,
 ) -> Result<Vec<u8>, CompactRefusedError> {
-    let (g, profile) = refusal_gate(data, seal_original)?;
+    let (mut g, profile) = refusal_gate(data, seal_original)?;
 
     // Delivery plan: most-significant-first — ascending decoded size, digest
     // tie-break; the sealed original (least significant) always travels last.
-    // Sizes are paired up front so the sort never re-scans the blob table.
+    // Decode once here so the streaming index and re-emission reuse cached
+    // bytes instead of repeating lazy decode work.
     let mut keyed: Vec<(usize, String)> = g
         .blobs
-        .iter()
+        .iter_mut()
         .map(|(d, entry)| {
             entry
-                .decoded_len()
-                .map(|len| (len, d.clone()))
+                .decode()
+                .map(|bytes| (bytes.len(), d.clone()))
                 .map_err(|err| blob_decode_refused(d, err))
         })
         .collect::<Result<_, _>>()?;
@@ -475,7 +481,7 @@ pub fn compact_streamable(
         let Some(bytes) = blob_bytes(&g, digest)? else {
             continue;
         };
-        w.add_blob(&bytes, mt.as_deref(), rep.as_deref());
+        w.add_blob(bytes.as_ref(), mt.as_deref(), rep.as_deref());
     }
     // The re-issued ordering commitment: the compactor is its sole attester.
     w.add_index();

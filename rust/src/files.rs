@@ -416,6 +416,9 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
         suppressed_blob_digests(graph)
     };
     fs::create_dir_all(dest).map_err(|e| format!("create {dest:?}: {e}"))?;
+    let blob_entries: BTreeMap<&str, &crate::model::BlobEntry> =
+        graph.blobs.iter().map(|(d, e)| (d.as_str(), e)).collect();
+    let mut decoded_cache: BTreeMap<String, Vec<u8>> = BTreeMap::new();
 
     for (path, entry) in entries {
         let target = dest_path(dest, &path)?;
@@ -426,17 +429,21 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
         if suppressed.contains(digest) {
             continue;
         }
-        let data = graph
-            .blobs
-            .iter()
-            .find(|(d, _)| d == digest)
-            .map(|(_, entry)| {
-                entry
-                    .decoded_vec()
-                    .map_err(|err| format!("decode inline blob for {path}: {err:?}"))
-            })
-            .transpose()?
-            .ok_or(format!("missing inline blob for {path}: {digest}"))?;
+        let data = if let Some(cached) = decoded_cache.get(digest) {
+            cached.clone()
+        } else {
+            let decoded = blob_entries
+                .get(digest.as_str())
+                .map(|entry| {
+                    entry
+                        .decoded_vec()
+                        .map_err(|err| format!("decode inline blob for {path}: {err:?}"))
+                })
+                .transpose()?
+                .ok_or(format!("missing inline blob for {path}: {digest}"))?;
+            decoded_cache.insert(digest.clone(), decoded.clone());
+            decoded
+        };
         if digest_string(&data) != *digest {
             return Err(format!("integrity failure for {path}: {digest}"));
         }
