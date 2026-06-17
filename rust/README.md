@@ -80,7 +80,8 @@ a GTS file.
 
 - **`gmeow_gts::reader`** — read a GTS byte slice into a `Graph`, verify chains, detect
   torn appends, and handle opaque/degraded frames.
-- **`gmeow_gts::writer`** — build frames and emit full GTS files.
+- **`gmeow_gts::writer`** — build frames and emit full GTS files, including
+  `Writer::deterministic(&graph, profile)` for reproducible graph authoring.
 - **`gmeow_gts::cose`** — COSE_Sign1 signing and verification of frame ids (§9.2), plus
   COSE_Encrypt0 AES-256-GCM payload encryption (§9.3).
 - **`gmeow_gts::openpgp`** — parse an embedded OpenPGP transport key to its fingerprint.

@@ -8,6 +8,7 @@
 //! `identity`/`gzip`/`zstd` codecs; an unknown codec or an `encrypt` codec
 //! (no keys in the baseline) degrades to an opaque node (§7.6, §8.3).
 
+use std::fmt;
 use std::io::Read;
 
 /// A catalog entry (§5, §8.5).
@@ -30,6 +31,17 @@ pub enum CodecError {
     /// The codec is known but the data is corrupt — the frame is damaged.
     Failed(String),
 }
+
+impl fmt::Display for CodecError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Unavailable { reason, detail } => write!(f, "{reason}: {detail}"),
+            Self::Failed(detail) => f.write_str(detail),
+        }
+    }
+}
+
+impl std::error::Error for CodecError {}
 
 fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
     if codec.cls == "encrypt" {

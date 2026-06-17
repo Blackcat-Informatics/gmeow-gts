@@ -37,6 +37,7 @@ VALID_SUBSETS = {
     "openpgp-transport-key",
     "human-hash",
     "security-policy",
+    "advanced-index-proof",
 }
 VALID_TIERS = {
     "baseline-reader",
@@ -80,6 +81,7 @@ TOP_LEVEL_SUBSETS = {
     "28d-unknown-frame-type": ("total-reader",),
     "28e-forward-term-reference": ("total-reader",),
     "28f-malformed-transform-shape": ("total-reader",),
+    "29-deterministic-writer": ("writer-determinism",),
 }
 
 TOP_LEVEL_CAPABILITIES = {
@@ -97,6 +99,7 @@ TOP_LEVEL_CAPABILITIES = {
     ),
     "26-streamable-lie": ("cbor", "blake3", "identity", "streamable-index"),
     "27-streamable-tail": ("cbor", "blake3", "identity", "streamable-index"),
+    "29-deterministic-writer": ("cbor", "blake3", "identity", "inline-blob"),
 }
 
 JSON_SUBCORPUS = {
@@ -147,6 +150,14 @@ JSON_SUBCORPUS = {
         "capabilities": ("trust-policy", "nested-gts"),
         "title": "security policy fixture",
         "notes": "Pins security-policy diagnostics and profile findings.",
+    },
+    "proofs": {
+        "subset": "advanced-index-proof",
+        "tiers": ("full-reader",),
+        "mode": "strict-verify",
+        "capabilities": ("mmr-proof", "blake3"),
+        "title": "MMR proof fixture",
+        "notes": "Pins MMR detached inclusion-proof JSON verification.",
     },
     "signed": {
         "subset": "crypto-cose",
@@ -225,6 +236,9 @@ def json_fixture_entry(path: Path) -> dict[str, Any]:
     subdir = path.parent.name
     meta = JSON_SUBCORPUS[subdir]
     data = load_json(path)
+    negative = bool(data.get("negative", False))
+    if subdir == "proofs" and "bad" in path.stem:
+        negative = True
     expected: dict[str, Any] = {
         "graph": None,
         "diagnostics": data.get("expected_diagnostics", []),
@@ -250,7 +264,7 @@ def json_fixture_entry(path: Path) -> dict[str, Any]:
             "media_type": "application/json",
         },
         "mode": meta["mode"],
-        "negative": bool(data.get("negative", False)),
+        "negative": negative,
         "required_capabilities": list(meta["capabilities"]),
         "subsets": [meta["subset"]],
         "tiers": list(meta["tiers"]),

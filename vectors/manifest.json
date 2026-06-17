@@ -1186,6 +1186,41 @@
       "notes": "Top-level GTS conformance vector for total-reader."
     },
     {
+      "id": "29-deterministic-writer",
+      "title": "deterministic writer",
+      "input": {
+        "path": "vectors/29-deterministic-writer.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "inline-blob"
+      ],
+      "subsets": [
+        "streaming-property",
+        "writer-determinism"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader",
+        "writer"
+      ],
+      "expected": {
+        "graph": "vectors/29-deterministic-writer.expected.json",
+        "diagnostics": [],
+        "expected_head": "d37ff37dfa43cd4584d8ec860066da58e3de28c2500f0bb4b3aae1d9376f2005",
+        "segment_heads": [
+          "d37ff37dfa43cd4584d8ec860066da58e3de28c2500f0bb4b3aae1d9376f2005"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for writer-determinism."
+    },
+    {
       "id": "cose-sign1-basic",
       "title": "COSE Sign1 fixture: sign1-basic",
       "input": {
@@ -1485,6 +1520,82 @@
         ]
       },
       "notes": "Pins OpenPGP transport-key extraction and fingerprint rendering."
+    },
+    {
+      "id": "proofs-mmr-basic-proof-bad-root",
+      "title": "MMR proof fixture: mmr-basic-proof-bad-root",
+      "input": {
+        "path": "vectors/proofs/mmr-basic-proof-bad-root.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": true,
+      "required_capabilities": [
+        "mmr-proof",
+        "blake3"
+      ],
+      "subsets": [
+        "advanced-index-proof"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "count",
+          "frame_id",
+          "hash",
+          "leaf_index",
+          "path",
+          "peak_index",
+          "peaks",
+          "preimage",
+          "root",
+          "schema"
+        ]
+      },
+      "notes": "Pins MMR detached inclusion-proof JSON verification."
+    },
+    {
+      "id": "proofs-mmr-basic-proof",
+      "title": "MMR proof fixture: mmr-basic-proof",
+      "input": {
+        "path": "vectors/proofs/mmr-basic-proof.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "mmr-proof",
+        "blake3"
+      ],
+      "subsets": [
+        "advanced-index-proof"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "count",
+          "frame_id",
+          "hash",
+          "leaf_index",
+          "path",
+          "peak_index",
+          "peaks",
+          "preimage",
+          "root",
+          "schema"
+        ]
+      },
+      "notes": "Pins MMR detached inclusion-proof JSON verification."
     },
     {
       "id": "randomart-ascii-gts",

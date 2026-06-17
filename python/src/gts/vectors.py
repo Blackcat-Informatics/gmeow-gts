@@ -21,8 +21,8 @@ import cbor2
 
 from gts.codec import Codec
 from gts.files import pack
-from gts.model import Term, TermKind
-from gts.wire import canonical, content_id, header_id
+from gts.model import Graph, Suppression, Term, TermKind
+from gts.wire import canonical, content_id, digest_str, header_id
 from gts.writer import Writer
 
 CAT = "https://example.org/Cat"
@@ -532,6 +532,71 @@ def _streamable_tail() -> bytes:
     return compacted + canonical(f1) + canonical(f2)
 
 
+def _deterministic_writer_graphs() -> tuple[Graph, Graph]:
+    """Two equivalent graph states with intentionally different local ids."""
+    payload = b"deterministic payload"
+    digest = digest_str(payload)
+
+    a = Graph(
+        terms=[
+            Term(TermKind.IRI, LABEL),
+            Term(TermKind.LITERAL, "Cat", lang="en"),
+            Term(TermKind.IRI, CAT),
+            Term(TermKind.IRI, "https://example.org/graph"),
+            Term(TermKind.IRI, "https://example.org/stmt1"),
+            Term(TermKind.IRI, "https://example.org/confidence"),
+            Term(TermKind.LITERAL, "0.9"),
+        ],
+        quads=[(2, 0, 1, 3)],
+        reifiers={4: (2, 0, 1)},
+        annotations=[(4, 5, 6)],
+        meta={"generator": "deterministic-writer"},
+        suppressions=[
+            Suppression(
+                targets=[{"kind": "term", "id": 6}],
+                reason="example suppression",
+                by=4,
+            )
+        ],
+    )
+    a.blobs[digest] = payload
+    a.blob_meta[digest] = {"mt": "text/plain"}
+
+    b = Graph(
+        terms=[
+            Term(TermKind.LITERAL, "0.9"),
+            Term(TermKind.IRI, "https://example.org/confidence"),
+            Term(TermKind.IRI, "https://example.org/stmt1"),
+            Term(TermKind.IRI, "https://example.org/graph"),
+            Term(TermKind.IRI, CAT),
+            Term(TermKind.LITERAL, "Cat", lang="en"),
+            Term(TermKind.IRI, LABEL),
+        ],
+        quads=[(4, 6, 5, 3)],
+        reifiers={2: (4, 6, 5)},
+        annotations=[(2, 1, 0)],
+        meta={"generator": "deterministic-writer"},
+        suppressions=[
+            Suppression(
+                targets=[{"kind": "term", "id": 0}],
+                reason="example suppression",
+                by=2,
+            )
+        ],
+    )
+    b.blobs[digest] = payload
+    b.blob_meta[digest] = {"mt": "text/plain"}
+    return a, b
+
+
+def _deterministic_writer() -> bytes:
+    a, b = _deterministic_writer_graphs()
+    first = Writer.deterministic(a, profile="dist").to_bytes()
+    second = Writer.deterministic(b, profile="dist").to_bytes()
+    assert first == second
+    return first
+
+
 def corpus() -> list[VectorCase]:
     """The full exportable corpus, in spec §18 order."""
     return [
@@ -569,6 +634,7 @@ def corpus() -> list[VectorCase]:
         VectorCase("28d-unknown-frame-type", _unknown_frame_type()),
         VectorCase("28e-forward-term-reference", _forward_term_reference()),
         VectorCase("28f-malformed-transform-shape", _malformed_transform_shape()),
+        VectorCase("29-deterministic-writer", _deterministic_writer()),
     ]
 
 

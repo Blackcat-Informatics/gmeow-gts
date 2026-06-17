@@ -71,6 +71,10 @@ w.add_quads([(0, 1, 2, None)])
 Path("cat.gts").write_bytes(w.to_bytes())
 ```
 
+For reproducible graph builds from folded state, use `gts.Writer.deterministic(graph)`.
+It remaps local term ids by semantic value before writing and emits frames in the
+fixed order specified by the GTS conformance contract.
+
 Reading `cat.gts` back yields the expected statement:
 
 ```text

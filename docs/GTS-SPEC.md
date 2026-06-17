@@ -1503,6 +1503,17 @@ Raw `cat` always works (§3.1); a conformant **validating composer** (`gts cat`)
   provenance and detached signatures (§13.3), and its output MUST be byte-deterministic for
   the same input and parameters (blobs ordered by ascending decoded size, ties broken by
   ascending digest; the rewrite timestamp is a parameter, not ambient time).
+- **Deterministic graph authoring mode** is the reproducible-build writer surface for a folded
+  graph. It emits one ordinary segment and MUST remap local term ids before writing: terms are
+  sorted by semantic value (IRI string; literal lexical form plus effective datatype IRI plus
+  language tag; blank-node label, with anonymous blank nodes using their input occurrence as a
+  tiebreaker; quoted triple resolved to its subject/predicate/object value). It then emits
+  authorable frames in this fixed order: `terms`, `quads`, `reifies`, `annot`, `blob`, `meta`,
+  `suppress`. Quads, reifier bindings, annotations, blobs, metadata keys, and suppression
+  frames are sorted by the remapped deterministic-CBOR representation. The mode does not replay
+  reader observations (`opaque`, signatures, diagnostics, or segment ledgers); publication
+  tools that need to preserve those observations must use a profile-specific rewrite such as
+  streamable compaction or seal the original bytes as evidence.
 - **Blob extraction is verification, never conversion** (`gts ls`, `gts extract`): blobs are
   addressed by content digest (frame indices are physical accidents that shift under `cat`);
   extraction re-hashes the bytes against the requested digest; a blob suppressed by digest
@@ -1857,6 +1868,10 @@ claims.
     type, a forward term reference, and a malformed transform payload all return structured
     diagnostics/opaque nodes where applicable. These vectors pin the "never panic on input
     bytes" invariant and make cross-engine diagnostic drift visible in CI.
+28. **Deterministic graph writer (§14.1)**: two equivalent folded graph states with different
+    local term ids and row order produce byte-identical GTS via deterministic graph authoring.
+    The frozen vector pins term remapping, row sorting, blob metadata retention, metadata output,
+    and suppression target remapping across Python and Rust producers.
 
 ## 20. IANA considerations
 
