@@ -36,7 +36,7 @@ used by tier claims:
 | subset | vectors | purpose |
 |---|---|---|
 | `wire-core` | `01-minimal`, `02-zstd-frame`, `06-header-tampered` | Header/frame grammar, mandatory codecs, deterministic CBOR, and header hash behavior. |
-| `total-reader` | `03-unknown-codec`, `04-damaged-frame`, `05-torn-append`, `17-pre-segment-hard-fail`, `19-profile-union-opacity` | Graceful degradation, diagnostics, opaque nodes, torn input, and malformed/boundary behavior. |
+| `total-reader` | `03-unknown-codec`, `04-damaged-frame`, `05-torn-append`, `17-pre-segment-hard-fail`, `19-profile-union-opacity`, `28-empty-file`, `28b-non-header-item`, `28c-unsupported-version`, `28d-unknown-frame-type`, `28e-forward-term-reference`, `28f-malformed-transform-shape` | Graceful degradation, diagnostics, opaque nodes, torn input, malformed/boundary behavior, unsupported headers, and extension-frame opacity. |
 | `graph-fold` | `09-suppression`, `11-datatype-defaulting`, `12-conflicting-reifier`, `13-position-constraint`, `14-bnode-label`, `15-two-segment-union`, `15b-anon-bnode-union`, `16-composed-round-trip`, `18-cross-segment-suppression`, `22-inline-blob` | Core graph fold, value equality, annotations/reifiers, suppressions, blobs, and multi-segment union. |
 | `profile-layout` | `20-language-tag-discipline`, `21-degenerate-composition`, `23-files-profile-tree`, `24-files-profile-dedup`, `25-streamable-source`, `25b-streamable-compacted`, `26-streamable-lie`, `27-streamable-tail` | Profile conventions, archive/files profile behavior, streamable layout, compaction, and publication-tool refusal cases. |
 | `streaming-property` | every top-level `vectors/*.gts`, tested at each CBOR item boundary | Prefix-fold totality and monotone fold growth for streaming readers. |

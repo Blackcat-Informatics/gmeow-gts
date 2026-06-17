@@ -8,11 +8,11 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/fxamacker/cbor/v2"
 	"go.blackcatinformatics.ca/gts/codec"
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/stream"
 	"go.blackcatinformatics.ca/gts/wire"
-	"github.com/fxamacker/cbor/v2"
 )
 
 // asInt64 coerces a decoded CBOR value to int64.
@@ -823,6 +823,17 @@ func readSegment(items []struct {
 	if !bytesEqual(storedHID, wire.HeaderID(header)) {
 		idx := indexOffset
 		g.Diagnostics = append(g.Diagnostics, model.Diagnostic{Code: "DamagedFrame", Detail: "header self-hash mismatch", FrameIndex: &idx})
+	}
+	headerMagic, _ := wire.MapGet(header, "gts")
+	headerVersion, _ := wire.MapGet(header, "v")
+	version, versionOK := asInt64(headerVersion)
+	if textOr(headerMagic, "") != wire.Magic || !versionOK || version != int64(wire.Version) {
+		idx := indexOffset
+		g.Diagnostics = append(g.Diagnostics, model.Diagnostic{
+			Code:       "DamagedFrame",
+			Detail:     fmt.Sprintf("unsupported header magic/version %v/%v", headerMagic, headerVersion),
+			FrameIndex: &idx,
+		})
 	}
 	expectedPrev := storedHID
 

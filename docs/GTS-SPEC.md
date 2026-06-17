@@ -1760,6 +1760,11 @@ claims.
 26. **Appended-after-compaction boundary (§3.3)**: a compacted segment with frames appended
     after its `index` footer folds cleanly with no diagnostic, and tooling reports
     "streamable through frame *N*, accretive tail" — the unpresaged tail is legal.
+27. **Total-reader hostility regressions (§2.4, negative)**: empty input, a first CBOR item
+    that is not a Header, an unsupported header major version, an unknown structural frame
+    type, a forward term reference, and a malformed transform payload all return structured
+    diagnostics/opaque nodes where applicable. These vectors pin the "never panic on input
+    bytes" invariant and make cross-engine diagnostic drift visible in CI.
 
 ## 20. IANA considerations
 

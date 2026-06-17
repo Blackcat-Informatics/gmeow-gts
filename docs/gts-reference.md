@@ -21,8 +21,9 @@ and TypeScript engines also gate against. Tier claims and vector subsets are def
   an unknown codec or an `encrypt` codec (no keys in the baseline) to an **opaque
   node** rather than failing the read (§8, §7.6).
 - **Robustness** — torn-append detection (§3), damaged-frame isolation, and the
-  canonical diagnostics (§2.3): `TornAppendError`, `DamagedFrame`, `BrokenChain`,
-  `UnknownCodec`, `MissingKey`, `ConflictingReifier`, `PositionConstraint`, …
+  canonical diagnostics (§2.4), including `EmptyFile`, `TornAppendError`,
+  `DamagedFrame`, `BrokenChain`, `UnknownCodec`, `MissingKey`, `ConflictingReifier`,
+  `PositionConstraint`, `ForwardReference`, `SegmentBoundary`, and `UnknownFrameType`.
 - **`RDF → GTS` interop** — with the optional `[rdf]` extra (rdflib), an rdflib
   `Graph`/`Dataset` (RDF 1.1 base graph) can be interned into a GTS dictionary
   (`rdf:reifies` triple-terms → `reifies`, annotations → `annot`). Higher-level

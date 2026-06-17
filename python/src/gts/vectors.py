@@ -17,10 +17,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import cbor2
+
 from gts.codec import Codec
 from gts.files import pack
 from gts.model import Term, TermKind
-from gts.wire import canonical, content_id
+from gts.wire import canonical, content_id, header_id
 from gts.writer import Writer
 
 CAT = "https://example.org/Cat"
@@ -103,6 +105,65 @@ def _header_tampered() -> bytes:
     # Flip a byte inside the header region (after the 3-byte self-describe tag).
     data[10] ^= 0x01
     return bytes(data)
+
+
+def _empty_file() -> bytes:
+    """A zero-byte file is invalid GTS, but the reader still returns diagnostics."""
+    return b""
+
+
+def _non_header_item() -> bytes:
+    """A complete first CBOR item that is not a segment header."""
+    return canonical({"not": "a-gts-header"})
+
+
+def _unsupported_version() -> bytes:
+    """A self-consistent header using an unsupported wire major version."""
+    header: dict[str, object] = {
+        "gts": "GTS1",
+        "v": 2,
+        "prof": "generic",
+        "cat": {0: {"name": "identity", "cls": "encode"}},
+    }
+    header["id"] = header_id(header)
+    return canonical(cbor2.CBORTag(55799, header))
+
+
+def _unknown_frame_type() -> bytes:
+    """An extension frame type not understood by a Baseline Reader."""
+    w = Writer()
+    frame: dict[str, object] = {
+        "t": "not-a-core-frame",
+        "d": {"note": "extension payload"},
+        "prev": w.head,
+    }
+    frame["id"] = content_id(frame)
+    return bytes(w.to_bytes()) + canonical(frame)
+
+
+def _forward_term_reference() -> bytes:
+    """A term dictionary entry that references a future term id."""
+    w = Writer()
+    frame: dict[str, object] = {
+        "t": "terms",
+        "d": [{"k": 1, "v": "bad datatype ref", "dt": 99}],
+        "prev": w.head,
+    }
+    frame["id"] = content_id(frame)
+    return bytes(w.to_bytes()) + canonical(frame)
+
+
+def _malformed_transform_shape() -> bytes:
+    """A transformed frame whose payload field is not a byte string."""
+    w = Writer()
+    frame: dict[str, object] = {
+        "t": "quads",
+        "x": [0],
+        "d": {"not": "bytes"},
+        "prev": w.head,
+    }
+    frame["id"] = content_id(frame)
+    return bytes(w.to_bytes()) + canonical(frame)
 
 
 def _suppression() -> bytes:
@@ -502,6 +563,12 @@ def corpus() -> list[VectorCase]:
         VectorCase("25b-streamable-compacted", _streamable_compacted()),
         VectorCase("26-streamable-lie", _streamable_lie()),
         VectorCase("27-streamable-tail", _streamable_tail()),
+        VectorCase("28-empty-file", _empty_file()),
+        VectorCase("28b-non-header-item", _non_header_item()),
+        VectorCase("28c-unsupported-version", _unsupported_version()),
+        VectorCase("28d-unknown-frame-type", _unknown_frame_type()),
+        VectorCase("28e-forward-term-reference", _forward_term_reference()),
+        VectorCase("28f-malformed-transform-shape", _malformed_transform_shape()),
     ]
 
 

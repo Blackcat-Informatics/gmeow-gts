@@ -32,6 +32,8 @@ from gts.model import (
 )
 from gts.stream import DIGEST as STREAM_DIGEST
 from gts.wire import (
+    MAGIC,
+    VERSION,
     content_id,
     digest_str,
     header_id,
@@ -172,7 +174,13 @@ class _Folder:
             return
         handler = _HANDLERS.get(ftype)
         if handler is None:
-            return  # index / unknown structural frames are ignored by the baseline
+            self._opaque(frame, ftype, "unknown-frame-type")
+            self.g.diagnostics.append(
+                Diagnostic(
+                    "UnknownFrameType", f"unsupported frame type {ftype!r}", index
+                )
+            )
+            return
         try:
             handler(self, payload, frame, index)
         except Exception as exc:  # malformed payload structure
@@ -718,6 +726,15 @@ def _read_segment(
     if blake3_256_header(header) != stored_hid:
         g.diagnostics.append(
             Diagnostic("DamagedFrame", "header self-hash mismatch", index_offset)
+        )
+    if header.get("gts") != MAGIC or header.get("v") != VERSION:
+        g.diagnostics.append(
+            Diagnostic(
+                "DamagedFrame",
+                "unsupported header magic/version "
+                f"{header.get('gts')!r}/{header.get('v')!r}",
+                index_offset,
+            )
         )
     folder = _Folder(g, _catalog(header), keys)
     expected_prev = stored_hid if isinstance(stored_hid, bytes) else b""

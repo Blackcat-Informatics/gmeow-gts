@@ -356,6 +356,15 @@ git diff --exit-code vectors        # no changes ⇒ reproducible
 Conformance tiers, named vector subsets, expected-result fields, diagnostics, and read/verify
 modes are defined in [`docs/GTS-CONFORMANCE.md`](./docs/GTS-CONFORMANCE.md).
 
+Current CI-gated conformance status:
+
+| Engine | Baseline Reader | Streaming Reader | Writer | Validating Tool | Profile-Aware Tool |
+|---|---|---|---|---|---|
+| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | prefix-fold property over `vectors/*.gts` | deterministic compact oracle `25b` | CLI verify diagnostics | files profile in interop |
+| Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack |
+| Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile in interop |
+| TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate | writer and compact tests | CLI verify diagnostics | files profile in interop |
+
 ## Repository layout
 
 ```text

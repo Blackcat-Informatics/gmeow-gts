@@ -20,7 +20,9 @@ use crate::model::{
     Triple3,
 };
 use crate::stream::DIGEST as STREAM_DIGEST;
-use crate::wire::{content_id, digest_str, header_id, iter_items, map_get, unwrap_header};
+use crate::wire::{
+    content_id, digest_str, header_id, iter_items, map_get, unwrap_header, MAGIC, VERSION,
+};
 
 fn as_i128(v: &Value) -> Option<i128> {
     if let Value::Integer(i) = v {
@@ -177,8 +179,14 @@ impl Folder<'_> {
             "snapshot" => self.h_snapshot(&payload, index),
             "index" => self.h_index(&payload, index),
             "opaque" => self.h_opaque(&payload),
-            // unknown structural frames are ignored by the baseline
-            _ => {}
+            _ => {
+                self.opaque(frame, &ftype, "unknown-frame-type");
+                self.diag(
+                    "UnknownFrameType",
+                    format!("unsupported frame type {ftype:?}"),
+                    Some(index),
+                );
+            }
         }
     }
 
@@ -753,6 +761,19 @@ fn read_segment(items: &[(usize, Value)], index_offset: usize) -> Graph {
         g.diagnostics.push(Diagnostic {
             code: "DamagedFrame".to_string(),
             detail: "header self-hash mismatch".to_string(),
+            frame_index: Some(index_offset),
+        });
+    }
+    if map_get(header, "gts").and_then(as_text) != Some(MAGIC)
+        || map_get(header, "v").and_then(as_i128) != Some(i128::from(VERSION))
+    {
+        g.diagnostics.push(Diagnostic {
+            code: "DamagedFrame".to_string(),
+            detail: format!(
+                "unsupported header magic/version {:?}/{:?}",
+                map_get(header, "gts"),
+                map_get(header, "v")
+            ),
             frame_index: Some(index_offset),
         });
     }
