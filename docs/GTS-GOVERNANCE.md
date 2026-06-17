@@ -98,7 +98,7 @@ Bare names in the following sets are reserved for the GTS core registry:
   `stream`, `image`, `ai-package`, and any future core-maintained profile;
 - GTS-owned IRIs under `https://w3id.org/gts/`;
 - CLI transform target names used by this repository, such as `nquads`, `sqlite`, `duckdb`,
-  `parquet`, and `files`.
+  `parquet`, and `turtle`.
 
 Third-party registrations SHOULD use one of:
 
