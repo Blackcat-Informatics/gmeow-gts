@@ -227,16 +227,10 @@ fn pack_deduplicates_identical_content() {
     );
 }
 
-#[test]
-fn unpack_refuses_traversal() {
+fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
     use gmeow_gts::writer::{digest_string, Writer};
 
-    let tmp = tmpdir();
-    let _ = std::fs::remove_dir_all(&tmp);
-    std::fs::create_dir_all(&tmp).unwrap();
-    let archive = tmp.join("traversal.gts");
-
-    let payload = b"traversal-test";
+    let payload = b"path-test";
     let digest = digest_string(payload);
 
     let mut w = Writer::new("files");
@@ -278,7 +272,7 @@ fn unpack_refuses_traversal() {
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Literal,
-            value: Some("../escape.txt".to_string()),
+            value: Some(archive_path.to_string()),
             datatype: None,
             lang: None,
             reifier: None,
@@ -293,7 +287,16 @@ fn unpack_refuses_traversal() {
     ]);
     w.add_quads(&[(4, 3, 0, None), (4, 1, 5, None), (4, 2, 6, None)]);
     w.add_blob(payload, None, None);
-    std::fs::write(&archive, w.to_bytes()).unwrap();
+    w.to_bytes()
+}
+
+#[test]
+fn unpack_refuses_traversal() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let archive = tmp.join("traversal.gts");
+    std::fs::write(&archive, files_archive_with_path("../escape.txt")).unwrap();
 
     let dst = tmp.join("dst");
     let out = gts(&[
@@ -308,6 +311,85 @@ fn unpack_refuses_traversal() {
         stderr.contains("traversal") || stderr.contains("escapes"),
         "expected traversal refusal, got: {stderr}"
     );
+}
+
+#[test]
+fn unpack_refuses_windows_style_paths() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    for (idx, (archive_path, want)) in [
+        ("..\\..\\etc\\passwd", "traversal"),
+        ("C:\\secret.txt", "drive-relative"),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let archive = tmp.join(format!("unsafe-{idx}.gts"));
+        std::fs::write(&archive, files_archive_with_path(archive_path)).unwrap();
+        let dst = tmp.join(format!("dst-{idx}"));
+        let out = gts(&[
+            "unpack",
+            archive.to_str().unwrap(),
+            "-C",
+            dst.to_str().unwrap(),
+        ]);
+        assert_eq!(out.status.code(), Some(1));
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        assert!(stderr.contains(want), "stderr: {stderr}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn pack_refuses_symlink_entry() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    make_tree(&tmp.join("src"));
+    std::os::unix::fs::symlink(
+        tmp.join("src").join("a.txt"),
+        tmp.join("src").join("linked.txt"),
+    )
+    .unwrap();
+    let archive = tmp.join("out.gts");
+    let out = gts(&[
+        "pack",
+        tmp.join("src").to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("symlink"), "stderr: {stderr}");
+}
+
+#[cfg(unix)]
+#[test]
+fn diff_refuses_symlink_entry() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    make_tree(&tmp.join("src"));
+    let archive = tmp.join("out.gts");
+    let out = gts(&[
+        "pack",
+        tmp.join("src").to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+    std::os::unix::fs::symlink(
+        tmp.join("src").join("a.txt"),
+        tmp.join("src").join("linked.txt"),
+    )
+    .unwrap();
+    let out = gts(&[
+        "diff",
+        archive.to_str().unwrap(),
+        tmp.join("src").to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("symlink"), "stderr: {stderr}");
 }
 
 #[test]

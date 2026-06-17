@@ -62,13 +62,25 @@ def _safe_archive_path(name: str) -> None:
     if not name:
         msg = "empty archive path"
         raise ValueError(msg)
-    if name.startswith("/"):
-        msg = f"absolute path not allowed in archive: {name}"
+    normalized = name.replace("\\", "/")
+    if (len(name) >= 2 and name[1] == ":" and name[0].isalpha()) or (
+        normalized.startswith("/")
+    ):
+        msg = f"absolute or drive-relative path not allowed in archive: {name}"
         raise ValueError(msg)
-    for part in name.split("/"):
+    parts = normalized.split("/")
+    for part in parts:
         if part == "..":
             msg = f"path traversal not allowed in archive: {name}"
             raise ValueError(msg)
+    if "\\" in name:
+        msg = f"backslash path separator not allowed in archive: {name}"
+        raise ValueError(msg)
+    if any(part in {"", "."} for part in parts):
+        msg = (
+            f"empty or current-directory path component not allowed in archive: {name}"
+        )
+        raise ValueError(msg)
 
 
 def _resolve_sources(sources: Iterable[Path]) -> list[tuple[Path, str]]:
@@ -87,7 +99,11 @@ def _resolve_sources(sources: Iterable[Path]) -> list[tuple[Path, str]]:
         seen.add(relpath)
         entries.append((fspath, relpath))
 
-    for src in sources:
+    for raw_src in sources:
+        src = Path(raw_src)
+        if src.is_symlink():
+            msg = f"symlink not supported: {src}"
+            raise ValueError(msg)
         src = src.resolve()
         if not src.exists():
             msg = f"source does not exist: {src}"
@@ -97,9 +113,17 @@ def _resolve_sources(sources: Iterable[Path]) -> list[tuple[Path, str]]:
             _safe_archive_path(name)
             _add_entry(src, name)
         elif src.is_dir():
-            for root, _dirs, files in os.walk(src):
+            for root, dirs, files in os.walk(src):
+                for dname in list(dirs):
+                    dpath = Path(root) / dname
+                    if dpath.is_symlink():
+                        msg = f"symlink not supported: {dpath}"
+                        raise ValueError(msg)
                 for fname in files:
                     fspath = Path(root) / fname
+                    if fspath.is_symlink():
+                        msg = f"symlink not supported: {fspath}"
+                        raise ValueError(msg)
                     relpath = fspath.relative_to(src).as_posix()
                     _safe_archive_path(relpath)
                     _add_entry(fspath, relpath)
@@ -291,13 +315,7 @@ def _read_file_entries(graph: Graph) -> dict[str, dict[str, object]]:
 
 def _dest_path(dest: Path, archive_path: str) -> Path:
     """Resolve an archive path under dest, refusing traversal."""
-    if archive_path.startswith("/"):
-        msg = f"absolute path in archive: {archive_path}"
-        raise ValueError(msg)
-    for part in archive_path.split("/"):
-        if part == "..":
-            msg = f"path traversal in archive: {archive_path}"
-            raise ValueError(msg)
+    _safe_archive_path(archive_path)
     target = (dest / archive_path).resolve()
     dest_resolved = dest.resolve()
     if not target.is_relative_to(dest_resolved):
@@ -381,9 +399,17 @@ def diff(graph: Graph, directory: Path) -> list[str]:
         raise ValueError(msg)
 
     disk_digests: dict[str, str] = {}
-    for root, _dirs, files in os.walk(directory):
+    for root, dirs, files in os.walk(directory):
+        for dname in list(dirs):
+            dpath = Path(root) / dname
+            if dpath.is_symlink():
+                msg = f"symlink not supported: {dpath}"
+                raise ValueError(msg)
         for fname in files:
             fspath = Path(root) / fname
+            if fspath.is_symlink():
+                msg = f"symlink not supported: {fspath}"
+                raise ValueError(msg)
             relpath = fspath.relative_to(directory).as_posix()
             disk_digests[relpath] = digest_str(fspath.read_bytes())
 
@@ -398,4 +424,5 @@ def diff(graph: Graph, directory: Path) -> list[str]:
     for path in sorted(archive_paths & disk_paths):
         if archive_digests.get(path) != disk_digests.get(path):
             lines.append(f"modified: {path}")
+    lines.sort()
     return lines

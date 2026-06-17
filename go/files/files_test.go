@@ -6,6 +6,7 @@ package files
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -28,6 +29,26 @@ func makeTree(t *testing.T, root string) {
 	if err := os.WriteFile(filepath.Join(root, "subdir", "b.txt"), []byte("world"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func graphWithArchivePath(t *testing.T, archivePath string) *model.Graph {
+	t.Helper()
+	payload := []byte("path-test")
+	digest := writer.DigestString(payload)
+
+	w := writer.New("files")
+	w.AddTerms([]model.Term{
+		{Kind: model.Iri, Value: "https://w3id.org/gts/files#FileEntry"},
+		{Kind: model.Iri, Value: "https://w3id.org/gts/files#path"},
+		{Kind: model.Iri, Value: "https://w3id.org/gts/files#digest"},
+		{Kind: model.Iri, Value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
+		{Kind: model.Bnode, Value: "e0"},
+		{Kind: model.Literal, Value: archivePath},
+		{Kind: model.Literal, Value: digest},
+	})
+	w.AddQuads([]model.Quad{{S: 4, P: 3, O: 0}, {S: 4, P: 1, O: 5}, {S: 4, P: 2, O: 6}})
+	w.AddBlob(payload, "", "")
+	return reader.Read(w.ToBytes(), true, nil)
 }
 
 func TestPackUnpackRoundTripBitForBit(t *testing.T) {
@@ -91,37 +112,67 @@ func TestPackDeduplicatesIdenticalContent(t *testing.T) {
 
 func TestUnpackRefusesTraversal(t *testing.T) {
 	tmp := t.TempDir()
-	archive := filepath.Join(tmp, "traversal.gts")
-
-	payload := []byte("traversal-test")
-	digest := writer.DigestString(payload)
-
-	w := writer.New("files")
-	w.AddTerms([]model.Term{
-		{Kind: model.Iri, Value: "https://w3id.org/gts/files#FileEntry"},
-		{Kind: model.Iri, Value: "https://w3id.org/gts/files#path"},
-		{Kind: model.Iri, Value: "https://w3id.org/gts/files#digest"},
-		{Kind: model.Iri, Value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
-		{Kind: model.Bnode, Value: "e0"},
-		{Kind: model.Literal, Value: "../escape.txt"},
-		{Kind: model.Literal, Value: digest},
-	})
-	w.AddQuads([]model.Quad{{S: 4, P: 3, O: 0}, {S: 4, P: 1, O: 5}, {S: 4, P: 2, O: 6}})
-	w.AddBlob(payload, "", "")
-	//nolint:gosec // test archive written to a temp path.
-	if err := os.WriteFile(archive, w.ToBytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	//nolint:gosec // test reads back the archive it just wrote to a temp path.
-	data, err := os.ReadFile(archive)
-	if err != nil {
-		t.Fatal(err)
-	}
-	g := reader.Read(data, true, nil)
+	g := graphWithArchivePath(t, "../escape.txt")
 	if err := Unpack(g, filepath.Join(tmp, "dst"), false); err == nil {
 		t.Fatal("expected traversal refusal")
 	} else if !contains(err.Error(), "traversal") && !contains(err.Error(), "escapes") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestUnpackRefusesWindowsStylePaths(t *testing.T) {
+	tmp := t.TempDir()
+	for _, tc := range []struct {
+		path string
+		want string
+	}{
+		{path: `..\..\etc\passwd`, want: "traversal"},
+		{path: `C:\secret.txt`, want: "drive-relative"},
+	} {
+		g := graphWithArchivePath(t, tc.path)
+		if err := Unpack(g, filepath.Join(tmp, "dst"), false); err == nil {
+			t.Fatalf("expected refusal for %s", tc.path)
+		} else if !contains(err.Error(), tc.want) {
+			t.Fatalf("unexpected error for %s: %v", tc.path, err)
+		}
+	}
+}
+
+func TestPackRefusesSymlinkEntry(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation requires privileges on many Windows hosts")
+	}
+	tmp := t.TempDir()
+	src := filepath.Join(tmp, "src")
+	makeTree(t, src)
+	if err := os.Symlink(filepath.Join(src, "a.txt"), filepath.Join(src, "linked.txt")); err != nil {
+		t.Skipf("symlink creation unavailable: %v", err)
+	}
+	if _, err := Pack([]string{src}); err == nil {
+		t.Fatal("expected symlink refusal")
+	} else if !contains(err.Error(), "symlink") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestDiffRefusesSymlinkEntry(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation requires privileges on many Windows hosts")
+	}
+	tmp := t.TempDir()
+	src := filepath.Join(tmp, "src")
+	makeTree(t, src)
+	archive, err := Pack([]string{src})
+	if err != nil {
+		t.Fatalf("pack failed: %v", err)
+	}
+	g := reader.Read(archive, true, nil)
+	if err := os.Symlink(filepath.Join(src, "a.txt"), filepath.Join(src, "linked.txt")); err != nil {
+		t.Skipf("symlink creation unavailable: %v", err)
+	}
+	if _, err := Diff(g, src); err == nil {
+		t.Fatal("expected symlink refusal")
+	} else if !contains(err.Error(), "symlink") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

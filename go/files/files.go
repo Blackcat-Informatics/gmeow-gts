@@ -47,15 +47,30 @@ func safeArchivePath(name string) error {
 	if name == "" {
 		return fmt.Errorf("empty archive path")
 	}
-	if strings.HasPrefix(name, "/") {
-		return fmt.Errorf("absolute path not allowed in archive: %s", name)
+	normalized := strings.ReplaceAll(name, "\\", "/")
+	if isDriveRelative(name) || strings.HasPrefix(normalized, "/") {
+		return fmt.Errorf("absolute or drive-relative path not allowed in archive: %s", name)
 	}
-	for _, part := range strings.Split(name, "/") {
+	parts := strings.Split(normalized, "/")
+	for _, part := range parts {
 		if part == ".." {
 			return fmt.Errorf("path traversal not allowed in archive: %s", name)
 		}
 	}
+	if strings.Contains(name, "\\") {
+		return fmt.Errorf("backslash path separator not allowed in archive: %s", name)
+	}
+	for _, part := range parts {
+		if part == "" || part == "." {
+			return fmt.Errorf("empty or current-directory path component not allowed in archive: %s", name)
+		}
+	}
 	return nil
+}
+
+func isDriveRelative(name string) bool {
+	return len(name) >= 2 && name[1] == ':' &&
+		(('A' <= name[0] && name[0] <= 'Z') || ('a' <= name[0] && name[0] <= 'z'))
 }
 
 // walkDirSorted returns all regular files under dir, sorted, rejecting symlinks.
@@ -85,9 +100,12 @@ func resolveSources(sources []string) ([][2]string, error) {
 	var entries [][2]string
 	seen := make(map[string]struct{})
 	for _, src := range sources {
-		info, err := os.Stat(src)
+		info, err := os.Lstat(src)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", src, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return nil, fmt.Errorf("symlink not supported: %s", src)
 		}
 		if info.IsDir() {
 			files, err := walkDirSorted(src)
@@ -109,7 +127,7 @@ func resolveSources(sources []string) ([][2]string, error) {
 				seen[relpath] = struct{}{}
 				entries = append(entries, [2]string{fpath, relpath})
 			}
-		} else {
+		} else if info.Mode().IsRegular() {
 			name := filepath.Base(src)
 			if err := safeArchivePath(name); err != nil {
 				return nil, err
@@ -119,6 +137,8 @@ func resolveSources(sources []string) ([][2]string, error) {
 			}
 			seen[name] = struct{}{}
 			entries = append(entries, [2]string{src, name})
+		} else {
+			return nil, fmt.Errorf("unsupported source type: %s", src)
 		}
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i][1] < entries[j][1] })
@@ -356,13 +376,8 @@ func readFileEntries(g *model.Graph) (map[string]map[string]string, error) {
 
 // destPath returns the safe filesystem target for an archive path under dest.
 func destPath(dest, archivePath string) (string, error) {
-	if strings.HasPrefix(archivePath, "/") {
-		return "", fmt.Errorf("absolute path in archive: %s", archivePath)
-	}
-	for _, part := range strings.Split(archivePath, "/") {
-		if part == ".." {
-			return "", fmt.Errorf("path traversal in archive: %s", archivePath)
-		}
+	if err := safeArchivePath(archivePath); err != nil {
+		return "", err
 	}
 	destAbs, err := filepath.Abs(dest)
 	if err != nil {
