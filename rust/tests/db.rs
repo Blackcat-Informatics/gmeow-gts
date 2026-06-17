@@ -89,6 +89,7 @@ fn sqlite_query(db: &str, sql: &str) -> String {
     )
 }
 
+#[cfg(feature = "duckdb")]
 fn duckdb_query(db: &str, sql: &str) -> String {
     stdout(
         Command::new("duckdb")
@@ -174,6 +175,22 @@ fn to_sqlite_preserves_existing_output_when_tool_fails() {
     assert_eq!(std::fs::read(&db).unwrap(), b"keep me");
 }
 
+#[cfg(not(feature = "duckdb"))]
+#[test]
+fn duckdb_commands_require_feature() {
+    let db = tmpdir().join("minimal.duckdb");
+    let out = gts(&[
+        "to-duckdb",
+        vectors().join("01-minimal.gts").to_str().unwrap(),
+        db.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8(out.stderr).unwrap();
+    assert!(err.contains("optional DuckDB/Parquet exports are disabled"));
+    assert!(err.contains("--features duckdb"));
+}
+
+#[cfg(feature = "duckdb")]
 #[test]
 fn to_duckdb_exports_schema_and_rows() {
     if !command_available("duckdb") {
@@ -209,6 +226,7 @@ fn to_duckdb_exports_schema_and_rows() {
     );
 }
 
+#[cfg(feature = "duckdb")]
 #[test]
 fn to_parquet_writes_non_empty_tables() {
     if !command_available("duckdb") {

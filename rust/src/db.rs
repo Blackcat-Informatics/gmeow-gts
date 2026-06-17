@@ -8,8 +8,8 @@
 //! GTS integer term ids intact so query engines can resolve labels lazily.
 //!
 //! To avoid pulling database engines into the core Rust crate, these helpers use
-//! command-line database tools at runtime: `sqlite3` for SQLite and `duckdb` for
-//! DuckDB/Parquet.
+//! command-line database tools at runtime: `sqlite3` for SQLite, plus `duckdb`
+//! for DuckDB/Parquet when the optional `duckdb` feature is enabled.
 
 use std::fmt;
 use std::io::Write;
@@ -35,6 +35,7 @@ const INDEXES: &[&str] = &[
     "CREATE INDEX annot_reifier ON annotations (reifier)",
 ];
 
+#[cfg(feature = "duckdb")]
 const TABLES: &[&str] = &["terms", "quads", "reifiers", "annotations", "blobs"];
 
 /// Export failure with a displayable message suitable for CLI output.
@@ -62,6 +63,7 @@ impl std::error::Error for DbExportError {}
 #[derive(Clone, Copy)]
 enum SqlDialect {
     Sqlite,
+    #[cfg(feature = "duckdb")]
     Duckdb,
 }
 
@@ -74,6 +76,7 @@ struct TableSql {
 }
 
 impl TableSql {
+    #[cfg(feature = "duckdb")]
     fn count(&self, table: &str) -> usize {
         match table {
             "terms" => self.terms.len(),
@@ -137,6 +140,7 @@ fn sql_usize(value: Option<usize>) -> String {
 fn sql_blob(bytes: &[u8], dialect: SqlDialect) -> String {
     match dialect {
         SqlDialect::Sqlite => format!("X'{}'", hex(bytes)),
+        #[cfg(feature = "duckdb")]
         SqlDialect::Duckdb => format!("from_hex('{}')", hex(bytes)),
     }
 }
@@ -247,6 +251,7 @@ fn run_sql_tool(program: &str, args: &[&str], script: &str) -> Result<(), DbExpo
     )))
 }
 
+#[cfg(feature = "duckdb")]
 fn sql_path(path: &Path) -> String {
     path.to_string_lossy().replace('\'', "''")
 }
@@ -323,6 +328,7 @@ pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExp
 }
 
 /// Write a folded graph to a DuckDB database.
+#[cfg(feature = "duckdb")]
 pub fn to_duckdb(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
     let rows = table_sql(graph, SqlDialect::Duckdb);
@@ -332,6 +338,7 @@ pub fn to_duckdb(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExp
 }
 
 /// Write one Parquet file per non-empty relational table.
+#[cfg(feature = "duckdb")]
 pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBuf>, DbExportError> {
     let target = out_dir.as_ref();
     std::fs::create_dir_all(target)

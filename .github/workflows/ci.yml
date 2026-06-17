@@ -84,11 +84,13 @@ jobs:
         run: |
           cargo clippy --manifest-path visual-hashing/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features duckdb -- -D warnings
 
       - name: Conformance corpus + CLI tests
         run: |
           cargo test --manifest-path visual-hashing/Cargo.toml
           cargo test --manifest-path rust/Cargo.toml
+          cargo test --manifest-path rust/Cargo.toml --features duckdb
 
       - name: Library builds for wasm32 (wasm-friendly claim)
         if: runner.os == 'Linux'
