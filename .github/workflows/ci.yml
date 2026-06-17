@@ -101,6 +101,45 @@ jobs:
           cargo build --manifest-path visual-hashing/Cargo.toml --lib --target wasm32-unknown-unknown
           cargo build --manifest-path rust/Cargo.toml --lib --target wasm32-unknown-unknown
 
+  # Downstream Rust API contract: ontology validator compiles against this crate.
+  downstream-gmeow-ontology:
+    name: downstream gmeow-ontology Rust API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gmeow-gts
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          path: gmeow-gts
+          persist-credentials: false
+
+      - name: Checkout gmeow-ontology
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          repository: Blackcat-Informatics/gmeow-ontology
+          path: gmeow-ontology
+          persist-credentials: false
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          workspaces: |
+            gmeow-gts/rust
+            gmeow-gts/visual-hashing
+            gmeow-ontology
+
+      - name: Patch downstream dependency to this checkout
+        working-directory: gmeow-ontology
+        run: |
+          set -euo pipefail
+          cargo add gmeow-gts --path "$GITHUB_WORKSPACE/gmeow-gts/rust" --package gmeow-validate
+
+      - name: Check gmeow-validate against current gmeow-gts
+        working-directory: gmeow-ontology
+        run: cargo check -p gmeow-validate
+
   # Go engine: build + test on every OS; staticcheck/golangci once on Linux.
   go:
     strategy:
