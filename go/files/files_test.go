@@ -138,6 +138,37 @@ func TestUnpackRefusesWindowsStylePaths(t *testing.T) {
 	}
 }
 
+func TestUnpackRefusesDestinationSymlinkEscape(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation requires privileges on many Windows hosts")
+	}
+	tmp := t.TempDir()
+	dest := filepath.Join(tmp, "dst")
+	outside := filepath.Join(tmp, "outside")
+	//nolint:gosec // test fixtures need world-readable permissions.
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	//nolint:gosec // test fixtures need world-readable permissions.
+	if err := os.MkdirAll(outside, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(dest, "link")); err != nil {
+		t.Skipf("symlink creation unavailable: %v", err)
+	}
+	g := graphWithArchivePath(t, "link/escape.txt")
+	if err := Unpack(g, dest, false); err == nil {
+		t.Fatal("expected destination symlink escape refusal")
+	} else if !contains(err.Error(), "escapes") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(outside, "escape.txt")); err == nil {
+		t.Fatal("unpack wrote through destination symlink")
+	} else if !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+}
+
 func TestPackRefusesSymlinkEntry(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink creation requires privileges on many Windows hosts")

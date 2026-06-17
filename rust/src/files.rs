@@ -342,14 +342,28 @@ fn read_file_entries(graph: &Graph) -> Result<BTreeMap<String, BTreeMap<String, 
 
 fn dest_path(dest: &Path, archive_path: &str) -> Result<std::path::PathBuf, String> {
     safe_archive_path(archive_path)?;
-    // Resolve the destination itself (e.g. `/tmp` -> `/private/tmp` on macOS)
-    // before joining the relative archive path, so symlinked parents do not
-    // trigger false-positive traversal errors. Then resolve the target if it
-    // already exists to catch symlinked escapes inside the destination.
-    let dest_canon = dest.canonicalize().unwrap_or_else(|_| dest.to_path_buf());
+    // Resolve the destination itself (e.g. `/tmp` -> `/private/tmp` on macOS),
+    // then resolve the closest existing target ancestor so an existing
+    // symlinked directory below the destination cannot redirect writes.
+    let dest_canon = dest
+        .canonicalize()
+        .map_err(|e| format!("resolve destination {dest:?}: {e}"))?;
     let target = dest_canon.join(archive_path);
-    let target_canon = target.canonicalize().unwrap_or_else(|_| target.clone());
-    if !target_canon.starts_with(&dest_canon) {
+
+    let mut ancestor = target
+        .parent()
+        .unwrap_or(dest_canon.as_path())
+        .to_path_buf();
+    while !ancestor.exists() {
+        let Some(parent) = ancestor.parent() else {
+            break;
+        };
+        ancestor = parent.to_path_buf();
+    }
+    let ancestor_canon = ancestor
+        .canonicalize()
+        .map_err(|e| format!("resolve target ancestor {ancestor:?}: {e}"))?;
+    if !ancestor_canon.starts_with(&dest_canon) {
         return Err(format!("path escapes destination: {archive_path}"));
     }
     Ok(target)

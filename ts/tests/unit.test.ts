@@ -53,10 +53,7 @@ test("codec gzip round-trip", () => {
 });
 
 test("codec zstd decodes the zstd corpus vector", () => {
-    const path = resolve(
-        __dirname,
-        "../../../vectors/02-zstd-frame.gts",
-    );
+    const path = resolve(__dirname, "../../../vectors/02-zstd-frame.gts");
     const g = Read(readFileSync(path), false);
     assert.equal(g.diagnostics.length, 0);
     assert.ok(g.quads.length > 0);
@@ -140,7 +137,7 @@ test("reader allows clean multi-segment file", () => {
     assert.equal(g.quads.length, 2);
 });
 
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { unpack } from "../src/files.js";
@@ -211,4 +208,22 @@ test("unpack rejects drive-relative archive paths", () => {
     const g = filesGraphWithPath("C:\\\\secret.txt");
     const dest = mkdtempSync(join(tmpdir(), "gts-unpack-"));
     assert.throws(() => unpack(g, dest), /absolute or drive-relative path/);
+});
+
+test("unpack rejects destination symlink escapes", (t) => {
+    const g = filesGraphWithPath("link/escape.txt");
+    const root = mkdtempSync(join(tmpdir(), "gts-unpack-symlink-"));
+    const dest = join(root, "dst");
+    const outside = join(root, "outside");
+    mkdirSync(dest);
+    mkdirSync(outside);
+    try {
+        symlinkSync(outside, join(dest, "link"), "dir");
+    } catch (err) {
+        t.skip(`symlink creation unavailable: ${err}`);
+        return;
+    }
+
+    assert.throws(() => unpack(g, dest), /path escapes destination/);
+    assert.equal(existsSync(join(outside, "escape.txt")), false);
 });

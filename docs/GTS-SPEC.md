@@ -1244,7 +1244,7 @@ _:entry a files:FileEntry ;
   diff tools MUST refuse absolute paths, Windows drive-relative paths, `..` components, `.`
   components, empty components, and backslash separators before touching file bytes.
 - Modification times are normalised to UTC and serialised as `xsd:dateTime` with second
-  precision (fractional seconds MAY be retained when present on the source).
+  precision. Fractional seconds MUST be truncated before emission.
 - Only POSIX mode and mtime are recorded; ownership, uid/gid, xattrs, and ACLs are deliberately
   excluded — they are tar's portability tarpit.
 - Symlinks are deliberately excluded. `pack` and `diff` MUST refuse symlink entries rather than
@@ -1253,10 +1253,9 @@ _:entry a files:FileEntry ;
 
 **Inline and external blobs.** A file's bytes MAY be carried as an inline `blob` frame
 (`"d"` present, digest = BLAKE3(decoded `"d")`) or as an external blob (`"d"` absent,
-`pub.digest` names bytes held elsewhere, §12). By default all files are inline; a writer MAY
-store files larger than a configured threshold externally by reference. Identical bytes
-appearing under multiple paths are stored once by convention. The standard `gts pack` command
-emits inline blobs only unless an implementation documents an explicit external-blob mode.
+`pub.digest` names bytes held elsewhere, §12). Identical bytes appearing under multiple paths
+are stored once by convention. The standard `gts pack` command emits inline blobs only.
+Implementations MAY add an explicit external-blob mode, but it MUST be opt-in and documented.
 `gts unpack` MUST refuse an unsuppressed `FileEntry` whose inline blob is absent; `gts diff`
 MAY compare by `files:digest` without fetching external bytes.
 

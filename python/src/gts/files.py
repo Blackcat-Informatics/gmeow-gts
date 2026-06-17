@@ -394,6 +394,10 @@ def diff(graph: Graph, directory: Path) -> list[str]:
     entries = _read_file_entries(graph)
     archive_digests = {p: e.get("digest") for p, e in entries.items()}
 
+    if directory.is_symlink():
+        msg = f"symlink not supported: {directory}"
+        raise ValueError(msg)
+
     if not directory.exists():
         msg = f"diff destination does not exist: {directory}"
         raise ValueError(msg)

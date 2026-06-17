@@ -386,18 +386,41 @@ func destPath(dest, archivePath string) (string, error) {
 	}
 	destCanon, err := filepath.EvalSymlinks(destAbs)
 	if err != nil {
-		destCanon = destAbs
+		return "", fmt.Errorf("resolve destination symlinks: %w", err)
 	}
 	target := filepath.Join(destCanon, filepath.FromSlash(archivePath))
-	targetCanon, err := filepath.EvalSymlinks(target)
-	if err != nil {
-		targetCanon = target
+
+	ancestor := filepath.Dir(target)
+	for {
+		if _, err := os.Lstat(ancestor); err == nil {
+			break
+		} else if !os.IsNotExist(err) {
+			return "", fmt.Errorf("resolve target ancestor: %w", err)
+		}
+		parent := filepath.Dir(ancestor)
+		if parent == ancestor {
+			break
+		}
+		ancestor = parent
 	}
-	prefix := filepath.Clean(destCanon) + string(os.PathSeparator)
-	if !strings.HasPrefix(filepath.Clean(targetCanon)+string(os.PathSeparator), prefix) {
+	ancestorCanon, err := filepath.EvalSymlinks(ancestor)
+	if err != nil {
+		return "", fmt.Errorf("resolve target ancestor symlinks: %w", err)
+	}
+	if !pathWithin(destCanon, ancestorCanon) {
 		return "", fmt.Errorf("path escapes destination: %s", archivePath)
 	}
 	return target, nil
+}
+
+func pathWithin(base, candidate string) bool {
+	rel, err := filepath.Rel(base, candidate)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." &&
+		!strings.HasPrefix(rel, ".."+string(os.PathSeparator)) &&
+		!filepath.IsAbs(rel))
 }
 
 // suppressedBlobDigests returns the set of blob digests targeted by suppressions.

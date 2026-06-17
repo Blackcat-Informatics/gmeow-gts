@@ -10,8 +10,17 @@ import {
     chmodSync,
     utimesSync,
     lstatSync,
+    realpathSync,
 } from "node:fs";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import {
+    basename,
+    dirname,
+    isAbsolute,
+    join,
+    relative,
+    resolve,
+    sep,
+} from "node:path";
 import * as wire from "./wire.js";
 import { Writer, digestString } from "./writer.js";
 import { Graph, Quad, Term, TermKind } from "./model.js";
@@ -318,7 +327,29 @@ export function suppressedBlobDigests(g: Graph): Set<string> {
 
 function destPath(dest: string, archivePath: string): string {
     safeArchivePath(archivePath);
-    return resolve(dest, archivePath);
+    const destCanon = realpathSync(dest);
+    const target = resolve(destCanon, archivePath);
+
+    let ancestor = dirname(target);
+    while (true) {
+        try {
+            lstatSync(ancestor);
+            break;
+        } catch (err) {
+            const code = (err as NodeJS.ErrnoException).code;
+            if (code !== "ENOENT" && code !== "ENOTDIR") throw err;
+            const parent = dirname(ancestor);
+            if (parent === ancestor) break;
+            ancestor = parent;
+        }
+    }
+
+    const ancestorCanon = realpathSync(ancestor);
+    const rel = relative(destCanon, ancestorCanon);
+    if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+        throw new Error(`path escapes destination: ${archivePath}`);
+    }
+    return target;
 }
 
 /** Extract FileEntry quads from a folded graph into dest. */
@@ -335,9 +366,6 @@ export function unpack(
         : suppressedBlobDigests(g);
 
     mkdirSync(dest, { recursive: true });
-    const destCanon = resolve(dest);
-    const prefix = destCanon.replace(/\/$/, "") + sep;
-
     for (const [path, entry] of Object.entries(entries)) {
         const target = destPath(dest, path);
         const digest = entry.digest;
@@ -350,10 +378,6 @@ export function unpack(
             throw new Error(`integrity failure for ${path}: ${digest}`);
         }
 
-        const targetCanon = resolve(target);
-        if (!targetCanon.startsWith(prefix)) {
-            throw new Error(`path escapes destination: ${path}`);
-        }
         const parent = dirname(target);
         if (parent !== "" && parent !== ".") {
             mkdirSync(parent, { recursive: true });

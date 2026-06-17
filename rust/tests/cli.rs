@@ -342,6 +342,31 @@ fn unpack_refuses_windows_style_paths() {
 
 #[cfg(unix)]
 #[test]
+fn unpack_refuses_destination_symlink_escape() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    let dest = tmp.join("dst");
+    let outside = tmp.join("outside");
+    std::fs::create_dir_all(&dest).unwrap();
+    std::fs::create_dir_all(&outside).unwrap();
+    std::os::unix::fs::symlink(&outside, dest.join("link")).unwrap();
+    let archive = tmp.join("symlink-escape.gts");
+    std::fs::write(&archive, files_archive_with_path("link/escape.txt")).unwrap();
+
+    let out = gts(&[
+        "unpack",
+        archive.to_str().unwrap(),
+        "-C",
+        dest.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("escapes"), "stderr: {stderr}");
+    assert!(!outside.join("escape.txt").exists());
+}
+
+#[cfg(unix)]
+#[test]
 fn pack_refuses_symlink_entry() {
     let tmp = tmpdir();
     let _ = std::fs::remove_dir_all(&tmp);

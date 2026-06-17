@@ -212,6 +212,24 @@ def test_unpack_refuses_windows_style_paths(
     assert "drive-relative" in capsys.readouterr().err
 
 
+def test_unpack_refuses_destination_symlink_escape(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    dest = tmp_path / "dst"
+    outside = tmp_path / "outside"
+    dest.mkdir()
+    outside.mkdir()
+    try:
+        (dest / "link").symlink_to(outside, target_is_directory=True)
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    archive = _files_archive_with_path(tmp_path, "link/escape.txt")
+    assert main(["unpack", str(archive), "-C", str(dest)]) == 1
+    assert "escapes" in capsys.readouterr().err
+    assert not (outside / "escape.txt").exists()
+
+
 def test_pack_refuses_symlink_entry(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
