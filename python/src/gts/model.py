@@ -4,8 +4,8 @@
 
 A :class:`Term` is a single RDF term carried by integer id (§7.1 of the spec). The
 folded :class:`Graph` is the deterministic replay of the append-only frame log
-(§7.5): four id-keyed tables, content-addressed blobs, plus any opaque/damaged
-nodes and reader diagnostics.
+(§7.5): terms, quads, reifiers, annotations, content-addressed blobs, metadata,
+suppressions, opaque nodes, signatures, and reader diagnostics.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ class Term:
 
     Attributes:
         kind: The term kind.
-        value: IRI string, literal lexical form, or blank-node label (file-local).
+        value: IRI string, literal lexical form, or blank-node label (scope-local).
         datatype: Term-id of the literal's datatype IRI, when explicit.
         lang: Literal language tag (BCP 47).
         reifier: Term-id of the reifier of a quoted triple (``kind == TRIPLE``).

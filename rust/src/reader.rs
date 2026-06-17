@@ -5,7 +5,7 @@
 //! log — mirror of `src/gmeow_tools/gts/reader.py`.
 //!
 //! Implements the Baseline Reader contract (§2.1): chain verification (§9.1),
-//! the four-table fold (§7.5), opaque/damaged degradation (§7.6), torn-append
+//! the value-union fold (§7.5), opaque/damaged degradation (§7.6), torn-append
 //! detection (§3), and the canonical diagnostics (§2.3). This baseline
 //! carries no keys: `sig` frames record as `"unverified"` and
 //! `encrypt`-class frames degrade to `missing-key` opaque nodes.
@@ -933,7 +933,7 @@ fn layout_check(
 enum InternKey {
     Iri(Option<String>),
     Lit(Option<String>, String, Option<String>),
-    Bnode(usize, Option<String>),
+    Bnode(usize, Option<String>, Option<usize>),
     Qt(Option<usize>),
 }
 
@@ -951,8 +951,13 @@ impl Unioner {
             TermKind::Literal => {
                 InternKey::Lit(t.value.clone(), seg.datatype_iri(t), t.lang.clone())
             }
-            // segment-local, never merged
-            TermKind::Bnode => InternKey::Bnode(seg_idx, t.value.clone()),
+            // Non-empty labels are segment-local; absent/empty labels are fresh
+            // anonymous nodes keyed by their source term entry (§7.1).
+            TermKind::Bnode => {
+                let label = t.value.as_ref().filter(|v| !v.is_empty()).cloned();
+                let anon_tid = label.is_none().then_some(tid);
+                InternKey::Bnode(seg_idx, label, anon_tid)
+            }
             // Quoted triple: identity is the reifier's interned identity.
             TermKind::Triple => InternKey::Qt(t.reifier.map(|rf| self.map_term(seg, seg_idx, rf))),
         }

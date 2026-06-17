@@ -31,7 +31,7 @@ export function termKindFromWire(k: number): TermKind {
 /** A single RDF term carried by append-order id. */
 export interface Term {
     kind: TermKind;
-    /** IRI string, literal lexical form, or blank-node label (file-local). */
+    /** IRI string, literal lexical form, or blank-node label (scope-local). */
     value: string;
     /** Term-id of the literal's datatype IRI, when explicit. */
     datatype?: number;

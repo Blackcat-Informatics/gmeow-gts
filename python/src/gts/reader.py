@@ -3,7 +3,7 @@
 """The GTS reader: parse a CBOR Sequence, verify the id/prev chain, fold the log.
 
 Implements the Baseline Reader contract (§2.1): chain verification (§9.1), the
-four-table fold (§7.5), opaque/damaged degradation (§7.6), torn-append detection
+value-union fold (§7.5), opaque/damaged degradation (§7.6), torn-append detection
 (§3), and the canonical diagnostics (§2.3). When a ``keys`` provider is supplied,
 ``sig`` frames are verified (§9.2) and ``encrypt``-class frames are decrypted (§9.3);
 without it, an ``encrypt`` codec degrades to a ``missing-key`` opaque node.
@@ -857,7 +857,9 @@ def _union_segments(segments: list[Graph]) -> Graph:
         if t.kind is TermKind.LITERAL:
             return ("lit", t.value, seg.datatype_iri(t), t.lang)
         if t.kind is TermKind.BNODE:
-            return ("bnode", seg_idx, t.value)  # segment-local, never merged
+            if t.value:
+                return ("bnode", seg_idx, t.value)  # labelled: segment-local
+            return ("bnode", seg_idx, tid)  # anonymous: fresh per term entry
         # Quoted triple: identity is the reifier's interned identity.
         rf = t.reifier
         return ("qt", _map(seg, seg_idx, rf) if rf is not None else None)
