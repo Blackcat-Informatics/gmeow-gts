@@ -21,6 +21,9 @@ use gmeow_gts::mmr::{parse_hex_32, prove_file, verify_proof, Proof};
 use gmeow_gts::model::{Graph, Suppression, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::{read, read_file_segments, FileSegments};
+use gmeow_gts::replication::{
+    heads_json, inventory, missing, missing_json, resume_after, segments_json, MissingStatus,
+};
 use gmeow_gts::verify::{extract_transport_key, format_fingerprint};
 use gmeow_gts::wire::{digest_str, hex};
 
@@ -36,6 +39,12 @@ commands:
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
   prove <file> <frame-id>   emit JSON inclusion proof from an index.mmr root
   verify-proof <proof.json> verify detached proof JSON without the GTS file
+  heads <file>              JSON segment heads and aggregate comparison digest
+  segments <file>           JSON segment byte ranges and layout inventory
+  missing --from-head <head> <file>
+                            JSON byte ranges needed after a peer head
+  resume --after <frame-id> <file>
+                            emit bytes after a verified frame boundary
   extract-key <file>        print the embedded transport key: kid, OpenPGP
                             fingerprint, emojihash, and armored public key (§9.2)
   ls <file>                 list inline blobs: digest, size, declared media type
@@ -88,6 +97,10 @@ fn main() -> ExitCode {
         "verify" => cmd_verify(&args[1..]),
         "prove" => cmd_prove(&args[1..]),
         "verify-proof" => cmd_verify_proof(&args[1..]),
+        "heads" => cmd_heads(&args[1..]),
+        "segments" => cmd_segments(&args[1..]),
+        "missing" => cmd_missing(&args[1..]),
+        "resume" => cmd_resume(&args[1..]),
         "extract-key" => cmd_extract_key(&args[1..]),
         "ls" => cmd_ls(&args[1..]),
         "extract" => cmd_extract(&args[1..]),
@@ -188,6 +201,104 @@ fn cmd_verify_proof(args: &[String]) -> ExitCode {
         }
         Err(e) => {
             eprintln!("gts verify-proof: invalid proof: {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn cmd_heads(args: &[String]) -> ExitCode {
+    let [path] = args else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let data = match load(path) {
+        Ok(data) => data,
+        Err(code) => return code,
+    };
+    let inventory = inventory(&data);
+    print!("{}", heads_json(&inventory));
+    if inventory.has_problems() {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+fn cmd_segments(args: &[String]) -> ExitCode {
+    let [path] = args else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let data = match load(path) {
+        Ok(data) => data,
+        Err(code) => return code,
+    };
+    let inventory = inventory(&data);
+    print!("{}", segments_json(&inventory));
+    if inventory.has_problems() {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+fn cmd_missing(args: &[String]) -> ExitCode {
+    if args.len() != 3 || args[0] != "--from-head" {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    }
+    let from_head = &args[1];
+    let path = &args[2];
+    let from_head = match parse_hex_32(from_head) {
+        Ok(head) => head,
+        Err(e) => {
+            eprintln!("gts missing: invalid peer head: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let data = match load(path) {
+        Ok(data) => data,
+        Err(code) => return code,
+    };
+    let inventory = inventory(&data);
+    let result = missing(&inventory, &from_head);
+    print!("{}", missing_json(&result));
+    if result.status == MissingStatus::Error {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+fn cmd_resume(args: &[String]) -> ExitCode {
+    if args.len() != 3 || args[0] != "--after" {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    }
+    let frame_id = &args[1];
+    let path = &args[2];
+    let frame_id = match parse_hex_32(frame_id) {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("gts resume: invalid frame id: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let data = match load(path) {
+        Ok(data) => data,
+        Err(code) => return code,
+    };
+    match resume_after(&data, &frame_id) {
+        Ok(tail) => {
+            let mut stdout = std::io::stdout();
+            if let Err(e) = std::io::Write::write_all(&mut stdout, tail) {
+                eprintln!("gts resume: cannot write stdout: {e}");
+                return ExitCode::from(2);
+            }
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("gts resume: {e}");
             ExitCode::from(1)
         }
     }

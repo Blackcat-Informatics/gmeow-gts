@@ -41,8 +41,6 @@ def deferred_cli_verbs() -> set[str]:
         if status != "deferred":
             raise ValueError(f"{verb}: advanced CLI status must be deferred")
         verbs.add(verb)
-    if not verbs:
-        raise ValueError("advanced CLI deferral table is empty")
     return verbs
 
 

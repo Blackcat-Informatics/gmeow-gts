@@ -327,6 +327,12 @@ gts verify <file>... [--key KID:HEXPUB]
                                 verify chains + COSE signatures; exit 1 on any
 gts prove <file> <frame-id>      emit detached JSON proof from an index.mmr root
 gts verify-proof <proof.json>    verify detached proof JSON without the GTS file
+gts heads <file>                 emit JSON segment heads and aggregate comparison digest
+gts segments <file>              emit JSON segment byte ranges and layout inventory
+gts missing --from-head <head> <file>
+                                emit JSON byte ranges needed after a peer head
+gts resume --after <frame-id> <file>
+                                emit bytes after a verified frame boundary
 gts extract-key <file>          print the embedded transport/verification key:
                                 kid, OpenPGP fingerprint, emojihash, armored key
 gts ls <file>                   list inline blobs: digest, size, media type
@@ -350,8 +356,9 @@ Exit codes:
 OpenPGP transport key to the same fingerprint and emojihash, and verify COSE signatures
 identically. Library callers can use `gmeow_gts::verify::verify_file` for the same embedded-key
 verification summary without duplicating CLI helper code. Rust also exposes the current
-MMR/proof surface through `Writer::add_index_with_mmr`, `gts prove`, and `gts verify-proof`
-without adding runtime JSON or Merkle-tree dependencies. Rust writers can sign with raw
+MMR/proof surface through `Writer::add_index_with_mmr`, `gts prove`, and `gts verify-proof`,
+and the replication surface through `gts heads`, `gts segments`, `gts missing`, and `gts resume`,
+without adding runtime JSON, Merkle-tree, or replication dependencies. Rust writers can sign with raw
 Ed25519 keys or `Writer::sign_with_openpgp_secret_key`, which accepts the same narrow
 unencrypted Ed25519 OpenPGP secret-key shape as Python `Signer.from_gpg_secret_key` without
 adding a full OpenPGP crate dependency. `from-nq` and the relational

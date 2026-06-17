@@ -33,6 +33,7 @@ pub mod policy;
 #[cfg(feature = "rdf")]
 pub mod rdf;
 pub mod reader;
+pub mod replication;
 pub mod stream;
 pub mod verify;
 pub mod wire;
