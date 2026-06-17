@@ -145,58 +145,67 @@ pub fn verify_file(data: &[u8]) -> VerificationResult {
 pub fn verify_file_with_options(data: &[u8], options: &VerifyOptions) -> VerificationResult {
     let mut errors = Vec::new();
 
-    let (kid, public, raw_public, fingerprint): (String, VerifyingKey, [u8; 32], String) =
-        if let Some(armored) = options.armored_key.as_deref() {
-            match provider_from_armor(armored, None) {
-                Ok(provider) => provider,
-                Err(err) => {
-                    errors.push(format!("cannot load trusted key: {err}"));
-                    return VerificationResult {
-                        ok: false,
-                        errors,
-                        ..VerificationResult::default()
-                    };
-                }
+    let (kid, public, raw_public, fingerprint, graph): (
+        String,
+        VerifyingKey,
+        [u8; 32],
+        String,
+        Option<Graph>,
+    ) = if let Some(armored) = options.armored_key.as_deref() {
+        match provider_from_armor(armored, None) {
+            Ok((kid, public, raw_public, fingerprint)) => {
+                (kid, public, raw_public, fingerprint, None)
             }
-        } else {
-            let first = read(data, true, None);
-            let Some(transport) = extract_transport_key(&first) else {
-                if !options.require_signatures && first.signatures.is_empty() {
-                    return VerificationResult {
-                        ok: true,
-                        frames: first.signatures.len(),
-                        diagnostics: first.diagnostics,
-                        ..VerificationResult::default()
-                    };
-                }
-                errors.push("no gts:transportKey found in file metadata".to_string());
+            Err(err) => {
+                errors.push(format!("cannot load trusted key: {err}"));
                 return VerificationResult {
                     ok: false,
+                    errors,
+                    ..VerificationResult::default()
+                };
+            }
+        }
+    } else {
+        let first = read(data, true, None);
+        let Some(transport) = extract_transport_key(&first) else {
+            if !options.require_signatures && first.signatures.is_empty() {
+                return VerificationResult {
+                    ok: true,
+                    frames: first.signatures.len(),
+                    diagnostics: first.diagnostics,
+                    ..VerificationResult::default()
+                };
+            }
+            errors.push("no gts:transportKey found in file metadata".to_string());
+            return VerificationResult {
+                ok: false,
+                errors,
+                diagnostics: first.diagnostics,
+                frames: first.signatures.len(),
+                signed: first.signatures.len(),
+                ..VerificationResult::default()
+            };
+        };
+        match provider_from_armor(&transport.gpg, Some(&transport.kid)) {
+            Ok((kid, public, raw_public, fingerprint)) => {
+                (kid, public, raw_public, fingerprint, Some(first))
+            }
+            Err(err) => {
+                errors.push(format!("cannot load embedded transport key: {err}"));
+                return VerificationResult {
+                    ok: false,
+                    kid: Some(transport.kid),
                     errors,
                     diagnostics: first.diagnostics,
                     frames: first.signatures.len(),
                     signed: first.signatures.len(),
                     ..VerificationResult::default()
                 };
-            };
-            match provider_from_armor(&transport.gpg, Some(&transport.kid)) {
-                Ok(provider) => provider,
-                Err(err) => {
-                    errors.push(format!("cannot load embedded transport key: {err}"));
-                    return VerificationResult {
-                        ok: false,
-                        kid: Some(transport.kid),
-                        errors,
-                        diagnostics: first.diagnostics,
-                        frames: first.signatures.len(),
-                        signed: first.signatures.len(),
-                        ..VerificationResult::default()
-                    };
-                }
             }
-        };
+        }
+    };
 
-    let mut graph = read(data, true, None);
+    let mut graph = graph.unwrap_or_else(|| read(data, true, None));
     verify_signatures(&mut graph.signatures, |candidate| {
         (candidate == kid).then_some(public)
     });
