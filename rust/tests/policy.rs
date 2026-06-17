@@ -181,6 +181,22 @@ fn opaque_profile_requires_pseudonymous_recipient_kids() {
     assert!(!findings
         .iter()
         .any(|f| f.code == "OpaqueRecipientKidPublic"));
+
+    let custom_policy = TrustPolicy {
+        pseudonymous_kid_pattern: "^did:court$".to_string(),
+        ..TrustPolicy::default()
+    };
+    graph.opaque[0].recipients = Some(vec![Value::Map(vec![("kid".into(), "did:court".into())])]);
+    let findings = evaluate_profile_policy(&graph, Some(&custom_policy), None);
+    assert!(!findings
+        .iter()
+        .any(|f| f.code == "OpaqueRecipientKidPublic"));
+
+    graph.opaque[0].recipients = Some(vec![Value::Map(vec![("kid".into(), "did:other".into())])]);
+    let findings = evaluate_profile_policy(&graph, Some(&custom_policy), None);
+    assert!(findings
+        .iter()
+        .any(|f| f.code == "OpaqueRecipientKidPublic"));
 }
 
 #[test]

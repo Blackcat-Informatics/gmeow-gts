@@ -83,11 +83,11 @@ fn visit(
         if seen.contains(&digest) {
             continue;
         }
-        let Some(nested_bytes) = graph
+        let Some(nested_len) = graph
             .blobs
             .iter()
             .find(|(d, _)| d == &digest)
-            .map(|(_, bytes)| bytes.clone())
+            .map(|(_, bytes)| bytes.len())
         else {
             continue;
         };
@@ -99,22 +99,29 @@ fn visit(
             });
             continue;
         }
-        if nested_bytes.len() > *remaining {
+        if nested_len > *remaining {
             graph.diagnostics.push(Diagnostic {
                 code: "RecursionLimit".to_string(),
                 detail: format!(
                     "nested GTS decoded-size budget exceeded at {digest}: {} > {}",
-                    nested_bytes.len(),
-                    *remaining
+                    nested_len, *remaining
                 ),
                 frame_index: None,
             });
             continue;
         }
-        *remaining -= nested_bytes.len();
+        *remaining -= nested_len;
         seen.insert(digest.clone());
+        let Some(nested_bytes) = graph
+            .blobs
+            .iter()
+            .find(|(d, _)| d == &digest)
+            .map(|(_, bytes)| bytes.as_slice())
+        else {
+            continue;
+        };
         let child = visit(
-            &nested_bytes,
+            nested_bytes,
             depth + 1,
             max_depth,
             remaining,

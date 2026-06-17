@@ -62,16 +62,58 @@ impl TrustPolicy {
     ///
     /// The default pattern is implemented as the documented
     /// `anon:[0-9a-fA-F]{32,}` shape without pulling in a regex dependency. If
-    /// `pseudonymous_kid_pattern` is customized, it is matched literally.
+    /// `pseudonymous_kid_pattern` is customized, dependency-free matching
+    /// supports exact strings and anchored literal full-match patterns such as
+    /// `^did:example:recipient$`.
     pub fn is_pseudonymous_recipient(&self, kid: &str) -> bool {
         if self.pseudonymous_kid_pattern != DEFAULT_PSEUDONYMOUS_KID_PATTERN {
-            return kid == self.pseudonymous_kid_pattern;
+            return custom_pseudonymous_pattern_matches(&self.pseudonymous_kid_pattern, kid);
         }
         let Some(hex) = kid.strip_prefix("anon:") else {
             return false;
         };
         hex.len() >= 32 && hex.bytes().all(|b| b.is_ascii_hexdigit())
     }
+}
+
+fn custom_pseudonymous_pattern_matches(pattern: &str, kid: &str) -> bool {
+    let Some(inner) = pattern
+        .strip_prefix('^')
+        .and_then(|value| value.strip_suffix('$'))
+    else {
+        return kid == pattern;
+    };
+    let Some(literal) = anchored_literal_pattern(inner) else {
+        return false;
+    };
+    kid == literal
+}
+
+fn anchored_literal_pattern(inner: &str) -> Option<String> {
+    let mut literal = String::new();
+    let mut escaped = false;
+    for ch in inner.chars() {
+        if escaped {
+            literal.push(ch);
+            escaped = false;
+            continue;
+        }
+        if ch == '\\' {
+            escaped = true;
+            continue;
+        }
+        if matches!(
+            ch,
+            '.' | '[' | ']' | '{' | '}' | '(' | ')' | '*' | '+' | '?' | '|' | '^' | '$'
+        ) {
+            return None;
+        }
+        literal.push(ch);
+    }
+    if escaped {
+        literal.push('\\');
+    }
+    Some(literal)
 }
 
 /// A signature's cryptographic status plus deployment-trust result.
