@@ -215,8 +215,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 The pure-Rust crate (no C toolchain, wasm-friendly) installs the `gts` binary via
 `cargo install gmeow-gts`. Rust default features remain empty. `--features rdf`
 enables the optional `gmeow_gts::rdf` adapter backed by `oxrdf`'s RDF data-model
-crate; it does not pull in the `oxigraph` store or any RDF dependency for
-default transport users.
+crate. `--features oxigraph-adapter` adds `gmeow_gts::oxigraph` helpers and
+`Writer::from_store` for native `Graph -> Store` and `Store -> Writer` handoff using
+Oxigraph's in-memory store. Neither feature affects default transport users.
 
 For streaming projections, implement `gmeow_gts::reader::StreamingSink` and call
 `gmeow_gts::reader::read_to_sink(&bytes, allow_segments, expected_head, sink)`.
@@ -377,7 +378,7 @@ folded quad.
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | no | no |
-| Native RDF adapter | rdflib extra | `rdf` feature (`oxrdf` data model) | no | no |
+| Native RDF/store adapter | rdflib extra | `rdf` feature (`oxrdf` data model); `oxigraph-adapter` feature (Oxigraph store) | no | no |
 | SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no |
 | Package registry | PyPI | crates.io | Go module | npm |
 
