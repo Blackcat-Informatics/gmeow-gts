@@ -16,6 +16,19 @@ specification, and the frozen conformance corpus. Issues and pull requests are w
 - **Improve the spec or docs** — corrections and clarifications to
   [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) and the per-engine guides are very welcome.
 
+## Spec governance
+
+Core wire-format changes, baseline conformance changes, optional-standard profile promotion,
+and registry additions follow the lightweight governance policy in
+[`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md). In short:
+
+- changes to header/frame grammar, hash or signature preimages, transform resolution, segment
+  composition, or fold semantics require a GTS Improvement Proposal (GIP);
+- domain-specific profiles can be registered without changing core GTS, but they must not alter
+  core parse, verify, or fold semantics;
+- registry entries for codecs, frame types, diagnostics, transform targets, and profiles must
+  follow the registry change policy and reserved namespace rules.
+
 ## The conformance corpus is the contract
 
 The four engines are interchangeable only because they all fold the **same bytes** to the

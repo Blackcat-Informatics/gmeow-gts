@@ -432,6 +432,8 @@ artifact with `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gt
 - [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) — the authoritative, normative wire-format specification.
 - [`docs/GTS-CONFORMANCE.md`](./docs/GTS-CONFORMANCE.md) — conformance tiers, vector subsets,
   manifest schema, diagnostics registry, and read/verify modes.
+- [`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md) — GIP process, registry policies,
+  compatibility rules, and the v1.0 release-candidate path.
 - [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md) — cross-language API shape, CLI
   parity matrix, intentional gaps, and drift guard.
 - [`docs/GTS-ADVANCED-PRIMITIVES.md`](./docs/GTS-ADVANCED-PRIMITIVES.md) — streaming sink,
