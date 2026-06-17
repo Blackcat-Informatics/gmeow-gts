@@ -398,10 +398,9 @@ impl Memory {
             .claims()?
             .into_iter()
             .filter(|claim| options.include_suppressed || !claim.suppressed)
-            .filter(|claim| {
-                options
-                    .min_confidence
-                    .is_none_or(|min| claim.confidence.is_some_and(|got| got >= min))
+            .filter(|claim| match options.min_confidence {
+                None => true,
+                Some(min) => claim.confidence.is_some_and(|got| got >= min),
             })
             .collect();
         let tokens: HashSet<String> = options

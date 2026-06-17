@@ -3,7 +3,7 @@
 
 //! End-to-end coverage for the dependency-light Rust agent-memory example.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -26,9 +26,10 @@ fn temp_path(name: &str) -> PathBuf {
     path
 }
 
-fn gts(args: &[&str]) -> std::process::Output {
+fn gts_verify(path: &Path) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_gts"))
-        .args(args)
+        .arg("verify")
+        .arg(path)
         .output()
         .expect("gts binary runs")
 }
@@ -129,7 +130,7 @@ fn rust_agent_memory_flow_is_append_only_and_verifyable() {
     assert_eq!(graph.segment_heads.len(), 4);
     assert!(to_nquads(&graph).contains("wasDerivedFrom"));
 
-    let out = gts(&["verify", path.to_str().unwrap()]);
+    let out = gts_verify(&path);
     assert!(
         out.status.success(),
         "gts verify accepts the produced package"
