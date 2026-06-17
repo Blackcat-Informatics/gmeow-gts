@@ -371,15 +371,24 @@ pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBu
         return Err(err);
     }
     let mut final_paths = Vec::new();
+    let mut replace_err = None;
     for (staged, out) in &written {
-        replace_file(staged, out)?;
+        if let Err(err) = replace_file(staged, out) {
+            replace_err = Some(err);
+            break;
+        }
         final_paths.push(out.clone());
     }
-    for table in TABLES {
-        if rows.count(table) == 0 {
-            let _ = std::fs::remove_file(target.join(format!("{table}.parquet")));
+    if replace_err.is_none() {
+        for table in TABLES {
+            if rows.count(table) == 0 {
+                let _ = std::fs::remove_file(target.join(format!("{table}.parquet")));
+            }
         }
     }
     let _ = std::fs::remove_dir_all(&staged_dir);
+    if let Some(err) = replace_err {
+        return Err(err);
+    }
     Ok(final_paths)
 }

@@ -22,8 +22,10 @@ use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::{read, read_file_segments, FileSegments};
 use gmeow_gts::wire::{digest_str, hex};
 
-#[cfg(feature = "duckdb")]
-const USAGE: &str = "usage: gts <command> [args]
+macro_rules! usage_text {
+    ($relational:literal) => {
+        concat!(
+            "usage: gts <command> [args]
 
 commands:
   info <file>...            per-segment composition ledger (§14.1)
@@ -47,41 +49,27 @@ commands:
   unpack <archive> [-C dir] [--include-suppressed]
                             unpack a files-profile archive
   diff <archive> <dir>      compare archive to directory by digest
-  to-sqlite <file> <out>    export the folded graph to SQLite (needs sqlite3)
+  to-sqlite <file> <out>    export the folded graph to SQLite (needs sqlite3)",
+            $relational
+        )
+    };
+}
+
+#[cfg(feature = "duckdb")]
+const USAGE: &str = usage_text!(
+    "
   to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
   to-parquet <file> <dir>   export Parquet files, one per non-empty table
-                            (needs duckdb)";
+                            (needs duckdb)"
+);
 
 #[cfg(not(feature = "duckdb"))]
-const USAGE: &str = "usage: gts <command> [args]
-
-commands:
-  info <file>...            per-segment composition ledger (§14.1)
-  fold <file>               fold to N-Quads on stdout
-  from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
-  verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
-  extract-key <file>        print the embedded transport key: kid, OpenPGP
-                            fingerprint, emojihash, and armored public key (§9.2)
-  ls <file>                 list inline blobs: digest, size, declared media type
-  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
-                            extract one blob by content digest; --mt asserts
-                            the declared media type (never converts)
-  cat -o <out> <file>...    validating composer: refuse degenerate inputs,
-                            then byte-concatenate (§3.1, §14.1)
-  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
-                            rewrite into the streamable layout state: leading
-                            streaming index, blobs most-significant-first,
-                            trailing index footer (§10.1)
-  pack <dir|file>... -o out.gts
-                            pack files/directories into a files-profile archive
-  unpack <archive> [-C dir] [--include-suppressed]
-                            unpack a files-profile archive
-  diff <archive> <dir>      compare archive to directory by digest
-  to-sqlite <file> <out>    export the folded graph to SQLite (needs sqlite3)
-
+const USAGE: &str = usage_text!(
+    "
 optional:
   to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
-  to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH";
+  to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
+);
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
