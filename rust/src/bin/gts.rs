@@ -13,6 +13,8 @@ use std::collections::HashSet;
 use std::process::ExitCode;
 
 use ciborium::value::Value;
+use ed25519_dalek::VerifyingKey;
+use gmeow_gts::cose::verify_signatures;
 use gmeow_gts::model::{Graph, Suppression, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::{read, read_file_segments, FileSegments};
@@ -301,13 +303,53 @@ fn cmd_fold(paths: &[String]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn cmd_verify(paths: &[String]) -> ExitCode {
+/// Parse a `kid:hexpubkey` spec into a verifier entry.
+fn parse_key(spec: &str) -> Option<(String, VerifyingKey)> {
+    let (kid, hexpub) = spec.split_once(':')?;
+    if kid.is_empty() || hexpub.len() != 64 {
+        return None;
+    }
+    let mut raw = [0u8; 32];
+    for (i, byte) in raw.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&hexpub[i * 2..i * 2 + 2], 16).ok()?;
+    }
+    VerifyingKey::from_bytes(&raw)
+        .ok()
+        .map(|k| (kid.to_string(), k))
+}
+
+fn cmd_verify(args: &[String]) -> ExitCode {
+    let mut paths: Vec<String> = Vec::new();
+    let mut keys: std::collections::HashMap<String, VerifyingKey> =
+        std::collections::HashMap::new();
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == "--key" {
+            i += 1;
+            let Some(spec) = args.get(i) else {
+                eprintln!("{USAGE}");
+                return ExitCode::from(2);
+            };
+            match parse_key(spec) {
+                Some((kid, key)) => {
+                    keys.insert(kid, key);
+                }
+                None => {
+                    eprintln!("gts verify: bad --key {spec:?} (want kid:hexpubkey)");
+                    return ExitCode::from(2);
+                }
+            }
+        } else {
+            paths.push(args[i].clone());
+        }
+        i += 1;
+    }
     if paths.is_empty() {
         eprintln!("{USAGE}");
         return ExitCode::from(2);
     }
     let mut problems = false;
-    for path in paths {
+    for path in &paths {
         let data = match load(path) {
             Ok(d) => d,
             Err(code) => return code,
@@ -328,6 +370,21 @@ fn cmd_verify(paths: &[String]) -> ExitCode {
             }
             for msg in stream_vocab_check(seg) {
                 eprintln!("  segment {idx}: warning: {msg}");
+            }
+        }
+        // §9.2: COSE signature verification against the provided keys.
+        if !keys.is_empty() {
+            let mut g = read(&data, true, None);
+            verify_signatures(&mut g.signatures, |k| keys.get(k).copied());
+            for sig in &g.signatures {
+                println!(
+                    "  signature {}: {}",
+                    sig.kid.as_deref().unwrap_or("?"),
+                    sig.status
+                );
+                if sig.status == "invalid" {
+                    problems = true;
+                }
             }
         }
     }

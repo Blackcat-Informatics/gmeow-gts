@@ -7,12 +7,15 @@
 package main
 
 import (
+	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"go.blackcatinformatics.ca/gts/compact"
+	"go.blackcatinformatics.ca/gts/cose"
 	"go.blackcatinformatics.ca/gts/files"
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/nquads"
@@ -312,7 +315,38 @@ func streamVocabCheck(seg *model.Graph) []string {
 	return nil
 }
 
-func cmdVerify(paths []string) int {
+func parseKey(spec string) (string, ed25519.PublicKey, bool) {
+	idx := strings.IndexByte(spec, ':')
+	if idx <= 0 {
+		return "", nil, false
+	}
+	raw, err := hex.DecodeString(spec[idx+1:])
+	if err != nil || len(raw) != ed25519.PublicKeySize {
+		return "", nil, false
+	}
+	return spec[:idx], ed25519.PublicKey(raw), true
+}
+
+func cmdVerify(args []string) int {
+	var paths []string
+	keys := map[string]ed25519.PublicKey{}
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--key" {
+			i++
+			if i >= len(args) {
+				fmt.Fprintln(os.Stderr, usage)
+				return 2
+			}
+			kid, pub, ok := parseKey(args[i])
+			if !ok {
+				fmt.Fprintf(os.Stderr, "gts verify: bad --key %q (want kid:hexpubkey)\n", args[i])
+				return 2
+			}
+			keys[kid] = pub
+		} else {
+			paths = append(paths, args[i])
+		}
+	}
 	if len(paths) == 0 {
 		fmt.Fprintln(os.Stderr, usage)
 		return 2
@@ -340,6 +374,24 @@ func cmdVerify(paths []string) int {
 			}
 			for _, msg := range streamVocabCheck(seg) {
 				fmt.Fprintf(os.Stderr, "  segment %d: warning: %s\n", idx, msg)
+			}
+		}
+		// §9.2: COSE signature verification against the provided keys.
+		if len(keys) > 0 {
+			g := reader.Read(data, true, nil)
+			cose.VerifySignatures(g.Signatures, func(kid string) (ed25519.PublicKey, bool) {
+				k, ok := keys[kid]
+				return k, ok
+			})
+			for _, sig := range g.Signatures {
+				kid := sig.Kid
+				if kid == "" {
+					kid = "?"
+				}
+				fmt.Printf("  signature %s: %s\n", kid, sig.Status)
+				if sig.Status == "invalid" {
+					problems = true
+				}
 			}
 		}
 	}

@@ -31,8 +31,12 @@ change before `1.0`.
     `VerifySignatures` / `verifySignatures`). Gated by a frozen signed-GTS vector
     (`vectors/signed/basic.json`): every engine reproduces the Python-signed file
     byte-for-byte and verifies it (valid / unverified / invalid).
+  - **`gts verify --key KID:HEXPUB`** in all four CLIs: verify a signed file's
+    COSE signatures against raw Ed25519 public keys (repeatable; exit 1 on any
+    invalid signature).
   - All crypto stays pure / wasm-friendly (the Rust `wasm32` build is still green).
-  - The `gts verify --key` CLI flag and COSE_Encrypt0 remain tracked on #15.
+  - Cross-engine `extract-key` (needs OpenPGP parsing) and COSE_Encrypt0
+    (random-IV AES-GCM) remain tracked on #15 as separate follow-ups.
 
 - `gts extract-key <file>` (Python CLI, #12): prints the embedded transport
   (verification) key for a signed GTS — `kid`, OpenPGP fingerprint, emojihash,

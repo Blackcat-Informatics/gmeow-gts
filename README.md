@@ -193,7 +193,7 @@ spec — the engines are CLI-compatible by conformance test):
 gts info <file>...            per-segment composition ledger
 gts fold <file>               fold to N-Quads on stdout
 gts from-nq <in.nq> -o <out>  build a GTS from N-Quads (inverse of fold; '-' = stdin)
-gts verify <file>...          verify chains; exit 1 on any diagnostic
+gts verify <file>... [--key KID:HEXPUB]   verify chains + COSE signatures
 gts extract-key <file>        print the embedded transport/verification key
 gts cat -o <out> <file>...    validating composer: refuse degenerate inputs, then concatenate
 gts ls <file>...              list segment digests, sizes, and media types

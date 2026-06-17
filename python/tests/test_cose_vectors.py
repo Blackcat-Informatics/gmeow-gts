@@ -47,3 +47,22 @@ def test_cose_vectors_reproducible() -> None:
     subprocess.run([sys.executable, str(gen)], check=True, capture_output=True)
     after = {p.name: p.read_text() for p in COSE_DIR.glob("*.json")}
     assert before == after
+
+
+def test_cli_verify_key(tmp_path, capsys) -> None:
+    """`gts verify --key kid:hexpub` verifies a signed file's signatures."""
+    import json
+
+    from gts.cli import main
+
+    c = json.loads((COSE_DIR.parent / "signed" / "basic.json").read_text())
+    f = tmp_path / "s.gts"
+    f.write_bytes(bytes.fromhex(c["gts"]))
+
+    assert main(["verify", "--key", f"{c['kid']}:{c['pub']}", str(f)]) == 0
+    out = capsys.readouterr().out
+    assert out.count("signature test-kid: valid") == 2
+
+    # A wrong key -> invalid -> exit 1.
+    wrong = "0" * 64
+    assert main(["verify", "--key", f"{c['kid']}:{wrong}", str(f)]) == 1

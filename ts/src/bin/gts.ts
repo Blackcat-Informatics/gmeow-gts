@@ -7,6 +7,7 @@ import { toNQuads } from "../nquads.js";
 import { pack, unpack, diff, suppressedBlobDigests } from "../files.js";
 import { compactStreamable, CompactRefusedError } from "../compact.js";
 import { STREAM_NS } from "../stream.js";
+import { verifySignatures } from "../cose.js";
 import {
     hex,
     mapGet,
@@ -304,14 +305,36 @@ function streamVocabCheck(seg: Graph): string[] {
     return [];
 }
 
-function cmdVerify(paths: string[]): number {
+function cmdVerify(args: string[]): number {
+    const paths: string[] = [];
+    const keys = new Map<string, Uint8Array>();
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === "--key") {
+            i++;
+            if (i >= args.length) {
+                console.error(usage);
+                return 2;
+            }
+            const spec = args[i];
+            const colon = spec.indexOf(":");
+            const hexpub = colon > 0 ? spec.slice(colon + 1) : "";
+            if (colon <= 0 || !/^[0-9a-fA-F]{64}$/.test(hexpub)) {
+                console.error(`gts verify: bad --key ${spec} (want kid:hexpubkey)`);
+                return 2;
+            }
+            keys.set(spec.slice(0, colon), Uint8Array.from(Buffer.from(hexpub, "hex")));
+        } else {
+            paths.push(args[i]);
+        }
+    }
     if (paths.length === 0) {
         console.error(usage);
         return 2;
     }
     let problems = false;
     for (const path of paths) {
-        const fs = ReadFileSegments(load(path));
+        const data = load(path);
+        const fs = ReadFileSegments(data);
         printLedger(path, fs);
         if (hasProblems(fs)) problems = true;
         // §14.1: declared-vs-computed profile requirements + layout warnings.
@@ -323,6 +346,15 @@ function cmdVerify(paths: string[]): number {
             }
             for (const msg of streamVocabCheck(fs.segments[idx])) {
                 console.error(`  segment ${idx}: warning: ${msg}`);
+            }
+        }
+        // §9.2: COSE signature verification against the provided keys.
+        if (keys.size > 0) {
+            const g = Read(data, true);
+            verifySignatures(g.signatures, (kid) => keys.get(kid) ?? null);
+            for (const sig of g.signatures) {
+                console.log(`  signature ${sig.kid || "?"}: ${sig.status}`);
+                if (sig.status === "invalid") problems = true;
             }
         }
     }

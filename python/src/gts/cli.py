@@ -16,10 +16,14 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from gts.model import Graph, TermKind
 from gts.nquads import to_nquads
 from gts.reader import read, read_segments
+
+if TYPE_CHECKING:
+    from gts.crypto import KeyProvider
 
 
 def _load(path: str) -> bytes:
@@ -180,10 +184,31 @@ def _stream_vocab_check(seg: Graph) -> list[str]:
     return []
 
 
-def _cmd_verify(paths: list[str]) -> int:
+def _build_verifier(key_specs: list[str] | None) -> KeyProvider | None:
+    """Build an in-memory key provider from ``kid:hexpubkey`` specs, or None."""
+    if not key_specs:
+        return None
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    from gts.crypto import InMemoryKeys
+
+    verifiers = {}
+    for spec in key_specs:
+        kid, _, hexpub = spec.partition(":")
+        if not kid or not hexpub:
+            msg = f"gts verify: bad --key {spec!r} (want kid:hexpubkey)"
+            print(msg, file=sys.stderr)
+            raise SystemExit(2)
+        verifiers[kid] = Ed25519PublicKey.from_public_bytes(bytes.fromhex(hexpub))
+    return InMemoryKeys(verifiers=verifiers)
+
+
+def _cmd_verify(paths: list[str], key_specs: list[str] | None = None) -> int:
     problems = False
+    keys = _build_verifier(key_specs)
     for path in paths:
-        segments, torn, fatal = read_segments(_load(path))
+        data = _load(path)
+        segments, torn, fatal = read_segments(data)
         if fatal is not None:
             print(f"{path}: 0 segment(s)")
             print(f"  FATAL {fatal.code}: {fatal.detail}")
@@ -200,6 +225,13 @@ def _cmd_verify(paths: list[str]) -> int:
                     problems = True
             for msg in _stream_vocab_check(seg):
                 print(f"  segment {idx}: warning: {msg}", file=sys.stderr)
+        # §9.2: COSE signature verification against the provided keys.
+        if keys is not None:
+            graph = read(data, keys=keys)
+            for sig in graph.signatures:
+                print(f"  signature {sig.kid or '?'}: {sig.status}")
+                if sig.status == "invalid":
+                    problems = True
     return 1 if problems else 0
 
 
@@ -556,6 +588,12 @@ def main(argv: list[str] | None = None) -> int:
         "verify", help="verify chains; ledger + diagnostics; exit 1 on any"
     )
     p_verify.add_argument("files", nargs="+")
+    p_verify.add_argument(
+        "--key",
+        action="append",
+        metavar="KID:HEXPUB",
+        help="verify COSE signatures against a raw Ed25519 public key (repeatable)",
+    )
 
     p_ls = sub.add_parser(
         "ls", help="list inline blobs: digest, size, declared media type"
@@ -669,7 +707,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "fold":
         return _cmd_fold(args.file)
     if args.command == "verify":
-        return _cmd_verify(args.files)
+        return _cmd_verify(args.files, args.key)
     if args.command == "ls":
         return _cmd_ls(args.file)
     if args.command == "extract-key":
