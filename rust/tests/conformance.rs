@@ -71,9 +71,71 @@ fn blob_summary(g: &Graph) -> Value {
     Value::Object(out)
 }
 
+fn manifest_top_level_vectors(dir: &Path) -> Vec<(String, String)> {
+    let manifest: Value =
+        serde_json::from_slice(&fs::read(dir.join("manifest.json")).expect("manifest json"))
+            .expect("manifest json parses");
+    assert_eq!(
+        manifest["schema"].as_str(),
+        Some("https://blackcatinformatics.ca/gts/vector-manifest/v1")
+    );
+    let vectors = manifest["vectors"]
+        .as_array()
+        .expect("manifest vectors array");
+
+    let mut out = Vec::new();
+    for entry in vectors {
+        let id = entry["id"].as_str().expect("manifest vector id");
+        let input = entry["input"]["path"]
+            .as_str()
+            .expect("manifest input path");
+        let Some(rest) = input.strip_prefix("vectors/") else {
+            continue;
+        };
+        if rest.contains('/') || !rest.ends_with(".gts") {
+            continue;
+        }
+
+        let expected_input = format!("vectors/{id}.gts");
+        assert_eq!(input, expected_input, "manifest input path must match id");
+        let expected_graph = format!("vectors/{id}.expected.json");
+        assert_eq!(
+            entry["expected"]["graph"].as_str(),
+            Some(expected_graph.as_str()),
+            "manifest expected graph path must match id"
+        );
+        let manifest_mode = entry["mode"].as_str().expect("manifest mode");
+        let expected_mode = match manifest_mode {
+            "permissive-read" => "default",
+            "pre-segment" => "pre-segment",
+            other => panic!("top-level manifest vector {id} has unsupported read mode {other}"),
+        };
+        assert!(
+            entry["subsets"]
+                .as_array()
+                .expect("manifest subsets")
+                .iter()
+                .any(|subset| subset.as_str() == Some("streaming-property")),
+            "top-level manifest vector {id} must declare streaming-property"
+        );
+        out.push((id.to_string(), expected_mode.to_string()));
+    }
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    assert!(
+        !out.is_empty(),
+        "manifest must declare top-level GTS vectors"
+    );
+    out
+}
+
 #[test]
 fn corpus_matches_frozen_expectations() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../vectors");
+    let manifest_vectors = manifest_top_level_vectors(&dir);
+    let manifest_names: Vec<String> = manifest_vectors
+        .iter()
+        .map(|(name, _)| name.clone())
+        .collect();
     let mut names: Vec<String> = Vec::new();
     let mut expected_names: Vec<String> = Vec::new();
     for entry in
@@ -96,19 +158,28 @@ fn corpus_matches_frozen_expectations() {
         names, expected_names,
         "vector basename mismatch between .gts and .expected.json files"
     );
+    assert_eq!(
+        names, manifest_names,
+        "vector basename mismatch between manifest and top-level corpus files"
+    );
     assert!(
         names.len() >= 16,
         "corpus too small ({} vectors) — generation incomplete?",
         names.len()
     );
 
-    for name in &names {
+    for (name, manifest_mode) in &manifest_vectors {
         let data = fs::read(dir.join(format!("{name}.gts"))).expect("vector bytes");
         let expected: Value = serde_json::from_slice(
             &fs::read(dir.join(format!("{name}.expected.json"))).expect("expected json"),
         )
         .expect("expected json parses");
         let mode = expected["mode"].as_str().expect("mode field");
+        assert_eq!(
+            mode,
+            manifest_mode.as_str(),
+            "vector {name}: manifest mode must match expected JSON mode"
+        );
         let g = read(&data, mode != "pre-segment", None);
         let actual = summarize(g, mode);
         assert_eq!(
