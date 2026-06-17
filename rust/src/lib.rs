@@ -31,5 +31,6 @@ pub mod openpgp;
 pub mod policy;
 pub mod reader;
 pub mod stream;
+pub mod verify;
 pub mod wire;
 pub mod writer;

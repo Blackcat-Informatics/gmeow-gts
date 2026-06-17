@@ -84,6 +84,8 @@ a GTS file.
 - **`gmeow_gts::cose`** — COSE_Sign1 signing and verification of frame ids (§9.2), plus
   COSE_Encrypt0 AES-256-GCM payload encryption (§9.3).
 - **`gmeow_gts::openpgp`** — parse an embedded OpenPGP transport key to its fingerprint.
+- **`gmeow_gts::verify`** — high-level embedded-key verification results for libraries,
+  including fingerprint, visual hashes, signature counts, diagnostics, and profile findings.
 - **`gmeow_gts::compact`** — compact a streamable GTS segment into a self-contained one.
 - **`gmeow_gts::files`** — pack and unpack directory trees using the GTS files profile.
 - **`gmeow_gts::nquads`** — project a folded graph to N-Quads.
@@ -116,6 +118,15 @@ Add to `Cargo.toml`:
 ```toml
 [dependencies]
 gmeow-gts = "0.1.3"
+```
+
+Verify a signed file with its embedded transport key:
+
+```rust
+let data = std::fs::read("signed.gts")?;
+let result = gmeow_gts::verify::verify_file(&data);
+assert!(result.ok, "{:?}", result.errors);
+println!("{}", result.fingerprint.unwrap_or_default());
 ```
 
 ---
@@ -311,7 +322,9 @@ Exit codes:
 
 `verify --key` and `extract-key` are cross-engine: all four `gts` binaries parse the embedded
 OpenPGP transport key to the same fingerprint and emojihash, and verify COSE signatures
-identically. `from-nq` and the relational `to-sqlite`/`to-duckdb`/`to-parquet` exports are
+identically. Library callers can use `gmeow_gts::verify::verify_file` for the same embedded-key
+verification summary without duplicating CLI helper code. `from-nq` and the relational
+`to-sqlite`/`to-duckdb`/`to-parquet` exports are
 implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
 integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`
 on `PATH`; `to-duckdb` and `to-parquet` require the optional no-dependency `duckdb`

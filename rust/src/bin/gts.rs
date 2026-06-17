@@ -20,6 +20,7 @@ use gmeow_gts::from_nquads::from_nquads;
 use gmeow_gts::model::{Graph, Suppression, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::{read, read_file_segments, FileSegments};
+use gmeow_gts::verify::{extract_transport_key, format_fingerprint};
 use gmeow_gts::wire::{digest_str, hex};
 
 macro_rules! usage_text {
@@ -581,45 +582,6 @@ fn cmd_verify(args: &[String]) -> ExitCode {
     }
 }
 
-/// Find the embedded `gts:transportKey` `(kid, gpg)` in a graph's file-level meta.
-fn transport_key(g: &Graph) -> Option<(String, String)> {
-    let value = g
-        .meta
-        .iter()
-        .find(|(k, _)| k == "gts:transportKey")
-        .map(|(_, v)| v)?;
-    let Value::Map(entries) = value else {
-        return None;
-    };
-    let mut kid = None;
-    let mut gpg = None;
-    for (k, v) in entries {
-        if let (Value::Text(key), Value::Text(text)) = (k, v) {
-            match key.as_str() {
-                "kid" => kid = Some(text.clone()),
-                "gpg" => gpg = Some(text.clone()),
-                _ => {}
-            }
-        }
-    }
-    Some((kid?, gpg?))
-}
-
-/// Group a hex fingerprint into space-separated 4-character blocks for eyeballing.
-fn format_fingerprint(fp: &str) -> String {
-    let compact: String = fp.chars().filter(|c| !c.is_whitespace()).collect();
-    let compact = compact.to_uppercase();
-    if compact.is_empty() || !compact.bytes().all(|b| b.is_ascii_hexdigit()) {
-        return fp.to_string();
-    }
-    compact
-        .as_bytes()
-        .chunks(4)
-        .map(|c| std::str::from_utf8(c).expect("hex is ascii"))
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
 /// `extract-key`: print the embedded transport (verification) key (§9.2).
 fn cmd_extract_key(args: &[String]) -> ExitCode {
     let Some(path) = args.first() else {
@@ -631,10 +593,12 @@ fn cmd_extract_key(args: &[String]) -> ExitCode {
         Err(code) => return code,
     };
     let g = read(&data, true, None);
-    let Some((kid, gpg)) = transport_key(&g) else {
+    let Some(transport) = extract_transport_key(&g) else {
         eprintln!("{path}: no embedded transport key");
         return ExitCode::from(1);
     };
+    let kid = transport.kid;
+    let gpg = transport.gpg;
     println!("kid:         {kid}");
     match gmeow_gts::openpgp::parse_transport_key(&gpg) {
         Ok(key) => {
