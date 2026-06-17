@@ -40,6 +40,7 @@ and agent memory.
   - [As a library](#as-a-library)
 - [Quick start](#quick-start)
 - [Library API](#library-api)
+- [Example: grounded agent memory](#example-grounded-agent-memory)
 - [Command-line reference](#command-line-reference)
 - [The GTS file format](#the-gts-file-format)
 - [Developer documentation](#developer-documentation)
@@ -86,6 +87,8 @@ a GTS file.
 - **`gmeow_gts::compact`** — compact a streamable GTS segment into a self-contained one.
 - **`gmeow_gts::files`** — pack and unpack directory trees using the GTS files profile.
 - **`gmeow_gts::nquads`** — project a folded graph to N-Quads.
+- **`gmeow_gts::examples::agent_memory`** — a dependency-light grounded-memory
+  example built on ordinary GTS frames.
 - **`gmeow_gts::stream`** — stream-vocabulary constants and helpers.
 - **`gmeow_gts::emojihash`** — re-export of the [`visual-hashing`](https://crates.io/crates/visual-hashing)
   crate's `emojihash` and `randomart` key fingerprints.
@@ -200,6 +203,79 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 For the full API, see [docs.rs/gmeow-gts](https://docs.rs/gmeow-gts).
+
+---
+
+## Example: grounded agent memory
+
+The crate ships a small agent-memory example that mirrors the Python
+`gts.examples.agent_memory` workflow without adding a database, SPARQL engine,
+embedding model, or RDF toolkit dependency. It stores claims as reified RDF 1.2
+statements, records tool-call provenance as ordinary quads, and revises claims
+by appending suppressions plus `gmeow:wasDerivedFrom` audit links. The package
+stays append-only and `gts verify`-able after every write.
+
+Run the example:
+
+```bash
+cargo run --example agent_memory
+```
+
+Use it as a library example:
+
+```rust
+use gmeow_gts::examples::agent_memory::{
+    Memory, RecallOptions, RevisionOptions, StoreOptions, ToolCallOptions,
+};
+
+fn demo() -> Result<(), Box<dyn std::error::Error>> {
+    let mem = Memory::new("assistant.gts");
+    let old = mem.store(
+        "Synthetic rover records battery telemetry in UTC",
+        StoreOptions {
+            source: Some("synthetic bench run 001"),
+            confidence: Some(0.8),
+            according_to: Some("example-agent"),
+        },
+    )?;
+    let new = mem.store(
+        "Synthetic rover records battery and thermal telemetry in UTC",
+        StoreOptions {
+            source: Some("synthetic bench run 002"),
+            confidence: Some(0.9),
+            according_to: Some("example-agent"),
+        },
+    )?;
+    mem.record_tool_call(
+        "urn:gmeow:tool:synthetic-search",
+        ToolCallOptions {
+            arguments: Some("{\"query\":\"battery telemetry\"}"),
+            result: Some("matched one synthetic claim"),
+            invocation: Some("urn:gmeow:invocation:demo"),
+            generated: &[new.id.as_str()],
+        },
+    )?;
+    mem.revise(
+        &old.id,
+        RevisionOptions {
+            reason: Some("synthetic correction"),
+            superseded_by: Some(&new.id),
+        },
+    )?;
+    let current = mem.recall(RecallOptions {
+        query: "battery telemetry",
+        min_confidence: Some(0.5),
+        ..RecallOptions::default()
+    })?;
+    assert!(!current.is_empty());
+    assert_eq!(mem.verify()?, Vec::<String>::new());
+    Ok(())
+}
+```
+
+The example is a downstream application shape, not a requirement for parsing or
+transporting GTS. It uses only this crate's existing writer, reader, N-Quads,
+BLAKE3, and timestamp support.
 
 ---
 
