@@ -237,7 +237,10 @@ impl<'a> Tokenizer<'a> {
                     NQuadsParseError::new(format!("invalid unicode scalar \\{ch}{raw}"))
                 })
             }
-            other => Ok(other),
+            other => Err(NQuadsParseError::new(format!(
+                "unsupported escape \\{other} in {:?}",
+                self.text
+            ))),
         }
     }
 
@@ -355,6 +358,62 @@ fn set_reifier(reifiers: &mut Vec<(usize, Triple3)>, rid: usize, spo: Triple3) {
     }
 }
 
+fn validate_statement(nodes: &[Node], line: &str) -> Result<(), NQuadsParseError> {
+    let is_iri = |node: &Node| {
+        matches!(
+            node,
+            Node::Atom(Atom {
+                kind: TermKind::Iri,
+                ..
+            })
+        )
+    };
+    let is_bnode = |node: &Node| {
+        matches!(
+            node,
+            Node::Atom(Atom {
+                kind: TermKind::Bnode,
+                ..
+            })
+        )
+    };
+    let is_literal = |node: &Node| {
+        matches!(
+            node,
+            Node::Atom(Atom {
+                kind: TermKind::Literal,
+                ..
+            })
+        )
+    };
+    let is_triple = |node: &Node| matches!(node, Node::Triple(_));
+
+    if !(is_iri(&nodes[0]) || is_bnode(&nodes[0]) || is_triple(&nodes[0])) {
+        return Err(NQuadsParseError::new(format!(
+            "invalid subject term: {line:?}"
+        )));
+    }
+    if !is_iri(&nodes[1]) {
+        return Err(NQuadsParseError::new(format!(
+            "predicate must be IRI: {line:?}"
+        )));
+    }
+    if !(is_iri(&nodes[2]) || is_bnode(&nodes[2]) || is_literal(&nodes[2]) || is_triple(&nodes[2]))
+    {
+        return Err(NQuadsParseError::new(format!(
+            "invalid object term: {line:?}"
+        )));
+    }
+    if let Some(graph_name) = nodes.get(3) {
+        if !(is_iri(graph_name) || is_bnode(graph_name)) {
+            return Err(NQuadsParseError::new(format!(
+                "invalid graph name term: {line:?}"
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// Parse N-Quads(-star) text into a canonical GTS file.
 pub fn from_nquads(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
     let mut statements: Vec<Vec<Node>> = Vec::new();
@@ -375,6 +434,7 @@ pub fn from_nquads(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
                 line
             )));
         }
+        validate_statement(&nodes, line)?;
         statements.push(nodes);
     }
 

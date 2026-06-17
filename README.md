@@ -268,7 +268,7 @@ gts diff <file> <directory>       compare a files profile to a directory
 Python/Rust extension:
 
 ```text
-gts from-nq <in.nq> -o <out>  build a GTS from N-Quads (inverse of fold; '-' = stdin)
+gts from-nq <in.nq> [-o <out>]  build a GTS from N-Quads (inverse of fold; '-' = stdin)
 ```
 
 Python-only extensions:

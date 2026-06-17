@@ -140,6 +140,28 @@ fn parses_backspace_and_formfeed_escapes() {
     }));
 }
 
+#[test]
+fn rejects_unknown_literal_escape() {
+    let err = from_nquads("<https://ex/s> <https://ex/p> \"\\x\" .\n")
+        .expect_err("unknown escapes are invalid N-Quads");
+    assert!(err.to_string().contains("unsupported escape"));
+}
+
+#[test]
+fn rejects_invalid_rdf_term_positions() {
+    let err = from_nquads("\"subject\" <https://ex/p> <https://ex/o> .\n")
+        .expect_err("literal subjects are invalid");
+    assert!(err.to_string().contains("invalid subject"));
+
+    let err = from_nquads("<https://ex/s> \"predicate\" <https://ex/o> .\n")
+        .expect_err("literal predicates are invalid");
+    assert!(err.to_string().contains("predicate must be IRI"));
+
+    let err = from_nquads("<https://ex/s> <https://ex/p> <https://ex/o> \"graph\" .\n")
+        .expect_err("literal graph names are invalid");
+    assert!(err.to_string().contains("invalid graph name"));
+}
+
 fn tmpdir() -> PathBuf {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -160,7 +182,13 @@ fn cli_from_nq_inverts_fold() {
     let _ = std::fs::remove_dir_all(&tmp);
     std::fs::create_dir_all(&tmp).unwrap();
     let src = vectors().join("11-datatype-defaulting.gts");
-    let nq = String::from_utf8(gts(&["fold", src.to_str().unwrap()]).stdout).unwrap();
+    let folded_src = gts(&["fold", src.to_str().unwrap()]);
+    assert!(
+        folded_src.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&folded_src.stderr)
+    );
+    let nq = String::from_utf8(folded_src.stdout).unwrap();
     let nq_path = tmp.join("in.nq");
     std::fs::write(&nq_path, &nq).unwrap();
     let out_path = tmp.join("out.gts");
@@ -176,7 +204,13 @@ fn cli_from_nq_inverts_fold() {
         "stderr: {}",
         String::from_utf8_lossy(&out.stderr)
     );
-    let folded = String::from_utf8(gts(&["fold", out_path.to_str().unwrap()]).stdout).unwrap();
+    let folded_out = gts(&["fold", out_path.to_str().unwrap()]);
+    assert!(
+        folded_out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&folded_out.stderr)
+    );
+    let folded = String::from_utf8(folded_out.stdout).unwrap();
     assert_eq!(sorted_lines(&folded), sorted_lines(&nq));
 }
 
