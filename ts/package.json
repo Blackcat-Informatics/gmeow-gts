@@ -37,7 +37,7 @@
     "@typescript-eslint/parser": "^8.30.0",
     "eslint": "^9.24.0",
     "prettier": "^3.5.0",
-    "typescript": "^5.8.0"
+    "typescript": "^6.0.3"
   },
   "license": "MIT OR Apache-2.0",
   "repository": {
