@@ -308,7 +308,7 @@ def _stream_vocab_findings(
 ) -> list[ProfileFinding]:
     from gts.stream import STREAM_NS
 
-    claimed = bool(graph.segment_streamable and graph.segment_streamable[0].claimed)
+    claimed = any(segment.claimed for segment in graph.segment_streamable)
     if claimed:
         return []
     n = len(graph.terms)

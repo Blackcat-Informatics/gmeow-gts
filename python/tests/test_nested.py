@@ -33,6 +33,20 @@ def _bundle(child: bytes) -> bytes:
     return writer.to_bytes()
 
 
+def _labeled_bundle(child: bytes, label: str) -> bytes:
+    writer = Writer(profile="bundle")
+    writer.add_terms(
+        [
+            Term(TermKind.IRI, EX + label),
+            Term(TermKind.IRI, EX + "label"),
+            Term(TermKind.LITERAL, label),
+        ]
+    )
+    writer.add_quads([(0, 1, 2, None)])
+    writer.add_blob(child, mt=GTS_MEDIA_TYPE)
+    return writer.to_bytes()
+
+
 def test_read_nested_exposes_subgraph_by_blob_digest() -> None:
     child = _tiny_graph("child")
     outer = _bundle(child)
@@ -65,6 +79,25 @@ def test_read_nested_stops_at_decoded_size_budget() -> None:
 
     assert digest_str(child) not in result.subgraphs
     assert "RecursionLimit" in [d.code for d in result.diagnostics]
+
+
+def test_read_nested_charges_duplicate_nested_digest_once() -> None:
+    grandchild = _tiny_graph("shared-grandchild")
+    child_a = _labeled_bundle(grandchild, "child-a")
+    child_b = _labeled_bundle(grandchild, "child-b")
+    writer = Writer(profile="bundle")
+    writer.add_blob(child_a, mt=GTS_MEDIA_TYPE)
+    writer.add_blob(child_b, mt=GTS_MEDIA_TYPE)
+
+    result = read_nested(
+        writer.to_bytes(),
+        max_decoded_bytes=len(child_a) + len(child_b) + len(grandchild),
+    )
+
+    assert digest_str(child_a) in result.subgraphs
+    assert digest_str(child_b) in result.subgraphs
+    assert digest_str(grandchild) in result.subgraphs
+    assert "RecursionLimit" not in [d.code for d in result.diagnostics]
 
 
 def test_nested_recursion_security_vector_descriptor() -> None:

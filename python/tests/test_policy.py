@@ -10,6 +10,7 @@ from pathlib import Path
 
 from gts import InMemoryKeys, Signer, Term, TermKind, Writer, read
 from gts.policy import TrustPolicy, evaluate_profile_policy, signature_trust
+from gts.stream import COMPACTION
 
 EX = "https://example.org/"
 VECTORS_DIR = Path(__file__).resolve().parents[2] / "vectors" / "security"
@@ -107,6 +108,27 @@ def test_opaque_profile_accepts_pseudonymous_recipient_and_records_sigstat() -> 
     assert graph.opaque[0].sigstat == "valid"
     findings = evaluate_profile_policy(graph)
     assert not any(f.code == "OpaqueRecipientKidPublic" for f in findings)
+
+
+def test_streamable_claim_can_come_from_later_segment_in_union_graph() -> None:
+    first = Writer()
+    first.add_terms(_claim_terms())
+    first.add_quads([(0, 1, 2, None)])
+
+    second = Writer(layout="streamable")
+    second.add_terms(
+        [
+            Term(TermKind.BNODE, "rewrite"),
+            Term(TermKind.IRI, COMPACTION),
+            Term(TermKind.LITERAL, "agent"),
+        ]
+    )
+    second.add_quads([(0, 1, 2, None)])
+    graph = read(first.to_bytes() + second.to_bytes())
+
+    assert [info.claimed for info in graph.segment_streamable] == [False, True]
+    findings = evaluate_profile_policy(graph)
+    assert not any(f.code == "StreamVocabularyWithoutLayout" for f in findings)
 
 
 def test_profile_policy_security_vector_descriptor() -> None:

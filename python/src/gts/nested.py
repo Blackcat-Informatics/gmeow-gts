@@ -51,6 +51,8 @@ def read_nested(
         for digest, meta in list(graph.blob_meta.items()):
             if meta.get("mt") != GTS_MEDIA_TYPE or digest not in graph.blobs:
                 continue
+            if digest in subgraphs:
+                continue
             try:
                 nested_bytes = graph.blobs[digest]
             except Exception as exc:  # noqa: BLE001 - lazy blob decode is untrusted input
@@ -82,8 +84,6 @@ def read_nested(
                 )
                 continue
             remaining -= len(nested_bytes)
-            if digest in subgraphs:
-                continue
             child = visit(nested_bytes, depth + 1)
             subgraphs[digest] = child
         return graph
