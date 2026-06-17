@@ -191,14 +191,14 @@ fn table_sql(graph: &Graph, dialect: SqlDialect) -> TableSql {
     }
 }
 
-fn build_load_script(graph: &Graph, dialect: SqlDialect) -> String {
+fn build_load_script(rows: &TableSql) -> String {
     let mut script = String::new();
     for ddl in SCHEMA {
         script.push_str(ddl);
         script.push_str(";\n");
     }
     script.push_str("BEGIN TRANSACTION;\n");
-    table_sql(graph, dialect).append_inserts(&mut script);
+    rows.append_inserts(&mut script);
     script.push_str("COMMIT;\n");
     for ddl in INDEXES {
         script.push_str(ddl);
@@ -254,7 +254,8 @@ fn sql_path(path: &Path) -> String {
 pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
     let _ = std::fs::remove_file(out);
-    let script = build_load_script(graph, SqlDialect::Sqlite);
+    let rows = table_sql(graph, SqlDialect::Sqlite);
+    let script = build_load_script(&rows);
     let out_arg = out.to_string_lossy().into_owned();
     if let Err(err) = run_sql_tool("sqlite3", &[out_arg.as_str()], &script) {
         let _ = std::fs::remove_file(out);
@@ -267,7 +268,8 @@ pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExp
 pub fn to_duckdb(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
     let _ = std::fs::remove_file(out);
-    let script = build_load_script(graph, SqlDialect::Duckdb);
+    let rows = table_sql(graph, SqlDialect::Duckdb);
+    let script = build_load_script(&rows);
     let out_arg = out.to_string_lossy().into_owned();
     if let Err(err) = run_sql_tool("duckdb", &[out_arg.as_str()], &script) {
         let _ = std::fs::remove_file(out);
@@ -282,7 +284,7 @@ pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBu
     std::fs::create_dir_all(target)
         .map_err(|e| DbExportError::new(format!("cannot create {}: {e}", target.display())))?;
     let rows = table_sql(graph, SqlDialect::Duckdb);
-    let mut script = build_load_script(graph, SqlDialect::Duckdb);
+    let mut script = build_load_script(&rows);
     let mut written = Vec::new();
     for table in TABLES {
         if rows.count(table) == 0 {
