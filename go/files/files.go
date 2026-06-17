@@ -107,7 +107,8 @@ func resolveSources(sources []string) ([][2]string, error) {
 		if info.Mode()&os.ModeSymlink != 0 {
 			return nil, fmt.Errorf("symlink not supported: %s", src)
 		}
-		if info.IsDir() {
+		switch {
+		case info.IsDir():
 			files, err := walkDirSorted(src)
 			if err != nil {
 				return nil, err
@@ -127,7 +128,7 @@ func resolveSources(sources []string) ([][2]string, error) {
 				seen[relpath] = struct{}{}
 				entries = append(entries, [2]string{fpath, relpath})
 			}
-		} else if info.Mode().IsRegular() {
+		case info.Mode().IsRegular():
 			name := filepath.Base(src)
 			if err := safeArchivePath(name); err != nil {
 				return nil, err
@@ -137,7 +138,7 @@ func resolveSources(sources []string) ([][2]string, error) {
 			}
 			seen[name] = struct{}{}
 			entries = append(entries, [2]string{src, name})
-		} else {
+		default:
 			return nil, fmt.Errorf("unsupported source type: %s", src)
 		}
 	}
