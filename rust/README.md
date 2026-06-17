@@ -90,6 +90,8 @@ a GTS file.
 - **`gmeow_gts::compact`** — compact a streamable GTS segment into a self-contained one.
 - **`gmeow_gts::files`** — pack and unpack directory trees using the GTS files profile.
 - **`gmeow_gts::nquads`** — project a folded graph to N-Quads.
+- **`gmeow_gts::model::Graph`** — consume raw quad-id rows with `into_quads()` or
+  lazily resolve them with `quad_terms()`.
 - **`gmeow_gts::rdf`** — optional `--features rdf` native adapter for
   `oxrdf::Dataset` without an embedded graph-store dependency.
 - **`gmeow_gts::oxigraph`** — optional `--features oxigraph-adapter` bridge between
