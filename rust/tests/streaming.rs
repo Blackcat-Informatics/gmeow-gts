@@ -115,11 +115,13 @@ fn assert_final_state_matches(name: &str, data: &[u8], allow_segments: bool) -> 
         "{name}: segment heads differ from full reader"
     );
     assert_eq!(
-        sink.segment_heads
+        sink.segment_heads.clone(),
+        streamed
+            .segment_heads
             .iter()
-            .map(|(_, head)| head.clone())
+            .cloned()
+            .enumerate()
             .collect::<Vec<_>>(),
-        streamed.segment_heads,
         "{name}: segment-head events differ from final streaming state"
     );
     assert_eq!(
@@ -130,9 +132,28 @@ fn assert_final_state_matches(name: &str, data: &[u8], allow_segments: bool) -> 
     assert_eq!(
         sink.streamable
             .iter()
-            .map(|(_, info)| (info.claimed, info.covered, info.tail, info.head.clone()))
+            .map(|(segment_index, info)| (
+                *segment_index,
+                info.claimed,
+                info.covered,
+                info.tail,
+                info.head.clone(),
+            ))
             .collect::<Vec<_>>(),
-        streamable_shape(&streamed.segment_streamable),
+        streamed
+            .segment_streamable
+            .iter()
+            .enumerate()
+            .map(|(segment_index, info)| {
+                (
+                    segment_index,
+                    info.claimed,
+                    info.covered,
+                    info.tail,
+                    info.head.clone(),
+                )
+            })
+            .collect::<Vec<_>>(),
         "{name}: streamable events differ from final streaming state"
     );
 
@@ -175,6 +196,7 @@ fn streaming_sink_events_match_segment_folds_for_corpus() {
             segments.segments.iter().map(|g| g.suppressions.len()).sum();
         let expected_opaque: usize = segments.segments.iter().map(|g| g.opaque.len()).sum();
         let expected_signatures: usize = segments.segments.iter().map(|g| g.signatures.len()).sum();
+        let expected_blobs: usize = segments.segments.iter().map(|g| g.blobs.len()).sum();
         let expected_blob_digests: BTreeSet<String> = segments
             .segments
             .iter()
@@ -209,6 +231,7 @@ fn streaming_sink_events_match_segment_folds_for_corpus() {
             expected_signatures,
             "{name}: signature events"
         );
+        assert_eq!(sink.blobs.len(), expected_blobs, "{name}: blob events");
         assert_eq!(
             event_blob_digests, expected_blob_digests,
             "{name}: blob digest events"

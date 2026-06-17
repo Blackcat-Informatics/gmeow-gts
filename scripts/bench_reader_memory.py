@@ -21,6 +21,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PY_SRC = ROOT / "python" / "src"
+RUST_EXAMPLE_TIMEOUT_SECONDS = 30
 if str(PY_SRC) not in sys.path:
     sys.path.insert(0, str(PY_SRC))
 
@@ -143,16 +144,24 @@ def rust_streaming_fold(path: Path) -> tuple[dict[str, int | None], float | None
     )
     exe = rust_example_path()
     start = time.perf_counter()
-    completed = subprocess.run(
-        [str(exe), str(path.resolve())],
-        cwd=ROOT,
-        check=True,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    try:
+        completed = subprocess.run(
+            [str(exe), str(path.resolve())],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=RUST_EXAMPLE_TIMEOUT_SECONDS,
+        )
+        result = json.loads(completed.stdout)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"Rust streaming sink timed out after {RUST_EXAMPLE_TIMEOUT_SECONDS}s"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Rust streaming sink emitted invalid JSON") from exc
     elapsed_ms = (time.perf_counter() - start) * 1000.0
-    result = json.loads(completed.stdout)
     peak = result.get("peak_kib")
     peak_kib = float(peak) if isinstance(peak, (int, float)) else None
     return result, peak_kib, elapsed_ms
