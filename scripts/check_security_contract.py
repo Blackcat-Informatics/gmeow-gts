@@ -59,7 +59,12 @@ def main() -> int:
         path = VECTOR_DIR / filename
         if not path.is_file():
             fail(f"missing security vector: {path.relative_to(ROOT)}")
-        data = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            fail(f"{path.relative_to(ROOT)} is not valid JSON: {exc}")
+        if not isinstance(data, dict):
+            fail(f"{path.relative_to(ROOT)} must be a JSON object")
         if data.get("id") != required["id"]:
             fail(f"{path.relative_to(ROOT)} has wrong id")
         expected_field = required["expected_field"]
