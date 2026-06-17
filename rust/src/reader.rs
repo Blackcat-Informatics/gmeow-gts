@@ -97,9 +97,96 @@ impl From<CodecError> for PayloadError {
     }
 }
 
+/// Final state returned by [`read_to_sink`].
+///
+/// The streaming API emits rows as segment-local events and does not construct
+/// the final union [`Graph`]. This result carries the observable file-level
+/// state that callers still need for verification and freshness checks.
+#[derive(Clone, Debug, Default)]
+pub struct StreamingReadResult {
+    /// Reader diagnostics in the same order as [`read`] would report them.
+    pub diagnostics: Vec<Diagnostic>,
+    /// Ordered per-segment head ids.
+    pub segment_heads: Vec<Vec<u8>>,
+    /// Ordered per-segment profile names.
+    pub segment_profiles: Vec<String>,
+    /// Ordered per-segment streamable-layout state.
+    pub segment_streamable: Vec<StreamableInfo>,
+    /// Byte offset of a torn trailing CBOR item, if present.
+    pub torn: Option<usize>,
+}
+
+/// Sink for [`read_to_sink`] events.
+///
+/// Term ids in events are segment-local ids. A sink that needs a file-level
+/// union should intern by value using the same rules as [`read`]; sinks that
+/// project rows into a table can usually consume the segment-local ids directly
+/// with the segment index as the scope.
+pub trait StreamingSink {
+    /// Accepted term row.
+    fn term(&mut self, _segment_index: usize, _term_id: usize, _term: &Term) {}
+    /// Accepted quad row.
+    fn quad(&mut self, _segment_index: usize, _quad: Quad) {}
+    /// Accepted reifier binding.
+    fn reifier(&mut self, _segment_index: usize, _reifier: usize, _triple: Triple3) {}
+    /// Accepted annotation row.
+    fn annotation(&mut self, _segment_index: usize, _annotation: Triple3) {}
+    /// Accepted suppression directive.
+    fn suppression(&mut self, _segment_index: usize, _suppression: &Suppression) {}
+    /// Accepted inline blob digest and declared metadata.
+    fn blob(&mut self, _segment_index: usize, _digest: &str, _meta: Option<&Value>) {}
+    /// Opaque frame produced by unknown, encrypted, or damaged payloads.
+    fn opaque(&mut self, _segment_index: usize, _opaque: &OpaqueNode) {}
+    /// Signature status observed on a frame.
+    fn signature(&mut self, _segment_index: usize, _signature: &Signature) {}
+    /// Reader diagnostic.
+    fn diagnostic(&mut self, _diagnostic: &Diagnostic) {}
+    /// Completed segment head.
+    fn segment_head(&mut self, _segment_index: usize, _head: &[u8]) {}
+    /// Completed segment streamable-layout state.
+    fn streamable_layout(&mut self, _segment_index: usize, _info: &StreamableInfo) {}
+}
+
+fn push_diagnostic(
+    g: &mut Graph,
+    sink: &mut Option<&mut dyn StreamingSink>,
+    diagnostic: Diagnostic,
+) {
+    if let Some(sink) = sink.as_deref_mut() {
+        sink.diagnostic(&diagnostic);
+    }
+    g.diagnostics.push(diagnostic);
+}
+
+fn push_result_diagnostic(
+    result: &mut StreamingReadResult,
+    sink: &mut dyn StreamingSink,
+    diagnostic: Diagnostic,
+) {
+    sink.diagnostic(&diagnostic);
+    result.diagnostics.push(diagnostic);
+}
+
+fn absorb_segment_result(result: &mut StreamingReadResult, segment: &Graph) {
+    result
+        .diagnostics
+        .extend(segment.diagnostics.iter().cloned());
+    result
+        .segment_heads
+        .extend(segment.segment_heads.iter().cloned());
+    result
+        .segment_profiles
+        .extend(segment.segment_profiles.iter().cloned());
+    result
+        .segment_streamable
+        .extend(segment.segment_streamable.iter().cloned());
+}
+
 /// Mutable fold state; one per segment (and shared by the snapshot handler).
-struct Folder<'a> {
-    g: &'a mut Graph,
+struct Folder<'g, 's> {
+    g: &'g mut Graph,
+    sink: Option<&'s mut dyn StreamingSink>,
+    segment_index: usize,
     catalog: HashMap<i128, Codec>,
     // Layout-state bookkeeping (§3.3): intact index frames seen, digests the
     // graph has described via stream:digest so far, and each inline blob's
@@ -109,13 +196,43 @@ struct Folder<'a> {
     blob_events: Vec<(usize, String, bool)>,
 }
 
-impl Folder<'_> {
+impl Folder<'_, '_> {
+    fn with_sink(&mut self, f: impl FnOnce(usize, &mut dyn StreamingSink)) {
+        if let Some(sink) = self.sink.as_deref_mut() {
+            f(self.segment_index, sink);
+        }
+    }
+
     fn diag(&mut self, code: &str, detail: String, index: Option<usize>) {
-        self.g.diagnostics.push(Diagnostic {
-            code: code.to_string(),
-            detail,
-            frame_index: index,
-        });
+        push_diagnostic(
+            self.g,
+            &mut self.sink,
+            Diagnostic {
+                code: code.to_string(),
+                detail,
+                frame_index: index,
+            },
+        );
+    }
+
+    fn emit_blob(&mut self, digest: &str) {
+        let meta = self
+            .g
+            .blob_meta
+            .iter()
+            .find(|(stored, _)| stored == digest)
+            .map(|(_, meta)| meta.clone());
+        self.with_sink(|segment_index, sink| sink.blob(segment_index, digest, meta.as_ref()));
+    }
+
+    fn push_opaque(&mut self, opaque: OpaqueNode) {
+        self.with_sink(|segment_index, sink| sink.opaque(segment_index, &opaque));
+        self.g.opaque.push(opaque);
+    }
+
+    fn push_signature(&mut self, signature: Signature) {
+        self.with_sink(|segment_index, sink| sink.signature(segment_index, &signature));
+        self.g.signatures.push(signature);
     }
 
     fn resolve_codecs(&self, ids: &[Value]) -> Result<Vec<Codec>, PayloadError> {
@@ -217,6 +334,7 @@ impl Folder<'_> {
             let dt_raw = map_get(entries, "dt").and_then(as_i128);
             let rf_raw = map_get(entries, "rf").and_then(as_i128);
             let tid = self.g.terms.len() as i128;
+            let term_id = self.g.terms.len();
             // Sanitise refs: dt/rf MUST name an already-introduced term
             // (§7.5). A forward/out-of-bounds ref is diagnosed and dropped,
             // so resolution and serialisation can never panic. (A negative
@@ -243,6 +361,9 @@ impl Folder<'_> {
                 lang,
                 reifier: rf,
             });
+            if let Some(sink) = self.sink.as_deref_mut() {
+                sink.term(self.segment_index, term_id, &self.g.terms[term_id]);
+            }
         }
     }
 
@@ -268,7 +389,9 @@ impl Folder<'_> {
             if !self.check_positions(s, p, o, gslot, index) {
                 continue;
             }
-            self.g.quads.push((s, p, o, gslot));
+            let quad = (s, p, o, gslot);
+            self.g.quads.push(quad);
+            self.with_sink(|segment_index, sink| sink.quad(segment_index, quad));
             // Layout bookkeeping (§3.3): a stream:digest quad describes an
             // upcoming manifestation — record the IOU for the blob check.
             if self.g.terms[p].value.as_deref() == Some(STREAM_DIGEST) {
@@ -313,6 +436,7 @@ impl Folder<'_> {
                 }
             }
             self.g.set_reifier(rid, triple);
+            self.with_sink(|segment_index, sink| sink.reifier(segment_index, rid, triple));
         }
     }
 
@@ -344,7 +468,9 @@ impl Folder<'_> {
                 );
                 continue;
             }
-            self.g.annotations.push((r, p, v));
+            let annotation = (r, p, v);
+            self.g.annotations.push(annotation);
+            self.with_sink(|segment_index, sink| sink.annotation(segment_index, annotation));
         }
     }
 
@@ -387,7 +513,8 @@ impl Folder<'_> {
                         digest.clone(),
                         self.described.contains(&digest),
                     ));
-                    self.g.set_blob(digest, bytes);
+                    self.g.set_blob(digest.clone(), bytes);
+                    self.emit_blob(&digest);
                 }
                 Ok(_) => {}
                 Err(PayloadError::Unavailable { reason, detail }) => {
@@ -419,6 +546,7 @@ impl Folder<'_> {
             }
             self.blob_events
                 .push((index, digest.clone(), self.described.contains(&digest)));
+            self.emit_blob(&digest);
             return;
         }
 
@@ -433,7 +561,8 @@ impl Folder<'_> {
                 }
                 self.blob_events
                     .push((index, digest.clone(), self.described.contains(&digest)));
-                self.g.set_blob(digest, bytes);
+                self.g.set_blob(digest.clone(), bytes);
+                self.emit_blob(&digest);
             }
             Ok(_) => {}
             Err(PayloadError::Unavailable { reason, detail }) => {
@@ -467,7 +596,7 @@ impl Folder<'_> {
         let Some(Value::Array(targets)) = map_get(entries, "targets") else {
             return;
         };
-        self.g.suppressions.push(Suppression {
+        let suppression = Suppression {
             targets: targets
                 .iter()
                 .filter(|t| matches!(t, Value::Map(_)))
@@ -477,7 +606,9 @@ impl Folder<'_> {
                 .and_then(as_text)
                 .map(str::to_string),
             by: map_get(entries, "by").and_then(as_idx),
-        });
+        };
+        self.with_sink(|segment_index, sink| sink.suppression(segment_index, &suppression));
+        self.g.suppressions.push(suppression);
     }
 
     /// Fold a self-contained snapshot (§10).
@@ -540,7 +671,9 @@ impl Folder<'_> {
         if let Some(Value::Map(blobs)) = map_get(entries, "blobs") {
             for (_, b) in blobs {
                 if let Value::Bytes(bytes) = b {
-                    self.g.set_blob(digest_str(bytes), bytes.clone());
+                    let digest = digest_str(bytes);
+                    self.g.set_blob(digest.clone(), bytes.clone());
+                    self.emit_blob(&digest);
                 }
             }
         }
@@ -574,7 +707,7 @@ impl Folder<'_> {
                 Some(Value::Bytes(b)) => b.clone(),
                 _ => Vec::new(),
             };
-            self.g.opaque.push(OpaqueNode {
+            self.push_opaque(OpaqueNode {
                 id,
                 frame_type: text_or(map_get(entries, "type"), "opaque").to_string(),
                 reason: text_or(map_get(entries, "reason"), "unknown-codec").to_string(),
@@ -648,7 +781,7 @@ impl Folder<'_> {
             ),
             _ => None,
         };
-        self.g.opaque.push(OpaqueNode {
+        self.push_opaque(OpaqueNode {
             id,
             frame_type: ftype.to_string(),
             reason: reason.to_string(),
@@ -778,6 +911,109 @@ pub fn read(data: &[u8], allow_segments: bool, expected_head: Option<&[u8]>) -> 
     g
 }
 
+/// Read a GTS file into a [`StreamingSink`] without constructing the final
+/// union [`Graph`].
+///
+/// The same header id, frame id, `prev` chain, payload, and layout checks used
+/// by [`read`] are applied while each segment is consumed. Events use
+/// segment-local term ids; the returned [`StreamingReadResult`] carries the
+/// final diagnostics, segment heads, profiles, and streamable-layout state.
+pub fn read_to_sink(
+    data: &[u8],
+    allow_segments: bool,
+    expected_head: Option<&[u8]>,
+    sink: &mut dyn StreamingSink,
+) -> StreamingReadResult {
+    let (items, torn) = iter_items(data);
+    let mut result = StreamingReadResult {
+        torn,
+        ..StreamingReadResult::default()
+    };
+    if items.is_empty() {
+        push_result_diagnostic(
+            &mut result,
+            sink,
+            Diagnostic {
+                code: "EmptyFile".to_string(),
+                detail: "no CBOR items".to_string(),
+                frame_index: None,
+            },
+        );
+        return result;
+    }
+
+    let bounds: Vec<usize> = items
+        .iter()
+        .enumerate()
+        .filter(|(_, (_, item))| is_header_item(item))
+        .map(|(i, _)| i)
+        .collect();
+    if bounds.first() != Some(&0) {
+        push_result_diagnostic(
+            &mut result,
+            sink,
+            Diagnostic {
+                code: "DamagedFrame".to_string(),
+                detail: "first item is not a header".to_string(),
+                frame_index: Some(0),
+            },
+        );
+        return result;
+    }
+    if bounds.len() > 1 && !allow_segments {
+        let segment = read_segment_with_sink(&items[..bounds[1]], 0, 0, Some(&mut *sink));
+        absorb_segment_result(&mut result, &segment);
+        push_result_diagnostic(
+            &mut result,
+            sink,
+            Diagnostic {
+                code: "SegmentBoundary".to_string(),
+                detail: format!(
+                    "segment boundary at item {} but reader is in pre-segment mode; \
+                     remainder of file NOT folded (folding it with file-global \
+                     term-ids would silently misfold — §16)",
+                    bounds[1]
+                ),
+                frame_index: Some(bounds[1]),
+            },
+        );
+        return result;
+    }
+
+    let ends = bounds.iter().skip(1).copied().chain([items.len()]);
+    for (segment_index, (&a, b)) in bounds.iter().zip(ends).enumerate() {
+        let segment = read_segment_with_sink(&items[a..b], a, segment_index, Some(&mut *sink));
+        absorb_segment_result(&mut result, &segment);
+    }
+
+    if let Some(expected) = expected_head {
+        let last_head = result.segment_heads.last().cloned().unwrap_or_default();
+        if last_head != expected {
+            push_result_diagnostic(
+                &mut result,
+                sink,
+                Diagnostic {
+                    code: "TruncatedLog".to_string(),
+                    detail: "observed head does not match expected head".to_string(),
+                    frame_index: None,
+                },
+            );
+        }
+    }
+    if let Some(offset) = torn {
+        push_result_diagnostic(
+            &mut result,
+            sink,
+            Diagnostic {
+                code: "TornAppendError".to_string(),
+                detail: format!("torn at offset {offset}"),
+                frame_index: None,
+            },
+        );
+    }
+    result
+}
+
 /// The per-segment view of a file — the input to composition tooling (§14.1):
 /// each segment folded independently, plus the file-level torn marker and any
 /// fatal pre-segmentation diagnostic.
@@ -841,16 +1077,29 @@ pub fn read_file_segments(data: &[u8]) -> FileSegments {
 /// `index_offset` is the segment's absolute position in the file's item
 /// sequence, so multi-segment diagnostics report ABSOLUTE indices.
 fn read_segment(items: &[(usize, Value)], index_offset: usize) -> Graph {
+    read_segment_with_sink(items, index_offset, 0, None)
+}
+
+fn read_segment_with_sink(
+    items: &[(usize, Value)],
+    index_offset: usize,
+    segment_index: usize,
+    mut sink: Option<&mut dyn StreamingSink>,
+) -> Graph {
     let mut g = Graph::default();
     let (_, raw_header) = &items[0];
     let header = match unwrap_header(raw_header) {
         Ok(h) => h,
         Err(e) => {
-            g.diagnostics.push(Diagnostic {
-                code: "DamagedFrame".to_string(),
-                detail: format!("invalid header: {e}"),
-                frame_index: Some(index_offset),
-            });
+            push_diagnostic(
+                &mut g,
+                &mut sink,
+                Diagnostic {
+                    code: "DamagedFrame".to_string(),
+                    detail: format!("invalid header: {e}"),
+                    frame_index: Some(index_offset),
+                },
+            );
             return g;
         }
     };
@@ -859,33 +1108,43 @@ fn read_segment(items: &[(usize, Value)], index_offset: usize) -> Graph {
         _ => None,
     };
     if stored_hid.as_deref() != Some(&header_id(header)[..]) {
-        g.diagnostics.push(Diagnostic {
-            code: "DamagedFrame".to_string(),
-            detail: "header self-hash mismatch".to_string(),
-            frame_index: Some(index_offset),
-        });
+        push_diagnostic(
+            &mut g,
+            &mut sink,
+            Diagnostic {
+                code: "DamagedFrame".to_string(),
+                detail: "header self-hash mismatch".to_string(),
+                frame_index: Some(index_offset),
+            },
+        );
     }
     if map_get(header, "gts").and_then(as_text) != Some(MAGIC)
         || map_get(header, "v").and_then(as_i128) != Some(i128::from(VERSION))
     {
-        g.diagnostics.push(Diagnostic {
-            code: "DamagedFrame".to_string(),
-            detail: format!(
-                "unsupported header magic/version {:?}/{:?}",
-                map_get(header, "gts"),
-                map_get(header, "v")
-            ),
-            frame_index: Some(index_offset),
-        });
+        push_diagnostic(
+            &mut g,
+            &mut sink,
+            Diagnostic {
+                code: "DamagedFrame".to_string(),
+                detail: format!(
+                    "unsupported header magic/version {:?}/{:?}",
+                    map_get(header, "gts"),
+                    map_get(header, "v")
+                ),
+                frame_index: Some(index_offset),
+            },
+        );
     }
     let mut expected_prev: Vec<u8> = stored_hid.unwrap_or_default();
     // per-frame chain ids, by 0-based frame position
     let mut frame_ids: Vec<Vec<u8>> = Vec::new();
 
-    let (index_records, blob_events) = {
+    let (index_records, blob_events, restored_sink) = {
         let catalog = catalog_from(header);
         let mut folder = Folder {
             g: &mut g,
+            sink: sink.take(),
+            segment_index,
             catalog,
             index_records: Vec::new(),
             described: HashSet::new(),
@@ -939,7 +1198,7 @@ fn read_segment(items: &[(usize, Value)], index_offset: usize) -> Graph {
                     Value::Bytes(b) => ("unverified", Some(b.clone())),
                     _ => ("invalid", None),
                 };
-                folder.g.signatures.push(Signature {
+                folder.push_signature(Signature {
                     frame_id: computed.clone(),
                     kid: None,
                     status: status.to_string(),
@@ -948,10 +1207,19 @@ fn read_segment(items: &[(usize, Value)], index_offset: usize) -> Graph {
             }
             folder.fold_frame(frame, abs_index);
         }
-        (folder.index_records, folder.blob_events)
+        (folder.index_records, folder.blob_events, folder.sink)
     };
+    sink = restored_sink;
 
     g.segment_heads.push(expected_prev);
+    if let Some(sink) = sink.as_deref_mut() {
+        sink.segment_head(
+            segment_index,
+            g.segment_heads
+                .last()
+                .expect("segment head was just pushed"),
+        );
+    }
     let seg_meta = g.meta.clone();
     g.segment_meta.push(seg_meta);
     g.segment_profiles
@@ -963,8 +1231,17 @@ fn read_segment(items: &[(usize, Value)], index_offset: usize) -> Graph {
         &blob_events,
         &frame_ids,
         index_offset,
+        &mut sink,
     );
     g.segment_streamable.push(info);
+    if let Some(sink) = sink {
+        sink.streamable_layout(
+            segment_index,
+            g.segment_streamable
+                .last()
+                .expect("streamable info was just pushed"),
+        );
+    }
     g
 }
 
@@ -983,6 +1260,7 @@ fn layout_check(
     blob_events: &[(usize, String, bool)],
     frame_ids: &[Vec<u8>],
     index_offset: usize,
+    sink: &mut Option<&mut dyn StreamingSink>,
 ) -> StreamableInfo {
     let claimed = matches!(map_get(header, "layout"), Some(Value::Text(t)) if t == "streamable");
     let total = frame_ids.len();
@@ -990,13 +1268,17 @@ fn layout_check(
         return StreamableInfo::default();
     }
     let Some((abs_pos, count, head)) = index_records.last() else {
-        g.diagnostics.push(Diagnostic {
-            code: "StreamableLayoutError".to_string(),
-            detail: "segment claims layout 'streamable' but carries no intact \
+        push_diagnostic(
+            g,
+            sink,
+            Diagnostic {
+                code: "StreamableLayoutError".to_string(),
+                detail: "segment claims layout 'streamable' but carries no intact \
                      index footer (§3.3)"
-                .to_string(),
-            frame_index: None,
-        });
+                    .to_string(),
+                frame_index: None,
+            },
+        );
         return StreamableInfo {
             claimed: true,
             covered: 0,
@@ -1011,27 +1293,35 @@ fn layout_check(
     // permissive `count <= rel_pos - 1` would let frames sit between the
     // covered prefix and the footer, counted neither as covered nor as tail.
     if count != rel_pos - 1 || count < 1 || frame_ids[count - 1] != *head {
-        g.diagnostics.push(Diagnostic {
-            code: "StreamableLayoutError".to_string(),
-            detail: format!(
-                "index footer contradicts the frames it covers: count {count} \
+        push_diagnostic(
+            g,
+            sink,
+            Diagnostic {
+                code: "StreamableLayoutError".to_string(),
+                detail: format!(
+                    "index footer contradicts the frames it covers: count {count} \
                  must name the frame immediately before the footer and head \
                  must be that frame's id (§3.3)"
-            ),
-            frame_index: Some(abs_pos),
-        });
+                ),
+                frame_index: Some(abs_pos),
+            },
+        );
     }
     for (blob_abs, digest, described) in blob_events {
         let blob_rel = blob_abs - index_offset;
         if blob_rel <= count && !described {
-            g.diagnostics.push(Diagnostic {
-                code: "StreamableLayoutError".to_string(),
-                detail: format!(
-                    "covered blob {digest} delivered before its stream:digest \
+            push_diagnostic(
+                g,
+                sink,
+                Diagnostic {
+                    code: "StreamableLayoutError".to_string(),
+                    detail: format!(
+                        "covered blob {digest} delivered before its stream:digest \
                      description (catalog-before-payload, §3.3)"
-                ),
-                frame_index: Some(*blob_abs),
-            });
+                    ),
+                    frame_index: Some(*blob_abs),
+                },
+            );
         }
     }
     StreamableInfo {

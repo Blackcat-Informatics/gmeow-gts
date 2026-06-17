@@ -218,6 +218,12 @@ enables the optional `gmeow_gts::rdf` adapter backed by `oxrdf`'s RDF data-model
 crate; it does not pull in the `oxigraph` store or any RDF dependency for
 default transport users.
 
+For streaming projections, implement `gmeow_gts::reader::StreamingSink` and call
+`gmeow_gts::reader::read_to_sink(&bytes, allow_segments, expected_head, sink)`.
+The sink API emits segment-local term, quad, reifier, annotation, suppression,
+blob, opaque, signature, diagnostic, segment-head, and streamable-layout events
+while returning final diagnostics and segment heads. It adds no crate dependency.
+
 Rust signing works with raw Ed25519 keys or with an unencrypted Ed25519
 OpenPGP secret-key block. The OpenPGP helper keeps the same narrow parser used
 by `extract-key`; it does not add a full OpenPGP dependency.
@@ -406,7 +412,7 @@ Current CI-gated conformance status:
 
 | Engine | Baseline Reader | Streaming Reader | Writer | Validating Tool | Profile-Aware Tool |
 |---|---|---|---|---|---|
-| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | prefix-fold property over `vectors/*.gts` | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `read_to_sink` API plus prefix-fold corpus gate | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
