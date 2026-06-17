@@ -41,11 +41,13 @@ class BenchmarkRow:
 def measure(fn: Any) -> tuple[Any, float, float]:
     gc.collect()
     tracemalloc.start()
-    start = time.perf_counter()
-    result = fn()
-    elapsed_ms = (time.perf_counter() - start) * 1000.0
-    _, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
+    try:
+        start = time.perf_counter()
+        result = fn()
+        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
     return result, peak / 1024.0, elapsed_ms
 
 
