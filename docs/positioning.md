@@ -90,7 +90,7 @@ GTS supports several application families without making any of them the project
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | no | no |
-| SQLite/DuckDB/Parquet exports | yes | no | no | no |
+| SQLite/DuckDB/Parquet exports | yes | yes | no | no |
 | Package registry | PyPI | crates.io | Go module | npm |
 
 This matrix is descriptive, not a conformance claim. The authoritative compatibility check is

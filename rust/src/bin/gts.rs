@@ -45,7 +45,11 @@ commands:
                             pack files/directories into a files-profile archive
   unpack <archive> [-C dir] [--include-suppressed]
                             unpack a files-profile archive
-  diff <archive> <dir>      compare archive to directory by digest";
+  diff <archive> <dir>      compare archive to directory by digest
+  to-sqlite <file> <out>    export the folded graph to SQLite (needs sqlite3)
+  to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
+  to-parquet <file> <dir>   export Parquet files, one per non-empty table
+                            (needs duckdb)";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -66,6 +70,9 @@ fn main() -> ExitCode {
         "pack" => cmd_pack(&args[1..]),
         "unpack" => cmd_unpack(&args[1..]),
         "diff" => cmd_diff(&args[1..]),
+        "to-sqlite" => cmd_to_sqlite(&args[1..]),
+        "to-duckdb" => cmd_to_duckdb(&args[1..]),
+        "to-parquet" => cmd_to_parquet(&args[1..]),
         "-h" | "--help" | "help" => {
             println!("{USAGE}");
             ExitCode::SUCCESS
@@ -373,6 +380,78 @@ fn cmd_from_nq(args: &[String]) -> ExitCode {
         }
     }
     ExitCode::SUCCESS
+}
+
+fn export_graph(path: &str) -> Result<Graph, ExitCode> {
+    let data = load(path)?;
+    let graph = read(&data, true, None);
+    for d in &graph.diagnostics {
+        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+    }
+    if !graph.diagnostics.is_empty() || graph.segment_heads.is_empty() {
+        eprintln!("gts: refusing export: input did not read cleanly");
+        return Err(ExitCode::from(1));
+    }
+    Ok(graph)
+}
+
+fn cmd_to_sqlite(args: &[String]) -> ExitCode {
+    let [path, out] = args else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let graph = match export_graph(path) {
+        Ok(graph) => graph,
+        Err(code) => return code,
+    };
+    match gmeow_gts::db::to_sqlite(&graph, out) {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("gts to-sqlite: {e}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn cmd_to_duckdb(args: &[String]) -> ExitCode {
+    let [path, out] = args else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let graph = match export_graph(path) {
+        Ok(graph) => graph,
+        Err(code) => return code,
+    };
+    match gmeow_gts::db::to_duckdb(&graph, out) {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("gts to-duckdb: {e}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn cmd_to_parquet(args: &[String]) -> ExitCode {
+    let [path, out_dir] = args else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let graph = match export_graph(path) {
+        Ok(graph) => graph,
+        Err(code) => return code,
+    };
+    match gmeow_gts::db::to_parquet(&graph, out_dir) {
+        Ok(paths) => {
+            for path in paths {
+                println!("{}", path.display());
+            }
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("gts to-parquet: {e}");
+            ExitCode::from(2)
+        }
+    }
 }
 
 /// Parse a `kid:hexpubkey` spec into a verifier entry.
