@@ -14,7 +14,7 @@ import cbor2
 
 from gts.codec import DEFAULT_CATALOG, Codec, encode_chain
 from gts.crypto import Signer, encrypt0, sign_id
-from gts.model import Quad, Term, Triple
+from gts.model import Graph, Quad, Suppression, Term, TermKind, Triple
 from gts.wire import (
     MAGIC,
     SELF_DESCRIBE_TAG,
@@ -63,6 +63,111 @@ def _validate_term_language_tags(terms: list[Term], section: str) -> None:
                 f"a projection/docs section (§13.1)"
             )
             raise ValueError(msg)
+
+
+def _deterministic_term_remap(graph: Graph) -> tuple[dict[int, int], list[int]]:
+    """Return ``old -> new`` ids and ``new -> old`` term order for a graph."""
+    old_by_new = sorted(
+        range(len(graph.terms)),
+        key=lambda tid: (canonical(_term_identity(graph, tid, [])), tid),
+    )
+    old_to_new = {old: new for new, old in enumerate(old_by_new)}
+    return old_to_new, old_by_new
+
+
+def _term_identity(graph: Graph, tid: int, stack: list[int]) -> list[object]:
+    """Semantic term identity used for deterministic authoring order."""
+    if tid in stack:
+        return ["cycle", tid]
+    try:
+        term = graph.terms[tid]
+    except IndexError:
+        return ["missing", tid]
+    stack.append(tid)
+    out: list[object]
+    if term.kind is TermKind.IRI:
+        out = ["iri", term.value]
+    elif term.kind is TermKind.LITERAL:
+        out = ["literal", term.value, graph.datatype_iri(term), term.lang]
+    elif term.kind is TermKind.BNODE:
+        out = [
+            "bnode",
+            term.value if term.value else ["anonymous", tid],
+        ]
+    else:
+        triple = graph.reifiers.get(term.reifier) if term.reifier is not None else None
+        if triple is None:
+            out = ["triple", None, term.reifier]
+        else:
+            s, p, o = triple
+            out = [
+                "triple",
+                _term_identity(graph, s, stack),
+                _term_identity(graph, p, stack),
+                _term_identity(graph, o, stack),
+            ]
+    stack.pop()
+    return out
+
+
+def _remap_id(old_to_new: dict[int, int], tid: int) -> int:
+    return old_to_new.get(tid, tid)
+
+
+def _remap_term(term: Term, old_to_new: dict[int, int]) -> Term:
+    return Term(
+        kind=term.kind,
+        value=term.value,
+        datatype=_remap_id(old_to_new, term.datatype)
+        if term.datatype is not None
+        else None,
+        lang=term.lang,
+        reifier=_remap_id(old_to_new, term.reifier)
+        if term.reifier is not None
+        else None,
+    )
+
+
+def _remap_suppression(
+    suppression: Suppression, old_to_new: dict[int, int]
+) -> Suppression:
+    targets: list[Mapping[str, object]] = []
+    for target in suppression.targets:
+        kind = target.get("kind")
+        remapped = dict(target)
+        tid = remapped.get("id")
+        q = remapped.get("q")
+        if kind in ("term", "reifier") and isinstance(tid, int):
+            remapped["id"] = _remap_id(old_to_new, tid)
+        elif kind == "quad" and isinstance(q, list):
+            remapped["q"] = [
+                _remap_id(old_to_new, item) if isinstance(item, int) else item
+                for item in q
+            ]
+        targets.append(remapped)
+    return Suppression(
+        targets=targets,
+        reason=suppression.reason,
+        by=_remap_id(old_to_new, suppression.by)
+        if suppression.by is not None
+        else None,
+    )
+
+
+def _suppression_key(suppression: Suppression) -> bytes:
+    payload: dict[str, object] = {"targets": list(suppression.targets)}
+    if suppression.reason is not None:
+        payload["reason"] = suppression.reason
+    if suppression.by is not None:
+        payload["by"] = suppression.by
+    return canonical(payload)
+
+
+def _quad_key(quad: Quad) -> bytes:
+    row = [quad[0], quad[1], quad[2]]
+    if quad[3] is not None:
+        row.append(quad[3])
+    return canonical(row)
 
 
 class Writer:
@@ -119,6 +224,92 @@ class Writer:
         # verify, types the "ti" locator map.
         self._offsets: list[int] = []
         self._types: list[str] = []
+
+    @classmethod
+    def deterministic(cls, graph: Graph, profile: str = "dist") -> Writer:
+        """Build a deterministic single-segment writer from folded graph state.
+
+        This high-level authoring path remaps terms by semantic value, emits
+        authorable graph frames in a fixed order, and relies on deterministic
+        CBOR for every hashed frame. It does not replay reader observations such
+        as diagnostics, signatures, opaque nodes, or segment ledgers.
+        """
+        old_to_new, old_by_new = _deterministic_term_remap(graph)
+        writer = cls(profile=profile)
+
+        if old_by_new:
+            writer.add_terms(
+                [_remap_term(graph.terms[old], old_to_new) for old in old_by_new]
+            )
+
+        quads = [
+            (
+                _remap_id(old_to_new, s),
+                _remap_id(old_to_new, p),
+                _remap_id(old_to_new, o),
+                _remap_id(old_to_new, g) if g is not None else None,
+            )
+            for s, p, o, g in graph.quads
+        ]
+        quads.sort(key=_quad_key)
+        if quads:
+            writer.add_quads(quads)
+
+        reifiers = dict(
+            sorted(
+                (
+                    _remap_id(old_to_new, rid),
+                    (
+                        _remap_id(old_to_new, s),
+                        _remap_id(old_to_new, p),
+                        _remap_id(old_to_new, o),
+                    ),
+                )
+                for rid, (s, p, o) in graph.reifiers.items()
+            )
+        )
+        if reifiers:
+            writer.add_reifies(reifiers)
+
+        annotations = sorted(
+            (
+                _remap_id(old_to_new, r),
+                _remap_id(old_to_new, p),
+                _remap_id(old_to_new, v),
+            )
+            for r, p, v in graph.annotations
+        )
+        if annotations:
+            writer.add_annot(annotations)
+
+        for digest, data in sorted(graph.blobs.items()):
+            meta = graph.blob_meta.get(digest, {})
+            mt = meta.get("mt")
+            rep = meta.get("rep")
+            writer.add_blob(
+                data,
+                mt=mt if isinstance(mt, str) else None,
+                rep=rep if isinstance(rep, str) else None,
+            )
+
+        if graph.meta:
+            writer.add_meta(dict(sorted(graph.meta.items())))
+
+        suppressions = sorted(
+            (
+                _remap_suppression(suppression, old_to_new)
+                for suppression in graph.suppressions
+            ),
+            key=_suppression_key,
+        )
+        for suppression in suppressions:
+            writer.add_suppress(
+                suppression.targets,
+                reason=suppression.reason,
+                by=suppression.by,
+            )
+
+        return writer
 
     @property
     def head(self) -> bytes:

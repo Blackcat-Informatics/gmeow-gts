@@ -13,8 +13,8 @@ use std::collections::HashMap;
 
 use ciborium::value::Value;
 
-use crate::codec::Codec;
-use crate::model::{Quad, Term, Triple3};
+use crate::codec::{Codec, CodecError};
+use crate::model::{Graph, Quad, Suppression, Term, TermKind, Triple3};
 use crate::wire::{canonical, content_id, digest_str, header_id, SELF_DESCRIBE_TAG};
 
 fn iv(n: i64) -> Value {
@@ -58,6 +58,125 @@ impl Writer {
     /// Create a writer and emit the Header (the chain genesis).
     pub fn new(profile: &str) -> Self {
         Self::with_layout(profile, None)
+    }
+
+    /// Build a deterministic single-segment writer from folded graph state.
+    ///
+    /// This high-level authoring path remaps terms by semantic value, emits
+    /// authorable graph frames in a fixed order, and relies on deterministic
+    /// CBOR for every hashed frame. It does not replay reader observations such
+    /// as diagnostics, signatures, opaque nodes, or segment ledgers.
+    pub fn deterministic(graph: &Graph, profile: &str) -> Result<Self, CodecError> {
+        let remap = deterministic_term_remap(graph);
+        let mut writer = Self::new(profile);
+
+        if !remap.old_by_new.is_empty() {
+            let terms: Vec<Term> = remap
+                .old_by_new
+                .iter()
+                .map(|&old| remap_term(&graph.terms[old], &remap.old_to_new))
+                .collect();
+            writer.add_terms(&terms);
+        }
+
+        let mut quads: Vec<Quad> = graph
+            .quads
+            .iter()
+            .map(|&(s, p, o, g)| {
+                (
+                    remap_id(&remap.old_to_new, s),
+                    remap_id(&remap.old_to_new, p),
+                    remap_id(&remap.old_to_new, o),
+                    g.map(|term| remap_id(&remap.old_to_new, term)),
+                )
+            })
+            .collect();
+        quads.sort_by_key(quad_key);
+        if !quads.is_empty() {
+            writer.add_quads(&quads);
+        }
+
+        let mut reifiers: Vec<(usize, Triple3)> = graph
+            .reifiers
+            .iter()
+            .map(|&(rid, (s, p, o))| {
+                (
+                    remap_id(&remap.old_to_new, rid),
+                    (
+                        remap_id(&remap.old_to_new, s),
+                        remap_id(&remap.old_to_new, p),
+                        remap_id(&remap.old_to_new, o),
+                    ),
+                )
+            })
+            .collect();
+        reifiers.sort();
+        if !reifiers.is_empty() {
+            writer.add_reifies(&reifiers);
+        }
+
+        let mut annotations: Vec<Triple3> = graph
+            .annotations
+            .iter()
+            .map(|&(r, p, v)| {
+                (
+                    remap_id(&remap.old_to_new, r),
+                    remap_id(&remap.old_to_new, p),
+                    remap_id(&remap.old_to_new, v),
+                )
+            })
+            .collect();
+        annotations.sort();
+        if !annotations.is_empty() {
+            writer.add_annot(&annotations);
+        }
+
+        let mut blobs: Vec<(String, Vec<u8>)> = graph
+            .blobs
+            .iter()
+            .map(|(digest, entry)| Ok((digest.clone(), entry.decoded_vec()?)))
+            .collect::<Result<_, CodecError>>()?;
+        blobs.sort_by(|a, b| a.0.cmp(&b.0));
+        for (digest, data) in blobs {
+            let meta = graph
+                .blob_meta
+                .iter()
+                .find(|(candidate, _)| candidate == &digest)
+                .map(|(_, meta)| meta);
+            let mt = meta
+                .and_then(|value| map_text(value, "mt"))
+                .map(str::to_string);
+            let rep = meta
+                .and_then(|value| map_text(value, "rep"))
+                .map(str::to_string);
+            writer.add_blob(&data, mt.as_deref(), rep.as_deref());
+        }
+
+        if !graph.meta.is_empty() {
+            let mut entries: Vec<(Value, Value)> = graph
+                .meta
+                .iter()
+                .map(|(key, value)| (key.clone().into(), value.clone()))
+                .collect();
+            entries.sort_by_key(|(key, _)| canonical(key));
+            writer.add_meta(Value::Map(entries));
+        }
+
+        let mut suppressions: Vec<Suppression> = graph
+            .suppressions
+            .iter()
+            .map(|suppression| remap_suppression(suppression, &remap.old_to_new))
+            .collect();
+        suppressions.sort_by_key(suppression_key);
+        for suppression in suppressions {
+            writer.add_suppress(
+                suppression.targets,
+                suppression.reason.as_deref(),
+                suppression.by,
+            );
+        }
+
+        Ok(writer)
     }
 
     /// Build a writer from an Oxigraph store.
@@ -391,6 +510,175 @@ impl Writer {
     /// Return the complete GTS file bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
         self.buf.clone()
+    }
+}
+
+struct TermRemap {
+    old_to_new: Vec<usize>,
+    old_by_new: Vec<usize>,
+}
+
+fn deterministic_term_remap(graph: &Graph) -> TermRemap {
+    let mut old_by_new: Vec<usize> = (0..graph.terms.len()).collect();
+    let keys: Vec<Vec<u8>> = old_by_new
+        .iter()
+        .map(|&tid| canonical(&term_identity_value(graph, tid, &mut Vec::new())))
+        .collect();
+    old_by_new.sort_by(|a, b| keys[*a].cmp(&keys[*b]).then_with(|| a.cmp(b)));
+    let mut old_to_new = vec![0; graph.terms.len()];
+    for (new, old) in old_by_new.iter().enumerate() {
+        old_to_new[*old] = new;
+    }
+    TermRemap {
+        old_to_new,
+        old_by_new,
+    }
+}
+
+fn term_identity_value(graph: &Graph, tid: usize, stack: &mut Vec<usize>) -> Value {
+    if stack.contains(&tid) {
+        return Value::Array(vec!["cycle".into(), Value::from(tid as u64)]);
+    }
+    let Some(term) = graph.terms.get(tid) else {
+        return Value::Array(vec!["missing".into(), Value::from(tid as u64)]);
+    };
+    stack.push(tid);
+    let value = match term.kind {
+        TermKind::Iri => Value::Array(vec!["iri".into(), text_or_null(term.value.as_deref())]),
+        TermKind::Literal => Value::Array(vec![
+            "literal".into(),
+            text_or_null(term.value.as_deref()),
+            graph.datatype_iri(term).into(),
+            text_or_null(term.lang.as_deref()),
+        ]),
+        TermKind::Bnode => Value::Array(vec![
+            "bnode".into(),
+            match term.value.as_deref() {
+                Some(value) if !value.is_empty() => value.into(),
+                _ => Value::Array(vec!["anonymous".into(), Value::from(tid as u64)]),
+            },
+        ]),
+        TermKind::Triple => match term.reifier.and_then(|rid| graph.reifier(rid)) {
+            Some((s, p, o)) => Value::Array(vec![
+                "triple".into(),
+                term_identity_value(graph, s, stack),
+                term_identity_value(graph, p, stack),
+                term_identity_value(graph, o, stack),
+            ]),
+            None => Value::Array(vec![
+                "triple".into(),
+                Value::Null,
+                term.reifier
+                    .map(|rid| Value::from(rid as u64))
+                    .unwrap_or(Value::Null),
+            ]),
+        },
+    };
+    stack.pop();
+    value
+}
+
+fn text_or_null(value: Option<&str>) -> Value {
+    value.map(Value::from).unwrap_or(Value::Null)
+}
+
+fn remap_id(old_to_new: &[usize], tid: usize) -> usize {
+    old_to_new.get(tid).copied().unwrap_or(tid)
+}
+
+fn remap_term(term: &Term, old_to_new: &[usize]) -> Term {
+    Term {
+        kind: term.kind,
+        value: term.value.clone(),
+        datatype: term.datatype.map(|tid| remap_id(old_to_new, tid)),
+        lang: term.lang.clone(),
+        reifier: term.reifier.map(|tid| remap_id(old_to_new, tid)),
+    }
+}
+
+fn quad_key(quad: &Quad) -> Vec<u8> {
+    let mut row = vec![iv(quad.0 as i64), iv(quad.1 as i64), iv(quad.2 as i64)];
+    if let Some(graph_name) = quad.3 {
+        row.push(iv(graph_name as i64));
+    }
+    canonical(&Value::Array(row))
+}
+
+fn remap_suppression(suppression: &Suppression, old_to_new: &[usize]) -> Suppression {
+    let targets = suppression
+        .targets
+        .iter()
+        .map(|target| remap_suppression_target(target, old_to_new))
+        .collect();
+    Suppression {
+        targets,
+        reason: suppression.reason.clone(),
+        by: suppression.by.map(|tid| remap_id(old_to_new, tid)),
+    }
+}
+
+fn remap_suppression_target(target: &Value, old_to_new: &[usize]) -> Value {
+    let Value::Map(entries) = target else {
+        return target.clone();
+    };
+    let kind = map_text(target, "kind").unwrap_or("");
+    let mapped = entries
+        .iter()
+        .map(|(key, value)| {
+            let key_text = match key {
+                Value::Text(text) => text.as_str(),
+                _ => "",
+            };
+            if (kind == "term" || kind == "reifier") && key_text == "id" {
+                if let Some(tid) = value_idx(value) {
+                    return (key.clone(), Value::from(remap_id(old_to_new, tid) as u64));
+                }
+            } else if kind == "quad" && key_text == "q" {
+                if let Value::Array(ids) = value {
+                    let remapped = ids
+                        .iter()
+                        .map(|id| {
+                            value_idx(id)
+                                .map(|tid| Value::from(remap_id(old_to_new, tid) as u64))
+                                .unwrap_or_else(|| id.clone())
+                        })
+                        .collect();
+                    return (key.clone(), Value::Array(remapped));
+                }
+            }
+            (key.clone(), value.clone())
+        })
+        .collect();
+    Value::Map(mapped)
+}
+
+fn suppression_key(suppression: &Suppression) -> Vec<u8> {
+    let mut payload: Vec<(Value, Value)> =
+        vec![("targets".into(), Value::Array(suppression.targets.clone()))];
+    if let Some(reason) = &suppression.reason {
+        payload.push(("reason".into(), reason.clone().into()));
+    }
+    if let Some(by) = suppression.by {
+        payload.push(("by".into(), Value::from(by as u64)));
+    }
+    canonical(&Value::Map(payload))
+}
+
+fn map_text<'a>(value: &'a Value, wanted: &str) -> Option<&'a str> {
+    let Value::Map(entries) = value else {
+        return None;
+    };
+    entries.iter().find_map(|(key, value)| match (key, value) {
+        (Value::Text(key), Value::Text(text)) if key == wanted => Some(text.as_str()),
+        _ => None,
+    })
+}
+
+fn value_idx(value: &Value) -> Option<usize> {
+    if let Value::Integer(i) = value {
+        usize::try_from(i128::from(*i)).ok()
+    } else {
+        None
     }
 }
 

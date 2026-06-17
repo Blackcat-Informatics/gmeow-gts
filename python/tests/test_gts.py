@@ -537,6 +537,17 @@ def test_rfc8949_deterministic_key_order() -> None:
     assert canonical({"x": 1, "id": 2}).hex() == "a261780162696402"
 
 
+def test_deterministic_writer_reorders_equivalent_graphs() -> None:
+    """The high-level writer remaps local term ids before assigning bytes."""
+    from gts.vectors import _deterministic_writer_graphs
+
+    a, b = _deterministic_writer_graphs()
+    assert (
+        Writer.deterministic(a, profile="dist").to_bytes()
+        == Writer.deterministic(b, profile="dist").to_bytes()
+    )
+
+
 def test_corpus_matches_committed_expectations() -> None:
     """The frozen corpus (generated/gts-vectors/) is the cross-implementation
     truth: the oracle must reproduce every committed .expected.json exactly.
