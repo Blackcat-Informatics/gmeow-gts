@@ -3,34 +3,43 @@
 
 # GTS — Graph Transport Substrate — Specification
 
-**Version:** 0.3 (draft) &nbsp;·&nbsp; **Date:** 2026-06-11 &nbsp;·&nbsp;
-**Editor:** Patrick Audley, Blackcat Informatics® Inc. &nbsp;·&nbsp;
+**Document version:** 0.3 (draft) &nbsp;·&nbsp; **Wire-format major version:** 1 &nbsp;·&nbsp;
+**Date:** 2026-06-11 &nbsp;·&nbsp; **Editor:** Patrick Audley, Blackcat Informatics® Inc. &nbsp;·&nbsp;
 **This version:** <https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md>
 
 ## Abstract
 
-GTS (Graph Transport Substrate) is a single-file, language-independent transport for an
-**RDF 1.2** graph (statements *and* statement-level metadata) together with any
-**content-addressed binary** the graph references. A GTS file is an append-only log of CBOR
-frames; the logical graph is the deterministic *fold* (replay) of that log. Its lodestar is
-**reader simplicity**: a conformant baseline reader — "the rdflib of GTS" — is small enough to
-prototype in a weekend in any language with a CBOR library, and a consumer can do ~90% of what
-they would do with an RDF library *without parsing RDF text*. The remaining 10% is delegated to
-**transforms** that convert GTS to an operating substrate (`.ttl`, `.nq`, DuckDB, SQLite, …).
-
-GTS is explicitly **not** a database, a query engine, or an operating substrate. It is a
-*good-enough, durable, self-describing container* — the narrow waist through which graphs and
-their referenced data travel.
+GTS (Graph Transport Substrate) is an ontology-independent binary container and transport
+format for RDF 1.2 datasets and content-addressed binary payloads. A GTS file is a CBOR
+Sequence of one or more append-only segments. Each segment consists of a deterministic CBOR
+header followed by deterministic CBOR frames linked by BLAKE3 content identifiers. The logical
+dataset is obtained by a deterministic fold over the segment sequence. GTS supports partial
+readability, opaque encrypted or unknown-codec frames, append-only suppression, optional
+signatures and encryption, and cross-language conformance through a shared vector corpus.
 
 ## Status of this document
 
-This document specifies the GTS wire format at **draft version `v0.3`** (2026-06-11). It is a
-**working draft**: the wire format MAY change before `v1.0`. Until `v1.0`, the cross-language
-conformance corpus (§19) is the authoritative compatibility oracle, and implementations SHOULD
-track it. This specification is maintained in the
+| Field | Value |
+|---|---|
+| Status | Working draft |
+| Document version | 0.3 (draft) |
+| Wire-format major version | 1, encoded in the segment header `"v"` field |
+| Date | 2026-06-11 |
+| Stability | Wire-format changes remain possible until v1.0 |
+| Change control | Blackcat Informatics / GTS specification process |
+| Conformance | Defined by this document and the versioned vector corpus (§19) |
+| Implementation versions | Package versions are independent release artifacts |
+| Corpus version | The corpus is versioned separately from package releases |
+
+This specification is maintained in the
 [`gmeow-gts`](https://github.com/Blackcat-Informatics/gmeow-gts) repository, alongside four
-interoperable reference engines (Rust, Python, Go, TypeScript) that all gate against that
-corpus; report errata and propose changes there.
+interoperable reference engines (Rust, Python, Go, TypeScript) that gate against the shared
+vector corpus. Report errata and propose changes there.
+
+GTS is ontology-independent. GMEOW is a primary downstream consumer and distribution use case
+for GTS, but GTS readers and writers do not require GMEOW vocabulary, tooling, or semantics.
+Domain-specific profiles, including GMEOW and music-package profiles, are layered above the
+core format.
 
 **Changes in v0.3:**
 
@@ -46,9 +55,10 @@ corpus; report errata and propose changes there.
 
 - [1. Overview and non-goals](#1-overview-and-non-goals)
 - [2. Terminology and conformance](#2-terminology-and-conformance)
-  - [2.1 Conformance classes](#21-conformance-classes)
-  - [2.2 The reader contract ("the rdflib of GTS")](#22-the-reader-contract-the-rdflib-of-gts)
-  - [2.3 Reader diagnostics](#23-reader-diagnostics)
+  - [2.1 Conformance scopes](#21-conformance-scopes)
+  - [2.2 Reader and writer conformance classes](#22-reader-and-writer-conformance-classes)
+  - [2.3 Baseline reader API shape](#23-baseline-reader-api-shape)
+  - [2.4 Reader diagnostics](#24-reader-diagnostics)
 - [3. File structure](#3-file-structure)
   - [3.1 Multi-segment files (`cat`-append composition)](#31-multi-segment-files-cat-append-composition)
   - [3.2 Streaming and progressive enhancement](#32-streaming-and-progressive-enhancement)
@@ -139,6 +149,11 @@ Four properties define the format:
 a reasoner, or a mutation protocol. Random-access query, deep traversal, and SPARQL are the
 job of a transform target, not of GTS.
 
+**Informative motivation.** GTS keeps the baseline reader surface small: a reader needs CBOR,
+BLAKE3, the mandatory codecs, and the fold rules rather than an RDF text parser. Tools that
+need richer query, indexing, or analytics project the folded data to an operating substrate
+such as N-Quads, SQLite, DuckDB, or Parquet.
+
 ## 2. Terminology and conformance
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHOULD**, **MAY**, and
@@ -152,7 +167,27 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHOULD**, **MAY
 - **Capability** — what a reader must hold to decode a payload: a *codec library* or a *key*.
 - **Opaque node** — the graph representation of a frame the reader could not decode (§7.6).
 
-### 2.1 Conformance classes
+### 2.1 Conformance scopes
+
+This specification separates the following conformance scopes:
+
+- **Wire-format conformance** covers the byte-level CBOR Sequence structure, deterministic CBOR
+  encoding, header and frame grammar, content-id preimages, and segment boundaries.
+- **Reader conformance** covers parsing, chain verification, payload resolution, fold behavior,
+  diagnostics, opaque-node handling, and resource-bound behavior.
+- **Writer conformance** covers deterministic output, valid headers and frames, correct
+  content identifiers, codec declarations, and signature/hash preimages.
+- **Tool conformance** covers command-line or library policy that is stricter than local file
+  validity, such as validating composition, extraction, publication, or archive operations.
+- **Profile conformance** covers profile-specific vocabulary, validation, capability, and trust
+  rules layered above the core format.
+- **Deployment conformance** covers serving and distribution behavior such as media type,
+  caching, range requests, and byte-preservation across HTTP or artifact hosting.
+
+The conformance classes below define reader and writer behavior. Tool, profile, and deployment
+requirements are scoped explicitly in the sections that define them.
+
+### 2.2 Reader and writer conformance classes
 
 - A **Baseline Reader** MUST: parse the CBOR sequence; verify the id/prev chain (§9.1); fold `terms`,
   `quads`, `reifies`, `annot`, `blob`, `suppress`, `meta`, and `snapshot` frames; support the
@@ -168,7 +203,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHOULD**, **MAY
 - A **Writer** MUST emit deterministic CBOR (§4) for any bytes that are hashed or signed, and
   MUST compute each frame's `"id"` self-hash and set `"prev"` to the previous item's `"id"`.
 
-### 2.2 The reader contract ("the rdflib of GTS")
+### 2.3 Baseline reader API shape
 
 A Baseline Reader SHOULD expose at least:
 
@@ -182,10 +217,10 @@ Graph.opaque()              -> iterator[OpaqueNode]
 Graph.to_nquads(out)        # §14
 ```
 
-Every one of these is a few lines over the folded in-memory tables; there is no tokeniser,
-no IRI resolver, and no prefix machinery.
+This API shape is intentionally small: it exposes the folded tables, diagnostics, and common
+projection path without requiring an RDF text parser, prefix resolver, query engine, or reasoner.
 
-### 2.3 Reader diagnostics
+### 2.4 Reader diagnostics
 
 Readers surface machine-observable diagnostics with these canonical classes (an implementation
 MAY map them to error returns or structured warnings):
@@ -235,7 +270,7 @@ cat music.gts >> core.gts        # core.gts is now a valid two-segment GTS
   encounters a data item that is a map containing the key `"gts"` and lacking the key `"t"`
   MUST treat it as the Header of a **new segment** (the optional self-describe tag `55799`
   MAY precede it; writers SHOULD emit the tag on every segment header to make boundaries
-  eyeball-visible). Any other non-frame item remains malformed input (§17).
+  human-recognizable). Any other non-frame item remains malformed input (§17).
 - **Independent integrity.** Each segment has its own genesis (its header `"id"`), its own
   id/prev chain, its own signatures, and its own optional `index` (an index covers ONLY its
   segment). The file's composite identity is the **ordered list of segment head ids**. A
@@ -875,7 +910,7 @@ original log verbatim** as a nested GTS blob (§12.1) inside the streamable rewr
 bytes, chain, and signatures stay byte-intact and independently verifiable inside; the outer
 layout is delivery-ordered; one content digest binds them.
 
-**Refusals (publish-class posture, §14.1).** A compactor MUST refuse: input that does not
+**Refusals for publication tools (§14.1).** A compactor MUST refuse: input that does not
 verify cleanly (any diagnostic); and input whose fold carries a frame-addressed suppression
 (`kind: "frame"`, §11) — the rewrite assigns new frame ids, so a frame-digest target would
 silently dangle. Digest-addressed `blob` suppressions are carried forward verbatim
@@ -1221,11 +1256,11 @@ Raw `cat` always works (§3.1); a conformant **validating composer** (`gts cat`)
   extraction re-hashes the bytes against the requested digest; a blob suppressed by digest
   (§11) is refused by default (suppression is a display contract and extraction is display) with
   an explicit override; a media-type flag is an **assertion** against the blob's declared
-  `pub.mt` — a publish-class tool refuses a mismatch rather than transcoding.
+  `pub.mt` — a validating publication tool refuses a mismatch rather than transcoding.
 
 ### 14.2 Archive tooling (`files` profile)
 
-The `files` profile adds three publish-class commands. They share the refuse-don't-trust posture
+The `files` profile adds three validating publication commands. They share the refuse-don't-trust posture
 of §14.1: raw byte operations are always valid GTS, but a tool refuses pathological states
 rather than trusting them to be intentional.
 
