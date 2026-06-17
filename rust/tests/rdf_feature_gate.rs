@@ -3,7 +3,7 @@
 
 #[cfg(not(feature = "rdf"))]
 #[test]
-fn rdf_adapter_is_not_enabled_by_default() {
+fn rdf_and_oxigraph_adapters_are_not_enabled_by_default() {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let output = std::process::Command::new(cargo)
         .args(["metadata", "--no-deps", "--format-version", "1"])
@@ -27,6 +27,10 @@ fn rdf_adapter_is_not_enabled_by_default() {
 
     assert_eq!(package["features"]["default"], serde_json::json!([]));
     assert_eq!(package["features"]["rdf"], serde_json::json!(["dep:oxrdf"]));
+    assert_eq!(
+        package["features"]["oxigraph-adapter"],
+        serde_json::json!(["rdf", "dep:oxigraph"])
+    );
 
     let oxrdf = package["dependencies"]
         .as_array()
@@ -37,6 +41,16 @@ fn rdf_adapter_is_not_enabled_by_default() {
     assert_eq!(oxrdf["optional"], serde_json::json!(true));
     assert_eq!(oxrdf["uses_default_features"], serde_json::json!(false));
     assert_eq!(oxrdf["features"], serde_json::json!(["rdf-12"]));
+
+    let oxigraph = package["dependencies"]
+        .as_array()
+        .expect("metadata dependencies are an array")
+        .iter()
+        .find(|dependency| dependency["name"] == "oxigraph")
+        .expect("oxigraph dependency is present");
+    assert_eq!(oxigraph["optional"], serde_json::json!(true));
+    assert_eq!(oxigraph["uses_default_features"], serde_json::json!(false));
+    assert_eq!(oxigraph["features"], serde_json::json!(["rdf-12"]));
 }
 
 #[cfg(feature = "rdf")]
@@ -44,4 +58,11 @@ fn rdf_adapter_is_not_enabled_by_default() {
 fn rdf_feature_enables_adapter_module() {
     let options = gmeow_gts::rdf::ExportOptions::default();
     assert!(!options.allow_rdf12_lossy);
+}
+
+#[cfg(feature = "oxigraph-adapter")]
+#[test]
+fn oxigraph_feature_enables_adapter_module() {
+    let sidecar = gmeow_gts::oxigraph::GtsSidecar::default();
+    assert!(sidecar.diagnostics.is_empty());
 }

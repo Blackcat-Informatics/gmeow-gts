@@ -91,6 +91,8 @@ a GTS file.
 - **`gmeow_gts::nquads`** — project a folded graph to N-Quads.
 - **`gmeow_gts::rdf`** — optional `--features rdf` native adapter for
   `oxrdf::Dataset` without an embedded graph-store dependency.
+- **`gmeow_gts::oxigraph`** — optional `--features oxigraph-adapter` bridge between
+  folded GTS graphs and Oxigraph's in-memory `Store`, with GTS metadata kept in a sidecar.
 - **`gmeow_gts::examples::agent_memory`** — a dependency-light grounded-memory
   example built on ordinary GTS frames.
 - **`gmeow_gts::stream`** — stream-vocabulary constants and helpers.
@@ -373,8 +375,10 @@ emitted.
 
 Default Cargo features are empty. The optional `rdf` feature enables
 `gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` through `oxrdf`'s RDF
-data-model crate. This is a native dataset/quad adapter, not an `oxigraph`
-store integration, and it is absent from ordinary default builds.
+data-model crate. The optional `oxigraph-adapter` feature adds
+`gmeow_gts::oxigraph::{graph_to_store, store_to_writer}` and
+`Writer::from_store` using Oxigraph's in-memory store with Oxigraph defaults disabled.
+Both adapters are absent from ordinary default builds.
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
 refuses dirty inputs, contributes-nothing segments, and compositions whose suppressions

@@ -15,7 +15,7 @@ deferred.
 
 | Ecosystem | Current integration path | Deferrals |
 |---|---|---|
-| Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge; `--features rdf` enables `gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` for native `oxrdf::Dataset` interop without an embedded graph store; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Oxigraph store, Sophia, and Rio adapters remain deferred until they can be optional features with round-trip tests and no mandatory database dependency. |
+| Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge; `--features rdf` enables `gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` for native `oxrdf::Dataset` interop without an embedded graph store; `--features oxigraph-adapter` enables `gmeow_gts::oxigraph::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using Oxigraph's in-memory store; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Sophia and Rio adapters remain deferred until they can be optional features with round-trip tests and no mandatory database dependency. |
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
 | TypeScript browser | Current browser-safe handoff is `Uint8Array`: `fetch()`, optional HTTP `Range`, then `Read(bytes, allowSegments)`, `toNQuads`, or files helpers. | A package-level browser bundle, `ReadableStream` fold API, WebCrypto key provider, and progressive rendering API are deferred. |
 | Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides cancellation, byte limits, and ordinary `io.Reader` integration for HTTP bodies, object-store objects, and pipes. | True streaming fold and service-to-service replication verbs remain deferred to the advanced-primitives contract. |
@@ -121,6 +121,24 @@ keeps empty default features and a repo-compatible `MIT OR Apache-2.0` license,
 which makes it the smallest practical native dataset/quad adapter for this
 crate.
 
+For native Oxigraph store interop, enable the heavier optional adapter:
+
+```toml
+gmeow-gts = { version = "0.2.0", default-features = false, features = ["oxigraph-adapter"] }
+```
+
+```rust
+let graph = gmeow_gts::reader::read(&bytes, true, None);
+let package = gmeow_gts::oxigraph::graph_to_store_with_sidecar(graph)?;
+let writer = gmeow_gts::writer::Writer::from_store(&package.store, "dist")?;
+```
+
+The `oxigraph-adapter` feature depends on `rdf` and `oxigraph` with Oxigraph's
+default RocksDB feature disabled. The store projection is pure RDF; GTS-only state such
+as blobs, suppressions, signatures, diagnostics, segment heads, and streamable-layout
+metadata is returned in a sidecar. The adapter walks native quads and does not materialize
+N-Quads text in the hot path.
+
 Strict export is the default. GTS reifiers project to RDF 1.2 triple terms in
 object position when `oxrdf` can represent them. If a GTS graph uses quoted
 triples in positions `oxrdf` cannot represent, such as subject or graph-name
@@ -155,11 +173,11 @@ binary. The Rust loader streams row SQL to those tools and stages output replace
 build the complete row set or SQL script in memory.
 
 Tracked deferral: additional native Rust RDF adapters should be added only as
-optional features. A future Oxigraph-store, Sophia, or Rio adapter must include:
+optional features. A future Sophia or Rio adapter must include:
 
 - GTS -> RDF and RDF -> GTS round-trip tests for IRIs, blank nodes, language
   literals, datatypes, named graphs, and RDF 1.2 reifier limitations.
-- No default dependency on Oxigraph or an embedded database.
+- No default dependency on an embedded database.
 - Clear behavior for quoted triples when the target crate cannot preserve them.
 
 ## TypeScript: Browser And Range Fetch

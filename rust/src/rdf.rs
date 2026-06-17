@@ -82,12 +82,33 @@ pub fn to_oxrdf_dataset_with_options(
     options: ExportOptions,
 ) -> Result<Dataset, RdfAdapterError> {
     let mut dataset = Dataset::new();
+    for quad in to_oxrdf_quads_with_options(graph, options)? {
+        dataset.insert(quad.as_ref());
+    }
+    Ok(dataset)
+}
+
+/// Convert a folded GTS graph into `oxrdf::Quad` rows in strict mode.
+///
+/// This is the native RDF row path used by heavier optional store adapters. It
+/// avoids materializing N-Quads text while preserving the same RDF projection as
+/// [`to_oxrdf_dataset`].
+pub fn to_oxrdf_quads(graph: &Graph) -> Result<Vec<OxQuad>, RdfAdapterError> {
+    to_oxrdf_quads_with_options(graph, ExportOptions::default())
+}
+
+/// Convert a folded GTS graph into `oxrdf::Quad` rows with export options.
+pub fn to_oxrdf_quads_with_options(
+    graph: &Graph,
+    options: ExportOptions,
+) -> Result<Vec<OxQuad>, RdfAdapterError> {
+    let mut quads = Vec::new();
     let bnode_labels = BnodeLabels::for_graph(graph);
 
     for &(s, p, o, graph_name) in &graph.quads {
         if let Some(quad) = graph_quad_to_oxrdf(graph, &bnode_labels, s, p, o, graph_name, options)?
         {
-            dataset.insert(quad.as_ref());
+            quads.push(quad);
         }
     }
 
@@ -105,24 +126,22 @@ pub fn to_oxrdf_dataset_with_options(
         else {
             continue;
         };
-        dataset.insert(
-            OxQuad::new(
-                subject,
-                rdf_reifies.clone(),
-                OxTerm::Triple(Box::new(object)),
-                GraphName::DefaultGraph,
-            )
-            .as_ref(),
+        let quad = OxQuad::new(
+            subject,
+            rdf_reifies.clone(),
+            OxTerm::Triple(Box::new(object)),
+            GraphName::DefaultGraph,
         );
+        quads.push(quad);
     }
 
     for &(s, p, o) in &graph.annotations {
         if let Some(quad) = graph_quad_to_oxrdf(graph, &bnode_labels, s, p, o, None, options)? {
-            dataset.insert(quad.as_ref());
+            quads.push(quad);
         }
     }
 
-    Ok(dataset)
+    Ok(quads)
 }
 
 /// Alias for callers that do not need the concrete adapter name in their API.
@@ -140,6 +159,19 @@ pub fn from_oxrdf_dataset_with_profile(
     dataset: &Dataset,
     profile: &str,
 ) -> Result<Vec<u8>, RdfAdapterError> {
+    Ok(writer_from_oxrdf_dataset_with_profile(dataset, profile)?.to_bytes())
+}
+
+/// Build a [`Writer`] from an `oxrdf::Dataset` using the `dist` profile.
+pub fn writer_from_oxrdf_dataset(dataset: &Dataset) -> Result<Writer, RdfAdapterError> {
+    writer_from_oxrdf_dataset_with_profile(dataset, "dist")
+}
+
+/// Build a [`Writer`] from an `oxrdf::Dataset` using the requested profile.
+pub fn writer_from_oxrdf_dataset_with_profile(
+    dataset: &Dataset,
+    profile: &str,
+) -> Result<Writer, RdfAdapterError> {
     let mut interner = Interner::new();
     let mut quads: Vec<Quad> = Vec::new();
     let mut reifiers: BTreeMap<usize, Triple3> = BTreeMap::new();
@@ -176,7 +208,7 @@ pub fn from_oxrdf_dataset_with_profile(
     if !reifiers.is_empty() {
         writer.add_reifies(&reifiers);
     }
-    Ok(writer.to_bytes())
+    Ok(writer)
 }
 
 /// Alias for callers that do not need the concrete adapter name in their API.

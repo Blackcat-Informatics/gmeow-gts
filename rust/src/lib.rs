@@ -29,6 +29,8 @@ pub mod model;
 pub mod nested;
 pub mod nquads;
 pub mod openpgp;
+#[cfg(feature = "oxigraph-adapter")]
+pub mod oxigraph;
 pub mod policy;
 #[cfg(feature = "rdf")]
 pub mod rdf;

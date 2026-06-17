@@ -60,6 +60,17 @@ impl Writer {
         Self::with_layout(profile, None)
     }
 
+    /// Build a writer from an Oxigraph store.
+    ///
+    /// This constructor is available only with `--features oxigraph-adapter`.
+    #[cfg(feature = "oxigraph-adapter")]
+    pub fn from_store(
+        store: &::oxigraph::store::Store,
+        profile: &str,
+    ) -> Result<Self, crate::oxigraph::OxigraphAdapterError> {
+        crate::oxigraph::store_to_writer(store, profile)
+    }
+
     /// Create a writer with a header layout-state claim (§3.3;
     /// `"streamable"` is the only value this revision defines).
     pub fn with_layout(profile: &str, layout: Option<&str>) -> Self {

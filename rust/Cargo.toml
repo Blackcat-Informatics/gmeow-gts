@@ -20,6 +20,9 @@ duckdb = []
 # intentionally opt-in so default transport users do not inherit RDF toolkit or
 # graph-store dependencies.
 rdf = ["dep:oxrdf"]
+# Enables an optional Oxigraph in-memory Store adapter. This pulls in Oxigraph
+# only for callers that ask for the store bridge; defaults remain unchanged.
+oxigraph-adapter = ["rdf", "dep:oxigraph"]
 
 # The package is named gmeow-gts on crates.io, but the CLI binary keeps the
 # shorter `gts` name for ergonomics.
@@ -49,6 +52,7 @@ sha1 = "0.10"
 # only pulled in on non-wasm targets (the deterministic seal/open paths need no RNG).
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
 oxrdf = { version = "0.3.3", default-features = false, features = ["rdf-12"], optional = true }
+oxigraph = { version = "0.5.8", default-features = false, features = ["rdf-12"], optional = true }
 
 # The random-IV `encrypt0` convenience needs an OS CSPRNG; restrict it to
 # non-wasm targets so `wasm32-unknown-unknown` never tries to link getrandom.
