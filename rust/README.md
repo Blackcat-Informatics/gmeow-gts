@@ -131,6 +131,23 @@ assert!(result.ok, "{:?}", result.errors);
 println!("{}", result.fingerprint.unwrap_or_default());
 ```
 
+Sign new frames with either raw Ed25519 bytes or an unencrypted Ed25519
+OpenPGP secret-key block:
+
+```rust
+use ed25519_dalek::SigningKey;
+use gmeow_gts::writer::Writer;
+
+let seed = [0u8; 32];
+let mut raw = Writer::new("evidence");
+raw.sign_with(SigningKey::from_bytes(&seed), "did:example:raw-key");
+
+let armored = std::fs::read_to_string("transport.sec.asc")?;
+let mut openpgp = Writer::new("evidence");
+// `None` uses the OpenPGP v4 fingerprint as the COSE key id.
+openpgp.sign_with_openpgp_secret_key(&armored, None)?;
+```
+
 ---
 
 ## Quick start
@@ -330,7 +347,10 @@ Exit codes:
 `verify --key` and `extract-key` are cross-engine: all four `gts` binaries parse the embedded
 OpenPGP transport key to the same fingerprint and emojihash, and verify COSE signatures
 identically. Library callers can use `gmeow_gts::verify::verify_file` for the same embedded-key
-verification summary without duplicating CLI helper code. `from-nq` and the relational
+verification summary without duplicating CLI helper code. Rust writers can sign with raw
+Ed25519 keys or `Writer::sign_with_openpgp_secret_key`, which accepts the same narrow
+unencrypted Ed25519 OpenPGP secret-key shape as Python `Signer.from_gpg_secret_key` without
+adding a full OpenPGP crate dependency. `from-nq` and the relational
 `to-sqlite`/`to-duckdb`/`to-parquet` exports are
 implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
 integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`

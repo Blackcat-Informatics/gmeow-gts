@@ -158,6 +158,21 @@ impl Writer {
         self.signer = Some((key, kid.to_string()));
     }
 
+    /// Sign every subsequently appended frame with an unencrypted OpenPGP Ed25519 secret key.
+    ///
+    /// When `kid_override` is `None`, the COSE key id defaults to the key's
+    /// OpenPGP v4 fingerprint.
+    pub fn sign_with_openpgp_secret_key(
+        &mut self,
+        armored: &str,
+        kid_override: Option<&str>,
+    ) -> Result<(), crate::openpgp::OpenPgpError> {
+        let signer = crate::openpgp::parse_secret_signing_key(armored, kid_override)?;
+        let (key, kid) = signer.into_parts();
+        self.sign_with(key, &kid);
+        Ok(())
+    }
+
     /// The id the next appended frame must reference as `"prev"`.
     pub fn head(&self) -> &[u8] {
         &self.prev

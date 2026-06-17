@@ -218,6 +218,24 @@ enables the optional `gmeow_gts::rdf` adapter backed by `oxrdf`'s RDF data-model
 crate; it does not pull in the `oxigraph` store or any RDF dependency for
 default transport users.
 
+Rust signing works with raw Ed25519 keys or with an unencrypted Ed25519
+OpenPGP secret-key block. The OpenPGP helper keeps the same narrow parser used
+by `extract-key`; it does not add a full OpenPGP dependency.
+
+```rust
+use ed25519_dalek::SigningKey;
+use gmeow_gts::writer::Writer;
+
+let seed = [0u8; 32];
+let mut raw = Writer::new("evidence");
+raw.sign_with(SigningKey::from_bytes(&seed), "did:example:raw-key");
+
+let armored = std::fs::read_to_string("transport.sec.asc")?;
+let mut openpgp = Writer::new("evidence");
+// `None` uses the OpenPGP v4 fingerprint as the COSE key id.
+openpgp.sign_with_openpgp_secret_key(&armored, None)?;
+```
+
 ### Go
 
 ```go
