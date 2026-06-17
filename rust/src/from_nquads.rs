@@ -208,18 +208,21 @@ impl<'a> Tokenizer<'a> {
         match ch {
             '\\' => Ok('\\'),
             '"' => Ok('"'),
+            'b' => Ok('\u{0008}'),
+            'f' => Ok('\u{000c}'),
             'n' => Ok('\n'),
             'r' => Ok('\r'),
             't' => Ok('\t'),
             'u' | 'U' => {
                 let width = if ch == 'u' { 4 } else { 8 };
-                if self.pos + width > self.text.len() {
+                let end = self.pos + width;
+                if end > self.text.len() || !self.text.is_char_boundary(end) {
                     return Err(NQuadsParseError::new(format!(
-                        "short unicode escape in {:?}",
+                        "short or invalid unicode escape in {:?}",
                         self.text
                     )));
                 }
-                let raw = &self.text[self.pos..self.pos + width];
+                let raw = &self.text[self.pos..end];
                 if !raw.bytes().all(|b| b.is_ascii_hexdigit()) {
                     return Err(NQuadsParseError::new(format!(
                         "bad unicode escape \\{ch}{raw} in {:?}",
@@ -284,6 +287,15 @@ impl Interner {
     }
 
     fn atom(&mut self, atom: &Atom) -> usize {
+        let key = TermKey::Atom {
+            kind: atom.kind,
+            value: atom.value.clone(),
+            lang: atom.lang.clone(),
+            datatype: atom.datatype.clone(),
+        };
+        if let Some(id) = self.ids.get(&key) {
+            return *id;
+        }
         let datatype = if atom.kind == TermKind::Literal {
             atom.datatype.as_ref().map(|iri| {
                 self.atom(&Atom {
@@ -296,15 +308,6 @@ impl Interner {
         } else {
             None
         };
-        let key = TermKey::Atom {
-            kind: atom.kind,
-            value: atom.value.clone(),
-            lang: atom.lang.clone(),
-            datatype: atom.datatype.clone(),
-        };
-        if let Some(id) = self.ids.get(&key) {
-            return *id;
-        }
         let id = self.terms.len();
         self.terms.push(Term {
             kind: atom.kind,

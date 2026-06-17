@@ -123,6 +123,23 @@ fn rejects_malformed_nquads() {
     assert!(err.to_string().contains("expected 3 or 4 terms"));
 }
 
+#[test]
+fn rejects_malformed_unicode_escape_without_panicking() {
+    let err = from_nquads("<https://ex/s> <https://ex/p> \"\\u000é\" .\n")
+        .expect_err("escape ends inside a multibyte UTF-8 scalar");
+    assert!(err.to_string().contains("unicode escape"));
+}
+
+#[test]
+fn parses_backspace_and_formfeed_escapes() {
+    let imported =
+        from_nquads("<https://ex/s> <https://ex/p> \"\\b\\f\" .\n").expect("N-Quads parses");
+    let graph = read(&imported, true, None);
+    assert!(graph.terms.iter().any(|term| {
+        term.kind == TermKind::Literal && term.value.as_deref() == Some("\u{0008}\u{000c}")
+    }));
+}
+
 fn tmpdir() -> PathBuf {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
