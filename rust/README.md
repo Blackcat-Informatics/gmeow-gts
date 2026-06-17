@@ -243,11 +243,13 @@ hide every folded quad.
 ## The GTS file format
 
 A GTS file is a **CBOR Sequence** (RFC 8742, `application/cbor-seq`) of one or more
-**segments** — there are no framing bytes between items. Each segment is a **Header** CBOR map
-(optionally preceded by the CBOR self-describe tag `55799`, the eyeball-visible magic) followed
-by zero or more **frames**, each itself a CBOR map. Every frame carries its own `"id"` — the
-BLAKE3 content-id of its canonical contents — and names its predecessor's id in `"prev"`, so a
-segment is a git-style content-addressed chain whose head transitively commits to all history.
+**segments** — there are no framing bytes between items. Published GTS artifacts use
+`application/vnd.blackcat.gts+cbor-seq`; the `+cbor-seq` suffix records that the file is a CBOR
+Sequence, not a single CBOR item. Each segment is a **Header** CBOR map (optionally preceded by
+the CBOR self-describe tag `55799`, the human-recognizable magic) followed by zero or more
+**frames**, each itself a CBOR map. Every frame carries its own `"id"` — the BLAKE3 content-id of
+its canonical contents — and names its predecessor's id in `"prev"`, so a segment is a git-style
+content-addressed chain whose head transitively commits to all history.
 
 The logical graph is the **fold** of the log: the deterministic replay of the frames into the
 in-memory tables (terms, quads, reifier bindings, annotations, blobs, …). The fold is *not* a

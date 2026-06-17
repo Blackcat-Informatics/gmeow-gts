@@ -19,6 +19,10 @@ log: a header followed by frames chained by BLAKE3 content-id. Composition is
 `cat` — concatenating valid GTS files yields a valid GTS file whose fold is
 the value-union of the segment graphs.
 
+Published GTS artifacts use media type `application/vnd.blackcat.gts+cbor-seq`. The
+`+cbor-seq` suffix follows RFC 8742 because the file is a CBOR Sequence, not a single CBOR
+data item.
+
 This package is the **reference engine** for the
 [GTS specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md):
 reader (fold, chain verification, opaque degradation, torn-append detection),

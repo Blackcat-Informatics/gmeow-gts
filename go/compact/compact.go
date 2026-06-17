@@ -205,7 +205,7 @@ func streamingIndex(
 		m := b.add(model.Term{Kind: model.Bnode, Value: fmt.Sprintf("m%d", order)})
 		sealed := digest == sealedDigest
 		size := sealedSize
-		mt, haveMt := "application/gts", true
+		mt, haveMt := "application/vnd.blackcat.gts+cbor-seq", true
 		if !sealed {
 			size = len(blobBytes(g, digest))
 			mt, haveMt = blobMetaString(g, digest, "mt")
@@ -420,7 +420,7 @@ func Streamable(data []byte, timestamp string, sealOriginal bool) ([]byte, error
 	// Blobs in delivery order; declared metadata rides along.
 	for _, digest := range blobOrder {
 		if digest == sealedDigest {
-			w.AddBlob(data, "application/gts", "source")
+			w.AddBlob(data, "application/vnd.blackcat.gts+cbor-seq", "source")
 			continue
 		}
 		mt, _ := blobMetaString(g, digest, "mt")

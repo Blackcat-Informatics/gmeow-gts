@@ -78,7 +78,7 @@ func TestCompactSealOriginalCarriesSourceBlob(t *testing.T) {
 	if !bytes.Equal(data, source) {
 		t.Fatalf("sealed blob does not carry the verbatim source bytes")
 	}
-	if mt, _ := blobMetaString(g, sealed, "mt"); mt != "application/gts" {
+	if mt, _ := blobMetaString(g, sealed, "mt"); mt != "application/vnd.blackcat.gts+cbor-seq" {
 		t.Fatalf("sealed blob media type: %q", mt)
 	}
 	if rep, _ := blobMetaString(g, sealed, "rep"); rep != "source" {

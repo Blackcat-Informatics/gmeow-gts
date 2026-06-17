@@ -234,7 +234,7 @@ fn streaming_index(
             Some(blob_bytes(g, digest).len())
         };
         let mt = if sealed {
-            Some("application/gts".to_string())
+            Some("application/vnd.blackcat.gts+cbor-seq".to_string())
         } else {
             blob_meta_text(g, digest, "mt")
         };
@@ -434,7 +434,11 @@ pub fn compact_streamable(
     // Blobs in delivery order; declared metadata rides along.
     for digest in &blob_order {
         if Some(digest.as_str()) == sealed_digest.as_deref() {
-            w.add_blob(data, Some("application/gts"), Some("source"));
+            w.add_blob(
+                data,
+                Some("application/vnd.blackcat.gts+cbor-seq"),
+                Some("source"),
+            );
             continue;
         }
         let mt = blob_meta_text(&g, digest, "mt");

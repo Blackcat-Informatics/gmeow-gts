@@ -787,7 +787,9 @@ def test_compact_seal_original_round_trips_verbatim() -> None:
     inner = read(sealed)
     assert not inner.diagnostics
     assert to_nquads(inner) == to_nquads(read(src))
-    assert out.blob_meta[digest_str(src)]["mt"] == "application/gts"
+    assert (
+        out.blob_meta[digest_str(src)]["mt"] == "application/vnd.blackcat.gts+cbor-seq"
+    )
 
 
 def test_streamable_lie_detection_is_prefix_stable() -> None:

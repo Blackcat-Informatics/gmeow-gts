@@ -544,6 +544,7 @@ fn verify_warns_on_stream_vocab_without_claim() {
 #[test]
 fn compact_refuses_evidence_without_seal_then_seals() {
     use gmeow_gts::model::{Term, TermKind};
+    use gmeow_gts::wire::digest_str;
     use gmeow_gts::writer::Writer;
 
     let tmp = tmpdir();
@@ -600,6 +601,22 @@ fn compact_refuses_evidence_without_seal_then_seals() {
     assert_eq!(out.status.code(), Some(0));
     let out = gts(&["verify", dst.to_str().unwrap()]);
     assert_eq!(out.status.code(), Some(0));
+    let extracted = tmp.join("source.gts");
+    let digest = digest_str(&std::fs::read(&path).unwrap());
+    let out = gts(&[
+        "extract",
+        dst.to_str().unwrap(),
+        &digest,
+        "-o",
+        extracted.to_str().unwrap(),
+        "--mt",
+        "application/vnd.blackcat.gts+cbor-seq",
+    ]);
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(
+        std::fs::read(extracted).unwrap(),
+        std::fs::read(path).unwrap()
+    );
 }
 
 #[test]

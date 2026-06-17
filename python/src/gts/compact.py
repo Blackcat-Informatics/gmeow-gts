@@ -126,7 +126,11 @@ def _streaming_index(
         m = b.add(Term(TermKind.BNODE, f"m{order}"))
         sealed = digest == sealed_digest
         size = sealed_size if sealed else len(g.blobs[digest])
-        mt = "application/gts" if sealed else g.blob_meta.get(digest, {}).get("mt")
+        mt = (
+            "application/vnd.blackcat.gts+cbor-seq"
+            if sealed
+            else g.blob_meta.get(digest, {}).get("mt")
+        )
         b.quad(m, t_type, t_manifestation)
         b.quad(m, t_digest, b.literal(digest))
         if isinstance(mt, str):
@@ -267,7 +271,7 @@ def compact_streamable(
     # Blobs in delivery order; declared metadata rides along.
     for digest in blob_order:
         if digest == sealed_digest:
-            w.add_blob(data, mt="application/gts", rep="source")
+            w.add_blob(data, mt="application/vnd.blackcat.gts+cbor-seq", rep="source")
             continue
         meta = g.blob_meta.get(digest, {})
         mt = meta.get("mt")

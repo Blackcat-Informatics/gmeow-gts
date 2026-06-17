@@ -313,10 +313,12 @@ surfaces; it is not a replacement for conformance tests.
 
 ## The file format in one minute
 
-A GTS file is a **CBOR Sequence** (`application/cbor-seq`) of one or more **segments**. Each
-segment is a header map followed by frames; each frame is a `[digest, content]` pair where the
-digest is the BLAKE3 hash of the content, and each frame names its predecessor — a
-content-addressed chain whose head transitively commits to all history.
+A GTS file is a **CBOR Sequence** (`application/cbor-seq`) of one or more **segments**.
+Published GTS artifacts use `application/vnd.blackcat.gts+cbor-seq`; the `+cbor-seq` suffix
+records that the file is a CBOR Sequence, not a single CBOR item. Each segment is a header map
+followed by frames; each frame is a `[digest, content]` pair where the digest is the BLAKE3 hash
+of the content, and each frame names its predecessor — a content-addressed chain whose head
+transitively commits to all history.
 
 ```text
 ┌─ GTS file (CBOR Sequence) ───────────────────────────────────────────┐
