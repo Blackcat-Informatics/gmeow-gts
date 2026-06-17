@@ -36,7 +36,7 @@ inputs.
 
 GTS is ontology-independent. **GTS is the primary distribution method for GMEOW, but GTS does
 not depend on GMEOW.** A conformant reader does not need GMEOW vocabulary, OWL reasoning,
-music-domain rules, or agent-memory conventions to parse, verify, fold, or transport a GTS
+domain specific rules, or agent-memory conventions to parse, verify, fold, or transport a GTS
 file.
 
 The package family is `gmeow-gts`; the format is GTS. The package name is intentionally
