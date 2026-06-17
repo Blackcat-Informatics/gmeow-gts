@@ -75,7 +75,7 @@ GTS supports several application families without making any of them the project
   the value-union.
 - **Agent memory:** model belief revision with suppression frames while preserving the original
   signed history.
-- **Graph database interchange:** hand folded graph state to N-Quads, SQLite, DuckDB, Parquet,
+- **Graph database interchange:** hand the folded graph state to N-Quads, SQLite, DuckDB, Parquet,
   or other transform targets.
 
 ## Cross-engine feature matrix
