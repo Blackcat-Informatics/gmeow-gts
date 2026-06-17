@@ -3,27 +3,109 @@
 
 # GTS — Graph Transport Substrate — Specification
 
-> **Status:** Draft `v0.3` (2026-06-11). **Stability:** the wire format below is
-> a working draft and MAY change before `v1.0`.
-> **Changes in v0.3 (#327):** multi-segment files (`cat`-append composition, §3.1);
-> segment-scoped term-ids (§7.2); per-segment fold + value-union semantics (§7.5);
-> cross-segment suppression (§11); profile union and per-section language-tag
-> discipline (§13); composition-tool requirements (§14.1); vectors 15–21 (§19).
-> **Changes in v0.3 (#342):** layout states and the streamable claim (§3.3, §5);
-> streamable compaction with detached frame signatures (§10.1); the `stream`
-> vocabulary (§13.3); the `compact` verb (§14.1); vectors 24–26 (§19).
->
-> GTS is a single-file, language-independent transport for an **RDF 1.2** graph
-> (statements *and* statement-level metadata) together with any **content-addressed
-> binary** the graph references. Its lodestar is **reader simplicity**: a conformant
-> baseline reader — "the rdflib of GTS" — is small enough to prototype in a weekend in any
-> language with a CBOR library, and a consumer can do ~90% of what they would do with an RDF library
-> *without parsing RDF text*. The remaining 10% is delegated to **transforms** that
-> convert GTS to an operating substrate (`.ttl`, `.nq`, DuckDB, SQLite, …).
->
-> GTS is explicitly **not** a database, a query engine, or an operating substrate. It
-> is a *good-enough, durable, self-describing container* — the narrow waist through
-> which graphs and their referenced data travel.
+**Version:** 0.3 (draft) &nbsp;·&nbsp; **Date:** 2026-06-11 &nbsp;·&nbsp;
+**Editor:** Patrick Audley, Blackcat Informatics® Inc. &nbsp;·&nbsp;
+**This version:** <https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md>
+
+## Abstract
+
+GTS (Graph Transport Substrate) is a single-file, language-independent transport for an
+**RDF 1.2** graph (statements *and* statement-level metadata) together with any
+**content-addressed binary** the graph references. A GTS file is an append-only log of CBOR
+frames; the logical graph is the deterministic *fold* (replay) of that log. Its lodestar is
+**reader simplicity**: a conformant baseline reader — "the rdflib of GTS" — is small enough to
+prototype in a weekend in any language with a CBOR library, and a consumer can do ~90% of what
+they would do with an RDF library *without parsing RDF text*. The remaining 10% is delegated to
+**transforms** that convert GTS to an operating substrate (`.ttl`, `.nq`, DuckDB, SQLite, …).
+
+GTS is explicitly **not** a database, a query engine, or an operating substrate. It is a
+*good-enough, durable, self-describing container* — the narrow waist through which graphs and
+their referenced data travel.
+
+## Status of this document
+
+This document specifies the GTS wire format at **draft version `v0.3`** (2026-06-11). It is a
+**working draft**: the wire format MAY change before `v1.0`. Until `v1.0`, the cross-language
+conformance corpus (§19) is the authoritative compatibility oracle, and implementations SHOULD
+track it. This specification is maintained in the
+[`gmeow-gts`](https://github.com/Blackcat-Informatics/gmeow-gts) repository, alongside four
+interoperable reference engines (Rust, Python, Go, TypeScript) that all gate against that
+corpus; report errata and propose changes there.
+
+**Changes in v0.3:**
+
+- Multi-segment files (`cat`-append composition, §3.1); segment-scoped term-ids (§7.2);
+  per-segment fold and value-union semantics (§7.5); cross-segment suppression (§11); profile
+  union and per-section language-tag discipline (§13); composition-tool requirements (§14.1);
+  conformance vectors 15–21 (§19).
+- Layout states and the streamable claim (§3.3, §5); streamable compaction with detached frame
+  signatures (§10.1); the `stream` vocabulary (§13.3); the `compact` verb (§14.1); conformance
+  vectors 24–26 (§19).
+
+## Table of contents
+
+- [1. Overview and non-goals](#1-overview-and-non-goals)
+- [2. Terminology and conformance](#2-terminology-and-conformance)
+  - [2.1 Conformance classes](#21-conformance-classes)
+  - [2.2 The reader contract ("the rdflib of GTS")](#22-the-reader-contract-the-rdflib-of-gts)
+  - [2.3 Reader diagnostics](#23-reader-diagnostics)
+- [3. File structure](#3-file-structure)
+  - [3.1 Multi-segment files (`cat`-append composition)](#31-multi-segment-files-cat-append-composition)
+  - [3.2 Streaming and progressive enhancement](#32-streaming-and-progressive-enhancement)
+  - [3.3 Layout states: accretive and streamable](#33-layout-states-accretive-and-streamable)
+- [4. CBOR conventions](#4-cbor-conventions)
+- [5. Header](#5-header)
+- [6. Frames](#6-frames)
+  - [6.1 Payload resolution](#61-payload-resolution)
+  - [6.2 Index frame (optional)](#62-index-frame-optional)
+- [7. Graph data model and fold](#7-graph-data-model-and-fold)
+  - [7.1 Terms (`terms` frame)](#71-terms-terms-frame)
+  - [7.2 Term-id assignment (normative)](#72-term-id-assignment-normative)
+  - [7.3 Quoted triples and reifiers (`reifies` frame)](#73-quoted-triples-and-reifiers-reifies-frame)
+  - [7.4 Quads and annotations](#74-quads-and-annotations)
+  - [7.5 Fold algorithm (normative)](#75-fold-algorithm-normative)
+  - [7.6 Opaque nodes](#76-opaque-nodes)
+  - [7.7 Streaming fold and bounded memory](#77-streaming-fold-and-bounded-memory)
+  - [7.8 Duplicates and conflicts (normative)](#78-duplicates-and-conflicts-normative)
+- [8. Transform catalog](#8-transform-catalog)
+  - [8.1 Classes](#81-classes)
+  - [8.2 Stacking](#82-stacking)
+  - [8.3 Capability model and graceful degradation](#83-capability-model-and-graceful-degradation)
+  - [8.4 Mandatory core set and durability](#84-mandatory-core-set-and-durability)
+  - [8.5 Canonical codec registry (v1)](#85-canonical-codec-registry-v1)
+- [9. Integrity and confidentiality](#9-integrity-and-confidentiality)
+  - [9.1 Per-frame self-hash and content-id chain (mandatory)](#91-per-frame-self-hash-and-content-id-chain-mandatory)
+  - [9.2 Signatures (optional, algorithm-agile)](#92-signatures-optional-algorithm-agile)
+  - [9.3 Encryption (optional)](#93-encryption-optional)
+  - [9.4 The opacity invariant (normative)](#94-the-opacity-invariant-normative)
+- [10. Compaction](#10-compaction)
+  - [10.1 Streamable compaction (ordering-only)](#101-streamable-compaction-ordering-only)
+- [11. Suppression (additive "deletion")](#11-suppression-additive-deletion)
+- [12. Binary and content-addressing](#12-binary-and-content-addressing)
+  - [12.1 Nested GTS (recursive composition)](#121-nested-gts-recursive-composition)
+- [13. Profiles](#13-profiles)
+  - [13.1 Language-tag discipline (normative)](#131-language-tag-discipline-normative)
+  - [13.2 The `files` profile (normative)](#132-the-files-profile-normative)
+  - [13.3 The `stream` vocabulary (normative)](#133-the-stream-vocabulary-normative)
+  - [13.4 The `music-package` profile (normative)](#134-the-music-package-profile-normative)
+- [14. Transforms out](#14-transforms-out)
+  - [14.1 Composition tooling requirements (normative for conformant tools)](#141-composition-tooling-requirements-normative-for-conformant-tools)
+  - [14.2 Archive tooling (`files` profile)](#142-archive-tooling-files-profile)
+- [15. Worked examples](#15-worked-examples)
+  - [15.1 Minimal distribution snapshot (`dist`)](#151-minimal-distribution-snapshot-dist)
+  - [15.2 Evidence: image + signed accrual (`evidence`)](#152-evidence-image--signed-accrual-evidence)
+  - [15.3 Notary: partially-opaque frame (`opaque`)](#153-notary-partially-opaque-frame-opaque)
+  - [15.4 Graceful degradation (`image`, content negotiation)](#154-graceful-degradation-image-content-negotiation)
+  - [15.5 Matryoshka: a whole signed GTS sealed inside a frame (`bundle` / `opaque`)](#155-matryoshka-a-whole-signed-gts-sealed-inside-a-frame-bundle--opaque)
+- [16. Media type and HTTP serving contract](#16-media-type-and-http-serving-contract)
+  - [16.1 Media type and file extension (normative)](#161-media-type-and-file-extension-normative)
+  - [16.2 HTTP serving semantics (normative)](#162-http-serving-semantics-normative)
+  - [16.3 Immutability-aware caching (normative)](#163-immutability-aware-caching-normative)
+- [17. Versioning and durability guarantees](#17-versioning-and-durability-guarantees)
+- [18. Security considerations](#18-security-considerations)
+- [19. Conformance test vectors](#19-conformance-test-vectors)
+- [20. IANA considerations](#20-iana-considerations)
+- [21. References](#21-references)
 
 ## 1. Overview and non-goals
 
@@ -832,7 +914,7 @@ whole union fold**: a `quad` target hides every matching `(s,p,o,g)` value tuple
 segment, and a `term` target hides the term value (and the quads it appears in) file-wide.
 This is what lets an appended belief-revision segment suppress a statement made by an earlier
 segment without rewriting a byte of it — the earlier segment's record stays present, signed,
-and hash-linked (Principle 10 at the wire level).
+and hash-linked (content-addressed at the wire level).
 
 ## 12. Binary and content-addressing
 
@@ -1068,7 +1150,7 @@ provenance (§7.3).
     gmeow:timeDurationDenominator 4 .
 ```
 
-Time and pitch are **frame-relative** (Principle 11): `toneEventPitchValue` points to a
+Time and pitch are **frame-relative**: `toneEventPitchValue` points to a
 `PitchValue` interpreted under the event's voice tuning frame, and offsets/durations are rational
 values interpreted under the voice time frame.
 
@@ -1254,12 +1336,12 @@ verifiable subgraph.
 
 ## 16. Media type and HTTP serving contract
 
-GTS files are published artifacts (Principle 8). A conformant deployment MUST advertise the
+GTS files are published artifacts. A conformant deployment MUST advertise the
 media type, support range requests, and set cache headers that respect the format's immutability.
 
 ### 16.1 Media type and file extension (normative)
 
-- **Media type:** `application/vnd.blackcat.gts+cbor`.
+- **Media type:** `application/vnd.blackcat.gts+cbor` (registration template in §20.1).
   The `+cbor` structured-syntax suffix (RFC 9277) makes the CBOR-family membership explicit.
 - **File extension:** `.gts`.
 - **Magic bytes:** the CBOR self-describe tag `55799` (`0xd9 0xd9 0xf7`) at the start of the
@@ -1286,7 +1368,7 @@ A GTS package is served like any other immutable binary release, with three extr
 
 ### 16.3 Immutability-aware caching (normative)
 
-GMEOW releases are immutable (Principle 6); a GTS package URL names one exact byte sequence.
+Published GTS releases are immutable; a GTS package URL names one exact byte sequence.
 
 - **Versioned URLs** (`…/gmeow/1.2.3/gmeow.gts`, `…/packages/music/2026-06-11/music.gts`, or any
   URL that contains a version/date/head identifier) MUST be served with:
@@ -1438,16 +1520,68 @@ A conformant implementation MUST pass a shared corpus. v1 requires at least thes
     after its `index` footer folds cleanly with no diagnostic, and tooling reports
     "streamable through frame *N*, accretive tail" — the unpresaged tail is legal.
 
-## 20. References
+## 20. IANA considerations
 
-- **RFC 8949** — Concise Binary Object Representation (CBOR).
-- **RFC 8742** — CBOR Sequences.
-- **RFC 8610** — Concise Data Definition Language (CDDL).
-- **RFC 9052 / RFC 9053** — CBOR Object Signing and Encryption (COSE).
-- **RFC 2119 / RFC 8174** — Requirement-level keywords.
-- **BLAKE3** — cryptographic hash function (256-bit output).
-- **RDF 1.2** — RDF concepts and the quoted-triple / reifier model (statement-level metadata).
-- **BCP 47** — language tags.
+This section registers one media type. It follows the registration procedures of
+[RFC 6838] and the structured-syntax-suffix procedures of [RFC 9277]. Pending formal
+registration, the type lives in the vendor (`vnd.`) tree and is used provisionally.
+
+### 20.1 Media type registration: `application/vnd.blackcat.gts+cbor`
+
+- **Type name:** `application`
+- **Subtype name:** `vnd.blackcat.gts+cbor`
+- **Required parameters:** none
+- **Optional parameters:** none
+- **Encoding considerations:** binary. A GTS file is a CBOR Sequence ([RFC 8742]) and is
+  not restricted to 7-bit or 8-bit text; transports that are not 8-bit clean MUST apply a
+  content-transfer-encoding (e.g. base64).
+- **Security considerations:** see §18 of this specification. In summary: the content-id
+  chain provides integrity but not confidentiality; truncation is undetectable without a head
+  commitment; decompression and nested-GTS recursion MUST be bounded; and signatures attest a
+  signer over bytes, not the truth of claims.
+- **Interoperability considerations:** the `+cbor` structured-syntax suffix ([RFC 9277])
+  signals CBOR-family membership, so generic CBOR tooling can inspect the outer structure. The
+  self-describe tag `55799` ([RFC 8949] §3.4.6) MAY prefix the first segment header as a magic
+  number. Conformance is defined by the shared test-vector corpus (§19).
+- **Published specification:** this document (GTS — Graph Transport Substrate — Specification).
+- **Applications that use this media type:** content-addressed RDF 1.2 graph transport and
+  archival; signed agent-memory and provenance artifacts; package distribution where the payload
+  bundles a graph and the binaries it references.
+- **Fragment identifier considerations:** none.
+- **Additional information:**
+  - **Magic number(s):** `0xd9 0xd9 0xf7` (the CBOR self-describe tag `55799`) when present at
+    the start of the file (§16.1). This prefix is OPTIONAL.
+  - **File extension(s):** `.gts`
+  - **Macintosh file type code(s):** none
+- **Person & email address to contact for further information:**
+  Patrick Audley <paudley@blackcatinformatics.ca>
+- **Intended usage:** COMMON
+- **Restrictions on usage:** none
+- **Author / Change controller:** Blackcat Informatics® Inc.
+
+## 21. References
+
+### 21.1 Normative references
+
+- **[RFC 2119]** Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, March 1997.
+- **[RFC 8174]** Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, May 2017.
+- **[RFC 8949]** Bormann, C. and P. Hoffman, "Concise Binary Object Representation (CBOR)", STD 94, December 2020.
+- **[RFC 8742]** Bormann, C., "Concise Binary Object Representation (CBOR) Sequences", February 2020.
+- **[RFC 9052]** Schaad, J., "CBOR Object Signing and Encryption (COSE): Structures and Process", STD 96, August 2022.
+- **[RFC 9053]** Schaad, J., "CBOR Object Signing and Encryption (COSE): Initial Algorithms", August 2022.
+- **[RFC 9277]** Bormann, C. and M. Nottingham, "On the Use of Structured Suffixes in Media Types", June 2022.
+- **[RFC 6838]** Freed, N., Klensin, J., and T. Hansen, "Media Type Specifications and Registration Procedures", BCP 13, January 2013.
+- **[RFC 3339]** Klyne, G. and C. Newman, "Date and Time on the Internet: Timestamps", July 2002.
+- **[BCP 47]** Phillips, A. and M. Davis, "Tags for Identifying Languages", September 2009.
+- **[BLAKE3]** O'Connor, J., Aumasson, J-P., Neves, S., and Z. Wilcox-O'Hearn, "BLAKE3: one function, fast everywhere" (256-bit output used here).
+- **[RDF 1.2]** W3C, "RDF 1.2 Concepts and Abstract Syntax" — RDF concepts and the quoted-triple / reifier model (statement-level metadata).
+
+### 21.2 Informative references
+
+- **[RFC 7049]** Bormann, C. and P. Hoffman, "Concise Binary Object Representation (CBOR)", October 2013 (obsoleted by [RFC 8949]; cited only for its legacy length-first "canonical" ordering, §4).
+- **[RFC 8610]** Birkholz, H., Vigano, C., and C. Bormann, "Concise Data Definition Language (CDDL)", June 2019.
+- **[RFC 9111]** Fielding, R., Nottingham, M., and J. Reschke, "HTTP Caching", June 2022 (the caching directives of §16.3).
+- **[RFC 6906]** Wilde, E., "The 'profile' Link Relation Type", March 2013 (the `Accept-Profile` future extension noted in §16.3).
 
 ---
 
