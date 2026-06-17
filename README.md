@@ -32,17 +32,27 @@ GTS encodes a graph as an **append-only log of CBOR frames**. The logical graph 
 *fold* (replay) of the log. Growth is an append; "deletion" is **suppression**, never a
 physical removal; optimisation is a separate, explicitly lossy compaction. Concatenating
 two valid GTS files (`cat`) yields a valid GTS file whose fold is the value-union of the
-inputs — so memory grows by append, never by rewrite.
+inputs.
 
-Its lodestar is **reader simplicity**: a conformant baseline reader — "the rdflib of GTS" —
-is small enough to prototype in a weekend in any language with a CBOR library, and a
-consumer can do ~90% of what they'd do with an RDF library *without parsing RDF text*. This
-repository holds **four interoperable engines** (Rust, Python, Go, TypeScript) that all gate
-against one frozen, byte-exact conformance corpus, plus the specification that defines them.
+GTS is ontology-independent. **GTS is the primary distribution method for GMEOW, but GTS does
+not depend on GMEOW.** A conformant reader does not need GMEOW vocabulary, OWL reasoning,
+music-domain rules, or agent-memory conventions to parse, verify, fold, or transport a GTS
+file.
+
+The package family is `gmeow-gts`; the format is GTS. The package name is intentionally
+distinctive across ecosystems, while the CLI, import surface, and file extension remain the
+short `gts` and `.gts` forms where ecosystem rules permit.
+
+This repository holds **four interoperable engines** (Rust, Python, Go, TypeScript) that all
+gate against one frozen, byte-exact conformance corpus, plus the specification that defines
+them.
 
 ## Table of contents
 
 - [Why GTS?](#why-gts)
+- [Use GTS without GMEOW](#use-gts-without-gmeow)
+- [Narrow-waist architecture](#narrow-waist-architecture)
+- [Applications](#applications)
 - [Install](#install)
 - [Quick start](#quick-start)
   - [Python](#python)
@@ -50,6 +60,7 @@ against one frozen, byte-exact conformance corpus, plus the specification that d
   - [Go](#go)
   - [TypeScript](#typescript)
 - [Command-line interface](#command-line-interface)
+- [Engine feature matrix](#engine-feature-matrix)
 - [The file format in one minute](#the-file-format-in-one-minute)
 - [Conformance corpus](#conformance-corpus)
 - [Repository layout](#repository-layout)
@@ -84,10 +95,56 @@ protocol. Random-access query, deep traversal, and SPARQL are the job of a trans
 (`.ttl`, `.nq`, DuckDB, SQLite, …), not of GTS. It is a *good-enough, durable, self-describing
 container* — the narrow waist through which graphs and their referenced data travel.
 
-> **Why it exists.** GTS was built as portable, auditable, content-addressed **agent memory**:
-> belief revision modelled as suppression frames rather than destructive edits, so a memory
-> file is a signable, independently verifiable record that travels across sessions, models, and
-> vendors. See [`gts.examples.agent_memory`](./python/src/gts/examples/agent_memory.py).
+## Use GTS without GMEOW
+
+GMEOW is a primary downstream consumer and reference profile family for GTS artifacts. The
+dependency direction is one-way: GMEOW rides on GTS; GTS does not require GMEOW.
+
+A baseline reader needs the GTS wire-format rules, the codec catalog, and RDF term/fold
+semantics. It does not need a GMEOW ontology checkout, GMEOW-specific vocabulary, music-domain
+profile knowledge, or agent-memory conventions. Domain profiles can add validation rules above
+the transport layer, but they do not change the core parse, verification, or fold path.
+
+## Narrow-waist architecture
+
+```text
+Applications and profiles
+generic graphs | files | evidence | images | media packages | GMEOW | agent memory
+|
+v
+GTS narrow waist
+CBOR Sequence segments
+deterministic-CBOR headers and frames
+BLAKE3 id/prev chains
+transform catalog
+deterministic fold
+opaque-node degradation
+|
+v
+Storage and transport
+filesystem | HTTP range | object storage | artifact registries | message buses
+```
+
+GTS is the small stable waist. Profiles and applications sit above it; storage and distribution
+systems sit below it. See [`docs/positioning.md`](./docs/positioning.md) for the full framing.
+
+## Applications
+
+GTS supports several use cases without making any of them the project frame:
+
+- **Dataset and ontology distribution:** publish a verifiable graph package with the binary
+  assets it names.
+- **GMEOW distribution:** ship GMEOW ontology packages and profiles as GTS artifacts.
+- **Archives and file manifests:** package directory trees with graph-native metadata and
+  content-addressed blobs.
+- **Evidence and custody chains:** append observations, signatures, and sealed payloads without
+  rewriting prior history.
+- **Local-first graph synchronization:** concatenate independently produced segments and fold
+  the value-union.
+- **Agent memory:** model belief revision with suppression frames while preserving the original
+  signed history. See [`gts.examples.agent_memory`](./python/src/gts/examples/agent_memory.py).
+- **Graph database interchange:** hand the folded graph state to N-Quads, SQLite, DuckDB, Parquet,
+  or other transform targets.
 
 ## Install
 
@@ -236,6 +293,24 @@ relational exports need `pip install 'gmeow-gts[db]'` for DuckDB/Parquet.
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
 folded quad.
 
+## Engine feature matrix
+
+| Capability | Python | Rust | Go | TypeScript |
+|---|---|---|---|---|
+| Baseline read/fold/verify | yes | yes | yes | yes |
+| Writer | yes | yes | yes | yes |
+| Shared conformance corpus | yes | yes | yes | yes |
+| COSE signing and verification | yes | yes | yes | yes |
+| COSE Encrypt0 helpers | yes | yes | yes | yes |
+| Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
+| Streamable compaction CLI | yes | yes | yes | yes |
+| `from-nq` inverse | yes | no | no | no |
+| SQLite/DuckDB/Parquet exports | yes | no | no | no |
+| Package registry | PyPI | crates.io | Go module | npm |
+
+The frozen vector corpus remains the compatibility oracle. The matrix summarizes public package
+surfaces; it is not a replacement for conformance tests.
+
 ## The file format in one minute
 
 A GTS file is a **CBOR Sequence** (`application/cbor-seq`) of one or more **segments**. Each
@@ -328,13 +403,15 @@ artifact with `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gt
 ## Specification & docs
 
 - [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) — the authoritative, normative wire-format specification.
+- [`docs/positioning.md`](./docs/positioning.md) — the project framing, narrow-waist
+  architecture, application families, and engine feature matrix.
 - [`docs/gts-reference.md`](./docs/gts-reference.md) — Python reference-implementation guide.
 - Per-engine READMEs live in [`rust/`](./rust/README.md), [`python/`](./python/README.md),
   [`go/`](./go/README.md), and [`ts/`](./ts/README.md).
 
-GTS is part of the broader [GMEOW](https://github.com/Blackcat-Informatics/gmeow-ontology)
-project — a reasoning-centric, OWL 2 DL super-vocabulary — but the format and these engines
-stand entirely on their own.
+GTS is the primary distribution method for
+[GMEOW](https://github.com/Blackcat-Informatics/gmeow-ontology), but GTS does not depend on
+GMEOW. The format and these engines stand on their own.
 
 ## Contributing
 

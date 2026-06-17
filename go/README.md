@@ -34,6 +34,10 @@ against one frozen, byte-exact conformance corpus — every engine folds identic
 identical N-Quads. See the [project README](https://github.com/Blackcat-Informatics/gmeow-gts#readme)
 for the cross-engine picture.
 
+GTS is ontology-independent. GTS is the primary distribution method for GMEOW, but GTS does
+not depend on GMEOW. The module path is neutral (`go.blackcatinformatics.ca/gts`), while the
+repository and release workflows keep the distinctive `gmeow-gts` package family.
+
 ## Install
 
 ```bash

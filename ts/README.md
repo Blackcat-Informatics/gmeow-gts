@@ -26,9 +26,9 @@ conformance corpus — every engine folds identical bytes to identical expectati
 files this package writes are read byte-for-byte by the other three (and vice versa).
 
 This package provides a library and a command-line tool for reading, writing, verifying,
-composing, compacting, signing, and projecting GTS files. It is designed for agents and
-systems that need **portable, auditable, content-addressed memory** — belief revision as
-suppression frames rather than destructive edits.
+composing, compacting, signing, and projecting GTS files. It is designed for systems that need
+portable, auditable, content-addressed graph packages: archives, evidence chains, local-first
+synchronization, dataset distribution, GMEOW packages, and agent memory.
 
 ---
 
@@ -72,9 +72,10 @@ Key properties:
 For the authoritative specification, see [`docs/GTS-SPEC.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md).
 For the reference-implementation guide, see [`docs/gts-reference.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md).
 
-GTS is part of the larger [GMEOW](https://github.com/Blackcat-Informatics/gmeow-ontology)
-project — a reasoning-centric, OWL 2 DL, upper-ontology-grounded super-vocabulary — but the
-format and these engines stand entirely on their own.
+GTS is ontology-independent. GTS is the primary distribution method for
+[GMEOW](https://github.com/Blackcat-Informatics/gmeow-ontology), but GTS does not depend on
+GMEOW. A reader does not need GMEOW vocabulary or tooling to parse, verify, fold, or transport
+a GTS file.
 
 ---
 
@@ -282,9 +283,9 @@ The package ships as ES modules with TypeScript declarations and requires Node.j
 
 ## Project and community
 
-`@blackcatinformatics/gmeow-gts` is developed by [Blackcat Informatics® Inc.](https://blackcatinformatics.ca)
-as part of the [GMEOW ontology and tooling](https://github.com/Blackcat-Informatics/gmeow-ontology)
-suite.
+`@blackcatinformatics/gmeow-gts` is developed by
+[Blackcat Informatics® Inc.](https://blackcatinformatics.ca). GMEOW is a downstream ontology
+and tooling suite that uses GTS as a distribution substrate.
 
 Related packages and engines (all four interoperate against the same corpus):
 

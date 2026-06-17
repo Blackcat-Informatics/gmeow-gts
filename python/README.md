@@ -27,6 +27,10 @@ language-neutral conformance corpus. GTS ships **four independent, interoperable
 engines** (Rust, Python, Go, TypeScript) that all gate against one frozen,
 byte-exact corpus — Python is the source of truth they are measured against.
 
+GTS is ontology-independent. GTS is the primary distribution method for GMEOW, but GTS does
+not depend on GMEOW. The package name is `gmeow-gts` for distribution continuity; the import
+name, CLI, and file extension remain `gts` and `.gts`.
+
 ## Install
 
 ```bash
@@ -157,9 +161,9 @@ mem.store(
 print([c.text for c in mem.recall("error handling")])
 ```
 
-This is the core motivation for GTS: portable, auditable, content-addressed
-agent memory that travels across sessions, models, and vendors as a signable,
-independently verifiable record.
+Agent memory is one application of GTS, not the frame for the format. The same append-only,
+content-addressed substrate also supports archives, evidence chains, local-first graph
+synchronization, ontology distribution, and graph database interchange.
 
 ## Verifying the build
 
