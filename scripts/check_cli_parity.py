@@ -16,11 +16,13 @@ ENGINES = ("Python", "Rust", "Go", "TypeScript")
 
 
 def between(text: str, start: str, end: str) -> str:
-    try:
-        after_start = text.split(start, 1)[1]
-        return after_start.split(end, 1)[0]
-    except IndexError:
+    start_parts = text.split(start, 1)
+    if len(start_parts) != 2:
         raise ValueError(f"missing marker pair: {start} ... {end}") from None
+    end_parts = start_parts[1].split(end, 1)
+    if len(end_parts) != 2:
+        raise ValueError(f"missing marker pair: {start} ... {end}") from None
+    return end_parts[0]
 
 
 def parse_contract_matrix() -> dict[str, dict[str, bool]]:
