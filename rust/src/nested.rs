@@ -83,14 +83,6 @@ fn visit(
         if seen.contains(&digest) {
             continue;
         }
-        let Some(nested_len) = graph
-            .blobs
-            .iter()
-            .find(|(d, _)| d == &digest)
-            .map(|(_, bytes)| bytes.len())
-        else {
-            continue;
-        };
         if depth >= max_depth {
             graph.diagnostics.push(Diagnostic {
                 code: "RecursionLimit".to_string(),
@@ -99,6 +91,19 @@ fn visit(
             });
             continue;
         }
+        let nested_bytes = match graph.blob_bytes_cloned(&digest) {
+            Ok(Some(bytes)) => bytes,
+            Ok(None) => continue,
+            Err(err) => {
+                graph.diagnostics.push(Diagnostic {
+                    code: "DamagedFrame".to_string(),
+                    detail: format!("nested GTS blob {digest} decode failed: {err:?}"),
+                    frame_index: None,
+                });
+                continue;
+            }
+        };
+        let nested_len = nested_bytes.len();
         if nested_len > *remaining {
             graph.diagnostics.push(Diagnostic {
                 code: "RecursionLimit".to_string(),
@@ -112,16 +117,8 @@ fn visit(
         }
         *remaining -= nested_len;
         seen.insert(digest.clone());
-        let Some(nested_bytes) = graph
-            .blobs
-            .iter()
-            .find(|(d, _)| d == &digest)
-            .map(|(_, bytes)| bytes.as_slice())
-        else {
-            continue;
-        };
         let child = visit(
-            nested_bytes,
+            &nested_bytes,
             depth + 1,
             max_depth,
             remaining,

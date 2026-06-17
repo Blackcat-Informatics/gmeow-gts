@@ -642,9 +642,16 @@ fn cmd_ls(paths: &[String]) -> ExitCode {
     for d in &g.diagnostics {
         eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
     }
-    for (digest, bytes) in &g.blobs {
+    for (digest, entry) in &g.blobs {
         let mt = blob_mt(&g, digest).unwrap_or_else(|| "-".to_string());
-        println!("{digest}  {:>10}  {mt}", bytes.len());
+        let size = match entry.decoded_len() {
+            Ok(size) => size,
+            Err(err) => {
+                eprintln!("gts: cannot decode blob {digest}: {err:?}");
+                return ExitCode::from(1);
+            }
+        };
+        println!("{digest}  {size:>10}  {mt}");
     }
     ExitCode::SUCCESS
 }
@@ -723,12 +730,12 @@ fn cmd_extract(args: &[String]) -> ExitCode {
         Ok(d) => d,
         Err(code) => return code,
     };
-    let g = read(&data, true, None);
+    let mut g = read(&data, true, None);
     let digest = normalize_digest(digest);
-    let Some((_, bytes)) = g.blobs.iter().find(|(d, _)| *d == digest) else {
+    if g.blob_entry(&digest).is_none() {
         eprintln!("gts: no inline blob {digest} in {path}");
         return ExitCode::from(1);
-    };
+    }
     if !include_suppressed && suppressed_blob_digests(&g).contains(&digest) {
         eprintln!(
             "gts: refusing {digest}: suppressed (§11); pass \
@@ -746,20 +753,31 @@ fn cmd_extract(args: &[String]) -> ExitCode {
             return ExitCode::from(1);
         }
     }
-    if digest_str(bytes) != digest {
+    let bytes = match g.blob_bytes_cloned(&digest) {
+        Ok(Some(bytes)) => bytes,
+        Ok(None) => {
+            eprintln!("gts: no inline blob {digest} in {path}");
+            return ExitCode::from(1);
+        }
+        Err(err) => {
+            eprintln!("gts: cannot decode blob {digest}: {err:?}");
+            return ExitCode::from(1);
+        }
+    };
+    if digest_str(&bytes) != digest {
         eprintln!("gts: integrity failure: {digest} bytes re-hash differently");
         return ExitCode::from(1);
     }
     match out_path {
         Some(p) => {
-            if let Err(e) = std::fs::write(p, bytes) {
+            if let Err(e) = std::fs::write(p, &bytes) {
                 eprintln!("gts: cannot write {p}: {e}");
                 return ExitCode::from(2);
             }
         }
         None => {
             use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(bytes) {
+            if let Err(e) = std::io::stdout().write_all(&bytes) {
                 eprintln!("gts: cannot write stdout: {e}");
                 return ExitCode::from(2);
             }

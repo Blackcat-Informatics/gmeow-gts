@@ -12,7 +12,11 @@
 //! (Python `dict` semantics): re-binding an existing key replaces the value
 //! but keeps the original position.
 
+use std::borrow::Cow;
+
 use ciborium::value::Value;
+
+use crate::codec::{decode_chain, Codec, CodecError};
 
 /// Well-known datatype IRIs used by the literal-defaulting rule (§7.1).
 pub const XSD_STRING: &str = "http://www.w3.org/2001/XMLSchema#string";
@@ -115,6 +119,73 @@ pub struct StreamableInfo {
     pub head: Option<Vec<u8>>,
 }
 
+/// One content-addressed blob entry in a folded graph.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BlobEntry {
+    /// Decoded blob bytes.
+    Bytes(Vec<u8>),
+    /// Wire bytes plus the transform chain needed to decode them on access.
+    Lazy { raw: Vec<u8>, chain: Vec<Codec> },
+}
+
+impl BlobEntry {
+    /// Store already-decoded blob bytes.
+    pub fn bytes(data: Vec<u8>) -> Self {
+        Self::Bytes(data)
+    }
+
+    /// Store transformed wire bytes for deferred decoding.
+    pub fn lazy(raw: Vec<u8>, chain: Vec<Codec>) -> Self {
+        Self::Lazy { raw, chain }
+    }
+
+    /// True when this entry still holds transformed wire bytes.
+    pub fn is_lazy(&self) -> bool {
+        matches!(self, Self::Lazy { .. })
+    }
+
+    /// Return cached decoded bytes without forcing a lazy decode.
+    pub fn cached_bytes(&self) -> Option<&[u8]> {
+        match self {
+            Self::Bytes(bytes) => Some(bytes),
+            Self::Lazy { .. } => None,
+        }
+    }
+
+    /// Decode and cache this entry, returning the decoded bytes.
+    pub fn decode(&mut self) -> Result<&[u8], CodecError> {
+        if let Self::Lazy { raw, chain } = self {
+            let decoded = decode_chain(chain, raw)?;
+            *self = Self::Bytes(decoded);
+        }
+        match self {
+            Self::Bytes(bytes) => Ok(bytes),
+            Self::Lazy { .. } => unreachable!("lazy entry was decoded above"),
+        }
+    }
+
+    /// Return decoded bytes without mutating the entry.
+    pub fn decoded_bytes(&self) -> Result<Cow<'_, [u8]>, CodecError> {
+        match self {
+            Self::Bytes(bytes) => Ok(Cow::Borrowed(bytes)),
+            Self::Lazy { raw, chain } => decode_chain(chain, raw).map(Cow::Owned),
+        }
+    }
+
+    /// Return decoded bytes as an owned vector.
+    pub fn decoded_vec(&self) -> Result<Vec<u8>, CodecError> {
+        match self.decoded_bytes()? {
+            Cow::Borrowed(bytes) => Ok(bytes.to_vec()),
+            Cow::Owned(bytes) => Ok(bytes),
+        }
+    }
+
+    /// Return the decoded byte length, decoding transiently if needed.
+    pub fn decoded_len(&self) -> Result<usize, CodecError> {
+        Ok(self.decoded_bytes()?.len())
+    }
+}
+
 /// The folded result of a GTS log.
 #[derive(Default, Debug)]
 pub struct Graph {
@@ -124,7 +195,7 @@ pub struct Graph {
     pub reifiers: Vec<(usize, Triple3)>,
     pub annotations: Vec<Triple3>,
     /// `blake3:<hex>` digest → inline bytes, insertion-ordered.
-    pub blobs: Vec<(String, Vec<u8>)>,
+    pub blobs: Vec<(String, BlobEntry)>,
     /// Declared blob metadata by digest — the blob frame's `"pub"` map
     /// (`mt`, `rep`, …) retained through the fold so tooling can list
     /// contents and assert media types without re-walking frames (§12).
@@ -184,13 +255,53 @@ impl Graph {
         }
     }
 
-    /// Store an inline blob under its digest, replacing in place.
-    pub fn set_blob(&mut self, digest: String, data: Vec<u8>) {
+    /// Store a blob entry under its digest, replacing in place.
+    pub fn set_blob_entry(&mut self, digest: String, entry: BlobEntry) {
         if let Some(slot) = self.blobs.iter_mut().find(|(d, _)| *d == digest) {
-            slot.1 = data;
+            slot.1 = entry;
         } else {
-            self.blobs.push((digest, data));
+            self.blobs.push((digest, entry));
         }
+    }
+
+    /// Store decoded inline blob bytes under their digest, replacing in place.
+    pub fn set_blob(&mut self, digest: String, data: Vec<u8>) {
+        self.set_blob_entry(digest, BlobEntry::bytes(data));
+    }
+
+    /// Store transformed inline blob bytes for lazy decoding.
+    pub fn set_lazy_blob(&mut self, digest: String, raw: Vec<u8>, chain: Vec<Codec>) {
+        self.set_blob_entry(digest, BlobEntry::lazy(raw, chain));
+    }
+
+    /// Look up a blob entry without decoding it.
+    pub fn blob_entry(&self, digest: &str) -> Option<&BlobEntry> {
+        self.blobs
+            .iter()
+            .find(|(d, _)| d == digest)
+            .map(|(_, entry)| entry)
+    }
+
+    /// Look up a blob and decode/cache it on demand.
+    pub fn blob_bytes(&mut self, digest: &str) -> Result<Option<&[u8]>, CodecError> {
+        match self.blobs.iter_mut().find(|(d, _)| d == digest) {
+            Some((_, entry)) => entry.decode().map(Some),
+            None => Ok(None),
+        }
+    }
+
+    /// Look up a blob and return decoded owned bytes.
+    pub fn blob_bytes_cloned(&mut self, digest: &str) -> Result<Option<Vec<u8>>, CodecError> {
+        Ok(self.blob_bytes(digest)?.map(|bytes| bytes.to_vec()))
+    }
+
+    /// Return every blob as decoded owned bytes, preserving insertion order.
+    pub fn decoded_blobs(&mut self) -> Result<Vec<(String, Vec<u8>)>, CodecError> {
+        let mut out = Vec::with_capacity(self.blobs.len());
+        for (digest, entry) in &mut self.blobs {
+            out.push((digest.clone(), entry.decode()?.to_vec()));
+        }
+        Ok(out)
     }
 
     /// The effective datatype IRI of a literal, applying §7.1 defaulting.

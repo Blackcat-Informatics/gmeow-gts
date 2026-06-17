@@ -173,6 +173,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+Inline blob entries are content-addressed by digest and may remain transformed on the wire until
+they are read. Use `Graph::blob_entry` to inspect presence without decoding, `Graph::blob_bytes`
+or `Graph::blob_bytes_cloned` to decode and cache a single blob, and `Graph::decoded_blobs` to
+materialize the insertion-ordered table.
+
 Write a minimal graph. A `Writer` is created with a profile (e.g. `"dist"`), then frames are
 appended: a `terms` frame interns the RDF terms by append-order id, and a `quads` frame
 references them by those ids (the fourth tuple slot is the graph name, `None` for the default

@@ -18,6 +18,8 @@
 //! agent string is a constant, and the timestamp is a parameter — never
 //! ambient time.
 
+use std::borrow::Cow;
+
 use ciborium::value::Value;
 
 use crate::model::{Graph, Quad, Suppression, Term, TermKind};
@@ -152,13 +154,37 @@ impl GraphBuilder {
     }
 }
 
-/// Look up a blob's bytes in the insertion-ordered table.
-fn blob_bytes<'a>(g: &'a Graph, digest: &str) -> &'a [u8] {
+fn blob_decode_refused(digest: &str, err: impl std::fmt::Debug) -> CompactRefusedError {
+    CompactRefusedError(format!("cannot decode blob {digest}: {err:?}"))
+}
+
+/// Look up a blob's decoded length in the insertion-ordered table.
+fn blob_decoded_len(g: &Graph, digest: &str) -> Result<Option<usize>, CompactRefusedError> {
     g.blobs
         .iter()
         .find(|(d, _)| d == digest)
-        .map(|(_, b)| &b[..])
-        .unwrap_or(&[])
+        .map(|(_, entry)| {
+            entry
+                .decoded_len()
+                .map_err(|err| blob_decode_refused(digest, err))
+        })
+        .transpose()
+}
+
+/// Look up a blob's decoded bytes in the insertion-ordered table.
+fn blob_bytes<'a>(
+    g: &'a Graph,
+    digest: &str,
+) -> Result<Option<Cow<'a, [u8]>>, CompactRefusedError> {
+    g.blobs
+        .iter()
+        .find(|(d, _)| d == digest)
+        .map(|(_, entry)| {
+            entry
+                .decoded_bytes()
+                .map_err(|err| blob_decode_refused(digest, err))
+        })
+        .transpose()
 }
 
 /// A declared text field (`mt`/`rep`) from a blob's `pub` metadata (§12).
@@ -203,7 +229,7 @@ fn streaming_index(
     timestamp: &str,
     sealed_digest: Option<&str>,
     sealed_size: Option<usize>,
-) -> GraphBuilder {
+) -> Result<GraphBuilder, CompactRefusedError> {
     let mut b = GraphBuilder::default();
     // Fixed vocabulary block — constant ids across engines for determinism.
     let t_type = b.add(TermKind::Iri, RDF_TYPE);
@@ -231,7 +257,7 @@ fn streaming_index(
         let size = if sealed {
             sealed_size
         } else {
-            Some(blob_bytes(g, digest).len())
+            blob_decoded_len(g, digest)?
         };
         let mt = if sealed {
             Some("application/vnd.blackcat.gts+cbor-seq".to_string())
@@ -281,7 +307,7 @@ fn streaming_index(
         let o = b.literal(&cose_b64, None);
         b.quad(node, t_cose, o);
     }
-    b
+    Ok(b)
 }
 
 /// Shift a term's id references into the output id space.
@@ -369,13 +395,22 @@ pub fn compact_streamable(
     timestamp: &str,
     seal_original: bool,
 ) -> Result<Vec<u8>, CompactRefusedError> {
-    let (g, profile) = refusal_gate(data, seal_original)?;
+    let (mut g, profile) = refusal_gate(data, seal_original)?;
 
     // Delivery plan: most-significant-first — ascending decoded size, digest
     // tie-break; the sealed original (least significant) always travels last.
-    // Sizes are paired up front so the sort never re-scans the blob table.
-    let mut keyed: Vec<(usize, String)> =
-        g.blobs.iter().map(|(d, b)| (b.len(), d.clone())).collect();
+    // Decode once here so the streaming index and re-emission reuse cached
+    // bytes instead of repeating lazy decode work.
+    let mut keyed: Vec<(usize, String)> = g
+        .blobs
+        .iter_mut()
+        .map(|(d, entry)| {
+            entry
+                .decode()
+                .map(|bytes| (bytes.len(), d.clone()))
+                .map_err(|err| blob_decode_refused(d, err))
+        })
+        .collect::<Result<_, _>>()?;
     keyed.sort_unstable();
     let mut blob_order: Vec<String> = keyed.into_iter().map(|(_, d)| d).collect();
     let mut sealed_digest: Option<String> = None;
@@ -392,7 +427,7 @@ pub fn compact_streamable(
         timestamp,
         sealed_digest.as_deref(),
         sealed_digest.as_ref().map(|_| data.len()),
-    );
+    )?;
     let base = index.terms.len();
 
     let mut w = Writer::with_layout(&profile, Some("streamable"));
@@ -443,7 +478,10 @@ pub fn compact_streamable(
         }
         let mt = blob_meta_text(&g, digest, "mt");
         let rep = blob_meta_text(&g, digest, "rep");
-        w.add_blob(blob_bytes(&g, digest), mt.as_deref(), rep.as_deref());
+        let Some(bytes) = blob_bytes(&g, digest)? else {
+            continue;
+        };
+        w.add_blob(bytes.as_ref(), mt.as_deref(), rep.as_deref());
     }
     // The re-issued ordering commitment: the compactor is its sole attester.
     w.add_index();
