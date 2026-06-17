@@ -20,6 +20,7 @@ use gmeow_gts::from_nquads::from_nquads;
 use gmeow_gts::mmr::{parse_hex_32, prove_file, verify_proof, Proof};
 use gmeow_gts::model::{Graph, Suppression, TermKind};
 use gmeow_gts::nquads::to_nquads;
+use gmeow_gts::policy::{evaluate_profile_policy, Severity, TrustPolicy};
 use gmeow_gts::reader::{read, read_file_segments, FileSegments};
 use gmeow_gts::replication::{
     heads_json, inventory, missing, missing_json, resume_after, segments_json, MissingStatus,
@@ -36,7 +37,8 @@ commands:
   info <file>...            per-segment composition ledger (§14.1)
   fold <file>               fold to N-Quads on stdout
   from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
-  verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
+  verify [--key kid:hexpubkey] [--policy file] <file>...
+                            verify chains, signatures, and optional profile policy
   prove <file> <frame-id>   emit JSON inclusion proof from an index.mmr root
   verify-proof <proof.json> verify detached proof JSON without the GTS file
   heads <file>              JSON segment heads and aggregate comparison digest
@@ -671,7 +673,7 @@ fn cmd_to_parquet(args: &[String]) -> ExitCode {
 
 /// Parse a `kid:hexpubkey` spec into a verifier entry.
 fn parse_key(spec: &str) -> Option<(String, VerifyingKey)> {
-    let (kid, hexpub) = spec.split_once(':')?;
+    let (kid, hexpub) = spec.rsplit_once(':')?;
     if kid.is_empty() || hexpub.len() != 64 {
         return None;
     }
@@ -684,29 +686,56 @@ fn parse_key(spec: &str) -> Option<(String, VerifyingKey)> {
         .map(|k| (kid.to_string(), k))
 }
 
+#[cfg(feature = "policy-config")]
+fn load_policy(path: &str) -> Result<TrustPolicy, ExitCode> {
+    TrustPolicy::from_path(path).map_err(|e| {
+        eprintln!("gts verify: {e}");
+        ExitCode::from(2)
+    })
+}
+
+#[cfg(not(feature = "policy-config"))]
+fn load_policy(_path: &str) -> Result<TrustPolicy, ExitCode> {
+    eprintln!("gts verify: --policy requires rebuilding gmeow-gts with `--features policy-config`");
+    Err(ExitCode::from(2))
+}
+
 fn cmd_verify(args: &[String]) -> ExitCode {
     let mut paths: Vec<String> = Vec::new();
     let mut keys: std::collections::HashMap<String, VerifyingKey> =
         std::collections::HashMap::new();
+    let mut policy: Option<TrustPolicy> = None;
     let mut i = 0;
     while i < args.len() {
-        if args[i] == "--key" {
-            i += 1;
-            let Some(spec) = args.get(i) else {
-                eprintln!("{USAGE}");
-                return ExitCode::from(2);
-            };
-            match parse_key(spec) {
-                Some((kid, key)) => {
-                    keys.insert(kid, key);
-                }
-                None => {
-                    eprintln!("gts verify: bad --key {spec:?} (want kid:hexpubkey)");
+        match args[i].as_str() {
+            "--key" => {
+                i += 1;
+                let Some(spec) = args.get(i) else {
+                    eprintln!("{USAGE}");
                     return ExitCode::from(2);
+                };
+                match parse_key(spec) {
+                    Some((kid, key)) => {
+                        keys.insert(kid, key);
+                    }
+                    None => {
+                        eprintln!("gts verify: bad --key {spec:?} (want kid:hexpubkey)");
+                        return ExitCode::from(2);
+                    }
                 }
             }
-        } else {
-            paths.push(args[i].clone());
+            "--policy" => {
+                i += 1;
+                let Some(path) = args.get(i) else {
+                    eprintln!("{USAGE}");
+                    return ExitCode::from(2);
+                };
+                match load_policy(path) {
+                    Ok(loaded) => policy = Some(loaded),
+                    Err(code) => return code,
+                }
+            }
+            other => paths.push(other.to_string()),
         }
         i += 1;
     }
@@ -720,22 +749,39 @@ fn cmd_verify(args: &[String]) -> ExitCode {
             Ok(d) => d,
             Err(code) => return code,
         };
-        let fs = read_file_segments(&data);
+        let mut fs = read_file_segments(&data);
         print_ledger(path, &fs);
         if has_problems(&fs) {
             problems = true;
         }
         // §14.1: declared-vs-computed profile requirements + layout warnings.
-        for (idx, seg) in fs.segments.iter().enumerate() {
-            for (msg, is_err) in profile_check(seg) {
-                let prefix = if is_err { "error" } else { "warning" };
-                eprintln!("  segment {idx}: {prefix}: {msg}");
-                if is_err {
-                    problems = true;
+        for (idx, seg) in fs.segments.iter_mut().enumerate() {
+            if let Some(policy) = policy.as_ref() {
+                if !keys.is_empty() {
+                    verify_signatures(&mut seg.signatures, |k| keys.get(k).copied());
                 }
-            }
-            for msg in stream_vocab_check(seg) {
-                eprintln!("  segment {idx}: warning: {msg}");
+                for finding in evaluate_profile_policy(seg, Some(policy), Some(idx)) {
+                    eprintln!(
+                        "  segment {idx}: {}: {}: {}",
+                        finding.severity.as_str(),
+                        finding.code,
+                        finding.detail
+                    );
+                    if finding.severity == Severity::Error {
+                        problems = true;
+                    }
+                }
+            } else {
+                for (msg, is_err) in profile_check(seg) {
+                    let prefix = if is_err { "error" } else { "warning" };
+                    eprintln!("  segment {idx}: {prefix}: {msg}");
+                    if is_err {
+                        problems = true;
+                    }
+                }
+                for msg in stream_vocab_check(seg) {
+                    eprintln!("  segment {idx}: warning: {msg}");
+                }
             }
         }
         // §9.2: COSE signature verification against the provided keys.

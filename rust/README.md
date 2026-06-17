@@ -379,7 +379,11 @@ Default Cargo features are empty. The optional `rdf` feature enables
 data-model crate. The optional `oxigraph-adapter` feature adds
 `gmeow_gts::oxigraph::{graph_to_store, store_to_writer}` and
 `Writer::from_store` using Oxigraph's in-memory store with Oxigraph defaults disabled.
-Both adapters are absent from ordinary default builds.
+The optional `policy-config` feature adds JSON loading helpers for
+`gmeow_gts::policy::TrustPolicy` and enables `gts verify --policy <file>` for
+release/profile verification workflows. `policy-config-yaml` layers YAML parsing
+on top for deployments that want YAML policy files.
+The adapters and policy parsers are absent from ordinary default builds.
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
 refuses dirty inputs, contributes-nothing segments, and compositions whose suppressions

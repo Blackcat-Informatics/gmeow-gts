@@ -32,6 +32,11 @@ pub mod openpgp;
 #[cfg(feature = "oxigraph-adapter")]
 pub mod oxigraph;
 pub mod policy;
+#[cfg(feature = "policy-config")]
+pub use policy::PolicyConfigError;
+pub use policy::{
+    evaluate_profile_policy, signature_trust, ProfileFinding, Severity, SignatureTrust, TrustPolicy,
+};
 #[cfg(feature = "rdf")]
 pub mod rdf;
 pub mod reader;
