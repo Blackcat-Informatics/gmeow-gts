@@ -365,6 +365,29 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
     )
 
 
+PINNED_ENTRY_FIELDS = (
+    "id",
+    "title",
+    "input",
+    "mode",
+    "negative",
+    "required_capabilities",
+    "subsets",
+    "tiers",
+    "expected",
+    "notes",
+)
+
+
+def require_generated_metadata(entry: dict[str, Any], expected: dict[str, Any]) -> None:
+    vector_id = entry["id"]
+    for field in PINNED_ENTRY_FIELDS:
+        require(
+            entry.get(field) == expected[field],
+            f"{vector_id}: {field} drift from generated manifest metadata",
+        )
+
+
 def validate_manifest(manifest: Any) -> None:
     require(isinstance(manifest, dict), "manifest must be a JSON object")
     require(manifest.get("schema") == SCHEMA, "manifest schema mismatch")
@@ -434,6 +457,7 @@ def validate_manifest(manifest: Any) -> None:
             "streaming-property" in entry["subsets"],
             f"{vector_id}: top-level vectors must declare streaming-property",
         )
+        require_generated_metadata(entry, top_level_entry(vector_id))
 
     manifest_json_paths = sorted(
         entry["input"]["path"]
@@ -452,11 +476,13 @@ def validate_manifest(manifest: Any) -> None:
         input_path = entry["input"]["path"]
         if not input_path.endswith(".json") or "/" not in input_path[len("vectors/") :]:
             continue
-        data = load_json(ROOT / input_path)
+        fixture_path = repo_path(input_path, "input.path", entry["id"])
+        subdir = fixture_path.parent.name
         require(
-            entry["expected"].get("fields") == sorted(data),
-            f"{entry['id']}: expected.fields drift from JSON fixture keys",
+            subdir in JSON_SUBCORPUS,
+            f"{entry['id']}: JSON subcorpus metadata missing for {subdir}",
         )
+        require_generated_metadata(entry, json_fixture_entry(fixture_path))
 
 
 def expect_invalid(manifest: Any, text: str) -> None:
@@ -486,6 +512,31 @@ def run_self_tests() -> None:
     manifest = mutated_manifest()
     manifest["vectors"][0]["expected"]["graph"] = "../outside.expected.json"
     expect_invalid(manifest, "expected.graph escapes root")
+
+    manifest = mutated_manifest()
+    top_level = next(entry for entry in manifest["vectors"] if entry["input"]["path"].endswith(".gts"))
+    top_level["required_capabilities"] = ["cbor"]
+    expect_invalid(manifest, "required_capabilities drift")
+
+    manifest = mutated_manifest()
+    fixture = next(
+        entry
+        for entry in manifest["vectors"]
+        if entry["input"]["path"].endswith(".json")
+        and "/" in entry["input"]["path"][len("vectors/") :]
+    )
+    fixture["tiers"] = ["baseline-reader"]
+    expect_invalid(manifest, "tiers drift")
+
+    manifest = mutated_manifest()
+    fixture = next(
+        entry
+        for entry in manifest["vectors"]
+        if entry["input"]["path"].endswith(".json")
+        and "/" in entry["input"]["path"][len("vectors/") :]
+    )
+    fixture["expected"]["fields"] = []
+    expect_invalid(manifest, "expected drift")
 
 
 def main() -> int:
