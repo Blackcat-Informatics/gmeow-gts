@@ -366,7 +366,10 @@ adding a full OpenPGP crate dependency. `from-nq` and the relational
 implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
 integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`
 on `PATH`; `to-duckdb` and `to-parquet` require the optional no-dependency `duckdb`
-Cargo feature plus the `duckdb` binary on `PATH`.
+Cargo feature plus the `duckdb` binary on `PATH`. Rust streams SQL rows into those tools
+instead of buffering all rows or a full SQL script; lazy transformed blobs stay lazy in the
+folded `Graph` and are decoded transiently only when the stable `blobs.bytes` column is
+emitted.
 
 Default Cargo features are empty. The optional `rdf` feature enables
 `gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` through `oxrdf`'s RDF

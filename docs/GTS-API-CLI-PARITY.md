@@ -98,7 +98,9 @@ actual dispatch surfaces.
 
 - Rust `to-sqlite` requires `sqlite3` on `PATH`; Rust `to-duckdb` and `to-parquet` require
   the optional no-dependency `duckdb` Cargo feature plus `duckdb` on `PATH`. Python DuckDB
-  and Parquet exports require the Python `[db]` extra.
+  and Parquet exports require the Python `[db]` extra. Rust streams SQL rows to the runtime
+  tool instead of retaining all relational rows or a complete SQL script in memory; the stable
+  `blobs.bytes` schema still requires transient blob decoding while each blob row is emitted.
 - Go and TypeScript do not yet expose `from-nq` or relational exports.
 - Rust implements the first `index.mmr` proof verbs. Python, Go, and TypeScript should not expose
   `prove` or `verify-proof` until they implement the same proof JSON and preimages.

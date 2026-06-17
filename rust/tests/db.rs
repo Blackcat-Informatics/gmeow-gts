@@ -8,6 +8,9 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
+use gmeow_gts::codec::Codec;
+use gmeow_gts::model::Graph;
+
 fn vectors() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../vectors")
 }
@@ -172,6 +175,37 @@ fn to_sqlite_preserves_existing_output_when_tool_fails() {
     );
 
     assert_eq!(out.status.code(), Some(2));
+    assert_eq!(std::fs::read(&db).unwrap(), b"keep me");
+}
+
+#[test]
+fn to_sqlite_preserves_existing_output_when_blob_decode_fails() {
+    if !command_available("sqlite3") {
+        eprintln!("skipping: sqlite3 is not installed");
+        return;
+    }
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let db = tmp.join("existing.sqlite");
+    std::fs::write(&db, b"keep me").unwrap();
+
+    let mut graph = Graph::default();
+    graph.set_lazy_blob(
+        format!("blake3:{}", "00".repeat(32)),
+        b"not zstd".to_vec(),
+        vec![Codec {
+            name: "zstd".into(),
+            cls: "compress".into(),
+        }],
+    );
+
+    let err = gmeow_gts::db::to_sqlite(&graph, &db).unwrap_err();
+
+    assert!(
+        err.to_string().contains("cannot decode blob"),
+        "unexpected error: {err}"
+    );
     assert_eq!(std::fs::read(&db).unwrap(), b"keep me");
 }
 

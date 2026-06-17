@@ -352,8 +352,10 @@ engine depends on and re-exports as `gmeow_gts::emojihash`.
 `from-nq` and the `to-*` relational exports are available in Python and Rust. Python
 DuckDB/Parquet exports need `pip install 'gmeow-gts[db]'`; Rust SQLite export shells out to
 `sqlite3` by default. Rust DuckDB/Parquet exports are behind the no-dependency Cargo
-feature `duckdb` and shell out to the `duckdb` binary. The CLI parity matrix is checked
-in CI against the four implemented command dispatch surfaces.
+feature `duckdb` and shell out to the `duckdb` binary. Rust emits relational SQL rows
+directly to the runtime tool instead of building a complete SQL script in memory; transformed
+inline blobs are decoded only while writing the `blobs` row required by the stable schema.
+The CLI parity matrix is checked in CI against the four implemented command dispatch surfaces.
 
 `cat` is raw byte concatenation with validation *added*, transformation *never*: it refuses
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
