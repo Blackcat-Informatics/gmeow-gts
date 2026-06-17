@@ -100,7 +100,7 @@ gts ls <file>...              list inline blobs: digest, size, declared media ty
 gts pack <dir> -o <out>       package files/directories into a files-profile archive
 gts unpack <file> -C <dir>    extract a files-profile archive (refuses path traversal)
 gts extract <file> <digest>   write a single content-addressed blob
-gts compact <file>            rewrite a segment into the streamable layout
+gts compact <file> -o <out> --streamable   rewrite a segment into the streamable layout
 gts diff <file> <directory>   compare a files-profile archive to a directory by digest
 gts to-sqlite <file> <out>    export the folded graph to a SQLite database
 gts to-duckdb <file> <out>    export to a DuckDB database (needs the [db] extra)

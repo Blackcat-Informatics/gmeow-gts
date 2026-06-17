@@ -92,8 +92,8 @@ Four properties define the format ([full spec](./docs/GTS-SPEC.md)):
 
 **Non-goals.** GTS is explicitly *not* a database, query engine, reasoner, or mutation
 protocol. Random-access query, deep traversal, and SPARQL are the job of a transform target
-(`.ttl`, `.nq`, DuckDB, SQLite, …), not of GTS. It is a *good-enough, durable, self-describing
-container* — the narrow waist through which graphs and their referenced data travel.
+(`.ttl`, `.nq`, DuckDB, SQLite, …), not of GTS. It is a *durable, self-describing
+interchange container* — the narrow waist through which graphs and their referenced data travel.
 
 ## Use GTS without GMEOW
 
