@@ -18,8 +18,9 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from gts.model import Graph, TermKind
+from gts.model import Graph
 from gts.nquads import to_nquads
+from gts.policy import TrustPolicy, evaluate_profile_policy
 from gts.reader import read, read_segments
 
 if TYPE_CHECKING:
@@ -96,94 +97,6 @@ def _cmd_fold(path: str) -> int:
     return 1 if g.diagnostics or not g.segment_heads else 0
 
 
-PROFILE_VOCABS: dict[str, str] = {"files": "https://w3id.org/gts/files#"}
-
-
-def _namespace(iri: str) -> str:
-    if "#" in iri:
-        return iri[: iri.rfind("#") + 1]
-    if "/" in iri:
-        return iri[: iri.rfind("/") + 1]
-    return iri
-
-
-def _used_vocabs(seg: Graph) -> set[str]:
-    out: set[str] = set()
-    vocabs = set(PROFILE_VOCABS.values())
-    n = len(seg.terms)
-    for s, p, o, g in seg.quads:
-        for tid in (s, p, o) if g is None else (s, p, o, g):
-            if not (0 <= tid < n):
-                continue  # never crash a report over a malformed reference
-            term = seg.term(tid)
-            if term.kind is TermKind.IRI and term.value:
-                ns = _namespace(term.value)
-                if ns in vocabs:
-                    out.add(ns)
-    return out
-
-
-def _profile_check(seg: Graph) -> list[tuple[str, bool]]:
-    """Declared-vs-computed profile requirement checks (§14.1).
-
-    Returns (message, is_error) pairs.
-    """
-    out: list[tuple[str, bool]] = []
-    declared = set(seg.segment_profiles)
-    used = _used_vocabs(seg)
-    for prof, vocab in PROFILE_VOCABS.items():
-        declares = prof in declared
-        uses = vocab in used
-        if uses and not declares:
-            out.append(
-                (
-                    f"profile error: segment uses {vocab} vocabulary "
-                    f"but does not declare '{prof}'",
-                    True,
-                )
-            )
-        if declares and not uses:
-            out.append(
-                (
-                    f"profile warning: segment declares '{prof}' "
-                    f"but uses no {vocab} vocabulary",
-                    False,
-                )
-            )
-    return out
-
-
-def _stream_vocab_check(seg: Graph) -> list[str]:
-    """Warn on ``stream#`` vocabulary in an unclaimed segment (§13.3).
-
-    A warning, never an error: compaction-provenance quads legitimately
-    survive ``nq → gts`` round trips and re-accretion — the error class is
-    reserved for a claimed layout the bytes contradict (the reader's
-    ``StreamableLayoutError``).
-    """
-    from gts.stream import STREAM_NS
-
-    claimed = bool(seg.segment_streamable and seg.segment_streamable[0].claimed)
-    if claimed:
-        return []
-    n = len(seg.terms)
-    uses = any(
-        term.kind is TermKind.IRI
-        and term.value is not None
-        and term.value.startswith(STREAM_NS)
-        for s, p, o, g in seg.quads
-        for tid in ((s, p, o) if g is None else (s, p, o, g))
-        if 0 <= tid < n  # never crash a report over a malformed reference
-        for term in (seg.term(tid),)
-    )
-    if uses:
-        return [
-            f"layout warning: segment uses {STREAM_NS} vocabulary but does "
-            "not claim layout 'streamable' (§13.3)"
-        ]
-    return []
-
-
 def _build_verifier(key_specs: list[str] | None) -> KeyProvider | None:
     """Build an in-memory key provider from ``kid:hexpubkey`` specs, or None."""
     if not key_specs:
@@ -203,12 +116,28 @@ def _build_verifier(key_specs: list[str] | None) -> KeyProvider | None:
     return InMemoryKeys(verifiers=verifiers)
 
 
-def _cmd_verify(paths: list[str], key_specs: list[str] | None = None) -> int:
+def _finding_label(code: str, severity: str) -> str:
+    if code.startswith("ProfileVocabulary"):
+        return f"profile {severity}"
+    if code == "StreamVocabularyWithoutLayout":
+        return "layout warning"
+    return severity
+
+
+def _cmd_verify(
+    paths: list[str],
+    key_specs: list[str] | None = None,
+    trusted_signers: list[str] | None = None,
+) -> int:
     problems = False
     keys = _build_verifier(key_specs)
+    policy = TrustPolicy(
+        trusted_signers=frozenset(trusted_signers or ()),
+        require_trusted_signer=bool(trusted_signers),
+    )
     for path in paths:
         data = _load(path)
-        segments, torn, fatal = read_segments(data)
+        segments, torn, fatal = read_segments(data, keys=keys)
         if fatal is not None:
             print(f"{path}: 0 segment(s)")
             print(f"  FATAL {fatal.code}: {fatal.detail}")
@@ -218,13 +147,14 @@ def _cmd_verify(paths: list[str], key_specs: list[str] | None = None) -> int:
         problems = problems or _has_problems(segments, torn, fatal)
         # §14.1: declared-vs-computed profile requirements + layout warnings.
         for idx, seg in enumerate(segments):
-            for msg, is_err in _profile_check(seg):
-                prefix = "error" if is_err else "warning"
-                print(f"  segment {idx}: {prefix}: {msg}", file=sys.stderr)
-                if is_err:
+            for finding in evaluate_profile_policy(seg, policy, segment_index=idx):
+                label = _finding_label(finding.code, finding.severity)
+                print(
+                    f"  segment {idx}: {label}: {finding.code}: {finding.detail}",
+                    file=sys.stderr,
+                )
+                if finding.severity == "error":
                     problems = True
-            for msg in _stream_vocab_check(seg):
-                print(f"  segment {idx}: warning: {msg}", file=sys.stderr)
         # §9.2: COSE signature verification against the provided keys.
         if keys is not None:
             graph = read(data, keys=keys)
@@ -594,6 +524,12 @@ def main(argv: list[str] | None = None) -> int:
         metavar="KID:HEXPUB",
         help="verify COSE signatures against a raw Ed25519 public key (repeatable)",
     )
+    p_verify.add_argument(
+        "--trusted-signer",
+        action="append",
+        metavar="KID",
+        help="profile-policy trust anchor for an already verified signer kid",
+    )
 
     p_ls = sub.add_parser(
         "ls", help="list inline blobs: digest, size, declared media type"
@@ -707,7 +643,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "fold":
         return _cmd_fold(args.file)
     if args.command == "verify":
-        return _cmd_verify(args.files, args.key)
+        return _cmd_verify(args.files, args.key, args.trusted_signer)
     if args.command == "ls":
         return _cmd_ls(args.file)
     if args.command == "extract-key":

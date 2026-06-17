@@ -44,9 +44,11 @@ and TypeScript engines also gate against. Tier claims and vector subsets are def
 ## Not yet (follow-ups under #267)
 
 Multi-recipient / ECDH key-wrap (this lands single-recipient `COSE_Encrypt0`);
-`evidence`/`opaque` profile *conformance enforcement* (signatures-required,
-pseudonymous-`kid`); nested-GTS recursion (§12.1); the `index`/MMR acceleration
-(§6.2); a frame-streaming DB load for very large inputs; the packaging vocabulary.
+the v1 trust/profile-policy contract (signatures-required, pseudonymous-`kid`,
+and bounded nested-GTS recursion) is tracked in
+[`GTS-SECURITY-POLICY.md`](./GTS-SECURITY-POLICY.md). Remaining deferrals include
+the `index`/MMR acceleration (§6.2), a frame-streaming DB load for very large
+inputs, and packaging vocabulary expansion.
 
 ## Use
 

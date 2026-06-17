@@ -1,0 +1,133 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+"""Bounded nested-GTS Full Reader behavior."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+import gts.nested as nested_module
+from gts import GTS_MEDIA_TYPE, Term, TermKind, Writer, read_nested
+from gts.wire import digest_str
+
+EX = "https://example.org/"
+VECTORS_DIR = Path(__file__).resolve().parents[2] / "vectors" / "security"
+
+
+def _tiny_graph(label: str = "nested") -> bytes:
+    writer = Writer(profile="dist")
+    writer.add_terms(
+        [
+            Term(TermKind.IRI, EX + label),
+            Term(TermKind.IRI, EX + "label"),
+            Term(TermKind.LITERAL, label),
+        ]
+    )
+    writer.add_quads([(0, 1, 2, None)])
+    return writer.to_bytes()
+
+
+def _bundle(child: bytes) -> bytes:
+    writer = Writer(profile="bundle")
+    writer.add_blob(child, mt=GTS_MEDIA_TYPE)
+    return writer.to_bytes()
+
+
+def _labeled_bundle(child: bytes, label: str) -> bytes:
+    writer = Writer(profile="bundle")
+    writer.add_terms(
+        [
+            Term(TermKind.IRI, EX + label),
+            Term(TermKind.IRI, EX + "label"),
+            Term(TermKind.LITERAL, label),
+        ]
+    )
+    writer.add_quads([(0, 1, 2, None)])
+    writer.add_blob(child, mt=GTS_MEDIA_TYPE)
+    return writer.to_bytes()
+
+
+def test_read_nested_exposes_subgraph_by_blob_digest() -> None:
+    child = _tiny_graph("child")
+    outer = _bundle(child)
+
+    result = read_nested(outer)
+
+    digest = digest_str(child)
+    assert digest in result.subgraphs
+    assert result.subgraphs[digest].quads == [(0, 1, 2, None)]
+    assert not [d for d in result.diagnostics if d.code == "RecursionLimit"]
+
+
+def test_read_nested_stops_at_recursion_limit() -> None:
+    grandchild = _tiny_graph("grandchild")
+    child = _bundle(grandchild)
+    outer = _bundle(child)
+
+    result = read_nested(outer, max_depth=1)
+
+    assert digest_str(child) in result.subgraphs
+    assert digest_str(grandchild) not in result.subgraphs
+    assert "RecursionLimit" in [d.code for d in result.diagnostics]
+
+
+def test_read_nested_stops_at_decoded_size_budget() -> None:
+    child = _tiny_graph("oversized")
+    outer = _bundle(child)
+
+    result = read_nested(outer, max_decoded_bytes=len(child) - 1)
+
+    assert digest_str(child) not in result.subgraphs
+    assert "RecursionLimit" in [d.code for d in result.diagnostics]
+
+
+def test_read_nested_charges_duplicate_nested_digest_once() -> None:
+    grandchild = _tiny_graph("shared-grandchild")
+    child_a = _labeled_bundle(grandchild, "child-a")
+    child_b = _labeled_bundle(grandchild, "child-b")
+    writer = Writer(profile="bundle")
+    writer.add_blob(child_a, mt=GTS_MEDIA_TYPE)
+    writer.add_blob(child_b, mt=GTS_MEDIA_TYPE)
+
+    result = read_nested(
+        writer.to_bytes(),
+        max_decoded_bytes=len(child_a) + len(child_b) + len(grandchild),
+    )
+
+    assert digest_str(child_a) in result.subgraphs
+    assert digest_str(child_b) in result.subgraphs
+    assert digest_str(grandchild) in result.subgraphs
+    assert "RecursionLimit" not in [d.code for d in result.diagnostics]
+
+
+def test_read_nested_records_nested_parse_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    child = _tiny_graph("child")
+    outer = _bundle(child)
+    original_read = nested_module.read
+
+    def raising_read(data: bytes, **kwargs: Any) -> Any:
+        if data == child:
+            raise ValueError("bad nested payload")
+        return original_read(data, **kwargs)
+
+    monkeypatch.setattr(nested_module, "read", raising_read)
+
+    result = read_nested(outer)
+
+    assert digest_str(child) not in result.subgraphs
+    assert any(
+        d.code == "DamagedFrame" and "could not be parsed" in d.detail
+        for d in result.diagnostics
+    )
+
+
+def test_nested_recursion_security_vector_descriptor() -> None:
+    vector = json.loads((VECTORS_DIR / "nested-recursion-limit.json").read_text())
+    assert vector["id"] == "nested-recursion-limit"
+    assert vector["expected_diagnostics"] == ["RecursionLimit"]

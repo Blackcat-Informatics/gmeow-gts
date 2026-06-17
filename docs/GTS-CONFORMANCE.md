@@ -45,6 +45,7 @@ used by tier claims:
 | `crypto-encrypt` | `vectors/encrypt0/basic.json` | COSE Encrypt0 sealing/opening behavior for engines that implement encryption. |
 | `openpgp-transport-key` | `vectors/openpgp/*.json` | Embedded OpenPGP transport-key extraction and cross-engine fingerprint/emojihash agreement. |
 | `human-hash` | `vectors/emojihash/*.json`, `vectors/randomart/*.json` | Human-facing digest rendering used by CLIs and release tooling. |
+| `security-policy` | `vectors/security/*.json` | Profile trust-policy separation, pseudonymous opaque recipients, and nested-GTS recursion-limit negative cases. |
 | `advanced-index-proof` | not committed for v1 | Future offset/dictionary/MMR acceleration, inclusion proof, and replication vectors. |
 
 A tier MAY require a subset plus extra mode-specific assertions. For example,
@@ -57,7 +58,7 @@ refuse specific publish-class or verify-class violations.
 |---|---|---|
 | Baseline Reader | `wire-core`, `total-reader`, `graph-fold`, and `profile-layout` in permissive-read mode; expected graph JSON matches; diagnostics match; malformed inputs never panic or abort the process. | `GTS Baseline Reader, corpus <commit>` |
 | Streaming Reader | Baseline Reader plus `streaming-property`; implementation can process frames incrementally while preserving the prefix-fold property. | `GTS Streaming Reader, corpus <commit>` |
-| Full Reader | Baseline Reader plus implemented optional subsets, at minimum `crypto-cose` for signature verification if claiming signature support, `crypto-encrypt` if claiming decrypt support, nested-GTS recursion tests when present, and index/MMR behavior when present. | `GTS Full Reader (<capabilities>), corpus <commit>` |
+| Full Reader | Baseline Reader plus implemented optional subsets, at minimum `crypto-cose` for signature verification if claiming signature support, `crypto-encrypt` if claiming decrypt support, `security-policy` when claiming nested-GTS recursion, and index/MMR behavior when present. | `GTS Full Reader (<capabilities>), corpus <commit>` |
 | Writer | Emitted bytes are deterministic where the spec requires deterministic output; top-level corpus generation is reproducible; writer-created files pass Baseline Reader expectations. | `GTS Writer, corpus <commit>` |
 | Validating Tool | Baseline Reader plus strict verify and publish-class verify modes (§7); `profile-layout` refusal vectors produce the required non-zero/refusal outcomes. | `GTS Validating Tool, corpus <commit>` |
 | Profile-Aware Tool | Validating Tool plus the named profile validator; profile-specific diagnostics and warnings match the profile contract. | `GTS Profile-Aware Tool (<profile>), corpus <commit>` |
@@ -70,6 +71,8 @@ The cross-language API and command matrix for those public surfaces is maintaine
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
 The advanced streaming sink, index/MMR/proof, replication, range-fetch, and benchmark deferrals
 are maintained in [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).
+The trust/profile-policy, nested-GTS budget, and crypto-deferral contract is maintained in
+[`GTS-SECURITY-POLICY.md`](./GTS-SECURITY-POLICY.md).
 
 ## 4. Expected Graph Format
 
