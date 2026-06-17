@@ -262,6 +262,7 @@ MAY map them to error returns or structured warnings):
 | `SegmentBoundary` | a compatibility reader reaches a later segment header where file-global term ids would misfold; stop with a fatal diagnostic (§3.1, §19) |
 | `RecursionLimit` | nested-GTS depth or decoded-size budget exceeded (§12.1, §18) |
 | `StreamableLayoutError` | a segment claims `"layout": "streamable"` but its covered region violates delivery ordering, or its index footer is missing or contradicts the frames it covers (§3.3) |
+| `IndexMmrError` | an optional `index.mmr` root is present but does not match the covered frame ids (§6.2) |
 | `UnknownFrameType` | a frame type is not understood by the reader/profile; preserve chain verification and either ignore it or surface it as opaque until a profile handles it (§7.8) |
 
 ## 3. File structure
@@ -576,6 +577,51 @@ serve as a recovery anchor even though the last intact `index` is preferred for 
 Current package support and deferrals for `off`/`ti`, `dict`, `mmr`, proof verbs, range fetch, and
 replication workflows are tracked in
 [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).
+
+The `mmr` root uses a Merkle-Mountain-Range over the ordered frame ids covered by the index.
+The index frame itself is not covered by its own `mmr`; a later index may cover an earlier index
+frame like any other earlier frame. Peaks are built left-to-right by appending one leaf per frame
+id and repeatedly merging the two rightmost peaks while their heights match. The root for
+`count = 0` is the root preimage with an empty peak list.
+
+All MMR preimages use deterministic CBOR (§4) and BLAKE3-256:
+
+```text
+leaf(index, frame_id) =
+  BLAKE3-256(deterministic-CBOR(["gts-mmr-leaf-v1", index, frame_id]))
+
+parent(parent_height, left_hash, right_hash) =
+  BLAKE3-256(deterministic-CBOR(["gts-mmr-parent-v1",
+                                 parent_height, left_hash, right_hash]))
+
+root(count, peaks) =
+  BLAKE3-256(deterministic-CBOR(["gts-mmr-root-v1",
+                                 count,
+                                 [[peak_height, peak_hash], ...]]))
+```
+
+A detached proof JSON object has this stable shape:
+
+```json
+{
+  "schema": "gts-mmr-proof-v1",
+  "hash": "blake3-256",
+  "preimage": "gts-mmr-v1",
+  "count": 4,
+  "leaf_index": 2,
+  "frame_id": "<32-byte frame id hex>",
+  "root": "<32-byte mmr root hex>",
+  "peak_index": 0,
+  "peaks": [{"height": 2, "hash": "<32-byte peak hex>"}],
+  "path": [
+    {"side": "right", "parent_height": 1, "hash": "<32-byte sibling hex>"}
+  ]
+}
+```
+
+`verify-proof` MUST reject a proof unless the peak heights match `count`, `leaf_index` belongs to
+`peak_index`, every hash field is 32 bytes, the path reconstructs the selected peak, and the peaks
+reconstruct `root`. Proof verification does not require the original `.gts` file.
 
 ## 7. Graph data model and fold
 
@@ -2029,7 +2075,7 @@ diagnostic-code = "EmptyFile"
 / "TruncatedLog" / "UnknownCodec" / "MissingKey"
 / "ConflictingReifier" / "RecursionLimit"
 / "StreamableLayoutError" / "PositionConstraint"
-/ "ForwardReference" / "SegmentBoundary"
+/ "ForwardReference" / "SegmentBoundary" / "IndexMmrError"
 / "UnknownFrameType" / tstr
 
 profile-status = "core-required" / "optional-standard" / "experimental"
@@ -2075,7 +2121,7 @@ extension keys.
 | Inline blob digest | `BLAKE3-256(decoded blob bytes)`, after reversing transforms and decryption when available. | Frame envelope fields are not part of the blob digest. | Blob-public extension keys do not affect the blob digest, but they do affect the containing frame `"id"`. | Compare with `pub.digest` when present and with graph references that name the blob. |
 | External blob digest | `pub.digest` names bytes stored elsewhere; the digest subject is those external bytes. | The external bytes are absent from the GTS frame, so only the digest claim participates in the frame `"id"` through `"pub"`. | Unknown public metadata participates in the frame `"id"`, not in the external blob digest. | A verifier can check only when it obtains the external bytes. |
 | Index `"head"` | The content-id of the last covered frame, where `"count"` is the number of frames covered by the index payload. | Not applicable. | Unknown index-payload keys participate in the index frame `"id"`, not in the `"head"` subject. | Compare `"head"` to the covered frame id; mismatch invalidates the index/layout claim. |
-| Index `"mmr"` | Merkle-Mountain-Range root over the ordered frame ids covered by the index. | The index frame itself is not covered unless a later index covers it. | Unknown index-payload keys participate in the index frame `"id"`, not in the MMR root. | Use as an optional whole-covered-region commitment and proof root. |
+| Index `"mmr"` | Merkle-Mountain-Range root over the ordered frame ids covered by the index, using the leaf/parent/root preimages in §6.2. | The index frame itself is not covered unless a later index covers it. | Unknown index-payload keys participate in the index frame `"id"`, not in the MMR root. | Use as an optional whole-covered-region commitment and proof root; mismatch is `IndexMmrError`. |
 | Detached signature provenance | `stream:sourceFrame` names the original frame `"id"`; `stream:cose` carries the original COSE_Sign1 bytes. The signature still verifies over the original frame id. | The rewritten frame's new `"id"` is not the old signature subject. | Provenance graph extension terms do not change the original signature subject. | Verify carried signatures against `stream:sourceFrame`; do not treat them as signatures over the compacted frame. |
 
 ### 22.2 Unknown extension-key behavior

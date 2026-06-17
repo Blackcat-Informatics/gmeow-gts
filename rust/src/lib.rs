@@ -24,6 +24,7 @@ pub use visual_hashing as emojihash;
 pub mod examples;
 pub mod files;
 pub mod from_nquads;
+pub mod mmr;
 pub mod model;
 pub mod nested;
 pub mod nquads;

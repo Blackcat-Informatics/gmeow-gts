@@ -306,6 +306,13 @@ gts to-duckdb <file> <out>      export to DuckDB (Rust: --features duckdb)
 gts to-parquet <file> <dir>     export to Parquet (Rust: --features duckdb)
 ```
 
+Rust-only proof extensions:
+
+```text
+gts prove <file> <frame-id>      emit detached JSON proof from an index.mmr root
+gts verify-proof <proof.json>    verify detached proof JSON without the GTS file
+```
+
 Python-only extensions:
 
 <!-- cli-python-extensions:start -->

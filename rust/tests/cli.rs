@@ -150,6 +150,78 @@ fn make_tree(root: &Path) {
 }
 
 #[test]
+fn prove_and_verify_proof_round_trip() {
+    use gmeow_gts::model::{Term, TermKind};
+    use gmeow_gts::wire::hex;
+    use gmeow_gts::writer::Writer;
+
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let path = tmp.join("indexed.gts");
+    let proof_path = tmp.join("proof.json");
+    let bad_path = tmp.join("bad-proof.json");
+
+    let mut w = Writer::new("generic");
+    let target = w.add_terms(&[
+        Term {
+            kind: TermKind::Iri,
+            value: Some("https://example.org/Cat".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        Term {
+            kind: TermKind::Iri,
+            value: Some("http://www.w3.org/2000/01/rdf-schema#label".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        Term {
+            kind: TermKind::Literal,
+            value: Some("Cat".to_string()),
+            datatype: None,
+            lang: Some("en".to_string()),
+            reifier: None,
+        },
+    ]);
+    w.add_quads(&[(0, 1, 2, None)]);
+    w.add_index_with_mmr();
+    std::fs::write(&path, w.to_bytes()).unwrap();
+
+    let target_hex = hex(&target);
+    let out = gts(&["prove", path.to_str().unwrap(), &target_hex]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let proof_json = String::from_utf8(out.stdout).unwrap();
+    let proof: serde_json::Value = serde_json::from_str(&proof_json).unwrap();
+    assert_eq!(proof["schema"], "gts-mmr-proof-v1");
+    assert_eq!(proof["frame_id"], target_hex);
+    std::fs::write(&proof_path, &proof_json).unwrap();
+
+    let out = gts(&["verify-proof", proof_path.to_str().unwrap()]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let text = String::from_utf8_lossy(&out.stdout);
+    assert!(text.contains("proof ok"), "{text}");
+
+    let mut bad = proof;
+    let root = bad["root"].as_str().unwrap().to_string();
+    let replacement = if root.starts_with('0') { "1" } else { "0" };
+    bad["root"] = serde_json::Value::String(format!("{replacement}{}", &root[1..]));
+    std::fs::write(&bad_path, serde_json::to_string_pretty(&bad).unwrap()).unwrap();
+    let out = gts(&["verify-proof", bad_path.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+}
+
+#[test]
 fn pack_unpack_round_trip_bit_for_bit() {
     let tmp = tmpdir();
     let _ = std::fs::remove_dir_all(&tmp);

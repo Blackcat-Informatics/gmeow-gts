@@ -17,6 +17,7 @@ use ed25519_dalek::VerifyingKey;
 use gmeow_gts::cose::verify_signatures;
 use gmeow_gts::emojihash::emojihash;
 use gmeow_gts::from_nquads::from_nquads;
+use gmeow_gts::mmr::{parse_hex_32, prove_file, verify_proof, Proof};
 use gmeow_gts::model::{Graph, Suppression, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::{read, read_file_segments, FileSegments};
@@ -33,6 +34,8 @@ commands:
   fold <file>               fold to N-Quads on stdout
   from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
+  prove <file> <frame-id>   emit JSON inclusion proof from an index.mmr root
+  verify-proof <proof.json> verify detached proof JSON without the GTS file
   extract-key <file>        print the embedded transport key: kid, OpenPGP
                             fingerprint, emojihash, and armored public key (§9.2)
   ls <file>                 list inline blobs: digest, size, declared media type
@@ -83,6 +86,8 @@ fn main() -> ExitCode {
         "fold" => cmd_fold(&args[1..]),
         "from-nq" => cmd_from_nq(&args[1..]),
         "verify" => cmd_verify(&args[1..]),
+        "prove" => cmd_prove(&args[1..]),
+        "verify-proof" => cmd_verify_proof(&args[1..]),
         "extract-key" => cmd_extract_key(&args[1..]),
         "ls" => cmd_ls(&args[1..]),
         "extract" => cmd_extract(&args[1..]),
@@ -123,6 +128,69 @@ fn load(path: &str) -> Result<Vec<u8>, ExitCode> {
         eprintln!("gts: cannot read {path}: {e}");
         ExitCode::from(2)
     })
+}
+
+fn cmd_prove(args: &[String]) -> ExitCode {
+    let [path, frame_id] = args else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let target = match parse_hex_32(frame_id) {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("gts prove: invalid frame id: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let data = match load(path) {
+        Ok(data) => data,
+        Err(code) => return code,
+    };
+    match prove_file(&data, &target) {
+        Ok(proof) => {
+            print!("{}", proof.to_json());
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("gts prove: {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn cmd_verify_proof(args: &[String]) -> ExitCode {
+    let [path] = args else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let text = match std::fs::read_to_string(path) {
+        Ok(text) => text,
+        Err(e) => {
+            eprintln!("gts verify-proof: cannot read {path}: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let proof = match Proof::from_json(&text) {
+        Ok(proof) => proof,
+        Err(e) => {
+            eprintln!("gts verify-proof: invalid proof JSON: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    match verify_proof(&proof) {
+        Ok(()) => {
+            println!(
+                "proof ok: root {} frame {}",
+                hex(&proof.root),
+                hex(&proof.frame_id)
+            );
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("gts verify-proof: invalid proof: {e}");
+            ExitCode::from(1)
+        }
+    }
 }
 
 /// Print the per-segment composition ledger (§14.1 "SHOULD report").
