@@ -12,13 +12,12 @@
 //! for DuckDB/Parquet when the optional `duckdb` feature is enabled.
 
 use std::fmt;
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::model::{Graph, TermKind};
-use crate::wire::hex;
 
 const SCHEMA: &[&str] = &[
     "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT, datatype INTEGER, lang TEXT, reifier INTEGER)",
@@ -67,56 +66,6 @@ enum SqlDialect {
     Duckdb,
 }
 
-struct TableSql {
-    terms: Vec<String>,
-    quads: Vec<String>,
-    reifiers: Vec<String>,
-    annotations: Vec<String>,
-    blobs: Vec<String>,
-}
-
-impl TableSql {
-    #[cfg(feature = "duckdb")]
-    fn count(&self, table: &str) -> usize {
-        match table {
-            "terms" => self.terms.len(),
-            "quads" => self.quads.len(),
-            "reifiers" => self.reifiers.len(),
-            "annotations" => self.annotations.len(),
-            "blobs" => self.blobs.len(),
-            _ => 0,
-        }
-    }
-
-    fn append_inserts(&self, script: &mut String) {
-        for row in &self.terms {
-            script.push_str("INSERT INTO terms VALUES ");
-            script.push_str(row);
-            script.push_str(";\n");
-        }
-        for row in &self.quads {
-            script.push_str("INSERT INTO quads VALUES ");
-            script.push_str(row);
-            script.push_str(";\n");
-        }
-        for row in &self.reifiers {
-            script.push_str("INSERT INTO reifiers VALUES ");
-            script.push_str(row);
-            script.push_str(";\n");
-        }
-        for row in &self.annotations {
-            script.push_str("INSERT INTO annotations VALUES ");
-            script.push_str(row);
-            script.push_str(";\n");
-        }
-        for row in &self.blobs {
-            script.push_str("INSERT INTO blobs VALUES ");
-            script.push_str(row);
-            script.push_str(";\n");
-        }
-    }
-}
-
 fn term_kind_int(kind: TermKind) -> u8 {
     match kind {
         TermKind::Iri => 0,
@@ -126,96 +75,151 @@ fn term_kind_int(kind: TermKind) -> u8 {
     }
 }
 
-fn sql_text(value: Option<&str>) -> String {
+fn sql_io(err: io::Error) -> DbExportError {
+    DbExportError::new(format!("cannot write SQL script: {err}"))
+}
+
+fn write_sql(writer: &mut dyn Write, bytes: &[u8]) -> Result<(), DbExportError> {
+    writer.write_all(bytes).map_err(sql_io)
+}
+
+fn write_sql_fmt(writer: &mut dyn Write, args: fmt::Arguments<'_>) -> Result<(), DbExportError> {
+    writer.write_fmt(args).map_err(sql_io)
+}
+
+fn write_sql_text(writer: &mut dyn Write, value: Option<&str>) -> Result<(), DbExportError> {
+    let Some(text) = value else {
+        return write_sql(writer, b"NULL");
+    };
+    write_sql(writer, b"'")?;
+    let bytes = text.as_bytes();
+    let mut start = 0;
+    for (idx, _) in text.match_indices('\'') {
+        write_sql(writer, &bytes[start..idx])?;
+        write_sql(writer, b"''")?;
+        start = idx + 1;
+    }
+    write_sql(writer, &bytes[start..])?;
+    write_sql(writer, b"'")
+}
+
+fn write_sql_usize(writer: &mut dyn Write, value: Option<usize>) -> Result<(), DbExportError> {
     match value {
-        Some(text) => format!("'{}'", text.replace('\'', "''")),
-        None => "NULL".to_string(),
+        Some(v) => write_sql_fmt(writer, format_args!("{v}")),
+        None => write_sql(writer, b"NULL"),
     }
 }
 
-fn sql_usize(value: Option<usize>) -> String {
-    value.map_or_else(|| "NULL".to_string(), |v| v.to_string())
+fn write_hex(writer: &mut dyn Write, bytes: &[u8]) -> Result<(), DbExportError> {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = [0u8; 4096];
+    for chunk in bytes.chunks(out.len() / 2) {
+        for (i, byte) in chunk.iter().enumerate() {
+            out[i * 2] = HEX[(byte >> 4) as usize];
+            out[i * 2 + 1] = HEX[(byte & 0x0f) as usize];
+        }
+        write_sql(writer, &out[..chunk.len() * 2])?;
+    }
+    Ok(())
 }
 
-fn sql_blob(bytes: &[u8], dialect: SqlDialect) -> String {
+fn write_sql_blob(
+    writer: &mut dyn Write,
+    bytes: &[u8],
+    dialect: SqlDialect,
+) -> Result<(), DbExportError> {
     match dialect {
-        SqlDialect::Sqlite => format!("X'{}'", hex(bytes)),
+        SqlDialect::Sqlite => {
+            write_sql(writer, b"X'")?;
+            write_hex(writer, bytes)?;
+            write_sql(writer, b"'")
+        }
         #[cfg(feature = "duckdb")]
-        SqlDialect::Duckdb => format!("from_hex('{}')", hex(bytes)),
+        SqlDialect::Duckdb => {
+            write_sql(writer, b"from_hex('")?;
+            write_hex(writer, bytes)?;
+            write_sql(writer, b"')")
+        }
     }
 }
 
-fn table_sql(graph: &Graph, dialect: SqlDialect) -> Result<TableSql, DbExportError> {
-    let terms = graph
-        .terms
-        .iter()
-        .enumerate()
-        .map(|(id, term)| {
-            format!(
-                "({id},{},{},{},{},{})",
-                term_kind_int(term.kind),
-                sql_text(term.value.as_deref()),
-                sql_usize(term.datatype),
-                sql_text(term.lang.as_deref()),
-                sql_usize(term.reifier)
-            )
-        })
-        .collect();
-    let quads = graph
-        .quads
-        .iter()
-        .map(|(s, p, o, g)| format!("({s},{p},{o},{})", sql_usize(*g)))
-        .collect();
-    let reifiers = graph
-        .reifiers
-        .iter()
-        .map(|(r, (s, p, o))| format!("({r},{s},{p},{o})"))
-        .collect();
-    let annotations = graph
-        .annotations
-        .iter()
-        .map(|(r, p, v)| format!("({r},{p},{v})"))
-        .collect();
-    let blobs = graph
-        .blobs
-        .iter()
-        .map(|(digest, entry)| {
-            let bytes = entry.decoded_bytes().map_err(|err| {
-                DbExportError::new(format!("cannot decode blob {digest}: {err:?}"))
-            })?;
-            Ok(format!(
-                "({},{})",
-                sql_text(Some(digest.as_str())),
-                sql_blob(bytes.as_ref(), dialect)
-            ))
-        })
-        .collect::<Result<Vec<_>, DbExportError>>()?;
-    Ok(TableSql {
-        terms,
-        quads,
-        reifiers,
-        annotations,
-        blobs,
-    })
+fn write_insert_rows(
+    graph: &Graph,
+    dialect: SqlDialect,
+    writer: &mut dyn Write,
+) -> Result<(), DbExportError> {
+    for (id, term) in graph.terms.iter().enumerate() {
+        write_sql_fmt(
+            writer,
+            format_args!(
+                "INSERT INTO terms VALUES ({id},{}",
+                term_kind_int(term.kind)
+            ),
+        )?;
+        write_sql(writer, b",")?;
+        write_sql_text(writer, term.value.as_deref())?;
+        write_sql(writer, b",")?;
+        write_sql_usize(writer, term.datatype)?;
+        write_sql(writer, b",")?;
+        write_sql_text(writer, term.lang.as_deref())?;
+        write_sql(writer, b",")?;
+        write_sql_usize(writer, term.reifier)?;
+        write_sql(writer, b");\n")?;
+    }
+    for (s, p, o, g) in &graph.quads {
+        write_sql_fmt(
+            writer,
+            format_args!("INSERT INTO quads VALUES ({s},{p},{o},"),
+        )?;
+        write_sql_usize(writer, *g)?;
+        write_sql(writer, b");\n")?;
+    }
+    for (r, (s, p, o)) in &graph.reifiers {
+        write_sql_fmt(
+            writer,
+            format_args!("INSERT INTO reifiers VALUES ({r},{s},{p},{o});\n"),
+        )?;
+    }
+    for (r, p, v) in &graph.annotations {
+        write_sql_fmt(
+            writer,
+            format_args!("INSERT INTO annotations VALUES ({r},{p},{v});\n"),
+        )?;
+    }
+    for (digest, entry) in &graph.blobs {
+        let bytes = entry
+            .decoded_bytes()
+            .map_err(|err| DbExportError::new(format!("cannot decode blob {digest}: {err:?}")))?;
+        write_sql(writer, b"INSERT INTO blobs VALUES (")?;
+        write_sql_text(writer, Some(digest.as_str()))?;
+        write_sql(writer, b",")?;
+        write_sql_blob(writer, bytes.as_ref(), dialect)?;
+        write_sql(writer, b");\n")?;
+    }
+    Ok(())
 }
 
-fn build_load_script(rows: &TableSql) -> String {
-    let mut script = String::new();
+fn write_load_script(
+    graph: &Graph,
+    dialect: SqlDialect,
+    writer: &mut dyn Write,
+) -> Result<(), DbExportError> {
     for ddl in SCHEMA {
-        script.push_str(ddl);
-        script.push_str(";\n");
+        write_sql_fmt(writer, format_args!("{ddl};\n"))?;
     }
-    script.push_str("BEGIN TRANSACTION;\n");
-    rows.append_inserts(&mut script);
-    script.push_str("COMMIT;\n");
+    write_sql(writer, b"BEGIN TRANSACTION;\n")?;
+    write_insert_rows(graph, dialect, writer)?;
+    write_sql(writer, b"COMMIT;\n")?;
     for ddl in INDEXES {
-        script.push_str(ddl);
-        script.push_str(";\n");
+        write_sql_fmt(writer, format_args!("{ddl};\n"))?;
     }
-    script
+    Ok(())
 }
 
-fn run_sql_tool(program: &str, args: &[&str], script: &str) -> Result<(), DbExportError> {
+fn run_sql_tool<F>(program: &str, args: &[&str], write_script: F) -> Result<(), DbExportError>
+where
+    F: FnOnce(&mut dyn Write) -> Result<(), DbExportError>,
+{
     let mut child = Command::new(program)
         .args(args)
         .stdin(Stdio::piped())
@@ -227,12 +231,17 @@ fn run_sql_tool(program: &str, args: &[&str], script: &str) -> Result<(), DbExpo
                 "{program} is required for this export and could not be started: {e}"
             ))
         })?;
-    child
+    let mut stdin = child
         .stdin
-        .as_mut()
-        .ok_or_else(|| DbExportError::new(format!("{program}: stdin unavailable")))?
-        .write_all(script.as_bytes())
-        .map_err(|e| DbExportError::new(format!("{program}: could not write SQL script: {e}")))?;
+        .take()
+        .ok_or_else(|| DbExportError::new(format!("{program}: stdin unavailable")))?;
+    if let Err(err) = write_script(&mut stdin) {
+        drop(stdin);
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err(err);
+    }
+    drop(stdin);
     let output = child
         .wait_with_output()
         .map_err(|e| DbExportError::new(format!("{program}: could not collect status: {e}")))?;
@@ -255,8 +264,35 @@ fn run_sql_tool(program: &str, args: &[&str], script: &str) -> Result<(), DbExpo
 }
 
 #[cfg(feature = "duckdb")]
-fn sql_path(path: &Path) -> String {
-    path.to_string_lossy().replace('\'', "''")
+fn table_count(graph: &Graph, table: &str) -> usize {
+    match table {
+        "terms" => graph.terms.len(),
+        "quads" => graph.quads.len(),
+        "reifiers" => graph.reifiers.len(),
+        "annotations" => graph.annotations.len(),
+        "blobs" => graph.blobs.len(),
+        _ => 0,
+    }
+}
+
+#[cfg(feature = "duckdb")]
+fn write_sql_path(writer: &mut dyn Write, path: &Path) -> Result<(), DbExportError> {
+    let path = path.to_string_lossy();
+    let bytes = path.as_bytes();
+    let mut start = 0;
+    for (idx, _) in path.match_indices('\'') {
+        write_sql(writer, &bytes[start..idx])?;
+        write_sql(writer, b"''")?;
+        start = idx + 1;
+    }
+    write_sql(writer, &bytes[start..])
+}
+
+#[cfg(feature = "duckdb")]
+fn write_copy_stmt(writer: &mut dyn Write, table: &str, path: &Path) -> Result<(), DbExportError> {
+    write_sql_fmt(writer, format_args!("COPY {table} TO '"))?;
+    write_sql_path(writer, path)?;
+    write_sql(writer, b"' (FORMAT parquet);\n")
 }
 
 fn temp_sibling_path(path: &Path, suffix: &str) -> PathBuf {
@@ -310,11 +346,14 @@ fn replace_file(staged: &Path, out: &Path) -> Result<(), DbExportError> {
         .map_err(|e| DbExportError::new(format!("cannot write {}: {e}", out.display())))
 }
 
-fn export_database_file(program: &str, out: &Path, script: &str) -> Result<(), DbExportError> {
+fn export_database_file<F>(program: &str, out: &Path, write_script: F) -> Result<(), DbExportError>
+where
+    F: FnOnce(&mut dyn Write) -> Result<(), DbExportError>,
+{
     let staged = temp_sibling_path(out, "tmp");
     let _ = std::fs::remove_file(&staged);
     let staged_arg = staged.to_string_lossy().into_owned();
-    if let Err(err) = run_sql_tool(program, &[staged_arg.as_str()], script) {
+    if let Err(err) = run_sql_tool(program, &[staged_arg.as_str()], write_script) {
         let _ = std::fs::remove_file(&staged);
         return Err(err);
     }
@@ -324,9 +363,9 @@ fn export_database_file(program: &str, out: &Path, script: &str) -> Result<(), D
 /// Write a folded graph to a SQLite database.
 pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
-    let rows = table_sql(graph, SqlDialect::Sqlite)?;
-    let script = build_load_script(&rows);
-    export_database_file("sqlite3", out, &script)?;
+    export_database_file("sqlite3", out, |writer| {
+        write_load_script(graph, SqlDialect::Sqlite, writer)
+    })?;
     Ok(out.to_path_buf())
 }
 
@@ -334,9 +373,9 @@ pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExp
 #[cfg(feature = "duckdb")]
 pub fn to_duckdb(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
-    let rows = table_sql(graph, SqlDialect::Duckdb)?;
-    let script = build_load_script(&rows);
-    export_database_file("duckdb", out, &script)?;
+    export_database_file("duckdb", out, |writer| {
+        write_load_script(graph, SqlDialect::Duckdb, writer)
+    })?;
     Ok(out.to_path_buf())
 }
 
@@ -354,28 +393,28 @@ pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBu
             staged_dir.display()
         ))
     })?;
-    let rows = table_sql(graph, SqlDialect::Duckdb)?;
-    let mut script = build_load_script(&rows);
     let mut written = Vec::new();
     for table in TABLES {
-        if rows.count(table) == 0 {
+        if table_count(graph, table) == 0 {
             continue;
         }
         let staged = staged_dir.join(format!("{table}.parquet"));
         let out = target.join(format!("{table}.parquet"));
-        script.push_str(&format!(
-            "COPY {table} TO '{}' (FORMAT parquet);\n",
-            sql_path(&staged)
-        ));
-        written.push((staged, out));
+        written.push((*table, staged, out));
     }
-    if let Err(err) = run_sql_tool("duckdb", &[], &script) {
+    if let Err(err) = run_sql_tool("duckdb", &[], |writer| {
+        write_load_script(graph, SqlDialect::Duckdb, writer)?;
+        for (table, staged, _) in &written {
+            write_copy_stmt(writer, table, staged)?;
+        }
+        Ok(())
+    }) {
         let _ = std::fs::remove_dir_all(&staged_dir);
         return Err(err);
     }
     let mut final_paths = Vec::new();
     let mut replace_err = None;
-    for (staged, out) in &written {
+    for (_, staged, out) in &written {
         if let Err(err) = replace_file(staged, out) {
             replace_err = Some(err);
             break;
@@ -384,7 +423,7 @@ pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBu
     }
     if replace_err.is_none() {
         for table in TABLES {
-            if rows.count(table) == 0 {
+            if table_count(graph, table) == 0 {
                 let _ = std::fs::remove_file(target.join(format!("{table}.parquet")));
             }
         }
@@ -394,4 +433,64 @@ pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBu
         return Err(err);
     }
     Ok(final_paths)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::codec::Codec;
+    use crate::wire::{digest_str, hex};
+
+    fn zstd_bytes(data: &[u8]) -> Vec<u8> {
+        ruzstd::encoding::compress_to_vec(data, ruzstd::encoding::CompressionLevel::Uncompressed)
+    }
+
+    fn zstd_codec() -> Vec<Codec> {
+        vec![Codec {
+            name: "zstd".into(),
+            cls: "compress".into(),
+        }]
+    }
+
+    #[test]
+    fn load_script_decodes_lazy_blob_without_caching_it() {
+        let payload = b"blob-heavy relational fixture".repeat(128);
+        let digest = digest_str(&payload);
+        let mut graph = Graph::default();
+        graph.set_lazy_blob(digest.clone(), zstd_bytes(&payload), zstd_codec());
+
+        let mut script = Vec::new();
+        write_load_script(&graph, SqlDialect::Sqlite, &mut script).unwrap();
+
+        assert!(graph
+            .blob_entry(&digest)
+            .is_some_and(|entry| entry.is_lazy()));
+        let script = String::from_utf8(script).unwrap();
+        assert!(script.contains(&format!(
+            "INSERT INTO blobs VALUES ('{}',X'{}');",
+            digest,
+            hex(&payload)
+        )));
+    }
+
+    #[test]
+    fn load_script_decode_failure_stops_before_commit() {
+        let digest = format!("blake3:{}", "00".repeat(32));
+        let mut graph = Graph::default();
+        graph.set_lazy_blob(digest.clone(), b"not zstd".to_vec(), zstd_codec());
+
+        let mut script = Vec::new();
+        let err = write_load_script(&graph, SqlDialect::Sqlite, &mut script).unwrap_err();
+
+        assert!(
+            err.to_string().contains("cannot decode blob"),
+            "unexpected error: {err}"
+        );
+        assert!(graph
+            .blob_entry(&digest)
+            .is_some_and(|entry| entry.is_lazy()));
+        let script = String::from_utf8_lossy(&script);
+        assert!(script.contains("BEGIN TRANSACTION;\n"));
+        assert!(!script.contains("COMMIT;\n"));
+    }
 }

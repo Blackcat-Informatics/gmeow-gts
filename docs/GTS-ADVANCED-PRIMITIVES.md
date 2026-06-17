@@ -146,5 +146,11 @@ The helper emits three rows per file:
 - `streaming-fold`: runs the Rust `read_to_sink` benchmark helper when Cargo is available and
   reports the Rust process high-water RSS (`VmHWM`) on Linux.
 
+Rust relational export regression fixtures cover the bounded row-emission path: the DB loader
+streams SQL into `sqlite3`/`duckdb`, leaves lazy blob entries uncached in the folded graph, and
+stops before `COMMIT` if a transformed blob cannot be decoded. The remaining schema constraint is
+intentional: `blobs.bytes` exports must still decode each inline payload transiently for the row
+being written.
+
 Future non-Rust streaming implementations should replace fallback rows with engine-specific sink
 benchmarks that report peak memory by distinct terms, frames, triples, and blob sizes.

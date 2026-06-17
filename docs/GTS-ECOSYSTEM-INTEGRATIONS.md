@@ -76,7 +76,10 @@ for SQLite by default. Rust DuckDB/Parquet exports are available when built with
 
 Performance expectation: these exports use the integer-id folded model. `terms`,
 `quads`, `reifiers`, `annotations`, and `blobs` are bulk-loaded without resolving
-IRIs during export; consumers join through the `terms` table. SQLite is adequate
+IRIs during export; consumers join through the `terms` table. The Rust path writes rows
+incrementally to `sqlite3`/`duckdb`, so it does not retain all SQL rows or a full load
+script at once. The `blobs` table still preserves payload bytes, so transformed inline
+blob payloads are decoded transiently when their row is emitted. SQLite is adequate
 for small local inspection. DuckDB and Parquet are the preferred path for Pandas,
 Polars, DuckDB SQL, and Arrow-style scans because they keep the dictionary
 encoding and let the target engine choose projection/filter order.
@@ -148,7 +151,8 @@ gts to-parquet package.gts out-parquet/
 The Rust binary keeps these as runtime tool integrations rather than default crate dependencies:
 `to-sqlite` invokes `sqlite3` in the default build, while `to-duckdb` and `to-parquet`
 are enabled by the no-dependency `duckdb` Cargo feature and invoke the external `duckdb`
-binary.
+binary. The Rust loader streams row SQL to those tools and stages output replacement; it does not
+build the complete row set or SQL script in memory.
 
 Tracked deferral: additional native Rust RDF adapters should be added only as
 optional features. A future Oxigraph-store, Sophia, or Rio adapter must include:
