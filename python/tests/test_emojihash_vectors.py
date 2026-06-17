@@ -30,7 +30,7 @@ def test_emojihash_vectors_reproducible() -> None:
     import sys
 
     gen = Path(__file__).parents[1] / "scripts" / "gen_emojihash_vectors.py"
-    before = {p.name: p.read_text() for p in EMOJI_DIR.glob("*.json")}
+    before = {p.name: p.read_text(encoding="utf-8") for p in EMOJI_DIR.glob("*.json")}
     subprocess.run([sys.executable, str(gen)], check=True, capture_output=True)
-    after = {p.name: p.read_text() for p in EMOJI_DIR.glob("*.json")}
+    after = {p.name: p.read_text(encoding="utf-8") for p in EMOJI_DIR.glob("*.json")}
     assert before == after

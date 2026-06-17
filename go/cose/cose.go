@@ -27,11 +27,11 @@ const (
 type SigStatus int
 
 const (
-	// Invalid: present but malformed or failed verification.
+	// Invalid means the signature is present but malformed or failed verification.
 	Invalid SigStatus = iota
-	// Valid: cryptographically valid under the resolved key.
+	// Valid means the signature is cryptographically valid under the resolved key.
 	Valid
-	// Unverified: well-formed, but no key was resolved to check it.
+	// Unverified means the signature is well-formed, but no key was resolved to check it.
 	Unverified
 )
 

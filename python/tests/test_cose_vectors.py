@@ -43,9 +43,9 @@ def test_cose_vectors_reproducible() -> None:
     import sys
 
     gen = Path(__file__).parents[1] / "scripts" / "gen_cose_vectors.py"
-    before = {p.name: p.read_text() for p in COSE_DIR.glob("*.json")}
+    before = {p.name: p.read_text(encoding="utf-8") for p in COSE_DIR.glob("*.json")}
     subprocess.run([sys.executable, str(gen)], check=True, capture_output=True)
-    after = {p.name: p.read_text() for p in COSE_DIR.glob("*.json")}
+    after = {p.name: p.read_text(encoding="utf-8") for p in COSE_DIR.glob("*.json")}
     assert before == after
 
 
@@ -55,7 +55,9 @@ def test_cli_verify_key(tmp_path, capsys) -> None:
 
     from gts.cli import main
 
-    c = json.loads((COSE_DIR.parent / "signed" / "basic.json").read_text())
+    c = json.loads(
+        (COSE_DIR.parent / "signed" / "basic.json").read_text(encoding="utf-8")
+    )
     f = tmp_path / "s.gts"
     f.write_bytes(bytes.fromhex(c["gts"]))
 

@@ -350,9 +350,10 @@ def _files_profile_tree() -> bytes:
         (sub / "world.txt").write_text("world")
         fixed_mtime = 1_700_000_000.0
         for p in [root / "hello.txt", sub / "world.txt"]:
-            p.chmod(0o644)
             os.utime(p, (fixed_mtime, fixed_mtime))
-        return bytes(pack([root]))
+        # Pin the mode so the corpus is byte-reproducible on every OS (Windows
+        # cannot represent a 0o644 mode on disk).
+        return bytes(pack([root], force_mode=0o644))
 
 
 def _files_profile_dedup() -> bytes:
@@ -367,9 +368,9 @@ def _files_profile_dedup() -> bytes:
         (root / "b.txt").write_text("shared")
         fixed_mtime = 1_700_000_000.0
         for p in [root / "a.txt", root / "b.txt"]:
-            p.chmod(0o644)
             os.utime(p, (fixed_mtime, fixed_mtime))
-        return bytes(pack([root]))
+        # Pin the mode for cross-OS byte-reproducibility (see _files_profile_tree).
+        return bytes(pack([root], force_mode=0o644))
 
 
 def _streamable_signer() -> object:

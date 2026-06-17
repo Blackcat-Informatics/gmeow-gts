@@ -127,8 +127,18 @@ def _size_literal(size: int, xsd_integer_id: int) -> Term:
 
 def pack(
     sources: Iterable[Path],
+    *,
+    force_mode: int | None = None,
 ) -> bytes:
-    """Pack files/directories into a deterministic GTS files-profile archive."""
+    """Pack files/directories into a deterministic GTS files-profile archive.
+
+    Args:
+        sources: files and/or directories to include.
+        force_mode: when given, record this POSIX mode for every entry instead
+            of the on-disk mode. Use it for byte-reproducible archives across
+            platforms — Windows cannot represent a ``0o644`` mode on disk, so a
+            cross-OS-reproducible corpus must pin the mode explicitly.
+    """
     w = Writer(profile="files")
 
     # Shared vocabulary terms.
@@ -168,7 +178,7 @@ def pack(
         digest = digest_str(data)
         st = fspath.stat()
         size = st.st_size
-        mode = stat.S_IMODE(st.st_mode)
+        mode = force_mode if force_mode is not None else stat.S_IMODE(st.st_mode)
         mtime = datetime.fromtimestamp(st.st_mtime, tz=UTC)
         mt, _ = mimetypes.guess_type(str(fspath))
         mt = mt or "application/octet-stream"

@@ -87,9 +87,13 @@ def test_to_parquet_writes_only_nonempty_tables(tmp_path: Path) -> None:
     assert "quads.parquet" in names
     assert "blobs.parquet" not in names  # empty table is skipped
     # the columnar export is readable back via duckdb
-    n = duckdb.connect(":memory:").execute(
-        f"SELECT count(*) FROM read_parquet('{tmp_path / 'pq' / 'terms.parquet'}')"
-    ).fetchone()[0]
+    n = (
+        duckdb.connect(":memory:")
+        .execute(
+            f"SELECT count(*) FROM read_parquet('{tmp_path / 'pq' / 'terms.parquet'}')"
+        )
+        .fetchone()[0]
+    )
     assert n == len(g.terms)
 
 
