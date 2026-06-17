@@ -227,6 +227,9 @@ For streaming projections, implement `gmeow_gts::reader::StreamingSink` and call
 The sink API emits segment-local term, quad, reifier, annotation, suppression,
 blob, opaque, signature, diagnostic, segment-head, and streamable-layout events
 while returning final diagnostics and segment heads. It adds no crate dependency.
+For folded graph consumers, `Graph::into_quads()` and `IntoIterator for Graph`
+consume raw quad-id rows without cloning the `Vec<Quad>`, while
+`Graph::quad_terms()` lazily resolves ids to borrowed `Term` references.
 
 Rust signing works with raw Ed25519 keys or with an unencrypted Ed25519
 OpenPGP secret-key block. The OpenPGP helper keeps the same narrow parser used

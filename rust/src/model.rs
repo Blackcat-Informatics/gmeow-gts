@@ -13,6 +13,8 @@
 //! but keeps the original position.
 
 use std::borrow::Cow;
+use std::slice;
+use std::vec;
 
 use ciborium::value::Value;
 
@@ -60,6 +62,35 @@ pub struct Term {
 /// A quad of term-ids; the graph slot is `None` for the default graph.
 pub type Quad = (usize, usize, usize, Option<usize>);
 pub type Triple3 = (usize, usize, usize);
+
+/// A quad with term ids resolved to borrowed [`Term`] values.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct QuadTerms<'a> {
+    pub subject: &'a Term,
+    pub predicate: &'a Term,
+    pub object: &'a Term,
+    pub graph_name: Option<&'a Term>,
+}
+
+/// Borrowing iterator returned by [`Graph::quad_terms`].
+pub struct QuadTermsIter<'a> {
+    graph: &'a Graph,
+    inner: slice::Iter<'a, Quad>,
+}
+
+impl<'a> Iterator for QuadTermsIter<'a> {
+    type Item = QuadTerms<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let &(subject, predicate, object, graph_name) = self.inner.next()?;
+        Some(QuadTerms {
+            subject: &self.graph.terms[subject],
+            predicate: &self.graph.terms[predicate],
+            object: &self.graph.terms[object],
+            graph_name: graph_name.map(|tid| &self.graph.terms[tid]),
+        })
+    }
+}
 
 /// A frame the reader could not decode, surfaced rather than dropped (§7.6).
 #[derive(Clone, Debug)]
@@ -220,6 +251,26 @@ pub struct Graph {
 }
 
 impl Graph {
+    /// Consume the graph and yield its raw quad-id rows without cloning them.
+    ///
+    /// Existing direct access through [`Self::quads`] remains available for
+    /// callers that need the full folded graph.
+    pub fn into_quads(self) -> vec::IntoIter<Quad> {
+        self.quads.into_iter()
+    }
+
+    /// Iterate over quads with term ids resolved to borrowed [`Term`] values.
+    ///
+    /// Resolution happens one row at a time. Like existing index-based access,
+    /// this panics if a manually constructed graph contains invalid term ids;
+    /// reader-produced graphs sanitize quad term ids during the fold.
+    pub fn quad_terms(&self) -> QuadTermsIter<'_> {
+        QuadTermsIter {
+            graph: self,
+            inner: self.quads.iter(),
+        }
+    }
+
     /// Look up a reifier binding.
     pub fn reifier(&self, rid: usize) -> Option<Triple3> {
         self.reifiers
@@ -321,5 +372,14 @@ impl Graph {
         } else {
             XSD_STRING.to_string()
         }
+    }
+}
+
+impl IntoIterator for Graph {
+    type Item = Quad;
+    type IntoIter = vec::IntoIter<Quad>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_quads()
     }
 }
