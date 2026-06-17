@@ -249,3 +249,33 @@ fn profile_policy_security_vector_descriptor_is_still_present() {
         .iter()
         .any(|code| code == "OpaqueRecipientKidPublic"));
 }
+
+#[cfg(feature = "policy-config")]
+#[test]
+fn trust_policy_loads_from_json() {
+    let json = r#"{
+      "trusted_signers": ["did:example:issuer"],
+      "require_trusted_signer": true,
+      "pseudonymous_kid_pattern": "^did:example:recipient$"
+    }"#;
+    let policy = TrustPolicy::from_json_str(json).unwrap();
+    assert!(policy.require_trusted_signer);
+    assert!(policy.is_trusted(Some("did:example:issuer")));
+    assert!(policy.is_pseudonymous_recipient("did:example:recipient"));
+    assert!(policy.to_json_string().unwrap().contains("trusted_signers"));
+}
+
+#[cfg(feature = "policy-config-yaml")]
+#[test]
+fn trust_policy_loads_from_yaml() {
+    let yaml = "\
+trusted_signers:
+  - did:example:issuer
+require_trusted_signer: true
+";
+    let policy = TrustPolicy::from_yaml_str(yaml).unwrap();
+    assert!(policy.require_trusted_signer);
+    assert!(policy.is_trusted(Some("did:example:issuer")));
+    assert!(policy.is_pseudonymous_recipient(&format!("anon:{}", "a".repeat(32))));
+    assert!(policy.to_yaml_string().unwrap().contains("trusted_signers"));
+}

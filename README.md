@@ -217,7 +217,10 @@ The pure-Rust crate (no C toolchain, wasm-friendly) installs the `gts` binary vi
 enables the optional `gmeow_gts::rdf` adapter backed by `oxrdf`'s RDF data-model
 crate. `--features oxigraph-adapter` adds `gmeow_gts::oxigraph` helpers and
 `Writer::from_store` for native `Graph -> Store` and `Store -> Writer` handoff using
-Oxigraph's in-memory store. Neither feature affects default transport users.
+Oxigraph's in-memory store. `--features policy-config` adds JSON `TrustPolicy`
+file loading and `gts verify --policy <file>` for release/profile verification;
+`--features policy-config-yaml` adds YAML policy files. None of these features
+affect default transport users.
 
 For streaming projections, implement `gmeow_gts::reader::StreamingSink` and call
 `gmeow_gts::reader::read_to_sink(&bytes, allow_segments, expected_head, sink)`.

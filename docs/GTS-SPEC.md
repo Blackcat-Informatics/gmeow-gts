@@ -1217,6 +1217,23 @@ SHOULD emit a checkpoint `index` at least every 1024 frames or 64 MiB, whichever
 so a damaged log recovers robustly (§9.1). That requirement does not make signatures, indexes,
 or evidence-profile support mandatory for baseline GTS.
 
+**Profile-policy configuration.** A profile-aware verifier MAY accept a deployment trust policy
+beside the GTS bytes. The v1 policy document is JSON or YAML with these fields:
+
+```yaml
+trusted_signers:
+  - did:example:issuer
+require_trusted_signer: true
+pseudonymous_kid_pattern: "^anon:[0-9a-fA-F]{32,}$"
+```
+
+`trusted_signers` lists signer `kid` values authorized by the deployment.
+`require_trusted_signer` makes profiles that require signatures fail unless at least one valid
+signature is from a trusted signer. `pseudonymous_kid_pattern` controls the high-privacy
+recipient-id shape for the `opaque` profile. These settings are profile/deployment policy only:
+they do not change core GTS parsing, folding, frame ids, signature preimages, or baseline reader
+validity.
+
 **Third-party profile registration template.** A third-party profile definition SHOULD publish:
 
 - Stable profile name used in the header `"prof"` field.

@@ -26,6 +26,19 @@ both report cryptographic signature status separately from deployment trust. A
 profile-aware tool can require a trusted signer, while a baseline reader can still
 return the recoverable graph plus signature status.
 
+Rust deployments that need a file-backed policy enable `--features policy-config`.
+That optional feature adds JSON loading helpers and `gts verify --policy <file>`;
+`--features policy-config-yaml` adds YAML on top. Default Rust builds keep the
+policy evaluator but do not inherit serde or YAML parser dependencies. The file
+shape is:
+
+```yaml
+trusted_signers:
+  - did:example:issuer
+require_trusted_signer: true
+pseudonymous_kid_pattern: "^anon:[0-9a-fA-F]{32,}$"
+```
+
 ## Profile Enforcement
 
 | Profile | Enforcement in v1 | Finding codes |

@@ -31,6 +31,14 @@ fn rdf_and_oxigraph_adapters_are_not_enabled_by_default() {
         package["features"]["oxigraph-adapter"],
         serde_json::json!(["rdf", "dep:oxigraph"])
     );
+    assert_eq!(
+        package["features"]["policy-config"],
+        serde_json::json!(["dep:serde", "dep:serde_json"])
+    );
+    assert_eq!(
+        package["features"]["policy-config-yaml"],
+        serde_json::json!(["policy-config", "dep:serde_yaml"])
+    );
 
     let oxrdf = package["dependencies"]
         .as_array()
@@ -51,6 +59,16 @@ fn rdf_and_oxigraph_adapters_are_not_enabled_by_default() {
     assert_eq!(oxigraph["optional"], serde_json::json!(true));
     assert_eq!(oxigraph["uses_default_features"], serde_json::json!(false));
     assert_eq!(oxigraph["features"], serde_json::json!(["rdf-12"]));
+
+    for name in ["serde", "serde_json", "serde_yaml"] {
+        let dependency = package["dependencies"]
+            .as_array()
+            .expect("metadata dependencies are an array")
+            .iter()
+            .find(|dependency| dependency["name"] == name)
+            .unwrap_or_else(|| panic!("{name} dependency is present"));
+        assert_eq!(dependency["optional"], serde_json::json!(true));
+    }
 }
 
 #[cfg(feature = "rdf")]

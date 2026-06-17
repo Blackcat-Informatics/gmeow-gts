@@ -23,6 +23,12 @@ rdf = ["dep:oxrdf"]
 # Enables an optional Oxigraph in-memory Store adapter. This pulls in Oxigraph
 # only for callers that ask for the store bridge; defaults remain unchanged.
 oxigraph-adapter = ["rdf", "dep:oxigraph"]
+# Enables JSON trust-policy file loading for release/profile tooling.
+# This is opt-in so default readers do not inherit serialization deps.
+policy-config = ["dep:serde", "dep:serde_json"]
+# Adds YAML policy files on top of JSON policy loading. Split out so JSON-only
+# release tooling does not inherit a YAML parser.
+policy-config-yaml = ["policy-config", "dep:serde_yaml"]
 
 # The package is named gmeow-gts on crates.io, but the CLI binary keeps the
 # shorter `gts` name for ergonomics.
@@ -53,6 +59,9 @@ sha1 = "0.10"
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
 oxrdf = { version = "0.3.3", default-features = false, features = ["rdf-12"], optional = true }
 oxigraph = { version = "0.5.8", default-features = false, features = ["rdf-12"], optional = true }
+serde = { version = "1", default-features = false, features = ["derive", "std"], optional = true }
+serde_json = { version = "1", optional = true }
+serde_yaml = { version = "0.9", optional = true }
 
 # The random-IV `encrypt0` convenience needs an OS CSPRNG; restrict it to
 # non-wasm targets so `wasm32-unknown-unknown` never tries to link getrandom.

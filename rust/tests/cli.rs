@@ -40,6 +40,81 @@ fn verify_flags_damage_with_exit_1() {
     assert!(text.contains("DamagedFrame"), "ledger lists the diagnostic");
 }
 
+#[cfg(feature = "policy-config-yaml")]
+#[test]
+fn verify_policy_file_trusts_did_style_signer() {
+    use ed25519_dalek::SigningKey;
+    use gmeow_gts::model::{Term, TermKind};
+    use gmeow_gts::wire::hex;
+    use gmeow_gts::writer::Writer;
+
+    const KID: &str = "did:example:issuer";
+
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let gts_path = tmp.join("signed.gts");
+    let policy_path = tmp.join("policy.yaml");
+
+    let key = SigningKey::from_bytes(&[9u8; 32]);
+    let verifier = key.verifying_key();
+    let mut writer = Writer::new("evidence");
+    writer.sign_with(key, KID);
+    writer.add_terms(&[
+        Term {
+            kind: TermKind::Iri,
+            value: Some("https://example.org/claim".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        Term {
+            kind: TermKind::Iri,
+            value: Some("https://example.org/says".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        Term {
+            kind: TermKind::Literal,
+            value: Some("signed".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+    ]);
+    writer.add_quads(&[(0, 1, 2, None)]);
+    std::fs::write(&gts_path, writer.to_bytes()).unwrap();
+    std::fs::write(
+        &policy_path,
+        "\
+trusted_signers:
+  - did:example:issuer
+require_trusted_signer: true
+",
+    )
+    .unwrap();
+
+    let key_spec = format!("{KID}:{}", hex(&verifier.to_bytes()));
+    let out = gts(&[
+        "verify",
+        "--key",
+        &key_spec,
+        "--policy",
+        policy_path.to_str().unwrap(),
+        gts_path.to_str().unwrap(),
+    ]);
+    assert!(
+        out.status.success(),
+        "stdout: {}\nstderr: {}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(String::from_utf8(out.stdout)
+        .unwrap()
+        .contains("signature did:example:issuer: valid"));
+}
+
 #[test]
 fn cat_composes_clean_inputs_as_raw_concatenation() {
     let a = vectors().join("01-minimal.gts");

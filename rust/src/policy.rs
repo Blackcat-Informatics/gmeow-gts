@@ -10,6 +10,8 @@
 //! signed claim is true.
 
 use std::collections::{BTreeSet, HashSet};
+#[cfg(feature = "policy-config")]
+use std::path::{Path, PathBuf};
 
 use ciborium::value::Value;
 
@@ -17,16 +19,36 @@ use crate::model::{Graph, Signature, TermKind};
 use crate::stream::{SEALED_SOURCE, STREAM_NS};
 use crate::wire::map_get;
 
+/// Vocabulary namespace used by the optional-standard `files` profile.
 pub const FILES_NS: &str = "https://w3id.org/gts/files#";
+/// Default high-privacy recipient-key-id pattern for the `opaque` profile.
 pub const DEFAULT_PSEUDONYMOUS_KID_PATTERN: &str = "^anon:[0-9a-fA-F]{32,}$";
 
 const PROFILE_VOCABS: &[(&str, &str)] = &[("files", FILES_NS)];
 
 /// Deployment trust anchors and high-privacy recipient-id rules.
+///
+/// The policy is deliberately deployment-local. It authorizes signers and
+/// recipient identifier shapes after the core reader has already parsed the
+/// file and, if requested, verified COSE signatures. Core GTS validity never
+/// depends on this struct.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "policy-config",
+    derive(serde::Serialize, serde::Deserialize)
+)]
+#[cfg_attr(feature = "policy-config", serde(default, deny_unknown_fields))]
 pub struct TrustPolicy {
+    /// Signer `kid` values trusted by the deployment.
     pub trusted_signers: HashSet<String>,
+    /// Require at least one cryptographically valid signature from
+    /// [`Self::trusted_signers`] for profiles that require signatures.
     pub require_trusted_signer: bool,
+    /// Pattern accepted for high-privacy opaque-profile recipient `kid` values.
+    ///
+    /// The default shape is implemented without a regex dependency. Custom
+    /// values support exact string matching or anchored literal full matches
+    /// such as `^did:example:recipient$`.
     pub pseudonymous_kid_pattern: String,
 }
 
@@ -41,6 +63,7 @@ impl Default for TrustPolicy {
 }
 
 impl TrustPolicy {
+    /// Build a deployment policy from trusted signer ids.
     pub fn new<I, S>(trusted_signers: I, require_trusted_signer: bool) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -50,6 +73,70 @@ impl TrustPolicy {
             trusted_signers: trusted_signers.into_iter().map(Into::into).collect(),
             require_trusted_signer,
             ..Self::default()
+        }
+    }
+
+    /// Load a policy document from JSON text.
+    ///
+    /// Available only with `--features policy-config`.
+    #[cfg(feature = "policy-config")]
+    pub fn from_json_str(text: &str) -> Result<Self, PolicyConfigError> {
+        serde_json::from_str(text).map_err(PolicyConfigError::Json)
+    }
+
+    /// Serialize this policy as pretty JSON.
+    ///
+    /// Available only with `--features policy-config`.
+    #[cfg(feature = "policy-config")]
+    pub fn to_json_string(&self) -> Result<String, PolicyConfigError> {
+        serde_json::to_string_pretty(self).map_err(PolicyConfigError::Json)
+    }
+
+    /// Load a policy document from YAML text.
+    ///
+    /// Available only with `--features policy-config-yaml`.
+    #[cfg(feature = "policy-config-yaml")]
+    pub fn from_yaml_str(text: &str) -> Result<Self, PolicyConfigError> {
+        serde_yaml::from_str(text).map_err(PolicyConfigError::Yaml)
+    }
+
+    /// Serialize this policy as YAML.
+    ///
+    /// Available only with `--features policy-config-yaml`.
+    #[cfg(feature = "policy-config-yaml")]
+    pub fn to_yaml_string(&self) -> Result<String, PolicyConfigError> {
+        serde_yaml::to_string(self).map_err(PolicyConfigError::Yaml)
+    }
+
+    /// Load a JSON (`.json`) or YAML (`.yaml`/`.yml`) policy from disk.
+    ///
+    /// JSON files require `--features policy-config`; YAML files additionally
+    /// require `--features policy-config-yaml`.
+    #[cfg(feature = "policy-config")]
+    pub fn from_path(path: impl AsRef<Path>) -> Result<Self, PolicyConfigError> {
+        let path = path.as_ref();
+        let text = std::fs::read_to_string(path).map_err(|source| PolicyConfigError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
+        match path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.to_ascii_lowercase())
+            .as_deref()
+        {
+            Some("json") => Self::from_json_str(&text),
+            Some("yaml" | "yml") => {
+                #[cfg(feature = "policy-config-yaml")]
+                {
+                    Self::from_yaml_str(&text)
+                }
+                #[cfg(not(feature = "policy-config-yaml"))]
+                {
+                    Err(PolicyConfigError::YamlFeatureDisabled(path.to_path_buf()))
+                }
+            }
+            _ => Err(PolicyConfigError::UnsupportedExtension(path.to_path_buf())),
         }
     }
 
@@ -73,6 +160,64 @@ impl TrustPolicy {
             return false;
         };
         hex.len() >= 32 && hex.bytes().all(|b| b.is_ascii_hexdigit())
+    }
+}
+
+/// Error returned by `policy-config` JSON/YAML policy helpers.
+#[cfg(feature = "policy-config")]
+#[derive(Debug)]
+pub enum PolicyConfigError {
+    /// The policy file could not be read.
+    Io {
+        /// Path that failed to load.
+        path: PathBuf,
+        /// Underlying I/O error.
+        source: std::io::Error,
+    },
+    /// JSON parsing or serialization failed.
+    Json(serde_json::Error),
+    /// YAML parsing or serialization failed.
+    #[cfg(feature = "policy-config-yaml")]
+    Yaml(serde_yaml::Error),
+    /// YAML support was requested without the `policy-config-yaml` feature.
+    YamlFeatureDisabled(PathBuf),
+    /// The file extension is not `.json`, `.yaml`, or `.yml`.
+    UnsupportedExtension(PathBuf),
+}
+
+#[cfg(feature = "policy-config")]
+impl std::fmt::Display for PolicyConfigError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Io { path, source } => write!(f, "cannot read {}: {source}", path.display()),
+            Self::Json(source) => write!(f, "invalid JSON policy: {source}"),
+            #[cfg(feature = "policy-config-yaml")]
+            Self::Yaml(source) => write!(f, "invalid YAML policy: {source}"),
+            Self::YamlFeatureDisabled(path) => write!(
+                f,
+                "YAML policy file {} requires `--features policy-config-yaml`",
+                path.display()
+            ),
+            Self::UnsupportedExtension(path) => write!(
+                f,
+                "unsupported policy file extension for {}; use .json, .yaml, or .yml",
+                path.display()
+            ),
+        }
+    }
+}
+
+#[cfg(feature = "policy-config")]
+impl std::error::Error for PolicyConfigError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Io { source, .. } => Some(source),
+            Self::Json(source) => Some(source),
+            #[cfg(feature = "policy-config-yaml")]
+            Self::Yaml(source) => Some(source),
+            Self::YamlFeatureDisabled(_) => None,
+            Self::UnsupportedExtension(_) => None,
+        }
     }
 }
 
@@ -119,20 +264,30 @@ fn anchored_literal_pattern(inner: &str) -> Option<String> {
 /// A signature's cryptographic status plus deployment-trust result.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SignatureTrust {
+    /// Content id of the signed frame.
     pub frame_id: Vec<u8>,
+    /// Key id declared by the signature, if present.
     pub kid: Option<String>,
+    /// Cryptographic verification status: `valid`, `invalid`, or `unverified`.
     pub status: String,
+    /// True only when the signature is valid and the signer is trusted by the
+    /// supplied [`TrustPolicy`].
     pub trusted: bool,
 }
 
+/// Severity assigned to a profile-policy finding.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Severity {
+    /// A profile-aware publication or verification tool should fail.
     Error,
+    /// The graph is readable, but the profile signal is incomplete or weak.
     Warning,
+    /// Informational result.
     Info,
 }
 
 impl Severity {
+    /// Stable lowercase rendering used by CLI diagnostics.
     pub fn as_str(self) -> &'static str {
         match self {
             Severity::Error => "error",
@@ -145,10 +300,15 @@ impl Severity {
 /// One profile or trust-policy finding.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProfileFinding {
+    /// Stable diagnostic code.
     pub code: String,
+    /// Error, warning, or info severity.
     pub severity: Severity,
+    /// Human-readable explanation.
     pub detail: String,
+    /// Profile that produced the finding, when profile-specific.
     pub profile: Option<String>,
+    /// Segment index in a multi-segment file, when evaluated segment-by-segment.
     pub segment_index: Option<usize>,
 }
 
@@ -171,6 +331,10 @@ impl ProfileFinding {
 }
 
 /// Evaluate deployment trust for already-verified signature statuses.
+///
+/// This does not verify COSE signatures. Callers should run the reader and
+/// signature verifier first, then pass the folded graph here to classify valid
+/// signatures against deployment trust anchors.
 pub fn signature_trust(graph: &Graph, policy: Option<&TrustPolicy>) -> Vec<SignatureTrust> {
     let default_policy;
     let policy = match policy {
@@ -193,6 +357,10 @@ pub fn signature_trust(graph: &Graph, policy: Option<&TrustPolicy>) -> Vec<Signa
 }
 
 /// Run supported profile checks without changing core reader validity.
+///
+/// Findings are policy-layer diagnostics. They never make a GTS byte stream
+/// unreadable, but profile-aware tools can treat [`Severity::Error`] as a
+/// publication or verification failure.
 pub fn evaluate_profile_policy(
     graph: &Graph,
     policy: Option<&TrustPolicy>,
