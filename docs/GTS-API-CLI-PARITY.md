@@ -97,6 +97,9 @@ actual dispatch surfaces.
 - Future index/MMR proof, nested-GTS recursion, and encryption policy verbs are not part of the
   stable CLI surface yet. They should be added to this matrix before package-specific docs claim
   them.
+- Advanced `prove`, `verify-proof`, `heads`, `segments`, `missing`, and `resume` verbs are
+  deferred in [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md) and guarded by
+  `scripts/check_advanced_contract.py`.
 
 ## Drift Guard
 

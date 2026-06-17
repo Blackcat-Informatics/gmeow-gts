@@ -58,6 +58,10 @@ check-vectors: gen-vectors
 check-cli-parity:
     python scripts/check_cli_parity.py
 
+# Fail if deferred advanced verbs become public without being tiered.
+check-advanced-contract:
+    python scripts/check_advanced_contract.py
+
 # Live cross-engine interoperability check (each engine reads every other's output).
 interop:
     bash scripts/interop.sh

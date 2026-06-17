@@ -571,6 +571,9 @@ frame; given `"dict"`, a Streaming Reader loads only the dictionary (§7.7); giv
 `"mmr"`, it detects truncation and produces O(log n) inclusion proofs. A **checkpoint** index is
 simply an `index` emitted periodically rather than only as a footer; an earlier `index` MAY still
 serve as a recovery anchor even though the last intact `index` is preferred for acceleration.
+Current package support and deferrals for `off`/`ti`, `dict`, `mmr`, proof verbs, range fetch, and
+replication workflows are tracked in
+[`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).
 
 ## 7. Graph data model and fold
 
@@ -805,6 +808,9 @@ dictionary to a temporary on-disk key-value store** when a memory limit is reach
 for a local spill file; correctness is unaffected because term-ids are append-order and frozen
 (§7.2). The `gts → duckdb`/`sqlite` transforms get this for free — the target table *is* the
 spill.
+
+The package-level streaming-sink claim boundary and memory benchmark helper are maintained in
+[`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).
 
 A multi-gigabyte log thus transforms to an operating substrate in bounded memory — the
 resolve-and-materialise OOM failure mode is avoided by construction.
