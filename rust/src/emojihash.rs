@@ -85,7 +85,7 @@ pub const ALPHABET_SIZE: usize = 64;
 /// Return `length` 6-bit digest symbols (each in `0..64`).
 pub fn emoji_indices(data: &[u8], length: usize) -> Vec<usize> {
     let wanted = length.max(1);
-    let nbytes = (wanted * 6 + 7) / 8;
+    let nbytes = (wanted * 6).div_ceil(8);
     let mut digest = vec![0u8; nbytes];
     blake3::Hasher::new()
         .update(data)

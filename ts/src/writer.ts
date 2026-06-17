@@ -4,6 +4,7 @@
 import { Tagged } from "cbor";
 import * as wire from "./wire.js";
 import { Term, Quad, ReifierEntry, Triple, TermKind } from "./model.js";
+import { signId } from "./cose.js";
 
 interface CatalogEntry {
     name: string;
@@ -40,6 +41,13 @@ export class Writer {
     // verify, types the "ti" locator map.
     private offsets: number[] = [];
     private types: string[] = [];
+    // When set, every appended frame is COSE_Sign1-signed over its id (§9.2).
+    private signer?: { key: Uint8Array; kid: string };
+
+    /** Sign every subsequently appended frame's id with this Ed25519 key (§9.2). */
+    signWith(key: Uint8Array, kid: string): void {
+        this.signer = { key, kid };
+    }
 
     /**
      * Initialise the writer and emit the Header (the chain genesis).
@@ -133,6 +141,9 @@ export class Writer {
 
         const id = wire.contentId(frame);
         frame.set("id", id);
+        if (this.signer) {
+            frame.set("sig", signId(id, this.signer.key, this.signer.kid));
+        }
 
         this.offsets.push(this.buf.length);
         this.types.push(frameType);

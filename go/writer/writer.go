@@ -5,11 +5,14 @@
 package writer
 
 import (
+	"crypto/ed25519"
 	"fmt"
 
+	"github.com/fxamacker/cbor/v2"
+
+	"go.blackcatinformatics.ca/gts/cose"
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/wire"
-	"github.com/fxamacker/cbor/v2"
 )
 
 // termToWire serialises a Term to its wire map, dropping absent fields.
@@ -40,6 +43,15 @@ type Writer struct {
 	// verify, types the "ti" locator map.
 	offsets []int
 	types   []string
+	// When set, every appended frame is COSE_Sign1-signed over its id (§9.2).
+	signerPriv ed25519.PrivateKey
+	signerKid  string
+}
+
+// SignWith signs every subsequently appended frame's id with this Ed25519 key (§9.2).
+func (w *Writer) SignWith(priv ed25519.PrivateKey, kid string) {
+	w.signerPriv = priv
+	w.signerKid = kid
 }
 
 // New creates a writer and emits the Header (the chain genesis).
@@ -168,6 +180,9 @@ func (w *Writer) AddFrame(
 
 	id := wire.ContentID(frame)
 	frame["id"] = id
+	if w.signerPriv != nil {
+		frame["sig"] = cose.SignID(id, w.signerPriv, w.signerKid)
+	}
 
 	w.offsets = append(w.offsets, len(w.buf))
 	w.types = append(w.types, frameType)

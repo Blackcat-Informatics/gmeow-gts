@@ -11,6 +11,7 @@ import * as ed from "@noble/ed25519";
 import { sha512 } from "@noble/hashes/sha512.js";
 
 import { encode, decodeFirst } from "./wire.js";
+import type { Signature } from "./model.js";
 
 // Enable @noble's synchronous sign/verify (it needs a sync SHA-512).
 ed.etc.sha512Sync = (...m: Uint8Array[]) => sha512(ed.etc.concatBytes(...m));
@@ -96,5 +97,32 @@ export function verifySig(
             : "invalid";
     } catch {
         return "invalid";
+    }
+}
+
+/**
+ * Verify the COSE signatures recorded in a folded graph against keys resolved
+ * by kid. Mutates each signature's `kid` and `status`: "valid"/"invalid" when a
+ * key resolves, "unverified" when none does (§9.2).
+ */
+export function verifySignatures(
+    signatures: Signature[],
+    resolve: (kid: string) => Uint8Array | null,
+): void {
+    for (const sig of signatures) {
+        if (!sig.cose) continue;
+        const kid = signatureKid(sig.cose);
+        if (kid === null) {
+            sig.status = "invalid";
+            continue;
+        }
+        sig.kid = kid;
+        const pub = resolve(kid);
+        if (!pub) {
+            sig.status = "unverified";
+            continue;
+        }
+        sig.status =
+            verifySig(sig.cose, sig.frameId, pub) === "valid" ? "valid" : "invalid";
     }
 }

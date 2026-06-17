@@ -25,9 +25,14 @@ change before `1.0`.
     verifies them.
   - **emojihash** (BLAKE3-XOF → 6-bit → 64-emoji visual hash) in Rust, Go, and
     TypeScript, byte-identical to Python, gated by `vectors/emojihash/*.json`.
+  - **File-level signing**: each engine's `Writer` can COSE-sign every frame
+    (`sign_with`/`SignWith`/`signWith`), and each engine verifies the signatures of
+    a signed GTS against resolved keys (`cose.verify_signatures` /
+    `VerifySignatures` / `verifySignatures`). Gated by a frozen signed-GTS vector
+    (`vectors/signed/basic.json`): every engine reproduces the Python-signed file
+    byte-for-byte and verifies it (valid / unverified / invalid).
   - All crypto stays pure / wasm-friendly (the Rust `wasm32` build is still green).
-  - Signing/verification file-level integration (Writer/reader/CLI) and COSE_Encrypt0
-    remain as tracked follow-ups on #15.
+  - The `gts verify --key` CLI flag and COSE_Encrypt0 remain tracked on #15.
 
 - `gts extract-key <file>` (Python CLI, #12): prints the embedded transport
   (verification) key for a signed GTS — `kid`, OpenPGP fingerprint, emojihash,

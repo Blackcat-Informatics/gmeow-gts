@@ -10,6 +10,7 @@
 use ciborium::value::{Integer, Value};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 
+use crate::model;
 use crate::wire;
 
 const ALG: i64 = 1;
@@ -102,5 +103,29 @@ pub fn verify_sig(sig: &[u8], frame_id: &[u8], public: &VerifyingKey) -> SigStat
     match public.verify(&sig_structure(&protected, frame_id), &signature) {
         Ok(()) => SigStatus::Valid,
         Err(_) => SigStatus::Invalid,
+    }
+}
+
+/// Verify the COSE signatures recorded in a folded graph against keys resolved
+/// by `kid`. Updates each signature's `kid` and `status` in place: `"valid"` /
+/// `"invalid"` when a key resolves, `"unverified"` when none does (§9.2).
+pub fn verify_signatures(
+    signatures: &mut [model::Signature],
+    resolve: impl Fn(&str) -> Option<VerifyingKey>,
+) {
+    for sig in signatures.iter_mut() {
+        let Some(cose) = sig.cose.clone() else {
+            continue;
+        };
+        let kid = signature_kid(&cose);
+        sig.kid.clone_from(&kid);
+        sig.status = match kid.as_deref().and_then(&resolve) {
+            Some(key) => match verify_sig(&cose, &sig.frame_id, &key) {
+                SigStatus::Valid => "valid",
+                _ => "invalid",
+            },
+            None => "unverified",
+        }
+        .to_string();
     }
 }

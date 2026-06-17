@@ -12,6 +12,7 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 
+	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/wire"
 )
 
@@ -120,4 +121,31 @@ func VerifySig(sig, frameID []byte, pub ed25519.PublicKey) SigStatus {
 		return Valid
 	}
 	return Invalid
+}
+
+// VerifySignatures verifies the COSE signatures recorded in a folded graph
+// against keys resolved by kid. It updates each signature's Kid and Status in
+// place: "valid"/"invalid" when a key resolves, "unverified" otherwise (§9.2).
+func VerifySignatures(sigs []model.Signature, resolve func(kid string) (ed25519.PublicKey, bool)) {
+	for i := range sigs {
+		if sigs[i].Cose == nil {
+			continue
+		}
+		kid, ok := SignatureKID(sigs[i].Cose)
+		if !ok {
+			sigs[i].Status = "invalid"
+			continue
+		}
+		sigs[i].Kid = kid
+		pub, found := resolve(kid)
+		if !found {
+			sigs[i].Status = "unverified"
+			continue
+		}
+		if VerifySig(sigs[i].Cose, sigs[i].FrameID, pub) == Valid {
+			sigs[i].Status = "valid"
+		} else {
+			sigs[i].Status = "invalid"
+		}
+	}
 }

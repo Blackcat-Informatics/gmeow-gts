@@ -49,6 +49,8 @@ pub struct Writer {
     // verify, types the "ti" locator map.
     offsets: Vec<usize>,
     types: Vec<String>,
+    // When set, every appended frame is COSE_Sign1-signed over its id (§9.2).
+    signer: Option<(ed25519_dalek::SigningKey, String)>,
 }
 
 impl Writer {
@@ -147,7 +149,13 @@ impl Writer {
             buf,
             offsets: Vec::new(),
             types: Vec::new(),
+            signer: None,
         }
+    }
+
+    /// Sign every subsequently appended frame's id with this Ed25519 key (§9.2).
+    pub fn sign_with(&mut self, key: ed25519_dalek::SigningKey, kid: &str) {
+        self.signer = Some((key, kid.to_string()));
     }
 
     /// The id the next appended frame must reference as `"prev"`.
@@ -211,6 +219,10 @@ impl Writer {
         frame.sort_by_key(|a| canonical(&a.0));
         let id = content_id(&frame);
         frame.push(("id".into(), Value::Bytes(id.clone())));
+        if let Some((key, kid)) = &self.signer {
+            let sig = crate::cose::sign_id(&id, key, kid);
+            frame.push(("sig".into(), Value::Bytes(sig)));
+        }
         frame.sort_by_key(|a| canonical(&a.0));
 
         self.offsets.push(self.buf.len());
