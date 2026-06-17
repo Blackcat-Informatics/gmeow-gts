@@ -15,7 +15,7 @@ deferred.
 
 | Ecosystem | Current integration path | Deferrals |
 |---|---|---|
-| Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` projects folded data into RDF text that Sophia, Rio, Oxigraph, and other crates can parse today; `gmeow_gts::from_nquads::from_nquads(text)` imports the same pure-graph projection back into GTS. | Native Sophia/Rio/Oxigraph adapters are deferred until they can be optional features with round-trip tests and no mandatory database dependency. |
+| Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` projects folded data into RDF text that Sophia, Rio, Oxigraph, and other crates can parse today; `gmeow_gts::from_nquads::from_nquads(text)` imports the same pure-graph projection back into GTS; `gts to-sqlite`, `to-duckdb`, and `to-parquet` export the folded integer table model through external SQLite/DuckDB tools. | Native Sophia/Rio/Oxigraph adapters are deferred until they can be optional features with round-trip tests and no mandatory database dependency. |
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
 | TypeScript browser | Current browser-safe handoff is `Uint8Array`: `fetch()`, optional HTTP `Range`, then `Read(bytes, allowSegments)`, `toNQuads`, or files helpers. | A package-level browser bundle, `ReadableStream` fold API, WebCrypto key provider, and progressive rendering API are deferred. |
 | Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides cancellation, byte limits, and ordinary `io.Reader` integration for HTTP bodies, object-store objects, and pipes. | True streaming fold and service-to-service replication verbs remain deferred to the advanced-primitives contract. |
@@ -62,13 +62,16 @@ RDF 1.2 limitation:
 - `gts.to_rdflib(graph, allow_rdf12_lossy=True)` drops N-Quads lines containing
   quoted-triple syntax and parses the remaining RDF 1.1-compatible graph.
 
-Relational/data-frame handoff:
+Relational/data-frame handoff is exposed by Python and Rust:
 
 ```bash
 gts to-sqlite package.gts package.sqlite
 gts to-duckdb package.gts package.duckdb
 gts to-parquet package.gts out-parquet/
 ```
+
+Python DuckDB and Parquet exports require `pip install 'gmeow-gts[db]'`. Rust uses `sqlite3`
+for SQLite and `duckdb` for DuckDB/Parquet, so those binaries must be on `PATH`.
 
 Performance expectation: these exports use the integer-id folded model. `terms`,
 `quads`, `reifiers`, `annotations`, and `blobs` are bulk-loaded without resolving
@@ -89,6 +92,17 @@ let nquads = gmeow_gts::nquads::to_nquads(&graph);
 Applications can feed `nquads` to Sophia, Rio, Oxigraph, or other RDF crates.
 This is the stable bridge for v1 because the core crate should not force a graph
 database or RDF toolkit into every transport user.
+
+Rust data-frame handoff uses the same folded tables as the Python exports:
+
+```bash
+gts to-sqlite package.gts package.sqlite
+gts to-duckdb package.gts package.duckdb
+gts to-parquet package.gts out-parquet/
+```
+
+The Rust binary keeps these as runtime tool integrations rather than default crate dependencies:
+`to-sqlite` invokes `sqlite3`, while `to-duckdb` and `to-parquet` invoke `duckdb`.
 
 Tracked deferral: native Rust RDF adapters should be added only as optional
 features. A future `sophia`/`rio` adapter must include:

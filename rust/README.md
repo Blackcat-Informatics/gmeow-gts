@@ -209,6 +209,9 @@ For the full API, see [docs.rs/gmeow-gts](https://docs.rs/gmeow-gts).
 gts info <file>...              per-segment composition ledger
 gts fold <file>                 fold to N-Quads on stdout
 gts from-nq <in.nq> [-o out]    build a GTS from N-Quads (`-` reads stdin)
+gts to-sqlite <file> <out>      export to SQLite (requires sqlite3)
+gts to-duckdb <file> <out>      export to DuckDB (requires duckdb)
+gts to-parquet <file> <dir>     export to Parquet files (requires duckdb)
 gts verify <file>... [--key KID:HEXPUB]
                                 verify chains + COSE signatures; exit 1 on any
 gts extract-key <file>          print the embedded transport/verification key:
@@ -232,9 +235,10 @@ Exit codes:
 
 `verify --key` and `extract-key` are cross-engine: all four `gts` binaries parse the embedded
 OpenPGP transport key to the same fingerprint and emojihash, and verify COSE signatures
-identically. `from-nq` is implemented by the Rust and Python CLIs. The relational
-`to-sqlite`/`to-duckdb`/`to-parquet` exports remain Python-CLI extensions and are **not** part
-of this Rust binary yet.
+identically. `from-nq` and the relational `to-sqlite`/`to-duckdb`/`to-parquet` exports are
+implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
+integer table model as Python and require `sqlite3` for SQLite or `duckdb` for DuckDB/Parquet
+on `PATH`.
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
 refuses dirty inputs, contributes-nothing segments, and compositions whose suppressions

@@ -83,15 +83,16 @@ actual dispatch surfaces.
 | `unpack` | yes | yes | yes | yes | common |
 | `diff` | yes | yes | yes | yes | common |
 | `from-nq` | yes | yes | no | no | Python/Rust extension |
-| `to-sqlite` | yes | no | no | no | Python extension |
-| `to-duckdb` | yes | no | no | no | Python extension |
-| `to-parquet` | yes | no | no | no | Python extension |
+| `to-sqlite` | yes | yes | no | no | Python/Rust extension |
+| `to-duckdb` | yes | yes | no | no | Python/Rust extension |
+| `to-parquet` | yes | yes | no | no | Python/Rust extension |
 <!-- cli-parity-matrix:end -->
 
 ### Intentional Gaps
 
-- `to-sqlite`, `to-duckdb`, and `to-parquet` are Python-only relational exports. DuckDB and
-  Parquet require the Python `[db]` extra.
+- Rust `to-sqlite` requires `sqlite3` on `PATH`; Rust `to-duckdb` and `to-parquet` require
+  `duckdb` on `PATH`. Python DuckDB and Parquet exports require the Python `[db]` extra.
+- Go and TypeScript do not yet expose `from-nq` or relational exports.
 - Future index/MMR proof, nested-GTS recursion, and encryption policy verbs are not part of the
   stable CLI surface yet. They should be added to this matrix before package-specific docs claim
   them.
