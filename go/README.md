@@ -19,6 +19,10 @@ GTS file whose fold is the value-union of the inputs — memory grows by append,
 rewrite. Four properties define the format
 ([full spec](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md)):
 
+Published GTS artifacts use media type `application/vnd.blackcat.gts+cbor-seq`. The
+`+cbor-seq` suffix follows RFC 8742 because the file is a CBOR Sequence, not a single CBOR
+data item.
+
 1. **CBOR all the way down** (RFC 8949) — one IETF-standardised binary encoding; a reader
    needs only a CBOR library.
 2. **A durable transform catalog** — each frame's payload carries a stackable codec chain

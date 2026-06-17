@@ -91,6 +91,9 @@ test("compact refuses an evidence input without --seal-original (§10.1)", () =>
     const blob = g.blobs.find((b) => b.digest === sealedDigest);
     assert.ok(blob, "sealed original blob missing");
     assert.equal(hex(blob.data), hex(data));
+    const meta = g.blobMeta.find((bm) => bm.digest === sealedDigest);
+    assert.ok(meta?.meta instanceof Map, "sealed original metadata missing");
+    assert.equal(meta.meta.get("mt"), "application/vnd.blackcat.gts+cbor-seq");
 });
 
 test("compact is reproducible for a fixed timestamp", () => {

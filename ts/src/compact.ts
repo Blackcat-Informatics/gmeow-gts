@@ -187,7 +187,9 @@ function streamingIndex(
         const m = bnode(`m${order}`);
         const sealed = digest === sealedDigest;
         const size = sealed ? sealedSize : blobData(g, digest).length;
-        const mt = sealed ? "application/gts" : blobMetaText(g, digest, "mt");
+        const mt = sealed
+            ? "application/vnd.blackcat.gts+cbor-seq"
+            : blobMetaText(g, digest, "mt");
         b.quad(m, tType, tManifestation);
         b.quad(m, tDigest, b.literal(digest));
         if (mt !== undefined) {
@@ -305,7 +307,10 @@ export function compactStreamable(
     // Delivery plan: most-significant-first — ascending decoded size, digest
     // tie-break; the sealed original (least significant) always travels last.
     // Sizes are paired up front so the sort never re-scans the blob table.
-    const keyed = g.blobs.map((b) => ({ size: b.data.length, digest: b.digest }));
+    const keyed = g.blobs.map((b) => ({
+        size: b.data.length,
+        digest: b.digest,
+    }));
     keyed.sort((a, b) => {
         if (a.size !== b.size) return a.size - b.size;
         return a.digest < b.digest ? -1 : a.digest > b.digest ? 1 : 0;
@@ -379,7 +384,7 @@ export function compactStreamable(
     // Blobs in delivery order; declared metadata rides along.
     for (const digest of blobOrder) {
         if (digest === sealedDigest) {
-            w.addBlob(data, "application/gts", "source");
+            w.addBlob(data, "application/vnd.blackcat.gts+cbor-seq", "source");
             continue;
         }
         w.addBlob(

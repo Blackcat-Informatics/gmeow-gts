@@ -496,7 +496,7 @@ def test_compact_seal_original_extracts_verbatim(tmp_path: Path) -> None:
                 "-o",
                 str(extracted),
                 "--mt",
-                "application/gts",
+                "application/vnd.blackcat.gts+cbor-seq",
             ]
         )
         == 0

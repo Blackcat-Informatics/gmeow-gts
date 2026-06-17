@@ -109,8 +109,9 @@ core format.
   - [15.5 Matryoshka: a whole signed GTS sealed inside a frame (`bundle` / `opaque`)](#155-matryoshka-a-whole-signed-gts-sealed-inside-a-frame-bundle--opaque)
 - [16. Media type and HTTP serving contract](#16-media-type-and-http-serving-contract)
   - [16.1 Media type and file extension (normative)](#161-media-type-and-file-extension-normative)
-  - [16.2 HTTP serving semantics (normative)](#162-http-serving-semantics-normative)
-  - [16.3 Immutability-aware caching (normative)](#163-immutability-aware-caching-normative)
+  - [16.2 File identification algorithm (normative)](#162-file-identification-algorithm-normative)
+  - [16.3 HTTP serving semantics (normative)](#163-http-serving-semantics-normative)
+  - [16.4 Immutability-aware caching (normative)](#164-immutability-aware-caching-normative)
 - [17. Versioning and durability guarantees](#17-versioning-and-durability-guarantees)
 - [18. Security considerations](#18-security-considerations)
 - [19. Conformance test vectors](#19-conformance-test-vectors)
@@ -240,9 +241,11 @@ MAY map them to error returns or structured warnings):
 ## 3. File structure
 
 A GTS file is a **CBOR Sequence** (RFC 8742): zero framing bytes between items, each item a
-well-formed CBOR data item. The file MAY begin with the CBOR self-describe tag `55799`
-(`0xd9 0xd9 0xf7`) as a magic number. If present, tag `55799` MUST tag the **Header** data item;
-it is not a separate log item, has no `"id"`, and does not participate in the id/prev chain.
+well-formed CBOR data item. Each segment MAY begin with the CBOR self-describe tag `55799`
+(`0xd9 0xd9 0xf7`) as a magic number for that segment. If present, tag `55799` MUST tag the
+segment **Header** data item; it is not a separate log item, has no `"id"`, and does not
+participate in the id/prev chain. A GTS file MUST NOT wrap the whole sequence in an outer CBOR
+item.
 
 ```text
 GTS-file = segment *segment
@@ -269,8 +272,10 @@ cat music.gts >> core.gts        # core.gts is now a valid two-segment GTS
 - **Boundary detection (normative).** A reader that has consumed at least one frame and
   encounters a data item that is a map containing the key `"gts"` and lacking the key `"t"`
   MUST treat it as the Header of a **new segment** (the optional self-describe tag `55799`
-  MAY precede it; writers SHOULD emit the tag on every segment header to make boundaries
-  human-recognizable). Any other non-frame item remains malformed input (§17).
+  MAY tag that header; writers SHOULD emit the tag on every segment header to make boundaries
+  human-recognizable). The tag is attached to the segment header, so byte-concatenation of
+  independently valid tagged segments remains byte-concatenation of CBOR Sequence items, not a
+  nested whole-file wrapper. Any other non-frame item remains malformed input (§17).
 - **Independent integrity.** Each segment has its own genesis (its header `"id"`), its own
   id/prev chain, its own signatures, and its own optional `index` (an index covers ONLY its
   segment). The file's composite identity is the **ordered list of segment head ids**. A
@@ -971,10 +976,10 @@ blob-pub = { ? "mt": tstr, ? "rep": tstr, ? "digest": digest }
 
 ### 12.1 Nested GTS (recursive composition)
 
-A blob whose media type is `application/gts` is itself a complete GTS file. Because a payload
-after transform reversal is opaque bytes, **any** frame payload MAY carry a nested GTS, wrapped
-in any transform chain — `[zstd]`, `[cose-encrypt]`, or both. The normative carrier is a `blob`
-whose `"pub".mt` is `application/gts`.
+A blob whose media type is `application/vnd.blackcat.gts+cbor-seq` is itself a complete GTS file.
+Because a payload after transform reversal is opaque bytes, **any** frame payload MAY carry a
+nested GTS, wrapped in any transform chain — `[zstd]`, `[cose-encrypt]`, or both. The normative
+carrier is a `blob` whose `"pub".mt` is `application/vnd.blackcat.gts+cbor-seq`.
 
 - **Fold semantics.** A Full Reader MAY recurse: decode the blob (subject to §6.1 capability
   rules), then fold the inner bytes as an independent GTS, exposing its result as a **subgraph**
@@ -1005,7 +1010,7 @@ A profile is a named set of conventions over the one format (declared in header 
 | `image`      | a `blob` (or several representations) + descriptive metadata + analysis frames.    |
 | `ai-package` | a concept + logic + observations + opinions + refuted claims + embeddings + data.  |
 | `opaque`     | `encrypt`-class frames; signatures + pseudonymous `kid`s REQUIRED; selective disclosure. |
-| `bundle`       | a GTS whose `blob`s are themselves GTS files (`mt: application/gts`); §12.1.        |
+| `bundle`    | a GTS whose `blob`s are themselves GTS files (`mt: application/vnd.blackcat.gts+cbor-seq`); §12.1. |
 | `files`        | a GTS archive of file-tree entries: each file is a blob described by path, size, mode, mtime, and media type (§13.2). |
 | `music-package`| a frame-relative musical work/expression: segments, voices, tuning/time frames, tone events, degrees of freedom, and analysis claims, plus lossy projections to notation formats (§13.4). |
 
@@ -1358,7 +1363,7 @@ fallback — both are present, both are hash-linked.
 
 ```text
 { "t": "blob", "prev": h'…', "id": h'…',
-  "pub": { "rep": "sealed-evidence-graph", "mt": "application/gts" },  / payload is itself a GTS /
+  "pub": { "rep": "sealed-evidence-graph", "mt": "application/vnd.blackcat.gts+cbor-seq" },
   "x": [4, 7],                                            / zstd then cose-encrypt /
   "to": [ {"kid":"did:court:registry"} ],
   "d": h'COSE_Encrypt( zstd( <a complete, independently-signed GTS file> ) )' }
@@ -1376,24 +1381,49 @@ media type, support range requests, and set cache headers that respect the forma
 
 ### 16.1 Media type and file extension (normative)
 
-- **Media type:** `application/vnd.blackcat.gts+cbor` (registration template in §20.1).
-  The `+cbor` structured-syntax suffix (RFC 9277) makes the CBOR-family membership explicit.
+- **Media type:** `application/vnd.blackcat.gts+cbor-seq` (registration template in §20.1).
+  GTS uses the `+cbor-seq` structured-syntax suffix because a GTS file is a CBOR Sequence
+  ([RFC 8742]) of segment headers and frames, not a single CBOR data item. The earlier
+  provisional `application/vnd.blackcat.gts+cbor` spelling is obsolete; deployments MUST emit
+  `application/vnd.blackcat.gts+cbor-seq`. Readers MAY accept the obsolete spelling as a legacy
+  alias, but MUST NOT emit it in newly written metadata.
 - **File extension:** `.gts`.
 - **Magic bytes:** the CBOR self-describe tag `55799` (`0xd9 0xd9 0xf7`) at the start of the
-  first segment's Header. A reader MAY use these three bytes to identify a GTS file before
-  parsing the rest of the CBOR Sequence.
+  first segment's Header when the first segment is tagged. A reader MAY use these three bytes as
+  one signal while identifying a candidate GTS file, but MUST confirm the Header shape before
+  treating the bytes as GTS.
 
-Servers that do not recognise `application/vnd.blackcat.gts+cbor` SHOULD fall back to
-`application/octet-stream` rather than a wrong text type; clients SHOULD sniff the self-describe
-tag when the media type is missing or generic.
+Servers that do not recognise `application/vnd.blackcat.gts+cbor-seq` SHOULD fall back to
+`application/octet-stream` rather than a wrong text type; clients SHOULD inspect the first CBOR
+data item when the media type is missing or generic.
 
-### 16.2 HTTP serving semantics (normative)
+### 16.2 File identification algorithm (normative)
+
+Media type metadata is authoritative when it is available. When a reader must identify bytes
+without trusted metadata, it MUST use this algorithm:
+
+1. Treat `.gts` and `application/octet-stream` as hints only; neither proves nor disproves GTS.
+2. If the first three bytes are `0xd9 0xd9 0xf7`, parse the first CBOR item as a tagged item and
+   unwrap tag `55799`. Otherwise parse the first CBOR item from byte offset `0`.
+3. The unwrapped first item MUST be a Header map containing `"gts": "GTS1"` and lacking frame
+   key `"t"`. A mismatch is not a GTS file.
+4. A positive identification is still only an identification result. Complete validity requires
+   parsing the whole observed byte stream as a CBOR Sequence (§3), applying segment-boundary
+   rules (§3.1), and validating ids, chains, profiles, and capabilities as required by the
+   selected conformance class.
+5. Implementations MUST NOT require a whole-file CBOR wrapper, a total item count, or a length
+   prefix. Independently valid tagged segments may be concatenated, so later `55799` tags identify
+   later segment headers, not nested whole-file objects.
+
+### 16.3 HTTP serving semantics (normative)
 
 A GTS package is served like any other immutable binary release, with three extra requirements:
 
 1. **`Accept-Ranges: bytes`** MUST be sent for every `.gts` response. The format is designed for
    partial, streaming consumption (§3.2): a consumer can fold the header and a prefix of frames
-   without downloading the whole file, and Range requests map directly onto CBOR item boundaries.
+   without downloading the whole file. Clients choose byte ranges from discovered CBOR item
+   offsets, indexes, or other trusted manifests; HTTP range support does not by itself validate or
+   repair local file bytes.
 2. **No transforms at the edge.** Because the bytes are a content-addressed chain, proxies and
    servers MUST NOT apply compression, minification, or any byte-altering transform. The frames
    are already compressed by the writer's chosen codec; re-compressing at the transport layer
@@ -1401,7 +1431,7 @@ A GTS package is served like any other immutable binary release, with three extr
 3. **CORS.** A public vocabulary/dataset package is expected to be cross-origin readable.
    Responses SHOULD include `Access-Control-Allow-Origin: *` for the served `.gts` origin.
 
-### 16.3 Immutability-aware caching (normative)
+### 16.4 Immutability-aware caching (normative)
 
 Published GTS releases are immutable; a GTS package URL names one exact byte sequence.
 
@@ -1500,7 +1530,7 @@ A conformant implementation MUST pass a shared corpus. v1 requires at least thes
 5. A torn append at EOF → `TornAppendError`, survivors intact.
 6. Header self-hash verification (positive and tampered).
 7. RDF 1.2 reifier + `annot` round-trip (`gts → nq → gts`), including quotation-without-assertion.
-8. A nested GTS blob (`mt: application/gts`), recursed and folded.
+8. A nested GTS blob (`mt: application/vnd.blackcat.gts+cbor-seq`), recursed and folded.
 9. Suppression over a term-id and over a frame digest.
 10. Truncation detection against a signed head / index `"mmr"` root.
 11. Literal datatype defaulting (§7.1): a literal with `"l"` and no `"dt"` → `rdf:langString`;
@@ -1561,10 +1591,10 @@ This section registers one media type. It follows the registration procedures of
 [RFC 6838] and the structured-syntax-suffix procedures of [RFC 9277]. Pending formal
 registration, the type lives in the vendor (`vnd.`) tree and is used provisionally.
 
-### 20.1 Media type registration: `application/vnd.blackcat.gts+cbor`
+### 20.1 Media type registration: `application/vnd.blackcat.gts+cbor-seq`
 
 - **Type name:** `application`
-- **Subtype name:** `vnd.blackcat.gts+cbor`
+- **Subtype name:** `vnd.blackcat.gts+cbor-seq`
 - **Required parameters:** none
 - **Optional parameters:** none
 - **Encoding considerations:** binary. A GTS file is a CBOR Sequence ([RFC 8742]) and is
@@ -1574,10 +1604,11 @@ registration, the type lives in the vendor (`vnd.`) tree and is used provisional
   chain provides integrity but not confidentiality; truncation is undetectable without a head
   commitment; decompression and nested-GTS recursion MUST be bounded; and signatures attest a
   signer over bytes, not the truth of claims.
-- **Interoperability considerations:** the `+cbor` structured-syntax suffix ([RFC 9277])
-  signals CBOR-family membership, so generic CBOR tooling can inspect the outer structure. The
-  self-describe tag `55799` ([RFC 8949] §3.4.6) MAY prefix the first segment header as a magic
-  number. Conformance is defined by the shared test-vector corpus (§19).
+- **Interoperability considerations:** the `+cbor-seq` structured-syntax suffix ([RFC 8742])
+  signals that the payload is a CBOR Sequence, so generic sequence tooling can inspect the
+  ordered data items before applying GTS-specific rules. The self-describe tag `55799`
+  ([RFC 8949] §3.4.6) MAY tag each segment header as a magic number. Conformance is defined by
+  the shared test-vector corpus (§19).
 - **Published specification:** this document (GTS — Graph Transport Substrate — Specification).
 - **Applications that use this media type:** content-addressed RDF 1.2 graph transport and
   archival; signed agent-memory and provenance artifacts; package distribution where the payload
@@ -1585,7 +1616,8 @@ registration, the type lives in the vendor (`vnd.`) tree and is used provisional
 - **Fragment identifier considerations:** none.
 - **Additional information:**
   - **Magic number(s):** `0xd9 0xd9 0xf7` (the CBOR self-describe tag `55799`) when present at
-    the start of the file (§16.1). This prefix is OPTIONAL.
+    the start of the file (§16.1). This prefix is OPTIONAL because the first segment header MAY
+    be untagged.
   - **File extension(s):** `.gts`
   - **Macintosh file type code(s):** none
 - **Person & email address to contact for further information:**
@@ -1615,8 +1647,8 @@ registration, the type lives in the vendor (`vnd.`) tree and is used provisional
 
 - **[RFC 7049]** Bormann, C. and P. Hoffman, "Concise Binary Object Representation (CBOR)", October 2013 (obsoleted by [RFC 8949]; cited only for its legacy length-first "canonical" ordering, §4).
 - **[RFC 8610]** Birkholz, H., Vigano, C., and C. Bormann, "Concise Data Definition Language (CDDL)", June 2019.
-- **[RFC 9111]** Fielding, R., Nottingham, M., and J. Reschke, "HTTP Caching", June 2022 (the caching directives of §16.3).
-- **[RFC 6906]** Wilde, E., "The 'profile' Link Relation Type", March 2013 (the `Accept-Profile` future extension noted in §16.3).
+- **[RFC 9111]** Fielding, R., Nottingham, M., and J. Reschke, "HTTP Caching", June 2022 (the caching directives of §16.4).
+- **[RFC 6906]** Wilde, E., "The 'profile' Link Relation Type", March 2013 (the `Accept-Profile` future extension noted in §16.4).
 
 ---
 
