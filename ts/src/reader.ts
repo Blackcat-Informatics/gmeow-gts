@@ -696,6 +696,18 @@ function readSegment(items: wire.CborItem[], indexOffset: number): Graph {
             frameIndex: indexOffset,
         });
     }
+    const headerMagic = wire.mapGet(header, "gts");
+    const headerVersion = wire.mapGet(header, "v");
+    if (
+        wire.textOr(headerMagic, "") !== wire.Magic ||
+        wire.asInt64(headerVersion) !== wire.Version
+    ) {
+        g.diagnostics.push({
+            code: "DamagedFrame",
+            detail: `unsupported header magic/version ${String(headerMagic)}/${String(headerVersion)}`,
+            frameIndex: indexOffset,
+        });
+    }
     let expectedPrev = storedHid ?? new Uint8Array();
 
     const catalog = catalogFrom(header);
