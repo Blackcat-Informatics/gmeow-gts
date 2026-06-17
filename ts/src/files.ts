@@ -250,7 +250,7 @@ interface FileEntries {
 function readFileEntries(g: Graph): FileEntries {
     let typeID: number | undefined;
     let fileEntryID: number | undefined;
-    const fieldIDs: { [name: string]: number } = {};
+    const fieldIDs: { [name: string]: number } = Object.create(null);
     for (let idx = 0; idx < g.terms.length; idx++) {
         const term = g.terms[idx];
         if (term.kind !== TermKind.Iri) continue;
@@ -274,12 +274,12 @@ function readFileEntries(g: Graph): FileEntries {
         throw new Error("not a files-profile archive: missing FileEntry");
     }
 
-    const entries: { [s: number]: { [field: string]: string } } = {};
+    const entries: { [s: number]: { [field: string]: string } } = Object.create(null);
     const fileEntrySubjects = new Set<number>();
     for (const q of g.quads) {
         if (q.p === typeID && q.o === fileEntryID) {
             fileEntrySubjects.add(q.s);
-            if (!entries[q.s]) entries[q.s] = {};
+            if (!entries[q.s]) entries[q.s] = Object.create(null);
         } else {
             for (const [name, id] of Object.entries(fieldIDs)) {
                 if (id === q.p) {
@@ -288,14 +288,14 @@ function readFileEntries(g: Graph): FileEntries {
                             `invalid term reference ${q.o} for files:${name}`,
                         );
                     }
-                    if (!entries[q.s]) entries[q.s] = {};
+                    if (!entries[q.s]) entries[q.s] = Object.create(null);
                     entries[q.s][name] = g.terms[q.o].value;
                 }
             }
         }
     }
 
-    const byPath: FileEntries = {};
+    const byPath: FileEntries = Object.create(null);
     for (const [s, entry] of Object.entries(entries)) {
         if (!fileEntrySubjects.has(Number(s))) continue;
         const path = entry.path;
@@ -411,14 +411,14 @@ function parseDateTime(text: string): number | undefined {
 /** Compare an archive to a directory by content digest. */
 export function diff(g: Graph, directory: string): string[] {
     const entries = readFileEntries(g);
-    const archiveDigests: { [path: string]: string } = {};
+    const archiveDigests: { [path: string]: string } = Object.create(null);
     for (const [path, entry] of Object.entries(entries)) {
         archiveDigests[path] = entry.digest;
     }
 
     statSync(directory);
 
-    const diskDigests: { [path: string]: string } = {};
+    const diskDigests: { [path: string]: string } = Object.create(null);
     const files = walkDirSorted(directory);
     for (const fpath of files) {
         const rel = relative(directory, fpath).replaceAll("\\", "/");
