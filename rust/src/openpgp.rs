@@ -315,9 +315,32 @@ fn parse_ed25519_public_material(body: &[u8]) -> Result<([u8; 32], usize)> {
     Ok((raw, end))
 }
 
+fn secret_mpi_to_seed(mpi: &[u8]) -> Result<[u8; 32]> {
+    let bytes = if mpi.first() == Some(&0) {
+        &mpi[1..]
+    } else {
+        mpi
+    };
+    if bytes.len() > 32 {
+        return Err(OpenPgpError(format!(
+            "unexpected Ed25519 secret MPI length {}",
+            mpi.len()
+        )));
+    }
+    let mut raw = [0u8; 32];
+    raw[32 - bytes.len()..].copy_from_slice(bytes);
+    Ok(raw)
+}
+
+fn checksum16(data: &[u8]) -> u16 {
+    data.iter()
+        .fold(0u16, |sum, byte| sum.wrapping_add(u16::from(*byte)))
+}
+
 /// Parse the secret scalar from a v4 Ed25519 secret-key packet body.
-fn parse_ed25519_secret_material(body: &[u8]) -> Result<([u8; 32], [u8; 32])> {
-    let (raw_public, mut offset) = parse_ed25519_public_material(body)?;
+fn parse_ed25519_secret_material(body: &[u8]) -> Result<([u8; 32], SigningKey, usize)> {
+    let (raw_public, pub_end) = parse_ed25519_public_material(body)?;
+    let mut offset = pub_end;
 
     if offset >= body.len() {
         return err("truncated secret-key packet");
@@ -330,24 +353,24 @@ fn parse_ed25519_secret_material(body: &[u8]) -> Result<([u8; 32], [u8; 32])> {
         );
     }
 
-    let (mpi, _) = read_mpi(body, offset)?;
-    let raw_secret: [u8; 32] = match mpi.as_slice() {
-        [0, rest @ ..] if rest.len() == 32 => rest.try_into().expect("len checked"),
-        bytes if bytes.len() == 32 => bytes.try_into().expect("len checked"),
-        bytes => {
-            return Err(OpenPgpError(format!(
-                "unexpected Ed25519 secret MPI length {}",
-                bytes.len()
-            )))
-        }
-    };
+    let secret_start = offset;
+    let (mpi, next) = read_mpi(body, offset)?;
+    if next + 2 != body.len() {
+        return err("unsupported secret-key packet structure");
+    }
+    let expected = u16::from_be_bytes([body[next], body[next + 1]]);
+    let actual = checksum16(&body[secret_start..next]);
+    if actual != expected {
+        return err("OpenPGP secret-key checksum mismatch");
+    }
 
+    let raw_secret = secret_mpi_to_seed(&mpi)?;
     let signing_key = SigningKey::from_bytes(&raw_secret);
     if signing_key.verifying_key().to_bytes() != raw_public {
         return err("OpenPGP secret key does not match public key material");
     }
 
-    Ok((raw_public, raw_secret))
+    Ok((raw_public, signing_key, pub_end))
 }
 
 /// Compute the OpenPGP v4 fingerprint of a public-key packet body.
@@ -403,12 +426,11 @@ pub fn parse_secret_signing_key(
         if tag != 5 {
             continue;
         }
-        let (raw_public, raw_secret) = parse_ed25519_secret_material(&body)?;
-        let (_, pub_end) = parse_ed25519_public_material(&body)?;
+        let (raw_public, signing_key, pub_end) = parse_ed25519_secret_material(&body)?;
         let fingerprint = fingerprint(&body[..pub_end]);
         let kid = kid_override.unwrap_or(&fingerprint).to_string();
         return Ok(OpenPgpSigningKey {
-            signing_key: SigningKey::from_bytes(&raw_secret),
+            signing_key,
             kid,
             fingerprint,
             raw_public,
@@ -571,6 +593,38 @@ mod tests {
             .err()
             .expect("encrypted secret key is rejected");
         assert!(err.0.contains("encrypted secret keys are not supported"));
+    }
+
+    #[test]
+    fn secret_mpi_to_seed_left_pads_short_mpis() {
+        let seed = secret_mpi_to_seed(&[0x01, 0x23]).unwrap();
+        assert_eq!(&seed[..30], &[0u8; 30]);
+        assert_eq!(&seed[30..], &[0x01, 0x23]);
+    }
+
+    #[test]
+    fn secret_signing_key_rejects_bad_checksum() {
+        let armor = mutated_secret_armor(|body| {
+            let last = body.last_mut().unwrap();
+            *last ^= 0x01;
+        });
+
+        let err = parse_secret_signing_key(&armor, None)
+            .err()
+            .expect("bad secret-key checksum is rejected");
+        assert!(err.0.contains("checksum mismatch"));
+    }
+
+    #[test]
+    fn secret_signing_key_rejects_unsupported_trailer_structure() {
+        let armor = mutated_secret_armor(|body| {
+            body.push(0);
+        });
+
+        let err = parse_secret_signing_key(&armor, None)
+            .err()
+            .expect("unexpected secret-key trailer is rejected");
+        assert!(err.0.contains("unsupported secret-key packet structure"));
     }
 
     #[test]
