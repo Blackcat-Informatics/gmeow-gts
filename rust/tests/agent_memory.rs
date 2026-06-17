@@ -99,6 +99,7 @@ fn rust_agent_memory_flow_is_append_only_and_verifyable() {
             ..RecallOptions::default()
         })
         .unwrap();
+    assert_eq!(current[0].id, new.id);
     assert!(current.iter().all(|claim| claim.id != old.id));
     assert!(current.iter().any(|claim| claim.id == new.id));
 

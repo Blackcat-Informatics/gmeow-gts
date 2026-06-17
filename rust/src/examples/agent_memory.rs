@@ -428,7 +428,9 @@ impl Memory {
                 })
                 .filter(|(score, _, _)| *score > 0)
                 .collect();
-            scored.sort_by_key(|(score, index, _)| (std::cmp::Reverse(*score), *index));
+            scored.sort_by_key(|(score, index, _)| {
+                (std::cmp::Reverse(*score), std::cmp::Reverse(*index))
+            });
             claims = scored.into_iter().map(|(_, _, claim)| claim).collect();
         }
         claims.truncate(options.limit);
