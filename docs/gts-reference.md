@@ -78,6 +78,8 @@ gts unpack archive.gts -C ./restore   # extract a files profile
 
 The cross-engine API shape, CLI parity matrix, and Python-only command gaps are maintained in
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
+Advanced streaming, index/MMR/proof, replication, range-fetch, and benchmark deferrals are tracked
+in [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).
 
 ## Conformance
 

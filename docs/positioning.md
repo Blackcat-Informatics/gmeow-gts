@@ -97,3 +97,5 @@ This matrix is descriptive, not a conformance claim. The authoritative compatibi
 the versioned vector corpus under `vectors/`, which every engine gates against. Command-level
 parity and intentional gaps are maintained in
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
+Advanced streaming, proof, and replication work is tiered separately in
+[`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).

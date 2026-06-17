@@ -45,6 +45,7 @@ used by tier claims:
 | `crypto-encrypt` | `vectors/encrypt0/basic.json` | COSE Encrypt0 sealing/opening behavior for engines that implement encryption. |
 | `openpgp-transport-key` | `vectors/openpgp/*.json` | Embedded OpenPGP transport-key extraction and cross-engine fingerprint/emojihash agreement. |
 | `human-hash` | `vectors/emojihash/*.json`, `vectors/randomart/*.json` | Human-facing digest rendering used by CLIs and release tooling. |
+| `advanced-index-proof` | not committed for v1 | Future offset/dictionary/MMR acceleration, inclusion proof, and replication vectors. |
 
 A tier MAY require a subset plus extra mode-specific assertions. For example,
 `profile-layout` contains files that permissive readers fold, while validating tools must also
@@ -67,6 +68,8 @@ and Profile-Aware Tool (`files`), while not claiming Full Reader if it cannot de
 recurse into nested GTS blobs.
 The cross-language API and command matrix for those public surfaces is maintained in
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
+The advanced streaming sink, index/MMR/proof, replication, range-fetch, and benchmark deferrals
+are maintained in [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).
 
 ## 4. Expected Graph Format
 
