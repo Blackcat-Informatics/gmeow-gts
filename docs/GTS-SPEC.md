@@ -116,7 +116,13 @@ core format.
 - [18. Security considerations](#18-security-considerations)
 - [19. Conformance test vectors](#19-conformance-test-vectors)
 - [20. IANA considerations](#20-iana-considerations)
-- [21. References](#21-references)
+- [21. Complete CDDL appendix](#21-complete-cddl-appendix)
+  - [21.1 Sequence grammar](#211-sequence-grammar)
+  - [21.2 Copyable CDDL](#212-copyable-cddl)
+- [22. Hash, signature, and extension-key preimages](#22-hash-signature-and-extension-key-preimages)
+  - [22.1 Preimage and subject table](#221-preimage-and-subject-table)
+  - [22.2 Unknown extension-key behavior](#222-unknown-extension-key-behavior)
+- [23. References](#23-references)
 
 ## 1. Overview and non-goals
 
@@ -447,12 +453,14 @@ observed in any prefix is a violation of the whole file.
   implementations MUST NOT rely on a CBOR library's legacy "canonical" mode without checking
   which ordering it implements.)
 - Unsigned integers are used for all ids. BLAKE3 digests are 32-byte (256-bit) byte strings.
-- The grammar below is given in **CDDL** (RFC 8610).
+- Short grammar fragments are given in **CDDL** (RFC 8610). The complete copyable CDDL
+  appendix is §21, and the canonical preimage rules are §22.
 
 ```cddl
 term-id      = uint            ; append-order, frozen (§7.2)
 digest       = bstr .size 32   ; BLAKE3-256
 content-id   = digest          ; a frame's self-hash (§9.1)
+digest-ref   = digest / tstr    ; raw digest or "blake3:<hex>" text (§21.2)
 codec-id     = uint            ; index into the header codec catalog (§8)
 ```
 
@@ -485,13 +493,14 @@ declares) but **open across the ecosystem** (new codecs may be registered by nam
 Header carries its own `"id"` (self-hash of its content) and no `"prev"` — it is the genesis,
 and the first frame's `"prev"` is the Header's `"id"`. The Header `"id"` MUST equal the
 BLAKE3-256 of the deterministic CBOR of the Header map **excluding the `"id"` key**; all other
-keys (including `"meta"`) participate. The optional `"layout"` key claims a layout state
-(§3.3): the only value defined by this revision is `"streamable"`, which a verifying reader
-MUST check against the segment's actual layout; readers MUST ignore unknown `"layout"` values
-(forward compatibility — an unknown state imposes no check). Dictionaries are stored **uncompressed
-and in-band** — there is no external-dictionary dependency. A codec's `"dct"` value MUST match
-a key in the header `"dct"` map, and the codec MUST use the corresponding byte string as its
-compression/encoding dictionary.
+keys (including `"meta"` and unknown extension keys) participate. The preimage table in §22 is
+the single source of truth for hashed and signed bytes. The optional `"layout"` key claims a
+layout state (§3.3): the only value defined by this revision is `"streamable"`, which a
+verifying reader MUST check against the segment's actual layout; readers MUST ignore unknown
+`"layout"` values (forward compatibility — an unknown state imposes no check). Dictionaries are
+stored **uncompressed and in-band** — there is no external-dictionary dependency. A codec's
+`"dct"` value MUST match a key in the header `"dct"` map, and the codec MUST use the
+corresponding byte string as its compression/encoding dictionary.
 
 ## 6. Frames
 
@@ -510,15 +519,16 @@ frame = {
 }
 
 frame-type = "terms" / "quads" / "reifies" / "annot" / "blob" / "suppress"
-           / "snapshot" / "meta" / "index" / "opaque"
+/ "snapshot" / "meta" / "index" / "opaque"
 
 recipient = { "kid": tstr, ? "alg": tstr, * tstr => any }   ; key identifier; never the key
 ```
 
 Each frame's `"id"` MUST equal the BLAKE3-256 of the deterministic CBOR of its content (every
-key except `"id"` and `"sig"`). Each frame's `"prev"` MUST equal the previous data item's
-`"id"`; the **first** frame's `"prev"` is the Header's `"id"`. Because `"prev"` is inside the
-hashed content, each `"id"` transitively commits to all prior frames (§9.1).
+key except `"id"` and `"sig"`; unknown extension keys participate). Each frame's `"prev"` MUST
+equal the previous data item's `"id"`; the **first** frame's `"prev"` is the Header's `"id"`.
+Because `"prev"` is inside the hashed content, each `"id"` transitively commits to all prior
+frames (§9.1). §22 centralizes the complete preimage and subject rules.
 
 ### 6.1 Payload resolution
 
@@ -971,7 +981,7 @@ and hash-linked (content-addressed at the wire level).
 
 ```cddl
 ; a `blob` frame carries raw bytes in "d" (subject to "x"); its metadata lives in cleartext "pub":
-blob-pub = { ? "mt": tstr, ? "rep": tstr, ? "digest": digest }
+blob-pub = { ? "mt": tstr, ? "rep": tstr, ? "digest": digest-ref }
 ; INLINE blob  -> "d" present; digest = BLAKE3(decoded "d").
 ; EXTERNAL blob -> "d" absent;  "pub".digest names bytes held elsewhere.
 ```
@@ -1693,9 +1703,258 @@ registration, the type lives in the vendor (`vnd.`) tree and is used provisional
 - **Restrictions on usage:** none
 - **Author / Change controller:** Blackcat Informatics® Inc.
 
-## 21. References
+## 21. Complete CDDL appendix
 
-### 21.1 Normative references
+This appendix is the copyable schema surface for implementers. Inline CDDL fragments earlier in
+this document explain local context; this appendix collects the wire-level map shapes in one
+place.
+
+### 21.1 Sequence grammar
+
+A GTS file is a **CBOR Sequence**, not one enclosing CBOR item. CDDL describes the individual
+items in that sequence; the sequence grammar is defined in English and ABNF-like notation:
+
+```text
+gts-file = 1*segment
+segment  = [ self-describe-tag ] header *frame
+```
+
+`self-describe-tag` is CBOR tag 55799 applied to the header item only. It is a wire-level magic
+hint, not a member of the Header map, and it is not part of the Header `"id"` preimage (§22).
+Each segment begins with a Header and then zero or more frame items until the next Header or EOF
+(§3.1).
+
+### 21.2 Copyable CDDL
+
+```cddl
+; GTS v1 item grammar. The top-level file is a CBOR Sequence (§21.1).
+
+gts-item = header-item / frame
+header-item = header / self-described-header
+self-described-header = #6.55799(header)
+
+term-id = uint
+frame-index = uint
+codec-id = uint
+digest = bstr .size 32
+content-id = digest
+blake3-uri = tstr                  ; "blake3:" + 64 lowercase hex characters
+digest-ref = digest / blake3-uri
+profile-name = tstr
+layout-state = "streamable" / tstr
+extension-key = tstr               ; any text key not defined by that map shape
+
+header = {
+  "gts": "GTS1",
+  "v": 1,
+  "prof": profile-name,
+  "cat": { * codec-id => codec },
+  ? "layout": layout-state,
+  ? "dct": { * tstr => bstr },
+  ? "meta": any,
+  "id": content-id,
+  * extension-key => any,
+}
+
+codec = {
+  "name": tstr,
+  "cls": "encode" / "compress" / "encrypt",
+  ? "dct": tstr,
+  ? "p": any,
+  * extension-key => any,
+}
+
+frame = {
+  "t": frame-type,
+  ? "x": [+ codec-id],
+  ? "pub": any,
+  ? "to": [+ recipient],
+  ? "d": frame-payload / bstr,
+  "prev": content-id,
+  "id": content-id,
+  ? "sig": cose-sign1,
+  * extension-key => any,
+}
+
+frame-type = "terms" / "quads" / "reifies" / "annot" / "blob" / "suppress"
+/ "snapshot" / "meta" / "index" / "opaque"
+
+recipient = {
+  "kid": tstr,
+  ? "alg": tstr,
+  * extension-key => any,
+}
+
+cose-sign1 = bstr                  ; serialized COSE_Sign1, detached payload = frame "id"
+
+frame-payload = terms-payload / quads-payload / reifies-payload / annot-payload
+/ blob-payload / suppress-payload / snapshot-payload / meta-payload
+/ index-payload / opaque-node
+
+terms-payload = [+ term]
+term = {
+  "k": 0 / 1 / 2 / 3,              ; 0=IRI, 1=literal, 2=bnode, 3=quoted triple
+  ? "v": tstr,
+  ? "dt": term-id,
+  ? "l": tstr,
+  ? "rf": term-id,
+  * extension-key => any,
+}
+
+triple-row = [term-id, term-id, term-id]
+quad-row = [term-id, term-id, term-id] / [term-id, term-id, term-id, term-id]
+
+quads-payload = [+ quad-row]
+reifies-payload = { * term-id => triple-row }
+annot-payload = [+ triple-row]
+
+blob-payload = bstr
+blob-pub = {
+  ? "mt": tstr,
+  ? "rep": tstr,
+  ? "digest": digest-ref,
+  * extension-key => any,
+}
+
+suppress-payload = {
+  "targets": [+ suppress-target],
+  ? "reason": tstr,
+  ? "by": term-id,
+  * extension-key => any,
+}
+
+suppress-target = suppress-frame / suppress-blob / suppress-term
+/ suppress-quad / suppress-reifier
+suppress-frame = { "kind": "frame", "id": digest-ref, * extension-key => any }
+suppress-blob = { "kind": "blob", "digest": digest-ref, * extension-key => any }
+suppress-term = { "kind": "term", "id": term-id, * extension-key => any }
+suppress-quad = { "kind": "quad", "q": quad-row, * extension-key => any }
+suppress-reifier = { "kind": "reifier", "id": term-id, * extension-key => any }
+
+snapshot-payload = {
+  "terms": terms-payload,
+  ? "quads": quads-payload,
+  ? "reifies": reifies-payload,
+  ? "annot": annot-payload,
+  ? "blobs": { * digest-ref => bstr },
+  ? "meta": any,
+  * extension-key => any,
+}
+
+meta-payload = any
+
+index-payload = {
+  "count": uint,
+  "head": content-id,
+  ? "off": [+ uint],
+  ? "ti": { * frame-type => [+ frame-index] },
+  ? "dict": [+ frame-index],
+  ? "mmr": content-id,
+  * extension-key => any,
+}
+
+opaque-node = {
+  "id": content-id,
+  "type": frame-type,
+  ? "pub": any,
+  ? "to": [+ recipient],
+  ? "sigstat": sig-status,
+  "reason": opaque-reason,
+  * extension-key => any,
+}
+
+sig-status = "none" / "valid" / "invalid" / "unverified"
+opaque-reason = "unknown-codec" / "missing-key" / "damaged"
+
+diagnostic = {
+  "code": diagnostic-code,
+  "detail": tstr,
+  ? "frame_index": frame-index,
+  * extension-key => any,
+}
+
+diagnostic-code = "TornAppendError" / "DamagedFrame" / "BrokenChain"
+/ "TruncatedLog" / "UnknownCodec" / "MissingKey"
+/ "ConflictingReifier" / "RecursionLimit"
+/ "StreamableLayoutError" / "PositionConstraint"
+/ "ForwardReference" / "SegmentBoundary" / tstr
+
+profile-status = "core-required" / "optional-standard" / "experimental"
+/ "domain-specific"
+profile-registration = {
+  "name": profile-name,
+  "status": profile-status,
+  ? "owner": tstr,
+  ? "spec": tstr,
+  ? "namespace": [+ tstr],
+  ? "requires": any,
+  ? "validation": any,
+  ? "security": any,
+  * extension-key => any,
+}
+```
+
+When `"x"` is present and non-empty, the frame `"d"` value is a byte string carrying the
+encoded/compressed/encrypted payload. After reversing the transform chain (§6.1), those bytes
+decode to the frame-type-specific payload above, except `blob`, whose decoded payload is raw
+bytes. When `"x"` is absent, `"d"` carries the frame-type-specific payload directly.
+
+`blob-pub` is the conventional shape of a blob frame's `"pub"` map; the frame envelope keeps
+`"pub"` typed as `any` so profiles can layer additional public metadata without changing the
+core frame grammar. `digest-ref` accepts both the raw 32-byte digest and the `blake3:<hex>` text
+form used by the reference engines.
+
+## 22. Hash, signature, and extension-key preimages
+
+All preimages in this section use the deterministic CBOR rules in §4: definite lengths,
+shortest-form integers, and map keys sorted bytewise by their encoded CBOR form. Unless a row
+explicitly excludes a field, every key/value pair in the map participates, including unknown
+extension keys.
+
+### 22.1 Preimage and subject table
+
+| subject | bytes hashed or signed | excluded fields | included extension fields | verifier behavior |
+|---|---|---|---|---|
+| Header `"id"` | `BLAKE3-256(deterministic-CBOR(header-map without "id"))` | `"id"` only. The optional CBOR self-describe tag 55799 is outside the Header map and outside the preimage. | All unknown Header keys participate. | Recompute before accepting the segment Header; mismatch is header tampering. |
+| Frame `"id"` | `BLAKE3-256(deterministic-CBOR(frame-map without "id" and "sig"))` | `"id"` and `"sig"` only. | All unknown frame keys participate. | Recompute for every frame; mismatch is `DamagedFrame`. |
+| Frame `"prev"` link | The `"prev"` value is included in the frame `"id"` preimage. | None beyond the frame `"id"` exclusions. | Unknown frame keys do not change `"prev"` semantics but are still in the frame `"id"` preimage. | Compare to the previous item's `"id"` within the same segment; mismatch is `BrokenChain`. |
+| COSE frame signature | Detached COSE_Sign1 over the frame `"id"` bytes. The COSE Sig_structure is `["Signature1", protected, h'', frame-id]`; the COSE payload field is `null`/detached. | The signature is not part of the frame `"id"` preimage because `"sig"` is excluded there. | Extension keys affect the signature indirectly by changing the frame `"id"`. | Verify with the key resolved by `kid`; report `valid`, `invalid`, or `unverified`. |
+| Inline blob digest | `BLAKE3-256(decoded blob bytes)`, after reversing transforms and decryption when available. | Frame envelope fields are not part of the blob digest. | Blob-public extension keys do not affect the blob digest, but they do affect the containing frame `"id"`. | Compare with `pub.digest` when present and with graph references that name the blob. |
+| External blob digest | `pub.digest` names bytes stored elsewhere; the digest subject is those external bytes. | The external bytes are absent from the GTS frame, so only the digest claim participates in the frame `"id"` through `"pub"`. | Unknown public metadata participates in the frame `"id"`, not in the external blob digest. | A verifier can check only when it obtains the external bytes. |
+| Index `"head"` | The content-id of the last covered frame, where `"count"` is the number of frames covered by the index payload. | Not applicable. | Unknown index-payload keys participate in the index frame `"id"`, not in the `"head"` subject. | Compare `"head"` to the covered frame id; mismatch invalidates the index/layout claim. |
+| Index `"mmr"` | Merkle-Mountain-Range root over the ordered frame ids covered by the index. | The index frame itself is not covered unless a later index covers it. | Unknown index-payload keys participate in the index frame `"id"`, not in the MMR root. | Use as an optional whole-covered-region commitment and proof root. |
+| Detached signature provenance | `stream:sourceFrame` names the original frame `"id"`; `stream:cose` carries the original COSE_Sign1 bytes. The signature still verifies over the original frame id. | The rewritten frame's new `"id"` is not the old signature subject. | Provenance graph extension terms do not change the original signature subject. | Verify carried signatures against `stream:sourceFrame`; do not treat them as signatures over the compacted frame. |
+
+### 22.2 Unknown extension-key behavior
+
+An extension key is a text-string map key not defined by that map's CDDL production. Defined
+reserved keys such as `"id"`, `"sig"`, `"prev"`, `"t"`, `"d"`, `"x"`, `"pub"`, and `"to"` are not
+extension keys and MUST NOT be repurposed by profiles.
+
+Readers MUST include unknown extension keys when recomputing Header and frame preimages. A reader
+MUST NOT reject a Header, frame, codec, recipient, term, payload, opaque-node, diagnostic, or
+profile-registration map solely because it contains an unknown extension key. Unknown keys have
+no core fold semantics unless a supported profile or extension defines them.
+
+Re-emit behavior depends on the operation:
+
+- Byte-preserving operations such as raw `cat`, copying, mirroring, or serving preserve unknown
+  keys naturally because they preserve the original bytes.
+- A tool that decodes and re-emits a Header or frame while claiming to preserve the same logical
+  item MUST copy unknown extension keys verbatim before recomputing `"id"` values.
+- A tool that cannot preserve unknown extension keys MUST treat the operation as lossy
+  re-authoring, MUST recompute affected `"id"` and `"prev"` values, and MUST NOT claim existing
+  frame signatures remain attached to the rewritten frames.
+- A compactor or other re-authoring tool MAY preserve old frame signatures only as detached
+  provenance (§10.1), where the old frame id remains the explicit signature subject.
+
+Because extension keys participate in preimages, extension authors can add tamper-evident
+metadata without changing core GTS grammar. They cannot change header/frame grammar, hash
+preimages, signature subjects, or fold semantics (§2.1, §13).
+
+## 23. References
+
+### 23.1 Normative references
 
 - **[RFC 2119]** Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, March 1997.
 - **[RFC 8174]** Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words", BCP 14, May 2017.
@@ -1710,7 +1969,7 @@ registration, the type lives in the vendor (`vnd.`) tree and is used provisional
 - **[BLAKE3]** O'Connor, J., Aumasson, J-P., Neves, S., and Z. Wilcox-O'Hearn, "BLAKE3: one function, fast everywhere" (256-bit output used here).
 - **[RDF 1.2]** W3C, "RDF 1.2 Concepts and Abstract Syntax" — RDF concepts and the quoted-triple / reifier model (statement-level metadata).
 
-### 21.2 Informative references
+### 23.2 Informative references
 
 - **[RFC 7049]** Bormann, C. and P. Hoffman, "Concise Binary Object Representation (CBOR)", October 2013 (obsoleted by [RFC 8949]; cited only for its legacy length-first "canonical" ordering, §4).
 - **[RFC 8610]** Birkholz, H., Vigano, C., and C. Bormann, "Concise Data Definition Language (CDDL)", June 2019.
