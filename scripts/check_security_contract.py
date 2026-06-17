@@ -32,10 +32,12 @@ REQUIRED_MARKERS = [
 REQUIRED_VECTORS = {
     "nested-recursion-limit.json": {
         "id": "nested-recursion-limit",
+        "expected_field": "expected_diagnostics",
         "expected": "RecursionLimit",
     },
     "profile-policy.json": {
         "id": "profile-policy",
+        "expected_field": "expected_findings",
         "expected": "OpaqueRecipientKidPublic",
     },
 }
@@ -60,9 +62,16 @@ def main() -> int:
         data = json.loads(path.read_text(encoding="utf-8"))
         if data.get("id") != required["id"]:
             fail(f"{path.relative_to(ROOT)} has wrong id")
-        serialized = json.dumps(data, sort_keys=True)
-        if required["expected"] not in serialized:
-            fail(f"{path.relative_to(ROOT)} missing {required['expected']}")
+        expected_field = required["expected_field"]
+        expected_values = data.get(expected_field)
+        if (
+            not isinstance(expected_values, list)
+            or required["expected"] not in expected_values
+        ):
+            fail(
+                f"{path.relative_to(ROOT)} missing {expected_field} entry: "
+                f"{required['expected']}"
+            )
     print("check_security_contract: OK")
     return 0
 
