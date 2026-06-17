@@ -7,7 +7,8 @@ A small, dependency-light reader/writer for the **Graph Transport Substrate** wi
 format specified in [`GTS-SPEC.md`](./GTS-SPEC.md). The `gts` package (PyPI:
 `gmeow-gts`) is the **baseline** tier: it validates the spec empirically and is the
 single source of truth for the language-neutral conformance corpus that the Rust, Go,
-and TypeScript engines also gate against.
+and TypeScript engines also gate against. Tier claims and vector subsets are defined in
+[`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md).
 
 ## What it covers
 

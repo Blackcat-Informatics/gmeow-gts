@@ -1689,6 +1689,11 @@ A conformant implementation MUST pass a shared corpus. v1 requires at least thes
 (shipped with the reference implementation), each as the GTS bytes plus the expected folded graph
 (N-Quads) and the expected diagnostics:
 
+The companion [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md) defines the tiered conformance
+claims, named vector subsets, expected JSON fields, vector manifest schema, diagnostics
+registry, and read/verify modes used to turn this corpus into comparable implementation
+claims.
+
 1. Minimal valid file (header + one `terms` + one `quads`).
 2. A `zstd`-transformed `quads` frame.
 3. An unknown-codec frame → opaque `reason:"unknown-codec"`.

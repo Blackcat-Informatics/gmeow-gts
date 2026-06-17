@@ -333,7 +333,8 @@ transitively commits to all history.
 
 Payloads carry a stackable codec chain; unknown codecs or held-back keys degrade a frame to an
 **opaque node** rather than failing the read. The full normative format is in
-[`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md).
+[`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md), with testable tier and vector-claim rules in
+[`docs/GTS-CONFORMANCE.md`](./docs/GTS-CONFORMANCE.md).
 
 ## Conformance corpus
 
@@ -351,6 +352,9 @@ the committed corpus and prove it's reproducible byte-for-byte:
 cd python && uv run python scripts/gen_vectors.py
 git diff --exit-code vectors        # no changes ⇒ reproducible
 ```
+
+Conformance tiers, named vector subsets, expected-result fields, diagnostics, and read/verify
+modes are defined in [`docs/GTS-CONFORMANCE.md`](./docs/GTS-CONFORMANCE.md).
 
 ## Repository layout
 
@@ -405,6 +409,8 @@ artifact with `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gt
 ## Specification & docs
 
 - [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) — the authoritative, normative wire-format specification.
+- [`docs/GTS-CONFORMANCE.md`](./docs/GTS-CONFORMANCE.md) — conformance tiers, vector subsets,
+  manifest schema, diagnostics registry, and read/verify modes.
 - [`docs/positioning.md`](./docs/positioning.md) — the project framing, narrow-waist
   architecture, application families, and engine feature matrix.
 - [`docs/gts-reference.md`](./docs/gts-reference.md) — Python reference-implementation guide.
