@@ -193,7 +193,10 @@ Path("cat.gts").write_bytes(w.to_bytes())
 ```toml
 # Cargo.toml
 [dependencies]
-gmeow-gts = "0.1"
+gmeow-gts = "0.2"
+
+# Optional native RDF data-model adapter:
+# gmeow-gts = { version = "0.2", default-features = false, features = ["rdf"] }
 ```
 
 ```rust
@@ -210,7 +213,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 The pure-Rust crate (no C toolchain, wasm-friendly) installs the `gts` binary via
-`cargo install gmeow-gts`.
+`cargo install gmeow-gts`. Rust default features remain empty. `--features rdf`
+enables the optional `gmeow_gts::rdf` adapter backed by `oxrdf`'s RDF data-model
+crate; it does not pull in the `oxigraph` store or any RDF dependency for
+default transport users.
 
 ### Go
 
@@ -325,6 +331,7 @@ folded quad.
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | no | no |
+| Native RDF adapter | rdflib extra | `rdf` feature (`oxrdf` data model) | no | no |
 | SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no |
 | Package registry | PyPI | crates.io | Go module | npm |
 

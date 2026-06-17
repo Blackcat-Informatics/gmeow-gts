@@ -89,6 +89,8 @@ a GTS file.
 - **`gmeow_gts::compact`** — compact a streamable GTS segment into a self-contained one.
 - **`gmeow_gts::files`** — pack and unpack directory trees using the GTS files profile.
 - **`gmeow_gts::nquads`** — project a folded graph to N-Quads.
+- **`gmeow_gts::rdf`** — optional `--features rdf` native adapter for
+  `oxrdf::Dataset` without an embedded graph-store dependency.
 - **`gmeow_gts::examples::agent_memory`** — a dependency-light grounded-memory
   example built on ordinary GTS frames.
 - **`gmeow_gts::stream`** — stream-vocabulary constants and helpers.
@@ -117,7 +119,7 @@ Add to `Cargo.toml`:
 
 ```toml
 [dependencies]
-gmeow-gts = "0.1.3"
+gmeow-gts = "0.2"
 ```
 
 Verify a signed file with its embedded transport key:
@@ -334,6 +336,11 @@ implemented by the Rust and Python CLIs. The Rust relational commands use the sa
 integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`
 on `PATH`; `to-duckdb` and `to-parquet` require the optional no-dependency `duckdb`
 Cargo feature plus the `duckdb` binary on `PATH`.
+
+Default Cargo features are empty. The optional `rdf` feature enables
+`gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` through `oxrdf`'s RDF
+data-model crate. This is a native dataset/quad adapter, not an `oxigraph`
+store integration, and it is absent from ordinary default builds.
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
 refuses dirty inputs, contributes-nothing segments, and compositions whose suppressions

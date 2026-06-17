@@ -29,6 +29,8 @@ pub mod nested;
 pub mod nquads;
 pub mod openpgp;
 pub mod policy;
+#[cfg(feature = "rdf")]
+pub mod rdf;
 pub mod reader;
 pub mod stream;
 pub mod verify;
