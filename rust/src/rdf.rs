@@ -7,7 +7,8 @@
 //! in-memory RDF data model, not the `oxigraph` store, so default transport
 //! users do not inherit an RDF toolkit or embedded graph database dependency.
 
-use std::collections::HashMap;
+use std::borrow::Cow;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 
 use oxrdf::{
@@ -133,7 +134,7 @@ pub fn from_oxrdf_dataset_with_profile(
 ) -> Result<Vec<u8>, RdfAdapterError> {
     let mut interner = Interner::new();
     let mut quads: Vec<Quad> = Vec::new();
-    let mut reifiers: Vec<(usize, Triple3)> = Vec::new();
+    let mut reifiers: BTreeMap<usize, Triple3> = BTreeMap::new();
 
     for quad in dataset {
         if quad.graph_name.is_default_graph()
@@ -145,7 +146,7 @@ pub fn from_oxrdf_dataset_with_profile(
                 unreachable!("matched above")
             };
             let binding = interner.triple_ref(triple.into(), &mut reifiers);
-            set_reifier(&mut reifiers, rid, binding);
+            reifiers.insert(rid, binding);
             continue;
         }
 
@@ -163,6 +164,7 @@ pub fn from_oxrdf_dataset_with_profile(
     if !quads.is_empty() {
         writer.add_quads(&quads);
     }
+    let reifiers: Vec<(usize, Triple3)> = reifiers.into_iter().collect();
     if !reifiers.is_empty() {
         writer.add_reifies(&reifiers);
     }
@@ -365,8 +367,11 @@ fn literal_term(
     }
 }
 
-fn bnode_label(term: &Term, id: usize) -> String {
-    term.value.clone().unwrap_or_else(|| format!("b{id}"))
+fn bnode_label(term: &Term, id: usize) -> Cow<'_, str> {
+    match &term.value {
+        Some(value) => Cow::Borrowed(value),
+        None => Cow::Owned(format!("b{id}")),
+    }
 }
 
 fn graph_name_id(graph_name: GraphNameRef<'_>, interner: &mut Interner) -> Option<usize> {
@@ -384,7 +389,7 @@ enum TermKey {
     Literal {
         value: String,
         lang: Option<String>,
-        datatype: Option<String>,
+        datatype: Option<usize>,
     },
     Triple(usize, usize, usize),
 }
@@ -432,26 +437,28 @@ impl Interner {
     fn literal_ref(&mut self, literal: LiteralRef<'_>) -> usize {
         let value = literal.value().to_string();
         let lang = literal.language().map(str::to_string);
-        let datatype = if lang.is_some() {
+        let datatype_id = if lang.is_some() {
             None
         } else {
             let datatype = literal.datatype().as_str();
-            (datatype != XSD_STRING && datatype != RDF_LANG_STRING).then(|| datatype.to_string())
+            if datatype == XSD_STRING || datatype == RDF_LANG_STRING {
+                None
+            } else {
+                let iri = datatype.to_string();
+                Some(self.intern(TermKey::Iri(iri.clone()), || Term {
+                    kind: TermKind::Iri,
+                    value: Some(iri),
+                    datatype: None,
+                    lang: None,
+                    reifier: None,
+                }))
+            }
         };
         let key = TermKey::Literal {
             value: value.clone(),
             lang: lang.clone(),
-            datatype: datatype.clone(),
+            datatype: datatype_id,
         };
-        let datatype_id = datatype.as_ref().map(|iri| {
-            self.intern(TermKey::Iri(iri.clone()), || Term {
-                kind: TermKind::Iri,
-                value: Some(iri.clone()),
-                datatype: None,
-                lang: None,
-                reifier: None,
-            })
-        });
         self.intern(key, || Term {
             kind: TermKind::Literal,
             value: Some(value),
@@ -461,7 +468,7 @@ impl Interner {
         })
     }
 
-    fn term_ref(&mut self, term: OxTermRef<'_>, reifiers: &mut Vec<(usize, Triple3)>) -> usize {
+    fn term_ref(&mut self, term: OxTermRef<'_>, reifiers: &mut BTreeMap<usize, Triple3>) -> usize {
         match term {
             OxTermRef::NamedNode(node) => self.named_node_ref(node),
             OxTermRef::BlankNode(node) => self.blank_node_ref(node),
@@ -481,7 +488,7 @@ impl Interner {
                     reifier: Some(id),
                 });
                 self.ids.insert(key, id);
-                set_reifier(reifiers, id, (s, p, o));
+                reifiers.insert(id, (s, p, o));
                 id
             }
         }
@@ -490,7 +497,7 @@ impl Interner {
     fn triple_ref(
         &mut self,
         triple: OxTripleRef<'_>,
-        reifiers: &mut Vec<(usize, Triple3)>,
+        reifiers: &mut BTreeMap<usize, Triple3>,
     ) -> Triple3 {
         (
             self.named_or_blank_ref(triple.subject),
@@ -507,13 +514,5 @@ impl Interner {
         self.terms.push(make());
         self.ids.insert(key, id);
         id
-    }
-}
-
-fn set_reifier(reifiers: &mut Vec<(usize, Triple3)>, rid: usize, spo: Triple3) {
-    if let Some((_, existing)) = reifiers.iter_mut().find(|(r, _)| *r == rid) {
-        *existing = spo;
-    } else {
-        reifiers.push((rid, spo));
     }
 }
