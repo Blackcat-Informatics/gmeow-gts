@@ -15,6 +15,7 @@ use std::collections::{HashMap, HashSet};
 use ciborium::value::Value;
 
 use crate::codec::{decode_chain, Codec, CodecError};
+use crate::mmr;
 use crate::model::{
     Diagnostic, Graph, OpaqueNode, Quad, Signature, StreamableInfo, Suppression, Term, TermKind,
     Triple3,
@@ -84,6 +85,14 @@ enum PayloadError {
     },
     /// Anything else — the frame is damaged.
     Damaged(String),
+}
+
+#[derive(Clone, Debug)]
+struct IndexRecord {
+    abs_index: usize,
+    count: usize,
+    head: Vec<u8>,
+    mmr: Option<Vec<u8>>,
 }
 
 impl From<CodecError> for PayloadError {
@@ -191,7 +200,7 @@ struct Folder<'g, 's> {
     // Layout-state bookkeeping (§3.3): intact index frames seen, digests the
     // graph has described via stream:digest so far, and each inline blob's
     // arrival (frame index, digest, was-it-described-at-arrival).
-    index_records: Vec<(usize, usize, Vec<u8>)>,
+    index_records: Vec<IndexRecord>,
     described: HashSet<String>,
     blob_events: Vec<(usize, String, bool)>,
 }
@@ -697,7 +706,16 @@ impl Folder<'_, '_> {
         let count = map_get(entries, "count").and_then(as_idx);
         let head = map_get(entries, "head");
         if let (Some(count), Some(Value::Bytes(head))) = (count, head) {
-            self.index_records.push((index, count, head.clone()));
+            let mmr = match map_get(entries, "mmr") {
+                Some(Value::Bytes(root)) => Some(root.clone()),
+                _ => None,
+            };
+            self.index_records.push(IndexRecord {
+                abs_index: index,
+                count,
+                head: head.clone(),
+                mmr,
+            });
         }
     }
 
@@ -1224,6 +1242,7 @@ fn read_segment_with_sink(
     g.segment_meta.push(seg_meta);
     g.segment_profiles
         .push(text_or(map_get(header, "prof"), "generic").to_string());
+    check_index_mmr(&mut g, &index_records, &frame_ids, index_offset, &mut sink);
     let info = layout_check(
         &mut g,
         header,
@@ -1256,7 +1275,7 @@ fn read_segment_with_sink(
 fn layout_check(
     g: &mut Graph,
     header: &[(Value, Value)],
-    index_records: &[(usize, usize, Vec<u8>)],
+    index_records: &[IndexRecord],
     blob_events: &[(usize, String, bool)],
     frame_ids: &[Vec<u8>],
     index_offset: usize,
@@ -1267,7 +1286,7 @@ fn layout_check(
     if !claimed {
         return StreamableInfo::default();
     }
-    let Some((abs_pos, count, head)) = index_records.last() else {
+    let Some(record) = index_records.last() else {
         push_diagnostic(
             g,
             sink,
@@ -1286,7 +1305,7 @@ fn layout_check(
             head: None,
         };
     };
-    let (abs_pos, count) = (*abs_pos, *count);
+    let (abs_pos, count, head) = (record.abs_index, record.count, &record.head);
     let rel_pos = abs_pos - index_offset; // 1-based frame position of the index
     let tail = total - rel_pos;
     // The footer must IMMEDIATELY follow the frames it covers (§3.3): a
@@ -1329,6 +1348,55 @@ fn layout_check(
         covered: count,
         tail,
         head: Some(head.clone()),
+    }
+}
+
+fn check_index_mmr(
+    g: &mut Graph,
+    index_records: &[IndexRecord],
+    frame_ids: &[Vec<u8>],
+    index_offset: usize,
+    sink: &mut Option<&mut dyn StreamingSink>,
+) {
+    for record in index_records {
+        let Some(root) = &record.mmr else {
+            continue;
+        };
+        let rel_pos = record.abs_index.saturating_sub(index_offset);
+        let preceding = rel_pos.saturating_sub(1);
+        let mut detail = None;
+        if root.len() != 32 {
+            detail = Some("index mmr root is not a 32-byte digest".to_string());
+        } else if record.count > preceding {
+            detail = Some(format!(
+                "index mmr covers {} frame(s), but only {preceding} precede the index",
+                record.count
+            ));
+        } else if record.count > frame_ids.len() {
+            detail = Some(format!(
+                "index mmr covers {} frame(s), but the segment has {} frame id(s)",
+                record.count,
+                frame_ids.len()
+            ));
+        } else if record.count > 0 && frame_ids[record.count - 1] != record.head {
+            detail = Some("index mmr head does not match the last covered frame".to_string());
+        } else {
+            let computed = mmr::root(&frame_ids[..record.count]);
+            if computed != *root {
+                detail = Some("index mmr root does not match the covered frame ids".to_string());
+            }
+        }
+        if let Some(detail) = detail {
+            push_diagnostic(
+                g,
+                sink,
+                Diagnostic {
+                    code: "IndexMmrError".to_string(),
+                    detail,
+                    frame_index: Some(record.abs_index),
+                },
+            );
+        }
     }
 }
 

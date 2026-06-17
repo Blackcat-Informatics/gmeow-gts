@@ -86,6 +86,8 @@ actual dispatch surfaces.
 | `to-sqlite` | yes | yes | no | no | Python/Rust extension |
 | `to-duckdb` | yes | yes | no | no | Python/Rust extension |
 | `to-parquet` | yes | yes | no | no | Python/Rust extension |
+| `prove` | no | yes | no | no | Rust proof extension |
+| `verify-proof` | no | yes | no | no | Rust proof extension |
 <!-- cli-parity-matrix:end -->
 
 ### Intentional Gaps
@@ -94,10 +96,11 @@ actual dispatch surfaces.
   the optional no-dependency `duckdb` Cargo feature plus `duckdb` on `PATH`. Python DuckDB
   and Parquet exports require the Python `[db]` extra.
 - Go and TypeScript do not yet expose `from-nq` or relational exports.
-- Future index/MMR proof, nested-GTS recursion, and encryption policy verbs are not part of the
-  stable CLI surface yet. They should be added to this matrix before package-specific docs claim
-  them.
-- Advanced `prove`, `verify-proof`, `heads`, `segments`, `missing`, and `resume` verbs are
+- Rust implements the first `index.mmr` proof verbs. Python, Go, and TypeScript should not expose
+  `prove` or `verify-proof` until they implement the same proof JSON and preimages.
+- Future nested-GTS recursion and encryption policy verbs are not part of the stable CLI surface
+  yet. They should be added to this matrix before package-specific docs claim them.
+- Advanced `heads`, `segments`, `missing`, and `resume` verbs are
   deferred in [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md) and guarded by
   `scripts/check_advanced_contract.py`.
 

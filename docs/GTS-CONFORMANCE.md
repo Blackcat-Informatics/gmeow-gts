@@ -46,7 +46,7 @@ used by tier claims:
 | `openpgp-transport-key` | `vectors/openpgp/*.json` | Embedded OpenPGP transport-key extraction and cross-engine fingerprint/emojihash agreement. |
 | `human-hash` | `vectors/emojihash/*.json`, `vectors/randomart/*.json` | Human-facing digest rendering used by CLIs and release tooling. |
 | `security-policy` | `vectors/security/*.json` | Profile trust-policy separation, pseudonymous opaque recipients, and nested-GTS recursion-limit negative cases. |
-| `advanced-index-proof` | not committed for v1 | Future offset/dictionary/MMR acceleration, inclusion proof, and replication vectors. |
+| `advanced-index-proof` | `vectors/proofs/*.json` plus implementation-created indexed files | Stable MMR preimages, detached inclusion-proof JSON verification, bad-proof rejection, and optional `index.mmr` reader diagnostics. |
 
 A tier MAY require a subset plus extra mode-specific assertions. For example,
 `profile-layout` contains files that permissive readers fold, while validating tools must also
@@ -204,6 +204,7 @@ Severity values:
 | `SegmentBoundary` | fatal | pre-segment compatibility mode | Stop before misfolding a later segment as file-global ids. | no for that mode | none | Baseline Reader compatibility test |
 | `TruncatedLog` | error | expected head / freshness | Fold observed bytes but fail verification against the requested head. | yes | none | Full Reader or Validating Tool |
 | `StreamableLayoutError` | error | streamable layout claim | Fold bytes but make strict/profile verify fail for the layout claim. | yes | none | Validating Tool |
+| `IndexMmrError` | error | optional index MMR root | Fold bytes but make strict verification fail for the index commitment. | yes | none | Full Reader when MMR/proof support is claimed |
 | `RecursionLimit` | error | nested GTS recursion | Stop recursion and expose the nested content as unavailable/opaque. | yes | implementation-defined | Full Reader |
 | `UnknownFrameType` | warning | extension frame | Preserve chain verification; either ignore or surface opaque/diagnostic until a profile handles it. | yes | `unknown-frame-type` if opaque | Profile-Aware Tool |
 

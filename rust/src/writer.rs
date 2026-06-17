@@ -49,6 +49,7 @@ pub struct Writer {
     // verify, types the "ti" locator map.
     offsets: Vec<usize>,
     types: Vec<String>,
+    frame_ids: Vec<Vec<u8>>,
     // When set, every appended frame is COSE_Sign1-signed over its id (§9.2).
     signer: Option<(ed25519_dalek::SigningKey, String)>,
 }
@@ -149,6 +150,7 @@ impl Writer {
             buf,
             offsets: Vec::new(),
             types: Vec::new(),
+            frame_ids: Vec::new(),
             signer: None,
         }
     }
@@ -242,6 +244,7 @@ impl Writer {
 
         self.offsets.push(self.buf.len());
         self.types.push(frame_type.to_string());
+        self.frame_ids.push(id.clone());
         self.buf.extend_from_slice(&canonical(&Value::Map(frame)));
         self.prev = id.clone();
         id
@@ -332,11 +335,17 @@ impl Writer {
     /// of this writer's output; `ti` locates frames by type (0-based frame
     /// positions). A later `add_index` covers the earlier one too — the last
     /// index wins (§6.2).
-    pub fn add_index(&mut self) -> Vec<u8> {
+    fn add_index_impl(&mut self, include_mmr: bool) -> Vec<u8> {
         let mut payload: Vec<(Value, Value)> = vec![
             ("count".into(), iv(self.types.len() as i64)),
             ("head".into(), Value::Bytes(self.prev.clone())),
         ];
+        if include_mmr {
+            payload.push((
+                "mmr".into(),
+                Value::Bytes(crate::mmr::root(&self.frame_ids)),
+            ));
+        }
         if !self.offsets.is_empty() {
             // "off"/"ti" are [+ uint]-shaped — omit when empty
             let off: Vec<Value> = self.offsets.iter().map(|&o| iv(o as i64)).collect();
@@ -354,6 +363,18 @@ impl Writer {
             payload.push(("ti".into(), Value::Map(ti)));
         }
         self.add_frame("index", Some(Value::Map(payload)), None, None, None)
+    }
+
+    pub fn add_index(&mut self) -> Vec<u8> {
+        self.add_index_impl(false)
+    }
+
+    /// Append an `index` footer with the optional `mmr` root over covered frame ids.
+    ///
+    /// This is opt-in so existing byte-oracle corpus vectors and cross-engine
+    /// compact output remain stable until other engines claim the proof tier.
+    pub fn add_index_with_mmr(&mut self) -> Vec<u8> {
+        self.add_index_impl(true)
     }
 
     /// Return the complete GTS file bytes.
