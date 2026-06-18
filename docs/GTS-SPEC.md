@@ -3,8 +3,8 @@
 
 # GTS — Graph Transport Substrate — Specification
 
-**Document version:** 0.3 (draft) &nbsp;·&nbsp; **Wire-format major version:** 1 &nbsp;·&nbsp;
-**Date:** 2026-06-11 &nbsp;·&nbsp; **Editor:** Patrick Audley, Blackcat Informatics® Inc. &nbsp;·&nbsp;
+**Document version:** 0.9-draft &nbsp;·&nbsp; **Wire-format major version:** 1 &nbsp;·&nbsp;
+**Date:** 2026-06-18 &nbsp;·&nbsp; **Editor:** Patrick Audley, Blackcat Informatics® Inc. &nbsp;·&nbsp;
 **This version:** <https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md>
 
 ## Abstract
@@ -22,9 +22,9 @@ signatures and encryption, and cross-language conformance through a shared vecto
 | Field | Value |
 |---|---|
 | Status | Working draft |
-| Document version | 0.3 (draft) |
+| Document version | 0.9-draft |
 | Wire-format major version | 1, encoded in the segment header `"v"` field |
-| Date | 2026-06-11 |
+| Date | 2026-06-18 |
 | Stability | Wire-format changes remain possible until v1.0 |
 | Change control | Blackcat Informatics / [GTS governance process](./GTS-GOVERNANCE.md) |
 | Conformance | Defined by this document and the versioned vector corpus (§19) |
@@ -43,7 +43,29 @@ for GTS, but GTS readers and writers do not require GMEOW vocabulary, tooling, o
 Domain-specific profiles, including GMEOW and music-package profiles, are layered above the
 core format.
 
-**Changes in v0.3:**
+## Document history
+
+This section records changes to this specification document. Package releases, package version
+numbers, and per-engine release notes are separate artifacts and are not implied by the document
+version.
+
+**Changes in v0.9-draft (2026-06-18):**
+
+- Aligns publication metadata with the current v1.0-rc1 preparation state while keeping package
+  versions independent from the spec document version.
+- Clarifies conformance scopes, reader/writer classes, streaming-reader memory bounds, and
+  canonical reader diagnostics.
+- Formalises the graph fold, multi-segment value union, blank-node scoping, RDF 1.2 triple-term
+  and `rdf:reifies` mapping, position constraints, and duplicate/conflict behavior.
+- Adds streamable-layout rules, optional index/MMR proof preimages, proof verification, unknown
+  extension-key behavior, media type and HTTP serving contracts, and durability/security
+  considerations.
+- Expands vector-corpus and manifest references so conformance claims name corpus revisions,
+  subsets, tiers, modes, and release-stamped manifest artifacts.
+- Pins the RDF 1.2 substrate to the 07 April 2026 W3C Candidate Recommendation Snapshot and
+  states which RDF semantics GTS imports.
+
+**Earlier v0.3 document notes:**
 
 - Multi-segment files (`cat`-append composition, §3.1); segment-scoped term-ids (§7.2);
   per-segment fold and value-union semantics (§7.5); cross-segment suppression (§11); profile
@@ -658,10 +680,15 @@ nodes, signatures, diagnostics, and segment ledgers are merged by the rules in �
 The union MUST NOT compare raw term ids across segments. Cross-segment identity is always
 value identity.
 
-**RDF substrate (normative).** GTS uses the RDF 1.2 abstract data model for IRIs, blank
-nodes, literals, datasets, quoted triple terms, and `rdf:reifies`. A Baseline Reader need not
-implement an RDF parser, query language, entailment regime, or canonicalization algorithm; it
-only needs the term, quad, reifier, annotation, and dataset mapping defined here.
+**RDF substrate (normative).** GTS imports the RDF 1.2 Concepts and Abstract Data Model
+Candidate Recommendation Snapshot dated 07 April 2026 for IRIs, blank nodes, literals, RDF
+datasets, triple terms, version label `"1.2"`, and `rdf:reifies` (§23.1). GTS freezes that
+substrate for major version 1 unless a later GTS major version updates this reference. A
+Baseline Reader need not implement an RDF parser, query language, entailment regime,
+canonicalization algorithm, or RDF 1.2 concrete syntax; it only needs the term, quad, reifier,
+annotation, and dataset mapping defined here. RDF Semantics entailment regimes are not part of
+the core GTS fold unless a profile or projection explicitly applies them above the transport
+layer.
 
 **Value equality (normative).** The fold compares values as follows:
 
@@ -1752,7 +1779,7 @@ A GTS package is served like any other immutable binary release, with three extr
 
 Published GTS releases are immutable; a GTS package URL names one exact byte sequence.
 
-- **Versioned URLs** (`…/gmeow/1.2.3/gmeow.gts`, `…/packages/music/2026-06-11/music.gts`, or any
+- **Versioned URLs** (`…/gmeow/1.2.3/gmeow.gts`, `…/packages/music/2026-06-18/music.gts`, or any
   URL that contains a version/date/head identifier) MUST be served with:
 
   ```text
@@ -2224,7 +2251,7 @@ preimages, signature subjects, or fold semantics (§2.1, §13).
 - **[RFC 3339]** Klyne, G. and C. Newman, "Date and Time on the Internet: Timestamps", July 2002.
 - **[BCP 47]** Phillips, A. and M. Davis, "Tags for Identifying Languages", September 2009.
 - **[BLAKE3]** O'Connor, J., Aumasson, J-P., Neves, S., and Z. Wilcox-O'Hearn, "BLAKE3: one function, fast everywhere" (256-bit output used here).
-- **[RDF 1.2]** W3C, "RDF 1.2 Concepts and Abstract Syntax" — RDF concepts and the quoted-triple / reifier model (statement-level metadata).
+- **[RDF 1.2]** W3C, "RDF 1.2 Concepts and Abstract Data Model", Candidate Recommendation Snapshot, 07 April 2026, <https://www.w3.org/TR/2026/CR-rdf12-concepts-20260407/> — the RDF terms, dataset model, triple-term, and `rdf:reifies` substrate imported by §7.
 
 ### 23.2 Informative references
 
