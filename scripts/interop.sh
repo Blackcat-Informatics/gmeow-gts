@@ -148,6 +148,39 @@ for writer in "${ENGINES[@]}"; do
   printf '  package from %-7s reports changed trees identically everywhere\n' "$writer"
 done
 
+log "Replication parity: JSON inventory and binary resume match across engines"
+cat "$WORK/packed_rust.gts" "$WORK/packed_python.gts" > "$WORK/replicated.gts"
+ref_heads="$(gts rust heads "$WORK/replicated.gts")"
+ref_segments="$(gts rust segments "$WORK/replicated.gts")"
+peer_head="$(
+  python -c 'import json,sys; print(json.load(sys.stdin)["segment_heads"][0])' <<<"$ref_heads"
+)"
+ref_missing="$(gts rust missing --from-head "$peer_head" "$WORK/replicated.gts")"
+for reader in "${ENGINES[@]}"; do
+  got_heads="$(gts "$reader" heads "$WORK/replicated.gts")"
+  if [ "$got_heads" != "$ref_heads" ]; then
+    echo "  MISMATCH: $reader heads JSON differs from rust" >&2
+    fail=1
+  fi
+  got_segments="$(gts "$reader" segments "$WORK/replicated.gts")"
+  if [ "$got_segments" != "$ref_segments" ]; then
+    echo "  MISMATCH: $reader segments JSON differs from rust" >&2
+    fail=1
+  fi
+  got_missing="$(gts "$reader" missing --from-head "$peer_head" "$WORK/replicated.gts")"
+  if [ "$got_missing" != "$ref_missing" ]; then
+    echo "  MISMATCH: $reader missing JSON differs from rust" >&2
+    fail=1
+  fi
+  resume_out="$WORK/resume_$reader.gts"
+  gts "$reader" resume --after "$peer_head" "$WORK/replicated.gts" > "$resume_out"
+  if ! cmp -s "$resume_out" "$WORK/packed_python.gts"; then
+    echo "  MISMATCH: $reader resume bytes do not start at the next CBOR segment" >&2
+    fail=1
+  fi
+  printf '  %-7s replication verbs match the rust reference\n' "$reader"
+done
+
 # --- cross-fold a frozen corpus vector ------------------------------------- #
 log "Cross-fold a frozen corpus vector (01-minimal.gts)"
 ref=""

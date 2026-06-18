@@ -9,6 +9,7 @@ same refusals, same exit codes.
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -26,6 +27,69 @@ CAT = "https://example.org/Cat"
 LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
 BLOB = b"not really webp bytes"
+
+
+def _replication_file(tmp_path: Path) -> tuple[Path, bytes, bytes, bytes]:
+    first = Writer()
+    first_head = first.add_blob(b"a", mt="text/plain")
+    first_bytes = first.to_bytes()
+    second = Writer()
+    second_head = second.add_blob(b"b", mt="text/plain")
+    second_bytes = second.to_bytes()
+    path = tmp_path / "replicated.gts"
+    path.write_bytes(first_bytes + second_bytes)
+    return path, first_head, second_head, second_bytes
+
+
+def test_replication_verbs_emit_json_shapes_and_resume_boundary(
+    tmp_path: Path, capsysbinary: pytest.CaptureFixture[bytes]
+) -> None:
+    path, first_head, second_head, second_bytes = _replication_file(tmp_path)
+    total_size = path.stat().st_size
+    first_size = total_size - len(second_bytes)
+
+    assert main(["heads", str(path)]) == 0
+    heads = json.loads(capsysbinary.readouterr().out.decode())
+    assert heads["schema"] == "gts-replication-heads-v1"
+    assert heads["clean"] is True
+    assert heads["segment_heads"] == [first_head.hex(), second_head.hex()]
+    assert heads["aggregate"]["schema"] == "gts-segment-heads-v1"
+    assert heads["aggregate"]["count"] == 2
+    assert heads["aggregate"]["file_head"] == second_head.hex()
+    assert heads["fatal"] is None
+
+    assert main(["segments", str(path)]) == 0
+    segments = json.loads(capsysbinary.readouterr().out.decode())
+    assert segments["schema"] == "gts-replication-segments-v1"
+    assert segments["clean"] is True
+    assert segments["item_count"] == 4
+    assert segments["segments"][0]["byte_range"] == {
+        "start": 0,
+        "end": first_size,
+        "length": first_size,
+    }
+    assert segments["segments"][1]["byte_range"] == {
+        "start": first_size,
+        "end": total_size,
+        "length": len(second_bytes),
+    }
+    assert segments["segments"][0]["frame_count"] == 1
+
+    assert main(["missing", "--from-head", first_head.hex(), str(path)]) == 0
+    missing = json.loads(capsysbinary.readouterr().out.decode())
+    assert missing == {
+        "schema": "gts-replication-missing-v1",
+        "status": "ranges",
+        "from_head": first_head.hex(),
+        "ranges": [
+            {"start": first_size, "end": total_size, "length": len(second_bytes)}
+        ],
+        "scan_required": False,
+        "detail": None,
+    }
+
+    assert main(["resume", "--after", first_head.hex(), str(path)]) == 0
+    assert capsysbinary.readouterr().out == second_bytes
 
 
 def _blob_file(tmp_path: Path) -> tuple[Path, str]:

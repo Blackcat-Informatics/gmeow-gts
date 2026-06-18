@@ -88,10 +88,10 @@ actual dispatch surfaces.
 | `to-parquet` | yes | yes | no | no | Python/Rust extension |
 | `prove` | no | yes | no | no | Rust proof creation extension |
 | `verify-proof` | yes | yes | yes | yes | common |
-| `heads` | no | yes | no | no | Rust replication extension |
-| `segments` | no | yes | no | no | Rust replication extension |
-| `missing` | no | yes | no | no | Rust replication extension |
-| `resume` | no | yes | no | no | Rust replication extension |
+| `heads` | yes | yes | yes | yes | common |
+| `segments` | yes | yes | yes | yes | common |
+| `missing` | yes | yes | yes | yes | common |
+| `resume` | yes | yes | yes | yes | common |
 <!-- cli-parity-matrix:end -->
 
 ### Intentional Gaps
@@ -106,9 +106,9 @@ actual dispatch surfaces.
   the positive/negative fixtures in `vectors/proofs/`. Rust additionally implements `prove` from
   files that carry a verified `index.mmr` root. Python, Go, and TypeScript should not expose
   `prove` until they can create file-backed proofs against the same fixture discipline.
-- Rust implements the first replication verbs. Python, Go, and TypeScript should not expose
-  `heads`, `segments`, `missing`, or `resume` until they implement the same JSON shapes and
-  boundary rules.
+- All engines implement the replication verbs with the same JSON schemas and resume boundary
+  rules: `gts-replication-heads-v1`, `gts-replication-segments-v1`, and
+  `gts-replication-missing-v1`.
 - Future nested-GTS recursion and encryption policy verbs are not part of the stable CLI surface
   yet. They should be added to this matrix before package-specific docs claim them.
 - Remaining advanced deferred verbs, if any, are tracked in

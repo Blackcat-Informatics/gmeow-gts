@@ -17,6 +17,7 @@ import (
 
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/stream"
+	"go.blackcatinformatics.ca/gts/wire"
 	"go.blackcatinformatics.ca/gts/writer"
 )
 
@@ -125,6 +126,126 @@ func TestVerifyProofRejectsBadRoot(t *testing.T) {
 	}
 	if !bytes.Contains(stderr.Bytes(), []byte("invalid proof")) {
 		t.Fatalf("stderr did not name invalid proof: %s", stderr.String())
+	}
+}
+
+func TestReplicationVerbsEmitJSONShapesAndResumeBoundary(t *testing.T) {
+	tmp := t.TempDir()
+	first := writer.New("generic")
+	firstHead := first.AddBlob([]byte("a"), "text/plain", "")
+	firstBytes := first.ToBytes()
+	second := writer.New("generic")
+	secondHead := second.AddBlob([]byte("b"), "text/plain", "")
+	secondBytes := second.ToBytes()
+	data := append(append([]byte{}, firstBytes...), secondBytes...)
+	path := filepath.Join(tmp, "replicated.gts")
+	if err := os.WriteFile(path, data, 0o644); err != nil { //nolint:gosec // test fixture.
+		t.Fatal(err)
+	}
+
+	cmd, stdout, stderr := run(t, "heads", path)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("heads exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	var heads struct {
+		Schema       string   `json:"schema"`
+		Clean        bool     `json:"clean"`
+		SegmentHeads []string `json:"segment_heads"`
+		Aggregate    struct {
+			Schema   string  `json:"schema"`
+			Count    int     `json:"count"`
+			FileHead *string `json:"file_head"`
+		} `json:"aggregate"`
+		Fatal *struct{} `json:"fatal"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &heads); err != nil {
+		t.Fatal(err)
+	}
+	if heads.Schema != "gts-replication-heads-v1" || !heads.Clean {
+		t.Fatalf("bad heads doc: %s", stdout.String())
+	}
+	wantHeads := []string{wire.Hex(firstHead), wire.Hex(secondHead)}
+	if fmt.Sprint(heads.SegmentHeads) != fmt.Sprint(wantHeads) {
+		t.Fatalf("segment heads = %v, want %v", heads.SegmentHeads, wantHeads)
+	}
+	if heads.Aggregate.Schema != "gts-segment-heads-v1" || heads.Aggregate.Count != 2 {
+		t.Fatalf("bad aggregate: %+v", heads.Aggregate)
+	}
+	if heads.Aggregate.FileHead == nil || *heads.Aggregate.FileHead != wire.Hex(secondHead) {
+		t.Fatalf("file head = %v, want %s", heads.Aggregate.FileHead, wire.Hex(secondHead))
+	}
+	if heads.Fatal != nil {
+		t.Fatalf("fatal = %+v, want nil", heads.Fatal)
+	}
+
+	cmd, stdout, stderr = run(t, "segments", path)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("segments exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	var segments struct {
+		Schema    string `json:"schema"`
+		Clean     bool   `json:"clean"`
+		ItemCount int    `json:"item_count"`
+		Segments  []struct {
+			ByteRange struct {
+				Start  int `json:"start"`
+				End    int `json:"end"`
+				Length int `json:"length"`
+			} `json:"byte_range"`
+			FrameCount int `json:"frame_count"`
+		} `json:"segments"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &segments); err != nil {
+		t.Fatal(err)
+	}
+	if segments.Schema != "gts-replication-segments-v1" || !segments.Clean || segments.ItemCount != 4 {
+		t.Fatalf("bad segments doc: %s", stdout.String())
+	}
+	if got := segments.Segments[0].ByteRange; got.Start != 0 || got.End != len(firstBytes) || got.Length != len(firstBytes) {
+		t.Fatalf("first range = %+v", got)
+	}
+	if got := segments.Segments[1].ByteRange; got.Start != len(firstBytes) || got.End != len(data) || got.Length != len(secondBytes) {
+		t.Fatalf("second range = %+v", got)
+	}
+	if segments.Segments[0].FrameCount != 1 {
+		t.Fatalf("frame count = %d, want 1", segments.Segments[0].FrameCount)
+	}
+
+	cmd, stdout, stderr = run(t, "missing", "--from-head", wire.Hex(firstHead), path)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("missing exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	var missing struct {
+		Schema   string `json:"schema"`
+		Status   string `json:"status"`
+		FromHead string `json:"from_head"`
+		Ranges   []struct {
+			Start  int `json:"start"`
+			End    int `json:"end"`
+			Length int `json:"length"`
+		} `json:"ranges"`
+		ScanRequired bool    `json:"scan_required"`
+		Detail       *string `json:"detail"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &missing); err != nil {
+		t.Fatal(err)
+	}
+	if missing.Schema != "gts-replication-missing-v1" || missing.Status != "ranges" {
+		t.Fatalf("bad missing doc: %s", stdout.String())
+	}
+	if missing.FromHead != wire.Hex(firstHead) || missing.ScanRequired || missing.Detail != nil {
+		t.Fatalf("bad missing metadata: %+v", missing)
+	}
+	if got := missing.Ranges[0]; got.Start != len(firstBytes) || got.End != len(data) || got.Length != len(secondBytes) {
+		t.Fatalf("missing range = %+v", got)
+	}
+
+	cmd, stdout, stderr = run(t, "resume", "--after", wire.Hex(firstHead), path)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("resume exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	if !bytes.Equal(stdout.Bytes(), secondBytes) {
+		t.Fatalf("resume bytes differ from second segment")
 	}
 }
 

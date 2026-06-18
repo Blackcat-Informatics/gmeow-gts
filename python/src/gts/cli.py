@@ -18,10 +18,19 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from gts.mmr import parse_hex_32
 from gts.model import Graph
 from gts.nquads import to_nquads
 from gts.policy import TrustPolicy, evaluate_profile_policy
 from gts.reader import read, read_segments
+from gts.replication import (
+    heads_json,
+    inventory,
+    missing,
+    missing_json,
+    resume_after,
+    segments_json,
+)
 
 if TYPE_CHECKING:
     from gts.crypto import KeyProvider
@@ -188,6 +197,44 @@ def _cmd_verify_proof(path: str) -> int:
         return 1
     print(f"proof ok: root {proof.root.hex()} frame {proof.frame_id.hex()}")
     return 0
+
+
+def _cmd_heads(path: str) -> int:
+    inv = inventory(_load(path))
+    print(heads_json(inv), end="")
+    return 1 if inv.has_problems() else 0
+
+
+def _cmd_segments(path: str) -> int:
+    inv = inventory(_load(path))
+    print(segments_json(inv), end="")
+    return 1 if inv.has_problems() else 0
+
+
+def _cmd_missing(from_head: str, path: str) -> int:
+    try:
+        peer_head = parse_hex_32(from_head)
+    except ValueError as exc:
+        print(f"gts missing: invalid peer head: {exc}", file=sys.stderr)
+        return 2
+    result = missing(inventory(_load(path)), peer_head)
+    print(missing_json(result), end="")
+    return 1 if result.status == "error" else 0
+
+
+def _cmd_resume(after: str, path: str) -> int:
+    try:
+        frame_id = parse_hex_32(after)
+    except ValueError as exc:
+        print(f"gts resume: invalid frame id: {exc}", file=sys.stderr)
+        return 2
+    data = _load(path)
+    try:
+        tail = resume_after(data, frame_id)
+    except ValueError as exc:
+        print(f"gts resume: {exc}", file=sys.stderr)
+        return 1
+    return _write_out(None, tail)
 
 
 def _cmd_extract_key(path: str) -> int:
@@ -562,6 +609,28 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_verify_proof.add_argument("proof")
 
+    p_heads = sub.add_parser(
+        "heads", help="JSON segment heads and aggregate comparison digest"
+    )
+    p_heads.add_argument("file")
+
+    p_segments = sub.add_parser(
+        "segments", help="JSON segment byte ranges and layout inventory"
+    )
+    p_segments.add_argument("file")
+
+    p_missing = sub.add_parser(
+        "missing", help="JSON byte ranges needed after a peer head"
+    )
+    p_missing.add_argument("--from-head", required=True)
+    p_missing.add_argument("file")
+
+    p_resume = sub.add_parser(
+        "resume", help="emit bytes after a verified frame boundary"
+    )
+    p_resume.add_argument("--after", required=True)
+    p_resume.add_argument("file")
+
     p_ls = sub.add_parser(
         "ls", help="list inline blobs: digest, size, declared media type"
     )
@@ -677,6 +746,14 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_verify(args.files, args.key, args.trusted_signer)
     if args.command == "verify-proof":
         return _cmd_verify_proof(args.proof)
+    if args.command == "heads":
+        return _cmd_heads(args.file)
+    if args.command == "segments":
+        return _cmd_segments(args.file)
+    if args.command == "missing":
+        return _cmd_missing(args.from_head, args.file)
+    if args.command == "resume":
+        return _cmd_resume(args.after, args.file)
     if args.command == "ls":
         return _cmd_ls(args.file)
     if args.command == "extract-key":
