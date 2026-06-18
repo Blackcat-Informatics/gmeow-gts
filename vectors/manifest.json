@@ -19,6 +19,7 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
         "wire-core",
         "writer-determinism"
@@ -55,6 +56,7 @@
         "zstd"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
         "wire-core",
         "writer-determinism"
@@ -90,14 +92,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/03-unknown-codec.expected.json",
@@ -129,14 +130,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/04-damaged-frame.expected.json",
@@ -168,14 +168,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/05-torn-append.expected.json",
@@ -205,14 +204,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "wire-core",
-        "writer-determinism"
+        "wire-core"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/06-header-tampered.expected.json",
@@ -240,6 +238,7 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
         "streaming-property",
         "writer-determinism"
@@ -275,6 +274,7 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
         "streaming-property",
         "writer-determinism"
@@ -310,14 +310,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
-        "streaming-property",
-        "writer-determinism"
+        "streaming-property"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/12-conflicting-reifier.expected.json",
@@ -347,14 +346,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
-        "streaming-property",
-        "writer-determinism"
+        "streaming-property"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/13-position-constraint.expected.json",
@@ -384,6 +382,7 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
         "streaming-property",
         "writer-determinism"
@@ -419,6 +418,7 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
         "streaming-property",
         "writer-determinism"
@@ -455,6 +455,7 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
         "streaming-property",
         "writer-determinism"
@@ -491,6 +492,7 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
         "streaming-property",
         "writer-determinism"
@@ -527,14 +529,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/17-pre-segment-hard-fail.expected.json",
@@ -564,6 +565,7 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
         "streaming-property",
         "writer-determinism"
@@ -600,14 +602,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/19-profile-union-opacity.expected.json",
@@ -640,6 +641,7 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "profile-layout",
         "streaming-property",
         "writer-determinism"
@@ -676,15 +678,14 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "profile-layout",
-        "streaming-property",
-        "writer-determinism"
+        "streaming-property"
       ],
       "tiers": [
         "baseline-reader",
         "streaming-reader",
-        "validating-tool",
-        "writer"
+        "validating-tool"
       ],
       "expected": {
         "graph": "vectors/21-degenerate-composition.expected.json",
@@ -718,6 +719,7 @@
         "inline-blob"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "graph-fold",
         "streaming-property",
         "writer-determinism"
@@ -754,6 +756,7 @@
         "files-profile"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "profile-layout",
         "streaming-property",
         "writer-determinism"
@@ -791,6 +794,7 @@
         "files-profile"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "profile-layout",
         "streaming-property",
         "writer-determinism"
@@ -828,6 +832,7 @@
         "cose-sign1"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "profile-layout",
         "streaming-property",
         "writer-determinism"
@@ -866,6 +871,7 @@
         "streamable-index"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "profile-layout",
         "streaming-property",
         "writer-determinism"
@@ -903,15 +909,14 @@
         "streamable-index"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "profile-layout",
-        "streaming-property",
-        "writer-determinism"
+        "streaming-property"
       ],
       "tiers": [
         "baseline-reader",
         "streaming-reader",
-        "validating-tool",
-        "writer"
+        "validating-tool"
       ],
       "expected": {
         "graph": "vectors/26-streamable-lie.expected.json",
@@ -942,6 +947,7 @@
         "streamable-index"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "profile-layout",
         "streaming-property",
         "writer-determinism"
@@ -978,14 +984,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/28-empty-file.expected.json",
@@ -1013,14 +1018,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/28b-non-header-item.expected.json",
@@ -1048,14 +1052,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/28c-unsupported-version.expected.json",
@@ -1085,14 +1088,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/28d-unknown-frame-type.expected.json",
@@ -1124,14 +1126,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/28e-forward-term-reference.expected.json",
@@ -1161,14 +1162,13 @@
         "identity"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
-        "total-reader",
-        "writer-determinism"
+        "total-reader"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader",
-        "writer"
+        "streaming-reader"
       ],
       "expected": {
         "graph": "vectors/28f-malformed-transform-shape.expected.json",
@@ -1201,6 +1201,7 @@
         "inline-blob"
       ],
       "subsets": [
+        "corpus-generator-determinism",
         "streaming-property",
         "writer-determinism"
       ],
