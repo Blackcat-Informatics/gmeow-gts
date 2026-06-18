@@ -88,8 +88,12 @@ type blobEvent struct {
 }
 
 type folder struct {
-	g       *model.Graph
-	catalog map[int64]*codec.Codec
+	g            *model.Graph
+	catalog      map[int64]*codec.Codec
+	segmentIndex int
+	sink         StreamingSink
+	materialize  bool
+	eventErr     error
 	// Layout-state bookkeeping (§3.3): intact index frames seen, digests the
 	// graph has described via stream:digest so far, and each inline blob's
 	// arrival.
@@ -98,12 +102,50 @@ type folder struct {
 	blobEvents   []blobEvent
 }
 
+func (f *folder) emit(event StreamingEvent) {
+	if f.sink == nil || f.eventErr != nil {
+		return
+	}
+	event.SegmentIndex = f.segmentIndex
+	if err := f.sink.Accept(event); err != nil {
+		f.eventErr = err
+	}
+}
+
 // diag appends a diagnostic to the folded graph.
 func (f *folder) diag(code, detail string, index *int) {
-	f.g.Diagnostics = append(f.g.Diagnostics, model.Diagnostic{
+	diag := model.Diagnostic{
 		Code:       code,
 		Detail:     detail,
 		FrameIndex: index,
+	}
+	f.g.Diagnostics = append(f.g.Diagnostics, diag)
+	f.emit(StreamingEvent{
+		Kind:       StreamingEventDiagnostic,
+		FrameIndex: eventFrameIndex(index),
+		Diagnostic: diag,
+	})
+}
+
+func (f *folder) pushOpaque(opaque model.OpaqueNode, index int) {
+	if f.materialize {
+		f.g.Opaque = append(f.g.Opaque, opaque)
+	}
+	f.emit(StreamingEvent{
+		Kind:       StreamingEventOpaque,
+		FrameIndex: index,
+		Opaque:     opaque,
+	})
+}
+
+func (f *folder) pushSignature(signature model.Signature, index int) {
+	if f.materialize {
+		f.g.Signatures = append(f.g.Signatures, signature)
+	}
+	f.emit(StreamingEvent{
+		Kind:       StreamingEventSignature,
+		FrameIndex: index,
+		Signature:  signature,
 	})
 }
 
@@ -169,10 +211,10 @@ func (f *folder) foldFrame(frame map[interface{}]interface{}, index int) {
 	payload, perr := f.payload(frame, ftype == "blob")
 	if perr != nil {
 		if perr.unavailable {
-			f.opaque(frame, ftype, perr.reason)
+			f.opaque(frame, ftype, perr.reason, index)
 			f.diag(diagCodeFor(perr.reason), perr.detail, &index)
 		} else {
-			f.opaque(frame, ftype, "damaged")
+			f.opaque(frame, ftype, "damaged", index)
 			f.diag("DamagedFrame", fmt.Sprintf("payload decode failed: %s", perr.detail), &index)
 		}
 		return
@@ -191,15 +233,15 @@ func (f *folder) foldFrame(frame map[interface{}]interface{}, index int) {
 	case "meta":
 		f.hMeta(payload)
 	case "suppress":
-		f.hSuppress(payload)
+		f.hSuppress(payload, index)
 	case "snapshot":
 		f.hSnapshot(payload, index)
 	case "index":
 		f.hIndex(payload, index)
 	case "opaque":
-		f.hOpaque(payload)
+		f.hOpaque(payload, index)
 	default:
-		f.opaque(frame, ftype, "unknown-frame-type")
+		f.opaque(frame, ftype, "unknown-frame-type", index)
 		f.diag("UnknownFrameType", fmt.Sprintf("unsupported frame type %q", ftype), &index)
 	}
 }
@@ -267,6 +309,15 @@ func (f *folder) hTerms(payload interface{}, index int) {
 			Lang:     lang,
 			Reifier:  rf,
 		})
+		f.emit(StreamingEvent{
+			Kind:       StreamingEventTerm,
+			FrameIndex: index,
+			TermID:     tid,
+			Term:       f.g.Terms[tid],
+		})
+		if f.eventErr != nil {
+			return
+		}
 	}
 }
 
@@ -297,7 +348,18 @@ func (f *folder) hQuads(payload interface{}, index int) {
 		if !f.checkPositions(s, p, o, gslot, index) {
 			continue
 		}
-		f.g.Quads = append(f.g.Quads, model.Quad{S: s, P: p, O: o, G: gslot})
+		quad := model.Quad{S: s, P: p, O: o, G: gslot}
+		if f.materialize {
+			f.g.Quads = append(f.g.Quads, quad)
+		}
+		f.emit(StreamingEvent{
+			Kind:       StreamingEventQuad,
+			FrameIndex: index,
+			Quad:       quad,
+		})
+		if f.eventErr != nil {
+			return
+		}
 		// Layout bookkeeping (§3.3): a stream:digest quad describes an
 		// upcoming manifestation — record the IOU for the blob check.
 		if f.g.Terms[p].Value == stream.Digest {
@@ -341,6 +403,15 @@ func (f *folder) hReifies(payload interface{}, index int) {
 			}
 		}
 		f.g.SetReifier(irid, spo)
+		f.emit(StreamingEvent{
+			Kind:       StreamingEventReifier,
+			FrameIndex: index,
+			ReifierID:  irid,
+			Triple:     spo,
+		})
+		if f.eventErr != nil {
+			return
+		}
 	}
 }
 
@@ -366,19 +437,46 @@ func (f *folder) hAnnot(payload interface{}, index int) {
 			f.diag("PositionConstraint", fmt.Sprintf("annot predicate %d not an IRI", p), &index)
 			continue
 		}
-		f.g.Annotations = append(f.g.Annotations, model.Triple3{S: r, P: p, O: v})
+		annotation := model.Triple3{S: r, P: p, O: v}
+		if f.materialize {
+			f.g.Annotations = append(f.g.Annotations, annotation)
+		}
+		f.emit(StreamingEvent{
+			Kind:       StreamingEventAnnotation,
+			FrameIndex: index,
+			Annotation: annotation,
+		})
+		if f.eventErr != nil {
+			return
+		}
 	}
 }
 
 func (f *folder) hBlob(payload interface{}, frame map[interface{}]interface{}, index int) {
 	if b, ok := payload.([]byte); ok {
 		digest := wire.DigestStr(b)
+		var meta interface{}
 		if pub, ok := wire.MapGet(frame, "pub"); ok {
 			if _, ok := pub.(map[interface{}]interface{}); ok {
-				f.g.SetBlobMeta(digest, pub)
+				meta = pub
+				if f.materialize {
+					f.g.SetBlobMeta(digest, pub)
+				}
 			}
 		}
-		f.g.SetBlob(digest, b)
+		if f.materialize {
+			f.g.SetBlob(digest, b)
+		}
+		f.emit(StreamingEvent{
+			Kind:       StreamingEventBlob,
+			FrameIndex: index,
+			BlobDigest: digest,
+			BlobData:   b,
+			BlobMeta:   meta,
+		})
+		if f.eventErr != nil {
+			return
+		}
 		// Layout bookkeeping (§3.3): was this delivery presaged by a
 		// stream:digest description in an earlier frame?
 		_, described := f.described[digest]
@@ -401,7 +499,7 @@ func (f *folder) hMeta(payload interface{}) {
 	}
 }
 
-func (f *folder) hSuppress(payload interface{}) {
+func (f *folder) hSuppress(payload interface{}, index int) {
 	entries, ok := payload.(map[interface{}]interface{})
 	if !ok {
 		return
@@ -429,7 +527,14 @@ func (f *folder) hSuppress(payload interface{}) {
 			s.By = &b
 		}
 	}
-	f.g.Suppressions = append(f.g.Suppressions, s)
+	if f.materialize {
+		f.g.Suppressions = append(f.g.Suppressions, s)
+	}
+	f.emit(StreamingEvent{
+		Kind:        StreamingEventSuppression,
+		FrameIndex:  index,
+		Suppression: s,
+	})
 }
 
 func (f *folder) hSnapshot(payload interface{}, index int) {
@@ -506,7 +611,19 @@ func (f *folder) hSnapshot(payload interface{}, index int) {
 		if b, ok := blobs.(map[interface{}]interface{}); ok {
 			for _, v := range b {
 				if data, ok := v.([]byte); ok {
-					f.g.SetBlob(wire.DigestStr(data), data)
+					digest := wire.DigestStr(data)
+					if f.materialize {
+						f.g.SetBlob(digest, data)
+					}
+					f.emit(StreamingEvent{
+						Kind:       StreamingEventBlob,
+						FrameIndex: index,
+						BlobDigest: digest,
+						BlobData:   data,
+					})
+					if f.eventErr != nil {
+						return
+					}
 				}
 			}
 		}
@@ -553,7 +670,7 @@ func (f *folder) hIndex(payload interface{}, index int) {
 	f.indexRecords = append(f.indexRecords, indexRecord{pos: index, count: count, head: head})
 }
 
-func (f *folder) hOpaque(payload interface{}) {
+func (f *folder) hOpaque(payload interface{}, index int) {
 	entries, ok := payload.(map[interface{}]interface{})
 	if !ok {
 		return
@@ -564,13 +681,13 @@ func (f *folder) hOpaque(payload interface{}) {
 			id = b
 		}
 	}
-	f.g.Opaque = append(f.g.Opaque, model.OpaqueNode{
+	f.pushOpaque(model.OpaqueNode{
 		ID:        id,
 		FrameType: textOr(entries["type"], "opaque"),
 		Reason:    textOr(entries["reason"], "unknown-codec"),
 		SigStat:   textOr(entries["sigstat"], "none"),
 		PubMeta:   entries["pub"],
-	})
+	}, index)
 }
 
 func (f *folder) checkPositions(s, p, o int, g *int, index int) bool {
@@ -596,7 +713,7 @@ func (f *folder) checkPositions(s, p, o int, g *int, index int) bool {
 	return ok
 }
 
-func (f *folder) opaque(frame map[interface{}]interface{}, ftype, reason string) {
+func (f *folder) opaque(frame map[interface{}]interface{}, ftype, reason string, index int) {
 	var id []byte
 	if v, ok := frame["id"]; ok {
 		if b, ok := v.([]byte); ok {
@@ -617,14 +734,14 @@ func (f *folder) opaque(frame map[interface{}]interface{}, ftype, reason string)
 			}
 		}
 	}
-	f.g.Opaque = append(f.g.Opaque, model.OpaqueNode{
+	f.pushOpaque(model.OpaqueNode{
 		ID:         id,
 		FrameType:  ftype,
 		Reason:     reason,
 		SigStat:    sigstat,
 		PubMeta:    frame["pub"],
 		Recipients: recipients,
-	})
+	}, index)
 }
 
 func isHeaderItem(item interface{}) bool {
@@ -838,7 +955,7 @@ func readSegment(items []struct {
 	expectedPrev := storedHID
 
 	catalog := catalogFrom(header)
-	fld := &folder{g: g, catalog: catalog, described: make(map[string]struct{})}
+	fld := &folder{g: g, catalog: catalog, materialize: true, described: make(map[string]struct{})}
 	var frameIDs [][]byte // per-frame chain ids, by 0-based frame position
 	for idx, it := range items[1:] {
 		absIndex := idx + 1 + indexOffset
@@ -856,7 +973,7 @@ func readSegment(items []struct {
 		if !bytesEqual(storedID, computed) {
 			fld.diag("DamagedFrame", "frame self-hash mismatch", &absIndex)
 			ftype := textOr(frame["t"], "")
-			fld.opaque(frame, ftype, "damaged")
+			fld.opaque(frame, ftype, "damaged", absIndex)
 			if storedID != nil {
 				expectedPrev = storedID
 			} else {
@@ -880,10 +997,10 @@ func readSegment(items []struct {
 			// The raw COSE bytes are retained so streamable compaction (§10.1)
 			// can carry the signature detached.
 			if cose, ok := sig.([]byte); ok {
-				g.Signatures = append(g.Signatures, model.Signature{FrameID: computed, Status: "unverified", Cose: cose})
+				fld.pushSignature(model.Signature{FrameID: computed, Status: "unverified", Cose: cose}, absIndex)
 			} else {
 				// present but malformed — record as invalid, never silently drop
-				g.Signatures = append(g.Signatures, model.Signature{FrameID: computed, Status: "invalid"})
+				fld.pushSignature(model.Signature{FrameID: computed, Status: "invalid"}, absIndex)
 			}
 		}
 		fld.foldFrame(frame, absIndex)
@@ -894,7 +1011,7 @@ func readSegment(items []struct {
 	copy(segMeta, g.Meta)
 	g.SegmentMeta = append(g.SegmentMeta, segMeta)
 	g.SegmentProfiles = append(g.SegmentProfiles, textOr(header["prof"], "generic"))
-	g.SegmentStreamable = append(g.SegmentStreamable, layoutCheck(g, header, fld, frameIDs, indexOffset))
+	g.SegmentStreamable = append(g.SegmentStreamable, layoutCheck(header, fld, frameIDs, indexOffset))
 	return g
 }
 
@@ -906,7 +1023,6 @@ func readSegment(items []struct {
 // describing it. Frames after the last index are the legal accretive tail —
 // boundary info, never a diagnostic. Unknown layout values impose no check (§5).
 func layoutCheck(
-	g *model.Graph,
 	header map[interface{}]interface{},
 	fld *folder,
 	frameIDs [][]byte,
@@ -919,11 +1035,11 @@ func layoutCheck(
 		return model.StreamableInfo{}
 	}
 	if len(fld.indexRecords) == 0 {
-		g.Diagnostics = append(g.Diagnostics, model.Diagnostic{
-			Code: "StreamableLayoutError",
-			Detail: "segment claims layout 'streamable' but carries no intact " +
-				"index footer (§3.3)",
-		})
+		fld.diag(
+			"StreamableLayoutError",
+			"segment claims layout 'streamable' but carries no intact index footer (§3.3)",
+			nil,
+		)
 		return model.StreamableInfo{Claimed: true, Covered: 0, Tail: total}
 	}
 	last := fld.indexRecords[len(fld.indexRecords)-1]
@@ -935,24 +1051,24 @@ func layoutCheck(
 	// prefix and the footer, counted neither as covered nor as tail.
 	if count != relPos-1 || count < 1 || !bytesEqual(frameIDs[count-1], head) {
 		pos := absPos
-		g.Diagnostics = append(g.Diagnostics, model.Diagnostic{
-			Code: "StreamableLayoutError",
-			Detail: fmt.Sprintf("index footer contradicts the frames it covers: count %d "+
+		fld.diag(
+			"StreamableLayoutError",
+			fmt.Sprintf("index footer contradicts the frames it covers: count %d "+
 				"must name the frame immediately before the footer and head "+
 				"must be that frame's id (§3.3)", count),
-			FrameIndex: &pos,
-		})
+			&pos,
+		)
 	}
 	for _, ev := range fld.blobEvents {
 		blobRel := ev.pos - indexOffset
 		if blobRel <= count && !ev.described {
 			pos := ev.pos
-			g.Diagnostics = append(g.Diagnostics, model.Diagnostic{
-				Code: "StreamableLayoutError",
-				Detail: fmt.Sprintf("covered blob %s delivered before its stream:digest "+
+			fld.diag(
+				"StreamableLayoutError",
+				fmt.Sprintf("covered blob %s delivered before its stream:digest "+
 					"description (catalog-before-payload, §3.3)", ev.digest),
-				FrameIndex: &pos,
-			})
+				&pos,
+			)
 		}
 	}
 	return model.StreamableInfo{Claimed: true, Covered: count, Tail: tail, Head: head}

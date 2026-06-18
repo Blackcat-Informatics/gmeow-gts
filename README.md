@@ -450,7 +450,7 @@ Current CI-gated conformance status:
 |---|---|---|---|---|---|
 | Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `read_to_sink` API plus prefix-fold corpus gate | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 
 ## Repository layout

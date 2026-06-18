@@ -63,6 +63,12 @@ refuse specific publish-class or verify-class violations.
 | Validating Tool | Baseline Reader plus strict verify and publish-class verify modes (§7); `profile-layout` refusal vectors produce the required non-zero/refusal outcomes. | `GTS Validating Tool, corpus <commit>` |
 | Profile-Aware Tool | Validating Tool plus the named profile validator; profile-specific diagnostics and warnings match the profile contract. | `GTS Profile-Aware Tool (<profile>), corpus <commit>` |
 
+Within this repository, the Go engine's `reader.ReadToSink(ctx, io.Reader, reader.Options,
+sink)` API is the Streaming Reader surface. The `go test ./reader -run
+TestStreamingFoldCorpusEquivalence` harness checks corpus equivalence against the full Go reader
+for final diagnostic codes, segment heads, profiles, metadata, streamable-layout state, and
+segment-local fold event counts.
+
 A tool can claim multiple tiers. A command-line package that exposes `read`, `verify`,
 `compact`, and `files` archive commands might claim Baseline Reader, Writer, Validating Tool,
 and Profile-Aware Tool (`files`), while not claiming Full Reader if it cannot decrypt or

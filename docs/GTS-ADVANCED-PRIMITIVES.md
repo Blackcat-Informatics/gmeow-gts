@@ -18,12 +18,14 @@ and what is intentionally deferred from the v1 surface.
 | MMR proof JSON | All engines verify detached proof JSON against `vectors/proofs/`; Rust also exposes `Writer::add_index_with_mmr`, validates optional `index.mmr`, and implements `gts prove`. | Detached verification is cross-engine; proof creation from indexed GTS files remains Rust-only. |
 | Replication inventory | All four CLIs expose `gts heads`, `gts segments`, `gts missing`, and `gts resume` for machine-readable head comparison and byte-range resume. | Shared v1 replication surface; `resume` starts only after a verified frame id at a scanned CBOR item boundary. |
 | Blob introspection | `gts ls` lists content-addressed blob digests, sizes, and media types. | Range fetch still needs a verified index or a boundary scan. |
-| Memory benchmark helper | `scripts/bench_reader_memory.py` reports full-reader materialization, a frame-scan baseline, and a Rust `read_to_sink` streaming-fold row when Cargo is available. | The frame scan is not a Streaming Reader fold; the Rust row is the sink API evidence. |
+| Memory benchmark helper | `scripts/bench_reader_memory.py` reports full-reader materialization, a frame-scan baseline, and a Rust `read_to_sink` streaming-fold row when Cargo is available. Go reports its full-reader and streaming-sink allocation evidence with `go test ./reader -bench 'Benchmark(ReadFull\|ReadToSink)CorpusVector' -benchmem`. | The frame scan is not a Streaming Reader fold; the Rust and Go sink rows are the sink API evidence. |
 
-The current Rust package may claim the `Streaming Reader` tier for its `read_to_sink` API and
-the Rust-only MMR proof-creation surface. All four packages may claim detached proof verification
-for the fixture set in `vectors/proofs/` and the shared replication inventory verbs. Python, Go,
-and TypeScript SHOULD NOT claim the sink or proof-creation tiers yet.
+The current Rust package may claim the `Streaming Reader` tier for its `read_to_sink` API, and
+the current Go package may claim it for `reader.ReadToSink(ctx, io.Reader, reader.Options,
+sink)`. Rust remains the only package that may claim MMR proof creation. All four packages may
+claim detached proof verification for the fixture set in `vectors/proofs/` and the shared
+replication inventory verbs. Python and TypeScript SHOULD NOT claim the sink or proof-creation
+tiers yet; Go SHOULD NOT claim proof creation yet.
 
 ## Deferred Advanced CLI Verbs
 

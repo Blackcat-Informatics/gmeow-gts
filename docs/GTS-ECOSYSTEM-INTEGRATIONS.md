@@ -18,7 +18,7 @@ deferred.
 | Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge; `--features rdf` enables `gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` for native `oxrdf::Dataset` interop without an embedded graph store; `--features oxigraph-adapter` enables `gmeow_gts::oxigraph::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using Oxigraph's in-memory store; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Sophia and Rio adapters remain deferred until they can be optional features with round-trip tests and no mandatory database dependency. |
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
 | TypeScript browser | Current browser-safe handoff is `Uint8Array`: `fetch()`, optional HTTP `Range`, then `Read(bytes, allowSegments)`, `toNQuads`, or files helpers. | A package-level browser bundle, `ReadableStream` fold API, WebCrypto key provider, and progressive rendering API are deferred. |
-| Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides cancellation, byte limits, and ordinary `io.Reader` integration for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | True streaming fold and service-specific replication orchestration remain deferred to the advanced-primitives contract. |
+| Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides graph-returning service integration, while `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` provides cancellation-aware, byte-limited streaming fold events for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | Service-specific replication orchestration remains application code built on the shared verbs. |
 
 ## Python: rdflib And Data Frames
 
@@ -245,9 +245,30 @@ graph, err := reader.ReadFrom(ctx, obj.Body, reader.Options{
 ```
 
 `ReadFrom` is intentionally a bounded full-reader wrapper. It gives Go services
-idiomatic cancellation and resource limits today without claiming incremental
-folding. The returned graph still carries reader diagnostics instead of turning
-format diagnostics into Go errors.
+idiomatic cancellation and resource limits when the caller wants a materialized
+`*model.Graph`. The returned graph still carries reader diagnostics instead of
+turning format diagnostics into Go errors.
+
+For streaming folds, callers can send segment-local fold events to a sink without
+constructing the final union graph:
+
+```go
+var sink reader.StreamingSink = reader.StreamingSinkFunc(func(event reader.StreamingEvent) error {
+	if event.Kind == reader.StreamingEventQuad {
+		// project or forward event.Quad here
+	}
+	return nil
+})
+
+result, err := reader.ReadToSink(ctx, obj.Body, reader.Options{
+	AllowSegments: true,
+	ExpectedHead:  expectedHead,
+	MaxBytes:      512 << 20,
+}, sink)
+```
+
+`result.Diagnostics`, `result.SegmentHeads`, and `result.SegmentStreamable`
+match the full reader for the same input and options.
 
 ## Replication And Service Boundaries
 
