@@ -43,6 +43,7 @@ used by tier claims:
 | `writer-determinism` | Python generator for all top-level vectors, `25b-streamable-compacted` as the streamable compaction byte oracle, and `29-deterministic-writer` as the graph-authoring byte oracle | Reproducible writer output, deterministic hashes, deterministic graph authoring, and deterministic compaction under fixed parameters. |
 | `crypto-cose` | `vectors/cose/*.json`, `vectors/signed/basic.json` | COSE Sign1 serialization, per-frame signatures, and signature verification behavior. |
 | `crypto-encrypt` | `vectors/encrypt0/basic.json` | COSE Encrypt0 sealing/opening behavior for engines that implement encryption. |
+| `crypto-deferred` | `vectors/crypto-deferred/*.json` | Deferred multi-recipient `COSE_Encrypt` and ECDH-ES+A256KW contract descriptors. These vectors prevent premature support claims; they are not v1 implementation vectors until byte-level fixtures and interop harnesses replace the placeholders. |
 | `openpgp-transport-key` | `vectors/openpgp/*.json` | Embedded OpenPGP transport-key extraction and cross-engine fingerprint/emojihash agreement. |
 | `human-hash` | `vectors/emojihash/*.json`, `vectors/randomart/*.json` | Human-facing digest rendering used by CLIs and release tooling. |
 | `security-policy` | `vectors/security/*.json` | Profile trust-policy separation, pseudonymous opaque recipients, and nested-GTS recursion-limit negative cases. |
@@ -198,7 +199,7 @@ Required vector fields:
 | `input.path` | Path to the canonical input bytes or JSON fixture. |
 | `mode` | One of `permissive-read`, `strict-verify`, `publish-verify`, `profile-verify`, `pre-segment`, or a profile-defined extension. |
 | `negative` | `true` when the vector expects diagnostics, refusal, non-zero verify status, or a profile violation. |
-| `required_capabilities` | Capability names needed to exercise the vector, such as `zstd`, `cose-sign1`, `encrypt0`, `openpgp`, `streamable-index`, or `files-profile`. |
+| `required_capabilities` | Capability names needed to exercise the vector, such as `zstd`, `cose-sign1`, `encrypt0`, `cose-encrypt`, `ecdh-es+a256kw`, `openpgp`, `streamable-index`, or `files-profile`. |
 | `subsets` | One or more subset names from §2. |
 | `tiers` | Tier names from §3 that consume the vector. |
 | `expected.graph` | Expected graph JSON path, or `null` for non-graph JSON fixtures. |
@@ -233,6 +234,7 @@ Severity values:
 | `TornAppendError` | warning | trailing incomplete CBOR item | Ignore trailing incomplete bytes and fold the last complete prefix. | yes | none | Baseline Reader |
 | `UnknownCodec` | warning | transform capability | Preserve the frame as opaque and continue folding known content. | yes | `unknown-codec` | Baseline Reader |
 | `MissingKey` | warning | encrypted transform | Preserve the frame as opaque and continue folding known content. | yes | `missing-key` | Full Reader when decrypt support is claimed |
+| `KeyWrapFailed` | warning | deferred multi-recipient encrypted transform | Preserve the frame as opaque when ECDH recipient metadata or AES-KW unwrap fails. | yes | `missing-key` | Future Full Reader when `cose-encrypt`/ECDH support is claimed |
 | `ConflictingReifier` | error | graph fold | Keep the first binding in file order and ignore the conflicting binding. | yes | none | Baseline Reader |
 | `PositionConstraint` | error | graph fold | Reject the offending row and continue folding other rows/frames. | yes | none | Baseline Reader |
 | `ForwardReference` | error | term dictionary | Drop or ignore the invalid forward reference and continue folding safely. | yes | none | Baseline Reader |

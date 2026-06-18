@@ -38,6 +38,7 @@ VALID_SUBSETS = {
     "writer-determinism",
     "crypto-cose",
     "crypto-encrypt",
+    "crypto-deferred",
     "openpgp-transport-key",
     "human-hash",
     "security-policy",
@@ -122,6 +123,17 @@ JSON_SUBCORPUS = {
         "capabilities": ("encrypt0", "aes-256-gcm"),
         "title": "COSE Encrypt0 fixture",
         "notes": "Pins fixed-IV Encrypt0 sealing and opening behavior.",
+    },
+    "crypto-deferred": {
+        "subset": "crypto-deferred",
+        "tiers": ("full-reader",),
+        "mode": "strict-verify",
+        "capabilities": ("cose-encrypt", "ecdh-es+a256kw", "aes-256-gcm"),
+        "title": "deferred COSE Encrypt fixture",
+        "notes": (
+            "Pins deferred multi-recipient COSE_Encrypt and ECDH key-wrap "
+            "contract shape without making an implementation claim."
+        ),
     },
     "openpgp": {
         "subset": "openpgp-transport-key",
