@@ -210,6 +210,9 @@ export function inventory(data: Uint8Array): Inventory {
         const startItem = bounds[index];
         const endItem =
             index + 1 < bounds.length ? bounds[index + 1] : items.length;
+        if (index >= fs.segments.length) {
+            break;
+        }
         const graph = fs.segments[index];
         const start = items[startItem].offset;
         const end = endItem < items.length ? items[endItem].offset : cleanEnd;

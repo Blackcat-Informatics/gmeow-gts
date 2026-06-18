@@ -224,6 +224,8 @@ def inventory(data: bytes) -> Inventory:
     ends = [*bounds[1:], len(items)]
     out: list[SegmentInventory] = []
     for index, (start_item, end_item) in enumerate(zip(bounds, ends, strict=True)):
+        if index >= len(segments):
+            break
         graph = segments[index]
         start = items[start_item][0]
         end = items[end_item][0] if end_item < len(items) else clean_end

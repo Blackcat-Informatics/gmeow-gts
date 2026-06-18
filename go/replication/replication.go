@@ -5,6 +5,7 @@
 package replication
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -59,6 +60,8 @@ type ByteRange struct {
 // MissingStatus names the peer-head comparison result.
 type MissingStatus string
 
+// MissingComplete, MissingRanges, MissingUnknown, and MissingError describe
+// the result of comparing a peer head against local inventory.
 const (
 	MissingComplete MissingStatus = "complete"
 	MissingRanges   MissingStatus = "ranges"
@@ -169,23 +172,11 @@ func headerComputedID(item interface{}) []byte {
 	return wire.HeaderID(header)
 }
 
-func bytesEqual(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 func collectFrames(items []struct {
 	Offset int
 	Item   interface{}
 }, torn, dataLen, start, end int) []FrameInventory {
-	frames := []FrameInventory{}
+	frames := make([]FrameInventory, 0, end-start-1)
 	expectedPrev := headerStoredID(items[start].Item)
 	if expectedPrev == nil {
 		expectedPrev = headerComputedID(items[start].Item)
@@ -236,7 +227,7 @@ func collectFrames(items []struct {
 			End:        itemStop,
 			ID:         frameID,
 			FrameType:  ftype,
-			Valid:      storedID != nil && bytesEqual(storedID, computed) && bytesEqual(prev, expectedPrev),
+			Valid:      storedID != nil && bytes.Equal(storedID, computed) && bytes.Equal(prev, expectedPrev),
 		})
 		expectedPrev = frameID
 	}
@@ -280,6 +271,9 @@ func InventoryFor(data []byte) *Inventory {
 		endItem := len(items)
 		if index+1 < len(bounds) {
 			endItem = bounds[index+1]
+		}
+		if index >= len(fs.Segments) {
+			break
 		}
 		graph := fs.Segments[index]
 		start := items[startItem].Offset
@@ -523,7 +517,7 @@ func Missing(inv *Inventory, fromHead []byte) MissingResult {
 		}
 	}
 	for _, segment := range inv.Segments {
-		if bytesEqual(segment.Head, fromHead) {
+		if bytes.Equal(segment.Head, fromHead) {
 			ranges := []ByteRange{}
 			if segment.End < inv.CleanEnd {
 				ranges = append(ranges, ByteRange{Start: segment.End, End: inv.CleanEnd})
@@ -535,7 +529,7 @@ func Missing(inv *Inventory, fromHead []byte) MissingResult {
 			return MissingResult{Status: status, FromHead: fromHead, Ranges: ranges, ScanRequired: false}
 		}
 		for _, frame := range segment.Frames {
-			if frame.Valid && bytesEqual(frame.ID, fromHead) {
+			if frame.Valid && bytes.Equal(frame.ID, fromHead) {
 				ranges := []ByteRange{}
 				if frame.End < inv.CleanEnd {
 					ranges = append(ranges, ByteRange{Start: frame.End, End: inv.CleanEnd})
@@ -596,7 +590,7 @@ func ResumeAfter(data, frameID []byte) ([]byte, error) {
 	}
 	for _, segment := range inv.Segments {
 		for _, frame := range segment.Frames {
-			if frame.Valid && bytesEqual(frame.ID, frameID) {
+			if frame.Valid && bytes.Equal(frame.ID, frameID) {
 				return data[frame.End:inv.CleanEnd], nil
 			}
 		}

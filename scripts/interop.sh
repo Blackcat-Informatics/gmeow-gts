@@ -153,7 +153,8 @@ cat "$WORK/packed_rust.gts" "$WORK/packed_python.gts" > "$WORK/replicated.gts"
 ref_heads="$(gts rust heads "$WORK/replicated.gts")"
 ref_segments="$(gts rust segments "$WORK/replicated.gts")"
 peer_head="$(
-  python -c 'import json,sys; print(json.load(sys.stdin)["segment_heads"][0])' <<<"$ref_heads"
+  cd "$ROOT/python" && uv run --quiet python -c \
+    'import json,sys; print(json.load(sys.stdin)["segment_heads"][0])' <<<"$ref_heads"
 )"
 ref_missing="$(gts rust missing --from-head "$peer_head" "$WORK/replicated.gts")"
 for reader in "${ENGINES[@]}"; do
