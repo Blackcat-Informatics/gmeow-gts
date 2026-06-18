@@ -108,9 +108,16 @@ func TestFromNQInvertsFold(t *testing.T) {
 		t.Fatal(err)
 	}
 	nq := nquads.ToNQuads(reader.Read(src, false, nil))
-	nqPath := filepath.Join(tmp, "in.nq")
+	nqFile, err := os.CreateTemp(tmp, "in-*.nq")
+	if err != nil {
+		t.Fatal(err)
+	}
+	nqPath := nqFile.Name()
 	outPath := filepath.Join(tmp, "out.gts")
-	if err := os.WriteFile(nqPath, []byte(nq), 0o644); err != nil {
+	if _, err := nqFile.Write([]byte(nq)); err != nil {
+		t.Fatal(err)
+	}
+	if err := nqFile.Close(); err != nil {
 		t.Fatal(err)
 	}
 	cmd, _, stderr := run(t, "from-nq", nqPath, "-o", outPath)
