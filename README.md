@@ -425,7 +425,7 @@ A GTS file is a **CBOR Sequence** (`application/cbor-seq`) of one or more **segm
 Published GTS artifacts use `application/vnd.blackcat.gts+cbor-seq`; the `+cbor-seq` suffix
 records that the file is a CBOR Sequence, not a single CBOR item. Each segment is a header map
 followed by zero or more frame maps. The header identifies the segment version, profile set,
-codec catalog, optional layout/metadata, and header id; it does not carry frame type or
+codec catalog, optional layout, dictionary, metadata, and header id; it does not carry frame type or
 predecessor state. Frames carry their type (`t`), optional transform/public/recipient/payload
 fields, predecessor link (`prev`), frame id (`id`), and optional signature (`sig`).
 
