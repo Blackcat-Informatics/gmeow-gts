@@ -215,7 +215,7 @@ profile-level validation failure, not by redefining core GTS validity.
   node (§7.6). It MAY ignore signatures and encryption.
 - A **Streaming Reader** is a Baseline Reader that processes frames one at a time and emits to a
   sink **without materialising the whole graph**: it maintains only the term dictionary (and a
-  running chain check), plus the maximum decoded frame and validation sidecar state, giving
+  running chain check), plus the maximum decoded frame size and validation sidecar state, giving
   O(distinct terms + maximum decoded frame size + validation sidecar state) retained memory
   rather than O(triples + blobs) (§7.7). The `gts → duckdb`/`sqlite` transforms (§14) are
   Streaming Reader-shaped when implemented through a non-materializing sink.

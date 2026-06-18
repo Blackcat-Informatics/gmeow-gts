@@ -47,8 +47,8 @@ promoted.
 ## Streaming Sink API
 
 A package may claim `GTS Streaming Reader` only when it exposes a documented API that folds or
-projects by consuming frames in order and sending rows to a sink without materializing the whole
-`Graph`.
+projects by consuming frames in order and emitting events to a sink without materializing the
+whole `Graph`.
 
 Minimum requirements:
 
