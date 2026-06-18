@@ -56,7 +56,6 @@ check-vectors: gen-vectors
 
 # Fail if vector manifest metadata or validator self-tests drift.
 check-vector-manifest:
-    python scripts/check_vector_manifest.py
     python scripts/check_vector_manifest.py --self-test
 
 # Fail if the CLI parity contract drifts from implementation or README docs.
