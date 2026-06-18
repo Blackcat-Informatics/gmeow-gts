@@ -63,7 +63,7 @@ conformance is ready unless they reveal one of the blockers above.
 |---|---|---|---|
 | Third-party implementation guide | `#104` | | |
 | Benchmark suite and release report | `#105` | `just bench-release` and [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md) | |
-| GTS paper draft | `#106` | | |
+| GTS paper draft | `#106` | [`GTS-PAPER-DRAFT.md`](./GTS-PAPER-DRAFT.md) | Informative paper narrative; not normative spec text. |
 | Optional-standard profile completion | | | |
 | Database, Parquet, browser, object-store, range-fetch, MMR, replication, or advanced proof tooling | | | |
 | Future key-management or multi-recipient encryption envelopes | | | |
