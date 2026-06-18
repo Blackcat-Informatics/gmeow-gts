@@ -469,6 +469,13 @@ cd python && uv run python scripts/gen_vectors.py
 git diff --exit-code vectors        # no changes ⇒ reproducible
 ```
 
+Validate the committed manifest metadata and validator guards without stamping a release
+revision:
+
+```bash
+just check-vector-manifest
+```
+
 Conformance tiers, named vector subsets, expected-result fields, diagnostics, and read/verify
 modes are defined in [`docs/GTS-CONFORMANCE.md`](./docs/GTS-CONFORMANCE.md).
 
@@ -507,7 +514,8 @@ cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
 ```
 
 Or use the [`justfile`](./justfile): `just test` (all engines), `just lint`, `just fmt`,
-`just gen-vectors`, `just interop`, `just fuzz-rust` / `just fuzz-go`, `just audit`, `just wasm`.
+`just gen-vectors`, `just check-vector-manifest`, `just interop`, `just fuzz-rust` /
+`just fuzz-go`, `just audit`, `just wasm`.
 
 Repo-wide hygiene (formatting, SPDX/REUSE headers, YAML/Markdown/shell, secrets) runs through
 `pre-commit run --all-files`. CI runs all four engines on Linux, macOS, and Windows, plus a
