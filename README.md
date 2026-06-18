@@ -424,19 +424,27 @@ in [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md).
 A GTS file is a **CBOR Sequence** (`application/cbor-seq`) of one or more **segments**.
 Published GTS artifacts use `application/vnd.blackcat.gts+cbor-seq`; the `+cbor-seq` suffix
 records that the file is a CBOR Sequence, not a single CBOR item. Each segment is a header map
-followed by frames; each frame is a `[digest, content]` pair where the digest is the BLAKE3 hash
-of the content, and each frame names its predecessor — a content-addressed chain whose head
-transitively commits to all history.
+followed by zero or more frame maps. The header identifies the segment version, profile set,
+codec catalog, optional layout/metadata, and header id; it does not carry frame type or
+predecessor state. Frames carry their type (`t`), optional transform/public/recipient/payload
+fields, predecessor link (`prev`), frame id (`id`), and optional signature (`sig`).
+
+Frame ids are `id` fields computed as BLAKE3-256 over deterministic CBOR frame content with
+`id` and `sig` excluded. Each `prev` names the previous frame id within the segment, producing a
+content-addressed chain whose segment head transitively commits to its history.
 
 ```text
-┌─ GTS file (CBOR Sequence) ───────────────────────────────────────────┐
-│  ┌─ segment 0 ─────────────┐   ┌─ segment 1 (appended via `cat`) ──┐  │
-│  │ header  {gts,t,prev,…}  │   │ header                            │  │
-│  │ frame ─ [id, payload]   │   │ frame ─ [id, payload]             │  │
-│  │ frame ─ [id, payload] ──┼──▶│ frame ─ [id, payload]             │  │
-│  └─────────────────────────┘   └───────────────────────────────────┘  │
-│            fold(segment) = value-union of all segment graphs           │
-└───────────────────────────────────────────────────────────────────────┘
+GTS file (CBOR Sequence)
+├── segment 0
+│   ├── header {gts, v, prof, cat, layout?, dct?, meta?, id}
+│   ├── frame  {t, x?, pub?, to?, d?, prev, id, sig?}
+│   ├── frame  {t, x?, pub?, to?, d?, prev, id, sig?}
+│   └── ...
+└── segment 1 (appended via `cat`)
+    ├── header {gts, v, prof, cat, layout?, dct?, meta?, id}
+    └── frame  {t, x?, pub?, to?, d?, prev, id, sig?}
+
+fold(file) = value-union of all segment graphs
 ```
 
 Payloads carry a stackable codec chain; unknown codecs or held-back keys degrade a frame to an
