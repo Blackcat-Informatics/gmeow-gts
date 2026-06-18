@@ -218,7 +218,7 @@ rename the codes owned by the tier you claim.
 Baseline Reader diagnostics include malformed or hostile input behavior such as
 `EmptyFile`, `DamagedFrame`, `BrokenChain`, `TornAppendError`, `UnknownCodec`,
 `ConflictingReifier`, `PositionConstraint`, `ForwardReference`,
-`SegmentBoundary`, and `UnknownFrameType`.
+and `SegmentBoundary`.
 
 Opaque-node behavior is what keeps the reader total:
 
@@ -230,6 +230,8 @@ Opaque-node behavior is what keeps the reader total:
   boundaries are known.
 - Unknown structural frame type: preserve chain verification and either ignore
   the payload or surface it as opaque until a supported profile handles it.
+  `UnknownFrameType` is a Profile-Aware Tool diagnostic in the conformance
+  registry, not part of the Baseline Reader claim string.
 
 An opaque node is not data loss. It is a machine-readable statement that the
 reader carried content it could not safely decode or interpret.
