@@ -45,8 +45,37 @@ check_contains "rust/README.md" "gmeow-gts = \"$rust_v\"" "Rust README dependenc
 check_contains "docs/GTS-ECOSYSTEM-INTEGRATIONS.md" "gmeow-gts = { version = \"$rust_v\"" "ecosystem Rust feature snippet"
 check_contains "README.md" "Runtime support policy: Python $py_floor, Node.js $node_floor, and Go $go_floor" "README runtime support policy"
 
-if grep -Eiq 'rdf-star|RDF-star' "$ROOT/CITATION.cff"; then
-  echo "ERROR: CITATION.cff should use current RDF 1.2 wording, not rdf-star." >&2
+for file in CITATION.cff rust/Cargo.toml python/pyproject.toml; do
+  if grep -Eiq 'rdf-star|RDF-star' "$ROOT/$file"; then
+    echo "ERROR: $file should use current RDF 1.2 wording, not rdf-star." >&2
+    errors=1
+  fi
+done
+
+if ! keyword_errors="$(ROOT="$ROOT" python3 - <<'PY'
+from pathlib import Path
+import os
+import sys
+import tomllib
+
+root = Path(os.environ["ROOT"])
+rust_keywords = tomllib.loads((root / "rust/Cargo.toml").read_text())["package"]["keywords"]
+python_keywords = tomllib.loads((root / "python/pyproject.toml").read_text())["project"]["keywords"]
+
+errors = []
+if len(rust_keywords) > 5:
+    errors.append("rust/Cargo.toml declares more than five keywords; crates.io allows at most five.")
+if "rdf-12" not in rust_keywords:
+    errors.append("rust/Cargo.toml keywords should include Cargo-safe RDF 1.2 wording: rdf-12.")
+if "rdf-1.2" not in python_keywords:
+    errors.append("python/pyproject.toml keywords should include RDF 1.2 wording: rdf-1.2.")
+
+if errors:
+    print("\n".join(f"ERROR: {error}" for error in errors))
+    sys.exit(1)
+PY
+)"; then
+  printf '%s\n' "$keyword_errors" >&2
   errors=1
 fi
 

@@ -9,7 +9,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT OR Apache-2.0"
 authors = [{ name = "Blackcat Informatics® Inc." }]
-keywords = ["rdf", "rdf-star", "cbor", "knowledge-graph", "linked-data", "gts", "gmeow"]
+keywords = ["rdf", "rdf-1.2", "cbor", "knowledge-graph", "linked-data", "gts", "gmeow"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
