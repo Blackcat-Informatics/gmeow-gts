@@ -49,6 +49,22 @@ func isAtom(n node, kind model.TermKind) bool {
 	return n.atom != nil && n.atom.kind == kind
 }
 
+func isASCIILetterOrDigit(b byte) bool {
+	return (b >= '0' && b <= '9') || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
+}
+
+func isBNodeChar(b byte) bool {
+	return isASCIILetterOrDigit(b) || b == '_' || b == '-' || b == '.'
+}
+
+func isLangChar(b byte) bool {
+	return isASCIILetterOrDigit(b) || b == '-'
+}
+
+func isHexDigit(b byte) bool {
+	return (b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')
+}
+
 type tokenizer struct {
 	text string
 	pos  int
@@ -125,8 +141,14 @@ func (t *tokenizer) bnode() (string, error) {
 	}
 	t.pos += 2
 	start := t.pos
-	for t.pos < len(t.text) && t.text[t.pos] != ' ' && t.text[t.pos] != '\t' {
+	for t.pos < len(t.text) && isBNodeChar(t.text[t.pos]) {
 		t.pos++
+	}
+	if t.pos > start && t.text[t.pos-1] == '.' {
+		t.pos--
+	}
+	if t.pos == start {
+		return "", ParseError{fmt.Sprintf("empty blank node label in %q", t.text)}
 	}
 	return t.text[start:t.pos], nil
 }
@@ -165,10 +187,13 @@ func (t *tokenizer) literal() (atom, error) {
 			if t.pos < len(t.text) && t.text[t.pos] == '@' {
 				t.pos++
 				start := t.pos
-				for t.pos < len(t.text) && t.text[t.pos] != ' ' && t.text[t.pos] != '\t' {
+				for t.pos < len(t.text) && isLangChar(t.text[t.pos]) {
 					t.pos++
 				}
 				a.lang = t.text[start:t.pos]
+				if a.lang == "" {
+					return atom{}, ParseError{fmt.Sprintf("empty language tag in %q", t.text)}
+				}
 				a.hasLang = true
 			} else if strings.HasPrefix(t.text[t.pos:], "^^") {
 				t.pos += 2
@@ -218,7 +243,7 @@ func (t *tokenizer) escape() (rune, error) {
 		}
 		raw := t.text[t.pos:end]
 		for _, b := range []byte(raw) {
-			if !((b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')) {
+			if !isHexDigit(b) {
 				return 0, ParseError{fmt.Sprintf("bad unicode escape \\%c%s in %q", ch, raw, t.text)}
 			}
 		}
@@ -336,19 +361,31 @@ func setReifier(reifiers *[]model.ReifierEntry, rid int, spo model.Triple3) {
 }
 
 func validateStatement(nodes []node, line string) error {
-	if !(isAtom(nodes[0], model.Iri) || isAtom(nodes[0], model.Bnode) || nodes[0].triple != nil) {
+	if !isSubjectTerm(nodes[0]) {
 		return ParseError{fmt.Sprintf("invalid subject term: %q", line)}
 	}
 	if !isAtom(nodes[1], model.Iri) {
 		return ParseError{fmt.Sprintf("predicate must be IRI: %q", line)}
 	}
-	if !(isAtom(nodes[2], model.Iri) || isAtom(nodes[2], model.Bnode) || isAtom(nodes[2], model.Literal) || nodes[2].triple != nil) {
+	if !isObjectTerm(nodes[2]) {
 		return ParseError{fmt.Sprintf("invalid object term: %q", line)}
 	}
-	if len(nodes) > 3 && !(isAtom(nodes[3], model.Iri) || isAtom(nodes[3], model.Bnode)) {
+	if len(nodes) > 3 && !isGraphNameTerm(nodes[3]) {
 		return ParseError{fmt.Sprintf("invalid graph name term: %q", line)}
 	}
 	return nil
+}
+
+func isSubjectTerm(n node) bool {
+	return isAtom(n, model.Iri) || isAtom(n, model.Bnode) || n.triple != nil
+}
+
+func isObjectTerm(n node) bool {
+	return isAtom(n, model.Iri) || isAtom(n, model.Bnode) || isAtom(n, model.Literal) || n.triple != nil
+}
+
+func isGraphNameTerm(n node) bool {
+	return isAtom(n, model.Iri) || isAtom(n, model.Bnode)
 }
 
 // FromNQuads parses N-Quads(-star) text into a canonical GTS file.

@@ -64,6 +64,14 @@ struct Tokenizer<'a> {
     pos: usize,
 }
 
+fn is_bnode_char(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.')
+}
+
+fn is_lang_char(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || b == b'-'
+}
+
 impl<'a> Tokenizer<'a> {
     fn new(text: &'a str) -> Self {
         Self { text, pos: 0 }
@@ -144,9 +152,17 @@ impl<'a> Tokenizer<'a> {
         }
         self.pos += 2;
         let start = self.pos;
-        while self.pos < self.text.len() && !matches!(self.text.as_bytes()[self.pos], b' ' | b'\t')
-        {
+        while self.pos < self.text.len() && is_bnode_char(self.text.as_bytes()[self.pos]) {
             self.pos += 1;
+        }
+        if self.pos > start && self.text.as_bytes()[self.pos - 1] == b'.' {
+            self.pos -= 1;
+        }
+        if self.pos == start {
+            return Err(NQuadsParseError::new(format!(
+                "empty blank node label in {:?}",
+                self.text
+            )));
         }
         Ok(self.text[start..self.pos].to_string())
     }
@@ -178,10 +194,14 @@ impl<'a> Tokenizer<'a> {
         if self.text.as_bytes().get(self.pos) == Some(&b'@') {
             self.pos += 1;
             let start = self.pos;
-            while self.pos < self.text.len()
-                && !matches!(self.text.as_bytes()[self.pos], b' ' | b'\t')
-            {
+            while self.pos < self.text.len() && is_lang_char(self.text.as_bytes()[self.pos]) {
                 self.pos += 1;
+            }
+            if self.pos == start {
+                return Err(NQuadsParseError::new(format!(
+                    "empty language tag in {:?}",
+                    self.text
+                )));
             }
             lang = Some(self.text[start..self.pos].to_string());
         } else if self.text[self.pos..].starts_with("^^") {

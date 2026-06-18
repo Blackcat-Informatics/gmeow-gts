@@ -18,6 +18,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../../../");
 const cli = resolve(__dirname, "../bin/gts.js");
 const vectorsDir = join(repoRoot, "vectors");
+const RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
 function sortedLines(text: string): string[] {
     return text
@@ -63,9 +64,40 @@ test("fromNQuads preserves language-tagged and datatyped literals", () => {
     assert.deepEqual(sortedLines(roundTrip(nq)), sortedLines(nq));
 });
 
+test("fromNQuads handles compact blank-node and language-tag delimiters", () => {
+    const nq =
+        "<https://ex/s> <https://ex/p> _:b0.\n" +
+        '<https://ex/s> <https://ex/label> "Cat"@en.\n';
+    const expected =
+        "<https://ex/s> <https://ex/p> _:b0 .\n" +
+        '<https://ex/s> <https://ex/label> "Cat"@en .\n';
+    assert.deepEqual(sortedLines(roundTrip(nq)), sortedLines(expected));
+});
+
+test("fromNQuads keeps quoted-triple close delimiters out of tokens", () => {
+    const nq =
+        `<https://ex/r1> <${RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1)>> .\n` +
+        `<https://ex/r2> <${RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> "Cat"@en)>> .\n`;
+    const expected =
+        `<https://ex/r1> <${RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1 )>> .\n` +
+        `<https://ex/r2> <${RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> "Cat"@en )>> .\n`;
+    assert.deepEqual(sortedLines(roundTrip(nq)), sortedLines(expected));
+});
+
 test("fromNQuads rejects malformed statements", () => {
     assert.throws(
         () => fromNQuads("<https://ex/s> <https://ex/p> .\n"),
+        NQuadsParseError,
+    );
+});
+
+test("fromNQuads rejects empty blank-node labels and language tags", () => {
+    assert.throws(
+        () => fromNQuads("<https://ex/s> <https://ex/p> _: .\n"),
+        NQuadsParseError,
+    );
+    assert.throws(
+        () => fromNQuads('<https://ex/s> <https://ex/p> "Cat"@ .\n'),
         NQuadsParseError,
     );
 });

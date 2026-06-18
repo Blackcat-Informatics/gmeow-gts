@@ -87,8 +87,39 @@ func TestFromNQuadsPreservesLanguageTaggedAndDatatypedLiterals(t *testing.T) {
 	}
 }
 
+func TestFromNQuadsCompactBlankNodeAndLanguageTagDelimiters(t *testing.T) {
+	nq := "<https://ex/s> <https://ex/p> _:b0.\n" +
+		"<https://ex/s> <https://ex/label> \"Cat\"@en.\n"
+	expected := "<https://ex/s> <https://ex/p> _:b0 .\n" +
+		"<https://ex/s> <https://ex/label> \"Cat\"@en .\n"
+	if got, want := sortedLines(roundTrip(t, nq)), sortedLines(expected); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("round-trip mismatch\ngot:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+func TestFromNQuadsQuotedTripleAdjacentDelimiters(t *testing.T) {
+	nq := "<https://ex/r1> <" + rdfReifies + "> <<( _:b0 <https://ex/p> _:b1)>> .\n" +
+		"<https://ex/r2> <" + rdfReifies + "> <<( <https://ex/s> <https://ex/p> \"Cat\"@en)>> .\n"
+	expected := "<https://ex/r1> <" + rdfReifies + "> <<( _:b0 <https://ex/p> _:b1 )>> .\n" +
+		"<https://ex/r2> <" + rdfReifies + "> <<( <https://ex/s> <https://ex/p> \"Cat\"@en )>> .\n"
+	if got, want := sortedLines(roundTrip(t, nq)), sortedLines(expected); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("round-trip mismatch\ngot:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 func TestFromNQuadsRejectsMalformedStatements(t *testing.T) {
 	if _, err := FromNQuads("<https://ex/s> <https://ex/p> .\n"); err == nil {
 		t.Fatal("expected malformed N-Quads to fail")
+	}
+}
+
+func TestFromNQuadsRejectsEmptyBlankNodeLabelAndLanguageTag(t *testing.T) {
+	for _, input := range []string{
+		"<https://ex/s> <https://ex/p> _: .\n",
+		"<https://ex/s> <https://ex/p> \"Cat\"@ .\n",
+	} {
+		if _, err := FromNQuads(input); err == nil {
+			t.Fatalf("expected malformed N-Quads to fail: %q", input)
+		}
 	}
 }

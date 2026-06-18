@@ -46,6 +46,23 @@ function isTriple(node: Node): node is { triple: TripleNode } {
     return "triple" in node;
 }
 
+function isAsciiLetterOrDigit(ch: string): boolean {
+    const code = ch.charCodeAt(0);
+    return (
+        (code >= 48 && code <= 57) ||
+        (code >= 65 && code <= 90) ||
+        (code >= 97 && code <= 122)
+    );
+}
+
+function isBNodeChar(ch: string): boolean {
+    return isAsciiLetterOrDigit(ch) || ch === "_" || ch === "-" || ch === ".";
+}
+
+function isLangChar(ch: string): boolean {
+    return isAsciiLetterOrDigit(ch) || ch === "-";
+}
+
 class Tokenizer {
     private i = 0;
 
@@ -102,8 +119,14 @@ class Tokenizer {
         }
         this.i += 2;
         const start = this.i;
-        while (this.i < this.s.length && !/[ \t]/.test(this.s[this.i])) {
+        while (this.i < this.s.length && isBNodeChar(this.s[this.i])) {
             this.i++;
+        }
+        if (this.i > start && this.s[this.i - 1] === ".") {
+            this.i--;
+        }
+        if (this.i === start) {
+            throw new NQuadsParseError(`empty blank node label in ${this.s}`);
         }
         return this.s.slice(start, this.i);
     }
@@ -125,11 +148,16 @@ class Tokenizer {
                     const start = this.i;
                     while (
                         this.i < this.s.length &&
-                        !/[ \t]/.test(this.s[this.i])
+                        isLangChar(this.s[this.i])
                     ) {
                         this.i++;
                     }
                     lang = this.s.slice(start, this.i);
+                    if (lang.length === 0) {
+                        throw new NQuadsParseError(
+                            `empty language tag in ${this.s}`,
+                        );
+                    }
                 } else if (this.s.startsWith("^^", this.i)) {
                     this.i += 2;
                     this.skipWs();
