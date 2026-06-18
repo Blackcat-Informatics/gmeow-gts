@@ -14,3 +14,5 @@ export * as stream from "./stream.js";
 export * as cose from "./cose.js";
 export * as emojihash from "./emojihash.js";
 export * as mmr from "./mmr.js";
+export * as nested from "./nested.js";
+export * as policy from "./policy.js";
