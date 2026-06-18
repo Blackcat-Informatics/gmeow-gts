@@ -242,7 +242,7 @@ publication blockers:
 | deliverable | tracking expectation | release relationship |
 |---|---|---|
 | Paper outline and publication draft | Track as a docs/research issue or project item. Reuse the standalone framing and conformance results. | Describes and motivates GTS; does not define normative behavior. |
-| Benchmark suite | Track memory, read, fold, pack, unpack, and cross-engine interop benchmarks. Record hardware and corpus commit. | Supports performance claims; does not gate wire-format validity. |
+| Benchmark suite | Track memory, read, fold, write, pack, unpack, and cross-engine interop benchmarks. Record hardware, spec commit, and corpus commit. Current report template: [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md). | Supports performance claims; does not gate wire-format validity. |
 | Third-party implementation guide | Track examples, profile template guidance, registry process, and minimal-reader walkthrough; current guide: [`GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md`](./GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md). | Helps implementers adopt the v1 spec; not required for `v1.0-rc1` if conformance docs are sufficient. |
 
 Each v1 release-candidate checklist SHOULD state whether these deliverables are complete,

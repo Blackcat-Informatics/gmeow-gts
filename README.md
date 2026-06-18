@@ -538,6 +538,8 @@ artifact with `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gt
   parity matrix, intentional gaps, and drift guard.
 - [`docs/GTS-ADVANCED-PRIMITIVES.md`](./docs/GTS-ADVANCED-PRIMITIVES.md) — streaming sink,
   index/MMR/proof, replication, range-fetch, and benchmark contract.
+- [`docs/GTS-BENCHMARK-RELEASE-REPORT.md`](./docs/GTS-BENCHMARK-RELEASE-REPORT.md) —
+  release benchmark report template for v1 notes and paper appendix evidence.
 - [`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](./docs/GTS-ECOSYSTEM-INTEGRATIONS.md) — RDF, data,
   browser, service, and object-store integration contract.
 - [`docs/GTS-SECURITY-POLICY.md`](./docs/GTS-SECURITY-POLICY.md) — trust/profile-policy

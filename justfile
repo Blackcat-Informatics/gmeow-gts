@@ -78,6 +78,10 @@ check-crypto-deferrals:
 interop:
     bash scripts/interop.sh
 
+# Run the release benchmark suite and write JSON/Markdown reports under dist/benchmarks/.
+bench-release engines="rust,python,go,ts" iterations="3":
+    python scripts/bench_release_suite.py --engines "{{engines}}" --iterations "{{iterations}}"
+
 # Verify the Rust, Python, and npm versions agree (lockstep release).
 check-versions:
     bash scripts/check-versions.sh
