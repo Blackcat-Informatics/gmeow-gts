@@ -14,6 +14,35 @@ change before `1.0`.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-06-18
+
+### Added
+
+- Rust parity expansion: N-Quads import, SQLite/DuckDB/Parquet exports, lazy blob
+  decoding, verification APIs, policy/nested reader APIs, agent-memory example,
+  streaming sink reader, MMR proof support, replication inventory verbs, deterministic
+  writer helpers, transform encryption APIs, and native RDF adapters for `oxrdf`,
+  Oxigraph, and Sophia.
+- Cross-engine service/browser parity: Go streaming reader sinks, replication verbs
+  across Rust/Go/TypeScript/Python CLIs, TypeScript browser streaming/WebCrypto export,
+  and cross-engine MMR proof verification.
+- Repository contracts for API/CLI parity, advanced primitives, ecosystem integrations,
+  conformance, security policy, vector manifest metadata, and downstream Rust ontology
+  CI coverage.
+
+### Changed
+
+- Vector corpus and conformance documentation now stamp corpus revision metadata and
+  sharpen total-reader, fold-semantics, media-type, CDDL/preimage, and publication
+  guidance.
+- Release documentation now records visual-hashing publish ordering and lockstep
+  release expectations for the four GTS engines.
+
+### Security
+
+- Added security policy parity for Go and TypeScript, including nested-GTS/profile
+  policy coverage, and documented deferred multi-recipient crypto behavior.
+
 ## [0.2.0] — 2026-06-17
 
 ### Added
@@ -144,7 +173,8 @@ change before `1.0`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.2.0...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.0...HEAD
+[0.9.0]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.2.0...py-v0.9.0
 [0.2.0]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.3...py-v0.2.0
 [0.1.3]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.2...py-v0.1.3
 [0.1.2]: https://github.com/Blackcat-Informatics/gmeow-gts/releases/tag/py-v0.1.2
