@@ -57,3 +57,11 @@ path = "docs/*.png"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+# Generated benchmark evidence reports (JSON cannot carry an inline header; the
+# Markdown report is regenerated from the same payload).
+[[annotations]]
+path = "dist/benchmarks/paper-evidence/release-benchmark-report.*"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
