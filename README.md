@@ -291,7 +291,24 @@ const graph = Read(readFileSync("package.gts"), false);
 console.log(toNQuads(graph));
 ```
 
-Requires Node.js ≥ 22.16.0; ships as ES modules with type declarations.
+Requires Node.js ≥ 22.16.0; ships as ES modules with type declarations. Browser bundlers can
+use `@blackcatinformatics/gmeow-gts/browser` for the narrower Web Streams/WebCrypto surface:
+
+```typescript
+import { foldStream, toNQuads } from "@blackcatinformatics/gmeow-gts/browser";
+
+const response = await fetch("/artifacts/package.gts");
+const result = await foldStream(response.body!, {
+  onEvent(event) {
+    if (event.kind === "blob") console.log(event.digest, event.size);
+  },
+});
+console.log(toNQuads(result.graph));
+```
+
+The browser export is the TypeScript `GTS Streaming Reader` surface. The root Node `Read`
+API remains a materializing reader and the filesystem/CLI helpers are not exposed as
+browser-safe APIs.
 
 Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.4 are intentional
 manifest floors. Older runtimes are unsupported so the engines can share one current CI and
@@ -451,7 +468,7 @@ Current CI-gated conformance status:
 | Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `read_to_sink` API plus prefix-fold corpus gate | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | corpus read gate | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser `foldStream` API plus browser stream/WebCrypto tests; corpus read gate remains the full-reader oracle | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 
 ## Repository layout
 
