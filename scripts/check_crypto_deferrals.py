@@ -100,13 +100,18 @@ def main() -> int:
     require(len(successes) >= 2, "positive vector must expect two successful unwrap kids")
 
     missing_key = vectors["missing-key-opacity.json"]
+    missing_diags = missing_key.get("expected_diagnostics", [])
+    require(
+        isinstance(missing_diags, list),
+        "missing-key vector expected_diagnostics must be a list",
+    )
     missing_expected = missing_key.get("expected", {})
     require(
         isinstance(missing_expected, dict),
         "missing-key vector expected must be an object",
     )
     require(
-        "MissingKey" in missing_key.get("expected_diagnostics", []),
+        "MissingKey" in missing_diags,
         "missing-key vector must expect MissingKey",
     )
     require(
@@ -120,16 +125,26 @@ def main() -> int:
 
     for name in ["wrong-key-opacity.json", "key-wrap-failure-diagnostics.json"]:
         data = vectors[name]
+        diagnostics = data.get("expected_diagnostics", [])
         require(
-            "KeyWrapFailed" in data.get("expected_diagnostics", []),
+            isinstance(diagnostics, list),
+            f"{name}: expected_diagnostics must be a list",
+        )
+        expected = data.get("expected", {})
+        require(
+            isinstance(expected, dict),
+            f"{name}: expected must be an object",
+        )
+        require(
+            "KeyWrapFailed" in diagnostics,
             f"{name}: must expect KeyWrapFailed",
         )
         require(
-            data.get("expected", {}).get("opaque_reason") == "missing-key",
+            expected.get("opaque_reason") == "missing-key",
             f"{name}: must preserve missing-key opacity",
         )
         require(
-            data.get("expected", {}).get("plaintext_available") is False,
+            expected.get("plaintext_available") is False,
             f"{name}: plaintext_available must be false",
         )
 
