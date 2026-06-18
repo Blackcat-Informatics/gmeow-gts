@@ -196,6 +196,12 @@ future profile, transform, or research artifact.
 | `v1.0-rc1` | No intentional wire-format changes remain, baseline vectors are frozen, registry policies and reserved namespaces are published, security model is clear, and implementer review has no open blocking findings. |
 | `v1.0` | Format spec is published, conformance corpus is tagged, reference implementation packages are released, and release notes identify the spec/corpus commits. |
 
+The concrete `v1.0-rc1` runbook is
+[`GTS-V1-RC1-CHECKLIST.md`](./GTS-V1-RC1-CHECKLIST.md). It records the spec
+commit, corpus revision, blocker review, conformance reports, package dry-runs,
+release notes, tag workflows, and artifact-verification evidence required for a
+release-candidate cut.
+
 ### 7.1 v1.0-rc1 Blockers
 
 The following block `v1.0-rc1` publication:
