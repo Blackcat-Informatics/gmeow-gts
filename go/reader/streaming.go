@@ -18,6 +18,7 @@ import (
 // StreamingEventKind identifies one event emitted by ReadToSink.
 type StreamingEventKind string
 
+// StreamingEventTerm and related constants identify ReadToSink event kinds.
 const (
 	StreamingEventTerm             StreamingEventKind = "term"
 	StreamingEventQuad             StreamingEventKind = "quad"

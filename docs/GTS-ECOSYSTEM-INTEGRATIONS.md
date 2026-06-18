@@ -252,6 +252,7 @@ turning format diagnostics into Go errors.
 For streaming folds, callers can send segment-local fold events to a sink without
 constructing the final union graph:
 
+<!-- markdownlint-disable MD010 -->
 ```go
 var sink reader.StreamingSink = reader.StreamingSinkFunc(func(event reader.StreamingEvent) error {
 	if event.Kind == reader.StreamingEventQuad {
@@ -266,6 +267,7 @@ result, err := reader.ReadToSink(ctx, obj.Body, reader.Options{
 	MaxBytes:      512 << 20,
 }, sink)
 ```
+<!-- markdownlint-enable MD010 -->
 
 `result.Diagnostics`, `result.SegmentHeads`, and `result.SegmentStreamable`
 match the full reader for the same input and options.

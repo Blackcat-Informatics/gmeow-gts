@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -159,17 +158,6 @@ func segmentEventCounts(data []byte, allowSegments bool) streamingEventCounts {
 	return counts
 }
 
-func diagnosticSummary(diags []model.Diagnostic) []string {
-	out := make([]string, len(diags))
-	for i, diag := range diags {
-		out[i] = diag.Code
-		if diag.FrameIndex != nil {
-			out[i] += ":" + strconv.Itoa(*diag.FrameIndex)
-		}
-	}
-	return out
-}
-
 func TestCorpus(t *testing.T) {
 	dir := vectorsDir(t)
 	entries, err := os.ReadDir(dir)
@@ -251,7 +239,7 @@ func TestStreamingFoldCorpusEquivalence(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ReadToSink returned error: %v", err)
 			}
-			if !reflect.DeepEqual(diagnosticSummary(streamed.Diagnostics), diagnosticSummary(full.Diagnostics)) {
+			if !reflect.DeepEqual(streamed.Diagnostics, full.Diagnostics) {
 				t.Fatalf("diagnostics differ\nstreamed: %#v\nfull:     %#v", streamed.Diagnostics, full.Diagnostics)
 			}
 			if !reflect.DeepEqual(streamed.SegmentHeads, full.SegmentHeads) {

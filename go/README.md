@@ -84,6 +84,7 @@ same materialized graph with cancellation and byte-limit handling. For increment
 signature, diagnostic, segment-head, and streamable-layout events without constructing the
 final union graph:
 
+<!-- markdownlint-disable MD010 -->
 ```go
 sink := reader.StreamingSinkFunc(func(event reader.StreamingEvent) error {
 	if event.Kind == reader.StreamingEventQuad {
@@ -99,6 +100,7 @@ result, err := reader.ReadToSink(ctx, body, reader.Options{
 _ = result
 _ = err
 ```
+<!-- markdownlint-enable MD010 -->
 
 Produce a minimal graph with the writer (a files-profile writer; `New("")` writes a plain
 graph with no profile):
