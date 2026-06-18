@@ -41,6 +41,8 @@ pub use policy::{
 pub mod rdf;
 pub mod reader;
 pub mod replication;
+#[cfg(feature = "sophia-adapter")]
+pub mod sophia;
 pub mod stream;
 pub mod verify;
 pub mod wire;

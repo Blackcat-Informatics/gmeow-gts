@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-#[cfg(not(any(feature = "rdf", feature = "duckdb")))]
+#[cfg(not(any(feature = "rdf", feature = "duckdb", feature = "sophia-adapter")))]
 #[test]
 fn optional_adapters_are_not_enabled_by_default() {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
@@ -31,6 +31,10 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(
         package["features"]["oxigraph-adapter"],
         serde_json::json!(["rdf", "dep:oxigraph"])
+    );
+    assert_eq!(
+        package["features"]["sophia-adapter"],
+        serde_json::json!(["dep:sophia_api", "dep:sophia_inmem", "dep:sophia_turtle"])
     );
     assert_eq!(
         package["features"]["policy-config"],
@@ -71,6 +75,16 @@ fn optional_adapters_are_not_enabled_by_default() {
         assert_eq!(dependency["optional"], serde_json::json!(true));
     }
 
+    for name in ["sophia_api", "sophia_inmem", "sophia_turtle"] {
+        let dependency = package["dependencies"]
+            .as_array()
+            .expect("metadata dependencies are an array")
+            .iter()
+            .find(|dependency| dependency["name"] == name)
+            .unwrap_or_else(|| panic!("{name} dependency is present"));
+        assert_eq!(dependency["optional"], serde_json::json!(true));
+    }
+
     assert!(
         !package["dependencies"]
             .as_array()
@@ -93,4 +107,10 @@ fn rdf_feature_enables_adapter_module() {
 fn oxigraph_feature_enables_adapter_module() {
     let sidecar = gmeow_gts::oxigraph::GtsSidecar::default();
     assert!(sidecar.diagnostics.is_empty());
+}
+
+#[cfg(feature = "sophia-adapter")]
+#[test]
+fn sophia_feature_enables_adapter_module() {
+    let _dataset = gmeow_gts::sophia::SophiaDataset::new();
 }
