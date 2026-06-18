@@ -357,7 +357,7 @@ def setup_engine(engine: str, out_dir: Path, timeout: int) -> tuple[EngineRuntim
             SetupResult(
                 engine=engine,
                 status=status,
-                command=display_command(command),
+                command=display_invocation(command, cwd=cwd),
                 elapsed_ms=result.elapsed_ms,
                 note="" if status == "ok" else stderr_note(result),
             )
