@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinform
 SPDX-License-Identifier: MIT OR Apache-2.0
 -->
 <p align="center">
-  <a href="https://github.com/Blackcat-Informatics/gmeow-gts">
+  <a href="https://blackcatinformatics.ca/projects/gts">
     <img src="./docs/gts-logo.svg" alt="GTS logo" width="128" height="128">
   </a>
 </p>
@@ -23,6 +23,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
   <a href="https://crates.io/crates/gmeow-gts"><img src="https://img.shields.io/crates/v/gmeow-gts.svg?label=crates.io" alt="crates.io"></a>
   <a href="https://pypi.org/project/gmeow-gts/"><img src="https://img.shields.io/pypi/v/gmeow-gts.svg?label=PyPI" alt="PyPI"></a>
   <a href="https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts"><img src="https://img.shields.io/npm/v/@blackcatinformatics/gmeow-gts.svg?label=npm" alt="npm"></a>
+  <a href="https://doi.org/10.67342/umcdg7675h/v1"><img src="https://img.shields.io/badge/DOI-10.67342%2Fumcdg7675h%2Fv1-blue" alt="DOI: 10.67342/umcdg7675h/v1"></a>
   <a href="./LICENSING.md"><img src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg" alt="License: MIT OR Apache-2.0"></a>
 </p>
 
@@ -46,6 +47,9 @@ short `gts` and `.gts` forms where ecosystem rules permit.
 This repository holds **four interoperable engines** (Rust, Python, Go, TypeScript) that all
 gate against one frozen, byte-exact conformance corpus, plus the specification that defines
 them.
+
+- Project URL: <https://blackcatinformatics.ca/projects/gts>
+- Project DOI: <https://doi.org/10.67342/umcdg7675h/v1>
 
 ## Table of contents
 
@@ -468,7 +472,8 @@ artifact with `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gt
 
 ## Specification & docs
 
-- [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) — the authoritative, normative wire-format specification.
+- [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) — the authoritative, normative wire-format
+  specification. DOI: <https://doi.org/10.67342/6pta6imnmw/v1>.
 - [`docs/GTS-CONFORMANCE.md`](./docs/GTS-CONFORMANCE.md) — conformance tiers, vector subsets,
   manifest schema, diagnostics registry, and read/verify modes.
 - [`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md) — GIP process, registry policies,

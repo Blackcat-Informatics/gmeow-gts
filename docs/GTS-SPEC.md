@@ -5,7 +5,8 @@
 
 **Document version:** 0.9-draft &nbsp;·&nbsp; **Wire-format major version:** 1 &nbsp;·&nbsp;
 **Date:** 2026-06-18 &nbsp;·&nbsp; **Editor:** Patrick Audley, Blackcat Informatics® Inc. &nbsp;·&nbsp;
-**This version:** <https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md>
+**This version:** <https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md> &nbsp;·&nbsp;
+**DOI:** <https://doi.org/10.67342/6pta6imnmw/v1>
 
 ## Abstract
 
@@ -25,6 +26,7 @@ signatures and encryption, and cross-language conformance through a shared vecto
 | Document version | 0.9-draft |
 | Wire-format major version | 1, encoded in the segment header `"v"` field |
 | Date | 2026-06-18 |
+| Document DOI | <https://doi.org/10.67342/6pta6imnmw/v1> |
 | Stability | Wire-format changes remain possible until v1.0 |
 | Change control | Blackcat Informatics / [GTS governance process](./GTS-GOVERNANCE.md) |
 | Conformance | Defined by this document and the versioned vector corpus (§19) |

@@ -55,6 +55,7 @@
     "typescript": "^6.0.3"
   },
   "license": "MIT OR Apache-2.0",
+  "homepage": "https://blackcatinformatics.ca/projects/gts",
   "repository": {
     "type": "git",
     "url": "https://github.com/Blackcat-Informatics/gmeow-gts.git",
