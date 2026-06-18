@@ -78,6 +78,9 @@ to an opaque node, and any problems surface on `g.Diagnostics` rather than as an
 return. Pass `allowSegments=true` to fold a multi-segment (concatenated) file, and a
 non-nil `expectedHead` to assert the file's head digest.
 
+Use `fromnquads.FromNQuads(text)` for the inverse transform when rebuilding a GTS file
+from N-Quads text.
+
 For service code that receives an `io.Reader`, `reader.ReadFrom(ctx, r, opts)` returns the
 same materialized graph with cancellation and byte-limit handling. For incremental folds,
 `reader.ReadToSink(ctx, r, opts, sink)` emits segment-local term, quad, blob, opaque,
@@ -148,6 +151,7 @@ gts compact <file> -o <out> --streamable   rewrite into the streamable layout st
 gts pack <dir|file>... -o <out>            package files/directories into a files profile
 gts unpack <archive> [-C dir] extract a files profile (refuses path traversal)
 gts diff <archive> <dir>      compare a files profile to a directory by digest
+gts from-nq <in.nq> [-o out]  build a GTS from N-Quads (`-` reads stdin)
 ```
 
 Exit codes: `0` clean · `1` diagnostics found or input refused · `2` usage/IO error.
@@ -156,8 +160,8 @@ Exit codes: `0` clean · `1` diagnostics found or input refused · `2` usage/IO 
 refuses dirty inputs, contributes-nothing segments, and compositions whose suppressions
 hide every folded quad.
 
-> The `from-nq` builder and the `to-sqlite` / `to-duckdb` / `to-parquet` relational
-> exports are Python-CLI extensions and are **not** provided by the Go binary.
+> The `to-sqlite` / `to-duckdb` / `to-parquet` relational exports remain Python/Rust
+> extensions and are **not** provided by the Go binary.
 
 ## Signing & encryption
 
@@ -195,7 +199,7 @@ go test ./...        # unit + conformance against ../vectors/
 
 - `cmd/gts` — `gts` CLI
 - `reader` / `writer` — baseline GTS reader and files-profile writer
-- `files` / `wire` / `compact` / `nquads` — format plumbing
+- `files` / `wire` / `compact` / `nquads` / `fromnquads` — format plumbing
 - `model` / `stream` / `codec` — core data types and codecs
 - `cose` / `openpgp` / `emojihash` — COSE_Sign1/Encrypt0 and transport-key handling
 

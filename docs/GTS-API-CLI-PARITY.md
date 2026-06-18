@@ -21,7 +21,7 @@ the following operations and folded fields are the compatibility target.
 | `write(graph/events, options)` | Emit deterministic CBOR for hashed or signed bytes, compute each frame id from its content, and set `prev` to the previous frame id. | Python `Writer`; Rust `writer::Writer`; Go `writer.New`; TypeScript `Writer`. |
 | `fold(input)` | Return the deterministic GTS value fold: terms, quads, reifiers, annotations, blobs, suppressions, opaque nodes, signatures, segment heads, profiles, and streamable layout state. | Same object returned by `read`. |
 | `to_nquads(graph)` | Project the folded RDF dataset to sorted N-Quads text with the same value semantics across engines. | Python `to_nquads`; Rust `nquads::to_nquads`; Go `nquads.ToNQuads`; TypeScript `toNQuads`. |
-| `from_nquads(input)` | Build a GTS file from N-Quads text using the shared writer semantics. | Python `from_nquads`; Rust `from_nquads::from_nquads`; CLI `gts from-nq` in Python and Rust. |
+| `from_nquads(input)` | Build a GTS file from N-Quads text using the shared writer semantics. | Python `from_nquads`; Rust `from_nquads::from_nquads`; Go `fromnquads.FromNQuads`; TypeScript `fromNQuads`; CLI `gts from-nq` in every engine. |
 | graph iterators/accessors | Expose resolved access to terms, quads, reifier bindings, annotations, suppressions, blobs, opaque nodes, signatures, diagnostics, segment heads, profiles, metadata, and streamable state. | Native fields on `Graph` in all four engines, with helper lookups where idiomatic. |
 | blobs | Preserve inline blob bytes by `blake3:<hex>` digest and retain declared blob metadata such as media type. Extraction MUST re-hash bytes before writing them. Implementations MAY keep transformed blob bytes lazy until access. | Python `Graph.blobs`/`blob_meta`; Rust `Graph.blobs` lazy `BlobEntry` plus `blob_entry`/`blob_bytes`/`decoded_blobs`; Go `Graph.Blobs`/`BlobMeta`; TypeScript `Graph.blobs`/`blobMeta`. |
 | opaque nodes | Preserve undecodable or unsupported recoverable frames as graph-visible opaque nodes with a frame id, frame type, reason, and signature status. | `OpaqueNode` in every engine. |
@@ -82,7 +82,7 @@ actual dispatch surfaces.
 | `pack` | yes | yes | yes | yes | common |
 | `unpack` | yes | yes | yes | yes | common |
 | `diff` | yes | yes | yes | yes | common |
-| `from-nq` | yes | yes | no | no | Python/Rust extension |
+| `from-nq` | yes | yes | yes | yes | common |
 | `to-sqlite` | yes | yes | no | no | Python/Rust extension |
 | `to-duckdb` | yes | yes | no | no | Python/Rust extension |
 | `to-parquet` | yes | yes | no | no | Python/Rust extension |
@@ -101,7 +101,7 @@ actual dispatch surfaces.
   and Parquet exports require the Python `[db]` extra. Rust streams SQL rows to the runtime
   tool instead of retaining all relational rows or a complete SQL script in memory; the stable
   `blobs.bytes` schema still requires transient blob decoding while each blob row is emitted.
-- Go and TypeScript do not yet expose `from-nq` or relational exports.
+- Go and TypeScript do not yet expose relational exports.
 - All engines implement `verify-proof` for detached MMR proof JSON using the stable preimages and
   the positive/negative fixtures in `vectors/proofs/`. Rust additionally implements `prove` from
   files that carry a verified `index.mmr` root. Python, Go, and TypeScript should not expose
