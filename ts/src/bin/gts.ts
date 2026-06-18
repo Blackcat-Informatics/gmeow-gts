@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { Read, ReadFileSegments } from "../reader.js";
 import { toNQuads } from "../nquads.js";
+import { fromNQuads, NQuadsParseError } from "../from_nquads.js";
 import { pack, unpack, diff, suppressedBlobDigests } from "../files.js";
 import { compactStreamable, CompactRefusedError } from "../compact.js";
 import { STREAM_NS } from "../stream.js";
@@ -57,7 +58,8 @@ commands:
                             pack files/directories into a files-profile archive
   unpack <archive> [-C dir] [--include-suppressed]
                             unpack a files-profile archive
-  diff <archive> <dir>      compare archive to directory by digest`;
+  diff <archive> <dir>      compare archive to directory by digest
+  from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin`;
 
 function load(path: string): Uint8Array {
     return readFileSync(path);
@@ -217,6 +219,55 @@ function cmdFold(paths: string[]): number {
     process.stdout.write(toNQuads(g));
     if (g.diagnostics.length > 0 || g.segmentHeads.length === 0) return 1;
     return 0;
+}
+
+function cmdFromNQ(args: string[]): number {
+    let outPath = "";
+    const positional: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+        const a = args[i];
+        switch (a) {
+            case "-o":
+            case "--out":
+                if (i + 1 >= args.length) {
+                    console.error(`gts from-nq: -o requires a path\n${usage}`);
+                    return 2;
+                }
+                outPath = args[++i];
+                break;
+            default:
+                positional.push(a);
+        }
+    }
+    if (positional.length !== 1) {
+        console.error(usage);
+        return 2;
+    }
+
+    const path = positional[0];
+    let text: string;
+    try {
+        text =
+            path === "-" ? readFileSync(0, "utf8") : readFileSync(path, "utf8");
+    } catch (e) {
+        const source = path === "-" ? "stdin" : path;
+        console.error(
+            `gts from-nq: cannot read ${source}: ${(e as Error).message}`,
+        );
+        return 2;
+    }
+
+    let data: Uint8Array;
+    try {
+        data = fromNQuads(text);
+    } catch (e) {
+        if (e instanceof NQuadsParseError) {
+            console.error(`gts from-nq: ${e.message}`);
+            return 1;
+        }
+        throw e;
+    }
+    return writeOut(outPath, data);
 }
 
 /** Warn on `stream#` vocabulary in an unclaimed segment (§13.3).
@@ -896,6 +947,8 @@ function main(argv: string[]): number {
             return cmdUnpack(args);
         case "diff":
             return cmdDiff(args);
+        case "from-nq":
+            return cmdFromNQ(args);
         case "-h":
         case "--help":
         case "help":

@@ -21,6 +21,14 @@ from gts.writer import Writer
 _RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
 
 
+def _is_bnode_char(ch: str) -> bool:
+    return ch.isascii() and (ch.isalnum() or ch in "_.-")
+
+
+def _is_lang_char(ch: str) -> bool:
+    return ch.isascii() and (ch.isalnum() or ch == "-")
+
+
 class NQuadsParseError(ValueError):
     """Raised on malformed N-Quads(-star) input."""
 
@@ -111,8 +119,12 @@ class _Tokenizer:
             raise NQuadsParseError(f"bad blank node in {self.s!r}")
         self.i += 2
         start = self.i
-        while self.i < len(self.s) and self.s[self.i] not in " \t":
+        while self.i < len(self.s) and _is_bnode_char(self.s[self.i]):
             self.i += 1
+        if self.i > start and self.s[self.i - 1] == ".":
+            self.i -= 1
+        if self.i == start:
+            raise NQuadsParseError(f"empty blank node label in {self.s!r}")
         return self.s[start : self.i]
 
     def _literal(self) -> _Atom:
@@ -138,9 +150,11 @@ class _Tokenizer:
         if self.i < len(self.s) and self.s[self.i] == "@":
             self.i += 1
             start = self.i
-            while self.i < len(self.s) and self.s[self.i] not in " \t":
+            while self.i < len(self.s) and _is_lang_char(self.s[self.i]):
                 self.i += 1
             lang = self.s[start : self.i]
+            if not lang:
+                raise NQuadsParseError(f"empty language tag in {self.s!r}")
         elif self.s.startswith("^^", self.i):
             self.i += 2
             self._skip_ws()

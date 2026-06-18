@@ -410,7 +410,7 @@ def setup_engine(engine: str, out_dir: Path, timeout: int) -> tuple[EngineRuntim
         env["CGO_ENABLED"] = "0"
         if not run_setup(["go", "build", "-o", str(binary), "./cmd/gts"], cwd=ROOT / "go", env=env):
             return None, results
-        return EngineRuntime(engine, [str(binary)], ROOT, False), results
+        return EngineRuntime(engine, [str(binary)], ROOT, True), results
 
     if engine == "ts":
         if shutil.which("npm") is None or shutil.which("node") is None:
@@ -422,7 +422,7 @@ def setup_engine(engine: str, out_dir: Path, timeout: int) -> tuple[EngineRuntim
             return None, results
         if not run_setup(["npm", "run", "build", "--silent"], cwd=ROOT / "ts"):
             return None, results
-        return EngineRuntime(engine, ["node", str(ROOT / "ts" / "dist" / "bin" / "gts.js")], ROOT, False), results
+        return EngineRuntime(engine, ["node", str(ROOT / "ts" / "dist" / "bin" / "gts.js")], ROOT, True), results
 
     results.append(SetupResult(engine, "failed", engine, None, "unknown engine"))
     return None, results
@@ -600,7 +600,7 @@ def run_cli_benchmarks(
                     engine,
                     "write-from-nq",
                     fixtures["nq"].name,
-                    "current CLI parity exposes from-nq only for Python and Rust",
+                    "selected engine does not expose from-nq",
                 )
             )
 

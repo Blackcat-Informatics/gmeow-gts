@@ -86,13 +86,14 @@ a GTS file.
 - **`Writer`** — build segments and full GTS files frame by frame; optionally COSE-sign
   every frame with `signWith`.
 - **`toNQuads`** — project a folded `Graph` to N-Quads.
+- **`fromNQuads`** — build a GTS byte buffer from N-Quads text.
 - **`pack` / `unpack` / `diff`** — pack and unpack directory trees using the GTS files profile.
 - **`compactStreamable`** — compact a streamable GTS segment into a self-contained one.
 - **`cose`** — COSE_Sign1 signing/verification and COSE_Encrypt0 (AES-256-GCM) helpers.
 - **`emojihash`** — render a key/digest as a stable, eyeball-comparable emoji string.
 - **`stream`**, **`codec`**, **`wire`** — stream-vocabulary constants, the codec catalog,
   and low-level CBOR helpers.
-- **`gts` binary** — a CLI for reading, verifying, composing, compacting, and packing.
+- **`gts` binary** — a CLI for reading, verifying, composing, compacting, converting, and packing.
 
 The package gates against the identical frozen conformance corpus used by the Rust, Python,
 and Go engines; every engine must fold identical bytes to identical expectations.
@@ -264,6 +265,7 @@ gts pack <dir|file>... -o <out>    package files/directories into a GTS files pr
 gts unpack <file> [-C <dir>] [--include-suppressed]
                                    extract a files profile (refuses path traversal)
 gts diff <file> <directory>        compare a files profile to a directory by digest
+gts from-nq <in.nq> [-o out]       build a GTS from N-Quads (`-` reads stdin)
 ```
 
 Exit codes:
@@ -272,10 +274,11 @@ Exit codes:
 - `1` — diagnostics or input refused
 - `2` — usage or IO error
 
-`verify --key` and `extract-key` are cross-engine: all four `gts` binaries parse the
-embedded OpenPGP transport key to the same fingerprint and emojihash, and verify COSE
-signatures identically. (The `from-nq` inverse and the `to-sqlite`/`to-duckdb`/`to-parquet`
-relational exports are Python-CLI extensions and are not part of this engine's binary.)
+`verify --key`, `extract-key`, and `from-nq` are cross-engine: all four `gts` binaries parse the
+embedded OpenPGP transport key to the same fingerprint and emojihash, verify COSE
+signatures identically, and rebuild GTS files from N-Quads. (The
+`to-sqlite`/`to-duckdb`/`to-parquet` relational exports are Python/Rust extensions and are not
+part of this engine's binary.)
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
 refuses dirty inputs, contributes-nothing segments, and compositions whose suppressions

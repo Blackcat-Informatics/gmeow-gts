@@ -12,10 +12,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 
 	"go.blackcatinformatics.ca/gts/model"
+	"go.blackcatinformatics.ca/gts/nquads"
+	"go.blackcatinformatics.ca/gts/reader"
 	"go.blackcatinformatics.ca/gts/stream"
 	"go.blackcatinformatics.ca/gts/wire"
 	"go.blackcatinformatics.ca/gts/writer"
@@ -95,6 +98,42 @@ func TestFoldEmitsNQuads(t *testing.T) {
 	want := "<https://example.org/Cat> <http://www.w3.org/2000/01/rdf-schema#label> \"Cat\"@en .\n"
 	if got := stdout.String(); got != want {
 		t.Fatalf("fold output mismatch\ngot:  %q\nwant: %q", got, want)
+	}
+}
+
+func TestFromNQInvertsFold(t *testing.T) {
+	tmp := t.TempDir()
+	src, err := os.ReadFile(vector(t, "11-datatype-defaulting.gts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	nq := nquads.ToNQuads(reader.Read(src, false, nil))
+	nqFile, err := os.CreateTemp(tmp, "in-*.nq")
+	if err != nil {
+		t.Fatal(err)
+	}
+	nqPath := nqFile.Name()
+	outPath := filepath.Join(tmp, "out.gts")
+	if _, err := nqFile.Write([]byte(nq)); err != nil {
+		t.Fatal(err)
+	}
+	if err := nqFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+	cmd, _, stderr := run(t, "from-nq", nqPath, "-o", outPath)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("expected exit 0, got %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	out, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := strings.Split(strings.TrimSpace(nquads.ToNQuads(reader.Read(out, false, nil))), "\n")
+	want := strings.Split(strings.TrimSpace(nq), "\n")
+	sort.Strings(got)
+	sort.Strings(want)
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("fold mismatch\ngot:  %v\nwant: %v", got, want)
 	}
 }
 

@@ -273,13 +273,13 @@ gts compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
 gts pack <dir|file>... -o <out>   package files/directories into a GTS files profile
 gts unpack <file> [-C <dir>] [--include-suppressed]   extract a files profile
 gts diff <file> <directory>       compare a files profile to a directory
+gts from-nq <in.nq> [-o <out>]  build a GTS from N-Quads (inverse of fold; '-' = stdin)
 ```
 <!-- cli-common:end -->
 
 Python/Rust extensions:
 
 ```text
-gts from-nq <in.nq> [-o <out>]  build a GTS from N-Quads (inverse of fold; '-' = stdin)
 gts to-sqlite <file> <out>      export the folded graph to a SQLite database
 gts to-duckdb <file> <out>      export to DuckDB (Rust: --features duckdb)
 gts to-parquet <file> <dir>     export to Parquet (Rust: --features duckdb)
@@ -314,8 +314,8 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 [`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which this repo's Rust
 engine depends on and re-exports as `gmeow_gts::emojihash`.
 
-`from-nq` and the `to-*` relational exports are available in Python and Rust. Python
-DuckDB/Parquet exports need `pip install 'gmeow-gts[db]'`; Rust SQLite export shells out to
+`from-nq` is common across all four engines. The `to-*` relational exports are available in
+Python and Rust. Python DuckDB/Parquet exports need `pip install 'gmeow-gts[db]'`; Rust SQLite export shells out to
 `sqlite3` by default. Rust DuckDB/Parquet exports are behind the no-dependency Cargo
 feature `duckdb` and shell out to the `duckdb` binary. Rust emits relational SQL rows
 directly to the runtime tool instead of building a complete SQL script in memory; transformed
@@ -337,7 +337,7 @@ folded quad.
 | COSE Encrypt0 helpers | yes | yes | yes | yes |
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes |
-| `from-nq` inverse | yes | yes | no | no |
+| `from-nq` inverse | yes | yes | yes | yes |
 | Native RDF/store adapter | rdflib extra | `rdf` feature (`oxrdf` data model); `oxigraph-adapter` feature (Oxigraph store); `sophia-adapter` feature (Sophia dataset) | no | no |
 | SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no |
 | Package registry | PyPI | crates.io | Go module | npm |

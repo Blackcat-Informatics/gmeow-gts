@@ -12,6 +12,8 @@ use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::read;
 use gmeow_gts::writer::Writer;
 
+const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
+
 fn vectors() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../vectors")
 }
@@ -117,10 +119,47 @@ fn literals_lang_and_datatype_roundtrip() {
 }
 
 #[test]
+fn compact_blank_node_and_language_tag_delimiters_roundtrip() {
+    let nq = "<https://ex/s> <https://ex/p> _:b0.\n\
+              <https://ex/s> <https://ex/label> \"Cat\"@en.\n";
+    let expected = "<https://ex/s> <https://ex/p> _:b0 .\n\
+                    <https://ex/s> <https://ex/label> \"Cat\"@en .\n";
+    let imported = from_nquads(nq).expect("N-Quads parses");
+    let out = to_nquads(&read(&imported, true, None));
+    assert_eq!(sorted_lines(&out), sorted_lines(expected));
+}
+
+#[test]
+fn quoted_triple_adjacent_delimiters_roundtrip() {
+    let nq = format!(
+        "<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1)>> .\n\
+         <https://ex/r2> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> \"Cat\"@en)>> .\n"
+    );
+    let expected = format!(
+        "<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1 )>> .\n\
+         <https://ex/r2> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> \"Cat\"@en )>> .\n"
+    );
+    let imported = from_nquads(&nq).expect("N-Quads parses");
+    let out = to_nquads(&read(&imported, true, None));
+    assert_eq!(sorted_lines(&out), sorted_lines(&expected));
+}
+
+#[test]
 fn rejects_malformed_nquads() {
     let err =
         from_nquads("<https://ex/s> <https://ex/p> .\n").expect_err("only two terms is malformed");
     assert!(err.to_string().contains("expected 3 or 4 terms"));
+}
+
+#[test]
+fn rejects_empty_blank_node_label_and_language_tag() {
+    let err = from_nquads("<https://ex/s> <https://ex/p> _: .\n")
+        .expect_err("empty blank node labels are invalid");
+    assert!(err.to_string().contains("blank node"));
+
+    let err = from_nquads("<https://ex/s> <https://ex/p> \"Cat\"@ .\n")
+        .expect_err("empty language tags are invalid");
+    assert!(err.to_string().contains("language tag"));
 }
 
 #[test]

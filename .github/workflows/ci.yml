@@ -139,7 +139,7 @@ jobs:
         working-directory: gmeow-ontology
         run: |
           set -euo pipefail
-          cargo add gmeow-gts --path "$GITHUB_WORKSPACE/gmeow-gts/rust" --package gmeow-validate
+          printf '\n[patch.crates-io]\ngmeow-gts = { path = "../gmeow-gts/rust" }\n' >> Cargo.toml
 
       - name: Check gmeow-validate against current gmeow-gts
         working-directory: gmeow-ontology

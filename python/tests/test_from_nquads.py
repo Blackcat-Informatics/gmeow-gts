@@ -13,6 +13,7 @@ from gts.cli import main
 from gts.from_nquads import NQuadsParseError
 
 VECTORS_DIR = Path(__file__).resolve().parents[2] / "vectors"
+RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
 
 
 def _roundtrip(gts_bytes: bytes) -> bool:
@@ -68,6 +69,37 @@ def test_literals_lang_and_datatype_roundtrip() -> None:
     assert sorted(out.splitlines()) == sorted(nq.strip().splitlines())
 
 
+def test_compact_blank_node_and_language_tag_delimiters_roundtrip() -> None:
+    """A final '.' delimiter is not part of blank node labels or language tags."""
+    nq = (
+        "<https://ex/s> <https://ex/p> _:b0.\n"
+        '<https://ex/s> <https://ex/label> "Cat"@en.\n'
+    )
+    expected = (
+        "<https://ex/s> <https://ex/p> _:b0 .\n"
+        '<https://ex/s> <https://ex/label> "Cat"@en .\n'
+    )
+    out = to_nquads(read(from_nquads(nq)))
+    assert sorted(out.splitlines()) == sorted(expected.strip().splitlines())
+
+
+def test_quoted_triple_adjacent_delimiters_roundtrip() -> None:
+    """Quoted triple close delimiters are not consumed into node labels."""
+    lang_reifier = f"<https://ex/r2> <{RDF_REIFIES}> "
+    nq = (
+        f"<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1)>> .\n"
+        f"{lang_reifier}"
+        '<<( <https://ex/s> <https://ex/p> "Cat"@en)>> .\n'
+    )
+    expected = (
+        f"<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1 )>> .\n"
+        f"{lang_reifier}"
+        '<<( <https://ex/s> <https://ex/p> "Cat"@en )>> .\n'
+    )
+    out = to_nquads(read(from_nquads(nq)))
+    assert sorted(out.splitlines()) == sorted(expected.strip().splitlines())
+
+
 def test_cli_from_nq_inverts_fold(tmp_path: Path) -> None:
     """`gts from-nq` writes a GTS that folds to the input N-Quads."""
     src = (VECTORS_DIR / "11-datatype-defaulting.gts").read_bytes()
@@ -85,3 +117,11 @@ def test_cli_from_nq_rejects_malformed() -> None:
     """Malformed N-Quads raise a parse error inside the transform."""
     with pytest.raises(NQuadsParseError):
         from_nquads("<https://ex/s> <https://ex/p> .\n")  # only 2 terms
+
+
+def test_rejects_empty_blank_node_label_and_language_tag() -> None:
+    """Delimiter fixes must not turn empty tokens into valid terms."""
+    with pytest.raises(NQuadsParseError):
+        from_nquads("<https://ex/s> <https://ex/p> _: .\n")
+    with pytest.raises(NQuadsParseError):
+        from_nquads('<https://ex/s> <https://ex/p> "Cat"@ .\n')

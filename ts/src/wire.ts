@@ -10,35 +10,128 @@ export const SelfDescribeTag = 55799;
 export const Magic = "GTS1";
 export const Version = 1;
 
-/** Deep-convert Uint8Array values to Buffer so node-cbor emits plain CBOR
- * byte strings (major type 2) rather than RFC 8746 tag-64 typed arrays —
- * the deterministic encoding the spec mandates (§14.1). */
-function toEncodable(value: unknown): unknown {
-    if (value instanceof Tagged) {
-        return new Tagged(value.tag, toEncodable(value.value));
-    }
-    if (Buffer.isBuffer(value)) return value;
-    if (value instanceof Uint8Array) {
-        return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
-    }
-    if (Array.isArray(value)) return value.map((v) => toEncodable(v));
-    if (value instanceof Map) {
-        const out = new Map<unknown, unknown>();
-        for (const [k, v] of value) out.set(toEncodable(k), toEncodable(v));
-        return out;
-    }
-    return value;
-}
-
 /** Encode a value to canonical CBOR bytes (RFC 8949 §4.2). */
 export function encode(value: unknown): Uint8Array {
-    const buf = cbor.encodeCanonical(toEncodable(value)) as Buffer;
-    return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    return encodeCanonical(value);
 }
 
 /** Encode a value, throwing on error. */
 export function mustEncode(value: unknown): Uint8Array {
     return encode(value);
+}
+
+function copyBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+    const out = new Uint8Array(bytes.byteLength);
+    out.set(bytes);
+    return out;
+}
+
+function concatBytes(
+    chunks: ReadonlyArray<Uint8Array<ArrayBufferLike>>,
+): Uint8Array<ArrayBuffer> {
+    let length = 0;
+    for (const c of chunks) length += c.length;
+    const out = new Uint8Array(length);
+    let offset = 0;
+    for (const c of chunks) {
+        out.set(c, offset);
+        offset += c.length;
+    }
+    return out;
+}
+
+function encodeCanonical(value: unknown): Uint8Array {
+    if (value === null) return new Uint8Array([0xf6]);
+    if (value === undefined) return new Uint8Array([0xf7]);
+    if (typeof value === "boolean")
+        return new Uint8Array([value ? 0xf5 : 0xf4]);
+    if (typeof value === "string") {
+        const bytes = new TextEncoder().encode(value);
+        return concatBytes([encodeMajor(3, BigInt(bytes.length)), bytes]);
+    }
+    if (typeof value === "number") {
+        if (!Number.isInteger(value)) {
+            throw new Error(
+                "canonical CBOR encoder only supports integer numbers",
+            );
+        }
+        return encodeInteger(BigInt(value));
+    }
+    if (typeof value === "bigint") return encodeInteger(value);
+    if (value instanceof ArrayBuffer) {
+        const bytes = new Uint8Array(value);
+        return concatBytes([encodeMajor(2, BigInt(bytes.length)), bytes]);
+    }
+    if (value instanceof Uint8Array) {
+        const bytes = copyBytes(value);
+        return concatBytes([encodeMajor(2, BigInt(bytes.length)), bytes]);
+    }
+    if (Array.isArray(value)) {
+        const body = value.map((v) => encodeCanonical(v));
+        return concatBytes([encodeMajor(4, BigInt(value.length)), ...body]);
+    }
+    if (value instanceof Map) {
+        const entries = [...value.entries()].map(([k, v]) => ({
+            key: encodeCanonical(k),
+            value: encodeCanonical(v),
+        }));
+        entries.sort((a, b) => compareCborKeys(a.key, b.key));
+        const pieces: Uint8Array[] = [encodeMajor(5, BigInt(entries.length))];
+        for (const entry of entries) pieces.push(entry.key, entry.value);
+        return concatBytes(pieces);
+    }
+    if (value instanceof Tagged) {
+        return concatBytes([
+            encodeMajor(6, BigInt(value.tag)),
+            encodeCanonical(value.value),
+        ]);
+    }
+    throw new Error(`unsupported canonical CBOR value: ${typeof value}`);
+}
+
+function encodeInteger(value: bigint): Uint8Array {
+    if (value >= 0n) return encodeMajor(0, value);
+    return encodeMajor(1, -1n - value);
+}
+
+function encodeMajor(major: number, value: bigint): Uint8Array {
+    if (value < 0n) throw new Error("negative CBOR length");
+    const prefix = major << 5;
+    if (value <= 23n) return new Uint8Array([prefix | Number(value)]);
+    if (value <= 0xffn) return new Uint8Array([prefix | 24, Number(value)]);
+    if (value <= 0xffffn) {
+        return new Uint8Array([
+            prefix | 25,
+            Number((value >> 8n) & 0xffn),
+            Number(value & 0xffn),
+        ]);
+    }
+    if (value <= 0xffffffffn) {
+        return new Uint8Array([
+            prefix | 26,
+            Number((value >> 24n) & 0xffn),
+            Number((value >> 16n) & 0xffn),
+            Number((value >> 8n) & 0xffn),
+            Number(value & 0xffn),
+        ]);
+    }
+    if (value <= 0xffffffffffffffffn) {
+        const out = new Uint8Array(9);
+        out[0] = prefix | 27;
+        for (let i = 0; i < 8; i++) {
+            out[8 - i] = Number((value >> BigInt(i * 8)) & 0xffn);
+        }
+        return out;
+    }
+    throw new Error("CBOR integer exceeds uint64 range");
+}
+
+function compareCborKeys(a: Uint8Array, b: Uint8Array): number {
+    if (a.length !== b.length) return a.length - b.length;
+    for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return a[i] - b[i];
+    }
+    return 0;
 }
 
 /** Decode a single CBOR item, preferring Maps over plain objects. */

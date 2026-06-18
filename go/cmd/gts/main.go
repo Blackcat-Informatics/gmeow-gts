@@ -10,6 +10,7 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"go.blackcatinformatics.ca/gts/cose"
 	"go.blackcatinformatics.ca/gts/emojihash"
 	"go.blackcatinformatics.ca/gts/files"
+	"go.blackcatinformatics.ca/gts/fromnquads"
 	"go.blackcatinformatics.ca/gts/mmr"
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/nquads"
@@ -56,7 +58,8 @@ commands:
                             pack files/directories into a files-profile archive
   unpack <archive> [-C dir] [--include-suppressed]
                             unpack a files-profile archive
-  diff <archive> <dir>      compare archive to directory by digest`
+  diff <archive> <dir>      compare archive to directory by digest
+  from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin`
 
 func main() {
 	args := os.Args[1:]
@@ -98,6 +101,8 @@ func main() {
 		os.Exit(cmdUnpack(args[1:]))
 	case "diff":
 		os.Exit(cmdDiff(args[1:]))
+	case "from-nq":
+		os.Exit(cmdFromNQ(args[1:]))
 	case "-h", "--help", "help":
 		fmt.Println(usage)
 		os.Exit(0)
@@ -229,6 +234,65 @@ func cmdFold(paths []string) int {
 	fmt.Print(nquads.ToNQuads(g))
 	if len(g.Diagnostics) > 0 || len(g.SegmentHeads) == 0 {
 		return 1
+	}
+	return 0
+}
+
+func cmdFromNQ(args []string) int {
+	var outPath string
+	var positional []string
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "-o", "--out":
+			if i+1 >= len(args) {
+				fmt.Fprintf(os.Stderr, "gts from-nq: -o requires a path\n%s\n", usage)
+				return 2
+			}
+			outPath = args[i+1]
+			i++
+		default:
+			positional = append(positional, args[i])
+		}
+	}
+	if len(positional) != 1 {
+		fmt.Fprintln(os.Stderr, usage)
+		return 2
+	}
+
+	path := positional[0]
+	var data []byte
+	var err error
+	if path == "-" {
+		data, err = io.ReadAll(os.Stdin)
+	} else {
+		//nolint:gosec // CLI explicitly reads the user-supplied input path.
+		data, err = os.ReadFile(path)
+	}
+	if err != nil {
+		source := path
+		if path == "-" {
+			source = "stdin"
+		}
+		fmt.Fprintf(os.Stderr, "gts from-nq: cannot read %s: %v\n", source, err)
+		return 2
+	}
+
+	out, err := fromnquads.FromNQuads(string(data))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gts from-nq: %v\n", err)
+		return 1
+	}
+	if outPath != "" {
+		//nolint:gosec // CLI writes the user-requested output file.
+		if err := os.WriteFile(outPath, out, 0o644); err != nil {
+			fmt.Fprintf(os.Stderr, "gts from-nq: cannot write %s: %v\n", outPath, err)
+			return 2
+		}
+		return 0
+	}
+	if _, err := os.Stdout.Write(out); err != nil {
+		fmt.Fprintf(os.Stderr, "gts from-nq: cannot write stdout: %v\n", err)
+		return 2
 	}
 	return 0
 }

@@ -6,6 +6,7 @@ export type { StreamableInfo } from "./model.js";
 export { Read, ReadFileSegments } from "./reader.js";
 export { Writer, digestString } from "./writer.js";
 export { toNQuads } from "./nquads.js";
+export { fromNQuads, NQuadsParseError } from "./from_nquads.js";
 export { pack, unpack, diff } from "./files.js";
 export { compactStreamable, CompactRefusedError } from "./compact.js";
 export * as wire from "./wire.js";

@@ -89,7 +89,7 @@ GTS supports several application families without making any of them the project
 | COSE Encrypt0 helpers | yes | yes | yes | yes |
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes |
-| `from-nq` inverse | yes | yes | no | no |
+| `from-nq` inverse | yes | yes | yes | yes |
 | SQLite/DuckDB/Parquet exports | yes | yes | no | no |
 | Package registry | PyPI | crates.io | Go module | npm |
 
