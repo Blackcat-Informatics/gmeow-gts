@@ -55,7 +55,7 @@ version.
   versions independent from the spec document version.
 - Clarifies conformance scopes, reader/writer classes, streaming-reader memory bounds, and
   canonical reader diagnostics.
-- Formalizes the graph fold, multi-segment value union, blank-node scoping, RDF 1.2 triple-term
+- Formalises the graph fold, multi-segment value union, blank-node scoping, RDF 1.2 triple-term
   and `rdf:reifies` mapping, position constraints, and duplicate/conflict behavior.
 - Adds streamable-layout rules, optional index/MMR proof preimages, proof verification, unknown
   extension-key behavior, media type and HTTP serving contracts, and durability/security
