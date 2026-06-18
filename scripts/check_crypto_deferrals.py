@@ -100,13 +100,22 @@ def main() -> int:
     require(len(successes) >= 2, "positive vector must expect two successful unwrap kids")
 
     missing_key = vectors["missing-key-opacity.json"]
+    missing_expected = missing_key.get("expected", {})
+    require(
+        isinstance(missing_expected, dict),
+        "missing-key vector expected must be an object",
+    )
     require(
         "MissingKey" in missing_key.get("expected_diagnostics", []),
         "missing-key vector must expect MissingKey",
     )
     require(
-        missing_key.get("expected", {}).get("opaque_reason") == "missing-key",
+        missing_expected.get("opaque_reason") == "missing-key",
         "missing-key vector must preserve missing-key opacity",
+    )
+    require(
+        missing_expected.get("plaintext_available") is False,
+        "missing-key vector plaintext_available must be false",
     )
 
     for name in ["wrong-key-opacity.json", "key-wrap-failure-diagnostics.json"]:
