@@ -10,6 +10,7 @@ import { STREAM_NS } from "../stream.js";
 import { verifySignatures } from "../cose.js";
 import { parseTransportKey } from "../openpgp.js";
 import { emojihash } from "../emojihash.js";
+import { proofFromJson, verifyProof } from "../mmr.js";
 import {
     hex,
     mapGet,
@@ -28,6 +29,7 @@ commands:
   info <file>...            per-segment composition ledger
   fold <file>               fold to N-Quads on stdout
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
+  verify-proof <proof.json>  verify detached MMR proof JSON without the GTS file
   extract-key <file>        print the embedded transport key: kid, OpenPGP
                             fingerprint, emojihash, and armored public key
   ls <file>                 list inline blobs: digest, size, declared media type
@@ -323,10 +325,15 @@ function cmdVerify(args: string[]): number {
             const colon = spec.indexOf(":");
             const hexpub = colon > 0 ? spec.slice(colon + 1) : "";
             if (colon <= 0 || !/^[0-9a-fA-F]{64}$/.test(hexpub)) {
-                console.error(`gts verify: bad --key ${spec} (want kid:hexpubkey)`);
+                console.error(
+                    `gts verify: bad --key ${spec} (want kid:hexpubkey)`,
+                );
                 return 2;
             }
-            keys.set(spec.slice(0, colon), Uint8Array.from(Buffer.from(hexpub, "hex")));
+            keys.set(
+                spec.slice(0, colon),
+                Uint8Array.from(Buffer.from(hexpub, "hex")),
+            );
         } else {
             paths.push(args[i]);
         }
@@ -363,6 +370,44 @@ function cmdVerify(args: string[]): number {
         }
     }
     return problems ? 1 : 0;
+}
+
+function cmdVerifyProof(args: string[]): number {
+    if (args.length !== 1) {
+        console.error(usage);
+        return 2;
+    }
+    const path = args[0];
+    let text: string;
+    try {
+        text = readFileSync(path, "utf8");
+    } catch (e) {
+        console.error(
+            `gts verify-proof: cannot read ${path}: ${(e as Error).message}`,
+        );
+        return 2;
+    }
+    let proof;
+    try {
+        proof = proofFromJson(text);
+    } catch (e) {
+        console.error(
+            `gts verify-proof: invalid proof JSON: ${(e as Error).message}`,
+        );
+        return 1;
+    }
+    try {
+        verifyProof(proof);
+    } catch (e) {
+        console.error(
+            `gts verify-proof: invalid proof: ${(e as Error).message}`,
+        );
+        return 1;
+    }
+    console.log(
+        `proof ok: root ${hex(proof.root)} frame ${hex(proof.frameId)}`,
+    );
+    return 0;
 }
 
 /** Rewrite a GTS file into the streamable layout state (§10.1, §14.1). */
@@ -749,6 +794,8 @@ function main(argv: string[]): number {
             return cmdFold(args);
         case "verify":
             return cmdVerify(args);
+        case "verify-proof":
+            return cmdVerifyProof(args);
         case "extract-key":
             return cmdExtractKey(args);
         case "ls":

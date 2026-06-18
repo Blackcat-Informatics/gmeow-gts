@@ -309,6 +309,7 @@ contract lives in [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md).
 gts info <file>...            per-segment composition ledger
 gts fold <file>               fold to N-Quads on stdout
 gts verify <file>... [--key KID:HEXPUB]   verify chains + COSE signatures
+gts verify-proof <proof.json>  verify detached MMR proof JSON without the GTS file
 gts extract-key <file>        print the embedded transport/verification key
 gts ls <file>...              list segment digests, sizes, and media types
 gts extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
@@ -329,11 +330,10 @@ gts to-duckdb <file> <out>      export to DuckDB (Rust: --features duckdb)
 gts to-parquet <file> <dir>     export to Parquet (Rust: --features duckdb)
 ```
 
-Rust-only proof extensions:
+Rust-only proof creation extension:
 
 ```text
 gts prove <file> <frame-id>      emit detached JSON proof from an index.mmr root
-gts verify-proof <proof.json>    verify detached proof JSON without the GTS file
 ```
 
 Rust-only replication extensions:

@@ -27,7 +27,11 @@ function run(
         input: opts?.input,
         encoding: "utf8",
     });
-    return { code: r.status ?? 1, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
+    return {
+        code: r.status ?? 1,
+        stdout: r.stdout ?? "",
+        stderr: r.stderr ?? "",
+    };
 }
 
 test("CLI fold emits N-Quads for a clean vector", () => {
@@ -40,6 +44,24 @@ test("CLI verify reports diagnostics for damaged vector", () => {
     const r = run(["verify", join(vectorsDir, "04-damaged-frame.gts")]);
     assert.equal(r.code, 1);
     assert.match(r.stdout + r.stderr, /DamagedFrame/);
+});
+
+test("CLI verify-proof accepts the positive proof fixture", () => {
+    const r = run([
+        "verify-proof",
+        join(vectorsDir, "proofs", "mmr-basic-proof.json"),
+    ]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /proof ok/);
+});
+
+test("CLI verify-proof rejects the bad-root proof fixture", () => {
+    const r = run([
+        "verify-proof",
+        join(vectorsDir, "proofs", "mmr-basic-proof-bad-root.json"),
+    ]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /invalid proof/);
 });
 
 test("CLI ls lists inline blobs", () => {

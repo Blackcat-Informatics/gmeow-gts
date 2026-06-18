@@ -86,8 +86,8 @@ actual dispatch surfaces.
 | `to-sqlite` | yes | yes | no | no | Python/Rust extension |
 | `to-duckdb` | yes | yes | no | no | Python/Rust extension |
 | `to-parquet` | yes | yes | no | no | Python/Rust extension |
-| `prove` | no | yes | no | no | Rust proof extension |
-| `verify-proof` | no | yes | no | no | Rust proof extension |
+| `prove` | no | yes | no | no | Rust proof creation extension |
+| `verify-proof` | yes | yes | yes | yes | common |
 | `heads` | no | yes | no | no | Rust replication extension |
 | `segments` | no | yes | no | no | Rust replication extension |
 | `missing` | no | yes | no | no | Rust replication extension |
@@ -102,8 +102,10 @@ actual dispatch surfaces.
   tool instead of retaining all relational rows or a complete SQL script in memory; the stable
   `blobs.bytes` schema still requires transient blob decoding while each blob row is emitted.
 - Go and TypeScript do not yet expose `from-nq` or relational exports.
-- Rust implements the first `index.mmr` proof verbs. Python, Go, and TypeScript should not expose
-  `prove` or `verify-proof` until they implement the same proof JSON and preimages.
+- All engines implement `verify-proof` for detached MMR proof JSON using the stable preimages and
+  the positive/negative fixtures in `vectors/proofs/`. Rust additionally implements `prove` from
+  files that carry a verified `index.mmr` root. Python, Go, and TypeScript should not expose
+  `prove` until they can create file-backed proofs against the same fixture discipline.
 - Rust implements the first replication verbs. Python, Go, and TypeScript should not expose
   `heads`, `segments`, `missing`, or `resume` until they implement the same JSON shapes and
   boundary rules.
