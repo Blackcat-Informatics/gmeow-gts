@@ -27,10 +27,11 @@ change before `1.0`.
   `scripts/gen_randomart_vectors.py`), so the Rust art reproduces Python's
   byte-for-byte. The `gmeow-gts` crate now depends on `visual-hashing` and
   re-exports it as `gmeow_gts::emojihash`, so existing paths keep working. The
-  crate's only dependency is `blake3`; it stays `wasm32`-friendly. (Rust-only
-  for now; other-language parity and the actual crates.io publish are follow-ups
-  — publishing requires `visual-hashing` to land on crates.io before the next
-  `gmeow-gts` crate release, since the latter now depends on it.)
+  crate's only dependency is `blake3`; it stays `wasm32`-friendly. (The
+  standalone crate is published to crates.io as `visual-hashing 0.1.1`; publish
+  it first whenever the Rust `gmeow-gts` crate bumps its compatible
+  `visual-hashing` requirement, since `gmeow-gts` packaging resolves that
+  dependency from crates.io rather than the in-repo path.)
 
 - **Cross-engine COSE_Encrypt0 (#18): AES-256-GCM payload encryption in all four engines.**
   - `encrypt0` / `decrypt0` / `recipient_kid` (§9.3) in Rust (pure-Rust
