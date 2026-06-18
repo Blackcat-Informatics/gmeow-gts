@@ -23,6 +23,7 @@ import (
 	"go.blackcatinformatics.ca/gts/nquads"
 	"go.blackcatinformatics.ca/gts/openpgp"
 	"go.blackcatinformatics.ca/gts/reader"
+	"go.blackcatinformatics.ca/gts/replication"
 	"go.blackcatinformatics.ca/gts/stream"
 	"go.blackcatinformatics.ca/gts/wire"
 )
@@ -34,6 +35,12 @@ commands:
   fold <file>               fold to N-Quads on stdout
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
   verify-proof <proof.json>  verify detached MMR proof JSON without the GTS file
+  heads <file>              JSON segment heads and aggregate comparison digest
+  segments <file>           JSON segment byte ranges and layout inventory
+  missing --from-head <head> <file>
+                            JSON byte ranges needed after a peer head
+  resume --after <frame-id> <file>
+                            emit bytes after a verified frame boundary
   extract-key <file>        print the embedded transport key: kid, OpenPGP
                             fingerprint, emojihash, and armored public key
   ls <file>                 list inline blobs: digest, size, declared media type
@@ -67,6 +74,14 @@ func main() {
 		os.Exit(cmdVerify(args[1:]))
 	case "verify-proof":
 		os.Exit(cmdVerifyProof(args[1:]))
+	case "heads":
+		os.Exit(cmdHeads(args[1:]))
+	case "segments":
+		os.Exit(cmdSegments(args[1:]))
+	case "missing":
+		os.Exit(cmdMissing(args[1:]))
+	case "resume":
+		os.Exit(cmdResume(args[1:]))
 	case "extract-key":
 		os.Exit(cmdExtractKey(args[1:]))
 	case "ls":
@@ -433,6 +448,88 @@ func cmdVerifyProof(args []string) int {
 		return 1
 	}
 	fmt.Printf("proof ok: root %s frame %s\n", wire.Hex(proof.Root), wire.Hex(proof.FrameID))
+	return 0
+}
+
+func cmdHeads(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, usage)
+		return 2
+	}
+	data, code := load(args[0])
+	if code != 0 {
+		return code
+	}
+	inv := replication.InventoryFor(data)
+	fmt.Print(replication.HeadsJSON(inv))
+	if inv.HasProblems() {
+		return 1
+	}
+	return 0
+}
+
+func cmdSegments(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, usage)
+		return 2
+	}
+	data, code := load(args[0])
+	if code != 0 {
+		return code
+	}
+	inv := replication.InventoryFor(data)
+	fmt.Print(replication.SegmentsJSON(inv))
+	if inv.HasProblems() {
+		return 1
+	}
+	return 0
+}
+
+func cmdMissing(args []string) int {
+	if len(args) != 3 || args[0] != "--from-head" {
+		fmt.Fprintln(os.Stderr, usage)
+		return 2
+	}
+	fromHead, err := mmr.ParseHex32(args[1])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gts missing: invalid peer head: %v\n", err)
+		return 2
+	}
+	data, code := load(args[2])
+	if code != 0 {
+		return code
+	}
+	result := replication.Missing(replication.InventoryFor(data), fromHead)
+	fmt.Print(replication.MissingJSON(result))
+	if result.Status == replication.MissingError {
+		return 1
+	}
+	return 0
+}
+
+func cmdResume(args []string) int {
+	if len(args) != 3 || args[0] != "--after" {
+		fmt.Fprintln(os.Stderr, usage)
+		return 2
+	}
+	frameID, err := mmr.ParseHex32(args[1])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gts resume: invalid frame id: %v\n", err)
+		return 2
+	}
+	data, code := load(args[2])
+	if code != 0 {
+		return code
+	}
+	tail, err := replication.ResumeAfter(data, frameID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gts resume: %v\n", err)
+		return 1
+	}
+	if _, err := os.Stdout.Write(tail); err != nil {
+		fmt.Fprintf(os.Stderr, "gts resume: cannot write stdout: %v\n", err)
+		return 2
+	}
 	return 0
 }
 

@@ -10,7 +10,16 @@ import { STREAM_NS } from "../stream.js";
 import { verifySignatures } from "../cose.js";
 import { parseTransportKey } from "../openpgp.js";
 import { emojihash } from "../emojihash.js";
-import { proofFromJson, verifyProof } from "../mmr.js";
+import { parseHex32, proofFromJson, verifyProof } from "../mmr.js";
+import {
+    headsJson,
+    hasProblems as replicationHasProblems,
+    inventory,
+    missing,
+    missingJson,
+    resumeAfter,
+    segmentsJson,
+} from "../replication.js";
 import {
     hex,
     mapGet,
@@ -30,6 +39,12 @@ commands:
   fold <file>               fold to N-Quads on stdout
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
   verify-proof <proof.json>  verify detached MMR proof JSON without the GTS file
+  heads <file>              JSON segment heads and aggregate comparison digest
+  segments <file>           JSON segment byte ranges and layout inventory
+  missing --from-head <head> <file>
+                            JSON byte ranges needed after a peer head
+  resume --after <frame-id> <file>
+                            emit bytes after a verified frame boundary
   extract-key <file>        print the embedded transport key: kid, OpenPGP
                             fingerprint, emojihash, and armored public key
   ls <file>                 list inline blobs: digest, size, declared media type
@@ -408,6 +423,67 @@ function cmdVerifyProof(args: string[]): number {
         `proof ok: root ${hex(proof.root)} frame ${hex(proof.frameId)}`,
     );
     return 0;
+}
+
+function cmdHeads(args: string[]): number {
+    if (args.length !== 1) {
+        console.error(usage);
+        return 2;
+    }
+    const inv = inventory(load(args[0]));
+    process.stdout.write(headsJson(inv));
+    return replicationHasProblems(inv) ? 1 : 0;
+}
+
+function cmdSegments(args: string[]): number {
+    if (args.length !== 1) {
+        console.error(usage);
+        return 2;
+    }
+    const inv = inventory(load(args[0]));
+    process.stdout.write(segmentsJson(inv));
+    return replicationHasProblems(inv) ? 1 : 0;
+}
+
+function cmdMissing(args: string[]): number {
+    if (args.length !== 3 || args[0] !== "--from-head") {
+        console.error(usage);
+        return 2;
+    }
+    let fromHead: Uint8Array;
+    try {
+        fromHead = parseHex32(args[1]);
+    } catch (e) {
+        console.error(
+            `gts missing: invalid peer head: ${(e as Error).message}`,
+        );
+        return 2;
+    }
+    const result = missing(inventory(load(args[2])), fromHead);
+    process.stdout.write(missingJson(result));
+    return result.status === "error" ? 1 : 0;
+}
+
+function cmdResume(args: string[]): number {
+    if (args.length !== 3 || args[0] !== "--after") {
+        console.error(usage);
+        return 2;
+    }
+    let frameId: Uint8Array;
+    try {
+        frameId = parseHex32(args[1]);
+    } catch (e) {
+        console.error(`gts resume: invalid frame id: ${(e as Error).message}`);
+        return 2;
+    }
+    let tail: Uint8Array;
+    try {
+        tail = resumeAfter(load(args[2]), frameId);
+    } catch (e) {
+        console.error(`gts resume: ${(e as Error).message}`);
+        return 1;
+    }
+    return writeOut("", tail);
 }
 
 /** Rewrite a GTS file into the streamable layout state (§10.1, §14.1). */
@@ -796,6 +872,14 @@ function main(argv: string[]): number {
             return cmdVerify(args);
         case "verify-proof":
             return cmdVerifyProof(args);
+        case "heads":
+            return cmdHeads(args);
+        case "segments":
+            return cmdSegments(args);
+        case "missing":
+            return cmdMissing(args);
+        case "resume":
+            return cmdResume(args);
         case "extract-key":
             return cmdExtractKey(args);
         case "ls":

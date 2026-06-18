@@ -16,14 +16,14 @@ and what is intentionally deferred from the v1 surface.
 | Streamable layout | `gts compact --streamable` rewrites delivery order and appends an `index` footer; readers validate the claim and report accretive tails. | This is a Validating Tool/Profile Layout feature. |
 | Index footer fields | Writers emit `count`, `head`, `off`, and `ti`; Rust writers can opt in to `mmr`, and Rust readers validate `mmr` roots when present. | Full-reader random access from `off`/`ti` is not claimed yet. |
 | MMR proof JSON | All engines verify detached proof JSON against `vectors/proofs/`; Rust also exposes `Writer::add_index_with_mmr`, validates optional `index.mmr`, and implements `gts prove`. | Detached verification is cross-engine; proof creation from indexed GTS files remains Rust-only. |
-| Replication inventory | Rust exposes `gts heads`, `gts segments`, `gts missing`, and `gts resume` for machine-readable head comparison and byte-range resume. | This is a Rust-only replication surface until the other engines implement the same JSON shapes. |
+| Replication inventory | All four CLIs expose `gts heads`, `gts segments`, `gts missing`, and `gts resume` for machine-readable head comparison and byte-range resume. | Shared v1 replication surface; `resume` starts only after a verified frame id at a scanned CBOR item boundary. |
 | Blob introspection | `gts ls` lists content-addressed blob digests, sizes, and media types. | Range fetch still needs a verified index or a boundary scan. |
 | Memory benchmark helper | `scripts/bench_reader_memory.py` reports full-reader materialization, a frame-scan baseline, and a Rust `read_to_sink` streaming-fold row when Cargo is available. | The frame scan is not a Streaming Reader fold; the Rust row is the sink API evidence. |
 
 The current Rust package may claim the `Streaming Reader` tier for its `read_to_sink` API and
 the Rust-only MMR proof-creation surface. All four packages may claim detached proof verification
-for the fixture set in `vectors/proofs/`. Python, Go, and TypeScript SHOULD NOT claim the sink,
-proof-creation, or replication tiers yet.
+for the fixture set in `vectors/proofs/` and the shared replication inventory verbs. Python, Go,
+and TypeScript SHOULD NOT claim the sink or proof-creation tiers yet.
 
 ## Deferred Advanced CLI Verbs
 
@@ -107,7 +107,7 @@ derived from scanned item boundaries.
 
 ## Replication Workflow
 
-Rust tools implement the replication verbs:
+All engine CLIs implement the replication verbs:
 
 ```bash
 gts heads local.gts
@@ -124,7 +124,7 @@ gts-replication-segments-v1
 gts-replication-missing-v1
 ```
 
-Rust semantics:
+Shared semantics:
 
 - `heads` reports segment heads in file order and an aggregate view suitable for peer comparison;
 - `segments` reports each segment's byte range, profile, head, frame count, and layout state;

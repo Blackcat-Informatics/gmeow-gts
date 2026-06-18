@@ -310,6 +310,10 @@ gts info <file>...            per-segment composition ledger
 gts fold <file>               fold to N-Quads on stdout
 gts verify <file>... [--key KID:HEXPUB]   verify chains + COSE signatures
 gts verify-proof <proof.json>  verify detached MMR proof JSON without the GTS file
+gts heads <file>                 emit JSON segment heads and aggregate comparison digest
+gts segments <file>              emit JSON segment byte ranges and layout inventory
+gts missing --from-head <head> <file>   emit JSON byte ranges needed after a peer head
+gts resume --after <frame-id> <file>    emit bytes after a verified frame boundary
 gts extract-key <file>        print the embedded transport/verification key
 gts ls <file>...              list segment digests, sizes, and media types
 gts extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
@@ -334,15 +338,6 @@ Rust-only proof creation extension:
 
 ```text
 gts prove <file> <frame-id>      emit detached JSON proof from an index.mmr root
-```
-
-Rust-only replication extensions:
-
-```text
-gts heads <file>                 emit JSON segment heads and aggregate comparison digest
-gts segments <file>              emit JSON segment byte ranges and layout inventory
-gts missing --from-head <head> <file>   emit JSON byte ranges needed after a peer head
-gts resume --after <frame-id> <file>    emit bytes after a verified frame boundary
 ```
 
 Python-only extensions:

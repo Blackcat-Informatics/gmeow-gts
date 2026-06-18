@@ -18,7 +18,7 @@ deferred.
 | Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge; `--features rdf` enables `gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` for native `oxrdf::Dataset` interop without an embedded graph store; `--features oxigraph-adapter` enables `gmeow_gts::oxigraph::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using Oxigraph's in-memory store; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Sophia and Rio adapters remain deferred until they can be optional features with round-trip tests and no mandatory database dependency. |
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
 | TypeScript browser | Current browser-safe handoff is `Uint8Array`: `fetch()`, optional HTTP `Range`, then `Read(bytes, allowSegments)`, `toNQuads`, or files helpers. | A package-level browser bundle, `ReadableStream` fold API, WebCrypto key provider, and progressive rendering API are deferred. |
-| Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides cancellation, byte limits, and ordinary `io.Reader` integration for HTTP bodies, object-store objects, and pipes. | True streaming fold and service-to-service replication verbs remain deferred to the advanced-primitives contract. |
+| Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides cancellation, byte limits, and ordinary `io.Reader` integration for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | True streaming fold and service-specific replication orchestration remain deferred to the advanced-primitives contract. |
 
 ## Python: rdflib And Data Frames
 
@@ -253,12 +253,11 @@ format diagnostics into Go errors.
 
 For current services:
 
-- Use Rust `gts heads` / `gts segments`, or `gts info` / `reader.ReadFileSegments` in engines
-  without the replication verbs, to inventory segment heads.
+- Use `gts heads` / `gts segments` in any engine to inventory segment heads and byte ranges.
 - Use `gts ls` or folded `Graph.Blobs`/`BlobMeta` to inventory inline objects.
 - Use the range rules above when serving byte ranges from HTTP or object stores.
-- Rust `gts missing` and `gts resume` provide the first stable byte-range resume surface. Other
-  engines should treat replication verbs as deferred until they match the
+- `gts missing` and `gts resume` provide the stable byte-range resume surface in every engine.
+  Higher-level service-to-service protocols remain application code built on the
   [GTS-ADVANCED-PRIMITIVES.md](./GTS-ADVANCED-PRIMITIVES.md) JSON shapes and boundary rules.
 
 ## Contract Guard

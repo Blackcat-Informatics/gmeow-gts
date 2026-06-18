@@ -34,6 +34,19 @@ function run(
     };
 }
 
+function runRaw(args: string[]): {
+    code: number;
+    stdout: Buffer;
+    stderr: string;
+} {
+    const r = spawnSync("node", [cli, ...args]);
+    return {
+        code: r.status ?? 1,
+        stdout: r.stdout,
+        stderr: r.stderr.toString("utf8"),
+    };
+}
+
 test("CLI fold emits N-Quads for a clean vector", () => {
     const r = run(["fold", join(vectorsDir, "01-minimal.gts")]);
     assert.equal(r.code, 0);
@@ -62,6 +75,88 @@ test("CLI verify-proof rejects the bad-root proof fixture", () => {
     ]);
     assert.equal(r.code, 1);
     assert.match(r.stderr, /invalid proof/);
+});
+
+test("CLI replication verbs emit JSON shapes and resume at a CBOR boundary", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "gts-cli-"));
+    const first = new Writer("generic");
+    const firstHead = first.addBlob(Buffer.from("a"), "text/plain");
+    const firstBytes = first.toBytes();
+    const second = new Writer("generic");
+    const secondHead = second.addBlob(Buffer.from("b"), "text/plain");
+    const secondBytes = second.toBytes();
+    const data = Buffer.concat([
+        Buffer.from(firstBytes),
+        Buffer.from(secondBytes),
+    ]);
+    const path = join(tmp, "replicated.gts");
+    writeFileSync(path, data);
+
+    const heads = run(["heads", path]);
+    assert.equal(heads.code, 0, heads.stderr);
+    const headsDoc = JSON.parse(heads.stdout);
+    assert.equal(headsDoc.schema, "gts-replication-heads-v1");
+    assert.equal(headsDoc.clean, true);
+    assert.deepEqual(headsDoc.segment_heads, [
+        Buffer.from(firstHead).toString("hex"),
+        Buffer.from(secondHead).toString("hex"),
+    ]);
+    assert.equal(headsDoc.aggregate.schema, "gts-segment-heads-v1");
+    assert.equal(headsDoc.aggregate.count, 2);
+    assert.equal(
+        headsDoc.aggregate.file_head,
+        Buffer.from(secondHead).toString("hex"),
+    );
+    assert.equal(headsDoc.fatal, null);
+
+    const segments = run(["segments", path]);
+    assert.equal(segments.code, 0, segments.stderr);
+    const segmentsDoc = JSON.parse(segments.stdout);
+    assert.equal(segmentsDoc.schema, "gts-replication-segments-v1");
+    assert.equal(segmentsDoc.clean, true);
+    assert.equal(segmentsDoc.item_count, 4);
+    assert.deepEqual(segmentsDoc.segments[0].byte_range, {
+        start: 0,
+        end: firstBytes.length,
+        length: firstBytes.length,
+    });
+    assert.deepEqual(segmentsDoc.segments[1].byte_range, {
+        start: firstBytes.length,
+        end: data.length,
+        length: secondBytes.length,
+    });
+    assert.equal(segmentsDoc.segments[0].frame_count, 1);
+
+    const missing = run([
+        "missing",
+        "--from-head",
+        Buffer.from(firstHead).toString("hex"),
+        path,
+    ]);
+    assert.equal(missing.code, 0, missing.stderr);
+    assert.deepEqual(JSON.parse(missing.stdout), {
+        schema: "gts-replication-missing-v1",
+        status: "ranges",
+        from_head: Buffer.from(firstHead).toString("hex"),
+        ranges: [
+            {
+                start: firstBytes.length,
+                end: data.length,
+                length: secondBytes.length,
+            },
+        ],
+        scan_required: false,
+        detail: null,
+    });
+
+    const resume = runRaw([
+        "resume",
+        "--after",
+        Buffer.from(firstHead).toString("hex"),
+        path,
+    ]);
+    assert.equal(resume.code, 0, resume.stderr);
+    assert.deepEqual(resume.stdout, Buffer.from(secondBytes));
 });
 
 test("CLI ls lists inline blobs", () => {
