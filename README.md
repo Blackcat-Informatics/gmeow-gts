@@ -224,11 +224,13 @@ affect default transport users. `--features duckdb` enables the DuckDB/Parquet C
 exports without adding a Rust dependency; those commands invoke the `duckdb` binary
 on `PATH`.
 
-For streaming projections, implement `gmeow_gts::reader::StreamingSink` and call
+For evented projections, implement `gmeow_gts::reader::StreamingSink` and call
 `gmeow_gts::reader::read_to_sink(&bytes, allow_segments, expected_head, sink)`.
 The sink API emits segment-local term, quad, reifier, annotation, suppression,
 blob, opaque, signature, diagnostic, segment-head, and streamable-layout events
-while returning final diagnostics and segment heads. It adds no crate dependency.
+while returning final diagnostics and segment heads. This is not a current
+non-materializing Streaming Reader tier claim: the API still accepts a byte slice
+and uses the segment graph path while emitting events. It adds no crate dependency.
 For folded graph consumers, `Graph::into_quads()` and `IntoIterator for Graph`
 consume raw quad-id rows without cloning the `Vec<Quad>`, while
 `Graph::quad_terms()` lazily resolves ids to borrowed `Term` references.
@@ -306,9 +308,10 @@ const result = await foldStream(response.body!, {
 console.log(toNQuads(result.graph));
 ```
 
-The browser export is the TypeScript `GTS Streaming Reader` surface. The root Node `Read`
-API remains a materializing reader and the filesystem/CLI helpers are not exposed as
-browser-safe APIs.
+The browser export is a progressive Web Streams surface with fold events. It still returns
+materialized graph state, so it is not a current non-materializing `GTS Streaming Reader` tier
+claim. The root Node `Read` API remains a materializing reader and the filesystem/CLI helpers are
+not exposed as browser-safe APIs.
 
 Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.4 are intentional
 manifest floors. Older runtimes are unsupported so the engines can share one current CI and
@@ -465,10 +468,10 @@ Current CI-gated conformance status:
 
 | Engine | Baseline Reader | Streaming / Prefix Evidence | Writer | Validating Tool | Profile-Aware Tool |
 |---|---|---|---|---|---|
-| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `read_to_sink` API plus prefix-fold corpus gate | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `read_to_sink` evented projection API plus prefix-fold corpus gate; not a non-materializing Streaming Reader tier claim | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser `foldStream` API plus browser stream/WebCrypto tests; corpus read gate remains the full-reader oracle | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser progressive `foldStream` events plus browser stream/WebCrypto tests; not a non-materializing Streaming Reader tier claim; corpus read gate remains the full-reader oracle | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 
 ## Repository layout
 

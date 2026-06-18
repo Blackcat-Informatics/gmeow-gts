@@ -215,8 +215,10 @@ profile-level validation failure, not by redefining core GTS validity.
   node (§7.6). It MAY ignore signatures and encryption.
 - A **Streaming Reader** is a Baseline Reader that processes frames one at a time and emits to a
   sink **without materialising the whole graph**: it maintains only the term dictionary (and a
-  running chain check), giving O(distinct-terms) memory rather than O(triples) (§7.7). The
-  `gts → duckdb`/`sqlite` transforms (§14) are Streaming Readers and run in bounded memory.
+  running chain check), plus the maximum decoded frame and validation sidecar state, giving
+  O(distinct terms + maximum decoded frame size + validation sidecar state) retained memory
+  rather than O(triples + blobs) (§7.7). The `gts → duckdb`/`sqlite` transforms (§14) are
+  Streaming Reader-shaped when implemented through a non-materializing sink.
 - A **Full Reader** additionally verifies COSE signatures, decrypts COSE-encrypted frames for
   which it holds keys, MAY recurse into nested GTS blobs (§12.1), and MAY use the optional index
   frame (§6.2) for parallel verification and random access.
@@ -839,24 +841,24 @@ id/prev chain, so it cannot be silently stripped.
 ### 7.7 Streaming fold and bounded memory
 
 A graph need not be materialised to be *transformed*. A **Streaming Reader** (§2.1) processes
-frames in order and emits to a sink, holding only the term dictionary and the running id/prev
-check:
+frames in order and emits to a sink, holding only the term dictionary, the current decoded frame
+or blob, and the running id/prev and validation state:
 
 - `gts → duckdb`/`sqlite` (§14) keep the **integer-id** model: stream `terms` deltas into a
   `terms` table and `quads`/`reifies`/`annot` deltas into id-valued tables, bulk-inserting as
-  frames arrive. **No term resolution and no graph materialisation occur** — memory is O(1)
-  beyond the dictionary, and the dictionary is O(distinct-terms) ≪ O(triples). The relational
-  join that resolves ids is the engine's job, later.
+  frames arrive. **No term resolution and no graph materialisation occur** — memory is bounded by
+  the dictionary, the largest decoded frame, and validation sidecar state rather than by triples
+  or blobs. The relational join that resolves ids is the engine's job, later.
 - `gts → ttl/nq` must resolve ids to emit text. If the dictionary exceeds memory, the reader
   uses the index `"dict"` locator (§6.2) to load (or memory-map, or spill to an on-disk kv)
   only the `terms` frames first, then streams the quads.
 
-Even O(distinct-terms) can exceed memory for pathologically irregular graphs (e.g. a crawl
-dumping millions of unique UUID IRIs). A Streaming Reader therefore MAY **flush its in-memory
-dictionary to a temporary on-disk key-value store** when a memory limit is reached, trading RAM
-for a local spill file; correctness is unaffected because term-ids are append-order and frozen
-(§7.2). The `gts → duckdb`/`sqlite` transforms get this for free — the target table *is* the
-spill.
+Even O(distinct terms + maximum decoded frame size + validation sidecar state) can exceed memory
+for pathologically irregular graphs (e.g. a crawl dumping millions of unique UUID IRIs, or a
+single very large inline blob). A Streaming Reader therefore MAY **flush its in-memory dictionary
+to a temporary on-disk key-value store** when a memory limit is reached, trading RAM for a local
+spill file; correctness is unaffected because term-ids are append-order and frozen (§7.2). The
+`gts → duckdb`/`sqlite` transforms get this for free — the target table *is* the spill.
 
 The package-level streaming-sink claim boundary and memory benchmark helper are maintained in
 [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).
