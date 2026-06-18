@@ -157,7 +157,8 @@ GTS supports several use cases without making any of them the project frame:
 | **Go** | `go.blackcatinformatics.ca/gts` | `go install go.blackcatinformatics.ca/gts/cmd/gts@latest` |
 | **TypeScript** | [`@blackcatinformatics/gmeow-gts`](https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts) | `npm i @blackcatinformatics/gmeow-gts` |
 
-The distributed package is named `gmeow-gts` everywhere; the import name and CLI binary stay
+The package family consistently uses the `gmeow-gts` distribution identity where ecosystem
+naming permits. Ecosystem-specific module/package names are shown above; the CLI binary stays
 `gts`, and GTS files keep the `.gts` extension.
 
 ## Quick start
@@ -190,14 +191,8 @@ Path("cat.gts").write_bytes(w.to_bytes())
 
 ### Rust
 
-```toml
-# Cargo.toml
-[dependencies]
-gmeow-gts = "0.9.0"
-
-# Optional native RDF data-model adapter:
-# gmeow-gts = { version = "0.9.0", default-features = false, features = ["rdf"] }
-```
+Add `gmeow-gts = "0.9.0"` to `Cargo.toml`. Optional feature builds use the standard Cargo
+shape `gmeow-gts = { version = "0.9.0", default-features = false, features = [...] }`.
 
 ```rust
 use std::fs;
@@ -212,56 +207,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-The pure-Rust crate (no C toolchain, wasm-friendly) installs the `gts` binary via
-`cargo install gmeow-gts`. Rust default features remain empty. `--features rdf`
-enables the optional `gmeow_gts::rdf` adapter backed by `oxrdf`'s RDF data-model
-crate. `--features oxigraph-adapter` adds `gmeow_gts::oxigraph` helpers and
-`Writer::from_store` for native `Graph -> Store` and `Store -> Writer` handoff using
-Oxigraph's in-memory store. `--features policy-config` adds JSON `TrustPolicy`
-file loading and `gts verify --policy <file>` for release/profile verification;
-`--features policy-config-yaml` adds YAML policy files. None of these features
-affect default transport users. `--features duckdb` enables the DuckDB/Parquet CLI
-exports without adding a Rust dependency; those commands invoke the `duckdb` binary
-on `PATH`.
-
-For evented projections, implement `gmeow_gts::reader::StreamingSink` and call
-`gmeow_gts::reader::read_to_sink(&bytes, allow_segments, expected_head, sink)`.
-The sink API emits segment-local term, quad, reifier, annotation, suppression,
-blob, opaque, signature, diagnostic, segment-head, and streamable-layout events
-while returning final diagnostics and segment heads. This does not satisfy the current
-non-materializing Streaming Reader tier requirements: the API still accepts a byte slice
-and uses the segment graph path while emitting events. It adds no crate dependency.
-For folded graph consumers, `Graph::into_quads()` and `IntoIterator for Graph`
-consume raw quad-id rows without cloning the `Vec<Quad>`, while
-`Graph::quad_terms()` lazily resolves ids to borrowed `Term` references.
-Call `reader::read_with_options` or `read_to_sink_with_options` with
-`ReadOptions::with_content_key` to decrypt `COSE_Encrypt0` payloads while preserving
-the same total-read behavior: missing or wrong keys become opaque nodes with `MissingKey`
-diagnostics.
-
-Rust writers support transformed and encrypted frames through
-`writer::FrameOptions`: apply `gzip`, `zstd`, or `zstd-rsyncable` transforms, attach
-recipient metadata, pass explicit signature bytes, or add `Encrypt0Options` for
-`COSE_Encrypt0` authoring. This uses the existing codec and COSE modules and keeps the
-default dependency set unchanged.
-
-Rust signing works with raw Ed25519 keys or with an unencrypted Ed25519
-OpenPGP secret-key block. The OpenPGP helper keeps the same narrow parser used
-by `extract-key`; it does not add a full OpenPGP dependency.
-
-```rust
-use ed25519_dalek::SigningKey;
-use gmeow_gts::writer::Writer;
-
-let seed = [0u8; 32];
-let mut raw = Writer::new("evidence");
-raw.sign_with(SigningKey::from_bytes(&seed), "did:example:raw-key");
-
-let armored = std::fs::read_to_string("transport.sec.asc")?;
-let mut openpgp = Writer::new("evidence");
-// `None` uses the OpenPGP v4 fingerprint as the COSE key id.
-openpgp.sign_with_openpgp_secret_key(&armored, None)?;
-```
+`cargo install gmeow-gts` installs the `gts` binary. Advanced Rust feature flags, evented
+projection APIs, encryption/signing, proof generation, RDF/store adapters, and database export
+details live in [`rust/README.md`](./rust/README.md).
 
 ### Go
 
@@ -293,25 +241,8 @@ const graph = Read(readFileSync("package.gts"), false);
 console.log(toNQuads(graph));
 ```
 
-Requires Node.js ≥ 22.16.0; ships as ES modules with type declarations. Browser bundlers can
-use `@blackcatinformatics/gmeow-gts/browser` for the narrower Web Streams/WebCrypto surface:
-
-```typescript
-import { foldStream, toNQuads } from "@blackcatinformatics/gmeow-gts/browser";
-
-const response = await fetch("/artifacts/package.gts");
-const result = await foldStream(response.body!, {
-  onEvent(event) {
-    if (event.kind === "blob") console.log(event.digest, event.size);
-  },
-});
-console.log(toNQuads(result.graph));
-```
-
-The browser export is a progressive Web Streams surface with fold events. It still returns
-materialized graph state, so it does not satisfy the current non-materializing
-`GTS Streaming Reader` tier requirements. The root Node `Read` API remains a materializing reader
-and the filesystem/CLI helpers are not exposed as browser-safe APIs.
+Requires Node.js ≥ 22.16.0; ships as ES modules with type declarations. Browser bundle details
+live in [`ts/README.md`](./ts/README.md).
 
 Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.4 are intentional
 manifest floors. Older runtimes are unsupported so the engines can share one current CI and
@@ -321,7 +252,7 @@ release matrix and use current standard-library/toolchain behavior without compa
 
 `cargo install gmeow-gts`, `pip install gmeow-gts`, `npm i -g @blackcatinformatics/gmeow-gts`,
 or `go install ...` each install a `gts` binary. The common verb surface is the cross-engine
-contract; Python also ships the explicit extensions listed after it. The full API/CLI parity
+contract; engine-specific extras are listed after it when present. The full API/CLI parity
 contract lives in [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md).
 
 <!-- cli-common:start -->
@@ -360,11 +291,7 @@ Rust-only proof creation extension:
 gts prove <file> <frame-id>      emit detached JSON proof from an index.mmr root
 ```
 
-Python-only extensions:
-
 <!-- cli-python-extensions:start -->
-```text
-```
 <!-- cli-python-extensions:end -->
 
 Exit codes: `0` clean · `1` diagnostics or input refused · `2` usage/IO error.
@@ -483,7 +410,7 @@ Current CI-gated conformance status:
 
 | Engine | Baseline Reader | Streaming / Prefix Evidence | Writer | Validating Tool | Profile-Aware Tool |
 |---|---|---|---|---|---|
-| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `read_to_sink` evented projection API plus prefix-fold corpus gate; does not satisfy the non-materializing Streaming Reader tier | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | evented projection API plus prefix-fold corpus gate; does not satisfy the non-materializing Streaming Reader tier | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser progressive `foldStream` events plus browser stream/WebCrypto tests; does not satisfy the non-materializing Streaming Reader tier; corpus read gate remains the full-reader oracle | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
