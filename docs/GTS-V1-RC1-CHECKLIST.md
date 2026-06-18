@@ -62,7 +62,7 @@ conformance is ready unless they reveal one of the blockers above.
 | Deliverable | Tracking issue | Status | Release note |
 |---|---|---|---|
 | Third-party implementation guide | `#104` | | |
-| Benchmark suite and release report | `#105` | | |
+| Benchmark suite and release report | `#105` | `just bench-release` and [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md) | |
 | GTS paper draft | `#106` | | |
 | Optional-standard profile completion | | | |
 | Database, Parquet, browser, object-store, range-fetch, MMR, replication, or advanced proof tooling | | | |

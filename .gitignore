@@ -23,3 +23,4 @@ python/build/
 .venv/
 .cache/
 .worktrees/
+dist/benchmarks/

@@ -141,6 +141,17 @@ Shared semantics:
 
 ## Memory Benchmarks
 
+The release benchmark suite covers read, fold, write/from-N-Quads, files-profile pack/unpack,
+and streaming-memory evidence across the engines that expose each surface:
+
+```bash
+just bench-release
+```
+
+The suite writes machine-readable JSON and a Markdown report under `dist/benchmarks/`. Use
+[`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md) as the v1 release-note
+or paper-appendix template.
+
 Run the local helper against one or more GTS files:
 
 ```bash
