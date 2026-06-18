@@ -54,6 +54,11 @@ gen-vectors:
 check-vectors: gen-vectors
     git diff --exit-code vectors
 
+# Fail if vector manifest metadata or validator self-tests drift.
+check-vector-manifest:
+    python scripts/check_vector_manifest.py
+    python scripts/check_vector_manifest.py --self-test
+
 # Fail if the CLI parity contract drifts from implementation or README docs.
 check-cli-parity:
     python scripts/check_cli_parity.py
