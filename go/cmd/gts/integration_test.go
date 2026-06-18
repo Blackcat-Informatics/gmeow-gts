@@ -77,6 +77,11 @@ func vector(t *testing.T, name string) string {
 	return filepath.Join(vectorsDir(t), name)
 }
 
+func proofVector(t *testing.T, name string) string {
+	t.Helper()
+	return filepath.Join(vectorsDir(t), "proofs", name)
+}
+
 func TestFoldEmitsNQuads(t *testing.T) {
 	v := vector(t, "01-minimal.gts")
 	cmd, stdout, stderr := run(t, "fold", v)
@@ -100,6 +105,26 @@ func TestVerifyFlagsDamageWithExit1(t *testing.T) {
 	}
 	if !bytes.Contains(stdout.Bytes(), []byte("DamagedFrame")) {
 		t.Fatalf("ledger did not list DamagedFrame")
+	}
+}
+
+func TestVerifyProofFixture(t *testing.T) {
+	cmd, stdout, stderr := run(t, "verify-proof", proofVector(t, "mmr-basic-proof.json"))
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("expected exit 0, got %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte("proof ok")) {
+		t.Fatalf("stdout did not report proof ok: %s", stdout.String())
+	}
+}
+
+func TestVerifyProofRejectsBadRoot(t *testing.T) {
+	cmd, _, stderr := run(t, "verify-proof", proofVector(t, "mmr-basic-proof-bad-root.json"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("expected exit 1, got %d", cmd.ProcessState.ExitCode())
+	}
+	if !bytes.Contains(stderr.Bytes(), []byte("invalid proof")) {
+		t.Fatalf("stderr did not name invalid proof: %s", stderr.String())
 	}
 }
 

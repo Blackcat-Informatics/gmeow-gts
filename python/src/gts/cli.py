@@ -165,6 +165,31 @@ def _cmd_verify(
     return 1 if problems else 0
 
 
+def _cmd_verify_proof(path: str) -> int:
+    from gts.mmr import proof_from_json, verify_proof
+
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"gts verify-proof: cannot read {path}: {exc}", file=sys.stderr)
+        return 2
+    except UnicodeDecodeError as exc:
+        print(f"gts verify-proof: invalid proof JSON: {exc}", file=sys.stderr)
+        return 1
+    try:
+        proof = proof_from_json(text)
+    except ValueError as exc:
+        print(f"gts verify-proof: invalid proof JSON: {exc}", file=sys.stderr)
+        return 1
+    try:
+        verify_proof(proof)
+    except ValueError as exc:
+        print(f"gts verify-proof: invalid proof: {exc}", file=sys.stderr)
+        return 1
+    print(f"proof ok: root {proof.root.hex()} frame {proof.frame_id.hex()}")
+    return 0
+
+
 def _cmd_extract_key(path: str) -> int:
     """Print the embedded transport (verification) key for a signed GTS (§9.2).
 
@@ -531,6 +556,12 @@ def main(argv: list[str] | None = None) -> int:
         help="profile-policy trust anchor for an already verified signer kid",
     )
 
+    p_verify_proof = sub.add_parser(
+        "verify-proof",
+        help="verify detached MMR proof JSON without the GTS file",
+    )
+    p_verify_proof.add_argument("proof")
+
     p_ls = sub.add_parser(
         "ls", help="list inline blobs: digest, size, declared media type"
     )
@@ -644,6 +675,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_fold(args.file)
     if args.command == "verify":
         return _cmd_verify(args.files, args.key, args.trusted_signer)
+    if args.command == "verify-proof":
+        return _cmd_verify_proof(args.proof)
     if args.command == "ls":
         return _cmd_ls(args.file)
     if args.command == "extract-key":

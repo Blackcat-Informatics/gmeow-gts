@@ -18,6 +18,7 @@ import (
 	"go.blackcatinformatics.ca/gts/cose"
 	"go.blackcatinformatics.ca/gts/emojihash"
 	"go.blackcatinformatics.ca/gts/files"
+	"go.blackcatinformatics.ca/gts/mmr"
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/nquads"
 	"go.blackcatinformatics.ca/gts/openpgp"
@@ -32,6 +33,7 @@ commands:
   info <file>...            per-segment composition ledger
   fold <file>               fold to N-Quads on stdout
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
+  verify-proof <proof.json>  verify detached MMR proof JSON without the GTS file
   extract-key <file>        print the embedded transport key: kid, OpenPGP
                             fingerprint, emojihash, and armored public key
   ls <file>                 list inline blobs: digest, size, declared media type
@@ -63,6 +65,8 @@ func main() {
 		os.Exit(cmdFold(args[1:]))
 	case "verify":
 		os.Exit(cmdVerify(args[1:]))
+	case "verify-proof":
+		os.Exit(cmdVerifyProof(args[1:]))
 	case "extract-key":
 		os.Exit(cmdExtractKey(args[1:]))
 	case "ls":
@@ -404,6 +408,31 @@ func cmdVerify(args []string) int {
 	if problems {
 		return 1
 	}
+	return 0
+}
+
+func cmdVerifyProof(args []string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, usage)
+		return 2
+	}
+	path := args[0]
+	//nolint:gosec // CLI explicitly reads the user-supplied proof path.
+	data, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gts verify-proof: cannot read %s: %v\n", path, err)
+		return 2
+	}
+	proof, err := mmr.ProofFromJSON(data)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gts verify-proof: invalid proof JSON: %v\n", err)
+		return 1
+	}
+	if err := mmr.VerifyProof(proof); err != nil {
+		fmt.Fprintf(os.Stderr, "gts verify-proof: invalid proof: %v\n", err)
+		return 1
+	}
+	fmt.Printf("proof ok: root %s frame %s\n", wire.Hex(proof.Root), wire.Hex(proof.FrameID))
 	return 0
 }
 

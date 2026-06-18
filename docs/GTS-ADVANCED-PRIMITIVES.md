@@ -15,14 +15,15 @@ and what is intentionally deferred from the v1 surface.
 | Prefix-fold property | Every top-level corpus vector is tested at CBOR item boundaries. | This proves total prefix reads, not a streaming sink API. |
 | Streamable layout | `gts compact --streamable` rewrites delivery order and appends an `index` footer; readers validate the claim and report accretive tails. | This is a Validating Tool/Profile Layout feature. |
 | Index footer fields | Writers emit `count`, `head`, `off`, and `ti`; Rust writers can opt in to `mmr`, and Rust readers validate `mmr` roots when present. | Full-reader random access from `off`/`ti` is not claimed yet. |
-| MMR proof JSON | Rust exposes `Writer::add_index_with_mmr`, validates optional `index.mmr`, and implements `gts prove` / `gts verify-proof`. | This is a Rust-only proof surface until the other engines implement the same preimages and fixtures. |
+| MMR proof JSON | All engines verify detached proof JSON against `vectors/proofs/`; Rust also exposes `Writer::add_index_with_mmr`, validates optional `index.mmr`, and implements `gts prove`. | Detached verification is cross-engine; proof creation from indexed GTS files remains Rust-only. |
 | Replication inventory | Rust exposes `gts heads`, `gts segments`, `gts missing`, and `gts resume` for machine-readable head comparison and byte-range resume. | This is a Rust-only replication surface until the other engines implement the same JSON shapes. |
 | Blob introspection | `gts ls` lists content-addressed blob digests, sizes, and media types. | Range fetch still needs a verified index or a boundary scan. |
 | Memory benchmark helper | `scripts/bench_reader_memory.py` reports full-reader materialization, a frame-scan baseline, and a Rust `read_to_sink` streaming-fold row when Cargo is available. | The frame scan is not a Streaming Reader fold; the Rust row is the sink API evidence. |
 
 The current Rust package may claim the `Streaming Reader` tier for its `read_to_sink` API and
-the Rust-only MMR/proof surface for the fixture set in `vectors/proofs/`. Python, Go, and
-TypeScript SHOULD NOT claim the sink, proof, or replication tiers yet.
+the Rust-only MMR proof-creation surface. All four packages may claim detached proof verification
+for the fixture set in `vectors/proofs/`. Python, Go, and TypeScript SHOULD NOT claim the sink,
+proof-creation, or replication tiers yet.
 
 ## Deferred Advanced CLI Verbs
 
@@ -63,19 +64,21 @@ The optional `index` payload currently has five implemented pieces:
 - `head`: frame id of the last covered frame;
 - `off`: byte offset of each covered frame from the start of its segment;
 - `ti`: map from frame type to covered frame positions.
-- `mmr`: Rust-only Merkle-Mountain-Range root over the covered frame ids.
+- `mmr`: Rust-only Merkle-Mountain-Range root in indexed GTS files over the covered frame ids.
 
 The following pieces remain deferred:
 
 - `dict`: term-dictionary locator used by text projections that need a dictionary pass;
-- cross-engine inclusion proof creation and verification;
-- proof CLI verbs outside Rust.
+- cross-engine inclusion proof creation from indexed GTS files;
+- `prove` CLI verbs outside Rust.
 
-Before promoting the MMR/proof tier beyond Rust, the repo needs:
+Before promoting MMR proof creation beyond Rust, the repo needs:
 
-- positive and negative cross-engine vectors;
-- implementation in Python, Go, and TypeScript against the stable preimages in `GTS-SPEC.md`;
-- proof verification tests independent of full file availability in each engine.
+- indexed-file proof creation fixtures, including positive and negative behavior;
+- `index.mmr` writer/reader implementation in Python, Go, and TypeScript against the stable
+  preimages in `GTS-SPEC.md`;
+- proof creation tests that prove generated detached JSON verifies independently of full file
+  availability in each engine.
 
 ## Range-Fetch Rules
 
