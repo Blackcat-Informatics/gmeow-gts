@@ -17,7 +17,7 @@ deferred.
 |---|---|---|
 | Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge; `--features rdf` enables `gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` for native `oxrdf::Dataset` interop without an embedded graph store; `--features oxigraph-adapter` enables `gmeow_gts::oxigraph::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using Oxigraph's in-memory store; `--features sophia-adapter` enables `gmeow_gts::sophia::{to_sophia_dataset, from_sophia_dataset}` using Sophia's in-memory dataset and N-Quads parser/serializer; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Rio remains deferred because the current `rio_api` crate is marked unmaintained upstream; the zero-dependency N-Quads bridge remains the Rio-compatible path. |
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
-| TypeScript browser | `@blackcatinformatics/gmeow-gts/browser` exposes `foldStream(ReadableStream<Uint8Array>, options)`, `readStream`, `toNQuads`, progressive fold events, and WebCrypto-backed COSE Sign1/Encrypt0 key-provider hooks. The package root also carries a browser condition that resolves to this narrower surface for bundlers. | Node-only CLI and filesystem `pack`/`unpack`/`diff` helpers remain outside the browser export. Range fetch still needs a verified index or boundary scan. |
+| TypeScript browser | `@blackcatinformatics/gmeow-gts/browser` exposes `foldStream(ReadableStream<Uint8Array>, options)`, `readStream`, `toNQuads`, progressive fold events, and WebCrypto-backed COSE Sign1/Encrypt0 key-provider hooks. The package root also carries a browser condition that resolves to this narrower surface for bundlers. | This is a progressive Web Streams surface and does not satisfy the current non-materializing Streaming Reader tier. Node-only CLI and filesystem `pack`/`unpack`/`diff` helpers remain outside the browser export. Range fetch still needs a verified index or boundary scan. |
 | Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides graph-returning service integration, while `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` provides cancellation-aware, byte-limited streaming fold events for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | Service-specific replication orchestration remains application code built on the shared verbs. |
 
 ## Python: rdflib And Data Frames
@@ -235,9 +235,10 @@ const graph = await readStream(response.body!, {
 
 The browser export emits term, quad, reifier, annotation, suppression, blob, opaque,
 signature, diagnostic, segment-head, and streamable-layout events in frame order. It is the
-TypeScript package's `GTS Streaming Reader` surface. The root Node `Read(bytes,
-allowSegments)` API remains materializing, and browser code must not rely on the Node-only
-CLI/filesystem helpers.
+TypeScript package's browser-safe progressive stream surface and does not satisfy the current
+non-materializing `GTS Streaming Reader` tier requirements. The root Node
+`Read(bytes, allowSegments)` API remains materializing, and browser code must not rely on the
+Node-only CLI/filesystem helpers.
 
 Range rule: callers may use HTTP `Range` only for byte spans that are known from
 an index frame or from a sequential CBOR boundary scan. A range that cuts through
