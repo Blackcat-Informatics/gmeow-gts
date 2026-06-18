@@ -122,10 +122,11 @@ def shlex_join(command: Iterable[str]) -> str:
 
 
 def display_path(path: str | Path) -> str:
+    raw = str(path)
     candidate = Path(path)
     if candidate.is_absolute() and candidate.is_relative_to(ROOT):
         return candidate.relative_to(ROOT).as_posix() or "."
-    return str(path)
+    return raw.replace("\\", "/")
 
 
 def display_command(command: Iterable[str]) -> str:
@@ -137,6 +138,7 @@ def display_invocation(command: Iterable[str], *, cwd: Path, env_prefix: str = "
 
 
 def display_text(text: str) -> str:
+    text = text.replace(ROOT.as_posix(), ".")
     return text.replace(str(ROOT), ".")
 
 
