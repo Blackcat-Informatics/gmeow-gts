@@ -58,7 +58,7 @@ refuse specific publish-class or verify-class violations.
 | tier | required subsets and checks | claim string |
 |---|---|---|
 | Baseline Reader | `wire-core`, `total-reader`, `graph-fold`, and `profile-layout` in permissive-read mode; expected graph JSON matches; diagnostics match; malformed inputs never panic or abort the process. | `GTS Baseline Reader, corpus <commit>` |
-| Streaming Reader | Baseline Reader plus `streaming-property`; implementation exposes a non-materializing sink API that emits segment-local fold events while preserving final diagnostics and segment heads. Retained memory is expected to scale with `O(distinct terms + maximum decoded frame size + validation sidecar state)`, not folded triples or blobs. | `GTS Streaming Reader, corpus <commit>` |
+| Streaming Reader | Baseline Reader plus `streaming-property`; implementation exposes a non-materializing sink API that emits segment-local fold events while preserving final diagnostics and segment heads. Retained memory is expected to be bounded by `O(distinct terms + maximum decoded frame size + validation sidecar state)`, not folded triples or blobs. | `GTS Streaming Reader, corpus <commit>` |
 | Full Reader | Baseline Reader plus implemented optional subsets, at minimum `crypto-cose` for signature verification if claiming signature support, `crypto-encrypt` if claiming decrypt support, `security-policy` when claiming nested-GTS recursion, and index/MMR behavior when present. | `GTS Full Reader (<capabilities>), corpus <commit>` |
 | Writer | Emitted bytes are deterministic where the spec requires deterministic output; top-level corpus generation is reproducible; writer-created files pass Baseline Reader expectations. | `GTS Writer, corpus <commit>` |
 | Validating Tool | Baseline Reader plus strict verify and publish-class verify modes (§7); `profile-layout` refusal vectors produce the required non-zero/refusal outcomes. | `GTS Validating Tool, corpus <commit>` |
@@ -71,9 +71,10 @@ TestStreamingFoldCorpusEquivalence` harness checks corpus equivalence against th
 for final diagnostic codes, segment heads, profiles, metadata, streamable-layout state, and
 segment-local fold event counts.
 
-The Rust `read_to_sink` API is event-emitting reader evidence, not a current Streaming Reader tier
-claim: it accepts a byte slice, decodes the item collection, and uses the segment `Graph` path
-while emitting events. The TypeScript browser `foldStream(stream, options)` and
+The Rust `read_to_sink` API provides event-emitting reader evidence, but does not satisfy the
+current Streaming Reader tier requirements: it accepts a byte slice, decodes the item collection,
+and uses the segment `Graph` path while emitting events. The TypeScript browser
+`foldStream(stream, options)` and
 `readStream(stream, options)` APIs are progressive Web Streams surfaces where `options.onEvent`
 receives segment-local events as CBOR items arrive, but they still return materialized graph
 state. Python currently provides prefix-fold and full-reader evidence only. Future Rust,
