@@ -181,10 +181,10 @@ The repository contains four engines:
 
 | Engine | Package surface | Current role |
 |---|---|---|
-| Rust | `gmeow-gts`, binary `gts` | Reference package, streaming sink API, Rust-only proof creation, CLI transforms. |
+| Rust | `gmeow-gts`, binary `gts` | Reference package, evented projection API, Rust-only proof creation, CLI transforms. |
 | Python | `gmeow-gts`, module `gts` | Reference corpus generator and Python package. |
 | Go | `go.blackcatinformatics.ca/gts` | Go package and CLI with streaming sink evidence. |
-| TypeScript | `@blackcatinformatics/gmeow-gts` | npm package, Node reader surface, and browser streaming/WebCrypto surface. |
+| TypeScript | `@blackcatinformatics/gmeow-gts` | npm package, Node reader surface, and browser progressive stream/WebCrypto surface. |
 
 The shared compatibility oracle is the checked-in vector corpus under `vectors/` and the
 portable manifest at `vectors/manifest.json`. Conformance claims name a tier, the corpus
@@ -196,7 +196,10 @@ The relevant tiers for the paper narrative are:
 - Baseline Reader: parse, verify, fold, report diagnostics, and degrade unsupported recoverable
   frames to opaque nodes.
 - Streaming Reader: Baseline Reader behavior plus a sink/event API that avoids materializing
-  the whole graph.
+  the whole graph. In the current repository, only the Go engine claims this tier. Rust has
+  evented projection evidence, and TypeScript has progressive browser-stream evidence, but both
+  return materialized graph state and therefore do not claim the non-materializing Streaming
+  Reader tier.
 - Full Reader: Baseline Reader behavior plus claimed optional capabilities such as COSE,
   decryption, nested-GTS recursion, security policy, or index/MMR behavior.
 - Writer and Validating Tool: deterministic output and stricter tool/profile checks where
@@ -214,8 +217,10 @@ encryption is pinned only as deferred contract descriptors.
 
 The paper should report measurements only from reproducible release artifacts. The current
 repository provides a benchmark runner and report template in
-[`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md); this draft does not
-contain measured results.
+[`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md). A measured evidence
+run for this draft is kept as generated output in
+[`dist/benchmarks/paper-evidence/release-benchmark-report.md`](../dist/benchmarks/paper-evidence/release-benchmark-report.md)
+rather than overwriting the benchmark template.
 
 Evaluation should cover four claims:
 
@@ -224,6 +229,8 @@ Evaluation should cover four claims:
    tier.
 2. Streaming behavior: item-boundary prefixes fold to valid intermediate states, and engines
    that claim Streaming Reader status provide sink/API evidence with bounded memory behavior.
+   Current paper claims should cite Go for the tier claim and describe Rust/TypeScript as
+   evented or progressive evidence only.
 3. Integrity behavior: damaged frames, broken chains, torn appends, truncation anchors, and
    unsupported capabilities produce the expected recoverable or fatal diagnostics.
 4. Practicality: GTS can project to operating substrates such as N-Quads, SQLite, DuckDB, and
@@ -285,21 +292,77 @@ Known limitations and current deferrals include:
 - Release and publication claims need stamped corpus revisions rather than the checked-in
   manifest placeholder.
 
-## 10. Related Work Placeholders
+## 10. Related Work
 
-The related-work section should be filled with concrete citations before publication. The
-draft organization is by design axis:
+GTS deliberately overlaps several mature areas, but it occupies a different point in the design
+space: a single transport artifact that is append-only, content-addressed, RDF-shaped after
+folding, binary-payload aware, partially readable, and covered by a cross-engine conformance
+corpus.
 
-- RDF serializations and graph exchange formats: RDF 1.2, Turtle, TriG, N-Triples,
-  N-Quads, JSON-LD, HDT, and binary RDF work.
-- Binary containers and self-delimiting sequences: CBOR, CBOR Sequences, archive formats,
-  and research-data package formats.
-- Content-addressed systems and Merkle-style histories: Git, IPFS-like content addressing,
-  Merkle logs, transparency logs, and MMR inclusion proofs.
-- Event sourcing, write-ahead logs, CRDT-like convergence, and local-first synchronization.
-- Provenance, evidence, and custody systems that separate byte integrity from deployment trust.
-- COSE/JWS-style signing and encryption layers for structured binary payloads.
-- RDF graph databases, dataset stores, and projection targets used after transport.
+**RDF serializations and graph exchange.** W3C RDF serializations such as
+[RDF 1.2 Concepts](https://www.w3.org/TR/rdf12-concepts/),
+[TriG](https://www.w3.org/TR/rdf12-trig/), N-Triples/N-Quads, Turtle, and
+[JSON-LD 1.1](https://www.w3.org/TR/json-ld11/) define interoperable ways to write RDF graphs
+or datasets. HDT, the W3C Member Submission for
+[Header-Dictionary-Triples](https://www.w3.org/submissions/2011/SUBM-HDT-20110330/), addresses
+compact binary RDF publication and exchange. GTS differs by treating the RDF projection as the
+fold of an append-only binary log that can also carry content-addressed blobs, transforms,
+signatures, opacity diagnostics, and multi-segment history.
+
+**Binary encodings, sequences, and packages.** GTS reuses
+[CBOR](https://www.rfc-editor.org/info/rfc8949) for deterministic binary structure and
+[CBOR Sequences](https://datatracker.ietf.org/doc/html/rfc8742) for self-delimiting item
+streams. Archival and research-data packaging systems such as
+[BagIt](https://datatracker.ietf.org/doc/rfc8493/) and
+[RO-Crate](https://www.researchobject.org/specs/) focus on reliable file transfer and
+metadata-rich research-object description. GTS borrows the package-and-manifest intuition, but
+the package manifest is itself folded graph state and every segment/frame participates in the
+same content-id chain.
+
+**Content-addressed systems and append-only logs.** Git is commonly described by its own
+documentation as a [content-addressable filesystem](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects),
+and IPFS names content through [CIDs](https://docs.ipfs.tech/concepts/content-addressing/) that
+derive from cryptographic hashes. Transparency systems such as
+[Certificate Transparency](https://datatracker.ietf.org/doc/html/rfc6962) use append-only logs
+and audit proofs for globally observable issuance events. GTS applies content addressing inside
+a portable graph artifact: frame ids and `prev` links give local chain integrity, optional MMR
+indexes support detached inclusion proofs, and deployment profiles decide whether to anchor
+heads in an external transparency or release system.
+
+**Event sourcing and local-first synchronization.** Event sourcing records state changes as a
+sequence of events from which state can be rebuilt, as summarized in Martin Fowler's
+[Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html) pattern. Local-first work
+argues for user-controlled, offline-capable data with synchronization as an enhancement rather
+than a central dependency, notably in the Ink & Switch
+[local-first software](https://www.inkandswitch.com/essay/local-first/) essay. GTS is not a
+CRDT or application synchronization protocol, but its segment concatenation, prefix-fold
+validity, and additive suppression model make it suitable as a transport artifact for systems
+that need append-only histories and later projection into application-specific merge logic.
+
+**Provenance, custody, and research evidence.** W3C
+[PROV-O](https://www.w3.org/TR/prov-o/) provides an RDF/OWL vocabulary for representing and
+interchanging provenance information. RO-Crate and BagIt provide established packaging patterns
+for research objects and digital-preservation payloads. GTS can carry PROV-O, RO-Crate-like, or
+domain-specific metadata as ordinary graph content, while separating byte integrity and
+signature verification from deployment trust: a valid GTS chain proves byte continuity, not the
+truth of the claims or authority of a signer.
+
+**Payload security layers.** GTS uses COSE rather than inventing a signature or encryption
+envelope: [RFC 9052](https://www.rfc-editor.org/info/rfc9052) defines signing, MAC, and
+encryption structures for CBOR serialization. JSON ecosystems commonly use
+[JWS](https://datatracker.ietf.org/doc/html/rfc7515) for integrity-protected JSON-based
+payloads. GTS's distinction is the opacity invariant: encrypted or unsupported payloads can
+remain graph-visible as opaque nodes with diagnostics, public envelopes, and chain position
+rather than causing a total read failure or disappearing from the fold.
+
+**Graph databases and projection targets.** SPARQL 1.1 defines the standard
+[query language for RDF](https://www.w3.org/TR/sparql11-query/), while systems such as SQLite,
+DuckDB, and Parquet provide durable or analytical tabular substrates. SQLite documents a stable
+[single-file database format](https://www.sqlite.org/fileformat.html); DuckDB is an
+[embeddable analytical database](https://duckdb.org/pdf/SIGMOD2019-demo-duckdb.pdf); and Apache
+Parquet is a [column-oriented file format](https://parquet.apache.org/) for analytics. GTS does
+not compete with these systems as a query engine. Instead, it defines a portable, verifiable
+transport from which N-Quads, SQLite, DuckDB, Parquet, or native RDF stores can be regenerated.
 
 ## 11. Conclusion
 

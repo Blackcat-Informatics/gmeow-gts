@@ -121,6 +121,27 @@ def shlex_join(command: Iterable[str]) -> str:
     return shlex.join(str(part) for part in command)
 
 
+def display_path(path: str | Path) -> str:
+    raw = str(path)
+    candidate = Path(path)
+    if candidate.is_absolute() and candidate.is_relative_to(ROOT):
+        return candidate.relative_to(ROOT).as_posix() or "."
+    return raw.replace("\\", "/")
+
+
+def display_command(command: Iterable[str]) -> str:
+    return shlex.join(display_path(str(part)) for part in command)
+
+
+def display_invocation(command: Iterable[str], *, cwd: Path, env_prefix: str = "") -> str:
+    return f"(cd {shlex.quote(display_path(cwd))} && {env_prefix}{display_command(command)})"
+
+
+def display_text(text: str) -> str:
+    text = text.replace(ROOT.as_posix(), ".")
+    return text.replace(str(ROOT), ".")
+
+
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -195,6 +216,7 @@ def stderr_note(result: ProcessResult) -> str:
     detail = stderr or stdout
     if len(detail) > TRUNCATE_STDERR:
         detail = detail[-TRUNCATE_STDERR:]
+    detail = display_text(detail)
     if result.timed_out:
         return f"timed out after {result.elapsed_ms:.2f} ms; {detail}".strip()
     return detail
@@ -232,7 +254,7 @@ def command_environment() -> dict[str, Any]:
     manifest = ROOT / "vectors" / "manifest.json"
     return {
         "generated_at": datetime.now(UTC).isoformat(),
-        "command_line": shlex_join(sys.argv),
+        "command_line": display_command(sys.argv),
         "repo_commit": git_value(["rev-parse", "HEAD"]),
         "spec_commit": git_value(["log", "-n1", "--format=%H", "--", "docs/GTS-SPEC.md"]),
         "spec_blob": git_value(["rev-parse", "HEAD:docs/GTS-SPEC.md"]),
@@ -295,7 +317,7 @@ def input_rows(vectors: list[Path], fixtures: dict[str, Path]) -> list[InputRow]
             InputRow(
                 kind="conformance-vector",
                 name=path.name,
-                path=str(path.relative_to(ROOT) if path.is_relative_to(ROOT) else path),
+                path=display_path(path),
                 bytes=path.stat().st_size,
                 sha256=sha256_file(path),
             )
@@ -305,7 +327,7 @@ def input_rows(vectors: list[Path], fixtures: dict[str, Path]) -> list[InputRow]
         InputRow(
             kind="write-fixture",
             name=nq.name,
-            path=str(nq),
+            path=display_path(nq),
             bytes=nq.stat().st_size,
             sha256=sha256_file(nq),
         )
@@ -316,7 +338,7 @@ def input_rows(vectors: list[Path], fixtures: dict[str, Path]) -> list[InputRow]
         InputRow(
             kind="pack-fixture",
             name=pack_dir.name,
-            path=str(pack_dir),
+            path=display_path(pack_dir),
             bytes=total_bytes,
             sha256=digest,
             files=files,
@@ -335,7 +357,7 @@ def setup_engine(engine: str, out_dir: Path, timeout: int) -> tuple[EngineRuntim
             SetupResult(
                 engine=engine,
                 status=status,
-                command=shlex_join(command),
+                command=display_invocation(command, cwd=cwd),
                 elapsed_ms=result.elapsed_ms,
                 note="" if status == "ok" else stderr_note(result),
             )
@@ -443,7 +465,7 @@ def measure_command(
     for idx in range(iterations):
         command, cwd, env = command_factory(idx)
         if not command_text:
-            command_text = f"(cd {shlex.quote(str(cwd))} && {shlex_join(command)})"
+            command_text = display_invocation(command, cwd=cwd)
         result = run_process(command, cwd=cwd, env=env, timeout=timeout)
         if result.returncode != 0:
             status = "failed"
@@ -672,14 +694,14 @@ def run_memory_helper(
                 status="skipped",
                 elapsed_ms=None,
                 peak_kib=None,
-                command=shlex_join(command),
+                command=display_command(command),
                 note="uv not found",
             )
         )
         return rows
 
     result = run_process(command, cwd=ROOT / "python", timeout=timeout)
-    command_text = f"(cd {shlex.quote(str(ROOT / 'python'))} && {shlex_join(command)})"
+    command_text = display_invocation(command, cwd=ROOT / "python")
     if result.returncode != 0:
         rows.append(
             MemoryRow(
@@ -797,7 +819,7 @@ def run_go_memory_benchmarks(stream_vector: Path, timeout: int) -> list[MemoryRo
     env = os.environ.copy()
     env["CGO_ENABLED"] = "0"
     result = run_process(command, cwd=ROOT / "go", env=env, timeout=timeout)
-    command_text = f"(cd {shlex.quote(str(ROOT / 'go'))} && CGO_ENABLED=0 {shlex_join(command)})"
+    command_text = display_invocation(command, cwd=ROOT / "go", env_prefix="CGO_ENABLED=0 ")
     if result.returncode != 0:
         return [
             MemoryRow(
@@ -1180,8 +1202,8 @@ def main() -> int:
     md_path = out_dir / "release-benchmark-report.md"
     json_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     md_path.write_text(render_markdown(payload), encoding="utf-8")
-    print(f"wrote {json_path}")
-    print(f"wrote {md_path}")
+    print(f"wrote {display_path(json_path)}")
+    print(f"wrote {display_path(md_path)}")
     if args.strict and has_failures(payload):
         return 1
     return 0
