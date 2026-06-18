@@ -78,6 +78,30 @@ to an opaque node, and any problems surface on `g.Diagnostics` rather than as an
 return. Pass `allowSegments=true` to fold a multi-segment (concatenated) file, and a
 non-nil `expectedHead` to assert the file's head digest.
 
+For service code that receives an `io.Reader`, `reader.ReadFrom(ctx, r, opts)` returns the
+same materialized graph with cancellation and byte-limit handling. For incremental folds,
+`reader.ReadToSink(ctx, r, opts, sink)` emits segment-local term, quad, blob, opaque,
+signature, diagnostic, segment-head, and streamable-layout events without constructing the
+final union graph:
+
+<!-- markdownlint-disable MD010 -->
+```go
+sink := reader.StreamingSinkFunc(func(event reader.StreamingEvent) error {
+	if event.Kind == reader.StreamingEventQuad {
+		// project or forward event.Quad here
+	}
+	return nil
+})
+
+result, err := reader.ReadToSink(ctx, body, reader.Options{
+	AllowSegments: true,
+	MaxBytes:      64 << 20,
+}, sink)
+_ = result
+_ = err
+```
+<!-- markdownlint-enable MD010 -->
+
 Produce a minimal graph with the writer (a files-profile writer; `New("")` writes a plain
 graph with no profile):
 

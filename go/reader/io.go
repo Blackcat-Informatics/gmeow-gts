@@ -12,11 +12,11 @@ import (
 	"go.blackcatinformatics.ca/gts/model"
 )
 
-// ErrReadLimitExceeded is returned by ReadFrom when Options.MaxBytes is
-// positive and the input stream exceeds that many bytes.
+// ErrReadLimitExceeded is returned when Options.MaxBytes is positive and the
+// input stream exceeds that many bytes.
 var ErrReadLimitExceeded = errors.New("gts reader: input exceeds MaxBytes")
 
-// Options configures ReadFrom.
+// Options configures ReadFrom and ReadToSink.
 type Options struct {
 	// AllowSegments permits concatenated multi-segment files.
 	AllowSegments bool
@@ -29,11 +29,11 @@ type Options struct {
 }
 
 // ReadFrom reads a GTS file from r, honoring ctx cancellation and MaxBytes,
-// then folds it with the existing total reader.
+// then folds it with the total reader.
 //
 // This is an idiomatic service boundary for Go callers that receive bytes from
-// HTTP bodies, object stores, or pipes. It is not a streaming-fold claim:
-// current Go folding still materializes the bounded input before calling Read.
+// HTTP bodies, object stores, or pipes and want a *model.Graph result. Use
+// ReadToSink when the caller wants an incremental streaming fold instead.
 func ReadFrom(ctx context.Context, r io.Reader, opts Options) (*model.Graph, error) {
 	if ctx == nil {
 		ctx = context.Background()
