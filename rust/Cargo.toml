@@ -23,6 +23,9 @@ rdf = ["dep:oxrdf"]
 # Enables an optional Oxigraph in-memory Store adapter. This pulls in Oxigraph
 # only for callers that ask for the store bridge; defaults remain unchanged.
 oxigraph-adapter = ["rdf", "dep:oxigraph"]
+# Enables optional Sophia dataset interop. This pulls in Sophia's in-memory
+# dataset plus N-Quads parser/serializer only for callers that ask for it.
+sophia-adapter = ["dep:sophia_api", "dep:sophia_inmem", "dep:sophia_turtle"]
 # Enables JSON trust-policy file loading for release/profile tooling.
 # This is opt-in so default readers do not inherit serialization deps.
 policy-config = ["dep:serde", "dep:serde_json"]
@@ -59,6 +62,9 @@ sha1 = "0.10"
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
 oxrdf = { version = "0.3.3", default-features = false, features = ["rdf-12"], optional = true }
 oxigraph = { version = "0.5.8", default-features = false, features = ["rdf-12"], optional = true }
+sophia_api = { version = "0.10.0", default-features = false, optional = true }
+sophia_inmem = { version = "0.10.0", default-features = false, optional = true }
+sophia_turtle = { version = "0.10.0", default-features = false, optional = true }
 serde = { version = "1", default-features = false, features = ["derive", "std"], optional = true }
 serde_json = { version = "1", optional = true }
 serde_yaml = { version = "0.9", optional = true }
