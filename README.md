@@ -530,6 +530,10 @@ artifact with `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gt
 - [`docs/GTS-V1-RC1-CHECKLIST.md`](./docs/GTS-V1-RC1-CHECKLIST.md) — runnable `v1.0-rc1`
   checklist for blocker review, conformance reports, package dry-runs, release notes, and
   artifact verification.
+- [`docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md`](./docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md)
+  — Baseline Reader build order, vector-manifest harness guidance, diagnostics/opaque-node
+  behavior, profile registration basics, and conformance-claim template for independent
+  implementers.
 - [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md) — cross-language API shape, CLI
   parity matrix, intentional gaps, and drift guard.
 - [`docs/GTS-ADVANCED-PRIMITIVES.md`](./docs/GTS-ADVANCED-PRIMITIVES.md) — streaming sink,
