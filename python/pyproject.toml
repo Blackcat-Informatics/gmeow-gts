@@ -36,6 +36,7 @@ dev = [
 ]
 
 [project.urls]
+Homepage = "https://blackcatinformatics.ca/projects/gts"
 Repository = "https://github.com/Blackcat-Informatics/gmeow-gts"
 Specification = "https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md"
 

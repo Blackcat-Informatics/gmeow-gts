@@ -16,6 +16,7 @@ abstract: >-
   (Rust, Python, Go, and TypeScript) that all gate against one frozen, byte-exact conformance
   corpus, plus the specification that defines them.
 type: software
+doi: "10.67342/umcdg7675h/v1"
 authors:
   - name: "Blackcat Informatics® Inc."
     website: "https://blackcatinformatics.ca/"
@@ -27,7 +28,7 @@ date-released: "2026-06-18"
 license:
   - Apache-2.0
   - MIT
-url: "https://github.com/Blackcat-Informatics/gmeow-gts"
+url: "https://blackcatinformatics.ca/projects/gts"
 repository-code: "https://github.com/Blackcat-Informatics/gmeow-gts"
 keywords:
   - rdf

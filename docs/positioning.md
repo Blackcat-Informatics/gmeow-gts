@@ -11,6 +11,8 @@ graphs move as deterministic, append-only, verifiable binary artifacts.
 ## Identity policy
 
 - **Format and specification:** GTS / Graph Transport Substrate.
+- **Project URL:** <https://blackcatinformatics.ca/projects/gts>.
+- **Project DOI:** <https://doi.org/10.67342/umcdg7675h/v1>.
 - **Repository and package family:** `gmeow-gts`.
 - **CLI, import surface, and file extension:** `gts` and `.gts` where ecosystem rules permit.
 - **Downstream relationship:** GTS is the primary distribution method for GMEOW, but GTS does
