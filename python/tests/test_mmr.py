@@ -53,3 +53,15 @@ def test_cli_verify_proof_rejects_bad_root(
     assert main(["verify-proof", str(path)]) == 1
     err = capsys.readouterr().err
     assert "invalid proof" in err
+
+
+def test_cli_verify_proof_rejects_non_utf8_json(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = tmp_path / "proof.json"
+    path.write_bytes(b"\xff")
+
+    assert main(["verify-proof", str(path)]) == 1
+    err = capsys.readouterr().err
+    assert "invalid proof JSON" in err

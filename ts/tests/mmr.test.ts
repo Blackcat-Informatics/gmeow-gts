@@ -27,6 +27,28 @@ test("negative proof fixture fails", () => {
     assert.throws(() => verifyProof(p), /root/);
 });
 
+test("proofFromJson rejects unsafe integer fields", () => {
+    const doc = JSON.parse(proof("mmr-basic-proof.json"));
+    doc.count = Number.MAX_SAFE_INTEGER + 1;
+    assert.throws(
+        () => proofFromJson(JSON.stringify(doc)),
+        /safe unsigned integer/,
+    );
+});
+
+test("verify proof rejects invalid direct-call step sides", () => {
+    const p = proofFromJson(proof("mmr-basic-proof.json"));
+    const invalid = {
+        ...p,
+        path: [
+            { ...p.path[0], side: "center" as unknown as "left" },
+            ...p.path.slice(1),
+        ],
+    };
+
+    assert.throws(() => verifyProof(invalid), /unsupported proof side/);
+});
+
 test("verifyProofJson returns a verified proof", () => {
     const p = verifyProofJson(proof("mmr-basic-proof.json"));
     assert.equal(p.root.length, 32);

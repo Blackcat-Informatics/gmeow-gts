@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/bits"
 	"strings"
 
 	"go.blackcatinformatics.ca/gts/wire"
@@ -50,27 +51,27 @@ type Proof struct {
 }
 
 type jsonPeak struct {
-	Height int    `json:"height"`
-	Hash   string `json:"hash"`
+	Height *int    `json:"height"`
+	Hash   *string `json:"hash"`
 }
 
 type jsonStep struct {
-	Side         string `json:"side"`
-	ParentHeight int    `json:"parent_height"`
-	Hash         string `json:"hash"`
+	Side         *string `json:"side"`
+	ParentHeight *int    `json:"parent_height"`
+	Hash         *string `json:"hash"`
 }
 
 type jsonProof struct {
-	Schema    string     `json:"schema"`
-	Hash      string     `json:"hash"`
-	Preimage  string     `json:"preimage"`
-	Count     int        `json:"count"`
-	LeafIndex int        `json:"leaf_index"`
-	FrameID   string     `json:"frame_id"`
-	Root      string     `json:"root"`
-	PeakIndex int        `json:"peak_index"`
-	Peaks     []jsonPeak `json:"peaks"`
-	Path      []jsonStep `json:"path"`
+	Schema    *string     `json:"schema"`
+	Hash      *string     `json:"hash"`
+	Preimage  *string     `json:"preimage"`
+	Count     *int        `json:"count"`
+	LeafIndex *int        `json:"leaf_index"`
+	FrameID   *string     `json:"frame_id"`
+	Root      *string     `json:"root"`
+	PeakIndex *int        `json:"peak_index"`
+	Peaks     *[]jsonPeak `json:"peaks"`
+	Path      *[]jsonStep `json:"path"`
 }
 
 func leafHash(index int, frameID []byte) []byte {
@@ -97,10 +98,7 @@ func rootHash(count int, peaks []Peak) []byte {
 func expectedPeakHeights(count int) []int {
 	var heights []int
 	for remaining := count; remaining > 0; {
-		height := 0
-		for (1 << (height + 1)) <= remaining {
-			height++
-		}
+		height := bits.Len(uint(remaining)) - 1
 		heights = append(heights, height)
 		remaining -= 1 << height
 	}
@@ -139,63 +137,126 @@ func ParseHex32(input string) ([]byte, error) {
 	return out, nil
 }
 
+func requiredString(value *string, key string) (string, error) {
+	if value == nil {
+		return "", fmt.Errorf("%q must be a string", key)
+	}
+	return *value, nil
+}
+
+func requiredInt(value *int, key string) (int, error) {
+	if value == nil || *value < 0 {
+		return 0, fmt.Errorf("%q must be an unsigned integer", key)
+	}
+	return *value, nil
+}
+
 // ProofFromJSON parses the stable detached proof JSON form.
 func ProofFromJSON(data []byte) (Proof, error) {
 	var raw jsonProof
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return Proof{}, err
 	}
-	if raw.Schema != ProofSchema {
-		return Proof{}, fmt.Errorf("unsupported proof schema %q", raw.Schema)
-	}
-	if raw.Hash != hashAlgorithm {
-		return Proof{}, fmt.Errorf("unsupported hash algorithm %q", raw.Hash)
-	}
-	if raw.Preimage != preimageVersion {
-		return Proof{}, fmt.Errorf("unsupported preimage version %q", raw.Preimage)
-	}
-	if raw.Count < 0 || raw.LeafIndex < 0 || raw.PeakIndex < 0 {
-		return Proof{}, fmt.Errorf("proof indexes must be unsigned integers")
-	}
-	frameID, err := ParseHex32(raw.FrameID)
+	schema, err := requiredString(raw.Schema, "schema")
 	if err != nil {
 		return Proof{}, err
 	}
-	root, err := ParseHex32(raw.Root)
+	if schema != ProofSchema {
+		return Proof{}, fmt.Errorf("unsupported proof schema %q", schema)
+	}
+	hashAlg, err := requiredString(raw.Hash, "hash")
 	if err != nil {
 		return Proof{}, err
 	}
-	peaks := make([]Peak, len(raw.Peaks))
-	for i, peak := range raw.Peaks {
-		if peak.Height < 0 {
-			return Proof{}, fmt.Errorf("peak height must be an unsigned integer")
-		}
-		hash, err := ParseHex32(peak.Hash)
-		if err != nil {
-			return Proof{}, err
-		}
-		peaks[i] = Peak{Height: peak.Height, Hash: hash}
+	if hashAlg != hashAlgorithm {
+		return Proof{}, fmt.Errorf("unsupported hash algorithm %q", hashAlg)
 	}
-	path := make([]Step, len(raw.Path))
-	for i, step := range raw.Path {
-		if step.ParentHeight < 0 {
-			return Proof{}, fmt.Errorf("path parent_height must be an unsigned integer")
-		}
-		if step.Side != "left" && step.Side != "right" {
-			return Proof{}, fmt.Errorf("unsupported proof side %q", step.Side)
-		}
-		hash, err := ParseHex32(step.Hash)
+	preimage, err := requiredString(raw.Preimage, "preimage")
+	if err != nil {
+		return Proof{}, err
+	}
+	if preimage != preimageVersion {
+		return Proof{}, fmt.Errorf("unsupported preimage version %q", preimage)
+	}
+	count, err := requiredInt(raw.Count, "count")
+	if err != nil {
+		return Proof{}, err
+	}
+	leafIndex, err := requiredInt(raw.LeafIndex, "leaf_index")
+	if err != nil {
+		return Proof{}, err
+	}
+	peakIndex, err := requiredInt(raw.PeakIndex, "peak_index")
+	if err != nil {
+		return Proof{}, err
+	}
+	frameIDHex, err := requiredString(raw.FrameID, "frame_id")
+	if err != nil {
+		return Proof{}, err
+	}
+	frameID, err := ParseHex32(frameIDHex)
+	if err != nil {
+		return Proof{}, err
+	}
+	rootHex, err := requiredString(raw.Root, "root")
+	if err != nil {
+		return Proof{}, err
+	}
+	root, err := ParseHex32(rootHex)
+	if err != nil {
+		return Proof{}, err
+	}
+	if raw.Peaks == nil {
+		return Proof{}, fmt.Errorf("%q must be a JSON array", "peaks")
+	}
+	peaks := make([]Peak, len(*raw.Peaks))
+	for i, peak := range *raw.Peaks {
+		height, err := requiredInt(peak.Height, "height")
 		if err != nil {
 			return Proof{}, err
 		}
-		path[i] = Step{ParentHeight: step.ParentHeight, Side: step.Side, Hash: hash}
+		hashHex, err := requiredString(peak.Hash, "hash")
+		if err != nil {
+			return Proof{}, err
+		}
+		hash, err := ParseHex32(hashHex)
+		if err != nil {
+			return Proof{}, err
+		}
+		peaks[i] = Peak{Height: height, Hash: hash}
+	}
+	if raw.Path == nil {
+		return Proof{}, fmt.Errorf("%q must be a JSON array", "path")
+	}
+	path := make([]Step, len(*raw.Path))
+	for i, step := range *raw.Path {
+		parentHeight, err := requiredInt(step.ParentHeight, "parent_height")
+		if err != nil {
+			return Proof{}, err
+		}
+		side, err := requiredString(step.Side, "side")
+		if err != nil {
+			return Proof{}, err
+		}
+		if side != "left" && side != "right" {
+			return Proof{}, fmt.Errorf("unsupported proof side %q", side)
+		}
+		hashHex, err := requiredString(step.Hash, "hash")
+		if err != nil {
+			return Proof{}, err
+		}
+		hash, err := ParseHex32(hashHex)
+		if err != nil {
+			return Proof{}, err
+		}
+		path[i] = Step{ParentHeight: parentHeight, Side: side, Hash: hash}
 	}
 	return Proof{
-		Count:     raw.Count,
-		LeafIndex: raw.LeafIndex,
+		Count:     count,
+		LeafIndex: leafIndex,
 		FrameID:   frameID,
 		Root:      root,
-		PeakIndex: raw.PeakIndex,
+		PeakIndex: peakIndex,
 		Peaks:     peaks,
 		Path:      path,
 	}, nil

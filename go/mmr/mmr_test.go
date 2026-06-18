@@ -4,6 +4,7 @@
 package mmr
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -39,6 +40,40 @@ func TestNegativeProofFixtureFails(t *testing.T) {
 	}
 	if err := VerifyProof(proof); err == nil {
 		t.Fatal("bad-root proof verified")
+	}
+}
+
+func TestProofFromJSONRejectsMissingOrNullRequiredFields(t *testing.T) {
+	fixture := proofFixture(t, "mmr-basic-proof.json")
+
+	cases := map[string]func(map[string]interface{}){
+		"missing count": func(doc map[string]interface{}) {
+			delete(doc, "count")
+		},
+		"null path": func(doc map[string]interface{}) {
+			doc["path"] = nil
+		},
+		"missing peak height": func(doc map[string]interface{}) {
+			peaks := doc["peaks"].([]interface{})
+			peak := peaks[0].(map[string]interface{})
+			delete(peak, "height")
+		},
+	}
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			var doc map[string]interface{}
+			if err := json.Unmarshal(fixture, &doc); err != nil {
+				t.Fatal(err)
+			}
+			mutate(doc)
+			data, err := json.Marshal(doc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := ProofFromJSON(data); err == nil {
+				t.Fatal("incomplete proof parsed")
+			}
+		})
 	}
 }
 

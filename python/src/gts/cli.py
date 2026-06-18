@@ -173,6 +173,9 @@ def _cmd_verify_proof(path: str) -> int:
     except OSError as exc:
         print(f"gts verify-proof: cannot read {path}: {exc}", file=sys.stderr)
         return 2
+    except UnicodeDecodeError as exc:
+        print(f"gts verify-proof: invalid proof JSON: {exc}", file=sys.stderr)
+        return 1
     try:
         proof = proof_from_json(text)
     except ValueError as exc:

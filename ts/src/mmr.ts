@@ -175,8 +175,14 @@ function stringField(obj: Record<string, unknown>, key: string): string {
 
 function intField(obj: Record<string, unknown>, key: string): number {
     const value = obj[key];
-    if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
-        throw new Error(`${JSON.stringify(key)} must be an unsigned integer`);
+    if (
+        typeof value !== "number" ||
+        !Number.isSafeInteger(value) ||
+        value < 0
+    ) {
+        throw new Error(
+            `${JSON.stringify(key)} must be a safe unsigned integer`,
+        );
     }
     return value;
 }
@@ -292,10 +298,17 @@ export function verifyProof(proof: Proof): void {
                     `height ${height}`,
             );
         }
-        if (step.side === "left") {
-            carried = parentHash(step.parentHeight, step.hash, carried);
-        } else {
-            carried = parentHash(step.parentHeight, carried, step.hash);
+        switch (step.side) {
+            case "left":
+                carried = parentHash(step.parentHeight, step.hash, carried);
+                break;
+            case "right":
+                carried = parentHash(step.parentHeight, carried, step.hash);
+                break;
+            default:
+                throw new Error(
+                    `unsupported proof side ${JSON.stringify(step.side)}`,
+                );
         }
         height = step.parentHeight;
     }
