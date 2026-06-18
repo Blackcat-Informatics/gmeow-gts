@@ -8,6 +8,8 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -17,6 +19,8 @@ ROOT_RESOLVED = ROOT.resolve()
 VECTORS = ROOT / "vectors"
 MANIFEST = VECTORS / "manifest.json"
 SCHEMA = "https://blackcatinformatics.ca/gts/vector-manifest/v1"
+DEFAULT_CORPUS_REVISION = "git:repository-commit-containing-manifest"
+FULL_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
 VALID_MODES = {
     "permissive-read",
@@ -184,6 +188,74 @@ def load_json(path: Path) -> Any:
         return json.load(handle)
 
 
+def git_stdout(*args: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(ROOT), *args],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        raise ManifestError(f"git {' '.join(args)} failed: {detail}")
+    return result.stdout.strip()
+
+
+def git_ok(*args: str) -> bool:
+    result = subprocess.run(
+        ["git", "-C", str(ROOT), *args],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    return result.returncode == 0
+
+
+def current_head_revision() -> str:
+    return f"git:{git_stdout('rev-parse', '--verify', 'HEAD^{commit}')}"
+
+
+def normalize_corpus_revision(value: str) -> str:
+    value = value.strip()
+    if value.startswith("git:"):
+        return value
+    return f"git:{value}"
+
+
+def require_corpus_revision(value: Any, *, require_release_revision: bool) -> str:
+    require(
+        isinstance(value, str) and value.startswith("git:"),
+        "corpus_revision must be a git: string",
+    )
+    name = value.removeprefix("git:")
+    require(name, "corpus_revision must name a Git revision")
+    require(name.strip() == name, "corpus_revision must not contain surrounding whitespace")
+    require(
+        "\n" not in name and "\r" not in name and "\t" not in name,
+        "corpus_revision must not contain control whitespace",
+    )
+    if not require_release_revision:
+        return value
+
+    require(
+        value != DEFAULT_CORPUS_REVISION,
+        "release corpus_revision must not use the checked-in placeholder",
+    )
+    if FULL_COMMIT_RE.fullmatch(name):
+        require(
+            git_ok("cat-file", "-e", f"{name}^{{commit}}"),
+            "release corpus_revision commit must resolve in this repository",
+        )
+        return value
+    require(
+        git_ok("show-ref", "--verify", "--quiet", f"refs/tags/{name}"),
+        "release corpus_revision must name a full 40-character commit or local Git tag",
+    )
+    return value
+
+
 def title_for(vector_id: str) -> str:
     words = vector_id.split("-", 1)[1] if "-" in vector_id else vector_id
     return words.replace("-", " ")
@@ -293,7 +365,7 @@ def build_manifest() -> dict[str, Any]:
     return {
         "schema": SCHEMA,
         "manifest_version": 1,
-        "corpus_revision": "git:repository-commit-containing-manifest",
+        "corpus_revision": DEFAULT_CORPUS_REVISION,
         "generated_by": "scripts/check_vector_manifest.py --write",
         "vectors": entries,
     }
@@ -402,14 +474,13 @@ def require_generated_metadata(entry: dict[str, Any], expected: dict[str, Any]) 
         )
 
 
-def validate_manifest(manifest: Any) -> None:
+def validate_manifest(manifest: Any, *, require_release_revision: bool = False) -> None:
     require(isinstance(manifest, dict), "manifest must be a JSON object")
     require(manifest.get("schema") == SCHEMA, "manifest schema mismatch")
     require(manifest.get("manifest_version") == 1, "manifest_version must be 1")
-    require(
-        isinstance(manifest.get("corpus_revision"), str)
-        and manifest["corpus_revision"].startswith("git:"),
-        "corpus_revision must be a git: string",
+    require_corpus_revision(
+        manifest.get("corpus_revision"),
+        require_release_revision=require_release_revision,
     )
     require(isinstance(manifest.get("generated_by"), str), "generated_by must be a string")
     vectors = manifest.get("vectors")
@@ -499,9 +570,14 @@ def validate_manifest(manifest: Any) -> None:
         require_generated_metadata(entry, json_fixture_entry(fixture_path))
 
 
-def expect_invalid(manifest: Any, text: str) -> None:
+def expect_invalid(
+    manifest: Any,
+    text: str,
+    *,
+    require_release_revision: bool = False,
+) -> None:
     try:
-        validate_manifest(manifest)
+        validate_manifest(manifest, require_release_revision=require_release_revision)
     except ManifestError as exc:
         require(text in str(exc), f"expected {text!r} in self-test error {exc!r}")
         return
@@ -552,6 +628,21 @@ def run_self_tests() -> None:
     fixture["expected"]["fields"] = []
     expect_invalid(manifest, "expected drift")
 
+    manifest = mutated_manifest()
+    expect_invalid(
+        manifest,
+        "checked-in placeholder",
+        require_release_revision=True,
+    )
+
+    manifest = mutated_manifest()
+    manifest["corpus_revision"] = "git:deadbeef"
+    expect_invalid(
+        manifest,
+        "full 40-character commit or local Git tag",
+        require_release_revision=True,
+    )
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -559,6 +650,21 @@ def main() -> int:
         "--write",
         action="store_true",
         help="rewrite vectors/manifest.json from the current corpus files",
+    )
+    parser.add_argument(
+        "--corpus-revision",
+        help=(
+            "validate with this exact release corpus revision; accepts git:<full-commit>, "
+            "<full-commit>, or a local Git tag"
+        ),
+    )
+    parser.add_argument(
+        "--release-manifest",
+        type=Path,
+        help=(
+            "write a release manifest artifact with an exact corpus_revision; defaults "
+            "to the current HEAD commit when --corpus-revision is omitted"
+        ),
     )
     parser.add_argument(
         "--self-test",
@@ -580,11 +686,28 @@ def main() -> int:
             if not MANIFEST.is_file():
                 raise ManifestError(f"missing {rel(MANIFEST)}")
             manifest = load_json(MANIFEST)
-        validate_manifest(manifest)
+        require_release_revision = (
+            args.corpus_revision is not None or args.release_manifest is not None
+        )
+        if args.corpus_revision is not None:
+            manifest["corpus_revision"] = normalize_corpus_revision(args.corpus_revision)
+        elif args.release_manifest is not None:
+            manifest["corpus_revision"] = current_head_revision()
+
+        validate_manifest(manifest, require_release_revision=require_release_revision)
+
+        if args.release_manifest is not None:
+            args.release_manifest.parent.mkdir(parents=True, exist_ok=True)
+            args.release_manifest.write_text(
+                json.dumps(manifest, indent=2, sort_keys=False) + "\n",
+                encoding="utf-8",
+            )
     except (json.JSONDecodeError, ManifestError) as exc:
         print(f"check_vector_manifest: {exc}", file=sys.stderr)
         return 1
 
+    if args.release_manifest is not None:
+        print(f"check_vector_manifest: wrote {args.release_manifest}")
     print("check_vector_manifest: OK")
     return 0
 

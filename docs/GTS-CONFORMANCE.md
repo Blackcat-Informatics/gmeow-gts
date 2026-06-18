@@ -155,6 +155,27 @@ The manifest uses this shape:
 }
 ```
 
+The checked-in manifest uses
+`"corpus_revision": "git:repository-commit-containing-manifest"` as a deliberate placeholder.
+That placeholder avoids a self-referential commit hash in the file that contains the hash. It
+is valid for repository validation, but it is not a release conformance identifier.
+
+Release candidates and third-party conformance reports MUST replace the placeholder at report
+time with an exact `git:` revision. The revision MUST be either a full 40-character commit id
+that resolves in the repository or a local Git tag. Do not hand-edit the committed manifest for
+this; generate a stamped release manifest artifact:
+
+```bash
+python scripts/check_vector_manifest.py \
+  --release-manifest dist/vector-manifest.release.json
+```
+
+That command validates the corpus and writes a copy of the manifest whose `corpus_revision`
+names the current `HEAD` commit. To stamp a release tag or an explicit commit instead, pass
+`--corpus-revision git:<tag-or-full-commit>`. The plain
+`python scripts/check_vector_manifest.py` command continues to validate the checked-in
+placeholder manifest.
+
 Required vector fields:
 
 | field | requirement |
@@ -228,6 +249,7 @@ several modes through one command with flags; the test harness MUST record which
 A conformance report SHOULD include:
 
 - implementation name, version, commit, operating system, and architecture;
+- exact corpus revision or tag used for the report, matching the stamped release manifest;
 - tier claims and vector subsets;
 - command lines or test names;
 - pass/fail count by subset;
