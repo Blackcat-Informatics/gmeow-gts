@@ -191,7 +191,9 @@ Use this report row for each implementation:
 
 ## 7. Security And Supply-Chain Checks
 
-Run local supply-chain checks when the tools are available:
+Run local supply-chain and repository-hygiene checks when the tools are
+available. `just audit` runs the OSV dependency scan defined in the justfile;
+pre-commit is a separate hygiene, lint, and secret-scan gate.
 
 ```bash
 just audit
