@@ -195,6 +195,53 @@ COSE_Sign1-sign every subsequently appended frame. For the full API, explore the
 declarations in `dist/index.d.ts` after building, or browse the source under
 [`src/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/ts/src).
 
+### Browser streaming API
+
+Browser bundlers can import the browser-safe surface directly:
+
+```typescript
+import {
+  foldStream,
+  readStream,
+  toNQuads,
+  type BrowserFoldEvent,
+} from "@blackcatinformatics/gmeow-gts/browser";
+
+const response = await fetch("/artifacts/example.gts");
+const events: BrowserFoldEvent[] = [];
+const result = await foldStream(response.body!, {
+  allowSegments: true,
+  onEvent(event) {
+    events.push(event);
+  },
+});
+
+console.log(toNQuads(result.graph));
+```
+
+`foldStream(stream, options)` consumes a `ReadableStream<Uint8Array>` and emits progressive
+term, quad, blob, signature, diagnostic, segment-head, and streamable-layout events as CBOR
+items arrive. `readStream(stream, options)` is a convenience wrapper that returns only the
+final `Graph`.
+
+The browser export also accepts a `BrowserKeyProvider` for WebCrypto-backed COSE verification
+and decryption:
+
+```typescript
+const graph = await readStream(response.body!, {
+  keys: {
+    verificationKey: (kid) => lookupEd25519PublicKey(kid),
+    contentKey: (kid) => lookupAes256GcmContentKey(kid),
+  },
+});
+```
+
+The browser path is intentionally narrower than the Node root export. It does not expose the
+CLI, filesystem `pack`/`unpack`/`diff` helpers, or other Node-only behavior. It may claim the
+`GTS Streaming Reader` surface for `@blackcatinformatics/gmeow-gts/browser` when the release
+claim names the corpus commit and browser streaming test harness used. The Node `Read(bytes,
+...)` API remains a materializing reader, not the streaming surface.
+
 ---
 
 ## Command-line reference

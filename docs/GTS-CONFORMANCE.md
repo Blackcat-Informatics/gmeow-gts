@@ -69,6 +69,14 @@ TestStreamingFoldCorpusEquivalence` harness checks corpus equivalence against th
 for final diagnostic codes, segment heads, profiles, metadata, streamable-layout state, and
 segment-local fold event counts.
 
+The TypeScript package's Streaming Reader surface is
+`@blackcatinformatics/gmeow-gts/browser` `foldStream(stream, options)` or `readStream(stream,
+options)`, where `options.onEvent` receives segment-local fold events as CBOR items arrive.
+The browser-targeted npm tests cover progressive fold events and WebCrypto-backed COSE
+verification/decryption; a release conformance claim still has to name the corpus commit and
+the browser streaming harness used for the claim. The root Node `Read(bytes, ...)` API is a
+materializing reader and is not the TypeScript streaming surface.
+
 A tool can claim multiple tiers. A command-line package that exposes `read`, `verify`,
 `compact`, and `files` archive commands might claim Baseline Reader, Writer, Validating Tool,
 and Profile-Aware Tool (`files`), while not claiming Full Reader if it cannot decrypt or

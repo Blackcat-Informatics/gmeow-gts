@@ -17,7 +17,7 @@ deferred.
 |---|---|---|
 | Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge; `--features rdf` enables `gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` for native `oxrdf::Dataset` interop without an embedded graph store; `--features oxigraph-adapter` enables `gmeow_gts::oxigraph::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using Oxigraph's in-memory store; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Sophia and Rio adapters remain deferred until they can be optional features with round-trip tests and no mandatory database dependency. |
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
-| TypeScript browser | Current browser-safe handoff is `Uint8Array`: `fetch()`, optional HTTP `Range`, then `Read(bytes, allowSegments)`, `toNQuads`, or files helpers. | A package-level browser bundle, `ReadableStream` fold API, WebCrypto key provider, and progressive rendering API are deferred. |
+| TypeScript browser | `@blackcatinformatics/gmeow-gts/browser` exposes `foldStream(ReadableStream<Uint8Array>, options)`, `readStream`, `toNQuads`, progressive fold events, and WebCrypto-backed COSE Sign1/Encrypt0 key-provider hooks. The package root also carries a browser condition that resolves to this narrower surface for bundlers. | Node-only CLI and filesystem `pack`/`unpack`/`diff` helpers remain outside the browser export. Range fetch still needs a verified index or boundary scan. |
 | Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides graph-returning service integration, while `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` provides cancellation-aware, byte-limited streaming fold events for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | Service-specific replication orchestration remains application code built on the shared verbs. |
 
 ## Python: rdflib And Data Frames
@@ -182,33 +182,43 @@ optional features. A future Sophia or Rio adapter must include:
 
 ## TypeScript: Browser And Range Fetch
 
-The TypeScript engine exposes byte-oriented APIs that are safe to call from
-browser or service code once the caller supplies bytes:
+The TypeScript package exposes a browser-specific entrypoint for Web Streams:
 
 ```typescript
-import { Read, toNQuads } from "@blackcatinformatics/gmeow-gts";
+import { foldStream, readStream, toNQuads } from "@blackcatinformatics/gmeow-gts/browser";
 
-const response = await fetch("/artifacts/example.gts", {
-  headers: { Range: "bytes=0-65535" },
+const response = await fetch("/artifacts/example.gts");
+const result = await foldStream(response.body!, {
+  onEvent(event) {
+    if (event.kind === "quad") renderQuad(event.quad);
+    if (event.kind === "blob") renderBlob(event.digest, event.size);
+  },
 });
-const bytes = new Uint8Array(await response.arrayBuffer());
-const graph = Read(bytes, false);
-console.log(toNQuads(graph));
+
+console.log(toNQuads(result.graph));
 ```
+
+The browser path can also use platform WebCrypto for practical COSE verification and
+decryption:
+
+```typescript
+const graph = await readStream(response.body!, {
+  keys: {
+    verificationKey: (kid) => lookupEd25519PublicKey(kid),
+    contentKey: (kid) => lookupAes256GcmContentKey(kid),
+  },
+});
+```
+
+The browser export emits term, quad, reifier, annotation, suppression, blob, opaque,
+signature, diagnostic, segment-head, and streamable-layout events in frame order. It is the
+TypeScript package's `GTS Streaming Reader` surface. The root Node `Read(bytes,
+allowSegments)` API remains materializing, and browser code must not rely on the Node-only
+CLI/filesystem helpers.
 
 Range rule: callers may use HTTP `Range` only for byte spans that are known from
 an index frame or from a sequential CBOR boundary scan. A range that cuts through
 a CBOR item is a torn append and must be treated as an incomplete prefix.
-
-Tracked deferrals:
-
-- `ReadableStream<Uint8Array>` folding without full materialization.
-- A browser conditional export with dependency choices audited for bundlers.
-- WebCrypto-backed key-provider integration for COSE verification/decryption.
-- Progressive rendering helpers that report graph/blob arrivals as UI events.
-
-Until those exist, the npm package must not claim the `GTS Streaming Reader`
-conformance tier.
 
 ## Go: Services And Object Stores
 
