@@ -35,6 +35,7 @@ VALID_SUBSETS = {
     "graph-fold",
     "profile-layout",
     "streaming-property",
+    "corpus-generator-determinism",
     "writer-determinism",
     "crypto-cose",
     "crypto-encrypt",
@@ -290,12 +291,19 @@ def top_level_entry(vector_id: str) -> dict[str, Any]:
         expected_fields["exit_code"] = 1
         expected_fields["stderr_contains"] = ["hide every quad"]
 
+    negative = bool(diagnostics) or vector_id == "21-degenerate-composition"
     primary_subsets = TOP_LEVEL_SUBSETS[vector_id]
-    subsets = sorted({*primary_subsets, "streaming-property", "writer-determinism"})
-    tiers = {"baseline-reader", "streaming-reader", "writer"}
+    subsets = {
+        *primary_subsets,
+        "streaming-property",
+        "corpus-generator-determinism",
+    }
+    tiers = {"baseline-reader", "streaming-reader"}
+    if not negative:
+        subsets.add("writer-determinism")
+        tiers.add("writer")
     if "profile-layout" in primary_subsets:
         tiers.add("validating-tool")
-    negative = bool(diagnostics) or vector_id == "21-degenerate-composition"
 
     return {
         "id": vector_id,
@@ -309,7 +317,7 @@ def top_level_entry(vector_id: str) -> dict[str, Any]:
         "required_capabilities": list(
             TOP_LEVEL_CAPABILITIES.get(vector_id, ("cbor", "blake3", "identity"))
         ),
-        "subsets": subsets,
+        "subsets": sorted(subsets),
         "tiers": sorted(tiers),
         "expected": expected_fields,
         "notes": f"Top-level GTS conformance vector for {', '.join(primary_subsets)}.",
@@ -431,6 +439,21 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
     require(entry["subsets"], f"{vector_id}: subsets must not be empty")
     require(entry["tiers"], f"{vector_id}: tiers must not be empty")
     require(isinstance(entry.get("notes"), str), f"{vector_id}: notes must be a string")
+    subsets = set(entry["subsets"])
+    tiers = set(entry["tiers"])
+    negative = entry["negative"]
+    require(
+        not negative or "writer" not in tiers,
+        f"{vector_id}: negative vectors must not claim writer tier",
+    )
+    require(
+        not negative or "writer-determinism" not in subsets,
+        f"{vector_id}: negative vectors must not claim writer-determinism",
+    )
+    require(
+        "writer" not in tiers or "writer-determinism" in subsets,
+        f"{vector_id}: writer tier requires writer-determinism subset",
+    )
 
     input_info = entry.get("input")
     require(isinstance(input_info, dict), f"{vector_id}: input must be an object")
@@ -554,6 +577,10 @@ def validate_manifest(manifest: Any, *, require_release_revision: bool = False) 
             "streaming-property" in entry["subsets"],
             f"{vector_id}: top-level vectors must declare streaming-property",
         )
+        require(
+            "corpus-generator-determinism" in entry["subsets"],
+            f"{vector_id}: top-level vectors must declare corpus-generator-determinism",
+        )
         require_generated_metadata(entry, top_level_entry(vector_id))
 
     manifest_json_paths = sorted(
@@ -619,6 +646,27 @@ def run_self_tests() -> None:
     top_level = next(entry for entry in manifest["vectors"] if entry["input"]["path"].endswith(".gts"))
     top_level["required_capabilities"] = ["cbor"]
     expect_invalid(manifest, "required_capabilities drift")
+
+    manifest = mutated_manifest()
+    negative_top_level = next(
+        entry for entry in manifest["vectors"] if entry["id"] == "04-damaged-frame"
+    )
+    negative_top_level["tiers"].append("writer")
+    expect_invalid(manifest, "negative vectors must not claim writer tier")
+
+    manifest = mutated_manifest()
+    negative_top_level = next(
+        entry for entry in manifest["vectors"] if entry["id"] == "04-damaged-frame"
+    )
+    negative_top_level["subsets"].append("writer-determinism")
+    expect_invalid(manifest, "negative vectors must not claim writer-determinism")
+
+    manifest = mutated_manifest()
+    writer_top_level = next(
+        entry for entry in manifest["vectors"] if entry["id"] == "29-deterministic-writer"
+    )
+    writer_top_level["subsets"].remove("writer-determinism")
+    expect_invalid(manifest, "writer tier requires writer-determinism subset")
 
     manifest = mutated_manifest()
     fixture = next(
