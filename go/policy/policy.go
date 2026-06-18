@@ -156,13 +156,19 @@ func policyOrDefault(policy *TrustPolicy) *TrustPolicy {
 	if policy == nil {
 		return DefaultTrustPolicy()
 	}
-	if policy.TrustedSigners == nil {
-		policy.TrustedSigners = map[string]struct{}{}
+	trustedSigners := map[string]struct{}{}
+	for signer := range policy.TrustedSigners {
+		trustedSigners[signer] = struct{}{}
 	}
-	if policy.PseudonymousKidPattern == "" {
-		policy.PseudonymousKidPattern = DefaultPseudonymousKidPattern
+	pseudonymousKidPattern := policy.PseudonymousKidPattern
+	if pseudonymousKidPattern == "" {
+		pseudonymousKidPattern = DefaultPseudonymousKidPattern
 	}
-	return policy
+	return &TrustPolicy{
+		TrustedSigners:         trustedSigners,
+		RequireTrustedSigner:   policy.RequireTrustedSigner,
+		PseudonymousKidPattern: pseudonymousKidPattern,
+	}
 }
 
 func declaredProfiles(graph *model.Graph) map[string]struct{} {

@@ -37,11 +37,11 @@ export function readNested(
     data: Uint8Array,
     options: ReadNestedOptions = {},
 ): NestedReadResult {
-    const maxDepth = options.maxDepth ?? 3;
-    const maxDecodedBytes = options.maxDecodedBytes ?? 16 * 1024 * 1024;
-    if (maxDepth < 0) throw new RangeError("maxDepth must be >= 0");
-    if (maxDecodedBytes < 0)
-        throw new RangeError("maxDecodedBytes must be >= 0");
+    const maxDepth = Math.max(0, options.maxDepth ?? 3);
+    const maxDecodedBytes = Math.max(
+        0,
+        options.maxDecodedBytes ?? 16 * 1024 * 1024,
+    );
 
     const budget = { remaining: maxDecodedBytes };
     const seen = new Set<string>();

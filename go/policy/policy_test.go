@@ -106,6 +106,21 @@ func TestValidSignatureDoesNotImplyTrustedSignerOrTrueClaim(t *testing.T) {
 	}
 }
 
+func TestPolicyDefaultsDoNotMutateInput(t *testing.T) {
+	policy := &TrustPolicy{}
+	graph := &model.Graph{SegmentProfiles: []string{"opaque"}}
+
+	EvaluateProfilePolicy(graph, policy, nil)
+	SignatureTrustForGraph(graph, policy)
+
+	if policy.TrustedSigners != nil {
+		t.Fatalf("policy defaulting should not mutate TrustedSigners")
+	}
+	if policy.PseudonymousKidPattern != "" {
+		t.Fatalf("policy defaulting should not mutate PseudonymousKidPattern")
+	}
+}
+
 func TestEvidenceProfileRequiresSignaturesAndHeadCommitment(t *testing.T) {
 	w := writer.New("evidence")
 	w.AddTerms(claimTerms())

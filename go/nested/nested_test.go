@@ -4,9 +4,11 @@
 package nested
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.blackcatinformatics.ca/gts/model"
@@ -82,6 +84,20 @@ func loadNestedSecurityVector(t *testing.T) nestedSecurityVector {
 	return vector
 }
 
+func readHexFixture(t *testing.T, name string) []byte {
+	t.Helper()
+	path := filepath.Join("..", "..", "vectors", "security", name)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := hex.DecodeString(strings.TrimSpace(string(data)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return decoded
+}
+
 func TestReadNestedExposesSubgraphByBlobDigest(t *testing.T) {
 	child := tinyGraph("child")
 	outer := bundle(child)
@@ -102,16 +118,23 @@ func TestReadNestedExposesSubgraphByBlobDigest(t *testing.T) {
 
 func TestNestedRecursionSecurityVector(t *testing.T) {
 	vector := loadNestedSecurityVector(t)
-	grandchild := tinyGraph("grandchild")
-	child := bundle(grandchild)
-	outer := bundle(child)
+	outer := readHexFixture(t, "nested-recursion-limit.gts.hex")
 
 	result := ReadNested(outer, vector.MaxDepth, 16*1024*1024)
 
-	if _, ok := result.Subgraph(wire.DigestStr(child)); !ok {
+	if len(result.Graph.Blobs) != 1 {
+		t.Fatalf("expected one root nested blob, got %d", len(result.Graph.Blobs))
+	}
+	child := result.Graph.Blobs[0]
+	childGraph, ok := result.Subgraph(child.Digest)
+	if !ok {
 		t.Fatalf("first nested child should be exposed")
 	}
-	if _, ok := result.Subgraph(wire.DigestStr(grandchild)); ok {
+	if len(childGraph.Blobs) != 1 {
+		t.Fatalf("expected one child nested blob, got %d", len(childGraph.Blobs))
+	}
+	grandchild := childGraph.Blobs[0]
+	if _, ok := result.Subgraph(grandchild.Digest); ok {
 		t.Fatalf("grandchild should be blocked by max depth %d", vector.MaxDepth)
 	}
 	for _, code := range vector.ExpectedDiagnostics {
