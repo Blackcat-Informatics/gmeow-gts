@@ -80,9 +80,20 @@ the containing blob digest. Recursion stops when `max_depth` / `maxDepth` or
 |---|---|
 | COSE_Sign1 / Ed25519 | Implemented optional Full Reader capability and profile-policy input. |
 | COSE_Encrypt0 / AES-256-GCM | Implemented optional Full Reader capability for one direct recipient. |
-| COSE_Encrypt multi-recipient envelopes | Deferred outside v1 conformance. No engine may claim it until vectors and interop tests land. |
-| ECDH key-wrap / ECDH-ES+A256KW | Deferred outside v1 conformance. The spec examples remain informative until vectors and key-management policy exist. |
+| COSE_Encrypt multi-recipient envelopes | Deferred outside v1 conformance. No engine may claim it until byte-level vectors and interop tests land. The descriptor contract lives in `vectors/crypto-deferred/*.json`. |
+| ECDH key-wrap / ECDH-ES+A256KW | Deferred outside v1 conformance. Future support uses `COSE_Encrypt` with `A256GCM` content encryption, `ECDH-ES+A256KW` recipient key management, and `A256KW` content-key wrapping. |
 | Pseudonymous recipient-id policy | Implemented as profile policy for the `opaque` profile. |
+
+Deferred `cose-encrypt` failure modes are fixed before any engine may claim
+support:
+
+- two or more recipients may unwrap the same content-encryption key;
+- no matching held recipient key records `MissingKey` and preserves
+  `reason:"missing-key"` opacity;
+- a wrong key, malformed ECDH recipient header, or AES-KW unwrap/authentication
+  failure records `KeyWrapFailed` and preserves `reason:"missing-key"` opacity;
+- no failure mode may expose plaintext or convert deployment authorization into
+  cryptographic validity.
 
 ## Vectors
 

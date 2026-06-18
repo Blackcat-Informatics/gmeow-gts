@@ -70,6 +70,10 @@ check-ecosystem-contract:
 check-security-contract:
     python scripts/check_security_contract.py
 
+# Fail if deferred multi-recipient COSE/ECDH policy and descriptors drift.
+check-crypto-deferrals:
+    python scripts/check_crypto_deferrals.py
+
 # Live cross-engine interoperability check (each engine reads every other's output).
 interop:
     bash scripts/interop.sh

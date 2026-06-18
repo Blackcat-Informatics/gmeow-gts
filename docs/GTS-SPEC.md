@@ -256,6 +256,7 @@ MAY map them to error returns or structured warnings):
 | `TruncatedLog` | a head commitment is present but the observed head differs (§9, §18) |
 | `UnknownCodec` | a transform names a codec the reader lacks; opaque `reason:"unknown-codec"` |
 | `MissingKey` | an `encrypt` codec the reader cannot decrypt; opaque `reason:"missing-key"` |
+| `KeyWrapFailed` | a deferred multi-recipient key unwrap failed; opaque `reason:"missing-key"` |
 | `ConflictingReifier` | a reifier rebound to a different triple (§7.8) |
 | `PositionConstraint` | a term appears in an illegal subject, predicate, object, or graph-name position; reject/diagnose the offending row (§7.4) |
 | `ForwardReference` | a term-id reference names a term not introduced by an earlier frame in the same segment (§7.2, §7.5) |
@@ -1010,6 +1011,29 @@ This draft's v1 conformance surface implements and tests `COSE_Encrypt0` for one
 recipient. Multi-recipient `COSE_Encrypt` envelopes and ECDH key-wrap are deferred outside v1
 until dedicated vectors, key-management policy, and cross-engine interop tests exist; see
 [`GTS-SECURITY-POLICY.md`](./GTS-SECURITY-POLICY.md).
+
+The deferred `cose-encrypt` contract is pinned as a future Full Reader capability, not as a v1
+implementation claim. A future implementation that claims it MUST consume a CBOR-tagged
+`COSE_Encrypt` envelope whose content encryption uses `A256GCM` and whose recipient array
+contains one entry per declared recipient in the frame's cleartext `"to"` list. The initially
+defined key-management mode is `ECDH-ES+A256KW`: each recipient entry carries the information
+needed to derive a key-encryption key and unwrap the same 256-bit content-encryption key with
+`A256KW`. A conforming future reader tries only recipients for which it holds the corresponding
+private key material.
+
+Deferred failure modes are:
+
+- no held key matches any recipient `kid`: emit `MissingKey` and preserve the frame as an
+  opaque node with `reason:"missing-key"`;
+- ECDH recipient metadata is malformed, the derived key-encryption key cannot unwrap the
+  content key, or AES-KW authentication fails: emit `KeyWrapFailed` and preserve the frame as
+  opaque with `reason:"missing-key"`;
+- content-authentication failure after a successful unwrap is a damaged encrypted payload and
+  MUST NOT expose plaintext.
+
+The descriptor vectors in `vectors/crypto-deferred/*.json` pin the two-recipient shape and the
+wrong-key, missing-key, and failed-unwrap opacity cases until byte-level `COSE_Encrypt` vectors
+replace the placeholders.
 
 ### 9.4 The opacity invariant (normative)
 
@@ -2105,7 +2129,7 @@ diagnostic = {
 diagnostic-code = "EmptyFile"
 / "TornAppendError" / "DamagedFrame" / "BrokenChain"
 / "TruncatedLog" / "UnknownCodec" / "MissingKey"
-/ "ConflictingReifier" / "RecursionLimit"
+/ "KeyWrapFailed" / "ConflictingReifier" / "RecursionLimit"
 / "StreamableLayoutError" / "PositionConstraint"
 / "ForwardReference" / "SegmentBoundary" / "IndexMmrError"
 / "UnknownFrameType" / tstr

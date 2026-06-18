@@ -1291,6 +1291,179 @@
       "notes": "Pins COSE Sign1 byte serialization and verification behavior."
     },
     {
+      "id": "crypto-deferred-key-wrap-failure-diagnostics",
+      "title": "deferred COSE Encrypt fixture: key-wrap-failure-diagnostics",
+      "input": {
+        "path": "vectors/crypto-deferred/key-wrap-failure-diagnostics.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": true,
+      "required_capabilities": [
+        "cose-encrypt",
+        "ecdh-es+a256kw",
+        "aes-256-gcm"
+      ],
+      "subsets": [
+        "crypto-deferred"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [
+          "KeyWrapFailed"
+        ],
+        "expected_head": null,
+        "fields": [
+          "codec",
+          "cose_type",
+          "deferred",
+          "expected",
+          "expected_diagnostics",
+          "id",
+          "negative",
+          "notes",
+          "recipient_fault",
+          "schema",
+          "status",
+          "title"
+        ]
+      },
+      "notes": "Pins deferred multi-recipient COSE_Encrypt and ECDH key-wrap contract shape without making an implementation claim."
+    },
+    {
+      "id": "crypto-deferred-missing-key-opacity",
+      "title": "deferred COSE Encrypt fixture: missing-key-opacity",
+      "input": {
+        "path": "vectors/crypto-deferred/missing-key-opacity.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": true,
+      "required_capabilities": [
+        "cose-encrypt",
+        "ecdh-es+a256kw",
+        "aes-256-gcm"
+      ],
+      "subsets": [
+        "crypto-deferred"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [
+          "MissingKey"
+        ],
+        "expected_head": null,
+        "fields": [
+          "codec",
+          "cose_type",
+          "deferred",
+          "expected",
+          "expected_diagnostics",
+          "held_keys",
+          "id",
+          "negative",
+          "notes",
+          "recipients",
+          "schema",
+          "status",
+          "title"
+        ]
+      },
+      "notes": "Pins deferred multi-recipient COSE_Encrypt and ECDH key-wrap contract shape without making an implementation claim."
+    },
+    {
+      "id": "crypto-deferred-multi-recipient-cose-encrypt",
+      "title": "deferred COSE Encrypt fixture: multi-recipient-cose-encrypt",
+      "input": {
+        "path": "vectors/crypto-deferred/multi-recipient-cose-encrypt.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-encrypt",
+        "ecdh-es+a256kw",
+        "aes-256-gcm"
+      ],
+      "subsets": [
+        "crypto-deferred"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "codec",
+          "content_encryption",
+          "cose_type",
+          "deferred",
+          "expected",
+          "expected_diagnostics",
+          "id",
+          "key_management",
+          "negative",
+          "notes",
+          "recipients",
+          "schema",
+          "status",
+          "title"
+        ]
+      },
+      "notes": "Pins deferred multi-recipient COSE_Encrypt and ECDH key-wrap contract shape without making an implementation claim."
+    },
+    {
+      "id": "crypto-deferred-wrong-key-opacity",
+      "title": "deferred COSE Encrypt fixture: wrong-key-opacity",
+      "input": {
+        "path": "vectors/crypto-deferred/wrong-key-opacity.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": true,
+      "required_capabilities": [
+        "cose-encrypt",
+        "ecdh-es+a256kw",
+        "aes-256-gcm"
+      ],
+      "subsets": [
+        "crypto-deferred"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [
+          "KeyWrapFailed"
+        ],
+        "expected_head": null,
+        "fields": [
+          "codec",
+          "cose_type",
+          "deferred",
+          "expected",
+          "expected_diagnostics",
+          "held_keys",
+          "id",
+          "negative",
+          "notes",
+          "schema",
+          "status",
+          "title"
+        ]
+      },
+      "notes": "Pins deferred multi-recipient COSE_Encrypt and ECDH key-wrap contract shape without making an implementation claim."
+    },
+    {
       "id": "emojihash-ascii-gts",
       "title": "emojihash fixture: ascii-gts",
       "input": {
