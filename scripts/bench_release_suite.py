@@ -355,14 +355,21 @@ def setup_engine(engine: str, out_dir: Path, timeout: int) -> tuple[EngineRuntim
             results.append(SetupResult(engine, "failed", "cargo", None, "cargo not found"))
             return None, results
         if not run_setup(
-            ["cargo", "build", "--quiet", "--manifest-path", str(ROOT / "rust" / "Cargo.toml")]
+            [
+                "cargo",
+                "build",
+                "--release",
+                "--quiet",
+                "--manifest-path",
+                str(ROOT / "rust" / "Cargo.toml"),
+            ]
         ):
             return None, results
         suffix = ".exe" if sys.platform == "win32" else ""
         return (
             EngineRuntime(
                 engine,
-                [str(ROOT / "rust" / "target" / "debug" / f"gts{suffix}")],
+                [str(ROOT / "rust" / "target" / "release" / f"gts{suffix}")],
                 ROOT,
                 True,
             ),
@@ -754,7 +761,27 @@ def parse_go_benchmarks(output: str) -> list[dict[str, str | float]]:
     return parsed
 
 
-def run_go_memory_benchmarks(timeout: int) -> list[MemoryRow]:
+def run_go_memory_benchmarks(stream_vector: Path, timeout: int) -> list[MemoryRow]:
+    default_stream = (ROOT / DEFAULT_STREAM_VECTOR).resolve()
+    selected_stream = stream_vector.resolve()
+    if selected_stream != default_stream:
+        return [
+            MemoryRow(
+                engine="go",
+                mode="streaming-memory",
+                input=stream_vector.name,
+                input_bytes=stream_vector.stat().st_size,
+                status="skipped",
+                elapsed_ms=None,
+                peak_kib=None,
+                command="go test ./reader ... -benchmem",
+                note=(
+                    "Go benchmem target is fixed to the default stream vector; "
+                    "use the default stream vector or extend the Go benchmark."
+                ),
+            )
+        ]
+
     command = [
         "go",
         "test",
@@ -776,7 +803,7 @@ def run_go_memory_benchmarks(timeout: int) -> list[MemoryRow]:
             MemoryRow(
                 engine="go",
                 mode="streaming-memory",
-                input=DEFAULT_STREAM_VECTOR,
+                input=stream_vector.name,
                 input_bytes=None,
                 status="failed",
                 elapsed_ms=result.elapsed_ms,
@@ -789,6 +816,11 @@ def run_go_memory_benchmarks(timeout: int) -> list[MemoryRow]:
     output = result.stdout.decode("utf-8", errors="replace")
     for parsed in parse_go_benchmarks(output):
         mode = str(parsed["name"])
+        elapsed_ms = (
+            round(float(parsed["ns_per_op"]) / 1_000_000.0, 4)
+            if "ns_per_op" in parsed
+            else None
+        )
         details = []
         if "ns_per_op" in parsed:
             details.append(f"{parsed['ns_per_op']} ns/op")
@@ -800,10 +832,10 @@ def run_go_memory_benchmarks(timeout: int) -> list[MemoryRow]:
             MemoryRow(
                 engine="go",
                 mode=mode,
-                input=Path(DEFAULT_STREAM_VECTOR).name,
-                input_bytes=(ROOT / DEFAULT_STREAM_VECTOR).stat().st_size,
+                input=stream_vector.name,
+                input_bytes=stream_vector.stat().st_size,
                 status="ok",
-                elapsed_ms=result.elapsed_ms,
+                elapsed_ms=elapsed_ms,
                 peak_kib=None,
                 command=command_text,
                 note="; ".join(details),
@@ -823,7 +855,7 @@ def run_memory_benchmarks(
         return []
     rows = run_memory_helper(engines=engines, stream_vector=stream_vector, timeout=timeout)
     if "go" in engines:
-        rows.extend(run_go_memory_benchmarks(timeout=timeout))
+        rows.extend(run_go_memory_benchmarks(stream_vector=stream_vector, timeout=timeout))
     if "ts" in engines:
         rows.append(
             MemoryRow(
@@ -1030,6 +1062,8 @@ def validate_paths(paths: list[str], *, kind: str) -> list[Path]:
         path = (ROOT / raw).resolve() if not Path(raw).is_absolute() else Path(raw)
         if not path.exists():
             raise SystemExit(f"{kind} does not exist: {raw}")
+        if not path.is_file():
+            raise SystemExit(f"{kind} must be a file: {raw}")
         resolved.append(path)
     return resolved
 
