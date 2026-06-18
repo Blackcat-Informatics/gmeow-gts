@@ -9,7 +9,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Blackcat-Informatics/gmeow-gts"
 readme = "README.md"
-keywords = ["rdf", "rdf-star", "cbor", "knowledge-graph", "linked-data"]
+keywords = ["rdf", "rdf-12", "cbor", "knowledge-graph", "linked-data"]
 
 [features]
 default = []
