@@ -85,13 +85,16 @@ def test_compact_blank_node_and_language_tag_delimiters_roundtrip() -> None:
 
 def test_quoted_triple_adjacent_delimiters_roundtrip() -> None:
     """Quoted triple close delimiters are not consumed into node labels."""
+    lang_reifier = f"<https://ex/r2> <{RDF_REIFIES}> "
     nq = (
         f"<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1)>> .\n"
-        f'<https://ex/r2> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> "Cat"@en)>> .\n'
+        f"{lang_reifier}"
+        '<<( <https://ex/s> <https://ex/p> "Cat"@en)>> .\n'
     )
     expected = (
         f"<https://ex/r1> <{RDF_REIFIES}> <<( _:b0 <https://ex/p> _:b1 )>> .\n"
-        f'<https://ex/r2> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> "Cat"@en )>> .\n'
+        f"{lang_reifier}"
+        '<<( <https://ex/s> <https://ex/p> "Cat"@en )>> .\n'
     )
     out = to_nquads(read(from_nquads(nq)))
     assert sorted(out.splitlines()) == sorted(expected.strip().splitlines())
