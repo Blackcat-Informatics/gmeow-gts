@@ -45,12 +45,15 @@ type MaybePromise<T> = T | Promise<T>;
 type KeyLike = CryptoKey | Uint8Array | ArrayBuffer;
 type EventSink = (event: BrowserFoldEvent) => void | Promise<void>;
 
-/** WebCrypto-backed key lookup for the browser streaming reader. */
+/** WebCrypto-backed key lookup for browser-side signature and envelope handling. */
 export interface BrowserKeyProvider {
+    /** Return an Ed25519 verification key for a signer kid, or null/undefined if unknown. */
     verificationKey?: (kid: string) => MaybePromise<KeyLike | null | undefined>;
+    /** Return a 32-byte AES-GCM content key for a recipient kid, or null/undefined if absent. */
     contentKey?: (kid: string) => MaybePromise<KeyLike | null | undefined>;
 }
 
+/** Options for browser ReadableStream folding. */
 export interface BrowserReadOptions {
     /** Fold multiple concatenated GTS segments. Defaults to true. */
     allowSegments?: boolean;
@@ -62,13 +65,24 @@ export interface BrowserReadOptions {
     onEvent?: EventSink;
 }
 
+/** Final materialized result from browser stream folding. */
 export interface BrowserFoldResult {
+    /** Folded union graph for all accepted segments. */
     graph: Graph;
+    /** Per-segment folded graphs in file order. */
     segments: Graph[];
     /** Byte offset of a torn final CBOR item, or -1 for a clean end. */
     torn: number;
 }
 
+/**
+ * Progressive browser fold event.
+ *
+ * Events are emitted in CBOR item order and use segment-local term ids. They
+ * expose progress before full materialization, but the browser API still
+ * returns a materialized graph and should not be claimed as the full
+ * `GTS Streaming Reader` tier.
+ */
 export type BrowserFoldEvent =
     | {
           kind: "segment-start";
@@ -182,7 +196,12 @@ interface BlobEvent {
     described: boolean;
 }
 
-/** Fold a browser `ReadableStream<Uint8Array>` and return the final graph. */
+/**
+ * Fold a browser `ReadableStream<Uint8Array>` and return only the final graph.
+ *
+ * Use `foldStream` when callers need progressive segment/frame events or the
+ * torn-offset sidecar.
+ */
 export async function readStream(
     stream: ReadableStream<Uint8Array>,
     options: BrowserReadOptions = {},
@@ -195,7 +214,9 @@ export async function readStream(
  * Fold a browser `ReadableStream<Uint8Array>`.
  *
  * `onEvent` receives segment-local terms, quads, blobs, signatures, diagnostics,
- * and layout/head events as soon as the containing CBOR item is available.
+ * and layout/head events as soon as the containing CBOR item is available. The
+ * return value is still materialized graph state; this is a progressive browser
+ * surface, not the Go-style `GTS Streaming Reader` tier.
  */
 export async function foldStream(
     stream: ReadableStream<Uint8Array>,
@@ -238,13 +259,16 @@ export async function foldStream(
     return processor.finish(torn);
 }
 
+/** Signature status reported by browser WebCrypto verification. */
 export type BrowserSigStatus = "valid" | "invalid" | "unverified";
+/** Failure class for browser COSE_Encrypt0 handling. */
 export type BrowserDecrypt0Reason =
     | "malformed"
     | "missing-key"
     | "auth-failed"
     | "unsupported";
 
+/** Error raised when browser COSE parsing, key lookup, or decryption fails. */
 export class BrowserCoseError extends Error {
     constructor(
         readonly reason: BrowserDecrypt0Reason,

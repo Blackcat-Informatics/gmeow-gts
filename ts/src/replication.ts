@@ -6,50 +6,81 @@ import * as wire from "./wire.js";
 import { ReadFileSegments } from "./reader.js";
 import type { Diagnostic, StreamableInfo } from "./model.js";
 
+/** Byte and chain metadata for one non-header frame. */
 export interface FrameInventory {
+    /** Absolute CBOR item index in the file. */
     itemIndex: number;
+    /** Zero-based frame index within the segment. */
     frameIndex: number;
+    /** Half-open byte offsets for the encoded CBOR item. */
     start: number;
     end: number;
+    /** Stored frame id when present, otherwise the computed id. */
     id: Uint8Array;
+    /** Frame "t" value, or a diagnostic placeholder. */
     frameType: string;
+    /** True only when self-hash and prev-chain checks both pass. */
     valid: boolean;
 }
 
+/** Inventory for one GTS segment and its frames. */
 export interface SegmentInventory {
+    /** Zero-based segment index. */
     index: number;
+    /** Half-open CBOR item range for the segment. */
     itemStart: number;
     itemEnd: number;
+    /** Half-open byte range for the segment. */
     start: number;
     end: number;
+    /** Folded segment profile, or the header fallback. */
     profile: string;
+    /** Final id/prev head for the segment. */
     head?: Uint8Array;
+    /** Number of non-header frames in the segment. */
     frameCount: number;
+    /** Streamable-layout state for the segment. */
     layout: StreamableInfo;
+    /** Reader diagnostics scoped to this segment. */
     diagnostics: Diagnostic[];
+    /** Per-frame byte ranges and chain validity. */
     frames: FrameInventory[];
 }
 
+/** Cleanly bounded replication view of a GTS file. */
 export interface Inventory {
+    /** Segments in file order. */
     segments: SegmentInventory[];
+    /** File-level parse diagnostic that prevents range answers. */
     fatal?: Diagnostic;
+    /** Byte offset of an incomplete trailing CBOR item, or -1. */
     torn: number;
+    /** First byte after the cleanly decoded prefix. */
     cleanEnd: number;
+    /** Number of complete CBOR items decoded from the file. */
     itemCount: number;
 }
 
+/** Half-open byte range suitable for replication. */
 export interface ByteRange {
     start: number;
     end: number;
 }
 
+/** Result of comparing a peer head against local segment/frame heads. */
 export type MissingStatus = "complete" | "ranges" | "unknown" | "error";
 
+/** Append-range answer for a peer's known head. */
 export interface MissingResult {
+    /** Complete, ranges, unknown, or error. */
     status: MissingStatus;
+    /** Peer-supplied segment or frame head. */
     fromHead: Uint8Array;
+    /** Clean append ranges after fromHead. */
     ranges: ByteRange[];
+    /** True when the caller should fall back to inventory exchange. */
     scanRequired: boolean;
+    /** Human-readable reason for unknown/error results. */
     detail?: string;
 }
 
@@ -65,6 +96,7 @@ function bytesEqual(
     return true;
 }
 
+/** True when replication should not trust byte-range deltas from this inventory. */
 export function hasProblems(inv: Inventory): boolean {
     if (inv.fatal !== undefined || inv.torn >= 0) return true;
     return inv.segments.some((segment) => segment.diagnostics.length > 0);
@@ -179,6 +211,7 @@ function collectFrames(
     return frames;
 }
 
+/** Parse data into segment and frame byte-range inventory. */
 export function inventory(data: Uint8Array): Inventory {
     const { items, torn } = wire.iterItems(data);
     const cleanEnd = torn >= 0 ? torn : data.length;
@@ -285,6 +318,7 @@ function jsonLine(value: unknown): string {
     return `${JSON.stringify(value)}\n`;
 }
 
+/** Return the stable gts-replication-heads-v1 JSON document. */
 export function headsJson(inv: Inventory): string {
     const segmentHeads = inv.segments
         .map((segment) => segment.head)
@@ -309,6 +343,7 @@ export function headsJson(inv: Inventory): string {
     });
 }
 
+/** Return the stable gts-replication-segments-v1 JSON document. */
 export function segmentsJson(inv: Inventory): string {
     return jsonLine({
         schema: "gts-replication-segments-v1",
@@ -329,6 +364,12 @@ export function segmentsJson(inv: Inventory): string {
     });
 }
 
+/**
+ * Return append ranges needed after fromHead, or request a scan.
+ *
+ * Known segment heads return bytes after the segment. Known valid frame ids
+ * return bytes after that frame. Unknown heads are not guessed.
+ */
 export function missing(inv: Inventory, fromHead: Uint8Array): MissingResult {
     if (hasProblems(inv)) {
         return {
@@ -376,6 +417,7 @@ export function missing(inv: Inventory, fromHead: Uint8Array): MissingResult {
     };
 }
 
+/** Return the stable gts-replication-missing-v1 JSON document. */
 export function missingJson(result: MissingResult): string {
     return jsonLine({
         schema: "gts-replication-missing-v1",
@@ -387,6 +429,7 @@ export function missingJson(result: MissingResult): string {
     });
 }
 
+/** Return clean trailing bytes after a validated frame id. */
 export function resumeAfter(data: Uint8Array, frameId: Uint8Array): Uint8Array {
     const inv = inventory(data);
     if (hasProblems(inv)) {

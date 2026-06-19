@@ -3,6 +3,7 @@
 
 import { blake3_256 } from "./wire.js";
 
+/** Stable detached MMR proof JSON schema marker. */
 export const ProofSchema = "gts-mmr-proof-v1";
 
 const HashAlgorithm = "blake3-256";
@@ -11,24 +12,39 @@ const LeafDomain = "gts-mmr-leaf-v1";
 const ParentDomain = "gts-mmr-parent-v1";
 const RootDomain = "gts-mmr-root-v1";
 
+/** One Merkle-Mountain-Range peak in left-to-right order. */
 export interface MmrPeak {
+    /** Tree height of this peak. */
     height: number;
+    /** 32-byte BLAKE3 hash for the peak root. */
     hash: Uint8Array;
 }
 
+/** One sibling step from a leaf toward its containing peak. */
 export interface ProofStep {
+    /** Height reached after combining this sibling. */
     parentHeight: number;
+    /** Sibling side relative to the carried hash. */
     side: "left" | "right";
+    /** 32-byte sibling hash. */
     hash: Uint8Array;
 }
 
+/** Detached proof that one frame id is included in an MMR root. */
 export interface Proof {
+    /** Number of leaves covered by root. */
     count: number;
+    /** Zero-based index of frameId among count leaves. */
     leafIndex: number;
+    /** 32-byte content id being proven. */
     frameId: Uint8Array;
+    /** Declared aggregate MMR root. */
     root: Uint8Array;
+    /** Index of the peak containing leafIndex. */
     peakIndex: number;
+    /** Canonical left-to-right peaks for count. */
     peaks: MmrPeak[];
+    /** Sibling path from frameId to peaks[peakIndex]. */
     path: ProofStep[];
 }
 
@@ -141,6 +157,12 @@ function peakIndexForLeaf(
     );
 }
 
+/**
+ * Parse a raw 32-byte hex id, accepting an optional blake3: prefix.
+ *
+ * Throws when the value is not exactly 32 bytes of hexadecimal text after the
+ * optional digest prefix is removed.
+ */
 export function parseHex32(input: string): Uint8Array {
     const raw = input.trim().replace(/^blake3:/, "");
     if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
@@ -187,6 +209,13 @@ function intField(obj: Record<string, unknown>, key: string): number {
     return value;
 }
 
+/**
+ * Parse the stable detached proof JSON form.
+ *
+ * Throws when the JSON is malformed, the schema/hash/preimage marker is
+ * unsupported, a required field is missing, a numeric field is not a safe
+ * unsigned integer, or a proof hash is not a 32-byte hex value.
+ */
 export function proofFromJson(text: string): Proof {
     const obj = objectValue(JSON.parse(text), "proof");
     const schema = stringField(obj, "schema");
@@ -251,6 +280,12 @@ function numbersEqual(left: number[], right: number[]): boolean {
     return true;
 }
 
+/**
+ * Verify a detached proof without access to the original GTS file.
+ *
+ * Throws when the path, peak list, selected leaf, or aggregate root do not
+ * describe a valid inclusion proof for the supported preimage version.
+ */
 export function verifyProof(proof: Proof): void {
     if (proof.frameId.length !== 32)
         throw new Error("frame_id must be 32 bytes");
@@ -327,6 +362,13 @@ export function verifyProof(proof: Proof): void {
     }
 }
 
+/**
+ * Parse and verify a detached proof JSON document.
+ *
+ * Throws for every `proofFromJson` parse failure and for `verifyProof`
+ * inclusion failures such as mismatched peak heights, invalid path steps, or a
+ * root that does not reconstruct from the declared peaks.
+ */
 export function verifyProofJson(text: string): Proof {
     const proof = proofFromJson(text);
     verifyProof(proof);

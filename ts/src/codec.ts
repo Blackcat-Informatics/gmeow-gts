@@ -11,12 +11,17 @@ export interface Codec {
     cls: string;
 }
 
+/** Reason a transform chain could not be reversed. */
 export interface CodecError {
+    /** Opaque-degradation reason such as "unknown-codec", "missing-key", or "damaged". */
     reason: string;
+    /** Human-readable diagnostic detail. */
     detail: string;
+    /** True when a known codec failed on corrupt bytes. */
     failed: boolean;
 }
 
+/** Convert a structured codec failure into an Error carrying the same fields. */
 export function codecError(err: CodecError): Error {
     const e = new Error(err.detail) as Error & CodecError;
     e.reason = err.reason;
@@ -25,6 +30,7 @@ export function codecError(err: CodecError): Error {
     return e;
 }
 
+/** True when an unknown thrown value is a structured codec Error. */
 export function isCodecError(err: unknown): err is Error & CodecError {
     if (!(err instanceof Error)) return false;
     const e = err as Error & Record<string, unknown>;
