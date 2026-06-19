@@ -47,7 +47,9 @@ out/
 │           ├── frame-0001.nq
 │           └── *.jsonl
 ├── blobs/
-│   └── index.jsonl
+│   ├── index.jsonl
+│   └── by-digest/
+│       └── blake3/
 └── files/
     ├── entries.jsonl
     └── tree/
@@ -55,7 +57,8 @@ out/
 
 Directories are omitted when there is no corresponding archive content. For
 example, `files/` is present only when the archive contains a valid files
-profile catalog.
+profile catalog, and `blobs/by-digest/` is present only when the dump must store
+blob payload bytes that are not already materialized through `files/tree/`.
 
 ## Graph Views
 
