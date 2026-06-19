@@ -16,7 +16,7 @@ on:
       visual_hashing_version:
         description: visual-hashing crate version to verify.
         required: true
-        default: "0.1.1"
+        default: "0.1.2"
         type: string
       allow_legacy_release_gaps:
         description: Downgrade known pre-hardening gaps to warnings.
