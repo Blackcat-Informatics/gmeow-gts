@@ -4,7 +4,7 @@
 [package]
 name = "gmeow-gts"
 description = "GTS (Graph Transport Substrate) format engine: CBOR-sequence append-only RDF 1.2 log reader, folder, and verifier"
-version = "0.9.1"
+version = "0.9.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://blackcatinformatics.ca/projects/gts"

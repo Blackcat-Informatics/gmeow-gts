@@ -14,12 +14,38 @@ change before `1.0`.
 
 ## [Unreleased]
 
+## [0.9.2] — 2026-06-19
+
 ### Added
 
 - Rust-only YAML-LD-star/JSON-LD-star import/export behind the `yaml-ld`
   Cargo feature, including `gts to-yaml-ld` and `gts from-yaml-ld`. This is a
-  transform-only 0.10.0-target feature with no wire-format, canonical-catalog,
-  or shared corpus oracle change, so no GIP is required.
+  transform-only feature with no wire-format, canonical-catalog, or shared
+  corpus oracle change, so no GIP is required.
+- Rust `gts dump --directory` inspection export for versioned directory trees
+  containing folded N-Quads, JSONL tables, unfolded frame views, blob indexes,
+  and files-profile payloads.
+- TriG import/export support for readable graph-block interchange over the same
+  folded RDF content.
+- Rust OKF profile import/export, an OKF conformance corpus, and ecosystem
+  positioning for Markdown/YAML-frontmatter knowledge bundles.
+- Files-profile-v2 metadata support plus the Rust tar bridge: `from-tar`,
+  `to-tar`, and tar-compatible `gts tar -c/-x/-t/-d`.
+- Tar round-trip conformance fixtures covering ustar, PAX metadata, gzip/zstd,
+  links, special nodes, and unsafe archive refusals.
+
+### Changed
+
+- Documented OKF and tar as intentional Rust-first extension surfaces with
+  explicit future parity gates for Python, Go, and TypeScript.
+- Strengthened ecosystem and parity drift guards for the new OKF and tar
+  documentation surfaces.
+
+### Security
+
+- Hardened files-profile-v2 and tar extraction behavior around traversal,
+  symlinks, hardlinks, special files, ownership, setuid/setgid bits, and unsafe
+  output paths.
 
 ## [0.9.1] — 2026-06-19
 
@@ -205,7 +231,8 @@ change before `1.0`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.1...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.2...HEAD
+[0.9.2]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.1...py-v0.9.2
 [0.9.1]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.0...py-v0.9.1
 [0.9.0]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.2.0...py-v0.9.0
 [0.2.0]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.3...py-v0.2.0
