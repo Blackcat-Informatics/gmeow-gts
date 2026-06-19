@@ -1,0 +1,19 @@
+"SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>"
+"SPDX-License-Identifier: MIT OR Apache-2.0"
+
+SmalltalkCISpec {
+  #loading : [
+    SCIMetacelloLoadSpec {
+      #baseline : 'Gts',
+      #directory : 'smalltalk/src',
+      #load : [ 'tests' ],
+      #onWarningLog : true,
+      #platforms : [ #pharo ]
+    }
+  ],
+  #testing : {
+    #include : {
+      #packages : [ 'Gts-Tests' ]
+    }
+  }
+}

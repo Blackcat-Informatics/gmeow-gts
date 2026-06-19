@@ -282,6 +282,23 @@ jobs:
           uv run python scripts/gen_vectors.py
           git diff --exit-code ../vectors
 
+  # Smalltalk/Pharo engine bootstrap: Phase 0 package load + deterministic-CBOR tests.
+  smalltalk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Build pinned Pharo runtime
+        run: docker build -t gmeow-gts-smalltalk smalltalk
+
+      - name: SUnit deterministic-CBOR bootstrap tests
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/workspace" \
+            --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
+            "sh /workspace/smalltalk/scripts/run-tests.sh"
+
   # Live cross-engine interoperability: each engine reads every other's output.
   interop:
     runs-on: ubuntu-latest

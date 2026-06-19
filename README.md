@@ -45,8 +45,8 @@ distinctive across ecosystems, while the CLI, import surface, and file extension
 short `gts` and `.gts` forms where ecosystem rules permit.
 
 This repository holds **four interoperable engines** (Rust, Python, Go, TypeScript) that all
-gate against one frozen, byte-exact conformance corpus, plus the specification that defines
-them.
+gate against one frozen, byte-exact conformance corpus, plus a Phase 0 Smalltalk/Pharo engine
+bootstrap and the specification that defines them.
 
 - Project URL: <https://blackcatinformatics.ca/projects/gts>
 - Project DOI: <https://doi.org/10.67342/umcdg7675h/v1>
@@ -63,6 +63,7 @@ them.
   - [Rust](#rust)
   - [Go](#go)
   - [TypeScript](#typescript)
+  - [Smalltalk/Pharo](#smalltalkpharo)
 - [Command-line interface](#command-line-interface)
 - [Engine feature matrix](#engine-feature-matrix)
 - [The file format in one minute](#the-file-format-in-one-minute)
@@ -160,6 +161,7 @@ GTS supports several use cases without making any of them the project frame:
 | **Python** | [`gmeow-gts`](https://pypi.org/project/gmeow-gts/) (module `gts`) | `pip install gmeow-gts` |
 | **Go** | `go.blackcatinformatics.ca/gts` | `go install go.blackcatinformatics.ca/gts/cmd/gts@latest` |
 | **TypeScript** | [`@blackcatinformatics/gmeow-gts`](https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts) | `npm i @blackcatinformatics/gmeow-gts` |
+| **Smalltalk/Pharo** | Tonel + Metacello source package | `docker build -t gmeow-gts-smalltalk smalltalk` |
 
 The package family consistently uses the `gmeow-gts` distribution identity where ecosystem
 naming permits. Ecosystem-specific module/package names are shown above; the CLI binary stays
@@ -249,6 +251,18 @@ console.log(toNQuads(graph));
 
 Requires Node.js ≥ 22.16.0; ships as ES modules with type declarations. Browser bundle details
 live in [`ts/README.md`](./ts/README.md).
+
+### Smalltalk/Pharo
+
+The Smalltalk engine is a Phase 0 bootstrap, not a parity-complete release. It currently
+provides Tonel packages, a Metacello baseline, a pinned Docker runtime, native-library
+provisioning for the later FFI layer, and deterministic-CBOR SUnit tests.
+
+```bash
+docker build -t gmeow-gts-smalltalk smalltalk
+docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
+  'sh /workspace/smalltalk/scripts/run-tests.sh'
+```
 
 Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.4 are intentional
 manifest floors. Older runtimes are unsupported so the engines can share one current CI and
@@ -374,20 +388,21 @@ folded quad.
 
 ## Engine feature matrix
 
-| Capability | Python | Rust | Go | TypeScript |
-|---|---|---|---|---|
-| Baseline read/fold/verify | yes | yes | yes | yes |
-| Writer | yes | yes | yes | yes |
-| Shared conformance corpus | yes | yes | yes | yes |
-| COSE signing and verification | yes | yes | yes | yes |
-| COSE Encrypt0 helpers | yes | yes | yes | yes |
-| Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
-| Streamable compaction CLI | yes | yes | yes | yes |
-| `from-nq` inverse | yes | yes | yes | yes |
-| TriG transform | yes | yes | no | no |
-| Native RDF/store adapter | rdflib extra | `rdf` feature (`oxrdf` data model); `oxigraph-adapter` feature (Oxigraph store); `sophia-adapter` feature (Sophia dataset) | no | no |
-| SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no |
-| Package registry | PyPI | crates.io | Go module | npm |
+| Capability | Python | Rust | Go | TypeScript | Smalltalk/Pharo |
+|---|---|---|---|---|---|
+| Baseline read/fold/verify | yes | yes | yes | yes | no |
+| Writer | yes | yes | yes | yes | no |
+| Shared conformance corpus | yes | yes | yes | yes | no |
+| Deterministic-CBOR primitive tests | yes | yes | yes | yes | Phase 0 |
+| COSE signing and verification | yes | yes | yes | yes | no |
+| COSE Encrypt0 helpers | yes | yes | yes | yes | no |
+| Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes | no |
+| Streamable compaction CLI | yes | yes | yes | yes | no |
+| `from-nq` inverse | yes | yes | yes | yes | no |
+| TriG transform | yes | yes | no | no | no |
+| Native RDF/store adapter | rdflib extra | `rdf` feature (`oxrdf` data model); `oxigraph-adapter` feature (Oxigraph store); `sophia-adapter` feature (Sophia dataset) | no | no | no |
+| SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no | no |
+| Package registry | PyPI | crates.io | Go module | npm | Tonel/Metacello source |
 
 The frozen vector corpus remains the compatibility oracle. The matrix summarizes public package
 surfaces; it is not a replacement for conformance tests. The command-level contract is maintained
@@ -461,6 +476,7 @@ Current CI-gated conformance status:
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser progressive `foldStream` events plus browser stream/WebCrypto tests; does not satisfy the non-materializing Streaming Reader tier; corpus read gate remains the full-reader oracle | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Smalltalk/Pharo | no tier claim yet | Phase 0 package/runtime bootstrap only | deterministic-CBOR primitive tests only | no CLI yet | no profile support yet |
 
 ## Repository layout
 
@@ -470,10 +486,11 @@ gmeow-gts/
 ├── python/      # Python package `gmeow-gts` (module `gts`) + reference corpus generator
 ├── go/          # Go module go.blackcatinformatics.ca/gts
 ├── ts/          # TypeScript/npm package @blackcatinformatics/gmeow-gts
+├── smalltalk/   # Pharo Tonel/Metacello engine bootstrap
 ├── visual-hashing/ # Standalone `visual-hashing` crate (emojihash + randomart)
 ├── vectors/     # Frozen conformance corpus (*.gts + *.expected.json)
 ├── docs/        # GTS-SPEC.md (normative) + gts-reference.md
-└── .github/     # CI (all four engines) + per-language release workflows
+└── .github/     # CI (four parity engines + Smalltalk bootstrap) + release workflows
 ```
 
 ## Building from source
@@ -485,6 +502,9 @@ cd rust   && cargo test                              # unit + CLI + conformance
 cd go     && go test ./...                            # unit + conformance
 cd ts     && npm ci && npm test                       # compiles, runs against vectors/
 cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
+docker build -t gmeow-gts-smalltalk smalltalk && \
+  docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
+  'sh /workspace/smalltalk/scripts/run-tests.sh'      # Pharo bootstrap tests
 ```
 
 Or use the [`justfile`](./justfile): `just test` (all engines), `just lint`, `just fmt`,
@@ -492,9 +512,9 @@ Or use the [`justfile`](./justfile): `just test` (all engines), `just lint`, `ju
 `just fuzz-go`, `just audit`, `just wasm`.
 
 Repo-wide hygiene (formatting, SPDX/REUSE headers, YAML/Markdown/shell, secrets) runs through
-`pre-commit run --all-files`. CI runs all four engines on Linux, macOS, and Windows, plus a
-[live cross-engine interop check](./scripts/interop.sh) (each engine reads every other's
-output), reader [fuzzing](./.github/workflows/fuzz.yml), and per-ecosystem
+`pre-commit run --all-files`. CI runs all four parity engines on Linux, macOS, and Windows,
+the Smalltalk/Pharo bootstrap on Linux, plus a [live cross-engine interop check](./scripts/interop.sh)
+(each parity engine reads every other's output), reader [fuzzing](./.github/workflows/fuzz.yml), and per-ecosystem
 [supply-chain scanning](./.github/workflows/security.yml). Changes are tracked in
 [`CHANGELOG.md`](./CHANGELOG.md).
 

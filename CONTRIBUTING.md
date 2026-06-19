@@ -4,8 +4,8 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 -->
 # Contributing to gmeow-gts
 
-Thanks for your interest in GTS. This repository holds four interoperable engines
-(Rust, Python, Go, TypeScript) for the Graph Transport Substrate, the wire-format
+Thanks for your interest in GTS. This repository holds four interoperable parity engines
+(Rust, Python, Go, TypeScript), a Phase 0 Smalltalk/Pharo engine bootstrap, the wire-format
 specification, and the frozen conformance corpus. Issues and pull requests are welcome.
 
 ## Ways to contribute
@@ -31,7 +31,7 @@ and registry additions follow the lightweight governance policy in
 
 ## The conformance corpus is the contract
 
-The four engines are interchangeable only because they all fold the **same bytes** to the
+The four parity engines are interchangeable only because they all fold the **same bytes** to the
 **same expectations**. The frozen corpus lives in [`vectors/`](./vectors); the Python
 reference implementation (`gts.vectors`) is its single source of truth.
 
@@ -55,6 +55,9 @@ cd rust   && cargo test                              # unit + CLI + conformance
 cd go     && go test ./...                            # unit + conformance
 cd ts     && npm ci && npm test                       # compiles, runs against vectors/
 cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
+docker build -t gmeow-gts-smalltalk smalltalk && \
+  docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
+  'sh /workspace/smalltalk/scripts/run-tests.sh'      # Pharo bootstrap tests
 ```
 
 ## Before you open a pull request
@@ -67,7 +70,8 @@ cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
 - Every source file must carry an SPDX `MIT OR Apache-2.0` license header.
 - Keep changes focused; describe **what** changed and **why** in the PR description.
 
-CI runs all four engines plus a lint lane on every pull request.
+CI runs all four parity engines, the Smalltalk/Pharo bootstrap, and a lint lane on every pull
+request.
 
 ## Licensing of contributions
 
