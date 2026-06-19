@@ -3,6 +3,7 @@
 
 //! Tar stream import into files-profile-v2 GTS archives.
 
+use std::borrow::Cow;
 use std::io::{Cursor, Read};
 use std::path::Path;
 
@@ -32,13 +33,16 @@ pub fn from_tar<R: Read>(mut reader: R, options: &FromTarOptions) -> Result<Vec<
 /// Author a files-profile-v2 GTS archive from bytes containing tar, tar.gz, or tar.zst.
 pub fn from_tar_bytes(data: &[u8], options: &FromTarOptions) -> Result<Vec<u8>, TarError> {
     let decoded = decode_tar_input(data, options.source_name.as_deref())?;
-    let entries = read_tar_entries(Cursor::new(decoded), options)?;
+    let entries = read_tar_entries(Cursor::new(&*decoded), options)?;
     pack_entries_v2(&entries).map_err(TarError::new)
 }
 
-fn decode_tar_input(data: &[u8], source_name: Option<&str>) -> Result<Vec<u8>, TarError> {
+fn decode_tar_input<'a>(
+    data: &'a [u8],
+    source_name: Option<&str>,
+) -> Result<Cow<'a, [u8]>, TarError> {
     match detect_compression(data, source_name) {
-        None => Ok(data.to_vec()),
+        None => Ok(Cow::Borrowed(data)),
         Some(name) => decode_chain(
             &[Codec {
                 name: name.to_string(),
@@ -46,6 +50,7 @@ fn decode_tar_input(data: &[u8], source_name: Option<&str>) -> Result<Vec<u8>, T
             }],
             data,
         )
+        .map(Cow::Owned)
         .map_err(|err| TarError::new(format!("{name} decode tar input: {err}"))),
     }
 }

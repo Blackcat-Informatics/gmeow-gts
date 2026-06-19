@@ -145,7 +145,7 @@ fn append_file<W: Write>(
         .get(digest)
         .ok_or_else(|| TarError::new(format!("missing inline blob for {}: {digest}", entry.path)))?
         .decoded_vec()
-        .map_err(|err| TarError::new(format!("decode blob for {}: {err:?}", entry.path)))?;
+        .map_err(|err| TarError::new(format!("decode blob for {}: {err}", entry.path)))?;
     let mut header = base_header(entry, options)?;
     header.set_entry_type(::tar::EntryType::Regular);
     header.set_size(data.len() as u64);
@@ -255,9 +255,9 @@ fn parse_mtime(value: Option<&str>) -> Result<u64, TarError> {
     let Some(value) = value else {
         return Ok(0);
     };
-    let text = value.strip_suffix('Z').unwrap_or(value);
-    let dt = time::OffsetDateTime::parse(text, &time::format_description::well_known::Rfc3339)
+    let dt = time::OffsetDateTime::parse(value, &time::format_description::well_known::Rfc3339)
         .or_else(|_| {
+            let text = value.strip_suffix('Z').unwrap_or(value);
             time::OffsetDateTime::parse(
                 &(text.to_string() + "+00:00"),
                 &time::format_description::well_known::Rfc3339,

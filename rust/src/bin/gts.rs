@@ -20,7 +20,7 @@ use gmeow_gts::from_nquads::from_nquads;
 #[cfg(feature = "okf")]
 use gmeow_gts::from_okf::{from_okf_with_options, FromOkfOptions};
 #[cfg(feature = "tar")]
-use gmeow_gts::from_tar::{from_tar, FromTarOptions};
+use gmeow_gts::from_tar::{from_tar_bytes, FromTarOptions};
 use gmeow_gts::from_trig::from_trig;
 #[cfg(feature = "yaml-ld")]
 use gmeow_gts::from_yamlld::from_yaml_ld;
@@ -1124,7 +1124,7 @@ fn cmd_from_tar(args: &[String]) -> ExitCode {
         }
     };
 
-    let archive = match from_tar(bytes.as_slice(), &options) {
+    let archive = match from_tar_bytes(&bytes, &options) {
         Ok(bytes) => bytes,
         Err(e) => {
             eprintln!("gts from-tar: {e}");
