@@ -242,7 +242,6 @@ func TestDiffReportsChanges(t *testing.T) {
 
 func readFile(t *testing.T, path string) string {
 	t.Helper()
-	//nolint:gosec // test helper reads files from temp directories.
 	b, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

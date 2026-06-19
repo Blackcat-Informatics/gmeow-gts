@@ -9,13 +9,27 @@ linters:
   default: none
   enable:
     - errcheck
+    - bodyclose
+    - durationcheck
+    - godoclint
     - gocritic
     - gosec
     - govet
     - ineffassign
     - misspell
+    - nilerr
+    - nolintlint
     - revive
     - staticcheck
+    - unconvert
+
+  # Evaluated during issue #142 but intentionally not enabled:
+  # - contextcheck/noctx: current public APIs accept nil contexts and normalize
+  #   to context.Background(); changing that needs an API/behavior decision.
+  # - errorlint: flags existing tests and codec error assertions that should be
+  #   cleaned up in a dedicated assertion-semantics pass.
+  # - nilnil/makezero/whitespace: clean today, but less directly tied to the
+  #   current safety and suppression goals than the enabled additions above.
 
   settings:
     revive:

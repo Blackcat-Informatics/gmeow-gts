@@ -3,6 +3,10 @@
 
 // Package wire provides deterministic CBOR encoding, BLAKE3 content-ids, and
 // CBOR-Sequence iteration for GTS.
+//
+// The reader and writer both depend on these helpers for tamper-evident ids:
+// HeaderID excludes only "id", while ContentID excludes "id" and "sig" so a
+// detached signature can cover the frame id without changing it.
 package wire
 
 import (
@@ -15,7 +19,8 @@ import (
 	"github.com/zeebo/blake3"
 )
 
-// SelfDescribeTag is the CBOR self-describe tag (RFC 8949 §3.4.6); MAY prefix the Header item (§3).
+// SelfDescribeTag is the CBOR self-describe tag (RFC 8949 §3.4.6); it may
+// prefix the Header item (§3).
 const SelfDescribeTag uint64 = 55799
 
 // Magic and Version identify a GTS1 CBOR Sequence (§3).

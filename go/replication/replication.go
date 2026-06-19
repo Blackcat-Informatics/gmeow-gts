@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 // Package replication provides byte-range inventory helpers for the Go CLI.
+//
+// It reports segment heads and append ranges without rewriting the file. Range
+// answers are conservative: a fatal parse error, torn append, segment diagnostic,
+// or broken frame chain blocks resumable ranges and asks the peer to scan.
 package replication
 
 import (
@@ -16,38 +20,58 @@ import (
 	"go.blackcatinformatics.ca/gts/wire"
 )
 
-// FrameInventory records one frame's byte boundary and verified id status.
+// FrameInventory records one frame's byte boundary and verified chain status.
 type FrameInventory struct {
-	ItemIndex  int
+	// ItemIndex is the absolute CBOR item index in the file.
+	ItemIndex int
+	// FrameIndex is the zero-based frame index within the segment.
 	FrameIndex int
-	Start      int
-	End        int
-	ID         []byte
-	FrameType  string
-	Valid      bool
+	// Start and End are half-open byte offsets for the encoded CBOR item.
+	Start int
+	End   int
+	// ID is the stored frame id when present, otherwise the computed id.
+	ID []byte
+	// FrameType is the text "t" value, or a diagnostic placeholder.
+	FrameType string
+	// Valid is true only when self-hash and prev-chain checks both pass.
+	Valid bool
 }
 
 // SegmentInventory records one segment's byte and fold metadata.
 type SegmentInventory struct {
-	Index       int
-	ItemStart   int
-	ItemEnd     int
-	Start       int
-	End         int
-	Profile     string
-	Head        []byte
-	FrameCount  int
-	Layout      model.StreamableInfo
+	// Index is the zero-based segment index.
+	Index int
+	// ItemStart and ItemEnd are half-open CBOR item indexes for the segment.
+	ItemStart int
+	ItemEnd   int
+	// Start and End are half-open byte offsets for the segment.
+	Start int
+	End   int
+	// Profile is the folded segment profile, or the header fallback.
+	Profile string
+	// Head is the final id/prev head for the segment.
+	Head []byte
+	// FrameCount is the number of non-header frames in the segment.
+	FrameCount int
+	// Layout records the streamable-layout check for the segment.
+	Layout model.StreamableInfo
+	// Diagnostics are reader diagnostics scoped to this segment.
 	Diagnostics []model.Diagnostic
-	Frames      []FrameInventory
+	// Frames records per-frame byte ranges and chain validity.
+	Frames []FrameInventory
 }
 
 // Inventory records the replication view of a GTS file.
 type Inventory struct {
-	Segments  []SegmentInventory
-	Fatal     *model.Diagnostic
-	Torn      int
-	CleanEnd  int
+	// Segments are cleanly bounded segments in file order.
+	Segments []SegmentInventory
+	// Fatal is a file-level parse diagnostic that prevents range answers.
+	Fatal *model.Diagnostic
+	// Torn is the byte offset of an incomplete trailing CBOR item, or -1.
+	Torn int
+	// CleanEnd is the first byte after the cleanly decoded prefix.
+	CleanEnd int
+	// ItemCount is the number of complete CBOR items decoded from the file.
 	ItemCount int
 }
 
@@ -71,11 +95,16 @@ const (
 
 // MissingResult records byte ranges needed after a peer head.
 type MissingResult struct {
-	Status       MissingStatus
-	FromHead     []byte
-	Ranges       []ByteRange
+	// Status is complete, ranges, unknown, or error.
+	Status MissingStatus
+	// FromHead is the peer-supplied segment or frame head.
+	FromHead []byte
+	// Ranges are clean append ranges after FromHead.
+	Ranges []ByteRange
+	// ScanRequired tells the caller to fall back to inventory exchange.
 	ScanRequired bool
-	Detail       string
+	// Detail is a human-readable reason for unknown/error results.
+	Detail string
 }
 
 // HasProblems reports whether the inventory is not clean enough for byte resume.
@@ -506,6 +535,10 @@ func SegmentsJSON(inv *Inventory) string {
 }
 
 // Missing compares a peer head against local segment and frame ancestry.
+//
+// A known segment head returns bytes after the segment. A known valid frame id
+// returns bytes after that frame. Unknown heads request a scan instead of
+// guessing an unsafe range.
 func Missing(inv *Inventory, fromHead []byte) MissingResult {
 	if inv.HasProblems() {
 		return MissingResult{

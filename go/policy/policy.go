@@ -2,6 +2,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 // Package policy implements deployment trust and profile-policy diagnostics.
+//
+// Core reader validity is deliberately separate from these checks:
+// cryptographic signature status says whether bytes verified under a resolved
+// key, while this package decides whether that signer is trusted for a
+// deployment and whether profile-specific requirements are satisfied.
 package policy
 
 import (
@@ -27,8 +32,11 @@ var profileVocabs = map[string]string{"files": FilesNS}
 // TrustedSigners are signer kid values accepted by the deployment. Cryptographic
 // validity is still computed by COSE verification before this policy runs.
 type TrustPolicy struct {
-	TrustedSigners         map[string]struct{}
-	RequireTrustedSigner   bool
+	// TrustedSigners are signer kid values accepted by the deployment.
+	TrustedSigners map[string]struct{}
+	// RequireTrustedSigner upgrades "valid but untrusted" evidence/opaque files to errors.
+	RequireTrustedSigner bool
+	// PseudonymousKidPattern is the high-privacy recipient-id rule for opaque profiles.
 	PseudonymousKidPattern string
 }
 
@@ -82,9 +90,13 @@ func (p *TrustPolicy) IsPseudonymousRecipient(kid string) bool {
 
 // SignatureTrust is a signature's cryptographic status plus deployment-trust result.
 type SignatureTrust struct {
+	// FrameID is the signed frame id.
 	FrameID []byte
-	Kid     string
-	Status  string
+	// Kid is the resolved signer key id, when present.
+	Kid string
+	// Status is the reader's cryptographic status.
+	Status string
+	// Trusted says whether Status is valid and Kid is deployment-trusted.
 	Trusted bool
 }
 
@@ -102,10 +114,15 @@ const (
 
 // ProfileFinding is one profile or trust-policy finding.
 type ProfileFinding struct {
-	Code         string
-	Severity     Severity
-	Detail       string
-	Profile      string
+	// Code is the stable machine-readable finding code.
+	Code string
+	// Severity is error, warning, or info.
+	Severity Severity
+	// Detail is the human-readable finding text.
+	Detail string
+	// Profile is the profile that triggered the finding, when applicable.
+	Profile string
+	// SegmentIndex is set for segment-scoped profile checks.
 	SegmentIndex *int
 }
 

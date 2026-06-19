@@ -39,30 +39,49 @@ const (
 // SegmentIndex is -1 for file-level diagnostics such as expected-head mismatch
 // and pre-segment-mode segment-boundary refusal.
 type StreamingEvent struct {
-	Kind         StreamingEventKind
+	// Kind selects which payload field is populated.
+	Kind StreamingEventKind
+	// SegmentIndex is the zero-based segment being folded, or -1 for file-level events.
 	SegmentIndex int
-	FrameIndex   int
+	// FrameIndex is the absolute CBOR item index for the source frame, or -1.
+	FrameIndex int
 
-	TermID      int
-	Term        model.Term
-	Quad        model.Quad
-	ReifierID   int
-	Triple      model.Triple3
-	Annotation  model.Triple3
+	// TermID is the segment-local term id for Term events.
+	TermID int
+	// Term is the decoded term for StreamingEventTerm.
+	Term model.Term
+	// Quad is the decoded quad for StreamingEventQuad.
+	Quad model.Quad
+	// ReifierID is the segment-local reifier id for StreamingEventReifier.
+	ReifierID int
+	// Triple is the decoded triple for reifier events.
+	Triple model.Triple3
+	// Annotation is the decoded annotation triple for StreamingEventAnnotation.
+	Annotation model.Triple3
+	// Suppression is the decoded suppress directive for StreamingEventSuppression.
 	Suppression model.Suppression
 
+	// BlobDigest is the content-addressed digest for blob events.
 	BlobDigest string
-	BlobData   []byte
-	BlobMeta   interface{}
+	// BlobData is the decoded inline blob bytes for blob events.
+	BlobData []byte
+	// BlobMeta is the optional public blob metadata attached to a blob frame.
+	BlobMeta interface{}
 
-	Opaque      model.OpaqueNode
-	Signature   model.Signature
-	Diagnostic  model.Diagnostic
+	// Opaque records an undecodable frame for unknown-codec, missing-key, or damage.
+	Opaque model.OpaqueNode
+	// Signature records the signature status observed for a signed frame.
+	Signature model.Signature
+	// Diagnostic is the reader diagnostic emitted at this point in the fold.
+	Diagnostic model.Diagnostic
+	// SegmentHead is the final id/prev head for a completed segment.
 	SegmentHead []byte
-	Streamable  model.StreamableInfo
+	// Streamable records declared-vs-computed layout state for the completed segment.
+	Streamable model.StreamableInfo
 }
 
-// StreamingSink receives segment-local fold events from ReadToSink.
+// StreamingSink receives fold events from ReadToSink; returning an error stops
+// the stream and returns that error to the caller.
 type StreamingSink interface {
 	Accept(StreamingEvent) error
 }
@@ -77,12 +96,18 @@ func (f StreamingSinkFunc) Accept(event StreamingEvent) error {
 
 // StreamingReadResult carries final reader sidecar state from a streaming fold.
 type StreamingReadResult struct {
-	Diagnostics       []model.Diagnostic
-	SegmentHeads      [][]byte
-	SegmentProfiles   []string
-	SegmentMeta       [][]model.MetaEntry
+	// Diagnostics is the final diagnostic list, matching the total reader.
+	Diagnostics []model.Diagnostic
+	// SegmentHeads are final segment heads in file order.
+	SegmentHeads [][]byte
+	// SegmentProfiles are header profile names in file order.
+	SegmentProfiles []string
+	// SegmentMeta snapshots per-segment meta entries at segment completion.
+	SegmentMeta [][]model.MetaEntry
+	// SegmentStreamable records layout-state checks in file order.
 	SegmentStreamable []model.StreamableInfo
-	Torn              int
+	// Torn is the offset of an incomplete trailing CBOR item, or -1 when clean.
+	Torn int
 }
 
 func emptyStreamingReadResult() *StreamingReadResult {
@@ -282,7 +307,8 @@ func streamingSource(ctx context.Context, r io.Reader, maxBytes int64) (io.Reade
 // sidecar state needed to preserve the same diagnostics and segment heads as
 // Read. Options has the same meaning as ReadFrom: AllowSegments controls
 // segment-boundary handling, ExpectedHead checks the final segment head, and
-// MaxBytes bounds bytes consumed from r.
+// MaxBytes bounds bytes consumed from r. The emitted events use segment-local
+// term ids; callers that need a cross-segment union should continue using Read.
 func ReadToSink(ctx context.Context, r io.Reader, opts Options, sink StreamingSink) (*StreamingReadResult, error) {
 	if ctx == nil {
 		ctx = context.Background()

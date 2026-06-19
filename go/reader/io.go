@@ -12,19 +12,20 @@ import (
 	"go.blackcatinformatics.ca/gts/model"
 )
 
-// ErrReadLimitExceeded is returned when Options.MaxBytes is positive and the
-// input stream exceeds that many bytes.
+// ErrReadLimitExceeded is returned when Options.MaxBytes is positive and
+// ReadFrom or ReadToSink observes more than that many input bytes.
 var ErrReadLimitExceeded = errors.New("gts reader: input exceeds MaxBytes")
 
-// Options configures ReadFrom and ReadToSink.
+// Options configures total and streaming reads.
 type Options struct {
-	// AllowSegments permits concatenated multi-segment files.
+	// AllowSegments permits concatenated multi-segment files. When false,
+	// the first later header emits SegmentBoundary and the remainder is not folded.
 	AllowSegments bool
-	// ExpectedHead, when non-empty, is passed to Read to surface TruncatedLog
-	// diagnostics if the observed final head differs.
+	// ExpectedHead surfaces TruncatedLog when the observed final segment head
+	// differs. Nil means no caller-supplied head expectation.
 	ExpectedHead []byte
-	// MaxBytes caps how many bytes ReadFrom will materialize before folding.
-	// Zero means no explicit limit.
+	// MaxBytes caps bytes consumed from r before folding or streaming. Zero means
+	// no explicit limit; negative values are rejected before any read.
 	MaxBytes int64
 }
 

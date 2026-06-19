@@ -2,6 +2,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 // Package writer implements a minimal deterministic GTS encoder.
+//
+// The writer emits canonical CBOR and maintains the id/prev hash chain for
+// every appended frame. It is deliberately conservative: non-identity
+// transforms are left to the Python reference producer, while this package
+// covers deterministic authoring, signing, indexes, and streamable fixtures.
 package writer
 
 import (
@@ -55,6 +60,9 @@ func (w *Writer) SignWith(priv ed25519.PrivateKey, kid string) {
 }
 
 // New creates a writer and emits the Header (the chain genesis).
+//
+// The returned writer has already committed the header id; every later frame
+// must reference the current Head as its prev value.
 func New(profile string) *Writer {
 	return NewWithLayout(profile, "")
 }
@@ -87,7 +95,7 @@ func NewWithLayout(profile, layout string) *Writer {
 			"name": c.name,
 			"cls":  c.cls,
 		}
-		catEntries[int64(id)] = ce
+		catEntries[id] = ce
 	}
 
 	header := map[interface{}]interface{}{
