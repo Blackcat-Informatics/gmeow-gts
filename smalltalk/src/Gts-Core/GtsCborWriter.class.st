@@ -9,6 +9,13 @@ GtsCborWriter class >> encode: anObject [
 	^ ByteArray streamContents: [ :stream | self write: anObject on: stream ]
 ]
 
+{ #category : #encoding }
+GtsCborWriter class >> encodeSelfDescribed: anObject [
+	^ ByteArray streamContents: [ :stream |
+		self writeSelfDescribeTagOn: stream.
+		self write: anObject on: stream ]
+]
+
 { #category : #private }
 GtsCborWriter class >> encodedByteKey: left isLessThan: right [
 	1 to: (left size min: right size) do: [ :index |
@@ -93,4 +100,12 @@ GtsCborWriter class >> writeTextString: aString on: stream [
 	bytes := aString utf8Encoded.
 	self writeMajor: 3 argument: bytes size on: stream.
 	stream nextPutAll: bytes
+]
+
+{ #category : #private }
+GtsCborWriter class >> writeSelfDescribeTagOn: stream [
+	stream
+		nextPut: 16rD9;
+		nextPut: 16rD9;
+		nextPut: 16rF7
 ]
