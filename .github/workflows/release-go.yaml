@@ -38,6 +38,7 @@ jobs:
       - name: Cross-build the gts CLI
         run: |
           VERSION="${GITHUB_REF_NAME#go-v}"
+          rm -rf dist
           mkdir -p dist
           cd go
           for os in linux darwin windows; do
