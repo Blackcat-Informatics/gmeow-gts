@@ -484,6 +484,20 @@ and SBOM evidence in GitHub's attestation store. Verify provenance with
 `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gts`; verify the
 SBOM predicate with `--predicate-type https://spdx.dev/Document/v2.3`.
 
+Maintainers can run the public release smoke verifier after all tag workflows finish:
+
+```bash
+just verify-release <version> <visual-hashing-version>
+```
+
+The same check is available as the manual
+[`verify-release.yml`](./.github/workflows/verify-release.yml) workflow. It downloads
+the PyPI wheel/sdist, npm tarball, crates.io packages, and Go release assets; verifies
+registry hashes/signatures/provenance; checks GitHub SLSA and SPDX SBOM attestations;
+and writes Markdown/JSON summaries under `dist/release-verification/<version>/`.
+For historical releases that predate SBOM and immutable-release hardening, pass
+`--allow-legacy-release-gaps` explicitly and treat warnings as release-record caveats.
+
 ## Specification & docs
 
 - [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) — the authoritative, normative wire-format
