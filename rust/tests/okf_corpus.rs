@@ -42,12 +42,16 @@ fn contains_markdown(path: &Path) -> bool {
         return false;
     };
     for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            if contains_markdown(&path) {
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if file_type.is_dir() {
+            if contains_markdown(&entry.path()) {
                 return true;
             }
-        } else if path.extension().and_then(|ext| ext.to_str()) == Some("md") {
+        } else if file_type.is_file()
+            && entry.path().extension().and_then(|ext| ext.to_str()) == Some("md")
+        {
             return true;
         }
     }
@@ -59,8 +63,12 @@ fn okf_bundles() -> Vec<(String, PathBuf)> {
     let mut bundles = Vec::new();
     for entry in fs::read_dir(&dir).expect("OKF vector directory exists") {
         let entry = entry.expect("OKF vector dir entry");
+        let file_type = entry.file_type().expect("OKF vector entry file type");
+        if !file_type.is_dir() {
+            continue;
+        }
         let path = entry.path();
-        if !path.is_dir() || !contains_markdown(&path) {
+        if !contains_markdown(&path) {
             continue;
         }
         let name = entry

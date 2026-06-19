@@ -8,6 +8,4 @@ tags:
   - pii-free
 timestamp: "2026-06-19T00:00:00Z"
 ---
-# Customer Events
-
 A documented dataset with all standard OKF fields.

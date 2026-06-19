@@ -411,7 +411,7 @@ def json_fixture_entry(path: Path) -> dict[str, Any]:
 
 
 def path_contains_markdown(path: Path) -> bool:
-    return any(child.is_file() and child.suffix == ".md" for child in path.rglob("*"))
+    return any(not child.is_symlink() and child.is_file() for child in path.rglob("*.md"))
 
 
 def okf_bundle_dirs() -> list[Path]:

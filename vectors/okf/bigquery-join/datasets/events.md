@@ -14,8 +14,6 @@ producer:
   system: bigquery
 row_count: 123456
 ---
-# GA4 Events
-
 | column | type | notes |
 | --- | --- | --- |
 | event_date | DATE | Partition date |
