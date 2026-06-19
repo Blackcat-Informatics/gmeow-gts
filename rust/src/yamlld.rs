@@ -27,6 +27,8 @@ pub(crate) const XSD_INTEGER: &str = "http://www.w3.org/2001/XMLSchema#integer";
 /// Project a folded graph into the repository's deterministic JSON-LD-star
 /// core profile.
 pub fn to_json_ld(graph: &Graph) -> Value {
+    let term_sort_keys = term_sort_keys(graph);
+
     let mut annotations_by_reifier: BTreeMap<usize, Vec<(usize, usize)>> = BTreeMap::new();
     for &(reifier, predicate, value) in &graph.annotations {
         annotations_by_reifier
@@ -43,16 +45,16 @@ pub fn to_json_ld(graph: &Graph) -> Value {
             .push(reifier);
     }
     for reifiers in reifiers_by_statement.values_mut() {
-        reifiers.sort_by_key(|reifier| term_sort_key(graph, *reifier));
+        reifiers.sort_by_key(|reifier| term_sort_keys[*reifier].clone());
     }
 
     let mut quads = graph.quads.clone();
     quads.sort_by_key(|&(subject, predicate, object, graph_name)| {
         (
-            term_sort_key(graph, subject),
+            term_sort_keys[subject].clone(),
             predicate_key(graph, predicate),
-            term_sort_key(graph, object),
-            graph_name.map(|term| term_sort_key(graph, term)),
+            term_sort_keys[object].clone(),
+            graph_name.map(|term| term_sort_keys[term].clone()),
         )
     });
 
@@ -60,7 +62,7 @@ pub fn to_json_ld(graph: &Graph) -> Value {
     let mut attached_reifiers = BTreeSet::new();
     let mut attached_statements = BTreeSet::new();
     for (subject, predicate, object, graph_name) in quads {
-        let key = term_sort_key(graph, subject);
+        let key = term_sort_keys[subject].clone();
         let node = nodes
             .entry(key)
             .or_insert_with(|| node_object(graph, subject));
@@ -78,6 +80,7 @@ pub fn to_json_ld(graph: &Graph) -> Value {
             annotations,
             &annotations_by_reifier,
             &mut attached_reifiers,
+            &term_sort_keys,
         );
         append_value(node, predicate_key(graph, predicate), value);
     }
@@ -97,16 +100,22 @@ pub fn to_json_ld(graph: &Graph) -> Value {
         .collect();
     standalone_rows.sort_by_key(|&(reifier, (subject, predicate, object))| {
         (
-            term_sort_key(graph, reifier),
-            term_sort_key(graph, subject),
+            term_sort_keys[reifier].clone(),
+            term_sort_keys[subject].clone(),
             predicate_key(graph, predicate),
-            term_sort_key(graph, object),
+            term_sort_keys[object].clone(),
         )
     });
     let standalone_reifiers: Vec<Value> = standalone_rows
         .into_iter()
         .map(|(reifier, statement)| {
-            standalone_reifier(graph, reifier, statement, &annotations_by_reifier)
+            standalone_reifier(
+                graph,
+                reifier,
+                statement,
+                &annotations_by_reifier,
+                &term_sort_keys,
+            )
         })
         .collect();
     if !standalone_reifiers.is_empty() {
@@ -160,6 +169,7 @@ fn statement_value(
     reifiers: Option<&Vec<usize>>,
     annotations_by_reifier: &BTreeMap<usize, Vec<(usize, usize)>>,
     attached_reifiers: &mut BTreeSet<usize>,
+    term_sort_keys: &[String],
 ) -> Value {
     let mut value = expect_object(term_value(graph, object));
     if let Some(graph_name) = graph_name {
@@ -173,6 +183,7 @@ fn statement_value(
                 graph,
                 reifier,
                 annotations_by_reifier.get(&reifier),
+                term_sort_keys,
             ));
         }
         match blocks.as_slice() {
@@ -193,6 +204,7 @@ fn standalone_reifier(
     reifier: usize,
     (subject, predicate, object): Triple3,
     annotations_by_reifier: &BTreeMap<usize, Vec<(usize, usize)>>,
+    term_sort_keys: &[String],
 ) -> Value {
     let mut block = Map::new();
     block.insert("@id".to_string(), Value::String(term_id(graph, reifier)));
@@ -202,7 +214,12 @@ fn standalone_reifier(
     );
     block.insert(
         ANNOTATION.to_string(),
-        annotation_block(graph, reifier, annotations_by_reifier.get(&reifier)),
+        annotation_block(
+            graph,
+            reifier,
+            annotations_by_reifier.get(&reifier),
+            term_sort_keys,
+        ),
     );
     Value::Object(block)
 }
@@ -211,13 +228,17 @@ fn annotation_block(
     graph: &Graph,
     reifier: usize,
     annotations: Option<&Vec<(usize, usize)>>,
+    term_sort_keys: &[String],
 ) -> Value {
     let mut block = Map::new();
     block.insert("@id".to_string(), Value::String(term_id(graph, reifier)));
     if let Some(annotations) = annotations {
         let mut rows = annotations.clone();
         rows.sort_by_key(|&(predicate, value)| {
-            (predicate_key(graph, predicate), term_sort_key(graph, value))
+            (
+                predicate_key(graph, predicate),
+                term_sort_keys[value].clone(),
+            )
         });
         for (predicate, value) in rows {
             append_value(
@@ -298,6 +319,12 @@ fn predicate_key(graph: &Graph, predicate: usize) -> String {
 
 fn term_sort_key(graph: &Graph, term: usize) -> String {
     serde_json::to_string(&term_value(graph, term)).expect("serde_json::Value serializes")
+}
+
+fn term_sort_keys(graph: &Graph) -> Vec<String> {
+    (0..graph.terms.len())
+        .map(|term| term_sort_key(graph, term))
+        .collect()
 }
 
 fn append_value(map: &mut Map<String, Value>, key: String, value: Value) {
