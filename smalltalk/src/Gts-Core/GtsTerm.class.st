@@ -5,7 +5,8 @@ Class {
 		'kind',
 		'value',
 		'language',
-		'datatype'
+		'datatype',
+		'reifier'
 	],
 	#category : #'Gts-Core'
 }
@@ -33,6 +34,14 @@ GtsTerm class >> literal: literalValue language: languageTag datatype: datatypeI
 		value: literalValue;
 		language: languageTag;
 		datatype: datatypeId;
+		yourself
+]
+
+{ #category : #'instance creation' }
+GtsTerm class >> tripleReifier: reifierId [
+	^ self new
+		kind: #triple;
+		reifier: reifierId;
 		yourself
 ]
 
@@ -64,6 +73,16 @@ GtsTerm >> language [
 { #category : #accessing }
 GtsTerm >> language: languageTag [
 	language := languageTag
+]
+
+{ #category : #accessing }
+GtsTerm >> reifier [
+	^ reifier
+]
+
+{ #category : #accessing }
+GtsTerm >> reifier: reifierId [
+	reifier := reifierId
 ]
 
 { #category : #accessing }

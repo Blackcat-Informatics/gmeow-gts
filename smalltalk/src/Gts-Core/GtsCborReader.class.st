@@ -116,3 +116,8 @@ GtsCborReader >> readUnsignedIntegerBytes: byteCount [
 	1 to: byteCount do: [ :index | value := (value bitShift: 8) + self nextByte ].
 	^ value
 ]
+
+{ #category : #private }
+GtsCborReader >> skipToEnd [
+	position := bytes size + 1
+]
