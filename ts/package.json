@@ -1,6 +1,6 @@
 {
   "name": "@blackcatinformatics/gmeow-gts",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "TypeScript GTS (Graph Transport Substrate) engine: CBOR-sequence RDF 1.2 log reader, folder, and verifier",
   "type": "module",
   "engines": {
