@@ -483,6 +483,11 @@ and SBOM predicates. Registry-hosted package files keep their durable provenance
 and SBOM evidence in GitHub's attestation store. Verify provenance with
 `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gts`; verify the
 SBOM predicate with `--predicate-type https://spdx.dev/Document/v2.3`.
+The current SLSA posture is documented in
+[`GTS-RELEASE-SLSA.md`](./docs/GTS-RELEASE-SLSA.md): artifact attestations are
+treated as SLSA v1.0 Build Level 2 evidence, and Build Level 3 is not claimed
+until release builds move behind hardened reusable workflows and artifacts
+verify against the intended signer workflow identity.
 
 Maintainers can run the public release smoke verifier after all tag workflows finish:
 
@@ -509,6 +514,8 @@ For historical releases that predate SBOM and immutable-release hardening, pass
 - [`docs/GTS-V1-RC1-CHECKLIST.md`](./docs/GTS-V1-RC1-CHECKLIST.md) — runnable `v1.0-rc1`
   checklist for blocker review, conformance reports, package dry-runs, release notes, and
   artifact verification.
+- [`docs/GTS-RELEASE-SLSA.md`](./docs/GTS-RELEASE-SLSA.md) — release SLSA posture,
+  reusable-workflow decision record, and Build Level 3 migration requirements.
 - [`docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md`](./docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md)
   — Baseline Reader build order, vector-manifest harness guidance, diagnostics/opaque-node
   behavior, profile registration basics, and conformance-claim template for independent

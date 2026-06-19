@@ -194,6 +194,12 @@ Use this report row for each implementation:
 Run local supply-chain and repository-hygiene checks when the tools are
 available. `just audit` runs the OSV dependency scan defined in the justfile;
 pre-commit is a separate hygiene, lint, and secret-scan gate.
+Release SLSA posture is recorded in
+[`GTS-RELEASE-SLSA.md`](./GTS-RELEASE-SLSA.md): current GitHub artifact
+attestations are treated as SLSA v1.0 Build Level 2 evidence. Do not claim SLSA
+v1.0 Build Level 3 unless the release lanes have moved to hardened reusable
+workflows and representative artifacts verify against the expected signer
+workflow identity.
 
 ```bash
 just audit
@@ -210,6 +216,17 @@ gh run list --workflow fuzz.yml --branch main --limit 5
 
 Record any vulnerability, CodeQL, fuzz, release-pipeline, or signing finding as
 a blocker unless it is explicitly out of scope for baseline v1 conformance.
+If a release intentionally adopts reusable workflows for Build Level 3
+alignment, record the signer workflow policy and verification evidence here
+before tagging:
+
+| Release lane | Reusable workflow | Signer verification command | Status |
+|---|---|---|---|
+| Rust `gmeow-gts` | | | |
+| Rust `visual-hashing` | | | |
+| Python | | | |
+| Go | | | |
+| TypeScript | | | |
 
 ## 8. Package Dry-Runs
 
@@ -434,6 +451,16 @@ gh attestation verify "${OUT}/packages/go-release/checksums.txt" \
   --repo Blackcat-Informatics/gmeow-gts
 gh attestation verify "${OUT}/packages/go-release/sbom-go-gts.spdx.json" \
   --repo Blackcat-Informatics/gmeow-gts
+```
+
+These commands verify the current Build Level 2 artifact-attestation posture.
+If the candidate adopts reusable workflows for a stronger posture, repeat the
+representative artifact checks with the expected signer policy, for example:
+
+```bash
+gh attestation verify <downloaded-artifact> \
+  --repo Blackcat-Informatics/gmeow-gts \
+  --signer-workflow <owner>/<repo>/.github/workflows/<workflow>.yml
 ```
 
 Verify the immutable Go release attestation and each downloaded release asset:
