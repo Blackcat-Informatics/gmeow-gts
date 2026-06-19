@@ -179,6 +179,34 @@ fn compact_context_authoring_shape_imports_annotations_and_scalars() {
 }
 
 #[test]
+fn scoped_contexts_expand_node_value_and_annotation_terms() {
+    let yaml = r#"
+"@context":
+  ex: "https://ex/"
+"@graph":
+  - "@context":
+      local: "https://local/"
+    "@id": "local:s"
+    "local:p":
+      "@context":
+        obj: "https://obj/"
+      "@id": "obj:o"
+      "@annotation":
+        "@context":
+          ann: "https://ann/"
+        "@id": "ann:r"
+        "ann:confidence": 1
+"#;
+    let imported = from_yaml_ld(yaml).expect("scoped contexts import");
+    let nquads = to_nquads(&read(&imported, true, None));
+
+    assert!(nquads.contains("<https://local/s> <https://local/p> <https://obj/o> ."));
+    assert!(nquads.contains("<https://ann/r>"));
+    assert!(nquads.contains("<https://ann/confidence>"));
+    assert!(nquads.contains("\"1\"^^<http://www.w3.org/2001/XMLSchema#integer>"));
+}
+
+#[test]
 fn yaml_ld_rejects_direction_until_the_model_can_carry_it() {
     let yaml = r#"
 "@id": "https://ex/s"

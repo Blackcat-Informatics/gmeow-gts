@@ -287,9 +287,10 @@ fn parse_node(
     annotations: &mut Vec<Triple3>,
 ) -> Result<(), YamlLdParseError> {
     let map = object(value, "graph node")?;
+    let scoped_context = scoped_context(context, map);
     let subject = match (map.get("@id"), map.get(GTS_SUBJECT)) {
-        (Some(id), None) => parse_id(id, context, interner)?,
-        (None, Some(subject)) => parse_term(subject, false, context, interner, reifiers)?,
+        (Some(id), None) => parse_id(id, &scoped_context, interner)?,
+        (None, Some(subject)) => parse_term(subject, false, &scoped_context, interner, reifiers)?,
         (Some(_), Some(_)) => {
             return Err(YamlLdParseError::new(
                 "graph node cannot contain both @id and gts:subject",
@@ -311,13 +312,13 @@ fn parse_node(
                 "unsupported node keyword {key}"
             )));
         }
-        let predicate = predicate_id(key, context, interner);
+        let predicate = predicate_id(key, &scoped_context, interner);
         parse_property_values(
             raw_values,
             type_position,
             subject,
             predicate,
-            context,
+            &scoped_context,
             interner,
             quads,
             reifiers,
@@ -356,11 +357,15 @@ fn parse_property_values(
             }
         }
         item => {
-            let object_id = parse_term(item, type_position, context, interner, reifiers)?;
+            let active_context = match item {
+                Value::Object(map) => scoped_context(context, map),
+                _ => context.clone(),
+            };
+            let object_id = parse_term(item, type_position, &active_context, interner, reifiers)?;
             let graph_name = match item {
                 Value::Object(map) => map
                     .get(GTS_GRAPH)
-                    .map(|value| parse_term(value, false, context, interner, reifiers))
+                    .map(|value| parse_term(value, false, &active_context, interner, reifiers))
                     .transpose()?,
                 _ => None,
             };
@@ -370,7 +375,7 @@ fn parse_property_values(
                     parse_annotation_blocks(
                         blocks,
                         (subject, predicate, object_id),
-                        context,
+                        &active_context,
                         interner,
                         reifiers,
                         annotations,
@@ -397,20 +402,21 @@ fn parse_standalone_reifiers(
         }
         item => {
             let map = object(item, "gts:reifiers entry")?;
+            let scoped_context = scoped_context(context, map);
             let reifier = match map.get("@id") {
-                Some(id) => parse_id(id, context, interner)?,
+                Some(id) => parse_id(id, &scoped_context, interner)?,
                 None => interner.generated_bnode("gts_reifier_"),
             };
             let triple = map
                 .get(GTS_TRIPLE)
                 .ok_or_else(|| YamlLdParseError::new("gts:reifiers entry is missing gts:triple"))
-                .and_then(|value| parse_triple(value, context, interner, reifiers))?;
+                .and_then(|value| parse_triple(value, &scoped_context, interner, reifiers))?;
             set_reifier(reifiers, reifier, triple);
             if let Some(block) = map.get(ANNOTATION) {
                 parse_annotation_properties(
                     object(block, "@annotation")?,
                     reifier,
-                    context,
+                    &scoped_context,
                     interner,
                     reifiers,
                     annotations,
@@ -437,12 +443,20 @@ fn parse_annotation_blocks(
         }
         item => {
             let map = object(item, "@annotation")?;
+            let scoped_context = scoped_context(context, map);
             let reifier = match map.get("@id") {
-                Some(id) => parse_id(id, context, interner)?,
+                Some(id) => parse_id(id, &scoped_context, interner)?,
                 None => interner.generated_bnode("gts_annotation_"),
             };
             set_reifier(reifiers, reifier, statement);
-            parse_annotation_properties(map, reifier, context, interner, reifiers, annotations)?;
+            parse_annotation_properties(
+                map,
+                reifier,
+                &scoped_context,
+                interner,
+                reifiers,
+                annotations,
+            )?;
         }
     }
     Ok(())
@@ -456,6 +470,7 @@ fn parse_annotation_properties(
     reifiers: &mut Vec<(usize, Triple3)>,
     annotations: &mut Vec<Triple3>,
 ) -> Result<(), YamlLdParseError> {
+    let scoped_context = scoped_context(context, map);
     for (key, value) in map {
         if matches!(key.as_str(), "@context" | "@id") {
             continue;
@@ -466,16 +481,17 @@ fn parse_annotation_properties(
                 "unsupported annotation keyword {key}"
             )));
         }
-        let predicate = predicate_id(key, context, interner);
+        let predicate = predicate_id(key, &scoped_context, interner);
         match value {
             Value::Array(items) => {
                 for item in items {
-                    let object = parse_term(item, type_position, context, interner, reifiers)?;
+                    let object =
+                        parse_term(item, type_position, &scoped_context, interner, reifiers)?;
                     annotations.push((reifier, predicate, object));
                 }
             }
             item => {
-                let object = parse_term(item, type_position, context, interner, reifiers)?;
+                let object = parse_term(item, type_position, &scoped_context, interner, reifiers)?;
                 annotations.push((reifier, predicate, object));
             }
         }
@@ -503,14 +519,15 @@ fn parse_term(
         )),
         Value::Number(number) => Ok(number_literal(number, interner)),
         Value::Object(map) => {
+            let scoped_context = scoped_context(context, map);
             if let Some(id) = map.get("@id") {
-                return parse_id(id, context, interner);
+                return parse_id(id, &scoped_context, interner);
             }
             if let Some(value) = map.get("@value") {
-                return parse_literal_object(value, map, context, interner);
+                return parse_literal_object(value, map, &scoped_context, interner);
             }
             if let Some(triple) = map.get(GTS_TRIPLE) {
-                let statement = parse_triple(triple, context, interner, reifiers)?;
+                let statement = parse_triple(triple, &scoped_context, interner, reifiers)?;
                 return Ok(interner.triple(statement, reifiers));
             }
             Err(YamlLdParseError::new(
@@ -636,6 +653,14 @@ fn object<'a>(value: &'a Value, what: &str) -> Result<&'a Map<String, Value>, Ya
         Value::Object(map) => Ok(map),
         _ => Err(YamlLdParseError::new(format!("{what} must be an object"))),
     }
+}
+
+fn scoped_context(parent: &Context, map: &Map<String, Value>) -> Context {
+    let mut context = parent.clone();
+    if let Some(local) = map.get("@context") {
+        context.merge(local);
+    }
+    context
 }
 
 fn set_reifier(reifiers: &mut Vec<(usize, Triple3)>, rid: usize, statement: Triple3) {
