@@ -352,6 +352,16 @@ function destPath(dest: string, archivePath: string): string {
     return target;
 }
 
+function pathIsSymlink(target: string): boolean {
+    try {
+        return lstatSync(target).isSymbolicLink();
+    } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code === "ENOENT") return false;
+        throw err;
+    }
+}
+
 /** Extract FileEntry quads from a folded graph into dest. */
 export function unpack(
     g: Graph,
@@ -381,6 +391,9 @@ export function unpack(
         const parent = dirname(target);
         if (parent !== "" && parent !== ".") {
             mkdirSync(parent, { recursive: true });
+        }
+        if (pathIsSymlink(target)) {
+            throw new Error(`refusing to write through symlink: ${path}`);
         }
         writeFileSync(target, data);
 

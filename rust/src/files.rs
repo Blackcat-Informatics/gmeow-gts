@@ -663,9 +663,9 @@ fn format_datetime(time: &std::time::SystemTime) -> Result<String, String> {
 }
 
 pub fn read_entries(graph: &Graph) -> Result<BTreeMap<String, FileEntry>, String> {
-    let mut type_id: Option<usize> = None;
-    let mut file_entry_id: Option<usize> = None;
-    let mut field_ids: BTreeMap<String, usize> = BTreeMap::new();
+    let mut type_ids: HashSet<usize> = HashSet::new();
+    let mut file_entry_ids: HashSet<usize> = HashSet::new();
+    let mut field_name_by_id: HashMap<usize, String> = HashMap::new();
     for (idx, term) in graph.terms.iter().enumerate() {
         if term.kind != TermKind::Iri {
             continue;
@@ -674,29 +674,29 @@ pub fn read_entries(graph: &Graph) -> Result<BTreeMap<String, FileEntry>, String
             continue;
         };
         if value == RDF_TYPE {
-            type_id = Some(idx);
-        } else if *value == FILES_NS.to_string() + "FileEntry" {
-            file_entry_id = Some(idx);
+            type_ids.insert(idx);
+        } else if value == FILE_ENTRY {
+            file_entry_ids.insert(idx);
         } else if let Some(rest) = value.strip_prefix(FILES_NS) {
-            field_ids.insert(rest.to_string(), idx);
+            field_name_by_id.insert(idx, rest.to_string());
         }
     }
-    let type_id = type_id.ok_or("not a files-profile archive: missing rdf:type")?;
-    let file_entry_id = file_entry_id.ok_or("not a files-profile archive: missing FileEntry")?;
+    if type_ids.is_empty() {
+        return Err("not a files-profile archive: missing rdf:type".to_string());
+    }
+    if file_entry_ids.is_empty() {
+        return Err("not a files-profile archive: missing FileEntry".to_string());
+    }
 
     let mut direct: BTreeMap<usize, BTreeMap<String, String>> = BTreeMap::new();
     let mut xattr_links: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     let mut pax_links: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     let mut file_entry_subjects: HashSet<usize> = HashSet::new();
     for &(s, p, o, _g) in &graph.quads {
-        if p == type_id && o == file_entry_id {
+        if type_ids.contains(&p) && file_entry_ids.contains(&o) {
             file_entry_subjects.insert(s);
             direct.entry(s).or_default();
-        } else if let Some(field_name) = field_ids
-            .iter()
-            .find(|(_, &id)| id == p)
-            .map(|(k, _)| k.clone())
-        {
+        } else if let Some(field_name) = field_name_by_id.get(&p) {
             if field_name == "xattr" {
                 xattr_links.entry(s).or_default().push(o);
             } else if field_name == "paxRecord" {
@@ -704,7 +704,10 @@ pub fn read_entries(graph: &Graph) -> Result<BTreeMap<String, FileEntry>, String
             } else {
                 let term = &graph.terms[o];
                 let value = term.value.clone().unwrap_or_default();
-                direct.entry(s).or_default().insert(field_name, value);
+                direct
+                    .entry(s)
+                    .or_default()
+                    .insert(field_name.clone(), value);
             }
         }
     }
@@ -954,13 +957,14 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
     let blob_entries: BTreeMap<&str, &crate::model::BlobEntry> =
         graph.blobs.iter().map(|(d, e)| (d.as_str(), e)).collect();
     let mut decoded_cache: BTreeMap<String, Vec<u8>> = BTreeMap::new();
+    let mut deferred_dirs = Vec::new();
 
     for (path, entry) in entries {
         let target = dest_path(dest, &path)?;
 
         if entry.kind == FileEntryKind::Directory {
             fs::create_dir_all(&target).map_err(|e| format!("create dir {target:?}: {e}"))?;
-            restore_path_metadata(&target, &entry)?;
+            deferred_dirs.push((target, entry));
             continue;
         }
         if entry.kind != FileEntryKind::File {
@@ -999,27 +1003,40 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent).map_err(|e| format!("create dir {parent:?}: {e}"))?;
         }
+        refuse_symlink_target(&target, &path)?;
         fs::write(&target, &data).map_err(|e| format!("write {target:?}: {e}"))?;
 
         restore_path_metadata(&target, &entry)?;
     }
+    for (target, entry) in deferred_dirs.into_iter().rev() {
+        restore_path_metadata(&target, &entry)?;
+    }
     Ok(())
+}
+
+fn refuse_symlink_target(target: &Path, archive_path: &str) -> Result<(), String> {
+    match fs::symlink_metadata(target) {
+        Ok(metadata) if metadata.file_type().is_symlink() => Err(format!(
+            "refusing to write through symlink for {archive_path}: {target:?}"
+        )),
+        Ok(_) => Ok(()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(err) => Err(format!("inspect {target:?}: {err}")),
+    }
 }
 
 fn restore_path_metadata(target: &Path, entry: &FileEntry) -> Result<(), String> {
     #[cfg(unix)]
     if let Some(mode) = entry.mode {
         use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(target, std::fs::Permissions::from_mode(mode));
+        fs::set_permissions(target, std::fs::Permissions::from_mode(mode))
+            .map_err(|e| format!("set permissions for {target:?}: {e}"))?;
     }
 
     if let Some(modified) = &entry.modified {
-        if let Ok((seconds, nanos)) = parse_datetime(modified) {
-            let _ = filetime::set_file_mtime(
-                target,
-                filetime::FileTime::from_unix_time(seconds, nanos),
-            );
-        }
+        let (seconds, nanos) = parse_datetime(modified)?;
+        filetime::set_file_mtime(target, filetime::FileTime::from_unix_time(seconds, nanos))
+            .map_err(|e| format!("set mtime for {target:?}: {e}"))?;
     }
     Ok(())
 }

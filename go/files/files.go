@@ -532,6 +532,13 @@ func Unpack(g *model.Graph, dest string, includeSuppressed bool) error {
 				return fmt.Errorf("path escapes destination: %s", path)
 			}
 		}
+		info, err := os.Lstat(target)
+		if err == nil && info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("refusing to write through symlink: %s", path)
+		}
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("inspect %s: %w", target, err)
+		}
 		//nolint:gosec // files-profile unpack writes user-requested world-readable files.
 		if err := os.WriteFile(target, data, 0o644); err != nil {
 			return fmt.Errorf("write %s: %w", target, err)

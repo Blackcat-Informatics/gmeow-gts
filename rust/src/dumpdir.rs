@@ -23,6 +23,8 @@ use crate::reader::{read, read_file_segments};
 use crate::replication::{heads_json, inventory, segments_json, Inventory, SegmentInventory};
 use crate::wire::{digest_str, hex, iter_items, map_get, unwrap_header};
 
+const FILES_NS: &str = "https://w3id.org/gts/files#";
+
 /// Options for writing a directory dump.
 #[derive(Clone, Debug, Default)]
 pub struct DumpOptions {
@@ -331,8 +333,22 @@ fn write_frames(root: &Path, data: &[u8], state: &DumpState) -> Result<(), DumpE
 }
 
 fn write_files_profile(root: &Path, state: &mut DumpState) -> Result<(), DumpError> {
-    let Ok(entries) = crate::files::read_entries(&state.graph) else {
-        return Ok(());
+    let entries = match crate::files::read_entries(&state.graph) {
+        Ok(entries) => entries,
+        Err(msg) => {
+            if graph_mentions_files_profile(&state.graph) {
+                let files_root = root.join("files");
+                fs::create_dir_all(&files_root)?;
+                state
+                    .warnings
+                    .push(format!("files-profile decode failed: {msg}"));
+                fs::write(
+                    files_root.join("UNPACK_ERROR.txt"),
+                    format!("files-profile decode failed: {msg}\n"),
+                )?;
+            }
+            return Ok(());
+        }
     };
     let files_root = root.join("files");
     fs::create_dir_all(&files_root)?;
@@ -402,6 +418,16 @@ fn write_files_profile(root: &Path, state: &mut DumpState) -> Result<(), DumpErr
         }
     }
     Ok(())
+}
+
+fn graph_mentions_files_profile(graph: &Graph) -> bool {
+    graph.terms.iter().any(|term| {
+        term.kind == TermKind::Iri
+            && term
+                .value
+                .as_deref()
+                .is_some_and(|value| value.starts_with(FILES_NS))
+    })
 }
 
 fn json_optional_u64(value: Option<u64>) -> String {

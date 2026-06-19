@@ -8,6 +8,7 @@ use ciborium::value::Value;
 use gmeow_gts::files::{
     pack, pack_entries_v2, read_entries, FileEntry, FileEntryKind, FilePaxRecord, FileXattr,
 };
+use gmeow_gts::model::{Graph, Term, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::read;
 use gmeow_gts::writer::digest_string;
@@ -24,6 +25,36 @@ fn gts(args: &[&str]) -> Output {
         .args(args)
         .output()
         .expect("gts binary runs")
+}
+
+fn iri(value: &str) -> Term {
+    Term {
+        kind: TermKind::Iri,
+        value: Some(value.to_string()),
+        datatype: None,
+        lang: None,
+        reifier: None,
+    }
+}
+
+fn literal(value: &str) -> Term {
+    Term {
+        kind: TermKind::Literal,
+        value: Some(value.to_string()),
+        datatype: None,
+        lang: None,
+        reifier: None,
+    }
+}
+
+fn bnode(value: &str) -> Term {
+    Term {
+        kind: TermKind::Bnode,
+        value: Some(value.to_string()),
+        datatype: None,
+        lang: None,
+        reifier: None,
+    }
 }
 
 fn meta_u64(graph: &gmeow_gts::model::Graph, key: &str) -> Option<u64> {
@@ -187,10 +218,34 @@ fn v2_entries_round_trip_all_metadata() {
 }
 
 #[test]
+fn v2_reader_accepts_duplicate_iri_term_ids() {
+    let graph = Graph {
+        terms: vec![
+            bnode("entry"),
+            iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            iri("https://w3id.org/gts/files#FileEntry"),
+            iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            iri("https://w3id.org/gts/files#FileEntry"),
+            iri("https://w3id.org/gts/files#path"),
+            literal("fixture.txt"),
+            iri("https://w3id.org/gts/files#path"),
+        ],
+        quads: vec![(0, 1, 2, None), (0, 5, 6, None)],
+        ..Graph::default()
+    };
+
+    let entries = read_entries(&graph).expect("duplicate term ids are read");
+    assert_eq!(
+        entries.get("fixture.txt").expect("entry").kind,
+        FileEntryKind::File
+    );
+}
+
+#[test]
 fn v2_emission_is_deterministic_after_sorting() {
     let mut entries = sample_v2_entries();
-    entries.reverse();
     let first = pack_entries_v2(&entries).expect("first pack");
+    entries.reverse();
     let second = pack_entries_v2(&entries).expect("second pack");
     assert_eq!(first, second);
 }
@@ -227,17 +282,28 @@ fn v2_unpack_materializes_directories_and_regular_files() {
 
 #[test]
 fn default_unpack_refuses_v2_links_and_special_files() {
-    let archive = pack_entries_v2(&[FileEntry {
-        path: "link".to_string(),
-        kind: FileEntryKind::Symlink,
-        link_target: Some("target".to_string()),
-        ..FileEntry::default()
-    }])
-    .expect("v2 symlink archive authors");
-    let graph = read(&archive, true, None);
-    let dest = tmpdir("refuse");
-    let err = gmeow_gts::files::unpack(&graph, &dest, false).expect_err("symlink refused");
-    assert!(err.contains("explicit safety flags"), "error: {err}");
+    for (idx, entry) in [
+        FileEntry {
+            path: "link".to_string(),
+            kind: FileEntryKind::Symlink,
+            link_target: Some("target".to_string()),
+            ..FileEntry::default()
+        },
+        FileEntry {
+            path: "pipe".to_string(),
+            kind: FileEntryKind::Fifo,
+            ..FileEntry::default()
+        },
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let archive = pack_entries_v2(&[entry]).expect("v2 archive authors");
+        let graph = read(&archive, true, None);
+        let dest = tmpdir(&format!("refuse-{idx}"));
+        let err = gmeow_gts::files::unpack(&graph, &dest, false).expect_err("entry refused");
+        assert!(err.contains("explicit safety flags"), "error: {err}");
+    }
 }
 
 #[test]

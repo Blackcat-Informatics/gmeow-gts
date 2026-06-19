@@ -368,6 +368,9 @@ def unpack(
             raise ValueError(msg)
 
         target.parent.mkdir(parents=True, exist_ok=True)
+        if (dest / path).is_symlink():
+            msg = f"refusing to write through symlink: {path}"
+            raise ValueError(msg)
         target.write_bytes(data)
 
         mode = entry.get("mode")
