@@ -89,6 +89,7 @@ actual dispatch surfaces.
 | `to-duckdb` | yes | yes | no | no | Python/Rust extension |
 | `to-parquet` | yes | yes | no | no | Python/Rust extension |
 | `prove` | no | yes | no | no | Rust proof creation extension |
+| `dump` | no | yes | no | no | Rust inspection export extension |
 | `verify-proof` | yes | yes | yes | yes | common |
 | `heads` | yes | yes | yes | yes | common |
 | `segments` | yes | yes | yes | yes | common |
@@ -108,6 +109,10 @@ actual dispatch surfaces.
   `--features yaml-ld`. They are transform-only shims over folded graph tables,
   not a wire-format or canonical-catalog change; Python, Go, and TypeScript
   parity can land later with a shared corpus oracle addition if needed.
+- `dump` is a Rust-only inspection export that writes a versioned directory tree with folded
+  N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads. It is
+  not a wire-format change; Python, Go, and TypeScript parity can implement the same
+  `gts-dump-v1` directory contract later.
 - All engines implement `verify-proof` for detached MMR proof JSON using the stable preimages and
   the positive/negative fixtures in `vectors/proofs/`. Rust additionally implements `prove` from
   files that carry a verified `index.mmr` root. Python, Go, and TypeScript should not expose

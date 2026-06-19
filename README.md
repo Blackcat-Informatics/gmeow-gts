@@ -295,6 +295,13 @@ Rust-only proof creation extension:
 gts prove <file> <frame-id>      emit detached JSON proof from an index.mmr root
 ```
 
+Rust-only inspection export extension:
+
+```text
+gts dump <file> --directory <dir> [--include-suppressed] [--force] [--metadata-only]
+                                  expand an archive into a directory dump
+```
+
 <!-- cli-python-extensions:start -->
 <!-- cli-python-extensions:end -->
 
@@ -318,7 +325,10 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 [`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which this repo's Rust
 engine depends on and re-exports as `gmeow_gts::emojihash`.
 
-`from-nq` is common across all four engines. The `to-*` relational exports are available in
+`from-nq` is common across all four engines. The Rust `dump` extension writes a versioned
+inspection directory with folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and
+files-profile content without duplicating large payload bytes by default; see
+[`docs/GTS-DUMP-DIR.md`](./docs/GTS-DUMP-DIR.md). The `to-*` relational exports are available in
 Python and Rust. Python DuckDB/Parquet exports need `pip install 'gmeow-gts[db]'`; Rust SQLite export shells out to
 `sqlite3` by default. Rust DuckDB/Parquet exports are behind the no-dependency Cargo
 feature `duckdb` and shell out to the `duckdb` binary. Rust emits relational SQL rows
@@ -531,6 +541,8 @@ For historical releases that predate SBOM and immutable-release hardening, pass
   release benchmark report template for v1 notes and paper appendix evidence.
 - [`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](./docs/GTS-ECOSYSTEM-INTEGRATIONS.md) — RDF, data,
   browser, service, and object-store integration contract.
+- [`docs/GTS-DUMP-DIR.md`](./docs/GTS-DUMP-DIR.md) — Rust `gts dump --directory` inspection
+  layout for folded graph views, unfolded frames, blob indexes, and files-profile payloads.
 - [`docs/GTS-SECURITY-POLICY.md`](./docs/GTS-SECURITY-POLICY.md) — trust/profile-policy
   separation, nested-GTS budgets, and v1 crypto deferrals.
 - [`docs/positioning.md`](./docs/positioning.md) — the project framing, narrow-waist
