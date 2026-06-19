@@ -98,6 +98,11 @@ def download(url: str, destination: Path, *, headers: dict[str, str] | None = No
             return
         except (OSError, urllib.error.URLError) as exc:
             last_error = exc
+            if destination.exists():
+                try:
+                    destination.unlink()
+                except OSError:
+                    pass
             if attempt < 3:
                 time.sleep(attempt)
     raise RuntimeError(f"failed to download {url}: {last_error}") from last_error
@@ -191,14 +196,19 @@ def verify_pypi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
     pypi_json_url = f"https://pypi.org/pypi/{args.pypi_project}/{args.version}/json"
     try:
         metadata = fetch_json(pypi_json_url)
+        if not isinstance(metadata, dict):
+            raise RuntimeError("metadata is not a dictionary")
         recorder.pass_(surface, "release metadata", pypi_json_url)
     except RuntimeError as exc:
         recorder.fail(surface, "release metadata", str(exc))
         return artifacts
 
-    urls = metadata.get("urls", [])
+    urls = metadata.get("urls") or []
+    if not isinstance(urls, list):
+        recorder.fail(surface, "release file metadata", "urls is not a list")
+        return artifacts
     wanted_types = {"bdist_wheel", "sdist"}
-    found_types = {entry.get("packagetype") for entry in urls}
+    found_types = {entry.get("packagetype") for entry in urls if isinstance(entry, dict)}
     missing_types = wanted_types - found_types
     if missing_types:
         recorder.fail(surface, "wheel and sdist present", f"missing {', '.join(sorted(missing_types))}")
@@ -210,17 +220,29 @@ def verify_pypi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
         recorder.fail(surface, "pypi-attestations available", "install pypi-attestations or uvx")
 
     for entry in urls:
-        filename = entry["filename"]
+        if not isinstance(entry, dict):
+            recorder.fail(surface, "release file metadata", "file entry is not a dictionary")
+            continue
+        filename = entry.get("filename")
+        file_url = entry.get("url")
+        if not isinstance(filename, str) or not isinstance(file_url, str):
+            recorder.fail(surface, "release file metadata", "filename or URL missing")
+            continue
         destination = pypi_dir / filename
         try:
-            download(entry["url"], destination)
+            download(file_url, destination)
             artifacts.append(destination)
-            recorder.pass_(surface, f"download {filename}", entry["url"])
+            recorder.pass_(surface, f"download {filename}", file_url)
         except RuntimeError as exc:
             recorder.fail(surface, f"download {filename}", str(exc))
             continue
 
-        expected_sha256 = entry.get("digests", {}).get("sha256")
+        digests = entry.get("digests") or {}
+        if not isinstance(digests, dict):
+            recorder.fail(surface, f"hash {filename}", "digests is not a dictionary")
+            expected_sha256 = None
+        else:
+            expected_sha256 = digests.get("sha256")
         actual_sha256 = sha256_file(destination)
         if expected_sha256 == actual_sha256:
             recorder.pass_(surface, f"hash {filename}", actual_sha256)
@@ -232,7 +254,7 @@ def verify_pypi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
                 recorder,
                 surface,
                 f"PyPI provenance {filename}",
-                [*attest, "verify", "pypi", "--repository", args.repository_url, entry["url"]],
+                [*attest, "verify", "pypi", "--repository", args.repository_url, file_url],
             )
     return artifacts
 
@@ -244,13 +266,20 @@ def verify_npm(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> l
     encoded_package = urllib.parse.quote(args.npm_package, safe="")
     try:
         packument = fetch_json(f"https://registry.npmjs.org/{encoded_package}")
+        if not isinstance(packument, dict) or not isinstance(packument.get("versions"), dict):
+            raise RuntimeError("invalid registry metadata structure")
         version_data = packument["versions"][args.version]
+        if not isinstance(version_data, dict):
+            raise RuntimeError("invalid version metadata structure")
         recorder.pass_(surface, "registry metadata", args.npm_package)
-    except (RuntimeError, KeyError) as exc:
+    except (RuntimeError, KeyError, TypeError) as exc:
         recorder.fail(surface, "registry metadata", str(exc))
         return artifacts
 
-    dist = version_data.get("dist", {})
+    dist = version_data.get("dist") or {}
+    if not isinstance(dist, dict):
+        recorder.fail(surface, "tarball integrity metadata", "dist metadata is not a dictionary")
+        return artifacts
     tarball_url = dist.get("tarball")
     integrity = dist.get("integrity")
     if not tarball_url or not integrity:
@@ -263,7 +292,12 @@ def verify_npm(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> l
     else:
         recorder.fail(surface, "registry signature metadata", "dist.signatures missing")
 
-    attestation_url = dist.get("attestations", {}).get("url")
+    attestations = dist.get("attestations") or {}
+    if not isinstance(attestations, dict):
+        recorder.fail(surface, "provenance endpoint", "dist.attestations is not a dictionary")
+        attestation_url = None
+    else:
+        attestation_url = attestations.get("url")
     if attestation_url:
         try:
             fetch_json(attestation_url)
@@ -322,7 +356,12 @@ def verify_npm(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> l
 
 def crate_checksum(crate: str, version: str) -> str:
     metadata = fetch_json(f"https://crates.io/api/v1/crates/{crate}/{version}")
-    return metadata["version"]["checksum"]
+    if not isinstance(metadata, dict):
+        raise RuntimeError("crates.io metadata is not a dictionary")
+    version_info = metadata.get("version")
+    if not isinstance(version_info, dict) or not version_info.get("checksum"):
+        raise RuntimeError(f"checksum not found in crates.io response for {crate}@{version}")
+    return version_info["checksum"]
 
 
 def verify_crate(
@@ -396,6 +435,9 @@ def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> li
     )
     if not release:
         return artifacts
+    if not isinstance(release, dict):
+        recorder.fail(surface, "release metadata", "invalid metadata structure returned by gh")
+        return artifacts
 
     if release.get("isDraft"):
         recorder.fail(surface, "published release", f"{args.go_tag} is still a draft")
@@ -409,7 +451,15 @@ def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> li
     else:
         recorder.fail(surface, "immutable release", "release is mutable")
 
-    asset_names = {asset["name"] for asset in release.get("assets", [])}
+    assets = release.get("assets") or []
+    if not isinstance(assets, list):
+        recorder.fail(surface, "release assets metadata", "assets is not a list")
+        assets = []
+    asset_names = {
+        asset["name"]
+        for asset in assets
+        if isinstance(asset, dict) and isinstance(asset.get("name"), str)
+    }
     required_assets = {"checksums.txt", "sbom-go-gts.spdx.json"}
     archive_assets = {name for name in asset_names if name.endswith((".tar.gz", ".zip"))}
     missing_assets = required_assets - asset_names
