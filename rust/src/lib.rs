@@ -24,6 +24,8 @@ pub use visual_hashing as emojihash;
 pub mod examples;
 pub mod files;
 pub mod from_nquads;
+#[cfg(feature = "yaml-ld")]
+pub mod from_yamlld;
 pub mod mmr;
 pub mod model;
 pub mod nested;
@@ -47,3 +49,5 @@ pub mod stream;
 pub mod verify;
 pub mod wire;
 pub mod writer;
+#[cfg(feature = "yaml-ld")]
+pub mod yamlld;

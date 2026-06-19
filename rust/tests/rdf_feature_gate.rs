@@ -1,7 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-#[cfg(not(any(feature = "rdf", feature = "duckdb", feature = "sophia-adapter")))]
+#[cfg(not(any(
+    feature = "rdf",
+    feature = "duckdb",
+    feature = "sophia-adapter",
+    feature = "yaml-ld"
+)))]
 #[test]
 fn optional_adapters_are_not_enabled_by_default() {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
@@ -43,6 +48,10 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(
         package["features"]["policy-config-yaml"],
         serde_json::json!(["policy-config", "dep:serde_yaml"])
+    );
+    assert_eq!(
+        package["features"]["yaml-ld"],
+        serde_json::json!(["dep:serde", "dep:serde_json", "dep:serde_yaml"])
     );
 
     let oxrdf = package["dependencies"]
@@ -113,4 +122,13 @@ fn oxigraph_feature_enables_adapter_module() {
 #[test]
 fn sophia_feature_enables_adapter_module() {
     let _dataset = gmeow_gts::sophia::SophiaDataset::new();
+}
+
+#[cfg(feature = "yaml-ld")]
+#[test]
+fn yaml_ld_feature_enables_codec_modules() {
+    let value = gmeow_gts::yamlld::to_json_ld(&gmeow_gts::model::Graph::default());
+    let text = serde_json::to_string(&value).unwrap();
+    let bytes = gmeow_gts::from_yamlld::from_json_ld(&text).unwrap();
+    assert!(!bytes.is_empty());
 }

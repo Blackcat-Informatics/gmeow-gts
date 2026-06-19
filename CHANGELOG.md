@@ -14,6 +14,13 @@ change before `1.0`.
 
 ## [Unreleased]
 
+### Added
+
+- Rust-only YAML-LD-star/JSON-LD-star import/export behind the `yaml-ld`
+  Cargo feature, including `gts to-yaml-ld` and `gts from-yaml-ld`. This is a
+  transform-only 0.10.0-target feature with no wire-format, canonical-catalog,
+  or shared corpus oracle change, so no GIP is required.
+
 ## [0.9.1] — 2026-06-19
 
 ### Added
