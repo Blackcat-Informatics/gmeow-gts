@@ -30,6 +30,11 @@ pub struct EmbeddedTransportKey {
 }
 
 /// Options for [`verify_file_with_options`].
+///
+/// Cryptographic validity and deployment trust are intentionally separated:
+/// signatures are first checked against a resolved OpenPGP Ed25519 key, then
+/// [`TrustPolicy`] decides whether valid signers and declared profiles are
+/// acceptable for the caller.
 #[derive(Clone, Debug)]
 pub struct VerifyOptions {
     /// Optional out-of-band armored OpenPGP public key. When absent, the file's

@@ -958,6 +958,9 @@ pub fn read_with_options(data: &[u8], options: ReadOptions<'_>) -> Graph {
     }
 
     let ends = bounds.iter().skip(1).copied().chain([items.len()]);
+    // Each segment owns its term-id namespace. Unioning happens after segment
+    // folds by semantic term value, which avoids silently treating equal
+    // numeric ids from different segments as equal terms.
     let folded: Vec<Graph> = bounds
         .iter()
         .zip(ends)
@@ -1007,6 +1010,10 @@ pub fn read_to_sink(
 }
 
 /// Read a GTS file into a [`StreamingSink`] using explicit options.
+///
+/// This is an evented evidence path, not a promise that memory is independent
+/// of segment graph complexity: each segment is still folded enough to apply
+/// the same diagnostics and layout checks as [`read_with_options`].
 pub fn read_to_sink_with_options(
     data: &[u8],
     options: ReadOptions<'_>,

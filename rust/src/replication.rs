@@ -17,63 +17,103 @@ use crate::wire::{
 
 #[derive(Clone, Debug)]
 pub struct FrameInventory {
+    /// Absolute CBOR sequence item index.
     pub item_index: usize,
+    /// Zero-based frame index within the segment.
     pub frame_index: usize,
+    /// Start byte offset in the original file.
     pub start: usize,
+    /// End byte offset, exclusive.
     pub end: usize,
+    /// Stored frame id when present, otherwise the computed content id.
     pub id: Vec<u8>,
+    /// Wire frame `"t"` value.
     pub frame_type: String,
+    /// True when both self-id and `prev` chain checks passed for this frame.
     pub valid: bool,
 }
 
+/// Inventory for one segment in a possibly concatenated GTS file.
 #[derive(Clone, Debug)]
 pub struct SegmentInventory {
+    /// Zero-based segment index.
     pub index: usize,
+    /// Absolute CBOR item index of the segment header.
     pub item_start: usize,
+    /// Absolute CBOR item index one past the segment.
     pub item_end: usize,
+    /// Start byte offset of the segment.
     pub start: usize,
+    /// End byte offset, exclusive.
     pub end: usize,
+    /// Segment profile from the header.
     pub profile: String,
+    /// Segment head id, when the segment was foldable.
     pub head: Option<Vec<u8>>,
+    /// Number of frames after the header.
     pub frame_count: usize,
+    /// Computed layout/streamability state.
     pub layout: StreamableInfo,
+    /// Diagnostics produced while folding this segment.
     pub diagnostics: Vec<Diagnostic>,
+    /// Per-frame byte ranges and chain validation state.
     pub frames: Vec<FrameInventory>,
 }
 
+/// Byte and segment inventory for a GTS file.
 #[derive(Clone, Debug)]
 pub struct Inventory {
+    /// Segment inventories in file order.
     pub segments: Vec<SegmentInventory>,
+    /// Fatal file-level diagnostic, if no segment inventory can be trusted.
     pub fatal: Option<Diagnostic>,
+    /// Offset of a torn trailing CBOR item.
     pub torn: Option<usize>,
+    /// End offset of the last complete CBOR item.
     pub clean_end: usize,
+    /// Number of complete CBOR items parsed before any torn append.
     pub item_count: usize,
 }
 
+/// Half-open byte range `[start, end)` needed to resume replication.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ByteRange {
+    /// Start byte offset.
     pub start: usize,
+    /// End byte offset, exclusive.
     pub end: usize,
 }
 
+/// Result category for a replication missing-range query.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MissingStatus {
+    /// The peer head is already current.
     Complete,
+    /// Concrete byte ranges can resume the peer.
     Ranges,
+    /// The peer head is unknown; a full scan or full transfer is needed.
     Unknown,
+    /// The inventory is not trustworthy enough to compute ranges.
     Error,
 }
 
+/// Missing byte-range result relative to a peer's known head.
 #[derive(Clone, Debug)]
 pub struct MissingResult {
+    /// High-level result category.
     pub status: MissingStatus,
+    /// Peer head used for the query.
     pub from_head: Vec<u8>,
+    /// Byte ranges needed by the peer.
     pub ranges: Vec<ByteRange>,
+    /// Whether the peer must scan or re-request broader state.
     pub scan_required: bool,
+    /// Human-readable explanation for `Unknown` or `Error`.
     pub detail: Option<String>,
 }
 
 impl Inventory {
+    /// True when the inventory contains file-level, segment-level, or torn-append problems.
     pub fn has_problems(&self) -> bool {
         self.fatal.is_some()
             || self.torn.is_some()
@@ -183,6 +223,9 @@ fn collect_frames(
         let id_ok = stored_id
             .as_deref()
             .is_some_and(|stored| stored == computed.as_slice());
+        // Replication uses the same id/prev chain invariant as the reader, but
+        // keeps scanning so callers can still identify byte ranges around bad
+        // frames.
         let prev_ok =
             matches!(map_get(frame, "prev"), Some(Value::Bytes(prev)) if prev == &expected_prev);
         let id = stored_id.clone().unwrap_or_else(|| computed.clone());
@@ -203,6 +246,7 @@ fn collect_frames(
     frames
 }
 
+/// Build a replication inventory from raw GTS bytes.
 pub fn inventory(data: &[u8]) -> Inventory {
     let (items, torn) = iter_items(data);
     let clean_end = torn.unwrap_or(data.len());
