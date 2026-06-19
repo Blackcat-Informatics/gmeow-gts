@@ -79,6 +79,12 @@ jobs:
           output-file: sbom-npm-gmeow-gts.spdx.json
           upload-artifact: false
 
+      - name: Attest SBOM for npm tarball
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: ts/*.tgz
+          sbom-path: sbom-npm-gmeow-gts.spdx.json
+
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
