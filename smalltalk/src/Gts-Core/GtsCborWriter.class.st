@@ -21,11 +21,11 @@ GtsCborWriter class >> encodedByteKey: left isLessThan: right [
 GtsCborWriter class >> write: anObject on: stream [
 	anObject isInteger ifTrue: [ ^ self writeInteger: anObject on: stream ].
 	(anObject isKindOf: ByteArray) ifTrue: [ ^ self writeByteString: anObject on: stream ].
-	anObject isString ifTrue: [ ^ self writeTextString: anObject on: stream ].
 	anObject isSymbol ifTrue: [ ^ self writeTextString: anObject asString on: stream ].
+	anObject isString ifTrue: [ ^ self writeTextString: anObject on: stream ].
 	(anObject isKindOf: Association) ifTrue: [
 		^ self writeMap: (Dictionary with: anObject) on: stream ].
-	(anObject isKindOf: Dictionary) ifTrue: [ ^ self writeMap: anObject on: stream ].
+	anObject isDictionary ifTrue: [ ^ self writeMap: anObject on: stream ].
 	((anObject isArray) or: [ anObject isKindOf: OrderedCollection ])
 		ifTrue: [ ^ self writeArray: anObject on: stream ].
 	self error: 'unsupported CBOR value: ', anObject class name
