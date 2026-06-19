@@ -1,0 +1,30 @@
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#body> "blake3:e4d9bc0bc4cdf0a65ccf807e60f503af83b725703f933e4116bd84fdc14dc9b7" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#description> "Synthetic ecommerce events table for interoperability smoke testing." .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#links> <https://bigquery.example/projects/demo/datasets/analytics/tables/users> .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#links> <https://blackcatinformatics.ca/projects/gts/okf/doc/reference/event-params.md> .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#partitioned> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#path> "datasets/events.md" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#producer> "{\"sample\":\"synthetic\",\"system\":\"bigquery\"}"^^<https://blackcatinformatics.ca/projects/gts/okf#json> .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#resource> <https://bigquery.example/projects/demo/datasets/analytics/tables/events> .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#row_count> "123456"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#tag> "analytics" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#tag> "bigquery" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#tag> "ecommerce" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#timestamp> "2026-06-19T12:00:00Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#title> "GA4 Events" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#type> "BigQuery Table" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/users> <https://blackcatinformatics.ca/projects/gts/okf#body> "blake3:929e7111d645f8bf20b35dd5b15669ba951967ec9a445589458be378d624b7b1" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/users> <https://blackcatinformatics.ca/projects/gts/okf#path> "datasets/users.md" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/users> <https://blackcatinformatics.ca/projects/gts/okf#resource> <https://bigquery.example/projects/demo/datasets/analytics/tables/users> .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/users> <https://blackcatinformatics.ca/projects/gts/okf#title> "Users" .
+<https://bigquery.example/projects/demo/datasets/analytics/tables/users> <https://blackcatinformatics.ca/projects/gts/okf#type> "BigQuery Table" .
+<https://blackcatinformatics.ca/projects/gts/okf/doc/reference/event-params.md> <https://blackcatinformatics.ca/projects/gts/okf#body> "blake3:1737cd0097d6b838b07c0c679cffacfd6cb49e41c7320512e6489bdfdab567cf" .
+<https://blackcatinformatics.ca/projects/gts/okf/doc/reference/event-params.md> <https://blackcatinformatics.ca/projects/gts/okf#path> "reference/event-params.md" .
+<https://blackcatinformatics.ca/projects/gts/okf/doc/reference/event-params.md> <https://blackcatinformatics.ca/projects/gts/okf#title> "Event Parameter Dictionary" .
+<https://blackcatinformatics.ca/projects/gts/okf/doc/reference/event-params.md> <https://blackcatinformatics.ca/projects/gts/okf#type> "Dictionary" .
+_:okf_link_0_0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> <<( <https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#links> <https://bigquery.example/projects/demo/datasets/analytics/tables/users> )>> .
+_:okf_link_0_0 <https://blackcatinformatics.ca/projects/gts/okf#linkOccurrence> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+_:okf_link_0_0 <https://blackcatinformatics.ca/projects/gts/okf#linkText> "Users" .
+_:okf_link_0_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> <<( <https://bigquery.example/projects/demo/datasets/analytics/tables/events> <https://blackcatinformatics.ca/projects/gts/okf#links> <https://blackcatinformatics.ca/projects/gts/okf/doc/reference/event-params.md> )>> .
+_:okf_link_0_1 <https://blackcatinformatics.ca/projects/gts/okf#linkOccurrence> "2"^^<http://www.w3.org/2001/XMLSchema#integer> .
+_:okf_link_0_1 <https://blackcatinformatics.ca/projects/gts/okf#linkText> "Parameter Dictionary" .

@@ -44,6 +44,7 @@ VALID_SUBSETS = {
     "human-hash",
     "security-policy",
     "advanced-index-proof",
+    "okf-bundle",
 }
 VALID_TIERS = {
     "baseline-reader",
@@ -183,6 +184,50 @@ JSON_SUBCORPUS = {
         "capabilities": ("cose-sign1", "ed25519"),
         "title": "signed GTS fixture",
         "notes": "Pins signed GTS writer output and signature verification.",
+    },
+}
+
+OKF_MEDIA_TYPE = "application/vnd.blackcat.gts.okf-bundle"
+
+OKF_BUNDLES = {
+    "bigquery-join": {
+        "title": "OKF bundle fixture: BigQuery join model",
+        "notes": (
+            "Pins a synthetic BigQuery-style OKF bundle with schema-table prose, "
+            "resource IRIs, typed extension fields, and cross-document joins."
+        ),
+    },
+    "extensions": {
+        "title": "OKF bundle fixture: producer extensions",
+        "notes": (
+            "Pins producer extension key projection for integer, decimal, boolean, "
+            "null, sequence, and nested-object frontmatter values."
+        ),
+    },
+    "full-frontmatter": {
+        "title": "OKF bundle fixture: full frontmatter",
+        "notes": (
+            "Pins the standard OKF frontmatter fields: title, description, "
+            "resource, tags, and timestamp."
+        ),
+    },
+    "minimal": {
+        "title": "OKF bundle fixture: minimal document",
+        "notes": "Pins the smallest accepted OKF document with only required type metadata.",
+    },
+    "nested-links": {
+        "title": "OKF bundle fixture: nested links",
+        "notes": (
+            "Pins nested directories, index.md, relative Markdown links, repeated "
+            "links, and link annotation ordering."
+        ),
+    },
+    "unmapped-sidecar": {
+        "title": "OKF bundle fixture: unmapped sidecar",
+        "notes": (
+            "Pins the clean OKF import projection and the companion Rust sidecar "
+            "test for out-of-profile RDF export."
+        ),
     },
 }
 
@@ -365,6 +410,51 @@ def json_fixture_entry(path: Path) -> dict[str, Any]:
     }
 
 
+def path_contains_markdown(path: Path) -> bool:
+    return any(child.is_file() and child.suffix == ".md" for child in path.rglob("*"))
+
+
+def okf_bundle_dirs() -> list[Path]:
+    root = VECTORS / "okf"
+    if not root.exists():
+        return []
+    return sorted(
+        path
+        for path in root.iterdir()
+        if path.is_dir() and path_contains_markdown(path)
+    )
+
+
+def okf_fixture_entry(path: Path) -> dict[str, Any]:
+    fixture_id = path.name
+    meta = OKF_BUNDLES[fixture_id]
+    expected: dict[str, Any] = {
+        "graph": rel(VECTORS / "okf" / f"{fixture_id}.folded.nq"),
+        "diagnostics": [],
+        "expected_head": None,
+        "documents": sum(1 for child in path.rglob("*.md") if child.is_file()),
+    }
+    sidecar = VECTORS / "okf" / f"{fixture_id}.expected-unmapped.nq"
+    if sidecar.exists():
+        expected["unmapped_sidecar"] = rel(sidecar)
+
+    return {
+        "id": f"okf-{fixture_id}",
+        "title": meta["title"],
+        "input": {
+            "path": rel(path),
+            "media_type": OKF_MEDIA_TYPE,
+        },
+        "mode": "profile-verify",
+        "negative": False,
+        "required_capabilities": ["cbor", "blake3", "identity", "okf"],
+        "subsets": ["okf-bundle"],
+        "tiers": ["profile-aware-tool"],
+        "expected": expected,
+        "notes": meta["notes"],
+    }
+
+
 def build_manifest() -> dict[str, Any]:
     top_level_ids = sorted(path.stem for path in VECTORS.glob("*.gts"))
     unknown = sorted(set(top_level_ids) - set(TOP_LEVEL_SUBSETS))
@@ -379,8 +469,18 @@ def build_manifest() -> dict[str, Any]:
     if unknown_dirs:
         raise ManifestError(f"JSON subcorpus metadata missing for: {unknown_dirs}")
 
+    okf_paths = okf_bundle_dirs()
+    okf_names = {path.name for path in okf_paths}
+    unknown_okf = sorted(okf_names - set(OKF_BUNDLES))
+    missing_okf = sorted(set(OKF_BUNDLES) - okf_names)
+    if unknown_okf or missing_okf:
+        raise ManifestError(
+            f"OKF bundle metadata drift: unknown={unknown_okf} missing={missing_okf}"
+        )
+
     entries = [top_level_entry(vector_id) for vector_id in top_level_ids]
     entries.extend(json_fixture_entry(path) for path in json_paths)
+    entries.extend(okf_fixture_entry(path) for path in okf_paths)
     entries.sort(key=lambda item: item["input"]["path"])
     return {
         "schema": SCHEMA,
@@ -461,14 +561,21 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
     require(isinstance(input_path, str), f"{vector_id}: input.path must be a string")
     require(
         input_info.get("media_type")
-        in {"application/vnd.blackcat.gts+cbor-seq", "application/json"},
+        in {"application/vnd.blackcat.gts+cbor-seq", "application/json", OKF_MEDIA_TYPE},
         f"{vector_id}: unsupported input media_type",
     )
+    media_type = input_info["media_type"]
     resolved_input = repo_path(input_path, "input.path", vector_id)
-    require(
-        resolved_input.is_file(),
-        f"{vector_id}: missing input path {input_path}",
-    )
+    if media_type == OKF_MEDIA_TYPE:
+        require(
+            resolved_input.is_dir(),
+            f"{vector_id}: missing input directory {input_path}",
+        )
+    else:
+        require(
+            resolved_input.is_file(),
+            f"{vector_id}: missing input path {input_path}",
+        )
 
     expected = entry.get("expected")
     require(isinstance(expected, dict), f"{vector_id}: expected must be an object")
@@ -607,6 +714,30 @@ def validate_manifest(manifest: Any, *, require_release_revision: bool = False) 
             f"{entry['id']}: JSON subcorpus metadata missing for {subdir}",
         )
         require_generated_metadata(entry, json_fixture_entry(fixture_path))
+
+    okf_entries = [
+        entry for entry in vectors if entry["input"]["media_type"] == OKF_MEDIA_TYPE
+    ]
+    manifest_okf = sorted(entry["id"].removeprefix("okf-") for entry in okf_entries)
+    filesystem_okf = sorted(path.name for path in okf_bundle_dirs())
+    require(
+        manifest_okf == filesystem_okf,
+        "manifest OKF bundle coverage drift: "
+        f"manifest={manifest_okf} filesystem={filesystem_okf}",
+    )
+    filesystem_okf_expected = sorted(
+        path.name.removesuffix(".folded.nq")
+        for path in (VECTORS / "okf").glob("*.folded.nq")
+    )
+    require(
+        filesystem_okf == filesystem_okf_expected,
+        "manifest OKF folded expectation coverage drift: "
+        f"bundles={filesystem_okf} expected={filesystem_okf_expected}",
+    )
+    for entry in okf_entries:
+        fixture_id = entry["id"].removeprefix("okf-")
+        require(fixture_id in OKF_BUNDLES, f"{entry['id']}: OKF metadata missing")
+        require_generated_metadata(entry, okf_fixture_entry(VECTORS / "okf" / fixture_id))
 
 
 def expect_invalid(

@@ -1631,6 +1631,181 @@
       "notes": "Pins fixed-IV Encrypt0 sealing and opening behavior."
     },
     {
+      "id": "okf-bigquery-join",
+      "title": "OKF bundle fixture: BigQuery join model",
+      "input": {
+        "path": "vectors/okf/bigquery-join",
+        "media_type": "application/vnd.blackcat.gts.okf-bundle"
+      },
+      "mode": "profile-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "okf"
+      ],
+      "subsets": [
+        "okf-bundle"
+      ],
+      "tiers": [
+        "profile-aware-tool"
+      ],
+      "expected": {
+        "graph": "vectors/okf/bigquery-join.folded.nq",
+        "diagnostics": [],
+        "expected_head": null,
+        "documents": 3
+      },
+      "notes": "Pins a synthetic BigQuery-style OKF bundle with schema-table prose, resource IRIs, typed extension fields, and cross-document joins."
+    },
+    {
+      "id": "okf-extensions",
+      "title": "OKF bundle fixture: producer extensions",
+      "input": {
+        "path": "vectors/okf/extensions",
+        "media_type": "application/vnd.blackcat.gts.okf-bundle"
+      },
+      "mode": "profile-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "okf"
+      ],
+      "subsets": [
+        "okf-bundle"
+      ],
+      "tiers": [
+        "profile-aware-tool"
+      ],
+      "expected": {
+        "graph": "vectors/okf/extensions.folded.nq",
+        "diagnostics": [],
+        "expected_head": null,
+        "documents": 1
+      },
+      "notes": "Pins producer extension key projection for integer, decimal, boolean, null, sequence, and nested-object frontmatter values."
+    },
+    {
+      "id": "okf-full-frontmatter",
+      "title": "OKF bundle fixture: full frontmatter",
+      "input": {
+        "path": "vectors/okf/full-frontmatter",
+        "media_type": "application/vnd.blackcat.gts.okf-bundle"
+      },
+      "mode": "profile-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "okf"
+      ],
+      "subsets": [
+        "okf-bundle"
+      ],
+      "tiers": [
+        "profile-aware-tool"
+      ],
+      "expected": {
+        "graph": "vectors/okf/full-frontmatter.folded.nq",
+        "diagnostics": [],
+        "expected_head": null,
+        "documents": 1
+      },
+      "notes": "Pins the standard OKF frontmatter fields: title, description, resource, tags, and timestamp."
+    },
+    {
+      "id": "okf-minimal",
+      "title": "OKF bundle fixture: minimal document",
+      "input": {
+        "path": "vectors/okf/minimal",
+        "media_type": "application/vnd.blackcat.gts.okf-bundle"
+      },
+      "mode": "profile-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "okf"
+      ],
+      "subsets": [
+        "okf-bundle"
+      ],
+      "tiers": [
+        "profile-aware-tool"
+      ],
+      "expected": {
+        "graph": "vectors/okf/minimal.folded.nq",
+        "diagnostics": [],
+        "expected_head": null,
+        "documents": 1
+      },
+      "notes": "Pins the smallest accepted OKF document with only required type metadata."
+    },
+    {
+      "id": "okf-nested-links",
+      "title": "OKF bundle fixture: nested links",
+      "input": {
+        "path": "vectors/okf/nested-links",
+        "media_type": "application/vnd.blackcat.gts.okf-bundle"
+      },
+      "mode": "profile-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "okf"
+      ],
+      "subsets": [
+        "okf-bundle"
+      ],
+      "tiers": [
+        "profile-aware-tool"
+      ],
+      "expected": {
+        "graph": "vectors/okf/nested-links.folded.nq",
+        "diagnostics": [],
+        "expected_head": null,
+        "documents": 3
+      },
+      "notes": "Pins nested directories, index.md, relative Markdown links, repeated links, and link annotation ordering."
+    },
+    {
+      "id": "okf-unmapped-sidecar",
+      "title": "OKF bundle fixture: unmapped sidecar",
+      "input": {
+        "path": "vectors/okf/unmapped-sidecar",
+        "media_type": "application/vnd.blackcat.gts.okf-bundle"
+      },
+      "mode": "profile-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "okf"
+      ],
+      "subsets": [
+        "okf-bundle"
+      ],
+      "tiers": [
+        "profile-aware-tool"
+      ],
+      "expected": {
+        "graph": "vectors/okf/unmapped-sidecar.folded.nq",
+        "diagnostics": [],
+        "expected_head": null,
+        "documents": 1,
+        "unmapped_sidecar": "vectors/okf/unmapped-sidecar.expected-unmapped.nq"
+      },
+      "notes": "Pins the clean OKF import projection and the companion Rust sidecar test for out-of-profile RDF export."
+    },
+    {
       "id": "openpgp-extract-key",
       "title": "OpenPGP transport-key fixture: extract-key",
       "input": {
