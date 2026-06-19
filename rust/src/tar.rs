@@ -256,9 +256,7 @@ fn append_pax_records<W: Write>(
     builder: &mut ::tar::Builder<W>,
     entry: &FileEntry,
 ) -> Result<(), TarError> {
-    const CORE_PAX_KEYS: &[&str] = &[
-        "path", "linkpath", "size", "uid", "gid", "uname", "gname", "mtime",
-    ];
+    const CORE_PAX_KEYS: &[&str] = &["path", "linkpath", "size", "uid", "gid", "uname", "gname"];
     let records: Vec<(&str, &[u8])> = entry
         .pax_records
         .iter()

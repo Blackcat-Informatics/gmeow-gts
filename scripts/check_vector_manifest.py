@@ -45,6 +45,7 @@ VALID_SUBSETS = {
     "security-policy",
     "advanced-index-proof",
     "okf-bundle",
+    "tar-archive",
 }
 VALID_TIERS = {
     "baseline-reader",
@@ -188,6 +189,11 @@ JSON_SUBCORPUS = {
 }
 
 OKF_MEDIA_TYPE = "application/vnd.blackcat.gts.okf-bundle"
+TAR_MEDIA_TYPES = {
+    ".tar": "application/x-tar",
+    ".tar.gz": "application/gzip",
+    ".tar.zst": "application/zstd",
+}
 
 OKF_BUNDLES = {
     "bigquery-join": {
@@ -228,6 +234,57 @@ OKF_BUNDLES = {
             "Pins the clean OKF import projection and the companion Rust sidecar "
             "test for out-of-profile RDF export."
         ),
+    },
+}
+
+TAR_FIXTURES = {
+    "ustar-basic": {
+        "input": "ustar-basic.tar",
+        "title": "tar fixture: USTAR basic tree",
+        "notes": "Pins USTAR regular-file, directory, owner, and mode import.",
+    },
+    "gnu-links": {
+        "input": "gnu-links.tar",
+        "title": "tar fixture: GNU links and long path",
+        "notes": "Pins GNU long path, symlink, hardlink, owner, and deduplicated payload import.",
+    },
+    "pax-metadata": {
+        "input": "pax-metadata.tar",
+        "title": "tar fixture: PAX metadata",
+        "notes": "Pins PAX subsecond mtime, comment, and SCHILY xattr-style records.",
+    },
+    "special-nodes": {
+        "input": "special-nodes.tar",
+        "title": "tar fixture: special node metadata",
+        "notes": "Pins fifo, character-device, and block-device metadata import.",
+    },
+    "gzip-basic": {
+        "input": "gzip-basic.tar.gz",
+        "title": "tar fixture: gzip-compressed tar",
+        "notes": "Pins transparent gzip-compressed tar import.",
+    },
+    "zstd-basic": {
+        "input": "zstd-basic.tar.zst",
+        "title": "tar fixture: zstd-compressed tar",
+        "notes": "Pins transparent zstd-compressed tar import.",
+    },
+    "danger-absolute": {
+        "input": "danger-absolute.tar",
+        "title": "tar refusal fixture: absolute path",
+        "negative": True,
+        "notes": "Pins refusal of tar entries with absolute paths.",
+    },
+    "danger-traversal": {
+        "input": "danger-traversal.tar",
+        "title": "tar refusal fixture: parent traversal",
+        "negative": True,
+        "notes": "Pins refusal of tar entries containing parent-directory traversal.",
+    },
+    "danger-symlink-escape": {
+        "input": "danger-symlink-escape.tar",
+        "title": "tar refusal fixture: symlink escape",
+        "negative": True,
+        "notes": "Pins extraction refusal for symlink targets that escape the destination.",
     },
 }
 
@@ -455,6 +512,78 @@ def okf_fixture_entry(path: Path) -> dict[str, Any]:
     }
 
 
+def tar_fixture_paths() -> list[Path]:
+    root = VECTORS / "tar"
+    if not root.exists():
+        return []
+    return sorted(
+        path
+        for path in root.iterdir()
+        if path.is_file() and any(path.name.endswith(suffix) for suffix in TAR_MEDIA_TYPES)
+    )
+
+
+def tar_input_media_type(path: Path) -> str:
+    for suffix, media_type in TAR_MEDIA_TYPES.items():
+        if path.name.endswith(suffix):
+            return media_type
+    raise ManifestError(f"{rel(path)}: unsupported tar fixture extension")
+
+
+def tar_fixture_id(path: Path) -> str:
+    matches = [
+        fixture_id
+        for fixture_id, meta in TAR_FIXTURES.items()
+        if meta["input"] == path.name
+    ]
+    if len(matches) != 1:
+        raise ManifestError(f"{rel(path)}: tar fixture metadata missing")
+    return matches[0]
+
+
+def tar_fixture_entry(path: Path) -> dict[str, Any]:
+    fixture_id = tar_fixture_id(path)
+    meta = TAR_FIXTURES[fixture_id]
+    expected_path = VECTORS / "tar" / f"{fixture_id}.expected.json"
+    expected_data = load_json(expected_path)
+    negative = bool(meta.get("negative", False))
+    graph_path = VECTORS / "tar" / f"{fixture_id}.folded.nq"
+    expected: dict[str, Any] = {
+        "graph": rel(graph_path) if graph_path.exists() else None,
+        "diagnostics": expected_data.get("diagnostics", []),
+        "expected_head": None,
+        "fixture_kind": expected_data.get("kind"),
+        "entries": len(expected_data.get("expected_entries", [])),
+    }
+    capabilities = ["cbor", "blake3", "identity", "files-profile", "tar"]
+    if path.name.endswith(".tar.gz"):
+        capabilities.append("gzip")
+    elif path.name.endswith(".tar.zst"):
+        capabilities.append("zstd")
+
+    subsets = ["tar-archive"]
+    tiers = ["profile-aware-tool"]
+    if not negative:
+        subsets.append("writer-determinism")
+        tiers.append("writer")
+
+    return {
+        "id": f"tar-{fixture_id}",
+        "title": meta["title"],
+        "input": {
+            "path": rel(path),
+            "media_type": tar_input_media_type(path),
+        },
+        "mode": "profile-verify",
+        "negative": negative,
+        "required_capabilities": capabilities,
+        "subsets": subsets,
+        "tiers": tiers,
+        "expected": expected,
+        "notes": meta["notes"],
+    }
+
+
 def okf_concept_document_count(path: Path) -> int:
     count = 0
     for child in path.rglob("*.md"):
@@ -478,7 +607,9 @@ def build_manifest() -> dict[str, Any]:
             f"top-level vector metadata drift: unknown={unknown} missing={missing}"
         )
 
-    json_paths = sorted(path for path in VECTORS.glob("*/*.json"))
+    json_paths = sorted(
+        path for path in VECTORS.glob("*/*.json") if path.parent.name != "tar"
+    )
     unknown_dirs = sorted({path.parent.name for path in json_paths} - set(JSON_SUBCORPUS))
     if unknown_dirs:
         raise ManifestError(f"JSON subcorpus metadata missing for: {unknown_dirs}")
@@ -492,9 +623,20 @@ def build_manifest() -> dict[str, Any]:
             f"OKF bundle metadata drift: unknown={unknown_okf} missing={missing_okf}"
         )
 
+    tar_paths = tar_fixture_paths()
+    tar_inputs = {path.name for path in tar_paths}
+    expected_tar_inputs = {meta["input"] for meta in TAR_FIXTURES.values()}
+    unknown_tar = sorted(tar_inputs - expected_tar_inputs)
+    missing_tar = sorted(expected_tar_inputs - tar_inputs)
+    if unknown_tar or missing_tar:
+        raise ManifestError(
+            f"tar fixture metadata drift: unknown={unknown_tar} missing={missing_tar}"
+        )
+
     entries = [top_level_entry(vector_id) for vector_id in top_level_ids]
     entries.extend(json_fixture_entry(path) for path in json_paths)
     entries.extend(okf_fixture_entry(path) for path in okf_paths)
+    entries.extend(tar_fixture_entry(path) for path in tar_paths)
     entries.sort(key=lambda item: item["input"]["path"])
     return {
         "schema": SCHEMA,
@@ -575,7 +717,12 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
     require(isinstance(input_path, str), f"{vector_id}: input.path must be a string")
     require(
         input_info.get("media_type")
-        in {"application/vnd.blackcat.gts+cbor-seq", "application/json", OKF_MEDIA_TYPE},
+        in {
+            "application/vnd.blackcat.gts+cbor-seq",
+            "application/json",
+            OKF_MEDIA_TYPE,
+            *TAR_MEDIA_TYPES.values(),
+        },
         f"{vector_id}: unsupported input media_type",
     )
     media_type = input_info["media_type"]
@@ -711,7 +858,9 @@ def validate_manifest(manifest: Any, *, require_release_revision: bool = False) 
         and "/" in entry["input"]["path"][len("vectors/") :]
         and entry["input"]["path"].endswith(".json")
     )
-    filesystem_json_paths = sorted(rel(path) for path in VECTORS.glob("*/*.json"))
+    filesystem_json_paths = sorted(
+        rel(path) for path in VECTORS.glob("*/*.json") if path.parent.name != "tar"
+    )
     require(
         manifest_json_paths == filesystem_json_paths,
         "manifest JSON subcorpus coverage drift: "
@@ -752,6 +901,50 @@ def validate_manifest(manifest: Any, *, require_release_revision: bool = False) 
         fixture_id = entry["id"].removeprefix("okf-")
         require(fixture_id in OKF_BUNDLES, f"{entry['id']}: OKF metadata missing")
         require_generated_metadata(entry, okf_fixture_entry(VECTORS / "okf" / fixture_id))
+
+    tar_entries = [
+        entry for entry in vectors if entry["input"]["media_type"] in TAR_MEDIA_TYPES.values()
+    ]
+    manifest_tar = sorted(Path(entry["input"]["path"]).name for entry in tar_entries)
+    filesystem_tar = sorted(path.name for path in tar_fixture_paths())
+    require(
+        manifest_tar == filesystem_tar,
+        "manifest tar fixture coverage drift: "
+        f"manifest={manifest_tar} filesystem={filesystem_tar}",
+    )
+    filesystem_tar_expected = sorted(
+        path.name.removesuffix(".expected.json")
+        for path in (VECTORS / "tar").glob("*.expected.json")
+    )
+    require(
+        sorted(TAR_FIXTURES) == filesystem_tar_expected,
+        "manifest tar expected-json coverage drift: "
+        f"metadata={sorted(TAR_FIXTURES)} expected={filesystem_tar_expected}",
+    )
+    for entry in tar_entries:
+        fixture_path = repo_path(entry["input"]["path"], "input.path", entry["id"])
+        fixture_id = entry["id"].removeprefix("tar-")
+        require(fixture_id in TAR_FIXTURES, f"{entry['id']}: tar metadata missing")
+        expected_json = VECTORS / "tar" / f"{fixture_id}.expected.json"
+        require(expected_json.is_file(), f"{entry['id']}: missing tar expected JSON")
+        expected_data = load_json(expected_json)
+        require(
+            expected_data.get("fixture") == fixture_id,
+            f"{entry['id']}: tar expected fixture id drift",
+        )
+        require(
+            expected_data.get("input") == fixture_path.name,
+            f"{entry['id']}: tar expected input drift",
+        )
+        graph_path = VECTORS / "tar" / f"{fixture_id}.folded.nq"
+        if entry["expected"]["graph"] is None:
+            require(
+                not graph_path.exists(),
+                f"{entry['id']}: folded graph exists but manifest expected.graph is null",
+            )
+        else:
+            require(graph_path.is_file(), f"{entry['id']}: missing tar folded graph")
+        require_generated_metadata(entry, tar_fixture_entry(fixture_path))
 
 
 def expect_invalid(
@@ -831,6 +1024,15 @@ def run_self_tests() -> None:
         and "/" in entry["input"]["path"][len("vectors/") :]
     )
     fixture["expected"]["fields"] = []
+    expect_invalid(manifest, "expected drift")
+
+    manifest = mutated_manifest()
+    tar_fixture = next(
+        entry
+        for entry in manifest["vectors"]
+        if entry["id"] == "tar-ustar-basic"
+    )
+    tar_fixture["expected"]["entries"] = 0
     expect_invalid(manifest, "expected drift")
 
     manifest = mutated_manifest()

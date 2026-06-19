@@ -1,6 +1,9 @@
 # The conformance corpus is byte-exact binary data — never normalize line
 # endings or treat as text.
 vectors/*.gts -text -diff
+vectors/tar/*.tar -text -diff
+vectors/tar/*.tar.gz -text -diff
+vectors/tar/*.tar.zst -text -diff
 
 # Lockfiles are generated; collapse in diffs/reviews.
 ts/package-lock.json linguist-generated=true -diff
