@@ -43,6 +43,8 @@ impl fmt::Display for CodecError {
 
 impl std::error::Error for CodecError {}
 
+const MAX_ZSTD_DECODED_SIZE: usize = 16 * 1024 * 1024;
+
 fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
     if codec.cls == "encrypt" {
         return Err(CodecError::Unavailable {
@@ -66,7 +68,6 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
             // while input remains (see ruzstd src/decoding/frame_decoder.rs).
             let mut decoder = ruzstd::decoding::FrameDecoder::new();
             // Start with a generous expansion factor and allow bounded growth.
-            const MAX_ZSTD_DECODED_SIZE: usize = 16 * 1024 * 1024;
             let mut capacity = data
                 .len()
                 .saturating_mul(4)
@@ -237,5 +238,21 @@ mod tests {
         let mut expected = block1.to_vec();
         expected.extend_from_slice(block2);
         assert_eq!(decoded, expected);
+    }
+
+    #[test]
+    fn zstd_decode_grows_until_safety_bound() {
+        let payload = vec![b'x'; 2 * 1024 * 1024];
+        let encoded = encode_chain(&["zstd".to_string()], &payload).expect("zstd encodes");
+        let decoded = decode_chain(
+            &[Codec {
+                name: "zstd".into(),
+                cls: "compress".into(),
+            }],
+            &encoded,
+        )
+        .expect("zstd decoder grows beyond the initial output capacity");
+
+        assert_eq!(decoded, payload);
     }
 }

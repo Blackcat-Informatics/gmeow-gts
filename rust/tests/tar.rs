@@ -10,7 +10,9 @@ use std::process::{Command, Output, Stdio};
 
 use gmeow_gts::codec::encode_chain;
 use gmeow_gts::files::{read_entries, FileEntryKind, FilePaxRecord};
+use gmeow_gts::from_nquads::from_nquads;
 use gmeow_gts::reader::read;
+use gmeow_gts::tar as gts_tar;
 
 fn tmpdir(name: &str) -> PathBuf {
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -179,6 +181,11 @@ fn inspect_tar(data: &[u8]) -> BTreeMap<String, TarEntry> {
         );
     }
     out
+}
+
+fn graph_from_nquads(text: &str) -> gmeow_gts::model::Graph {
+    let archive = from_nquads(text).expect("N-Quads author a GTS archive");
+    read(&archive, true, None)
 }
 
 #[test]
@@ -406,4 +413,46 @@ fn allow_special_preserves_special_entry_metadata() {
     let graph = read(&std::fs::read(&archive).unwrap(), true, None);
     let entries = read_entries(&graph).expect("entries read");
     assert_eq!(entries.get("run/pipe").unwrap().kind, FileEntryKind::Fifo);
+}
+
+#[test]
+fn to_tar_refuses_link_entries_without_targets() {
+    let graph = graph_from_nquads(
+        r#"
+_:f0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/gts/files#FileEntry> .
+_:f0 <https://w3id.org/gts/files#path> "link" .
+_:f0 <https://w3id.org/gts/files#type> "symlink" .
+"#,
+    );
+
+    let err = gts_tar::to_tar(&graph, Vec::<u8>::new(), &gts_tar::ToTarOptions::default())
+        .expect_err("missing link target is rejected");
+
+    assert!(
+        err.to_string()
+            .contains("symlink entry link has no link target"),
+        "error: {err}"
+    );
+}
+
+#[test]
+fn to_tar_refuses_device_numbers_outside_tar_range() {
+    let graph = graph_from_nquads(
+        r#"
+_:f0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/gts/files#FileEntry> .
+_:f0 <https://w3id.org/gts/files#path> "dev/null" .
+_:f0 <https://w3id.org/gts/files#type> "chardev" .
+_:f0 <https://w3id.org/gts/files#devMajor> "4294967296"^^<http://www.w3.org/2001/XMLSchema#integer> .
+_:f0 <https://w3id.org/gts/files#devMinor> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+"#,
+    );
+
+    let err = gts_tar::to_tar(&graph, Vec::<u8>::new(), &gts_tar::ToTarOptions::default())
+        .expect_err("out-of-range device major is rejected");
+
+    assert!(
+        err.to_string()
+            .contains("dev/null devMajor exceeds u32 range"),
+        "error: {err}"
+    );
 }

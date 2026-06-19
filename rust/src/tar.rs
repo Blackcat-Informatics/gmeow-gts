@@ -55,38 +55,54 @@ pub fn to_tar<W: Write>(
     mut writer: W,
     options: &ToTarOptions,
 ) -> Result<(), TarError> {
-    let raw = to_tar_vec(graph, options)?;
-    let encoded = match options.compression {
-        TarCompression::None => raw,
-        TarCompression::Gzip => encode_chain(&["gzip".to_string()], &raw)
-            .map_err(|err| TarError::new(format!("gzip encode tar stream: {err}")))?,
-        TarCompression::Zstd => encode_chain(&["zstd".to_string()], &raw)
-            .map_err(|err| TarError::new(format!("zstd encode tar stream: {err}")))?,
-    };
-    writer
-        .write_all(&encoded)
-        .map_err(|err| TarError::new(format!("write tar stream: {err}")))
+    match options.compression {
+        TarCompression::None => write_tar_stream(graph, writer, options),
+        TarCompression::Gzip => {
+            let mut encoder = flate2::GzBuilder::new()
+                .mtime(0)
+                .write(writer, flate2::Compression::default());
+            write_tar_stream(graph, &mut encoder, options)?;
+            encoder
+                .finish()
+                .map_err(|err| TarError::new(format!("gzip encode tar stream: {err}")))?;
+            Ok(())
+        }
+        TarCompression::Zstd => {
+            let raw = to_tar_vec(graph, options)?;
+            let encoded = encode_chain(&["zstd".to_string()], &raw)
+                .map_err(|err| TarError::new(format!("zstd encode tar stream: {err}")))?;
+            writer
+                .write_all(&encoded)
+                .map_err(|err| TarError::new(format!("write tar stream: {err}")))
+        }
+    }
 }
 
 /// Build an uncompressed tar stream from a folded files-profile graph.
 pub fn to_tar_vec(graph: &Graph, options: &ToTarOptions) -> Result<Vec<u8>, TarError> {
+    let mut out = Vec::new();
+    write_tar_stream(graph, &mut out, options)?;
+    Ok(out)
+}
+
+fn write_tar_stream<W: Write>(
+    graph: &Graph,
+    writer: W,
+    options: &ToTarOptions,
+) -> Result<(), TarError> {
     let entries = read_entries(graph).map_err(TarError::new)?;
     let blobs: BTreeMap<&str, &BlobEntry> = graph
         .blobs
         .iter()
         .map(|(digest, entry)| (digest.as_str(), entry))
         .collect();
-    let mut out = Vec::new();
-    {
-        let mut builder = ::tar::Builder::new(&mut out);
-        for entry in entries.values() {
-            append_entry(&mut builder, entry, &blobs, options)?;
-        }
-        builder
-            .finish()
-            .map_err(|err| TarError::new(format!("finish tar stream: {err}")))?;
+    let mut builder = ::tar::Builder::new(writer);
+    for entry in entries.values() {
+        append_entry(&mut builder, entry, &blobs, options)?;
     }
-    Ok(out)
+    builder
+        .finish()
+        .map_err(|err| TarError::new(format!("finish tar stream: {err}")))
 }
 
 fn append_entry<W: Write>(
@@ -105,14 +121,14 @@ fn append_entry<W: Write>(
             builder,
             entry,
             ::tar::EntryType::Symlink,
-            entry.link_target.as_deref(),
+            Some(required_link_target(entry, "symlink")?),
             options,
         ),
         FileEntryKind::Hardlink => append_metadata_entry(
             builder,
             entry,
             ::tar::EntryType::Link,
-            entry.link_target.as_deref(),
+            Some(required_link_target(entry, "hardlink")?),
             options,
         ),
         FileEntryKind::Fifo => {
@@ -175,6 +191,14 @@ fn append_metadata_entry<W: Write>(
         .map_err(|err| TarError::new(format!("append {}: {err}", entry.path)))
 }
 
+fn required_link_target<'a>(entry: &'a FileEntry, kind: &str) -> Result<&'a str, TarError> {
+    entry
+        .link_target
+        .as_deref()
+        .filter(|target| !target.is_empty())
+        .ok_or_else(|| TarError::new(format!("{kind} entry {} has no link target", entry.path)))
+}
+
 fn append_device_entry<W: Write>(
     builder: &mut ::tar::Builder<W>,
     entry: &FileEntry,
@@ -189,7 +213,8 @@ fn append_device_entry<W: Write>(
             entry
                 .dev_major
                 .ok_or_else(|| TarError::new(format!("{} missing devMajor", entry.path)))?
-                as u32,
+                .try_into()
+                .map_err(|_| TarError::new(format!("{} devMajor exceeds u32 range", entry.path)))?,
         )
         .map_err(|err| TarError::new(format!("set dev major for {}: {err}", entry.path)))?;
     header
@@ -197,7 +222,8 @@ fn append_device_entry<W: Write>(
             entry
                 .dev_minor
                 .ok_or_else(|| TarError::new(format!("{} missing devMinor", entry.path)))?
-                as u32,
+                .try_into()
+                .map_err(|_| TarError::new(format!("{} devMinor exceeds u32 range", entry.path)))?,
         )
         .map_err(|err| TarError::new(format!("set dev minor for {}: {err}", entry.path)))?;
     builder

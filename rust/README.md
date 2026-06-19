@@ -375,9 +375,9 @@ gts from-yaml-ld <in.yaml> [-o out]
 gts to-okf <file> --directory <dir>
                                 export an OKF bundle (--features okf)
 gts from-okf <dir> [-o out]     build a GTS from an OKF bundle (--features okf)
-gts from-tar <archive.tar[.gz|.zst]|-> [-o out.gts]
+gts from-tar <archive.tar[.gz|.zst]|-> [-o out.gts] [--allow-symlinks] [--allow-special] [--owner]
                                 build a files-profile-v2 GTS from tar (--features tar)
-gts to-tar <file.gts> [-o archive.tar|-]
+gts to-tar <file.gts> [-o archive.tar|-] [-z|--gzip|--zstd] [--numeric-owner]
                                 export a files-profile-v2 archive as tar (--features tar)
 gts to-sqlite <file> <out>      export to SQLite (requires sqlite3)
 gts to-duckdb <file> <out>      export to DuckDB (--features duckdb; requires duckdb)

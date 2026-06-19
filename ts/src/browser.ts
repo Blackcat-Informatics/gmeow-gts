@@ -40,6 +40,7 @@ const KID = 4;
 const IV = 5;
 const TAG_SIGN1 = 18;
 const TAG_ENCRYPT0 = 16;
+const MAX_ZSTD_DECODED_SIZE = 16 * 1024 * 1024;
 
 type MaybePromise<T> = T | Promise<T>;
 type KeyLike = CryptoKey | Uint8Array | ArrayBuffer;
@@ -1404,8 +1405,17 @@ async function decodeOne(
         case "zstd":
         case "zstd-rsyncable":
             try {
-                return zstdDecompress(data);
+                const decoded = zstdDecompress(data);
+                if (decoded.length > MAX_ZSTD_DECODED_SIZE) {
+                    throw new BrowserCodecError(
+                        "damaged",
+                        "zstd decode failed: decompressed size exceeds safety bound",
+                        true,
+                    );
+                }
+                return decoded;
             } catch (e) {
+                if (e instanceof BrowserCodecError) throw e;
                 throw new BrowserCodecError(
                     "damaged",
                     `zstd decode failed: ${(e as Error).message}`,

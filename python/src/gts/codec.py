@@ -62,6 +62,7 @@ _ZSTD_D = zstandard.ZstdDecompressor()
 #: Uncompressed block size for the zstd-rsyncable codec. Each block is an
 #: independent zstd frame so that a local change only affects that block.
 _RSYNCABLE_BLOCK_SIZE = 65536
+_MAX_ZSTD_DECODED_SIZE = 16 * 1024 * 1024
 
 
 def _encode_zstd_rsyncable(data: bytes) -> bytes:
@@ -95,11 +96,16 @@ def _encode_one(name: str, data: bytes) -> bytes:
 def _decode_zstd(data: bytes) -> bytes:
     """Decompress zstd bytes, including rsyncable streams with flush blocks."""
     out = io.BytesIO()
+    decoded_size = 0
     with _ZSTD_D.stream_reader(io.BytesIO(data)) as reader:
         while True:
             chunk = reader.read(131072)
             if not chunk:
                 break
+            decoded_size += len(chunk)
+            if decoded_size > _MAX_ZSTD_DECODED_SIZE:
+                msg = "zstd decode failed: decompressed size exceeds safety bound"
+                raise ValueError(msg)
             out.write(chunk)
     return out.getvalue()
 
