@@ -460,7 +460,10 @@ def okf_concept_document_count(path: Path) -> int:
     for child in path.rglob("*.md"):
         if not child.is_file():
             continue
-        text = child.read_text(encoding="utf-8")
+        try:
+            text = child.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            raise ManifestError(f"{rel(child)}: markdown is not UTF-8: {exc}") from exc
         if text.startswith("---\n") or text.startswith("---\r\n"):
             count += 1
     return count

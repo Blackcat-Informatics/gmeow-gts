@@ -503,9 +503,20 @@ fn is_frontmatterless_index(bytes: &[u8], path: &str) -> Result<bool, OkfParseEr
     if path.rsplit('/').next() != Some("index.md") {
         return Ok(false);
     }
-    let text = std::str::from_utf8(bytes)
+    if has_yaml_frontmatter_bytes(bytes) {
+        return Ok(false);
+    }
+    std::str::from_utf8(bytes)
         .map_err(|e| OkfParseError::new(format!("{path}: markdown is not UTF-8: {e}")))?;
-    Ok(!text.starts_with("---\n") && !text.starts_with("---\r\n"))
+    Ok(true)
+}
+
+fn has_yaml_frontmatter_bytes(bytes: &[u8]) -> bool {
+    bytes.starts_with(b"---\n") || bytes.starts_with(b"---\r\n")
+}
+
+fn has_yaml_frontmatter(text: &str) -> bool {
+    has_yaml_frontmatter_bytes(text.as_bytes())
 }
 
 fn relative_okf_path(root: &Path, path: &Path) -> Result<String, OkfParseError> {
@@ -560,7 +571,7 @@ fn safe_relative_path(path: &str) -> Result<(), OkfParseError> {
 fn parse_markdown(bytes: &[u8], path: &str) -> Result<(YamlMapping, Vec<u8>), OkfParseError> {
     let text = std::str::from_utf8(bytes)
         .map_err(|e| OkfParseError::new(format!("{path}: markdown is not UTF-8: {e}")))?;
-    if !text.starts_with("---\n") && !text.starts_with("---\r\n") {
+    if !has_yaml_frontmatter(text) {
         return Err(OkfParseError::new(format!(
             "{path}: OKF document is missing YAML frontmatter"
         )));
