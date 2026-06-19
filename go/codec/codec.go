@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 // Package codec provides the GTS transform catalog decoder (§8).
+//
+// It intentionally implements the baseline decode path only: identity, gzip,
+// zstd, and zstd-rsyncable are decoded locally, while encrypt-class entries
+// degrade to missing-key unless a higher layer supplies key-aware handling.
 package codec
 
 import (
@@ -30,16 +34,20 @@ func getZstdDecoder() (*zstd.Decoder, error) {
 
 // Codec is a catalog entry (§5, §8.5).
 type Codec struct {
+	// Name is the canonical codec name looked up from the segment catalog.
 	Name string
-	// "encode" | "compress" | "encrypt"
+	// Cls is "encode", "compress", or "encrypt".
 	Cls string
 }
 
 // Error describes why a transform chain could not be reversed.
 type Error struct {
-	Reason string // "unknown-codec" | "missing-key"
+	// Reason is "unknown-codec" or "missing-key" for opaque degradation.
+	Reason string
+	// Detail is a human-readable diagnostic.
 	Detail string
-	Failed bool // true if codec is known but data is corrupt
+	// Failed is true when the codec is known but the bytes are corrupt.
+	Failed bool
 }
 
 func (e *Error) Error() string {

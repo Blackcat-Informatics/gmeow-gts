@@ -295,12 +295,10 @@ func TestCatComposesCleanInputs(t *testing.T) {
 	if cmd.ProcessState.ExitCode() != 0 {
 		t.Fatalf("expected exit 0, got %d", cmd.ProcessState.ExitCode())
 	}
-	//nolint:gosec // test reads frozen conformance vectors by name.
 	adata, err := os.ReadFile(a)
 	if err != nil {
 		t.Fatal(err)
 	}
-	//nolint:gosec // test reads frozen conformance vectors by name.
 	bdata, err := os.ReadFile(b)
 	if err != nil {
 		t.Fatal(err)
@@ -391,12 +389,10 @@ func TestPackUnpackRoundTrip(t *testing.T) {
 	if cmd.ProcessState.ExitCode() != 0 {
 		t.Fatalf("re-pack exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
 	}
-	//nolint:gosec // test reads back the archive it just wrote to a temp path.
 	orig, err := os.ReadFile(archive)
 	if err != nil {
 		t.Fatal(err)
 	}
-	//nolint:gosec // test reads back the archive it just wrote to a temp path.
 	repack, err := os.ReadFile(archive2)
 	if err != nil {
 		t.Fatal(err)
@@ -408,7 +404,6 @@ func TestPackUnpackRoundTrip(t *testing.T) {
 
 func readFile(t *testing.T, path string) string {
 	t.Helper()
-	//nolint:gosec // test helper reads files from temp directories.
 	b, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -481,12 +476,10 @@ func TestCompactReproducesFrozenVectorViaCLI(t *testing.T) {
 	if cmd.ProcessState.ExitCode() != 0 {
 		t.Fatalf("compact exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
 	}
-	//nolint:gosec // test reads back the CLI output and a frozen vector.
 	got, err := os.ReadFile(out)
 	if err != nil {
 		t.Fatal(err)
 	}
-	//nolint:gosec // test reads a frozen conformance vector by name.
 	expected, err := os.ReadFile(vector(t, "25b-streamable-compacted.gts"))
 	if err != nil {
 		t.Fatal(err)

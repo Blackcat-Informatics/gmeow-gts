@@ -1,7 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-// Package mmr verifies detached Merkle-Mountain-Range proof JSON for GTS index.mmr roots.
+// Package mmr verifies detached Merkle-Mountain-Range proof JSON for GTS
+// index.mmr roots.
+//
+// A proof is intentionally self-contained: verification checks that a frame id
+// reconstructs the selected peak and aggregate root without reading the GTS file
+// that originally produced the index.
 package mmr
 
 import (
@@ -28,26 +33,38 @@ const (
 
 // Peak is one MMR peak carried in a detached proof.
 type Peak struct {
+	// Height is the tree height of this peak.
 	Height int
-	Hash   []byte
+	// Hash is the 32-byte BLAKE3 hash for the peak root.
+	Hash []byte
 }
 
 // Step is one sibling step from the leaf to its peak.
 type Step struct {
+	// ParentHeight is the height reached after combining this sibling.
 	ParentHeight int
-	Side         string
-	Hash         []byte
+	// Side is "left" or "right" relative to the carried hash.
+	Side string
+	// Hash is the 32-byte sibling hash.
+	Hash []byte
 }
 
 // Proof is the stable detached inclusion-proof data model.
 type Proof struct {
-	Count     int
+	// Count is the number of leaves covered by Root.
+	Count int
+	// LeafIndex is the zero-based index of FrameID among Count leaves.
 	LeafIndex int
-	FrameID   []byte
-	Root      []byte
+	// FrameID is the 32-byte content id being proven.
+	FrameID []byte
+	// Root is the declared aggregate MMR root.
+	Root []byte
+	// PeakIndex selects the peak that contains LeafIndex.
 	PeakIndex int
-	Peaks     []Peak
-	Path      []Step
+	// Peaks are the left-to-right canonical peaks for Count.
+	Peaks []Peak
+	// Path is the sibling path from FrameID to Peaks[PeakIndex].
+	Path []Step
 }
 
 type jsonPeak struct {
@@ -263,6 +280,9 @@ func ProofFromJSON(data []byte) (Proof, error) {
 }
 
 // VerifyProof verifies a detached proof without access to the original GTS file.
+//
+// It returns an error if the path, peak list, selected leaf, or aggregate root
+// do not describe a valid inclusion proof for the supported preimage version.
 func VerifyProof(proof Proof) error {
 	if len(proof.FrameID) != 32 {
 		return fmt.Errorf("frame_id must be 32 bytes")

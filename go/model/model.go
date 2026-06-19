@@ -2,6 +2,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 // Package model provides the in-memory data model for a folded GTS graph.
+//
+// IDs stored in Terms, Quads, Reifiers, Annotations, and Suppressions are
+// segment-local during a fold and are remapped only by higher-level union or
+// deterministic-writer code. The model package intentionally keeps those values
+// simple so reader and streaming paths can share the same sidecar structures.
 package model
 
 // Well-known datatype IRIs used by the literal-defaulting rule (§7.1).
@@ -40,6 +45,7 @@ func FromWire(k int64) TermKind {
 
 // Term is a single RDF term carried by append-order id.
 type Term struct {
+	// Kind is the RDF term kind.
 	Kind TermKind
 	// IRI string, literal lexical form, or blank-node label (scope-local).
 	Value string
@@ -140,6 +146,11 @@ type ReifierEntry struct {
 }
 
 // Graph is the folded result of a GTS log.
+//
+// Graph contains authorable RDF state plus reader sidecars. Sidecars such as
+// Opaque, Signatures, Diagnostics, SegmentHeads, and SegmentStreamable are
+// observations about the log and should not be replayed as authoring input
+// unless a caller is deliberately preserving evidence.
 type Graph struct {
 	Terms           []Term
 	Quads           []Quad
