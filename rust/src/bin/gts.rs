@@ -19,6 +19,8 @@ use gmeow_gts::emojihash::emojihash;
 use gmeow_gts::from_nquads::from_nquads;
 #[cfg(feature = "okf")]
 use gmeow_gts::from_okf::{from_okf_with_options, FromOkfOptions};
+#[cfg(feature = "tar")]
+use gmeow_gts::from_tar::{from_tar_bytes, FromTarOptions};
 use gmeow_gts::from_trig::from_trig;
 #[cfg(feature = "yaml-ld")]
 use gmeow_gts::from_yamlld::from_yaml_ld;
@@ -32,6 +34,8 @@ use gmeow_gts::reader::{read, read_file_segments, FileSegments};
 use gmeow_gts::replication::{
     heads_json, inventory, missing, missing_json, resume_after, segments_json, MissingStatus,
 };
+#[cfg(feature = "tar")]
+use gmeow_gts::tar::{to_tar, TarCompression, ToTarOptions};
 use gmeow_gts::trig::to_trig;
 use gmeow_gts::verify::{extract_transport_key, format_fingerprint};
 use gmeow_gts::wire::{digest_str, hex};
@@ -54,6 +58,10 @@ commands:
             $yamlld,
             $okf,
             "
+  from-tar <archive.tar[.gz|.zst]|-> [-o out.gts] [--allow-symlinks] [--allow-special] [--owner]
+                            build a files-profile-v2 GTS from tar (feature tar)
+  to-tar <file.gts> [-o archive.tar|-] [-z|--gzip|--zstd] [--numeric-owner]
+                            export a files-profile-v2 archive as tar (feature tar)
   verify [--key kid:hexpubkey] [--policy file] <file>...
                             verify chains, signatures, and optional profile policy
   prove <file> <frame-id>   emit JSON inclusion proof from an index.mmr root
@@ -248,6 +256,12 @@ fn main() -> ExitCode {
         "from-okf" => cmd_from_okf(&args[1..]),
         #[cfg(not(feature = "okf"))]
         "to-okf" | "from-okf" => cmd_okf_disabled(cmd),
+        #[cfg(feature = "tar")]
+        "from-tar" => cmd_from_tar(&args[1..]),
+        #[cfg(feature = "tar")]
+        "to-tar" => cmd_to_tar(&args[1..]),
+        #[cfg(not(feature = "tar"))]
+        "from-tar" | "to-tar" => cmd_tar_disabled(cmd),
         "verify" => cmd_verify(&args[1..]),
         "prove" => cmd_prove(&args[1..]),
         "verify-proof" => cmd_verify_proof(&args[1..]),
@@ -300,6 +314,12 @@ fn cmd_yaml_ld_disabled(cmd: &str) -> ExitCode {
 #[cfg(not(feature = "okf"))]
 fn cmd_okf_disabled(cmd: &str) -> ExitCode {
     eprintln!("gts {cmd}: OKF transforms are disabled; rebuild with `--features okf`");
+    ExitCode::from(2)
+}
+
+#[cfg(not(feature = "tar"))]
+fn cmd_tar_disabled(cmd: &str) -> ExitCode {
+    eprintln!("gts {cmd}: tar transforms are disabled; rebuild with `--features tar`");
     ExitCode::from(2)
 }
 
@@ -1048,6 +1068,171 @@ fn cmd_from_okf(args: &[String]) -> ExitCode {
             use std::io::Write;
             if let Err(e) = std::io::stdout().write_all(&bytes) {
                 eprintln!("gts from-okf: cannot write stdout: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+#[cfg(feature = "tar")]
+fn cmd_from_tar(args: &[String]) -> ExitCode {
+    let mut out_path: Option<&str> = None;
+    let mut input: Option<&str> = None;
+    let mut options = FromTarOptions::default();
+    let mut it = args.iter();
+    while let Some(arg) = it.next() {
+        match arg.as_str() {
+            "-o" | "--out" => match it.next() {
+                Some(path) => out_path = Some(path),
+                None => {
+                    eprintln!("gts from-tar: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            "--allow-symlinks" => options.allow_symlinks = true,
+            "--allow-special" => options.allow_special = true,
+            "--owner" => options.owner = true,
+            other if input.is_none() => input = Some(other),
+            _ => {
+                eprintln!("{USAGE}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    let Some(input) = input else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+
+    let bytes = if input == "-" {
+        let mut bytes = Vec::new();
+        let mut stdin = std::io::stdin();
+        if let Err(e) = std::io::Read::read_to_end(&mut stdin, &mut bytes) {
+            eprintln!("gts from-tar: cannot read stdin: {e}");
+            return ExitCode::from(2);
+        }
+        bytes
+    } else {
+        options.source_name = Some(input.to_string());
+        match std::fs::read(input) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                eprintln!("gts from-tar: cannot read {input}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    };
+
+    let archive = match from_tar_bytes(&bytes, &options) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            eprintln!("gts from-tar: {e}");
+            return ExitCode::from(1);
+        }
+    };
+    write_bytes("from-tar", out_path, &archive)
+}
+
+#[cfg(feature = "tar")]
+fn cmd_to_tar(args: &[String]) -> ExitCode {
+    let mut out_path: Option<&str> = None;
+    let mut input: Option<&str> = None;
+    let mut options = ToTarOptions::default();
+    let mut it = args.iter();
+    while let Some(arg) = it.next() {
+        match arg.as_str() {
+            "-o" | "--out" => match it.next() {
+                Some(path) => out_path = Some(path),
+                None => {
+                    eprintln!("gts to-tar: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            "-z" | "--gzip" => {
+                if let Err(e) = set_tar_compression(&mut options, TarCompression::Gzip) {
+                    eprintln!("gts to-tar: {e}");
+                    return ExitCode::from(2);
+                }
+            }
+            "--zstd" => {
+                if let Err(e) = set_tar_compression(&mut options, TarCompression::Zstd) {
+                    eprintln!("gts to-tar: {e}");
+                    return ExitCode::from(2);
+                }
+            }
+            "--numeric-owner" => options.numeric_owner = true,
+            other if input.is_none() => input = Some(other),
+            _ => {
+                eprintln!("{USAGE}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    let Some(input) = input else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let graph = match export_graph(input) {
+        Ok(graph) => graph,
+        Err(code) => return code,
+    };
+
+    match out_path {
+        Some("-") | None => {
+            let mut stdout = std::io::stdout();
+            match to_tar(&graph, &mut stdout, &options) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(e) => {
+                    eprintln!("gts to-tar: {e}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+        Some(path) => {
+            let mut file = match std::fs::File::create(path) {
+                Ok(file) => file,
+                Err(e) => {
+                    eprintln!("gts to-tar: cannot write {path}: {e}");
+                    return ExitCode::from(2);
+                }
+            };
+            match to_tar(&graph, &mut file, &options) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(e) => {
+                    eprintln!("gts to-tar: {e}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+    }
+}
+
+#[cfg(feature = "tar")]
+fn set_tar_compression(
+    options: &mut ToTarOptions,
+    compression: TarCompression,
+) -> Result<(), &'static str> {
+    if options.compression != TarCompression::None && options.compression != compression {
+        return Err("choose only one compression format");
+    }
+    options.compression = compression;
+    Ok(())
+}
+
+#[cfg(feature = "tar")]
+fn write_bytes(command: &str, out_path: Option<&str>, bytes: &[u8]) -> ExitCode {
+    match out_path {
+        Some("-") | None => {
+            let mut stdout = std::io::stdout();
+            if let Err(e) = std::io::Write::write_all(&mut stdout, bytes) {
+                eprintln!("gts {command}: cannot write stdout: {e}");
+                return ExitCode::from(2);
+            }
+        }
+        Some(path) => {
+            if let Err(e) = std::fs::write(path, bytes) {
+                eprintln!("gts {command}: cannot write {path}: {e}");
                 return ExitCode::from(2);
             }
         }

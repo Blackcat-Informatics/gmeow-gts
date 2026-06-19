@@ -4,6 +4,8 @@
 import { gunzipSync, gzipSync } from "node:zlib";
 import { decompress as zstdDecompress } from "fzstd";
 
+const MAX_ZSTD_DECODED_SIZE = 16 * 1024 * 1024;
+
 /** A catalog entry (§5, §8.5). */
 export interface Codec {
     name: string;
@@ -70,8 +72,17 @@ function decodeOne(codec: Codec, data: Uint8Array): Uint8Array {
         case "zstd":
         case "zstd-rsyncable": {
             try {
-                return zstdDecompress(data);
+                const decoded = zstdDecompress(data);
+                if (decoded.length > MAX_ZSTD_DECODED_SIZE) {
+                    throw codecError({
+                        reason: "damaged",
+                        detail: "zstd decode failed: decompressed size exceeds safety bound",
+                        failed: true,
+                    });
+                }
+                return decoded;
             } catch (e) {
+                if (isCodecError(e)) throw e;
                 throw codecError({
                     reason: "damaged",
                     detail: `zstd decode failed: ${(e as Error).message}`,
@@ -126,5 +137,15 @@ export const zstd = {
             failed: false,
         });
     },
-    decode: (data: Uint8Array): Uint8Array => zstdDecompress(data),
+    decode: (data: Uint8Array): Uint8Array => {
+        const decoded = zstdDecompress(data);
+        if (decoded.length > MAX_ZSTD_DECODED_SIZE) {
+            throw codecError({
+                reason: "damaged",
+                detail: "zstd decode failed: decompressed size exceeds safety bound",
+                failed: true,
+            });
+        }
+        return decoded;
+    },
 };

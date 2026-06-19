@@ -54,6 +54,20 @@ fn okf_commands_report_feature_gate_when_disabled() {
     assert!(err.contains("--features okf"), "stderr: {err}");
 }
 
+#[cfg(not(feature = "tar"))]
+#[test]
+fn tar_commands_report_feature_gate_when_disabled() {
+    let out = gts(&["from-tar"]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--features tar"), "stderr: {err}");
+
+    let out = gts(&["to-tar"]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--features tar"), "stderr: {err}");
+}
+
 #[cfg(feature = "policy-config-yaml")]
 #[test]
 fn verify_policy_file_trusts_did_style_signer() {

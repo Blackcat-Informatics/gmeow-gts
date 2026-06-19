@@ -11,7 +11,7 @@ import * as wire from "../src/wire.js";
 import { Writer } from "../src/writer.js";
 import { Read } from "../src/reader.js";
 import { toNQuads } from "../src/nquads.js";
-import { identity, gzip } from "../src/codec.js";
+import { decodeChain, gzip, identity, isCodecError } from "../src/codec.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -57,6 +57,23 @@ test("codec zstd decodes the zstd corpus vector", () => {
     const g = Read(readFileSync(path), false);
     assert.equal(g.diagnostics.length, 0);
     assert.ok(g.quads.length > 0);
+});
+
+test("codec zstd rejects outputs over the safety bound", () => {
+    const encoded = Uint8Array.from(
+        Buffer.from(
+            "KLUv/YBYAQAAAVQAABAAAAEA+/85wAICABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAACQAAAA==",
+            "base64",
+        ),
+    );
+
+    assert.throws(
+        () => decodeChain([{ name: "zstd", cls: "compress" }], encoded),
+        (err: unknown) =>
+            isCodecError(err) &&
+            err.failed &&
+            err.detail.includes("decompressed size exceeds safety bound"),
+    );
 });
 
 test("writer produces a readable GTS log", () => {

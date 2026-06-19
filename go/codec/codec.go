@@ -12,25 +12,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
 )
 
-var (
-	zstdOnce    sync.Once
-	zstdDecoder *zstd.Decoder
-	zstdInitErr error
-)
-
-// getZstdDecoder returns the shared, concurrency-safe zstd decoder.
-func getZstdDecoder() (*zstd.Decoder, error) {
-	zstdOnce.Do(func() {
-		zstdDecoder, zstdInitErr = zstd.NewReader(nil)
-	})
-	return zstdDecoder, zstdInitErr
-}
+const maxZstdDecodedSize = 16 * 1024 * 1024
 
 // Codec is a catalog entry (§5, §8.5).
 type Codec struct {
@@ -81,13 +68,17 @@ func decodeOne(codec *Codec, data []byte) ([]byte, error) {
 		}
 		return out, nil
 	case "zstd", "zstd-rsyncable":
-		r, err := getZstdDecoder()
+		r, err := zstd.NewReader(bytes.NewReader(data))
 		if err != nil {
 			return nil, &Error{Failed: true, Detail: fmt.Sprintf("zstd decoder init failed: %v", err)}
 		}
-		out, err := r.DecodeAll(data, nil)
+		defer r.Close()
+		out, err := io.ReadAll(io.LimitReader(r, int64(maxZstdDecodedSize+1)))
 		if err != nil {
 			return nil, &Error{Failed: true, Detail: fmt.Sprintf("zstd decode failed: %v", err)}
+		}
+		if len(out) > maxZstdDecodedSize {
+			return nil, &Error{Failed: true, Detail: "zstd decode failed: decompressed size exceeds safety bound"}
 		}
 		return out, nil
 	default:
