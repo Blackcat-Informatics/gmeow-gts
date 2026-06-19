@@ -292,6 +292,12 @@ rg -n "<version>|spec commit|corpus revision|conformance|SBOM|attestation" CHANG
 After the release PR is merged, tag the exact merge commit. Push release tags
 one at a time so each tag-triggered workflow receives its own event.
 
+Before pushing Rust tags, confirm crates.io Trusted Publisher entries are active
+for both crates with owner/repo `Blackcat-Informatics/gmeow-gts`, workflow
+`release-cargo.yaml` for `gmeow-gts`, workflow `release-visual-hashing.yaml` for
+`visual-hashing`, and environment `(none)`. The normal Rust release path uses
+GitHub Actions OIDC and does not require `CARGO_REGISTRY_TOKEN`.
+
 ```bash
 MERGE_COMMIT="<full-merge-commit>"
 VERSION="<version>"
@@ -305,6 +311,15 @@ git push origin "go-v${VERSION}"
 git push origin "npm-v${VERSION}"
 ```
 
+If `visual-hashing` changed, publish it before `rust-v*` tags that depend on the
+new crate version:
+
+```bash
+VISUAL_HASHING_VERSION="<visual-hashing-version>"
+git tag "visual-hashing-v${VISUAL_HASHING_VERSION}" "${MERGE_COMMIT}"
+git push origin "visual-hashing-v${VISUAL_HASHING_VERSION}"
+```
+
 Monitor the release workflows:
 
 ```bash
@@ -313,6 +328,12 @@ gh run list --workflow release-cargo.yaml --branch "rust-v${VERSION}" --limit 5
 gh run list --workflow release-pypi.yml --branch "py-v${VERSION}" --limit 5
 gh run list --workflow release-go.yaml --branch "go-v${VERSION}" --limit 5
 gh run list --workflow release-npm.yaml --branch "npm-v${VERSION}" --limit 5
+```
+
+If `visual-hashing` was released, monitor its workflow by tag:
+
+```bash
+gh run list --workflow release-visual-hashing.yaml --branch "visual-hashing-v${VISUAL_HASHING_VERSION}" --limit 5
 ```
 
 If a tag was pushed to the wrong commit or with the wrong version, stop and file
