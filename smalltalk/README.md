@@ -6,8 +6,8 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 This directory contains the Pharo implementation of the Graph Transport Substrate.
 It is currently a Phase 0 engine bootstrap: Tonel packages, a Metacello baseline,
-deterministic-CBOR primitives, and SUnit tests that prove canonical encoding
-rules required by the GTS wire format.
+deterministic-CBOR primitives, a native BLAKE3 FFI spike, and SUnit tests that prove
+canonical encoding and hashing rules required by the GTS wire format.
 
 The parity target is Go-equal support: baseline/full reader, deterministic writer,
 COSE Sign1/Encrypt0, files profile, MMR, CLI verbs, and `scripts/interop.sh`
@@ -23,8 +23,8 @@ The development and CI runtime is pinned to:
 - Pharo VM `10.3.9`
 
 The Dockerfile also provisions `libzstd`, `libsodium`, and a pinned build of the
-official BLAKE3 C implementation so later reader/writer work can bind those
-libraries through Pharo's FFI surface.
+official BLAKE3 C implementation with a tiny GTS-owned one-shot hash shim. The
+Smalltalk package binds that shim through Pharo's Unified FFI surface.
 
 Build the local runtime image:
 
