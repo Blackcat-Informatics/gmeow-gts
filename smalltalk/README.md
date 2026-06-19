@@ -8,8 +8,9 @@ This directory contains the Pharo implementation of the Graph Transport Substrat
 It is currently a Phase 0 engine bootstrap: Tonel packages, a Metacello baseline,
 deterministic-CBOR primitives, a native BLAKE3 FFI spike, and SUnit tests that prove
 canonical encoding and hashing rules by reproducing the committed `01-minimal.gts`
-vector byte-for-byte. Native zstd FFI is also proven with a small byte round-trip
-test, but zstd frame decoding is not yet wired into a baseline reader.
+vector byte-for-byte. Native zstd and libsodium FFI are also proven with small
+crypto/codec smoke tests, but zstd frame decoding and COSE handling are not yet
+wired into a baseline reader.
 
 The parity target is Go-equal support: baseline/full reader, deterministic writer,
 COSE Sign1/Encrypt0, files profile, MMR, CLI verbs, and `scripts/interop.sh`
@@ -24,9 +25,9 @@ The development and CI runtime is pinned to:
 - Pharo image `13.1`
 - Pharo VM `10.3.9`
 
-The Dockerfile also provisions `libzstd`, `libsodium`, and a pinned build of the
-official BLAKE3 C implementation with a tiny GTS-owned one-shot hash shim. The
-Smalltalk package binds BLAKE3 and zstd through Pharo's Unified FFI surface.
+The Dockerfile also provisions `libzstd`, `libsodium`, and pinned GTS-owned native
+shims for BLAKE3 and libsodium calls. The Smalltalk package binds BLAKE3, zstd,
+and libsodium through Pharo's Unified FFI surface.
 
 Build the local runtime image:
 
