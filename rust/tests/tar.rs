@@ -4,15 +4,18 @@
 #![cfg(feature = "tar")]
 
 use std::collections::BTreeMap;
-use std::io::{Read, Write};
+use std::io::{Cursor, Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Output, Stdio};
 
 use gmeow_gts::codec::encode_chain;
-use gmeow_gts::files::{read_entries, FileEntryKind, FilePaxRecord};
+use gmeow_gts::files::{pack, pack_to_writer, read_entries, FileEntryKind, FilePaxRecord};
 use gmeow_gts::from_nquads::from_nquads;
+use gmeow_gts::from_tar::{from_tar_to_writer, FromTarOptions};
 use gmeow_gts::reader::read;
 use gmeow_gts::tar as gts_tar;
+
+const STREAM_ASSERT_MAX_WRITE: usize = 128 * 1024;
 
 fn tmpdir(name: &str) -> PathBuf {
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -43,6 +46,24 @@ fn gts_with_stdin(args: &[&str], input: &[u8]) -> Output {
         .write_all(input)
         .expect("stdin write succeeds");
     child.wait_with_output().expect("gts output is collected")
+}
+
+#[derive(Default)]
+struct ChunkRecordingWriter {
+    data: Vec<u8>,
+    max_write: usize,
+}
+
+impl Write for ChunkRecordingWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.max_write = self.max_write.max(buf.len());
+        self.data.extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
 fn make_tree(root: &std::path::Path) {
@@ -97,6 +118,20 @@ fn fixture_tar(include_symlink: bool) -> Vec<u8> {
                 .unwrap();
         }
 
+        builder.finish().unwrap();
+    }
+    out
+}
+
+fn large_file_tar(size: usize) -> Vec<u8> {
+    let payload = vec![b'x'; size];
+    let mut out = Vec::new();
+    {
+        let mut builder = tar::Builder::new(&mut out);
+        let mut file = header(tar::EntryType::Regular, payload.len() as u64);
+        builder
+            .append_data(&mut file, "large.bin", payload.as_slice())
+            .unwrap();
         builder.finish().unwrap();
     }
     out
@@ -192,6 +227,56 @@ fn inspect_tar(data: &[u8]) -> BTreeMap<String, TarEntry> {
 fn graph_from_nquads(text: &str) -> gmeow_gts::model::Graph {
     let archive = from_nquads(text).expect("N-Quads author a GTS archive");
     read(&archive, true, None)
+}
+
+#[test]
+fn from_tar_to_writer_streams_large_payload_writes() {
+    let raw = large_file_tar(2 * 1024 * 1024 + 17);
+    let mut out = ChunkRecordingWriter::default();
+
+    from_tar_to_writer(Cursor::new(raw), &mut out, &FromTarOptions::default())
+        .expect("tar import streams to GTS");
+
+    assert!(
+        out.max_write <= STREAM_ASSERT_MAX_WRITE,
+        "largest write was {} bytes",
+        out.max_write
+    );
+    let graph = read(&out.data, true, None);
+    assert!(
+        graph.diagnostics.is_empty(),
+        "diagnostics: {:?}",
+        graph.diagnostics
+    );
+    let entries = read_entries(&graph).expect("files-profile-v2 entries read");
+    assert_eq!(entries.get("large.bin").unwrap().size, Some(2_097_169));
+    assert_eq!(graph.blobs.len(), 1);
+    assert_eq!(graph.blobs[0].1.decoded_len().unwrap(), 2_097_169);
+}
+
+#[test]
+fn pack_to_writer_streams_large_file_payloads() {
+    let tmp = tmpdir("pack-streaming");
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let input = tmp.join("large.bin");
+    std::fs::write(&input, vec![b'y'; 2 * 1024 * 1024 + 3]).unwrap();
+
+    let mut out = ChunkRecordingWriter::default();
+    pack_to_writer(&[input.as_path()], &mut out).expect("pack streams to writer");
+
+    assert!(
+        out.max_write <= STREAM_ASSERT_MAX_WRITE,
+        "largest write was {} bytes",
+        out.max_write
+    );
+    assert_eq!(
+        out.data,
+        pack(&[input.as_path()]).expect("Vec pack remains equivalent")
+    );
+    let graph = read(&out.data, true, None);
+    let entries = read_entries(&graph).expect("files-profile entries read");
+    assert_eq!(entries.get("large.bin").unwrap().size, Some(2_097_155));
 }
 
 #[test]

@@ -354,7 +354,10 @@ for readable TriG graph-block interchange over the same folded RDF content. The 
 profile extension maps Markdown bundles to verifiable GTS package bytes and back behind
 `--features okf`; see [`docs/GTS-OKF.md`](./docs/GTS-OKF.md). The Rust `tar`
 extension provides tar-style `-c/-x/-t/-d` commands over `.gts` and `.tar` files behind
-`--features tar`, with explicit `--allow-*` extraction opt-ins. The Rust `dump` extension writes a versioned
+`--features tar`, with explicit `--allow-*` extraction opt-ins. Tar input import and
+`gts tar -cf out.gts ...` stream regular-file payloads through bounded chunks; folded
+`to-tar` export and zstd tar output still inherit the current folded-graph/backend buffering
+limits. The Rust `dump` extension writes a versioned
 inspection directory with folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and
 files-profile content without duplicating large payload bytes by default; see
 [`docs/GTS-DUMP-DIR.md`](./docs/GTS-DUMP-DIR.md). The `to-*` relational exports are available in
