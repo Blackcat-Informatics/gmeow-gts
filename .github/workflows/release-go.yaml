@@ -3,7 +3,7 @@
 name: Release Go GTS
 
 # On a go-v* tag, cross-build the gts CLI, attest provenance and SBOM evidence,
-# and publish a GitHub Release with the archives, checksums, and SBOM.
+# and publish an immutable GitHub Release with the archives, checksums, and SBOM.
 
 on:
   push:
@@ -83,16 +83,83 @@ jobs:
             dist/*.zip
           sbom-path: dist/sbom-go-gts.spdx.json
 
-      - name: Publish GitHub Release
+      - name: Write release notes
+        run: |
+          cat > release-notes-go.md <<EOF
+          Pre-built \`gts\` CLI binaries for \`go.blackcatinformatics.ca/gts\`.
+
+          Verify the immutable GitHub release attestation:
+          \`\`\`
+          gh release verify "$GITHUB_REF_NAME" --repo $GITHUB_REPOSITORY
+          \`\`\`
+
+          Verify build provenance for a downloaded archive:
+          \`\`\`
+          gh attestation verify <archive> --repo $GITHUB_REPOSITORY
+          \`\`\`
+          EOF
+
+      - name: Create draft GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "GTS Go ${GITHUB_REF_NAME#go-}" \
-            --notes "Pre-built \`gts\` CLI binaries for \`go.blackcatinformatics.ca/gts\`.
+          release_draft_state="$(
+            gh release view "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json isDraft \
+              --jq '.isDraft' 2>/dev/null || true
+          )"
+          case "$release_draft_state" in
+            true)
+              echo "Draft release $GITHUB_REF_NAME already exists; reusing it"
+              ;;
+            false)
+              echo "Release $GITHUB_REF_NAME already exists and is published"
+              exit 1
+              ;;
+            *)
+              gh release create "$GITHUB_REF_NAME" \
+                --repo "$GITHUB_REPOSITORY" \
+                --verify-tag \
+                --draft \
+                --title "GTS Go ${GITHUB_REF_NAME#go-}" \
+                --notes-file release-notes-go.md
+              ;;
+          esac
 
-          Verify build provenance:
-          \`\`\`
-          gh attestation verify <archive> --repo $GITHUB_REPOSITORY
-          \`\`\`"
+      - name: Upload release assets before publication
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          assets=(dist/*)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No release assets found in dist/"
+            exit 1
+          fi
+          gh release upload "$GITHUB_REF_NAME" "${assets[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+          printf '%s\n' "${assets[@]##*/}" | sort > expected-assets.txt
+          gh release view "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json assets \
+            --jq '.assets[].name' | sort > uploaded-assets.txt
+          diff -u expected-assets.txt uploaded-assets.txt
+
+      - name: Publish immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft=false
+
+      - name: Assert release is immutable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json isImmutable \
+            --jq '.isImmutable' | grep -qx true
