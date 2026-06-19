@@ -13,5 +13,6 @@ GtsNativeLibraries class >> requiredLibraries [
 GtsNativeLibraries class >> runtimeSummary [
 	^ Dictionary newFromPairs: {
 		'pharo'. Smalltalk version.
-		'requiredLibraries'. self requiredLibraries }
+		'requiredLibraries'. self requiredLibraries.
+		'blake3DigestSize'. GtsBlake3 digestSize }
 ]

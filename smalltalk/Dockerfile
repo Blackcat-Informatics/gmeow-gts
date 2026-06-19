@@ -8,6 +8,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 USER root
 
+COPY native/gts_blake3.c /tmp/gts_blake3.c
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -17,6 +19,7 @@ RUN apt-get update \
     && curl -fsSL "https://github.com/BLAKE3-team/BLAKE3/archive/refs/tags/${BLAKE3_VERSION}.tar.gz" \
         | tar -xz -C /tmp \
     && gcc -O3 -fPIC -shared \
+        -I"/tmp/BLAKE3-${BLAKE3_VERSION}/c" \
         -DBLAKE3_NO_AVX2 \
         -DBLAKE3_NO_AVX512 \
         -DBLAKE3_NO_NEON \
@@ -26,8 +29,9 @@ RUN apt-get update \
         "/tmp/BLAKE3-${BLAKE3_VERSION}/c/blake3.c" \
         "/tmp/BLAKE3-${BLAKE3_VERSION}/c/blake3_dispatch.c" \
         "/tmp/BLAKE3-${BLAKE3_VERSION}/c/blake3_portable.c" \
+        /tmp/gts_blake3.c \
     && cp "/tmp/BLAKE3-${BLAKE3_VERSION}/c/blake3.h" /usr/local/include/blake3.h \
-    && rm -rf "/tmp/BLAKE3-${BLAKE3_VERSION}" /var/lib/apt/lists/*
+    && rm -rf "/tmp/BLAKE3-${BLAKE3_VERSION}" /tmp/gts_blake3.c /var/lib/apt/lists/*
 
 FROM ghcr.io/ba-st/pharo:v13.1.2
 

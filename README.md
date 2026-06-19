@@ -255,8 +255,8 @@ live in [`ts/README.md`](./ts/README.md).
 ### Smalltalk/Pharo
 
 The Smalltalk engine is a Phase 0 bootstrap, not a parity-complete release. It currently
-provides Tonel packages, a Metacello baseline, a pinned Docker runtime, native-library
-provisioning for the later FFI layer, and deterministic-CBOR SUnit tests.
+provides Tonel packages, a Metacello baseline, a pinned Docker runtime, deterministic-CBOR
+SUnit tests, and a native BLAKE3 FFI spike against the pinned runtime.
 
 ```bash
 docker build -t gmeow-gts-smalltalk smalltalk
@@ -476,7 +476,7 @@ Current CI-gated conformance status:
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser progressive `foldStream` events plus browser stream/WebCrypto tests; does not satisfy the non-materializing Streaming Reader tier; corpus read gate remains the full-reader oracle | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| Smalltalk/Pharo | no tier claim yet | Phase 0 package/runtime bootstrap only | deterministic-CBOR primitive tests only | no CLI yet | no profile support yet |
+| Smalltalk/Pharo | no tier claim yet | Phase 0 package/runtime bootstrap plus BLAKE3 FFI only | deterministic-CBOR and BLAKE3 primitive tests only | no CLI yet | no profile support yet |
 
 ## Repository layout
 
