@@ -17,6 +17,7 @@ use ed25519_dalek::VerifyingKey;
 use gmeow_gts::cose::verify_signatures;
 use gmeow_gts::emojihash::emojihash;
 use gmeow_gts::from_nquads::from_nquads;
+use gmeow_gts::from_trig::from_trig;
 #[cfg(feature = "yaml-ld")]
 use gmeow_gts::from_yamlld::from_yaml_ld;
 use gmeow_gts::mmr::{parse_hex_32, prove_file, verify_proof, Proof};
@@ -27,6 +28,7 @@ use gmeow_gts::reader::{read, read_file_segments, FileSegments};
 use gmeow_gts::replication::{
     heads_json, inventory, missing, missing_json, resume_after, segments_json, MissingStatus,
 };
+use gmeow_gts::trig::to_trig;
 use gmeow_gts::verify::{extract_transport_key, format_fingerprint};
 use gmeow_gts::wire::{digest_str, hex};
 #[cfg(feature = "yaml-ld")]
@@ -41,6 +43,9 @@ commands:
   info <file>...            per-segment composition ledger (§14.1)
   fold <file>               fold to N-Quads on stdout
   from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
+  to-trig <file>            fold to TriG on stdout
+  from-trig <in.trig> [-o out]
+                            build a GTS from TriG; '-' reads stdin
 ",
             $yamlld,
             "
@@ -134,6 +139,8 @@ fn main() -> ExitCode {
         "info" => cmd_info(&args[1..]),
         "fold" => cmd_fold(&args[1..]),
         "from-nq" => cmd_from_nq(&args[1..]),
+        "to-trig" => cmd_to_trig(&args[1..]),
+        "from-trig" => cmd_from_trig(&args[1..]),
         #[cfg(feature = "yaml-ld")]
         "to-yaml-ld" => cmd_to_yaml_ld(&args[1..]),
         #[cfg(feature = "yaml-ld")]
@@ -583,6 +590,26 @@ fn cmd_fold(paths: &[String]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+fn cmd_to_trig(paths: &[String]) -> ExitCode {
+    let [path] = paths else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let data = match load(path) {
+        Ok(d) => d,
+        Err(code) => return code,
+    };
+    let g = read(&data, true, None);
+    for d in &g.diagnostics {
+        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+    }
+    print!("{}", to_trig(&g));
+    if !g.diagnostics.is_empty() || g.segment_heads.is_empty() {
+        return ExitCode::from(1);
+    }
+    ExitCode::SUCCESS
+}
+
 fn cmd_from_nq(args: &[String]) -> ExitCode {
     let mut out_path: Option<&str> = None;
     let mut inputs: Vec<&str> = Vec::new();
@@ -641,6 +668,71 @@ fn cmd_from_nq(args: &[String]) -> ExitCode {
             use std::io::Write;
             if let Err(e) = std::io::stdout().write_all(&bytes) {
                 eprintln!("gts from-nq: cannot write stdout: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+fn cmd_from_trig(args: &[String]) -> ExitCode {
+    let mut out_path: Option<&str> = None;
+    let mut inputs: Vec<&str> = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-o" | "--out" => match it.next() {
+                Some(p) => out_path = Some(p),
+                None => {
+                    eprintln!("gts from-trig: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            other => inputs.push(other),
+        }
+    }
+    let [path] = inputs[..] else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+
+    let text = if path == "-" {
+        let mut input = String::new();
+        let mut stdin = std::io::stdin();
+        if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
+            eprintln!("gts from-trig: cannot read stdin: {e}");
+            return ExitCode::from(2);
+        }
+        input
+    } else {
+        match std::fs::read_to_string(path) {
+            Ok(text) => text,
+            Err(e) => {
+                eprintln!("gts from-trig: cannot read {path}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    };
+
+    let bytes = match from_trig(&text) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            eprintln!("gts from-trig: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    match out_path {
+        Some(p) => {
+            if let Err(e) = std::fs::write(p, &bytes) {
+                eprintln!("gts from-trig: cannot write {p}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+        None => {
+            use std::io::Write;
+            if let Err(e) = std::io::stdout().write_all(&bytes) {
+                eprintln!("gts from-trig: cannot write stdout: {e}");
                 return ExitCode::from(2);
             }
         }

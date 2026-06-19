@@ -56,9 +56,10 @@ from pathlib import Path
 
 import gts
 
-# Read + verify + fold, then project to N-Quads.
+# Read + verify + fold, then project to N-Quads or TriG.
 graph = gts.read(Path("package.gts").read_bytes())
 print(gts.to_nquads(graph))
+print(gts.to_trig(graph))
 
 # Write a minimal graph.
 w = gts.Writer(profile="dist")
@@ -81,8 +82,9 @@ Reading `cat.gts` back yields the expected statement:
 <https://example.org/Cat> <http://www.w3.org/2000/01/rdf-schema#label> "Cat"@en .
 ```
 
-`gts.Term`, `gts.TermKind`, `gts.Writer`, `gts.read`, and `gts.to_nquads` are
-the stable public surface; `gts.from_nquads` builds a graph from N-Quads text.
+`gts.Term`, `gts.TermKind`, `gts.Writer`, `gts.read`, `gts.to_nquads`, and
+`gts.to_trig` are the stable public surface; `gts.from_nquads` and
+`gts.from_trig` build a graph from RDF text.
 
 ## Command line
 
@@ -93,6 +95,8 @@ engines (§14.1 of the spec — the engines are CLI-compatible by conformance te
 gts info <file>...            per-segment composition ledger
 gts fold <file>               fold to N-Quads on stdout
 gts from-nq <in.nq> -o <out>  build a GTS from N-Quads (inverse of fold; '-' = stdin)
+gts to-trig <file>            fold to TriG on stdout
+gts from-trig <in.trig> -o <out>  build a GTS from TriG ('-' = stdin)
 gts verify <file>... [--key KID:HEXPUB]   verify chains + COSE signatures
 gts extract-key <file>        print the embedded transport/verification key
 gts cat -o <out> <file>...    validating composer: refuse degenerate inputs, then concatenate

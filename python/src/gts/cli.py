@@ -106,6 +106,16 @@ def _cmd_fold(path: str) -> int:
     return 1 if g.diagnostics or not g.segment_heads else 0
 
 
+def _cmd_to_trig(path: str) -> int:
+    from gts.trig import to_trig
+
+    g = read(_load(path))
+    for d in g.diagnostics:
+        print(f"gts: diagnostic {d.code}: {d.detail}", file=sys.stderr)
+    sys.stdout.write(to_trig(g))
+    return 1 if g.diagnostics or not g.segment_heads else 0
+
+
 def _build_verifier(key_specs: list[str] | None) -> KeyProvider | None:
     """Build an in-memory key provider from ``kid:hexpubkey`` specs, or None."""
     if not key_specs:
@@ -282,10 +292,33 @@ def _cmd_from_nq(path: str, out: str | None) -> int:
     except OSError as exc:
         print(f"gts from-nq: cannot read {path}: {exc}", file=sys.stderr)
         return 2
+    except UnicodeDecodeError as exc:
+        print(f"gts from-nq: invalid UTF-8 in {path}: {exc}", file=sys.stderr)
+        return 1
     try:
         data = from_nquads(text)
     except NQuadsParseError as exc:
         print(f"gts from-nq: {exc}", file=sys.stderr)
+        return 1
+    return _write_out(out, data)
+
+
+def _cmd_from_trig(path: str, out: str | None) -> int:
+    """Build a GTS from TriG text."""
+    from gts.trig import TriGParseError, from_trig
+
+    try:
+        text = sys.stdin.read() if path == "-" else _load(path).decode("utf-8")
+    except OSError as exc:
+        print(f"gts from-trig: cannot read {path}: {exc}", file=sys.stderr)
+        return 2
+    except UnicodeDecodeError as exc:
+        print(f"gts from-trig: invalid UTF-8 in {path}: {exc}", file=sys.stderr)
+        return 1
+    try:
+        data = from_trig(text)
+    except TriGParseError as exc:
+        print(f"gts from-trig: {exc}", file=sys.stderr)
         return 1
     return _write_out(out, data)
 
@@ -586,6 +619,9 @@ def main(argv: list[str] | None = None) -> int:
     p_fold = sub.add_parser("fold", help="fold to N-Quads on stdout")
     p_fold.add_argument("file")
 
+    p_to_trig = sub.add_parser("to-trig", help="fold to TriG on stdout")
+    p_to_trig.add_argument("file")
+
     p_verify = sub.add_parser(
         "verify", help="verify chains; ledger + diagnostics; exit 1 on any"
     )
@@ -649,6 +685,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_from_nq.add_argument("file")
     p_from_nq.add_argument("-o", "--out", default=None)
+
+    p_from_trig = sub.add_parser(
+        "from-trig",
+        help="build a GTS from TriG — the inverse of to-trig; '-' reads stdin",
+    )
+    p_from_trig.add_argument("file")
+    p_from_trig.add_argument("-o", "--out", default=None)
 
     p_to_sqlite = sub.add_parser(
         "to-sqlite", help="export a folded graph to a SQLite database (§14)"
@@ -742,6 +785,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_info(args.files)
     if args.command == "fold":
         return _cmd_fold(args.file)
+    if args.command == "to-trig":
+        return _cmd_to_trig(args.file)
     if args.command == "verify":
         return _cmd_verify(args.files, args.key, args.trusted_signer)
     if args.command == "verify-proof":
@@ -760,6 +805,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_extract_key(args.file)
     if args.command == "from-nq":
         return _cmd_from_nq(args.file, args.out)
+    if args.command == "from-trig":
+        return _cmd_from_trig(args.file, args.out)
     if args.command == "to-sqlite":
         return _cmd_to_sqlite(args.file, args.out)
     if args.command == "to-duckdb":

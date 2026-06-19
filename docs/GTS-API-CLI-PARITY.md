@@ -22,6 +22,7 @@ the following operations and folded fields are the compatibility target.
 | `fold(input)` | Return the deterministic GTS value fold: terms, quads, reifiers, annotations, blobs, suppressions, opaque nodes, signatures, segment heads, profiles, and streamable layout state. | Same object returned by `read`. |
 | `to_nquads(graph)` | Project the folded RDF dataset to sorted N-Quads text with the same value semantics across engines. | Python `to_nquads`; Rust `nquads::to_nquads`; Go `nquads.ToNQuads`; TypeScript `toNQuads`. |
 | `from_nquads(input)` | Build a GTS file from N-Quads text using the shared writer semantics. | Python `from_nquads`; Rust `from_nquads::from_nquads`; Go `fromnquads.FromNQuads`; TypeScript `fromNQuads`; CLI `gts from-nq` in every engine. |
+| `to_trig(graph)` / `from_trig(input)` | Project folded RDF to readable TriG graph blocks and rebuild GTS bytes from the supported TriG surface without changing N-Quads content. | Python `gts.trig.to_trig` / `from_trig`; Rust `trig::to_trig` / `from_trig::from_trig`; CLI `gts to-trig` and `gts from-trig` in Python and Rust. |
 | graph iterators/accessors | Expose resolved access to terms, quads, reifier bindings, annotations, suppressions, blobs, opaque nodes, signatures, diagnostics, segment heads, profiles, metadata, and streamable state. | Native fields on `Graph` in all four engines, with helper lookups where idiomatic. |
 | blobs | Preserve inline blob bytes by `blake3:<hex>` digest and retain declared blob metadata such as media type. Extraction MUST re-hash bytes before writing them. Implementations MAY keep transformed blob bytes lazy until access. | Python `Graph.blobs`/`blob_meta`; Rust `Graph.blobs` lazy `BlobEntry` plus `blob_entry`/`blob_bytes`/`decoded_blobs`; Go `Graph.Blobs`/`BlobMeta`; TypeScript `Graph.blobs`/`blobMeta`. |
 | opaque nodes | Preserve undecodable or unsupported recoverable frames as graph-visible opaque nodes with a frame id, frame type, reason, and signature status. | `OpaqueNode` in every engine. |
@@ -83,6 +84,8 @@ actual dispatch surfaces.
 | `unpack` | yes | yes | yes | yes | common |
 | `diff` | yes | yes | yes | yes | common |
 | `from-nq` | yes | yes | yes | yes | common |
+| `to-trig` | yes | yes | no | no | Python/Rust transform extension |
+| `from-trig` | yes | yes | no | no | Python/Rust transform extension |
 | `to-yaml-ld` | no | yes | no | no | Rust transform extension |
 | `from-yaml-ld` | no | yes | no | no | Rust transform extension |
 | `to-sqlite` | yes | yes | no | no | Python/Rust extension |
@@ -105,6 +108,9 @@ actual dispatch surfaces.
   tool instead of retaining all relational rows or a complete SQL script in memory; the stable
   `blobs.bytes` schema still requires transient blob decoding while each blob row is emitted.
 - Go and TypeScript do not yet expose relational exports.
+- `to-trig` and `from-trig` are Python/Rust transform extensions. They preserve the same
+  folded RDF content as the N-Quads projection while using readable TriG graph blocks; Go and
+  TypeScript parity can land later against the same round-trip expectations.
 - `to-yaml-ld` and `from-yaml-ld` are Rust-only extension verbs behind
   `--features yaml-ld`. They are transform-only shims over folded graph tables,
   not a wire-format or canonical-catalog change; Python, Go, and TypeScript

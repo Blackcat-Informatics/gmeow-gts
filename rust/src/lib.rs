@@ -25,6 +25,7 @@ pub use visual_hashing as emojihash;
 pub mod examples;
 pub mod files;
 pub mod from_nquads;
+pub mod from_trig;
 #[cfg(feature = "yaml-ld")]
 pub mod from_yamlld;
 pub mod mmr;
@@ -47,6 +48,7 @@ pub mod replication;
 #[cfg(feature = "sophia-adapter")]
 pub mod sophia;
 pub mod stream;
+pub mod trig;
 pub mod verify;
 pub mod wire;
 pub mod writer;

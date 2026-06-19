@@ -14,7 +14,7 @@ use crate::model::{Graph, TermKind};
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
 /// Escape a literal lexical form for N-Triples (incl. all C0 control chars).
-fn escape(lex: &str) -> String {
+pub(crate) fn escape_literal(lex: &str) -> String {
     let mut out = String::with_capacity(lex.len());
     for ch in lex.chars() {
         match ch {
@@ -31,7 +31,7 @@ fn escape(lex: &str) -> String {
 }
 
 /// Render a term-id as an N-Triples token.
-fn render(g: &Graph, tid: usize) -> String {
+pub(crate) fn render_term(g: &Graph, tid: usize) -> String {
     let t = &g.terms[tid];
     match t.kind {
         TermKind::Iri => format!("<{}>", t.value.as_deref().unwrap_or("")),
@@ -40,11 +40,11 @@ fn render(g: &Graph, tid: usize) -> String {
             None => format!("_:b{tid}"),
         },
         TermKind::Literal => {
-            let lit = format!("\"{}\"", escape(t.value.as_deref().unwrap_or("")));
+            let lit = format!("\"{}\"", escape_literal(t.value.as_deref().unwrap_or("")));
             if let Some(lang) = &t.lang {
                 format!("{lit}@{lang}")
             } else if let Some(dt) = t.datatype {
-                format!("{lit}^^{}", render(g, dt))
+                format!("{lit}^^{}", render_term(g, dt))
             } else {
                 lit // plain literal == xsd:string (§7.1)
             }
@@ -52,7 +52,12 @@ fn render(g: &Graph, tid: usize) -> String {
         // quoted triple (RDF 1.2 triple term), resolved through its reifier
         TermKind::Triple => match t.reifier.and_then(|rf| g.reifier(rf)) {
             Some((s, p, o)) => {
-                format!("<<( {} {} {} )>>", render(g, s), render(g, p), render(g, o))
+                format!(
+                    "<<( {} {} {} )>>",
+                    render_term(g, s),
+                    render_term(g, p),
+                    render_term(g, o)
+                )
             }
             // degraded but syntactically valid: an unbound reifier becomes a
             // blank node
@@ -65,22 +70,35 @@ fn render(g: &Graph, tid: usize) -> String {
 pub fn to_nquads(g: &Graph) -> String {
     let mut lines: Vec<String> = Vec::new();
     for &(s, p, o, gname) in &g.quads {
-        let triple = format!("{} {} {}", render(g, s), render(g, p), render(g, o));
+        let triple = format!(
+            "{} {} {}",
+            render_term(g, s),
+            render_term(g, p),
+            render_term(g, o)
+        );
         match gname {
-            Some(gv) => lines.push(format!("{triple} {} .", render(g, gv))),
+            Some(gv) => lines.push(format!("{triple} {} .", render_term(g, gv))),
             None => lines.push(format!("{triple} .")),
         }
     }
     for &(rid, (s, p, o)) in &g.reifiers {
-        let quoted = format!("<<( {} {} {} )>>", render(g, s), render(g, p), render(g, o));
-        lines.push(format!("{} <{RDF_REIFIES}> {quoted} .", render(g, rid)));
+        let quoted = format!(
+            "<<( {} {} {} )>>",
+            render_term(g, s),
+            render_term(g, p),
+            render_term(g, o)
+        );
+        lines.push(format!(
+            "{} <{RDF_REIFIES}> {quoted} .",
+            render_term(g, rid)
+        ));
     }
     for &(r, p, v) in &g.annotations {
         lines.push(format!(
             "{} {} {} .",
-            render(g, r),
-            render(g, p),
-            render(g, v)
+            render_term(g, r),
+            render_term(g, p),
+            render_term(g, v)
         ));
     }
     if lines.is_empty() {
