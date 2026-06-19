@@ -1,6 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""Detached Merkle-Mountain-Range proof verification for GTS ``index.mmr`` roots."""
+"""Detached Merkle-Mountain-Range proof verification for ``index.mmr`` roots.
+
+The proof format is intentionally standalone: a verifier receives JSON, parses
+it into a :class:`Proof`, and checks that the declared frame id reconstructs the
+selected peak and aggregate root without reading the original GTS file.
+"""
 
 from __future__ import annotations
 
@@ -20,12 +25,16 @@ ROOT_DOMAIN = "gts-mmr-root-v1"
 
 @dataclass(frozen=True)
 class MmrPeak:
+    """One Merkle-Mountain-Range peak in left-to-right order."""
+
     height: int
     hash: bytes
 
 
 @dataclass(frozen=True)
 class ProofStep:
+    """One sibling step from a leaf toward its containing peak."""
+
     parent_height: int
     side: str
     hash: bytes
@@ -33,6 +42,8 @@ class ProofStep:
 
 @dataclass(frozen=True)
 class Proof:
+    """Detached proof that one frame id is included in an MMR root."""
+
     count: int
     leaf_index: int
     frame_id: bytes
@@ -43,19 +54,23 @@ class Proof:
 
 
 def _leaf_hash(index: int, frame_id: bytes) -> bytes:
+    """Hash the leaf preimage for a frame at ``index``."""
     return blake3_256(canonical([LEAF_DOMAIN, index, frame_id]))
 
 
 def _parent_hash(parent_height: int, left: bytes, right: bytes) -> bytes:
+    """Hash a parent preimage with explicit height and child ordering."""
     return blake3_256(canonical([PARENT_DOMAIN, parent_height, left, right]))
 
 
 def _root_hash(count: int, peaks: tuple[MmrPeak, ...]) -> bytes:
+    """Hash the aggregate root over count and ordered peak hashes."""
     peak_values = [[peak.height, peak.hash] for peak in peaks]
     return blake3_256(canonical([ROOT_DOMAIN, count, peak_values]))
 
 
 def _expected_peak_heights(count: int) -> list[int]:
+    """Return the canonical left-to-right peak heights for ``count`` leaves."""
     remaining = count
     heights: list[int] = []
     while remaining > 0:
@@ -66,6 +81,7 @@ def _expected_peak_heights(count: int) -> list[int]:
 
 
 def _peak_index_for_leaf(count: int, heights: list[int], leaf_index: int) -> int:
+    """Return the peak that covers ``leaf_index`` under canonical peaks."""
     if leaf_index >= count:
         msg = f"leaf_index {leaf_index} is outside covered count {count}"
         raise ValueError(msg)
@@ -130,7 +146,12 @@ def _int_field(obj: dict[str, Any], key: str) -> int:
 
 
 def proof_from_json(text: str) -> Proof:
-    """Parse the stable detached proof JSON form."""
+    """Parse the stable detached proof JSON form.
+
+    Raises:
+        ValueError: if the schema marker, hash algorithm, field types, or hex
+            values do not match the supported proof version.
+    """
 
     try:
         root = json.loads(text)
@@ -185,7 +206,12 @@ def proof_from_json(text: str) -> Proof:
 
 
 def verify_proof(proof: Proof) -> None:
-    """Verify a detached proof without access to the original GTS file."""
+    """Verify a detached proof without access to the original GTS file.
+
+    Raises:
+        ValueError: if the path, peaks, selected leaf, or aggregate root do not
+            describe a valid inclusion proof.
+    """
 
     if len(proof.frame_id) != 32:
         msg = "frame_id must be 32 bytes"

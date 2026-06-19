@@ -164,6 +164,8 @@ class _LazyBlobs(MutableMapping[str, bytes]):
     def __contains__(self, digest: object) -> bool:
         return digest in self._entries
 
+    # MutableMapping.update has broader overloads than this lazy table can accept:
+    # callers may merge bytes or another _LazyBlobs without forcing decompression.
     def update(  # type: ignore[override]
         self,
         other: Mapping[str, bytes] | Iterable[tuple[str, bytes]] | None = None,

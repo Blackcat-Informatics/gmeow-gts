@@ -1,13 +1,19 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""Replication inventory helpers for the Python CLI."""
+"""Replication inventory helpers for the Python CLI.
+
+These helpers report byte ranges, segment heads, and append deltas without
+folding data into a new file. They are deliberately conservative: if the input
+has a fatal parse error, torn append, segment diagnostic, or broken id/prev
+chain, resumable ranges are withheld and the caller is told to scan instead.
+"""
 
 from __future__ import annotations
 
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
 import cbor2
 
@@ -25,6 +31,8 @@ from gts.wire import (
 
 @dataclass(frozen=True)
 class FrameInventory:
+    """Byte and chain metadata for one non-header frame."""
+
     item_index: int
     frame_index: int
     start: int
@@ -36,6 +44,8 @@ class FrameInventory:
 
 @dataclass(frozen=True)
 class SegmentInventory:
+    """Inventory for one GTS segment and its frames."""
+
     index: int
     item_start: int
     item_end: int
@@ -51,11 +61,14 @@ class SegmentInventory:
 
 @dataclass(frozen=True)
 class ByteRange:
+    """Half-open byte range, suitable for HTTP Range-style replication."""
+
     start: int
     end: int
 
     @property
     def length(self) -> int:
+        """Number of bytes covered by the range."""
         return max(0, self.end - self.start)
 
 
@@ -64,6 +77,8 @@ MissingStatus = Literal["complete", "ranges", "unknown", "error"]
 
 @dataclass(frozen=True)
 class MissingResult:
+    """Result of comparing a peer head against local segment/frame heads."""
+
     status: MissingStatus
     from_head: bytes
     ranges: list[ByteRange]
@@ -73,6 +88,8 @@ class MissingResult:
 
 @dataclass(frozen=True)
 class Inventory:
+    """A cleanly bounded view of the file suitable for replication decisions."""
+
     segments: list[SegmentInventory]
     fatal: Diagnostic | None
     torn: int | None
@@ -80,6 +97,7 @@ class Inventory:
     item_count: int
 
     def has_problems(self) -> bool:
+        """True when replication should not trust byte-range deltas."""
         return (
             self.fatal is not None
             or self.torn is not None
@@ -87,6 +105,7 @@ class Inventory:
         )
 
     def problem_detail(self) -> str | None:
+        """Return the first human-readable reason the inventory is not clean."""
         if self.fatal is not None:
             return f"{self.fatal.code}: {self.fatal.detail}"
         if self.torn is not None:
@@ -174,7 +193,9 @@ def _collect_frames(
             )
             continue
 
-        frame: Mapping[str, object] = item  # type: ignore[assignment]
+        # iter_items decodes arbitrary CBOR maps; after the Mapping check, treat
+        # keys as wire field names and validate the actual values below.
+        frame = cast(Mapping[str, object], item)
         computed = content_id(frame)
         stored = frame.get("id")
         stored_id = stored if isinstance(stored, bytes) else None
@@ -199,6 +220,7 @@ def _collect_frames(
 
 
 def inventory(data: bytes) -> Inventory:
+    """Parse ``data`` into segment and frame byte-range inventory."""
     items, torn = iter_items(data)
     clean_end = torn if torn is not None else len(data)
     segments, _fs_torn, fatal = read_segments(data)
@@ -296,6 +318,7 @@ def _dumps(doc: object) -> str:
 
 
 def heads_json(inv: Inventory) -> str:
+    """Return the stable JSON representation of segment heads."""
     segment_heads = [
         segment.head.hex() for segment in inv.segments if segment.head is not None
     ]
@@ -318,6 +341,7 @@ def heads_json(inv: Inventory) -> str:
 
 
 def segments_json(inv: Inventory) -> str:
+    """Return the stable JSON representation of segment byte ranges."""
     return _dumps(
         {
             "schema": "gts-replication-segments-v1",
@@ -351,6 +375,7 @@ def segments_json(inv: Inventory) -> str:
 
 
 def missing(inv: Inventory, from_head: bytes) -> MissingResult:
+    """Return append ranges needed after ``from_head`` or request a scan."""
     if inv.has_problems():
         return MissingResult(
             status="error",
@@ -395,6 +420,7 @@ def missing(inv: Inventory, from_head: bytes) -> MissingResult:
 
 
 def missing_json(result: MissingResult) -> str:
+    """Return the stable JSON representation of a missing-range result."""
     return _dumps(
         {
             "schema": "gts-replication-missing-v1",
@@ -408,6 +434,7 @@ def missing_json(result: MissingResult) -> str:
 
 
 def resume_after(data: bytes, frame_id: bytes) -> bytes:
+    """Return clean trailing bytes after a validated frame id."""
     inv = inventory(data)
     if inv.has_problems():
         msg = inv.problem_detail() or "input is not clean"

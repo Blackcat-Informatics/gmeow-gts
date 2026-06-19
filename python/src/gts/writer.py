@@ -215,8 +215,9 @@ class Writer:
             header["layout"] = layout
         if meta is not None:
             header["meta"] = meta
-        header["id"] = header_id(header)
-        self._prev: bytes = header["id"]  # type: ignore[assignment]
+        header_id_value = header_id(header)
+        header["id"] = header_id_value
+        self._prev = header_id_value
         first = cbor2.CBORTag(SELF_DESCRIBE_TAG, header) if magic_tag else header
         self._buf = bytearray(canonical(first))
         # Per-frame byte offsets and types, in append order — the raw material
