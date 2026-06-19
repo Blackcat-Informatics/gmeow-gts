@@ -297,6 +297,15 @@ Rust-only proof creation extension:
 gts prove <file> <frame-id>      emit detached JSON proof from an index.mmr root
 ```
 
+Rust-only OKF profile extension:
+
+```text
+gts to-okf <file> --directory <dir> [--inline-body] [--base-iri <iri>]
+                                  export an OKF-profile graph to a Markdown bundle
+gts from-okf <dir> [-o out] [--inline-body] [--strict-links] [--base-iri <iri>]
+                                  build a GTS from an OKF Markdown bundle
+```
+
 Rust-only inspection export extension:
 
 ```text
@@ -328,8 +337,9 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 engine depends on and re-exports as `gmeow_gts::emojihash`.
 
 `from-nq` is common across all four engines. Python and Rust also expose `to-trig`/`from-trig`
-for readable TriG graph-block interchange over the same folded RDF content. The Rust `dump`
-extension writes a versioned
+for readable TriG graph-block interchange over the same folded RDF content. The Rust OKF
+profile extension maps Markdown bundles to verifiable GTS package bytes and back behind
+`--features okf`; see [`docs/GTS-OKF.md`](./docs/GTS-OKF.md). The Rust `dump` extension writes a versioned
 inspection directory with folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and
 files-profile content without duplicating large payload bytes by default; see
 [`docs/GTS-DUMP-DIR.md`](./docs/GTS-DUMP-DIR.md). The `to-*` relational exports are available in
@@ -546,6 +556,8 @@ For historical releases that predate SBOM and immutable-release hardening, pass
   release benchmark report template for v1 notes and paper appendix evidence.
 - [`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](./docs/GTS-ECOSYSTEM-INTEGRATIONS.md) — RDF, data,
   browser, service, and object-store integration contract.
+- [`docs/GTS-OKF.md`](./docs/GTS-OKF.md) — Rust OKF Markdown bundle profile, mapping,
+  manifest, and round-trip laws.
 - [`docs/GTS-DUMP-DIR.md`](./docs/GTS-DUMP-DIR.md) — Rust `gts dump --directory` inspection
   layout for folded graph views, unfolded frames, blob indexes, and files-profile payloads.
 - [`docs/GTS-SECURITY-POLICY.md`](./docs/GTS-SECURITY-POLICY.md) — trust/profile-policy

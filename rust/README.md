@@ -372,6 +372,9 @@ gts from-trig <in.trig> [-o out]
 gts to-yaml-ld <file>           fold to YAML-LD-star (--features yaml-ld)
 gts from-yaml-ld <in.yaml> [-o out]
                                 build a GTS from YAML-LD-star (--features yaml-ld)
+gts to-okf <file> --directory <dir>
+                                export an OKF bundle (--features okf)
+gts from-okf <dir> [-o out]     build a GTS from an OKF bundle (--features okf)
 gts to-sqlite <file> <out>      export to SQLite (requires sqlite3)
 gts to-duckdb <file> <out>      export to DuckDB (--features duckdb; requires duckdb)
 gts to-parquet <file> <dir>     export to Parquet (--features duckdb; requires duckdb)
@@ -418,8 +421,10 @@ unencrypted Ed25519 OpenPGP secret-key shape as Python `Signer.from_gpg_secret_k
 adding a full OpenPGP crate dependency. `gts dump` writes a versioned inspection directory with
 folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads
 without duplicating large payload bytes by default. `to-trig` and `from-trig` provide a
-readable TriG graph-block projection over the same folded RDF content as N-Quads. `from-nq`
-and the relational
+readable TriG graph-block projection over the same folded RDF content as N-Quads. The optional
+OKF profile (`--features okf`) imports and exports Markdown bundle directories with
+content-addressed body blobs, link edges, a `gts-okf-v1` manifest, and `_unmapped.nq` sidecars
+for out-of-profile RDF. `from-nq` and the relational
 `to-sqlite`/`to-duckdb`/`to-parquet` exports are
 implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
 integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`

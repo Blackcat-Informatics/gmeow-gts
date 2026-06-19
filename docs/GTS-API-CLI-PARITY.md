@@ -88,6 +88,8 @@ actual dispatch surfaces.
 | `from-trig` | yes | yes | no | no | Python/Rust transform extension |
 | `to-yaml-ld` | no | yes | no | no | Rust transform extension |
 | `from-yaml-ld` | no | yes | no | no | Rust transform extension |
+| `to-okf` | no | yes | no | no | Rust OKF profile extension |
+| `from-okf` | no | yes | no | no | Rust OKF profile extension |
 | `to-sqlite` | yes | yes | no | no | Python/Rust extension |
 | `to-duckdb` | yes | yes | no | no | Python/Rust extension |
 | `to-parquet` | yes | yes | no | no | Python/Rust extension |
@@ -115,6 +117,11 @@ actual dispatch surfaces.
   `--features yaml-ld`. They are transform-only shims over folded graph tables,
   not a wire-format or canonical-catalog change; Python, Go, and TypeScript
   parity can land later with a shared corpus oracle addition if needed.
+- `to-okf` and `from-okf` are Rust-only OKF profile verbs behind
+  `--features okf`. They map an OKF Markdown bundle to GTS profile `okf`
+  with manifest schema `gts-okf-v1`, content-addressed Markdown body blobs,
+  queryable link edges, and `_unmapped.nq` for out-of-profile RDF. Python, Go,
+  and TypeScript parity is deferred to the linked OKF parity issue.
 - `dump` is a Rust-only inspection export that writes a versioned directory tree with folded
   N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads. It is
   not a wire-format change; Python, Go, and TypeScript parity can implement the same

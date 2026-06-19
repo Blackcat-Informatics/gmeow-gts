@@ -25,6 +25,8 @@ pub use visual_hashing as emojihash;
 pub mod examples;
 pub mod files;
 pub mod from_nquads;
+#[cfg(feature = "okf")]
+pub mod from_okf;
 pub mod from_trig;
 #[cfg(feature = "yaml-ld")]
 pub mod from_yamlld;
@@ -32,6 +34,8 @@ pub mod mmr;
 pub mod model;
 pub mod nested;
 pub mod nquads;
+#[cfg(feature = "okf")]
+pub mod okf;
 pub mod openpgp;
 #[cfg(feature = "oxigraph-adapter")]
 pub mod oxigraph;
