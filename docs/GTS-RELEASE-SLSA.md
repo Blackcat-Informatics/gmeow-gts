@@ -86,8 +86,9 @@ Raise the posture only when the release model can verify the stronger boundary:
 5. Preserve the existing registry OIDC/trusted-publishing paths, Go immutable
    release flow, SBOM generation, and `just verify-release` smoke verification.
 6. Extend `scripts/verify_release.py` with optional signer policy inputs so a
-   release can require `gh attestation verify --signer-workflow ...` and, when
-   applicable, `--signer-repo ...`.
+   release can require `gh attestation verify` with
+   `--signer-workflow <owner>/<repo>/.github/workflows/<workflow>.yml@<ref>` and,
+   when applicable, `--signer-repo ...`.
 7. Validate at least one representative artifact from each adopted release lane
    against the expected reusable workflow identity before claiming Build Level 3.
 

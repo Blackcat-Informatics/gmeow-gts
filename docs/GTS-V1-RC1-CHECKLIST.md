@@ -460,7 +460,7 @@ representative artifact checks with the expected signer policy, for example:
 ```bash
 gh attestation verify <downloaded-artifact> \
   --repo Blackcat-Informatics/gmeow-gts \
-  --signer-workflow <owner>/<repo>/.github/workflows/<workflow>.yml
+  --signer-workflow <owner>/<repo>/.github/workflows/<workflow>.yml@<ref>
 ```
 
 Verify the immutable Go release attestation and each downloaded release asset:
