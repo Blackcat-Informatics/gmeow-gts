@@ -15,7 +15,7 @@ from collections.abc import Callable, Mapping
 
 import cbor2
 
-from gts.codec import Codec, CodecUnavailableError, decode_chain
+from gts.codec import Codec, CodecClass, CodecUnavailableError, decode_chain
 from gts.crypto import KeyProvider, decrypt0, verify_sig
 from gts.model import (
     Diagnostic,
@@ -43,6 +43,7 @@ from gts.wire import (
 
 _IRI = TermKind.IRI
 _KINDS = {int(k) for k in TermKind}
+_CODEC_CLASSES: tuple[CodecClass, ...] = ("encode", "compress", "encrypt")
 
 
 def _as_int(x: object) -> int | None:
@@ -61,6 +62,14 @@ def _pub_digest(value: object) -> str | None:
     if isinstance(value, bytes) and len(value) == 32:
         return f"blake3:{value.hex()}"
     return None
+
+
+def _codec_class(value: object) -> CodecClass:
+    """Normalise a catalog class while preserving legacy non-encrypt fallback."""
+    raw = str(value)
+    if raw in _CODEC_CLASSES:
+        return raw
+    return "encode"
 
 
 def term_from_wire(d: Mapping[str, object]) -> Term:
@@ -92,8 +101,8 @@ def _catalog(header: Mapping[str, object]) -> dict[int, Codec]:
         for cid, entry in raw.items():
             if isinstance(cid, int) and isinstance(entry, Mapping):
                 name = str(entry.get("name", ""))
-                cls = str(entry.get("cls", "encode"))
-                out[cid] = Codec(name, cls)  # type: ignore[arg-type]
+                cls = _codec_class(entry.get("cls", "encode"))
+                out[cid] = Codec(name, cls)
     return out
 
 

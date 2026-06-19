@@ -20,6 +20,7 @@ from pathlib import Path
 import cbor2
 
 from gts.codec import Codec
+from gts.crypto import Signer
 from gts.files import pack
 from gts.model import Graph, Suppression, Term, TermKind
 from gts.wire import canonical, content_id, digest_str, header_id
@@ -434,15 +435,13 @@ def _files_profile_dedup() -> bytes:
         return bytes(pack([root], force_mode=0o644))
 
 
-def _streamable_signer() -> object:
+def _streamable_signer() -> Signer:
     """A fixed-seed Ed25519 signer for reproducible signed vectors.
 
     Ed25519 signatures are deterministic (RFC 8032), so the corpus
     regenerates byte-identically.
     """
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-
-    from gts.crypto import Signer
 
     return Signer("vector-key", Ed25519PrivateKey.from_private_bytes(b"\x42" * 32))
 
@@ -456,7 +455,7 @@ def _streamable_source() -> bytes:
     (per-suppression frame, reason intact, ids shifted — §10.1) in the frozen
     25b bytes.
     """
-    w = Writer(signer=_streamable_signer())  # type: ignore[arg-type]
+    w = Writer(signer=_streamable_signer())
     w.add_blob(b"B" * 100, mt="image/webp")  # delivered before any description
     w.add_terms(
         [
