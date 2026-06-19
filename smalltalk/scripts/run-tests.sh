@@ -12,7 +12,8 @@ Metacello new
   load: #('tests').
 testClasses := {
   Smalltalk globals at: #GtsCborWriterTest.
-  Smalltalk globals at: #GtsBlake3Test }.
+  Smalltalk globals at: #GtsBlake3Test.
+  Smalltalk globals at: #GtsMinimalVectorTest }.
 results := testClasses collect: [ :testClass | testClass suite run ].
 results do: [ :result | result printString crTrace ].
 (results allSatisfy: [ :result | result hasPassed ])

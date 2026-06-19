@@ -7,7 +7,8 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 This directory contains the Pharo implementation of the Graph Transport Substrate.
 It is currently a Phase 0 engine bootstrap: Tonel packages, a Metacello baseline,
 deterministic-CBOR primitives, a native BLAKE3 FFI spike, and SUnit tests that prove
-canonical encoding and hashing rules required by the GTS wire format.
+canonical encoding and hashing rules by reproducing the committed `01-minimal.gts`
+vector byte-for-byte.
 
 The parity target is Go-equal support: baseline/full reader, deterministic writer,
 COSE Sign1/Encrypt0, files profile, MMR, CLI verbs, and `scripts/interop.sh`
