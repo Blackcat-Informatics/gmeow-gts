@@ -11,7 +11,7 @@
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -283,7 +283,7 @@ fn write_graph(root: &Path, graph: &Graph) -> Result<(), DumpError> {
 fn write_frames(root: &Path, data: &[u8], state: &DumpState) -> Result<(), DumpError> {
     let frames_root = root.join("frames");
     fs::create_dir_all(&frames_root)?;
-    let mut inventory_rows = File::create(frames_root.join("inventory.jsonl"))?;
+    let mut inventory_rows = create_writer(&frames_root.join("inventory.jsonl"))?;
     let (items, _) = iter_items(data);
     let file_segments = read_file_segments(data);
 
@@ -311,12 +311,14 @@ fn write_frames(root: &Path, data: &[u8], state: &DumpState) -> Result<(), DumpE
                 continue;
             };
             write_frame_table_rows(&segment_dir, segment.index, frame.frame_index, frame_map)?;
-            if let Some(nq) = frame_contribution_nquads(data, segment, frame.start, frame.end) {
-                if !nq.is_empty() {
-                    fs::write(
-                        segment_dir.join(format!("frame-{:04}.nq", frame.frame_index)),
-                        nq,
-                    )?;
+            if frame_has_projectable_rdf(&frame.frame_type) {
+                if let Some(nq) = frame_contribution_nquads(data, segment, frame.start, frame.end) {
+                    if !nq.is_empty() {
+                        fs::write(
+                            segment_dir.join(format!("frame-{:04}.nq", frame.frame_index)),
+                            nq,
+                        )?;
+                    }
                 }
             }
         }
@@ -334,7 +336,7 @@ fn write_files_profile(root: &Path, state: &mut DumpState) -> Result<(), DumpErr
     };
     let files_root = root.join("files");
     fs::create_dir_all(&files_root)?;
-    let mut out = File::create(files_root.join("entries.jsonl"))?;
+    let mut out = create_writer(&files_root.join("entries.jsonl"))?;
     let suppressed = suppressed_blob_digests(&state.graph);
     for (path, entry) in &entries {
         let digest = entry.get("digest").cloned().unwrap_or_default();
@@ -428,7 +430,7 @@ fn write_payloads(root: &Path, state: &mut DumpState) -> Result<(), DumpError> {
 fn write_blob_index(root: &Path, state: &DumpState) -> Result<(), DumpError> {
     let blob_dir = root.join("blobs");
     fs::create_dir_all(&blob_dir)?;
-    let mut out = File::create(blob_dir.join("index.jsonl"))?;
+    let mut out = create_writer(&blob_dir.join("index.jsonl"))?;
     let suppressed = suppressed_blob_digests(&state.graph);
     for (digest, entry) in &state.graph.blobs {
         let size = entry
@@ -594,7 +596,7 @@ fn frames_readme() -> String {
 }
 
 fn write_terms(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for (id, term) in graph.terms.iter().enumerate() {
         writeln!(
             out,
@@ -612,7 +614,7 @@ fn write_terms(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result
 }
 
 fn write_quads(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for (s, p, o, g) in &graph.quads {
         writeln!(
             out,
@@ -628,7 +630,7 @@ fn write_quads(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result
 }
 
 fn write_reifiers(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for (r, (s, p, o)) in &graph.reifiers {
         writeln!(
             out,
@@ -648,7 +650,7 @@ fn write_annotations(
     graph: &Graph,
     frame_index: Option<usize>,
 ) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for (r, p, v) in &graph.annotations {
         writeln!(
             out,
@@ -663,7 +665,7 @@ fn write_annotations(
 }
 
 fn write_meta(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for (key, value) in &graph.meta {
         writeln!(
             out,
@@ -681,7 +683,7 @@ fn write_blob_meta(
     graph: &Graph,
     frame_index: Option<usize>,
 ) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for (digest, value) in &graph.blob_meta {
         writeln!(
             out,
@@ -699,7 +701,7 @@ fn write_suppressions(
     graph: &Graph,
     frame_index: Option<usize>,
 ) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for (index, suppression) in graph.suppressions.iter().enumerate() {
         writeln!(
             out,
@@ -720,7 +722,7 @@ fn write_suppressions(
 }
 
 fn write_opaque(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for (index, opaque) in graph.opaque.iter().enumerate() {
         writeln!(
             out,
@@ -743,7 +745,7 @@ fn write_signatures(
     graph: &Graph,
     frame_index: Option<usize>,
 ) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for (index, signature) in graph.signatures.iter().enumerate() {
         writeln!(
             out,
@@ -764,7 +766,7 @@ fn write_diagnostics(
     diagnostics: &[crate::model::Diagnostic],
     frame_index: Option<usize>,
 ) -> Result<(), DumpError> {
-    let mut out = File::create(path)?;
+    let mut out = create_writer(path)?;
     for diagnostic in diagnostics {
         writeln!(
             out,
@@ -921,8 +923,18 @@ fn append_blob_frame_row(
     Ok(())
 }
 
-fn append_jsonl(path: &Path) -> Result<File, DumpError> {
-    Ok(OpenOptions::new().create(true).append(true).open(path)?)
+fn create_writer(path: &Path) -> Result<BufWriter<File>, DumpError> {
+    Ok(BufWriter::new(File::create(path)?))
+}
+
+fn append_jsonl(path: &Path) -> Result<BufWriter<File>, DumpError> {
+    Ok(BufWriter::new(
+        OpenOptions::new().create(true).append(true).open(path)?,
+    ))
+}
+
+fn frame_has_projectable_rdf(frame_type: &str) -> bool {
+    matches!(frame_type, "quads" | "reifies" | "annot" | "snapshot")
 }
 
 fn frame_contribution_nquads(
