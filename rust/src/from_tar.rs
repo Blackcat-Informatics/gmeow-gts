@@ -3,13 +3,22 @@
 
 //! Tar stream import into files-profile-v2 GTS archives.
 
-use std::borrow::Cow;
-use std::io::{Cursor, Read};
-use std::path::Path;
+use std::collections::BTreeMap;
+use std::fs::{self, OpenOptions};
+use std::io::{BufRead, BufReader, Cursor, Read, Write};
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::codec::{decode_chain, Codec};
-use crate::files::{pack_entries_v2, FileEntry, FileEntryKind, FilePaxRecord};
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
+
+use crate::files::{
+    pack_entries_v2_with_blob_paths, FileBlobSource, FileEntry, FileEntryKind, FilePaxRecord,
+};
 use crate::tar::TarError;
+use crate::wire::hex;
+
+const STREAM_CHUNK_SIZE: usize = 128 * 1024;
 
 /// Options for [`from_tar`].
 #[derive(Clone, Debug, Default)]
@@ -22,37 +31,69 @@ pub struct FromTarOptions {
 }
 
 /// Read a tar stream, optionally decompress it, and author a files-profile-v2 GTS archive.
-pub fn from_tar<R: Read>(mut reader: R, options: &FromTarOptions) -> Result<Vec<u8>, TarError> {
-    let mut data = Vec::new();
-    reader
-        .read_to_end(&mut data)
-        .map_err(|err| TarError::new(format!("read tar input: {err}")))?;
-    from_tar_bytes(&data, options)
+pub fn from_tar<R: Read>(reader: R, options: &FromTarOptions) -> Result<Vec<u8>, TarError> {
+    let mut out = Vec::new();
+    from_tar_to_writer(reader, &mut out, options)?;
+    Ok(out)
+}
+
+/// Read a tar stream and author files-profile-v2 GTS bytes to `writer`.
+///
+/// Regular-file payloads are spooled to temporary files while tar metadata is
+/// collected, then emitted as GTS blob frames in bounded chunks. This preserves
+/// deterministic metadata ordering without retaining whole file payloads or
+/// decompressed tar streams in memory.
+pub fn from_tar_to_writer<R: Read, W: Write>(
+    reader: R,
+    writer: W,
+    options: &FromTarOptions,
+) -> Result<(), TarError> {
+    let mut reader = BufReader::new(reader);
+    let compression = detect_reader_compression(&mut reader, options.source_name.as_deref())?;
+    let (entries, temp_blobs) = match compression {
+        None => read_tar_entries_spooled(reader, options)?,
+        Some("gzip") => read_tar_entries_spooled(flate2::read::GzDecoder::new(reader), options)?,
+        Some("zstd") => {
+            let decoder = ruzstd::decoding::StreamingDecoder::new(reader)
+                .map_err(|err| TarError::new(format!("zstd decode tar input: {err}")))?;
+            read_tar_entries_spooled(decoder, options)?
+        }
+        Some(other) => {
+            return Err(TarError::new(format!(
+                "unsupported tar compression: {other}"
+            )))
+        }
+    };
+    let blob_sources: BTreeMap<String, FileBlobSource> = temp_blobs
+        .iter()
+        .map(|(digest, blob)| {
+            (
+                digest.clone(),
+                FileBlobSource {
+                    path: blob.path.clone(),
+                    size: blob.size,
+                    media_type: blob.media_type.clone(),
+                    representation: None,
+                },
+            )
+        })
+        .collect();
+    pack_entries_v2_with_blob_paths(&entries, &blob_sources, writer).map_err(TarError::new)
 }
 
 /// Author a files-profile-v2 GTS archive from bytes containing tar, tar.gz, or tar.zst.
 pub fn from_tar_bytes(data: &[u8], options: &FromTarOptions) -> Result<Vec<u8>, TarError> {
-    let decoded = decode_tar_input(data, options.source_name.as_deref())?;
-    let entries = read_tar_entries(Cursor::new(&*decoded), options)?;
-    pack_entries_v2(&entries).map_err(TarError::new)
+    from_tar(Cursor::new(data), options)
 }
 
-fn decode_tar_input<'a>(
-    data: &'a [u8],
+fn detect_reader_compression<R: BufRead>(
+    reader: &mut R,
     source_name: Option<&str>,
-) -> Result<Cow<'a, [u8]>, TarError> {
-    match detect_compression(data, source_name) {
-        None => Ok(Cow::Borrowed(data)),
-        Some(name) => decode_chain(
-            &[Codec {
-                name: name.to_string(),
-                cls: "compress".to_string(),
-            }],
-            data,
-        )
-        .map(Cow::Owned)
-        .map_err(|err| TarError::new(format!("{name} decode tar input: {err}"))),
-    }
+) -> Result<Option<&'static str>, TarError> {
+    let prefix = reader
+        .fill_buf()
+        .map_err(|err| TarError::new(format!("peek tar input: {err}")))?;
+    Ok(detect_compression(prefix, source_name))
 }
 
 fn detect_compression(data: &[u8], source_name: Option<&str>) -> Option<&'static str> {
@@ -72,26 +113,58 @@ fn detect_compression(data: &[u8], source_name: Option<&str>) -> Option<&'static
     }
 }
 
-fn read_tar_entries<R: Read>(
+struct TempBlob {
+    path: PathBuf,
+    size: u64,
+    media_type: Option<String>,
+}
+
+impl Drop for TempBlob {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.path);
+    }
+}
+
+fn read_tar_entries_spooled<R: Read>(
     reader: R,
     options: &FromTarOptions,
-) -> Result<Vec<FileEntry>, TarError> {
+) -> Result<(Vec<FileEntry>, BTreeMap<String, TempBlob>), TarError> {
     let mut archive = ::tar::Archive::new(reader);
     let mut entries = Vec::new();
+    let mut blobs: BTreeMap<String, TempBlob> = BTreeMap::new();
     for entry in archive
         .entries()
         .map_err(|err| TarError::new(format!("read tar entries: {err}")))?
     {
         let mut entry = entry.map_err(|err| TarError::new(format!("read tar entry: {err}")))?;
-        entries.push(read_tar_entry(&mut entry, options)?);
+        let (file_entry, blob) = read_tar_entry_spooled(&mut entry, options)?;
+        if let Some((digest, blob)) = blob {
+            blobs.entry(digest).or_insert(blob);
+        }
+        entries.push(file_entry);
     }
     if entries.is_empty() {
         return Err(TarError::new("tar archive contains no entries"));
     }
-    Ok(entries)
+    Ok((entries, blobs))
 }
 
-fn read_tar_entry<R: Read>(
+fn read_tar_entry_spooled<R: Read>(
+    entry: &mut ::tar::Entry<'_, R>,
+    options: &FromTarOptions,
+) -> Result<(FileEntry, Option<(String, TempBlob)>), TarError> {
+    let mut out = read_tar_entry_metadata(entry, options)?;
+    if out.kind != FileEntryKind::File {
+        return Ok((out, None));
+    }
+    let path = out.path.clone();
+    let (digest, size, blob) = spool_file_entry(entry, &path)?;
+    out.digest = Some(digest.clone());
+    out.size = Some(size);
+    Ok((out, Some((digest, blob))))
+}
+
+fn read_tar_entry_metadata<R: Read>(
     entry: &mut ::tar::Entry<'_, R>,
     options: &FromTarOptions,
 ) -> Result<FileEntry, TarError> {
@@ -126,14 +199,7 @@ fn read_tar_entry<R: Read>(
     }
 
     match kind {
-        FileEntryKind::File => {
-            let mut data = Vec::new();
-            entry
-                .read_to_end(&mut data)
-                .map_err(|err| TarError::new(format!("read file data for {path}: {err}")))?;
-            out.size = Some(data.len() as u64);
-            out.data = Some(data);
-        }
+        FileEntryKind::File => {}
         FileEntryKind::Symlink | FileEntryKind::Hardlink => {
             let link = entry
                 .link_name()
@@ -154,6 +220,70 @@ fn read_tar_entry<R: Read>(
         FileEntryKind::Directory | FileEntryKind::Fifo | FileEntryKind::Socket => {}
     }
     Ok(out)
+}
+
+fn create_temp_blob_file() -> Result<(PathBuf, fs::File), std::io::Error> {
+    let temp_dir = std::env::temp_dir();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    for attempt in 0..1000_u32 {
+        let path = temp_dir.join(format!(
+            "gmeow-gts-tar-{}-{now}-{attempt}.blob",
+            std::process::id()
+        ));
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            options.mode(0o600);
+        }
+        match options.open(&path) {
+            Ok(file) => return Ok((path, file)),
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(err) => return Err(err),
+        }
+    }
+    Err(std::io::Error::new(
+        std::io::ErrorKind::AlreadyExists,
+        "could not create unique temporary blob path",
+    ))
+}
+
+fn spool_file_entry<R: Read>(
+    entry: &mut ::tar::Entry<'_, R>,
+    path: &str,
+) -> Result<(String, u64, TempBlob), TarError> {
+    let (temp_path, mut temp) = create_temp_blob_file()
+        .map_err(|err| TarError::new(format!("create temporary blob for {path}: {err}")))?;
+    let mut hasher = blake3::Hasher::new();
+    let mut size = 0_u64;
+    let mut buf = [0_u8; STREAM_CHUNK_SIZE];
+    loop {
+        let n = entry
+            .read(&mut buf)
+            .map_err(|err| TarError::new(format!("read file data for {path}: {err}")))?;
+        if n == 0 {
+            break;
+        }
+        temp.write_all(&buf[..n])
+            .map_err(|err| TarError::new(format!("spool file data for {path}: {err}")))?;
+        hasher.update(&buf[..n]);
+        size += n as u64;
+    }
+    temp.flush()
+        .map_err(|err| TarError::new(format!("flush temporary blob for {path}: {err}")))?;
+    let digest = format!("blake3:{}", hex(hasher.finalize().as_bytes()));
+    Ok((
+        digest,
+        size,
+        TempBlob {
+            path: temp_path,
+            size,
+            media_type: None,
+        },
+    ))
 }
 
 fn read_pax_records<R: Read>(

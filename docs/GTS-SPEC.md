@@ -1697,6 +1697,10 @@ other lossless archive tools.
   link and special-file metadata, but extraction still requires the explicit opt-ins above.
   Tools SHOULD choose the `.gts` or `.tar` path by archive extension and SHOULD infer gzip/zstd
   wrapping from common tar suffixes when creating tar output.
+  Tools that claim large-archive streamability SHOULD state the exact boundary they satisfy:
+  direct `.gts` authoring can stream regular-file payload frames while metadata is sorted, but
+  folded graph projections and compression backends may still require bounded temporary storage
+  or in-memory materialization.
 
 - **`gts diff <archive> <dir>`**
   Compare the archive's `files:FileEntry` set to the current state of `<dir>` by content digest.

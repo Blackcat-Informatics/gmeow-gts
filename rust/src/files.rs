@@ -5,8 +5,8 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
-use std::io::Write;
-use std::path::Path;
+use std::io::{Read, Seek, Write};
+use std::path::{Path, PathBuf};
 
 use ciborium::value::Value;
 
@@ -38,6 +38,9 @@ const FILES_PAX_VALUE: &str = "https://w3id.org/gts/files#paxValue";
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const XSD_INTEGER: &str = "http://www.w3.org/2001/XMLSchema#integer";
 const XSD_DATETIME: &str = "http://www.w3.org/2001/XMLSchema#dateTime";
+const STREAM_CHUNK_SIZE: usize = 128 * 1024;
+
+type InlineBlobMap = BTreeMap<String, (Vec<u8>, Option<String>)>;
 
 /// files-profile v2 entry kind. Absence of `files:type` is read as [`Self::File`].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -118,6 +121,15 @@ pub struct FileEntry {
     pub pax_records: Vec<FilePaxRecord>,
     /// Optional inline payload bytes for regular-file authoring.
     pub data: Option<Vec<u8>>,
+}
+
+/// A regular-file blob source for bounded files-profile authoring.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FileBlobSource {
+    pub path: PathBuf,
+    pub size: u64,
+    pub media_type: Option<String>,
+    pub representation: Option<String>,
 }
 
 /// Safety policy for materializing files-profile archives.
@@ -361,8 +373,270 @@ fn guess_media_type(path: &Path) -> String {
     }
 }
 
+struct HashingWriter<'a> {
+    hasher: &'a mut blake3::Hasher,
+}
+
+impl Write for HashingWriter<'_> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.hasher.update(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+fn write_cbor_type_len<W: Write>(writer: &mut W, major: u8, len: u64) -> std::io::Result<()> {
+    let prefix = major << 5;
+    if len < 24 {
+        writer.write_all(&[prefix | len as u8])
+    } else if u8::try_from(len).is_ok() {
+        writer.write_all(&[prefix | 24, len as u8])
+    } else if u16::try_from(len).is_ok() {
+        writer.write_all(&[prefix | 25])?;
+        writer.write_all(&(len as u16).to_be_bytes())
+    } else if u32::try_from(len).is_ok() {
+        writer.write_all(&[prefix | 26])?;
+        writer.write_all(&(len as u32).to_be_bytes())
+    } else {
+        writer.write_all(&[prefix | 27])?;
+        writer.write_all(&len.to_be_bytes())
+    }
+}
+
+fn write_cbor_map_len<W: Write>(writer: &mut W, len: u64) -> std::io::Result<()> {
+    write_cbor_type_len(writer, 5, len)
+}
+
+fn write_cbor_text<W: Write>(writer: &mut W, text: &str) -> std::io::Result<()> {
+    write_cbor_type_len(writer, 3, text.len() as u64)?;
+    writer.write_all(text.as_bytes())
+}
+
+fn write_cbor_bytes_header<W: Write>(writer: &mut W, len: u64) -> std::io::Result<()> {
+    write_cbor_type_len(writer, 2, len)
+}
+
+fn write_cbor_bytes<W: Write>(writer: &mut W, bytes: &[u8]) -> std::io::Result<()> {
+    write_cbor_bytes_header(writer, bytes.len() as u64)?;
+    writer.write_all(bytes)
+}
+
+fn write_blob_pub_map<W: Write>(
+    writer: &mut W,
+    digest: &str,
+    media_type: Option<&str>,
+    representation: Option<&str>,
+) -> std::io::Result<()> {
+    let len = 1 + u64::from(media_type.is_some()) + u64::from(representation.is_some());
+    write_cbor_map_len(writer, len)?;
+    if let Some(media_type) = media_type {
+        write_cbor_text(writer, "mt")?;
+        write_cbor_text(writer, media_type)?;
+    }
+    if let Some(representation) = representation {
+        write_cbor_text(writer, "rep")?;
+        write_cbor_text(writer, representation)?;
+    }
+    write_cbor_text(writer, "digest")?;
+    write_cbor_text(writer, digest)
+}
+
+fn copy_counted_and_hash<R: Read, W: Write>(
+    mut reader: R,
+    writer: &mut W,
+    expected_size: u64,
+) -> std::io::Result<(String, u64)> {
+    let mut digest = blake3::Hasher::new();
+    let mut written = 0_u64;
+    let mut buf = [0_u8; STREAM_CHUNK_SIZE];
+    loop {
+        let n = reader.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        writer.write_all(&buf[..n])?;
+        digest.update(&buf[..n]);
+        written += n as u64;
+    }
+    if written != expected_size {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::UnexpectedEof,
+            format!("blob source changed size: expected {expected_size}, read {written}"),
+        ));
+    }
+    Ok((
+        format!("blake3:{}", hex(digest.finalize().as_bytes())),
+        written,
+    ))
+}
+
+fn write_blob_preimage<R: Read, W: Write>(
+    writer: &mut W,
+    reader: R,
+    size: u64,
+    media_type: Option<&str>,
+    representation: Option<&str>,
+    prev: &[u8],
+) -> std::io::Result<String> {
+    write_cbor_map_len(writer, 4)?;
+    write_cbor_text(writer, "d")?;
+    write_cbor_bytes_header(writer, size)?;
+    let (digest, _) = copy_counted_and_hash(reader, writer, size)?;
+    write_cbor_text(writer, "t")?;
+    write_cbor_text(writer, "blob")?;
+    write_cbor_text(writer, "pub")?;
+    write_blob_pub_map(writer, &digest, media_type, representation)?;
+    write_cbor_text(writer, "prev")?;
+    write_cbor_bytes(writer, prev)?;
+    Ok(digest)
+}
+
+struct BlobFrameMeta<'a> {
+    size: u64,
+    id: &'a [u8],
+    digest: &'a str,
+    media_type: Option<&'a str>,
+    representation: Option<&'a str>,
+    prev: &'a [u8],
+}
+
+fn write_blob_frame<R: Read, W: Write>(
+    writer: &mut W,
+    reader: R,
+    meta: &BlobFrameMeta<'_>,
+) -> std::io::Result<()> {
+    write_cbor_map_len(writer, 5)?;
+    write_cbor_text(writer, "d")?;
+    write_cbor_bytes_header(writer, meta.size)?;
+    let (observed_digest, _) = copy_counted_and_hash(reader, writer, meta.size)?;
+    if observed_digest != meta.digest {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!(
+                "blob source changed digest: expected {}, read {observed_digest}",
+                meta.digest
+            ),
+        ));
+    }
+    write_cbor_text(writer, "t")?;
+    write_cbor_text(writer, "blob")?;
+    write_cbor_text(writer, "id")?;
+    write_cbor_bytes(writer, meta.id)?;
+    write_cbor_text(writer, "pub")?;
+    write_blob_pub_map(writer, meta.digest, meta.media_type, meta.representation)?;
+    write_cbor_text(writer, "prev")?;
+    write_cbor_bytes(writer, meta.prev)
+}
+
+fn append_blob_path<W: Write>(
+    writer: &mut W,
+    prev: &mut Vec<u8>,
+    source: &FileBlobSource,
+    expected_digest: &str,
+) -> Result<(), String> {
+    let media_type = source.media_type.as_deref();
+    let representation = source.representation.as_deref();
+    let mut file =
+        fs::File::open(&source.path).map_err(|e| format!("read {:?}: {e}", source.path))?;
+    let mut hasher = blake3::Hasher::new();
+    let digest = {
+        let mut sink = HashingWriter {
+            hasher: &mut hasher,
+        };
+        write_blob_preimage(
+            &mut sink,
+            &mut file,
+            source.size,
+            media_type,
+            representation,
+            prev,
+        )
+        .map_err(|e| format!("hash blob {:?}: {e}", source.path))?
+    };
+    if digest != expected_digest {
+        return Err(format!(
+            "digest mismatch for {:?}: expected {expected_digest}, read {digest}",
+            source.path
+        ));
+    }
+    let id = hasher.finalize().as_bytes().to_vec();
+    file.rewind()
+        .map_err(|e| format!("seek {:?}: {e}", source.path))?;
+    let meta = BlobFrameMeta {
+        size: source.size,
+        id: &id,
+        digest: &digest,
+        media_type,
+        representation,
+        prev,
+    };
+    write_blob_frame(writer, &mut file, &meta)
+        .map_err(|e| format!("write blob {:?}: {e}", source.path))?;
+    *prev = id;
+    Ok(())
+}
+
+fn digest_file(path: &Path, expected_size: u64) -> Result<String, String> {
+    let mut file = fs::File::open(path).map_err(|e| format!("read {path:?}: {e}"))?;
+    let mut sink = std::io::sink();
+    let (digest, _) = copy_counted_and_hash(&mut file, &mut sink, expected_size)
+        .map_err(|e| format!("hash {path:?}: {e}"))?;
+    Ok(digest)
+}
+
+#[derive(Clone, Debug)]
+struct ResolvedFile {
+    fspath: PathBuf,
+    relpath: String,
+    digest: String,
+    size: u64,
+    mode: u32,
+    modified: String,
+    media_type: String,
+}
+
+fn resolved_files_with_metadata(sources: &[&Path]) -> Result<Vec<ResolvedFile>, String> {
+    let entries = resolve_sources(sources)?;
+    let mut out = Vec::with_capacity(entries.len());
+    for (fspath, relpath) in entries {
+        let meta = fs::metadata(&fspath).map_err(|e| format!("stat {fspath:?}: {e}"))?;
+        let size = meta.len();
+        #[cfg(unix)]
+        let mode = std::os::unix::fs::PermissionsExt::mode(&meta.permissions()) & 0o7777;
+        #[cfg(not(unix))]
+        let mode = 0o644_u32;
+        let mtime = meta
+            .modified()
+            .map_err(|e| format!("mtime {fspath:?}: {e}"))?;
+        let modified = format_datetime(&mtime).map_err(|e| format!("datetime {fspath:?}: {e}"))?;
+        let media_type = guess_media_type(&fspath);
+        let digest = digest_file(&fspath, size)?;
+        out.push(ResolvedFile {
+            fspath,
+            relpath,
+            digest,
+            size,
+            mode,
+            modified,
+            media_type,
+        });
+    }
+    Ok(out)
+}
+
 /// Pack files/directories into a deterministic GTS files-profile archive.
 pub fn pack(sources: &[&Path]) -> Result<Vec<u8>, String> {
+    let mut out = Vec::new();
+    pack_to_writer(sources, &mut out)?;
+    Ok(out)
+}
+
+/// Pack files/directories into a deterministic GTS files-profile archive without
+/// retaining regular-file payloads in memory.
+pub fn pack_to_writer<W: Write>(sources: &[&Path], mut output: W) -> Result<(), String> {
     let mut w = Writer::new("files");
 
     let shared = vec![
@@ -389,36 +663,20 @@ pub fn pack(sources: &[&Path]) -> Result<Vec<u8>, String> {
     let xsd_integer_id: usize = 8;
     let xsd_datetime_id: usize = 9;
 
-    let entries = resolve_sources(sources)?;
+    let entries = resolved_files_with_metadata(sources)?;
 
     let mut file_terms: Vec<crate::model::Term> = Vec::new();
     let mut quads: Vec<crate::model::Quad> = Vec::new();
-    let mut blobs: Vec<(Vec<u8>, String, String)> = Vec::new();
 
-    for (idx, (fspath, relpath)) in entries.iter().enumerate() {
-        let data = fs::read(fspath).map_err(|e| format!("read {fspath:?}: {e}"))?;
-        let digest = digest_string(&data);
-        let meta = fs::metadata(fspath).map_err(|e| format!("stat {fspath:?}: {e}"))?;
-        let size = meta.len();
-        #[cfg(unix)]
-        let mode = std::os::unix::fs::PermissionsExt::mode(&meta.permissions()) & 0o7777;
-        #[cfg(not(unix))]
-        let mode = 0o644u32;
-        let mtime = meta
-            .modified()
-            .map_err(|e| format!("mtime {fspath:?}: {e}"))?;
-        let mt = guess_media_type(fspath);
-
+    for (idx, entry) in entries.iter().enumerate() {
         let entry_label = format!("f{idx}");
         let entry_term = bnode_term(&entry_label);
-        let path_term = literal_term(relpath, None);
-        let digest_term = literal_term(&digest, None);
-        let size_term = literal_term(&size.to_string(), Some(xsd_integer_id));
-        let mode_term = literal_term(&mode.to_string(), Some(xsd_integer_id));
-        let modified_text =
-            format_datetime(&mtime).map_err(|e| format!("datetime {fspath:?}: {e}"))?;
-        let modified_term = literal_term(&modified_text, Some(xsd_datetime_id));
-        let media_term = literal_term(&mt, None);
+        let path_term = literal_term(&entry.relpath, None);
+        let digest_term = literal_term(&entry.digest, None);
+        let size_term = literal_term(&entry.size.to_string(), Some(xsd_integer_id));
+        let mode_term = literal_term(&entry.mode.to_string(), Some(xsd_integer_id));
+        let modified_term = literal_term(&entry.modified, Some(xsd_datetime_id));
+        let media_term = literal_term(&entry.media_type, None);
 
         let base = shared.len() + file_terms.len();
         file_terms.extend(vec![
@@ -438,7 +696,6 @@ pub fn pack(sources: &[&Path]) -> Result<Vec<u8>, String> {
         quads.push((entry_id, mode_id, base + 4, None));
         quads.push((entry_id, modified_id, base + 5, None));
         quads.push((entry_id, media_type_id, base + 6, None));
-        blobs.push((data, digest, mt));
     }
 
     if !file_terms.is_empty() {
@@ -448,15 +705,24 @@ pub fn pack(sources: &[&Path]) -> Result<Vec<u8>, String> {
         w.add_quads(&quads);
     }
 
+    output
+        .write_all(&w.to_bytes())
+        .map_err(|e| format!("write files-profile metadata: {e}"))?;
+    let mut prev = w.head().to_vec();
     let mut seen: HashSet<String> = HashSet::new();
-    for (data, _digest, mt) in blobs {
-        if !seen.insert(digest_string(&data)) {
+    for entry in &entries {
+        if !seen.insert(entry.digest.clone()) {
             continue;
         }
-        w.add_blob(&data, Some(&mt), None);
+        let source = FileBlobSource {
+            path: entry.fspath.clone(),
+            size: entry.size,
+            media_type: Some(entry.media_type.clone()),
+            representation: None,
+        };
+        append_blob_path(&mut output, &mut prev, &source, &entry.digest)?;
     }
-
-    Ok(w.to_bytes())
+    Ok(())
 }
 
 /// Author an opt-in files-profile v2 archive from typed entries.
@@ -464,6 +730,35 @@ pub fn pack(sources: &[&Path]) -> Result<Vec<u8>, String> {
 /// This helper is the Rust foundation for the tar bridge. The default
 /// [`pack`] command continues to emit v1 archives.
 pub fn pack_entries_v2(entries: &[FileEntry]) -> Result<Vec<u8>, String> {
+    let (mut writer, blobs) = build_entries_v2_prefix(entries)?;
+    for (_digest, (data, media_type)) in blobs {
+        writer.add_blob(&data, media_type.as_deref(), None);
+    }
+    Ok(writer.to_bytes())
+}
+
+/// Author a files-profile v2 archive from typed entries and regular-file blob paths.
+///
+/// This is the bounded-memory counterpart to [`pack_entries_v2`]: metadata is
+/// still collected and sorted in memory, while regular-file payload frames are
+/// hashed and written from the supplied paths in bounded chunks.
+pub fn pack_entries_v2_with_blob_paths<W: Write>(
+    entries: &[FileEntry],
+    blob_sources: &BTreeMap<String, FileBlobSource>,
+    mut output: W,
+) -> Result<(), String> {
+    let (writer, _inline_blobs) = build_entries_v2_prefix(entries)?;
+    output
+        .write_all(&writer.to_bytes())
+        .map_err(|e| format!("write files-profile-v2 metadata: {e}"))?;
+    let mut prev = writer.head().to_vec();
+    for (digest, source) in blob_sources {
+        append_blob_path(&mut output, &mut prev, source, digest)?;
+    }
+    Ok(())
+}
+
+fn build_entries_v2_prefix(entries: &[FileEntry]) -> Result<(Writer, InlineBlobMap), String> {
     if entries.is_empty() {
         return Err("files-profile v2 archive needs at least one entry".to_string());
     }
@@ -474,7 +769,7 @@ pub fn pack_entries_v2(entries: &[FileEntry]) -> Result<Vec<u8>, String> {
     let mut builder = TermBuilder::default();
     let rdf_type = builder.iri(RDF_TYPE);
     let file_entry = builder.iri(FILE_ENTRY);
-    let mut blobs: BTreeMap<String, (Vec<u8>, Option<String>)> = BTreeMap::new();
+    let mut blobs: InlineBlobMap = BTreeMap::new();
 
     for (idx, entry) in entries.iter().enumerate() {
         safe_archive_path(&entry.path)?;
@@ -578,10 +873,7 @@ pub fn pack_entries_v2(entries: &[FileEntry]) -> Result<Vec<u8>, String> {
     if !builder.quads.is_empty() {
         writer.add_quads(&builder.quads);
     }
-    for (_digest, (data, media_type)) in blobs {
-        writer.add_blob(&data, media_type.as_deref(), None);
-    }
-    Ok(writer.to_bytes())
+    Ok((writer, blobs))
 }
 
 fn files_v2_profile_meta() -> Value {

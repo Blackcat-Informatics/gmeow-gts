@@ -23,7 +23,7 @@ use gmeow_gts::from_nquads::from_nquads;
 #[cfg(feature = "okf")]
 use gmeow_gts::from_okf::{from_okf_with_options, FromOkfOptions};
 #[cfg(feature = "tar")]
-use gmeow_gts::from_tar::{from_tar_bytes, FromTarOptions};
+use gmeow_gts::from_tar::{from_tar_to_writer, FromTarOptions};
 use gmeow_gts::from_trig::from_trig;
 #[cfg(feature = "yaml-ld")]
 use gmeow_gts::from_yamlld::from_yaml_ld;
@@ -1112,33 +1112,21 @@ fn cmd_from_tar(args: &[String]) -> ExitCode {
         return ExitCode::from(2);
     };
 
-    let bytes = if input == "-" {
-        let mut bytes = Vec::new();
-        let mut stdin = std::io::stdin();
-        if let Err(e) = std::io::Read::read_to_end(&mut stdin, &mut bytes) {
-            eprintln!("gts from-tar: cannot read stdin: {e}");
+    if input == "-" {
+        let stdin = std::io::stdin();
+        let mut handle = stdin.lock();
+        return write_from_tar_output(&mut handle, out_path, &options);
+    }
+
+    options.source_name = Some(input.to_string());
+    let mut file = match std::fs::File::open(input) {
+        Ok(file) => file,
+        Err(e) => {
+            eprintln!("gts from-tar: cannot read {input}: {e}");
             return ExitCode::from(2);
         }
-        bytes
-    } else {
-        options.source_name = Some(input.to_string());
-        match std::fs::read(input) {
-            Ok(bytes) => bytes,
-            Err(e) => {
-                eprintln!("gts from-tar: cannot read {input}: {e}");
-                return ExitCode::from(2);
-            }
-        }
     };
-
-    let archive = match from_tar_bytes(&bytes, &options) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            eprintln!("gts from-tar: {e}");
-            return ExitCode::from(1);
-        }
-    };
-    write_bytes("from-tar", out_path, &archive)
+    write_from_tar_output(&mut file, out_path, &options)
 }
 
 #[cfg(feature = "tar")]
@@ -1397,6 +1385,23 @@ fn cmd_tar_create(parsed: &TarCliArgs) -> ExitCode {
 
     let paths = resolve_tar_sources(&parsed.sources, parsed.directory.as_deref());
     let path_refs: Vec<&std::path::Path> = paths.iter().map(std::path::PathBuf::as_path).collect();
+    if kind == ArchiveKind::Gts {
+        let mut file = match std::fs::File::create(archive) {
+            Ok(file) => file,
+            Err(e) => {
+                eprintln!("gts tar: cannot write {archive}: {e}");
+                return ExitCode::from(2);
+            }
+        };
+        return match gmeow_gts::files::pack_to_writer(&path_refs, &mut file) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(msg) => {
+                eprintln!("gts tar: refusing create: {msg}");
+                ExitCode::from(1)
+            }
+        };
+    }
+
     let data = match gmeow_gts::files::pack(&path_refs) {
         Ok(data) => data,
         Err(msg) => {
@@ -1404,10 +1409,6 @@ fn cmd_tar_create(parsed: &TarCliArgs) -> ExitCode {
             return ExitCode::from(1);
         }
     };
-
-    if kind == ArchiveKind::Gts {
-        return write_bytes("tar", Some(archive), &data);
-    }
 
     let graph = match graph_from_clean_bytes("tar", archive, &data) {
         Ok(graph) => graph,
@@ -1530,40 +1531,38 @@ fn read_archive_graph_for_tar(parsed: &TarCliArgs, read_only: bool) -> Result<Gr
                 options.allow_symlinks = true;
                 options.allow_special = true;
             }
-            let bytes = read_tar_input("tar", archive, &mut options)?;
-            let data = match from_tar_bytes(&bytes, &options) {
-                Ok(data) => data,
-                Err(e) => {
-                    eprintln!("gts tar: {e}");
-                    return Err(ExitCode::from(1));
-                }
-            };
+            let data = read_tar_as_gts_bytes("tar", archive, &mut options)?;
             graph_from_clean_bytes("tar", archive, &data)
         }
     }
 }
 
 #[cfg(feature = "tar")]
-fn read_tar_input(
+fn read_tar_as_gts_bytes(
     command: &str,
     archive: &str,
     options: &mut FromTarOptions,
 ) -> Result<Vec<u8>, ExitCode> {
+    let mut data = Vec::new();
     if archive == "-" {
-        let mut bytes = Vec::new();
-        let mut stdin = std::io::stdin();
-        if let Err(e) = std::io::Read::read_to_end(&mut stdin, &mut bytes) {
-            eprintln!("gts {command}: cannot read stdin: {e}");
-            return Err(ExitCode::from(2));
+        let stdin = std::io::stdin();
+        let mut handle = stdin.lock();
+        if let Err(e) = from_tar_to_writer(&mut handle, &mut data, options) {
+            eprintln!("gts {command}: {e}");
+            return Err(ExitCode::from(1));
         }
-        Ok(bytes)
     } else {
         options.source_name = Some(archive.to_string());
-        std::fs::read(archive).map_err(|e| {
+        let mut file = std::fs::File::open(archive).map_err(|e| {
             eprintln!("gts {command}: cannot read {archive}: {e}");
             ExitCode::from(2)
-        })
+        })?;
+        if let Err(e) = from_tar_to_writer(&mut file, &mut data, options) {
+            eprintln!("gts {command}: {e}");
+            return Err(ExitCode::from(1));
+        }
     }
+    Ok(data)
 }
 
 #[cfg(feature = "tar")]
@@ -1686,23 +1685,39 @@ fn set_tar_compression(
 }
 
 #[cfg(feature = "tar")]
-fn write_bytes(command: &str, out_path: Option<&str>, bytes: &[u8]) -> ExitCode {
+fn write_from_tar_output<R: std::io::Read>(
+    reader: R,
+    out_path: Option<&str>,
+    options: &FromTarOptions,
+) -> ExitCode {
     match out_path {
         Some("-") | None => {
             let mut stdout = std::io::stdout();
-            if let Err(e) = std::io::Write::write_all(&mut stdout, bytes) {
-                eprintln!("gts {command}: cannot write stdout: {e}");
-                return ExitCode::from(2);
+            match from_tar_to_writer(reader, &mut stdout, options) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(e) => {
+                    eprintln!("gts from-tar: {e}");
+                    ExitCode::from(1)
+                }
             }
         }
         Some(path) => {
-            if let Err(e) = std::fs::write(path, bytes) {
-                eprintln!("gts {command}: cannot write {path}: {e}");
-                return ExitCode::from(2);
+            let mut file = match std::fs::File::create(path) {
+                Ok(file) => file,
+                Err(e) => {
+                    eprintln!("gts from-tar: cannot write {path}: {e}");
+                    return ExitCode::from(2);
+                }
+            };
+            match from_tar_to_writer(reader, &mut file, options) {
+                Ok(()) => ExitCode::SUCCESS,
+                Err(e) => {
+                    eprintln!("gts from-tar: {e}");
+                    ExitCode::from(1)
+                }
             }
         }
     }
-    ExitCode::SUCCESS
 }
 
 fn export_graph(path: &str) -> Result<Graph, ExitCode> {

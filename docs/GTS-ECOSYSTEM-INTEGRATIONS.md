@@ -32,6 +32,16 @@ create/extract/list/diff command shape. The bridge handles plain `.tar`,
 `.tar.gz`, and `.tar.zst` streams, preserving tar-equivalent metadata and
 unknown PAX records where the profile can represent them.
 
+For large archives, the Rust import/create paths avoid resident memory scaling
+with regular-file payload bytes on the direct GTS authoring paths:
+`gts from-tar` decodes tar input as a stream, spools regular-file bodies while
+collecting sorted metadata, and emits blob frames from bounded chunks; `gts tar
+-cf out.gts ...` hashes and writes source file payloads in bounded chunks. The
+folded `to-tar` path still exports from the in-memory `Graph` representation,
+and `.tar.zst` output still uses the current zstd backend path that materializes
+the encoded projection. Those are implementation boundaries, not format
+requirements.
+
 The canonical artifact should be the `.gts` file when verification matters:
 frame ids, optional signatures, append-only revisions, suppressions, and
 content-addressed blobs remain visible to GTS readers. Conventional `.tar`,

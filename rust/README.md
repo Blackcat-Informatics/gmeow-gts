@@ -441,6 +441,11 @@ for out-of-profile RDF. The optional tar bridge (`--features tar`) imports and e
 files-profile-v2 archives as tar streams, including stdin/stdout use, gzip/zstd wrapping,
 link and special-file opt-ins, owner metadata, and unknown PAX records. `gts tar` wraps that
 bridge in familiar `-c/-x/-t/-d` forms and chooses the GTS or tar path by extension.
+`from-tar` and `gts tar -cf out.gts ...` author regular-file blob frames from bounded chunks
+instead of retaining whole payloads in memory; tar input is decoded as a stream and regular
+files are spooled while deterministic metadata is sorted. Folded `to-tar` export still depends
+on the folded `Graph`, and zstd tar output remains a bounded-by-backend vector path until a
+fallible streaming zstd `Write` encoder is available.
 `unpack` and `tar -x` use refuse-dangerous defaults: ownership is restored only with
 `--same-owner` or `--numeric-owner`, setuid/setgid/sticky bits are stripped unless
 `--preserve-setid` is supplied, and links or special nodes are materialized only with
