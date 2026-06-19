@@ -20,6 +20,11 @@ GtsZstdLibrary >> decompressInto: outputBytes capacity: outputCapacity from: inp
 ]
 
 { #category : #ffi }
+GtsZstdLibrary >> frameContentSizeOf: inputBytes length: inputLength [
+	^ self ffiCall: #(#ulonglong #ZSTD_getFrameContentSize #(#const #void #* #inputBytes #, #size_t #inputLength))
+]
+
+{ #category : #ffi }
 GtsZstdLibrary >> isError: resultCode [
 	^ self ffiCall: #(#uint #ZSTD_isError #(#size_t #resultCode))
 ]

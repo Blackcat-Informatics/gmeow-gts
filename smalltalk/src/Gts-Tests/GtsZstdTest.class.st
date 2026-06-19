@@ -24,6 +24,7 @@ GtsZstdTest >> testRoundTripBytesThroughNativeZstd [
 	| compressed payload restored |
 	payload := 'Graph Transport Substrate zstd FFI smoke test' utf8Encoded.
 	compressed := GtsZstd compress: payload.
-	restored := GtsZstd decompress: compressed expectedSize: payload size.
+	self assert: (GtsZstd frameContentSizeFor: compressed) equals: payload size.
+	restored := GtsZstd decompress: compressed.
 	self assert: restored equals: payload
 ]
