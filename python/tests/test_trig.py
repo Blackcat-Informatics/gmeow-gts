@@ -101,6 +101,18 @@ GRAPH ex:g {
     ]
 
 
+def test_prefixed_names_stop_before_quoted_triple_close() -> None:
+    trig = """@prefix ex: <https://ex/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+ex:r rdf:reifies <<( ex:s ex:p ex:o)>> .
+"""
+    out = to_nquads(read(from_trig(trig)))
+    assert _sorted_lines(out) == [
+        f"<https://ex/r> <{RDF_REIFIES}> "
+        "<<( <https://ex/s> <https://ex/p> <https://ex/o> )>> ."
+    ]
+
+
 def test_rejects_malformed_or_unsupported_trig() -> None:
     with pytest.raises(TriGParseError, match="terminate statement"):
         from_trig("@prefix ex: <https://ex/> .\nex:s ex:p ex:o\n")
@@ -121,6 +133,14 @@ def test_cli_from_trig_inverts_to_trig(tmp_path: Path) -> None:
     assert _sorted_lines(to_nquads(read(out_path.read_bytes()))) == _sorted_lines(
         to_nquads(read(src))
     )
+
+
+def test_cli_from_trig_rejects_invalid_utf8(tmp_path: Path, capsys: object) -> None:
+    bad = tmp_path / "bad.trig"
+    bad.write_bytes(b"\xff")
+    assert main(["from-trig", str(bad)]) == 1
+    captured = capsys.readouterr()
+    assert "invalid UTF-8" in captured.err
 
 
 def test_requested_module_import_path() -> None:

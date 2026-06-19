@@ -427,7 +427,7 @@ impl<'a> Parser<'a> {
         self.skip_ws_and_comments();
         let start = self.pos;
         while let Some(ch) = self.peek_char() {
-            if ch.is_whitespace() || matches!(ch, '{' | '}' | '.' | ';' | ',') {
+            if ch.is_whitespace() || matches!(ch, '{' | '}' | '.' | ';' | ',' | ')') {
                 break;
             }
             self.bump_char();

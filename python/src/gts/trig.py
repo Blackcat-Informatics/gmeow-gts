@@ -365,7 +365,7 @@ class _Parser:
         start = self.i
         while self.i < len(self.text):
             ch = self.text[self.i]
-            if ch.isspace() or ch in "{}.;,":
+            if ch.isspace() or ch in "{}.;,)":
                 break
             self.i += 1
         if self.i == start:
@@ -385,7 +385,7 @@ class _Parser:
         self._graph_block_after_open(graph)
 
     def _graph_block_after_open(self, graph: _Node) -> None:
-        if not isinstance(graph, (_Iri, _Bnode)):
+        if not isinstance(graph, _Iri | _Bnode):
             raise TriGParseError("graph block name must be an IRI or blank node")
         while not self._consume_char("}"):
             if self._eof():

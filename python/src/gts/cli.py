@@ -292,6 +292,9 @@ def _cmd_from_nq(path: str, out: str | None) -> int:
     except OSError as exc:
         print(f"gts from-nq: cannot read {path}: {exc}", file=sys.stderr)
         return 2
+    except UnicodeDecodeError as exc:
+        print(f"gts from-nq: invalid UTF-8 in {path}: {exc}", file=sys.stderr)
+        return 1
     try:
         data = from_nquads(text)
     except NQuadsParseError as exc:
@@ -309,6 +312,9 @@ def _cmd_from_trig(path: str, out: str | None) -> int:
     except OSError as exc:
         print(f"gts from-trig: cannot read {path}: {exc}", file=sys.stderr)
         return 2
+    except UnicodeDecodeError as exc:
+        print(f"gts from-trig: invalid UTF-8 in {path}: {exc}", file=sys.stderr)
+        return 1
     try:
         data = from_trig(text)
     except TriGParseError as exc:

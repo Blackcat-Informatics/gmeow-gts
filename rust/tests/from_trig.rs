@@ -159,6 +159,20 @@ GRAPH ex:g {
 }
 
 #[test]
+fn prefixed_names_stop_before_quoted_triple_close() {
+    let trig = r#"@prefix ex: <https://ex/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+ex:r rdf:reifies <<( ex:s ex:p ex:o)>> .
+"#;
+    let imported = from_trig(trig).expect("adjacent quoted triple close parses");
+    let out = to_nquads(&read(&imported, true, None));
+    let expected = format!(
+        "<https://ex/r> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> ."
+    );
+    assert_eq!(sorted_lines(&out), vec![expected]);
+}
+
+#[test]
 fn rejects_malformed_or_unsupported_trig() {
     let err = from_trig("@prefix ex: <https://ex/> .\nex:s ex:p ex:o\n")
         .expect_err("missing dot is malformed");
