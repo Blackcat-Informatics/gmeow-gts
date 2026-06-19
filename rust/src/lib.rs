@@ -27,6 +27,8 @@ pub mod files;
 pub mod from_nquads;
 #[cfg(feature = "okf")]
 pub mod from_okf;
+#[cfg(feature = "tar")]
+pub mod from_tar;
 pub mod from_trig;
 #[cfg(feature = "yaml-ld")]
 pub mod from_yamlld;
@@ -52,6 +54,8 @@ pub mod replication;
 #[cfg(feature = "sophia-adapter")]
 pub mod sophia;
 pub mod stream;
+#[cfg(feature = "tar")]
+pub mod tar;
 pub mod trig;
 pub mod verify;
 pub mod wire;

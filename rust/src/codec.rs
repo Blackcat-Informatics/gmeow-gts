@@ -67,22 +67,21 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
             let mut decoder = ruzstd::decoding::FrameDecoder::new();
             // Start with a generous expansion factor and allow bounded growth.
             const MAX_ZSTD_DECODED_SIZE: usize = 16 * 1024 * 1024;
-            let max_capacity = data
+            let mut capacity = data
                 .len()
                 .saturating_mul(4)
                 .clamp(4096, MAX_ZSTD_DECODED_SIZE);
-            let mut capacity = max_capacity;
             loop {
                 let mut out = Vec::with_capacity(capacity);
                 match decoder.decode_all_to_vec(data, &mut out) {
                     Ok(()) => return Ok(out),
                     Err(ruzstd::decoding::errors::FrameDecoderError::TargetTooSmall) => {
-                        if capacity >= max_capacity {
+                        if capacity >= MAX_ZSTD_DECODED_SIZE {
                             return Err(CodecError::Failed(
                                 "zstd decode failed: decompressed size exceeds safety bound".into(),
                             ));
                         }
-                        capacity = (capacity * 2).min(max_capacity);
+                        capacity = (capacity * 2).min(MAX_ZSTD_DECODED_SIZE);
                         continue;
                     }
                     Err(e) => return Err(CodecError::Failed(format!("zstd decode failed: {e}"))),

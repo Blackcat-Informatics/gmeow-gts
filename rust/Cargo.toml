@@ -39,6 +39,9 @@ yaml-ld = ["dep:serde", "dep:serde_json", "dep:serde_yaml"]
 # Enables Rust OKF (Open Knowledge Format) bundle import/export. This is opt-in
 # so default transport and wasm builds do not inherit serialization deps.
 okf = ["dep:serde", "dep:serde_json", "dep:serde_yaml"]
+# Enables Rust tar stream import/export. Kept feature-local so the default
+# transport engine does not inherit archive-format policy.
+tar = ["dep:tar"]
 
 # The package is named gmeow-gts on crates.io, but the CLI binary keeps the
 # shorter `gts` name for ergonomics.
@@ -75,6 +78,7 @@ sophia_turtle = { version = "0.10.0", default-features = false, optional = true 
 serde = { version = "1", default-features = false, features = ["derive", "std"], optional = true }
 serde_json = { version = "1", optional = true }
 serde_yaml = { version = "0.9", optional = true }
+tar = { version = "0.4", optional = true }
 
 # The random-IV `encrypt0` convenience needs an OS CSPRNG; restrict it to
 # non-wasm targets so `wasm32-unknown-unknown` never tries to link getrandom.

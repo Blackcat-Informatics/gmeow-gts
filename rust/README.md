@@ -375,6 +375,10 @@ gts from-yaml-ld <in.yaml> [-o out]
 gts to-okf <file> --directory <dir>
                                 export an OKF bundle (--features okf)
 gts from-okf <dir> [-o out]     build a GTS from an OKF bundle (--features okf)
+gts from-tar <archive.tar[.gz|.zst]|-> [-o out.gts]
+                                build a files-profile-v2 GTS from tar (--features tar)
+gts to-tar <file.gts> [-o archive.tar|-]
+                                export a files-profile-v2 archive as tar (--features tar)
 gts to-sqlite <file> <out>      export to SQLite (requires sqlite3)
 gts to-duckdb <file> <out>      export to DuckDB (--features duckdb; requires duckdb)
 gts to-parquet <file> <dir>     export to Parquet (--features duckdb; requires duckdb)
@@ -424,7 +428,9 @@ without duplicating large payload bytes by default. `to-trig` and `from-trig` pr
 readable TriG graph-block projection over the same folded RDF content as N-Quads. The optional
 OKF profile (`--features okf`) imports and exports Markdown bundle directories with
 content-addressed body blobs, link edges, a `gts-okf-v1` manifest, and `_unmapped.nq` sidecars
-for out-of-profile RDF. `from-nq` and the relational
+for out-of-profile RDF. The optional tar bridge (`--features tar`) imports and exports
+files-profile-v2 archives as tar streams, including stdin/stdout use, gzip/zstd wrapping,
+link and special-file opt-ins, owner metadata, and unknown PAX records. `from-nq` and the relational
 `to-sqlite`/`to-duckdb`/`to-parquet` exports are
 implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
 integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`
@@ -453,6 +459,9 @@ it does not change the GTS wire format, transform catalog, or shared corpus
 oracle, and it therefore does not require a GIP. The current `Term` model carries
 literal language tags but not RDF base direction, so `from_yaml_ld` rejects
 `@direction` rather than silently losing it.
+The optional `tar` feature adds `gmeow_gts::from_tar` and `gmeow_gts::tar`
+plus the matching CLI verbs. It is a Rust-first files-profile-v2 bridge surface;
+Python, Go, and TypeScript parity can implement the same contract later.
 The adapters and policy parsers are absent from ordinary default builds.
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
