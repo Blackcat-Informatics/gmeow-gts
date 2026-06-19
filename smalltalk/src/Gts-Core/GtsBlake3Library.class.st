@@ -5,8 +5,8 @@ Class {
 }
 
 { #category : #ffi }
-GtsBlake3Library >> hashInput: inputAddress length: inputLength output: outputAddress [
-	^ self ffiCall: #(#void #gts_blake3_hash #(#const #void #* #inputAddress #, #size_t #inputLength #, #void #* #outputAddress))
+GtsBlake3Library >> hashInput: inputBytes length: inputLength output: outputBytes [
+	^ self ffiCall: #(#void #gts_blake3_hash #(#const #void #* #inputBytes #, #size_t #inputLength #, #void #* #outputBytes))
 ]
 
 { #category : #'accessing platform' }
