@@ -184,6 +184,9 @@ pub fn from_okf_with_options(
         let rel = relative_okf_path(dir, &path)?;
         let bytes = fs::read(&path)
             .map_err(|e| OkfParseError::new(format!("cannot read {}: {e}", path.display())))?;
+        if is_frontmatterless_index(&bytes, &rel)? {
+            continue;
+        }
         let (frontmatter, body) = parse_markdown(&bytes, &rel)?;
         let resource = string_field(&frontmatter, "resource")?;
         let subject_iri = resource
@@ -494,6 +497,15 @@ fn markdown_files(root: &Path) -> Result<Vec<PathBuf>, OkfParseError> {
     recurse(&mut out, root, root)?;
     out.sort();
     Ok(out)
+}
+
+fn is_frontmatterless_index(bytes: &[u8], path: &str) -> Result<bool, OkfParseError> {
+    if path.rsplit('/').next() != Some("index.md") {
+        return Ok(false);
+    }
+    let text = std::str::from_utf8(bytes)
+        .map_err(|e| OkfParseError::new(format!("{path}: markdown is not UTF-8: {e}")))?;
+    Ok(!text.starts_with("---\n") && !text.starts_with("---\r\n"))
 }
 
 fn relative_okf_path(root: &Path, path: &Path) -> Result<String, OkfParseError> {

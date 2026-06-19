@@ -432,7 +432,7 @@ def okf_fixture_entry(path: Path) -> dict[str, Any]:
         "graph": rel(VECTORS / "okf" / f"{fixture_id}.folded.nq"),
         "diagnostics": [],
         "expected_head": None,
-        "documents": sum(1 for child in path.rglob("*.md") if child.is_file()),
+        "documents": okf_concept_document_count(path),
     }
     sidecar = VECTORS / "okf" / f"{fixture_id}.expected-unmapped.nq"
     if sidecar.exists():
@@ -453,6 +453,17 @@ def okf_fixture_entry(path: Path) -> dict[str, Any]:
         "expected": expected,
         "notes": meta["notes"],
     }
+
+
+def okf_concept_document_count(path: Path) -> int:
+    count = 0
+    for child in path.rglob("*.md"):
+        if not child.is_file():
+            continue
+        text = child.read_text(encoding="utf-8")
+        if text.startswith("---\n") or text.startswith("---\r\n"):
+            count += 1
+    return count
 
 
 def build_manifest() -> dict[str, Any]:
