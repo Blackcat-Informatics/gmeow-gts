@@ -5,6 +5,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
+use std::io::Write;
 use std::path::Path;
 
 use ciborium::value::Value;
@@ -1003,8 +1004,7 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent).map_err(|e| format!("create dir {parent:?}: {e}"))?;
         }
-        refuse_symlink_target(&target, &path)?;
-        fs::write(&target, &data).map_err(|e| format!("write {target:?}: {e}"))?;
+        write_file_without_following_symlink(&target, &data, &path)?;
 
         restore_path_metadata(&target, &entry)?;
     }
@@ -1014,11 +1014,56 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
     Ok(())
 }
 
-fn refuse_symlink_target(target: &Path, archive_path: &str) -> Result<(), String> {
+fn write_file_without_following_symlink(
+    target: &Path,
+    data: &[u8],
+    archive_path: &str,
+) -> Result<(), String> {
+    let parent = target
+        .parent()
+        .ok_or_else(|| format!("missing parent for {target:?}"))?;
+    let name = target
+        .file_name()
+        .ok_or_else(|| format!("missing file name for {target:?}"))?
+        .to_string_lossy();
+    for attempt in 0..100 {
+        let temp = parent.join(format!(".{name}.gts-tmp-{}-{attempt}", std::process::id()));
+        match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp)
+        {
+            Ok(mut file) => {
+                let result = (|| {
+                    file.write_all(data)
+                        .map_err(|e| format!("write {temp:?}: {e}"))?;
+                    drop(file);
+                    prepare_replace_target(target, archive_path)?;
+                    fs::rename(&temp, target).map_err(|e| format!("replace {target:?}: {e}"))?;
+                    Ok(())
+                })();
+                if result.is_err() {
+                    let _ = fs::remove_file(&temp);
+                }
+                return result;
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(err) => return Err(format!("create temp file for {target:?}: {err}")),
+        }
+    }
+    Err(format!(
+        "create temp file for {target:?}: too many attempts"
+    ))
+}
+
+fn prepare_replace_target(target: &Path, archive_path: &str) -> Result<(), String> {
     match fs::symlink_metadata(target) {
         Ok(metadata) if metadata.file_type().is_symlink() => Err(format!(
             "refusing to write through symlink for {archive_path}: {target:?}"
         )),
+        Ok(metadata) if metadata.is_file() => {
+            fs::remove_file(target).map_err(|e| format!("remove existing {target:?}: {e}"))
+        }
         Ok(_) => Ok(()),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(err) => Err(format!("inspect {target:?}: {err}")),
