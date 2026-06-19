@@ -532,9 +532,8 @@ func Unpack(g *model.Graph, dest string, includeSuppressed bool) error {
 				return fmt.Errorf("path escapes destination: %s", path)
 			}
 		}
-		//nolint:gosec // files-profile unpack writes user-requested world-readable files.
-		if err := os.WriteFile(target, data, 0o644); err != nil {
-			return fmt.Errorf("write %s: %w", target, err)
+		if err := writeFileWithoutFollowingSymlink(target, data, path); err != nil {
+			return err
 		}
 
 		if modeStr, ok := entry["mode"]; ok {
@@ -549,6 +548,57 @@ func Unpack(g *model.Graph, dest string, includeSuppressed bool) error {
 				_ = os.Chtimes(target, mt, mt)
 			}
 		}
+	}
+	return nil
+}
+
+func writeFileWithoutFollowingSymlink(target string, data []byte, archivePath string) error {
+	parent := filepath.Dir(target)
+	file, err := os.CreateTemp(parent, "."+filepath.Base(target)+".gts-tmp-*")
+	if err != nil {
+		return fmt.Errorf("create temp file for %s: %w", target, err)
+	}
+	temp := file.Name()
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.Remove(temp)
+		}
+	}()
+	if _, err := file.Write(data); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("write %s: %w", temp, err)
+	}
+	if err := file.Chmod(0o644); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("chmod %s: %w", temp, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close %s: %w", temp, err)
+	}
+	if err := prepareReplaceTarget(target, archivePath); err != nil {
+		return err
+	}
+	if err := os.Rename(temp, target); err != nil {
+		return fmt.Errorf("replace %s: %w", target, err)
+	}
+	cleanup = false
+	return nil
+}
+
+func prepareReplaceTarget(target, archivePath string) error {
+	info, err := os.Lstat(target)
+	if err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("refusing to write through symlink: %s", archivePath)
+	}
+	if err == nil && info.Mode().IsRegular() {
+		if err := os.Remove(target); err != nil {
+			return fmt.Errorf("remove existing %s: %w", target, err)
+		}
+		return nil
+	}
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("inspect %s: %w", target, err)
 	}
 	return nil
 }

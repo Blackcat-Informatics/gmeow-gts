@@ -3,19 +3,188 @@
 
 //! Files-profile pack/unpack/diff logic for GTS archives (§13.2, §14.2).
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
+use std::io::Write;
 use std::path::Path;
 
 use ciborium::value::Value;
 
-use crate::model::{Graph, TermKind};
-use crate::writer::{digest_string, Writer};
+use crate::model::{Graph, Quad, Term, TermKind};
+use crate::writer::{digest_string, Writer, WriterOptions};
 
 const FILES_NS: &str = "https://w3id.org/gts/files#";
+const FILE_ENTRY: &str = "https://w3id.org/gts/files#FileEntry";
+const FILES_PATH: &str = "https://w3id.org/gts/files#path";
+const FILES_DIGEST: &str = "https://w3id.org/gts/files#digest";
+const FILES_SIZE: &str = "https://w3id.org/gts/files#size";
+const FILES_MODE: &str = "https://w3id.org/gts/files#mode";
+const FILES_MODIFIED: &str = "https://w3id.org/gts/files#modified";
+const FILES_MEDIA_TYPE: &str = "https://w3id.org/gts/files#mediaType";
+const FILES_TYPE: &str = "https://w3id.org/gts/files#type";
+const FILES_LINK_TARGET: &str = "https://w3id.org/gts/files#linkTarget";
+const FILES_UID: &str = "https://w3id.org/gts/files#uid";
+const FILES_GID: &str = "https://w3id.org/gts/files#gid";
+const FILES_USER_NAME: &str = "https://w3id.org/gts/files#userName";
+const FILES_GROUP_NAME: &str = "https://w3id.org/gts/files#groupName";
+const FILES_DEV_MAJOR: &str = "https://w3id.org/gts/files#devMajor";
+const FILES_DEV_MINOR: &str = "https://w3id.org/gts/files#devMinor";
+const FILES_XATTR: &str = "https://w3id.org/gts/files#xattr";
+const FILES_XATTR_NAME: &str = "https://w3id.org/gts/files#xattrName";
+const FILES_XATTR_VALUE: &str = "https://w3id.org/gts/files#xattrValue";
+const FILES_PAX_RECORD: &str = "https://w3id.org/gts/files#paxRecord";
+const FILES_PAX_KEY: &str = "https://w3id.org/gts/files#paxKey";
+const FILES_PAX_VALUE: &str = "https://w3id.org/gts/files#paxValue";
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const XSD_INTEGER: &str = "http://www.w3.org/2001/XMLSchema#integer";
 const XSD_DATETIME: &str = "http://www.w3.org/2001/XMLSchema#dateTime";
+
+/// files-profile v2 entry kind. Absence of `files:type` is read as [`Self::File`].
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum FileEntryKind {
+    #[default]
+    File,
+    Directory,
+    Symlink,
+    Hardlink,
+    Fifo,
+    CharDev,
+    BlockDev,
+    Socket,
+}
+
+impl FileEntryKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::File => "file",
+            Self::Directory => "directory",
+            Self::Symlink => "symlink",
+            Self::Hardlink => "hardlink",
+            Self::Fifo => "fifo",
+            Self::CharDev => "chardev",
+            Self::BlockDev => "blockdev",
+            Self::Socket => "socket",
+        }
+    }
+
+    pub fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "file" => Ok(Self::File),
+            "directory" => Ok(Self::Directory),
+            "symlink" => Ok(Self::Symlink),
+            "hardlink" => Ok(Self::Hardlink),
+            "fifo" => Ok(Self::Fifo),
+            "chardev" => Ok(Self::CharDev),
+            "blockdev" => Ok(Self::BlockDev),
+            "socket" => Ok(Self::Socket),
+            other => Err(format!("unknown files:type value: {other}")),
+        }
+    }
+}
+
+/// One files-profile v2 extended attribute row.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FileXattr {
+    pub name: String,
+    /// Base64 lexical value of the attribute bytes.
+    pub value: String,
+}
+
+/// One verbatim PAX escape-hatch key/value row.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FilePaxRecord {
+    pub key: String,
+    pub value: String,
+}
+
+/// Typed files-profile entry used by the Rust v2 writer/reader.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct FileEntry {
+    pub path: String,
+    pub kind: FileEntryKind,
+    pub digest: Option<String>,
+    pub size: Option<u64>,
+    pub mode: Option<u32>,
+    pub modified: Option<String>,
+    pub media_type: Option<String>,
+    pub link_target: Option<String>,
+    pub uid: Option<u64>,
+    pub gid: Option<u64>,
+    pub user_name: Option<String>,
+    pub group_name: Option<String>,
+    pub dev_major: Option<u64>,
+    pub dev_minor: Option<u64>,
+    pub xattrs: Vec<FileXattr>,
+    pub pax_records: Vec<FilePaxRecord>,
+    /// Optional inline payload bytes for regular-file authoring.
+    pub data: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct TermKey {
+    kind: TermKind,
+    value: String,
+    datatype: Option<String>,
+}
+
+#[derive(Default)]
+struct TermBuilder {
+    ids: HashMap<TermKey, usize>,
+    terms: Vec<Term>,
+    quads: Vec<Quad>,
+}
+
+impl TermBuilder {
+    fn atom(&mut self, kind: TermKind, value: String, datatype: Option<String>) -> usize {
+        let key = TermKey {
+            kind,
+            value: value.clone(),
+            datatype: datatype.clone(),
+        };
+        if let Some(id) = self.ids.get(&key) {
+            return *id;
+        }
+        let datatype_id = if kind == TermKind::Literal {
+            datatype
+                .as_deref()
+                .map(|iri| self.atom(TermKind::Iri, iri.to_string(), None))
+        } else {
+            None
+        };
+        let id = self.terms.len();
+        self.terms.push(Term {
+            kind,
+            value: Some(value),
+            datatype: datatype_id,
+            lang: None,
+            reifier: None,
+        });
+        self.ids.insert(key, id);
+        id
+    }
+
+    fn iri(&mut self, value: &str) -> usize {
+        self.atom(TermKind::Iri, value.to_string(), None)
+    }
+
+    fn bnode(&mut self, label: &str) -> usize {
+        self.atom(TermKind::Bnode, label.to_string(), None)
+    }
+
+    fn literal(&mut self, value: &str, datatype: Option<&str>) -> usize {
+        self.atom(
+            TermKind::Literal,
+            value.to_string(),
+            datatype.map(str::to_string),
+        )
+    }
+
+    fn quad_lit(&mut self, subject: usize, predicate: &str, value: &str, datatype: Option<&str>) {
+        let p = self.iri(predicate);
+        let o = self.literal(value, datatype);
+        self.quads.push((subject, p, o, None));
+    }
+}
 
 fn iri_term(value: &str) -> crate::model::Term {
     crate::model::Term {
@@ -273,6 +442,214 @@ pub fn pack(sources: &[&Path]) -> Result<Vec<u8>, String> {
     Ok(w.to_bytes())
 }
 
+/// Author an opt-in files-profile v2 archive from typed entries.
+///
+/// This helper is the Rust foundation for the tar bridge. The default
+/// [`pack`] command continues to emit v1 archives.
+pub fn pack_entries_v2(entries: &[FileEntry]) -> Result<Vec<u8>, String> {
+    if entries.is_empty() {
+        return Err("files-profile v2 archive needs at least one entry".to_string());
+    }
+
+    let mut entries = entries.to_vec();
+    entries.sort_by(|a, b| a.path.cmp(&b.path));
+    let mut seen_paths = HashSet::new();
+    let mut builder = TermBuilder::default();
+    let rdf_type = builder.iri(RDF_TYPE);
+    let file_entry = builder.iri(FILE_ENTRY);
+    let mut blobs: BTreeMap<String, (Vec<u8>, Option<String>)> = BTreeMap::new();
+
+    for (idx, entry) in entries.iter().enumerate() {
+        safe_archive_path(&entry.path)?;
+        if !seen_paths.insert(entry.path.clone()) {
+            return Err(format!("duplicate archive path: {}", entry.path));
+        }
+        validate_v2_entry(entry)?;
+
+        let subject = builder.bnode(&format!("f{idx}"));
+        builder.quads.push((subject, rdf_type, file_entry, None));
+        builder.quad_lit(subject, FILES_PATH, &entry.path, None);
+        builder.quad_lit(subject, FILES_TYPE, entry.kind.as_str(), None);
+
+        if entry.kind == FileEntryKind::File {
+            let (digest, size) = file_digest_and_size(entry)?;
+            builder.quad_lit(subject, FILES_DIGEST, &digest, None);
+            builder.quad_lit(subject, FILES_SIZE, &size.to_string(), Some(XSD_INTEGER));
+            if let Some(data) = &entry.data {
+                blobs
+                    .entry(digest)
+                    .or_insert_with(|| (data.clone(), entry.media_type.clone()));
+            }
+        }
+
+        if let Some(mode) = entry.mode {
+            builder.quad_lit(subject, FILES_MODE, &mode.to_string(), Some(XSD_INTEGER));
+        }
+        if let Some(modified) = &entry.modified {
+            builder.quad_lit(subject, FILES_MODIFIED, modified, Some(XSD_DATETIME));
+        }
+        if let Some(media_type) = &entry.media_type {
+            builder.quad_lit(subject, FILES_MEDIA_TYPE, media_type, None);
+        }
+        if let Some(link_target) = &entry.link_target {
+            builder.quad_lit(subject, FILES_LINK_TARGET, link_target, None);
+        }
+        if let Some(uid) = entry.uid {
+            builder.quad_lit(subject, FILES_UID, &uid.to_string(), Some(XSD_INTEGER));
+        }
+        if let Some(gid) = entry.gid {
+            builder.quad_lit(subject, FILES_GID, &gid.to_string(), Some(XSD_INTEGER));
+        }
+        if let Some(user_name) = &entry.user_name {
+            builder.quad_lit(subject, FILES_USER_NAME, user_name, None);
+        }
+        if let Some(group_name) = &entry.group_name {
+            builder.quad_lit(subject, FILES_GROUP_NAME, group_name, None);
+        }
+        if let Some(dev_major) = entry.dev_major {
+            builder.quad_lit(
+                subject,
+                FILES_DEV_MAJOR,
+                &dev_major.to_string(),
+                Some(XSD_INTEGER),
+            );
+        }
+        if let Some(dev_minor) = entry.dev_minor {
+            builder.quad_lit(
+                subject,
+                FILES_DEV_MINOR,
+                &dev_minor.to_string(),
+                Some(XSD_INTEGER),
+            );
+        }
+
+        let mut xattrs = entry.xattrs.clone();
+        xattrs.sort_by(|a, b| a.name.cmp(&b.name).then(a.value.cmp(&b.value)));
+        for (xidx, xattr) in xattrs.iter().enumerate() {
+            let node = builder.bnode(&format!("x{idx}_{xidx}"));
+            let predicate = builder.iri(FILES_XATTR);
+            builder.quads.push((subject, predicate, node, None));
+            builder.quad_lit(node, FILES_XATTR_NAME, &xattr.name, None);
+            builder.quad_lit(node, FILES_XATTR_VALUE, &xattr.value, None);
+        }
+
+        let mut pax_records = entry.pax_records.clone();
+        pax_records.sort_by(|a, b| a.key.cmp(&b.key).then(a.value.cmp(&b.value)));
+        for (pidx, record) in pax_records.iter().enumerate() {
+            let node = builder.bnode(&format!("p{idx}_{pidx}"));
+            let predicate = builder.iri(FILES_PAX_RECORD);
+            builder.quads.push((subject, predicate, node, None));
+            builder.quad_lit(node, FILES_PAX_KEY, &record.key, None);
+            builder.quad_lit(node, FILES_PAX_VALUE, &record.value, None);
+        }
+    }
+
+    builder.quads.sort();
+    let profile_meta = files_v2_profile_meta();
+    let mut writer = Writer::with_options(
+        "files",
+        WriterOptions {
+            meta: Some(profile_meta.clone()),
+            ..WriterOptions::default()
+        },
+    )
+    .map_err(|err| format!("cannot author files v2 header: {err}"))?;
+    writer.add_meta(profile_meta);
+    if !builder.terms.is_empty() {
+        writer.add_terms(&builder.terms);
+    }
+    if !builder.quads.is_empty() {
+        writer.add_quads(&builder.quads);
+    }
+    for (_digest, (data, media_type)) in blobs {
+        writer.add_blob(&data, media_type.as_deref(), None);
+    }
+    Ok(writer.to_bytes())
+}
+
+fn files_v2_profile_meta() -> Value {
+    Value::Map(vec![("profileVersion".into(), Value::from(2_u64))])
+}
+
+fn validate_v2_entry(entry: &FileEntry) -> Result<(), String> {
+    match entry.kind {
+        FileEntryKind::File => {
+            let _ = file_digest_and_size(entry)?;
+        }
+        FileEntryKind::Directory => {
+            if entry.data.is_some() || entry.digest.is_some() || entry.size.is_some() {
+                return Err(format!(
+                    "directory entry {} must not carry file bytes, digest, or size",
+                    entry.path
+                ));
+            }
+        }
+        FileEntryKind::Symlink => {
+            if entry.link_target.as_deref().unwrap_or("").is_empty() {
+                return Err(format!("symlink entry {} needs linkTarget", entry.path));
+            }
+            reject_payload_fields(entry)?;
+        }
+        FileEntryKind::Hardlink => {
+            let target = entry.link_target.as_deref().unwrap_or("");
+            if target.is_empty() {
+                return Err(format!("hardlink entry {} needs linkTarget", entry.path));
+            }
+            safe_archive_path(target)?;
+            reject_payload_fields(entry)?;
+        }
+        FileEntryKind::Fifo | FileEntryKind::Socket => {
+            reject_payload_fields(entry)?;
+        }
+        FileEntryKind::CharDev | FileEntryKind::BlockDev => {
+            reject_payload_fields(entry)?;
+            if entry.dev_major.is_none() || entry.dev_minor.is_none() {
+                return Err(format!(
+                    "{} entry {} needs devMajor and devMinor",
+                    entry.kind.as_str(),
+                    entry.path
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn reject_payload_fields(entry: &FileEntry) -> Result<(), String> {
+    if entry.data.is_some() || entry.digest.is_some() || entry.size.is_some() {
+        return Err(format!(
+            "{} entry {} must not carry file bytes, digest, or size",
+            entry.kind.as_str(),
+            entry.path
+        ));
+    }
+    Ok(())
+}
+
+fn file_digest_and_size(entry: &FileEntry) -> Result<(String, u64), String> {
+    match (&entry.data, &entry.digest, entry.size) {
+        (Some(data), digest, size) => {
+            let computed_digest = digest_string(data);
+            if digest
+                .as_deref()
+                .is_some_and(|value| value != computed_digest)
+            {
+                return Err(format!("digest mismatch for {}", entry.path));
+            }
+            let computed_size = data.len() as u64;
+            if size.is_some_and(|value| value != computed_size) {
+                return Err(format!("size mismatch for {}", entry.path));
+            }
+            Ok((computed_digest, computed_size))
+        }
+        (None, Some(digest), Some(size)) => Ok((digest.clone(), size)),
+        (None, _, _) => Err(format!(
+            "regular file entry {} needs data or digest+size",
+            entry.path
+        )),
+    }
+}
+
 fn format_datetime(time: &std::time::SystemTime) -> Result<String, String> {
     let duration = time
         .duration_since(std::time::UNIX_EPOCH)
@@ -286,12 +663,10 @@ fn format_datetime(time: &std::time::SystemTime) -> Result<String, String> {
     Ok(text.replace("+00:00", "Z"))
 }
 
-pub(crate) fn read_file_entries(
-    graph: &Graph,
-) -> Result<BTreeMap<String, BTreeMap<String, String>>, String> {
-    let mut type_id: Option<usize> = None;
-    let mut file_entry_id: Option<usize> = None;
-    let mut field_ids: BTreeMap<String, usize> = BTreeMap::new();
+pub fn read_entries(graph: &Graph) -> Result<BTreeMap<String, FileEntry>, String> {
+    let mut type_ids: HashSet<usize> = HashSet::new();
+    let mut file_entry_ids: HashSet<usize> = HashSet::new();
+    let mut field_name_by_id: HashMap<usize, String> = HashMap::new();
     for (idx, term) in graph.terms.iter().enumerate() {
         if term.kind != TermKind::Iri {
             continue;
@@ -300,46 +675,208 @@ pub(crate) fn read_file_entries(
             continue;
         };
         if value == RDF_TYPE {
-            type_id = Some(idx);
-        } else if *value == FILES_NS.to_string() + "FileEntry" {
-            file_entry_id = Some(idx);
+            type_ids.insert(idx);
+        } else if value == FILE_ENTRY {
+            file_entry_ids.insert(idx);
         } else if let Some(rest) = value.strip_prefix(FILES_NS) {
-            field_ids.insert(rest.to_string(), idx);
+            field_name_by_id.insert(idx, rest.to_string());
         }
     }
-    let type_id = type_id.ok_or("not a files-profile archive: missing rdf:type")?;
-    let file_entry_id = file_entry_id.ok_or("not a files-profile archive: missing FileEntry")?;
+    if type_ids.is_empty() {
+        return Err("not a files-profile archive: missing rdf:type".to_string());
+    }
+    if file_entry_ids.is_empty() {
+        return Err("not a files-profile archive: missing FileEntry".to_string());
+    }
 
-    let mut entries: BTreeMap<usize, BTreeMap<String, String>> = BTreeMap::new();
+    let mut direct: BTreeMap<usize, BTreeMap<String, String>> = BTreeMap::new();
+    let mut xattr_links: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+    let mut pax_links: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     let mut file_entry_subjects: HashSet<usize> = HashSet::new();
     for &(s, p, o, _g) in &graph.quads {
-        if p == type_id && o == file_entry_id {
+        if type_ids.contains(&p) && file_entry_ids.contains(&o) {
             file_entry_subjects.insert(s);
-            entries.entry(s).or_default();
-        } else if let Some(field_name) = field_ids
-            .iter()
-            .find(|(_, &id)| id == p)
-            .map(|(k, _)| k.clone())
-        {
-            let term = &graph.terms[o];
-            let value = term.value.clone().unwrap_or_default();
-            entries.entry(s).or_default().insert(field_name, value);
+            direct.entry(s).or_default();
+        } else if let Some(field_name) = field_name_by_id.get(&p) {
+            if field_name == "xattr" {
+                xattr_links.entry(s).or_default().push(o);
+            } else if field_name == "paxRecord" {
+                pax_links.entry(s).or_default().push(o);
+            } else {
+                let term = &graph.terms[o];
+                let value = term.value.clone().unwrap_or_default();
+                direct
+                    .entry(s)
+                    .or_default()
+                    .insert(field_name.clone(), value);
+            }
         }
     }
 
-    let mut by_path: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
-    for (s, entry) in entries {
-        if !file_entry_subjects.contains(&s) {
+    let mut by_path: BTreeMap<String, FileEntry> = BTreeMap::new();
+    for (s, fields) in &direct {
+        if !file_entry_subjects.contains(s) {
             continue;
         }
-        if let Some(path) = entry.get("path") {
-            if by_path.contains_key(path) {
-                return Err(format!("duplicate files:path in archive: {path}"));
-            }
-            by_path.insert(path.clone(), entry);
+        let Some(path) = fields.get("path") else {
+            continue;
+        };
+        let kind = fields
+            .get("type")
+            .map(|value| FileEntryKind::parse(value))
+            .transpose()?
+            .unwrap_or_default();
+        let entry = FileEntry {
+            path: path.clone(),
+            kind,
+            digest: fields.get("digest").cloned(),
+            size: parse_optional_u64(fields, "size")?,
+            mode: parse_optional_u32(fields, "mode")?,
+            modified: fields.get("modified").cloned(),
+            media_type: fields.get("mediaType").cloned(),
+            link_target: fields.get("linkTarget").cloned(),
+            uid: parse_optional_u64(fields, "uid")?,
+            gid: parse_optional_u64(fields, "gid")?,
+            user_name: fields.get("userName").cloned(),
+            group_name: fields.get("groupName").cloned(),
+            dev_major: parse_optional_u64(fields, "devMajor")?,
+            dev_minor: parse_optional_u64(fields, "devMinor")?,
+            xattrs: read_xattrs(*s, &direct, &xattr_links)?,
+            pax_records: read_pax_records(*s, &direct, &pax_links)?,
+            data: None,
+        };
+        if by_path.contains_key(path) {
+            return Err(format!("duplicate files:path in archive: {path}"));
         }
+        by_path.insert(path.clone(), entry);
     }
     Ok(by_path)
+}
+
+pub fn read_file_entries(
+    graph: &Graph,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, String> {
+    read_entries(graph).map(|entries| {
+        entries
+            .into_iter()
+            .map(|(path, entry)| (path, entry_to_field_map(&entry)))
+            .collect()
+    })
+}
+
+fn read_xattrs(
+    subject: usize,
+    direct: &BTreeMap<usize, BTreeMap<String, String>>,
+    links: &BTreeMap<usize, Vec<usize>>,
+) -> Result<Vec<FileXattr>, String> {
+    let mut out = Vec::new();
+    for node in links.get(&subject).into_iter().flatten() {
+        let fields = direct
+            .get(node)
+            .ok_or_else(|| format!("files:xattr node {node} has no fields"))?;
+        let name = fields
+            .get("xattrName")
+            .ok_or_else(|| format!("files:xattr node {node} missing xattrName"))?;
+        let value = fields
+            .get("xattrValue")
+            .ok_or_else(|| format!("files:xattr node {node} missing xattrValue"))?;
+        out.push(FileXattr {
+            name: name.clone(),
+            value: value.clone(),
+        });
+    }
+    out.sort_by(|a, b| a.name.cmp(&b.name).then(a.value.cmp(&b.value)));
+    Ok(out)
+}
+
+fn read_pax_records(
+    subject: usize,
+    direct: &BTreeMap<usize, BTreeMap<String, String>>,
+    links: &BTreeMap<usize, Vec<usize>>,
+) -> Result<Vec<FilePaxRecord>, String> {
+    let mut out = Vec::new();
+    for node in links.get(&subject).into_iter().flatten() {
+        let fields = direct
+            .get(node)
+            .ok_or_else(|| format!("files:paxRecord node {node} has no fields"))?;
+        let key = fields
+            .get("paxKey")
+            .ok_or_else(|| format!("files:paxRecord node {node} missing paxKey"))?;
+        let value = fields
+            .get("paxValue")
+            .ok_or_else(|| format!("files:paxRecord node {node} missing paxValue"))?;
+        out.push(FilePaxRecord {
+            key: key.clone(),
+            value: value.clone(),
+        });
+    }
+    out.sort_by(|a, b| a.key.cmp(&b.key).then(a.value.cmp(&b.value)));
+    Ok(out)
+}
+
+fn parse_optional_u64(fields: &BTreeMap<String, String>, key: &str) -> Result<Option<u64>, String> {
+    fields
+        .get(key)
+        .map(|value| {
+            value
+                .parse::<u64>()
+                .map_err(|err| format!("invalid files:{key} integer {value:?}: {err}"))
+        })
+        .transpose()
+}
+
+fn parse_optional_u32(fields: &BTreeMap<String, String>, key: &str) -> Result<Option<u32>, String> {
+    fields
+        .get(key)
+        .map(|value| {
+            value
+                .parse::<u32>()
+                .map_err(|err| format!("invalid files:{key} integer {value:?}: {err}"))
+        })
+        .transpose()
+}
+
+fn entry_to_field_map(entry: &FileEntry) -> BTreeMap<String, String> {
+    let mut fields = BTreeMap::new();
+    fields.insert("path".to_string(), entry.path.clone());
+    fields.insert("type".to_string(), entry.kind.as_str().to_string());
+    if let Some(value) = &entry.digest {
+        fields.insert("digest".to_string(), value.clone());
+    }
+    if let Some(value) = entry.size {
+        fields.insert("size".to_string(), value.to_string());
+    }
+    if let Some(value) = entry.mode {
+        fields.insert("mode".to_string(), value.to_string());
+    }
+    if let Some(value) = &entry.modified {
+        fields.insert("modified".to_string(), value.clone());
+    }
+    if let Some(value) = &entry.media_type {
+        fields.insert("mediaType".to_string(), value.clone());
+    }
+    if let Some(value) = &entry.link_target {
+        fields.insert("linkTarget".to_string(), value.clone());
+    }
+    if let Some(value) = entry.uid {
+        fields.insert("uid".to_string(), value.to_string());
+    }
+    if let Some(value) = entry.gid {
+        fields.insert("gid".to_string(), value.to_string());
+    }
+    if let Some(value) = &entry.user_name {
+        fields.insert("userName".to_string(), value.clone());
+    }
+    if let Some(value) = &entry.group_name {
+        fields.insert("groupName".to_string(), value.clone());
+    }
+    if let Some(value) = entry.dev_major {
+        fields.insert("devMajor".to_string(), value.to_string());
+    }
+    if let Some(value) = entry.dev_minor {
+        fields.insert("devMinor".to_string(), value.to_string());
+    }
+    fields
 }
 
 fn dest_path(dest: &Path, archive_path: &str) -> Result<std::path::PathBuf, String> {
@@ -411,7 +948,7 @@ fn hex(data: &[u8]) -> String {
 
 /// Extract FileEntry quads from a folded graph into dest.
 pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<(), String> {
-    let entries = read_file_entries(graph)?;
+    let entries = read_entries(graph)?;
     let suppressed = if include_suppressed {
         HashSet::new()
     } else {
@@ -421,12 +958,26 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
     let blob_entries: BTreeMap<&str, &crate::model::BlobEntry> =
         graph.blobs.iter().map(|(d, e)| (d.as_str(), e)).collect();
     let mut decoded_cache: BTreeMap<String, Vec<u8>> = BTreeMap::new();
+    let mut deferred_dirs = Vec::new();
 
     for (path, entry) in entries {
         let target = dest_path(dest, &path)?;
 
+        if entry.kind == FileEntryKind::Directory {
+            fs::create_dir_all(&target).map_err(|e| format!("create dir {target:?}: {e}"))?;
+            deferred_dirs.push((target, entry));
+            continue;
+        }
+        if entry.kind != FileEntryKind::File {
+            return Err(format!(
+                "refusing {} entry {path}: extraction requires explicit safety flags",
+                entry.kind.as_str()
+            ));
+        }
+
         let digest = entry
-            .get("digest")
+            .digest
+            .as_ref()
             .ok_or(format!("missing digest for {path}"))?;
         if suppressed.contains(digest) {
             continue;
@@ -453,27 +1004,89 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent).map_err(|e| format!("create dir {parent:?}: {e}"))?;
         }
-        fs::write(&target, &data).map_err(|e| format!("write {target:?}: {e}"))?;
+        write_file_without_following_symlink(&target, &data, &path)?;
 
-        #[cfg(unix)]
-        if let Some(mode) = entry.get("mode") {
-            if let Ok(m) = mode.parse::<u32>() {
-                use std::os::unix::fs::PermissionsExt;
-                let _ = fs::set_permissions(&target, std::fs::Permissions::from_mode(m));
-            }
-        }
-
-        if let Some(modified) = entry.get("modified") {
-            if let Ok(ts) = parse_datetime(modified) {
-                let _ =
-                    filetime::set_file_mtime(&target, filetime::FileTime::from_unix_time(ts, 0));
-            }
-        }
+        restore_path_metadata(&target, &entry)?;
+    }
+    for (target, entry) in deferred_dirs.into_iter().rev() {
+        restore_path_metadata(&target, &entry)?;
     }
     Ok(())
 }
 
-fn parse_datetime(text: &str) -> Result<i64, String> {
+fn write_file_without_following_symlink(
+    target: &Path,
+    data: &[u8],
+    archive_path: &str,
+) -> Result<(), String> {
+    let parent = target
+        .parent()
+        .ok_or_else(|| format!("missing parent for {target:?}"))?;
+    let name = target
+        .file_name()
+        .ok_or_else(|| format!("missing file name for {target:?}"))?
+        .to_string_lossy();
+    for attempt in 0..100 {
+        let temp = parent.join(format!(".{name}.gts-tmp-{}-{attempt}", std::process::id()));
+        match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp)
+        {
+            Ok(mut file) => {
+                let result = (|| {
+                    file.write_all(data)
+                        .map_err(|e| format!("write {temp:?}: {e}"))?;
+                    drop(file);
+                    prepare_replace_target(target, archive_path)?;
+                    fs::rename(&temp, target).map_err(|e| format!("replace {target:?}: {e}"))?;
+                    Ok(())
+                })();
+                if result.is_err() {
+                    let _ = fs::remove_file(&temp);
+                }
+                return result;
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(err) => return Err(format!("create temp file for {target:?}: {err}")),
+        }
+    }
+    Err(format!(
+        "create temp file for {target:?}: too many attempts"
+    ))
+}
+
+fn prepare_replace_target(target: &Path, archive_path: &str) -> Result<(), String> {
+    match fs::symlink_metadata(target) {
+        Ok(metadata) if metadata.file_type().is_symlink() => Err(format!(
+            "refusing to write through symlink for {archive_path}: {target:?}"
+        )),
+        Ok(metadata) if metadata.is_file() => {
+            fs::remove_file(target).map_err(|e| format!("remove existing {target:?}: {e}"))
+        }
+        Ok(_) => Ok(()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(err) => Err(format!("inspect {target:?}: {err}")),
+    }
+}
+
+fn restore_path_metadata(target: &Path, entry: &FileEntry) -> Result<(), String> {
+    #[cfg(unix)]
+    if let Some(mode) = entry.mode {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(target, std::fs::Permissions::from_mode(mode))
+            .map_err(|e| format!("set permissions for {target:?}: {e}"))?;
+    }
+
+    if let Some(modified) = &entry.modified {
+        let (seconds, nanos) = parse_datetime(modified)?;
+        filetime::set_file_mtime(target, filetime::FileTime::from_unix_time(seconds, nanos))
+            .map_err(|e| format!("set mtime for {target:?}: {e}"))?;
+    }
+    Ok(())
+}
+
+fn parse_datetime(text: &str) -> Result<(i64, u32), String> {
     let text = text.strip_suffix('Z').unwrap_or(text);
     let dt = time::OffsetDateTime::parse(text, &time::format_description::well_known::Rfc3339)
         .or_else(|_| {
@@ -483,15 +1096,16 @@ fn parse_datetime(text: &str) -> Result<i64, String> {
             )
         })
         .map_err(|e| format!("parse datetime {text}: {e}"))?;
-    Ok(dt.unix_timestamp())
+    Ok((dt.unix_timestamp(), dt.nanosecond()))
 }
 
 /// Compare an archive to a directory by content digest.
 pub fn diff(graph: &Graph, directory: &Path) -> Result<Vec<String>, String> {
-    let entries = read_file_entries(graph)?;
+    let entries = read_entries(graph)?;
     let archive_digests: BTreeMap<String, String> = entries
         .iter()
-        .map(|(p, e)| (p.clone(), e.get("digest").cloned().unwrap_or_default()))
+        .filter(|(_, entry)| entry.kind == FileEntryKind::File)
+        .map(|(p, e)| (p.clone(), e.digest.clone().unwrap_or_default()))
         .collect();
 
     if !directory.exists() {

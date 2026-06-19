@@ -13,6 +13,7 @@ import contextlib
 import mimetypes
 import os
 import stat
+import tempfile
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -368,7 +369,7 @@ def unpack(
             raise ValueError(msg)
 
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
+        _write_file_without_following_symlink(target, data, dest / path, path)
 
         mode = entry.get("mode")
         if isinstance(mode, str):
@@ -381,6 +382,31 @@ def unpack(
                 dt = _parse_rfc3339_seconds(modified)
                 ts = dt.timestamp()
                 os.utime(target, (ts, ts))
+
+
+def _write_file_without_following_symlink(
+    target: Path,
+    data: bytes,
+    archive_leaf: Path,
+    archive_path: str,
+) -> None:
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{target.name}.gts-tmp-",
+        dir=target.parent,
+    )
+    temp = Path(temp_name)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+        with contextlib.suppress(FileNotFoundError):
+            st = archive_leaf.lstat()
+            if stat.S_ISLNK(st.st_mode):
+                msg = f"refusing to write through symlink: {archive_path}"
+                raise ValueError(msg)
+        os.replace(temp, target)
+    finally:
+        with contextlib.suppress(FileNotFoundError):
+            temp.unlink()
 
 
 def diff(graph: Graph, directory: Path) -> list[str]:

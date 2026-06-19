@@ -642,6 +642,31 @@ fn unpack_refuses_destination_symlink_escape() {
 
 #[cfg(unix)]
 #[test]
+fn unpack_refuses_leaf_symlink_redirect() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    let dest = tmp.join("dst");
+    let outside = tmp.join("outside");
+    std::fs::create_dir_all(&dest).unwrap();
+    std::fs::create_dir_all(&outside).unwrap();
+    std::os::unix::fs::symlink(outside.join("escape.txt"), dest.join("target.txt")).unwrap();
+    let archive = tmp.join("leaf-symlink.gts");
+    std::fs::write(&archive, files_archive_with_path("target.txt")).unwrap();
+
+    let out = gts(&[
+        "unpack",
+        archive.to_str().unwrap(),
+        "-C",
+        dest.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("symlink"), "stderr: {stderr}");
+    assert!(!outside.join("escape.txt").exists());
+}
+
+#[cfg(unix)]
+#[test]
 fn pack_refuses_symlink_entry() {
     let tmp = tmpdir();
     let _ = std::fs::remove_dir_all(&tmp);

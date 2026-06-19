@@ -227,3 +227,21 @@ test("unpack rejects destination symlink escapes", (t) => {
     assert.throws(() => unpack(g, dest), /path escapes destination/);
     assert.equal(existsSync(join(outside, "escape.txt")), false);
 });
+
+test("unpack rejects leaf symlink redirects", (t) => {
+    const g = filesGraphWithPath("target.txt");
+    const root = mkdtempSync(join(tmpdir(), "gts-unpack-leaf-symlink-"));
+    const dest = join(root, "dst");
+    const outside = join(root, "outside");
+    mkdirSync(dest);
+    mkdirSync(outside);
+    try {
+        symlinkSync(join(outside, "escape.txt"), join(dest, "target.txt"));
+    } catch (err) {
+        t.skip(`symlink creation unavailable: ${err}`);
+        return;
+    }
+
+    assert.throws(() => unpack(g, dest), /symlink/);
+    assert.equal(existsSync(join(outside, "escape.txt")), false);
+});

@@ -5,7 +5,9 @@ import {
     mkdirSync,
     readFileSync,
     readdirSync,
+    renameSync,
     statSync,
+    unlinkSync,
     writeFileSync,
     chmodSync,
     utimesSync,
@@ -352,6 +354,56 @@ function destPath(dest: string, archivePath: string): string {
     return target;
 }
 
+function prepareReplaceTarget(target: string, archivePath: string): void {
+    try {
+        const st = lstatSync(target);
+        if (st.isSymbolicLink()) {
+            throw new Error(`refusing to write through symlink: ${archivePath}`);
+        }
+        if (st.isFile()) unlinkSync(target);
+    } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code === "ENOENT") return;
+        throw err;
+    }
+}
+
+function writeFileWithoutFollowingSymlink(
+    target: string,
+    data: Uint8Array,
+    archivePath: string,
+): void {
+    const parent = dirname(target);
+    const base = basename(target);
+    for (let attempt = 0; attempt < 100; attempt++) {
+        const temp = join(
+            parent,
+            `.${base}.gts-tmp-${process.pid}-${attempt}`,
+        );
+        try {
+            writeFileSync(temp, data, { flag: "wx", mode: 0o644 });
+        } catch (err) {
+            const code = (err as NodeJS.ErrnoException).code;
+            if (code === "EEXIST") continue;
+            throw err;
+        }
+        try {
+            prepareReplaceTarget(target, archivePath);
+            renameSync(temp, target);
+            return;
+        } catch (err) {
+            try {
+                unlinkSync(temp);
+            } catch (cleanupErr) {
+                if ((cleanupErr as NodeJS.ErrnoException).code !== "ENOENT")
+                    throw cleanupErr;
+            }
+            throw err;
+        }
+    }
+    throw new Error(`create temp file for ${target}: too many attempts`);
+}
+
 /** Extract FileEntry quads from a folded graph into dest. */
 export function unpack(
     g: Graph,
@@ -382,7 +434,7 @@ export function unpack(
         if (parent !== "" && parent !== ".") {
             mkdirSync(parent, { recursive: true });
         }
-        writeFileSync(target, data);
+        writeFileWithoutFollowingSymlink(target, data, path);
 
         if (entry.mode) {
             // The mode is the decimal integer value of the permission bits

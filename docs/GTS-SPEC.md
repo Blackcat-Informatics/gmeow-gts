@@ -1340,15 +1340,30 @@ authored in the spec and carried as literal IRIs in the graph.
 
 | term | IRI | shape |
 |---|---|---|
-| `FileEntry` | `https://w3id.org/gts/files#FileEntry` | Class. One archived file. |
+| `FileEntry` | `https://w3id.org/gts/files#FileEntry` | Class. One archived entry. |
 | `path` | `https://w3id.org/gts/files#path` | Relative path string, `/` separators, no leading `/`, no `..` components. |
 | `digest` | `https://w3id.org/gts/files#digest` | `blake3:<hex>` content digest of the file bytes. |
 | `size` | `https://w3id.org/gts/files#size` | Byte size as `xsd:integer`. |
 | `mode` | `https://w3id.org/gts/files#mode` | POSIX permission bits as a decimal `xsd:integer` (for example, `420` for `0o644`). File-type bits are not recorded. |
 | `modified` | `https://w3id.org/gts/files#modified` | Modification time as `xsd:dateTime` in UTC. |
 | `mediaType` | `https://w3id.org/gts/files#mediaType` | Declared IANA media type string. |
+| `type` | `https://w3id.org/gts/files#type` | v2 string enum: `file`, `directory`, `symlink`, `hardlink`, `fifo`, `chardev`, `blockdev`, or `socket`. Absence means `file`. |
+| `linkTarget` | `https://w3id.org/gts/files#linkTarget` | v2 raw symlink target string, or hardlink target archive path. |
+| `uid` / `gid` | `https://w3id.org/gts/files#uid`, `https://w3id.org/gts/files#gid` | v2 numeric owner ids as `xsd:integer`. |
+| `userName` / `groupName` | `https://w3id.org/gts/files#userName`, `https://w3id.org/gts/files#groupName` | v2 owner names from tar/PAX metadata. |
+| `devMajor` / `devMinor` | `https://w3id.org/gts/files#devMajor`, `https://w3id.org/gts/files#devMinor` | v2 device numbers for `chardev` and `blockdev`. |
+| `xattr` | `https://w3id.org/gts/files#xattr` | v2 link to an attribute blank node. |
+| `xattrName` / `xattrValue` | `https://w3id.org/gts/files#xattrName`, `https://w3id.org/gts/files#xattrValue` | v2 extended attribute name and base64 lexical value. |
+| `paxRecord` | `https://w3id.org/gts/files#paxRecord` | v2 link to a verbatim PAX escape-hatch blank node. |
+| `paxKey` / `paxValue` | `https://w3id.org/gts/files#paxKey`, `https://w3id.org/gts/files#paxValue` | v2 unknown PAX key and value strings, preserved for lossless tar round-trips. |
 
-**Quad shape.** Each file in the archive is described by one blank-node `FileEntry`:
+**Profile versions.** The v1 surface is the minimal regular-file profile above. A v2 archive
+declares `profileVersion: 2` in header metadata and SHOULD also carry the same value in a folded
+`meta` frame so profile-aware tools can detect it after reading. Readers MUST treat a missing
+`files:type` as `file`, so v1 archives continue to fold and unpack under a v2 reader. Writers
+SHOULD emit v2 only when the caller opts in or when non-v1 metadata is present.
+
+**Quad shape.** Each regular file in a v1 archive is described by one blank-node `FileEntry`:
 
 ```text
 _:entry a files:FileEntry ;
@@ -1360,27 +1375,67 @@ _:entry a files:FileEntry ;
     files:mediaType "text/plain" .
 ```
 
+v2 uses the same subject shape for every entry kind. Regular files carry digest/size and may
+carry ownership, xattrs, or PAX rows. Directories carry `files:type "directory"` plus path and
+metadata, but no digest or size. Symlinks and hardlinks carry `files:linkTarget` and no blob.
+Special entries carry `files:type` and, for devices, `files:devMajor`/`files:devMinor`:
+
+```text
+_:dir a files:FileEntry ;
+    files:path "empty" ;
+    files:type "directory" ;
+    files:mode 493 ;
+    files:modified "2026-06-10T20:00:00.123456789Z"^^xsd:dateTime .
+
+_:link a files:FileEntry ;
+    files:path "current" ;
+    files:type "symlink" ;
+    files:linkTarget "releases/current" .
+
+_:file a files:FileEntry ;
+    files:path "data/events.csv" ;
+    files:type "file" ;
+    files:digest "blake3:<hex>" ;
+    files:size 1234 ;
+    files:xattr _:x0 ;
+    files:paxRecord _:p0 .
+_:x0 files:xattrName "user.comment" ;
+    files:xattrValue "dmVyaWZpZWQ=" .
+_:p0 files:paxKey "SCHILY.dev" ;
+    files:paxValue "opaque" .
+```
+
 **Determinism.** A `files` archive MUST be byte-reproducible for the same input tree:
 
 - Paths are sorted lexicographically by their UTF-8 byte sequence before emission.
 - Stored paths use `/` separators and MUST be non-empty relative paths. Writers, unpackers, and
   diff tools MUST refuse absolute paths, Windows drive-relative paths, `..` components, `.`
   components, empty components, and backslash separators before touching file bytes.
-- Modification times are normalised to UTC and serialised as `xsd:dateTime` with second
-  precision. Fractional seconds MUST be truncated before emission.
-- Only POSIX mode and mtime are recorded; ownership, uid/gid, xattrs, and ACLs are deliberately
-  excluded — they are tar's portability tarpit.
-- Symlinks are deliberately excluded. `pack` and `diff` MUST refuse symlink entries rather than
-  following them; `unpack` MUST also refuse any destination escape through an existing symlink
-  below the output directory.
+- v1 modification times are normalised to UTC and serialised as `xsd:dateTime` with second
+  precision. Fractional seconds MUST be truncated before v1 emission. v2 permits canonical
+  fixed-width fractional seconds when the source format provides them.
+- v1 records only regular files, POSIX mode, and mtime. v2 records the tar portability metadata
+  required for lossless round-trips: entry kind, link targets, explicit directories, uid/gid,
+  owner names, device numbers, xattrs, and unknown PAX records. ACLs remain outside the v2 core
+  unless carried as PAX or xattr data.
+- v1 `pack` and `diff` MUST refuse symlink entries rather than following them. v2 readers may
+  preserve symlink and special-file metadata, but extraction remains refuse-dangerous by default.
+  `unpack` MUST refuse any destination escape through an existing symlink below the output
+  directory.
+- v2 entries are sorted by path, xattrs are sorted by name then value, and PAX records are sorted
+  by key then value before emission.
 
-**Inline and external blobs.** A file's bytes MAY be carried as an inline `blob` frame
+**Inline and external blobs.** A regular file's bytes MAY be carried as an inline `blob` frame
 (`"d"` present, digest = BLAKE3(decoded `"d")`) or as an external blob (`"d"` absent,
 `pub.digest` names bytes held elsewhere, §12). Identical bytes appearing under multiple paths
 are stored once by convention. The standard `gts pack` command emits inline blobs only.
 Implementations MAY add an explicit external-blob mode, but it MUST be opt-in and documented.
 `gts unpack` MUST refuse an unsuppressed `FileEntry` whose inline blob is absent; `gts diff`
 MAY compare by `files:digest` without fetching external bytes.
+
+Directories, symlinks, hardlinks, fifos, device nodes, and sockets MUST NOT carry `files:digest`
+or `files:size`. A hardlink's `files:linkTarget` is another archive path; a symlink's
+`files:linkTarget` is the raw link payload.
 
 **Suppression.** A blob-targeted suppression (§11) hides matching file bytes from default
 extraction. `gts unpack` and `gts extract` skip/refuse suppressed blobs by default and expose an
@@ -1595,27 +1650,42 @@ Raw `cat` always works (§3.1); a conformant **validating composer** (`gts cat`)
 
 ### 14.2 Archive tooling (`files` profile)
 
-The `files` profile adds three validating publication commands. They share the refuse-don't-trust posture
-of §14.1: raw byte operations are always valid GTS, but a tool refuses pathological states
-rather than trusting them to be intentional.
+The `files` profile adds validating publication commands. They share the refuse-don't-trust
+posture of §14.1: raw byte operations are always valid GTS, but a tool refuses pathological
+states rather than trusting them to be intentional. The stable `pack` command emits the v1
+regular-file profile by default. v2 metadata is an opt-in authoring surface for tar bridges and
+other lossless archive tools.
 
 - **`gts pack <dir|file>... -o out.gts`**
   Produce a single-segment GTS whose header declares `"prof": "files"`. Each argument is
-  archived: a file is added under its basename; a directory is added recursively. The resulting
-  archive contains, in order, the `terms` and `quads` describing every `files:FileEntry`,
+  archived: a file is added under its basename; a directory is added recursively as regular-file
+  entries. Empty directories and non-regular entries are not included by this v1 command. The
+  resulting archive contains, in order, the `terms` and `quads` describing every `files:FileEntry`,
   followed by the inline `blob` frames for the file contents. The command MUST refuse:
   - inputs that contain unsafe stored paths: absolute paths, drive-relative paths, `..`, `.`,
     empty components, or backslash separators;
   - symlinks;
   - inputs that are not readable or that disappear during the walk.
 
+- **v2 authoring helpers / tar bridge input**
+  A tool that claims files-profile v2 support MAY emit explicit directories, symlinks,
+  hardlinks, fifos, device nodes, sockets, ownership, xattrs, and PAX records using the v2
+  vocabulary in §13.2. It MUST mark the segment with `profileVersion: 2`, keep entries sorted by
+  stored path, keep xattrs/PAX records sorted, and preserve v1 compatibility by omitting or
+  defaulting `files:type` to `file` when reading old archives.
+
 - **`gts unpack <archive> [-C dir]`**
   Write every `files:FileEntry` in the archive to the destination directory (default current
   working directory). The command MUST:
   - refuse to write outside the destination directory (`..`, absolute paths, or symlinks that
     escape it);
-  - re-hash each written file and verify it matches `files:digest`;
-  - restore the file's declared modification time and permissions (subject to the host OS);
+  - create explicit v2 directories, but refuse symlink, hardlink, fifo, device-node, and socket
+    extraction unless the user has supplied the future explicit safety flags for those classes;
+  - re-hash each written regular file and verify it matches `files:digest`;
+  - restore the entry's declared modification time and permissions (subject to the host OS);
+  - never change ownership unless the user supplies `--same-owner` or an equivalent privileged
+    opt-in, and never restore setuid/setgid/sticky bits unless the user supplies an explicit
+    set-id preservation opt-in;
   - skip entries whose digest is suppressed (§11) by default, with an explicit
     `--include-suppressed` override.
 
@@ -1629,7 +1699,7 @@ rather than trusting them to be intentional.
 
 | workflow | usual table of contents | GTS `files` profile behavior |
 |---|---|---|
-| `tar` | Header records are interleaved with file bytes; path and metadata interpretation is tool policy. | The manifest is RDF quads, so path, digest, size, mode, mtime, and media type are queryable before or beside blobs. |
+| `tar` | Header records are interleaved with file bytes; path and metadata interpretation is tool policy. | The v1 manifest is RDF quads for regular files. v2 adds tar-equivalent entry kinds, link targets, ownership, device nodes, xattrs, and PAX escape records while keeping extraction policy explicit. |
 | `zip` | Central directory enables random access but is a rewrite-oriented footer. | GTS stays append-only; optional indexes accelerate access without making the footer the archive identity. |
 | BagIt-style package | Payload files plus sidecar manifests/checksums. | The graph-native manifest and content bytes travel in one verifiable CBOR Sequence; external blobs remain content-addressed when used. |
 
