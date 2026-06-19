@@ -102,6 +102,7 @@ def download(url: str, destination: Path, *, headers: dict[str, str] | None = No
                 try:
                     destination.unlink()
                 except OSError:
+                    # Best-effort cleanup; the original download error is reported below.
                     pass
             if attempt < 3:
                 time.sleep(attempt)
