@@ -48,6 +48,7 @@ impl TermKind {
 /// An RDF term identified by append-order id.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Term {
+    /// Wire term kind (`"k"`), with unknown or absent wire values folded as IRI.
     pub kind: TermKind,
     /// IRI string, literal lexical form, or blank-node label (scope-local).
     pub value: Option<String>,
@@ -66,9 +67,13 @@ pub type Triple3 = (usize, usize, usize);
 /// A quad with term ids resolved to borrowed [`Term`] values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct QuadTerms<'a> {
+    /// Resolved subject term.
     pub subject: &'a Term,
+    /// Resolved predicate term.
     pub predicate: &'a Term,
+    /// Resolved object term.
     pub object: &'a Term,
+    /// Resolved graph-name term, or `None` for the default graph.
     pub graph_name: Option<&'a Term>,
 }
 
@@ -95,13 +100,17 @@ impl<'a> Iterator for QuadTermsIter<'a> {
 /// A frame the reader could not decode, surfaced rather than dropped (§7.6).
 #[derive(Clone, Debug)]
 pub struct OpaqueNode {
+    /// Frame content id when available.
     pub id: Vec<u8>,
+    /// Wire frame `"t"` value, or a placeholder when the frame is too damaged.
     pub frame_type: String,
     /// `"unknown-codec"` | `"missing-key"` | `"damaged"`.
     pub reason: String,
     /// `"none"` | `"valid"` | `"invalid"` | `"unverified"`.
     pub sigstat: String,
+    /// Public frame metadata retained for diagnostics and policy decisions.
     pub pub_meta: Option<Value>,
+    /// Recipient metadata rows from encrypted frames.
     pub recipients: Option<Vec<Value>>,
 }
 
@@ -110,15 +119,20 @@ pub struct OpaqueNode {
 pub struct Suppression {
     /// Target maps (`{"kind": "term"|"quad"|"reifier"|"frame"|"blob", ...}`).
     pub targets: Vec<Value>,
+    /// Optional author-provided reason for suppression.
     pub reason: Option<String>,
+    /// Optional term-id identifying the suppressing actor.
     pub by: Option<usize>,
 }
 
 /// A machine-observable reader diagnostic (§2.3).
 #[derive(Clone, Debug)]
 pub struct Diagnostic {
+    /// Stable diagnostic code, matching the cross-engine diagnostic vocabulary.
     pub code: String,
+    /// Human-readable detail string.
     pub detail: String,
+    /// Absolute CBOR item index when the problem belongs to a frame.
     pub frame_index: Option<usize>,
 }
 
@@ -129,10 +143,13 @@ pub struct Diagnostic {
 /// `frame_id` even after the frame itself is re-authored into a new chain.
 #[derive(Clone, Debug)]
 pub struct Signature {
+    /// Frame id the COSE_Sign1 signature authenticates.
     pub frame_id: Vec<u8>,
+    /// COSE key id, when present.
     pub kid: Option<String>,
     /// `"valid"` | `"invalid"` | `"unverified"`.
     pub status: String,
+    /// Raw COSE_Sign1 bytes, retained for detached-signature transport.
     pub cose: Option<Vec<u8>>,
 }
 
@@ -144,9 +161,13 @@ pub struct Signature {
 /// (accretive) segment all fields are their zero values.
 #[derive(Clone, Debug, Default)]
 pub struct StreamableInfo {
+    /// Whether the segment header explicitly claimed `layout = "streamable"`.
     pub claimed: bool,
+    /// Number of frames covered by the last intact index footer.
     pub covered: usize,
+    /// Number of legal accretive frames after the covered prefix.
     pub tail: usize,
+    /// Head id declared by the last intact index footer.
     pub head: Option<Vec<u8>>,
 }
 
@@ -156,6 +177,11 @@ pub enum BlobEntry {
     /// Decoded blob bytes.
     Bytes(Vec<u8>),
     /// Wire bytes plus the transform chain needed to decode them on access.
+    ///
+    /// Lazy entries preserve reader totality for transformed blob frames:
+    /// callers that never ask for the bytes still get a complete folded graph,
+    /// while callers that do ask receive the same codec errors the eager path
+    /// would have produced.
     Lazy { raw: Vec<u8>, chain: Vec<Codec> },
 }
 
@@ -220,10 +246,13 @@ impl BlobEntry {
 /// The folded result of a GTS log.
 #[derive(Default, Debug)]
 pub struct Graph {
+    /// Terms in append/fold order. Quad ids index into this vector.
     pub terms: Vec<Term>,
+    /// RDF quad rows using term ids; `None` graph slots mean default graph.
     pub quads: Vec<Quad>,
     /// Reifier-id → triple bindings, insertion-ordered.
     pub reifiers: Vec<(usize, Triple3)>,
+    /// Annotation triples `(reifier, predicate, value)`.
     pub annotations: Vec<Triple3>,
     /// `blake3:<hex>` digest → inline bytes, insertion-ordered.
     pub blobs: Vec<(String, BlobEntry)>,
@@ -233,9 +262,13 @@ pub struct Graph {
     pub blob_meta: Vec<(String, Value)>,
     /// File-level shallow-merged metadata, insertion-ordered.
     pub meta: Vec<(String, Value)>,
+    /// Suppression overlays, preserved in append/fold order.
     pub suppressions: Vec<Suppression>,
+    /// Opaque frame records for unknown, encrypted, or damaged payloads.
     pub opaque: Vec<OpaqueNode>,
+    /// Signature observations retained independently of verification policy.
     pub signatures: Vec<Signature>,
+    /// Reader diagnostics collected during fold.
     pub diagnostics: Vec<Diagnostic>,
     /// Ordered per-segment head ids (§3.1) — the file's composite identity.
     pub segment_heads: Vec<Vec<u8>>,

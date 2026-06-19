@@ -91,6 +91,14 @@ jobs:
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features sophia-adapter -- -D warnings
 
+      - name: Rustdoc (warnings are errors)
+        if: runner.os == 'Linux'
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: |
+          cargo doc --manifest-path visual-hashing/Cargo.toml --no-deps
+          cargo doc --manifest-path rust/Cargo.toml --no-deps
+
       - name: Conformance corpus + CLI tests
         run: |
           cargo test --manifest-path visual-hashing/Cargo.toml

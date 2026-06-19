@@ -14,6 +14,7 @@ use crate::wire::{
     VERSION,
 };
 
+/// Stable detached proof schema tag emitted by [`Proof::to_json`].
 pub const PROOF_SCHEMA: &str = "gts-mmr-proof-v1";
 const HASH_ALGORITHM: &str = "blake3-256";
 const PREIMAGE_VERSION: &str = "gts-mmr-v1";
@@ -23,13 +24,18 @@ const ROOT_DOMAIN: &str = "gts-mmr-root-v1";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MmrPeak {
+    /// Peak tree height. Height zero is a leaf.
     pub height: usize,
+    /// Peak hash using the `gts-mmr-*` preimage domains.
     pub hash: Vec<u8>,
 }
 
+/// Position of a proof sibling relative to the carried node.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProofSide {
+    /// Sibling hash is the left child.
     Left,
+    /// Sibling hash is the right child.
     Right,
 }
 
@@ -39,17 +45,30 @@ pub struct ProofStep {
     pub parent_height: usize,
     /// Which side the sibling hash occupies relative to the carried node.
     pub side: ProofSide,
+    /// Sibling hash at this step.
     pub hash: Vec<u8>,
 }
 
+/// Detached inclusion proof for one frame id in an indexed segment.
+///
+/// The proof binds a frame id to the `index.mmr` root without requiring the
+/// original GTS bytes. `count`, `peaks`, and `path` are enough to reconstruct
+/// the selected peak and then the segment root.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Proof {
+    /// Number of frame ids committed by the index root.
     pub count: usize,
+    /// Zero-based leaf/frame index proven by this proof.
     pub leaf_index: usize,
+    /// 32-byte frame content id at `leaf_index`.
     pub frame_id: Vec<u8>,
+    /// 32-byte MMR root from the `index.mmr` footer.
     pub root: Vec<u8>,
+    /// Index into [`Self::peaks`] containing `leaf_index`.
     pub peak_index: usize,
+    /// Complete peak list for the committed frame count.
     pub peaks: Vec<MmrPeak>,
+    /// Sibling path from the leaf to the selected peak.
     pub path: Vec<ProofStep>,
 }
 
@@ -113,6 +132,8 @@ fn build_nodes(frame_ids: &[Vec<u8>]) -> Vec<Node> {
             if peaks[left_i].height != peaks[right_i].height {
                 break;
             }
+            // MMR append invariant: only the newest adjacent equal-height
+            // peaks can merge, preserving append-order coverage ranges.
             let right = peaks.pop().expect("right peak exists");
             let left = peaks.pop().expect("left peak exists");
             let height = left.height + 1;
@@ -141,6 +162,9 @@ fn peak_list(nodes: &[Node]) -> Vec<MmrPeak> {
 }
 
 /// Compute the stable `index.mmr` root over ordered frame ids.
+///
+/// The root commits to both the frame count and the ordered peak list, so
+/// adding a frame changes the root even when an earlier proof path is reused.
 pub fn root(frame_ids: &[Vec<u8>]) -> Vec<u8> {
     let nodes = build_nodes(frame_ids);
     root_hash(frame_ids.len(), &peak_list(&nodes))
@@ -174,6 +198,8 @@ fn append_path(node: &Node, target: usize, path: &mut Vec<ProofStep>) -> bool {
 }
 
 /// Create a detached inclusion proof for `target_index`.
+///
+/// Returns `None` when the target is outside the covered frame id list.
 pub fn prove(frame_ids: &[Vec<u8>], target_index: usize) -> Option<Proof> {
     if target_index >= frame_ids.len() {
         return None;
@@ -243,6 +269,9 @@ fn peak_index_for_leaf(
 }
 
 /// Verify a detached proof without access to the original GTS file.
+///
+/// Verification checks shape first, then recomputes the leaf-to-peak path and
+/// final root using the same domain-separated preimages as [`root`].
 pub fn verify_proof(proof: &Proof) -> Result<(), String> {
     if proof.frame_id.len() != 32 {
         return Err("frame_id must be 32 bytes".to_string());

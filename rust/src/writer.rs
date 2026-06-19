@@ -40,6 +40,10 @@ pub fn term_to_wire(t: &Term) -> Value {
 }
 
 /// Writer construction options for header-level parity with the Python writer.
+///
+/// These values affect the header, so they are part of the segment genesis
+/// hash. Changing them after bytes are emitted would change every downstream
+/// `prev` link; construct a new writer instead.
 #[derive(Clone, Debug)]
 pub struct WriterOptions {
     /// Optional transform catalog. When omitted, the default GTS catalog is used.
@@ -73,6 +77,10 @@ pub struct Encrypt0Options {
 }
 
 /// Advanced frame-authorship options matching Python `Writer.add_frame`.
+///
+/// `payload` values are canonical-CBOR encoded before transforms; `raw` values
+/// are used as provided. The final encrypted/transformed bytes are carried in
+/// the frame `"d"` field and authenticated by the frame content id.
 #[derive(Clone, Debug, Default)]
 pub struct FrameOptions {
     /// Structured CBOR payload. Mutually exclusive with [`FrameOptions::raw`].
@@ -456,6 +464,11 @@ impl Writer {
     }
 
     /// Append one frame with explicit transform/encryption/signature options.
+    ///
+    /// The writer computes the content id before adding `sig`, matching the
+    /// frame-id preimage used by readers and detached verifiers. The stored
+    /// `prev` link always names the prior head in this writer, maintaining a
+    /// single append-only segment chain.
     pub fn add_frame_with_options(
         &mut self,
         frame_type: &str,
@@ -538,6 +551,9 @@ impl Writer {
         frame.push(("prev".into(), Value::Bytes(self.prev.clone())));
 
         frame.sort_by_key(|a| canonical(&a.0));
+        // The signature is not part of the frame-id preimage (§9.2). This lets
+        // signatures be verified against the same id after streamable
+        // compaction carries them as detached evidence.
         let id = content_id(&frame);
         frame.push(("id".into(), Value::Bytes(id.clone())));
         let sig = match options.signature {
