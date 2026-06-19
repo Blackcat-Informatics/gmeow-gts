@@ -140,6 +140,33 @@ fn from_okf_maps_frontmatter_body_and_links() {
 }
 
 #[test]
+fn link_extraction_handles_utf8_link_text() {
+    let root = tmpdir("utf8-link");
+    let _ = std::fs::remove_dir_all(&root);
+    write(
+        &root.join("source.md"),
+        r#"---
+type: Concept
+---
+See [Schéma](target.md).
+"#,
+    );
+    write(
+        &root.join("target.md"),
+        r#"---
+type: Concept
+---
+Target.
+"#,
+    );
+
+    let data = from_okf(&root).expect("UTF-8 OKF imports");
+    let nquads = to_nquads(&read(&data, true, None));
+    assert!(nquads.contains("\"Schéma\""));
+    assert!(nquads.contains(OKF_LINKS));
+}
+
+#[test]
 fn okf_forward_roundtrip_restores_body_bytes_and_normalizes_tags() {
     let root = tmpdir("forward-src");
     let out = tmpdir("forward-out");

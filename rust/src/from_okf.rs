@@ -394,31 +394,37 @@ struct MarkdownLink {
 }
 
 fn extract_markdown_links(body: &str) -> Vec<MarkdownLink> {
-    let bytes = body.as_bytes();
     let mut links = Vec::new();
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] != b'[' || i > 0 && bytes[i - 1] == b'!' {
-            i += 1;
+    let mut cursor = 0;
+    while let Some(open_rel) = body[cursor..].find('[') {
+        let open = cursor + open_rel;
+        if open > 0 && body[..open].ends_with('!') {
+            cursor = open + 1;
             continue;
         }
-        let Some(close) = body[i + 1..].find(']') else {
+        let text_start = open + 1;
+        let Some(close_rel) = body[text_start..].find(']') else {
             break;
         };
-        let close = i + 1 + close;
-        if body[close + 1..].starts_with('(') {
-            let target_start = close + 2;
-            if let Some(end) = body[target_start..].find(')') {
-                let target_end = target_start + end;
-                links.push(MarkdownLink {
-                    text: body[i + 1..close].to_string(),
-                    target: body[target_start..target_end].to_string(),
-                });
-                i = target_end + 1;
-                continue;
-            }
+        let close = text_start + close_rel;
+        let after_close = close + 1;
+        let Some(after_open_paren) = body[after_close..].strip_prefix('(') else {
+            cursor = after_close;
+            continue;
+        };
+        let target_start = body.len() - after_open_paren.len();
+        let Some(end_rel) = body[target_start..].find(')') else {
+            break;
+        };
+        let target_end = target_start + end_rel;
+        links.push(MarkdownLink {
+            text: body[text_start..close].to_string(),
+            target: body[target_start..target_end].to_string(),
+        });
+        cursor = target_end + 1;
+        if cursor >= body.len() {
+            break;
         }
-        i = close + 1;
     }
     links
 }

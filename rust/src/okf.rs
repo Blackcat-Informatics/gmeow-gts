@@ -216,12 +216,15 @@ fn write_okf(
                 link_statements.insert((subject, predicate, object));
             }
             _ if predicate_iri.starts_with(OKF_NS) => {
-                let local = predicate_iri.trim_start_matches(OKF_NS);
-                if !known_local(local) {
-                    if let Some(value) = yaml_value(graph, object)? {
-                        doc.fields.insert(local.to_string(), value);
-                        consumed_quads.insert(idx);
-                    }
+                let local = predicate_iri
+                    .strip_prefix(OKF_NS)
+                    .expect("predicate matched OKF namespace");
+                if known_local(local) {
+                    continue;
+                }
+                if let Some(value) = yaml_value(graph, object)? {
+                    doc.fields.insert(local.to_string(), value);
+                    consumed_quads.insert(idx);
                 }
             }
             _ => {}
