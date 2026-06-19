@@ -120,6 +120,23 @@ pub struct FileEntry {
     pub data: Option<Vec<u8>>,
 }
 
+/// Safety policy for materializing files-profile archives.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct UnpackOptions {
+    /// Extract blobs hidden by suppression frames.
+    pub include_suppressed: bool,
+    /// Create symlink and hardlink entries after validating that they stay
+    /// within the destination tree.
+    pub allow_symlinks: bool,
+    /// Recreate fifo/device/socket nodes where the host platform supports it.
+    pub allow_special: bool,
+    /// Restore numeric uid/gid values. Requires platform support and usually
+    /// elevated privileges.
+    pub same_owner: bool,
+    /// Preserve setuid, setgid, and sticky bits. These are stripped by default.
+    pub preserve_setid: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct TermKey {
     kind: TermKind,
@@ -948,8 +965,24 @@ fn hex(data: &[u8]) -> String {
 
 /// Extract FileEntry quads from a folded graph into dest.
 pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<(), String> {
+    unpack_with_options(
+        graph,
+        dest,
+        &UnpackOptions {
+            include_suppressed,
+            ..UnpackOptions::default()
+        },
+    )
+}
+
+/// Extract FileEntry quads from a folded graph into dest using an explicit safety policy.
+pub fn unpack_with_options(
+    graph: &Graph,
+    dest: &Path,
+    options: &UnpackOptions,
+) -> Result<(), String> {
     let entries = read_entries(graph)?;
-    let suppressed = if include_suppressed {
+    let suppressed = if options.include_suppressed {
         HashSet::new()
     } else {
         suppressed_blob_digests(graph)
@@ -959,57 +992,103 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
         graph.blobs.iter().map(|(d, e)| (d.as_str(), e)).collect();
     let mut decoded_cache: BTreeMap<String, Vec<u8>> = BTreeMap::new();
     let mut deferred_dirs = Vec::new();
+    let mut deferred_links = Vec::new();
 
     for (path, entry) in entries {
         let target = dest_path(dest, &path)?;
 
-        if entry.kind == FileEntryKind::Directory {
-            fs::create_dir_all(&target).map_err(|e| format!("create dir {target:?}: {e}"))?;
-            deferred_dirs.push((target, entry));
-            continue;
-        }
-        if entry.kind != FileEntryKind::File {
-            return Err(format!(
-                "refusing {} entry {path}: extraction requires explicit safety flags",
-                entry.kind.as_str()
-            ));
-        }
+        match entry.kind {
+            FileEntryKind::Directory => {
+                fs::create_dir_all(&target).map_err(|e| format!("create dir {target:?}: {e}"))?;
+                deferred_dirs.push((target, entry));
+            }
+            FileEntryKind::File => {
+                let digest = entry
+                    .digest
+                    .as_ref()
+                    .ok_or(format!("missing digest for {path}"))?;
+                if suppressed.contains(digest) {
+                    continue;
+                }
+                let data = if let Some(cached) = decoded_cache.get(digest) {
+                    cached.clone()
+                } else {
+                    let decoded = blob_entries
+                        .get(digest.as_str())
+                        .map(|entry| {
+                            entry
+                                .decoded_vec()
+                                .map_err(|err| format!("decode inline blob for {path}: {err:?}"))
+                        })
+                        .transpose()?
+                        .ok_or(format!("missing inline blob for {path}: {digest}"))?;
+                    decoded_cache.insert(digest.clone(), decoded.clone());
+                    decoded
+                };
+                if digest_string(&data) != *digest {
+                    return Err(format!("integrity failure for {path}: {digest}"));
+                }
 
-        let digest = entry
-            .digest
-            .as_ref()
-            .ok_or(format!("missing digest for {path}"))?;
-        if suppressed.contains(digest) {
-            continue;
-        }
-        let data = if let Some(cached) = decoded_cache.get(digest) {
-            cached.clone()
-        } else {
-            let decoded = blob_entries
-                .get(digest.as_str())
-                .map(|entry| {
-                    entry
-                        .decoded_vec()
-                        .map_err(|err| format!("decode inline blob for {path}: {err:?}"))
-                })
-                .transpose()?
-                .ok_or(format!("missing inline blob for {path}: {digest}"))?;
-            decoded_cache.insert(digest.clone(), decoded.clone());
-            decoded
-        };
-        if digest_string(&data) != *digest {
-            return Err(format!("integrity failure for {path}: {digest}"));
-        }
+                if let Some(parent) = target.parent() {
+                    fs::create_dir_all(parent)
+                        .map_err(|e| format!("create dir {parent:?}: {e}"))?;
+                }
+                write_file_without_following_symlink(&target, &data, &path)?;
 
-        if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent).map_err(|e| format!("create dir {parent:?}: {e}"))?;
+                restore_path_metadata(&target, &entry, options)?;
+            }
+            FileEntryKind::Symlink => {
+                if !options.allow_symlinks {
+                    return Err(format!(
+                        "refusing symlink entry {path}: use --allow-symlinks"
+                    ));
+                }
+                let link_target = entry
+                    .link_target
+                    .as_deref()
+                    .ok_or_else(|| format!("symlink entry {path} needs linkTarget"))?;
+                validate_symlink_target(&path, link_target)?;
+                deferred_links.push((target, entry));
+            }
+            FileEntryKind::Hardlink => {
+                if !options.allow_symlinks {
+                    return Err(format!(
+                        "refusing hardlink entry {path}: use --allow-symlinks"
+                    ));
+                }
+                let link_target = entry
+                    .link_target
+                    .as_deref()
+                    .ok_or_else(|| format!("hardlink entry {path} needs linkTarget"))?;
+                safe_archive_path(link_target)?;
+                let _ = dest_path(dest, link_target)?;
+                deferred_links.push((target, entry));
+            }
+            FileEntryKind::Fifo
+            | FileEntryKind::CharDev
+            | FileEntryKind::BlockDev
+            | FileEntryKind::Socket => {
+                if !options.allow_special {
+                    return Err(format!(
+                        "refusing {} entry {path}: use --allow-special",
+                        entry.kind.as_str()
+                    ));
+                }
+                if let Some(parent) = target.parent() {
+                    fs::create_dir_all(parent)
+                        .map_err(|e| format!("create dir {parent:?}: {e}"))?;
+                }
+                create_special_node(&target, &entry)?;
+                restore_path_metadata(&target, &entry, options)?;
+            }
         }
-        write_file_without_following_symlink(&target, &data, &path)?;
-
-        restore_path_metadata(&target, &entry)?;
+    }
+    for (target, entry) in deferred_links {
+        materialize_link(dest, &target, &entry)?;
+        restore_path_metadata(&target, &entry, options)?;
     }
     for (target, entry) in deferred_dirs.into_iter().rev() {
-        restore_path_metadata(&target, &entry)?;
+        restore_path_metadata(&target, &entry, options)?;
     }
     Ok(())
 }
@@ -1070,18 +1149,284 @@ fn prepare_replace_target(target: &Path, archive_path: &str) -> Result<(), Strin
     }
 }
 
-fn restore_path_metadata(target: &Path, entry: &FileEntry) -> Result<(), String> {
+fn prepare_create_node_target(target: &Path, archive_path: &str) -> Result<(), String> {
+    match fs::symlink_metadata(target) {
+        Ok(metadata) if metadata.is_dir() => Err(format!(
+            "refusing to replace directory for {archive_path}: {target:?}"
+        )),
+        Ok(_) => fs::remove_file(target).map_err(|e| format!("remove existing {target:?}: {e}")),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(err) => Err(format!("inspect {target:?}: {err}")),
+    }
+}
+
+fn validate_symlink_target(archive_path: &str, link_target: &str) -> Result<(), String> {
+    if link_target.is_empty() {
+        return Err(format!("symlink entry {archive_path} needs linkTarget"));
+    }
+    let normalized = link_target.replace('\\', "/");
+    let drive_relative = link_target.len() >= 2
+        && link_target.as_bytes()[1] == b':'
+        && link_target.as_bytes()[0].is_ascii_alphabetic();
+    if drive_relative || normalized.starts_with('/') {
+        return Err(format!(
+            "symlink target escapes destination for {archive_path}: {link_target}"
+        ));
+    }
+    if link_target.contains('\\') {
+        return Err(format!(
+            "backslash symlink target not allowed for {archive_path}: {link_target}"
+        ));
+    }
+
+    let mut parts: Vec<&str> = archive_path
+        .rsplit_once('/')
+        .map_or(Vec::new(), |(parent, _)| {
+            parent.split('/').filter(|part| !part.is_empty()).collect()
+        });
+    for part in normalized.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => {
+                if parts.pop().is_none() {
+                    return Err(format!(
+                        "symlink target escapes destination for {archive_path}: {link_target}"
+                    ));
+                }
+            }
+            value => parts.push(value),
+        }
+    }
+    if parts.is_empty() {
+        return Err(format!(
+            "symlink target resolves to destination root for {archive_path}: {link_target}"
+        ));
+    }
+    safe_archive_path(&parts.join("/"))
+}
+
+fn materialize_link(dest: &Path, target: &Path, entry: &FileEntry) -> Result<(), String> {
+    match entry.kind {
+        FileEntryKind::Symlink => materialize_symlink(target, entry),
+        FileEntryKind::Hardlink => {
+            let link_target = entry
+                .link_target
+                .as_deref()
+                .ok_or_else(|| format!("hardlink entry {} needs linkTarget", entry.path))?;
+            let source = dest_path(dest, link_target)?;
+            prepare_create_node_target(target, &entry.path)?;
+            fs::hard_link(&source, target)
+                .map_err(|e| format!("create hardlink {:?} -> {:?}: {e}", target, source))
+        }
+        _ => Err(format!("{} is not a link entry", entry.path)),
+    }
+}
+
+#[cfg(unix)]
+fn materialize_symlink(target: &Path, entry: &FileEntry) -> Result<(), String> {
+    use std::os::unix::fs::symlink;
+
+    let link_target = entry
+        .link_target
+        .as_deref()
+        .ok_or_else(|| format!("symlink entry {} needs linkTarget", entry.path))?;
+    prepare_create_node_target(target, &entry.path)?;
+    symlink(link_target, target)
+        .map_err(|e| format!("create symlink {:?} -> {:?}: {e}", target, link_target))
+}
+
+#[cfg(not(unix))]
+fn materialize_symlink(_target: &Path, entry: &FileEntry) -> Result<(), String> {
+    Err(format!(
+        "symlink extraction is not supported on this platform: {}",
+        entry.path
+    ))
+}
+
+fn create_special_node(target: &Path, entry: &FileEntry) -> Result<(), String> {
+    prepare_create_node_target(target, &entry.path)?;
+    create_special_node_platform(target, entry)
+}
+
+#[cfg(unix)]
+fn create_special_node_platform(target: &Path, entry: &FileEntry) -> Result<(), String> {
+    match entry.kind {
+        FileEntryKind::Fifo => create_fifo(target, entry),
+        FileEntryKind::CharDev | FileEntryKind::BlockDev => create_device(target, entry),
+        FileEntryKind::Socket => create_socket(target, entry),
+        _ => Err(format!("{} is not a special entry", entry.path)),
+    }
+}
+
+#[cfg(not(unix))]
+fn create_special_node_platform(_target: &Path, entry: &FileEntry) -> Result<(), String> {
+    Err(format!(
+        "{} extraction is not supported on this platform: {}",
+        entry.kind.as_str(),
+        entry.path
+    ))
+}
+
+#[cfg(unix)]
+fn create_fifo(target: &Path, entry: &FileEntry) -> Result<(), String> {
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    let path = CString::new(target.as_os_str().as_bytes())
+        .map_err(|_| format!("path contains interior NUL: {target:?}"))?;
+    let mode = sanitized_mode(entry.mode.unwrap_or(0o644), true);
+    // SAFETY: `path` is a NUL-terminated copy of the target path and remains
+    // alive for the duration of the syscall. The mode bits are sanitized.
+    let rc = unsafe { libc::mkfifo(path.as_ptr(), mode as libc::mode_t) };
+    if rc == 0 {
+        Ok(())
+    } else {
+        Err(format!(
+            "create fifo {target:?}: {}",
+            std::io::Error::last_os_error()
+        ))
+    }
+}
+
+#[cfg(all(unix, any(target_os = "linux", target_os = "android")))]
+fn create_device(target: &Path, entry: &FileEntry) -> Result<(), String> {
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    let path = CString::new(target.as_os_str().as_bytes())
+        .map_err(|_| format!("path contains interior NUL: {target:?}"))?;
+    let mode = sanitized_mode(entry.mode.unwrap_or(0o644), true);
+    let node_type = match entry.kind {
+        FileEntryKind::CharDev => libc::S_IFCHR,
+        FileEntryKind::BlockDev => libc::S_IFBLK,
+        _ => return Err(format!("{} is not a device entry", entry.path)),
+    };
+    let major: libc::c_uint = entry
+        .dev_major
+        .ok_or_else(|| format!("{} needs devMajor", entry.path))?
+        .try_into()
+        .map_err(|_| format!("{} devMajor exceeds platform range", entry.path))?;
+    let minor: libc::c_uint = entry
+        .dev_minor
+        .ok_or_else(|| format!("{} needs devMinor", entry.path))?
+        .try_into()
+        .map_err(|_| format!("{} devMinor exceeds platform range", entry.path))?;
+    // SAFETY: `path` is a NUL-terminated copy of the target path and remains
+    // alive for the duration of the syscall. Device numbers are range-checked
+    // before `makedev`, and mode bits are sanitized.
+    let rc = unsafe {
+        libc::mknod(
+            path.as_ptr(),
+            (node_type | mode) as libc::mode_t,
+            libc::makedev(major, minor),
+        )
+    };
+    if rc == 0 {
+        Ok(())
+    } else {
+        Err(format!(
+            "create device {target:?}: {}",
+            std::io::Error::last_os_error()
+        ))
+    }
+}
+
+#[cfg(all(unix, not(any(target_os = "linux", target_os = "android"))))]
+fn create_device(_target: &Path, entry: &FileEntry) -> Result<(), String> {
+    Err(format!(
+        "device extraction is not supported on this platform: {}",
+        entry.path
+    ))
+}
+
+#[cfg(unix)]
+fn create_socket(target: &Path, entry: &FileEntry) -> Result<(), String> {
+    std::os::unix::net::UnixListener::bind(target)
+        .map(drop)
+        .map_err(|e| format!("create socket {target:?} for {}: {e}", entry.path))
+}
+
+fn sanitized_mode(mode: u32, preserve_setid: bool) -> u32 {
+    if preserve_setid {
+        mode & 0o7777
+    } else {
+        mode & 0o777
+    }
+}
+
+fn restore_path_metadata(
+    target: &Path,
+    entry: &FileEntry,
+    options: &UnpackOptions,
+) -> Result<(), String> {
+    restore_owner(target, entry, options)?;
+
     #[cfg(unix)]
-    if let Some(mode) = entry.mode {
+    if let Some(mode) = entry.mode.filter(|_| entry.kind != FileEntryKind::Symlink) {
         use std::os::unix::fs::PermissionsExt;
+        let mode = sanitized_mode(mode, options.preserve_setid);
         fs::set_permissions(target, std::fs::Permissions::from_mode(mode))
             .map_err(|e| format!("set permissions for {target:?}: {e}"))?;
     }
 
     if let Some(modified) = &entry.modified {
         let (seconds, nanos) = parse_datetime(modified)?;
-        filetime::set_file_mtime(target, filetime::FileTime::from_unix_time(seconds, nanos))
-            .map_err(|e| format!("set mtime for {target:?}: {e}"))?;
+        let timestamp = filetime::FileTime::from_unix_time(seconds, nanos);
+        if entry.kind == FileEntryKind::Symlink {
+            filetime::set_symlink_file_times(target, timestamp, timestamp)
+                .map_err(|e| format!("set symlink mtime for {target:?}: {e}"))?;
+        } else {
+            filetime::set_file_mtime(target, timestamp)
+                .map_err(|e| format!("set mtime for {target:?}: {e}"))?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn restore_owner(target: &Path, entry: &FileEntry, options: &UnpackOptions) -> Result<(), String> {
+    if !options.same_owner || (entry.uid.is_none() && entry.gid.is_none()) {
+        return Ok(());
+    }
+
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    let path = CString::new(target.as_os_str().as_bytes())
+        .map_err(|_| format!("path contains interior NUL: {target:?}"))?;
+    let uid = entry
+        .uid
+        .map_or(!0 as libc::uid_t, |value| value as libc::uid_t);
+    let gid = entry
+        .gid
+        .map_or(!0 as libc::gid_t, |value| value as libc::gid_t);
+    let rc = if entry.kind == FileEntryKind::Symlink {
+        // SAFETY: `path` is a NUL-terminated copy of the target path and
+        // remains alive for the duration of the syscall. `lchown` is used for
+        // symlinks so metadata restoration does not follow the link.
+        unsafe { libc::lchown(path.as_ptr(), uid, gid) }
+    } else {
+        // SAFETY: `path` is a NUL-terminated copy of the target path and
+        // remains alive for the duration of the syscall.
+        unsafe { libc::chown(path.as_ptr(), uid, gid) }
+    };
+    if rc == 0 {
+        Ok(())
+    } else {
+        Err(format!(
+            "restore owner for {target:?}: {}",
+            std::io::Error::last_os_error()
+        ))
+    }
+}
+
+#[cfg(not(unix))]
+fn restore_owner(_target: &Path, entry: &FileEntry, options: &UnpackOptions) -> Result<(), String> {
+    if options.same_owner && (entry.uid.is_some() || entry.gid.is_some()) {
+        return Err(format!(
+            "ownership restoration is not supported on this platform: {}",
+            entry.path
+        ));
     }
     Ok(())
 }

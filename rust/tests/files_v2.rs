@@ -302,8 +302,92 @@ fn default_unpack_refuses_v2_links_and_special_files() {
         let graph = read(&archive, true, None);
         let dest = tmpdir(&format!("refuse-{idx}"));
         let err = gmeow_gts::files::unpack(&graph, &dest, false).expect_err("entry refused");
-        assert!(err.contains("explicit safety flags"), "error: {err}");
+        assert!(err.contains("use --allow-"), "error: {err}");
     }
+}
+
+#[cfg(unix)]
+#[test]
+fn opt_in_unpack_materializes_in_destination_symlinks() {
+    let tmp = tmpdir("symlink");
+    let _ = std::fs::remove_dir_all(&tmp);
+    let archive = pack_entries_v2(&[
+        FileEntry {
+            path: "docs/a.txt".to_string(),
+            kind: FileEntryKind::File,
+            data: Some(b"payload".to_vec()),
+            ..FileEntry::default()
+        },
+        FileEntry {
+            path: "docs/latest.txt".to_string(),
+            kind: FileEntryKind::Symlink,
+            link_target: Some("a.txt".to_string()),
+            ..FileEntry::default()
+        },
+    ])
+    .expect("v2 pack succeeds");
+    let graph = read(&archive, true, None);
+    let dest = tmp.join("dest");
+    let options = gmeow_gts::files::UnpackOptions {
+        allow_symlinks: true,
+        ..gmeow_gts::files::UnpackOptions::default()
+    };
+
+    gmeow_gts::files::unpack_with_options(&graph, &dest, &options)
+        .expect("allowed symlink extracts");
+
+    let link_target = std::fs::read_link(dest.join("docs/latest.txt")).unwrap();
+    assert_eq!(link_target, std::path::PathBuf::from("a.txt"));
+}
+
+#[test]
+fn symlink_opt_in_still_refuses_destination_escape() {
+    let archive = pack_entries_v2(&[FileEntry {
+        path: "docs/latest.txt".to_string(),
+        kind: FileEntryKind::Symlink,
+        link_target: Some("../../outside".to_string()),
+        ..FileEntry::default()
+    }])
+    .expect("v2 archive authors");
+    let graph = read(&archive, true, None);
+    let dest = tmpdir("symlink-escape");
+    let options = gmeow_gts::files::UnpackOptions {
+        allow_symlinks: true,
+        ..gmeow_gts::files::UnpackOptions::default()
+    };
+
+    let err = gmeow_gts::files::unpack_with_options(&graph, &dest, &options)
+        .expect_err("escaping symlink is refused");
+
+    assert!(err.contains("escapes destination"), "error: {err}");
+}
+
+#[cfg(unix)]
+#[test]
+fn unpack_strips_setid_bits_by_default() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let tmp = tmpdir("setid");
+    let _ = std::fs::remove_dir_all(&tmp);
+    let archive = pack_entries_v2(&[FileEntry {
+        path: "tool".to_string(),
+        kind: FileEntryKind::File,
+        data: Some(b"payload".to_vec()),
+        mode: Some(0o4755),
+        ..FileEntry::default()
+    }])
+    .expect("v2 archive authors");
+    let graph = read(&archive, true, None);
+    let dest = tmp.join("dest");
+
+    gmeow_gts::files::unpack(&graph, &dest, false).expect("safe file extracts");
+
+    let mode = std::fs::metadata(dest.join("tool"))
+        .unwrap()
+        .permissions()
+        .mode()
+        & 0o7777;
+    assert_eq!(mode, 0o755);
 }
 
 #[test]

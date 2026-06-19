@@ -45,6 +45,12 @@ fn gts_with_stdin(args: &[&str], input: &[u8]) -> Output {
     child.wait_with_output().expect("gts output is collected")
 }
 
+fn make_tree(root: &std::path::Path) {
+    std::fs::create_dir_all(root.join("docs")).unwrap();
+    std::fs::write(root.join("a.txt"), "hello").unwrap();
+    std::fs::write(root.join("docs").join("b.txt"), "world").unwrap();
+}
+
 fn header(entry_type: tar::EntryType, size: u64) -> tar::Header {
     let mut header = tar::Header::new_gnu();
     header.set_entry_type(entry_type);
@@ -186,6 +192,184 @@ fn inspect_tar(data: &[u8]) -> BTreeMap<String, TarEntry> {
 fn graph_from_nquads(text: &str) -> gmeow_gts::model::Graph {
     let archive = from_nquads(text).expect("N-Quads author a GTS archive");
     read(&archive, true, None)
+}
+
+#[test]
+fn tar_verb_creates_lists_extracts_and_diffs_gts_archives() {
+    let tmp = tmpdir("verb-gts");
+    let _ = std::fs::remove_dir_all(&tmp);
+    let input = tmp.join("input");
+    let archive = tmp.join("tree.gts");
+    let restore = tmp.join("restore");
+    make_tree(&input);
+
+    let create = gts(&[
+        "tar",
+        "-cf",
+        archive.to_str().unwrap(),
+        input.to_str().unwrap(),
+    ]);
+    assert!(
+        create.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&create.stderr)
+    );
+
+    let list = gts(&["tar", "-tf", archive.to_str().unwrap()]);
+    assert!(
+        list.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&list.stderr)
+    );
+    let listing = String::from_utf8(list.stdout).unwrap();
+    assert!(listing.contains("file\t5\ta.txt"), "listing: {listing}");
+    assert!(
+        listing.contains("file\t5\tdocs/b.txt"),
+        "listing: {listing}"
+    );
+
+    let extract = gts(&[
+        "tar",
+        "-xf",
+        archive.to_str().unwrap(),
+        "-C",
+        restore.to_str().unwrap(),
+    ]);
+    assert!(
+        extract.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&extract.stderr)
+    );
+    assert_eq!(
+        std::fs::read_to_string(restore.join("a.txt")).unwrap(),
+        "hello"
+    );
+    assert_eq!(
+        std::fs::read_to_string(restore.join("docs").join("b.txt")).unwrap(),
+        "world"
+    );
+
+    let clean = gts(&[
+        "tar",
+        "-df",
+        archive.to_str().unwrap(),
+        input.to_str().unwrap(),
+    ]);
+    assert!(
+        clean.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&clean.stderr)
+    );
+
+    std::fs::write(input.join("a.txt"), "changed").unwrap();
+    let changed = gts(&[
+        "tar",
+        "-df",
+        archive.to_str().unwrap(),
+        input.to_str().unwrap(),
+    ]);
+    assert_eq!(changed.status.code(), Some(1));
+    let diff = String::from_utf8(changed.stdout).unwrap();
+    assert!(diff.contains("modified: a.txt"), "diff: {diff}");
+}
+
+#[test]
+fn tar_verb_creates_and_extracts_compressed_tar_archives() {
+    let tmp = tmpdir("verb-tar");
+    let _ = std::fs::remove_dir_all(&tmp);
+    let input = tmp.join("input");
+    let gzip_archive = tmp.join("tree.tar.gz");
+    let zstd_archive = tmp.join("tree.tar.zst");
+    let restore = tmp.join("restore");
+    make_tree(&input);
+
+    let gzip = gts(&[
+        "tar",
+        "-czf",
+        gzip_archive.to_str().unwrap(),
+        input.to_str().unwrap(),
+    ]);
+    assert!(
+        gzip.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&gzip.stderr)
+    );
+    assert!(std::fs::read(&gzip_archive)
+        .unwrap()
+        .starts_with(&[0x1f, 0x8b]));
+
+    let zstd = gts(&[
+        "tar",
+        "--zstd",
+        "-cf",
+        zstd_archive.to_str().unwrap(),
+        input.to_str().unwrap(),
+    ]);
+    assert!(
+        zstd.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&zstd.stderr)
+    );
+    assert!(std::fs::read(&zstd_archive)
+        .unwrap()
+        .starts_with(&[0x28, 0xb5, 0x2f, 0xfd]));
+
+    let extract = gts(&[
+        "tar",
+        "-xf",
+        gzip_archive.to_str().unwrap(),
+        "-C",
+        restore.to_str().unwrap(),
+    ]);
+    assert!(
+        extract.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&extract.stderr)
+    );
+    assert_eq!(
+        std::fs::read_to_string(restore.join("docs").join("b.txt")).unwrap(),
+        "world"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn tar_verb_enforces_symlink_opt_in_on_extract() {
+    let tmp = tmpdir("verb-symlink");
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let input = tmp.join("links.tar");
+    let restore = tmp.join("restore");
+    std::fs::write(&input, fixture_tar(true)).unwrap();
+
+    let refused = gts(&[
+        "tar",
+        "-xf",
+        input.to_str().unwrap(),
+        "-C",
+        restore.to_str().unwrap(),
+    ]);
+    assert_eq!(refused.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&refused.stderr);
+    assert!(err.contains("--allow-symlinks"), "stderr: {err}");
+
+    let allowed = gts(&[
+        "tar",
+        "-xf",
+        input.to_str().unwrap(),
+        "--allow-symlinks",
+        "-C",
+        restore.to_str().unwrap(),
+    ]);
+    assert!(
+        allowed.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&allowed.stderr)
+    );
+    assert_eq!(
+        std::fs::read_link(restore.join("docs/latest.txt")).unwrap(),
+        std::path::PathBuf::from("a.txt")
+    );
 }
 
 #[test]

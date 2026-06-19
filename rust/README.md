@@ -379,6 +379,14 @@ gts from-tar <archive.tar[.gz|.zst]|-> [-o out.gts] [--allow-symlinks] [--allow-
                                 build a files-profile-v2 GTS from tar (--features tar)
 gts to-tar <file.gts> [-o archive.tar|-] [-z|--gzip|--zstd] [--numeric-owner]
                                 export a files-profile-v2 archive as tar (--features tar)
+gts tar -c[z|--zstd]f <archive.gts|archive.tar[.gz|.zst]> <dir|file>...
+                                create a GTS or tar archive by extension (--features tar)
+gts tar -xf <archive.gts|archive.tar[.gz|.zst]> [-C dir]
+                                extract with refuse-dangerous defaults (--features tar)
+gts tar -tf <archive.gts|archive.tar[.gz|.zst]>
+                                list files-profile entries (--features tar)
+gts tar -df <archive.gts|archive.tar[.gz|.zst]> <dir>
+                                compare archive entries to a directory (--features tar)
 gts to-sqlite <file> <out>      export to SQLite (requires sqlite3)
 gts to-duckdb <file> <out>      export to DuckDB (--features duckdb; requires duckdb)
 gts to-parquet <file> <dir>     export to Parquet (--features duckdb; requires duckdb)
@@ -401,7 +409,8 @@ gts cat -o <out> <file>...      validating composer: refuse degenerate inputs,
 gts compact <file> -o <out> --streamable
                                 compact into the streamable layout state
 gts pack <dir|file>... -o <out> package files/directories into a files profile
-gts unpack <file> [-C <dir>]    extract a files profile (refuses path traversal)
+gts unpack <file> [-C <dir>] [--include-suppressed] [--allow-symlinks] [--allow-special]
+                                extract a files profile (refuses path traversal)
 gts diff <file> <directory>     compare a files profile to a directory
 gts dump <file> --directory <dir>
                                 expand an archive into an inspection directory
@@ -430,7 +439,13 @@ OKF profile (`--features okf`) imports and exports Markdown bundle directories w
 content-addressed body blobs, link edges, a `gts-okf-v1` manifest, and `_unmapped.nq` sidecars
 for out-of-profile RDF. The optional tar bridge (`--features tar`) imports and exports
 files-profile-v2 archives as tar streams, including stdin/stdout use, gzip/zstd wrapping,
-link and special-file opt-ins, owner metadata, and unknown PAX records. `from-nq` and the relational
+link and special-file opt-ins, owner metadata, and unknown PAX records. `gts tar` wraps that
+bridge in familiar `-c/-x/-t/-d` forms and chooses the GTS or tar path by extension.
+`unpack` and `tar -x` use refuse-dangerous defaults: ownership is restored only with
+`--same-owner` or `--numeric-owner`, setuid/setgid/sticky bits are stripped unless
+`--preserve-setid` is supplied, and links or special nodes are materialized only with
+`--allow-symlinks` or `--allow-special`. Opted-in symlink targets are still checked so they
+cannot escape the destination tree. `from-nq` and the relational
 `to-sqlite`/`to-duckdb`/`to-parquet` exports are
 implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
 integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`
@@ -460,7 +475,7 @@ oracle, and it therefore does not require a GIP. The current `Term` model carrie
 literal language tags but not RDF base direction, so `from_yaml_ld` rejects
 `@direction` rather than silently losing it.
 The optional `tar` feature adds `gmeow_gts::from_tar` and `gmeow_gts::tar`
-plus the matching CLI verbs. It is a Rust-first files-profile-v2 bridge surface;
+plus the `from-tar`, `to-tar`, and `tar` CLI verbs. It is a Rust-first files-profile-v2 bridge surface;
 Python, Go, and TypeScript parity can implement the same contract later.
 The adapters and policy parsers are absent from ordinary default builds.
 
