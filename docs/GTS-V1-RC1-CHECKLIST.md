@@ -298,6 +298,12 @@ for both crates with owner/repo `Blackcat-Informatics/gmeow-gts`, workflow
 `visual-hashing`, and environment `(none)`. The normal Rust release path uses
 GitHub Actions OIDC and does not require `CARGO_REGISTRY_TOKEN`.
 
+Before pushing Go tags, confirm repository-level immutable releases are enabled:
+
+```bash
+gh api repos/Blackcat-Informatics/gmeow-gts/immutable-releases
+```
+
 ```bash
 MERGE_COMMIT="<full-merge-commit>"
 VERSION="<version>"
@@ -347,14 +353,16 @@ Verify the public registries and release artifacts after the workflows complete:
 cargo search gmeow-gts --limit 1
 python -m pip index versions gmeow-gts
 npm view @blackcatinformatics/gmeow-gts version
-gh release view "go-v${VERSION}" --json tagName,name,url,isDraft,isPrerelease,publishedAt
+gh release view "go-v${VERSION}" \
+  --json tagName,name,url,isDraft,isImmutable,isPrerelease,publishedAt
+gh release verify "go-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
 ```
 
 Release evidence durability:
 
 | Surface | Durable artifact | Attestation evidence |
 |---|---|---|
-| Go | GitHub Release archives, `checksums.txt`, and `sbom-go-gts.spdx.json` | SLSA provenance attestations for release assets; SPDX SBOM attestations for release archives |
+| Go | Immutable GitHub Release archives, `checksums.txt`, and `sbom-go-gts.spdx.json` | GitHub release attestation for the immutable release; SLSA provenance attestations for release assets; SPDX SBOM attestations for release archives |
 | crates.io | Registry-hosted `.crate` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store |
 | PyPI | Registry-hosted wheel/sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
 | npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |
@@ -393,6 +401,16 @@ gh attestation verify "${OUT}/packages/go-release/checksums.txt" \
   --repo Blackcat-Informatics/gmeow-gts
 gh attestation verify "${OUT}/packages/go-release/sbom-go-gts.spdx.json" \
   --repo Blackcat-Informatics/gmeow-gts
+```
+
+Verify the immutable Go release attestation and each downloaded release asset:
+
+```bash
+gh release verify "go-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
+for artifact in "${OUT}"/packages/go-release/*; do
+  gh release verify-asset "go-v${VERSION}" "$artifact" \
+    --repo Blackcat-Informatics/gmeow-gts
+done
 ```
 
 Verify SPDX SBOM attestations for one representative artifact from each release
