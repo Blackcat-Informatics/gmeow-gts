@@ -11,6 +11,7 @@ Metacello new
   repository: 'tonel:///workspace/smalltalk/src';
   load: #('tests').
 testClasses := {
+  Smalltalk globals at: #GtsCborReaderTest.
   Smalltalk globals at: #GtsCborWriterTest.
   Smalltalk globals at: #GtsBlake3Test.
   Smalltalk globals at: #GtsMinimalVectorTest.
