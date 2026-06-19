@@ -14,5 +14,6 @@ GtsNativeLibraries class >> runtimeSummary [
 	^ Dictionary newFromPairs: {
 		'pharo'. Smalltalk version.
 		'requiredLibraries'. self requiredLibraries.
-		'blake3DigestSize'. GtsBlake3 digestSize }
+		'blake3DigestSize'. GtsBlake3 digestSize.
+		'zstdVersionNumber'. GtsZstd versionNumber }
 ]

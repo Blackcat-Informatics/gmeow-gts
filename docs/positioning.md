@@ -89,6 +89,7 @@ GTS supports several application families without making any of them the project
 | Shared conformance corpus | yes | yes | yes | yes | no |
 | Deterministic-CBOR primitive/vector tests | yes | yes | yes | yes | Phase 0 |
 | BLAKE3 native hashing | yes | yes | yes | yes | Phase 0 FFI |
+| zstd native codec | yes | yes | yes | yes | Phase 0 FFI |
 | COSE signing and verification | yes | yes | yes | yes | no |
 | COSE Encrypt0 helpers | yes | yes | yes | yes | no |
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes | no |
@@ -101,9 +102,9 @@ GTS supports several application families without making any of them the project
 
 This matrix is descriptive, not a conformance claim. The authoritative compatibility check is
 the versioned vector corpus under `vectors/`, which every parity engine gates against. The
-Smalltalk/Pharo engine is currently a Phase 0 bootstrap with native BLAKE3 FFI evidence,
-primitive deterministic-CBOR tests, and `01-minimal.gts` byte reproduction. It
-makes no conformance-tier claim.
+Smalltalk/Pharo engine is currently a Phase 0 bootstrap with native BLAKE3/zstd FFI
+evidence, primitive deterministic-CBOR tests, and `01-minimal.gts` byte reproduction.
+It makes no conformance-tier claim.
 Command-level parity and intentional gaps are maintained in
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
 OKF support is intentionally Rust-first: the Rust CLI owns the initial

@@ -257,7 +257,8 @@ live in [`ts/README.md`](./ts/README.md).
 The Smalltalk engine is a Phase 0 bootstrap, not a parity-complete release. It currently
 provides Tonel packages, a Metacello baseline, a pinned Docker runtime, deterministic-CBOR
 SUnit tests, native BLAKE3 FFI, and byte reproduction of the committed
-`01-minimal.gts` vector against the pinned runtime.
+`01-minimal.gts` vector against the pinned runtime. It also includes native zstd FFI
+round-trip evidence, but no baseline reader conformance claim yet.
 
 ```bash
 docker build -t gmeow-gts-smalltalk smalltalk
@@ -395,6 +396,7 @@ folded quad.
 | Writer | yes | yes | yes | yes | no |
 | Shared conformance corpus | yes | yes | yes | yes | no |
 | Deterministic-CBOR primitive/vector tests | yes | yes | yes | yes | Phase 0 |
+| zstd native codec | yes | yes | yes | yes | Phase 0 FFI |
 | COSE signing and verification | yes | yes | yes | yes | no |
 | COSE Encrypt0 helpers | yes | yes | yes | yes | no |
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes | no |
@@ -477,7 +479,7 @@ Current CI-gated conformance status:
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser progressive `foldStream` events plus browser stream/WebCrypto tests; does not satisfy the non-materializing Streaming Reader tier; corpus read gate remains the full-reader oracle | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| Smalltalk/Pharo | no tier claim yet | Phase 0 package/runtime bootstrap plus BLAKE3 FFI and `01-minimal.gts` byte reproduction | deterministic-CBOR primitive/vector tests only | no CLI yet | no profile support yet |
+| Smalltalk/Pharo | no tier claim yet | Phase 0 package/runtime bootstrap plus BLAKE3/zstd FFI and `01-minimal.gts` byte reproduction | deterministic-CBOR primitive/vector tests only | no CLI yet | no profile support yet |
 
 ## Repository layout
 
