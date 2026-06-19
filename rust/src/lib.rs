@@ -18,6 +18,7 @@ pub mod codec;
 pub mod compact;
 pub mod cose;
 pub mod db;
+pub mod dumpdir;
 // emojihash + randomart now live in the standalone `visual-hashing` crate (#16);
 // re-exported here so `gmeow_gts::emojihash::…` paths keep resolving.
 pub use visual_hashing as emojihash;

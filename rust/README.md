@@ -393,6 +393,8 @@ gts compact <file> -o <out> --streamable
 gts pack <dir|file>... -o <out> package files/directories into a files profile
 gts unpack <file> [-C <dir>]    extract a files profile (refuses path traversal)
 gts diff <file> <directory>     compare a files profile to a directory
+gts dump <file> --directory <dir>
+                                expand an archive into an inspection directory
 ```
 
 Exit codes:
@@ -410,7 +412,9 @@ and the replication surface through `gts heads`, `gts segments`, `gts missing`, 
 without adding runtime JSON, Merkle-tree, or replication dependencies. Rust writers can sign with raw
 Ed25519 keys or `Writer::sign_with_openpgp_secret_key`, which accepts the same narrow
 unencrypted Ed25519 OpenPGP secret-key shape as Python `Signer.from_gpg_secret_key` without
-adding a full OpenPGP crate dependency. `from-nq` and the relational
+adding a full OpenPGP crate dependency. `gts dump` writes a versioned inspection directory with
+folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads
+without duplicating large payload bytes by default. `from-nq` and the relational
 `to-sqlite`/`to-duckdb`/`to-parquet` exports are
 implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
 integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`

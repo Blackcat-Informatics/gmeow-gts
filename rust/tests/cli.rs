@@ -712,6 +712,312 @@ fn diff_reports_changes() {
 }
 
 #[test]
+fn dump_writes_exploration_directory_for_minimal_archive() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let archive = vectors().join("01-minimal.gts");
+    let dump = tmp.join("dump");
+
+    let out = gts(&[
+        "dump",
+        archive.to_str().unwrap(),
+        "--directory",
+        dump.to_str().unwrap(),
+    ]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(dump.join("README.md").exists());
+    assert!(dump.join(".gts-dump").join("manifest.json").exists());
+    assert!(dump.join(".gts-dump").join("heads.json").exists());
+    assert!(dump.join(".gts-dump").join("segments.json").exists());
+    assert!(dump.join("graph").join("folded.nq").exists());
+    assert!(dump
+        .join("graph")
+        .join("tables")
+        .join("terms.jsonl")
+        .exists());
+    assert!(dump.join("frames").join("inventory.jsonl").exists());
+    assert!(dump
+        .join("frames")
+        .join("segments")
+        .join("0000")
+        .join("folded.nq")
+        .exists());
+    assert!(dump.join("blobs").join("index.jsonl").exists());
+
+    let nq = std::fs::read_to_string(dump.join("graph").join("folded.nq")).unwrap();
+    assert!(nq.contains("https://example.org/Cat"));
+    let manifest = std::fs::read_to_string(dump.join(".gts-dump").join("manifest.json")).unwrap();
+    assert!(manifest.contains("\"schema\":\"gts-dump-v1\""));
+    let frame_nq = std::fs::read_dir(dump.join("frames").join("segments").join("0000"))
+        .unwrap()
+        .filter_map(Result::ok)
+        .any(|entry| entry.file_name().to_string_lossy().starts_with("frame-"));
+    assert!(
+        frame_nq,
+        "at least one per-frame N-Quads contribution is written"
+    );
+}
+
+#[test]
+fn dump_files_profile_materializes_payload_once_by_default() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    make_tree(&tmp.join("src"));
+    let archive = tmp.join("files.gts");
+    let out = gts(&[
+        "pack",
+        tmp.join("src").to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+
+    let dump = tmp.join("dump");
+    let out = gts(&[
+        "dump",
+        archive.to_str().unwrap(),
+        "--directory",
+        dump.to_str().unwrap(),
+    ]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(
+        std::fs::read_to_string(dump.join("files").join("tree").join("a.txt")).unwrap(),
+        "hello"
+    );
+    assert_eq!(
+        std::fs::read_to_string(dump.join("files").join("tree").join("subdir").join("b.txt"))
+            .unwrap(),
+        "world"
+    );
+    assert!(dump.join("files").join("entries.jsonl").exists());
+    assert!(
+        !dump.join("blobs").join("by-digest").exists(),
+        "files-profile payloads should not be duplicated in a digest store by default"
+    );
+    let index = std::fs::read_to_string(dump.join("blobs").join("index.jsonl")).unwrap();
+    assert!(index.contains("files/tree/a.txt"));
+}
+
+#[test]
+fn dump_metadata_only_skips_payload_materialization() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    make_tree(&tmp.join("src"));
+    let archive = tmp.join("files.gts");
+    let out = gts(&[
+        "pack",
+        tmp.join("src").to_str().unwrap(),
+        "-o",
+        archive.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+
+    let dump = tmp.join("dump");
+    let out = gts(&[
+        "dump",
+        archive.to_str().unwrap(),
+        "--directory",
+        dump.to_str().unwrap(),
+        "--metadata-only",
+    ]);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(dump.join("files").join("entries.jsonl").exists());
+    assert!(!dump.join("files").join("tree").exists());
+    assert!(!dump.join("blobs").join("by-digest").exists());
+    let readme = std::fs::read_to_string(dump.join("README.md")).unwrap();
+    assert!(readme.contains("metadata-only"));
+}
+
+#[test]
+fn dump_refuses_existing_destination_unless_forced() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let archive = vectors().join("01-minimal.gts");
+    let dump = tmp.join("dump");
+    let out = gts(&[
+        "dump",
+        archive.to_str().unwrap(),
+        "--directory",
+        dump.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+
+    let out = gts(&[
+        "dump",
+        archive.to_str().unwrap(),
+        "--directory",
+        dump.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--force"), "stderr: {err}");
+
+    let out = gts(&[
+        "dump",
+        archive.to_str().unwrap(),
+        "--directory",
+        dump.to_str().unwrap(),
+        "--force",
+    ]);
+    assert!(out.status.success());
+}
+
+#[test]
+fn dump_writes_best_effort_output_for_damaged_archive() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let damaged = tmp.join("damaged.gts");
+    std::fs::write(
+        &damaged,
+        std::fs::read(vectors().join("04-damaged-frame.gts")).unwrap(),
+    )
+    .unwrap();
+    let dump = tmp.join("dump");
+
+    let out = gts(&[
+        "dump",
+        damaged.to_str().unwrap(),
+        "--directory",
+        dump.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(dump.join("README.md").exists());
+    assert!(dump.join("graph").join("folded.nq").exists());
+    assert!(dump.join("frames").join("inventory.jsonl").exists());
+    let diagnostics =
+        std::fs::read_to_string(dump.join("graph").join("tables").join("diagnostics.jsonl"))
+            .unwrap();
+    assert!(diagnostics.contains("DamagedFrame"));
+}
+
+fn suppressed_file_archive() -> Vec<u8> {
+    use ciborium::value::Value;
+    use gmeow_gts::writer::{digest_string, Writer};
+
+    let payload = b"hidden";
+    let digest = digest_string(payload);
+    let mut w = Writer::new("files");
+    w.add_terms(&[
+        gmeow_gts::model::Term {
+            kind: gmeow_gts::model::TermKind::Iri,
+            value: Some("https://w3id.org/gts/files#FileEntry".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        gmeow_gts::model::Term {
+            kind: gmeow_gts::model::TermKind::Iri,
+            value: Some("https://w3id.org/gts/files#path".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        gmeow_gts::model::Term {
+            kind: gmeow_gts::model::TermKind::Iri,
+            value: Some("https://w3id.org/gts/files#digest".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        gmeow_gts::model::Term {
+            kind: gmeow_gts::model::TermKind::Iri,
+            value: Some("http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        gmeow_gts::model::Term {
+            kind: gmeow_gts::model::TermKind::Bnode,
+            value: Some("e0".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        gmeow_gts::model::Term {
+            kind: gmeow_gts::model::TermKind::Literal,
+            value: Some("hidden.txt".to_string()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+        gmeow_gts::model::Term {
+            kind: gmeow_gts::model::TermKind::Literal,
+            value: Some(digest.clone()),
+            datatype: None,
+            lang: None,
+            reifier: None,
+        },
+    ]);
+    w.add_quads(&[(4, 3, 0, None), (4, 1, 5, None), (4, 2, 6, None)]);
+    w.add_blob(payload, None, None);
+    w.add_suppress(
+        vec![Value::Map(vec![
+            ("kind".into(), "blob".into()),
+            ("digest".into(), digest.into()),
+        ])],
+        Some("test suppression"),
+        None,
+    );
+    w.to_bytes()
+}
+
+#[test]
+fn dump_indexes_suppressed_payload_without_materializing_by_default() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let archive = tmp.join("suppressed.gts");
+    std::fs::write(&archive, suppressed_file_archive()).unwrap();
+
+    let dump = tmp.join("dump");
+    let out = gts(&[
+        "dump",
+        archive.to_str().unwrap(),
+        "--directory",
+        dump.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+    assert!(!dump.join("files").join("tree").join("hidden.txt").exists());
+    let index = std::fs::read_to_string(dump.join("blobs").join("index.jsonl")).unwrap();
+    assert!(index.contains("\"suppressed\":true"));
+
+    let dump_with_suppressed = tmp.join("dump-with-suppressed");
+    let out = gts(&[
+        "dump",
+        archive.to_str().unwrap(),
+        "--directory",
+        dump_with_suppressed.to_str().unwrap(),
+        "--include-suppressed",
+    ]);
+    assert!(out.status.success());
+    assert_eq!(
+        std::fs::read_to_string(
+            dump_with_suppressed
+                .join("files")
+                .join("tree")
+                .join("hidden.txt")
+        )
+        .unwrap(),
+        "hidden"
+    );
+}
+
+#[test]
 fn cat_refuses_suppress_everything_composition() {
     // Vector 21: the second segment suppresses every prior quad. Raw byte
     // concatenation is structurally valid GTS, but gts cat refuses it (§14.1).

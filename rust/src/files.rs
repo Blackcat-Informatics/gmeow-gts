@@ -286,7 +286,9 @@ fn format_datetime(time: &std::time::SystemTime) -> Result<String, String> {
     Ok(text.replace("+00:00", "Z"))
 }
 
-fn read_file_entries(graph: &Graph) -> Result<BTreeMap<String, BTreeMap<String, String>>, String> {
+pub(crate) fn read_file_entries(
+    graph: &Graph,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, String> {
     let mut type_id: Option<usize> = None;
     let mut file_entry_id: Option<usize> = None;
     let mut field_ids: BTreeMap<String, usize> = BTreeMap::new();

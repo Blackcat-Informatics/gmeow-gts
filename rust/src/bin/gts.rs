@@ -71,6 +71,8 @@ commands:
   unpack <archive> [-C dir] [--include-suppressed]
                             unpack a files-profile archive
   diff <archive> <dir>      compare archive to directory by digest
+  dump <archive> --directory dir [--include-suppressed] [--force] [--metadata-only]
+                            expand an archive into an inspection directory
   to-sqlite <file> <out>    export the folded graph to SQLite (needs sqlite3)",
             $relational
         )
@@ -153,6 +155,7 @@ fn main() -> ExitCode {
         "pack" => cmd_pack(&args[1..]),
         "unpack" => cmd_unpack(&args[1..]),
         "diff" => cmd_diff(&args[1..]),
+        "dump" => cmd_dump(&args[1..]),
         "to-sqlite" => cmd_to_sqlite(&args[1..]),
         #[cfg(feature = "duckdb")]
         "to-duckdb" => cmd_to_duckdb(&args[1..]),
@@ -1430,6 +1433,70 @@ fn cmd_diff(args: &[String]) -> ExitCode {
         Err(msg) => {
             eprintln!("gts: refusing diff: {msg}");
             ExitCode::from(1)
+        }
+    }
+}
+
+/// Expand an archive into a human/tool inspection directory.
+fn cmd_dump(args: &[String]) -> ExitCode {
+    let mut directory: Option<&str> = None;
+    let mut include_suppressed = false;
+    let mut force = false;
+    let mut metadata_only = false;
+    let mut positional: Vec<&str> = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--directory" => match it.next() {
+                Some(path) => directory = Some(path),
+                None => {
+                    eprintln!("gts dump: --directory requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            "--include-suppressed" => include_suppressed = true,
+            "--force" => force = true,
+            "--metadata-only" => metadata_only = true,
+            other => positional.push(other),
+        }
+    }
+    let [archive] = positional[..] else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let Some(directory) = directory else {
+        eprintln!("gts dump: --directory is required\n{USAGE}");
+        return ExitCode::from(2);
+    };
+    let options = gmeow_gts::dumpdir::DumpOptions {
+        include_suppressed,
+        force,
+        metadata_only,
+    };
+    match gmeow_gts::dumpdir::dump_path(archive, directory, options) {
+        Ok(report) => {
+            eprintln!(
+                "gts dump: wrote {} ({} materialized file(s), {} blob payload(s))",
+                report.directory.display(),
+                report.materialized_files,
+                report.materialized_blobs
+            );
+            if report.clean {
+                ExitCode::SUCCESS
+            } else {
+                eprintln!(
+                    "gts dump: archive had diagnostics or dump warnings ({} warning(s))",
+                    report.warnings
+                );
+                ExitCode::from(1)
+            }
+        }
+        Err(err) => {
+            eprintln!("gts dump: {err}");
+            match err.kind() {
+                gmeow_gts::dumpdir::DumpErrorKind::Refused => ExitCode::from(1),
+                gmeow_gts::dumpdir::DumpErrorKind::Io => ExitCode::from(2),
+            }
         }
     }
 }
