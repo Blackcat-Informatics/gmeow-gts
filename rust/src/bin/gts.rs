@@ -17,6 +17,8 @@ use ed25519_dalek::VerifyingKey;
 use gmeow_gts::cose::verify_signatures;
 use gmeow_gts::emojihash::emojihash;
 use gmeow_gts::from_nquads::from_nquads;
+#[cfg(feature = "yaml-ld")]
+use gmeow_gts::from_yamlld::from_yaml_ld;
 use gmeow_gts::mmr::{parse_hex_32, prove_file, verify_proof, Proof};
 use gmeow_gts::model::{Graph, Suppression, TermKind};
 use gmeow_gts::nquads::to_nquads;
@@ -27,9 +29,11 @@ use gmeow_gts::replication::{
 };
 use gmeow_gts::verify::{extract_transport_key, format_fingerprint};
 use gmeow_gts::wire::{digest_str, hex};
+#[cfg(feature = "yaml-ld")]
+use gmeow_gts::yamlld::to_yaml_ld;
 
 macro_rules! usage_text {
-    ($relational:literal) => {
+    ($yamlld:literal, $relational:literal) => {
         concat!(
             "usage: gts <command> [args]
 
@@ -37,6 +41,9 @@ commands:
   info <file>...            per-segment composition ledger (§14.1)
   fold <file>               fold to N-Quads on stdout
   from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
+",
+            $yamlld,
+            "
   verify [--key kid:hexpubkey] [--policy file] <file>...
                             verify chains, signatures, and optional profile policy
   prove <file> <frame-id>   emit JSON inclusion proof from an index.mmr root
@@ -70,18 +77,47 @@ commands:
     };
 }
 
-#[cfg(feature = "duckdb")]
+#[cfg(all(feature = "duckdb", feature = "yaml-ld"))]
 const USAGE: &str = usage_text!(
+    "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
+  from-yaml-ld <in.yaml> [-o out]
+                            build a GTS from YAML-LD-star; '-' reads stdin",
     "
   to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
   to-parquet <file> <dir>   export Parquet files, one per non-empty table
                             (needs duckdb)"
 );
 
-#[cfg(not(feature = "duckdb"))]
+#[cfg(all(feature = "duckdb", not(feature = "yaml-ld")))]
 const USAGE: &str = usage_text!(
+    "optional:
+  to-yaml-ld <file>         build with --features yaml-ld
+  from-yaml-ld <in.yaml> [-o out]
+                            build with --features yaml-ld",
+    "
+  to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
+  to-parquet <file> <dir>   export Parquet files, one per non-empty table
+                            (needs duckdb)"
+);
+
+#[cfg(all(not(feature = "duckdb"), feature = "yaml-ld"))]
+const USAGE: &str = usage_text!(
+    "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
+  from-yaml-ld <in.yaml> [-o out]
+                            build a GTS from YAML-LD-star; '-' reads stdin",
     "
 optional:
+  to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
+  to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
+);
+
+#[cfg(all(not(feature = "duckdb"), not(feature = "yaml-ld")))]
+const USAGE: &str = usage_text!(
+    "optional:
+  to-yaml-ld <file>         build with --features yaml-ld
+  from-yaml-ld <in.yaml> [-o out]
+                            build with --features yaml-ld",
+    "
   to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
   to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
 );
@@ -96,6 +132,12 @@ fn main() -> ExitCode {
         "info" => cmd_info(&args[1..]),
         "fold" => cmd_fold(&args[1..]),
         "from-nq" => cmd_from_nq(&args[1..]),
+        #[cfg(feature = "yaml-ld")]
+        "to-yaml-ld" => cmd_to_yaml_ld(&args[1..]),
+        #[cfg(feature = "yaml-ld")]
+        "from-yaml-ld" => cmd_from_yaml_ld(&args[1..]),
+        #[cfg(not(feature = "yaml-ld"))]
+        "to-yaml-ld" | "from-yaml-ld" => cmd_yaml_ld_disabled(cmd),
         "verify" => cmd_verify(&args[1..]),
         "prove" => cmd_prove(&args[1..]),
         "verify-proof" => cmd_verify_proof(&args[1..]),
@@ -135,6 +177,12 @@ fn cmd_duckdb_disabled(cmd: &str) -> ExitCode {
         "gts {cmd}: optional DuckDB/Parquet exports are disabled; rebuild with \
          `--features duckdb` and keep the `duckdb` binary on PATH"
     );
+    ExitCode::from(2)
+}
+
+#[cfg(not(feature = "yaml-ld"))]
+fn cmd_yaml_ld_disabled(cmd: &str) -> ExitCode {
+    eprintln!("gts {cmd}: YAML-LD-star transforms are disabled; rebuild with `--features yaml-ld`");
     ExitCode::from(2)
 }
 
@@ -590,6 +638,94 @@ fn cmd_from_nq(args: &[String]) -> ExitCode {
             use std::io::Write;
             if let Err(e) = std::io::stdout().write_all(&bytes) {
                 eprintln!("gts from-nq: cannot write stdout: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+#[cfg(feature = "yaml-ld")]
+fn cmd_to_yaml_ld(args: &[String]) -> ExitCode {
+    let [path] = args else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let graph = match export_graph(path) {
+        Ok(graph) => graph,
+        Err(code) => return code,
+    };
+    match to_yaml_ld(&graph) {
+        Ok(text) => {
+            print!("{text}");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("gts to-yaml-ld: {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+#[cfg(feature = "yaml-ld")]
+fn cmd_from_yaml_ld(args: &[String]) -> ExitCode {
+    let mut out_path: Option<&str> = None;
+    let mut inputs: Vec<&str> = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-o" | "--out" => match it.next() {
+                Some(p) => out_path = Some(p),
+                None => {
+                    eprintln!("gts from-yaml-ld: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            other => inputs.push(other),
+        }
+    }
+    let [path] = inputs[..] else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+
+    let text = if path == "-" {
+        let mut input = String::new();
+        let mut stdin = std::io::stdin();
+        if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
+            eprintln!("gts from-yaml-ld: cannot read stdin: {e}");
+            return ExitCode::from(2);
+        }
+        input
+    } else {
+        match std::fs::read_to_string(path) {
+            Ok(text) => text,
+            Err(e) => {
+                eprintln!("gts from-yaml-ld: cannot read {path}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    };
+
+    let bytes = match from_yaml_ld(&text) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            eprintln!("gts from-yaml-ld: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    match out_path {
+        Some(p) => {
+            if let Err(e) = std::fs::write(p, &bytes) {
+                eprintln!("gts from-yaml-ld: cannot write {p}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+        None => {
+            use std::io::Write;
+            if let Err(e) = std::io::stdout().write_all(&bytes) {
+                eprintln!("gts from-yaml-ld: cannot write stdout: {e}");
                 return ExitCode::from(2);
             }
         }

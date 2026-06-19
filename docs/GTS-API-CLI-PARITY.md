@@ -83,6 +83,8 @@ actual dispatch surfaces.
 | `unpack` | yes | yes | yes | yes | common |
 | `diff` | yes | yes | yes | yes | common |
 | `from-nq` | yes | yes | yes | yes | common |
+| `to-yaml-ld` | no | yes | no | no | Rust transform extension |
+| `from-yaml-ld` | no | yes | no | no | Rust transform extension |
 | `to-sqlite` | yes | yes | no | no | Python/Rust extension |
 | `to-duckdb` | yes | yes | no | no | Python/Rust extension |
 | `to-parquet` | yes | yes | no | no | Python/Rust extension |
@@ -102,6 +104,10 @@ actual dispatch surfaces.
   tool instead of retaining all relational rows or a complete SQL script in memory; the stable
   `blobs.bytes` schema still requires transient blob decoding while each blob row is emitted.
 - Go and TypeScript do not yet expose relational exports.
+- `to-yaml-ld` and `from-yaml-ld` are Rust-only extension verbs behind
+  `--features yaml-ld`. They are transform-only shims over folded graph tables,
+  not a wire-format or canonical-catalog change; Python, Go, and TypeScript
+  parity can land later with a shared corpus oracle addition if needed.
 - All engines implement `verify-proof` for detached MMR proof JSON using the stable preimages and
   the positive/negative fixtures in `vectors/proofs/`. Rust additionally implements `prove` from
   files that carry a verified `index.mmr` root. Python, Go, and TypeScript should not expose

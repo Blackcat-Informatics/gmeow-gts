@@ -92,6 +92,9 @@ a GTS file.
 - **`gmeow_gts::compact`** — compact a streamable GTS segment into a self-contained one.
 - **`gmeow_gts::files`** — pack and unpack directory trees using the GTS files profile.
 - **`gmeow_gts::nquads`** — project a folded graph to N-Quads.
+- **`gmeow_gts::yamlld` / `gmeow_gts::from_yamlld`** — optional
+  `--features yaml-ld` JSON-LD-star/YAML-LD-star transforms over the folded
+  graph tables.
 - **`gmeow_gts::model::Graph`** — consume raw quad-id rows with `into_quads()` or
   lazily resolve them with `quad_terms()`.
 - **`gmeow_gts::rdf`** — optional `--features rdf` native adapter for
@@ -363,6 +366,9 @@ BLAKE3, and timestamp support.
 gts info <file>...              per-segment composition ledger
 gts fold <file>                 fold to N-Quads on stdout
 gts from-nq <in.nq> [-o out]    build a GTS from N-Quads (`-` reads stdin)
+gts to-yaml-ld <file>           fold to YAML-LD-star (--features yaml-ld)
+gts from-yaml-ld <in.yaml> [-o out]
+                                build a GTS from YAML-LD-star (--features yaml-ld)
 gts to-sqlite <file> <out>      export to SQLite (requires sqlite3)
 gts to-duckdb <file> <out>      export to DuckDB (--features duckdb; requires duckdb)
 gts to-parquet <file> <dir>     export to Parquet (--features duckdb; requires duckdb)
@@ -426,6 +432,13 @@ The optional `policy-config` feature adds JSON loading helpers for
 `gmeow_gts::policy::TrustPolicy` and enables `gts verify --policy <file>` for
 release/profile verification workflows. `policy-config-yaml` layers YAML parsing
 on top for deployments that want YAML policy files.
+The optional `yaml-ld` feature adds `gmeow_gts::yamlld::{to_json_ld,
+to_json_ld_string, to_yaml_ld}` and `gmeow_gts::from_yamlld::{from_json_ld,
+from_yaml_ld}` plus the matching CLI verbs. It is a Rust-only transform surface:
+it does not change the GTS wire format, transform catalog, or shared corpus
+oracle, and it therefore does not require a GIP. The current `Term` model carries
+literal language tags but not RDF base direction, so `from_yaml_ld` rejects
+`@direction` rather than silently losing it.
 The adapters and policy parsers are absent from ordinary default builds.
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
