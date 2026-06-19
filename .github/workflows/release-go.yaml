@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 name: Release Go GTS
 
-# On a go-v* tag, cross-build the gts CLI, attest provenance, generate an SBOM,
-# and publish a GitHub Release with the archives + checksums.
+# On a go-v* tag, cross-build the gts CLI, attest provenance and SBOM evidence,
+# and publish a GitHub Release with the archives, checksums, and SBOM.
 
 on:
   push:
@@ -58,13 +58,6 @@ jobs:
           cd ../dist && sha256sum ./* > checksums.txt
           ls -la
 
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
-        with:
-          subject-path: |
-            dist/*.tar.gz
-            dist/*.zip
-
       - name: Generate SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
@@ -72,6 +65,23 @@ jobs:
           format: spdx-json
           output-file: dist/sbom-go-gts.spdx.json
           upload-artifact: false
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+            dist/sbom-go-gts.spdx.json
+
+      - name: Attest SBOM for release archives
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+          sbom-path: dist/sbom-go-gts.spdx.json
 
       - name: Publish GitHub Release
         env:

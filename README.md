@@ -473,9 +473,16 @@ Configure Trusted Publisher entries on crates.io for both `gmeow-gts` and
 The normal Rust release path does not require a `CARGO_REGISTRY_TOKEN` repository
 secret.
 
-Each release workflow verifies the tag matches the manifest version before publishing. Python
-wheels carry GitHub build-provenance attestations and an SPDX SBOM; verify a downloaded
-artifact with `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gts`.
+Each release workflow verifies the tag matches the manifest version before publishing.
+Release artifacts carry GitHub SLSA provenance attestations. Go archives and
+registry-hosted Rust, Python, and TypeScript package files also carry SPDX SBOM
+attestations. Go releases attach archives, `checksums.txt`, and the SPDX SBOM as
+durable GitHub Release assets; `checksums.txt` and the SBOM file have SLSA
+provenance coverage, while Go archives have both provenance and SBOM predicates.
+Registry-hosted package files keep their durable provenance and SBOM evidence in
+GitHub's attestation store. Verify provenance with
+`gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gts`; verify the
+SBOM predicate with `--predicate-type https://spdx.dev/Document/v2.3`.
 
 ## Specification & docs
 

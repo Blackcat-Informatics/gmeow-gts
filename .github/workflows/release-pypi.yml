@@ -60,6 +60,12 @@ jobs:
           output-file: sbom-gmeow-gts.spdx.json
           upload-artifact: false
 
+      - name: Attest SBOM for Python distributions
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: python/dist/*
+          sbom-path: sbom-gmeow-gts.spdx.json
+
       - name: Upload attestation bundle
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

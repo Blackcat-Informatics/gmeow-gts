@@ -350,16 +350,71 @@ npm view @blackcatinformatics/gmeow-gts version
 gh release view "go-v${VERSION}" --json tagName,name,url,isDraft,isPrerelease,publishedAt
 ```
 
-Download and verify package provenance where supported:
+Release evidence durability:
+
+| Surface | Durable artifact | Attestation evidence |
+|---|---|---|
+| Go | GitHub Release archives, `checksums.txt`, and `sbom-go-gts.spdx.json` | SLSA provenance attestations for release assets; SPDX SBOM attestations for release archives |
+| crates.io | Registry-hosted `.crate` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store |
+| PyPI | Registry-hosted wheel/sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
+| npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |
+
+Download representative artifacts for verification:
 
 ```bash
+mkdir -p \
+  "${OUT}/packages/go-release" \
+  "${OUT}/packages/npm" \
+  "${OUT}/packages/python" \
+  "${OUT}/packages/rust"
 gh release download "go-v${VERSION}" --dir "${OUT}/packages/go-release"
-gh attestation verify "${OUT}"/packages/go-release/* \
+
+python -m pip download --no-deps --dest "${OUT}/packages/python" "gmeow-gts==${VERSION}"
+npm pack "@blackcatinformatics/gmeow-gts@${VERSION}" \
+  --pack-destination "${OUT}/packages/npm"
+curl -L "https://crates.io/api/v1/crates/gmeow-gts/${VERSION}/download" \
+  -o "${OUT}/packages/rust/gmeow-gts-${VERSION}.crate"
+```
+
+Verify default SLSA provenance on representative artifacts and Go release
+manifests:
+
+```bash
+for artifact in "${OUT}"/packages/go-release/gts_"${VERSION}"_*; do
+  gh attestation verify "$artifact" --repo Blackcat-Informatics/gmeow-gts
+done
+for artifact in \
+  "${OUT}/packages/rust/gmeow-gts-${VERSION}.crate" \
+  "${OUT}"/packages/npm/*.tgz \
+  "${OUT}"/packages/python/*; do
+  gh attestation verify "$artifact" --repo Blackcat-Informatics/gmeow-gts
+done
+gh attestation verify "${OUT}/packages/go-release/checksums.txt" \
   --repo Blackcat-Informatics/gmeow-gts
-gh attestation verify <downloaded-python-wheel-or-sdist> \
+gh attestation verify "${OUT}/packages/go-release/sbom-go-gts.spdx.json" \
   --repo Blackcat-Informatics/gmeow-gts
-gh attestation verify <downloaded-rust-crate-or-npm-tarball> \
-  --repo Blackcat-Informatics/gmeow-gts
+```
+
+Verify SPDX SBOM attestations for one representative artifact from each release
+lane. The current SBOM generator emits SPDX 2.3, so the predicate type is
+`https://spdx.dev/Document/v2.3`; if the emitted `spdxVersion` changes, update
+the predicate version to match.
+
+```bash
+SBOM_PREDICATE="https://spdx.dev/Document/v2.3"
+for artifact in "${OUT}"/packages/go-release/gts_"${VERSION}"_*; do
+  gh attestation verify "$artifact" \
+    --repo Blackcat-Informatics/gmeow-gts \
+    --predicate-type "${SBOM_PREDICATE}"
+done
+for artifact in \
+  "${OUT}/packages/rust/gmeow-gts-${VERSION}.crate" \
+  "${OUT}"/packages/npm/*.tgz \
+  "${OUT}"/packages/python/*; do
+  gh attestation verify "$artifact" \
+    --repo Blackcat-Informatics/gmeow-gts \
+    --predicate-type "${SBOM_PREDICATE}"
+done
 ```
 
 Record final registry state:
@@ -370,7 +425,7 @@ Record final registry state:
 | PyPI `gmeow-gts` | | | |
 | Go release `go.blackcatinformatics.ca/gts` | | | |
 | npm `@blackcatinformatics/gmeow-gts` | | | |
-| SBOM artifacts | | | |
+| SBOM attestations | | | |
 | Build-provenance attestations | | | |
 
 ## 12. Final Decision
