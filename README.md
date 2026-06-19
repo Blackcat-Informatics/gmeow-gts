@@ -461,10 +461,17 @@ Each engine publishes to its native registry from this repo via a tag-triggered 
 
 | Engine | Registry | Release tag | Workflow |
 |---|---|---|---|
-| Rust | crates.io | `rust-v*` | [`release-cargo.yaml`](./.github/workflows/release-cargo.yaml) |
+| Rust | crates.io (trusted publishing) | `rust-v*` | [`release-cargo.yaml`](./.github/workflows/release-cargo.yaml) |
 | Python | PyPI (trusted publishing) | `py-v*` | [`release-pypi.yml`](./.github/workflows/release-pypi.yml) |
 | Go | GitHub Releases (GoReleaser) | `go-v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
 | TypeScript | npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
+
+Rust crate publication uses crates.io Trusted Publishing through GitHub Actions OIDC.
+Configure Trusted Publisher entries on crates.io for both `gmeow-gts` and
+`visual-hashing` with owner/repo `Blackcat-Informatics/gmeow-gts`, workflows
+`release-cargo.yaml` and `release-visual-hashing.yaml`, and environment `(none)`.
+The normal Rust release path does not require a `CARGO_REGISTRY_TOKEN` repository
+secret.
 
 Each release workflow verifies the tag matches the manifest version before publishing. Python
 wheels carry GitHub build-provenance attestations and an SPDX SBOM; verify a downloaded
