@@ -331,7 +331,7 @@ fn write_frames(root: &Path, data: &[u8], state: &DumpState) -> Result<(), DumpE
 }
 
 fn write_files_profile(root: &Path, state: &mut DumpState) -> Result<(), DumpError> {
-    let Ok(entries) = crate::files::read_file_entries(&state.graph) else {
+    let Ok(entries) = crate::files::read_entries(&state.graph) else {
         return Ok(());
     };
     let files_root = root.join("files");
@@ -339,17 +339,32 @@ fn write_files_profile(root: &Path, state: &mut DumpState) -> Result<(), DumpErr
     let mut out = create_writer(&files_root.join("entries.jsonl"))?;
     let suppressed = suppressed_blob_digests(&state.graph);
     for (path, entry) in &entries {
-        let digest = entry.get("digest").cloned().unwrap_or_default();
-        let suppressed_entry = suppressed.contains(&digest);
+        let suppressed_entry = entry
+            .digest
+            .as_ref()
+            .is_some_and(|digest| suppressed.contains(digest));
         writeln!(
             out,
-            "{{\"path\":{},\"digest\":{},\"size\":{},\"mode\":{},\"modified\":{},\"media_type\":{},\"suppressed\":{}}}",
+            "{{\"path\":{},\"type\":{},\"digest\":{},\"size\":{},\"mode\":{},\"modified\":{},\"media_type\":{},\"link_target\":{},\"uid\":{},\"gid\":{},\"user_name\":{},\"group_name\":{},\"dev_major\":{},\"dev_minor\":{},\"xattrs\":{},\"pax_records\":{},\"suppressed\":{}}}",
             json_string(path),
-            json_string(&digest),
-            json_string(entry.get("size").map(String::as_str).unwrap_or("")),
-            json_string(entry.get("mode").map(String::as_str).unwrap_or("")),
-            json_string(entry.get("modified").map(String::as_str).unwrap_or("")),
-            json_string(entry.get("mediaType").map(String::as_str).unwrap_or("")),
+            json_string(entry.kind.as_str()),
+            json_optional_string(entry.digest.as_deref()),
+            json_optional_u64(entry.size),
+            entry
+                .mode
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "null".to_string()),
+            json_optional_string(entry.modified.as_deref()),
+            json_optional_string(entry.media_type.as_deref()),
+            json_optional_string(entry.link_target.as_deref()),
+            json_optional_u64(entry.uid),
+            json_optional_u64(entry.gid),
+            json_optional_string(entry.user_name.as_deref()),
+            json_optional_string(entry.group_name.as_deref()),
+            json_optional_u64(entry.dev_major),
+            json_optional_u64(entry.dev_minor),
+            files_xattrs_json(&entry.xattrs),
+            files_pax_json(&entry.pax_records),
             suppressed_entry
         )?;
     }
@@ -365,7 +380,7 @@ fn write_files_profile(root: &Path, state: &mut DumpState) -> Result<(), DumpErr
     ) {
         Ok(()) => {
             for (path, entry) in &entries {
-                let Some(digest) = entry.get("digest") else {
+                let Some(digest) = &entry.digest else {
                     continue;
                 };
                 if !state.options.include_suppressed && suppressed.contains(digest) {
@@ -390,6 +405,46 @@ fn write_files_profile(root: &Path, state: &mut DumpState) -> Result<(), DumpErr
         }
     }
     Ok(())
+}
+
+fn json_optional_u64(value: Option<u64>) -> String {
+    value
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| "null".to_string())
+}
+
+fn files_xattrs_json(items: &[crate::files::FileXattr]) -> String {
+    format!(
+        "[{}]",
+        items
+            .iter()
+            .map(|item| {
+                format!(
+                    "{{\"name\":{},\"value\":{}}}",
+                    json_string(&item.name),
+                    json_string(&item.value)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
+fn files_pax_json(items: &[crate::files::FilePaxRecord]) -> String {
+    format!(
+        "[{}]",
+        items
+            .iter()
+            .map(|item| {
+                format!(
+                    "{{\"key\":{},\"value\":{}}}",
+                    json_string(&item.key),
+                    json_string(&item.value)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",")
+    )
 }
 
 fn write_payloads(root: &Path, state: &mut DumpState) -> Result<(), DumpError> {
