@@ -19,7 +19,35 @@ deferred.
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
 | TypeScript browser | `@blackcatinformatics/gmeow-gts/browser` exposes `foldStream(ReadableStream<Uint8Array>, options)`, `readStream`, `toNQuads`, progressive fold events, and WebCrypto-backed COSE Sign1/Encrypt0 key-provider hooks. The package root also carries a browser condition that resolves to this narrower surface for bundlers. | This is a progressive Web Streams surface and does not satisfy the current non-materializing Streaming Reader tier. Node-only CLI and filesystem `pack`/`unpack`/`diff` helpers remain outside the browser export. Range fetch still needs a verified index or boundary scan. |
 | Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides graph-returning service integration, while `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` provides cancellation-aware, byte-limited streaming fold events for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | Service-specific replication orchestration remains application code built on the shared verbs. |
+| Tar-compatible archives | Rust `gts from-tar`, `gts to-tar`, and `gts tar -c/-x/-t/-d` are available behind `--features tar`. They bridge `.tar`, `.tar.gz`, and `.tar.zst` streams to files-profile-v2 GTS archives with digest-addressed file bodies, tar-equivalent metadata, unknown PAX preservation, and explicit extraction opt-ins. | Python/Go/TypeScript parity is intentionally deferred. Those engines should implement files-profile-v2 import/export and pass `vectors/tar/` before their CLIs claim `from-tar`, `to-tar`, or `tar`. |
 | OKF bundles | Rust `gts from-okf` and `gts to-okf` are available behind `--features okf`. They turn Markdown + YAML-frontmatter OKF bundles into GTS profile `okf` packages and project OKF-profile graphs back to bundle directories. The committed corpus includes a BigQuery-style bundle under `vectors/okf/bigquery-join/`, including frontmatter-less navigation `index.md` pages matching Google's checked-in Knowledge Catalog samples. | Python/Go/TypeScript parity is intentionally deferred. Those engines should implement the same `gts-okf-v1` directory contract and pass the OKF corpus before their CLIs claim `from-okf` or `to-okf`. |
+
+## Tar-Compatible Archive Bridge
+
+The Rust tar bridge makes GTS usable as a signed, append-only, deduplicated
+archive surface for users who already understand tar. `gts from-tar` imports
+tar streams into files-profile-v2 GTS archives, `gts to-tar` exports those
+archives back to tar, and `gts tar -c/-x/-t/-d` provides the familiar
+create/extract/list/diff command shape. The bridge handles plain `.tar`,
+`.tar.gz`, and `.tar.zst` streams, preserving tar-equivalent metadata and
+unknown PAX records where the profile can represent them.
+
+The canonical artifact should be the `.gts` file when verification matters:
+frame ids, optional signatures, append-only revisions, suppressions, and
+content-addressed blobs remain visible to GTS readers. Conventional `.tar`,
+`.tar.gz`, and `.tar.zst` outputs are useful compatibility projections for
+toolchains that do not speak GTS yet, but they should be treated as derived
+exports when the signed GTS chain is the evidence record.
+
+Artifact registries and object stores can carry the GTS archive directly using
+`application/vnd.blackcat.gts+cbor-seq`. OCI or release-asset publishers can
+ship the `.gts` artifact alongside generated tar projections: the registry gets
+a single content-addressed archive for GTS-aware consumers, while existing tar
+consumers keep a familiar download path. The same split works for OKF bundles:
+the editable OKF directory remains the human authoring surface, `gts from-okf`
+creates the semantic `okf` profile package, and the files-profile-v2 tar bridge
+can package the directory bytes as a verifiable tarball-shaped distribution
+artifact when consumers need ordinary archive tooling.
 
 ## OKF: Knowledge Catalog And BigQuery Bundles
 

@@ -90,6 +90,7 @@ GTS supports several application families without making any of them the project
 | COSE signing and verification | yes | yes | yes | yes |
 | COSE Encrypt0 helpers | yes | yes | yes | yes |
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
+| Tar bridge `from-tar`/`to-tar`/`tar` | no | yes | no | no |
 | Streamable compaction CLI | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | yes | yes |
 | SQLite/DuckDB/Parquet exports | yes | yes | no | no |
@@ -104,5 +105,9 @@ OKF support is intentionally Rust-first: the Rust CLI owns the initial
 Markdown/YAML bundle bridge, Knowledge Catalog interop checks, and `gts-okf-v1`
 directory contract while Python, Go, and TypeScript remain explicit parity
 deferrals.
+Tar bridge support is also intentionally Rust-first: the Rust CLI owns the
+initial files-profile-v2 `from-tar`/`to-tar`/`tar` surface and the
+`vectors/tar/` corpus while Python, Go, and TypeScript remain explicit parity
+deferrals until they pass the same archive safety and round-trip gates.
 Advanced streaming, proof, and replication work is tiered separately in
 [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).

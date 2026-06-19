@@ -133,7 +133,10 @@ actual dispatch surfaces.
   `--features tar`. They map tar streams to GTS files and back while preserving
   files-profile metadata, opt-in link/special-file records, gzip/zstd wrapping,
   unknown PAX records, and a tar-compatible `-c/-x/-t/-d` command surface. Python,
-  Go, and TypeScript parity should land later against the same safety and round-trip
+  Go, and TypeScript parity should land later against the same safety policy and
+  round-trip behavior. The required parity gate is the committed `vectors/tar/` corpus plus
+  files-profile-v2 import/export behavior; those engines must remain `no` here until
+  they can preserve the same manifest metadata, refusal policy, and tar round-trip
   expectations.
 - `dump` is a Rust-only inspection export that writes a versioned directory tree with folded
   N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads. It is
