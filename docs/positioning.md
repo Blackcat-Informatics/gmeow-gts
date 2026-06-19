@@ -93,11 +93,16 @@ GTS supports several application families without making any of them the project
 | Streamable compaction CLI | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | yes | yes |
 | SQLite/DuckDB/Parquet exports | yes | yes | no | no |
+| OKF profile `from-okf`/`to-okf` | no | yes | no | no |
 | Package registry | PyPI | crates.io | Go module | npm |
 
 This matrix is descriptive, not a conformance claim. The authoritative compatibility check is
 the versioned vector corpus under `vectors/`, which every engine gates against. Command-level
 parity and intentional gaps are maintained in
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
+OKF support is intentionally Rust-first: the Rust CLI owns the initial
+Markdown/YAML bundle bridge, Knowledge Catalog interop checks, and `gts-okf-v1`
+directory contract while Python, Go, and TypeScript remain explicit parity
+deferrals.
 Advanced streaming, proof, and replication work is tiered separately in
 [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).

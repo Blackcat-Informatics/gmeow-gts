@@ -120,8 +120,12 @@ actual dispatch surfaces.
 - `to-okf` and `from-okf` are Rust-only OKF profile verbs behind
   `--features okf`. They map an OKF Markdown bundle to GTS profile `okf`
   with manifest schema `gts-okf-v1`, content-addressed Markdown body blobs,
-  queryable link edges, and `_unmapped.nq` for out-of-profile RDF. Python, Go,
-  and TypeScript parity is deferred to the linked OKF parity issue.
+  queryable link edges, navigation `index.md` tolerance, and `_unmapped.nq`
+  for out-of-profile RDF. The committed OKF corpus, including
+  `vectors/okf/bigquery-join/`, is the required parity gate for any future
+  Python, Go, or TypeScript implementation. Those engines must remain `no`
+  here until they can import/export the `gts-okf-v1` directory contract and
+  preserve the folded N-Quads expectations.
 - `dump` is a Rust-only inspection export that writes a versioned directory tree with folded
   N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads. It is
   not a wire-format change; Python, Go, and TypeScript parity can implement the same

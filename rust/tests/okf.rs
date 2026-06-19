@@ -258,6 +258,45 @@ body
 }
 
 #[test]
+fn frontmatterless_index_navigation_pages_are_ignored() {
+    let root = tmpdir("index-nav");
+    let _ = std::fs::remove_dir_all(&root);
+    write(
+        &root.join("index.md"),
+        "# Subdirectories\n\n* [Concepts](concepts/index.md)\n",
+    );
+    write(
+        &root.join("concepts/index.md"),
+        "# Concepts\n\n* [Table](table.md)\n",
+    );
+    write(
+        &root.join("concepts/table.md"),
+        r#"---
+type: BigQuery Table
+title: Events
+---
+Concept body.
+"#,
+    );
+
+    let data = from_okf(&root).expect("frontmatterless index pages are navigation");
+    let nquads = to_nquads(&read(&data, true, None));
+    assert!(nquads.contains("\"concepts/table.md\""));
+    assert!(!nquads.contains("\"index.md\""));
+    assert!(!nquads.contains("\"concepts/index.md\""));
+}
+
+#[test]
+fn frontmatterless_non_index_markdown_is_rejected() {
+    let root = tmpdir("missing-frontmatter");
+    let _ = std::fs::remove_dir_all(&root);
+    write(&root.join("concept.md"), "# Missing frontmatter\n");
+
+    let err = from_okf(&root).expect_err("concept docs require frontmatter");
+    assert!(err.to_string().contains("missing YAML frontmatter"));
+}
+
+#[test]
 fn to_okf_writes_unmapped_sidecar_instead_of_dropping_rdf() {
     let root = tmpdir("unmapped-src");
     let out = tmpdir("unmapped-out");

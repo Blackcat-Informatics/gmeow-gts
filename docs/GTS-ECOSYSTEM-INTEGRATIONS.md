@@ -19,7 +19,39 @@ deferred.
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
 | TypeScript browser | `@blackcatinformatics/gmeow-gts/browser` exposes `foldStream(ReadableStream<Uint8Array>, options)`, `readStream`, `toNQuads`, progressive fold events, and WebCrypto-backed COSE Sign1/Encrypt0 key-provider hooks. The package root also carries a browser condition that resolves to this narrower surface for bundlers. | This is a progressive Web Streams surface and does not satisfy the current non-materializing Streaming Reader tier. Node-only CLI and filesystem `pack`/`unpack`/`diff` helpers remain outside the browser export. Range fetch still needs a verified index or boundary scan. |
 | Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides graph-returning service integration, while `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` provides cancellation-aware, byte-limited streaming fold events for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | Service-specific replication orchestration remains application code built on the shared verbs. |
-| OKF bundles | Rust `gts from-okf` and `gts to-okf` are available behind `--features okf`. They turn Markdown + YAML-frontmatter OKF bundles into GTS profile `okf` packages and project OKF-profile graphs back to bundle directories. | Broader OKF sample corpus and Python/Go/TypeScript parity are tracked as follow-up work. |
+| OKF bundles | Rust `gts from-okf` and `gts to-okf` are available behind `--features okf`. They turn Markdown + YAML-frontmatter OKF bundles into GTS profile `okf` packages and project OKF-profile graphs back to bundle directories. The committed corpus includes a BigQuery-style bundle under `vectors/okf/bigquery-join/`, including frontmatter-less navigation `index.md` pages matching Google's checked-in Knowledge Catalog samples. | Python/Go/TypeScript parity is intentionally deferred. Those engines should implement the same `gts-okf-v1` directory contract and pass the OKF corpus before their CLIs claim `from-okf` or `to-okf`. |
+
+## OKF: Knowledge Catalog And BigQuery Bundles
+
+OKF interop has two useful gates:
+
+- The committed, hermetic gate is `vectors/okf/bigquery-join/`. It models
+  BigQuery datasets, tables, table joins, extension frontmatter, Markdown links,
+  and navigation `index.md` files without depending on Google credentials or
+  upstream sample drift.
+- The live ecosystem gate is
+  <https://github.com/GoogleCloudPlatform/knowledge-catalog>. Its `okf/bundles/`
+  samples are produced by the Knowledge Catalog OKF enrichment proof of concept,
+  and its visualizer consumes the same Markdown + YAML-frontmatter directory
+  surface.
+
+The Rust command sequence for either gate is:
+
+```bash
+cargo run --features okf --bin gts -- from-okf okf-bundle/ -o bundle.gts
+cargo run --bin gts -- verify bundle.gts
+cargo run --features okf --bin gts -- to-okf bundle.gts --directory restored-okf/
+```
+
+`from-okf` imports concept documents with YAML frontmatter and treats
+frontmatter-less `index.md` files as navigation pages. Those pages are not
+concepts in the GTS profile, so they are not emitted by `to-okf`; consumers that
+need static browse pages can regenerate them from the exported concept set.
+
+The bridge positions OKF as a human-authoring front end for GMEOW knowledge:
+people and agents edit Markdown, while GTS supplies append-only packaging,
+content-addressed bodies, signatures, suppressions, and graph projections for
+audit and machine use.
 
 ## Python: rdflib And Data Frames
 
