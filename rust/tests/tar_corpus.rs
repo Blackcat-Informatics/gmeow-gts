@@ -26,6 +26,28 @@ fn tmpdir(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!("gts-tar-corpus-{name}-{}-{n}", std::process::id()))
 }
 
+struct TestTempDir {
+    path: PathBuf,
+}
+
+impl TestTempDir {
+    fn new(name: &str) -> Self {
+        let path = tmpdir(name);
+        let _ = std::fs::remove_dir_all(&path);
+        Self { path }
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for TestTempDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
 fn tar_manifest_entries() -> Vec<Value> {
     let manifest: Value =
         serde_json::from_slice(&std::fs::read(vectors().join("manifest.json")).unwrap()).unwrap();
@@ -44,6 +66,17 @@ fn tar_manifest_entries() -> Vec<Value> {
         .collect();
     entries.sort_by(|a, b| a["id"].as_str().cmp(&b["id"].as_str()));
     entries
+}
+
+fn tar_expectation_names() -> BTreeSet<String> {
+    std::fs::read_dir(vectors().join("tar"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .filter_map(|name| {
+            name.strip_suffix(".expected.json")
+                .map(std::string::ToString::to_string)
+        })
+        .collect()
 }
 
 fn fixture_name(entry: &Value) -> &str {
@@ -244,7 +277,19 @@ fn assert_expected_error(err: &str, expectation: &Value) {
 #[test]
 fn tar_corpus_matches_pinned_expectations() {
     let entries = tar_manifest_entries();
-    assert_eq!(entries.len(), 9, "tar corpus manifest entry count");
+    let manifest_fixtures: BTreeSet<String> = entries
+        .iter()
+        .map(|entry| fixture_name(entry).to_string())
+        .collect();
+    assert!(
+        !manifest_fixtures.is_empty(),
+        "tar corpus manifest entries must not be empty"
+    );
+    assert_eq!(
+        manifest_fixtures,
+        tar_expectation_names(),
+        "tar manifest entries must cover every expectation sidecar"
+    );
 
     for manifest_entry in entries {
         let fixture = fixture_name(&manifest_entry);
@@ -274,12 +319,10 @@ fn tar_corpus_matches_pinned_expectations() {
                 assert_folded_graph(&expectation, &archive);
                 assert_expected_entries(&expectation, &archive);
                 let graph = read(&archive, true, None);
-                let dest = tmpdir(fixture);
-                let _ = std::fs::remove_dir_all(&dest);
-                let err = unpack_with_options(&graph, &dest, &unpack_options(&expectation))
+                let dest = TestTempDir::new(fixture);
+                let err = unpack_with_options(&graph, dest.path(), &unpack_options(&expectation))
                     .expect_err("fixture extraction must be refused");
                 assert_expected_error(&err, &expectation);
-                let _ = std::fs::remove_dir_all(&dest);
             }
             "roundtrip" => {
                 let archive = from_tar_bytes(&input, &options).expect("tar fixture imports");
