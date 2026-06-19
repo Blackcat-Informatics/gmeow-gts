@@ -43,6 +43,7 @@ from gts.rdf import (
     to_rdflib_dataset,
 )
 from gts.reader import read, read_segments
+from gts.trig import from_trig, to_trig
 from gts.writer import Writer
 
 __all__ = [
@@ -65,6 +66,7 @@ __all__ = [
     "TrustPolicy",
     "evaluate_profile_policy",
     "from_nquads",
+    "from_trig",
     "from_rdflib",
     "from_rdflib_dataset",
     "read",
@@ -72,6 +74,7 @@ __all__ = [
     "read_segments",
     "signature_trust",
     "to_nquads",
+    "to_trig",
     "to_rdflib",
     "to_rdflib_dataset",
 ]

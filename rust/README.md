@@ -366,6 +366,9 @@ BLAKE3, and timestamp support.
 gts info <file>...              per-segment composition ledger
 gts fold <file>                 fold to N-Quads on stdout
 gts from-nq <in.nq> [-o out]    build a GTS from N-Quads (`-` reads stdin)
+gts to-trig <file>              fold to TriG on stdout
+gts from-trig <in.trig> [-o out]
+                                  build a GTS from TriG (`-` reads stdin)
 gts to-yaml-ld <file>           fold to YAML-LD-star (--features yaml-ld)
 gts from-yaml-ld <in.yaml> [-o out]
                                 build a GTS from YAML-LD-star (--features yaml-ld)
@@ -414,7 +417,9 @@ Ed25519 keys or `Writer::sign_with_openpgp_secret_key`, which accepts the same n
 unencrypted Ed25519 OpenPGP secret-key shape as Python `Signer.from_gpg_secret_key` without
 adding a full OpenPGP crate dependency. `gts dump` writes a versioned inspection directory with
 folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads
-without duplicating large payload bytes by default. `from-nq` and the relational
+without duplicating large payload bytes by default. `to-trig` and `from-trig` provide a
+readable TriG graph-block projection over the same folded RDF content as N-Quads. `from-nq`
+and the relational
 `to-sqlite`/`to-duckdb`/`to-parquet` exports are
 implemented by the Rust and Python CLIs. The Rust relational commands use the same folded
 integer table model as Python. `to-sqlite` is in the default build and requires `sqlite3`

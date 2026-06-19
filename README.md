@@ -176,9 +176,10 @@ a value, and project to N-Quads — plus a **writer** for producing files.
 import gts
 from pathlib import Path
 
-# Read + verify + fold, then project to N-Quads
+# Read + verify + fold, then project to N-Quads or TriG
 graph = gts.read(Path("package.gts").read_bytes())
 print(gts.to_nquads(graph))
+print(gts.to_trig(graph))
 
 # Write a minimal graph
 w = gts.Writer(profile="dist")
@@ -207,6 +208,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // undecodable frames degrade to opaque nodes surfaced as diagnostics).
     let graph = gmeow_gts::reader::read(&bytes, false, None);
     println!("{}", gmeow_gts::nquads::to_nquads(&graph));
+    println!("{}", gmeow_gts::trig::to_trig(&graph));
     Ok(())
 }
 ```
@@ -325,7 +327,9 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 [`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which this repo's Rust
 engine depends on and re-exports as `gmeow_gts::emojihash`.
 
-`from-nq` is common across all four engines. The Rust `dump` extension writes a versioned
+`from-nq` is common across all four engines. Python and Rust also expose `to-trig`/`from-trig`
+for readable TriG graph-block interchange over the same folded RDF content. The Rust `dump`
+extension writes a versioned
 inspection directory with folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and
 files-profile content without duplicating large payload bytes by default; see
 [`docs/GTS-DUMP-DIR.md`](./docs/GTS-DUMP-DIR.md). The `to-*` relational exports are available in
@@ -352,6 +356,7 @@ folded quad.
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | yes | yes |
+| TriG transform | yes | yes | no | no |
 | Native RDF/store adapter | rdflib extra | `rdf` feature (`oxrdf` data model); `oxigraph-adapter` feature (Oxigraph store); `sophia-adapter` feature (Sophia dataset) | no | no |
 | SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no |
 | Package registry | PyPI | crates.io | Go module | npm |
