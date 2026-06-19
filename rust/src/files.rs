@@ -5,7 +5,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, Write};
 use std::path::{Path, PathBuf};
 
 use ciborium::value::Value;
@@ -539,16 +539,16 @@ fn append_blob_path<W: Write>(
 ) -> Result<(), String> {
     let media_type = source.media_type.as_deref();
     let representation = source.representation.as_deref();
+    let mut file =
+        fs::File::open(&source.path).map_err(|e| format!("read {:?}: {e}", source.path))?;
     let mut hasher = blake3::Hasher::new();
     let digest = {
-        let file =
-            fs::File::open(&source.path).map_err(|e| format!("read {:?}: {e}", source.path))?;
         let mut sink = HashingWriter {
             hasher: &mut hasher,
         };
         write_blob_preimage(
             &mut sink,
-            file,
+            &mut file,
             source.size,
             media_type,
             representation,
@@ -563,7 +563,8 @@ fn append_blob_path<W: Write>(
         ));
     }
     let id = hasher.finalize().as_bytes().to_vec();
-    let file = fs::File::open(&source.path).map_err(|e| format!("read {:?}: {e}", source.path))?;
+    file.rewind()
+        .map_err(|e| format!("seek {:?}: {e}", source.path))?;
     let meta = BlobFrameMeta {
         size: source.size,
         id: &id,
@@ -572,7 +573,7 @@ fn append_blob_path<W: Write>(
         representation,
         prev,
     };
-    write_blob_frame(writer, file, &meta)
+    write_blob_frame(writer, &mut file, &meta)
         .map_err(|e| format!("write blob {:?}: {e}", source.path))?;
     *prev = id;
     Ok(())

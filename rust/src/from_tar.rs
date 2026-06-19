@@ -9,6 +9,9 @@ use std::io::{BufRead, BufReader, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
+
 use crate::files::{
     pack_entries_v2_with_blob_paths, FileBlobSource, FileEntry, FileEntryKind, FilePaxRecord,
 };
@@ -230,7 +233,13 @@ fn create_temp_blob_file() -> Result<(PathBuf, fs::File), std::io::Error> {
             "gmeow-gts-tar-{}-{now}-{attempt}.blob",
             std::process::id()
         ));
-        match OpenOptions::new().write(true).create_new(true).open(&path) {
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            options.mode(0o600);
+        }
+        match options.open(&path) {
             Ok(file) => return Ok((path, file)),
             Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
             Err(err) => return Err(err),
