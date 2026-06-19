@@ -14,6 +14,31 @@ change before `1.0`.
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-06-19
+
+### Added
+
+- v1.0-rc1 release support docs: release checklist, third-party implementer guide,
+  benchmark release report template, paper draft, and public release verification workflow.
+- Go and TypeScript `from-nq` parity so all four engines can import N-Quads into GTS.
+
+### Changed
+
+- Refined README, specification, conformance, vector-manifest, streaming-reader, and
+  benchmark documentation for clearer release-candidate evidence and implementer guidance.
+- Improved language-specific quality gates and docs: Rust public API docs and `rustdoc` gate,
+  Python inline docs and typing, Go docs plus `golangci-lint`, and TypeScript API docs plus
+  stricter lint rules.
+- Added project DOI and homepage metadata across package and citation surfaces.
+
+### Security
+
+- Hardened release publication with crates.io Trusted Publishing, GitHub SLSA provenance,
+  SPDX SBOM attestations for release artifacts, immutable Go GitHub Releases, and release
+  smoke verification.
+- Documented the current release SLSA posture as Build Level 2 evidence and the signer
+  workflow requirements for any future Build Level 3 claim.
+
 ## [0.9.0] — 2026-06-18
 
 ### Added
@@ -173,7 +198,8 @@ change before `1.0`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.0...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.1...HEAD
+[0.9.1]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.0...py-v0.9.1
 [0.9.0]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.2.0...py-v0.9.0
 [0.2.0]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.3...py-v0.2.0
 [0.1.3]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.2...py-v0.1.3
