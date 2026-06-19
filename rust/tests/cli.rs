@@ -40,6 +40,20 @@ fn verify_flags_damage_with_exit_1() {
     assert!(text.contains("DamagedFrame"), "ledger lists the diagnostic");
 }
 
+#[cfg(not(feature = "okf"))]
+#[test]
+fn okf_commands_report_feature_gate_when_disabled() {
+    let out = gts(&["to-okf"]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--features okf"), "stderr: {err}");
+
+    let out = gts(&["from-okf"]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--features okf"), "stderr: {err}");
+}
+
 #[cfg(feature = "policy-config-yaml")]
 #[test]
 fn verify_policy_file_trusts_did_style_signer() {

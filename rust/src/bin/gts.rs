@@ -17,12 +17,16 @@ use ed25519_dalek::VerifyingKey;
 use gmeow_gts::cose::verify_signatures;
 use gmeow_gts::emojihash::emojihash;
 use gmeow_gts::from_nquads::from_nquads;
+#[cfg(feature = "okf")]
+use gmeow_gts::from_okf::{from_okf_with_options, FromOkfOptions};
 use gmeow_gts::from_trig::from_trig;
 #[cfg(feature = "yaml-ld")]
 use gmeow_gts::from_yamlld::from_yaml_ld;
 use gmeow_gts::mmr::{parse_hex_32, prove_file, verify_proof, Proof};
 use gmeow_gts::model::{Graph, Suppression, TermKind};
 use gmeow_gts::nquads::to_nquads;
+#[cfg(feature = "okf")]
+use gmeow_gts::okf::{to_okf, OkfExportOptions};
 use gmeow_gts::policy::{evaluate_profile_policy, Severity, TrustPolicy};
 use gmeow_gts::reader::{read, read_file_segments, FileSegments};
 use gmeow_gts::replication::{
@@ -35,7 +39,7 @@ use gmeow_gts::wire::{digest_str, hex};
 use gmeow_gts::yamlld::to_yaml_ld;
 
 macro_rules! usage_text {
-    ($yamlld:literal, $relational:literal) => {
+    ($yamlld:literal, $okf:literal, $relational:literal) => {
         concat!(
             "usage: gts <command> [args]
 
@@ -48,6 +52,7 @@ commands:
                             build a GTS from TriG; '-' reads stdin
 ",
             $yamlld,
+            $okf,
             "
   verify [--key kid:hexpubkey] [--policy file] <file>...
                             verify chains, signatures, and optional profile policy
@@ -84,46 +89,136 @@ commands:
     };
 }
 
-#[cfg(all(feature = "duckdb", feature = "yaml-ld"))]
+#[cfg(all(feature = "duckdb", feature = "yaml-ld", feature = "okf"))]
 const USAGE: &str = usage_text!(
     "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
   from-yaml-ld <in.yaml> [-o out]
                             build a GTS from YAML-LD-star; '-' reads stdin",
     "
-  to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
-  to-parquet <file> <dir>   export Parquet files, one per non-empty table
-                            (needs duckdb)"
-);
-
-#[cfg(all(feature = "duckdb", not(feature = "yaml-ld")))]
-const USAGE: &str = usage_text!(
-    "optional:
-  to-yaml-ld <file>         build with --features yaml-ld
-  from-yaml-ld <in.yaml> [-o out]
-                            build with --features yaml-ld",
+  to-okf <file> --directory <out> [--inline-body] [--base-iri IRI]
+                            export an OKF-profile graph to a Markdown bundle
+  from-okf <dir> [-o out] [--inline-body] [--strict-links] [--base-iri IRI]
+                            build a GTS from an OKF Markdown bundle",
     "
   to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
   to-parquet <file> <dir>   export Parquet files, one per non-empty table
                             (needs duckdb)"
 );
 
-#[cfg(all(not(feature = "duckdb"), feature = "yaml-ld"))]
+#[cfg(all(feature = "duckdb", feature = "yaml-ld", not(feature = "okf")))]
 const USAGE: &str = usage_text!(
     "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
   from-yaml-ld <in.yaml> [-o out]
                             build a GTS from YAML-LD-star; '-' reads stdin",
     "
 optional:
-  to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
-  to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
+  to-okf <file> --directory <out>
+                            build with --features okf
+  from-okf <dir> [-o out]   build with --features okf",
+    "
+  to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
+  to-parquet <file> <dir>   export Parquet files, one per non-empty table
+                            (needs duckdb)"
 );
 
-#[cfg(all(not(feature = "duckdb"), not(feature = "yaml-ld")))]
+#[cfg(all(feature = "duckdb", not(feature = "yaml-ld"), feature = "okf"))]
 const USAGE: &str = usage_text!(
     "optional:
   to-yaml-ld <file>         build with --features yaml-ld
   from-yaml-ld <in.yaml> [-o out]
                             build with --features yaml-ld",
+    "
+  to-okf <file> --directory <out> [--inline-body] [--base-iri IRI]
+                            export an OKF-profile graph to a Markdown bundle
+  from-okf <dir> [-o out] [--inline-body] [--strict-links] [--base-iri IRI]
+                            build a GTS from an OKF Markdown bundle",
+    "
+  to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
+  to-parquet <file> <dir>   export Parquet files, one per non-empty table
+                            (needs duckdb)"
+);
+
+#[cfg(all(feature = "duckdb", not(feature = "yaml-ld"), not(feature = "okf")))]
+const USAGE: &str = usage_text!(
+    "optional:
+  to-yaml-ld <file>         build with --features yaml-ld
+  from-yaml-ld <in.yaml> [-o out]
+                            build with --features yaml-ld",
+    "
+optional:
+  to-okf <file> --directory <out>
+                            build with --features okf
+  from-okf <dir> [-o out]   build with --features okf",
+    "
+  to-duckdb <file> <out>    export the folded graph to DuckDB (needs duckdb)
+  to-parquet <file> <dir>   export Parquet files, one per non-empty table
+                            (needs duckdb)"
+);
+
+#[cfg(all(not(feature = "duckdb"), feature = "yaml-ld", feature = "okf"))]
+const USAGE: &str = usage_text!(
+    "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
+  from-yaml-ld <in.yaml> [-o out]
+                            build a GTS from YAML-LD-star; '-' reads stdin",
+    "
+  to-okf <file> --directory <out> [--inline-body] [--base-iri IRI]
+                            export an OKF-profile graph to a Markdown bundle
+  from-okf <dir> [-o out] [--inline-body] [--strict-links] [--base-iri IRI]
+                            build a GTS from an OKF Markdown bundle",
+    "
+optional:
+  to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
+  to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
+);
+
+#[cfg(all(not(feature = "duckdb"), feature = "yaml-ld", not(feature = "okf")))]
+const USAGE: &str = usage_text!(
+    "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
+  from-yaml-ld <in.yaml> [-o out]
+                            build a GTS from YAML-LD-star; '-' reads stdin",
+    "
+optional:
+  to-okf <file> --directory <out>
+                            build with --features okf
+  from-okf <dir> [-o out]   build with --features okf",
+    "
+optional:
+  to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
+  to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
+);
+
+#[cfg(all(not(feature = "duckdb"), not(feature = "yaml-ld"), feature = "okf"))]
+const USAGE: &str = usage_text!(
+    "optional:
+  to-yaml-ld <file>         build with --features yaml-ld
+  from-yaml-ld <in.yaml> [-o out]
+                            build with --features yaml-ld",
+    "
+  to-okf <file> --directory <out> [--inline-body] [--base-iri IRI]
+                            export an OKF-profile graph to a Markdown bundle
+  from-okf <dir> [-o out] [--inline-body] [--strict-links] [--base-iri IRI]
+                            build a GTS from an OKF Markdown bundle",
+    "
+optional:
+  to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
+  to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
+);
+
+#[cfg(all(
+    not(feature = "duckdb"),
+    not(feature = "yaml-ld"),
+    not(feature = "okf")
+))]
+const USAGE: &str = usage_text!(
+    "optional:
+  to-yaml-ld <file>         build with --features yaml-ld
+  from-yaml-ld <in.yaml> [-o out]
+                            build with --features yaml-ld",
+    "
+optional:
+  to-okf <file> --directory <out>
+                            build with --features okf
+  from-okf <dir> [-o out]   build with --features okf",
     "
   to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
   to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
@@ -147,6 +242,12 @@ fn main() -> ExitCode {
         "from-yaml-ld" => cmd_from_yaml_ld(&args[1..]),
         #[cfg(not(feature = "yaml-ld"))]
         "to-yaml-ld" | "from-yaml-ld" => cmd_yaml_ld_disabled(cmd),
+        #[cfg(feature = "okf")]
+        "to-okf" => cmd_to_okf(&args[1..]),
+        #[cfg(feature = "okf")]
+        "from-okf" => cmd_from_okf(&args[1..]),
+        #[cfg(not(feature = "okf"))]
+        "to-okf" | "from-okf" => cmd_okf_disabled(cmd),
         "verify" => cmd_verify(&args[1..]),
         "prove" => cmd_prove(&args[1..]),
         "verify-proof" => cmd_verify_proof(&args[1..]),
@@ -193,6 +294,12 @@ fn cmd_duckdb_disabled(cmd: &str) -> ExitCode {
 #[cfg(not(feature = "yaml-ld"))]
 fn cmd_yaml_ld_disabled(cmd: &str) -> ExitCode {
     eprintln!("gts {cmd}: YAML-LD-star transforms are disabled; rebuild with `--features yaml-ld`");
+    ExitCode::from(2)
+}
+
+#[cfg(not(feature = "okf"))]
+fn cmd_okf_disabled(cmd: &str) -> ExitCode {
+    eprintln!("gts {cmd}: OKF transforms are disabled; rebuild with `--features okf`");
     ExitCode::from(2)
 }
 
@@ -821,6 +928,126 @@ fn cmd_from_yaml_ld(args: &[String]) -> ExitCode {
             use std::io::Write;
             if let Err(e) = std::io::stdout().write_all(&bytes) {
                 eprintln!("gts from-yaml-ld: cannot write stdout: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+#[cfg(feature = "okf")]
+fn cmd_to_okf(args: &[String]) -> ExitCode {
+    let mut input: Option<&str> = None;
+    let mut directory: Option<&str> = None;
+    let mut options = OkfExportOptions::default();
+    let mut it = args.iter();
+    while let Some(arg) = it.next() {
+        match arg.as_str() {
+            "--directory" => match it.next() {
+                Some(path) => directory = Some(path),
+                None => {
+                    eprintln!("gts to-okf: --directory requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            "--inline-body" => options.inline_body = true,
+            "--base-iri" => match it.next() {
+                Some(iri) => options.base_iri = iri.clone(),
+                None => {
+                    eprintln!("gts to-okf: --base-iri requires an IRI\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            other if input.is_none() => input = Some(other),
+            _ => {
+                eprintln!("{USAGE}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    let (Some(input), Some(directory)) = (input, directory) else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let graph = match export_graph(input) {
+        Ok(graph) => graph,
+        Err(code) => return code,
+    };
+    match to_okf(&graph, std::path::Path::new(directory), &options) {
+        Ok(report) => {
+            if report.unmapped_triples > 0 {
+                eprintln!(
+                    "gts to-okf: wrote {} unmapped triple(s) to _unmapped.nq",
+                    report.unmapped_triples
+                );
+            }
+            eprintln!(
+                "gts to-okf: wrote {} document(s) to {}",
+                report.documents,
+                report.directory.display()
+            );
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("gts to-okf: {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+#[cfg(feature = "okf")]
+fn cmd_from_okf(args: &[String]) -> ExitCode {
+    let mut out_path: Option<&str> = None;
+    let mut input: Option<&str> = None;
+    let mut options = FromOkfOptions::default();
+    let mut it = args.iter();
+    while let Some(arg) = it.next() {
+        match arg.as_str() {
+            "-o" | "--out" => match it.next() {
+                Some(path) => out_path = Some(path),
+                None => {
+                    eprintln!("gts from-okf: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            "--inline-body" => options.inline_body = true,
+            "--strict-links" => options.strict_links = true,
+            "--base-iri" => match it.next() {
+                Some(iri) => options.base_iri = iri.clone(),
+                None => {
+                    eprintln!("gts from-okf: --base-iri requires an IRI\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            other if input.is_none() => input = Some(other),
+            _ => {
+                eprintln!("{USAGE}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    let Some(input) = input else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let bytes = match from_okf_with_options(std::path::Path::new(input), &options) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            eprintln!("gts from-okf: {e}");
+            return ExitCode::from(1);
+        }
+    };
+    match out_path {
+        Some(path) => {
+            if let Err(e) = std::fs::write(path, &bytes) {
+                eprintln!("gts from-okf: cannot write {path}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+        None => {
+            use std::io::Write;
+            if let Err(e) = std::io::stdout().write_all(&bytes) {
+                eprintln!("gts from-okf: cannot write stdout: {e}");
                 return ExitCode::from(2);
             }
         }

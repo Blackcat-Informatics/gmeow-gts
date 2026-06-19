@@ -36,6 +36,9 @@ policy-config-yaml = ["policy-config", "dep:serde_yaml"]
 # Enables the Rust-only YAML-LD-star/JSON-LD-star transform profile. This stays
 # opt-in so default transport and wasm builds do not inherit serialization deps.
 yaml-ld = ["dep:serde", "dep:serde_json", "dep:serde_yaml"]
+# Enables Rust OKF (Open Knowledge Format) bundle import/export. This is opt-in
+# so default transport and wasm builds do not inherit serialization deps.
+okf = ["dep:serde", "dep:serde_json", "dep:serde_yaml"]
 
 # The package is named gmeow-gts on crates.io, but the CLI binary keeps the
 # shorter `gts` name for ergonomics.
