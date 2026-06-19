@@ -90,6 +90,10 @@ bench-release engines="rust,python,go,ts" iterations="3":
 check-versions:
     bash scripts/check-versions.sh
 
+# Verify a published release family from public registries and attestations.
+verify-release version visual_hashing_version extra_args="":
+    python scripts/verify_release.py --version "{{version}}" --visual-hashing-version "{{visual_hashing_version}}" {{extra_args}}
+
 # --- fuzzing --------------------------------------------------------------- #
 
 # Fuzz the Rust reader (needs nightly + cargo-fuzz). Pass a duration, e.g. `just fuzz-rust 300`.

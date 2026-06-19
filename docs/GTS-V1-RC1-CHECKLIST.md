@@ -347,7 +347,23 @@ a release incident note before deleting or recreating it.
 
 ## 11. Published Artifact Verification
 
-Verify the public registries and release artifacts after the workflows complete:
+Verify the public registries and release artifacts after the workflows complete.
+The maintainer smoke verifier performs the download, hash, registry provenance,
+GitHub SLSA, SPDX SBOM, and immutable-release checks from public surfaces only:
+
+```bash
+VISUAL_HASHING_VERSION="<visual-hashing-version>"
+just verify-release "${VERSION}" "${VISUAL_HASHING_VERSION}"
+```
+
+The same verifier can be run from the GitHub Actions UI with the manual
+`Verify published release` workflow. It uploads
+`dist/release-verification/${VERSION}/release-verification-summary.md` and
+`release-verification-summary.json` as workflow artifacts. Do not pass
+`--allow-legacy-release-gaps` for new releases; that override is only for
+auditing releases that predate the SBOM and immutable-release hardening.
+
+Record quick registry state before or after the smoke verifier:
 
 ```bash
 cargo search gmeow-gts --limit 1
@@ -356,6 +372,23 @@ npm view @blackcatinformatics/gmeow-gts version
 gh release view "go-v${VERSION}" \
   --json tagName,name,url,isDraft,isImmutable,isPrerelease,publishedAt
 gh release verify "go-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
+```
+
+Consumer-facing verification commands, all of which are covered by the
+maintainer smoke verifier, are:
+
+```bash
+pypi-attestations verify pypi \
+  --repository https://github.com/Blackcat-Informatics/gmeow-gts \
+  "https://files.pythonhosted.org/.../gmeow_gts-${VERSION}-py3-none-any.whl"
+npm audit signatures
+gh attestation verify <downloaded-artifact> --repo Blackcat-Informatics/gmeow-gts
+gh attestation verify <downloaded-artifact> \
+  --repo Blackcat-Informatics/gmeow-gts \
+  --predicate-type https://spdx.dev/Document/v2.3
+gh release verify "go-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
+gh release verify-asset "go-v${VERSION}" <downloaded-go-asset> \
+  --repo Blackcat-Informatics/gmeow-gts
 ```
 
 Release evidence durability:
