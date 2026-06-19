@@ -13,6 +13,7 @@ Metacello new
 testClasses := {
   Smalltalk globals at: #GtsCborReaderTest.
   Smalltalk globals at: #GtsCborWriterTest.
+  Smalltalk globals at: #GtsReaderTest.
   Smalltalk globals at: #GtsBlake3Test.
   Smalltalk globals at: #GtsMinimalVectorTest.
   Smalltalk globals at: #GtsZstdTest.
