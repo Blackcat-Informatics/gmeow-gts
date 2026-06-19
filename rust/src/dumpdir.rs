@@ -350,10 +350,7 @@ fn write_files_profile(root: &Path, state: &mut DumpState) -> Result<(), DumpErr
             json_string(entry.kind.as_str()),
             json_optional_string(entry.digest.as_deref()),
             json_optional_u64(entry.size),
-            entry
-                .mode
-                .map(|value| value.to_string())
-                .unwrap_or_else(|| "null".to_string()),
+            json_optional_u64(entry.mode.map(u64::from)),
             json_optional_string(entry.modified.as_deref()),
             json_optional_string(entry.media_type.as_deref()),
             json_optional_string(entry.link_target.as_deref()),
