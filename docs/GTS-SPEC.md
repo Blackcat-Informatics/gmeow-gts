@@ -1680,14 +1680,23 @@ other lossless archive tools.
   - refuse to write outside the destination directory (`..`, absolute paths, or symlinks that
     escape it);
   - create explicit v2 directories, but refuse symlink, hardlink, fifo, device-node, and socket
-    extraction unless the user has supplied the future explicit safety flags for those classes;
+    extraction unless the user has supplied `--allow-symlinks` or `--allow-special` for those
+    classes; symlink targets remain confined to the destination tree even after opt-in;
   - re-hash each written regular file and verify it matches `files:digest`;
   - restore the entry's declared modification time and permissions (subject to the host OS);
   - never change ownership unless the user supplies `--same-owner` or an equivalent privileged
-    opt-in, and never restore setuid/setgid/sticky bits unless the user supplies an explicit
-    set-id preservation opt-in;
+    opt-in such as `--numeric-owner`, and never restore setuid/setgid/sticky bits unless the
+    user supplies `--preserve-setid`;
   - skip entries whose digest is suppressed (§11) by default, with an explicit
     `--include-suppressed` override.
+
+- **`gts tar -c/-x/-t/-d`**
+  A tar-compatible CLI MAY wrap `pack`, `unpack`, `diff`, `from-tar`, and `to-tar` with
+  familiar flags (`-cf`, `-czf`, `--zstd`, `-xf`, `-tf`, `-df`, and `-C`). The wrapper MUST
+  preserve the same safety policy as `unpack`: non-mutating list/diff operations may inspect
+  link and special-file metadata, but extraction still requires the explicit opt-ins above.
+  Tools SHOULD choose the `.gts` or `.tar` path by archive extension and SHOULD infer gzip/zstd
+  wrapping from common tar suffixes when creating tar output.
 
 - **`gts diff <archive> <dir>`**
   Compare the archive's `files:FileEntry` set to the current state of `<dir>` by content digest.

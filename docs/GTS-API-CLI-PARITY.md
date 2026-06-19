@@ -92,6 +92,7 @@ actual dispatch surfaces.
 | `from-okf` | no | yes | no | no | Rust OKF profile extension |
 | `to-tar` | no | yes | no | no | Rust tar bridge extension |
 | `from-tar` | no | yes | no | no | Rust tar bridge extension |
+| `tar` | no | yes | no | no | Rust tar-compatible extension |
 | `to-sqlite` | yes | yes | no | no | Python/Rust extension |
 | `to-duckdb` | yes | yes | no | no | Python/Rust extension |
 | `to-parquet` | yes | yes | no | no | Python/Rust extension |
@@ -128,11 +129,12 @@ actual dispatch surfaces.
   Python, Go, or TypeScript implementation. Those engines must remain `no`
   here until they can import/export the `gts-okf-v1` directory contract and
   preserve the folded N-Quads expectations.
-- `to-tar` and `from-tar` are Rust-only files-profile-v2 bridge verbs behind
+- `to-tar`, `from-tar`, and `tar` are Rust-only files-profile-v2 bridge verbs behind
   `--features tar`. They map tar streams to GTS files and back while preserving
   files-profile metadata, opt-in link/special-file records, gzip/zstd wrapping,
-  and unknown PAX records. Python, Go, and TypeScript parity should land later
-  against the same safety and round-trip expectations.
+  unknown PAX records, and a tar-compatible `-c/-x/-t/-d` command surface. Python,
+  Go, and TypeScript parity should land later against the same safety and round-trip
+  expectations.
 - `dump` is a Rust-only inspection export that writes a versioned directory tree with folded
   N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads. It is
   not a wire-format change; Python, Go, and TypeScript parity can implement the same

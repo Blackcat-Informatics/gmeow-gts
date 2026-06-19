@@ -313,6 +313,19 @@ gts dump <file> --directory <dir> [--include-suppressed] [--force] [--metadata-o
                                   expand an archive into a directory dump
 ```
 
+Rust-only tar-compatible extension:
+
+```text
+gts tar -c[z|--zstd]f <archive.gts|archive.tar[.gz|.zst]> <dir|file>...
+                                  create a GTS or tar archive by extension
+gts tar -xf <archive.gts|archive.tar[.gz|.zst]> [-C <dir>]
+                                  extract with refuse-dangerous defaults
+gts tar -tf <archive.gts|archive.tar[.gz|.zst]>
+                                  list files-profile entries
+gts tar -df <archive.gts|archive.tar[.gz|.zst]> <dir>
+                                  compare archive entries to a directory
+```
+
 <!-- cli-python-extensions:start -->
 <!-- cli-python-extensions:end -->
 
@@ -339,7 +352,9 @@ engine depends on and re-exports as `gmeow_gts::emojihash`.
 `from-nq` is common across all four engines. Python and Rust also expose `to-trig`/`from-trig`
 for readable TriG graph-block interchange over the same folded RDF content. The Rust OKF
 profile extension maps Markdown bundles to verifiable GTS package bytes and back behind
-`--features okf`; see [`docs/GTS-OKF.md`](./docs/GTS-OKF.md). The Rust `dump` extension writes a versioned
+`--features okf`; see [`docs/GTS-OKF.md`](./docs/GTS-OKF.md). The Rust `tar`
+extension provides tar-style `-c/-x/-t/-d` commands over `.gts` and `.tar` files behind
+`--features tar`, with explicit `--allow-*` extraction opt-ins. The Rust `dump` extension writes a versioned
 inspection directory with folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and
 files-profile content without duplicating large payload bytes by default; see
 [`docs/GTS-DUMP-DIR.md`](./docs/GTS-DUMP-DIR.md). The `to-*` relational exports are available in

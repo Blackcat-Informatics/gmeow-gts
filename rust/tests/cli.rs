@@ -66,6 +66,11 @@ fn tar_commands_report_feature_gate_when_disabled() {
     assert_eq!(out.status.code(), Some(2));
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("--features tar"), "stderr: {err}");
+
+    let out = gts(&["tar"]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--features tar"), "stderr: {err}");
 }
 
 #[cfg(feature = "policy-config-yaml")]
