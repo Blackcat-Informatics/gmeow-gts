@@ -18,6 +18,8 @@ REQUIRED_DOC_MARKERS = [
     "| Python RDF/data |",
     "| TypeScript browser |",
     "| Go services |",
+    "| Tar-compatible archives |",
+    "## Tar-Compatible Archive Bridge",
     "## Python: rdflib And Data Frames",
     "RDF12UnsupportedError",
     "gts.to_rdflib(graph, allow_rdf12_lossy=True)",
