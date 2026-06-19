@@ -134,7 +134,14 @@ export interface ReifierEntry {
     spo: Triple;
 }
 
-/** The folded result of a GTS log. */
+/**
+ * The folded result of a GTS log.
+ *
+ * RDF state is kept alongside reader sidecars such as diagnostics, signatures,
+ * opaque nodes, segment heads, and streamable layout observations. Sidecars are
+ * observations about the log and should not be replayed as authoring input
+ * unless a caller is deliberately preserving evidence.
+ */
 export class Graph {
     terms: Term[] = [];
     quads: Quad[] = [];

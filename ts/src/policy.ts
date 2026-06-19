@@ -12,9 +12,13 @@ export const DEFAULT_PSEUDONYMOUS_KID_PATTERN = "^anon:[0-9a-fA-F]{32,}$";
 
 const PROFILE_VOCABS = new Map<string, string>([["files", FILES_NS]]);
 
+/** Deployment trust anchors and high-privacy recipient-id options. */
 export interface TrustPolicyOptions {
+    /** Signer kid values accepted by the deployment. */
     trustedSigners?: Iterable<string>;
+    /** Require at least one trusted valid signer for evidence/opaque profiles. */
     requireTrustedSigner?: boolean;
+    /** Recipient kid pattern for high-privacy opaque-profile checks. */
     pseudonymousKidPattern?: string;
 }
 
@@ -50,20 +54,31 @@ export class TrustPolicy {
     }
 }
 
+/** A signature's cryptographic status plus deployment-trust result. */
 export interface SignatureTrust {
+    /** Signed frame id. */
     frameId: Uint8Array;
+    /** Resolved signer kid, when present. */
     kid: string | undefined;
+    /** Reader cryptographic status. */
     status: string;
+    /** True when status is valid and kid is deployment-trusted. */
     trusted: boolean;
 }
 
 export type Severity = "error" | "warning" | "info";
 
+/** One profile or trust-policy finding. */
 export interface ProfileFinding {
+    /** Stable machine-readable finding code. */
     code: string;
+    /** Error, warning, or info. */
     severity: Severity;
+    /** Human-readable finding text. */
     detail: string;
+    /** Profile that triggered the finding, when applicable. */
     profile?: string;
+    /** Segment index for segment-scoped checks. */
     segmentIndex?: number;
 }
 
