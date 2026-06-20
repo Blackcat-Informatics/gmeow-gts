@@ -18,7 +18,9 @@ testClasses := {
   Smalltalk globals at: #GtsBlake3Test.
   Smalltalk globals at: #GtsMinimalVectorTest.
   Smalltalk globals at: #GtsZstdTest.
-  Smalltalk globals at: #GtsSodiumTest }.
+  Smalltalk globals at: #GtsSodiumTest.
+  Smalltalk globals at: #GtsWriterTest.
+  Smalltalk globals at: #GtsFilesTest }.
 results := testClasses collect: [ :testClass | testClass suite run ].
 results do: [ :result | result printString crTrace ].
 (results allSatisfy: [ :result | result hasPassed ])
