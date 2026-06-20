@@ -22,7 +22,7 @@ GtsCLI class >> run: args [
 		command = 'extract-key' ifTrue: [ ^ self runExtractKey: args allButFirst ].
 		command = 'from-nq' ifTrue: [ ^ self runFromNQuads: args allButFirst ].
 		command = 'info' ifTrue: [ ^ self runInfo: args allButFirst ].
-		command = 'verify' ifTrue: [ ^ self runInfo: args allButFirst ].
+		command = 'verify' ifTrue: [ ^ self runVerify: args allButFirst ].
 		command = 'ls' ifTrue: [ ^ self runLs: args allButFirst ].
 		command = 'extract' ifTrue: [ ^ self runExtract: args allButFirst ].
 		command = 'cat' ifTrue: [ ^ self runCat: args allButFirst ].
@@ -179,44 +179,60 @@ GtsCLI class >> runInfo: args [
 	args do: [ :path |
 		| graph |
 		graph := GtsReader read: (self readFile: path).
-		self stdout: path, ': ', graph segmentHeads size asString, ' segment(s)', String lf.
-		graph segmentHeads withIndexDo: [ :head :index |
-			| signers |
-			signers := graph signatures count: [ :signature | (signature at: 'status' ifAbsent: [ 'unverified' ]) ~= 'invalid' ].
-			self stdout: '  segment ', (index - 1) asString,
-				': head ', (GtsHex encode: head),
-				' profile ', (graph profiles at: index ifAbsent: [ 'generic' ]),
-				' terms ', graph terms size asString,
-				' quads ', graph quads size asString,
-				' reifies ', graph reifiers size asString,
-				' annot ', graph annotations size asString,
-				' blobs ', graph blobs size asString,
-				' suppress ', graph suppressions size asString,
-				' opaque ', graph opaqueReasons size asString,
-				' sigs ', signers asString,
-				String lf ].
-		graph streamable withIndexDo: [ :layout :index |
-			(layout at: 'claimed') ifTrue: [
-				| headHex tail |
-				headHex := (layout at: 'head' ifAbsent: [ nil ])
-					ifNil: [ '<none>' ]
-					ifNotNil: [ :layoutHead | GtsHex encode: layoutHead ].
-				tail := (layout at: 'tail') > 0
-					ifTrue: [ ', accretive tail ', (layout at: 'tail') asString, ' frame(s)' ]
-					ifFalse: [ '' ].
-				self stdout: '    layout: streamable through frame ',
-					(layout at: 'covered') asString,
-					' (head ', headHex, ')',
-					tail,
-					String lf ] ].
-		graph diagnostics do: [ :diagnostic |
-			| where |
-			where := diagnostic frameIndex
-				ifNil: [ '' ]
-				ifNotNil: [ :frameIndex | ' [item ', frameIndex asString, ']' ].
-			self stdout: '    diagnostic ', diagnostic code, ': ', diagnostic detail, where, String lf ].
+		self printLedgerFor: path graph: graph.
 		graph diagnostics isEmpty ifFalse: [ problems := true ] ].
 	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
+]
+
+{ #category : #private }
+GtsCLI class >> parseVerifyKey: spec [
+	| colon keyBytes |
+	colon := spec findString: ':' startingAt: 1.
+	colon <= 1 ifTrue: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
+	keyBytes := GtsHex decode: (spec copyFrom: colon + 1 to: spec size).
+	keyBytes size = GtsSodium ed25519PublicKeyBytes
+		ifFalse: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
+	^ (spec copyFrom: 1 to: colon - 1) -> keyBytes
+]
+
+{ #category : #private }
+GtsCLI class >> printLedgerFor: path graph: graph [
+	self stdout: path, ': ', graph segmentHeads size asString, ' segment(s)', String lf.
+	graph segmentHeads withIndexDo: [ :head :index |
+		| signers |
+		signers := graph signatures count: [ :signature | (signature at: 'status' ifAbsent: [ 'unverified' ]) ~= 'invalid' ].
+		self stdout: '  segment ', (index - 1) asString,
+			': head ', (GtsHex encode: head),
+			' profile ', (graph profiles at: index ifAbsent: [ 'generic' ]),
+			' terms ', graph terms size asString,
+			' quads ', graph quads size asString,
+			' reifies ', graph reifiers size asString,
+			' annot ', graph annotations size asString,
+			' blobs ', graph blobs size asString,
+			' suppress ', graph suppressions size asString,
+			' opaque ', graph opaqueReasons size asString,
+			' sigs ', signers asString,
+			String lf ].
+	graph streamable withIndexDo: [ :layout :index |
+		(layout at: 'claimed') ifTrue: [
+			| headHex tail |
+			headHex := (layout at: 'head' ifAbsent: [ nil ])
+				ifNil: [ '<none>' ]
+				ifNotNil: [ :layoutHead | GtsHex encode: layoutHead ].
+			tail := (layout at: 'tail') > 0
+				ifTrue: [ ', accretive tail ', (layout at: 'tail') asString, ' frame(s)' ]
+				ifFalse: [ '' ].
+			self stdout: '    layout: streamable through frame ',
+				(layout at: 'covered') asString,
+				' (head ', headHex, ')',
+				tail,
+				String lf ] ].
+	graph diagnostics do: [ :diagnostic |
+		| where |
+		where := diagnostic frameIndex
+			ifNil: [ '' ]
+			ifNotNil: [ :frameIndex | ' [item ', frameIndex asString, ']' ].
+		self stdout: '    diagnostic ', diagnostic code, ': ', diagnostic detail, where, String lf ]
 ]
 
 { #category : #commands }
@@ -299,6 +315,39 @@ GtsCLI class >> runUnpack: args [
 ]
 
 { #category : #commands }
+GtsCLI class >> runVerify: args [
+	| keys paths problems |
+	args isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
+	keys := Dictionary new.
+	paths := OrderedCollection new.
+	1 to: args size do: [ :index |
+		(args at: index) = '--key'
+			ifTrue: [
+				| association |
+				association := self parseVerifyKey: (args at: index + 1 ifAbsent: [ ^ 2 ]).
+				keys at: association key put: association value ]
+			ifFalse: [
+				(index = 1 or: [ (args at: index - 1) ~= '--key' ])
+					ifTrue: [ paths add: (args at: index) ] ] ].
+	paths isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
+	problems := false.
+	paths do: [ :path |
+		| graph |
+		graph := GtsReader read: (self readFile: path).
+		self printLedgerFor: path graph: graph.
+		graph diagnostics isEmpty ifFalse: [ problems := true ].
+		keys isEmpty ifFalse: [
+			graph signatures do: [ :signature |
+				| kid status |
+				kid := signature at: 'kid' ifAbsent: [ nil ].
+				status := self verifySignature: signature keys: keys.
+				signature at: 'status' put: status.
+				self stdout: '  signature ', (kid ifNil: [ '?' ]), ': ', status, String lf.
+				status = 'invalid' ifTrue: [ problems := true ] ] ] ].
+	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
+]
+
+{ #category : #commands }
 GtsCLI class >> runVerifyProof: args [
 	| proof |
 	args size = 1 ifFalse: [ self stderr: self usage. ^ 2 ].
@@ -306,6 +355,23 @@ GtsCLI class >> runVerifyProof: args [
 	self stdout: 'proof ok: root ', (GtsHex encode: (proof at: 'root')),
 		' frame ', (GtsHex encode: (proof at: 'frame_id')), String lf.
 	^ 0
+]
+
+{ #category : #private }
+GtsCLI class >> verifySignature: signature keys: keys [
+	| kid publicKey |
+	kid := signature at: 'kid' ifAbsent: [ nil ].
+	kid ifNil: [ ^ 'unverified' ].
+	publicKey := keys at: kid ifAbsent: [ ^ 'unverified' ].
+	[
+		^ (GtsCose
+			verifySign1: (signature at: 'cose')
+			frameId: (signature at: 'frame_id')
+			publicKey: publicKey)
+			ifTrue: [ 'valid' ]
+			ifFalse: [ 'invalid' ] ]
+		on: Error
+		do: [ :error | ^ 'invalid' ]
 ]
 
 { #category : #io }
