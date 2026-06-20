@@ -12,6 +12,7 @@ Class {
 		'suppressions',
 		'opaqueReasons',
 		'diagnostics',
+		'signatures',
 		'profiles',
 		'segmentHeads',
 		'streamable'
@@ -65,11 +66,22 @@ GtsGraph >> addSegmentHead: segmentHead [
 ]
 
 { #category : #adding }
+GtsGraph >> addSignature: signature [
+	signatures add: signature
+]
+
+{ #category : #adding }
 GtsGraph >> addStreamableClaimed: claimed covered: covered tail: tail [
+	^ self addStreamableClaimed: claimed covered: covered tail: tail head: nil
+]
+
+{ #category : #adding }
+GtsGraph >> addStreamableClaimed: claimed covered: covered tail: tail head: head [
 	streamable add: (Dictionary newFromPairs: {
 		'claimed'. claimed.
 		'covered'. covered.
-		'tail'. tail })
+		'tail'. tail.
+		'head'. head })
 ]
 
 { #category : #adding }
@@ -128,6 +140,7 @@ GtsGraph >> initialize [
 	suppressions := OrderedCollection new.
 	opaqueReasons := OrderedCollection new.
 	diagnostics := OrderedCollection new.
+	signatures := OrderedCollection new.
 	profiles := OrderedCollection new.
 	segmentHeads := OrderedCollection new.
 	streamable := OrderedCollection new
@@ -168,6 +181,11 @@ GtsGraph >> reifiers [
 { #category : #accessing }
 GtsGraph >> segmentHeads [
 	^ segmentHeads asArray
+]
+
+{ #category : #accessing }
+GtsGraph >> signatures [
+	^ signatures asArray
 ]
 
 { #category : #setting }

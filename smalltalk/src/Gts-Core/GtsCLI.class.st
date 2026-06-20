@@ -26,6 +26,7 @@ GtsCLI class >> run: args [
 		command = 'ls' ifTrue: [ ^ self runLs: args allButFirst ].
 		command = 'extract' ifTrue: [ ^ self runExtract: args allButFirst ].
 		command = 'cat' ifTrue: [ ^ self runCat: args allButFirst ].
+		command = 'compact' ifTrue: [ ^ self runCompact: args allButFirst ].
 		self stderr: 'gts: unknown command ', command, String lf, self usage.
 		^ 2 ]
 		on: Error
@@ -54,6 +55,45 @@ GtsCLI class >> runCat: args [
 			graph diagnostics isEmpty ifFalse: [ self error: 'cat refuses input with diagnostics' ].
 			stream nextPutAll: data ] ]).
 	^ 0
+]
+
+{ #category : #commands }
+GtsCLI class >> runCompact: args [
+	| outPath path sealOriginal streamable timestamp |
+	outPath := nil.
+	path := nil.
+	sealOriginal := false.
+	streamable := false.
+	timestamp := '2026-01-01T00:00:00Z'.
+	1 to: args size do: [ :index |
+		(args at: index) = '--streamable' ifTrue: [ streamable := true ].
+		(args at: index) = '--seal-original' ifTrue: [ sealOriginal := true ].
+		((args at: index) = '-o' or: [ (args at: index) = '--out' ])
+			ifTrue: [ outPath := args at: index + 1 ifAbsent: [ ^ 2 ] ].
+		(args at: index) = '--timestamp'
+			ifTrue: [ timestamp := args at: index + 1 ifAbsent: [ ^ 2 ] ].
+		(((args at: index) beginsWith: '-') not
+			and: [ index = 1 or: [
+				(args at: index - 1) ~= '-o'
+					and: [ (args at: index - 1) ~= '--out'
+					and: [ (args at: index - 1) ~= '--timestamp' ] ] ] ])
+			ifTrue: [ path := args at: index ] ].
+	(path isNil or: [ outPath isNil ]) ifTrue: [ self stderr: self usage. ^ 2 ].
+	streamable ifFalse: [
+		self stderr: 'gts: compact requires --streamable', String lf.
+		^ 2 ].
+	[
+		self
+			writeFile: outPath
+			bytes: (GtsCompact
+				compactStreamable: (self readFile: path)
+				timestamp: timestamp
+				sealOriginal: sealOriginal).
+		^ 0 ]
+		on: Error
+		do: [ :error |
+			self stderr: 'gts: refusing compact: ', error messageText, String lf.
+			^ 1 ]
 ]
 
 { #category : #commands }
@@ -141,15 +181,40 @@ GtsCLI class >> runInfo: args [
 		graph := GtsReader read: (self readFile: path).
 		self stdout: path, ': ', graph segmentHeads size asString, ' segment(s)', String lf.
 		graph segmentHeads withIndexDo: [ :head :index |
+			| signers |
+			signers := graph signatures count: [ :signature | (signature at: 'status' ifAbsent: [ 'unverified' ]) ~= 'invalid' ].
 			self stdout: '  segment ', (index - 1) asString,
 				': head ', (GtsHex encode: head),
 				' profile ', (graph profiles at: index ifAbsent: [ 'generic' ]),
 				' terms ', graph terms size asString,
 				' quads ', graph quads size asString,
+				' reifies ', graph reifiers size asString,
+				' annot ', graph annotations size asString,
 				' blobs ', graph blobs size asString,
 				' suppress ', graph suppressions size asString,
 				' opaque ', graph opaqueReasons size asString,
+				' sigs ', signers asString,
 				String lf ].
+		graph streamable withIndexDo: [ :layout :index |
+			(layout at: 'claimed') ifTrue: [
+				| headHex tail |
+				headHex := (layout at: 'head' ifAbsent: [ nil ])
+					ifNil: [ '<none>' ]
+					ifNotNil: [ :layoutHead | GtsHex encode: layoutHead ].
+				tail := (layout at: 'tail') > 0
+					ifTrue: [ ', accretive tail ', (layout at: 'tail') asString, ' frame(s)' ]
+					ifFalse: [ '' ].
+				self stdout: '    layout: streamable through frame ',
+					(layout at: 'covered') asString,
+					' (head ', headHex, ')',
+					tail,
+					String lf ] ].
+		graph diagnostics do: [ :diagnostic |
+			| where |
+			where := diagnostic frameIndex
+				ifNil: [ '' ]
+				ifNotNil: [ :frameIndex | ' [item ', frameIndex asString, ']' ].
+			self stdout: '    diagnostic ', diagnostic code, ': ', diagnostic detail, where, String lf ].
 		graph diagnostics isEmpty ifFalse: [ problems := true ] ].
 	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
 ]

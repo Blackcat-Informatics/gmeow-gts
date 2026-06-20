@@ -86,11 +86,20 @@ GtsConformanceSummary class >> summarize: graph mode: mode [
 		'segments'. graph segmentHeads size.
 		'segment_heads'. (self segmentHeadHexFor: graph).
 		'profiles'. graph profiles.
-		'streamable'. graph streamable.
+		'streamable'. (self streamableSummaryFor: graph).
 		'opaque_reasons'. graph opaqueReasons asSortedCollection asArray.
 		'suppressions'. graph suppressions size.
 		'blobs'. (self blobSummaryFor: graph).
 		'nquads'. (self nquadLinesFor: graph) }
+]
+
+{ #category : #private }
+GtsConformanceSummary class >> streamableSummaryFor: graph [
+	^ graph streamable collect: [ :layout |
+		Dictionary newFromPairs: {
+			'claimed'. (layout at: 'claimed').
+			'covered'. (layout at: 'covered').
+			'tail'. (layout at: 'tail') } ]
 ]
 
 { #category : #reading }

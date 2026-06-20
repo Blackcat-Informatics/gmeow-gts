@@ -416,7 +416,7 @@ GtsReader class >> layoutCheckHeader: header graph: graph indexRecords: indexRec
 					code: 'StreamableLayoutError'
 					detail: 'covered blob was not described before payload'
 					frameIndex: (event at: 'pos')) ] ].
-	graph addStreamableClaimed: true covered: count tail: tail
+	graph addStreamableClaimed: true covered: count tail: tail head: head
 ]
 
 { #category : #union }
@@ -597,6 +597,7 @@ GtsReader class >> readSegment: items indexOffset: indexOffset [
 					expectedPrev := computed.
 					lastHead := computed.
 					frameIds add: computed.
+					self retainSignatureFrom: frame frameId: computed into: graph.
 					self
 						foldFrame: frame
 						index: absIndex
@@ -614,6 +615,23 @@ GtsReader class >> readSegment: items indexOffset: indexOffset [
 		frameIds: frameIds asArray
 		indexOffset: indexOffset.
 	^ graph
+]
+
+{ #category : #folding }
+GtsReader class >> retainSignatureFrom: frame frameId: frameId into: graph [
+	| kid parsed signature |
+	signature := frame at: 'sig' ifAbsent: [ nil ].
+	(signature isKindOf: ByteArray) ifFalse: [ ^ self ].
+	kid := nil.
+	[ parsed := GtsCose parseSign1: signature.
+	kid := parsed at: 'kid' ifAbsent: [ nil ] ]
+		on: Error
+		do: [ :error | kid := nil ].
+	graph addSignature: (Dictionary newFromPairs: {
+		'frame_id'. frameId.
+		'kid'. kid.
+		'status'. 'unverified'.
+		'cose'. signature })
 ]
 
 { #category : #segments }
@@ -754,6 +772,7 @@ GtsReader class >> unionSegments: segments [
 		segment suppressions do: [ :suppression | output addSuppression: suppression ].
 		segment opaqueReasons do: [ :reason | output addOpaqueReason: reason ].
 		segment diagnostics do: [ :diagnostic | output addDiagnostic: diagnostic ].
+		segment signatures do: [ :signature | output addSignature: signature ].
 		segment segmentHeads do: [ :head | output addSegmentHead: head ].
 		segment profiles do: [ :profile | output addProfile: profile ].
 		segment streamable do: [ :layout |

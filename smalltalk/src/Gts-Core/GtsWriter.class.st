@@ -37,6 +37,14 @@ GtsWriter >> addBlob: data mediaType: mediaType representation: representation [
 ]
 
 { #category : #adding }
+GtsWriter >> addAnnotations: annotations [
+	| rows |
+	rows := annotations collect: [ :annotation |
+		{ annotation at: 1. annotation at: 2. annotation at: 3 } ].
+	^ self addFrameType: 'annot' payload: rows raw: nil transform: #() publicMetadata: nil
+]
+
+{ #category : #adding }
 GtsWriter >> addFrameType: frameType payload: payload raw: rawBytes transform: transformNames publicMetadata: publicMetadata [
 	| data frame frameBytes frameId source |
 	((payload notNil) and: [ rawBytes notNil ])
@@ -69,6 +77,29 @@ GtsWriter >> addFrameType: frameType payload: payload raw: rawBytes transform: t
 ]
 
 { #category : #adding }
+GtsWriter >> addIndex [
+	| payload typeIndex |
+	typeIndex := Dictionary new.
+	types withIndexDo: [ :frameType :index |
+		(typeIndex at: frameType ifAbsentPut: [ OrderedCollection new ])
+			add: index - 1 ].
+	typeIndex keysAndValuesDo: [ :key :value |
+		typeIndex at: key put: value asArray ].
+	payload := Dictionary newFromPairs: {
+		'count'. types size.
+		'head'. previousId }.
+	offsets isEmpty ifFalse: [
+		payload at: 'off' put: offsets asArray.
+		payload at: 'ti' put: typeIndex ].
+	^ self addFrameType: 'index' payload: payload raw: nil transform: #() publicMetadata: nil
+]
+
+{ #category : #adding }
+GtsWriter >> addMeta: metadata [
+	^ self addFrameType: 'meta' payload: metadata raw: nil transform: #() publicMetadata: nil
+]
+
+{ #category : #adding }
 GtsWriter >> addQuads: quads [
 	| rows |
 	rows := quads collect: [ :quad |
@@ -84,6 +115,16 @@ GtsWriter >> addReifiers: reifiers [
 	payload := Dictionary new.
 	reifiers do: [ :entry | payload at: (entry at: 'rid') put: (entry at: 'spo') ].
 	^ self addFrameType: 'reifies' payload: payload raw: nil transform: #() publicMetadata: nil
+]
+
+{ #category : #adding }
+GtsWriter >> addSuppressTargets: targets reason: reason by: by [
+	| payload |
+	payload := Dictionary new.
+	payload at: 'targets' put: targets.
+	reason ifNotNil: [ reason isEmpty ifFalse: [ payload at: 'reason' put: reason ] ].
+	by ifNotNil: [ payload at: 'by' put: by ].
+	^ self addFrameType: 'suppress' payload: payload raw: nil transform: #() publicMetadata: nil
 ]
 
 { #category : #adding }
