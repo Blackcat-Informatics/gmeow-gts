@@ -48,6 +48,11 @@ GtsCborReader >> nextByte [
 	^ byte
 ]
 
+{ #category : #accessing }
+GtsCborReader >> position [
+	^ position
+]
+
 { #category : #private }
 GtsCborReader >> readArgument: additional [
 	additional < 24 ifTrue: [ ^ additional ].

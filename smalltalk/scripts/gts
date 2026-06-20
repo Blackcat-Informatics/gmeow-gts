@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+set -eu
+
+args_file="$(mktemp)"
+trap 'rm -f "$args_file"' EXIT
+
+for arg in "$@"; do
+  printf '%s\n' "$arg" >> "$args_file"
+done
+
+repo="${GTS_SMALLTALK_REPOSITORY:-tonel:///workspace/smalltalk/src}"
+if [ ! -d /workspace/smalltalk/src ]; then
+  repo="tonel:///opt/gts/src"
+fi
+
+cd /opt/pharo
+GTS_ARGS_FILE="$args_file" GTS_SMALLTALK_REPOSITORY="$repo" pharo eval "[ | args argsFile code repo |
+repo := (Smalltalk globals at: #OSEnvironment) current at: 'GTS_SMALLTALK_REPOSITORY'.
+argsFile := ((Smalltalk globals at: #OSEnvironment) current at: 'GTS_ARGS_FILE') asFileReference.
+args := argsFile readStreamDo: [ :stream |
+  stream contents lines reject: [ :line | line isEmpty ] ].
+[ Metacello new
+    baseline: 'Gts';
+    repository: repo;
+    load: #('default') ]
+  on: MetacelloNotification
+  do: [ :notification | notification resume ].
+code := (Smalltalk globals at: #GtsCLI) run: args asArray.
+Smalltalk exit: code ] value"

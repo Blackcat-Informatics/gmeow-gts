@@ -71,5 +71,10 @@ COPY --from=sodium-build /usr/local/lib/libgts_sodium.so /usr/local/lib/libgts_s
 
 RUN ldconfig
 
+COPY src /opt/gts/src
+COPY scripts/gts /usr/local/bin/gts
+RUN chmod 0755 /usr/local/bin/gts \
+    && chmod -R a+rwX /opt/pharo /opt/gts
+
 USER pharo
 WORKDIR /workspace

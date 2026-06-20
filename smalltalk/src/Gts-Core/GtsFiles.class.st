@@ -58,6 +58,68 @@ GtsFiles class >> formatDateTime: dateAndTime [
 	^ (dateAndTime asUTC printString copyReplaceAll: '+00:00' with: 'Z')
 ]
 
+{ #category : #diffing }
+GtsFiles class >> diffGraph: graph withDirectory: directoryPath [
+	| archiveDigests diskDigests lines |
+	archiveDigests := Dictionary new.
+	(self fileEntriesIn: graph) associationsDo: [ :association |
+		archiveDigests at: association key put: (association value at: 'digest') ].
+	diskDigests := Dictionary new.
+	(self archiveEntriesForSources: { directoryPath }) do: [ :entry |
+		| data |
+		data := (entry at: 1) binaryReadStreamDo: [ :stream | stream upToEnd ].
+		diskDigests at: (entry at: 2) put: (GtsWriter digestString: data) ].
+	lines := OrderedCollection new.
+	archiveDigests keysDo: [ :path |
+		(diskDigests includesKey: path) ifFalse: [ lines add: 'removed: ', path ] ].
+	diskDigests keysDo: [ :path |
+		(archiveDigests includesKey: path) ifFalse: [ lines add: 'added: ', path ] ].
+	archiveDigests associationsDo: [ :association |
+		| diskDigest |
+		diskDigest := diskDigests at: association key ifAbsent: [ nil ].
+		(diskDigest notNil and: [ diskDigest ~= association value ])
+			ifTrue: [ lines add: 'modified: ', association key ] ].
+	^ lines asSortedCollection asArray
+]
+
+{ #category : #private }
+GtsFiles class >> fileEntriesIn: graph [
+	| entries fileEntryId fieldIds typeId |
+	fieldIds := Dictionary new.
+	graph terms withIndexDo: [ :term :indexOneBased |
+		| termId value |
+		termId := indexOneBased - 1.
+		value := term value.
+		term kind = #iri ifTrue: [
+			value = self rdfType ifTrue: [ typeId := termId ].
+			value = (self filesNamespace, 'FileEntry') ifTrue: [ fileEntryId := termId ].
+			(value beginsWith: self filesNamespace) ifTrue: [
+				fieldIds
+					at: (value copyFrom: self filesNamespace size + 1 to: value size)
+					put: termId ] ] ].
+	(typeId isNil or: [ fileEntryId isNil ])
+		ifTrue: [ self error: 'not a files-profile archive' ].
+	entries := Dictionary new.
+	graph quads do: [ :quad |
+		| object predicate subject |
+		subject := quad at: 1.
+		predicate := quad at: 2.
+		object := quad at: 3.
+		(predicate = typeId and: [ object = fileEntryId ])
+			ifTrue: [
+				entries
+					at: subject
+					ifAbsentPut: [ Dictionary new ] ]
+			ifFalse: [
+				fieldIds associationsDo: [ :field |
+					field value = predicate ifTrue: [
+						(entries at: subject ifAbsentPut: [ Dictionary new ])
+							at: field key
+							put: (graph termAtId: object) value ] ] ] ].
+	^ Dictionary newFrom: ((entries values select: [ :entry | entry includesKey: 'path' ])
+		collect: [ :entry | (entry at: 'path') -> entry ])
+]
+
 { #category : #private }
 GtsFiles class >> guessMediaTypeFor: fileReference [
 	| ext |
@@ -158,6 +220,35 @@ GtsFiles class >> packSources: sourcePaths [
 			mediaType: (blob at: 'mt')
 			representation: '' ].
 	^ writer bytes
+]
+
+{ #category : #private }
+GtsFiles class >> pathFor: archivePath under: destination [
+	| destinationRef target |
+	self validateArchivePath: archivePath.
+	destinationRef := destination asFileReference.
+	target := destinationRef.
+	(archivePath findTokens: '/') do: [ :part | target := target / part ].
+	^ target
+]
+
+{ #category : #unpacking }
+GtsFiles class >> unpackGraph: graph to: destination includeSuppressed: includeSuppressed [
+	| blobByDigest destinationRef entries |
+	destinationRef := destination asFileReference.
+	destinationRef ensureCreateDirectory.
+	blobByDigest := graph blobs.
+	entries := self fileEntriesIn: graph.
+	entries associationsDo: [ :association |
+		| data digest target |
+		digest := association value at: 'digest' ifAbsent: [ self error: 'missing digest for ', association key ].
+		data := blobByDigest at: digest ifAbsent: [ self error: 'missing inline blob for ', association key ].
+		(GtsWriter digestString: data) = digest
+			ifFalse: [ self error: 'integrity failure for ', association key ].
+		target := self pathFor: association key under: destination.
+		target parent ensureCreateDirectory.
+		target exists ifFalse: [ target ensureCreateFile ].
+		target binaryWriteStreamDo: [ :stream | stream nextPutAll: data ] ]
 ]
 
 { #category : #private }
