@@ -15,7 +15,7 @@ artifact to the release evidence bundle rather than this source tree:
 
 ```bash
 python scripts/bench_release_suite.py \
-  --engines rust,python,go,ts \
+  --engines rust,python,go,ts,smalltalk \
   --iterations 5 \
   --vectors vectors/01-minimal.gts,vectors/23-files-profile-tree.gts,vectors/25b-streamable-compacted.gts \
   --out-dir dist/benchmarks/v1.0-rc1 \
@@ -77,12 +77,19 @@ engines are visible rather than silently omitted.
 | Python | unpack | | | | | | |
 | Go | read-info | | | | | | |
 | Go | fold | | | | | | |
+| Go | write-from-nq | | | | | | |
 | Go | pack | | | | | | |
 | Go | unpack | | | | | | |
 | TypeScript | read-info | | | | | | |
 | TypeScript | fold | | | | | | |
+| TypeScript | write-from-nq | | | | | | |
 | TypeScript | pack | | | | | | |
 | TypeScript | unpack | | | | | | |
+| Smalltalk | read-info | | | | | | |
+| Smalltalk | fold | | | | | | |
+| Smalltalk | write-from-nq | | | | | | |
+| Smalltalk | pack | | | | | | |
+| Smalltalk | unpack | | | | | | |
 
 ## Streaming Memory Summary
 

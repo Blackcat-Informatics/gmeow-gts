@@ -177,7 +177,7 @@ fixtures, interop tests, and key-management policy exist.
 
 ## 6. Conformance And Implementation Status
 
-The repository contains four engines:
+The repository contains five engines:
 
 | Engine | Package surface | Current role |
 |---|---|---|
@@ -185,6 +185,7 @@ The repository contains four engines:
 | Python | `gmeow-gts`, module `gts` | Reference corpus generator and Python package. |
 | Go | `go.blackcatinformatics.ca/gts` | Go package and CLI with streaming sink evidence. |
 | TypeScript | `@blackcatinformatics/gmeow-gts` | npm package, Node reader surface, and browser progressive stream/WebCrypto surface. |
+| Smalltalk/Pharo | Tonel + Metacello source package, Docker `gts` runtime | Pharo engine for the common corpus, CLI, and interop surface. |
 
 The shared compatibility oracle is the checked-in vector corpus under `vectors/` and the
 portable manifest at `vectors/manifest.json`. Conformance claims name a tier, the corpus
@@ -206,7 +207,7 @@ The relevant tiers for the paper narrative are:
   those claims are made.
 
 Implementation status should be presented as a moving repository fact, not as a standards
-claim. At the time of this draft, all four engines are described as gating against the shared
+claim. At the time of this draft, all five engines are described as gating against the shared
 corpus for their public surfaces, while several capabilities remain deliberately outside the
 baseline: database and Parquet exports are not present in every engine, non-Rust proof creation
 is deferred, range-fetch helpers still depend on verified boundaries, object-store service

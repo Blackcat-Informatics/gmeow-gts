@@ -33,6 +33,25 @@ RUN apt-get update \
     && cp "/tmp/BLAKE3-${BLAKE3_VERSION}/c/blake3.h" /usr/local/include/blake3.h \
     && rm -rf "/tmp/BLAKE3-${BLAKE3_VERSION}" /tmp/gts_blake3.c /var/lib/apt/lists/*
 
+FROM ghcr.io/ba-st/pharo:v13.1.2 AS sodium-build
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+USER root
+
+COPY native/gts_sodium.c /tmp/gts_sodium.c
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        libc6-dev \
+        libsodium-dev \
+    && gcc -O3 -fPIC -shared \
+        -o /usr/local/lib/libgts_sodium.so \
+        /tmp/gts_sodium.c \
+        -lsodium \
+    && rm -rf /tmp/gts_sodium.c /var/lib/apt/lists/*
+
 FROM ghcr.io/ba-st/pharo:v13.1.2
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -48,8 +67,15 @@ RUN apt-get update \
 
 COPY --from=blake3-build /usr/local/lib/libblake3.so /usr/local/lib/libblake3.so
 COPY --from=blake3-build /usr/local/include/blake3.h /usr/local/include/blake3.h
+COPY --from=sodium-build /usr/local/lib/libgts_sodium.so /usr/local/lib/libgts_sodium.so
 
 RUN ldconfig
+
+COPY src /opt/gts/src
+COPY scripts/gts /usr/local/bin/gts
+RUN chmod 0755 /usr/local/bin/gts \
+    && chown -R pharo:users /opt/pharo /opt/gts \
+    && chmod -R u+rwX,g+rwX,o-rwX /opt/pharo /opt/gts
 
 USER pharo
 WORKDIR /workspace

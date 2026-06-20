@@ -11,9 +11,23 @@ Metacello new
   repository: 'tonel:///workspace/smalltalk/src';
   load: #('tests').
 testClasses := {
+  Smalltalk globals at: #GtsConformanceTest.
+  Smalltalk globals at: #GtsCborReaderTest.
   Smalltalk globals at: #GtsCborWriterTest.
+  Smalltalk globals at: #GtsReaderTest.
   Smalltalk globals at: #GtsBlake3Test.
-  Smalltalk globals at: #GtsMinimalVectorTest }.
+  Smalltalk globals at: #GtsMinimalVectorTest.
+  Smalltalk globals at: #GtsZstdTest.
+  Smalltalk globals at: #GtsSodiumTest.
+  Smalltalk globals at: #GtsWriterTest.
+  Smalltalk globals at: #GtsFilesTest.
+  Smalltalk globals at: #GtsCliParityTest.
+  Smalltalk globals at: #GtsMMRTest.
+  Smalltalk globals at: #GtsCoseTest.
+  Smalltalk globals at: #GtsOpenPGPTest.
+  Smalltalk globals at: #GtsFromNQuadsTest.
+  Smalltalk globals at: #GtsCompactTest.
+  Smalltalk globals at: #GtsVerifyTest }.
 results := testClasses collect: [ :testClass | testClass suite run ].
 results do: [ :result | result printString crTrace ].
 (results allSatisfy: [ :result | result hasPassed ])

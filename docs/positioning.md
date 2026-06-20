@@ -84,35 +84,37 @@ GTS supports several application families without making any of them the project
 
 | Capability | Python | Rust | Go | TypeScript | Smalltalk/Pharo |
 |---|---|---|---|---|---|
-| Baseline read/fold/verify | yes | yes | yes | yes | no |
-| Writer | yes | yes | yes | yes | no |
-| Shared conformance corpus | yes | yes | yes | yes | no |
-| Deterministic-CBOR primitive/vector tests | yes | yes | yes | yes | Phase 0 |
-| BLAKE3 native hashing | yes | yes | yes | yes | Phase 0 FFI |
-| COSE signing and verification | yes | yes | yes | yes | no |
-| COSE Encrypt0 helpers | yes | yes | yes | yes | no |
-| Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes | no |
+| Baseline read/fold/verify | yes | yes | yes | yes | yes |
+| Writer | yes | yes | yes | yes | yes |
+| Shared conformance corpus | yes | yes | yes | yes | yes |
+| Deterministic-CBOR primitive/vector tests | yes | yes | yes | yes | yes |
+| BLAKE3 native hashing | yes | yes | yes | yes | yes |
+| zstd native codec | yes | yes | yes | yes | yes |
+| Ed25519/AES-256-GCM native crypto | yes | yes | yes | yes | yes |
+| COSE signing and verification | yes | yes | yes | yes | yes |
+| COSE Encrypt0 helpers | yes | yes | yes | yes | yes |
+| Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes | yes |
 | Tar bridge `from-tar`/`to-tar`/`tar` | no | yes | no | no | no |
-| Streamable compaction CLI | yes | yes | yes | yes | no |
-| `from-nq` inverse | yes | yes | yes | yes | no |
+| Streamable compaction CLI | yes | yes | yes | yes | yes |
+| `from-nq` inverse | yes | yes | yes | yes | yes |
 | SQLite/DuckDB/Parquet exports | yes | yes | no | no | no |
 | OKF profile `from-okf`/`to-okf` | no | yes | no | no | no |
 | Package registry | PyPI | crates.io | Go module | npm | Tonel/Metacello source |
 
 This matrix is descriptive, not a conformance claim. The authoritative compatibility check is
 the versioned vector corpus under `vectors/`, which every parity engine gates against. The
-Smalltalk/Pharo engine is currently a Phase 0 bootstrap with native BLAKE3 FFI evidence,
-primitive deterministic-CBOR tests, and `01-minimal.gts` byte reproduction. It
-makes no conformance-tier claim.
+Smalltalk/Pharo engine participates through the pinned Pharo Docker runtime, SUnit conformance
+coverage, common CLI verbs, and the five-engine interop gate. It does not yet implement
+Rust-only extensions such as TriG, OKF, tar, dump, or relational exports.
 Command-level parity and intentional gaps are maintained in
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
 OKF support is intentionally Rust-first: the Rust CLI owns the initial
 Markdown/YAML bundle bridge, Knowledge Catalog interop checks, and `gts-okf-v1`
-directory contract while Python, Go, and TypeScript remain explicit parity
+directory contract while Python, Go, TypeScript, and Smalltalk remain explicit parity
 deferrals.
 Tar bridge support is also intentionally Rust-first: the Rust CLI owns the
 initial files-profile-v2 `from-tar`/`to-tar`/`tar` surface and the
-`vectors/tar/` corpus while Python, Go, and TypeScript remain explicit parity
+`vectors/tar/` corpus while Python, Go, TypeScript, and Smalltalk remain explicit parity
 deferrals until they pass the same archive safety and round-trip gates.
 Advanced streaming, proof, and replication work is tiered separately in
 [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).

@@ -2,7 +2,7 @@
 <!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" role="img" aria-labelledby="t d">
   <title id="t">GTS — Graph Transport Substrate</title>
-  <desc id="d">A single-file, content-addressed, append-only transport for RDF 1.2 graphs, with four interoperable engines.</desc>
+  <desc id="d">A single-file, content-addressed, append-only transport for RDF 1.2 graphs, with five interoperable engines.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#0b0f17"/>
@@ -84,15 +84,17 @@
     <circle cx="712" cy="430" r="11" fill="#4285f4"/><text x="732" y="440">Python</text>
     <circle cx="876" cy="430" r="11" fill="#34a853"/><text x="896" y="440">Go</text>
     <circle cx="968" cy="430" r="11" fill="#fbbc05"/><text x="988" y="440">TypeScript</text>
+    <circle cx="582" cy="472" r="11" fill="#7b3f98"/><text x="602" y="482">Smalltalk</text>
   </g>
 
   <text class="mono" x="570" y="506" font-size="23" fill="#7488a0">content-addressed · append-only · MIT OR Apache-2.0</text>
 
   <!-- Accent bar -->
   <g>
-    <rect x="0" y="628" width="320" height="12" fill="#ea4335"/>
-    <rect x="320" y="628" width="320" height="12" fill="#4285f4"/>
-    <rect x="640" y="628" width="320" height="12" fill="#fbbc05"/>
-    <rect x="960" y="628" width="320" height="12" fill="#34a853"/>
+    <rect x="0" y="628" width="256" height="12" fill="#ea4335"/>
+    <rect x="256" y="628" width="256" height="12" fill="#4285f4"/>
+    <rect x="512" y="628" width="256" height="12" fill="#fbbc05"/>
+    <rect x="768" y="628" width="256" height="12" fill="#34a853"/>
+    <rect x="1024" y="628" width="256" height="12" fill="#7b3f98"/>
   </g>
 </svg>

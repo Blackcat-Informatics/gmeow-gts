@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "docs" / "GTS-API-CLI-PARITY.md"
 README = ROOT / "README.md"
-ENGINES = ("Python", "Rust", "Go", "TypeScript")
+ENGINES = ("Python", "Rust", "Go", "TypeScript", "Smalltalk")
 
 
 def between(text: str, start: str, end: str) -> str:
@@ -38,11 +38,12 @@ def parse_contract_matrix() -> dict[str, dict[str, bool]]:
         if not line.startswith("| `"):
             continue
         cells = [cell.strip() for cell in line.strip("|").split("|")]
-        if len(cells) != 6:
+        expected_cells = len(ENGINES) + 2
+        if len(cells) != expected_cells:
             raise ValueError(f"bad CLI parity row: {line}")
         verb = cells[0].strip("`")
         row = {}
-        for engine, value in zip(ENGINES, cells[1:5], strict=True):
+        for engine, value in zip(ENGINES, cells[1 : 1 + len(ENGINES)], strict=True):
             if value not in {"yes", "no"}:
                 raise ValueError(f"{verb}: {engine} must be yes/no, got {value!r}")
             row[engine] = value == "yes"
@@ -57,9 +58,7 @@ def read(path: str) -> str:
 
 
 def python_verbs() -> set[str]:
-    return set(
-        re.findall(r'add_parser\(\s*"([^"]+)"', read("python/src/gts/cli.py"))
-    )
+    return set(re.findall(r'add_parser\(\s*"([^"]+)"', read("python/src/gts/cli.py")))
 
 
 def rust_verbs() -> set[str]:
@@ -78,6 +77,11 @@ def typescript_verbs() -> set[str]:
     text = read("ts/src/bin/gts.ts")
     block = between(text, "switch (cmd) {", 'case "-h":')
     return set(re.findall(r'case "([^"]+)":', block))
+
+
+def smalltalk_verbs() -> set[str]:
+    text = read("smalltalk/src/Gts-Core/GtsCLI.class.st")
+    return set(re.findall(r"command = '([^']+)' ifTrue:", text))
 
 
 def readme_verbs(start: str, end: str) -> set[str]:
@@ -109,6 +113,7 @@ def main() -> int:
         "Rust": rust_verbs(),
         "Go": go_verbs(),
         "TypeScript": typescript_verbs(),
+        "Smalltalk": smalltalk_verbs(),
     }
     for engine, implemented in implemented_by_engine.items():
         compare_engine(errors, engine, implemented, matrix)
@@ -117,7 +122,8 @@ def main() -> int:
     python_extensions = {
         verb
         for verb, row in matrix.items()
-        if row["Python"] and not any(row[engine] for engine in ENGINES if engine != "Python")
+        if row["Python"]
+        and not any(row[engine] for engine in ENGINES if engine != "Python")
     }
     readme_common = readme_verbs(
         "<!-- cli-common:start -->",

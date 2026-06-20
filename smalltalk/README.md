@@ -5,15 +5,17 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 # GTS - Smalltalk/Pharo engine
 
 This directory contains the Pharo implementation of the Graph Transport Substrate.
-It is currently a Phase 0 engine bootstrap: Tonel packages, a Metacello baseline,
-deterministic-CBOR primitives, a native BLAKE3 FFI spike, and SUnit tests that prove
-canonical encoding and hashing rules by reproducing the committed `01-minimal.gts`
-vector byte-for-byte.
+It is a source engine delivered as Tonel packages with a Metacello baseline and a
+pinned Docker CLI runtime. The implementation covers the current Go-equal/common
+surface: CBOR Sequence reading, deterministic writing, top-level corpus summaries,
+native BLAKE3/zstd/libsodium, COSE Sign1 verification/signing helpers, COSE Encrypt0
+helpers, MMR proof verification, OpenPGP `extract-key`, `from-nq`, streamable
+compaction, files-profile `pack`/`unpack`/`diff`, replication verbs, and the common
+`gts` CLI verbs.
 
-The parity target is Go-equal support: baseline/full reader, deterministic writer,
-COSE Sign1/Encrypt0, files profile, MMR, CLI verbs, and `scripts/interop.sh`
-participation. Until those gates are implemented, this engine is intentionally
-not listed in the cross-engine byte-identity interop matrix.
+The Smalltalk engine participates in `scripts/interop.sh` with Rust, Python, Go, and
+TypeScript. Rust-only extension verbs such as TriG, OKF, tar, dump, and relational
+exports remain explicit future parity work.
 
 ## Runtime
 
@@ -23,9 +25,9 @@ The development and CI runtime is pinned to:
 - Pharo image `13.1`
 - Pharo VM `10.3.9`
 
-The Dockerfile also provisions `libzstd`, `libsodium`, and a pinned build of the
-official BLAKE3 C implementation with a tiny GTS-owned one-shot hash shim. The
-Smalltalk package binds that shim through Pharo's Unified FFI surface.
+The Dockerfile also provisions `libzstd`, `libsodium`, and pinned GTS-owned native
+shims for BLAKE3 and libsodium calls. The Smalltalk package binds BLAKE3, zstd,
+and libsodium through Pharo's Unified FFI surface.
 
 Build the local runtime image:
 
@@ -33,7 +35,7 @@ Build the local runtime image:
 docker build -t gmeow-gts-smalltalk smalltalk
 ```
 
-Run the current SUnit tests:
+Run the SUnit conformance and unit tests:
 
 ```bash
 docker run --rm -v "$PWD:/workspace" -w /workspace gmeow-gts-smalltalk \

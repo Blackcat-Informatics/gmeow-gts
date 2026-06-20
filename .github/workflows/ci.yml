@@ -282,7 +282,7 @@ jobs:
           uv run python scripts/gen_vectors.py
           git diff --exit-code ../vectors
 
-  # Smalltalk/Pharo engine bootstrap: Phase 0 package load + deterministic-CBOR tests.
+  # Smalltalk/Pharo parity engine: pinned runtime, SUnit conformance, and CLI support.
   smalltalk:
     runs-on: ubuntu-latest
     steps:
@@ -293,7 +293,7 @@ jobs:
       - name: Build pinned Pharo runtime
         run: docker build -t gmeow-gts-smalltalk smalltalk
 
-      - name: SUnit deterministic-CBOR bootstrap tests
+      - name: SUnit conformance and CLI parity tests
         run: |
           docker run --rm -v "${{ github.workspace }}:/workspace" \
             --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
