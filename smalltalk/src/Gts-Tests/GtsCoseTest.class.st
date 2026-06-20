@@ -39,3 +39,14 @@ GtsCoseTest >> testSign1MatchesFrozenVector [
 	self
 		assert: (GtsCose verifySign1: cose frameId: frameId publicKey: (GtsHex decode: (vector at: 'pub')))
 ]
+
+{ #category : #tests }
+GtsCoseTest >> testSign1RejectsAttachedPayload [
+	| cose |
+	cose := GtsCborWriter encode: (GtsCborTag tag: 18 value: {
+		GtsCose sign1Protected.
+		Dictionary newFromPairs: { 4. 'kid' utf8Encoded }.
+		'payload' utf8Encoded.
+		ByteArray new: GtsSodium ed25519SignatureBytes withAll: 0 }).
+	self should: [ GtsCose parseSign1: cose ] raise: Error
+]

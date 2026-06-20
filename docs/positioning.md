@@ -110,11 +110,11 @@ Command-level parity and intentional gaps are maintained in
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
 OKF support is intentionally Rust-first: the Rust CLI owns the initial
 Markdown/YAML bundle bridge, Knowledge Catalog interop checks, and `gts-okf-v1`
-directory contract while Python, Go, and TypeScript remain explicit parity
+directory contract while Python, Go, TypeScript, and Smalltalk remain explicit parity
 deferrals.
 Tar bridge support is also intentionally Rust-first: the Rust CLI owns the
 initial files-profile-v2 `from-tar`/`to-tar`/`tar` surface and the
-`vectors/tar/` corpus while Python, Go, and TypeScript remain explicit parity
+`vectors/tar/` corpus while Python, Go, TypeScript, and Smalltalk remain explicit parity
 deferrals until they pass the same archive safety and round-trip gates.
 Advanced streaming, proof, and replication work is tiered separately in
 [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).

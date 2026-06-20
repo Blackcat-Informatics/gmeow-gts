@@ -54,6 +54,12 @@ GtsFromNQuadsTest >> testFromNQuadsRejectsMalformedStatements [
 		should: [ GtsFromNQuads fromString: '<https://ex/s> <https://ex/p> .', String lf ]
 		raise: Error.
 	self
+		should: [ GtsFromNQuads fromString: '<https://ex/s> <https://ex/p> <https://ex/o>', String lf ]
+		raise: Error.
+	self
+		should: [ GtsFromNQuads fromString: '<https://ex/s> <https://ex/p> <https://ex/o> . extra', String lf ]
+		raise: Error.
+	self
 		should: [ GtsFromNQuads fromString: '<https://ex/s> <https://ex/p> _: .', String lf ]
 		raise: Error.
 	self

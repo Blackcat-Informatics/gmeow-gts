@@ -74,7 +74,8 @@ RUN ldconfig
 COPY src /opt/gts/src
 COPY scripts/gts /usr/local/bin/gts
 RUN chmod 0755 /usr/local/bin/gts \
-    && chmod -R a+rwX /opt/pharo /opt/gts
+    && chown -R pharo:users /opt/pharo /opt/gts \
+    && chmod -R u+rwX,g+rwX,o-rwX /opt/pharo /opt/gts
 
 USER pharo
 WORKDIR /workspace

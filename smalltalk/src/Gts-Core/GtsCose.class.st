@@ -73,6 +73,7 @@ GtsCose class >> parseSign1: coseBytes [
 	arr := tag value.
 	(arr isArray and: [ arr size = 4 ])
 		ifFalse: [ self error: 'malformed COSE_Sign1' ].
+	(arr at: 3) isNil ifFalse: [ self error: 'malformed COSE_Sign1' ].
 	unprotected := arr at: 2.
 	unprotected isDictionary ifFalse: [ self error: 'malformed COSE_Sign1' ].
 	kid := unprotected at: 4 ifAbsent: [ self error: 'malformed COSE_Sign1' ].

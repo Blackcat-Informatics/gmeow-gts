@@ -77,12 +77,19 @@ engines are visible rather than silently omitted.
 | Python | unpack | | | | | | |
 | Go | read-info | | | | | | |
 | Go | fold | | | | | | |
+| Go | write-from-nq | | | | | | |
 | Go | pack | | | | | | |
 | Go | unpack | | | | | | |
 | TypeScript | read-info | | | | | | |
 | TypeScript | fold | | | | | | |
+| TypeScript | write-from-nq | | | | | | |
 | TypeScript | pack | | | | | | |
 | TypeScript | unpack | | | | | | |
+| Smalltalk | read-info | | | | | | |
+| Smalltalk | fold | | | | | | |
+| Smalltalk | write-from-nq | | | | | | |
+| Smalltalk | pack | | | | | | |
+| Smalltalk | unpack | | | | | | |
 
 ## Streaming Memory Summary
 

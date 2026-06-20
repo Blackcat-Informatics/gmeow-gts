@@ -729,7 +729,10 @@ GtsReader class >> termKeyFor: termId in: segment segmentIndex: segmentIndex out
 			ifTrue: [ ^ 'bnode|', segmentIndex asString, '|', term value ].
 		^ 'bnode-anon|', segmentIndex asString, '|', termId asString ].
 	term kind = #triple ifTrue: [
-		^ 'triple|', (term reifier ifNil: [ -1 ]) asString ].
+		^ 'triple|', (term reifier
+			ifNil: [ -1 ]
+			ifNotNil: [ :reifier |
+				self mapTerm: reifier from: segment segmentIndex: segmentIndex into: output intern: intern ]) asString ].
 	^ 'unknown|', termId asString
 ]
 
@@ -778,6 +781,7 @@ GtsReader class >> unionSegments: segments [
 			output
 				addStreamableClaimed: (layout at: 'claimed')
 				covered: (layout at: 'covered')
-				tail: (layout at: 'tail') ] ].
+				tail: (layout at: 'tail')
+				head: (layout at: 'head' ifAbsent: [ nil ]) ] ].
 	^ output
 ]

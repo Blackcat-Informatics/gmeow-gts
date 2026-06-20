@@ -94,6 +94,7 @@ GtsFromNQuads class >> parseStatements: text [
 			tokenizer := GtsNQuadsTokenizer on: line.
 			nodes := OrderedCollection new.
 			[ tokenizer atEnd ] whileFalse: [ nodes add: tokenizer node ].
+			tokenizer consumeStatementTerminator.
 			(nodes size = 3 or: [ nodes size = 4 ])
 				ifFalse: [ self error: 'expected 3 or 4 terms, got ', nodes size asString, ': ', line ].
 			self validate: nodes asArray line: line.

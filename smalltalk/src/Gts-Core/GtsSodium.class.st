@@ -30,20 +30,22 @@ GtsSodium class >> aes256GcmIsAvailable [
 
 { #category : #encryption }
 GtsSodium class >> aes256GcmDecrypt: ciphertext additionalData: additionalData nonce: nonce key: key [
-	| ciphertextBytes additionalDataBytes message result |
+	| ciphertextBytes additionalDataBytes keyBytes message nonceBytes result |
 	self ensureInitialized.
 	ciphertextBytes := ciphertext asByteArray.
 	ciphertextBytes size >= self aes256GcmMacBytes
 		ifFalse: [ self error: 'AES-256-GCM ciphertext is shorter than its tag' ].
 	additionalDataBytes := additionalData asByteArray.
+	nonceBytes := self requireBytes: nonce asByteArray named: 'AES-256-GCM nonce' size: self aes256GcmNonceBytes.
+	keyBytes := self requireBytes: key asByteArray named: 'AES-256-GCM key' size: self aes256GcmKeyBytes.
 	message := ByteArray new: ciphertextBytes size - self aes256GcmMacBytes.
 	result := GtsSodiumLibrary uniqueInstance
 		aes256GcmDecrypt: ciphertextBytes
 		length: ciphertextBytes size
 		additionalData: additionalDataBytes
 		additionalDataLength: additionalDataBytes size
-		nonce: nonce asByteArray
-		key: key asByteArray
+		nonce: nonceBytes
+		key: keyBytes
 		output: message.
 	self requireSuccess: result.
 	^ message
@@ -51,18 +53,20 @@ GtsSodium class >> aes256GcmDecrypt: ciphertext additionalData: additionalData n
 
 { #category : #encryption }
 GtsSodium class >> aes256GcmEncrypt: message additionalData: additionalData nonce: nonce key: key [
-	| messageBytes additionalDataBytes ciphertext result |
+	| messageBytes additionalDataBytes ciphertext keyBytes nonceBytes result |
 	self ensureInitialized.
 	messageBytes := message asByteArray.
 	additionalDataBytes := additionalData asByteArray.
+	nonceBytes := self requireBytes: nonce asByteArray named: 'AES-256-GCM nonce' size: self aes256GcmNonceBytes.
+	keyBytes := self requireBytes: key asByteArray named: 'AES-256-GCM key' size: self aes256GcmKeyBytes.
 	ciphertext := ByteArray new: messageBytes size + self aes256GcmMacBytes.
 	result := GtsSodiumLibrary uniqueInstance
 		aes256GcmEncrypt: messageBytes
 		length: messageBytes size
 		additionalData: additionalDataBytes
 		additionalDataLength: additionalDataBytes size
-		nonce: nonce asByteArray
-		key: key asByteArray
+		nonce: nonceBytes
+		key: keyBytes
 		output: ciphertext.
 	self requireSuccess: result.
 	^ ciphertext
@@ -100,20 +104,26 @@ GtsSodium class >> ensureInitialized [
 ]
 
 { #category : #private }
+GtsSodium class >> requireBytes: bytes named: label size: expectedSize [
+	bytes size = expectedSize
+		ifFalse: [ self error: label, ' must be ', expectedSize asString, ' bytes' ].
+	^ bytes
+]
+
+{ #category : #private }
 GtsSodium class >> requireSuccess: result [
 	result = 0 ifFalse: [ self error: 'libsodium operation failed' ]
 ]
 
 { #category : #signing }
 GtsSodium class >> seedKeyPairFrom: seed [
-	| publicKey secretKey result |
+	| publicKey secretKey seedBytes result |
 	self ensureInitialized.
-	seed size = self ed25519SeedBytes
-		ifFalse: [ self error: 'Ed25519 seed must be 32 bytes' ].
+	seedBytes := self requireBytes: seed asByteArray named: 'Ed25519 seed' size: self ed25519SeedBytes.
 	publicKey := ByteArray new: self ed25519PublicKeyBytes.
 	secretKey := ByteArray new: self ed25519SecretKeyBytes.
 	result := GtsSodiumLibrary uniqueInstance
-		seedKeyPairFrom: seed asByteArray
+		seedKeyPairFrom: seedBytes
 		publicKey: publicKey
 		secretKey: secretKey.
 	self requireSuccess: result.
@@ -124,14 +134,15 @@ GtsSodium class >> seedKeyPairFrom: seed [
 
 { #category : #signing }
 GtsSodium class >> sign: message secretKey: secretKey [
-	| messageBytes signature result |
+	| messageBytes secretKeyBytes signature result |
 	self ensureInitialized.
 	messageBytes := message asByteArray.
+	secretKeyBytes := self requireBytes: secretKey asByteArray named: 'Ed25519 secret key' size: self ed25519SecretKeyBytes.
 	signature := ByteArray new: self ed25519SignatureBytes.
 	result := GtsSodiumLibrary uniqueInstance
 		ed25519Sign: messageBytes
 		length: messageBytes size
-		secretKey: secretKey asByteArray
+		secretKey: secretKeyBytes
 		output: signature.
 	self requireSuccess: result.
 	^ signature
@@ -139,12 +150,14 @@ GtsSodium class >> sign: message secretKey: secretKey [
 
 { #category : #signing }
 GtsSodium class >> verify: signature message: message publicKey: publicKey [
-	| messageBytes |
+	| messageBytes publicKeyBytes signatureBytes |
 	self ensureInitialized.
 	messageBytes := message asByteArray.
+	signatureBytes := self requireBytes: signature asByteArray named: 'Ed25519 signature' size: self ed25519SignatureBytes.
+	publicKeyBytes := self requireBytes: publicKey asByteArray named: 'Ed25519 public key' size: self ed25519PublicKeyBytes.
 	^ (GtsSodiumLibrary uniqueInstance
-		ed25519Verify: signature asByteArray
+		ed25519Verify: signatureBytes
 		message: messageBytes
 		length: messageBytes size
-		publicKey: publicKey asByteArray) = 0
+		publicKey: publicKeyBytes) = 0
 ]

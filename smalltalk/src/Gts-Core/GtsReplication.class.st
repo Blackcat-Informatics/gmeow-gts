@@ -171,7 +171,14 @@ GtsReplication class >> jsonByteRangeStart: start end: end [
 
 { #category : #json }
 GtsReplication class >> jsonString: string [
-	^ '"', string, '"'
+	| escaped |
+	escaped := string asString.
+	escaped := escaped copyReplaceAll: '\' with: '\\'.
+	escaped := escaped copyReplaceAll: '"' with: '\"'.
+	escaped := escaped copyReplaceAll: String lf with: '\n'.
+	escaped := escaped copyReplaceAll: String cr with: '\r'.
+	escaped := escaped copyReplaceAll: String tab with: '\t'.
+	^ '"', escaped, '"'
 ]
 
 { #category : #json }

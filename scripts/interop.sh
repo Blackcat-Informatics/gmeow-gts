@@ -47,6 +47,7 @@ gts() {
     smalltalk)
       docker run --rm \
         --user "$(id -u):$(id -g)" \
+        --group-add 100 \
         -e HOME=/tmp \
         -v "$ROOT:/workspace" \
         -v "$ROOT:$ROOT" \

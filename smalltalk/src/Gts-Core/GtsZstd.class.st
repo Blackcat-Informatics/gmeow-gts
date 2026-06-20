@@ -32,6 +32,10 @@ GtsZstd class >> decompress: aByteArray [
 { #category : #decompression }
 GtsZstd class >> decompress: aByteArray expectedSize: expectedSize [
 	| inputBytes outputBytes outputSize |
+	(expectedSize isInteger
+		and: [ expectedSize >= 0
+		and: [ expectedSize <= self maxDecompressedBytes ] ])
+		ifFalse: [ self error: 'zstd decode failed: decompressed size exceeds safety bound' ].
 	inputBytes := aByteArray asByteArray.
 	outputBytes := ByteArray new: expectedSize.
 	outputSize := GtsZstdLibrary uniqueInstance
@@ -69,6 +73,11 @@ GtsZstd class >> frameContentSizeFor: aByteArray [
 { #category : #private }
 GtsZstd class >> frameContentSizeUnknown [
 	^ 16rFFFFFFFFFFFFFFFF
+]
+
+{ #category : #accessing }
+GtsZstd class >> maxDecompressedBytes [
+	^ 16 * 1024 * 1024
 ]
 
 { #category : #accessing }

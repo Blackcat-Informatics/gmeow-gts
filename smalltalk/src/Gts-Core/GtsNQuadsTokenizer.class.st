@@ -51,6 +51,17 @@ GtsNQuadsTokenizer >> bnode [
 ]
 
 { #category : #private }
+GtsNQuadsTokenizer >> consumeStatementTerminator [
+	self skipWhitespace.
+	(position <= source size and: [ (source at: position) = $. ])
+		ifFalse: [ self error: 'expected statement terminator in ', source ].
+	position := position + 1.
+	self skipWhitespace.
+	position <= source size
+		ifTrue: [ self error: 'unexpected trailing tokens in ', source ]
+]
+
+{ #category : #private }
 GtsNQuadsTokenizer >> escape [
 	| character code raw width |
 	position > source size ifTrue: [ self error: 'bad escape at end of ', source ].

@@ -33,6 +33,13 @@ GtsCliParityTest >> testCatRequiresAtLeastTwoInputs [
 ]
 
 { #category : #tests }
+GtsCliParityTest >> testReplicationJsonStringsEscapeSpecialCharacters [
+	self
+		assert: (GtsReplication jsonString: ('a"b\c', String lf, String tab, 'd'))
+		equals: '"a\"b\\c\n\td"'
+]
+
+{ #category : #tests }
 GtsCliParityTest >> testProfileFindingReportsFilesVocabularyWithoutDeclaration [
 	| findings graph |
 	graph := GtsGraph new.

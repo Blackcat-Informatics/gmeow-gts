@@ -453,6 +453,7 @@ def setup_engine(
         command = ["docker", "run", "--rm"]
         if hasattr(os, "getuid") and hasattr(os, "getgid"):
             command.extend(["--user", f"{os.getuid()}:{os.getgid()}"])
+            command.extend(["--group-add", "100"])
         command.extend(
             [
                 "-e",

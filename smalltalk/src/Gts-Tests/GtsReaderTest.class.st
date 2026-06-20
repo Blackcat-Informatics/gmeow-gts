@@ -39,6 +39,41 @@ GtsReaderTest >> testMinimalVectorProjectsToNQuads [
 ]
 
 { #category : #tests }
+GtsReaderTest >> testUnionSegmentsPreservesStreamableHead [
+	| graph head union |
+	graph := GtsGraph new.
+	head := GtsHex decode: (String new: 64 withAll: $a).
+	graph addStreamableClaimed: true covered: 3 tail: 12 head: head.
+	union := GtsReader unionSegments: { graph }.
+	self assert: ((union streamable first) at: 'head') equals: head
+]
+
+{ #category : #tests }
+GtsReaderTest >> testUnionSegmentsSeparatesDistinctLocalTripleReifiers [
+	| first second tripleTerms union |
+	first := GtsGraph new.
+	first addTerm: (GtsTerm iri: 'https://ex/r1').
+	first addTerm: (GtsTerm iri: 'https://ex/s').
+	first addTerm: (GtsTerm iri: 'https://ex/p').
+	first addTerm: (GtsTerm iri: 'https://ex/o').
+	first addTerm: (GtsTerm tripleReifier: 0).
+	first setReifier: 0 to: #(1 2 3).
+	first addQuad: #(4 2 3).
+	second := GtsGraph new.
+	second addTerm: (GtsTerm iri: 'https://ex/r2').
+	second addTerm: (GtsTerm iri: 'https://ex/s').
+	second addTerm: (GtsTerm iri: 'https://ex/p').
+	second addTerm: (GtsTerm iri: 'https://ex/o').
+	second addTerm: (GtsTerm tripleReifier: 0).
+	second setReifier: 0 to: #(1 2 3).
+	second addQuad: #(4 2 3).
+	union := GtsReader unionSegments: { first. second }.
+	tripleTerms := union terms select: [ :term | term kind = #triple ].
+	self assert: tripleTerms size equals: 2.
+	self assert: union quads size equals: 2
+]
+
+{ #category : #tests }
 GtsReaderTest >> testZstdVectorFoldsToExpectedGraph [
 	| graph |
 	graph := GtsReader read: self readZstdVectorBytes.

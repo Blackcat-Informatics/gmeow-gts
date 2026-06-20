@@ -44,6 +44,31 @@ GtsSodiumTest >> testAes256GcmRoundTripWhenAvailable [
 ]
 
 { #category : #tests }
+GtsSodiumTest >> testAes256GcmRejectsWrongKeyAndNonceSizes [
+	| key message nonce |
+	GtsSodium aes256GcmIsAvailable ifFalse: [ ^ self ].
+	key := self byteArrayOfSize: GtsSodium aes256GcmKeyBytes with: 7.
+	nonce := self byteArrayOfSize: GtsSodium aes256GcmNonceBytes with: 9.
+	message := 'bounded native buffers' utf8Encoded.
+	self
+		should: [
+			GtsSodium
+				aes256GcmEncrypt: message
+				additionalData: ByteArray new
+				nonce: ByteArray new
+				key: key ]
+		raise: Error.
+	self
+		should: [
+			GtsSodium
+				aes256GcmEncrypt: message
+				additionalData: ByteArray new
+				nonce: nonce
+				key: ByteArray new ]
+		raise: Error
+]
+
+{ #category : #tests }
 GtsSodiumTest >> testEd25519SignsAndVerifies [
 	| keyPair message signature tampered |
 	keyPair := GtsSodium seedKeyPairFrom: (self byteArrayOfSize: GtsSodium ed25519SeedBytes with: 1).
@@ -58,6 +83,26 @@ GtsSodiumTest >> testEd25519SignsAndVerifies [
 	tampered := message copy.
 	tampered at: 1 put: ((tampered at: 1) bitXor: 1).
 	self deny: (GtsSodium verify: signature message: tampered publicKey: (keyPair at: 'publicKey'))
+]
+
+{ #category : #tests }
+GtsSodiumTest >> testEd25519RejectsWrongBufferSizes [
+	| keyPair message signature |
+	keyPair := GtsSodium seedKeyPairFrom: (self byteArrayOfSize: GtsSodium ed25519SeedBytes with: 1).
+	message := 'bounded Ed25519 buffers' utf8Encoded.
+	signature := GtsSodium sign: message secretKey: (keyPair at: 'secretKey').
+	self
+		should: [ GtsSodium seedKeyPairFrom: ByteArray new ]
+		raise: Error.
+	self
+		should: [ GtsSodium sign: message secretKey: ByteArray new ]
+		raise: Error.
+	self
+		should: [ GtsSodium verify: ByteArray new message: message publicKey: (keyPair at: 'publicKey') ]
+		raise: Error.
+	self
+		should: [ GtsSodium verify: signature message: message publicKey: ByteArray new ]
+		raise: Error
 ]
 
 { #category : #tests }
