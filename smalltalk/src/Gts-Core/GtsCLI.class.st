@@ -18,6 +18,8 @@ GtsCLI class >> run: args [
 		command = 'segments' ifTrue: [ ^ self runSegments: args allButFirst ].
 		command = 'missing' ifTrue: [ ^ self runMissing: args allButFirst ].
 		command = 'resume' ifTrue: [ ^ self runResume: args allButFirst ].
+		command = 'verify-proof' ifTrue: [ ^ self runVerifyProof: args allButFirst ].
+		command = 'extract-key' ifTrue: [ ^ self runExtractKey: args allButFirst ].
 		command = 'info' ifTrue: [ ^ self runInfo: args allButFirst ].
 		command = 'verify' ifTrue: [ ^ self runInfo: args allButFirst ].
 		command = 'ls' ifTrue: [ ^ self runLs: args allButFirst ].
@@ -76,6 +78,15 @@ GtsCLI class >> runExtract: args [
 	outPath
 		ifNil: [ self stdoutBytes: (graph blobs at: digest) ]
 		ifNotNil: [ self writeFile: outPath bytes: (graph blobs at: digest) ].
+	^ 0
+]
+
+{ #category : #commands }
+GtsCLI class >> runExtractKey: args [
+	| graph |
+	args size = 1 ifFalse: [ self stderr: self usage. ^ 2 ].
+	graph := GtsReader read: (self readFile: args first).
+	self stdout: (GtsOpenPGP extractKeyTextFromGraph: graph).
 	^ 0
 ]
 
@@ -202,6 +213,16 @@ GtsCLI class >> runUnpack: args [
 	^ 0
 ]
 
+{ #category : #commands }
+GtsCLI class >> runVerifyProof: args [
+	| proof |
+	args size = 1 ifFalse: [ self stderr: self usage. ^ 2 ].
+	proof := GtsMMR verifyProofJson: (self readFile: args first).
+	self stdout: 'proof ok: root ', (GtsHex encode: (proof at: 'root')),
+		' frame ', (GtsHex encode: (proof at: 'frame_id')), String lf.
+	^ 0
+]
+
 { #category : #io }
 GtsCLI class >> readFile: path [
 	^ path asFileReference binaryReadStreamDo: [ :stream | stream upToEnd ]
@@ -209,12 +230,12 @@ GtsCLI class >> readFile: path [
 
 { #category : #io }
 GtsCLI class >> stderr: text [
-	Stdio stderr nextPutAll: text
+	Stdio stderr nextPutAll: text utf8Encoded
 ]
 
 { #category : #io }
 GtsCLI class >> stdout: text [
-	Stdio stdout nextPutAll: text
+	Stdio stdout nextPutAll: text utf8Encoded
 ]
 
 { #category : #io }
