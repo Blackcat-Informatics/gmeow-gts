@@ -9,6 +9,10 @@ go/bin/
 ts/node_modules/
 ts/dist/
 
+# Kotlin / JVM
+kotlin/.gradle/
+kotlin/build/
+
 # Python
 python/.venv/
 python/dist/
