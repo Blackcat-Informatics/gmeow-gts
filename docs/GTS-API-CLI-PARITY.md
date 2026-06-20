@@ -3,9 +3,9 @@
 
 # GTS API And CLI Parity Contract
 
-This document defines the cross-language surface that Rust, Python, Go, and TypeScript keep
-compatible while the engines continue to expose native idioms. The wire format remains normative
-in [`GTS-SPEC.md`](./GTS-SPEC.md), and corpus/tier rules remain normative in
+This document defines the cross-language surface that Rust, Python, Go, TypeScript, and
+Smalltalk/Pharo keep compatible while the engines continue to expose native idioms. The wire
+format remains normative in [`GTS-SPEC.md`](./GTS-SPEC.md), and corpus/tier rules remain normative in
 [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md). This contract owns the public API shape and CLI
 parity matrix so feature gaps are explicit rather than inferred from package-specific docs.
 
@@ -16,18 +16,18 @@ the following operations and folded fields are the compatibility target.
 
 | operation | contract | current native surface |
 |---|---|---|
-| `read(input, options)` | Parse a byte buffer or path as a CBOR Sequence, verify the id/prev chain, fold every recoverable frame, and return a graph/result with diagnostics instead of panicking on malformed input. | Python `gts.read(data, keys=None, expected_head=None, allow_segments=True)`; Rust `reader::read(&bytes, allow_segments, expected_head)` or `reader::read_with_options` with `ReadOptions::with_content_key`; Go `reader.Read(data, allowSegments, expectedHead)`; TypeScript `Read(bytes, allowSegments, expectedHead?)`. |
+| `read(input, options)` | Parse a byte buffer or path as a CBOR Sequence, verify the id/prev chain, fold every recoverable frame, and return a graph/result with diagnostics instead of panicking on malformed input. | Python `gts.read(data, keys=None, expected_head=None, allow_segments=True)`; Rust `reader::read(&bytes, allow_segments, expected_head)` or `reader::read_with_options` with `ReadOptions::with_content_key`; Go `reader.Read(data, allowSegments, expectedHead)`; TypeScript `Read(bytes, allowSegments, expectedHead?)`; Smalltalk `GtsReader read:allowSegments:`. |
 | `verify(input, options)` | Apply strict transport checks over the same fold: chain/hash diagnostics, expected-head freshness when provided, streamable-layout checks when requested, and COSE signature status when keys are provided. | CLI `gts verify`; Python `gts.verify.verify_file`; Rust `gmeow_gts::verify::verify_file` plus folded diagnostics and lower-level COSE helpers in every engine. |
-| `write(graph/events, options)` | Emit deterministic CBOR for hashed or signed bytes, compute each frame id from its content, and set `prev` to the previous frame id. | Python `Writer`; Rust `writer::Writer`; Go `writer.New`; TypeScript `Writer`. |
+| `write(graph/events, options)` | Emit deterministic CBOR for hashed or signed bytes, compute each frame id from its content, and set `prev` to the previous frame id. | Python `Writer`; Rust `writer::Writer`; Go `writer.New`; TypeScript `Writer`; Smalltalk `GtsWriter`. |
 | `fold(input)` | Return the deterministic GTS value fold: terms, quads, reifiers, annotations, blobs, suppressions, opaque nodes, signatures, segment heads, profiles, and streamable layout state. | Same object returned by `read`. |
-| `to_nquads(graph)` | Project the folded RDF dataset to sorted N-Quads text with the same value semantics across engines. | Python `to_nquads`; Rust `nquads::to_nquads`; Go `nquads.ToNQuads`; TypeScript `toNQuads`. |
-| `from_nquads(input)` | Build a GTS file from N-Quads text using the shared writer semantics. | Python `from_nquads`; Rust `from_nquads::from_nquads`; Go `fromnquads.FromNQuads`; TypeScript `fromNQuads`; CLI `gts from-nq` in every engine. |
+| `to_nquads(graph)` | Project the folded RDF dataset to sorted N-Quads text with the same value semantics across engines. | Python `to_nquads`; Rust `nquads::to_nquads`; Go `nquads.ToNQuads`; TypeScript `toNQuads`; Smalltalk `GtsNQuads`. |
+| `from_nquads(input)` | Build a GTS file from N-Quads text using the shared writer semantics. | Python `from_nquads`; Rust `from_nquads::from_nquads`; Go `fromnquads.FromNQuads`; TypeScript `fromNQuads`; Smalltalk `GtsFromNQuads`; CLI `gts from-nq` in every engine. |
 | `to_trig(graph)` / `from_trig(input)` | Project folded RDF to readable TriG graph blocks and rebuild GTS bytes from the supported TriG surface without changing N-Quads content. | Python `gts.trig.to_trig` / `from_trig`; Rust `trig::to_trig` / `from_trig::from_trig`; CLI `gts to-trig` and `gts from-trig` in Python and Rust. |
-| graph iterators/accessors | Expose resolved access to terms, quads, reifier bindings, annotations, suppressions, blobs, opaque nodes, signatures, diagnostics, segment heads, profiles, metadata, and streamable state. | Native fields on `Graph` in all four engines, with helper lookups where idiomatic. |
-| blobs | Preserve inline blob bytes by `blake3:<hex>` digest and retain declared blob metadata such as media type. Extraction MUST re-hash bytes before writing them. Implementations MAY keep transformed blob bytes lazy until access. | Python `Graph.blobs`/`blob_meta`; Rust `Graph.blobs` lazy `BlobEntry` plus `blob_entry`/`blob_bytes`/`decoded_blobs`; Go `Graph.Blobs`/`BlobMeta`; TypeScript `Graph.blobs`/`blobMeta`. |
+| graph iterators/accessors | Expose resolved access to terms, quads, reifier bindings, annotations, suppressions, blobs, opaque nodes, signatures, diagnostics, segment heads, profiles, metadata, and streamable state. | Native fields on `Graph`/`GtsGraph` in all five engines, with helper lookups where idiomatic. |
+| blobs | Preserve inline blob bytes by `blake3:<hex>` digest and retain declared blob metadata such as media type. Extraction MUST re-hash bytes before writing them. Implementations MAY keep transformed blob bytes lazy until access. | Python `Graph.blobs`/`blob_meta`; Rust `Graph.blobs` lazy `BlobEntry` plus `blob_entry`/`blob_bytes`/`decoded_blobs`; Go `Graph.Blobs`/`BlobMeta`; TypeScript `Graph.blobs`/`blobMeta`; Smalltalk `GtsGraph blobs`/`blobMeta`. |
 | opaque nodes | Preserve undecodable or unsupported recoverable frames as graph-visible opaque nodes with a frame id, frame type, reason, and signature status. | `OpaqueNode` in every engine. |
 | diagnostics | Preserve stable diagnostic `code` values and optional frame indexes; native detail text may differ. | `Diagnostic.code/detail/frame_index`, `Diagnostic { code, detail, frame_index }`, `Diagnostic{Code, Detail, FrameIndex}`, `Diagnostic.code/detail/frameIndex`. |
-| streaming/full-reader options | Carry read mode, segment allowance, expected head, key provider, recursion/decode budgets, and streamable validation as options. Engines MAY stage these as separate helpers while preserving the same observable fold and diagnostics. | Python `keys`, Rust `ReadOptions`/`read_to_sink_with_options`, Go `reader.Options`/`reader.ReadToSink`, `allow_segments`/`allowSegments`, `expected_head`/`expectedHead`, and CLI flags today; deeper recursion/MMR options are future Full Reader work. |
+| streaming/full-reader options | Carry read mode, segment allowance, expected head, key provider, recursion/decode budgets, and streamable validation as options. Engines MAY stage these as separate helpers while preserving the same observable fold and diagnostics. | Python `keys`, Rust `ReadOptions`/`read_to_sink_with_options`, Go `reader.Options`/`reader.ReadToSink`, TypeScript `allowSegments`, Smalltalk `allowSegments`, and CLI flags today; deeper recursion/MMR options are future Full Reader work. |
 
 ## Cross-Language Equality Targets
 
@@ -49,15 +49,15 @@ Reader diagnostics are data, not thrown control flow, for permissive reads. Stri
 publication commands MAY convert any error or fatal diagnostic into a non-zero process exit or a
 native error return.
 
-| concept | Python | Rust | Go | TypeScript |
-|---|---|---|---|---|
-| diagnostic record | `gts.Diagnostic` dataclass | `model::Diagnostic` struct | `model.Diagnostic` struct | `Diagnostic` interface |
-| code field | `code: str` | `code: String` | `Code string` | `code: string` |
-| detail field | `detail: str` | `detail: String` | `Detail string` | `detail: string` |
-| frame index | `frame_index: int \| None` | `frame_index: Option<usize>` | `FrameIndex *int` | `frameIndex?: number` |
-| permissive read result | `Graph` with `diagnostics` | `Graph` with `diagnostics` | `*model.Graph` with `Diagnostics` | `Graph` with `diagnostics` |
-| strict CLI failure | exit `1` for diagnostics/refusal | exit `1` for diagnostics/refusal | exit `1` for diagnostics/refusal | exit `1` for diagnostics/refusal |
-| usage or I/O failure | exit `2` | exit `2` | exit `2` | exit `2` |
+| concept | Python | Rust | Go | TypeScript | Smalltalk |
+|---|---|---|---|---|---|
+| diagnostic record | `gts.Diagnostic` dataclass | `model::Diagnostic` struct | `model.Diagnostic` struct | `Diagnostic` interface | `GtsDiagnostic` object |
+| code field | `code: str` | `code: String` | `Code string` | `code: string` | `code` |
+| detail field | `detail: str` | `detail: String` | `Detail string` | `detail: string` | `detail` |
+| frame index | `frame_index: int \| None` | `frame_index: Option<usize>` | `FrameIndex *int` | `frameIndex?: number` | `frameIndex` |
+| permissive read result | `Graph` with `diagnostics` | `Graph` with `diagnostics` | `*model.Graph` with `Diagnostics` | `Graph` with `diagnostics` | `GtsGraph` with `diagnostics` |
+| strict CLI failure | exit `1` for diagnostics/refusal | exit `1` for diagnostics/refusal | exit `1` for diagnostics/refusal | exit `1` for diagnostics/refusal | exit `1` for diagnostics/refusal |
+| usage or I/O failure | exit `2` | exit `2` | exit `2` | exit `2` | exit `2` |
 
 The canonical diagnostic code registry is in
 [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md#6-diagnostics-registry).
@@ -70,39 +70,39 @@ intentional public gap until a parity issue lands. The matrix is checked by
 actual dispatch surfaces.
 
 <!-- cli-parity-matrix:start -->
-| verb | Python | Rust | Go | TypeScript | status |
-|---|---|---|---|---|---|
-| `info` | yes | yes | yes | yes | common |
-| `fold` | yes | yes | yes | yes | common |
-| `verify` | yes | yes | yes | yes | common |
-| `extract-key` | yes | yes | yes | yes | common |
-| `ls` | yes | yes | yes | yes | common |
-| `extract` | yes | yes | yes | yes | common |
-| `cat` | yes | yes | yes | yes | common |
-| `compact` | yes | yes | yes | yes | common |
-| `pack` | yes | yes | yes | yes | common |
-| `unpack` | yes | yes | yes | yes | common |
-| `diff` | yes | yes | yes | yes | common |
-| `from-nq` | yes | yes | yes | yes | common |
-| `to-trig` | yes | yes | no | no | Python/Rust transform extension |
-| `from-trig` | yes | yes | no | no | Python/Rust transform extension |
-| `to-yaml-ld` | no | yes | no | no | Rust transform extension |
-| `from-yaml-ld` | no | yes | no | no | Rust transform extension |
-| `to-okf` | no | yes | no | no | Rust OKF profile extension |
-| `from-okf` | no | yes | no | no | Rust OKF profile extension |
-| `to-tar` | no | yes | no | no | Rust tar bridge extension |
-| `from-tar` | no | yes | no | no | Rust tar bridge extension |
-| `tar` | no | yes | no | no | Rust tar-compatible extension |
-| `to-sqlite` | yes | yes | no | no | Python/Rust extension |
-| `to-duckdb` | yes | yes | no | no | Python/Rust extension |
-| `to-parquet` | yes | yes | no | no | Python/Rust extension |
-| `prove` | no | yes | no | no | Rust proof creation extension |
-| `dump` | no | yes | no | no | Rust inspection export extension |
-| `verify-proof` | yes | yes | yes | yes | common |
-| `heads` | yes | yes | yes | yes | common |
-| `segments` | yes | yes | yes | yes | common |
-| `missing` | yes | yes | yes | yes | common |
-| `resume` | yes | yes | yes | yes | common |
+| verb | Python | Rust | Go | TypeScript | Smalltalk | status |
+|---|---|---|---|---|---|---|
+| `info` | yes | yes | yes | yes | yes | common |
+| `fold` | yes | yes | yes | yes | yes | common |
+| `verify` | yes | yes | yes | yes | yes | common |
+| `extract-key` | yes | yes | yes | yes | yes | common |
+| `ls` | yes | yes | yes | yes | yes | common |
+| `extract` | yes | yes | yes | yes | yes | common |
+| `cat` | yes | yes | yes | yes | yes | common |
+| `compact` | yes | yes | yes | yes | yes | common |
+| `pack` | yes | yes | yes | yes | yes | common |
+| `unpack` | yes | yes | yes | yes | yes | common |
+| `diff` | yes | yes | yes | yes | yes | common |
+| `from-nq` | yes | yes | yes | yes | yes | common |
+| `to-trig` | yes | yes | no | no | no | Python/Rust transform extension |
+| `from-trig` | yes | yes | no | no | no | Python/Rust transform extension |
+| `to-yaml-ld` | no | yes | no | no | no | Rust transform extension |
+| `from-yaml-ld` | no | yes | no | no | no | Rust transform extension |
+| `to-okf` | no | yes | no | no | no | Rust OKF profile extension |
+| `from-okf` | no | yes | no | no | no | Rust OKF profile extension |
+| `to-tar` | no | yes | no | no | no | Rust tar bridge extension |
+| `from-tar` | no | yes | no | no | no | Rust tar bridge extension |
+| `tar` | no | yes | no | no | no | Rust tar-compatible extension |
+| `to-sqlite` | yes | yes | no | no | no | Python/Rust extension |
+| `to-duckdb` | yes | yes | no | no | no | Python/Rust extension |
+| `to-parquet` | yes | yes | no | no | no | Python/Rust extension |
+| `prove` | no | yes | no | no | no | Rust proof creation extension |
+| `dump` | no | yes | no | no | no | Rust inspection export extension |
+| `verify-proof` | yes | yes | yes | yes | yes | common |
+| `heads` | yes | yes | yes | yes | yes | common |
+| `segments` | yes | yes | yes | yes | yes | common |
+| `missing` | yes | yes | yes | yes | yes | common |
+| `resume` | yes | yes | yes | yes | yes | common |
 <!-- cli-parity-matrix:end -->
 
 ### Intentional Gaps
@@ -112,13 +112,13 @@ actual dispatch surfaces.
   and Parquet exports require the Python `[db]` extra. Rust streams SQL rows to the runtime
   tool instead of retaining all relational rows or a complete SQL script in memory; the stable
   `blobs.bytes` schema still requires transient blob decoding while each blob row is emitted.
-- Go and TypeScript do not yet expose relational exports.
+- Go, TypeScript, and Smalltalk do not yet expose relational exports.
 - `to-trig` and `from-trig` are Python/Rust transform extensions. They preserve the same
-  folded RDF content as the N-Quads projection while using readable TriG graph blocks; Go and
-  TypeScript parity can land later against the same round-trip expectations.
+  folded RDF content as the N-Quads projection while using readable TriG graph blocks; Go,
+  TypeScript, and Smalltalk parity can land later against the same round-trip expectations.
 - `to-yaml-ld` and `from-yaml-ld` are Rust-only extension verbs behind
   `--features yaml-ld`. They are transform-only shims over folded graph tables,
-  not a wire-format or canonical-catalog change; Python, Go, and TypeScript
+  not a wire-format or canonical-catalog change; Python, Go, TypeScript, and Smalltalk
   parity can land later with a shared corpus oracle addition if needed.
 - `to-okf` and `from-okf` are Rust-only OKF profile verbs behind
   `--features okf`. They map an OKF Markdown bundle to GTS profile `okf`
@@ -126,25 +126,25 @@ actual dispatch surfaces.
   queryable link edges, navigation `index.md` tolerance, and `_unmapped.nq`
   for out-of-profile RDF. The committed OKF corpus, including
   `vectors/okf/bigquery-join/`, is the required parity gate for any future
-  Python, Go, or TypeScript implementation. Those engines must remain `no`
+  Python, Go, TypeScript, or Smalltalk implementation. Those engines must remain `no`
   here until they can import/export the `gts-okf-v1` directory contract and
   preserve the folded N-Quads expectations.
 - `to-tar`, `from-tar`, and `tar` are Rust-only files-profile-v2 bridge verbs behind
   `--features tar`. They map tar streams to GTS files and back while preserving
   files-profile metadata, opt-in link/special-file records, gzip/zstd wrapping,
   unknown PAX records, and a tar-compatible `-c/-x/-t/-d` command surface. Python,
-  Go, and TypeScript parity should land later against the same safety policy and
+  Go, TypeScript, and Smalltalk parity should land later against the same safety policy and
   round-trip behavior. The required parity gate is the committed `vectors/tar/` corpus plus
   files-profile-v2 import/export behavior; those engines must remain `no` here until
   they can preserve the same manifest metadata, refusal policy, and tar round-trip
   expectations.
 - `dump` is a Rust-only inspection export that writes a versioned directory tree with folded
   N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads. It is
-  not a wire-format change; Python, Go, and TypeScript parity can implement the same
+  not a wire-format change; Python, Go, TypeScript, and Smalltalk parity can implement the same
   `gts-dump-v1` directory contract later.
 - All engines implement `verify-proof` for detached MMR proof JSON using the stable preimages and
   the positive/negative fixtures in `vectors/proofs/`. Rust additionally implements `prove` from
-  files that carry a verified `index.mmr` root. Python, Go, and TypeScript should not expose
+  files that carry a verified `index.mmr` root. Python, Go, TypeScript, and Smalltalk should not expose
   `prove` until they can create file-backed proofs against the same fixture discipline.
 - All engines implement the replication verbs with the same JSON schemas and resume boundary
   rules: `gts-replication-heads-v1`, `gts-replication-segments-v1`, and
@@ -175,7 +175,7 @@ blocks, and package-specific README text in the same change.
 
 ## Files Profile Command Contract
 
-`pack`, `unpack`, and `diff` are common commands in all four engines. Their observable behavior
+`pack`, `unpack`, and `diff` are common commands in all five engines. Their observable behavior
 is part of the parity surface:
 
 - `pack <dir|file>... -o out.gts` emits a single `files` segment with catalog terms/quads before

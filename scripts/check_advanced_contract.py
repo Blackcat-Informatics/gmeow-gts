@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 from check_cli_parity import (
     ENGINES,
@@ -16,6 +15,7 @@ from check_cli_parity import (
     parse_contract_matrix,
     python_verbs,
     rust_verbs,
+    smalltalk_verbs,
     typescript_verbs,
 )
 
@@ -52,6 +52,7 @@ def main() -> int:
         "Rust": rust_verbs(),
         "Go": go_verbs(),
         "TypeScript": typescript_verbs(),
+        "Smalltalk": smalltalk_verbs(),
     }
     errors: list[str] = []
 

@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0
 #
-# Developer shortcuts across the four engines. Run `just` to list recipes.
-# Requires the per-engine toolchains: cargo, go, node/npm, and uv.
+# Developer shortcuts across the five engines. Run `just` to list recipes.
+# Requires the per-engine toolchains: cargo, go, node/npm, uv, and Docker.
 
 set shell := ["bash", "-cu"]
 
@@ -83,7 +83,7 @@ interop:
     bash scripts/interop.sh
 
 # Run the release benchmark suite and write JSON/Markdown reports under dist/benchmarks/.
-bench-release engines="rust,python,go,ts" iterations="3":
+bench-release engines="rust,python,go,ts,smalltalk" iterations="3":
     python scripts/bench_release_suite.py --engines "{{engines}}" --iterations "{{iterations}}"
 
 # Verify the Rust, Python, and npm versions agree (lockstep release).

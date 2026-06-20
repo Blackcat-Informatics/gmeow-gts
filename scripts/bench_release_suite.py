@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_ENGINES = "rust,python,go,ts"
+DEFAULT_ENGINES = "rust,python,go,ts,smalltalk"
 DEFAULT_VECTORS = (
     "vectors/01-minimal.gts,"
     "vectors/23-files-profile-tree.gts,"
@@ -133,7 +133,9 @@ def display_command(command: Iterable[str]) -> str:
     return shlex.join(display_path(str(part)) for part in command)
 
 
-def display_invocation(command: Iterable[str], *, cwd: Path, env_prefix: str = "") -> str:
+def display_invocation(
+    command: Iterable[str], *, cwd: Path, env_prefix: str = ""
+) -> str:
     return f"(cd {shlex.quote(display_path(cwd))} && {env_prefix}{display_command(command)})"
 
 
@@ -256,7 +258,9 @@ def command_environment() -> dict[str, Any]:
         "generated_at": datetime.now(UTC).isoformat(),
         "command_line": display_command(sys.argv),
         "repo_commit": git_value(["rev-parse", "HEAD"]),
-        "spec_commit": git_value(["log", "-n1", "--format=%H", "--", "docs/GTS-SPEC.md"]),
+        "spec_commit": git_value(
+            ["log", "-n1", "--format=%H", "--", "docs/GTS-SPEC.md"]
+        ),
         "spec_blob": git_value(["rev-parse", "HEAD:docs/GTS-SPEC.md"]),
         "corpus_commit": git_value(["log", "-n1", "--format=%H", "--", "vectors"]),
         "corpus_manifest_sha256": sha256_file(manifest) if manifest.exists() else None,
@@ -274,6 +278,7 @@ def command_environment() -> dict[str, Any]:
             "node": version_from(["node", "--version"]),
             "npm": version_from(["npm", "--version"]),
             "uv": version_from(["uv", "--version"]),
+            "docker": version_from(["docker", "--version"]),
         },
     }
 
@@ -347,10 +352,14 @@ def input_rows(vectors: list[Path], fixtures: dict[str, Path]) -> list[InputRow]
     return rows
 
 
-def setup_engine(engine: str, out_dir: Path, timeout: int) -> tuple[EngineRuntime | None, list[SetupResult]]:
+def setup_engine(
+    engine: str, out_dir: Path, timeout: int
+) -> tuple[EngineRuntime | None, list[SetupResult]]:
     results: list[SetupResult] = []
 
-    def run_setup(command: list[str], *, cwd: Path = ROOT, env: dict[str, str] | None = None) -> bool:
+    def run_setup(
+        command: list[str], *, cwd: Path = ROOT, env: dict[str, str] | None = None
+    ) -> bool:
         result = run_process(command, cwd=cwd, env=env, timeout=timeout)
         status = "ok" if result.returncode == 0 else "failed"
         results.append(
@@ -370,11 +379,15 @@ def setup_engine(engine: str, out_dir: Path, timeout: int) -> tuple[EngineRuntim
             return None, results
         if not run_setup(["uv", "sync", "--quiet"], cwd=ROOT / "python"):
             return None, results
-        return EngineRuntime(engine, ["uv", "run", "--quiet", "gts"], ROOT / "python", True), results
+        return EngineRuntime(
+            engine, ["uv", "run", "--quiet", "gts"], ROOT / "python", True
+        ), results
 
     if engine == "rust":
         if shutil.which("cargo") is None:
-            results.append(SetupResult(engine, "failed", "cargo", None, "cargo not found"))
+            results.append(
+                SetupResult(engine, "failed", "cargo", None, "cargo not found")
+            )
             return None, results
         if not run_setup(
             [
@@ -408,7 +421,9 @@ def setup_engine(engine: str, out_dir: Path, timeout: int) -> tuple[EngineRuntim
         binary = bin_dir / f"gts-go{suffix}"
         env = os.environ.copy()
         env["CGO_ENABLED"] = "0"
-        if not run_setup(["go", "build", "-o", str(binary), "./cmd/gts"], cwd=ROOT / "go", env=env):
+        if not run_setup(
+            ["go", "build", "-o", str(binary), "./cmd/gts"], cwd=ROOT / "go", env=env
+        ):
             return None, results
         return EngineRuntime(engine, [str(binary)], ROOT, True), results
 
@@ -422,7 +437,39 @@ def setup_engine(engine: str, out_dir: Path, timeout: int) -> tuple[EngineRuntim
             return None, results
         if not run_setup(["npm", "run", "build", "--silent"], cwd=ROOT / "ts"):
             return None, results
-        return EngineRuntime(engine, ["node", str(ROOT / "ts" / "dist" / "bin" / "gts.js")], ROOT, True), results
+        return EngineRuntime(
+            engine, ["node", str(ROOT / "ts" / "dist" / "bin" / "gts.js")], ROOT, True
+        ), results
+
+    if engine == "smalltalk":
+        if shutil.which("docker") is None:
+            results.append(
+                SetupResult(engine, "failed", "docker", None, "docker not found")
+            )
+            return None, results
+        image = "gmeow-gts-smalltalk:bench"
+        if not run_setup(["docker", "build", "-t", image, str(ROOT / "smalltalk")]):
+            return None, results
+        command = ["docker", "run", "--rm"]
+        if hasattr(os, "getuid") and hasattr(os, "getgid"):
+            command.extend(["--user", f"{os.getuid()}:{os.getgid()}"])
+        command.extend(
+            [
+                "-e",
+                "HOME=/tmp",
+                "-v",
+                f"{ROOT}:/workspace",
+                "-v",
+                f"{ROOT}:{ROOT}",
+            ]
+        )
+        resolved_out_dir = out_dir.resolve()
+        try:
+            resolved_out_dir.relative_to(ROOT)
+        except ValueError:
+            command.extend(["-v", f"{resolved_out_dir}:{resolved_out_dir}"])
+        command.extend([image, "gts"])
+        return EngineRuntime(engine, command, ROOT, True), results
 
     results.append(SetupResult(engine, "failed", engine, None, "unknown engine"))
     return None, results
@@ -469,7 +516,9 @@ def measure_command(
         result = run_process(command, cwd=cwd, env=env, timeout=timeout)
         if result.returncode != 0:
             status = "failed"
-            note = f"iteration {idx + 1} exited {result.returncode}: {stderr_note(result)}"
+            note = (
+                f"iteration {idx + 1} exited {result.returncode}: {stderr_note(result)}"
+            )
             break
         elapsed.append(result.elapsed_ms)
         stdout_bytes = len(result.stdout)
@@ -494,7 +543,9 @@ def measure_command(
     )
 
 
-def skipped_row(engine: str, operation: str, input_name: str, note: str) -> BenchmarkRow:
+def skipped_row(
+    engine: str, operation: str, input_name: str, note: str
+) -> BenchmarkRow:
     return BenchmarkRow(
         engine=engine,
         operation=operation,
@@ -573,12 +624,19 @@ def run_cli_benchmarks(
             out_file = products / f"{engine}-from-nq.gts"
 
             def write_command(
-                idx: int, rt: EngineRuntime = runtime, source: Path = nq, base: Path = out_file
+                idx: int,
+                rt: EngineRuntime = runtime,
+                source: Path = nq,
+                base: Path = out_file,
             ) -> tuple[list[str], Path, dict[str, str] | None]:
                 target = base.with_name(f"{base.stem}-{idx}{base.suffix}")
                 if target.exists():
                     target.unlink()
-                return [*rt.command, "from-nq", str(source), "-o", str(target)], rt.cwd, None
+                return (
+                    [*rt.command, "from-nq", str(source), "-o", str(target)],
+                    rt.cwd,
+                    None,
+                )
 
             rows.append(
                 measure_command(
@@ -588,9 +646,9 @@ def run_cli_benchmarks(
                     input_bytes=nq.stat().st_size,
                     iterations=iterations,
                     command_factory=write_command,
-                    output_factory=lambda path=out_file.with_name(
-                        f"{out_file.stem}-{iterations - 1}{out_file.suffix}"
-                    ): output_file(path),
+                    output_factory=lambda path=out_file.with_name(f"{out_file.stem}-{iterations - 1}{out_file.suffix}"): (
+                        output_file(path)
+                    ),
                     timeout=timeout,
                 )
             )
@@ -608,7 +666,10 @@ def run_cli_benchmarks(
         archive = products / f"{engine}-pack.gts"
 
         def pack_command(
-            idx: int, rt: EngineRuntime = runtime, source: Path = pack_dir, base: Path = archive
+            idx: int,
+            rt: EngineRuntime = runtime,
+            source: Path = pack_dir,
+            base: Path = archive,
         ) -> tuple[list[str], Path, dict[str, str] | None]:
             target = base.with_name(f"{base.stem}-{idx}{base.suffix}")
             if target.exists():
@@ -623,14 +684,16 @@ def run_cli_benchmarks(
                 input_bytes=tree_digest(pack_dir)[1],
                 iterations=iterations,
                 command_factory=pack_command,
-                output_factory=lambda path=archive.with_name(
-                    f"{archive.stem}-{iterations - 1}{archive.suffix}"
-                ): output_file(path),
+                output_factory=lambda path=archive.with_name(f"{archive.stem}-{iterations - 1}{archive.suffix}"): (
+                    output_file(path)
+                ),
                 timeout=timeout,
             )
         )
 
-        archive_for_unpack = archive.with_name(f"{archive.stem}-{iterations - 1}{archive.suffix}")
+        archive_for_unpack = archive.with_name(
+            f"{archive.stem}-{iterations - 1}{archive.suffix}"
+        )
         if archive_for_unpack.exists():
 
             def unpack_command(
@@ -644,7 +707,11 @@ def run_cli_benchmarks(
                 if target.exists():
                     shutil.rmtree(target)
                 target.mkdir(parents=True)
-                return [*rt.command, "unpack", str(source), "-C", str(target)], rt.cwd, None
+                return (
+                    [*rt.command, "unpack", str(source), "-C", str(target)],
+                    rt.cwd,
+                    None,
+                )
 
             rows.append(
                 measure_command(
@@ -654,13 +721,16 @@ def run_cli_benchmarks(
                     input_bytes=archive_for_unpack.stat().st_size,
                     iterations=iterations,
                     command_factory=unpack_command,
-                    output_factory=lambda path=products
-                    / f"{engine}-unpack-{iterations - 1}": output_tree(path),
+                    output_factory=lambda path=products / f"{engine}-unpack-{iterations - 1}": (
+                        output_tree(path)
+                    ),
                     timeout=timeout,
                 )
             )
         else:
-            rows.append(skipped_row(engine, "unpack", archive.name, "pack output missing"))
+            rows.append(
+                skipped_row(engine, "unpack", archive.name, "pack output missing")
+            )
 
     return rows
 
@@ -754,8 +824,12 @@ def run_memory_helper(
                 input=Path(str(item.get("path", stream_vector))).name,
                 input_bytes=int(item.get("bytes") or stream_vector.stat().st_size),
                 status=status,
-                elapsed_ms=float(item["elapsed_ms"]) if item.get("elapsed_ms") is not None else None,
-                peak_kib=float(item["peak_kib"]) if item.get("peak_kib") is not None else None,
+                elapsed_ms=float(item["elapsed_ms"])
+                if item.get("elapsed_ms") is not None
+                else None,
+                peak_kib=float(item["peak_kib"])
+                if item.get("peak_kib") is not None
+                else None,
                 command=command_text,
                 note=str(item.get("note", "")),
             )
@@ -819,7 +893,9 @@ def run_go_memory_benchmarks(stream_vector: Path, timeout: int) -> list[MemoryRo
     env = os.environ.copy()
     env["CGO_ENABLED"] = "0"
     result = run_process(command, cwd=ROOT / "go", env=env, timeout=timeout)
-    command_text = display_invocation(command, cwd=ROOT / "go", env_prefix="CGO_ENABLED=0 ")
+    command_text = display_invocation(
+        command, cwd=ROOT / "go", env_prefix="CGO_ENABLED=0 "
+    )
     if result.returncode != 0:
         return [
             MemoryRow(
@@ -875,9 +951,13 @@ def run_memory_benchmarks(
 ) -> list[MemoryRow]:
     if not include_streaming:
         return []
-    rows = run_memory_helper(engines=engines, stream_vector=stream_vector, timeout=timeout)
+    rows = run_memory_helper(
+        engines=engines, stream_vector=stream_vector, timeout=timeout
+    )
     if "go" in engines:
-        rows.extend(run_go_memory_benchmarks(stream_vector=stream_vector, timeout=timeout))
+        rows.extend(
+            run_go_memory_benchmarks(stream_vector=stream_vector, timeout=timeout)
+        )
     if "ts" in engines:
         rows.append(
             MemoryRow(
@@ -899,7 +979,10 @@ def run_memory_benchmarks(
 
 
 def table(headers: list[str], rows: list[list[Any]]) -> str:
-    rendered = ["| " + " | ".join(headers) + " |", "|" + "|".join("---" for _ in headers) + "|"]
+    rendered = [
+        "| " + " | ".join(headers) + " |",
+        "|" + "|".join("---" for _ in headers) + "|",
+    ]
     for row in rows:
         rendered.append("| " + " | ".join(cell(value) for value in row) + " |")
     return "\n".join(rendered)
@@ -976,14 +1059,20 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "",
         table(
             ["kind", "name", "bytes", "files", "sha256", "path"],
-            [[row.kind, row.name, row.bytes, row.files, row.sha256, row.path] for row in inputs],
+            [
+                [row.kind, row.name, row.bytes, row.files, row.sha256, row.path]
+                for row in inputs
+            ],
         ),
         "",
         "## Engine Setup",
         "",
         table(
             ["engine", "status", "elapsed_ms", "command", "note"],
-            [[row.engine, row.status, ms(row.elapsed_ms), row.command, row.note] for row in setup],
+            [
+                [row.engine, row.status, ms(row.elapsed_ms), row.command, row.note]
+                for row in setup
+            ],
         ),
         "",
         "## CLI Benchmarks",
@@ -1093,7 +1182,9 @@ def validate_paths(paths: list[str], *, kind: str) -> list[Path]:
 def has_failures(payload: dict[str, Any]) -> bool:
     setup_failed = any(row["status"] == "failed" for row in payload["setup"])
     benchmark_failed = any(row["status"] == "failed" for row in payload["benchmarks"])
-    memory_failed = any(row["status"] == "failed" for row in payload["streaming_memory"])
+    memory_failed = any(
+        row["status"] == "failed" for row in payload["streaming_memory"]
+    )
     return setup_failed or benchmark_failed or memory_failed
 
 
@@ -1107,7 +1198,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--engines",
         default=DEFAULT_ENGINES,
-        help="comma or whitespace separated engines: rust, python, go, ts",
+        help="comma or whitespace separated engines: rust, python, go, ts, smalltalk",
     )
     parser.add_argument(
         "--vectors",
@@ -1155,7 +1246,7 @@ def main() -> int:
     if args.iterations < 1:
         raise SystemExit("--iterations must be >= 1")
     engines = split_csv(args.engines)
-    unknown = sorted(set(engines) - {"rust", "python", "go", "ts"})
+    unknown = sorted(set(engines) - {"rust", "python", "go", "ts", "smalltalk"})
     if unknown:
         raise SystemExit(f"unknown engine(s): {', '.join(unknown)}")
 
@@ -1200,7 +1291,9 @@ def main() -> int:
 
     json_path = out_dir / "release-benchmark-report.json"
     md_path = out_dir / "release-benchmark-report.md"
-    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    json_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     md_path.write_text(render_markdown(payload), encoding="utf-8")
     print(f"wrote {display_path(json_path)}")
     print(f"wrote {display_path(md_path)}")

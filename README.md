@@ -44,9 +44,9 @@ The package family is `gmeow-gts`; the format is GTS. The package name is intent
 distinctive across ecosystems, while the CLI, import surface, and file extension remain the
 short `gts` and `.gts` forms where ecosystem rules permit.
 
-This repository holds **four interoperable engines** (Rust, Python, Go, TypeScript) that all
-gate against one frozen, byte-exact conformance corpus, plus a Phase 0 Smalltalk/Pharo engine
-bootstrap and the specification that defines them.
+This repository holds **five interoperable engines** (Rust, Python, Go, TypeScript,
+Smalltalk/Pharo) that gate against one frozen, byte-exact conformance corpus and the
+specification that defines them.
 
 - Project URL: <https://blackcatinformatics.ca/projects/gts>
 - Project DOI: <https://doi.org/10.67342/umcdg7675h/v1>
@@ -254,11 +254,13 @@ live in [`ts/README.md`](./ts/README.md).
 
 ### Smalltalk/Pharo
 
-The Smalltalk engine is a Phase 0 bootstrap, not a parity-complete release. It currently
-provides Tonel packages, a Metacello baseline, a pinned Docker runtime, deterministic-CBOR
-SUnit tests, native BLAKE3 FFI, and byte reproduction of the committed
-`01-minimal.gts` vector against the pinned runtime. It also includes native zstd
-and libsodium FFI smoke-test evidence, but no baseline reader conformance claim yet.
+The Smalltalk engine is a Pharo source engine delivered as Tonel packages with a Metacello
+baseline and a pinned Docker runtime. It participates in the top-level conformance corpus and
+the five-engine interop gate, including native BLAKE3/zstd/libsodium support, deterministic
+CBOR read/write, COSE Sign1 and Encrypt0 helpers, MMR proof verification, OpenPGP key
+extraction, the files profile, streamable compaction, `from-nq`, and the common `gts` CLI
+verbs. Rust-only extension verbs such as `tar`, `dump`, OKF, TriG, and relational exports
+remain explicit parity deferrals.
 
 ```bash
 docker build -t gmeow-gts-smalltalk smalltalk
@@ -347,7 +349,7 @@ gts tar -df <archive.gts|archive.tar[.gz|.zst]> <dir>
 
 Exit codes: `0` clean · `1` diagnostics or input refused · `2` usage/IO error.
 
-`verify --key` and `extract-key` are cross-engine (all four `gts` binaries parse the
+`verify --key` and `extract-key` are cross-engine (all five `gts` binaries parse the
 embedded OpenPGP transport key to the same fingerprint and emojihash, and verify COSE
 signatures identically). For example, `gts extract-key` prints a key's identity three ways —
 the hex fingerprint for machines and an **emojihash** for humans to compare at a glance:
@@ -365,7 +367,7 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 [`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which this repo's Rust
 engine depends on and re-exports as `gmeow_gts::emojihash`.
 
-`from-nq` is common across all four engines. Python and Rust also expose `to-trig`/`from-trig`
+`from-nq` is common across all five engines. Python and Rust also expose `to-trig`/`from-trig`
 for readable TriG graph-block interchange over the same folded RDF content. The Rust OKF
 profile extension maps Markdown bundles to verifiable GTS package bytes and back behind
 `--features okf`; see [`docs/GTS-OKF.md`](./docs/GTS-OKF.md). The Rust `tar`
@@ -382,7 +384,7 @@ Python and Rust. Python DuckDB/Parquet exports need `pip install 'gmeow-gts[db]'
 feature `duckdb` and shell out to the `duckdb` binary. Rust emits relational SQL rows
 directly to the runtime tool instead of building a complete SQL script in memory; transformed
 inline blobs are decoded only while writing the `blobs` row required by the stable schema.
-The CLI parity matrix is checked in CI against the four implemented command dispatch surfaces.
+The CLI parity matrix is checked in CI against the five implemented command dispatch surfaces.
 
 `cat` is raw byte concatenation with validation *added*, transformation *never*: it refuses
 dirty inputs, contributes-nothing segments, and compositions whose suppressions hide every
@@ -392,16 +394,16 @@ folded quad.
 
 | Capability | Python | Rust | Go | TypeScript | Smalltalk/Pharo |
 |---|---|---|---|---|---|
-| Baseline read/fold/verify | yes | yes | yes | yes | no |
-| Writer | yes | yes | yes | yes | no |
-| Shared conformance corpus | yes | yes | yes | yes | no |
-| Deterministic-CBOR primitive/vector tests | yes | yes | yes | yes | Phase 0 |
-| zstd native codec | yes | yes | yes | yes | Phase 0 FFI |
-| COSE signing and verification | yes | yes | yes | yes | no |
-| COSE Encrypt0 helpers | yes | yes | yes | yes | no |
-| Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes | no |
-| Streamable compaction CLI | yes | yes | yes | yes | no |
-| `from-nq` inverse | yes | yes | yes | yes | no |
+| Baseline read/fold/verify | yes | yes | yes | yes | yes |
+| Writer | yes | yes | yes | yes | yes |
+| Shared conformance corpus | yes | yes | yes | yes | yes |
+| Deterministic-CBOR primitive/vector tests | yes | yes | yes | yes | yes |
+| zstd native codec | yes | yes | yes | yes | yes |
+| COSE signing and verification | yes | yes | yes | yes | yes |
+| COSE Encrypt0 helpers | yes | yes | yes | yes | yes |
+| Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes | yes |
+| Streamable compaction CLI | yes | yes | yes | yes | yes |
+| `from-nq` inverse | yes | yes | yes | yes | yes |
 | TriG transform | yes | yes | no | no | no |
 | Native RDF/store adapter | rdflib extra | `rdf` feature (`oxrdf` data model); `oxigraph-adapter` feature (Oxigraph store); `sophia-adapter` feature (Sophia dataset) | no | no | no |
 | SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no | no |
@@ -450,7 +452,7 @@ Payloads carry a stackable codec chain; unknown codecs or held-back keys degrade
 `<name>.gts` (canonical bytes) and one `<name>.expected.json` (oracle-folded expectation) per
 case (minimal files, zstd/gzip frames, unknown-codec fallback, damaged frames, torn appends,
 suppression, multi-segment unions, streamable compaction, …). **Every engine must fold
-identical bytes to identical expectations** — that is what makes the four implementations
+identical bytes to identical expectations** — that is what makes the five implementations
 interchangeable.
 
 The Python reference implementation (`gts.vectors`) is the single source of truth. Regenerate
@@ -479,7 +481,7 @@ Current CI-gated conformance status:
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser progressive `foldStream` events plus browser stream/WebCrypto tests; does not satisfy the non-materializing Streaming Reader tier; corpus read gate remains the full-reader oracle | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| Smalltalk/Pharo | no tier claim yet | Phase 0 package/runtime bootstrap plus BLAKE3/zstd/libsodium FFI and `01-minimal.gts` byte reproduction | deterministic-CBOR primitive/vector tests only | no CLI yet | no profile support yet |
+| Smalltalk/Pharo | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` via SUnit top-level corpus | streamable layout checks and interop evidence; no non-materializing Streaming Reader claim | deterministic writer, `from-nq`, compact oracle `25b`, and files pack byte identity | CLI verify diagnostics plus COSE/MMR/OpenPGP vector tests | files profile pack/unpack/diff in interop |
 
 ## Repository layout
 
@@ -489,11 +491,11 @@ gmeow-gts/
 ├── python/      # Python package `gmeow-gts` (module `gts`) + reference corpus generator
 ├── go/          # Go module go.blackcatinformatics.ca/gts
 ├── ts/          # TypeScript/npm package @blackcatinformatics/gmeow-gts
-├── smalltalk/   # Pharo Tonel/Metacello engine bootstrap
+├── smalltalk/   # Pharo Tonel/Metacello engine + Docker CLI runtime
 ├── visual-hashing/ # Standalone `visual-hashing` crate (emojihash + randomart)
 ├── vectors/     # Frozen conformance corpus (*.gts + *.expected.json)
 ├── docs/        # GTS-SPEC.md (normative) + gts-reference.md
-└── .github/     # CI (four parity engines + Smalltalk bootstrap) + release workflows
+└── .github/     # CI (five parity engines + release workflows)
 ```
 
 ## Building from source
@@ -507,7 +509,7 @@ cd ts     && npm ci && npm test                       # compiles, runs against v
 cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
 docker build -t gmeow-gts-smalltalk smalltalk && \
   docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
-  'sh /workspace/smalltalk/scripts/run-tests.sh'      # Pharo bootstrap tests
+  'sh /workspace/smalltalk/scripts/run-tests.sh'      # Pharo parity tests
 ```
 
 Or use the [`justfile`](./justfile): `just test` (all engines), `just lint`, `just fmt`,
@@ -515,9 +517,10 @@ Or use the [`justfile`](./justfile): `just test` (all engines), `just lint`, `ju
 `just fuzz-go`, `just audit`, `just wasm`.
 
 Repo-wide hygiene (formatting, SPDX/REUSE headers, YAML/Markdown/shell, secrets) runs through
-`pre-commit run --all-files`. CI runs all four parity engines on Linux, macOS, and Windows,
-the Smalltalk/Pharo bootstrap on Linux, plus a [live cross-engine interop check](./scripts/interop.sh)
-(each parity engine reads every other's output), reader [fuzzing](./.github/workflows/fuzz.yml), and per-ecosystem
+`pre-commit run --all-files`. CI runs Rust, Python, Go, and TypeScript on Linux, macOS,
+and Windows, the Smalltalk/Pharo parity job on Linux, plus a
+[live five-engine interop check](./scripts/interop.sh) (each parity engine reads every
+other's output), reader [fuzzing](./.github/workflows/fuzz.yml), and per-ecosystem
 [supply-chain scanning](./.github/workflows/security.yml). Changes are tracked in
 [`CHANGELOG.md`](./CHANGELOG.md).
 

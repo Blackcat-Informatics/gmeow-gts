@@ -34,9 +34,9 @@ signatures and encryption, and cross-language conformance through a shared vecto
 | Corpus version | The corpus is versioned separately from package releases |
 
 This specification is maintained in the
-[`gmeow-gts`](https://github.com/Blackcat-Informatics/gmeow-gts) repository, alongside four
-interoperable reference engines (Rust, Python, Go, TypeScript) that gate against the shared
-vector corpus. Report errata and propose changes there. Core semantic changes, registry
+[`gmeow-gts`](https://github.com/Blackcat-Informatics/gmeow-gts) repository, alongside five
+interoperable reference engines (Rust, Python, Go, TypeScript, Smalltalk/Pharo) that gate
+against the shared vector corpus. Report errata and propose changes there. Core semantic changes, registry
 additions, and optional-standard profile promotion follow the
 [GTS governance process](./GTS-GOVERNANCE.md).
 

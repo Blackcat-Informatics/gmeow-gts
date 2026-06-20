@@ -8,7 +8,7 @@ on:
       engines:
         description: "Comma-separated engines to benchmark."
         required: true
-        default: "rust,python,go,ts"
+        default: "rust,python,go,ts,smalltalk"
       iterations:
         description: "Iterations per CLI benchmark command."
         required: true
