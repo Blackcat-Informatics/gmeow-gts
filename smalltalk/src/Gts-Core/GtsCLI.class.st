@@ -20,6 +20,7 @@ GtsCLI class >> run: args [
 		command = 'resume' ifTrue: [ ^ self runResume: args allButFirst ].
 		command = 'verify-proof' ifTrue: [ ^ self runVerifyProof: args allButFirst ].
 		command = 'extract-key' ifTrue: [ ^ self runExtractKey: args allButFirst ].
+		command = 'from-nq' ifTrue: [ ^ self runFromNQuads: args allButFirst ].
 		command = 'info' ifTrue: [ ^ self runInfo: args allButFirst ].
 		command = 'verify' ifTrue: [ ^ self runInfo: args allButFirst ].
 		command = 'ls' ifTrue: [ ^ self runLs: args allButFirst ].
@@ -99,6 +100,25 @@ GtsCLI class >> runFold: args [
 	^ (graph diagnostics isEmpty and: [ graph segmentHeads notEmpty ])
 		ifTrue: [ 0 ]
 		ifFalse: [ 1 ]
+]
+
+{ #category : #commands }
+GtsCLI class >> runFromNQuads: args [
+	| outPath paths text |
+	outPath := nil.
+	paths := OrderedCollection new.
+	1 to: args size do: [ :index |
+		((args at: index) = '-o' or: [ (args at: index) = '--out' ])
+			ifTrue: [ outPath := args at: index + 1 ifAbsent: [ ^ 2 ] ]
+			ifFalse: [
+				(index = 1 or: [ ((args at: index - 1) ~= '-o') and: [ (args at: index - 1) ~= '--out' ] ])
+					ifTrue: [ paths add: (args at: index) ] ] ].
+	paths size = 1 ifFalse: [ self stderr: self usage. ^ 2 ].
+	text := self readText: paths first.
+	outPath
+		ifNil: [ self stdoutBytes: (GtsFromNQuads fromString: text) ]
+		ifNotNil: [ self writeFile: outPath bytes: (GtsFromNQuads fromString: text) ].
+	^ 0
 ]
 
 { #category : #commands }
@@ -226,6 +246,16 @@ GtsCLI class >> runVerifyProof: args [
 { #category : #io }
 GtsCLI class >> readFile: path [
 	^ path asFileReference binaryReadStreamDo: [ :stream | stream upToEnd ]
+]
+
+{ #category : #io }
+GtsCLI class >> readText: path [
+	| data |
+	path = '-' ifTrue: [
+		data := Stdio stdin upToEnd.
+		(data isKindOf: ByteArray) ifTrue: [ ^ data utf8Decoded ].
+		^ data asString ].
+	^ (self readFile: path) utf8Decoded
 ]
 
 { #category : #io }
