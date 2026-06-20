@@ -83,6 +83,13 @@ GtsFiles class >> diffGraph: graph withDirectory: directoryPath [
 ]
 
 { #category : #private }
+GtsFiles class >> digestFromValue: value [
+	value isString ifTrue: [ ^ self normalizeDigest: value ].
+	(value isKindOf: ByteArray) ifTrue: [ ^ 'blake3:', (GtsHex encode: value) ].
+	^ ''
+]
+
+{ #category : #private }
 GtsFiles class >> fileEntriesIn: graph [
 	| entries fileEntryId fieldIds typeId |
 	fieldIds := Dictionary new.
@@ -140,6 +147,17 @@ GtsFiles class >> guessMediaTypeFor: fileReference [
 ]
 
 { #category : #private }
+GtsFiles class >> guardSafeWriteTarget: target under: destinationRef archivePath: archivePath [
+	| parent |
+	target exists ifTrue: [
+		target isSymlink ifTrue: [ self error: 'refusing to write through symlink: ', archivePath ] ].
+	parent := target parent.
+	[ parent exists and: [ parent ~= destinationRef ] ] whileTrue: [
+		parent isSymlink ifTrue: [ self error: 'path escapes destination: ', archivePath ].
+		parent := parent parent ]
+]
+
+{ #category : #private }
 GtsFiles class >> hasUnsafePathComponent: archivePath [
 	| parts |
 	archivePath isEmpty ifTrue: [ ^ true ].
@@ -152,6 +170,20 @@ GtsFiles class >> hasUnsafePathComponent: archivePath [
 		((part isEmpty) or: [ part = '.' or: [ part = '..' ] ])
 			ifTrue: [ ^ true ] ].
 	^ false
+]
+
+{ #category : #private }
+GtsFiles class >> mediaTypeForDigest: digest in: graph [
+	| meta |
+	meta := graph blobMeta at: digest ifAbsent: [ ^ '' ].
+	meta isDictionary ifFalse: [ ^ '' ].
+	^ meta at: 'mt' ifAbsent: [ '' ]
+]
+
+{ #category : #private }
+GtsFiles class >> normalizeDigest: digest [
+	(digest beginsWith: 'blake3:') ifTrue: [ ^ digest ].
+	^ 'blake3:', digest
 ]
 
 { #category : #packing }
@@ -232,23 +264,43 @@ GtsFiles class >> pathFor: archivePath under: destination [
 	^ target
 ]
 
+{ #category : #private }
+GtsFiles class >> suppressedBlobDigestsIn: graph [
+	| out |
+	out := Dictionary new.
+	graph suppressions do: [ :suppression |
+		(suppression at: 'targets' ifAbsent: [ #() ]) do: [ :target |
+			| digest kind |
+			target isDictionary ifTrue: [
+				kind := target at: 'kind' ifAbsent: [ '' ].
+				digest := self digestFromValue: (target at: 'digest' ifAbsent: [ nil ]).
+				(kind = 'blob' and: [ digest isEmpty not ])
+					ifTrue: [ out at: digest put: true ] ] ] ].
+	^ out
+]
+
 { #category : #unpacking }
 GtsFiles class >> unpackGraph: graph to: destination includeSuppressed: includeSuppressed [
-	| blobByDigest destinationRef entries |
+	| blobByDigest destinationRef entries suppressed |
 	destinationRef := destination asFileReference.
 	destinationRef ensureCreateDirectory.
 	blobByDigest := graph blobs.
 	entries := self fileEntriesIn: graph.
+	suppressed := includeSuppressed
+		ifTrue: [ Dictionary new ]
+		ifFalse: [ self suppressedBlobDigestsIn: graph ].
 	entries associationsDo: [ :association |
 		| data digest target |
 		digest := association value at: 'digest' ifAbsent: [ self error: 'missing digest for ', association key ].
-		data := blobByDigest at: digest ifAbsent: [ self error: 'missing inline blob for ', association key ].
-		(GtsWriter digestString: data) = digest
-			ifFalse: [ self error: 'integrity failure for ', association key ].
-		target := self pathFor: association key under: destination.
-		target parent ensureCreateDirectory.
-		target exists ifFalse: [ target ensureCreateFile ].
-		target binaryWriteStreamDo: [ :stream | stream nextPutAll: data ] ]
+		(suppressed includesKey: digest) ifFalse: [
+			data := blobByDigest at: digest ifAbsent: [ self error: 'missing inline blob for ', association key ].
+			(GtsWriter digestString: data) = digest
+				ifFalse: [ self error: 'integrity failure for ', association key ].
+			target := self pathFor: association key under: destination.
+			target parent ensureCreateDirectory.
+			self guardSafeWriteTarget: target under: destinationRef archivePath: association key.
+			target exists ifFalse: [ target ensureCreateFile ].
+			target binaryWriteStreamDo: [ :stream | stream nextPutAll: data ] ] ]
 ]
 
 { #category : #private }

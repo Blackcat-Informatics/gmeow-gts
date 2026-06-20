@@ -743,7 +743,7 @@ GtsReader class >> unionSegments: segments [
 		| segmentIndex |
 		segmentIndex := segmentIndexOneBased - 1.
 		segment quads do: [ :quad |
-			| mapped key |
+			| mapped |
 			mapped := quad collect: [ :termId |
 				self
 					mapTerm: termId
@@ -751,9 +751,8 @@ GtsReader class >> unionSegments: segments [
 					segmentIndex: segmentIndex
 					into: output
 					intern: intern ].
-			key := mapped printString.
-			(seenQuads includesKey: key) ifFalse: [
-				seenQuads at: key put: true.
+			(seenQuads includesKey: mapped) ifFalse: [
+				seenQuads at: mapped put: true.
 				output addQuad: mapped ] ].
 		segment reifiers do: [ :entry |
 			output

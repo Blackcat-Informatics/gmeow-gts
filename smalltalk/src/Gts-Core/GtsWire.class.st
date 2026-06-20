@@ -26,7 +26,7 @@ GtsWire class >> headerIdFor: header [
 
 { #category : #headers }
 GtsWire class >> unwrapHeader: item [
-	item class = GtsCborTag ifTrue: [
+	(item isKindOf: GtsCborTag) ifTrue: [
 		item tag = 55799 ifFalse: [ self error: 'unexpected CBOR tag on GTS header' ].
 		^ item value ].
 	^ item

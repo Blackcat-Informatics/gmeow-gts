@@ -48,7 +48,7 @@ GtsCose class >> encrypt0Protected [
 GtsCose class >> parseEncrypt0: coseBytes [
 	| arr kid iv tag unprotected |
 	tag := GtsCborReader decode: coseBytes.
-	(tag class = GtsCborTag and: [ tag tag = 16 ])
+	((tag isKindOf: GtsCborTag) and: [ tag tag = 16 ])
 		ifFalse: [ self error: 'malformed COSE_Encrypt0' ].
 	arr := tag value.
 	(arr isArray and: [ arr size = 3 ])
@@ -68,7 +68,7 @@ GtsCose class >> parseEncrypt0: coseBytes [
 GtsCose class >> parseSign1: coseBytes [
 	| arr kid tag unprotected |
 	tag := GtsCborReader decode: coseBytes.
-	(tag class = GtsCborTag and: [ tag tag = 18 ])
+	((tag isKindOf: GtsCborTag) and: [ tag tag = 18 ])
 		ifFalse: [ self error: 'malformed COSE_Sign1' ].
 	arr := tag value.
 	(arr isArray and: [ arr size = 4 ])

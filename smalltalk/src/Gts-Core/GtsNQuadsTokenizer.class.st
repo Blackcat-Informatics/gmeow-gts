@@ -225,6 +225,5 @@ GtsNQuadsTokenizer >> skipWhitespace [
 
 { #category : #private }
 GtsNQuadsTokenizer >> startsWith: token [
-	position + token size - 1 > source size ifTrue: [ ^ false ].
-	^ (source copyFrom: position to: position + token size - 1) = token
+	^ (source findString: token startingAt: position) = position
 ]

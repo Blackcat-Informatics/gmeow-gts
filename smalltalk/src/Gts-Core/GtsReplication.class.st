@@ -101,14 +101,18 @@ GtsReplication class >> inventoryFor: data [
 
 { #category : #json }
 GtsReplication class >> headsJsonFor: inventory [
-	| aggregateDigest fileHead heads segments |
+	| aggregateDigest clean fileHead heads segments torn |
 	segments := inventory at: 'segments'.
 	heads := segments collect: [ :segment | GtsHex encode: (segment at: 'head') ].
 	fileHead := heads isEmpty ifTrue: [ nil ] ifFalse: [ heads last ].
 	aggregateDigest := GtsHex encode: (self aggregateDigestFor: inventory).
+	clean := (self hasProblems: inventory) not.
+	torn := inventory at: 'torn'.
 	^ String streamContents: [ :stream |
 		stream
-			nextPutAll: '{"schema":"gts-replication-heads-v1","clean":true,"segment_heads":';
+			nextPutAll: '{"schema":"gts-replication-heads-v1","clean":';
+			nextPutAll: (self boolJson: clean);
+			nextPutAll: ',"segment_heads":';
 			nextPutAll: (self jsonStringArray: heads);
 			nextPutAll: ',"aggregate":{"schema":"gts-segment-heads-v1","count":';
 			nextPutAll: heads size asString;
@@ -116,8 +120,21 @@ GtsReplication class >> headsJsonFor: inventory [
 			nextPutAll: aggregateDigest;
 			nextPutAll: '","file_head":';
 			nextPutAll: (self nullableJsonString: fileHead);
-			nextPutAll: '},"torn_at":null,"fatal":null}';
+			nextPutAll: '},"torn_at":';
+			nextPutAll: (torn ifNil: [ 'null' ] ifNotNil: [ torn asString ]);
+			nextPutAll: ',"fatal":null}';
 			lf ]
+]
+
+{ #category : #inventory }
+GtsReplication class >> hasProblems: inventory [
+	| segments |
+	(inventory at: 'torn') ifNotNil: [ ^ true ].
+	segments := inventory at: 'segments'.
+	segments isEmpty ifTrue: [ ^ true ].
+	segments do: [ :segment |
+		(segment at: 'diagnostics') isEmpty ifFalse: [ ^ true ] ].
+	^ false
 ]
 
 { #category : #inventory }
@@ -165,6 +182,13 @@ GtsReplication class >> jsonStringArray: strings [
 { #category : #missing }
 GtsReplication class >> missingFromHead: head in: inventory [
 	| cleanEnd ranges segments |
+	(self hasProblems: inventory) ifTrue: [
+		^ Dictionary newFromPairs: {
+			'status'. 'error'.
+			'from_head'. head.
+			'ranges'. #().
+			'scan_required'. true.
+			'detail'. (self problemDetailFor: inventory) } ].
 	segments := inventory at: 'segments'.
 	cleanEnd := inventory at: 'clean_end'.
 	segments do: [ :segment |
@@ -228,6 +252,7 @@ GtsReplication class >> nullableJsonString: stringOrNil [
 GtsReplication class >> resumeBytesAfter: frameId in: data [
 	| cleanEnd inventory |
 	inventory := self inventoryFor: data.
+	(self hasProblems: inventory) ifTrue: [ self error: (self problemDetailFor: inventory) ].
 	cleanEnd := inventory at: 'clean_end'.
 	(inventory at: 'segments') do: [ :segment |
 		(segment at: 'frames') do: [ :frame |
@@ -238,11 +263,15 @@ GtsReplication class >> resumeBytesAfter: frameId in: data [
 
 { #category : #json }
 GtsReplication class >> segmentsJsonFor: inventory [
-	| segments |
+	| clean segments torn |
 	segments := inventory at: 'segments'.
+	clean := (self hasProblems: inventory) not.
+	torn := inventory at: 'torn'.
 	^ String streamContents: [ :stream |
 		stream
-			nextPutAll: '{"schema":"gts-replication-segments-v1","clean":true,"segments":['.
+			nextPutAll: '{"schema":"gts-replication-segments-v1","clean":';
+			nextPutAll: (self boolJson: clean);
+			nextPutAll: ',"segments":['.
 		segments withIndexDo: [ :segment :index |
 			| layout |
 			index > 1 ifTrue: [ stream nextPut: $, ].
@@ -272,6 +301,19 @@ GtsReplication class >> segmentsJsonFor: inventory [
 		stream
 			nextPutAll: '],"item_count":';
 			nextPutAll: (inventory at: 'item_count') asString;
-			nextPutAll: ',"torn_at":null,"fatal":null}';
+			nextPutAll: ',"torn_at":';
+			nextPutAll: (torn ifNil: [ 'null' ] ifNotNil: [ torn asString ]);
+			nextPutAll: ',"fatal":null}';
 			lf ]
+]
+
+{ #category : #inventory }
+GtsReplication class >> problemDetailFor: inventory [
+	(inventory at: 'torn') ifNotNil: [ :torn | ^ 'torn at offset ', torn asString ].
+	(inventory at: 'segments') do: [ :segment |
+		(segment at: 'diagnostics') isEmpty ifFalse: [
+			| diagnostic |
+			diagnostic := (segment at: 'diagnostics') first.
+			^ diagnostic code, ': ', diagnostic detail ] ].
+	^ 'input is not clean'
 ]

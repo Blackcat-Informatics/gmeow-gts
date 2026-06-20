@@ -21,6 +21,7 @@ testClasses := {
   Smalltalk globals at: #GtsSodiumTest.
   Smalltalk globals at: #GtsWriterTest.
   Smalltalk globals at: #GtsFilesTest.
+  Smalltalk globals at: #GtsCliParityTest.
   Smalltalk globals at: #GtsMMRTest.
   Smalltalk globals at: #GtsCoseTest.
   Smalltalk globals at: #GtsOpenPGPTest.

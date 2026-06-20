@@ -37,7 +37,7 @@ GtsCLI class >> run: args [
 
 { #category : #commands }
 GtsCLI class >> runCat: args [
-	| outPath paths |
+	| combined outPath paths |
 	outPath := nil.
 	paths := OrderedCollection new.
 	1 to: args size do: [ :index |
@@ -46,14 +46,23 @@ GtsCLI class >> runCat: args [
 			ifFalse: [
 				(index = 1 or: [ ((args at: index - 1) ~= '-o') and: [ (args at: index - 1) ~= '--out' ] ])
 					ifTrue: [ paths add: (args at: index) ] ] ].
-	(outPath isNil or: [ paths isEmpty ]) ifTrue: [ self stderr: self usage. ^ 2 ].
-	self writeFile: outPath bytes: (ByteArray streamContents: [ :stream |
+	(outPath isNil or: [ paths size < 2 ]) ifTrue: [ self stderr: self usage. ^ 2 ].
+	combined := ByteArray streamContents: [ :stream |
 		paths do: [ :path |
 			| data graph |
 			data := self readFile: path.
 			graph := GtsReader read: data.
-			graph diagnostics isEmpty ifFalse: [ self error: 'cat refuses input with diagnostics' ].
-			stream nextPutAll: data ] ]).
+			(self graphIsClean: graph) ifFalse: [
+				self stderr: 'gts: refusing ', path, ': not a clean GTS input', String lf.
+				^ 1 ].
+			(self graphContributes: graph) ifFalse: [
+				self stderr: 'gts: refusing ', path, ': segment folds to nothing', String lf.
+				^ 1 ].
+			stream nextPutAll: data ] ].
+	(self allQuadsSuppressed: (GtsReader read: combined)) ifTrue: [
+		self stderr: 'gts: refusing composition: suppressions hide every quad in the folded output', String lf.
+		^ 1 ].
+	self writeFile: outPath bytes: combined.
 	^ 0
 ]
 
@@ -101,6 +110,10 @@ GtsCLI class >> runDiff: args [
 	| graph lines |
 	args size = 2 ifFalse: [ self stderr: self usage. ^ 2 ].
 	graph := GtsReader read: (self readFile: args first).
+	self printDiagnosticsFor: graph.
+	(self graphIsClean: graph) ifFalse: [
+		self stderr: 'gts: refusing diff: archive did not read cleanly', String lf.
+		^ 1 ].
 	lines := GtsFiles diffGraph: graph withDirectory: args second.
 	lines do: [ :line | self stdout: line, String lf ].
 	^ lines isEmpty ifTrue: [ 0 ] ifFalse: [ 1 ]
@@ -108,17 +121,60 @@ GtsCLI class >> runDiff: args [
 
 { #category : #commands }
 GtsCLI class >> runExtract: args [
-	| digest graph outPath |
-	args size < 2 ifTrue: [ self stderr: self usage. ^ 2 ].
+	| data digest graph includeSuppressed index mediaType outPath paths |
 	outPath := nil.
-	graph := GtsReader read: (self readFile: args first).
-	digest := args second.
-	3 to: args size do: [ :index |
-		((args at: index) = '-o' or: [ (args at: index) = '--out' ])
-			ifTrue: [ outPath := args at: index + 1 ifAbsent: [ ^ 2 ] ] ].
+	mediaType := ''.
+	includeSuppressed := false.
+	paths := OrderedCollection new.
+	index := 1.
+	[ index <= args size ] whileTrue: [
+		| arg |
+		arg := args at: index.
+		((arg = '-o') or: [ arg = '--out' ])
+			ifTrue: [
+				index = args size ifTrue: [ self stderr: self usage. ^ 2 ].
+				outPath := args at: index + 1.
+				index := index + 2 ]
+			ifFalse: [
+				arg = '--mt'
+					ifTrue: [
+						index = args size ifTrue: [ self stderr: self usage. ^ 2 ].
+						mediaType := args at: index + 1.
+						index := index + 2 ]
+					ifFalse: [
+						arg = '--include-suppressed'
+							ifTrue: [
+								includeSuppressed := true.
+								index := index + 1 ]
+							ifFalse: [
+								paths add: arg.
+								index := index + 1 ] ] ] ].
+	paths size = 2 ifFalse: [ self stderr: self usage. ^ 2 ].
+	graph := GtsReader read: (self readFile: paths first).
+	self printDiagnosticsFor: graph.
+	(self graphIsClean: graph) ifFalse: [
+		self stderr: 'gts: refusing extract: archive did not read cleanly', String lf.
+		^ 1 ].
+	digest := GtsFiles normalizeDigest: paths second.
+	data := graph blobs
+		at: digest
+		ifAbsent: [
+			self stderr: 'gts: no inline blob ', digest, ' in ', paths first, String lf.
+			^ 1 ].
+	(includeSuppressed not and: [ (GtsFiles suppressedBlobDigestsIn: graph) includesKey: digest ])
+		ifTrue: [
+			self stderr: 'gts: refusing ', digest, ': suppressed; pass --include-suppressed to extract anyway', String lf.
+			^ 1 ].
+	(mediaType isEmpty not and: [ (GtsFiles mediaTypeForDigest: digest in: graph) ~= mediaType ])
+		ifTrue: [
+			self stderr: 'gts: refusing ', digest, ': declared media type does not match asserted ', mediaType, String lf.
+			^ 1 ].
+	(GtsWriter digestString: data) = digest ifFalse: [
+		self stderr: 'gts: integrity failure: ', digest, ' bytes re-hash differently', String lf.
+		^ 1 ].
 	outPath
-		ifNil: [ self stdoutBytes: (graph blobs at: digest) ]
-		ifNotNil: [ self writeFile: outPath bytes: (graph blobs at: digest) ].
+		ifNil: [ self stdoutBytes: data ]
+		ifNotNil: [ self writeFile: outPath bytes: data ].
 	^ 0
 ]
 
@@ -168,7 +224,7 @@ GtsCLI class >> runHeads: args [
 	data := self readFile: args first.
 	inventory := GtsReplication inventoryFor: data.
 	self stdout: (GtsReplication headsJsonFor: inventory).
-	^ 0
+	^ (GtsReplication hasProblems: inventory) ifTrue: [ 1 ] ifFalse: [ 0 ]
 ]
 
 { #category : #commands }
@@ -185,6 +241,45 @@ GtsCLI class >> runInfo: args [
 ]
 
 { #category : #private }
+GtsCLI class >> allQuadsSuppressed: graph [
+	| quadSup termSup |
+	(graph quads isEmpty or: [ graph suppressions isEmpty ]) ifTrue: [ ^ false ].
+	termSup := Dictionary new.
+	quadSup := Dictionary new.
+	graph suppressions do: [ :suppression |
+		(suppression at: 'targets' ifAbsent: [ #() ]) do: [ :target |
+			| kind |
+			target isDictionary ifTrue: [
+				kind := target at: 'kind' ifAbsent: [ '' ].
+				((kind = 'term') or: [ kind = 'reifier' ]) ifTrue: [
+					(target at: 'id' ifAbsent: [ nil ]) ifNotNil: [ :termId | termSup at: termId put: true ] ].
+				kind = 'quad' ifTrue: [
+					(target at: 'q' ifAbsent: [ nil ]) ifNotNil: [ :quad | quadSup at: quad put: true ] ] ] ] ].
+	graph quads do: [ :quad |
+		| hidden |
+		hidden := quadSup includesKey: quad.
+		quad do: [ :termId |
+			(termSup includesKey: termId) ifTrue: [ hidden := true ] ].
+		hidden ifFalse: [ ^ false ] ].
+	^ true
+]
+
+{ #category : #private }
+GtsCLI class >> graphContributes: graph [
+	graph quads isEmpty ifFalse: [ ^ true ].
+	graph blobs isEmpty ifFalse: [ ^ true ].
+	graph reifiers isEmpty ifFalse: [ ^ true ].
+	graph annotations isEmpty ifFalse: [ ^ true ].
+	graph suppressions isEmpty ifFalse: [ ^ true ].
+	^ false
+]
+
+{ #category : #private }
+GtsCLI class >> graphIsClean: graph [
+	^ graph diagnostics isEmpty and: [ graph segmentHeads notEmpty ]
+]
+
+{ #category : #private }
 GtsCLI class >> parseVerifyKey: spec [
 	| colon keyBytes |
 	colon := spec findString: ':' startingAt: 1.
@@ -193,6 +288,34 @@ GtsCLI class >> parseVerifyKey: spec [
 	keyBytes size = GtsSodium ed25519PublicKeyBytes
 		ifFalse: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
 	^ (spec copyFrom: 1 to: colon - 1) -> keyBytes
+]
+
+{ #category : #private }
+GtsCLI class >> printDiagnosticsFor: graph [
+	graph diagnostics do: [ :diagnostic |
+		self stderr: 'gts: diagnostic ', diagnostic code, ': ', diagnostic detail, String lf ]
+]
+
+{ #category : #private }
+GtsCLI class >> profileFindingsFor: graph [
+	| declaredFiles findings usesFiles |
+	declaredFiles := graph profiles includes: 'files'.
+	usesFiles := false.
+	graph terms do: [ :term |
+		(term kind = #iri and: [ term value beginsWith: GtsFiles filesNamespace ])
+			ifTrue: [ usesFiles := true ] ].
+	findings := OrderedCollection new.
+	(usesFiles and: [ declaredFiles not ]) ifTrue: [
+		findings add: (Dictionary newFromPairs: {
+			'severity'. 'error'.
+			'message'. 'profile error: segment uses ', GtsFiles filesNamespace,
+				' vocabulary but does not declare ''files''' }) ].
+	(declaredFiles and: [ usesFiles not ]) ifTrue: [
+		findings add: (Dictionary newFromPairs: {
+			'severity'. 'warning'.
+			'message'. 'profile warning: segment declares ''files'' but uses no ',
+				GtsFiles filesNamespace, ' vocabulary' }) ].
+	^ findings asArray
 ]
 
 { #category : #private }
@@ -237,16 +360,20 @@ GtsCLI class >> printLedgerFor: path graph: graph [
 
 { #category : #commands }
 GtsCLI class >> runLs: args [
+	| problems |
 	args isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
+	problems := false.
 	args do: [ :path |
 		| graph |
 		graph := GtsReader read: (self readFile: path).
+		self printDiagnosticsFor: graph.
+		(self graphIsClean: graph) ifFalse: [ problems := true ].
 		graph blobs keys asSortedCollection do: [ :digest |
 			| mediaType meta |
 			meta := graph blobMeta at: digest ifAbsent: [ Dictionary new ].
 			mediaType := meta at: 'mt' ifAbsent: [ '' ].
 			self stdout: digest, ' ', (graph blobs at: digest) size asString, ' ', mediaType, String lf ] ].
-	^ 0
+	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
 ]
 
 { #category : #commands }
@@ -258,7 +385,7 @@ GtsCLI class >> runMissing: args [
 	inventory := GtsReplication inventoryFor: data.
 	result := GtsReplication missingFromHead: fromHead in: inventory.
 	self stdout: (GtsReplication missingJson: result).
-	^ 0
+	^ (result at: 'status') = 'error' ifTrue: [ 1 ] ifFalse: [ 0 ]
 ]
 
 { #category : #commands }
@@ -294,23 +421,40 @@ GtsCLI class >> runSegments: args [
 	data := self readFile: args first.
 	inventory := GtsReplication inventoryFor: data.
 	self stdout: (GtsReplication segmentsJsonFor: inventory).
-	^ 0
+	^ (GtsReplication hasProblems: inventory) ifTrue: [ 1 ] ifFalse: [ 0 ]
 ]
 
 { #category : #commands }
 GtsCLI class >> runUnpack: args [
-	| destination graph path |
+	| destination graph includeSuppressed index path |
 	destination := '.'.
+	includeSuppressed := false.
 	path := nil.
-	1 to: args size do: [ :index |
-		((args at: index) = '-C' or: [ (args at: index) = '--directory' ])
-			ifTrue: [ destination := args at: index + 1 ifAbsent: [ ^ 2 ] ]
+	index := 1.
+	[ index <= args size ] whileTrue: [
+		| arg |
+		arg := args at: index.
+		((arg = '-C') or: [ arg = '--directory' ])
+			ifTrue: [
+				index = args size ifTrue: [ self stderr: self usage. ^ 2 ].
+				destination := args at: index + 1.
+				index := index + 2 ]
 			ifFalse: [
-				(index = 1 or: [ ((args at: index - 1) ~= '-C') and: [ (args at: index - 1) ~= '--directory' ] ])
-					ifTrue: [ path := args at: index ] ] ].
+				arg = '--include-suppressed'
+					ifTrue: [
+						includeSuppressed := true.
+						index := index + 1 ]
+					ifFalse: [
+						path ifNotNil: [ self stderr: self usage. ^ 2 ].
+						path := arg.
+						index := index + 1 ] ] ].
 	path ifNil: [ self stderr: self usage. ^ 2 ].
 	graph := GtsReader read: (self readFile: path).
-	GtsFiles unpackGraph: graph to: destination includeSuppressed: false.
+	self printDiagnosticsFor: graph.
+	(self graphIsClean: graph) ifFalse: [
+		self stderr: 'gts: refusing unpack: archive did not read cleanly', String lf.
+		^ 1 ].
+	GtsFiles unpackGraph: graph to: destination includeSuppressed: includeSuppressed.
 	^ 0
 ]
 
@@ -336,6 +480,9 @@ GtsCLI class >> runVerify: args [
 		graph := GtsReader read: (self readFile: path).
 		self printLedgerFor: path graph: graph.
 		graph diagnostics isEmpty ifFalse: [ problems := true ].
+		(self profileFindingsFor: graph) do: [ :finding |
+			self stderr: '  ', (finding at: 'severity'), ': ', (finding at: 'message'), String lf.
+			(finding at: 'severity') = 'error' ifTrue: [ problems := true ] ].
 		keys isEmpty ifFalse: [
 			graph signatures do: [ :signature |
 				| kid status |

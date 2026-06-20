@@ -7,7 +7,7 @@ args_file="$(mktemp)"
 trap 'rm -f "$args_file"' EXIT
 
 for arg in "$@"; do
-  printf '%s\n' "$arg" >> "$args_file"
+  printf '%s\000' "$arg" >> "$args_file"
 done
 
 repo="${GTS_SMALLTALK_REPOSITORY:-tonel:///workspace/smalltalk/src}"
@@ -19,8 +19,23 @@ cd /opt/pharo
 GTS_ARGS_FILE="$args_file" GTS_SMALLTALK_REPOSITORY="$repo" pharo eval "[ | args argsFile code repo |
 repo := (Smalltalk globals at: #OSEnvironment) current at: 'GTS_SMALLTALK_REPOSITORY'.
 argsFile := ((Smalltalk globals at: #OSEnvironment) current at: 'GTS_ARGS_FILE') asFileReference.
-args := argsFile readStreamDo: [ :stream |
-  stream contents lines reject: [ :line | line isEmpty ] ].
+args := argsFile binaryReadStreamDo: [ :stream |
+  | bytes current currentHasBytes parts |
+  bytes := stream upToEnd.
+  parts := OrderedCollection new.
+  current := ByteArray new writeStream.
+  currentHasBytes := false.
+  bytes do: [ :byte |
+    byte = 0
+      ifTrue: [
+        parts add: current contents utf8Decoded.
+        current := ByteArray new writeStream.
+        currentHasBytes := false ]
+      ifFalse: [
+        current nextPut: byte.
+        currentHasBytes := true ] ].
+  currentHasBytes ifTrue: [ parts add: current contents utf8Decoded ].
+  parts asArray ].
 [ Metacello new
     baseline: 'Gts';
     repository: repo;

@@ -31,7 +31,7 @@ GtsCborWriter class >> write: anObject on: stream [
 	anObject = true ifTrue: [ ^ stream nextPut: 16rF5 ].
 	anObject isInteger ifTrue: [ ^ self writeInteger: anObject on: stream ].
 	(anObject isKindOf: ByteArray) ifTrue: [ ^ self writeByteString: anObject on: stream ].
-	anObject class = GtsCborTag ifTrue: [ ^ self writeTag: anObject on: stream ].
+	(anObject isKindOf: GtsCborTag) ifTrue: [ ^ self writeTag: anObject on: stream ].
 	anObject isSymbol ifTrue: [ ^ self writeTextString: anObject asString on: stream ].
 	anObject isString ifTrue: [ ^ self writeTextString: anObject on: stream ].
 	(anObject isKindOf: Association) ifTrue: [
