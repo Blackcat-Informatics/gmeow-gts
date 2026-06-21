@@ -20,6 +20,7 @@ path = [
   "php/composer.json",
   "r/DESCRIPTION",
   "r/LICENSE",
+  "julia/Project.toml",
   "rust/Cargo.lock",
   "rust/capi/Cargo.lock",
   "visual-hashing/Cargo.lock",

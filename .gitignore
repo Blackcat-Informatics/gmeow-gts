@@ -38,6 +38,13 @@ r/src/*.so
 r/src/*.dSYM/
 r/*.Rcheck/
 
+# Julia
+julia/Manifest.toml
+julia/LocalPreferences.toml
+julia/*.cov
+julia/*.mem
+julia/coverage/
+
 # Python
 python/.venv/
 python/dist/
