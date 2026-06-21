@@ -3,6 +3,7 @@
 
 require "ffi"
 require "rbconfig"
+require "thread"
 
 module Gmeow
   module Gts
@@ -68,7 +69,17 @@ module Gmeow
     end
 
     module Native
+      @modules = {}
+      @mutex = Mutex.new
+
       def self.bind(library)
+        key = library.to_s
+        @mutex.synchronize do
+          @modules[key] ||= build(key)
+        end
+      end
+
+      def self.build(library)
         Module.new do
           extend FFI::Library
 
@@ -97,6 +108,8 @@ module Gmeow
                           :int
         end
       end
+
+      private_class_method :build
     end
 
     class Library
@@ -193,11 +206,12 @@ module Gmeow
 
         begin
           status = yield(out.to_ptr, error)
+          err_ptr = error.read_pointer
           if status != Status::OK
-            raise build_error(operation, status, error.read_pointer)
+            raise build_error(operation, status, err_ptr)
           end
-          if !error.read_pointer.null?
-            raise build_error(operation, Status::INTERNAL, error.read_pointer)
+          unless err_ptr.null?
+            raise build_error(operation, Status::INTERNAL, err_ptr)
           end
           copy_buffer(out)
         ensure
@@ -218,9 +232,12 @@ module Gmeow
         detail = ""
 
         unless error.null?
-          code = copy_c_string(@native.gts_error_code(error))
-          detail = copy_c_string(@native.gts_error_message(error))
-          @native.gts_error_free(error)
+          begin
+            code = copy_c_string(@native.gts_error_code(error))
+            detail = copy_c_string(@native.gts_error_message(error))
+          ensure
+            @native.gts_error_free(error)
+          end
         end
 
         Error.new(operation: operation, status: status, code: code, detail: detail)
