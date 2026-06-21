@@ -97,7 +97,7 @@ function expectContains(string $label, string $haystack, string $needle): void
 
 function removeTree(string $path): void
 {
-    if (!file_exists($path)) {
+    if (!file_exists($path) && !is_link($path)) {
         return;
     }
     if (is_file($path) || is_link($path)) {
