@@ -16,6 +16,11 @@ const (
 	RDFDirLangString = "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString"
 )
 
+// IsLiteralDirection reports whether direction is a valid RDF 1.2 base direction.
+func IsLiteralDirection(direction string) bool {
+	return direction == "ltr" || direction == "rtl"
+}
+
 // TermKind is the kind of an RDF term, matching the wire "k" field (§7.1).
 type TermKind int
 
@@ -239,7 +244,7 @@ func (g *Graph) DatatypeIRI(t *Term) string {
 		return XSDString
 	}
 	if t.Lang != "" {
-		if t.Direction != "" {
+		if IsLiteralDirection(t.Direction) {
 			return RDFDirLangString
 		}
 		return RDFLangString

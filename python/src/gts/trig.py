@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from gts.from_nquads import NQuadsParseError, from_nquads
-from gts.model import Graph
+from gts.model import Graph, is_literal_direction
 from gts.nquads import term_token
 
 _RDF_NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -127,7 +127,7 @@ def _token(node: _Node) -> str:
     if isinstance(node, _Literal):
         lit = f'"{_escape_literal(node.value)}"'
         if node.lang is not None:
-            if node.direction is not None:
+            if is_literal_direction(node.direction):
                 return f"{lit}@{node.lang}--{node.direction}"
             return f"{lit}@{node.lang}"
         if node.datatype is not None:

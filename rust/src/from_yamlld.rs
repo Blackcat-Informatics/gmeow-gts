@@ -579,12 +579,25 @@ fn parse_literal_object(
             "@direction requires a language-tagged literal",
         ));
     }
+    if lang.is_some() {
+        if !matches!(value, Value::String(_)) {
+            return Err(YamlLdParseError::new(
+                "@value must be a string for language-tagged literals",
+            ));
+        }
+        if map.contains_key("@type") {
+            return Err(YamlLdParseError::new(
+                "@type cannot be combined with @language or @direction",
+            ));
+        }
+        return Ok(interner.atom(TermKind::Literal, lexical, lang, direction, None));
+    }
     let datatype = match map.get("@type") {
         Some(Value::String(datatype)) => Some(context.expand(datatype)),
         Some(_) => return Err(YamlLdParseError::new("@type must be a string")),
         None => inferred_datatype(value),
     };
-    Ok(interner.atom(TermKind::Literal, lexical, lang, direction, datatype))
+    Ok(interner.atom(TermKind::Literal, lexical, None, None, datatype))
 }
 
 fn parse_triple(

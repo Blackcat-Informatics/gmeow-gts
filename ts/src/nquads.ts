@@ -52,7 +52,9 @@ function render(g: Graph, tid: number): string {
             let lit = `"${escape(t.value)}"`;
             if (t.lang) {
                 lit += `@${t.lang}`;
-                if (t.direction) lit += `--${t.direction}`;
+                if (t.direction === "ltr" || t.direction === "rtl") {
+                    lit += `--${t.direction}`;
+                }
             } else if (t.datatype !== undefined)
                 lit += `^^${render(g, t.datatype)}`;
             return lit;

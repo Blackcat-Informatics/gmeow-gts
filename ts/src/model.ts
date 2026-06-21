@@ -30,6 +30,9 @@ export function termKindFromWire(k: number): TermKind {
     }
 }
 
+/** RDF 1.2 base direction tokens for language-tagged literals. */
+export type LiteralDirection = "ltr" | "rtl";
+
 /** A single RDF term carried by append-order id. */
 export interface Term {
     kind: TermKind;
@@ -40,7 +43,7 @@ export interface Term {
     /** Literal language tag (BCP 47). */
     lang?: string;
     /** RDF 1.2 initial text direction for language-tagged literals. */
-    direction?: string;
+    direction?: LiteralDirection;
     /** Term-id of the reifier of a quoted triple (kind == Triple). */
     reifier?: number;
 }
@@ -225,7 +228,11 @@ export class Graph {
             if (dt && dt.value) return dt.value;
             return XSD_STRING;
         }
-        if (t.lang) return t.direction ? RDF_DIR_LANG_STRING : RDF_LANG_STRING;
+        if (t.lang) {
+            return t.direction === "ltr" || t.direction === "rtl"
+                ? RDF_DIR_LANG_STRING
+                : RDF_LANG_STRING;
+        }
         return XSD_STRING;
     }
 }

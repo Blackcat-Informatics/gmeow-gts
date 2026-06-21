@@ -394,12 +394,12 @@ fn literal_term(
     role: &str,
 ) -> Result<Literal, RdfAdapterError> {
     let value = term_value(term, role, id)?;
+    if let Some(direction) = &term.direction {
+        return Err(RdfAdapterError::new(format!(
+            "{role} literal term id {id} has RDF 1.2 base direction {direction:?}; oxrdf literal export cannot carry base direction"
+        )));
+    }
     if let Some(lang) = &term.lang {
-        if let Some(direction) = &term.direction {
-            return Err(RdfAdapterError::new(format!(
-                "{role} literal term id {id} has RDF 1.2 base direction {direction:?}; oxrdf literal export cannot carry base direction"
-            )));
-        }
         return Literal::new_language_tagged_literal(value, lang).map_err(|err| {
             RdfAdapterError::new(format!(
                 "{role} literal term id {id} has invalid language tag {lang:?}: {err}"

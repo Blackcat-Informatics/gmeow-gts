@@ -7,6 +7,8 @@ const val XSD_STRING = "http://www.w3.org/2001/XMLSchema#string"
 const val RDF_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
 const val RDF_DIR_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString"
 
+fun isLiteralDirection(direction: String?): Boolean = direction == "ltr" || direction == "rtl"
+
 enum class TermKind(val wire: Int) {
     IRI(0),
     LITERAL(1),
@@ -201,7 +203,7 @@ class Graph {
             return XSD_STRING
         }
         return if (!term.lang.isNullOrEmpty()) {
-            if (!term.direction.isNullOrEmpty()) RDF_DIR_LANG_STRING else RDF_LANG_STRING
+            if (isLiteralDirection(term.direction)) RDF_DIR_LANG_STRING else RDF_LANG_STRING
         } else {
             XSD_STRING
         }

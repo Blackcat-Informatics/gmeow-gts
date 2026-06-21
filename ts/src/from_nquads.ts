@@ -1,7 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-import { TermKind, type Quad, type ReifierEntry, type Term } from "./model.js";
+import {
+    TermKind,
+    type LiteralDirection,
+    type Quad,
+    type ReifierEntry,
+    type Term,
+} from "./model.js";
 import { Writer } from "./writer.js";
 
 const RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
@@ -17,7 +23,7 @@ interface Atom {
     kind: TermKind;
     value: string;
     lang?: string;
-    direction?: string;
+    direction?: LiteralDirection;
     datatype?: string;
 }
 
@@ -143,7 +149,7 @@ class Tokenizer {
             }
             if (ch === '"') {
                 let lang: string | undefined;
-                let direction: string | undefined;
+                let direction: LiteralDirection | undefined;
                 let datatype: string | undefined;
                 if (this.s[this.i] === "@") {
                     this.i++;

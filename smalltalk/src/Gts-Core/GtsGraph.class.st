@@ -124,7 +124,7 @@ GtsGraph >> datatypeIriForTerm: term [
 		^ self class xsdString ].
 	(term language notNil and: [ term language isEmpty not ])
 		ifTrue: [
-			(term direction notNil and: [ term direction isEmpty not ])
+			(#('ltr' 'rtl') includes: term direction)
 				ifTrue: [ ^ self class rdfDirLangString ].
 			^ self class rdfLangString ].
 	^ self class xsdString

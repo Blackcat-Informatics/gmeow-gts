@@ -32,7 +32,7 @@ func termToWire(t *model.Term) map[interface{}]interface{} {
 	if t.Lang != "" {
 		entries["l"] = t.Lang
 	}
-	if t.Direction != "" {
+	if model.IsLiteralDirection(t.Direction) {
 		entries["dir"] = t.Direction
 	}
 	if t.Reifier != nil {

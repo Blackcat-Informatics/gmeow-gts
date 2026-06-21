@@ -14,7 +14,15 @@ import cbor2
 
 from gts.codec import DEFAULT_CATALOG, Codec, encode_chain
 from gts.crypto import Signer, encrypt0, sign_id
-from gts.model import Graph, Quad, Suppression, Term, TermKind, Triple
+from gts.model import (
+    Graph,
+    Quad,
+    Suppression,
+    Term,
+    TermKind,
+    Triple,
+    is_literal_direction,
+)
 from gts.wire import (
     MAGIC,
     SELF_DESCRIBE_TAG,
@@ -35,7 +43,7 @@ def term_to_wire(t: Term) -> dict[str, object]:
         out["dt"] = t.datatype
     if t.lang is not None:
         out["l"] = t.lang
-    if t.direction is not None:
+    if is_literal_direction(t.direction):
         out["dir"] = t.direction
     if t.reifier is not None:
         out["rf"] = t.reifier

@@ -22,6 +22,11 @@ RDF_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
 RDF_DIR_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString"
 
 
+def is_literal_direction(direction: str | None) -> bool:
+    """Return whether *direction* is a valid RDF 1.2 base direction token."""
+    return direction in ("ltr", "rtl")
+
+
 class TermKind(IntEnum):
     """The kind of an RDF term, matching the wire ``"k"`` field (§7.1)."""
 
@@ -237,6 +242,6 @@ class Graph:
         if t.datatype is not None:
             dt = self.terms[t.datatype]
             return dt.value or XSD_STRING
-        if t.lang is not None and t.direction is not None:
+        if t.lang is not None and is_literal_direction(t.direction):
             return RDF_DIR_LANG_STRING
         return RDF_LANG_STRING if t.lang is not None else XSD_STRING

@@ -232,6 +232,28 @@ fn yaml_ld_preserves_directional_language_literals() {
 }
 
 #[test]
+fn yaml_ld_rejects_language_literals_with_type_or_non_string_values() {
+    let typed_language = r#"
+"@id": "https://ex/s"
+"https://ex/label":
+  "@value": "Cat"
+  "@language": "en"
+  "@type": "xsd:string"
+"#;
+    let err = from_yaml_ld(typed_language).expect_err("mixed language/type is rejected");
+    assert!(err.to_string().contains("@type cannot be combined"));
+
+    let numeric_language = r#"
+"@id": "https://ex/s"
+"https://ex/label":
+  "@value": 1
+  "@language": "en"
+"#;
+    let err = from_yaml_ld(numeric_language).expect_err("language literal value must be string");
+    assert!(err.to_string().contains("@value must be a string"));
+}
+
+#[test]
 fn cli_yaml_ld_inverts_fold() {
     let tmp = tmpdir();
     let _ = std::fs::remove_dir_all(&tmp);

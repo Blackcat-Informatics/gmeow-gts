@@ -73,6 +73,8 @@ GtsTerm >> direction [
 
 { #category : #accessing }
 GtsTerm >> direction: textDirection [
+	((textDirection isNil) or: [ #('ltr' 'rtl') includes: textDirection ])
+		ifFalse: [ self error: 'invalid literal direction' ].
 	direction := textDirection
 ]
 

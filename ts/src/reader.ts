@@ -7,6 +7,7 @@ import {
     Quad,
     TermKind,
     Triple,
+    type LiteralDirection,
     type StreamableInfo,
     type Suppression,
     type Diagnostic,
@@ -248,7 +249,7 @@ class Folder {
                 const s = wire.asText(l);
                 if (s !== undefined) lang = s;
             }
-            let direction: string | undefined;
+            let direction: LiteralDirection | undefined;
             const dir = wire.mapGet(entries, "dir");
             if (dir !== undefined) {
                 const s = wire.asText(dir);

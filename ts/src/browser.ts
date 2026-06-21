@@ -10,6 +10,7 @@ import {
     TermKind,
     termKindFromWire,
     type Diagnostic,
+    type LiteralDirection,
     type Quad,
     type Signature,
     type StreamableInfo,
@@ -904,7 +905,7 @@ class Folder {
                 const s = asText(l);
                 if (s !== undefined) lang = s;
             }
-            let direction: string | undefined;
+            let direction: LiteralDirection | undefined;
             const dir = mapGet(entries, "dir");
             if (dir !== undefined) {
                 const s = asText(dir);
