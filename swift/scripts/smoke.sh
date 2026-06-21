@@ -17,19 +17,6 @@ cd "${ROOT}"
 diff -u rust/capi/include/gts.h swift/Sources/CGts/include/gts.h
 cargo build --manifest-path "${CAPI}/Cargo.toml"
 
-case "$(uname -s)" in
-  Darwin)
-    LIB_NAME="libgts.dylib"
-    ;;
-  MINGW* | MSYS* | CYGWIN*)
-    LIB_NAME="gts.dll"
-    ;;
-  *)
-    LIB_NAME="libgts.so"
-    ;;
-esac
-LIB_PATH="${CAPI_TARGET}/${LIB_NAME}"
-
 run_smoke() {
   swift run \
     --package-path "${PACKAGE}" \
