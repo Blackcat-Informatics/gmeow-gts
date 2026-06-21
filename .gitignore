@@ -15,6 +15,10 @@ kotlin/.gradle/
 kotlin/.kotlin/
 kotlin/build/
 
+# Swift
+swift/.build/
+swift/.swiftpm/
+
 # .NET
 dotnet/**/bin/
 dotnet/**/obj/
