@@ -47,7 +47,7 @@
     "fzstd": "^0.1.1"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.0",
     "@typescript-eslint/eslint-plugin": "^8.30.0",
     "@typescript-eslint/parser": "^8.30.0",
     "eslint": "^10.5.0",
