@@ -18,6 +18,7 @@ kotlin/build/
 # .NET
 dotnet/**/bin/
 dotnet/**/obj/
+php/vendor/
 
 # Python
 python/.venv/

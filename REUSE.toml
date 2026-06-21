@@ -17,6 +17,7 @@ path = [
   "ts/tsconfig.json",
   "ts/tsconfig.test.json",
   "ts/.gitignore",
+  "php/composer.json",
   "rust/Cargo.lock",
   "rust/capi/Cargo.lock",
   "visual-hashing/Cargo.lock",
