@@ -157,12 +157,16 @@ fn emit_fold_order(graph: &Graph, sink: &mut dyn RdfEventSink) -> Result<(), Eve
         sink.term(event_term(graph, id, term)?)?;
     }
     for &(reifier, triple) in &graph.reifiers {
+        validate_term_ref(graph, reifier, "reifier")?;
+        validate_triple_refs(graph, triple, "reifier")?;
         sink.reifier(event_id(reifier)?, event_triple(triple)?)?;
     }
     for &quad in &graph.quads {
+        validate_quad_refs(graph, quad)?;
         sink.quad(event_quad(quad)?)?;
     }
     for &annotation in &graph.annotations {
+        validate_triple_refs(graph, annotation, "annotation")?;
         sink.annotation(event_triple(annotation)?)?;
     }
     Ok(())
@@ -195,11 +199,11 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
             self.emit_reifier(reifier, triple, 0)?;
         }
         for &quad in &self.graph.quads {
-            self.emit_quad_deps(quad, 0)?;
+            validate_quad_refs(self.graph, quad)?;
             self.sink.quad(event_quad(quad)?)?;
         }
         for &annotation in &self.graph.annotations {
-            self.emit_triple_deps(annotation, 0)?;
+            validate_triple_refs(self.graph, annotation, "annotation")?;
             self.sink.annotation(event_triple(annotation)?)?;
         }
         Ok(())
@@ -231,10 +235,8 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
                 }
             }
             TermKind::Triple => {
-                if let Some(triple) = term.reifier.and_then(|reifier| self.graph.reifier(reifier)) {
-                    self.emit_triple_deps(triple, depth + 1)?;
-                    if let Some(reifier) = term.reifier {
-                        self.emit_term(reifier, depth + 1)?;
+                if let Some(reifier) = term.reifier {
+                    if let Some(triple) = self.graph.reifier(reifier) {
                         self.emit_reifier(reifier, triple, depth + 1)?;
                     }
                 }
@@ -262,17 +264,6 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
         self.sink.reifier(event_id(reifier)?, event_triple(triple)?)
     }
 
-    fn emit_quad_deps(&mut self, quad: Quad, depth: usize) -> Result<(), EventError> {
-        let (subject, predicate, object, graph_name) = quad;
-        self.emit_term(subject, depth)?;
-        self.emit_term(predicate, depth)?;
-        self.emit_term(object, depth)?;
-        if let Some(graph_name) = graph_name {
-            self.emit_term(graph_name, depth)?;
-        }
-        Ok(())
-    }
-
     fn emit_triple_deps(&mut self, triple: Triple3, depth: usize) -> Result<(), EventError> {
         let (subject, predicate, object) = triple;
         self.emit_term(subject, depth)?;
@@ -280,6 +271,34 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
         self.emit_term(object, depth)?;
         Ok(())
     }
+}
+
+fn validate_term_ref(graph: &Graph, id: usize, context: &str) -> Result<(), EventError> {
+    if id < graph.terms.len() {
+        Ok(())
+    } else {
+        Err(EventError::invalid_source(format!(
+            "{context} references term id {id} outside graph terms"
+        )))
+    }
+}
+
+fn validate_triple_refs(graph: &Graph, triple: Triple3, context: &str) -> Result<(), EventError> {
+    let (subject, predicate, object) = triple;
+    validate_term_ref(graph, subject, context)?;
+    validate_term_ref(graph, predicate, context)?;
+    validate_term_ref(graph, object, context)
+}
+
+fn validate_quad_refs(graph: &Graph, quad: Quad) -> Result<(), EventError> {
+    let (subject, predicate, object, graph_name) = quad;
+    validate_term_ref(graph, subject, "quad")?;
+    validate_term_ref(graph, predicate, "quad")?;
+    validate_term_ref(graph, object, "quad")?;
+    if let Some(graph_name) = graph_name {
+        validate_term_ref(graph, graph_name, "quad")?;
+    }
+    Ok(())
 }
 
 fn event_id(id: usize) -> Result<EventTermId, EventError> {

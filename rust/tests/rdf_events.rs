@@ -3,7 +3,7 @@
 
 use gmeow_gts::model::{Diagnostic, Graph, Term, TermKind};
 use gmeow_gts::rdf_events::{
-    visit_dataset, EventError, EventQuad, EventScopeId, EventTerm, EventTriple,
+    visit_dataset, EventError, EventErrorKind, EventQuad, EventScopeId, EventTerm, EventTriple,
     GraphRdfEventSource, RdfDatasetVisitor, RdfEventSink, RdfEventSource, ReaderRdfEventSource,
 };
 use gmeow_gts::writer::Writer;
@@ -272,6 +272,26 @@ fn strict_sink_gets_declarations_before_references() {
     assert!(reifier < term_1);
     assert!(term_1 < quad);
     assert!(quad < annotation);
+}
+
+#[test]
+fn source_rejects_out_of_range_quad_reference() {
+    let graph = Graph {
+        terms: vec![
+            term(TermKind::Iri, "https://ex/s"),
+            term(TermKind::Iri, "https://ex/p"),
+        ],
+        quads: vec![(0, 1, 9, None)],
+        ..Default::default()
+    };
+    let mut sink = RecordingSink::default();
+
+    let err = GraphRdfEventSource::new(&graph)
+        .drive(&mut sink)
+        .expect_err("invalid graph should be rejected");
+
+    assert_eq!(err.kind(), &EventErrorKind::InvalidSource);
+    assert!(err.detail().contains("quad references term id 9"));
 }
 
 #[derive(Default)]
