@@ -24,6 +24,12 @@ dotnet/**/bin/
 dotnet/**/obj/
 php/vendor/
 
+# Ruby
+ruby/.bundle/
+ruby/pkg/
+ruby/vendor/bundle/
+ruby/*.gem
+
 # Python
 python/.venv/
 python/dist/
