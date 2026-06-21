@@ -44,9 +44,11 @@ The package family is `gmeow-gts`; the format is GTS. The package name is intent
 distinctive across ecosystems, while the CLI, import surface, and file extension remain the
 short `gts` and `.gts` forms where ecosystem rules permit.
 
-This repository holds **six interoperable engines** (Rust, Python, Go, TypeScript,
+This repository holds **six interoperable full engines** (Rust, Python, Go, TypeScript,
 Smalltalk/Pharo, Kotlin/JVM) that gate against one frozen, byte-exact conformance corpus and the
-specification that defines them.
+specification that defines them. It also publishes a Rust-backed **C ABI** (`libgts`) and thin
+derived wrappers for C-compatible ecosystems; those wrappers consume the Rust engine through
+`rust/capi/include/gts.h` and are not new wire-format engines or CLI parity columns.
 
 - Project URL: <https://blackcatinformatics.ca/projects/gts>
 - Project DOI: <https://doi.org/10.67342/umcdg7675h/v1>
@@ -65,6 +67,7 @@ specification that defines them.
   - [TypeScript](#typescript)
   - [Smalltalk/Pharo](#smalltalkpharo)
   - [Kotlin/JVM](#kotlinjvm)
+- [C ABI and ecosystem wrappers](#c-abi-and-ecosystem-wrappers)
 - [Command-line interface](#command-line-interface)
 - [Engine feature matrix](#engine-feature-matrix)
 - [The file format in one minute](#the-file-format-in-one-minute)
@@ -156,6 +159,8 @@ GTS supports several use cases without making any of them the project frame:
 
 ## Install
 
+Full parity engines:
+
 | Language | Package | Install |
 |---|---|---|
 | **Rust** | [`gmeow-gts`](https://crates.io/crates/gmeow-gts) (binary `gts`) | `cargo install gmeow-gts` |
@@ -164,6 +169,20 @@ GTS supports several use cases without making any of them the project frame:
 | **TypeScript** | [`@blackcatinformatics/gmeow-gts`](https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts) | `npm i @blackcatinformatics/gmeow-gts` |
 | **Smalltalk/Pharo** | Tonel + Metacello source package | `docker build -t gmeow-gts-smalltalk smalltalk` |
 | **Kotlin/JVM** | Gradle source project | `cd kotlin && gradle installDist` |
+
+Rust-backed C ABI and derived wrappers:
+
+| Surface | Directory | Entry point |
+|---|---|---|
+| **C ABI** | [`rust/capi/`](./rust/capi/README.md) | `cargo build --manifest-path rust/capi/Cargo.toml` |
+| **C++** | [`cpp/`](./cpp/README.md) | header-only RAII wrapper over `libgts` |
+| **.NET** | [`dotnet/`](./dotnet/README.md) | `Gmeow.Gts` P/Invoke wrapper |
+| **PHP** | [`php/`](./php/README.md) | PHP FFI Composer package |
+| **Lua** | [`lua/`](./lua/README.md) | LuaJIT FFI module |
+| **Swift** | [`swift/`](./swift/README.md) | Swift Package Manager wrapper |
+| **Ruby** | [`ruby/`](./ruby/README.md) | `gmeow-gts` FFI gem |
+| **R** | [`r/`](./r/README.md) | `gmeowgts` package |
+| **Julia** | [`julia/`](./julia/README.md) | `GmeowGTS.jl` package |
 
 The package family consistently uses the `gmeow-gts` distribution identity where ecosystem
 naming permits. Ecosystem-specific module/package names are shown above; the CLI binary stays
@@ -200,8 +219,8 @@ Path("cat.gts").write_bytes(w.to_bytes())
 
 ### Rust
 
-Add `gmeow-gts = "0.9.2"` to `Cargo.toml`. Optional feature builds use the standard Cargo
-shape `gmeow-gts = { version = "0.9.2", default-features = false, features = [...] }`.
+Add `gmeow-gts = "0.9.4"` to `Cargo.toml`. Optional feature builds use the standard Cargo
+shape `gmeow-gts = { version = "0.9.4", default-features = false, features = [...] }`.
 
 ```rust
 use std::fs;
@@ -298,12 +317,47 @@ Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.4 are inte
 manifest floors. Older runtimes are unsupported so the engines can share one current CI and
 release matrix and use current standard-library/toolchain behavior without compatibility shims.
 
+## C ABI and ecosystem wrappers
+
+`rust/capi/` builds `libgts` from the Rust engine and exposes a stable C-compatible ABI for
+runtimes that can load native libraries. The ABI returns JSON reports or owned byte buffers for:
+
+- ABI/version/build metadata and capability discovery;
+- read/fold and verify reports;
+- GTS to N-Quads and N-Quads to GTS conversion;
+- files-profile pack, unpack, and diff helpers;
+- structured error status, code, and detail fields.
+
+Every wrapper copies returned `gts_buffer` values into ecosystem-owned strings or byte containers
+and releases native memory with `gts_buffer_free`; structured errors are copied before
+`gts_error_free`. Wrappers are thin bindings over the Rust engine, not independent parsers,
+writers, or CLI parity engines.
+
+Run the C ABI and wrapper smoke tests from the repository root:
+
+```bash
+bash rust/capi/scripts/smoke.sh
+bash cpp/scripts/smoke.sh
+bash dotnet/scripts/smoke.sh
+bash php/scripts/smoke.sh
+bash lua/scripts/smoke.sh
+bash swift/scripts/smoke.sh
+bash ruby/scripts/smoke.sh
+bash r/scripts/smoke.sh
+bash julia/scripts/smoke.sh
+```
+
+Each wrapper README documents local toolchain requirements, `libgts` discovery (`GTS_LIBGTS`,
+`GTS_LIB_DIR`, or platform loader defaults where supported), ownership rules, threading
+expectations, and fallback container behavior where practical.
+
 ## Command-line interface
 
 `cargo install gmeow-gts`, `pip install gmeow-gts`, `npm i -g @blackcatinformatics/gmeow-gts`,
 `go install ...`, or `cd kotlin && gradle installDist` each install a GTS command-line engine.
 The common verb surface is the cross-engine contract; engine-specific extras are listed after
-it when present. The full API/CLI parity contract lives in
+it when present. The C ABI wrappers above are library surfaces and intentionally do not add
+columns to this CLI parity contract. The full API/CLI parity contract lives in
 [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md).
 
 <!-- cli-common:start -->
@@ -437,8 +491,10 @@ folded quad.
 | Package registry | PyPI | crates.io | Go module | npm | Tonel/Metacello source | Gradle source |
 
 The frozen vector corpus remains the compatibility oracle. The matrix summarizes public package
-surfaces; it is not a replacement for conformance tests. The command-level contract is maintained
-in [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md).
+surfaces for the six full engines; it is not a replacement for conformance tests. The C ABI and
+derived wrappers reuse the Rust engine through `libgts` and are validated by their smoke tests
+rather than by adding new full-engine columns here. The command-level contract is maintained in
+[`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md).
 
 ## The file format in one minute
 
@@ -516,15 +572,24 @@ Current CI-gated conformance status:
 ```text
 gmeow-gts/
 ├── rust/        # Rust crate `gmeow-gts` + `gts` binary (pure Rust, wasm-friendly)
+├── rust/capi/   # Rust-backed C ABI (`libgts`, gts.h, pkg-config/CMake metadata)
 ├── python/      # Python package `gmeow-gts` (module `gts`) + reference corpus generator
 ├── go/          # Go module go.blackcatinformatics.ca/gts
 ├── ts/          # TypeScript/npm package @blackcatinformatics/gmeow-gts
 ├── smalltalk/   # Pharo Tonel/Metacello engine + Docker CLI runtime
 ├── kotlin/      # Kotlin/JVM Gradle engine + CLI runtime
+├── cpp/         # Header-only C++ RAII wrapper over the C ABI
+├── dotnet/      # .NET P/Invoke wrapper over the C ABI
+├── php/         # PHP FFI wrapper over the C ABI
+├── lua/         # LuaJIT FFI wrapper over the C ABI
+├── swift/       # Swift Package wrapper over the C ABI
+├── ruby/        # Ruby FFI gem wrapper over the C ABI
+├── r/           # R package wrapper over the C ABI
+├── julia/       # Julia package wrapper over the C ABI
 ├── visual-hashing/ # Standalone `visual-hashing` crate (emojihash + randomart)
 ├── vectors/     # Frozen conformance corpus (*.gts + *.expected.json)
 ├── docs/        # GTS-SPEC.md (normative) + gts-reference.md
-└── .github/     # CI (six parity engines + release workflows)
+└── .github/     # CI (six parity engines, C ABI wrapper smoke tests, release workflows)
 ```
 
 ## Building from source
@@ -540,6 +605,15 @@ cd kotlin && gradle test detekt                       # JVM parity tests + stati
 docker build -t gmeow-gts-smalltalk smalltalk && \
   docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
   'sh /workspace/smalltalk/scripts/run-tests.sh'      # Pharo parity tests
+bash rust/capi/scripts/smoke.sh                       # C ABI
+bash cpp/scripts/smoke.sh                             # C++ wrapper
+bash dotnet/scripts/smoke.sh                          # .NET wrapper
+bash php/scripts/smoke.sh                             # PHP wrapper
+bash lua/scripts/smoke.sh                             # Lua wrapper
+bash swift/scripts/smoke.sh                           # Swift wrapper
+bash ruby/scripts/smoke.sh                            # Ruby wrapper
+bash r/scripts/smoke.sh                               # R wrapper
+bash julia/scripts/smoke.sh                           # Julia wrapper
 ```
 
 Or use the [`justfile`](./justfile): `just test` (all engines), `just lint`, `just fmt`,
@@ -548,7 +622,8 @@ Or use the [`justfile`](./justfile): `just test` (all engines), `just lint`, `ju
 
 Repo-wide hygiene (formatting, SPDX/REUSE headers, YAML/Markdown/shell, secrets) runs through
 `pre-commit run --all-files`. CI runs Rust, Python, Go, and TypeScript on Linux, macOS,
-and Windows, the Smalltalk/Pharo and Kotlin/JVM parity jobs on Linux, plus a
+and Windows, the Smalltalk/Pharo and Kotlin/JVM parity jobs on Linux, the C ABI and wrapper
+smoke tests where their toolchains are practical, plus a
 [live six-engine interop check](./scripts/interop.sh) (each parity engine reads every
 other's output), reader [fuzzing](./.github/workflows/fuzz.yml), and per-ecosystem
 [supply-chain scanning](./.github/workflows/security.yml). Changes are tracked in
@@ -573,6 +648,10 @@ The normal Rust release path does not require a `CARGO_REGISTRY_TOKEN` repositor
 secret.
 
 Each release workflow verifies the tag matches the manifest version before publishing.
+The C ABI and derived wrappers currently ship from the repository source tree and CI smoke tests;
+registry release automation for those wrapper packages is intentionally separate from the four
+tag-triggered engine release lanes above unless a wrapper README or future release workflow says
+otherwise.
 Release artifacts carry GitHub SLSA provenance attestations. Go archives and
 registry-hosted Rust, Python, and TypeScript package files also carry SPDX SBOM
 attestations. Go releases are immutable GitHub Releases that attach archives,
@@ -639,9 +718,13 @@ For historical releases that predate SBOM and immutable-release hardening, pass
 - [`docs/positioning.md`](./docs/positioning.md) — the project framing, narrow-waist
   architecture, application families, and engine feature matrix.
 - [`docs/gts-reference.md`](./docs/gts-reference.md) — Python reference-implementation guide.
-- Per-engine READMEs live in [`rust/`](./rust/README.md), [`python/`](./python/README.md),
-  [`go/`](./go/README.md), [`ts/`](./ts/README.md), [`smalltalk/`](./smalltalk/README.md),
-  and [`kotlin/`](./kotlin/README.md).
+- Per-engine and wrapper READMEs live in [`rust/`](./rust/README.md),
+  [`python/`](./python/README.md), [`go/`](./go/README.md), [`ts/`](./ts/README.md),
+  [`smalltalk/`](./smalltalk/README.md), [`kotlin/`](./kotlin/README.md),
+  [`rust/capi/`](./rust/capi/README.md), [`cpp/`](./cpp/README.md),
+  [`dotnet/`](./dotnet/README.md), [`php/`](./php/README.md), [`lua/`](./lua/README.md),
+  [`swift/`](./swift/README.md), [`ruby/`](./ruby/README.md), [`r/`](./r/README.md), and
+  [`julia/`](./julia/README.md).
 
 GTS is the primary distribution method for
 [GMEOW](https://github.com/Blackcat-Informatics/gmeow-ontology), but GTS does not depend on

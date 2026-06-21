@@ -23,6 +23,7 @@ fn iri(value: &str) -> Term {
         value: Some(value.to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     }
 }
@@ -33,6 +34,7 @@ fn lit(value: &str) -> Term {
         value: Some(value.to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     }
 }

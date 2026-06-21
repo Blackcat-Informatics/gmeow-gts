@@ -23,8 +23,8 @@ authors:
   - family-names: "Audley"
     given-names: "Patrick"
     orcid: "https://orcid.org/0000-0003-4382-7625"
-version: "0.9.2"
-date-released: "2026-06-19"
+version: "0.9.4"
+date-released: "2026-06-21"
 license:
   - Apache-2.0
   - MIT

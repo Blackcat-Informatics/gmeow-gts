@@ -14,6 +14,7 @@ GtsFromNQuads class >> atom: node in: interner [
 		node at: 'kind'.
 		node at: 'value'.
 		node at: 'language' ifAbsent: [ nil ].
+		node at: 'direction' ifAbsent: [ nil ].
 		node at: 'datatype' ifAbsent: [ nil ] }.
 	ids at: key ifPresent: [ :existing | ^ existing ].
 	(node at: 'kind') = #literal
@@ -24,6 +25,7 @@ GtsFromNQuads class >> atom: node in: interner [
 			term := GtsTerm
 				literal: (node at: 'value')
 				language: (node at: 'language' ifAbsent: [ nil ])
+				direction: (node at: 'direction' ifAbsent: [ nil ])
 				datatype: datatypeId ]
 		ifFalse: [
 			(node at: 'kind') = #blankNode

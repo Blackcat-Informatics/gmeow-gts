@@ -1,0 +1,27 @@
+{
+  "name": "blackcatinformatics/gmeow-gts",
+  "description": "PHP FFI wrapper for the GTS C ABI.",
+  "type": "library",
+  "license": [
+    "MIT",
+    "Apache-2.0"
+  ],
+  "require": {
+    "php": ">=8.2",
+    "ext-ffi": "*",
+    "ext-json": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Gmeow\\Gts\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Gmeow\\Gts\\Smoke\\": "tests/"
+    }
+  },
+  "scripts": {
+    "smoke": "php -d ffi.enable=1 tests/smoke.php"
+  }
+}

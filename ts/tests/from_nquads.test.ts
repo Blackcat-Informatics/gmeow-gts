@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { fromNQuads, NQuadsParseError } from "../src/from_nquads.js";
 import { Read } from "../src/reader.js";
 import { toNQuads } from "../src/nquads.js";
-import { TermKind } from "../src/model.js";
+import { RDF_DIR_LANG_STRING, TermKind } from "../src/model.js";
 import { Writer } from "../src/writer.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -62,6 +62,47 @@ test("fromNQuads preserves language-tagged and datatyped literals", () => {
         `<https://ex/s> <https://ex/n> "42"^^<${xsdInt}> .\n` +
         "_:b0 <https://ex/p> <https://ex/s> .\n";
     assert.deepEqual(sortedLines(roundTrip(nq)), sortedLines(nq));
+});
+
+test("fromNQuads preserves directional language literals", () => {
+    const nq = '<https://ex/s> <https://ex/label> "RTL"@ar--rtl .\n';
+    const graph = Read(fromNQuads(nq), false);
+    const literal = graph.terms.find((term) => term.kind === TermKind.Literal);
+    assert.equal(literal?.lang, "ar");
+    assert.equal(literal?.direction, "rtl");
+    assert.equal(
+        literal === undefined ? undefined : graph.datatypeIri(literal),
+        RDF_DIR_LANG_STRING,
+    );
+    assert.deepEqual(sortedLines(toNQuads(graph)), sortedLines(nq));
+});
+
+test("writer allows multiple reifiers for the same statement", () => {
+    const w = new Writer("dist");
+    w.addTerms([
+        { kind: TermKind.Iri, value: "https://ex/r1" },
+        { kind: TermKind.Iri, value: "https://ex/r2" },
+        { kind: TermKind.Iri, value: "https://ex/s" },
+        { kind: TermKind.Iri, value: "https://ex/p" },
+        { kind: TermKind.Iri, value: "https://ex/o" },
+    ]);
+    w.addQuads([{ s: 2, p: 3, o: 4 }]);
+    w.addReifies([
+        { rid: 0, spo: { s: 2, p: 3, o: 4 } },
+        { rid: 1, spo: { s: 2, p: 3, o: 4 } },
+    ]);
+    const graph = Read(w.toBytes(), false);
+    assert.equal(graph.reifiers.length, 2);
+    assert.deepEqual(graph.reifiers.map((entry) => entry.rid).sort(), [0, 1]);
+});
+
+test("fromNQuads preserves multiple reifiers for the same statement", () => {
+    const nq =
+        `<https://ex/r1> <${RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n` +
+        `<https://ex/r2> <${RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n`;
+    const graph = Read(fromNQuads(nq), false);
+    assert.equal(graph.reifiers.length, 2);
+    assert.deepEqual(sortedLines(toNQuads(graph)), sortedLines(nq));
 });
 
 test("fromNQuads handles compact blank-node and language-tag delimiters", () => {
