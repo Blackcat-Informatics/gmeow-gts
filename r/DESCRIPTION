@@ -1,0 +1,13 @@
+Package: gmeowgts
+Type: Package
+Title: R Wrapper for the GTS C ABI
+Version: 0.9.4
+Authors@R: c(
+    person("Blackcat Informatics", role = c("aut", "cre"), email = "paudley@blackcatinformatics.ca")
+    )
+Description: Thin R wrapper over the Rust-backed libgts C ABI.
+License: MIT OR Apache-2.0
+Encoding: UTF-8
+NeedsCompilation: yes
+URL: https://blackcatinformatics.ca/projects/gts
+BugReports: https://github.com/Blackcat-Informatics/gmeow-gts/issues

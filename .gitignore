@@ -30,6 +30,14 @@ ruby/pkg/
 ruby/vendor/bundle/
 ruby/*.gem
 
+# R
+r/.Rhistory
+r/src/*.dll
+r/src/*.o
+r/src/*.so
+r/src/*.dSYM/
+r/*.Rcheck/
+
 # Python
 python/.venv/
 python/dist/
