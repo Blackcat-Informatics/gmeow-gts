@@ -14,7 +14,7 @@ use std::fmt;
 use ciborium::value::Value;
 
 use crate::codec::{encode_chain, Codec, CodecError};
-use crate::model::{Graph, Quad, Suppression, Term, TermKind, Triple3};
+use crate::model::{is_literal_direction, Graph, Quad, Suppression, Term, TermKind, Triple3};
 use crate::wire::{canonical, content_id, digest_str, header_id, SELF_DESCRIBE_TAG};
 
 fn iv(n: i64) -> Value {
@@ -32,6 +32,9 @@ pub fn term_to_wire(t: &Term) -> Value {
     }
     if let Some(l) = &t.lang {
         entries.push(("l".into(), l.clone().into()));
+    }
+    if let Some(direction) = t.direction.as_deref().filter(|d| is_literal_direction(d)) {
+        entries.push(("dir".into(), direction.to_string().into()));
     }
     if let Some(rf) = t.reifier {
         entries.push(("rf".into(), iv(rf as i64)));
@@ -746,6 +749,7 @@ fn term_identity_value(graph: &Graph, tid: usize, stack: &mut Vec<usize>) -> Val
             text_or_null(term.value.as_deref()),
             graph.datatype_iri(term).into(),
             text_or_null(term.lang.as_deref()),
+            text_or_null(term.direction.as_deref()),
         ]),
         TermKind::Bnode => Value::Array(vec![
             "bnode".into(),
@@ -788,6 +792,7 @@ fn remap_term(term: &Term, old_to_new: &[usize]) -> Term {
         value: term.value.clone(),
         datatype: term.datatype.map(|tid| remap_id(old_to_new, tid)),
         lang: term.lang.clone(),
+        direction: term.direction.clone(),
         reifier: term.reifier.map(|tid| remap_id(old_to_new, tid)),
     }
 }

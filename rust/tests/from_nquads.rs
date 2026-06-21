@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use gmeow_gts::from_nquads::from_nquads;
-use gmeow_gts::model::{Term, TermKind};
+use gmeow_gts::model::{Term, TermKind, RDF_DIR_LANG_STRING};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::read;
 use gmeow_gts::writer::Writer;
@@ -61,6 +61,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             value: Some("https://ex/s".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -68,6 +69,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             value: Some("https://ex/p".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -75,6 +77,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             value: Some("https://ex/o".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -82,6 +85,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             value: Some("https://ex/g".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -89,6 +93,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             value: Some("https://ex/conf".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -96,6 +101,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             value: Some("0.9".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -116,6 +122,24 @@ fn literals_lang_and_datatype_roundtrip() {
     let imported = from_nquads(&nq).expect("N-Quads parses");
     let out = to_nquads(&read(&imported, true, None));
     assert_eq!(sorted_lines(&out), sorted_lines(&nq));
+}
+
+#[test]
+fn directional_language_literals_roundtrip() {
+    let nq = "<https://ex/s> <https://ex/label> \"Cat\"@en--ltr .\n";
+    let imported = from_nquads(nq).expect("N-Quads parses");
+    let graph = read(&imported, true, None);
+    let literal = graph
+        .terms
+        .iter()
+        .find(|term| term.kind == TermKind::Literal && term.value.as_deref() == Some("Cat"))
+        .expect("directional literal term");
+    assert_eq!(literal.lang.as_deref(), Some("en"));
+    assert_eq!(literal.direction.as_deref(), Some("ltr"));
+    assert_eq!(graph.datatype_iri(literal), RDF_DIR_LANG_STRING);
+
+    let out = to_nquads(&graph);
+    assert_eq!(sorted_lines(&out), sorted_lines(nq));
 }
 
 #[test]
@@ -142,6 +166,81 @@ fn quoted_triple_adjacent_delimiters_roundtrip() {
     let imported = from_nquads(&nq).expect("N-Quads parses");
     let out = to_nquads(&read(&imported, true, None));
     assert_eq!(sorted_lines(&out), sorted_lines(&expected));
+}
+
+#[test]
+fn writer_allows_multiple_reifiers_for_the_same_statement() {
+    let mut writer = Writer::new("dist");
+    writer.add_terms(&[
+        Term {
+            kind: TermKind::Iri,
+            value: Some("https://ex/r1".to_string()),
+            datatype: None,
+            lang: None,
+            direction: None,
+            reifier: None,
+        },
+        Term {
+            kind: TermKind::Iri,
+            value: Some("https://ex/r2".to_string()),
+            datatype: None,
+            lang: None,
+            direction: None,
+            reifier: None,
+        },
+        Term {
+            kind: TermKind::Iri,
+            value: Some("https://ex/s".to_string()),
+            datatype: None,
+            lang: None,
+            direction: None,
+            reifier: None,
+        },
+        Term {
+            kind: TermKind::Iri,
+            value: Some("https://ex/p".to_string()),
+            datatype: None,
+            lang: None,
+            direction: None,
+            reifier: None,
+        },
+        Term {
+            kind: TermKind::Iri,
+            value: Some("https://ex/o".to_string()),
+            datatype: None,
+            lang: None,
+            direction: None,
+            reifier: None,
+        },
+    ]);
+    writer.add_quads(&[(2, 3, 4, None)]);
+    writer.add_reifies(&[(0, (2, 3, 4)), (1, (2, 3, 4))]);
+
+    let graph = read(&writer.to_bytes(), true, None);
+    assert_eq!(graph.reifiers.len(), 2);
+    assert_eq!(graph.reifier(0), Some((2, 3, 4)));
+    assert_eq!(graph.reifier(1), Some((2, 3, 4)));
+    let out = to_nquads(&graph);
+    assert!(out.contains("<https://ex/r1>"));
+    assert!(out.contains("<https://ex/r2>"));
+    assert_eq!(
+        out.lines()
+            .filter(|line| line.contains(RDF_REIFIES))
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn nquads_import_preserves_multiple_reifiers_for_the_same_statement() {
+    let nq = format!(
+        "<https://ex/r1> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n\
+         <https://ex/r2> <{RDF_REIFIES}> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n"
+    );
+    let graph = read(&from_nquads(&nq).expect("N-Quads parses"), true, None);
+    assert_eq!(graph.reifiers.len(), 2);
+    assert_eq!(graph.reifiers[0].1, graph.reifiers[1].1);
+    assert_eq!(sorted_lines(&to_nquads(&graph)), sorted_lines(&nq));
 }
 
 #[test]

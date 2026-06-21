@@ -23,6 +23,7 @@ fn term_triple() -> ([Term; 3], [TestQuad; 1]) {
                 value: Some("https://example.org/s".into()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             Term {
@@ -30,6 +31,7 @@ fn term_triple() -> ([Term; 3], [TestQuad; 1]) {
                 value: Some("https://example.org/p".into()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             Term {
@@ -37,6 +39,7 @@ fn term_triple() -> ([Term; 3], [TestQuad; 1]) {
                 value: Some("https://example.org/o".into()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
         ],
@@ -247,6 +250,32 @@ fn lazy_blob_external_records_layout_iou() {
     assert!(graph.blobs.is_empty());
     assert!(graph.blob_meta.iter().any(|(d, _)| d == &digest));
     assert!(graph.diagnostics.is_empty());
+}
+
+#[test]
+fn blob_contract_preserves_inline_bytes_and_leaves_external_bytes_out_of_band() {
+    let inline = b"inline payload bytes";
+    let inline_digest = digest_str(inline);
+    let external_digest = format!("blake3:{}", "11".repeat(32));
+
+    let mut writer = Writer::new("generic");
+    writer.add_blob(inline, Some(BLOB_MT), Some("inline"));
+    let mut data = writer.to_bytes();
+    data.extend(blob_frame(
+        writer.head(),
+        None,
+        &[],
+        blob_pub(Some(&external_digest)),
+    ));
+
+    let mut graph = read(&data, true, None);
+    assert_eq!(
+        graph.blob_bytes(&inline_digest).unwrap(),
+        Some(inline.as_slice())
+    );
+    assert_eq!(graph.blob_bytes(&external_digest).unwrap(), None);
+    assert!(graph.blob_meta.iter().any(|(d, _)| d == &inline_digest));
+    assert!(graph.blob_meta.iter().any(|(d, _)| d == &external_digest));
 }
 
 #[test]

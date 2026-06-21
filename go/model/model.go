@@ -11,9 +11,15 @@ package model
 
 // Well-known datatype IRIs used by the literal-defaulting rule (§7.1).
 const (
-	XSDString     = "http://www.w3.org/2001/XMLSchema#string"
-	RDFLangString = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
+	XSDString        = "http://www.w3.org/2001/XMLSchema#string"
+	RDFLangString    = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
+	RDFDirLangString = "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString"
 )
+
+// IsLiteralDirection reports whether direction is a valid RDF 1.2 base direction.
+func IsLiteralDirection(direction string) bool {
+	return direction == "ltr" || direction == "rtl"
+}
 
 // TermKind is the kind of an RDF term, matching the wire "k" field (§7.1).
 type TermKind int
@@ -53,6 +59,8 @@ type Term struct {
 	Datatype *int
 	// Literal language tag (BCP 47).
 	Lang string
+	// RDF 1.2 initial text direction for language-tagged literals.
+	Direction string
 	// Term-id of the reifier of a quoted triple (kind == Triple).
 	Reifier *int
 }
@@ -236,6 +244,9 @@ func (g *Graph) DatatypeIRI(t *Term) string {
 		return XSDString
 	}
 	if t.Lang != "" {
+		if IsLiteralDirection(t.Direction) {
+			return RDFDirLangString
+		}
 		return RDFLangString
 	}
 	return XSDString

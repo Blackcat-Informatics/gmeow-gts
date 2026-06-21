@@ -169,6 +169,7 @@ private fun shiftTerm(term: Term, base: Int): Term =
         term.datatype?.let { it + base },
         term.lang,
         term.reifier?.let { it + base },
+        term.direction,
     )
 
 private fun shiftedSuppressions(graph: Graph, base: Int): List<Suppression> =

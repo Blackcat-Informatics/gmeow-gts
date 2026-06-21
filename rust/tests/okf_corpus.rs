@@ -157,6 +157,7 @@ fn okf_corpus_unmapped_sidecar_is_pinned() {
         value: Some("https://example.org/out-of-profile".to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     });
     let object = graph.terms.len();
@@ -165,6 +166,7 @@ fn okf_corpus_unmapped_sidecar_is_pinned() {
         value: Some("kept in sidecar".to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     });
     graph.quads.push((subject, predicate, object, None));

@@ -697,7 +697,7 @@ layer.
 | value kind | equality rule |
 |---|---|
 | IRI | Exact Unicode string equality after CBOR decoding. No percent, case, Unicode, base-IRI, or prefix normalization is applied by core GTS. |
-| Literal | Same lexical string, same datatype IRI value after defaulting (§7.1), and same language-tag string when present. Datatype lexical canonicalization is not applied; `"01"^^xsd:int` and `"1"^^xsd:int` are distinct transport values. |
+| Literal | Same lexical string, same datatype IRI value after defaulting (§7.1), same language-tag string when present, and same RDF 1.2 base direction when present. Datatype lexical canonicalization is not applied; `"01"^^xsd:int` and `"1"^^xsd:int` are distinct transport values. |
 | Language tag | Exact string equality in core GTS. Profiles and projections MAY apply language-range matching, preferred BCP 47 casing, or public/private tag translation (§13.1), but that is not term identity. |
 | Datatype | Equality of the datatype IRI value, not the local term id that names it. |
 | Blank node | Equality is scoped to the blank-node scope plus the non-empty label. Blank nodes from different segments or nested GTS files are never equal. A blank node with absent or empty `"v"` is anonymous: each term entry is a distinct blank node within its scope. |
@@ -721,13 +721,16 @@ term = {
   ? "v" : tstr,            ; IRI string | literal lexical form | bnode label
   ? "dt": term-id,         ; literal datatype IRI (a term)
   ? "l" : tstr,            ; literal language tag (BCP 47)
+  ? "dir": "ltr" / "rtl",  ; RDF 1.2 base direction for language-tagged literals
   ? "rf": term-id,         ; quoted-triple: the reifier (§7.3) whose triple this term denotes
 }
 ```
 
 **Literal datatype defaulting (normative).** For a `k:1` (literal) term: if `"l"` (language
-tag) is present and `"dt"` is absent, the datatype is `rdf:langString`; if both `"l"` and
-`"dt"` are absent, the datatype is `xsd:string`.
+tag) and `"dir"` are present and `"dt"` is absent, the datatype is `rdf:dirLangString`; if
+`"l"` is present, `"dir"` is absent, and `"dt"` is absent, the datatype is `rdf:langString`;
+if both `"l"` and `"dt"` are absent, the datatype is `xsd:string`. A `"dir"` value MUST be
+`"ltr"` or `"rtl"` and has no meaning without `"l"`.
 
 **Blank-node labels (normative).** A `k:2` (blank node) term's non-empty `"v"` label is local
 to the current blank-node scope: the segment for ordinary frames, the snapshot dictionary for
@@ -1967,8 +1970,9 @@ claims.
 8. A nested GTS blob (`mt: application/vnd.blackcat.gts+cbor-seq`), recursed and folded.
 9. Suppression over a term-id and over a frame digest.
 10. Truncation detection against a signed head / index `"mmr"` root.
-11. Literal datatype defaulting (§7.1): a literal with `"l"` and no `"dt"` → `rdf:langString`;
-    with neither → `xsd:string`.
+11. Literal datatype defaulting (§7.1): a literal with `"l"` + `"dir"` and no `"dt"` →
+    `rdf:dirLangString`; with `"l"` and no `"dt"` → `rdf:langString`; with neither →
+    `xsd:string`.
 12. A reifier rebound to a different triple → `ConflictingReifier`, first binding kept (§7.8).
 13. A position-constraint violation, e.g. a literal in predicate position → rejected/diagnosed
     (§7.4).
@@ -2163,6 +2167,7 @@ term = {
   ? "v": tstr,
   ? "dt": term-id,
   ? "l": tstr,
+  ? "dir": "ltr" / "rtl",          ; RDF 1.2 base direction for language-tagged literals
   ? "rf": term-id,
   * extension-key => any,
 }

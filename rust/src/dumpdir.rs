@@ -678,13 +678,14 @@ fn write_terms(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result
     for (id, term) in graph.terms.iter().enumerate() {
         writeln!(
             out,
-            "{{{}\"id\":{},\"kind\":{},\"value\":{},\"datatype\":{},\"lang\":{},\"reifier\":{}}}",
+            "{{{}\"id\":{},\"kind\":{},\"value\":{},\"datatype\":{},\"lang\":{},\"direction\":{},\"reifier\":{}}}",
             frame_prefix(frame_index),
             id,
             json_string(term_kind_name(term.kind)),
             json_optional_string(term.value.as_deref()),
             json_optional_usize(term.datatype),
             json_optional_string(term.lang.as_deref()),
+            json_optional_string(term.direction.as_deref()),
             json_optional_usize(term.reifier)
         )?;
     }

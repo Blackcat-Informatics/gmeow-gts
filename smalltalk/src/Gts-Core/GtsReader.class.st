@@ -330,18 +330,21 @@ GtsReader class >> foldSuppress: payload into: graph [
 
 { #category : #folding }
 GtsReader class >> foldTerm: termMap into: graph index: frameIndex [
-	| datatype datatypeRaw kind language reifier reifierRaw termId value |
+	| datatype datatypeRaw direction kind language reifier reifierRaw termId value |
 	termMap isDictionary ifFalse: [ ^ self ].
 	kind := termMap at: 'k' ifAbsent: [ 0 ].
 	value := termMap at: 'v' ifAbsent: [ '' ].
 	language := termMap at: 'l' ifAbsent: [ nil ].
+	direction := termMap at: 'dir' ifAbsent: [ nil ].
+	((direction = 'ltr') or: [ direction = 'rtl' ])
+		ifFalse: [ direction := nil ].
 	termId := graph terms size.
 	datatypeRaw := termMap at: 'dt' ifAbsent: [ nil ].
 	reifierRaw := termMap at: 'rf' ifAbsent: [ nil ].
 	datatype := self sanitizeTermReference: datatypeRaw before: termId index: frameIndex graph: graph.
 	reifier := self sanitizeTermReference: reifierRaw before: termId index: frameIndex graph: graph.
 	kind = 1 ifTrue: [
-		^ graph addTerm: (GtsTerm literal: value language: language datatype: datatype) ].
+		^ graph addTerm: (GtsTerm literal: value language: language direction: direction datatype: datatype) ].
 	kind = 2 ifTrue: [
 		^ graph addTerm: (GtsTerm blankNode: value) ].
 	kind = 3 ifTrue: [
@@ -445,7 +448,7 @@ GtsReader class >> mapTerm: termId from: segment segmentIndex: segmentIndex into
 			ifTrue: [ value := 's', segmentIndex asString, '.', value ]
 			ifFalse: [ value := 's', segmentIndex asString, '._anon', output terms size asString ] ].
 	term kind = #literal
-		ifTrue: [ output addTerm: (GtsTerm literal: value language: term language datatype: datatype) ]
+		ifTrue: [ output addTerm: (GtsTerm literal: value language: term language direction: term direction datatype: datatype) ]
 		ifFalse: [
 			term kind = #blankNode
 				ifTrue: [ output addTerm: (GtsTerm blankNode: value) ]
@@ -723,7 +726,7 @@ GtsReader class >> termKeyFor: termId in: segment segmentIndex: segmentIndex out
 	term kind = #iri ifTrue: [ ^ 'iri|', term value ].
 	term kind = #literal ifTrue: [
 		datatype := segment datatypeIriForTerm: term.
-		^ 'lit|', term value, '|', datatype, '|', (term language ifNil: [ '' ]) ].
+		^ 'lit|', term value, '|', datatype, '|', (term language ifNil: [ '' ]), '|', (term direction ifNil: [ '' ]) ].
 	term kind = #blankNode ifTrue: [
 		(term value notNil and: [ term value isEmpty not ])
 			ifTrue: [ ^ 'bnode|', segmentIndex asString, '|', term value ].

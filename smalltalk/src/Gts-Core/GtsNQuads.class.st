@@ -51,7 +51,10 @@ GtsNQuads class >> renderTermId: termId in: graph [
 		| literal |
 		literal := '"', (self escape: term value), '"'.
 		(term language notNil and: [ term language isEmpty not ])
-			ifTrue: [ ^ literal, '@', term language ].
+			ifTrue: [
+				(term direction notNil and: [ term direction isEmpty not ])
+					ifTrue: [ ^ literal, '@', term language, '--', term direction ].
+				^ literal, '@', term language ].
 		term datatype ifNotNil: [
 			^ literal, '^^', (self renderTermId: term datatype in: graph) ].
 		^ literal ].

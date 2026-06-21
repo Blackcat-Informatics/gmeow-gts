@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 # DDL shared by both engines (both speak this SQL subset).
 _SCHEMA = [
     "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT,"
-    " datatype INTEGER, lang TEXT, reifier INTEGER)",
+    " datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER)",
     "CREATE TABLE quads (s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
     "CREATE TABLE reifiers (reifier INTEGER, s INTEGER, p INTEGER, o INTEGER)",
     "CREATE TABLE annotations (reifier INTEGER, predicate INTEGER, value INTEGER)",
@@ -38,7 +38,7 @@ _INDEXES = [
 
 # (table, INSERT statement) in dependency-free order.
 _INSERTS = [
-    ("terms", "INSERT INTO terms VALUES (?,?,?,?,?,?)"),
+    ("terms", "INSERT INTO terms VALUES (?,?,?,?,?,?,?)"),
     ("quads", "INSERT INTO quads VALUES (?,?,?,?)"),
     ("reifiers", "INSERT INTO reifiers VALUES (?,?,?,?)"),
     ("annotations", "INSERT INTO annotations VALUES (?,?,?)"),
@@ -57,7 +57,7 @@ def _rows(graph: Graph) -> dict[str, list[tuple[object, ...]]]:
     """Project the folded graph into per-table id-valued rows."""
     return {
         "terms": [
-            (i, int(t.kind), t.value, t.datatype, t.lang, t.reifier)
+            (i, int(t.kind), t.value, t.datatype, t.lang, t.direction, t.reifier)
             for i, t in enumerate(graph.terms)
         ],
         "quads": [(s, p, o, g) for s, p, o, g in graph.quads],

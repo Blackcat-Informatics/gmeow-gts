@@ -48,6 +48,7 @@ enum TermKey {
         kind: TermKind,
         value: String,
         lang: Option<String>,
+        direction: Option<String>,
         datatype: Option<String>,
     },
     Triple(usize, usize, usize),
@@ -73,12 +74,14 @@ impl Interner {
         kind: TermKind,
         value: String,
         lang: Option<String>,
+        direction: Option<String>,
         datatype: Option<String>,
     ) -> usize {
         let key = TermKey::Atom {
             kind,
             value: value.clone(),
             lang: lang.clone(),
+            direction: direction.clone(),
             datatype: datatype.clone(),
         };
         if let Some(id) = self.ids.get(&key) {
@@ -87,7 +90,7 @@ impl Interner {
         let datatype_id = if kind == TermKind::Literal {
             datatype
                 .as_ref()
-                .map(|iri| self.atom(TermKind::Iri, iri.clone(), None, None))
+                .map(|iri| self.atom(TermKind::Iri, iri.clone(), None, None, None))
         } else {
             None
         };
@@ -97,6 +100,7 @@ impl Interner {
             value: Some(value),
             datatype: datatype_id,
             lang,
+            direction,
             reifier: None,
         });
         self.ids.insert(key, id);
@@ -114,6 +118,7 @@ impl Interner {
             value: None,
             datatype: None,
             lang: None,
+            direction: None,
             reifier: Some(id),
         });
         self.ids.insert(key, id);
@@ -129,10 +134,11 @@ impl Interner {
                 kind: TermKind::Bnode,
                 value: label.clone(),
                 lang: None,
+                direction: None,
                 datatype: None,
             };
             if !self.ids.contains_key(&key) {
-                return self.atom(TermKind::Bnode, label, None, None);
+                return self.atom(TermKind::Bnode, label, None, None, None);
             }
         }
     }
@@ -508,12 +514,13 @@ fn parse_term(
 ) -> Result<usize, YamlLdParseError> {
     match value {
         Value::String(text) if type_position => {
-            Ok(interner.atom(TermKind::Iri, context.expand(text), None, None))
+            Ok(interner.atom(TermKind::Iri, context.expand(text), None, None, None))
         }
-        Value::String(text) => Ok(interner.atom(TermKind::Literal, text.clone(), None, None)),
+        Value::String(text) => Ok(interner.atom(TermKind::Literal, text.clone(), None, None, None)),
         Value::Bool(flag) => Ok(interner.atom(
             TermKind::Literal,
             flag.to_string(),
+            None,
             None,
             Some(XSD_BOOLEAN.to_string()),
         )),
@@ -549,23 +556,48 @@ fn parse_literal_object(
     context: &Context,
     interner: &mut Interner,
 ) -> Result<usize, YamlLdParseError> {
-    if map.contains_key("@direction") {
-        return Err(YamlLdParseError::new(
-            "@direction is not representable until the GTS Term model carries base direction",
-        ));
-    }
     let lexical = scalar_lexical(value)?;
     let lang = match map.get("@language") {
         Some(Value::String(lang)) => Some(lang.clone()),
         Some(_) => return Err(YamlLdParseError::new("@language must be a string")),
         None => None,
     };
+    let direction = match map.get("@direction") {
+        Some(Value::String(direction)) if matches!(direction.as_str(), "ltr" | "rtl") => {
+            Some(direction.clone())
+        }
+        Some(Value::String(_)) => {
+            return Err(YamlLdParseError::new(
+                "@direction must be \"ltr\" or \"rtl\"",
+            ))
+        }
+        Some(_) => return Err(YamlLdParseError::new("@direction must be a string")),
+        None => None,
+    };
+    if direction.is_some() && lang.is_none() {
+        return Err(YamlLdParseError::new(
+            "@direction requires a language-tagged literal",
+        ));
+    }
+    if lang.is_some() {
+        if !matches!(value, Value::String(_)) {
+            return Err(YamlLdParseError::new(
+                "@value must be a string for language-tagged literals",
+            ));
+        }
+        if map.contains_key("@type") {
+            return Err(YamlLdParseError::new(
+                "@type cannot be combined with @language or @direction",
+            ));
+        }
+        return Ok(interner.atom(TermKind::Literal, lexical, lang, direction, None));
+    }
     let datatype = match map.get("@type") {
         Some(Value::String(datatype)) => Some(context.expand(datatype)),
         Some(_) => return Err(YamlLdParseError::new("@type must be a string")),
         None => inferred_datatype(value),
     };
-    Ok(interner.atom(TermKind::Literal, lexical, lang, datatype))
+    Ok(interner.atom(TermKind::Literal, lexical, None, None, datatype))
 }
 
 fn parse_triple(
@@ -599,9 +631,9 @@ fn parse_id(
         return Err(YamlLdParseError::new("@id must be a string"));
     };
     if let Some(label) = id.strip_prefix("_:") {
-        Ok(interner.atom(TermKind::Bnode, label.to_string(), None, None))
+        Ok(interner.atom(TermKind::Bnode, label.to_string(), None, None, None))
     } else {
-        Ok(interner.atom(TermKind::Iri, context.expand(id), None, None))
+        Ok(interner.atom(TermKind::Iri, context.expand(id), None, None, None))
     }
 }
 
@@ -611,7 +643,7 @@ fn predicate_id(key: &str, context: &Context, interner: &mut Interner) -> usize 
     } else {
         context.expand(key)
     };
-    interner.atom(TermKind::Iri, iri, None, None)
+    interner.atom(TermKind::Iri, iri, None, None, None)
 }
 
 fn number_literal(number: &Number, interner: &mut Interner) -> usize {
@@ -623,6 +655,7 @@ fn number_literal(number: &Number, interner: &mut Interner) -> usize {
     interner.atom(
         TermKind::Literal,
         number.to_string(),
+        None,
         None,
         Some(datatype.to_string()),
     )

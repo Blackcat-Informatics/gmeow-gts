@@ -20,7 +20,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::model::{Graph, TermKind};
 
 const SCHEMA: &[&str] = &[
-    "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT, datatype INTEGER, lang TEXT, reifier INTEGER)",
+    "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT, datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER)",
     "CREATE TABLE quads (s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
     "CREATE TABLE reifiers (reifier INTEGER, s INTEGER, p INTEGER, o INTEGER)",
     "CREATE TABLE annotations (reifier INTEGER, predicate INTEGER, value INTEGER)",
@@ -162,6 +162,8 @@ fn write_insert_rows(
         write_sql_usize(writer, term.datatype)?;
         write_sql(writer, b",")?;
         write_sql_text(writer, term.lang.as_deref())?;
+        write_sql(writer, b",")?;
+        write_sql_text(writer, term.direction.as_deref())?;
         write_sql(writer, b",")?;
         write_sql_usize(writer, term.reifier)?;
         write_sql(writer, b");\n")?;
