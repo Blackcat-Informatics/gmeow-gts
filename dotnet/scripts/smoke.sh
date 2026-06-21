@@ -10,6 +10,8 @@ SMOKE_PROJECT="dotnet/Gmeow.Gts.Smoke/Gmeow.Gts.Smoke.csproj"
 VECTOR="vectors/01-minimal.gts"
 DOTNET_SDK_IMAGE="${DOTNET_SDK_IMAGE:-mcr.microsoft.com/dotnet/sdk:8.0@sha256:d80fdd84f7e18eea12f8e45c52914f1353395009c95c41197178ea19944e6d48}"
 
+cd "${ROOT}"
+
 cargo build --manifest-path "${CAPI}/Cargo.toml"
 
 run_smoke() {
@@ -18,6 +20,7 @@ run_smoke() {
 
 if command -v dotnet >/dev/null 2>&1; then
   export LD_LIBRARY_PATH="${CAPI_TARGET}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+  export DYLD_LIBRARY_PATH="${CAPI_TARGET}${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}"
   run_smoke
 else
   docker run --rm \

@@ -109,23 +109,27 @@ public static class Gts
     public static byte[] FilesPack(IEnumerable<string> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
-        var nativePaths = new List<IntPtr>();
+        string[] pathArray = paths as string[] ?? new List<string>(paths).ToArray();
+        var nativePaths = new IntPtr[pathArray.Length];
         try
         {
-            foreach (string path in paths)
+            for (int i = 0; i < pathArray.Length; i++)
             {
+                string path = pathArray[i];
                 ArgumentNullException.ThrowIfNull(path);
-                nativePaths.Add(Marshal.StringToCoTaskMemUTF8(path));
+                nativePaths[i] = Marshal.StringToCoTaskMemUTF8(path);
             }
-            IntPtr[] rawPaths = nativePaths.ToArray();
             return CallBytes("gts_files_pack", (out NativeMethods.GtsBuffer buffer, out IntPtr error) =>
-                NativeMethods.gts_files_pack(rawPaths, ToUIntPtr(rawPaths.Length), out buffer, out error));
+                NativeMethods.gts_files_pack(nativePaths, ToUIntPtr(nativePaths.Length), out buffer, out error));
         }
         finally
         {
             foreach (IntPtr path in nativePaths)
             {
-                Marshal.FreeCoTaskMem(path);
+                if (path != IntPtr.Zero)
+                {
+                    Marshal.FreeCoTaskMem(path);
+                }
             }
         }
     }
@@ -184,17 +188,17 @@ public static class Gts
     {
         NativeMethods.GtsBuffer buffer = default;
         IntPtr error = IntPtr.Zero;
-        GtsStatus status = call(out buffer, out error);
-        if (status != GtsStatus.Ok)
-        {
-            throw BuildException(operation, status, error);
-        }
-        if (error != IntPtr.Zero)
-        {
-            throw BuildException(operation, GtsStatus.Internal, error);
-        }
         try
         {
+            GtsStatus status = call(out buffer, out error);
+            if (status != GtsStatus.Ok)
+            {
+                throw BuildException(operation, status, error);
+            }
+            if (error != IntPtr.Zero)
+            {
+                throw BuildException(operation, GtsStatus.Internal, error);
+            }
             return copy(buffer);
         }
         finally

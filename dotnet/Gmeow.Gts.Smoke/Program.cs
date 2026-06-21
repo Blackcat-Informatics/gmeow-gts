@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Text.Json;
 using Gmeow.Gts;
 
 internal static class Program
@@ -28,10 +29,10 @@ internal static class Program
 
             byte[] input = File.ReadAllBytes(args[0]);
 
-            ExpectContains("build metadata", Gts.BuildMetadataJson(), "\"schema\":\"gts-capi-build-v1\"");
-            ExpectContains("capabilities", Gts.CapabilitiesJson(), "\"schema\":\"gts-capi-capabilities-v1\"");
-            ExpectContains("read JSON", Gts.ReadJson(input), "\"schema\":\"gts-capi-read-v1\"");
-            ExpectContains("verify JSON", Gts.VerifyJson(input), "\"schema\":\"gts-capi-verify-v1\"");
+            ExpectJsonPropertyEquals("build metadata", Gts.BuildMetadataJson(), "schema", "gts-capi-build-v1");
+            ExpectJsonPropertyEquals("capabilities", Gts.CapabilitiesJson(), "schema", "gts-capi-capabilities-v1");
+            ExpectJsonPropertyEquals("read JSON", Gts.ReadJson(input), "schema", "gts-capi-read-v1");
+            ExpectJsonPropertyEquals("verify JSON", Gts.VerifyJson(input), "schema", "gts-capi-verify-v1");
 
             string nquads = Gts.ToNQuads(input);
             ExpectContains("N-Quads", nquads, "\"Cat\"@en");
@@ -64,8 +65,8 @@ internal static class Program
                 File.WriteAllText(Path.Combine(sourceDir, "a.txt"), "hello\n");
 
                 byte[] packed = Gts.FilesPack(new[] { sourceDir });
-                ExpectContains("files diff", Gts.FilesDiffJson(packed, sourceDir), "\"clean\":true");
-                ExpectContains("files unpack", Gts.FilesUnpack(packed, unpackDir), "\"ok\":true");
+                ExpectJsonPropertyEquals("files diff", Gts.FilesDiffJson(packed, sourceDir), "clean", true);
+                ExpectJsonPropertyEquals("files unpack", Gts.FilesUnpack(packed, unpackDir), "ok", true);
                 if (!File.Exists(Path.Combine(unpackDir, "a.txt")))
                 {
                     throw new InvalidOperationException("Unpacked file missing");
@@ -93,6 +94,34 @@ internal static class Program
         if (!haystack.Contains(needle, StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"{label} did not contain {needle}");
+        }
+    }
+
+    private static void ExpectJsonPropertyEquals(string label, string json, string propertyName, string expected)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty(propertyName, out JsonElement property))
+        {
+            throw new InvalidOperationException($"{label} missing JSON property {propertyName}");
+        }
+        string? actual = property.GetString();
+        if (!string.Equals(actual, expected, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"{label} JSON property {propertyName} expected {expected}, got {actual}");
+        }
+    }
+
+    private static void ExpectJsonPropertyEquals(string label, string json, string propertyName, bool expected)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty(propertyName, out JsonElement property))
+        {
+            throw new InvalidOperationException($"{label} missing JSON property {propertyName}");
+        }
+        bool actual = property.GetBoolean();
+        if (actual != expected)
+        {
+            throw new InvalidOperationException($"{label} JSON property {propertyName} expected {expected}, got {actual}");
         }
     }
 }
