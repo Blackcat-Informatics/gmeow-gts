@@ -18,6 +18,7 @@ path = [
   "ts/tsconfig.test.json",
   "ts/.gitignore",
   "rust/Cargo.lock",
+  "rust/capi/Cargo.lock",
   "visual-hashing/Cargo.lock",
   "python/uv.lock",
   "python/src/gts/py.typed",
