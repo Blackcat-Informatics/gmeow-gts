@@ -106,6 +106,7 @@ GtsCompact class >> shiftTerm: term by: base [
 		^ GtsTerm
 			literal: term value
 			language: term language
+			direction: term direction
 			datatype: (term datatype ifNotNil: [ term datatype + base ]) ].
 	term kind = #blankNode ifTrue: [ ^ GtsTerm blankNode: term value ].
 	term kind = #triple ifTrue: [

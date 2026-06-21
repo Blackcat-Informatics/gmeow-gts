@@ -186,6 +186,7 @@ impl TermBuilder {
             value: Some(value),
             datatype: datatype_id,
             lang: None,
+            direction: None,
             reifier: None,
         });
         self.ids.insert(key, id);
@@ -221,6 +222,7 @@ fn iri_term(value: &str) -> crate::model::Term {
         value: Some(value.to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     }
 }
@@ -231,6 +233,7 @@ fn literal_term(value: &str, datatype: Option<usize>) -> crate::model::Term {
         value: Some(value.to_string()),
         datatype,
         lang: None,
+        direction: None,
         reifier: None,
     }
 }
@@ -241,6 +244,7 @@ fn bnode_term(label: &str) -> crate::model::Term {
         value: Some(label.to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     }
 }

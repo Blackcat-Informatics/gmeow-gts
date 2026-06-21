@@ -73,6 +73,7 @@ fn gts_reifier_projection_uses_oxrdf_rdf12_triple_terms() -> Result<(), Box<dyn 
             value: Some("https://example.org/claim".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -80,6 +81,7 @@ fn gts_reifier_projection_uses_oxrdf_rdf12_triple_terms() -> Result<(), Box<dyn 
             value: Some("https://example.org/subject".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -87,6 +89,7 @@ fn gts_reifier_projection_uses_oxrdf_rdf12_triple_terms() -> Result<(), Box<dyn 
             value: Some("https://example.org/predicate".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -94,6 +97,7 @@ fn gts_reifier_projection_uses_oxrdf_rdf12_triple_terms() -> Result<(), Box<dyn 
             value: Some("object".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -156,6 +160,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
                 value: Some("https://example.org/subject".to_string()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             Term {
@@ -163,6 +168,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
                 value: Some("https://example.org/predicate".to_string()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             Term {
@@ -170,6 +176,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
                 value: Some("object".to_string()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             Term {
@@ -177,6 +184,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
                 value: None,
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: Some(3),
             },
         ],
@@ -196,6 +204,43 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
 }
 
 #[test]
+fn oxrdf_export_refuses_directional_literals_instead_of_losing_direction() {
+    let graph = Graph {
+        terms: vec![
+            Term {
+                kind: TermKind::Iri,
+                value: Some("https://example.org/subject".to_string()),
+                datatype: None,
+                lang: None,
+                direction: None,
+                reifier: None,
+            },
+            Term {
+                kind: TermKind::Iri,
+                value: Some("https://example.org/label".to_string()),
+                datatype: None,
+                lang: None,
+                direction: None,
+                reifier: None,
+            },
+            Term {
+                kind: TermKind::Literal,
+                value: Some("Cat".to_string()),
+                datatype: None,
+                lang: Some("en".to_string()),
+                direction: Some("ltr".to_string()),
+                reifier: None,
+            },
+        ],
+        quads: vec![(0, 1, 2, None)],
+        ..Graph::default()
+    };
+
+    let err = to_oxrdf_dataset(&graph).expect_err("adapter refuses direction loss");
+    assert!(err.detail().contains("base direction"));
+}
+
+#[test]
 fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
     let graph = Graph {
         terms: vec![
@@ -204,6 +249,7 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
                 value: Some("b1".to_string()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             Term {
@@ -211,6 +257,7 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
                 value: None,
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             Term {
@@ -218,6 +265,7 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
                 value: Some("https://example.org/predicate".to_string()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             Term {
@@ -225,6 +273,7 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
                 value: Some("https://example.org/object".to_string()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
         ],

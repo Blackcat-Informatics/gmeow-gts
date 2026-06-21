@@ -37,6 +37,47 @@ GtsFromNQuadsTest >> testFromNQuadsPreservesLanguageAndDatatypeLiterals [
 ]
 
 { #category : #tests }
+GtsFromNQuadsTest >> testFromNQuadsPreservesDirectionalLanguageLiterals [
+	| graph literal nquads |
+	nquads := '<https://ex/s> <https://ex/label> "RTL"@ar--rtl .', String lf.
+	graph := GtsReader read: (GtsFromNQuads fromString: nquads).
+	literal := graph terms detect: [ :term | term kind = #literal ].
+	self assert: literal language equals: 'ar'.
+	self assert: literal direction equals: 'rtl'.
+	self assert: (graph datatypeIriForTerm: literal) equals: GtsGraph rdfDirLangString.
+	self assert: (self sortedLines: (GtsNQuads toNQuads: graph)) equals: (self sortedLines: nquads)
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testFromNQuadsPreservesMultipleReifiersForSameStatement [
+	| graph nquads rdfReifies |
+	rdfReifies := 'http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies'.
+	nquads := '<https://ex/r1> <', rdfReifies, '> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .', String lf,
+		'<https://ex/r2> <', rdfReifies, '> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .', String lf.
+	graph := GtsReader read: (GtsFromNQuads fromString: nquads).
+	self assert: graph reifiers size equals: 2.
+	self assert: (self sortedLines: (GtsNQuads toNQuads: graph)) equals: (self sortedLines: nquads)
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testWriterAllowsMultipleReifiersForSameStatement [
+	| graph writer |
+	writer := GtsWriter forProfile: 'dist'.
+	writer addTerms: {
+		GtsTerm iri: 'https://ex/r1'.
+		GtsTerm iri: 'https://ex/r2'.
+		GtsTerm iri: 'https://ex/s'.
+		GtsTerm iri: 'https://ex/p'.
+		GtsTerm iri: 'https://ex/o' }.
+	writer addQuads: { #(2 3 4) }.
+	writer addReifiers: {
+		Dictionary newFromPairs: { 'rid'. 0. 'spo'. #(2 3 4) }.
+		Dictionary newFromPairs: { 'rid'. 1. 'spo'. #(2 3 4) } }.
+	graph := GtsReader read: writer bytes.
+	self assert: graph reifiers size equals: 2
+]
+
+{ #category : #tests }
 GtsFromNQuadsTest >> testFromNQuadsQuotedTripleReifierRoundTrip [
 	| expected nquads rdfReifies roundTripped |
 	rdfReifies := 'http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies'.

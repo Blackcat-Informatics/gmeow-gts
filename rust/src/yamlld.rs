@@ -273,6 +273,9 @@ fn term_value(graph: &Graph, term: usize) -> Value {
             );
             if let Some(lang) = &t.lang {
                 value.insert("@language".to_string(), Value::String(lang.clone()));
+                if let Some(direction) = &t.direction {
+                    value.insert("@direction".to_string(), Value::String(direction.clone()));
+                }
             } else if let Some(datatype) = t.datatype {
                 value.insert("@type".to_string(), Value::String(term_id(graph, datatype)));
             }

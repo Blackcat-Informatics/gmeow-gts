@@ -67,6 +67,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             value: Some("https://ex/s".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -74,6 +75,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             value: Some("https://ex/p".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -81,6 +83,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             value: Some("https://ex/o".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -88,6 +91,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             value: Some("https://ex/g".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -95,6 +99,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             value: Some("https://ex/conf".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -102,6 +107,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             value: Some("0.9".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -139,6 +145,22 @@ ex:r ex:confidence "0.9" .
          <https://ex/r> <https://ex/confidence> \"0.9\" .\n"
     );
     assert_eq!(sorted_lines(&out), sorted_lines(&expected));
+}
+
+#[test]
+fn trig_preserves_directional_language_literals() {
+    let trig = r#"@prefix ex: <https://ex/> .
+
+ex:s ex:label "Cat"@en--rtl .
+"#;
+    let imported = from_trig(trig).expect("TriG parses");
+    let graph = read(&imported, true, None);
+    let nq = to_nquads(&graph);
+    assert!(nq.contains("\"Cat\"@en--rtl"));
+
+    let rendered = to_trig(&graph);
+    assert!(rendered.contains("\"Cat\"@en--rtl"));
+    assert!(trig_roundtrip_nquads(&imported));
 }
 
 #[test]

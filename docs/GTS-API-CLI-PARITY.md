@@ -9,6 +9,10 @@ format remains normative in [`GTS-SPEC.md`](./GTS-SPEC.md), and corpus/tier rule
 [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md). This contract owns the public API shape and CLI
 parity matrix so feature gaps are explicit rather than inferred from package-specific docs.
 
+The Rust-backed C ABI and derived C-compatible wrappers are a separate interoperability layer.
+They consume `libgts` through `rust/capi/include/gts.h`, expose ecosystem-native library APIs,
+and do not add columns to the full-engine API/CLI parity tables below.
+
 ## Language-Neutral API Shape
 
 The stable waist is semantic, not syntactic. Each engine MAY use native names and containers, but
@@ -172,6 +176,27 @@ The CI lint job runs the same command. The check fails when:
 
 When adding or removing a CLI verb, update the implementation, this matrix, the README command
 blocks, and package-specific README text in the same change.
+
+## C ABI Wrapper Surface
+
+The C ABI wrapper family is intentionally narrower than a native full engine. Wrappers delegate
+format semantics to the Rust engine and make the stable ABI convenient from C-compatible
+ecosystems:
+
+| Surface | Contract |
+|---|---|
+| ABI metadata | `gts_abi_version`, `gts_version`, build metadata JSON, and capability JSON identify the loaded `libgts` surface. |
+| Read/fold | `gts_read_json` returns a stable JSON report for folded archive state. |
+| Verify | `gts_verify_json` returns the Rust verifier report as JSON. |
+| N-Quads | `gts_to_nquads` and `gts_from_nquads` bridge folded RDF content and GTS bytes. |
+| Files profile | `gts_files_pack`, `gts_files_unpack`, and `gts_files_diff_json` expose files-profile helpers. |
+| Ownership | Returned `gts_buffer` values are copied into ecosystem-native strings or byte arrays, then released with `gts_buffer_free`. |
+| Errors | Non-OK `gts_status` returns are copied from `gts_error` handles into structured ecosystem errors, then released with `gts_error_free`. |
+
+Current wrappers are C++, .NET, PHP, Lua, Swift, Ruby, R, and Julia. Each wrapper README owns
+its local naming, loader behavior, threading notes, and smoke-test command. The wrapper smoke
+tests prove ABI reachability and ownership behavior; they are not substitutes for the six
+full-engine conformance corpus.
 
 ## Files Profile Command Contract
 

@@ -47,7 +47,8 @@ Classify every finding against the blocker and non-blocker lists in
 |---|---|---|
 | No intentional wire-format changes remain | Open GIP/spec issues reviewed; no accepted change alters header/frame grammar, hash preimages, signature preimages, segment composition, transform resolution, or core fold semantics. | |
 | Baseline vectors are present and frozen | Vector manifest validates; corpus regeneration has no diff; stamped release manifest names the corpus revision. | |
-| Cross-engine baseline behavior passes | Rust, Python, Go, TypeScript, and interop checks pass against the same corpus revision. | |
+| Cross-engine baseline behavior passes | Rust, Python, Go, TypeScript, Smalltalk/Pharo, Kotlin/JVM, and interop checks pass against the same corpus revision. | |
+| C ABI wrapper smoke coverage passes | `rust/capi` plus C++, .NET, PHP, Lua, Swift, Ruby, R, and Julia wrapper smoke tests pass against the release candidate. | |
 | Registry policy is published | Frame types, diagnostics, codecs, profiles, transform targets, and reserved namespaces are covered in governance/spec/conformance docs. | |
 | Security model is clear | Security policy and crypto-deferral guards pass; no high or critical parser, crypto, extraction, or release-pipeline vulnerability remains open. | |
 | Media type and distribution guidance is present | `application/vnd.blackcat.gts+cbor-seq`, HTTP/range behavior, immutable publication, and artifact verification guidance are present in spec/docs. | |

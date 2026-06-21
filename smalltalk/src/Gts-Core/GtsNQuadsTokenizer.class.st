@@ -29,9 +29,20 @@ GtsNQuadsTokenizer >> atomKind: kind value: value [
 
 { #category : #private }
 GtsNQuadsTokenizer >> atomKind: kind value: value language: language datatype: datatype [
+	^ self
+		atomKind: kind
+		value: value
+		language: language
+		direction: nil
+		datatype: datatype
+]
+
+{ #category : #private }
+GtsNQuadsTokenizer >> atomKind: kind value: value language: language direction: direction datatype: datatype [
 	| atom |
 	atom := self atomKind: kind value: value.
 	language ifNotNil: [ atom at: 'language' put: language ].
+	direction ifNotNil: [ atom at: 'direction' put: direction ].
 	datatype ifNotNil: [ atom at: 'datatype' put: datatype ].
 	^ atom
 ]
@@ -167,7 +178,7 @@ GtsNQuadsTokenizer >> isLanguageCharacter: character [
 
 { #category : #private }
 GtsNQuadsTokenizer >> literal [
-	| character datatype language start value |
+	| character datatype direction language start value |
 	position := position + 1.
 	value := String streamContents: [ :stream |
 		[ position <= source size ] whileTrue: [
@@ -176,6 +187,7 @@ GtsNQuadsTokenizer >> literal [
 			character = $\ ifTrue: [ stream nextPutAll: self escape ] ifFalse: [
 			character = $" ifTrue: [
 				language := nil.
+				direction := nil.
 				datatype := nil.
 				(position <= source size and: [ (source at: position) = $@ ])
 					ifTrue: [
@@ -184,7 +196,22 @@ GtsNQuadsTokenizer >> literal [
 						[ position <= source size and: [ self isLanguageCharacter: (source at: position) ] ]
 							whileTrue: [ position := position + 1 ].
 						position = start ifTrue: [ self error: 'empty language tag in ', source ].
-						language := source copyFrom: start to: position - 1 ]
+						language := source copyFrom: start to: position - 1.
+						(language size >= 5 and: [ (language copyFrom: language size - 4 to: language size) = '--ltr' ])
+							ifTrue: [
+								direction := 'ltr'.
+								language := language size = 5
+									ifTrue: [ '' ]
+									ifFalse: [ language copyFrom: 1 to: language size - 5 ] ].
+						(language size >= 5 and: [ (language copyFrom: language size - 4 to: language size) = '--rtl' ])
+							ifTrue: [
+								direction := 'rtl'.
+								language := language size = 5
+									ifTrue: [ '' ]
+									ifFalse: [ language copyFrom: 1 to: language size - 5 ] ].
+						language isEmpty ifTrue: [ self error: 'empty language tag in ', source ].
+						((direction isNil and: [ language includesSubstring: '--' ]))
+							ifTrue: [ self error: 'invalid literal direction in ', source ] ]
 					ifFalse: [
 						(self startsWith: '^^') ifTrue: [
 							position := position + 2.
@@ -194,6 +221,7 @@ GtsNQuadsTokenizer >> literal [
 					atomKind: #literal
 					value: stream contents
 					language: language
+					direction: direction
 					datatype: datatype ].
 			stream nextPut: character ] ] ].
 	self error: 'unterminated literal in ', source

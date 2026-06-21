@@ -83,12 +83,14 @@ def term_from_wire(d: Mapping[str, object]) -> Term:
     value = d.get("v")
     datatype = d.get("dt")
     lang = d.get("l")
+    direction = d.get("dir")
     reifier = d.get("rf")
     return Term(
         kind=kind,
         value=value if isinstance(value, str) else None,
         datatype=datatype if isinstance(datatype, int) else None,
         lang=lang if isinstance(lang, str) else None,
+        direction=direction if direction in ("ltr", "rtl") else None,
         reifier=reifier if isinstance(reifier, int) else None,
     )
 
@@ -236,6 +238,7 @@ class _Folder:
                     value=term.value,
                     datatype=dt,
                     lang=term.lang,
+                    direction=term.direction,
                     reifier=rf,
                 )
             )
@@ -888,7 +891,7 @@ def _union_segments(segments: list[Graph]) -> Graph:
         if t.kind is TermKind.IRI:
             return ("iri", t.value)
         if t.kind is TermKind.LITERAL:
-            return ("lit", t.value, seg.datatype_iri(t), t.lang)
+            return ("lit", t.value, seg.datatype_iri(t), t.lang, t.direction)
         if t.kind is TermKind.BNODE:
             if t.value:
                 return ("bnode", seg_idx, t.value)  # labelled: segment-local
@@ -923,6 +926,7 @@ def _union_segments(segments: list[Graph]) -> Graph:
             value=value,
             datatype=datatype,
             lang=t.lang,
+            direction=t.direction,
             reifier=reifier,
         )
         out.terms.append(new)

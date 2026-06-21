@@ -10,6 +10,7 @@ import {
     TermKind,
     termKindFromWire,
     type Diagnostic,
+    type LiteralDirection,
     type Quad,
     type Signature,
     type StreamableInfo,
@@ -904,6 +905,12 @@ class Folder {
                 const s = asText(l);
                 if (s !== undefined) lang = s;
             }
+            let direction: LiteralDirection | undefined;
+            const dir = mapGet(entries, "dir");
+            if (dir !== undefined) {
+                const s = asText(dir);
+                if (s === "ltr" || s === "rtl") direction = s;
+            }
             const dtRaw = mapGet(entries, "dt");
             const rfRaw = mapGet(entries, "rf");
             const tid = this.g.terms.length;
@@ -931,6 +938,7 @@ class Folder {
                 value,
                 datatype,
                 lang,
+                direction,
                 reifier,
             };
             this.g.terms.push(term);
@@ -2067,6 +2075,7 @@ interface InternKey {
     a: string;
     b: string;
     c: string;
+    d?: string;
     seg?: number;
     rf?: number;
     bnodeTid?: number;
@@ -2092,6 +2101,7 @@ class Unioner {
                     a: t.value,
                     b: seg.datatypeIri(t),
                     c: t.lang ?? "",
+                    d: t.direction ?? "",
                 };
             case TermKind.Bnode:
                 if (t.value !== "") {
@@ -2142,6 +2152,7 @@ class Unioner {
             value,
             datatype,
             lang: t.lang,
+            direction: t.direction,
             reifier,
         });
         const newId = this.out.terms.length - 1;
