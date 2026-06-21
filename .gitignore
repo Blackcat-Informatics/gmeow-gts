@@ -15,6 +15,10 @@ kotlin/.gradle/
 kotlin/.kotlin/
 kotlin/build/
 
+# .NET
+dotnet/**/bin/
+dotnet/**/obj/
+
 # Python
 python/.venv/
 python/dist/
