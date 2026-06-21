@@ -5,8 +5,10 @@ Version: 0.9.4
 Authors@R: c(
     person("Blackcat Informatics", role = c("aut", "cre"), email = "paudley@blackcatinformatics.ca")
     )
+Author: Blackcat Informatics
+Maintainer: Blackcat Informatics <paudley@blackcatinformatics.ca>
 Description: Thin R wrapper over the Rust-backed libgts C ABI.
-License: MIT OR Apache-2.0
+License: MIT + file LICENSE | Apache License (>= 2)
 Encoding: UTF-8
 NeedsCompilation: yes
 URL: https://blackcatinformatics.ca/projects/gts

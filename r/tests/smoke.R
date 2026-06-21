@@ -3,7 +3,8 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 1L) {
-  stop("usage: Rscript r/tests/smoke.R vectors/01-minimal.gts", call. = FALSE)
+  message("Skipping external GTS smoke test; pass a vector path as the sole argument to run it.")
+  quit(save = "no", status = 0L, runLast = FALSE)
 }
 
 suppressPackageStartupMessages(library(gmeowgts))
