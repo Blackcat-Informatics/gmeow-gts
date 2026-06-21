@@ -122,6 +122,10 @@ jobs:
         if: runner.os == 'Linux'
         run: bash rust/capi/scripts/smoke.sh
 
+      - name: C++ C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash cpp/scripts/smoke.sh
+
       - name: Library builds for wasm32 (wasm-friendly claim)
         if: runner.os == 'Linux'
         run: |
