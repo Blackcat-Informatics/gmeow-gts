@@ -23,7 +23,7 @@ Run the smoke test against that library:
 ```sh
 export GTS_LIBGTS="$PWD/rust/capi/target/debug/libgts.so"
 export LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-GTS_JULIA_VECTOR="$PWD/vectors/01-minimal.gts" julia --project=julia -e 'using Pkg; Pkg.test()'
+GTS_JULIA_VECTOR="$PWD/vectors/01-minimal.gts" julia --project=julia julia/test/runtests.jl
 ```
 
 On macOS use `DYLD_LIBRARY_PATH` and `libgts.dylib`. On Windows make `gts.dll`
@@ -101,7 +101,8 @@ Run the smoke test from the repository root:
 bash julia/scripts/smoke.sh
 ```
 
-The script builds `libgts`, runs the Julia smoke test, and exercises ABI
+The script builds `libgts`, runs the Julia smoke test in the package project,
+and exercises ABI
 metadata, capabilities, read/fold, verify, N-Quads export/import, structured
 errors, and files-profile pack/diff/unpack. If local Julia is missing, it uses
 the pinned fallback image defined in `julia/Dockerfile`.

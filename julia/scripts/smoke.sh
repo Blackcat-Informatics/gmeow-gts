@@ -31,7 +31,7 @@ LIB_PATH="${CAPI_TARGET}/${LIB_NAME}"
 run_smoke() {
   rm -rf "${JULIA_PKG}"
   cp -R julia "${JULIA_PKG}"
-  GTS_JULIA_VECTOR="${ROOT}/${VECTOR}" julia --project="${JULIA_PKG}" -e 'using Pkg; Pkg.test()'
+  GTS_JULIA_VECTOR="${ROOT}/${VECTOR}" julia --project="${JULIA_PKG}" "${JULIA_PKG}/test/runtests.jl"
 }
 
 # Set GTS_JULIA_FORCE_DOCKER=1 to reproduce the CI Docker path even when Julia is installed locally.
@@ -53,7 +53,7 @@ else
     -v "${ROOT}:/workspace" \
     -w /workspace \
     "${JULIA_IMAGE}" \
-    sh -c 'rm -rf /tmp/gmeowgts-julia-package && cp -R julia /tmp/gmeowgts-julia-package && GTS_JULIA_VECTOR=/workspace/vectors/01-minimal.gts julia --project=/tmp/gmeowgts-julia-package -e "using Pkg; Pkg.test()"'
+    sh -c 'rm -rf /tmp/gmeowgts-julia-package && cp -R julia /tmp/gmeowgts-julia-package && GTS_JULIA_VECTOR=/workspace/vectors/01-minimal.gts julia --project=/tmp/gmeowgts-julia-package /tmp/gmeowgts-julia-package/test/runtests.jl'
 fi
 
 echo "Julia C ABI wrapper smoke test passed"
