@@ -347,6 +347,24 @@ fn unpack_options(flags: u32) -> UnpackOptions {
     }
 }
 
+fn build_metadata_json() -> serde_json::Value {
+    json!({
+        "schema": "gts-capi-build-v1",
+        "abi_version": ABI_VERSION,
+        "version": env!("CARGO_PKG_VERSION"),
+        "package": env!("CARGO_PKG_NAME"),
+        "core_package": "gmeow-gts",
+        "library": "libgts",
+        "profile": if cfg!(debug_assertions) { "debug" } else { "release" },
+        "target": {
+            "arch": std::env::consts::ARCH,
+            "family": std::env::consts::FAMILY,
+            "os": std::env::consts::OS,
+            "pointer_width": std::mem::size_of::<usize>() * 8,
+        }
+    })
+}
+
 #[no_mangle]
 pub extern "C" fn gts_abi_version() -> u32 {
     ABI_VERSION
@@ -427,6 +445,22 @@ pub unsafe extern "C" fn gts_error_message(error: *const GtsError) -> *const c_c
 }
 
 #[no_mangle]
+/// Return build metadata as UTF-8 JSON.
+///
+/// # Safety
+///
+/// `out` must be a valid writable buffer pointer. `error` may be null or a
+/// valid writable error-handle slot.
+pub unsafe extern "C" fn gts_build_metadata_json(
+    out: *mut GtsBuffer,
+    error: *mut *mut GtsError,
+) -> c_int {
+    ffi_entry(error, || {
+        write_buffer(out, json_bytes(build_metadata_json())?)
+    })
+}
+
+#[no_mangle]
 /// Return ABI capabilities as UTF-8 JSON.
 ///
 /// # Safety
@@ -448,6 +482,7 @@ pub unsafe extern "C" fn gts_capabilities_json(
                 "core": "gmeow-gts",
                 "threading": "operations are reentrant; buffers and errors are caller-owned",
                 "operations": [
+                    "build_metadata_json",
                     "read_json",
                     "verify_json",
                     "to_nquads",
@@ -661,6 +696,27 @@ mod tests {
             gts_buffer_free(&mut buffer);
         }
         Ok(out)
+    }
+
+    #[test]
+    fn capabilities_and_build_metadata_are_reported() {
+        let capabilities =
+            call_buffer(|out, err| unsafe { gts_capabilities_json(out, err) }).unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&capabilities).unwrap();
+        assert_eq!(value["schema"], "gts-capi-capabilities-v1");
+        assert!(value["operations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item == "build_metadata_json"));
+
+        let metadata =
+            call_buffer(|out, err| unsafe { gts_build_metadata_json(out, err) }).unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&metadata).unwrap();
+        assert_eq!(value["schema"], "gts-capi-build-v1");
+        assert_eq!(value["abi_version"], ABI_VERSION);
+        assert_eq!(value["library"], "libgts");
+        assert!(!value["target"]["arch"].as_str().unwrap().is_empty());
     }
 
     #[test]

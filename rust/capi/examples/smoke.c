@@ -98,13 +98,20 @@ int main(int argc, char **argv) {
 
   size_t input_len = 0;
   unsigned char *input = read_file(argv[1], &input_len);
+  gts_buffer build_metadata = {0};
   gts_buffer read_json = {0};
   gts_buffer verify_json = {0};
   gts_buffer nquads = {0};
   gts_buffer roundtrip = {0};
   gts_error *error = NULL;
 
-  gts_status status = gts_read_json(input, input_len, &read_json, &error);
+  gts_status status = gts_build_metadata_json(&build_metadata, &error);
+  if (status != GTS_STATUS_OK) {
+    fail_error("gts_build_metadata_json", status, error);
+  }
+  expect_contains("build_metadata", &build_metadata, "\"schema\":\"gts-capi-build-v1\"");
+
+  status = gts_read_json(input, input_len, &read_json, &error);
   if (status != GTS_STATUS_OK) {
     fail_error("gts_read_json", status, error);
   }
@@ -178,6 +185,7 @@ int main(int argc, char **argv) {
   }
   expect_contains("unpack_json", &unpack_json, "\"ok\":true");
 
+  gts_buffer_free(&build_metadata);
   gts_buffer_free(&read_json);
   gts_buffer_free(&verify_json);
   gts_buffer_free(&nquads);

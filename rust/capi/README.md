@@ -20,6 +20,7 @@ Do not edit `gts_buffer.capacity`; it is part of the Rust allocation handle used
 
 ## Operations
 
+- `gts_build_metadata_json`: ABI version, package version, build profile, and target metadata.
 - `gts_capabilities_json`: ABI version, library version, and operation discovery.
 - `gts_read_json`: fold/read report with counts, diagnostics, segment heads, signatures, streamable state, and blob summaries.
 - `gts_verify_json`: verification report mirroring the Rust verifier result.
@@ -48,4 +49,4 @@ The public header is checked in at `rust/capi/include/gts.h`. `gts.pc.in` and `c
 bash rust/capi/scripts/smoke.sh
 ```
 
-The smoke test builds `libgts`, compiles `examples/smoke.c`, and exercises read/fold JSON, verify JSON, N-Quads export/import, files pack/unpack/diff, and structured error handling.
+The smoke test builds `libgts`, compiles `examples/smoke.c`, and exercises build metadata, read/fold JSON, verify JSON, N-Quads export/import, files pack/unpack/diff, and structured error handling.

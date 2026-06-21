@@ -47,6 +47,7 @@ void gts_error_free(gts_error *error);
 const char *gts_error_code(const gts_error *error);
 const char *gts_error_message(const gts_error *error);
 
+gts_status gts_build_metadata_json(gts_buffer *out, gts_error **error);
 gts_status gts_capabilities_json(gts_buffer *out, gts_error **error);
 gts_status gts_read_json(const uint8_t *data, size_t len, gts_buffer *out, gts_error **error);
 gts_status gts_verify_json(const uint8_t *data, size_t len, gts_buffer *out, gts_error **error);
