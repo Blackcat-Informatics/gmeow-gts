@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "gmeow-gts-capi"
+description = "Stable C ABI wrapper for the Rust GTS core"
+version = "0.9.2"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+homepage = "https://blackcatinformatics.ca/projects/gts"
+repository = "https://github.com/Blackcat-Informatics/gmeow-gts"
+readme = "README.md"
+publish = false
+
+[lib]
+name = "gts"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+gmeow-gts = { path = ".." }
+serde_json = "1"

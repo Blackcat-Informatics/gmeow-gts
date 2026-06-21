@@ -21,7 +21,8 @@ repos:
             LICENSE.*|
             vectors/.*\.gts|
             ts/package-lock.json|
-            rust/Cargo.lock
+            rust/Cargo.lock|
+            rust/capi/Cargo.lock
           )$
       - id: end-of-file-fixer
         exclude: *keep-verbatim
@@ -53,7 +54,7 @@ repos:
         # crate/crates (Rust), ser (serde/serialize), derails (a real verb) are
         # domain words codespell mistakes for typos.
         args: ["--ignore-words-list=crate,crates,ser,derails"]
-        exclude: '^(vectors/.*|ts/package-lock.json|rust/Cargo.lock)$'
+        exclude: '^(vectors/.*|ts/package-lock.json|rust/Cargo.lock|rust/capi/Cargo.lock)$'
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
