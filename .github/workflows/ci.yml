@@ -299,6 +299,34 @@ jobs:
             --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
             "sh /workspace/smalltalk/scripts/run-tests.sh"
 
+  # Kotlin/JVM parity engine: Gradle build, tests, detekt, and CLI install smoke.
+  kotlin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Gradle tests and detekt
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
+            -e GRADLE_USER_HOME=/tmp/gradle \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace/kotlin \
+            gradle:jdk21 gradle test detekt installDist --no-daemon
+
+      - name: CLI smoke
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace/kotlin \
+            gradle:jdk21 /workspace/kotlin/build/install/gmeow-gts-kotlin/bin/gmeow-gts-kotlin \
+            fold /workspace/vectors/01-minimal.gts
+
   # Live cross-engine interoperability: each engine reads every other's output.
   interop:
     runs-on: ubuntu-latest

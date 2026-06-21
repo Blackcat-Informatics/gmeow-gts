@@ -42,6 +42,15 @@ updates:
       - "javascript"
     open-pull-requests-limit: 5
 
+  - package-ecosystem: "gradle"
+    directory: "/kotlin"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "kotlin"
+    open-pull-requests-limit: 5
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

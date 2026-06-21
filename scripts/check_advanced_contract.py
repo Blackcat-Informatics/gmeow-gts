@@ -12,6 +12,7 @@ from check_cli_parity import (
     ROOT,
     between,
     go_verbs,
+    kotlin_verbs,
     parse_contract_matrix,
     python_verbs,
     rust_verbs,
@@ -53,6 +54,7 @@ def main() -> int:
         "Go": go_verbs(),
         "TypeScript": typescript_verbs(),
         "Smalltalk": smalltalk_verbs(),
+        "Kotlin": kotlin_verbs(),
     }
     errors: list[str] = []
 

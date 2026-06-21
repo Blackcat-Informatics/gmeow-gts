@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_ENGINES = "rust,python,go,ts,smalltalk"
+DEFAULT_ENGINES = "rust,python,go,ts,smalltalk,kotlin"
 DEFAULT_VECTORS = (
     "vectors/01-minimal.gts,"
     "vectors/23-files-profile-tree.gts,"
@@ -470,6 +470,61 @@ def setup_engine(
         except ValueError:
             command.extend(["-v", f"{resolved_out_dir}:{resolved_out_dir}"])
         command.extend([image, "gts"])
+        return EngineRuntime(engine, command, ROOT, True), results
+
+    if engine == "kotlin":
+        if shutil.which("docker") is None:
+            results.append(
+                SetupResult(engine, "failed", "docker", None, "docker not found")
+            )
+            return None, results
+        image = os.environ.get("GRADLE_IMAGE", "gradle:jdk21")
+        if not run_setup(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "-e",
+                "HOME=/tmp",
+                "-e",
+                "GRADLE_USER_HOME=/tmp/gradle",
+                "-v",
+                f"{ROOT}:/workspace",
+                "-w",
+                "/workspace/kotlin",
+                image,
+                "gradle",
+                "installDist",
+                "--no-daemon",
+            ]
+        ):
+            return None, results
+        command = ["docker", "run", "--rm"]
+        if hasattr(os, "getuid") and hasattr(os, "getgid"):
+            command.extend(["--user", f"{os.getuid()}:{os.getgid()}"])
+        command.extend(
+            [
+                "-e",
+                "HOME=/tmp",
+                "-v",
+                f"{ROOT}:/workspace",
+                "-v",
+                f"{ROOT}:{ROOT}",
+            ]
+        )
+        resolved_out_dir = out_dir.resolve()
+        try:
+            resolved_out_dir.relative_to(ROOT)
+        except ValueError:
+            command.extend(["-v", f"{resolved_out_dir}:{resolved_out_dir}"])
+        command.extend(
+            [
+                "-w",
+                "/workspace/kotlin",
+                image,
+                "/workspace/kotlin/build/install/gmeow-gts-kotlin/bin/gmeow-gts-kotlin",
+            ]
+        )
         return EngineRuntime(engine, command, ROOT, True), results
 
     results.append(SetupResult(engine, "failed", engine, None, "unknown engine"))
@@ -1199,7 +1254,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--engines",
         default=DEFAULT_ENGINES,
-        help="comma or whitespace separated engines: rust, python, go, ts, smalltalk",
+        help="comma or whitespace separated engines: rust, python, go, ts, smalltalk, kotlin",
     )
     parser.add_argument(
         "--vectors",
@@ -1247,7 +1302,7 @@ def main() -> int:
     if args.iterations < 1:
         raise SystemExit("--iterations must be >= 1")
     engines = split_csv(args.engines)
-    unknown = sorted(set(engines) - {"rust", "python", "go", "ts", "smalltalk"})
+    unknown = sorted(set(engines) - {"rust", "python", "go", "ts", "smalltalk", "kotlin"})
     if unknown:
         raise SystemExit(f"unknown engine(s): {', '.join(unknown)}")
 

@@ -16,8 +16,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
-ENGINES=(rust python go ts smalltalk)
+ENGINES=(rust python go ts smalltalk kotlin)
 NODE_BIN="${NODE_BIN:-node}"
+GRADLE_IMAGE="${GRADLE_IMAGE:-gradle:jdk21}"
 
 log() { printf '\033[1m== %s\033[0m\n' "$*"; }
 
@@ -36,6 +37,15 @@ TS_BIN="$ROOT/ts/dist/bin/gts.js"
 
 docker build -t gmeow-gts-smalltalk:interop "$ROOT/smalltalk" >/dev/null
 
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -e GRADLE_USER_HOME=/tmp/gradle \
+  -v "$ROOT:/workspace" \
+  -w /workspace/kotlin \
+  "$GRADLE_IMAGE" gradle installDist --no-daemon >/dev/null
+KOTLIN_BIN="$ROOT/kotlin/build/install/gmeow-gts-kotlin/bin/gmeow-gts-kotlin"
+
 # Dispatch a verb to a named engine.
 gts() {
   local engine="$1"; shift
@@ -53,6 +63,16 @@ gts() {
         -v "$ROOT:$ROOT" \
         -v "$WORK:$WORK" \
         gmeow-gts-smalltalk:interop gts "$@"
+      ;;
+    kotlin)
+      docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        -e HOME=/tmp \
+        -v "$ROOT:/workspace" \
+        -v "$ROOT:$ROOT" \
+        -v "$WORK:$WORK" \
+        -w /workspace/kotlin \
+        "$GRADLE_IMAGE" "$KOTLIN_BIN" "$@"
       ;;
   esac
 }
@@ -81,7 +101,7 @@ fail=0
 # fixture must serialize identically regardless of which engine wrote it.
 log "Byte-identity: all engines must pack the fixture to identical bytes"
 if [ "$(sha256sum "$WORK"/packed_*.gts | awk '{print $1}' | sort -u | wc -l)" -eq 1 ]; then
-  printf '  all five packages are byte-identical\n'
+  printf '  all six packages are byte-identical\n'
 else
   echo "  MISMATCH: engines produced byte-divergent packages:" >&2
   sha256sum "$WORK"/packed_*.gts | sed 's/^/    /' >&2
@@ -208,4 +228,4 @@ done
 if [ "$fail" -ne 0 ]; then
   log "INTEROP FAILED"; exit 1
 fi
-log "INTEROP OK — all five engines are mutually interoperable"
+log "INTEROP OK — all six engines are mutually interoperable"

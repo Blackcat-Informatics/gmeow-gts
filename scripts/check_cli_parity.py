@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "docs" / "GTS-API-CLI-PARITY.md"
 README = ROOT / "README.md"
-ENGINES = ("Python", "Rust", "Go", "TypeScript", "Smalltalk")
+ENGINES = ("Python", "Rust", "Go", "TypeScript", "Smalltalk", "Kotlin")
 
 
 def between(text: str, start: str, end: str) -> str:
@@ -84,6 +84,12 @@ def smalltalk_verbs() -> set[str]:
     return set(re.findall(r"command = '([^']+)' ifTrue:", text))
 
 
+def kotlin_verbs() -> set[str]:
+    text = read("kotlin/src/main/kotlin/ca/blackcatinformatics/gts/cli/Main.kt")
+    block = between(text, "when (args[0]) {", "else ->")
+    return set(re.findall(r'"([^"]+)"\s*->\s*cmd', block))
+
+
 def readme_verbs(start: str, end: str) -> set[str]:
     block = between(README.read_text(encoding="utf-8"), start, end)
     return set(re.findall(r"^gts\s+([a-z0-9-]+)\b", block, flags=re.MULTILINE))
@@ -114,6 +120,7 @@ def main() -> int:
         "Go": go_verbs(),
         "TypeScript": typescript_verbs(),
         "Smalltalk": smalltalk_verbs(),
+        "Kotlin": kotlin_verbs(),
     }
     for engine, implemented in implemented_by_engine.items():
         compare_engine(errors, engine, implemented, matrix)
