@@ -186,16 +186,22 @@ function to_nquads(data; library::AbstractString = default_library())
 end
 
 function from_nquads(text::AbstractString; library::AbstractString = default_library())
-    ensure_no_nul(text, "text")
-    GC.@preserve text begin
-        text_pointer = isempty(text) ? Ptr{UInt8}(C_NULL) : Base.unsafe_convert(Ptr{UInt8}, Base.pointer(text))
+    text_string = checked_string(text, "text")
+    ensure_no_nul(text_string, "text")
+
+    GC.@preserve text_string begin
+        text_pointer = if isempty(text_string)
+            Ptr{UInt8}(C_NULL)
+        else
+            Base.unsafe_convert(Ptr{UInt8}, Base.pointer(text_string))
+        end
         raw_call("gts_from_nquads", library) do out, error
             ccall(
                 native_symbol(library, :gts_from_nquads),
                 Cint,
                 (Ptr{UInt8}, Csize_t, Ref{GtsBuffer}, Ref{Ptr{Cvoid}}),
                 text_pointer,
-                Csize_t(sizeof(text)),
+                Csize_t(sizeof(text_string)),
                 out,
                 error,
             )
@@ -226,10 +232,12 @@ function files_pack(paths; library::AbstractString = default_library())
 end
 
 function files_unpack(data, destination::AbstractString; flags = UnpackFlags.NONE, library::AbstractString = default_library())
-    destination_pointer = checked_cstring(destination, "destination")
+    destination_string = checked_string(destination, "destination")
+    ensure_no_nul(destination_string, "destination")
     unpack_flags = checked_uint32(flags, "flags")
 
-    GC.@preserve destination begin
+    GC.@preserve destination_string begin
+        destination_pointer = checked_cstring(destination_string, "destination")
         with_bytes(data, "data") do data_pointer, len
             text_call("gts_files_unpack", library) do out, error
                 ccall(
@@ -249,9 +257,11 @@ function files_unpack(data, destination::AbstractString; flags = UnpackFlags.NON
 end
 
 function files_diff_json(data, directory::AbstractString; library::AbstractString = default_library())
-    directory_pointer = checked_cstring(directory, "directory")
+    directory_string = checked_string(directory, "directory")
+    ensure_no_nul(directory_string, "directory")
 
-    GC.@preserve directory begin
+    GC.@preserve directory_string begin
+        directory_pointer = checked_cstring(directory_string, "directory")
         with_bytes(data, "data") do data_pointer, len
             text_call("gts_files_diff_json", library) do out, error
                 ccall(
@@ -278,6 +288,7 @@ function raw_call(f, operation::AbstractString, library::AbstractString)
 end
 
 function raw_buffer_call(operation::AbstractString, library::AbstractString, f)
+    buffer_free = native_symbol(library, :gts_buffer_free)
     out = Ref(GtsBuffer(Ptr{UInt8}(C_NULL), Csize_t(0), Csize_t(0)))
     error = Ref{Ptr{Cvoid}}(C_NULL)
 
@@ -292,7 +303,7 @@ function raw_buffer_call(operation::AbstractString, library::AbstractString, f)
         end
         copy_buffer(out[])
     finally
-        ccall(native_symbol(library, :gts_buffer_free), Cvoid, (Ref{GtsBuffer},), out)
+        ccall(buffer_free, Cvoid, (Ref{GtsBuffer},), out)
     end
 end
 
@@ -301,13 +312,17 @@ function build_error(operation::AbstractString, status::Integer, error_pointer::
     detail = ""
 
     if error_pointer != C_NULL
+        error_code = native_symbol(library, :gts_error_code)
+        error_message = native_symbol(library, :gts_error_message)
+        error_free = native_symbol(library, :gts_error_free)
+
         try
-            code_pointer = ccall(native_symbol(library, :gts_error_code), Cstring, (Ptr{Cvoid},), error_pointer)
-            detail_pointer = ccall(native_symbol(library, :gts_error_message), Cstring, (Ptr{Cvoid},), error_pointer)
+            code_pointer = ccall(error_code, Cstring, (Ptr{Cvoid},), error_pointer)
+            detail_pointer = ccall(error_message, Cstring, (Ptr{Cvoid},), error_pointer)
             code = code_pointer == C_NULL ? "" : unsafe_string(code_pointer)
             detail = detail_pointer == C_NULL ? "" : unsafe_string(detail_pointer)
         finally
-            ccall(native_symbol(library, :gts_error_free), Cvoid, (Ptr{Cvoid},), error_pointer)
+            ccall(error_free, Cvoid, (Ptr{Cvoid},), error_pointer)
         end
     end
 
@@ -360,7 +375,7 @@ function checked_string(value, name::AbstractString)
     String(value)
 end
 
-function checked_cstring(value::AbstractString, name::AbstractString)
+function checked_cstring(value::String, name::AbstractString)
     ensure_no_nul(value, name)
     Base.unsafe_convert(Cstring, value)
 end

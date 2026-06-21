@@ -43,6 +43,11 @@ round_trip = from_nquads(nquads)
 @test round_trip isa Vector{UInt8}
 @test !isempty(round_trip)
 
+wrapped_nquads = "x$nquads"
+round_trip_substring = from_nquads(SubString(wrapped_nquads, 2, lastindex(wrapped_nquads)))
+@test round_trip_substring isa Vector{UInt8}
+@test !isempty(round_trip_substring)
+
 parse_error = try
     from_nquads("<https://example/s> <https://example/p> .\n")
     nothing
@@ -65,9 +70,26 @@ mktempdir() do temp
     @test !isempty(packed)
 
     expect_json_bool("files diff", files_diff_json(packed, source_dir), "clean", true)
+    wrapped_source_dir = "x$source_dir"
+    expect_json_bool(
+        "files diff substring",
+        files_diff_json(packed, SubString(wrapped_source_dir, 2, lastindex(wrapped_source_dir))),
+        "clean",
+        true,
+    )
+
     expect_json_bool("files unpack", files_unpack(packed, unpack_dir), "ok", true)
 
     unpacked = joinpath(unpack_dir, "a.txt")
     @test isfile(unpacked)
     @test read(unpacked, String) == "hello\n"
+
+    unpack_substring_dir = joinpath(temp, "unpack-substring")
+    wrapped_unpack_dir = "x$unpack_substring_dir"
+    expect_json_bool(
+        "files unpack substring",
+        files_unpack(packed, SubString(wrapped_unpack_dir, 2, lastindex(wrapped_unpack_dir))),
+        "ok",
+        true,
+    )
 end
