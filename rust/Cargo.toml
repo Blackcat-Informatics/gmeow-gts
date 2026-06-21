@@ -65,7 +65,7 @@ filetime = "0.2"
 ed25519-dalek = "2"
 # pure-Rust SHA-1 — only for OpenPGP v4 key fingerprints (RFC 4880 §12.2), not
 # used as a general-purpose hash; wasm-friendly
-sha1 = "0.10"
+sha1 = "0.11"
 # pure-Rust AES-256-GCM (COSE_Encrypt0, §9.3). getrandom is OFF so the wasm32
 # build stays clean; the random-IV nonce comes from `getrandom` below, which is
 # only pulled in on non-wasm targets (the deterministic seal/open paths need no RNG).

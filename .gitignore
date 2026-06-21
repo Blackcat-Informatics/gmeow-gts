@@ -1,5 +1,6 @@
 # Rust
 rust/target/
+rust/capi/target/
 visual-hashing/target/
 
 # Go
