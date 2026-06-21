@@ -124,6 +124,37 @@ private:
   gts_buffer buffer_{nullptr, 0, 0};
 };
 
+class OwnedError final {
+public:
+  explicit OwnedError(gts_error *error) noexcept : error_(error) {}
+  OwnedError(const OwnedError &) = delete;
+  OwnedError &operator=(const OwnedError &) = delete;
+
+  OwnedError(OwnedError &&other) noexcept : error_(other.error_) { other.error_ = nullptr; }
+
+  OwnedError &operator=(OwnedError &&other) noexcept {
+    if (this != &other) {
+      reset(other.error_);
+      other.error_ = nullptr;
+    }
+    return *this;
+  }
+
+  ~OwnedError() { reset(); }
+
+  gts_error *get() const noexcept { return error_; }
+
+private:
+  void reset(gts_error *error = nullptr) noexcept {
+    if (error_ != nullptr) {
+      gts_error_free(error_);
+    }
+    error_ = error;
+  }
+
+  gts_error *error_;
+};
+
 inline std::string copy_c_string(const char *value) {
   if (value == nullptr) {
     return {};
@@ -132,12 +163,12 @@ inline std::string copy_c_string(const char *value) {
 }
 
 [[noreturn]] inline void raise_error(const char *operation, gts_status status, gts_error *error) {
+  OwnedError owned_error(error);
   std::string code;
   std::string message;
-  if (error != nullptr) {
-    code = copy_c_string(gts_error_code(error));
-    message = copy_c_string(gts_error_message(error));
-    gts_error_free(error);
+  if (owned_error.get() != nullptr) {
+    code = copy_c_string(gts_error_code(owned_error.get()));
+    message = copy_c_string(gts_error_message(owned_error.get()));
   }
   throw Error(operation, status, std::move(code), std::move(message));
 }
@@ -150,8 +181,10 @@ template <typename Fn> OwnedBuffer call_buffer(const char *operation, Fn &&fn) {
     raise_error(operation, status, error);
   }
   if (error != nullptr) {
-    gts_error_free(error);
-    throw Error(operation, GTS_STATUS_INTERNAL, "unexpected-error-handle", "C ABI returned OK with an error handle");
+    OwnedError owned_error(error);
+    std::string code = copy_c_string(gts_error_code(owned_error.get()));
+    std::string message = copy_c_string(gts_error_message(owned_error.get()));
+    throw Error(operation, GTS_STATUS_INTERNAL, std::move(code), std::move(message));
   }
   return out;
 }
