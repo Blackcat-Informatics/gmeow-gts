@@ -134,6 +134,10 @@ jobs:
         if: runner.os == 'Linux'
         run: bash php/scripts/smoke.sh
 
+      - name: Lua C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash lua/scripts/smoke.sh
+
       - name: Library builds for wasm32 (wasm-friendly claim)
         if: runner.os == 'Linux'
         run: |
