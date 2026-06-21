@@ -88,6 +88,17 @@ ex:r ex:confidence "0.9" .
     assert _sorted_lines(out) == _sorted_lines(expected)
 
 
+def test_trig_preserves_directional_language_literals() -> None:
+    trig = """@prefix ex: <https://ex/> .
+
+ex:s ex:label "Cat"@en--rtl .
+"""
+    graph = read(from_trig(trig))
+    assert '"Cat"@en--rtl' in to_nquads(graph)
+    assert '"Cat"@en--rtl' in to_trig(graph)
+    assert _roundtrip(from_trig(trig))
+
+
 def test_parses_graph_keyword_and_a_predicate() -> None:
     trig = """PREFIX ex: <https://ex/>
 GRAPH ex:g {

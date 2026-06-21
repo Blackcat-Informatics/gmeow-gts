@@ -43,6 +43,7 @@ struct Atom {
     kind: TermKind,
     value: String,
     lang: Option<String>,
+    direction: Option<String>,
     datatype: Option<String>,
 }
 
@@ -104,12 +105,14 @@ impl<'a> Tokenizer<'a> {
                 kind: TermKind::Iri,
                 value: self.iri()?,
                 lang: None,
+                direction: None,
                 datatype: None,
             })),
             Some('_') => Ok(Node::Atom(Atom {
                 kind: TermKind::Bnode,
                 value: self.bnode()?,
                 lang: None,
+                direction: None,
                 datatype: None,
             })),
             Some('"') => self.literal().map(Node::Atom),
@@ -190,6 +193,7 @@ impl<'a> Tokenizer<'a> {
         }
 
         let mut lang = None;
+        let mut direction = None;
         let mut datatype = None;
         if self.text.as_bytes().get(self.pos) == Some(&b'@') {
             self.pos += 1;
@@ -203,7 +207,20 @@ impl<'a> Tokenizer<'a> {
                     self.text
                 )));
             }
-            lang = Some(self.text[start..self.pos].to_string());
+            let raw_lang = &self.text[start..self.pos];
+            if let Some((base, dir)) = raw_lang.rsplit_once("--") {
+                if matches!(dir, "ltr" | "rtl") && !base.is_empty() {
+                    lang = Some(base.to_string());
+                    direction = Some(dir.to_string());
+                } else {
+                    return Err(NQuadsParseError::new(format!(
+                        "invalid literal base direction in {:?}",
+                        self.text
+                    )));
+                }
+            } else {
+                lang = Some(raw_lang.to_string());
+            }
         } else if self.text[self.pos..].starts_with("^^") {
             self.pos += 2;
             self.skip_ws();
@@ -214,6 +231,7 @@ impl<'a> Tokenizer<'a> {
             kind: TermKind::Literal,
             value,
             lang,
+            direction,
             datatype,
         })
     }
@@ -291,6 +309,7 @@ enum TermKey {
         kind: TermKind,
         value: String,
         lang: Option<String>,
+        direction: Option<String>,
         datatype: Option<String>,
     },
     Triple(usize, usize, usize),
@@ -314,6 +333,7 @@ impl Interner {
             kind: atom.kind,
             value: atom.value.clone(),
             lang: atom.lang.clone(),
+            direction: atom.direction.clone(),
             datatype: atom.datatype.clone(),
         };
         if let Some(id) = self.ids.get(&key) {
@@ -325,6 +345,7 @@ impl Interner {
                     kind: TermKind::Iri,
                     value: iri.clone(),
                     lang: None,
+                    direction: None,
                     datatype: None,
                 })
             })
@@ -337,6 +358,7 @@ impl Interner {
             value: Some(atom.value.clone()),
             datatype,
             lang: atom.lang.clone(),
+            direction: atom.direction.clone(),
             reifier: None,
         });
         self.ids.insert(key, id);
@@ -360,6 +382,7 @@ impl Interner {
                     value: None,
                     datatype: None,
                     lang: None,
+                    direction: None,
                     reifier: Some(id),
                 });
                 self.ids.insert(key, id);

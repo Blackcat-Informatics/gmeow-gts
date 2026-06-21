@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from gts.from_nquads import NQuadsParseError, from_nquads
-from gts.model import Graph
+from gts.model import Graph, is_literal_direction
 from gts.nquads import term_token
 
 _RDF_NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -105,6 +105,7 @@ class _Bnode:
 class _Literal:
     value: str
     lang: str | None = None
+    direction: str | None = None
     datatype: str | None = None
 
 
@@ -126,6 +127,8 @@ def _token(node: _Node) -> str:
     if isinstance(node, _Literal):
         lit = f'"{_escape_literal(node.value)}"'
         if node.lang is not None:
+            if is_literal_direction(node.direction):
+                return f"{lit}@{node.lang}--{node.direction}"
             return f"{lit}@{node.lang}"
         if node.datatype is not None:
             return f"{lit}^^<{node.datatype}>"
@@ -297,6 +300,7 @@ class _Parser:
             raise TriGParseError("unterminated literal")
 
         lang: str | None = None
+        direction: str | None = None
         datatype: str | None = None
         if self.i < len(self.text) and self.text[self.i] == "@":
             self.i += 1
@@ -309,11 +313,19 @@ class _Parser:
                 break
             if self.i == start:
                 raise TriGParseError("empty language tag")
-            lang = self.text[start : self.i]
+            raw_lang = self.text[start : self.i]
+            if "--" in raw_lang:
+                base, raw_direction = raw_lang.rsplit("--", 1)
+                if not base or raw_direction not in ("ltr", "rtl"):
+                    raise TriGParseError("invalid literal base direction")
+                lang = base
+                direction = raw_direction
+            else:
+                lang = raw_lang
         elif self.text.startswith("^^", self.i):
             self.i += 2
             datatype = self._datatype_iri()
-        return _Literal("".join(out), lang, datatype)
+        return _Literal("".join(out), lang, direction, datatype)
 
     def _datatype_iri(self) -> str:
         self._skip()

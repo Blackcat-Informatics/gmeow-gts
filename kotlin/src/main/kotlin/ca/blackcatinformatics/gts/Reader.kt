@@ -132,6 +132,7 @@ private class Folder(
             val kind = termKindFromWire(entries.getTextKey("k").asInt() ?: 0)
             val value = entries.getTextKey("v").asText().orEmpty()
             val lang = entries.getTextKey("l").asText()
+            val direction = entries.getTextKey("dir").asText()?.takeIf { it == "ltr" || it == "rtl" }
             val termId = graph.terms.size
             fun sanitize(v: CborValue?): Int? {
                 val n = v.asInt() ?: return null
@@ -146,7 +147,7 @@ private class Folder(
             if (outOfRange(entries.getTextKey("dt")) || outOfRange(entries.getTextKey("rf"))) {
                 diag("ForwardReference", "term $termId has an out-of-range ref", index)
             }
-            graph.terms += Term(kind, value, datatype, lang, reifier)
+            graph.terms += Term(kind, value, datatype, lang, reifier, direction)
         }
     }
 
@@ -508,6 +509,7 @@ private data class InternKey(
     val a: String = "",
     val b: String = "",
     val c: String = "",
+    val d: String = "",
     val segment: Int? = null,
     val reifier: Int? = null,
     val bnodeTid: Int? = null,
@@ -530,7 +532,7 @@ private class Unioner {
             } else {
                 term.value
             }
-        out.terms += Term(term.kind, value, datatype, term.lang, reifier)
+        out.terms += Term(term.kind, value, datatype, term.lang, reifier, term.direction)
         val newId = out.terms.lastIndex
         intern[key] = newId
         return newId
@@ -540,7 +542,7 @@ private class Unioner {
         val term = segment.terms[termId]
         return when (term.kind) {
             TermKind.IRI -> InternKey(0, term.value)
-            TermKind.LITERAL -> InternKey(1, term.value, segment.datatypeIri(term), term.lang.orEmpty())
+            TermKind.LITERAL -> InternKey(1, term.value, segment.datatypeIri(term), term.lang.orEmpty(), term.direction.orEmpty())
             TermKind.BNODE ->
                 if (term.value.isNotEmpty()) {
                     InternKey(2, term.value, segment = segmentIndex, bnodeLabeled = true)

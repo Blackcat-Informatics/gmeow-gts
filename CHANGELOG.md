@@ -14,6 +14,26 @@ change before `1.0`.
 
 ## [Unreleased]
 
+## [0.9.4] — 2026-06-21
+
+### Added
+
+- Rust GTS terms now preserve RDF 1.2 language-tagged literal base direction
+  (`"dir": "ltr" | "rtl"`) across the wire model, deterministic writer,
+  multi-segment union, N-Quads/TriG projection, YAML-LD import/export, SQL
+  exports, and dump-directory JSONL tables.
+- Regression coverage for multiple distinct reifiers bound to the same asserted
+  triple.
+- Regression coverage documenting the blob contract: inline blob frames preserve
+  bytes, while external blob records carry metadata and digest references only.
+
+### Changed
+
+- Bumped lockstep package metadata to `0.9.4` across release manifests,
+  citation metadata, C API metadata, Kotlin metadata, and documentation snippets.
+- Native `oxrdf` export now refuses RDF 1.2 directional literals rather than
+  silently dropping base direction on an adapter surface that cannot carry it.
+
 ## [0.9.2] — 2026-06-19
 
 ### Added
@@ -231,7 +251,8 @@ change before `1.0`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.2...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.4...HEAD
+[0.9.4]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.2...py-v0.9.4
 [0.9.2]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.1...py-v0.9.2
 [0.9.1]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.0...py-v0.9.1
 [0.9.0]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.2.0...py-v0.9.0

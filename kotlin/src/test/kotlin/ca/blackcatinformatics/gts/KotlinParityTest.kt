@@ -47,6 +47,50 @@ class KotlinParityTest {
     }
 
     @Test
+    fun fromNQuadsPreservesDirectionalLanguageLiterals() {
+        val nq = "<https://ex/s> <https://ex/label> \"RTL\"@ar--rtl .\n"
+        val graph = read(fromNQuads(nq), false)
+        val literal = graph.terms.single { it.kind == TermKind.LITERAL }
+        assertEquals("ar", literal.lang)
+        assertEquals("rtl", literal.direction)
+        assertEquals(RDF_DIR_LANG_STRING, graph.datatypeIri(literal))
+        assertEquals(nq.trim().lines().sorted(), toNQuads(graph).trim().lines().sorted())
+    }
+
+    @Test
+    fun writerAllowsMultipleReifiersForSameStatement() {
+        val writer = Writer("dist")
+        writer.addTerms(
+            listOf(
+                Term(TermKind.IRI, "https://ex/r1"),
+                Term(TermKind.IRI, "https://ex/r2"),
+                Term(TermKind.IRI, "https://ex/s"),
+                Term(TermKind.IRI, "https://ex/p"),
+                Term(TermKind.IRI, "https://ex/o"),
+            ),
+        )
+        writer.addQuads(listOf(Quad(2, 3, 4)))
+        writer.addReifies(
+            listOf(
+                ReifierEntry(0, Triple(2, 3, 4)),
+                ReifierEntry(1, Triple(2, 3, 4)),
+            ),
+        )
+        assertEquals(2, read(writer.toBytes(), false).reifiers.size)
+    }
+
+    @Test
+    fun fromNQuadsPreservesMultipleReifiersForSameStatement() {
+        val rdfReifies = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
+        val nq =
+            "<https://ex/r1> <$rdfReifies> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n" +
+                "<https://ex/r2> <$rdfReifies> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n"
+        val graph = read(fromNQuads(nq), false)
+        assertEquals(2, graph.reifiers.size)
+        assertEquals(nq.trim().lines().sorted(), toNQuads(graph).trim().lines().sorted())
+    }
+
+    @Test
     fun cborMapsUseRfc8949LexicographicKeyOrder() {
         val got = encode(cborMap(text("") to uint(1), uint(1000) to uint(2)))
         assertEquals("a21903e8026001", hex(got))

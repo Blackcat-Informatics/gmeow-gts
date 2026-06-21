@@ -49,7 +49,7 @@ go install go.blackcatinformatics.ca/gts/cmd/gts@latest
 ```
 
 The module path is `go.blackcatinformatics.ca/gts`. Releases are tagged in the
-`gmeow-gts` repository, e.g. `go-v0.9.2`.
+`gmeow-gts` repository, e.g. `go-v0.9.4`.
 
 ## Library quick start
 

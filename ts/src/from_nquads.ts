@@ -1,7 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-import { TermKind, type Quad, type ReifierEntry, type Term } from "./model.js";
+import {
+    TermKind,
+    type LiteralDirection,
+    type Quad,
+    type ReifierEntry,
+    type Term,
+} from "./model.js";
 import { Writer } from "./writer.js";
 
 const RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
@@ -17,6 +23,7 @@ interface Atom {
     kind: TermKind;
     value: string;
     lang?: string;
+    direction?: LiteralDirection;
     datatype?: string;
 }
 
@@ -142,6 +149,7 @@ class Tokenizer {
             }
             if (ch === '"') {
                 let lang: string | undefined;
+                let direction: LiteralDirection | undefined;
                 let datatype: string | undefined;
                 if (this.s[this.i] === "@") {
                     this.i++;
@@ -158,12 +166,35 @@ class Tokenizer {
                             `empty language tag in ${this.s}`,
                         );
                     }
+                    const sep = lang.lastIndexOf("--");
+                    if (sep >= 0) {
+                        const rawDirection = lang.slice(sep + 2);
+                        if (rawDirection !== "ltr" && rawDirection !== "rtl") {
+                            throw new NQuadsParseError(
+                                `invalid literal direction in ${this.s}`,
+                            );
+                        }
+                        const language = lang.slice(0, sep);
+                        if (language.length === 0) {
+                            throw new NQuadsParseError(
+                                `empty language tag in ${this.s}`,
+                            );
+                        }
+                        lang = language;
+                        direction = rawDirection;
+                    }
                 } else if (this.s.startsWith("^^", this.i)) {
                     this.i += 2;
                     this.skipWs();
                     datatype = this.iri();
                 }
-                return { kind: TermKind.Literal, value, lang, datatype };
+                return {
+                    kind: TermKind.Literal,
+                    value,
+                    lang,
+                    direction,
+                    datatype,
+                };
             }
             value += ch;
         }
@@ -242,6 +273,7 @@ class Interner {
             a.kind,
             a.value,
             a.lang ?? null,
+            a.direction ?? null,
             a.datatype ?? null,
         ]);
         const existing = this.ids.get(key);
@@ -255,6 +287,7 @@ class Interner {
             });
         }
         if (a.lang !== undefined) term.lang = a.lang;
+        if (a.direction !== undefined) term.direction = a.direction;
 
         const id = this.terms.length;
         this.terms.push(term);

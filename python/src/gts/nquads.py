@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gts.model import Graph, Term, TermKind
+from gts.model import Graph, Term, TermKind, is_literal_direction
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -55,6 +55,8 @@ def _render(g: Graph, tid: int, lang_map: Mapping[str, str] | None = None) -> st
         lit = f'"{_escape(t.value or "")}"'
         if t.lang is not None:
             lang = lang_map.get(t.lang, t.lang) if lang_map else t.lang
+            if is_literal_direction(t.direction):
+                return f"{lit}@{lang}--{t.direction}"
             return f"{lit}@{lang}"
         if t.datatype is not None:
             return f"{lit}^^{_render(g, t.datatype, lang_map)}"
