@@ -24,6 +24,7 @@ use gmeow_gts::from_nquads::from_nquads;
 use gmeow_gts::from_okf::{from_okf_with_options, FromOkfOptions};
 #[cfg(feature = "tar")]
 use gmeow_gts::from_tar::{from_tar_to_writer, FromTarOptions};
+#[cfg(not(feature = "rdf-codecs"))]
 use gmeow_gts::from_trig::from_trig;
 #[cfg(feature = "yaml-ld")]
 use gmeow_gts::from_yamlld::from_yaml_ld;
@@ -39,11 +40,33 @@ use gmeow_gts::replication::{
 };
 #[cfg(feature = "tar")]
 use gmeow_gts::tar::{to_tar, TarCompression, ToTarOptions};
+#[cfg(not(feature = "rdf-codecs"))]
 use gmeow_gts::trig::to_trig;
 use gmeow_gts::verify::{extract_transport_key, format_fingerprint};
 use gmeow_gts::wire::{digest_str, hex};
 #[cfg(feature = "yaml-ld")]
 use gmeow_gts::yamlld::to_yaml_ld;
+
+#[cfg(feature = "rdf-codecs")]
+macro_rules! rdf_codecs_usage {
+    () => {
+        "  to-turtle <file>         fold the default graph to Turtle on stdout
+  from-turtle <in.ttl> [-o out]
+                            build a GTS from Turtle; '-' reads stdin
+"
+    };
+}
+
+#[cfg(not(feature = "rdf-codecs"))]
+macro_rules! rdf_codecs_usage {
+    () => {
+        "optional:
+  to-turtle <file>         build with --features rdf-codecs
+  from-turtle <in.ttl> [-o out]
+                            build with --features rdf-codecs
+"
+    };
+}
 
 macro_rules! usage_text {
     ($yamlld:literal, $okf:literal, $relational:literal) => {
@@ -58,6 +81,7 @@ commands:
   from-trig <in.trig> [-o out]
                             build a GTS from TriG; '-' reads stdin
 ",
+            rdf_codecs_usage!(),
             $yamlld,
             $okf,
             "
@@ -249,6 +273,12 @@ fn main() -> ExitCode {
         "from-nq" => cmd_from_nq(&args[1..]),
         "to-trig" => cmd_to_trig(&args[1..]),
         "from-trig" => cmd_from_trig(&args[1..]),
+        #[cfg(feature = "rdf-codecs")]
+        "to-turtle" => cmd_to_turtle(&args[1..]),
+        #[cfg(feature = "rdf-codecs")]
+        "from-turtle" => cmd_from_turtle(&args[1..]),
+        #[cfg(not(feature = "rdf-codecs"))]
+        "to-turtle" | "from-turtle" => cmd_rdf_codecs_disabled(cmd),
         #[cfg(feature = "yaml-ld")]
         "to-yaml-ld" => cmd_to_yaml_ld(&args[1..]),
         #[cfg(feature = "yaml-ld")]
@@ -315,6 +345,15 @@ fn cmd_duckdb_disabled(cmd: &str) -> ExitCode {
 #[cfg(not(feature = "yaml-ld"))]
 fn cmd_yaml_ld_disabled(cmd: &str) -> ExitCode {
     eprintln!("gts {cmd}: YAML-LD-star transforms are disabled; rebuild with `--features yaml-ld`");
+    ExitCode::from(2)
+}
+
+#[cfg(not(feature = "rdf-codecs"))]
+fn cmd_rdf_codecs_disabled(cmd: &str) -> ExitCode {
+    eprintln!(
+        "gts {cmd}: RDF Turtle-family codecs are disabled; rebuild with \
+         `--features rdf-codecs`"
+    );
     ExitCode::from(2)
 }
 
@@ -737,7 +776,50 @@ fn cmd_to_trig(paths: &[String]) -> ExitCode {
     for d in &g.diagnostics {
         eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
     }
-    print!("{}", to_trig(&g));
+    let trig = {
+        #[cfg(feature = "rdf-codecs")]
+        {
+            match gmeow_gts::rdf_codecs::to_trig(&g) {
+                Ok(text) => text,
+                Err(e) => {
+                    eprintln!("gts to-trig: {e}");
+                    return ExitCode::from(1);
+                }
+            }
+        }
+        #[cfg(not(feature = "rdf-codecs"))]
+        {
+            to_trig(&g)
+        }
+    };
+    print!("{trig}");
+    if !g.diagnostics.is_empty() || g.segment_heads.is_empty() {
+        return ExitCode::from(1);
+    }
+    ExitCode::SUCCESS
+}
+
+#[cfg(feature = "rdf-codecs")]
+fn cmd_to_turtle(paths: &[String]) -> ExitCode {
+    let [path] = paths else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let data = match load(path) {
+        Ok(d) => d,
+        Err(code) => return code,
+    };
+    let g = read(&data, true, None);
+    for d in &g.diagnostics {
+        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+    }
+    match gmeow_gts::rdf_codecs::to_turtle(&g) {
+        Ok(text) => print!("{text}"),
+        Err(e) => {
+            eprintln!("gts to-turtle: {e}");
+            return ExitCode::from(1);
+        }
+    }
     if !g.diagnostics.is_empty() || g.segment_heads.is_empty() {
         return ExitCode::from(1);
     }
@@ -848,11 +930,26 @@ fn cmd_from_trig(args: &[String]) -> ExitCode {
         }
     };
 
-    let bytes = match from_trig(&text) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            eprintln!("gts from-trig: {e}");
-            return ExitCode::from(1);
+    let bytes = {
+        #[cfg(feature = "rdf-codecs")]
+        {
+            match gmeow_gts::rdf_codecs::from_trig(&text) {
+                Ok(bytes) => bytes,
+                Err(e) => {
+                    eprintln!("gts from-trig: {e}");
+                    return ExitCode::from(1);
+                }
+            }
+        }
+        #[cfg(not(feature = "rdf-codecs"))]
+        {
+            match from_trig(&text) {
+                Ok(bytes) => bytes,
+                Err(e) => {
+                    eprintln!("gts from-trig: {e}");
+                    return ExitCode::from(1);
+                }
+            }
         }
     };
 
@@ -867,6 +964,72 @@ fn cmd_from_trig(args: &[String]) -> ExitCode {
             use std::io::Write;
             if let Err(e) = std::io::stdout().write_all(&bytes) {
                 eprintln!("gts from-trig: cannot write stdout: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+#[cfg(feature = "rdf-codecs")]
+fn cmd_from_turtle(args: &[String]) -> ExitCode {
+    let mut out_path: Option<&str> = None;
+    let mut inputs: Vec<&str> = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-o" | "--out" => match it.next() {
+                Some(p) => out_path = Some(p),
+                None => {
+                    eprintln!("gts from-turtle: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            other => inputs.push(other),
+        }
+    }
+    let [path] = inputs[..] else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+
+    let text = if path == "-" {
+        let mut input = String::new();
+        let mut stdin = std::io::stdin();
+        if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
+            eprintln!("gts from-turtle: cannot read stdin: {e}");
+            return ExitCode::from(2);
+        }
+        input
+    } else {
+        match std::fs::read_to_string(path) {
+            Ok(text) => text,
+            Err(e) => {
+                eprintln!("gts from-turtle: cannot read {path}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    };
+
+    let bytes = match gmeow_gts::rdf_codecs::from_turtle(&text) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            eprintln!("gts from-turtle: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    match out_path {
+        Some(p) => {
+            if let Err(e) = std::fs::write(p, &bytes) {
+                eprintln!("gts from-turtle: cannot write {p}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+        None => {
+            use std::io::Write;
+            if let Err(e) = std::io::stdout().write_all(&bytes) {
+                eprintln!("gts from-turtle: cannot write stdout: {e}");
                 return ExitCode::from(2);
             }
         }

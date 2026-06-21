@@ -73,6 +73,20 @@ fn tar_commands_report_feature_gate_when_disabled() {
     assert!(err.contains("--features tar"), "stderr: {err}");
 }
 
+#[cfg(not(feature = "rdf-codecs"))]
+#[test]
+fn rdf_codecs_commands_report_feature_gate_when_disabled() {
+    let out = gts(&["to-turtle"]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--features rdf-codecs"), "stderr: {err}");
+
+    let out = gts(&["from-turtle"]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--features rdf-codecs"), "stderr: {err}");
+}
+
 #[cfg(feature = "policy-config-yaml")]
 #[test]
 fn verify_policy_file_trusts_did_style_signer() {

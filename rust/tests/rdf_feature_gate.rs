@@ -3,6 +3,7 @@
 
 #[cfg(not(any(
     feature = "rdf",
+    feature = "rdf-codecs",
     feature = "duckdb",
     feature = "sophia-adapter",
     feature = "yaml-ld"
@@ -34,6 +35,10 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(package["features"]["duckdb"], serde_json::json!([]));
     assert_eq!(package["features"]["rdf"], serde_json::json!(["dep:oxrdf"]));
     assert_eq!(
+        package["features"]["rdf-codecs"],
+        serde_json::json!(["rdf", "dep:oxttl"])
+    );
+    assert_eq!(
         package["features"]["oxigraph-adapter"],
         serde_json::json!(["rdf", "dep:oxigraph"])
     );
@@ -63,6 +68,16 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(oxrdf["optional"], serde_json::json!(true));
     assert_eq!(oxrdf["uses_default_features"], serde_json::json!(false));
     assert_eq!(oxrdf["features"], serde_json::json!(["rdf-12"]));
+
+    let oxttl = package["dependencies"]
+        .as_array()
+        .expect("metadata dependencies are an array")
+        .iter()
+        .find(|dependency| dependency["name"] == "oxttl")
+        .expect("oxttl dependency is present");
+    assert_eq!(oxttl["optional"], serde_json::json!(true));
+    assert_eq!(oxttl["uses_default_features"], serde_json::json!(false));
+    assert_eq!(oxttl["features"], serde_json::json!(["rdf-12"]));
 
     let oxigraph = package["dependencies"]
         .as_array()
@@ -109,6 +124,14 @@ fn optional_adapters_are_not_enabled_by_default() {
 fn rdf_feature_enables_adapter_module() {
     let options = gmeow_gts::rdf::ExportOptions::default();
     assert!(!options.allow_rdf12_lossy);
+}
+
+#[cfg(feature = "rdf-codecs")]
+#[test]
+fn rdf_codecs_feature_enables_turtle_family_modules() {
+    let text = "@prefix ex: <https://ex/> .\nex:s ex:p ex:o .\n";
+    let bytes = gmeow_gts::rdf_codecs::from_turtle(text).unwrap();
+    assert!(!bytes.is_empty());
 }
 
 #[cfg(feature = "oxigraph-adapter")]
