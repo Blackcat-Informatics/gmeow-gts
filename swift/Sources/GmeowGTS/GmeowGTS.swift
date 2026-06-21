@@ -129,13 +129,9 @@ public enum GTS {
     }
 
     public static func fromNQuads(_ text: String) throws -> Data {
-        let bytes = Array(text.utf8)
-        return try bytes.withUnsafeBufferPointer { buffer in
-            let pointer = buffer.baseAddress.map {
-                UnsafeRawPointer($0).assumingMemoryBound(to: CChar.self)
-            }
-            return try callData("gts_from_nquads") { out, error in
-                gts_from_nquads(pointer, bytes.count, out, error)
+        try text.withCString { pointer in
+            try callData("gts_from_nquads") { out, error in
+                gts_from_nquads(pointer, text.utf8.count, out, error)
             }
         }
     }
