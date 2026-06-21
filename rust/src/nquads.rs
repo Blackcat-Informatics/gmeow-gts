@@ -9,7 +9,7 @@
 //! `<reifier> p v`). Inline blobs are externalised by the caller; this module
 //! emits the graph text only.
 
-use crate::model::{Graph, TermKind};
+use crate::model::{is_literal_direction, Graph, TermKind};
 
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
@@ -42,7 +42,10 @@ pub(crate) fn render_term(g: &Graph, tid: usize) -> String {
         TermKind::Literal => {
             let lit = format!("\"{}\"", escape_literal(t.value.as_deref().unwrap_or("")));
             if let Some(lang) = &t.lang {
-                format!("{lit}@{lang}")
+                match t.direction.as_deref().filter(|d| is_literal_direction(d)) {
+                    Some(direction) => format!("{lit}@{lang}--{direction}"),
+                    None => format!("{lit}@{lang}"),
+                }
             } else if let Some(dt) = t.datatype {
                 format!("{lit}^^{}", render_term(g, dt))
             } else {

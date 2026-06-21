@@ -396,6 +396,10 @@ impl Folder<'_, '_, '_> {
             let kind = TermKind::from_wire(map_get(entries, "k").and_then(as_i128));
             let value = map_get(entries, "v").and_then(as_text).map(str::to_string);
             let lang = map_get(entries, "l").and_then(as_text).map(str::to_string);
+            let direction = map_get(entries, "dir")
+                .and_then(as_text)
+                .filter(|value| matches!(*value, "ltr" | "rtl"))
+                .map(str::to_string);
             let dt_raw = map_get(entries, "dt").and_then(as_i128);
             let rf_raw = map_get(entries, "rf").and_then(as_i128);
             let tid = self.g.terms.len() as i128;
@@ -424,6 +428,7 @@ impl Folder<'_, '_, '_> {
                 value,
                 datatype: dt,
                 lang,
+                direction,
                 reifier: rf,
             });
             if let Some(sink) = self.sink.as_deref_mut() {
@@ -1503,7 +1508,7 @@ fn check_index_mmr(
 #[derive(Clone, PartialEq, Eq, Hash)]
 enum InternKey {
     Iri(Option<String>),
-    Lit(Option<String>, String, Option<String>),
+    Lit(Option<String>, String, Option<String>, Option<String>),
     Bnode(usize, Option<String>, Option<usize>),
     Qt(Option<usize>),
 }
@@ -1519,9 +1524,12 @@ impl Unioner {
         let t = &seg.terms[tid];
         match t.kind {
             TermKind::Iri => InternKey::Iri(t.value.clone()),
-            TermKind::Literal => {
-                InternKey::Lit(t.value.clone(), seg.datatype_iri(t), t.lang.clone())
-            }
+            TermKind::Literal => InternKey::Lit(
+                t.value.clone(),
+                seg.datatype_iri(t),
+                t.lang.clone(),
+                t.direction.clone(),
+            ),
             // Non-empty labels are segment-local; absent/empty labels are fresh
             // anonymous nodes keyed by their source term entry (§7.1).
             TermKind::Bnode => {
@@ -1563,6 +1571,7 @@ impl Unioner {
             value,
             datatype,
             lang: t.lang,
+            direction: t.direction,
             reifier,
         });
         let new_id = self.out.terms.len() - 1;

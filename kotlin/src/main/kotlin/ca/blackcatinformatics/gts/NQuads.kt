@@ -48,7 +48,10 @@ private fun renderTerm(graph: Graph, termId: Int): String {
 
 private fun renderLiteral(graph: Graph, term: Term): String {
     val base = "\"${escapeLiteral(term.value)}\""
-    if (!term.lang.isNullOrEmpty()) return "$base@${term.lang}"
+    if (!term.lang.isNullOrEmpty()) {
+        val direction = term.direction?.takeIf { isLiteralDirection(it) }?.let { "--$it" }.orEmpty()
+        return "$base@${term.lang}$direction"
+    }
     val datatype = graph.datatypeIri(term)
     return if (datatype == XSD_STRING) base else "$base^^<${escapeIri(datatype)}>"
 }

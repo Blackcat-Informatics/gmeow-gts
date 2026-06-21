@@ -5,6 +5,7 @@ Class {
 		'kind',
 		'value',
 		'language',
+		'direction',
 		'datatype',
 		'reifier'
 	],
@@ -29,10 +30,20 @@ GtsTerm class >> iri: iriString [
 
 { #category : #'instance creation' }
 GtsTerm class >> literal: literalValue language: languageTag datatype: datatypeId [
+	^ self
+		literal: literalValue
+		language: languageTag
+		direction: nil
+		datatype: datatypeId
+]
+
+{ #category : #'instance creation' }
+GtsTerm class >> literal: literalValue language: languageTag direction: textDirection datatype: datatypeId [
 	^ self new
 		kind: #literal;
 		value: literalValue;
 		language: languageTag;
+		direction: textDirection;
 		datatype: datatypeId;
 		yourself
 ]
@@ -53,6 +64,18 @@ GtsTerm >> datatype [
 { #category : #accessing }
 GtsTerm >> datatype: datatypeId [
 	datatype := datatypeId
+]
+
+{ #category : #accessing }
+GtsTerm >> direction [
+	^ direction
+]
+
+{ #category : #accessing }
+GtsTerm >> direction: textDirection [
+	((textDirection isNil) or: [ #('ltr' 'rtl') includes: textDirection ])
+		ifFalse: [ self error: 'invalid literal direction' ].
+	direction := textDirection
 ]
 
 { #category : #accessing }

@@ -196,6 +196,12 @@ GtsWriter >> wireTermFor: term [
 	term datatype ifNotNil: [ fields at: 'dt' put: term datatype ].
 	(term language notNil and: [ term language isEmpty not ])
 		ifTrue: [ fields at: 'l' put: term language ].
+	(term kind = #literal
+		and: [ term direction notNil and: [ term direction isEmpty not ] ])
+		ifTrue: [
+			(#('ltr' 'rtl') includes: term direction)
+				ifTrue: [ fields at: 'dir' put: term direction ]
+				ifFalse: [ self error: 'literal direction must be ltr or rtl' ] ].
 	term reifier ifNotNil: [ fields at: 'rf' put: term reifier ].
 	^ fields
 ]

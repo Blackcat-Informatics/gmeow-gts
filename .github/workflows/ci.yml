@@ -18,12 +18,12 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.13"
 
@@ -59,7 +59,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -74,24 +74,30 @@ jobs:
         with:
           workspaces: |
             rust
+            rust/rdf-events
+            rust/capi
             visual-hashing
 
       - name: Format gate
         if: runner.os == 'Linux'
         run: |
           cargo fmt --manifest-path visual-hashing/Cargo.toml --check
+          cargo fmt --manifest-path rust/rdf-events/Cargo.toml --check
           cargo fmt --manifest-path rust/Cargo.toml --check
+          cargo fmt --manifest-path rust/capi/Cargo.toml --check
 
       - name: Clippy (warnings are errors)
         if: runner.os == 'Linux'
         run: |
           cargo clippy --manifest-path visual-hashing/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path rust/rdf-events/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features duckdb -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features sophia-adapter -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features tar -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features yaml-ld -- -D warnings
+          cargo clippy --manifest-path rust/capi/Cargo.toml --all-targets -- -D warnings
 
       - name: Rustdoc (warnings are errors)
         if: runner.os == 'Linux'
@@ -99,12 +105,15 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: |
           cargo doc --manifest-path visual-hashing/Cargo.toml --no-deps
+          cargo doc --manifest-path rust/rdf-events/Cargo.toml --no-deps
           cargo doc --manifest-path rust/Cargo.toml --no-deps
           cargo doc --manifest-path rust/Cargo.toml --no-deps --features yaml-ld
+          cargo doc --manifest-path rust/capi/Cargo.toml --no-deps
 
       - name: Conformance corpus + CLI tests
         run: |
           cargo test --manifest-path visual-hashing/Cargo.toml
+          cargo test --manifest-path rust/rdf-events/Cargo.toml
           cargo test --manifest-path rust/Cargo.toml --no-default-features
           cargo test --manifest-path rust/Cargo.toml
           cargo test --manifest-path rust/Cargo.toml --features duckdb
@@ -112,6 +121,43 @@ jobs:
           cargo test --manifest-path rust/Cargo.toml --features sophia-adapter
           cargo test --manifest-path rust/Cargo.toml --features tar
           cargo test --manifest-path rust/Cargo.toml --features yaml-ld
+          cargo test --manifest-path rust/capi/Cargo.toml
+
+      - name: C ABI smoke test
+        if: runner.os == 'Linux'
+        run: bash rust/capi/scripts/smoke.sh
+
+      - name: C++ C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash cpp/scripts/smoke.sh
+
+      - name: .NET C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash dotnet/scripts/smoke.sh
+
+      - name: PHP C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash php/scripts/smoke.sh
+
+      - name: Lua C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash lua/scripts/smoke.sh
+
+      - name: Swift C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash swift/scripts/smoke.sh
+
+      - name: Ruby C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash ruby/scripts/smoke.sh
+
+      - name: R C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash r/scripts/smoke.sh
+
+      - name: Julia C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash julia/scripts/smoke.sh
 
       - name: Library builds for wasm32 (wasm-friendly claim)
         if: runner.os == 'Linux'
@@ -125,13 +171,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout gmeow-gts
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           path: gmeow-gts
           persist-credentials: false
 
       - name: Checkout gmeow-ontology
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: Blackcat-Informatics/gmeow-ontology
           path: gmeow-ontology
@@ -168,7 +214,7 @@ jobs:
     env:
       CGO_ENABLED: "0"
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -214,12 +260,12 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: ts/package.json
 
@@ -248,7 +294,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -286,7 +332,7 @@ jobs:
   smalltalk:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -303,7 +349,7 @@ jobs:
   kotlin:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -331,7 +377,7 @@ jobs:
   interop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -350,7 +396,7 @@ jobs:
           cache-dependency-path: go/go.sum
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: ts/package.json
 

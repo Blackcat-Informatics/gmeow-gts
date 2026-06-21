@@ -109,6 +109,7 @@ through Gradle tests, common CLI verbs, and the same interop gate. Neither engin
 Rust-only extensions such as TriG, OKF, tar, dump, or relational exports.
 Command-level parity and intentional gaps are maintained in
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
+
 OKF support is intentionally Rust-first: the Rust CLI owns the initial
 Markdown/YAML bundle bridge, Knowledge Catalog interop checks, and `gts-okf-v1`
 directory contract while Python, Go, TypeScript, Smalltalk, and Kotlin remain explicit parity
@@ -119,3 +120,27 @@ initial files-profile-v2 `from-tar`/`to-tar`/`tar` surface and the
 deferrals until they pass the same archive safety and round-trip gates.
 Advanced streaming, proof, and replication work is tiered separately in
 [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).
+
+## C ABI wrapper family
+
+The Rust-backed C ABI (`rust/capi/`) is an interoperability surface for runtimes that can load
+`libgts`. It exposes the Rust engine through `rust/capi/include/gts.h` and returns owned native
+buffers, JSON reports, and structured error handles. C ABI consumers do not reimplement the wire
+format and do not add new columns to the six-engine parity matrix.
+
+Current derived wrappers live in:
+
+| Ecosystem | Directory | Shape |
+|---|---|---|
+| C++ | [`cpp/`](../cpp/README.md) | header-only RAII wrapper |
+| .NET | [`dotnet/`](../dotnet/README.md) | P/Invoke wrapper |
+| PHP | [`php/`](../php/README.md) | PHP FFI package |
+| Lua | [`lua/`](../lua/README.md) | LuaJIT FFI module |
+| Swift | [`swift/`](../swift/README.md) | Swift Package |
+| Ruby | [`ruby/`](../ruby/README.md) | Ruby FFI gem |
+| R | [`r/`](../r/README.md) | R package |
+| Julia | [`julia/`](../julia/README.md) | Julia package |
+
+Each wrapper owns C memory at the ecosystem boundary, exposes ABI/build/capability metadata,
+read/verify JSON reports, N-Quads conversion, files-profile helpers, and structured errors, and
+is smoke-tested against the checked-in C ABI.

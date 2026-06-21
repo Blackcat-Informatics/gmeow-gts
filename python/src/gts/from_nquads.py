@@ -40,6 +40,7 @@ class _Atom:
     kind: TermKind
     value: str
     lang: str | None = None
+    direction: str | None = None
     datatype: str | None = None  # datatype IRI, when explicit
 
 
@@ -146,20 +147,31 @@ class _Tokenizer:
             raise NQuadsParseError(f"unterminated literal in {self.s!r}")
         lex = _unescape("".join(buf))
         lang: str | None = None
+        direction: str | None = None
         datatype: str | None = None
         if self.i < len(self.s) and self.s[self.i] == "@":
             self.i += 1
             start = self.i
             while self.i < len(self.s) and _is_lang_char(self.s[self.i]):
                 self.i += 1
-            lang = self.s[start : self.i]
-            if not lang:
+            raw_lang = self.s[start : self.i]
+            if not raw_lang:
                 raise NQuadsParseError(f"empty language tag in {self.s!r}")
+            if "--" in raw_lang:
+                base, raw_direction = raw_lang.rsplit("--", 1)
+                if not base or raw_direction not in ("ltr", "rtl"):
+                    raise NQuadsParseError(
+                        f"invalid literal base direction in {self.s!r}"
+                    )
+                lang = base
+                direction = raw_direction
+            else:
+                lang = raw_lang
         elif self.s.startswith("^^", self.i):
             self.i += 2
             self._skip_ws()
             datatype = self._iri()
-        return _Atom(TermKind.LITERAL, lex, lang, datatype)
+        return _Atom(TermKind.LITERAL, lex, lang, direction, datatype)
 
     def _quoted_triple(self) -> _Triple:
         self.i += 3  # consume "<<("
@@ -184,12 +196,18 @@ class _Interner:
         key: object
         if a.kind is TermKind.LITERAL:
             dt_id = self.atom(_Atom(TermKind.IRI, a.datatype)) if a.datatype else None
-            key = ("lit", a.value, a.lang, a.datatype)
+            key = ("lit", a.value, a.lang, a.direction, a.datatype)
             if key in self._ids:
                 return self._ids[key]
             tid = len(self.terms)
             self.terms.append(
-                Term(TermKind.LITERAL, a.value, datatype=dt_id, lang=a.lang)
+                Term(
+                    TermKind.LITERAL,
+                    a.value,
+                    datatype=dt_id,
+                    lang=a.lang,
+                    direction=a.direction,
+                )
             )
             self._ids[key] = tid
             return tid

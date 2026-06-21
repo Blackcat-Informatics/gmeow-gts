@@ -11,6 +11,7 @@ private data class Atom(
     val kind: TermKind,
     val value: String,
     val lang: String? = null,
+    val direction: String? = null,
     val datatype: String? = null,
 )
 
@@ -82,6 +83,7 @@ private class Tokenizer(private val line: String) {
             }
             if (ch == '"') {
                 var lang: String? = null
+                var direction: String? = null
                 var datatype: String? = null
                 if (i < line.length && line[i] == '@') {
                     i++
@@ -89,12 +91,23 @@ private class Tokenizer(private val line: String) {
                     while (i < line.length && isLangChar(line[i])) i++
                     lang = line.substring(start, i)
                     if (lang.isEmpty()) throw NQuadsParseException("empty language tag in $line")
+                    val sep = lang.lastIndexOf("--")
+                    if (sep >= 0) {
+                        val rawDirection = lang.substring(sep + 2)
+                        if (rawDirection != "ltr" && rawDirection != "rtl") {
+                            throw NQuadsParseException("invalid literal direction in $line")
+                        }
+                        val language = lang.substring(0, sep)
+                        if (language.isEmpty()) throw NQuadsParseException("empty language tag in $line")
+                        lang = language
+                        direction = rawDirection
+                    }
                 } else if (line.startsWith("^^", i)) {
                     i += 2
                     skipWs()
                     datatype = iri()
                 }
-                return Atom(TermKind.LITERAL, value.toString(), lang, datatype)
+                return Atom(TermKind.LITERAL, value.toString(), lang, direction, datatype)
             }
             value.append(ch)
         }
@@ -145,11 +158,11 @@ private class Interner {
     val terms = mutableListOf<Term>()
 
     fun atom(atom: Atom): Int {
-        val key = listOf("atom", atom.kind, atom.value, atom.lang, atom.datatype)
+        val key = listOf("atom", atom.kind, atom.value, atom.lang, atom.direction, atom.datatype)
         ids[key]?.let { return it }
         val datatype = atom.datatype?.let { atom(Atom(TermKind.IRI, it)) }
         val id = terms.size
-        terms += Term(atom.kind, atom.value, datatype, atom.lang)
+        terms += Term(atom.kind, atom.value, datatype, atom.lang, direction = atom.direction)
         ids[key] = id
         return id
     }

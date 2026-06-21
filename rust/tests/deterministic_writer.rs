@@ -17,6 +17,7 @@ fn iri(value: &str) -> Term {
         value: Some(value.to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     }
 }
@@ -27,6 +28,7 @@ fn literal(value: &str, lang: Option<&str>) -> Term {
         value: Some(value.to_string()),
         datatype: None,
         lang: lang.map(str::to_string),
+        direction: None,
         reifier: None,
     }
 }
