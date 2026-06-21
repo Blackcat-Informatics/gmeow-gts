@@ -27,6 +27,8 @@ function termToWire(t: Term): Map<unknown, unknown> {
     }
     if (t.datatype !== undefined) entries.set("dt", t.datatype);
     if (t.lang) entries.set("l", t.lang);
+    if (t.direction === "ltr" || t.direction === "rtl")
+        entries.set("dir", t.direction);
     if (t.reifier !== undefined) entries.set("rf", t.reifier);
     return entries;
 }

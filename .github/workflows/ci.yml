@@ -74,6 +74,7 @@ jobs:
         with:
           workspaces: |
             rust
+            rust/rdf-events
             rust/capi
             visual-hashing
 
@@ -81,6 +82,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cargo fmt --manifest-path visual-hashing/Cargo.toml --check
+          cargo fmt --manifest-path rust/rdf-events/Cargo.toml --check
           cargo fmt --manifest-path rust/Cargo.toml --check
           cargo fmt --manifest-path rust/capi/Cargo.toml --check
 
@@ -88,6 +90,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cargo clippy --manifest-path visual-hashing/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path rust/rdf-events/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features duckdb -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf -- -D warnings
@@ -102,6 +105,7 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: |
           cargo doc --manifest-path visual-hashing/Cargo.toml --no-deps
+          cargo doc --manifest-path rust/rdf-events/Cargo.toml --no-deps
           cargo doc --manifest-path rust/Cargo.toml --no-deps
           cargo doc --manifest-path rust/Cargo.toml --no-deps --features yaml-ld
           cargo doc --manifest-path rust/capi/Cargo.toml --no-deps
@@ -109,6 +113,7 @@ jobs:
       - name: Conformance corpus + CLI tests
         run: |
           cargo test --manifest-path visual-hashing/Cargo.toml
+          cargo test --manifest-path rust/rdf-events/Cargo.toml
           cargo test --manifest-path rust/Cargo.toml --no-default-features
           cargo test --manifest-path rust/Cargo.toml
           cargo test --manifest-path rust/Cargo.toml --features duckdb
@@ -121,6 +126,38 @@ jobs:
       - name: C ABI smoke test
         if: runner.os == 'Linux'
         run: bash rust/capi/scripts/smoke.sh
+
+      - name: C++ C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash cpp/scripts/smoke.sh
+
+      - name: .NET C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash dotnet/scripts/smoke.sh
+
+      - name: PHP C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash php/scripts/smoke.sh
+
+      - name: Lua C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash lua/scripts/smoke.sh
+
+      - name: Swift C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash swift/scripts/smoke.sh
+
+      - name: Ruby C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash ruby/scripts/smoke.sh
+
+      - name: R C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash r/scripts/smoke.sh
+
+      - name: Julia C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash julia/scripts/smoke.sh
 
       - name: Library builds for wasm32 (wasm-friendly claim)
         if: runner.os == 'Linux'

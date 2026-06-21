@@ -1,5 +1,6 @@
 # Rust
 rust/target/
+rust/rdf-events/target/
 rust/capi/target/
 visual-hashing/target/
 
@@ -14,6 +15,36 @@ ts/dist/
 kotlin/.gradle/
 kotlin/.kotlin/
 kotlin/build/
+
+# Swift
+swift/.build/
+swift/.swiftpm/
+
+# .NET
+dotnet/**/bin/
+dotnet/**/obj/
+php/vendor/
+
+# Ruby
+ruby/.bundle/
+ruby/pkg/
+ruby/vendor/bundle/
+ruby/*.gem
+
+# R
+r/.Rhistory
+r/src/*.dll
+r/src/*.o
+r/src/*.so
+r/src/*.dSYM/
+r/*.Rcheck/
+
+# Julia
+julia/Manifest.toml
+julia/LocalPreferences.toml
+julia/*.cov
+julia/*.mem
+julia/coverage/
 
 # Python
 python/.venv/

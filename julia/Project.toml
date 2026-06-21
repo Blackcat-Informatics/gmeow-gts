@@ -1,0 +1,16 @@
+name = "GmeowGTS"
+uuid = "2d7fe44c-1957-4481-aa09-d6d0150c36ae"
+version = "0.9.4"
+authors = ["Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>"]
+
+[deps]
+Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
+
+[compat]
+julia = "1.10"

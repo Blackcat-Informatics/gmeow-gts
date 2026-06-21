@@ -87,6 +87,7 @@ fn gts_reifier_projection_uses_sophia_rdf12_triple_terms() -> Result<(), Box<dyn
             value: Some("https://example.org/claim".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         GtsTerm {
@@ -94,6 +95,7 @@ fn gts_reifier_projection_uses_sophia_rdf12_triple_terms() -> Result<(), Box<dyn
             value: Some("https://example.org/subject".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         GtsTerm {
@@ -101,6 +103,7 @@ fn gts_reifier_projection_uses_sophia_rdf12_triple_terms() -> Result<(), Box<dyn
             value: Some("https://example.org/predicate".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         GtsTerm {
@@ -108,6 +111,7 @@ fn gts_reifier_projection_uses_sophia_rdf12_triple_terms() -> Result<(), Box<dyn
             value: Some("object".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -136,6 +140,7 @@ fn strict_sophia_export_rejects_unrepresentable_quoted_triple_graph_names() {
                 value: Some("https://example.org/subject".to_string()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             GtsTerm {
@@ -143,6 +148,7 @@ fn strict_sophia_export_rejects_unrepresentable_quoted_triple_graph_names() {
                 value: Some("https://example.org/predicate".to_string()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             GtsTerm {
@@ -150,6 +156,7 @@ fn strict_sophia_export_rejects_unrepresentable_quoted_triple_graph_names() {
                 value: Some("object".to_string()),
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: None,
             },
             GtsTerm {
@@ -157,6 +164,7 @@ fn strict_sophia_export_rejects_unrepresentable_quoted_triple_graph_names() {
                 value: None,
                 datatype: None,
                 lang: None,
+                direction: None,
                 reifier: Some(3),
             },
         ],

@@ -87,6 +87,62 @@ func TestFromNQuadsPreservesLanguageTaggedAndDatatypedLiterals(t *testing.T) {
 	}
 }
 
+func TestFromNQuadsPreservesDirectionalLanguageLiterals(t *testing.T) {
+	nq := "<https://ex/s> <https://ex/label> \"RTL\"@ar--rtl .\n"
+	graph := reader.Read(mustFromNQuads(t, nq), false, nil)
+	var literal *model.Term
+	for i := range graph.Terms {
+		if graph.Terms[i].Kind == model.Literal {
+			literal = &graph.Terms[i]
+			break
+		}
+	}
+	if literal == nil {
+		t.Fatal("directional literal not found")
+	}
+	if literal.Lang != "ar" || literal.Direction != "rtl" {
+		t.Fatalf("directional literal lost metadata: %#v", literal)
+	}
+	if got := graph.DatatypeIRI(literal); got != model.RDFDirLangString {
+		t.Fatalf("datatype = %q, want %q", got, model.RDFDirLangString)
+	}
+	if got, want := sortedLines(nquads.ToNQuads(graph)), sortedLines(nq); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("round-trip mismatch\ngot:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+func TestWriterAllowsMultipleReifiersForSameStatement(t *testing.T) {
+	w := writer.New("dist")
+	w.AddTerms([]model.Term{
+		{Kind: model.Iri, Value: "https://ex/r1"},
+		{Kind: model.Iri, Value: "https://ex/r2"},
+		{Kind: model.Iri, Value: "https://ex/s"},
+		{Kind: model.Iri, Value: "https://ex/p"},
+		{Kind: model.Iri, Value: "https://ex/o"},
+	})
+	w.AddQuads([]model.Quad{{S: 2, P: 3, O: 4}})
+	w.AddReifies([]model.ReifierEntry{
+		{RID: 0, SPO: model.Triple3{S: 2, P: 3, O: 4}},
+		{RID: 1, SPO: model.Triple3{S: 2, P: 3, O: 4}},
+	})
+	graph := reader.Read(w.ToBytes(), false, nil)
+	if len(graph.Reifiers) != 2 {
+		t.Fatalf("reifier count = %d, want 2", len(graph.Reifiers))
+	}
+}
+
+func TestFromNQuadsPreservesMultipleReifiersForSameStatement(t *testing.T) {
+	nq := "<https://ex/r1> <" + rdfReifies + "> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n" +
+		"<https://ex/r2> <" + rdfReifies + "> <<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n"
+	graph := reader.Read(mustFromNQuads(t, nq), false, nil)
+	if len(graph.Reifiers) != 2 {
+		t.Fatalf("reifier count = %d, want 2", len(graph.Reifiers))
+	}
+	if got, want := sortedLines(nquads.ToNQuads(graph)), sortedLines(nq); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("round-trip mismatch\ngot:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 func TestFromNQuadsCompactBlankNodeAndLanguageTagDelimiters(t *testing.T) {
 	nq := "<https://ex/s> <https://ex/p> _:b0.\n" +
 		"<https://ex/s> <https://ex/label> \"Cat\"@en.\n"
@@ -95,6 +151,15 @@ func TestFromNQuadsCompactBlankNodeAndLanguageTagDelimiters(t *testing.T) {
 	if got, want := sortedLines(roundTrip(t, nq)), sortedLines(expected); strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("round-trip mismatch\ngot:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
+}
+
+func mustFromNQuads(t *testing.T, nq string) []byte {
+	t.Helper()
+	data, err := FromNQuads(nq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }
 
 func TestFromNQuadsQuotedTripleAdjacentDelimiters(t *testing.T) {

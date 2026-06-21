@@ -276,6 +276,12 @@ func (f *folder) hTerms(payload interface{}, index int) {
 				lang = s
 			}
 		}
+		direction := ""
+		if v, ok := wire.MapGet(entries, "dir"); ok {
+			if s, ok := asText(v); ok && (s == "ltr" || s == "rtl") {
+				direction = s
+			}
+		}
 		dtRaw, hasDt := wire.MapGet(entries, "dt")
 		rfRaw, hasRf := wire.MapGet(entries, "rf")
 		tid := len(f.g.Terms)
@@ -303,11 +309,12 @@ func (f *folder) hTerms(payload interface{}, index int) {
 			f.diag("ForwardReference", fmt.Sprintf("term %d has an out-of-range ref", tid), &index)
 		}
 		f.g.Terms = append(f.g.Terms, model.Term{
-			Kind:     kind,
-			Value:    value,
-			Datatype: dt,
-			Lang:     lang,
-			Reifier:  rf,
+			Kind:      kind,
+			Value:     value,
+			Datatype:  dt,
+			Lang:      lang,
+			Direction: direction,
+			Reifier:   rf,
 		})
 		f.emit(StreamingEvent{
 			Kind:       StreamingEventTerm,
@@ -1079,6 +1086,7 @@ type internKey struct {
 	a            string
 	b            string
 	c            string
+	d            string
 	seg          int
 	rf           *int
 	bnodeTID     int // anonymous bnode source term id (typ==2, value empty)
@@ -1103,7 +1111,7 @@ func (u *unioner) keyFor(seg *model.Graph, segIdx, tid int) internKey {
 	case model.Iri:
 		return internKey{typ: 0, a: t.Value}
 	case model.Literal:
-		return internKey{typ: 1, a: t.Value, b: seg.DatatypeIRI(t), c: t.Lang}
+		return internKey{typ: 1, a: t.Value, b: seg.DatatypeIRI(t), c: t.Lang, d: t.Direction}
 	case model.Bnode:
 		if t.Value != "" {
 			return internKey{typ: 2, seg: segIdx, a: t.Value, bnodeLabeled: true}
@@ -1145,11 +1153,12 @@ func (u *unioner) mapTerm(seg *model.Graph, segIdx, tid int) int {
 		}
 	}
 	u.out.Terms = append(u.out.Terms, model.Term{
-		Kind:     t.Kind,
-		Value:    value,
-		Datatype: datatype,
-		Lang:     t.Lang,
-		Reifier:  reifier,
+		Kind:      t.Kind,
+		Value:     value,
+		Datatype:  datatype,
+		Lang:      t.Lang,
+		Direction: t.Direction,
+		Reifier:   reifier,
 	})
 	newID := len(u.out.Terms) - 1
 	u.intern[key] = newID
