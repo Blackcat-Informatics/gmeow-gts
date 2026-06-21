@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CAPI="${ROOT}/rust/capi"
+CAPI_TARGET="${CAPI}/target/debug"
+SMOKE="lua/tests/smoke.lua"
+VECTOR="vectors/01-minimal.gts"
+LUAJIT_IMAGE="${LUAJIT_IMAGE:-gmeow-gts-luajit-smoke:2.1}"
+
+cd "${ROOT}"
+
+cargo build --manifest-path "${CAPI}/Cargo.toml"
+
+case "$(uname -s)" in
+  Darwin)
+    LIB_NAME="libgts.dylib"
+    ;;
+  MINGW* | MSYS* | CYGWIN*)
+    LIB_NAME="gts.dll"
+    ;;
+  *)
+    LIB_NAME="libgts.so"
+    ;;
+esac
+LIB_PATH="${CAPI_TARGET}/${LIB_NAME}"
+
+run_smoke() {
+  LUA_PATH="${ROOT}/lua/?.lua;${ROOT}/lua/?/init.lua;${LUA_PATH:-}" \
+    luajit "${SMOKE}" "${VECTOR}"
+}
+
+if [[ "${GTS_LUA_FORCE_DOCKER:-0}" != "1" ]] && command -v luajit >/dev/null 2>&1; then
+  export GTS_LIBGTS="${LIB_PATH}"
+  export LD_LIBRARY_PATH="${CAPI_TARGET}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+  export DYLD_LIBRARY_PATH="${CAPI_TARGET}${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}"
+  run_smoke
+else
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    echo "LuaJIT is unavailable locally and the Docker fallback requires a Linux libgts build." >&2
+    exit 1
+  fi
+  docker build -t "${LUAJIT_IMAGE}" lua
+  docker run --rm \
+    -e GTS_LIBGTS=/workspace/rust/capi/target/debug/libgts.so \
+    -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e LUA_PATH='/workspace/lua/?.lua;/workspace/lua/?/init.lua;;' \
+    -v "${ROOT}:/workspace" \
+    -w /workspace \
+    "${LUAJIT_IMAGE}" \
+    luajit lua/tests/smoke.lua vectors/01-minimal.gts
+fi
+
+echo "Lua C ABI wrapper smoke test passed"

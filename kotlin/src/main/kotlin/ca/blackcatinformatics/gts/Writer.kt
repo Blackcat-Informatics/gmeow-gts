@@ -173,6 +173,7 @@ private fun termToWire(term: Term): CborMap =
             if (term.value.isNotEmpty() || term.kind == TermKind.LITERAL) add(text("v") to text(term.value))
             term.datatype?.let { add(text("dt") to uint(it)) }
             term.lang?.takeIf { it.isNotEmpty() }?.let { add(text("l") to text(it)) }
+            term.direction?.takeIf { isLiteralDirection(it) }?.let { add(text("dir") to text(it)) }
             term.reifier?.let { add(text("rf") to uint(it)) }
         },
     )

@@ -5,6 +5,9 @@ package ca.blackcatinformatics.gts
 
 const val XSD_STRING = "http://www.w3.org/2001/XMLSchema#string"
 const val RDF_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
+const val RDF_DIR_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString"
+
+fun isLiteralDirection(direction: String?): Boolean = direction == "ltr" || direction == "rtl"
 
 enum class TermKind(val wire: Int) {
     IRI(0),
@@ -27,6 +30,7 @@ data class Term(
     val datatype: Int? = null,
     val lang: String? = null,
     val reifier: Int? = null,
+    val direction: String? = null,
 )
 
 data class Quad(
@@ -198,6 +202,10 @@ class Graph {
             terms.getOrNull(dt)?.value?.takeIf { it.isNotEmpty() }?.let { return it }
             return XSD_STRING
         }
-        return if (!term.lang.isNullOrEmpty()) RDF_LANG_STRING else XSD_STRING
+        return if (!term.lang.isNullOrEmpty()) {
+            if (isLiteralDirection(term.direction)) RDF_DIR_LANG_STRING else RDF_LANG_STRING
+        } else {
+            XSD_STRING
+        }
     }
 }

@@ -23,6 +23,12 @@ use crate::codec::{decode_chain, Codec, CodecError};
 /// Well-known datatype IRIs used by the literal-defaulting rule (§7.1).
 pub const XSD_STRING: &str = "http://www.w3.org/2001/XMLSchema#string";
 pub const RDF_LANG_STRING: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString";
+pub const RDF_DIR_LANG_STRING: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString";
+
+/// Return whether `direction` is a valid RDF 1.2 base direction token.
+pub fn is_literal_direction(direction: &str) -> bool {
+    matches!(direction, "ltr" | "rtl")
+}
 
 /// The kind of an RDF term, matching the wire `"k"` field (§7.1).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -56,6 +62,8 @@ pub struct Term {
     pub datatype: Option<usize>,
     /// Literal language tag (BCP 47).
     pub lang: Option<String>,
+    /// RDF 1.2 literal base direction (`"ltr"` or `"rtl"`) for language-tagged strings.
+    pub direction: Option<String>,
     /// Term-id of the reifier of a quoted triple (`kind == Triple`).
     pub reifier: Option<usize>,
 }
@@ -400,7 +408,11 @@ impl Graph {
                 .and_then(|term| term.value.clone())
                 .unwrap_or_else(|| XSD_STRING.to_string());
         }
-        if t.lang.is_some() {
+        if t.lang.is_some()
+            && matches!(t.direction.as_deref(), Some(direction) if is_literal_direction(direction))
+        {
+            RDF_DIR_LANG_STRING.to_string()
+        } else if t.lang.is_some() {
             RDF_LANG_STRING.to_string()
         } else {
             XSD_STRING.to_string()

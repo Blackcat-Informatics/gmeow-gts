@@ -320,6 +320,7 @@ fn to_okf_writes_unmapped_sidecar_instead_of_dropping_rdf() {
         value: Some("https://example.org/out-of-profile".to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     });
     let object = graph.terms.len();
@@ -328,6 +329,7 @@ fn to_okf_writes_unmapped_sidecar_instead_of_dropping_rdf() {
         value: Some("kept".to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     });
     graph.quads.push((subject, predicate, object, None));

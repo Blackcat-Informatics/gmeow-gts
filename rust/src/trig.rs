@@ -8,7 +8,7 @@
 //! [`crate::nquads::to_nquads`] while grouping named-graph quads into graph
 //! blocks.
 
-use crate::model::{Graph, TermKind};
+use crate::model::{is_literal_direction, Graph, TermKind};
 use crate::nquads::{escape_literal, render_term};
 
 const RDF_NS: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
@@ -26,7 +26,10 @@ fn render_trig_term(g: &Graph, tid: usize) -> String {
         TermKind::Literal => {
             let lit = format!("\"{}\"", escape_literal(t.value.as_deref().unwrap_or("")));
             if let Some(lang) = &t.lang {
-                format!("{lit}@{lang}")
+                match t.direction.as_deref().filter(|d| is_literal_direction(d)) {
+                    Some(direction) => format!("{lit}@{lang}--{direction}"),
+                    None => format!("{lit}@{lang}"),
+                }
             } else if let Some(dt) = t.datatype {
                 format!("{lit}^^{}", render_trig_term(g, dt))
             } else {

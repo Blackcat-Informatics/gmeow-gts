@@ -24,12 +24,14 @@ type ParseError struct {
 func (e ParseError) Error() string { return e.Detail }
 
 type atom struct {
-	kind     model.TermKind
-	value    string
-	lang     string
-	datatype string
-	hasLang  bool
-	hasDType bool
+	kind         model.TermKind
+	value        string
+	lang         string
+	direction    string
+	datatype     string
+	hasLang      bool
+	hasDirection bool
+	hasDType     bool
 }
 
 type tripleNode struct {
@@ -194,6 +196,19 @@ func (t *tokenizer) literal() (atom, error) {
 				if a.lang == "" {
 					return atom{}, ParseError{fmt.Sprintf("empty language tag in %q", t.text)}
 				}
+				if sep := strings.LastIndex(a.lang, "--"); sep >= 0 {
+					rawDirection := a.lang[sep+2:]
+					if rawDirection != "ltr" && rawDirection != "rtl" {
+						return atom{}, ParseError{fmt.Sprintf("invalid literal direction in %q", t.text)}
+					}
+					language := a.lang[:sep]
+					if language == "" {
+						return atom{}, ParseError{fmt.Sprintf("empty language tag in %q", t.text)}
+					}
+					a.lang = language
+					a.direction = rawDirection
+					a.hasDirection = true
+				}
 				a.hasLang = true
 			} else if strings.HasPrefix(t.text[t.pos:], "^^") {
 				t.pos += 2
@@ -285,14 +300,16 @@ func (t *tokenizer) quotedTriple() (tripleNode, error) {
 }
 
 type termKey struct {
-	tag      string
-	kind     model.TermKind
-	value    string
-	lang     string
-	datatype string
-	hasLang  bool
-	hasDType bool
-	s, p, o  int
+	tag          string
+	kind         model.TermKind
+	value        string
+	lang         string
+	direction    string
+	datatype     string
+	hasLang      bool
+	hasDirection bool
+	hasDType     bool
+	s, p, o      int
 }
 
 type interner struct {
@@ -306,13 +323,15 @@ func newInterner() *interner {
 
 func (i *interner) atom(a atom) int {
 	key := termKey{
-		tag:      "atom",
-		kind:     a.kind,
-		value:    a.value,
-		lang:     a.lang,
-		datatype: a.datatype,
-		hasLang:  a.hasLang,
-		hasDType: a.hasDType,
+		tag:          "atom",
+		kind:         a.kind,
+		value:        a.value,
+		lang:         a.lang,
+		direction:    a.direction,
+		datatype:     a.datatype,
+		hasLang:      a.hasLang,
+		hasDirection: a.hasDirection,
+		hasDType:     a.hasDType,
 	}
 	if id, ok := i.ids[key]; ok {
 		return id
@@ -324,6 +343,9 @@ func (i *interner) atom(a atom) int {
 	}
 	if a.hasLang {
 		term.Lang = a.lang
+	}
+	if a.hasDirection {
+		term.Direction = a.direction
 	}
 	id := len(i.terms)
 	i.terms = append(i.terms, term)
