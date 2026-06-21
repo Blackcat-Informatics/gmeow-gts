@@ -5,6 +5,11 @@ package ca.blackcatinformatics.gts
 
 import java.nio.file.Files
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.io.path.Path
@@ -39,6 +44,36 @@ class KotlinParityTest {
         val nq = toNQuads(src)
         val roundTrip = toNQuads(read(fromNQuads(nq), false))
         assertEquals(nq.trim().lines().sorted(), roundTrip.trim().lines().sorted())
+    }
+
+    @Test
+    fun fullCommittedCorpusMatchesExpectedJson() {
+        Files.list(vectors).use { paths ->
+            val names =
+                paths
+                    .filter { it.fileName.toString().endsWith(".gts") }
+                    .map { it.fileName.toString().removeSuffix(".gts") }
+                    .sorted()
+                    .toList()
+            assertTrue(names.size >= 16, "expected full top-level vector corpus")
+            for (name in names) {
+                val expected = Json.parseToJsonElement(vectors.resolve("$name.expected.json").readText()).jsonObject
+                val mode = expected["mode"]!!.jsonPrimitive.content
+                val graph = read(vectors.resolve("$name.gts").readBytes(), mode != "pre-segment")
+
+                assertEquals(expectedStrings(expected, "diagnostics"), graph.diagnostics.map { it.code }, name)
+                assertEquals(expected["terms"]!!.jsonPrimitive.int, graph.terms.size, name)
+                assertEquals(expected["quads"]!!.jsonPrimitive.int, graph.quads.size, name)
+                assertEquals(expected["segments"]!!.jsonPrimitive.int, graph.segmentHeads.size, name)
+                assertEquals(expectedStrings(expected, "segment_heads"), graph.segmentHeads.map { hex(it) }, name)
+                assertEquals(expectedStrings(expected, "profiles"), graph.segmentProfiles, name)
+                assertEquals(expectedStreamable(expected), actualStreamable(graph), name)
+                assertEquals(expectedStrings(expected, "opaque_reasons"), graph.opaque.map { it.reason }.sorted(), name)
+                assertEquals(expected["suppressions"]!!.jsonPrimitive.int, graph.suppressions.size, name)
+                assertEquals(expectedBlobs(expected), actualBlobs(graph), name)
+                assertEquals(expectedStrings(expected, "nquads"), sortedNQuads(graph), name)
+            }
+        }
     }
 
     @Test
@@ -180,5 +215,52 @@ class KotlinParityTest {
         verifySignatures(graph.signatures) { kid -> if (kid == "test-kid") publicKeyFromSeed(seed) else null }
         assertEquals("test-kid", graph.signatures.single().kid)
         assertEquals("valid", graph.signatures.single().status)
+    }
+
+    private fun expectedStrings(expected: kotlinx.serialization.json.JsonObject, key: String): List<String> =
+        expected[key]!!.jsonArray.map { it.jsonPrimitive.content }
+
+    private fun expectedStreamable(expected: kotlinx.serialization.json.JsonObject): List<Map<String, Any>> =
+        expected["streamable"]!!.jsonArray.map { item ->
+            val obj = item.jsonObject
+            mapOf(
+                "claimed" to obj["claimed"]!!.jsonPrimitive.boolean,
+                "covered" to obj["covered"]!!.jsonPrimitive.int,
+                "tail" to obj["tail"]!!.jsonPrimitive.int,
+            )
+        }
+
+    private fun actualStreamable(graph: Graph): List<Map<String, Any>> =
+        graph.segmentStreamable.map { item ->
+            mapOf(
+                "claimed" to item.claimed,
+                "covered" to item.covered,
+                "tail" to item.tail,
+            )
+        }
+
+    private fun expectedBlobs(expected: kotlinx.serialization.json.JsonObject): Map<String, Map<String, Any?>> =
+        expected["blobs"]!!.jsonObject.mapValues { (_, value) ->
+            val obj = value.jsonObject
+            mapOf(
+                "size" to obj["size"]!!.jsonPrimitive.int,
+                "mt" to obj["mt"]!!.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull,
+            )
+        }
+
+    private fun actualBlobs(graph: Graph): Map<String, Map<String, Any?>> {
+        val metaByDigest = graph.blobMeta.associate { it.digest to (it.meta as? CborMap) }
+        return graph.blobs.associate { blob ->
+            blob.digest to
+                mapOf(
+                    "size" to blob.data.size,
+                    "mt" to metaByDigest[blob.digest]?.getTextKey("mt").asText(),
+                )
+        }
+    }
+
+    private fun sortedNQuads(graph: Graph): List<String> {
+        val text = toNQuads(graph).trimEnd('\n')
+        return if (text.isEmpty()) emptyList() else text.lines().sorted()
     }
 }
