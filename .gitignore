@@ -11,6 +11,7 @@ ts/dist/
 
 # Kotlin / JVM
 kotlin/.gradle/
+kotlin/.kotlin/
 kotlin/build/
 
 # Python

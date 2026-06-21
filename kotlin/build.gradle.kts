@@ -33,5 +33,6 @@ tasks.test {
 
 detekt {
     buildUponDefaultConfig = true
+    config.setFrom(files("config/detekt.yml"))
     allRules = false
 }

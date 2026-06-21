@@ -33,6 +33,7 @@ body:
         - Python engine / package
         - Go engine / module
         - TypeScript engine / package
+        - Kotlin engine / Gradle project
         - "`gts` CLI"
         - Conformance corpus (a vector)
         - Specification (GTS-SPEC.md)
@@ -90,8 +91,8 @@ body:
     attributes:
       label: Cross-engine check
       description: >-
-        If you can, note whether the other engines (Rust / Python / Go / TypeScript)
-        behave the same on the same input — divergence is itself a bug.
+        If you can, note whether the other engines (Rust / Python / Go / TypeScript /
+        Smalltalk / Kotlin) behave the same on the same input — divergence is itself a bug.
 
   - type: textarea
     id: logs

@@ -15,6 +15,7 @@ private val DEFAULT_CATALOG =
 class Writer(
     profile: String = "dist",
     layout: String? = null,
+    private val signer: CoseSigner? = null,
 ) {
     private val nameToId: Map<String, Long>
     private var prev: ByteArray
@@ -74,7 +75,13 @@ class Writer(
         entries += text("prev") to bytes(prev)
         val unsigned = CborMap(entries)
         val id = contentId(unsigned)
-        val frame = CborMap(unsigned.value + (text("id") to bytes(id)))
+        val signedEntries =
+            if (signer == null) {
+                unsigned.value + (text("id") to bytes(id))
+            } else {
+                unsigned.value + (text("id") to bytes(id)) + (text("sig") to bytes(signId(id, signer)))
+            }
+        val frame = CborMap(signedEntries)
         offsets += chunks.sumOf { it.size }
         types += frameType
         chunks += encode(frame)

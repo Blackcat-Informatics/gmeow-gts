@@ -24,6 +24,7 @@ import ca.blackcatinformatics.gts.missing
 import ca.blackcatinformatics.gts.missingJson
 import ca.blackcatinformatics.gts.normalizeDigest
 import ca.blackcatinformatics.gts.pack
+import ca.blackcatinformatics.gts.parseHex
 import ca.blackcatinformatics.gts.parseHex32
 import ca.blackcatinformatics.gts.parseTransportKey
 import ca.blackcatinformatics.gts.proofFromJson
@@ -34,6 +35,7 @@ import ca.blackcatinformatics.gts.segmentsJson
 import ca.blackcatinformatics.gts.streamableCompact
 import ca.blackcatinformatics.gts.toNQuads
 import ca.blackcatinformatics.gts.unpack
+import ca.blackcatinformatics.gts.verifySignatures
 import ca.blackcatinformatics.gts.verifyProof
 import java.nio.file.Files
 import java.nio.file.Path
@@ -46,7 +48,7 @@ private const val USAGE = """usage: gts <command> [args]
 commands:
   info <file>...
   fold <file>
-  verify <file>...
+  verify <file>... [--key KID:HEXPUB]
   verify-proof <proof.json>
   heads <file>
   segments <file>
@@ -137,16 +139,60 @@ private fun cmdFold(paths: List<String>): Int {
     return if (graph.diagnostics.isEmpty() && graph.segmentHeads.isNotEmpty()) 0 else 1
 }
 
-private fun cmdVerify(paths: List<String>): Int {
+private fun cmdVerify(args: List<String>): Int {
+    val paths = mutableListOf<String>()
+    val keys = mutableMapOf<String, ByteArray>()
+    var i = 0
+    while (i < args.size) {
+        when (args[i]) {
+            "--key" -> {
+                if (i + 1 >= args.size) return dieUsage()
+                val parsed = parseKey(args[i + 1])
+                if (parsed == null) {
+                    System.err.println("gts verify: bad --key ${args[i + 1]} (want kid:hexpubkey)")
+                    return 2
+                }
+                keys[parsed.first] = parsed.second
+                i += 2
+            }
+            else -> {
+                paths += args[i]
+                i++
+            }
+        }
+    }
     if (paths.isEmpty()) return dieUsage()
     var problems = false
     for (path in paths) {
         val data = load(path) ?: return 2
         val graph = read(data, true)
+        if (keys.isNotEmpty()) {
+            verifySignatures(graph.signatures) { kid -> keys[kid] }
+        }
         println(foldSummaryJson(graph))
+        if (keys.isNotEmpty()) {
+            for (sig in graph.signatures) {
+                val kid = sig.kid.ifEmpty { "?" }
+                println("  signature $kid: ${sig.status}")
+                if (sig.status == "invalid") problems = true
+            }
+        }
         if (graph.diagnostics.isNotEmpty() || graph.segmentHeads.isEmpty()) problems = true
     }
     return if (problems) 1 else 0
+}
+
+private fun parseKey(spec: String): Pair<String, ByteArray>? {
+    val idx = spec.indexOf(':')
+    if (idx <= 0) return null
+    val raw =
+        try {
+            parseHex(spec.substring(idx + 1))
+        } catch (_: RuntimeException) {
+            return null
+        }
+    if (raw.size != 32) return null
+    return spec.substring(0, idx) to raw
 }
 
 private fun cmdFromNq(args: List<String>): Int {

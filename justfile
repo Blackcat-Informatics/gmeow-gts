@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0
 #
-# Developer shortcuts across the five engines. Run `just` to list recipes.
-# Requires the per-engine toolchains: cargo, go, node/npm, uv, and Docker.
+# Developer shortcuts across the six engines. Run `just` to list recipes.
+# Requires the per-engine toolchains: cargo, go, node/npm, uv, Gradle/JDK, and Docker.
 
 set shell := ["bash", "-cu"]
 
@@ -13,7 +13,7 @@ default:
 # --- tests ----------------------------------------------------------------- #
 
 # Run every engine's test suite.
-test: test-rust test-go test-ts test-py
+test: test-rust test-go test-ts test-py test-kotlin
 
 test-rust:
     cd rust && cargo test
@@ -27,6 +27,9 @@ test-ts:
 test-py:
     cd python && uv sync --extra rdf && uv run pytest
 
+test-kotlin:
+    cd kotlin && gradle test
+
 # --- lint / format --------------------------------------------------------- #
 
 # Run every engine's lint + the repo-wide pre-commit hooks.
@@ -35,6 +38,7 @@ lint:
     cd go && go vet ./... && golangci-lint run ./...
     cd ts && npm run lint
     cd python && uv run ruff check . && uv run mypy
+    cd kotlin && gradle detekt
     pre-commit run --all-files
 
 # Auto-format every engine.
@@ -83,7 +87,7 @@ interop:
     bash scripts/interop.sh
 
 # Run the release benchmark suite and write JSON/Markdown reports under dist/benchmarks/.
-bench-release engines="rust,python,go,ts,smalltalk" iterations="3":
+bench-release engines="rust,python,go,ts,smalltalk,kotlin" iterations="3":
     python scripts/bench_release_suite.py --engines "{{engines}}" --iterations "{{iterations}}"
 
 # Verify the Rust, Python, and npm versions agree (lockstep release).

@@ -16,6 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class KotlinParityTest {
@@ -126,5 +127,58 @@ class KotlinParityTest {
         assertEquals(emptyList(), graph.diagnostics.map { it.code })
         assertTrue(graph.segmentStreamable.single().claimed)
         assertEquals(0, graph.segmentStreamable.single().tail)
+    }
+
+    @Test
+    fun coseSign1VectorsRoundTrip() {
+        Files.list(vectors.resolve("cose")).use { paths ->
+            paths.filter { it.toString().endsWith(".json") }.forEach { path ->
+                val case = Json.parseToJsonElement(path.readText()).jsonObject
+                val frameId = parseHex(case["frame_id"]!!.jsonPrimitive.content)
+                val seed = parseHex(case["seed"]!!.jsonPrimitive.content)
+                val kid = case["kid"]!!.jsonPrimitive.content
+                val expected = parseHex(case["cose"]!!.jsonPrimitive.content)
+                val publicKey = parseHex(case["pub"]!!.jsonPrimitive.content)
+
+                val got = signId(frameId, CoseSigner(kid, seed))
+                assertEquals(expected.toList(), got.toList(), path.toString())
+                assertEquals(publicKey.toList(), publicKeyFromSeed(seed).toList(), path.toString())
+                assertEquals(kid, signatureKid(expected), path.toString())
+                assertEquals(SignatureStatus.VALID, verifySig(expected, frameId, publicKey), path.toString())
+                assertEquals(SignatureStatus.INVALID, verifySig(expected, frameId + byteArrayOf(0), publicKey), path.toString())
+            }
+        }
+    }
+
+    @Test
+    fun coseEncrypt0VectorRoundTrips() {
+        val case = Json.parseToJsonElement(vectors.resolve("encrypt0/basic.json").readText()).jsonObject
+        val plaintext = parseHex(case["plaintext"]!!.jsonPrimitive.content)
+        val key = parseHex(case["key"]!!.jsonPrimitive.content)
+        val iv = parseHex(case["iv"]!!.jsonPrimitive.content)
+        val kid = case["kid"]!!.jsonPrimitive.content
+        val expected = parseHex(case["cose"]!!.jsonPrimitive.content)
+
+        val got = encrypt0WithIv(plaintext, kid, key, iv)
+        assertEquals(expected.toList(), got.toList())
+        assertEquals(kid, recipientKid(expected))
+        assertEquals(plaintext.toList(), decrypt0(expected) { probe -> if (probe == kid) key else null }.toList())
+        val missing = assertFailsWith<Encrypt0Exception> { decrypt0(expected) { null } }
+        assertEquals("missing-key", missing.reason)
+    }
+
+    @Test
+    fun signedWriterFramesVerifyAgainstResolvedKeys() {
+        val seed = parseHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+        val writer = Writer("generic", signer = CoseSigner("test-kid", seed))
+        writer.addBlob("signed".encodeToByteArray(), "text/plain")
+        val graph = read(writer.toBytes(), true)
+        assertEquals(1, graph.signatures.size)
+        val cose = assertNotNull(graph.signatures.single().cose)
+        assertEquals("test-kid", signatureKid(cose))
+
+        verifySignatures(graph.signatures) { kid -> if (kid == "test-kid") publicKeyFromSeed(seed) else null }
+        assertEquals("test-kid", graph.signatures.single().kid)
+        assertEquals("valid", graph.signatures.single().status)
     }
 }
