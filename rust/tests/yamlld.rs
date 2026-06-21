@@ -55,6 +55,7 @@ fn annotated_fixture() -> Vec<u8> {
             value: Some("https://ex/s".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -62,6 +63,7 @@ fn annotated_fixture() -> Vec<u8> {
             value: Some("https://ex/p".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -69,6 +71,7 @@ fn annotated_fixture() -> Vec<u8> {
             value: Some("Cat".to_string()),
             datatype: None,
             lang: Some("en".to_string()),
+            direction: None,
             reifier: None,
         },
         Term {
@@ -76,6 +79,7 @@ fn annotated_fixture() -> Vec<u8> {
             value: Some("r".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -83,6 +87,7 @@ fn annotated_fixture() -> Vec<u8> {
             value: Some("https://ex/confidence".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -90,6 +95,7 @@ fn annotated_fixture() -> Vec<u8> {
             value: Some("0.9".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -207,7 +213,7 @@ fn scoped_contexts_expand_node_value_and_annotation_terms() {
 }
 
 #[test]
-fn yaml_ld_rejects_direction_until_the_model_can_carry_it() {
+fn yaml_ld_preserves_directional_language_literals() {
     let yaml = r#"
 "@id": "https://ex/s"
 "https://ex/label":
@@ -215,8 +221,14 @@ fn yaml_ld_rejects_direction_until_the_model_can_carry_it() {
   "@language": "en"
   "@direction": "ltr"
 "#;
-    let err = from_yaml_ld(yaml).expect_err("directional strings would be lossy");
-    assert!(err.to_string().contains("@direction"));
+    let imported = from_yaml_ld(yaml).expect("YAML-LD imports");
+    let graph = read(&imported, true, None);
+    let nquads = to_nquads(&graph);
+    assert!(nquads.contains("\"Cat\"@en--ltr"));
+
+    let rendered = to_yaml_ld(&graph).expect("YAML-LD renders");
+    assert!(rendered.contains("@direction"));
+    assert!(rendered.contains("ltr"));
 }
 
 #[test]

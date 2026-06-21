@@ -129,7 +129,7 @@ Add to `Cargo.toml`:
 
 ```toml
 [dependencies]
-gmeow-gts = "0.9.2"
+gmeow-gts = "0.9.4"
 ```
 
 Verify a signed file with its embedded transport key:
@@ -205,7 +205,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 Inline blob entries are content-addressed by digest and may remain transformed on the wire until
 they are read. Use `Graph::blob_entry` to inspect presence without decoding, `Graph::blob_bytes`
 or `Graph::blob_bytes_cloned` to decode and cache a single blob, and `Graph::decoded_blobs` to
-materialize the insertion-ordered table.
+materialize the insertion-ordered table. External blob records carry metadata and the declared
+digest only; their bytes are intentionally out-of-band, so `Graph::blob_bytes` returns `None`
+unless an inline payload frame is present.
 
 Readers that hold content keys can use `ReadOptions::with_content_key` to decrypt
 `COSE_Encrypt0` frames during the same total fold. Missing or wrong keys still degrade to
@@ -475,10 +477,8 @@ on top for deployments that want YAML policy files.
 The optional `yaml-ld` feature adds `gmeow_gts::yamlld::{to_json_ld,
 to_json_ld_string, to_yaml_ld}` and `gmeow_gts::from_yamlld::{from_json_ld,
 from_yaml_ld}` plus the matching CLI verbs. It is a Rust-only transform surface:
-it does not change the GTS wire format, transform catalog, or shared corpus
-oracle, and it therefore does not require a GIP. The current `Term` model carries
-literal language tags but not RDF base direction, so `from_yaml_ld` rejects
-`@direction` rather than silently losing it.
+it uses the GTS `Term` model to preserve RDF 1.2 language-tagged literal base
+direction (`@direction`) where present.
 The optional `tar` feature adds `gmeow_gts::from_tar` and `gmeow_gts::tar`
 plus the `from-tar`, `to-tar`, and `tar` CLI verbs. It is a Rust-first files-profile-v2 bridge surface;
 Python, Go, and TypeScript parity can implement the same contract later.

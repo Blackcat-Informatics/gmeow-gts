@@ -35,6 +35,8 @@ def term_to_wire(t: Term) -> dict[str, object]:
         out["dt"] = t.datatype
     if t.lang is not None:
         out["l"] = t.lang
+    if t.direction is not None:
+        out["dir"] = t.direction
     if t.reifier is not None:
         out["rf"] = t.reifier
     return out
@@ -88,7 +90,13 @@ def _term_identity(graph: Graph, tid: int, stack: list[int]) -> list[object]:
     if term.kind is TermKind.IRI:
         out = ["iri", term.value]
     elif term.kind is TermKind.LITERAL:
-        out = ["literal", term.value, graph.datatype_iri(term), term.lang]
+        out = [
+            "literal",
+            term.value,
+            graph.datatype_iri(term),
+            term.lang,
+            term.direction,
+        ]
     elif term.kind is TermKind.BNODE:
         out = [
             "bnode",
@@ -122,6 +130,7 @@ def _remap_term(term: Term, old_to_new: dict[int, int]) -> Term:
         if term.datatype is not None
         else None,
         lang=term.lang,
+        direction=term.direction,
         reifier=_remap_id(old_to_new, term.reifier)
         if term.reifier is not None
         else None,

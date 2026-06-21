@@ -99,6 +99,7 @@ fn verify_policy_file_trusts_did_style_signer() {
             value: Some("https://example.org/claim".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -106,6 +107,7 @@ fn verify_policy_file_trusts_did_style_signer() {
             value: Some("https://example.org/says".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -113,6 +115,7 @@ fn verify_policy_file_trusts_did_style_signer() {
             value: Some("signed".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -277,6 +280,7 @@ fn prove_and_verify_proof_round_trip() {
             value: Some("https://example.org/Cat".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -284,6 +288,7 @@ fn prove_and_verify_proof_round_trip() {
             value: Some("http://www.w3.org/2000/01/rdf-schema#label".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -291,6 +296,7 @@ fn prove_and_verify_proof_round_trip() {
             value: Some("Cat".to_string()),
             datatype: None,
             lang: Some("en".to_string()),
+            direction: None,
             reifier: None,
         },
     ]);
@@ -534,6 +540,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             value: Some("https://w3id.org/gts/files#FileEntry".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -541,6 +548,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             value: Some("https://w3id.org/gts/files#path".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -548,6 +556,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             value: Some("https://w3id.org/gts/files#digest".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -555,6 +564,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             value: Some("http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -562,6 +572,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             value: Some("e0".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -569,6 +580,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             value: Some(archive_path.to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -576,6 +588,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             value: Some(digest.clone()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -976,6 +989,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             value: Some("https://w3id.org/gts/files#FileEntry".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -983,6 +997,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             value: Some("https://w3id.org/gts/files#path".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -990,6 +1005,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             value: Some("https://w3id.org/gts/files#digest".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -997,6 +1013,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             value: Some("http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -1004,6 +1021,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             value: Some("e0".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -1011,6 +1029,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             value: Some("hidden.txt".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         gmeow_gts::model::Term {
@@ -1018,6 +1037,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             value: Some(digest.clone()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -1104,6 +1124,7 @@ fn accretive_file(path: &Path) {
             value: Some("https://example.org/Cat".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1111,6 +1132,7 @@ fn accretive_file(path: &Path) {
             value: Some("http://www.w3.org/2000/01/rdf-schema#label".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1118,6 +1140,7 @@ fn accretive_file(path: &Path) {
             value: Some("Cat".to_string()),
             datatype: None,
             lang: Some("en".to_string()),
+            direction: None,
             reifier: None,
         },
     ]);
@@ -1247,6 +1270,7 @@ fn verify_warns_on_stream_vocab_without_claim() {
             value: Some("c".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1254,6 +1278,7 @@ fn verify_warns_on_stream_vocab_without_claim() {
             value: Some(gmeow_gts::stream::COMPACTION.to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1261,6 +1286,7 @@ fn verify_warns_on_stream_vocab_without_claim() {
             value: Some(gmeow_gts::stream::COMPACT_AGENT.to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -1290,6 +1316,7 @@ fn compact_refuses_evidence_without_seal_then_seals() {
             value: Some("https://example.org/Cat".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1297,6 +1324,7 @@ fn compact_refuses_evidence_without_seal_then_seals() {
             value: Some("http://www.w3.org/2000/01/rdf-schema#label".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1304,6 +1332,7 @@ fn compact_refuses_evidence_without_seal_then_seals() {
             value: Some("Cat".to_string()),
             datatype: None,
             lang: Some("en".to_string()),
+            direction: None,
             reifier: None,
         },
     ]);
@@ -1365,6 +1394,7 @@ fn verify_flags_undeclared_files_profile() {
             value: Some("https://w3id.org/gts/files#FileEntry".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1372,6 +1402,7 @@ fn verify_flags_undeclared_files_profile() {
             value: Some("https://w3id.org/gts/files#path".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1379,6 +1410,7 @@ fn verify_flags_undeclared_files_profile() {
             value: Some("x.txt".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -1407,6 +1439,7 @@ fn verify_flags_undeclared_files_profile_object_only() {
             value: Some("https://example.org/Thing".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1414,6 +1447,7 @@ fn verify_flags_undeclared_files_profile_object_only() {
             value: Some("https://example.org/relatedTo".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1421,6 +1455,7 @@ fn verify_flags_undeclared_files_profile_object_only() {
             value: Some("https://w3id.org/gts/files#FileEntry".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);
@@ -1449,6 +1484,7 @@ fn verify_declared_files_profile_object_only_is_not_unused() {
             value: Some("https://example.org/Thing".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1456,6 +1492,7 @@ fn verify_declared_files_profile_object_only_is_not_unused() {
             value: Some("https://example.org/relatedTo".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
         Term {
@@ -1463,6 +1500,7 @@ fn verify_declared_files_profile_object_only_is_not_unused() {
             value: Some("https://w3id.org/gts/files#FileEntry".to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         },
     ]);

@@ -395,6 +395,11 @@ fn literal_term(
 ) -> Result<Literal, RdfAdapterError> {
     let value = term_value(term, role, id)?;
     if let Some(lang) = &term.lang {
+        if let Some(direction) = &term.direction {
+            return Err(RdfAdapterError::new(format!(
+                "{role} literal term id {id} has RDF 1.2 base direction {direction:?}; oxrdf literal export cannot carry base direction"
+            )));
+        }
         return Literal::new_language_tagged_literal(value, lang).map_err(|err| {
             RdfAdapterError::new(format!(
                 "{role} literal term id {id} has invalid language tag {lang:?}: {err}"
@@ -506,6 +511,7 @@ impl Interner {
             value: Some(node.as_str().to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         })
     }
@@ -516,6 +522,7 @@ impl Interner {
             value: Some(node.as_str().to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         })
     }
@@ -543,6 +550,7 @@ impl Interner {
                     value: Some(iri),
                     datatype: None,
                     lang: None,
+                    direction: None,
                     reifier: None,
                 }))
             }
@@ -557,6 +565,7 @@ impl Interner {
             value: Some(value),
             datatype: datatype_id,
             lang,
+            direction: None,
             reifier: None,
         })
     }
@@ -582,6 +591,7 @@ impl Interner {
                     value: None,
                     datatype: None,
                     lang: None,
+                    direction: None,
                     reifier: Some(id),
                 });
                 self.ids.insert(key, id);

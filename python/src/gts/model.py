@@ -19,6 +19,7 @@ from gts.codec import Codec, decode_chain
 # Well-known datatype IRIs used by the literal-defaulting rule (§7.1).
 XSD_STRING = "http://www.w3.org/2001/XMLSchema#string"
 RDF_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"
+RDF_DIR_LANG_STRING = "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString"
 
 
 class TermKind(IntEnum):
@@ -39,6 +40,7 @@ class Term:
         value: IRI string, literal lexical form, or blank-node label (scope-local).
         datatype: Term-id of the literal's datatype IRI, when explicit.
         lang: Literal language tag (BCP 47).
+        direction: RDF 1.2 literal base direction (``"ltr"`` or ``"rtl"``).
         reifier: Term-id of the reifier of a quoted triple (``kind == TRIPLE``).
     """
 
@@ -46,6 +48,7 @@ class Term:
     value: str | None = None
     datatype: int | None = None
     lang: str | None = None
+    direction: str | None = None
     reifier: int | None = None
 
 
@@ -234,4 +237,6 @@ class Graph:
         if t.datatype is not None:
             dt = self.terms[t.datatype]
             return dt.value or XSD_STRING
+        if t.lang is not None and t.direction is not None:
+            return RDF_DIR_LANG_STRING
         return RDF_LANG_STRING if t.lang is not None else XSD_STRING

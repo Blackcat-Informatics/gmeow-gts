@@ -33,6 +33,7 @@ fn iri(value: &str) -> Term {
         value: Some(value.to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     }
 }
@@ -43,6 +44,7 @@ fn literal(value: &str) -> Term {
         value: Some(value.to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     }
 }
@@ -53,6 +55,7 @@ fn bnode(value: &str) -> Term {
         value: Some(value.to_string()),
         datatype: None,
         lang: None,
+        direction: None,
         reifier: None,
     }
 }

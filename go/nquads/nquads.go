@@ -56,6 +56,9 @@ func render(g *model.Graph, tid int) string {
 	case model.Literal:
 		lit := fmt.Sprintf("\"%s\"", escape(t.Value))
 		if t.Lang != "" {
+			if t.Direction != "" {
+				return fmt.Sprintf("%s@%s--%s", lit, t.Lang, t.Direction)
+			}
 			return fmt.Sprintf("%s@%s", lit, t.Lang)
 		}
 		if t.Datatype != nil {

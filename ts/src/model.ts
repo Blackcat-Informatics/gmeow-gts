@@ -5,6 +5,8 @@
 export const XSD_STRING = "http://www.w3.org/2001/XMLSchema#string";
 export const RDF_LANG_STRING =
     "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString";
+export const RDF_DIR_LANG_STRING =
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString";
 
 /** The kind of an RDF term, matching the wire "k" field (§7.1). */
 export enum TermKind {
@@ -37,6 +39,8 @@ export interface Term {
     datatype?: number;
     /** Literal language tag (BCP 47). */
     lang?: string;
+    /** RDF 1.2 initial text direction for language-tagged literals. */
+    direction?: string;
     /** Term-id of the reifier of a quoted triple (kind == Triple). */
     reifier?: number;
 }
@@ -221,7 +225,7 @@ export class Graph {
             if (dt && dt.value) return dt.value;
             return XSD_STRING;
         }
-        if (t.lang) return RDF_LANG_STRING;
+        if (t.lang) return t.direction ? RDF_DIR_LANG_STRING : RDF_LANG_STRING;
         return XSD_STRING;
     }
 }

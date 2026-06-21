@@ -11,6 +11,7 @@ import pytest
 from gts import Term, TermKind, Writer, from_nquads, read, to_nquads
 from gts.cli import main
 from gts.from_nquads import NQuadsParseError
+from gts.model import RDF_DIR_LANG_STRING
 
 VECTORS_DIR = Path(__file__).resolve().parents[2] / "vectors"
 RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
@@ -69,6 +70,20 @@ def test_literals_lang_and_datatype_roundtrip() -> None:
     assert sorted(out.splitlines()) == sorted(nq.strip().splitlines())
 
 
+def test_directional_language_literals_roundtrip() -> None:
+    nq = '<https://ex/s> <https://ex/label> "Cat"@en--ltr .\n'
+    graph = read(from_nquads(nq))
+    literal = next(
+        term
+        for term in graph.terms
+        if term.kind is TermKind.LITERAL and term.value == "Cat"
+    )
+    assert literal.lang == "en"
+    assert literal.direction == "ltr"
+    assert graph.datatype_iri(literal) == RDF_DIR_LANG_STRING
+    assert sorted(to_nquads(graph).splitlines()) == sorted(nq.strip().splitlines())
+
+
 def test_compact_blank_node_and_language_tag_delimiters_roundtrip() -> None:
     """A final '.' delimiter is not part of blank node labels or language tags."""
     nq = (
@@ -98,6 +113,41 @@ def test_quoted_triple_adjacent_delimiters_roundtrip() -> None:
     )
     out = to_nquads(read(from_nquads(nq)))
     assert sorted(out.splitlines()) == sorted(expected.strip().splitlines())
+
+
+def test_writer_allows_multiple_reifiers_for_the_same_statement() -> None:
+    writer = Writer(profile="dist")
+    writer.add_terms(
+        [
+            Term(TermKind.IRI, "https://ex/r1"),
+            Term(TermKind.IRI, "https://ex/r2"),
+            Term(TermKind.IRI, "https://ex/s"),
+            Term(TermKind.IRI, "https://ex/p"),
+            Term(TermKind.IRI, "https://ex/o"),
+        ]
+    )
+    writer.add_quads([(2, 3, 4, None)])
+    writer.add_reifies({0: (2, 3, 4), 1: (2, 3, 4)})
+
+    graph = read(writer.to_bytes())
+    assert graph.reifiers == {0: (2, 3, 4), 1: (2, 3, 4)}
+    out = to_nquads(graph)
+    assert out.count(RDF_REIFIES) == 2
+    assert "<https://ex/r1>" in out
+    assert "<https://ex/r2>" in out
+
+
+def test_from_nquads_preserves_multiple_reifiers_for_the_same_statement() -> None:
+    nq = (
+        f"<https://ex/r1> <{RDF_REIFIES}> "
+        "<<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n"
+        f"<https://ex/r2> <{RDF_REIFIES}> "
+        "<<( <https://ex/s> <https://ex/p> <https://ex/o> )>> .\n"
+    )
+    graph = read(from_nquads(nq))
+    assert len(graph.reifiers) == 2
+    assert len(set(graph.reifiers.values())) == 1
+    assert sorted(to_nquads(graph).splitlines()) == sorted(nq.strip().splitlines())
 
 
 def test_cli_from_nq_inverts_fold(tmp_path: Path) -> None:

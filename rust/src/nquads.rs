@@ -42,7 +42,10 @@ pub(crate) fn render_term(g: &Graph, tid: usize) -> String {
         TermKind::Literal => {
             let lit = format!("\"{}\"", escape_literal(t.value.as_deref().unwrap_or("")));
             if let Some(lang) = &t.lang {
-                format!("{lit}@{lang}")
+                match t.direction.as_deref() {
+                    Some(direction) => format!("{lit}@{lang}--{direction}"),
+                    None => format!("{lit}@{lang}"),
+                }
             } else if let Some(dt) = t.datatype {
                 format!("{lit}^^{}", render_term(g, dt))
             } else {

@@ -17,6 +17,7 @@ interface Atom {
     kind: TermKind;
     value: string;
     lang?: string;
+    direction?: string;
     datatype?: string;
 }
 
@@ -142,6 +143,7 @@ class Tokenizer {
             }
             if (ch === '"') {
                 let lang: string | undefined;
+                let direction: string | undefined;
                 let datatype: string | undefined;
                 if (this.s[this.i] === "@") {
                     this.i++;
@@ -158,12 +160,35 @@ class Tokenizer {
                             `empty language tag in ${this.s}`,
                         );
                     }
+                    const sep = lang.lastIndexOf("--");
+                    if (sep >= 0) {
+                        const rawDirection = lang.slice(sep + 2);
+                        if (rawDirection !== "ltr" && rawDirection !== "rtl") {
+                            throw new NQuadsParseError(
+                                `invalid literal direction in ${this.s}`,
+                            );
+                        }
+                        const language = lang.slice(0, sep);
+                        if (language.length === 0) {
+                            throw new NQuadsParseError(
+                                `empty language tag in ${this.s}`,
+                            );
+                        }
+                        lang = language;
+                        direction = rawDirection;
+                    }
                 } else if (this.s.startsWith("^^", this.i)) {
                     this.i += 2;
                     this.skipWs();
                     datatype = this.iri();
                 }
-                return { kind: TermKind.Literal, value, lang, datatype };
+                return {
+                    kind: TermKind.Literal,
+                    value,
+                    lang,
+                    direction,
+                    datatype,
+                };
             }
             value += ch;
         }
@@ -242,6 +267,7 @@ class Interner {
             a.kind,
             a.value,
             a.lang ?? null,
+            a.direction ?? null,
             a.datatype ?? null,
         ]);
         const existing = this.ids.get(key);
@@ -255,6 +281,7 @@ class Interner {
             });
         }
         if (a.lang !== undefined) term.lang = a.lang;
+        if (a.direction !== undefined) term.direction = a.direction;
 
         const id = this.terms.length;
         this.terms.push(term);

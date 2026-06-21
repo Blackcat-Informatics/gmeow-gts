@@ -26,6 +26,11 @@ GtsGraph class >> rdfLangString [
 ]
 
 { #category : #constants }
+GtsGraph class >> rdfDirLangString [
+	^ 'http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString'
+]
+
+{ #category : #constants }
 GtsGraph class >> xsdString [
 	^ 'http://www.w3.org/2001/XMLSchema#string'
 ]
@@ -118,7 +123,10 @@ GtsGraph >> datatypeIriForTerm: term [
 			ifTrue: [ ^ (self termAtId: datatypeId) value ].
 		^ self class xsdString ].
 	(term language notNil and: [ term language isEmpty not ])
-		ifTrue: [ ^ self class rdfLangString ].
+		ifTrue: [
+			(term direction notNil and: [ term direction isEmpty not ])
+				ifTrue: [ ^ self class rdfDirLangString ].
+			^ self class rdfLangString ].
 	^ self class xsdString
 ]
 

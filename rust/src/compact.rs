@@ -133,6 +133,7 @@ impl GraphBuilder {
             value: Some(value.to_string()),
             datatype: None,
             lang: None,
+            direction: None,
             reifier: None,
         });
         self.terms.len() - 1
@@ -144,6 +145,7 @@ impl GraphBuilder {
             value: Some(value.to_string()),
             datatype,
             lang: None,
+            direction: None,
             reifier: None,
         });
         self.terms.len() - 1
@@ -317,6 +319,7 @@ fn shift_term(t: &Term, base: usize) -> Term {
         value: t.value.clone(),
         datatype: t.datatype.map(|d| d + base),
         lang: t.lang.clone(),
+        direction: t.direction.clone(),
         reifier: t.reifier.map(|r| r + base),
     }
 }

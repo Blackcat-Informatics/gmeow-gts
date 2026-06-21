@@ -50,8 +50,10 @@ function render(g: Graph, tid: number): string {
             return `_:b${tid}`;
         case TermKind.Literal: {
             let lit = `"${escape(t.value)}"`;
-            if (t.lang) lit += `@${t.lang}`;
-            else if (t.datatype !== undefined)
+            if (t.lang) {
+                lit += `@${t.lang}`;
+                if (t.direction) lit += `--${t.direction}`;
+            } else if (t.datatype !== undefined)
                 lit += `^^${render(g, t.datatype)}`;
             return lit;
         }
