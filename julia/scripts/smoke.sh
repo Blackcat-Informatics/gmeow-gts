@@ -34,6 +34,7 @@ run_smoke() {
   GTS_JULIA_VECTOR="${ROOT}/${VECTOR}" julia --project="${JULIA_PKG}" -e 'using Pkg; Pkg.test()'
 }
 
+# Set GTS_JULIA_FORCE_DOCKER=1 to reproduce the CI Docker path even when Julia is installed locally.
 if [[ "${GTS_JULIA_FORCE_DOCKER:-0}" != "1" ]] && command -v julia >/dev/null 2>&1; then
   export GTS_LIBGTS="${LIB_PATH}"
   export LD_LIBRARY_PATH="${CAPI_TARGET}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"

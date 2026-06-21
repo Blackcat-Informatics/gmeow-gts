@@ -105,3 +105,6 @@ The script builds `libgts`, runs the Julia smoke test, and exercises ABI
 metadata, capabilities, read/fold, verify, N-Quads export/import, structured
 errors, and files-profile pack/diff/unpack. If local Julia is missing, it uses
 the pinned fallback image defined in `julia/Dockerfile`.
+
+Set `GTS_JULIA_FORCE_DOCKER=1` to run the Docker path even when Julia is
+installed locally, which is useful when reproducing CI behavior.

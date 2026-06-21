@@ -22,9 +22,15 @@ export ABI_VERSION,
     to_nquads,
     verify_json
 
+"""
+C ABI version expected by this wrapper.
+"""
 const ABI_VERSION = UInt32(1)
 const VERSION = v"0.9.4"
 
+"""
+C ABI status code constants.
+"""
 module Status
 const OK = Int32(0)
 const INVALID_ARGUMENT = Int32(1)
@@ -35,6 +41,9 @@ const INTERNAL = Int32(5)
 const PANIC = Int32(6)
 end
 
+"""
+Filesystem unpack option bit flags accepted by `files_unpack`.
+"""
 module UnpackFlags
 const NONE = UInt32(0)
 const INCLUDE_SUPPRESSED = UInt32(1) << 0
@@ -77,6 +86,9 @@ struct GtsBuffer
     capacity::Csize_t
 end
 
+"""
+Structured exception raised when `libgts` returns a non-OK status.
+"""
 struct GtsError <: Exception
     operation::String
     status::Int32
@@ -96,6 +108,9 @@ function Base.showerror(io::IO, error::GtsError)
     print(io, message)
 end
 
+"""
+Return the symbolic name for a C ABI status code.
+"""
 status_name(code::Integer) = get(STATUS_NAMES, Int32(code), "UNKNOWN")
 
 function default_library()
@@ -116,27 +131,42 @@ function default_library()
     isempty(directory) ? library : joinpath(directory, library)
 end
 
+"""
+Return the loaded `libgts` C ABI version.
+"""
 function abi_version(; library::AbstractString = default_library())
     ccall(native_symbol(library, :gts_abi_version), UInt32, ())
 end
 
+"""
+Return the loaded `libgts` engine version string.
+"""
 function libgts_version(; library::AbstractString = default_library())
     version_pointer = ccall(native_symbol(library, :gts_version), Cstring, ())
     version_pointer == C_NULL ? "" : unsafe_string(version_pointer)
 end
 
+"""
+Return build metadata from `libgts` as a JSON string.
+"""
 function build_metadata_json(; library::AbstractString = default_library())
     text_call("gts_build_metadata_json", library) do out, error
         ccall(native_symbol(library, :gts_build_metadata_json), Cint, (Ref{GtsBuffer}, Ref{Ptr{Cvoid}}), out, error)
     end
 end
 
+"""
+Return capability metadata from `libgts` as a JSON string.
+"""
 function capabilities_json(; library::AbstractString = default_library())
     text_call("gts_capabilities_json", library) do out, error
         ccall(native_symbol(library, :gts_capabilities_json), Cint, (Ref{GtsBuffer}, Ref{Ptr{Cvoid}}), out, error)
     end
 end
 
+"""
+Read a GTS archive byte vector and return folded archive metadata as JSON.
+"""
 function read_json(data; library::AbstractString = default_library())
     with_bytes(data, "data") do data_pointer, len
         text_call("gts_read_json", library) do out, error
@@ -153,6 +183,9 @@ function read_json(data; library::AbstractString = default_library())
     end
 end
 
+"""
+Verify a GTS archive byte vector and return diagnostics as JSON.
+"""
 function verify_json(data; library::AbstractString = default_library())
     with_bytes(data, "data") do data_pointer, len
         text_call("gts_verify_json", library) do out, error
@@ -169,6 +202,9 @@ function verify_json(data; library::AbstractString = default_library())
     end
 end
 
+"""
+Convert a GTS archive byte vector to N-Quads text.
+"""
 function to_nquads(data; library::AbstractString = default_library())
     with_bytes(data, "data") do data_pointer, len
         text_call("gts_to_nquads", library) do out, error
@@ -185,6 +221,9 @@ function to_nquads(data; library::AbstractString = default_library())
     end
 end
 
+"""
+Convert N-Quads text to a GTS archive byte vector.
+"""
 function from_nquads(text::AbstractString; library::AbstractString = default_library())
     text_string = checked_string(text, "text")
     ensure_no_nul(text_string, "text")
@@ -209,6 +248,9 @@ function from_nquads(text::AbstractString; library::AbstractString = default_lib
     end
 end
 
+"""
+Pack one or more filesystem paths into a files-profile GTS archive.
+"""
 function files_pack(paths; library::AbstractString = default_library())
     strings = checked_strings(paths, "paths")
     cstrings = Vector{Cstring}(undef, length(strings))
@@ -231,6 +273,9 @@ function files_pack(paths; library::AbstractString = default_library())
     end
 end
 
+"""
+Unpack a files-profile GTS archive byte vector into a destination directory.
+"""
 function files_unpack(data, destination::AbstractString; flags = UnpackFlags.NONE, library::AbstractString = default_library())
     destination_string = checked_string(destination, "destination")
     ensure_no_nul(destination_string, "destination")
@@ -256,6 +301,9 @@ function files_unpack(data, destination::AbstractString; flags = UnpackFlags.NON
     end
 end
 
+"""
+Compare a files-profile GTS archive byte vector against a directory and return JSON.
+"""
 function files_diff_json(data, directory::AbstractString; library::AbstractString = default_library())
     directory_string = checked_string(directory, "directory")
     ensure_no_nul(directory_string, "directory")
