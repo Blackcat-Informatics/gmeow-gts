@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca> -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+
 # GTS C ABI
 
 `gmeow-gts-capi` builds `libgts` from the safe Rust GTS core. It is a distribution and interoperability surface for C-compatible runtimes; it is not a new GTS engine or a new CLI parity column.
