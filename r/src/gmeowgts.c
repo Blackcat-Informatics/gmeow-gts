@@ -6,23 +6,9 @@
 #include <Rinternals.h>
 
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "gts.h"
-
-static char *dup_cstr(const char *value) {
-  if (value == NULL) {
-    value = "";
-  }
-  size_t len = strlen(value);
-  char *copy = (char *)malloc(len + 1);
-  if (copy == NULL) {
-    return NULL;
-  }
-  memcpy(copy, value, len + 1);
-  return copy;
-}
 
 static SEXP named_result(int ok, SEXP value, const char *operation, int status, const char *code, const char *detail) {
   PROTECT(value);
@@ -53,31 +39,24 @@ static SEXP success_result(SEXP value) {
 }
 
 static SEXP error_result(const char *operation, gts_status status, gts_error *gts_err) {
-  char *code = NULL;
-  char *detail = NULL;
+  const char *code = "";
+  const char *detail = "";
 
   if (gts_err != NULL) {
-    code = dup_cstr(gts_error_code(gts_err));
-    detail = dup_cstr(gts_error_message(gts_err));
-    gts_error_free(gts_err);
-    if (code == NULL || detail == NULL) {
-      free(code);
-      free(detail);
-      Rf_error("unable to allocate memory for GTS error details");
+    code = gts_error_code(gts_err);
+    detail = gts_error_message(gts_err);
+    if (code == NULL) {
+      code = "";
     }
-  } else {
-    code = dup_cstr("");
-    detail = dup_cstr("");
-    if (code == NULL || detail == NULL) {
-      free(code);
-      free(detail);
-      Rf_error("unable to allocate memory for empty GTS error details");
+    if (detail == NULL) {
+      detail = "";
     }
   }
 
   SEXP result = PROTECT(named_result(0, R_NilValue, operation, status, code, detail));
-  free(code);
-  free(detail);
+  if (gts_err != NULL) {
+    gts_error_free(gts_err);
+  }
   UNPROTECT(1);
   return result;
 }
@@ -94,19 +73,9 @@ static SEXP copy_text_and_free(gts_buffer *buffer) {
     Rf_error("C ABI returned a text buffer too large for an R string");
   }
 
-  char *copy = (char *)malloc(len + 1);
-  if (copy == NULL) {
-    gts_buffer_free(buffer);
-    Rf_error("unable to allocate memory for GTS text output");
-  }
-  if (len > 0) {
-    memcpy(copy, buffer->data, len);
-  }
-  copy[len] = '\0';
+  const char *text = len == 0 ? "" : (const char *)buffer->data;
+  SEXP value = PROTECT(Rf_ScalarString(Rf_mkCharLenCE(text, (int)len, CE_UTF8)));
   gts_buffer_free(buffer);
-
-  SEXP value = PROTECT(Rf_ScalarString(Rf_mkCharLenCE(copy, (int)len, CE_UTF8)));
-  free(copy);
   UNPROTECT(1);
   return value;
 }
@@ -118,22 +87,16 @@ static SEXP copy_raw_and_free(gts_buffer *buffer) {
   }
 
   size_t len = buffer->len;
-  unsigned char *copy = NULL;
-  if (len > 0) {
-    copy = (unsigned char *)malloc(len);
-    if (copy == NULL) {
-      gts_buffer_free(buffer);
-      Rf_error("unable to allocate memory for GTS raw output");
-    }
-    memcpy(copy, buffer->data, len);
+  if (len > (size_t)R_XLEN_T_MAX) {
+    gts_buffer_free(buffer);
+    Rf_error("C ABI returned a raw buffer too large for an R vector");
   }
-  gts_buffer_free(buffer);
 
   SEXP value = PROTECT(Rf_allocVector(RAWSXP, (R_xlen_t)len));
   if (len > 0) {
-    memcpy(RAW(value), copy, len);
-    free(copy);
+    memcpy(RAW(value), buffer->data, len);
   }
+  gts_buffer_free(buffer);
   UNPROTECT(1);
   return value;
 }

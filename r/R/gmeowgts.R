@@ -75,7 +75,7 @@ files_diff_json <- function(data, directory) {
 
 status_name <- function(code) {
   index <- match(as.integer(code), unname(status))
-  ifelse(is.na(index), "UNKNOWN", names(status)[index])
+  if (is.na(index)) "UNKNOWN" else names(status)[index]
 }
 
 call_result <- function(result) {
