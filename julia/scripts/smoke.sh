@@ -9,6 +9,7 @@ CAPI_TARGET="${CAPI}/target/debug"
 VECTOR="vectors/01-minimal.gts"
 JULIA_IMAGE="${JULIA_IMAGE:-gmeow-gts-julia-smoke:1.12.2}"
 JULIA_PKG="${JULIA_PKG:-${TMPDIR:-/tmp}/gmeowgts-julia-package}"
+export JULIA_NUM_THREADS="${JULIA_NUM_THREADS:-4}"
 
 cd "${ROOT}"
 
@@ -47,6 +48,7 @@ else
   docker run --rm \
     -e GTS_LIBGTS=/workspace/rust/capi/target/debug/libgts.so \
     -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e JULIA_NUM_THREADS="${JULIA_NUM_THREADS}" \
     -v "${ROOT}:/workspace" \
     -w /workspace \
     "${JULIA_IMAGE}" \

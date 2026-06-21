@@ -55,11 +55,17 @@ const STATUS_NAMES = Dict(
 )
 
 const LIBRARY_HANDLES = Dict{String,Ptr{Cvoid}}()
+const LIBRARY_HANDLE_LOCK = ReentrantLock()
 
 function library_handle(library::AbstractString)
     key = String(library)
-    get!(LIBRARY_HANDLES, key) do
-        Libdl.dlopen(key)
+    lock(LIBRARY_HANDLE_LOCK)
+    try
+        get!(LIBRARY_HANDLES, key) do
+            Libdl.dlopen(key)
+        end
+    finally
+        unlock(LIBRARY_HANDLE_LOCK)
     end
 end
 

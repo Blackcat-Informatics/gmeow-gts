@@ -87,7 +87,8 @@ end
 
 `libgts` operations are reentrant. Each wrapper call owns its output buffer and
 error handle independently, and the wrapper frees them before returning or
-throwing. Do not share raw native pointers between Julia tasks or processes.
+throwing. Native library handle lookup is cached behind a Julia lock. Do not
+share raw native pointers between Julia tasks or processes.
 
 The wrapper targets `GTS_ABI_VERSION` 1. Check `abi_version()` and
 `capabilities_json()` when loading a system-provided `libgts`.

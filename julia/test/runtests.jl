@@ -25,6 +25,9 @@ end
 
 input = read(vector_path)
 
+version_tasks = [Threads.@spawn abi_version() for _ in 1:8]
+@test all(fetch.(version_tasks) .== ABI_VERSION)
+
 @test abi_version() == ABI_VERSION
 @test !isempty(libgts_version())
 
