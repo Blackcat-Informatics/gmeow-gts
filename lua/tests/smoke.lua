@@ -47,6 +47,12 @@ local function expect_json_bool(label, json, key, expected)
   assert(compact:find(needle, 1, true), label .. " missing " .. key .. "=" .. literal)
 end
 
+local function expect_assertion(label, fn, expected)
+  local ok, err = pcall(fn)
+  assert(not ok, label .. " did not fail")
+  expect_contains(label, tostring(err), expected)
+end
+
 local vector = assert(arg[1], "usage: luajit lua/tests/smoke.lua vectors/01-minimal.gts")
 local gts = gts_module.load()
 
@@ -85,6 +91,14 @@ local cleanup_ok, cleanup_err = xpcall(function()
   write_file(source_dir .. "/a.txt", "hello\n")
 
   local packed = gts:files_pack({ source_dir })
+  expect_assertion("sparse files_pack paths", function()
+    local sparse_paths = { source_dir }
+    sparse_paths[3] = source_dir
+    return gts:files_pack(sparse_paths)
+  end, "dense 1-based array")
+  expect_assertion("invalid files_unpack flags", function()
+    return gts:files_unpack(packed, unpack_dir, {})
+  end, "flags must be a number")
   expect_json_bool("files diff", gts:files_diff_json(packed, source_dir), "clean", true)
   expect_json_bool("files unpack", gts:files_unpack(packed, unpack_dir), "ok", true)
   assert(read_file(unpack_dir .. "/a.txt") == "hello\n", "unpacked file content mismatch")

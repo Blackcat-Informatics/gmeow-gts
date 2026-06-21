@@ -235,17 +235,32 @@ end
 
 function Library:files_pack(paths)
   assert(type(paths) == "table", "paths must be a table")
-  assert(#paths > 0, "paths must not be empty")
-  local raw = ffi.new("const char *[?]", #paths)
+  local path_count = 0
+  local max_index = 0
+  for key in pairs(paths) do
+    assert(
+      type(key) == "number" and key >= 1 and key % 1 == 0,
+      "paths must be a dense 1-based array"
+    )
+    path_count = path_count + 1
+    if key > max_index then
+      max_index = key
+    end
+  end
+  assert(path_count > 0, "paths must not be empty")
+  assert(max_index == path_count, "paths must be a dense 1-based array")
+
+  local raw = ffi.new("const char *[?]", path_count)
   local keepalive = {}
-  for idx, path in ipairs(paths) do
+  for idx = 1, path_count do
+    local path = paths[idx]
     assert(type(path) == "string", "path entries must be strings")
     assert(not path:find("%z", 1, true), "path entries must not contain NUL bytes")
     keepalive[idx] = path
     raw[idx - 1] = path
   end
   return self:_call_buffer("gts_files_pack", function(out, err)
-    return self.C.gts_files_pack(raw, #keepalive, out, err)
+    return self.C.gts_files_pack(raw, path_count, out, err)
   end)
 end
 
@@ -253,8 +268,17 @@ function Library:files_unpack(data, destination, flags)
   assert(type(data) == "string", "data must be a string")
   assert(type(destination) == "string", "destination must be a string")
   assert(not destination:find("%z", 1, true), "destination must not contain NUL bytes")
+  if flags == nil then
+    flags = M.unpack_flags.NONE
+  else
+    assert(type(flags) == "number", "flags must be a number")
+    assert(
+      flags >= 0 and flags <= 0xffffffff and flags % 1 == 0,
+      "flags must be an unsigned 32-bit integer"
+    )
+  end
   return self:_call_buffer("gts_files_unpack", function(out, err)
-    return self.C.gts_files_unpack(data, #data, destination, flags or M.unpack_flags.NONE, out, err)
+    return self.C.gts_files_unpack(data, #data, destination, flags, out, err)
   end)
 end
 
