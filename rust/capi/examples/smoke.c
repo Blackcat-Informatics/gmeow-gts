@@ -11,8 +11,31 @@
 #error "The C smoke example currently expects POSIX temporary-directory helpers."
 #endif
 
+#include <ftw.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+static char cleanup_path[512];
+
+static int remove_tree_entry(const char *path,
+                             const struct stat *info,
+                             int typeflag,
+                             struct FTW *ftwbuf) {
+  (void)info;
+  (void)typeflag;
+  (void)ftwbuf;
+  return remove(path);
+}
+
+static void cleanup_temp(void) {
+  if (cleanup_path[0] == '\0') {
+    return;
+  }
+  if (nftw(cleanup_path, remove_tree_entry, 64, FTW_DEPTH | FTW_PHYS) != 0) {
+    perror("cleanup temp");
+  }
+  cleanup_path[0] = '\0';
+}
 
 static void fail_error(const char *label, gts_status status, gts_error *error) {
   fprintf(stderr, "%s failed with status %d", label, status);
@@ -152,6 +175,11 @@ int main(int argc, char **argv) {
   char *temp = mkdtemp(temp_template);
   if (temp == NULL) {
     perror("mkdtemp");
+    return 1;
+  }
+  checked_snprintf(cleanup_path, sizeof(cleanup_path), "%s", temp);
+  if (atexit(cleanup_temp) != 0) {
+    fprintf(stderr, "failed to register temp cleanup\n");
     return 1;
   }
   char source_dir[512];

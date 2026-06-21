@@ -456,6 +456,7 @@ pub unsafe extern "C" fn gts_build_metadata_json(
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
+        require_out(out)?;
         write_buffer(out, json_bytes(build_metadata_json())?)
     })
 }
@@ -472,6 +473,7 @@ pub unsafe extern "C" fn gts_capabilities_json(
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
+        require_out(out)?;
         write_buffer(
             out,
             json_bytes(json!({
@@ -516,6 +518,7 @@ pub unsafe extern "C" fn gts_read_json(
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
+        require_out(out)?;
         let graph = read(input_slice(data, len)?, true, None);
         write_buffer(out, json_bytes(graph_json(&graph))?)
     })
@@ -535,6 +538,7 @@ pub unsafe extern "C" fn gts_verify_json(
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
+        require_out(out)?;
         let result = verify_file(input_slice(data, len)?);
         write_buffer(out, json_bytes(verify_json(&result))?)
     })
@@ -554,6 +558,7 @@ pub unsafe extern "C" fn gts_to_nquads(
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
+        require_out(out)?;
         let graph = clean_graph(input_slice(data, len)?)?;
         write_buffer(out, to_nquads(&graph).into_bytes())
     })
@@ -573,6 +578,7 @@ pub unsafe extern "C" fn gts_from_nquads(
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
+        require_out(out)?;
         let nq = input_str(text, len)?;
         let data = from_nquads(nq).map_err(|err| ApiError::parse(err.to_string()))?;
         write_buffer(out, data)
@@ -593,6 +599,7 @@ pub unsafe extern "C" fn gts_files_pack(
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
+        require_out(out)?;
         let owned = c_paths(paths, path_count)?;
         let refs = owned.iter().map(PathBuf::as_path).collect::<Vec<_>>();
         let data = pack(&refs).map_err(ApiError::io)?;
@@ -617,8 +624,9 @@ pub unsafe extern "C" fn gts_files_unpack(
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
-        let graph = clean_graph(input_slice(data, len)?)?;
+        require_out(out)?;
         let destination = c_path(dest, "destination")?;
+        let graph = clean_graph(input_slice(data, len)?)?;
         unpack_with_options(&graph, destination, &unpack_options(flags)).map_err(ApiError::io)?;
         write_buffer(
             out,
@@ -647,8 +655,9 @@ pub unsafe extern "C" fn gts_files_diff_json(
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
-        let graph = clean_graph(input_slice(data, len)?)?;
+        require_out(out)?;
         let directory = c_path(directory, "directory")?;
+        let graph = clean_graph(input_slice(data, len)?)?;
         let changes = diff(&graph, directory).map_err(ApiError::io)?;
         write_buffer(
             out,
@@ -665,6 +674,7 @@ pub unsafe extern "C" fn gts_files_diff_json(
 mod tests {
     use super::*;
     use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     fn vectors() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../vectors")
@@ -772,6 +782,35 @@ mod tests {
             .to_str()
             .unwrap();
         assert_eq!(code, "parse-error");
+        unsafe {
+            gts_error_free(error);
+        }
+    }
+
+    #[test]
+    fn unpack_rejects_null_output_before_side_effects() {
+        let data = fs::read(vectors().join("01-minimal.gts")).unwrap();
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dest =
+            std::env::temp_dir().join(format!("gts-capi-null-out-{}-{nonce}", std::process::id()));
+        let dest_c = CString::new(dest.to_str().unwrap()).unwrap();
+        let mut error: *mut GtsError = ptr::null_mut();
+        let status = unsafe {
+            gts_files_unpack(
+                data.as_ptr(),
+                data.len(),
+                dest_c.as_ptr(),
+                0,
+                ptr::null_mut(),
+                &mut error,
+            )
+        };
+        assert_eq!(status, STATUS_INVALID_ARGUMENT);
+        assert!(!error.is_null());
+        assert!(!dest.exists());
         unsafe {
             gts_error_free(error);
         }
