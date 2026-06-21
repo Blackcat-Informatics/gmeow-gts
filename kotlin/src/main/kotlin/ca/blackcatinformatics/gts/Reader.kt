@@ -3,7 +3,7 @@
 
 package ca.blackcatinformatics.gts
 
-private const val STREAM_DIGEST = "https://blackcatinformatics.ca/gts/stream#digest"
+private const val STREAM_DIGEST = "https://w3id.org/gts/stream#digest"
 
 data class FileSegments(
     val segments: List<Graph>,
