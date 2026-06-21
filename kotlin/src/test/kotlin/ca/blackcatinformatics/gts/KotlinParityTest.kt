@@ -47,6 +47,80 @@ class KotlinParityTest {
     }
 
     @Test
+    fun cborMapsUseRfc8949LexicographicKeyOrder() {
+        val got = encode(cborMap(text("") to uint(1), uint(1000) to uint(2)))
+        assertEquals("a21903e8026001", hex(got))
+    }
+
+    @Test
+    fun fromNQuadsParsesSupplementaryUnicodeEscapes() {
+        val source = "<https://example.org/s> <https://example.org/p> \"\\U0001F63A\" .\n"
+        val expected = String(Character.toChars(0x1f63a))
+        val graph = read(fromNQuads(source), false)
+        assertEquals(
+            "<https://example.org/s> <https://example.org/p> \"$expected\" .\n",
+            toNQuads(graph),
+        )
+    }
+
+    @Test
+    fun nQuadsEscapesC0LiteralControls() {
+        val writer = Writer("generic")
+        writer.addTerms(
+            listOf(
+                Term(TermKind.IRI, "https://example.org/s"),
+                Term(TermKind.IRI, "https://example.org/p"),
+                Term(TermKind.LITERAL, "\b\u000c\u0001"),
+            ),
+        )
+        writer.addQuads(listOf(Quad(0, 1, 2)))
+
+        assertEquals(
+            "<https://example.org/s> <https://example.org/p> \"\\u0008\\u000C\\u0001\" .\n",
+            toNQuads(read(writer.toBytes(), true)),
+        )
+    }
+
+    @Test
+    fun negativeTermReferencesProduceDiagnostics() {
+        val writer = Writer("generic")
+        writer.addFrame(
+            "terms",
+            cborArray(
+                cborMap(text("k") to uint(TermKind.LITERAL.wire), text("v") to text("bad"), text("dt") to CborNInt(-1)),
+            ),
+        )
+
+        val graph = read(writer.toBytes(), true)
+        assertTrue(graph.diagnostics.any { it.code == "ForwardReference" })
+    }
+
+    @Test
+    fun corruptGzipPayloadBecomesDamagedFrame() {
+        val headerUnsigned =
+            cborMap(
+                text("cat") to cborMap(uint(1) to cborMap(text("cls") to text("compress"), text("name") to text("gzip"))),
+                text("gts") to text(MAGIC),
+                text("prof") to text("generic"),
+                text("v") to uint(VERSION),
+            )
+        val headerId = headerId(headerUnsigned)
+        val header = CborTag(SELF_DESCRIBE_TAG, CborMap(headerUnsigned.value + (text("id") to bytes(headerId))))
+        val frameUnsigned =
+            cborMap(
+                text("d") to bytes(byteArrayOf(0x00, 0x01, 0x02)),
+                text("prev") to bytes(headerId),
+                text("t") to text("blob"),
+                text("x") to cborArray(uint(1)),
+            )
+        val frame = CborMap(frameUnsigned.value + (text("id") to bytes(contentId(frameUnsigned))))
+
+        val graph = read(encode(header) + encode(frame), true)
+        assertEquals(listOf("DamagedFrame"), graph.diagnostics.map { it.code })
+        assertEquals(listOf("damaged"), graph.opaque.map { it.reason })
+    }
+
+    @Test
     fun fullCommittedCorpusMatchesExpectedJson() {
         Files.list(vectors).use { paths ->
             val names =

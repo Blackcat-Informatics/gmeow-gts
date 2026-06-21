@@ -6,6 +6,7 @@ package ca.blackcatinformatics.gts
 import com.github.luben.zstd.Zstd
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
@@ -17,7 +18,8 @@ class CodecException(
     message: String,
     val reason: String,
     val failed: Boolean,
-) : RuntimeException(message)
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
 
 fun decodeChain(chain: List<Codec>, payload: ByteArray): ByteArray {
     var out = payload
@@ -55,18 +57,22 @@ private fun gzip(data: ByteArray): ByteArray {
 }
 
 private fun gunzip(data: ByteArray): ByteArray =
-    GZIPInputStream(ByteArrayInputStream(data)).use { input ->
-        val out = ByteArrayOutputStream()
-        val buf = ByteArray(8192)
-        while (true) {
-            val n = input.read(buf)
-            if (n < 0) break
-            out.write(buf, 0, n)
-            if (out.size() > MAX_DECOMPRESSED_BYTES) {
-                throw CodecException("decoded payload exceeds safety limit", "damaged", true)
+    try {
+        GZIPInputStream(ByteArrayInputStream(data)).use { input ->
+            val out = ByteArrayOutputStream()
+            val buf = ByteArray(8192)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                out.write(buf, 0, n)
+                if (out.size() > MAX_DECOMPRESSED_BYTES) {
+                    throw CodecException("decoded payload exceeds safety limit", "damaged", true)
+                }
             }
+            out.toByteArray()
         }
-        out.toByteArray()
+    } catch (err: IOException) {
+        throw CodecException("gzip decode failed: ${err.message}", "damaged", true, err)
     }
 
 private fun zstdDecompress(data: ByteArray): ByteArray {

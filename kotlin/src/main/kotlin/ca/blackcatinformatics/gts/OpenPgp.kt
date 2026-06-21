@@ -130,7 +130,7 @@ private fun nextPacket(data: ByteArray, initialOffset: Int): PacketRead {
             }
             lo < 224 -> {
                 require(offset + 1 < data.size) { "truncated new-format 2-octet length" }
-                length = (lo - 192) shl 8 + (data[offset + 1].toInt() and 0xff) + 192
+                length = ((lo - 192) shl 8) + (data[offset + 1].toInt() and 0xff) + 192
                 offset += 2
             }
             lo == 255 -> {

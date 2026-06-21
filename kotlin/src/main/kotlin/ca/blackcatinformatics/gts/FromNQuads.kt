@@ -77,7 +77,7 @@ private class Tokenizer(private val line: String) {
         while (i < line.length) {
             val ch = line[i++]
             if (ch == '\\') {
-                value.append(escape())
+                value.appendCodePoint(escape())
                 continue
             }
             if (ch == '"') {
@@ -101,16 +101,16 @@ private class Tokenizer(private val line: String) {
         throw NQuadsParseException("unterminated literal in $line")
     }
 
-    private fun escape(): Char {
+    private fun escape(): Int {
         if (i >= line.length) throw NQuadsParseException("bad escape at end of $line")
         return when (val ch = line[i++]) {
-            '\\' -> '\\'
-            '"' -> '"'
-            'b' -> '\b'
-            'f' -> '\u000c'
-            'n' -> '\n'
-            'r' -> '\r'
-            't' -> '\t'
+            '\\' -> '\\'.code
+            '"' -> '"'.code
+            'b' -> '\b'.code
+            'f' -> '\u000c'.code
+            'n' -> '\n'.code
+            'r' -> '\r'.code
+            't' -> '\t'.code
             'u', 'U' -> {
                 val width = if (ch == 'u') 4 else 8
                 val raw = line.substring(i, (i + width).coerceAtMost(line.length))
@@ -118,7 +118,11 @@ private class Tokenizer(private val line: String) {
                     throw NQuadsParseException("bad unicode escape \\$ch$raw in $line")
                 }
                 i += width
-                raw.toInt(16).toChar()
+                val codePoint = raw.toInt(16)
+                if (!Character.isValidCodePoint(codePoint)) {
+                    throw NQuadsParseException("bad unicode escape \\$ch$raw in $line")
+                }
+                codePoint
             }
             else -> throw NQuadsParseException("unsupported escape \\$ch in $line")
         }

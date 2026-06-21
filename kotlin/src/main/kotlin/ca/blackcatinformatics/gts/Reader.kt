@@ -92,7 +92,7 @@ private class Folder(
                     decodeChain(chain.codecs, bytes)
                 } catch (err: CodecException) {
                     return PayloadResult(null, PayloadError(!err.failed, err.reason, err.message.orEmpty(), err.failed))
-                } catch (err: RuntimeException) {
+                } catch (err: Exception) {
                     return PayloadResult(null, PayloadError(false, "", err.message.orEmpty(), true))
                 }
             if (isBlob) return PayloadResult(bytes(decoded))
@@ -139,7 +139,7 @@ private class Folder(
             }
             fun outOfRange(v: CborValue?): Boolean {
                 val n = v.asInt() ?: return false
-                return n >= termId
+                return n !in 0 until termId
             }
             val datatype = sanitize(entries.getTextKey("dt"))
             val reifier = sanitize(entries.getTextKey("rf"))

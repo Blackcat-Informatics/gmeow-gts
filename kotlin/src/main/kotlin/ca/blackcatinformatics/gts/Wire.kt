@@ -139,12 +139,12 @@ private fun encodeInto(out: ByteArrayOutputStream, value: CborValue) {
 private data class EncodedMapEntry(val key: ByteArray, val value: ByteArray)
 
 private fun compareCborKeys(a: ByteArray, b: ByteArray): Int {
-    if (a.size != b.size) return a.size - b.size
-    for (i in a.indices) {
+    val minLen = minOf(a.size, b.size)
+    for (i in 0 until minLen) {
         val diff = (a[i].toInt() and 0xff) - (b[i].toInt() and 0xff)
         if (diff != 0) return diff
     }
-    return 0
+    return a.size - b.size
 }
 
 private fun encodeMajor(out: ByteArrayOutputStream, major: Int, value: Long) {
