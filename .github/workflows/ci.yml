@@ -142,6 +142,10 @@ jobs:
         if: runner.os == 'Linux'
         run: bash swift/scripts/smoke.sh
 
+      - name: Ruby C ABI wrapper smoke test
+        if: runner.os == 'Linux'
+        run: bash ruby/scripts/smoke.sh
+
       - name: Library builds for wasm32 (wasm-friendly claim)
         if: runner.os == 'Linux'
         run: |
