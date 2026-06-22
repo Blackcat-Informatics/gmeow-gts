@@ -706,6 +706,7 @@ Each engine publishes to its native registry from this repo via a tag-triggered 
 | TypeScript | npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
 | C ABI source crate | crates.io (bootstrap token first publish) | `capi-v*` | [`release-cargo-capi.yaml`](./.github/workflows/release-cargo-capi.yaml) |
 | C ABI native assets | GitHub Releases (immutable archives) | `capi-v*` | [`release-capi.yaml`](./.github/workflows/release-capi.yaml) |
+| Lua wrapper | LuaRocks `gmeow-gts` | `lua-v*` | [`release-luarocks.yaml`](./.github/workflows/release-luarocks.yaml) |
 | Ruby | RubyGems (trusted publishing) | `ruby-v*` | [`release-rubygems.yaml`](./.github/workflows/release-rubygems.yaml) |
 
 Rust crate publication uses crates.io Trusted Publishing through GitHub Actions
@@ -748,6 +749,26 @@ OIDC. Configure the `gmeow-gts` pending Trusted Publisher entry with owner/repo
 `Blackcat-Informatics/gmeow-gts`, workflow `release-rubygems.yaml`, and
 environment `(none)`. The Ruby gem is source-only and expects `libgts` to be
 provided by the host at runtime.
+
+Wrapper package registry names and public release surfaces are:
+
+| Wrapper surface | Registry/package | Version or tag shape | Verification status |
+|---|---|---|---|
+| C ABI source crate | crates.io `gmeow-gts-capi` | `capi-v<version>` | Downloaded and attestation-checked by wrapper verifier |
+| C ABI native assets | GitHub Release `capi-v<version>` | `capi-v<version>` | Downloaded, checksum-checked, release-verified, and attestation-checked |
+| .NET | NuGet `Gmeow.Gts` | `<version>` | Metadata and `.nupkg` download checked |
+| PHP | Packagist `blackcatinformatics/gmeow-gts` | `<version>` or `v<version>` on the generated package-root commit | Metadata and source reference checked |
+| LuaJIT | LuaRocks `gmeow-gts` | `<version>-1` from `lua-v<version>` | Root manifest and rockspec download checked |
+| Swift | Swift Package Index `Blackcat-Informatics/gmeow-gts` | Plain semantic version tag, such as `<version>` | Git tag checked and canonical SPI package URL recorded |
+| Ruby | RubyGems `gmeow-gts` | `ruby-v<version>` | Metadata, `.gem` download, provenance, and SBOM attestations checked |
+| R | r-universe `gmeowgts` under `blackcatinformatics.r-universe.dev` | `<version>` | PACKAGES index and source tarball checked |
+| Julia | Julia General `GmeowGTS` | `<version>` | General registry package identity and version checked |
+| Conan/vcpkg | first-party package name `gmeow-gts` | tagged source archive when upstreamed | Local dry-runs only until upstream recipes land |
+
+All wrapper packages are source-only bindings over the Rust C ABI. They do not
+bundle `libgts` and they are not independent GTS engines; users must install or
+build the matching `libgts` archive from the C ABI release lane.
+
 The current SLSA posture is documented in
 [`GTS-RELEASE-SLSA.md`](./docs/GTS-RELEASE-SLSA.md): artifact attestations are
 treated as SLSA v1.0 Build Level 2 evidence, and Build Level 3 is not claimed
@@ -760,12 +781,20 @@ Maintainers can run the public release smoke verifier after all tag workflows fi
 just verify-release <version> <visual-hashing-version>
 ```
 
+After wrapper package publication, use the wrapper-aware verifier:
+
+```bash
+just verify-wrapper-release <version> <visual-hashing-version>
+```
+
 The same check is available as the manual
-[`verify-release.yml`](./.github/workflows/verify-release.yml) workflow. It downloads
-the PyPI wheel/sdist, npm tarball, crates.io packages, and Go/C ABI release
-assets; verifies registry hashes/signatures/provenance; checks GitHub SLSA and
-SPDX SBOM attestations;
-and writes Markdown/JSON summaries under `dist/release-verification/<version>/`.
+[`verify-release.yml`](./.github/workflows/verify-release.yml) workflow. Enable
+the `include_wrapper_packages` input for wrapper releases. The verifier downloads
+the PyPI wheel/sdist, npm tarball, crates.io packages, wrapper artifacts where a
+downloadable registry artifact exists, and Go/C ABI release assets; verifies
+registry hashes/signatures/provenance; checks GitHub SLSA and SPDX SBOM
+attestations where release lanes generate them; and writes Markdown/JSON
+summaries under `dist/release-verification/<version>/`.
 For historical releases that predate SBOM and immutable-release hardening, pass
 `--allow-legacy-release-gaps` explicitly and treat warnings as release-record caveats.
 

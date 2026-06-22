@@ -27,6 +27,15 @@ DEFAULT_PYPI_PROJECT = "gmeow-gts"
 DEFAULT_NPM_PACKAGE = "@blackcatinformatics/gmeow-gts"
 DEFAULT_RUST_CRATE = "gmeow-gts"
 DEFAULT_VISUAL_HASHING_CRATE = "visual-hashing"
+DEFAULT_CAPI_CRATE = "gmeow-gts-capi"
+DEFAULT_NUGET_PACKAGE = "Gmeow.Gts"
+DEFAULT_PACKAGIST_PACKAGE = "blackcatinformatics/gmeow-gts"
+DEFAULT_LUAROCKS_PACKAGE = "gmeow-gts"
+DEFAULT_RUBYGEMS_PACKAGE = "gmeow-gts"
+DEFAULT_RUNIVERSE_OWNER = "blackcatinformatics"
+DEFAULT_R_PACKAGE = "gmeowgts"
+DEFAULT_JULIA_PACKAGE = "GmeowGTS"
+DEFAULT_JULIA_UUID = "2d7fe44c-1957-4481-aa09-d6d0150c36ae"
 SPDX_PREDICATE = "https://spdx.dev/Document/v2.3"
 USER_AGENT = "gmeow-gts-release-verifier/1.0"
 
@@ -67,18 +76,24 @@ def one_line(value: str, limit: int = 500) -> str:
     return text[: limit - 3] + "..."
 
 
-def request(url: str, *, headers: dict[str, str] | None = None) -> urllib.request.Request:
+def request(
+    url: str, *, headers: dict[str, str] | None = None
+) -> urllib.request.Request:
     merged = {"User-Agent": USER_AGENT}
     if headers:
         merged.update(headers)
     return urllib.request.Request(url, headers=merged)
 
 
-def fetch_json(url: str, *, headers: dict[str, str] | None = None, attempts: int = 3) -> Any:
+def fetch_json(
+    url: str, *, headers: dict[str, str] | None = None, attempts: int = 3
+) -> Any:
     last_error: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
-            with urllib.request.urlopen(request(url, headers=headers), timeout=30) as response:
+            with urllib.request.urlopen(
+                request(url, headers=headers), timeout=30
+            ) as response:
                 return json.load(response)
         except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
             last_error = exc
@@ -87,12 +102,33 @@ def fetch_json(url: str, *, headers: dict[str, str] | None = None, attempts: int
     raise RuntimeError(f"failed to fetch JSON from {url}: {last_error}") from last_error
 
 
-def download(url: str, destination: Path, *, headers: dict[str, str] | None = None) -> None:
+def fetch_text(
+    url: str, *, headers: dict[str, str] | None = None, attempts: int = 3
+) -> str:
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(
+                request(url, headers=headers), timeout=30
+            ) as response:
+                return response.read().decode("utf-8")
+        except (OSError, UnicodeDecodeError, urllib.error.URLError) as exc:
+            last_error = exc
+            if attempt < attempts:
+                time.sleep(attempt)
+    raise RuntimeError(f"failed to fetch text from {url}: {last_error}") from last_error
+
+
+def download(
+    url: str, destination: Path, *, headers: dict[str, str] | None = None
+) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     last_error: Exception | None = None
     for attempt in range(1, 4):
         try:
-            with urllib.request.urlopen(request(url, headers=headers), timeout=60) as response:
+            with urllib.request.urlopen(
+                request(url, headers=headers), timeout=60
+            ) as response:
                 with destination.open("wb") as handle:
                     shutil.copyfileobj(response, handle)
             return
@@ -158,9 +194,15 @@ def run_command(
     if result.returncode == 0:
         recorder.pass_(surface, check, result.stdout.strip() or pretty)
     elif allow_legacy_gap:
-        recorder.warn(surface, check, f"legacy gap allowed: {result.stdout.strip() or pretty}")
+        recorder.warn(
+            surface, check, f"legacy gap allowed: {result.stdout.strip() or pretty}"
+        )
     else:
-        recorder.fail(surface, check, f"exit {result.returncode}: {result.stdout.strip() or pretty}")
+        recorder.fail(
+            surface,
+            check,
+            f"exit {result.returncode}: {result.stdout.strip() or pretty}",
+        )
     return result
 
 
@@ -190,7 +232,9 @@ def pypi_attestations_command() -> list[str] | None:
     return None
 
 
-def verify_pypi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> list[Path]:
+def verify_pypi(
+    args: argparse.Namespace, recorder: Recorder, out_dir: Path
+) -> list[Path]:
     surface = "PyPI"
     pypi_dir = out_dir / "python"
     artifacts: list[Path] = []
@@ -209,20 +253,34 @@ def verify_pypi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
         recorder.fail(surface, "release file metadata", "urls is not a list")
         return artifacts
     wanted_types = {"bdist_wheel", "sdist"}
-    found_types = {entry.get("packagetype") for entry in urls if isinstance(entry, dict)}
+    found_types = {
+        entry.get("packagetype") for entry in urls if isinstance(entry, dict)
+    }
     missing_types = wanted_types - found_types
     if missing_types:
-        recorder.fail(surface, "wheel and sdist present", f"missing {', '.join(sorted(missing_types))}")
+        recorder.fail(
+            surface,
+            "wheel and sdist present",
+            f"missing {', '.join(sorted(missing_types))}",
+        )
     else:
-        recorder.pass_(surface, "wheel and sdist present", ", ".join(sorted(found_types & wanted_types)))
+        recorder.pass_(
+            surface,
+            "wheel and sdist present",
+            ", ".join(sorted(found_types & wanted_types)),
+        )
 
     attest = pypi_attestations_command()
     if not attest:
-        recorder.fail(surface, "pypi-attestations available", "install pypi-attestations or uvx")
+        recorder.fail(
+            surface, "pypi-attestations available", "install pypi-attestations or uvx"
+        )
 
     for entry in urls:
         if not isinstance(entry, dict):
-            recorder.fail(surface, "release file metadata", "file entry is not a dictionary")
+            recorder.fail(
+                surface, "release file metadata", "file entry is not a dictionary"
+            )
             continue
         filename = entry.get("filename")
         file_url = entry.get("url")
@@ -248,26 +306,41 @@ def verify_pypi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
         if expected_sha256 == actual_sha256:
             recorder.pass_(surface, f"hash {filename}", actual_sha256)
         else:
-            recorder.fail(surface, f"hash {filename}", f"expected {expected_sha256}, got {actual_sha256}")
+            recorder.fail(
+                surface,
+                f"hash {filename}",
+                f"expected {expected_sha256}, got {actual_sha256}",
+            )
 
         if attest:
             run_command(
                 recorder,
                 surface,
                 f"PyPI provenance {filename}",
-                [*attest, "verify", "pypi", "--repository", args.repository_url, file_url],
+                [
+                    *attest,
+                    "verify",
+                    "pypi",
+                    "--repository",
+                    args.repository_url,
+                    file_url,
+                ],
             )
     return artifacts
 
 
-def verify_npm(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> list[Path]:
+def verify_npm(
+    args: argparse.Namespace, recorder: Recorder, out_dir: Path
+) -> list[Path]:
     surface = "npm"
     npm_dir = out_dir / "npm"
     artifacts: list[Path] = []
     encoded_package = urllib.parse.quote(args.npm_package, safe="")
     try:
         packument = fetch_json(f"https://registry.npmjs.org/{encoded_package}")
-        if not isinstance(packument, dict) or not isinstance(packument.get("versions"), dict):
+        if not isinstance(packument, dict) or not isinstance(
+            packument.get("versions"), dict
+        ):
             raise RuntimeError("invalid registry metadata structure")
         version_data = packument["versions"][args.version]
         if not isinstance(version_data, dict):
@@ -279,23 +352,35 @@ def verify_npm(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> l
 
     dist = version_data.get("dist") or {}
     if not isinstance(dist, dict):
-        recorder.fail(surface, "tarball integrity metadata", "dist metadata is not a dictionary")
+        recorder.fail(
+            surface, "tarball integrity metadata", "dist metadata is not a dictionary"
+        )
         return artifacts
     tarball_url = dist.get("tarball")
     integrity = dist.get("integrity")
     if not tarball_url or not integrity:
-        recorder.fail(surface, "tarball integrity metadata", "dist.tarball or dist.integrity missing")
+        recorder.fail(
+            surface,
+            "tarball integrity metadata",
+            "dist.tarball or dist.integrity missing",
+        )
         return artifacts
     recorder.pass_(surface, "tarball integrity metadata", integrity)
 
     if dist.get("signatures"):
-        recorder.pass_(surface, "registry signature metadata", f"{len(dist['signatures'])} signature(s)")
+        recorder.pass_(
+            surface,
+            "registry signature metadata",
+            f"{len(dist['signatures'])} signature(s)",
+        )
     else:
         recorder.fail(surface, "registry signature metadata", "dist.signatures missing")
 
     attestations = dist.get("attestations") or {}
     if not isinstance(attestations, dict):
-        recorder.fail(surface, "provenance endpoint", "dist.attestations is not a dictionary")
+        recorder.fail(
+            surface, "provenance endpoint", "dist.attestations is not a dictionary"
+        )
         attestation_url = None
     else:
         attestation_url = attestations.get("url")
@@ -320,12 +405,18 @@ def verify_npm(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> l
     try:
         integrity_ok = sri_matches(tarball, integrity)
     except ValueError as exc:
-        recorder.fail(surface, f"integrity {tarball.name}", f"invalid dist.integrity: {exc}")
+        recorder.fail(
+            surface, f"integrity {tarball.name}", f"invalid dist.integrity: {exc}"
+        )
         integrity_ok = None
     if integrity_ok:
         recorder.pass_(surface, f"integrity {tarball.name}", integrity)
     elif integrity_ok is False:
-        recorder.fail(surface, f"integrity {tarball.name}", "downloaded tarball does not match dist.integrity")
+        recorder.fail(
+            surface,
+            f"integrity {tarball.name}",
+            "downloaded tarball does not match dist.integrity",
+        )
 
     if not require_tool("npm", recorder, surface):
         return artifacts
@@ -334,7 +425,13 @@ def verify_npm(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> l
     if audit_dir.exists():
         shutil.rmtree(audit_dir)
     audit_dir.mkdir(parents=True)
-    run_command(recorder, surface, "npm init audit project", ["npm", "init", "-y"], cwd=audit_dir)
+    run_command(
+        recorder,
+        surface,
+        "npm init audit project",
+        ["npm", "init", "-y"],
+        cwd=audit_dir,
+    )
     install_result = run_command(
         recorder,
         surface,
@@ -351,7 +448,13 @@ def verify_npm(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> l
         cwd=audit_dir,
     )
     if install_result.returncode == 0:
-        run_command(recorder, surface, "registry signatures and provenance", ["npm", "audit", "signatures"], cwd=audit_dir)
+        run_command(
+            recorder,
+            surface,
+            "registry signatures and provenance",
+            ["npm", "audit", "signatures"],
+            cwd=audit_dir,
+        )
     return artifacts
 
 
@@ -361,7 +464,9 @@ def crate_checksum(crate: str, version: str) -> str:
         raise RuntimeError("crates.io metadata is not a dictionary")
     version_info = metadata.get("version")
     if not isinstance(version_info, dict) or not version_info.get("checksum"):
-        raise RuntimeError(f"checksum not found in crates.io response for {crate}@{version}")
+        raise RuntimeError(
+            f"checksum not found in crates.io response for {crate}@{version}"
+        )
     return version_info["checksum"]
 
 
@@ -397,7 +502,348 @@ def verify_crate(
     if expected_checksum and expected_checksum == actual_checksum:
         recorder.pass_(surface, f"checksum {destination.name}", actual_checksum)
     elif expected_checksum:
-        recorder.fail(surface, f"checksum {destination.name}", f"expected {expected_checksum}, got {actual_checksum}")
+        recorder.fail(
+            surface,
+            f"checksum {destination.name}",
+            f"expected {expected_checksum}, got {actual_checksum}",
+        )
+    return artifacts
+
+
+def version_present(values: Iterable[Any], version: str) -> bool:
+    return any(str(value).casefold() == version.casefold() for value in values)
+
+
+def verify_nuget(
+    args: argparse.Namespace, recorder: Recorder, out_dir: Path
+) -> list[Path]:
+    surface = f"NuGet {args.nuget_package}"
+    nuget_dir = out_dir / "nuget"
+    artifacts: list[Path] = []
+    normalized = args.nuget_package.lower()
+    metadata_url = f"https://api.nuget.org/v3-flatcontainer/{normalized}/index.json"
+    try:
+        metadata = fetch_json(metadata_url)
+        versions = metadata.get("versions") if isinstance(metadata, dict) else None
+        if not isinstance(versions, list):
+            raise RuntimeError("versions list missing")
+        recorder.pass_(surface, "registry metadata", metadata_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, "registry metadata", str(exc))
+        return artifacts
+
+    if version_present(versions, args.version):
+        recorder.pass_(surface, "package version", args.version)
+    else:
+        recorder.fail(surface, "package version", f"{args.version} not present")
+        return artifacts
+
+    package_url = f"https://api.nuget.org/v3-flatcontainer/{normalized}/{args.version.lower()}/{normalized}.{args.version.lower()}.nupkg"
+    destination = nuget_dir / f"{args.nuget_package}.{args.version}.nupkg"
+    try:
+        download(package_url, destination)
+        artifacts.append(destination)
+        recorder.pass_(surface, f"download {destination.name}", package_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, f"download {destination.name}", str(exc))
+    recorder.pass_(
+        surface,
+        "native dependency expectation",
+        "source-only wrapper; host must provide libgts",
+    )
+    return artifacts
+
+
+def verify_packagist(args: argparse.Namespace, recorder: Recorder) -> None:
+    surface = f"Packagist {args.packagist_package}"
+    metadata_url = f"https://repo.packagist.org/p2/{args.packagist_package}.json"
+    try:
+        metadata = fetch_json(metadata_url)
+        packages = metadata.get("packages") if isinstance(metadata, dict) else None
+        versions = (
+            packages.get(args.packagist_package) if isinstance(packages, dict) else None
+        )
+        if not isinstance(versions, list):
+            raise RuntimeError("package versions missing")
+        recorder.pass_(surface, "registry metadata", metadata_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, "registry metadata", str(exc))
+        return
+
+    accepted_versions = {args.version, f"v{args.version}"}
+    matching = [
+        entry
+        for entry in versions
+        if isinstance(entry, dict)
+        and (
+            entry.get("version") in accepted_versions
+            or str(entry.get("version_normalized", "")).startswith(f"{args.version}.")
+        )
+    ]
+    if not matching:
+        recorder.fail(surface, "package version", f"{args.version} not present")
+        return
+    recorder.pass_(surface, "package version", args.version)
+    source = matching[0].get("source")
+    if isinstance(source, dict) and source.get("url") and source.get("reference"):
+        recorder.pass_(
+            surface, "source reference", f"{source['url']} @ {source['reference']}"
+        )
+    else:
+        recorder.warn(
+            surface, "source reference", "source URL/reference missing from metadata"
+        )
+    recorder.pass_(
+        surface,
+        "native dependency expectation",
+        "source-only wrapper; host must provide libgts",
+    )
+
+
+def verify_luarocks(
+    args: argparse.Namespace, recorder: Recorder, out_dir: Path
+) -> list[Path]:
+    surface = f"LuaRocks {args.luarocks_package}"
+    luarocks_dir = out_dir / "luarocks"
+    artifacts: list[Path] = []
+    rock_version = args.luarocks_version or f"{args.version}-1"
+    manifest_url = "https://luarocks.org/manifest.json"
+    try:
+        manifest = fetch_json(manifest_url)
+        repository = manifest.get("repository") if isinstance(manifest, dict) else None
+        package_versions = (
+            repository.get(args.luarocks_package)
+            if isinstance(repository, dict)
+            else None
+        )
+        if not isinstance(package_versions, dict):
+            raise RuntimeError("package missing from root manifest")
+        recorder.pass_(surface, "registry metadata", manifest_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, "registry metadata", str(exc))
+        return artifacts
+
+    entries = package_versions.get(rock_version)
+    if not isinstance(entries, list):
+        recorder.fail(surface, "package version", f"{rock_version} not present")
+        return artifacts
+    recorder.pass_(surface, "package version", rock_version)
+    arch_values = sorted(
+        entry.get("arch", "unknown") for entry in entries if isinstance(entry, dict)
+    )
+    if arch_values:
+        recorder.pass_(surface, "published artifact types", ", ".join(arch_values))
+    else:
+        recorder.warn(
+            surface, "published artifact types", "no artifact arch entries found"
+        )
+
+    rockspec_url = (
+        f"https://luarocks.org/{args.luarocks_package}-{rock_version}.rockspec"
+    )
+    destination = luarocks_dir / f"{args.luarocks_package}-{rock_version}.rockspec"
+    try:
+        download(rockspec_url, destination)
+        artifacts.append(destination)
+        recorder.pass_(surface, f"download {destination.name}", rockspec_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, f"download {destination.name}", str(exc))
+    recorder.pass_(
+        surface,
+        "native dependency expectation",
+        "source-only wrapper; host must provide libgts",
+    )
+    return artifacts
+
+
+def verify_rubygems(
+    args: argparse.Namespace, recorder: Recorder, out_dir: Path
+) -> list[Path]:
+    surface = f"RubyGems {args.rubygems_package}"
+    ruby_dir = out_dir / "ruby"
+    artifacts: list[Path] = []
+    versions_url = f"https://rubygems.org/api/v1/versions/{args.rubygems_package}.json"
+    try:
+        versions = fetch_json(versions_url)
+        if not isinstance(versions, list):
+            raise RuntimeError("versions response is not a list")
+        recorder.pass_(surface, "registry metadata", versions_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, "registry metadata", str(exc))
+        return artifacts
+
+    if version_present(
+        (entry.get("number") for entry in versions if isinstance(entry, dict)),
+        args.version,
+    ):
+        recorder.pass_(surface, "package version", args.version)
+    else:
+        recorder.fail(surface, "package version", f"{args.version} not present")
+        return artifacts
+
+    gem_url = (
+        f"https://rubygems.org/downloads/{args.rubygems_package}-{args.version}.gem"
+    )
+    destination = ruby_dir / f"{args.rubygems_package}-{args.version}.gem"
+    try:
+        download(gem_url, destination)
+        artifacts.append(destination)
+        recorder.pass_(surface, f"download {destination.name}", gem_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, f"download {destination.name}", str(exc))
+    recorder.pass_(
+        surface,
+        "native dependency expectation",
+        "source-only wrapper; host must provide libgts",
+    )
+    return artifacts
+
+
+def parse_r_packages_index(text: str) -> dict[str, dict[str, str]]:
+    packages: dict[str, dict[str, str]] = {}
+    current: dict[str, str] = {}
+    for line in text.splitlines() + [""]:
+        if not line.strip():
+            name = current.get("Package")
+            if name:
+                packages[name] = current
+            current = {}
+            continue
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        current[key.strip()] = value.strip()
+    return packages
+
+
+def verify_runiverse(
+    args: argparse.Namespace, recorder: Recorder, out_dir: Path
+) -> list[Path]:
+    surface = f"r-universe {args.r_package}"
+    r_dir = out_dir / "r"
+    artifacts: list[Path] = []
+    packages_url = (
+        f"https://{args.r_universe_owner}.r-universe.dev/src/contrib/PACKAGES"
+    )
+    try:
+        packages = parse_r_packages_index(fetch_text(packages_url))
+        metadata = packages.get(args.r_package)
+        if not metadata:
+            raise RuntimeError("package missing from PACKAGES index")
+        recorder.pass_(surface, "registry metadata", packages_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, "registry metadata", str(exc))
+        return artifacts
+
+    published_version = metadata.get("Version")
+    if published_version == args.version:
+        recorder.pass_(surface, "package version", args.version)
+    else:
+        recorder.fail(
+            surface,
+            "package version",
+            f"expected {args.version}, got {published_version}",
+        )
+        return artifacts
+
+    tarball_url = f"https://{args.r_universe_owner}.r-universe.dev/src/contrib/{args.r_package}_{args.version}.tar.gz"
+    destination = r_dir / f"{args.r_package}_{args.version}.tar.gz"
+    try:
+        download(tarball_url, destination)
+        artifacts.append(destination)
+        recorder.pass_(surface, f"download {destination.name}", tarball_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, f"download {destination.name}", str(exc))
+    recorder.pass_(
+        surface,
+        "native dependency expectation",
+        "source package; host must provide libgts",
+    )
+    return artifacts
+
+
+def julia_registry_path(package: str) -> str:
+    return f"{package[0].upper()}/{package}"
+
+
+def verify_julia_general(args: argparse.Namespace, recorder: Recorder) -> None:
+    surface = f"Julia General {args.julia_package}"
+    base = f"https://raw.githubusercontent.com/JuliaRegistries/General/master/{julia_registry_path(args.julia_package)}"
+    package_url = f"{base}/Package.toml"
+    versions_url = f"{base}/Versions.toml"
+    try:
+        package_toml = fetch_text(package_url)
+        recorder.pass_(surface, "registry metadata", package_url)
+    except RuntimeError as exc:
+        recorder.fail(surface, "registry metadata", str(exc))
+        return
+
+    if (
+        f'name = "{args.julia_package}"' in package_toml
+        and f'uuid = "{args.julia_uuid}"' in package_toml
+    ):
+        recorder.pass_(
+            surface, "package identity", f"{args.julia_package} {args.julia_uuid}"
+        )
+    else:
+        recorder.fail(surface, "package identity", "name or UUID mismatch")
+
+    try:
+        versions_toml = fetch_text(versions_url)
+        if f'["{args.version}"]' in versions_toml:
+            recorder.pass_(surface, "package version", args.version)
+        else:
+            recorder.fail(surface, "package version", f"{args.version} not present")
+    except RuntimeError as exc:
+        recorder.fail(surface, "package version", str(exc))
+    recorder.pass_(
+        surface,
+        "native dependency expectation",
+        "source-only wrapper; host must provide libgts",
+    )
+
+
+def verify_swift_package(args: argparse.Namespace, recorder: Recorder) -> None:
+    surface = "Swift Package Index GmeowGTS"
+    tag = args.swift_tag or args.version
+    owner, repo_name = args.repo.split("/", 1)
+    encoded_tag = urllib.parse.quote(tag, safe="")
+    ref_url = (
+        f"https://api.github.com/repos/{owner}/{repo_name}/git/ref/tags/{encoded_tag}"
+    )
+    try:
+        ref_data = fetch_json(
+            ref_url, headers={"Accept": "application/vnd.github+json"}
+        )
+        if not isinstance(ref_data, dict) or "object" not in ref_data:
+            raise RuntimeError("invalid GitHub tag metadata")
+        recorder.pass_(surface, "semantic version tag", tag)
+    except RuntimeError as exc:
+        recorder.fail(surface, "semantic version tag", str(exc))
+
+    spi_url = f"https://swiftpackageindex.com/{owner}/{repo_name}"
+    recorder.pass_(surface, "Swift Package Index URL", spi_url)
+    recorder.pass_(
+        surface,
+        "native dependency expectation",
+        "source-only wrapper; host must provide libgts",
+    )
+
+
+def verify_wrapper_packages(
+    args: argparse.Namespace, recorder: Recorder, out_dir: Path
+) -> list[Path]:
+    artifacts: list[Path] = []
+    artifacts.extend(
+        verify_crate(args, recorder, out_dir, args.capi_crate, args.version)
+    )
+    artifacts.extend(verify_nuget(args, recorder, out_dir))
+    verify_packagist(args, recorder)
+    artifacts.extend(verify_luarocks(args, recorder, out_dir))
+    verify_swift_package(args, recorder)
+    artifacts.extend(verify_rubygems(args, recorder, out_dir))
+    artifacts.extend(verify_runiverse(args, recorder, out_dir))
+    verify_julia_general(args, recorder)
     return artifacts
 
 
@@ -412,7 +858,9 @@ def parse_checksums(checksum_file: Path) -> dict[str, str]:
     return checksums
 
 
-def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> list[Path]:
+def verify_go(
+    args: argparse.Namespace, recorder: Recorder, out_dir: Path
+) -> list[Path]:
     surface = "Go release"
     go_dir = out_dir / "go-release"
     artifacts: list[Path] = []
@@ -437,7 +885,9 @@ def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> li
     if not release:
         return artifacts
     if not isinstance(release, dict):
-        recorder.fail(surface, "release metadata", "invalid metadata structure returned by gh")
+        recorder.fail(
+            surface, "release metadata", "invalid metadata structure returned by gh"
+        )
         return artifacts
 
     if release.get("isDraft"):
@@ -448,7 +898,11 @@ def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> li
     if release.get("isImmutable"):
         recorder.pass_(surface, "immutable release", args.go_tag)
     elif args.allow_legacy_release_gaps:
-        recorder.warn(surface, "immutable release", "legacy release predates immutable-release enforcement")
+        recorder.warn(
+            surface,
+            "immutable release",
+            "legacy release predates immutable-release enforcement",
+        )
     else:
         recorder.fail(surface, "immutable release", "release is mutable")
 
@@ -462,12 +916,20 @@ def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> li
         if isinstance(asset, dict) and isinstance(asset.get("name"), str)
     }
     required_assets = {"checksums.txt", "sbom-go-gts.spdx.json"}
-    archive_assets = {name for name in asset_names if name.endswith((".tar.gz", ".zip"))}
+    archive_assets = {
+        name for name in asset_names if name.endswith((".tar.gz", ".zip"))
+    }
     missing_assets = required_assets - asset_names
     if missing_assets:
-        recorder.fail(surface, "required assets", f"missing {', '.join(sorted(missing_assets))}")
+        recorder.fail(
+            surface, "required assets", f"missing {', '.join(sorted(missing_assets))}"
+        )
     elif archive_assets:
-        recorder.pass_(surface, "required assets", f"{len(archive_assets)} archives plus checksums/SBOM")
+        recorder.pass_(
+            surface,
+            "required assets",
+            f"{len(archive_assets)} archives plus checksums/SBOM",
+        )
     else:
         recorder.fail(surface, "required assets", "no Go archives found")
 
@@ -478,7 +940,17 @@ def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> li
         recorder,
         surface,
         "download release assets",
-        ["gh", "release", "download", args.go_tag, "--repo", args.repo, "--dir", str(go_dir), "--clobber"],
+        [
+            "gh",
+            "release",
+            "download",
+            args.go_tag,
+            "--repo",
+            args.repo,
+            "--dir",
+            str(go_dir),
+            "--clobber",
+        ],
     )
     if result.returncode != 0:
         return artifacts
@@ -491,16 +963,24 @@ def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> li
         for name, expected in checksums.items():
             candidate = go_dir / name
             if not candidate.exists():
-                recorder.fail(surface, f"checksum target {name}", "listed in checksums.txt but not downloaded")
+                recorder.fail(
+                    surface,
+                    f"checksum target {name}",
+                    "listed in checksums.txt but not downloaded",
+                )
                 continue
             actual = sha256_file(candidate)
             checked += 1
             if actual == expected:
                 recorder.pass_(surface, f"checksum {name}", actual)
             else:
-                recorder.fail(surface, f"checksum {name}", f"expected {expected}, got {actual}")
+                recorder.fail(
+                    surface, f"checksum {name}", f"expected {expected}, got {actual}"
+                )
         if not checked:
-            recorder.fail(surface, "checksums.txt contents", "no checksum entries parsed")
+            recorder.fail(
+                surface, "checksums.txt contents", "no checksum entries parsed"
+            )
     else:
         recorder.fail(surface, "checksums.txt download", "checksums.txt not downloaded")
 
@@ -516,13 +996,23 @@ def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> li
             recorder,
             surface,
             f"release asset attestation {artifact.name}",
-            ["gh", "release", "verify-asset", args.go_tag, str(artifact), "--repo", args.repo],
+            [
+                "gh",
+                "release",
+                "verify-asset",
+                args.go_tag,
+                str(artifact),
+                "--repo",
+                args.repo,
+            ],
             allow_legacy_gap=args.allow_legacy_release_gaps,
         )
     return artifacts
 
 
-def verify_capi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> list[Path]:
+def verify_capi(
+    args: argparse.Namespace, recorder: Recorder, out_dir: Path
+) -> list[Path]:
     surface = "C ABI release"
     capi_dir = out_dir / "capi-release"
     capi_version = args.capi_tag.removeprefix("capi-v")
@@ -548,7 +1038,9 @@ def verify_capi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
     if not release:
         return artifacts
     if not isinstance(release, dict):
-        recorder.fail(surface, "release metadata", "invalid metadata structure returned by gh")
+        recorder.fail(
+            surface, "release metadata", "invalid metadata structure returned by gh"
+        )
         return artifacts
 
     if release.get("isDraft"):
@@ -559,7 +1051,11 @@ def verify_capi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
     if release.get("isImmutable"):
         recorder.pass_(surface, "immutable release", args.capi_tag)
     elif args.allow_legacy_release_gaps:
-        recorder.warn(surface, "immutable release", "legacy release predates immutable-release enforcement")
+        recorder.warn(
+            surface,
+            "immutable release",
+            "legacy release predates immutable-release enforcement",
+        )
     else:
         recorder.fail(surface, "immutable release", "release is mutable")
 
@@ -576,15 +1072,24 @@ def verify_capi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
     archive_assets = {
         name
         for name in asset_names
-        if name.startswith(f"gmeow-gts-capi_{capi_version}_") and name.endswith(".tar.gz")
+        if name.startswith(f"gmeow-gts-capi_{capi_version}_")
+        and name.endswith(".tar.gz")
     }
     missing_assets = required_assets - asset_names
     if missing_assets:
-        recorder.fail(surface, "required assets", f"missing {', '.join(sorted(missing_assets))}")
+        recorder.fail(
+            surface, "required assets", f"missing {', '.join(sorted(missing_assets))}"
+        )
     elif archive_assets:
-        recorder.pass_(surface, "required assets", f"{len(archive_assets)} archives plus checksums/SBOM")
+        recorder.pass_(
+            surface,
+            "required assets",
+            f"{len(archive_assets)} archives plus checksums/SBOM",
+        )
     else:
-        recorder.fail(surface, "required assets", f"no C ABI archives found for {capi_version}")
+        recorder.fail(
+            surface, "required assets", f"no C ABI archives found for {capi_version}"
+        )
 
     if capi_dir.exists():
         shutil.rmtree(capi_dir)
@@ -593,7 +1098,17 @@ def verify_capi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
         recorder,
         surface,
         "download release assets",
-        ["gh", "release", "download", args.capi_tag, "--repo", args.repo, "--dir", str(capi_dir), "--clobber"],
+        [
+            "gh",
+            "release",
+            "download",
+            args.capi_tag,
+            "--repo",
+            args.repo,
+            "--dir",
+            str(capi_dir),
+            "--clobber",
+        ],
     )
     if result.returncode != 0:
         return artifacts
@@ -606,16 +1121,24 @@ def verify_capi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
         for name, expected in checksums.items():
             candidate = capi_dir / name
             if not candidate.exists():
-                recorder.fail(surface, f"checksum target {name}", "listed in checksums.txt but not downloaded")
+                recorder.fail(
+                    surface,
+                    f"checksum target {name}",
+                    "listed in checksums.txt but not downloaded",
+                )
                 continue
             actual = sha256_file(candidate)
             checked += 1
             if actual == expected:
                 recorder.pass_(surface, f"checksum {name}", actual)
             else:
-                recorder.fail(surface, f"checksum {name}", f"expected {expected}, got {actual}")
+                recorder.fail(
+                    surface, f"checksum {name}", f"expected {expected}, got {actual}"
+                )
         if not checked:
-            recorder.fail(surface, "checksums.txt contents", "no checksum entries parsed")
+            recorder.fail(
+                surface, "checksums.txt contents", "no checksum entries parsed"
+            )
     else:
         recorder.fail(surface, "checksums.txt download", "checksums.txt not downloaded")
 
@@ -631,7 +1154,15 @@ def verify_capi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> 
             recorder,
             surface,
             f"release asset attestation {artifact.name}",
-            ["gh", "release", "verify-asset", args.capi_tag, str(artifact), "--repo", args.repo],
+            [
+                "gh",
+                "release",
+                "verify-asset",
+                args.capi_tag,
+                str(artifact),
+                "--repo",
+                args.repo,
+            ],
             allow_legacy_gap=args.allow_legacy_release_gaps,
         )
     return artifacts
@@ -677,6 +1208,7 @@ def artifact_attestation_plan(
     crate_artifacts: list[Path],
     go_artifacts: list[Path],
     capi_artifacts: list[Path],
+    wrapper_attested_artifacts: list[Path],
 ) -> list[tuple[str, Path, bool]]:
     plan: list[tuple[str, Path, bool]] = []
     plan.extend(("PyPI", artifact, True) for artifact in pypi_artifacts)
@@ -688,10 +1220,15 @@ def artifact_attestation_plan(
         elif artifact.suffix == ".zip" or artifact.name.endswith(".tar.gz"):
             plan.append(("Go release", artifact, True))
     for artifact in capi_artifacts:
-        if artifact.name == "checksums.txt" or artifact.name == "sbom-gmeow-gts-capi.spdx.json":
+        if (
+            artifact.name == "checksums.txt"
+            or artifact.name == "sbom-gmeow-gts-capi.spdx.json"
+        ):
             plan.append(("C ABI release", artifact, False))
         elif artifact.name.endswith(".tar.gz"):
             plan.append(("C ABI release", artifact, True))
+    for artifact in wrapper_attested_artifacts:
+        plan.append(("Wrapper package", artifact, True))
     return plan
 
 
@@ -708,10 +1245,13 @@ def write_summary(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -
         "repo": args.repo,
         "go_tag": args.go_tag,
         "capi_tag": args.capi_tag,
+        "include_wrapper_packages": args.include_wrapper_packages,
         "allow_legacy_release_gaps": args.allow_legacy_release_gaps,
         "results": [asdict(result) for result in recorder.results],
     }
-    summary_json.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    summary_json.write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     lines = [
         "# GTS Release Verification Summary",
@@ -721,6 +1261,7 @@ def write_summary(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -
         f"- C ABI tag: `{args.capi_tag}`",
         f"- visual-hashing version: `{args.visual_hashing_version}`",
         f"- Repository: `{args.repo}`",
+        f"- Wrapper package checks: `{str(args.include_wrapper_packages).lower()}`",
         f"- Legacy gap override: `{str(args.allow_legacy_release_gaps).lower()}`",
         "",
         "| Surface | Check | Status | Detail |",
@@ -748,13 +1289,17 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Verify public artifacts and attestations for a GTS release family."
     )
-    parser.add_argument("--version", required=True, help="GTS package version, such as 0.9.0.")
+    parser.add_argument(
+        "--version", required=True, help="GTS package version, such as 0.9.0."
+    )
     parser.add_argument(
         "--visual-hashing-version",
         required=True,
         help="visual-hashing crate version to verify for this release family.",
     )
-    parser.add_argument("--repo", default=DEFAULT_REPO, help="GitHub repository, owner/name.")
+    parser.add_argument(
+        "--repo", default=DEFAULT_REPO, help="GitHub repository, owner/name."
+    )
     parser.add_argument(
         "--repository-url",
         default=DEFAULT_REPO_URL,
@@ -764,8 +1309,30 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--npm-package", default=DEFAULT_NPM_PACKAGE)
     parser.add_argument("--rust-crate", default=DEFAULT_RUST_CRATE)
     parser.add_argument("--visual-hashing-crate", default=DEFAULT_VISUAL_HASHING_CRATE)
+    parser.add_argument("--capi-crate", default=DEFAULT_CAPI_CRATE)
+    parser.add_argument("--nuget-package", default=DEFAULT_NUGET_PACKAGE)
+    parser.add_argument("--packagist-package", default=DEFAULT_PACKAGIST_PACKAGE)
+    parser.add_argument("--luarocks-package", default=DEFAULT_LUAROCKS_PACKAGE)
+    parser.add_argument(
+        "--luarocks-version", help="LuaRocks version. Defaults to <version>-1."
+    )
+    parser.add_argument("--rubygems-package", default=DEFAULT_RUBYGEMS_PACKAGE)
+    parser.add_argument("--r-universe-owner", default=DEFAULT_RUNIVERSE_OWNER)
+    parser.add_argument("--r-package", default=DEFAULT_R_PACKAGE)
+    parser.add_argument("--julia-package", default=DEFAULT_JULIA_PACKAGE)
+    parser.add_argument("--julia-uuid", default=DEFAULT_JULIA_UUID)
+    parser.add_argument(
+        "--swift-tag", help="Swift semantic version tag. Defaults to <version>."
+    )
     parser.add_argument("--go-tag", help="Go release tag. Defaults to go-v<version>.")
-    parser.add_argument("--capi-tag", help="C ABI release tag. Defaults to capi-v<version>.")
+    parser.add_argument(
+        "--capi-tag", help="C ABI release tag. Defaults to capi-v<version>."
+    )
+    parser.add_argument(
+        "--include-wrapper-packages",
+        action="store_true",
+        help="Verify wrapper ecosystem registry packages in addition to core release artifacts.",
+    )
     parser.add_argument(
         "--out-dir",
         type=Path,
@@ -794,16 +1361,38 @@ def main(argv: list[str]) -> int:
 
     pypi_artifacts = verify_pypi(args, recorder, out_dir)
     npm_artifacts = verify_npm(args, recorder, out_dir)
-    crate_artifacts = verify_crate(args, recorder, out_dir, args.rust_crate, args.version)
+    crate_artifacts = verify_crate(
+        args, recorder, out_dir, args.rust_crate, args.version
+    )
     crate_artifacts.extend(
-        verify_crate(args, recorder, out_dir, args.visual_hashing_crate, args.visual_hashing_version)
+        verify_crate(
+            args,
+            recorder,
+            out_dir,
+            args.visual_hashing_crate,
+            args.visual_hashing_version,
+        )
     )
     go_artifacts = verify_go(args, recorder, out_dir)
     capi_artifacts = verify_capi(args, recorder, out_dir)
+    wrapper_artifacts: list[Path] = []
+    if args.include_wrapper_packages:
+        wrapper_artifacts = verify_wrapper_packages(args, recorder, out_dir)
     verify_github_attestations(
         args,
         recorder,
-        artifact_attestation_plan(pypi_artifacts, npm_artifacts, crate_artifacts, go_artifacts, capi_artifacts),
+        artifact_attestation_plan(
+            pypi_artifacts,
+            npm_artifacts,
+            crate_artifacts,
+            go_artifacts,
+            capi_artifacts,
+            [
+                artifact
+                for artifact in wrapper_artifacts
+                if artifact.suffix == ".gem" or artifact.name.endswith(".crate")
+            ],
+        ),
     )
     write_summary(args, recorder, out_dir)
     return 1 if recorder.has_failures() else 0

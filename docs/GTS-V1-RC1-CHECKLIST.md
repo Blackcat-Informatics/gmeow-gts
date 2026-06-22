@@ -432,8 +432,15 @@ VISUAL_HASHING_VERSION="<visual-hashing-version>"
 just verify-release "${VERSION}" "${VISUAL_HASHING_VERSION}"
 ```
 
+After C ABI wrapper packages are published, run the wrapper-aware verifier:
+
+```bash
+just verify-wrapper-release "${VERSION}" "${VISUAL_HASHING_VERSION}"
+```
+
 The same verifier can be run from the GitHub Actions UI with the manual
-`Verify published release` workflow. It uploads
+`Verify published release` workflow. Enable `include_wrapper_packages` for the
+wrapper pass. It uploads
 `dist/release-verification/${VERSION}/release-verification-summary.md` and
 `release-verification-summary.json` as workflow artifacts. Do not pass
 `--allow-legacy-release-gaps` for new releases; that override is only for
@@ -443,9 +450,15 @@ Record quick registry state before or after the smoke verifier:
 
 ```bash
 cargo search gmeow-gts --limit 1
+cargo search gmeow-gts-capi --limit 1
 python -m pip index versions gmeow-gts
 npm view @blackcatinformatics/gmeow-gts version
+dotnet nuget search Gmeow.Gts --source https://api.nuget.org/v3/index.json
+composer show blackcatinformatics/gmeow-gts --available
+curl -fsSL https://luarocks.org/manifest.json | python -m json.tool >/dev/null
 gem info gmeow-gts --remote
+curl -fsSL https://blackcatinformatics.r-universe.dev/src/contrib/PACKAGES
+curl -fsSL https://raw.githubusercontent.com/JuliaRegistries/General/master/G/GmeowGTS/Package.toml
 gh release view "go-v${VERSION}" \
   --json tagName,name,url,isDraft,isImmutable,isPrerelease,publishedAt
 gh release view "capi-v${VERSION}" \
@@ -485,6 +498,13 @@ Release evidence durability:
 | PyPI | Registry-hosted wheel/sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
 | npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |
 | RubyGems | Registry-hosted `.gem` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store |
+| NuGet `Gmeow.Gts` | Registry-hosted `.nupkg` package | Registry metadata and package download check; source-only wrapper requiring host `libgts` |
+| Packagist `blackcatinformatics/gmeow-gts` | VCS tag metadata from Packagist | Registry metadata and source reference check; source-only wrapper requiring host `libgts` |
+| LuaRocks `gmeow-gts` | Registry-hosted rockspec/source rock | LuaRocks root manifest and rockspec download check; source-only wrapper requiring host `libgts` |
+| Swift Package Index | Repository semantic-version tag and SPI package URL | Git tag check and canonical SPI URL record; source-only wrapper requiring host `libgts` |
+| r-universe `gmeowgts` | Registry-hosted source package | PACKAGES index and source tarball download check; source package requiring host `libgts` |
+| Julia General `GmeowGTS` | General registry package metadata | Registry identity and version check; source-only wrapper requiring host `libgts` |
+| Conan/vcpkg `gmeow-gts` | Local first-party dry-runs until upstreamed | No public registry evidence until upstream recipes are accepted |
 
 Download representative artifacts for verification:
 
@@ -494,7 +514,8 @@ mkdir -p \
   "${OUT}/packages/npm" \
   "${OUT}/packages/python" \
   "${OUT}/packages/ruby" \
-  "${OUT}/packages/rust"
+  "${OUT}/packages/rust" \
+  "${OUT}/packages/wrappers"
 gh release download "go-v${VERSION}" --dir "${OUT}/packages/go-release"
 
 python -m pip download --no-deps --dest "${OUT}/packages/python" "gmeow-gts==${VERSION}"
@@ -506,6 +527,12 @@ curl -L "https://crates.io/api/v1/crates/gmeow-gts/${VERSION}/download" \
   -o "${OUT}/packages/rust/gmeow-gts-${VERSION}.crate"
 curl -L "https://crates.io/api/v1/crates/gmeow-gts-capi/${VERSION}/download" \
   -o "${OUT}/packages/rust/gmeow-gts-capi-${VERSION}.crate"
+curl -L "https://api.nuget.org/v3-flatcontainer/gmeow.gts/${VERSION}/gmeow.gts.${VERSION}.nupkg" \
+  -o "${OUT}/packages/wrappers/Gmeow.Gts.${VERSION}.nupkg"
+curl -L "https://luarocks.org/gmeow-gts-${VERSION}-1.rockspec" \
+  -o "${OUT}/packages/wrappers/gmeow-gts-${VERSION}-1.rockspec"
+curl -L "https://blackcatinformatics.r-universe.dev/src/contrib/gmeowgts_${VERSION}.tar.gz" \
+  -o "${OUT}/packages/wrappers/gmeowgts_${VERSION}.tar.gz"
 ```
 
 Verify default SLSA provenance on representative artifacts and Go release
@@ -581,7 +608,14 @@ Record final registry state:
 | PyPI `gmeow-gts` | | | |
 | Go release `go.blackcatinformatics.ca/gts` | | | |
 | npm `@blackcatinformatics/gmeow-gts` | | | |
+| NuGet `Gmeow.Gts` | | | |
+| Packagist `blackcatinformatics/gmeow-gts` | | | |
+| LuaRocks `gmeow-gts` | | | |
+| Swift Package Index `Blackcat-Informatics/gmeow-gts` | | | |
 | RubyGems `gmeow-gts` | | | |
+| r-universe `gmeowgts` | | | |
+| Julia General `GmeowGTS` | | | |
+| Conan/vcpkg `gmeow-gts` status | | | |
 | SBOM attestations | | | |
 | Build-provenance attestations | | | |
 

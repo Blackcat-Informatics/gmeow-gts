@@ -98,6 +98,10 @@ check-versions:
 verify-release version visual_hashing_version extra_args="":
     python scripts/verify_release.py --version "{{version}}" --visual-hashing-version "{{visual_hashing_version}}" {{extra_args}}
 
+# Verify core release artifacts plus C ABI wrapper ecosystem package surfaces.
+verify-wrapper-release version visual_hashing_version extra_args="":
+    python scripts/verify_release.py --version "{{version}}" --visual-hashing-version "{{visual_hashing_version}}" --include-wrapper-packages {{extra_args}}
+
 # --- fuzzing --------------------------------------------------------------- #
 
 # Fuzz the Rust reader (needs nightly + cargo-fuzz). Pass a duration, e.g. `just fuzz-rust 300`.

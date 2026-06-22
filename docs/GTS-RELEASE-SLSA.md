@@ -38,6 +38,7 @@ except for `visual-hashing`, which now publishes from its standalone repository:
 | Rust `visual-hashing` crate | `Blackcat-Informatics/visual-hashing:.github/workflows/release.yml` | crates.io Trusted Publishing through GitHub Actions OIDC |
 | Python package | `.github/workflows/release-pypi.yml` | PyPI trusted publishing with package attestations |
 | TypeScript package | `.github/workflows/release-npm.yaml` | npm trusted publishing and npm provenance |
+| Lua package | `.github/workflows/release-luarocks.yaml` | LuaRocks API-token publication; no registry-native provenance |
 | Ruby package | `.github/workflows/release-rubygems.yaml` | RubyGems Trusted Publishing through GitHub Actions OIDC |
 | Go CLI assets | `.github/workflows/release-go.yaml` | Immutable GitHub Release assets |
 | C ABI native assets | `.github/workflows/release-capi.yaml` | Immutable GitHub Release archives |
@@ -60,6 +61,8 @@ Every release lane must keep these controls:
 - SPDX SBOM attestations for representative registry artifacts and Go archives;
 - immutable Go and C ABI GitHub Releases for archives, checksums, and SBOM assets;
 - public post-release verification through `just verify-release`.
+- wrapper package post-release verification through `just verify-wrapper-release`
+  when C ABI wrapper packages are published.
 
 The current evidence durability is:
 
@@ -72,6 +75,13 @@ The current evidence durability is:
 | PyPI | Registry-hosted wheel and sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
 | npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |
 | RubyGems | Registry-hosted `.gem` package | GitHub SLSA provenance and SPDX SBOM attestations |
+| NuGet `Gmeow.Gts` | Registry-hosted `.nupkg` package | Registry metadata and package download check; no project attestation until a NuGet release lane adds one |
+| Packagist `blackcatinformatics/gmeow-gts` | VCS tag metadata from Packagist | Registry metadata and source reference check; package content comes from the tagged package-root commit |
+| LuaRocks `gmeow-gts` | Registry-hosted rockspec/source rock | Registry manifest and rockspec download check; no project attestation in the current LuaRocks lane |
+| Swift Package Index | Repository semantic-version tag and SPI package URL | Git tag check and canonical SPI URL record; package source is the tagged repository |
+| r-universe `gmeowgts` | Registry-hosted R source package | PACKAGES index and source tarball download check; no project attestation until an R release lane adds one |
+| Julia General `GmeowGTS` | General registry package metadata | Registry identity and version check; package source is the tagged repository entry |
+| Conan/vcpkg | Local first-party dry-runs | No public registry evidence until upstream recipes are accepted |
 
 ## Future Build Level 3 Path
 
@@ -91,7 +101,8 @@ Raise the posture only when the release model can verify the stronger boundary:
    the lane, including `contents: read`, `id-token: write`, and
    `attestations: write` for attestation-generating jobs.
 5. Preserve the existing registry OIDC/trusted-publishing paths, Go immutable
-   release flow, SBOM generation, and `just verify-release` smoke verification.
+   release flow, SBOM generation, and `just verify-release` /
+   `just verify-wrapper-release` smoke verification.
 6. Extend `scripts/verify_release.py` with optional signer policy inputs so a
    release can require `gh attestation verify` with
    `--signer-workflow <owner>/<repo>/.github/workflows/<workflow>.yml@<ref>` and,
