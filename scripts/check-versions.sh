@@ -36,6 +36,14 @@ if [ "$rust_v" = "$py_v" ] && [ "$py_v" = "$npm_v" ] && [ "$citation_v" = "$rust
   echo "OK: engine and citation versions agree ($rust_v)"
 else
   echo "OK: ecosystem versions are not lockstep; checking per-ecosystem surfaces independently."
+  if [ "$py_v" != "$npm_v" ]; then
+    echo "ERROR: Python ($py_v) and npm ($npm_v) versions disagree." >&2
+    errors=1
+  fi
+  if [ "$citation_v" != "$rust_v" ] && [ "$citation_v" != "$py_v" ]; then
+    echo "ERROR: Citation version ($citation_v) must match either Rust ($rust_v) or Python/npm ($py_v)." >&2
+    errors=1
+  fi
 fi
 
 check_contains "README.md" "gmeow-gts = \"$rust_v\"" "README Rust dependency snippet"
