@@ -313,15 +313,15 @@ impl Writer {
         Ok(writer)
     }
 
-    /// Build a writer from an Oxigraph store.
+    /// Build a writer from a native RDF store.
     ///
-    /// This constructor is available only with `--features oxigraph-adapter`.
-    #[cfg(feature = "oxigraph-adapter")]
+    /// This constructor is available only with `--features native-store`.
+    #[cfg(feature = "native-store")]
     pub fn from_store(
-        store: &::oxigraph::store::Store,
+        store: &crate::native_store::NativeStore,
         profile: &str,
-    ) -> Result<Self, crate::oxigraph::OxigraphAdapterError> {
-        crate::oxigraph::store_to_writer(store, profile)
+    ) -> Result<Self, crate::native_store::NativeStoreError> {
+        crate::native_store::store_to_writer(store, profile)
     }
 
     /// Create a writer with a header layout-state claim (§3.3;

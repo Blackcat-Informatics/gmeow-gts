@@ -15,7 +15,7 @@ deferred.
 
 | Ecosystem | Current integration path | Deferrals |
 |---|---|---|
-| Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge; `--features rdf` enables `gmeow_gts::rdf::{to_rdf_dataset, from_rdf_dataset}` for dependency-free native `Dataset` interop without an embedded graph store; `--features oxigraph-adapter` enables `gmeow_gts::oxigraph::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using Oxigraph's in-memory store; `--features sophia-adapter` enables `gmeow_gts::sophia::{to_sophia_dataset, from_sophia_dataset}` using Sophia's in-memory dataset and N-Quads parser/serializer; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Rio remains deferred because the current `rio_api` crate is marked unmaintained upstream; the zero-dependency N-Quads bridge remains the Rio-compatible path. |
+| Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge; `--features rdf` enables `gmeow_gts::rdf::{to_rdf_dataset, from_rdf_dataset}` for dependency-free native `Dataset` interop without an embedded graph store; `--features native-store` enables `gmeow_gts::native_store::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using the deterministic native in-memory RDF store; `--features sophia-adapter` enables `gmeow_gts::sophia::{to_sophia_dataset, from_sophia_dataset}` using Sophia's in-memory dataset and N-Quads parser/serializer; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Rio remains deferred because the current `rio_api` crate is marked unmaintained upstream; the zero-dependency N-Quads bridge remains the Rio-compatible path. |
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
 | TypeScript browser | `@blackcatinformatics/gmeow-gts/browser` exposes `foldStream(ReadableStream<Uint8Array>, options)`, `readStream`, `toNQuads`, progressive fold events, and WebCrypto-backed COSE Sign1/Encrypt0 key-provider hooks. The package root also carries a browser condition that resolves to this narrower surface for bundlers. | This is a progressive Web Streams surface and does not satisfy the current non-materializing Streaming Reader tier. Node-only CLI and filesystem `pack`/`unpack`/`diff` helpers remain outside the browser export. Range fetch still needs a verified index or boundary scan. |
 | Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides graph-returning service integration, while `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` provides cancellation-aware, byte-limited streaming fold events for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | Service-specific replication orchestration remains application code built on the shared verbs. |
@@ -189,26 +189,25 @@ let bytes = gmeow_gts::rdf::from_rdf_dataset(&dataset)?;
 
 The `rdf` feature uses GTS-native RDF dataset, quad, term, graph-name, literal,
 and quoted-triple types. It deliberately does not depend on the `oxrdf` crate or
-the `oxigraph` store, so `--features rdf` remains suitable for
+an external RDF store, so `--features rdf` remains suitable for
 `wasm32-unknown-unknown` builds.
 
-For native Oxigraph store interop, enable the heavier optional adapter:
+For native in-memory RDF store interop, enable the optional native store:
 
 ```toml
-gmeow-gts = { version = "0.9.5", default-features = false, features = ["oxigraph-adapter"] }
+gmeow-gts = { version = "0.9.5", default-features = false, features = ["native-store"] }
 ```
 
 ```rust
 let graph = gmeow_gts::reader::read(&bytes, true, None);
-let package = gmeow_gts::oxigraph::graph_to_store_with_sidecar(graph)?;
+let package = gmeow_gts::native_store::graph_to_store_with_sidecar(graph)?;
 let writer = gmeow_gts::writer::Writer::from_store(&package.store, "dist")?;
 ```
 
-The `oxigraph-adapter` feature depends on `rdf` and `oxigraph` with Oxigraph's
-default RocksDB feature disabled. The store projection is pure RDF; GTS-only state such
-as blobs, suppressions, signatures, diagnostics, segment heads, and streamable-layout
-metadata is returned in a sidecar. The adapter walks native quads and does not materialize
-N-Quads text in the hot path.
+The `native-store` feature depends only on `rdf`. The store projection is pure
+RDF; GTS-only state such as blobs, suppressions, signatures, diagnostics,
+segment heads, and streamable-layout metadata is returned in a sidecar. The
+adapter walks native quads and does not materialize N-Quads text in the hot path.
 
 For native Sophia dataset interop, enable the optional Sophia adapter:
 

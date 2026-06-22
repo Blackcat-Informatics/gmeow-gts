@@ -40,8 +40,12 @@ fn optional_adapters_are_not_enabled_by_default() {
         serde_json::json!(["rdf", "dep:quick-xml"])
     );
     assert_eq!(
-        package["features"]["oxigraph-adapter"],
-        serde_json::json!(["rdf", "dep:oxigraph"])
+        package["features"]["native-store"],
+        serde_json::json!(["rdf"])
+    );
+    assert!(
+        package["features"].get("oxigraph-adapter").is_none(),
+        "oxigraph-adapter feature must be removed"
     );
     assert_eq!(
         package["features"]["sophia-adapter"],
@@ -80,7 +84,7 @@ fn optional_adapters_are_not_enabled_by_default() {
         .expect("quick-xml dependency is present");
     assert_eq!(quick_xml["optional"], serde_json::json!(true));
 
-    for removed in ["oxttl", "oxrdf", "oxrdfxml"] {
+    for removed in ["oxttl", "oxrdf", "oxrdfxml", "oxigraph"] {
         assert!(
             !package["dependencies"]
                 .as_array()
@@ -90,16 +94,6 @@ fn optional_adapters_are_not_enabled_by_default() {
             "rdf-codecs must not depend on {removed}"
         );
     }
-
-    let oxigraph = package["dependencies"]
-        .as_array()
-        .expect("metadata dependencies are an array")
-        .iter()
-        .find(|dependency| dependency["name"] == "oxigraph")
-        .expect("oxigraph dependency is present");
-    assert_eq!(oxigraph["optional"], serde_json::json!(true));
-    assert_eq!(oxigraph["uses_default_features"], serde_json::json!(false));
-    assert_eq!(oxigraph["features"], serde_json::json!(["rdf-12"]));
 
     for name in ["serde", "serde_json", "serde_yaml"] {
         let dependency = package["dependencies"]
@@ -160,10 +154,10 @@ fn rdf_codecs_feature_enables_rdf_text_codec_modules() {
     assert!(!rdf_xml_bytes.is_empty());
 }
 
-#[cfg(feature = "oxigraph-adapter")]
+#[cfg(feature = "native-store")]
 #[test]
-fn oxigraph_feature_enables_adapter_module() {
-    let sidecar = gmeow_gts::oxigraph::GtsSidecar::default();
+fn native_store_feature_enables_adapter_module() {
+    let sidecar = gmeow_gts::native_store::GtsSidecar::default();
     assert!(sidecar.diagnostics.is_empty());
 }
 

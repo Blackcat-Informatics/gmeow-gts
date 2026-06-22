@@ -92,6 +92,7 @@ jobs:
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features duckdb -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf-codecs -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features native-store -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features sophia-adapter -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features tar -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features yaml-ld -- -D warnings
@@ -116,6 +117,7 @@ jobs:
           cargo test --manifest-path rust/Cargo.toml --features duckdb
           cargo test --manifest-path rust/Cargo.toml --features rdf
           cargo test --manifest-path rust/Cargo.toml --features rdf-codecs
+          cargo test --manifest-path rust/Cargo.toml --features native-store
           cargo test --manifest-path rust/Cargo.toml --features sophia-adapter
           cargo test --manifest-path rust/Cargo.toml --features tar
           cargo test --manifest-path rust/Cargo.toml --features yaml-ld
