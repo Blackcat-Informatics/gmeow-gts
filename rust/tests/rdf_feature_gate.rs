@@ -37,7 +37,7 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(package["features"]["rdf"], serde_json::json!(["xsd"]));
     assert_eq!(
         package["features"]["rdf-codecs"],
-        serde_json::json!(["rdf", "dep:oxrdf", "dep:oxttl", "dep:oxrdfxml"])
+        serde_json::json!(["rdf", "dep:oxrdf", "dep:oxrdfxml"])
     );
     assert_eq!(
         package["features"]["oxigraph-adapter"],
@@ -73,6 +73,10 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(oxrdf["optional"], serde_json::json!(true));
     assert_eq!(oxrdf["uses_default_features"], serde_json::json!(false));
     assert_eq!(oxrdf["features"], serde_json::json!(["rdf-12"]));
+    assert_eq!(
+        oxrdf["target"],
+        serde_json::json!("cfg(not(target_arch = \"wasm32\"))")
+    );
 
     let oxsdatatypes = package["dependencies"]
         .as_array()
@@ -82,15 +86,14 @@ fn optional_adapters_are_not_enabled_by_default() {
         .expect("oxsdatatypes dependency is present");
     assert_eq!(oxsdatatypes["optional"], serde_json::json!(true));
 
-    let oxttl = package["dependencies"]
-        .as_array()
-        .expect("metadata dependencies are an array")
-        .iter()
-        .find(|dependency| dependency["name"] == "oxttl")
-        .expect("oxttl dependency is present");
-    assert_eq!(oxttl["optional"], serde_json::json!(true));
-    assert_eq!(oxttl["uses_default_features"], serde_json::json!(false));
-    assert_eq!(oxttl["features"], serde_json::json!(["rdf-12"]));
+    assert!(
+        !package["dependencies"]
+            .as_array()
+            .expect("metadata dependencies are an array")
+            .iter()
+            .any(|dependency| dependency["name"] == "oxttl"),
+        "rdf-codecs must not depend on oxttl"
+    );
 
     let oxrdfxml = package["dependencies"]
         .as_array()
@@ -101,6 +104,10 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(oxrdfxml["optional"], serde_json::json!(true));
     assert_eq!(oxrdfxml["uses_default_features"], serde_json::json!(false));
     assert_eq!(oxrdfxml["features"], serde_json::json!(["rdf-12"]));
+    assert_eq!(
+        oxrdfxml["target"],
+        serde_json::json!("cfg(not(target_arch = \"wasm32\"))")
+    );
 
     let oxigraph = package["dependencies"]
         .as_array()

@@ -300,6 +300,21 @@ fn rejects_invalid_rdf_term_positions() {
     assert!(err.to_string().contains("invalid graph name"));
 }
 
+#[test]
+fn rejects_forbidden_iri_characters() {
+    for ch in ['{', '}', '|', '\\', '^', '`'] {
+        let nq = format!("<https://ex/{ch}> <https://ex/p> <https://ex/o> .\n");
+        let err = match from_nquads(&nq) {
+            Ok(_) => panic!("forbidden IRI character {ch:?} should be rejected"),
+            Err(err) => err,
+        };
+        assert!(
+            err.to_string().contains("invalid character in IRI"),
+            "unexpected error for {ch:?}: {err}"
+        );
+    }
+}
+
 fn tmpdir() -> PathBuf {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static COUNTER: AtomicUsize = AtomicUsize::new(0);

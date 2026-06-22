@@ -199,10 +199,57 @@ fn rejects_malformed_or_unsupported_trig() {
     let err = from_trig("@prefix ex: <https://ex/> .\nex:s ex:p ex:o\n")
         .expect_err("missing dot is malformed");
     assert!(err.to_string().contains("terminate statement"));
+}
 
-    let err = from_trig("@prefix ex: <https://ex/> .\nex:s ex:p ex:o ; ex:q ex:r .\n")
-        .expect_err("predicate shorthand is intentionally unsupported");
-    assert!(err.to_string().contains("shorthand"));
+#[test]
+fn parses_predicate_object_shorthand_and_lists() {
+    let trig = r#"@base <https://ex/> .
+@prefix ex: <https://ex/ns#> .
+
+ex:s a ex:Thing ;
+    ex:p ex:o, ex:o2 ;
+    ex:nested [ ex:name "Kit" ] ;
+    ex:list ( ex:a ex:b ) .
+"#;
+    let imported = from_trig(trig).expect("TriG shorthand parses");
+    let out = to_nquads(&read(&imported, true, None));
+    assert!(out.contains("<https://ex/ns#p> <https://ex/ns#o>"));
+    assert!(out.contains("<https://ex/ns#p> <https://ex/ns#o2>"));
+    assert!(out.contains("<https://ex/ns#name> \"Kit\""));
+    assert!(out.contains("<http://www.w3.org/1999/02/22-rdf-syntax-ns#first>"));
+    assert!(out.contains("<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest>"));
+}
+
+#[test]
+fn resolves_base_iri_relative_references() {
+    let trig = r#"@base <https://ex/dir/file?old#frag> .
+
+<child> <#frag> <../up> .
+</root> <?q> <> .
+<./same> <https://ex/p> <a/./b/../c#frag> .
+"#;
+    let imported = from_trig(trig).expect("relative IRIs parse");
+    let out = to_nquads(&read(&imported, true, None));
+    let expected = "\
+<https://ex/dir/child> <https://ex/dir/file?old#frag> <https://ex/up> .\n\
+<https://ex/root> <https://ex/dir/file?q> <https://ex/dir/file?old> .\n\
+<https://ex/dir/same> <https://ex/p> <https://ex/dir/a/c#frag> .\n";
+    assert_eq!(sorted_lines(&out), sorted_lines(expected));
+}
+
+#[test]
+fn rejects_forbidden_raw_iri_characters() {
+    for ch in ['{', '}', '|', '\\', '^', '`'] {
+        let trig = format!("<https://ex/{ch}> <https://ex/p> <https://ex/o> .\n");
+        let err = match from_trig(&trig) {
+            Ok(_) => panic!("forbidden IRI character {ch:?} should be rejected"),
+            Err(err) => err,
+        };
+        assert!(
+            err.to_string().contains("invalid character in IRI"),
+            "unexpected error for {ch:?}: {err}"
+        );
+    }
 }
 
 fn tmpdir() -> PathBuf {

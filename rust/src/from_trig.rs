@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The `trig -> gts` transform.
+//! Turtle/TriG import for the GTS RDF text-codec surface.
 //!
-//! The parser is deliberately strict and dependency-free. It accepts the TriG
-//! form emitted by [`crate::trig::to_trig`] plus common prefixes and graph
-//! blocks, then delegates the final graph import to [`crate::from_nquads`] so
-//! RDF term validation and writer semantics stay shared.
+//! The parser is deliberately dependency-free and implements the tested GTS
+//! surface: prefixes, base IRIs, graph blocks, `a`, predicate/object lists,
+//! blank-node property lists, RDF collections, and RDF 1.2 quoted triples. It
+//! lowers to N-Quads first so term validation and writer semantics stay shared
+//! with [`crate::from_nquads`].
 
 use std::collections::HashMap;
 use std::fmt;
@@ -16,8 +17,11 @@ use crate::nquads::escape_literal;
 
 const RDF_NS: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+const RDF_FIRST: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#first";
+const RDF_REST: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest";
+const RDF_NIL: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil";
 
-/// Raised when TriG input is malformed or uses unsupported abbreviation forms.
+/// Raised when Turtle/TriG input is malformed or outside the supported surface.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TriGParseError {
     detail: String,
@@ -86,15 +90,144 @@ struct Parser<'a> {
     pos: usize,
     prefixes: HashMap<String, String>,
     nquads: Vec<String>,
+    base_iri: Option<String>,
+    bnode_counter: usize,
+    allow_named_graphs: bool,
+}
+
+fn has_iri_scheme(value: &str) -> bool {
+    let mut chars = value.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !first.is_ascii_alphabetic() {
+        return false;
+    }
+    for ch in chars {
+        if ch == ':' {
+            return true;
+        }
+        if !(ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.')) {
+            return false;
+        }
+    }
+    false
+}
+
+fn is_forbidden_iri_char(ch: char) -> bool {
+    ch.is_control()
+        || ch.is_whitespace()
+        || matches!(ch, '<' | '>' | '"' | '{' | '}' | '|' | '\\' | '^' | '`')
+}
+
+fn remove_dot_segments(path: &str) -> String {
+    let absolute = path.starts_with('/');
+    let keep_trailing_slash = path.ends_with('/')
+        || path.ends_with("/.")
+        || path.ends_with("/..")
+        || path == "."
+        || path == "..";
+    let mut segments = Vec::new();
+    for segment in path.split('/') {
+        match segment {
+            "" | "." => {}
+            ".." => {
+                segments.pop();
+            }
+            segment => segments.push(segment),
+        }
+    }
+
+    let mut normalized = String::new();
+    if absolute {
+        normalized.push('/');
+    }
+    normalized.push_str(&segments.join("/"));
+    if keep_trailing_slash && !normalized.ends_with('/') {
+        normalized.push('/');
+    }
+    if normalized.is_empty() && absolute {
+        normalized.push('/');
+    }
+    normalized
+}
+
+fn split_raw_path_suffix(raw: &str) -> (&str, &str) {
+    let split = raw.find(['?', '#']).unwrap_or(raw.len());
+    (&raw[..split], &raw[split..])
+}
+
+fn split_base_for_path(base: &str) -> (String, &str) {
+    let Some(scheme_end) = base.find(':') else {
+        return (String::new(), base);
+    };
+    let scheme_prefix = &base[..=scheme_end];
+    let rest = &base[scheme_end + 1..];
+    if let Some(after_slashes) = rest.strip_prefix("//") {
+        let authority_end = after_slashes.find('/').unwrap_or(after_slashes.len());
+        let authority = &after_slashes[..authority_end];
+        let path = &after_slashes[authority_end..];
+        (format!("{scheme_prefix}//{authority}"), path)
+    } else {
+        (scheme_prefix.to_string(), rest)
+    }
+}
+
+fn resolve_relative_iri(base: &str, raw: &str) -> String {
+    if has_iri_scheme(raw) {
+        return raw.to_string();
+    }
+
+    let base_without_fragment = base.split_once('#').map_or(base, |(before, _)| before);
+    if raw.is_empty() {
+        return base_without_fragment.to_string();
+    }
+    if raw.starts_with('#') {
+        return format!("{base_without_fragment}{raw}");
+    }
+
+    let base_without_query = base_without_fragment
+        .split_once('?')
+        .map_or(base_without_fragment, |(before, _)| before);
+    if raw.starts_with('?') {
+        return format!("{base_without_query}{raw}");
+    }
+
+    if raw.starts_with("//") {
+        if let Some(scheme_end) = base.find(':') {
+            return format!("{}:{raw}", &base[..scheme_end]);
+        }
+        return raw.to_string();
+    }
+
+    let (prefix, base_path) = split_base_for_path(base_without_query);
+    let (raw_path, suffix) = split_raw_path_suffix(raw);
+    let merged_path = if raw_path.starts_with('/') {
+        raw_path.to_string()
+    } else {
+        let base_dir = if base_path.is_empty() {
+            "/"
+        } else {
+            base_path
+                .rfind('/')
+                .map(|index| &base_path[..=index])
+                .unwrap_or("")
+        };
+        format!("{base_dir}{raw_path}")
+    };
+    format!("{prefix}{}{}", remove_dot_segments(&merged_path), suffix)
 }
 
 impl<'a> Parser<'a> {
-    fn new(text: &'a str) -> Self {
+    fn new(text: &'a str, allow_named_graphs: bool) -> Self {
         Self {
             text,
             pos: 0,
             prefixes: HashMap::from([("rdf".to_string(), RDF_NS.to_string())]),
             nquads: Vec::new(),
+            base_iri: None,
+            bnode_counter: 0,
+            allow_named_graphs,
         }
     }
 
@@ -108,19 +241,37 @@ impl<'a> Parser<'a> {
                 self.prefix_directive(true)?;
                 continue;
             }
+            if self.consume("@base") {
+                self.base_directive(true)?;
+                continue;
+            }
             if self.consume_keyword("PREFIX") {
                 self.prefix_directive(false)?;
                 continue;
             }
+            if self.consume_keyword("BASE") {
+                self.base_directive(false)?;
+                continue;
+            }
             if self.consume_keyword("GRAPH") {
-                let graph = self.term()?;
+                if !self.allow_named_graphs {
+                    return Err(TriGParseError::new(
+                        "Turtle input cannot contain GRAPH blocks",
+                    ));
+                }
+                let graph = self.term(None)?;
                 self.graph_block(graph)?;
                 continue;
             }
 
-            let first = self.term()?;
+            let first = self.term(None)?;
             self.skip_ws_and_comments();
             if self.consume_char('{') {
+                if !self.allow_named_graphs {
+                    return Err(TriGParseError::new(
+                        "Turtle input cannot contain graph blocks",
+                    ));
+                }
                 self.graph_block_after_open(first)?;
             } else {
                 self.statement_after_subject(first, None)?;
@@ -188,7 +339,13 @@ impl<'a> Parser<'a> {
         let boundary = rest[keyword.len()..]
             .chars()
             .next()
-            .map(|ch| ch.is_whitespace() || matches!(ch, '{' | '}' | '<' | '_' | '"'))
+            .map(|ch| {
+                ch.is_whitespace()
+                    || matches!(
+                        ch,
+                        '{' | '}' | '[' | ']' | '(' | ')' | '<' | '_' | '"' | ';' | ',' | '.'
+                    )
+            })
             .unwrap_or(true);
         if boundary {
             self.pos += keyword.len();
@@ -231,6 +388,22 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
+    fn base_directive(&mut self, require_dot: bool) -> Result<(), TriGParseError> {
+        let iri = self.iri_raw()?;
+        if !has_iri_scheme(&iri) {
+            return Err(TriGParseError::new(format!(
+                "base IRI must be absolute: {iri:?}"
+            )));
+        }
+        self.base_iri = Some(iri);
+        if require_dot {
+            self.expect_char('.', "after @base directive")?;
+        } else {
+            self.consume_char('.');
+        }
+        Ok(())
+    }
+
     fn prefix_label(&mut self) -> Result<String, TriGParseError> {
         self.skip_ws_and_comments();
         let start = self.pos;
@@ -252,17 +425,22 @@ impl<'a> Parser<'a> {
         )))
     }
 
-    fn term(&mut self) -> Result<Node, TriGParseError> {
+    fn term(&mut self, graph: Option<&Node>) -> Result<Node, TriGParseError> {
         self.skip_ws_and_comments();
         if self.text[self.pos..].starts_with("<<(") {
-            return self.quoted_triple();
+            return self.parenthesized_quoted_triple(graph);
+        }
+        if self.text[self.pos..].starts_with("<<") {
+            return self.legacy_quoted_triple(graph);
         }
         match self.peek_char() {
             Some('<') => self.iri().map(Node::Iri),
             Some('_') => self.bnode().map(Node::Bnode),
             Some('"') => self.literal(),
+            Some('[') => self.blank_node_property_list(graph),
+            Some('(') => self.collection(graph),
             Some(_) => self.prefixed_name().map(Node::Iri),
-            None => Err(TriGParseError::new("unexpected end of TriG input")),
+            None => Err(TriGParseError::new("unexpected end of Turtle/TriG input")),
         }
     }
 
@@ -271,11 +449,11 @@ impl<'a> Parser<'a> {
         if self.consume_keyword("a") {
             Ok(Node::Iri(RDF_TYPE.to_string()))
         } else {
-            self.term()
+            self.term(None)
         }
     }
 
-    fn iri(&mut self) -> Result<String, TriGParseError> {
+    fn iri_raw(&mut self) -> Result<String, TriGParseError> {
         self.skip_ws_and_comments();
         if self.bump_char() != Some('<') {
             return Err(TriGParseError::new(format!(
@@ -287,13 +465,35 @@ impl<'a> Parser<'a> {
         while let Some(ch) = self.bump_char() {
             if ch == '>' {
                 let end = self.pos - 1;
-                return Ok(self.text[start..end].to_string());
+                let raw = &self.text[start..end];
+                if raw.chars().any(is_forbidden_iri_char) {
+                    return Err(TriGParseError::new(format!(
+                        "invalid character in IRI starting at byte {}",
+                        start.saturating_sub(1)
+                    )));
+                }
+                return Ok(raw.to_string());
             }
         }
         Err(TriGParseError::new(format!(
             "unterminated IRI starting at byte {}",
             start.saturating_sub(1)
         )))
+    }
+
+    fn iri(&mut self) -> Result<String, TriGParseError> {
+        let raw = self.iri_raw()?;
+        Ok(self.resolve_iri(&raw))
+    }
+
+    fn resolve_iri(&self, raw: &str) -> String {
+        if has_iri_scheme(raw) {
+            raw.to_string()
+        } else if let Some(base) = &self.base_iri {
+            resolve_relative_iri(base, raw)
+        } else {
+            raw.to_string()
+        }
     }
 
     fn bnode(&mut self) -> Result<String, TriGParseError> {
@@ -320,6 +520,12 @@ impl<'a> Parser<'a> {
             return Err(TriGParseError::new("empty blank node label"));
         }
         Ok(self.text[start..self.pos].to_string())
+    }
+
+    fn next_bnode(&mut self) -> Node {
+        let id = self.bnode_counter;
+        self.bnode_counter += 1;
+        Node::Bnode(format!("gts_b{id}"))
     }
 
     fn literal(&mut self) -> Result<Node, TriGParseError> {
@@ -410,11 +616,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn quoted_triple(&mut self) -> Result<Node, TriGParseError> {
+    fn parenthesized_quoted_triple(
+        &mut self,
+        graph: Option<&Node>,
+    ) -> Result<Node, TriGParseError> {
         self.pos += 3;
-        let s = self.term()?;
+        let s = self.term(graph)?;
         let p = self.predicate()?;
-        let o = self.term()?;
+        let o = self.term(graph)?;
         self.skip_ws_and_comments();
         if !self.text[self.pos..].starts_with(")>>") {
             return Err(TriGParseError::new("unterminated quoted triple"));
@@ -423,11 +632,29 @@ impl<'a> Parser<'a> {
         Ok(Node::Triple(Box::new(s), Box::new(p), Box::new(o)))
     }
 
+    fn legacy_quoted_triple(&mut self, graph: Option<&Node>) -> Result<Node, TriGParseError> {
+        self.pos += 2;
+        let s = self.term(graph)?;
+        let p = self.predicate()?;
+        let o = self.term(graph)?;
+        self.skip_ws_and_comments();
+        if !self.text[self.pos..].starts_with(">>") {
+            return Err(TriGParseError::new("unterminated quoted triple"));
+        }
+        self.pos += 2;
+        Ok(Node::Triple(Box::new(s), Box::new(p), Box::new(o)))
+    }
+
     fn prefixed_name(&mut self) -> Result<String, TriGParseError> {
         self.skip_ws_and_comments();
         let start = self.pos;
         while let Some(ch) = self.peek_char() {
-            if ch.is_whitespace() || matches!(ch, '{' | '}' | '.' | ';' | ',' | ')') {
+            if ch.is_whitespace()
+                || matches!(
+                    ch,
+                    '{' | '}' | '[' | ']' | '(' | ')' | '<' | '>' | '.' | ';' | ','
+                )
+            {
                 break;
             }
             self.bump_char();
@@ -450,6 +677,43 @@ impl<'a> Parser<'a> {
         Ok(format!("{base}{local}"))
     }
 
+    fn blank_node_property_list(&mut self, graph: Option<&Node>) -> Result<Node, TriGParseError> {
+        self.expect_char('[', "to open blank-node property list")?;
+        let subject = self.next_bnode();
+        if !self.consume_char(']') {
+            self.predicate_object_list(&subject, graph)?;
+            self.expect_char(']', "to close blank-node property list")?;
+        }
+        Ok(subject)
+    }
+
+    fn collection(&mut self, graph: Option<&Node>) -> Result<Node, TriGParseError> {
+        self.expect_char('(', "to open RDF collection")?;
+        let mut items = Vec::new();
+        while !self.consume_char(')') {
+            if self.eof() {
+                return Err(TriGParseError::new("unterminated RDF collection"));
+            }
+            items.push(self.term(graph)?);
+        }
+        if items.is_empty() {
+            return Ok(Node::Iri(RDF_NIL.to_string()));
+        }
+
+        let mut cells: Vec<Node> = (0..items.len()).map(|_| self.next_bnode()).collect();
+        for (index, item) in items.into_iter().enumerate() {
+            let current = cells[index].clone();
+            let rest = if index + 1 == cells.len() {
+                Node::Iri(RDF_NIL.to_string())
+            } else {
+                cells[index + 1].clone()
+            };
+            self.emit_statement(&current, &Node::Iri(RDF_FIRST.to_string()), &item, graph);
+            self.emit_statement(&current, &Node::Iri(RDF_REST.to_string()), &rest, graph);
+        }
+        Ok(cells.remove(0))
+    }
+
     fn graph_block(&mut self, graph: Node) -> Result<(), TriGParseError> {
         self.expect_char('{', "to open graph block")?;
         self.graph_block_after_open(graph)
@@ -465,7 +729,7 @@ impl<'a> Parser<'a> {
             if self.eof() {
                 return Err(TriGParseError::new("unterminated graph block"));
             }
-            let subject = self.term()?;
+            let subject = self.term(Some(&graph))?;
             self.statement_after_subject(subject, Some(&graph))?;
         }
         Ok(())
@@ -476,15 +740,44 @@ impl<'a> Parser<'a> {
         subject: Node,
         graph: Option<&Node>,
     ) -> Result<(), TriGParseError> {
-        let predicate = self.predicate()?;
-        let object = self.term()?;
-        self.skip_ws_and_comments();
-        if matches!(self.peek_char(), Some(';') | Some(',')) {
-            return Err(TriGParseError::new(
-                "TriG predicate/object shorthand is not supported; write one statement per line",
-            ));
+        self.predicate_object_list(&subject, graph)?;
+        self.expect_char('.', "to terminate statement")
+    }
+
+    fn predicate_object_list(
+        &mut self,
+        subject: &Node,
+        graph: Option<&Node>,
+    ) -> Result<(), TriGParseError> {
+        loop {
+            let predicate = self.predicate()?;
+            loop {
+                let object = self.term(graph)?;
+                self.emit_statement(subject, &predicate, &object, graph);
+                if self.consume_char(',') {
+                    continue;
+                }
+                break;
+            }
+            if self.consume_char(';') {
+                self.skip_ws_and_comments();
+                if matches!(self.peek_char(), Some('.' | ']' | '}')) {
+                    break;
+                }
+                continue;
+            }
+            break;
         }
-        self.expect_char('.', "to terminate statement")?;
+        Ok(())
+    }
+
+    fn emit_statement(
+        &mut self,
+        subject: &Node,
+        predicate: &Node,
+        object: &Node,
+        graph: Option<&Node>,
+    ) {
         let mut line = format!(
             "{} {} {}",
             subject.token(),
@@ -497,12 +790,17 @@ impl<'a> Parser<'a> {
         }
         line.push_str(" .");
         self.nquads.push(line);
-        Ok(())
     }
+}
+
+/// Parse Turtle text into a canonical GTS file.
+pub fn from_turtle(text: &str) -> Result<Vec<u8>, TriGParseError> {
+    let nquads = Parser::new(text, false).parse()?;
+    from_nquads(&nquads).map_err(|err| TriGParseError::new(err.to_string()))
 }
 
 /// Parse TriG text into a canonical GTS file.
 pub fn from_trig(text: &str) -> Result<Vec<u8>, TriGParseError> {
-    let nquads = Parser::new(text).parse()?;
+    let nquads = Parser::new(text, true).parse()?;
     from_nquads(&nquads).map_err(|err| TriGParseError::new(err.to_string()))
 }
