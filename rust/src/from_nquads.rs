@@ -92,16 +92,19 @@ fn has_iri_scheme(value: &str) -> bool {
     false
 }
 
+fn is_forbidden_iri_char(ch: char) -> bool {
+    ch.is_control()
+        || ch.is_whitespace()
+        || matches!(ch, '<' | '>' | '"' | '{' | '}' | '|' | '\\' | '^' | '`')
+}
+
 fn validate_iri(value: &str, line: &str) -> Result<(), NQuadsParseError> {
     if value.is_empty() || value.starts_with("//") || !has_iri_scheme(value) {
         return Err(NQuadsParseError::new(format!(
             "IRI must be absolute: {line:?}"
         )));
     }
-    if value
-        .chars()
-        .any(|ch| ch.is_control() || ch.is_whitespace() || matches!(ch, '<' | '>' | '"'))
-    {
+    if value.chars().any(is_forbidden_iri_char) {
         return Err(NQuadsParseError::new(format!(
             "invalid character in IRI: {line:?}"
         )));
@@ -481,25 +484,13 @@ fn validate_subject(
     line: &str,
     allow_triple_subject: bool,
 ) -> Result<(), NQuadsParseError> {
-    let is_iri = |node: &Node| {
-        matches!(
-            node,
-            Node::Atom(Atom {
-                kind: TermKind::Iri,
-                ..
-            })
-        )
-    };
-    let is_bnode = |node: &Node| {
-        matches!(
-            node,
-            Node::Atom(Atom {
-                kind: TermKind::Bnode,
-                ..
-            })
-        )
-    };
-    if is_iri(node) || is_bnode(node) {
+    if matches!(
+        node,
+        Node::Atom(Atom {
+            kind: TermKind::Iri | TermKind::Bnode,
+            ..
+        })
+    ) {
         return Ok(());
     }
     if allow_triple_subject {

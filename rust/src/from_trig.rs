@@ -114,6 +114,110 @@ fn has_iri_scheme(value: &str) -> bool {
     false
 }
 
+fn is_forbidden_iri_char(ch: char) -> bool {
+    ch.is_control()
+        || ch.is_whitespace()
+        || matches!(ch, '<' | '>' | '"' | '{' | '}' | '|' | '\\' | '^' | '`')
+}
+
+fn remove_dot_segments(path: &str) -> String {
+    let absolute = path.starts_with('/');
+    let keep_trailing_slash = path.ends_with('/')
+        || path.ends_with("/.")
+        || path.ends_with("/..")
+        || path == "."
+        || path == "..";
+    let mut segments = Vec::new();
+    for segment in path.split('/') {
+        match segment {
+            "" | "." => {}
+            ".." => {
+                segments.pop();
+            }
+            segment => segments.push(segment),
+        }
+    }
+
+    let mut normalized = String::new();
+    if absolute {
+        normalized.push('/');
+    }
+    normalized.push_str(&segments.join("/"));
+    if keep_trailing_slash && !normalized.ends_with('/') {
+        normalized.push('/');
+    }
+    if normalized.is_empty() && absolute {
+        normalized.push('/');
+    }
+    normalized
+}
+
+fn split_raw_path_suffix(raw: &str) -> (&str, &str) {
+    let split = raw.find(['?', '#']).unwrap_or(raw.len());
+    (&raw[..split], &raw[split..])
+}
+
+fn split_base_for_path(base: &str) -> (String, &str) {
+    let Some(scheme_end) = base.find(':') else {
+        return (String::new(), base);
+    };
+    let scheme_prefix = &base[..=scheme_end];
+    let rest = &base[scheme_end + 1..];
+    if let Some(after_slashes) = rest.strip_prefix("//") {
+        let authority_end = after_slashes.find('/').unwrap_or(after_slashes.len());
+        let authority = &after_slashes[..authority_end];
+        let path = &after_slashes[authority_end..];
+        (format!("{scheme_prefix}//{authority}"), path)
+    } else {
+        (scheme_prefix.to_string(), rest)
+    }
+}
+
+fn resolve_relative_iri(base: &str, raw: &str) -> String {
+    if has_iri_scheme(raw) {
+        return raw.to_string();
+    }
+
+    let base_without_fragment = base.split_once('#').map_or(base, |(before, _)| before);
+    if raw.is_empty() {
+        return base_without_fragment.to_string();
+    }
+    if raw.starts_with('#') {
+        return format!("{base_without_fragment}{raw}");
+    }
+
+    let base_without_query = base_without_fragment
+        .split_once('?')
+        .map_or(base_without_fragment, |(before, _)| before);
+    if raw.starts_with('?') {
+        return format!("{base_without_query}{raw}");
+    }
+
+    if raw.starts_with("//") {
+        if let Some(scheme_end) = base.find(':') {
+            return format!("{}:{raw}", &base[..scheme_end]);
+        }
+        return raw.to_string();
+    }
+
+    let (prefix, base_path) = split_base_for_path(base_without_query);
+    let (raw_path, suffix) = split_raw_path_suffix(raw);
+    let merged_path = if raw_path.starts_with('/') {
+        raw_path.to_string()
+    } else {
+        let base_dir = if base_path.is_empty() {
+            "/"
+        } else {
+            base_path
+                .rfind('/')
+                .map(|index| &base_path[..=index])
+                .unwrap_or("")
+        };
+        format!("{base_dir}{raw_path}")
+    };
+    format!("{prefix}{}{}", remove_dot_segments(&merged_path), suffix)
+}
+
 impl<'a> Parser<'a> {
     fn new(text: &'a str, allow_named_graphs: bool) -> Self {
         Self {
@@ -362,10 +466,7 @@ impl<'a> Parser<'a> {
             if ch == '>' {
                 let end = self.pos - 1;
                 let raw = &self.text[start..end];
-                if raw
-                    .chars()
-                    .any(|ch| ch.is_control() || matches!(ch, '<' | '>' | '"'))
-                {
+                if raw.chars().any(is_forbidden_iri_char) {
                     return Err(TriGParseError::new(format!(
                         "invalid character in IRI starting at byte {}",
                         start.saturating_sub(1)
@@ -386,10 +487,10 @@ impl<'a> Parser<'a> {
     }
 
     fn resolve_iri(&self, raw: &str) -> String {
-        if has_iri_scheme(raw) || raw.starts_with("//") {
+        if has_iri_scheme(raw) {
             raw.to_string()
         } else if let Some(base) = &self.base_iri {
-            format!("{base}{raw}")
+            resolve_relative_iri(base, raw)
         } else {
             raw.to_string()
         }

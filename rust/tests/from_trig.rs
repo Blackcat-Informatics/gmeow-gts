@@ -220,6 +220,38 @@ ex:s a ex:Thing ;
     assert!(out.contains("<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest>"));
 }
 
+#[test]
+fn resolves_base_iri_relative_references() {
+    let trig = r#"@base <https://ex/dir/file?old#frag> .
+
+<child> <#frag> <../up> .
+</root> <?q> <> .
+<./same> <https://ex/p> <a/./b/../c#frag> .
+"#;
+    let imported = from_trig(trig).expect("relative IRIs parse");
+    let out = to_nquads(&read(&imported, true, None));
+    let expected = "\
+<https://ex/dir/child> <https://ex/dir/file?old#frag> <https://ex/up> .\n\
+<https://ex/root> <https://ex/dir/file?q> <https://ex/dir/file?old> .\n\
+<https://ex/dir/same> <https://ex/p> <https://ex/dir/a/c#frag> .\n";
+    assert_eq!(sorted_lines(&out), sorted_lines(expected));
+}
+
+#[test]
+fn rejects_forbidden_raw_iri_characters() {
+    for ch in ['{', '}', '|', '\\', '^', '`'] {
+        let trig = format!("<https://ex/{ch}> <https://ex/p> <https://ex/o> .\n");
+        let err = match from_trig(&trig) {
+            Ok(_) => panic!("forbidden IRI character {ch:?} should be rejected"),
+            Err(err) => err,
+        };
+        assert!(
+            err.to_string().contains("invalid character in IRI"),
+            "unexpected error for {ch:?}: {err}"
+        );
+    }
+}
+
 fn tmpdir() -> PathBuf {
     use std::sync::atomic::{AtomicUsize, Ordering};
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
