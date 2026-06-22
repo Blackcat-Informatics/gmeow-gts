@@ -1,18 +1,20 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Optional RDF 1.2 Turtle-family codecs.
+//! Optional RDF 1.2 Turtle-family and line-format codecs.
 //!
 //! This module is compiled only with `--features rdf-codecs`. It uses
-//! `oxttl` for shared Turtle/TriG parsing and serialization, while GTS import
-//! and export stay routed through the crate's native RDF adapter and RDF event
-//! contract.
+//! `oxttl` for shared N-Triples/Turtle/TriG parsing and serialization, while
+//! GTS import and export stay routed through the crate's native RDF adapter and
+//! RDF event contract.
 
 use std::collections::BTreeMap;
 use std::fmt;
 
 use oxrdf::{Dataset, GraphNameRef, TripleRef};
-use oxttl::{TriGParser, TriGSerializer, TurtleParser, TurtleSerializer};
+use oxttl::{
+    NTriplesParser, NTriplesSerializer, TriGParser, TriGSerializer, TurtleParser, TurtleSerializer,
+};
 
 use crate::model::{Diagnostic, Graph, Quad, Term, TermKind, Triple3};
 use crate::rdf::{from_oxrdf_dataset, to_oxrdf_quads, RdfAdapterError};
@@ -60,7 +62,7 @@ impl From<RdfAdapterError> for RdfCodecError {
 
 impl From<oxttl::TurtleSyntaxError> for RdfCodecError {
     fn from(error: oxttl::TurtleSyntaxError) -> Self {
-        Self::new(format!("Turtle-family syntax error: {error}"))
+        Self::new(format!("RDF text syntax error: {error}"))
     }
 }
 
@@ -79,7 +81,7 @@ impl From<std::io::Error> for RdfCodecError {
 impl From<std::string::FromUtf8Error> for RdfCodecError {
     fn from(error: std::string::FromUtf8Error) -> Self {
         Self::new(format!(
-            "Turtle-family serializer emitted invalid UTF-8: {error}"
+            "RDF text serializer emitted invalid UTF-8: {error}"
         ))
     }
 }
@@ -88,6 +90,16 @@ impl From<EventError> for RdfCodecError {
     fn from(error: EventError) -> Self {
         Self::new(format!("RDF event error: {error}"))
     }
+}
+
+/// Parse N-Triples text into a GTS byte stream using the `dist` profile.
+pub fn from_ntriples(text: &str) -> Result<Vec<u8>, RdfCodecError> {
+    let mut dataset = Dataset::new();
+    for triple in NTriplesParser::new().for_slice(text.as_bytes()) {
+        let triple = triple?;
+        dataset.insert(triple.as_ref().in_graph(GraphNameRef::DefaultGraph));
+    }
+    from_oxrdf_dataset(&dataset).map_err(Into::into)
 }
 
 /// Parse Turtle text into a GTS byte stream using the `dist` profile.
@@ -108,6 +120,14 @@ pub fn from_trig(text: &str) -> Result<Vec<u8>, RdfCodecError> {
         dataset.insert(quad.as_ref());
     }
     from_oxrdf_dataset(&dataset).map_err(Into::into)
+}
+
+/// Serialize a folded graph to N-Triples through the RDF event contract.
+///
+/// N-Triples has only a default graph. This returns an error if the folded
+/// graph's RDF projection contains named-graph quads.
+pub fn to_ntriples(graph: &Graph) -> Result<String, RdfCodecError> {
+    to_ntriples_from_source(&GraphRdfEventSource::new(graph))
 }
 
 /// Serialize a folded graph to Turtle through the RDF event contract.
@@ -137,6 +157,18 @@ pub fn graph_from_erased_source(source: &dyn RdfEventSource) -> Result<Graph, Rd
     sink.into_graph()
 }
 
+/// Serialize an RDF event source to N-Triples.
+pub fn to_ntriples_from_source<S: RdfEventSource>(source: &S) -> Result<String, RdfCodecError> {
+    serialize_ntriples_graph(&graph_from_source(source)?)
+}
+
+/// Serialize a trait-object RDF event source to N-Triples.
+pub fn to_ntriples_from_erased_source(
+    source: &dyn RdfEventSource,
+) -> Result<String, RdfCodecError> {
+    serialize_ntriples_graph(&graph_from_erased_source(source)?)
+}
+
 /// Serialize an RDF event source to Turtle.
 pub fn to_turtle_from_source<S: RdfEventSource>(source: &S) -> Result<String, RdfCodecError> {
     serialize_turtle_graph(&graph_from_source(source)?)
@@ -155,6 +187,23 @@ pub fn to_trig_from_source<S: RdfEventSource>(source: &S) -> Result<String, RdfC
 /// Serialize a trait-object RDF event source to TriG.
 pub fn to_trig_from_erased_source(source: &dyn RdfEventSource) -> Result<String, RdfCodecError> {
     serialize_trig_graph(&graph_from_erased_source(source)?)
+}
+
+fn serialize_ntriples_graph(graph: &Graph) -> Result<String, RdfCodecError> {
+    let mut serializer = NTriplesSerializer::new().for_writer(Vec::new());
+
+    for quad in to_oxrdf_quads(graph)? {
+        let quad = quad.as_ref();
+        if !quad.graph_name.is_default_graph() {
+            return Err(RdfCodecError::new(format!(
+                "N-Triples cannot serialize named graph {}",
+                quad.graph_name
+            )));
+        }
+        serializer.serialize_triple(TripleRef::new(quad.subject, quad.predicate, quad.object))?;
+    }
+
+    String::from_utf8(serializer.finish()).map_err(Into::into)
 }
 
 fn serialize_turtle_graph(graph: &Graph) -> Result<String, RdfCodecError> {

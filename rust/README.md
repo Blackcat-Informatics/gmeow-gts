@@ -371,6 +371,8 @@ gts from-nq <in.nq> [-o out]    build a GTS from N-Quads (`-` reads stdin)
 gts to-trig <file>              fold to TriG on stdout
 gts from-trig <in.trig> [-o out]
                                   build a GTS from TriG (`-` reads stdin)
+gts to-nt <file>                fold the default graph to N-Triples (--features rdf-codecs)
+gts from-nt <in.nt> [-o out]    build a GTS from N-Triples (--features rdf-codecs)
 gts to-turtle <file>            fold the default graph to Turtle (--features rdf-codecs)
 gts from-turtle <in.ttl> [-o out]
                                   build a GTS from Turtle (--features rdf-codecs)
@@ -441,8 +443,8 @@ folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-prof
 without duplicating large payload bytes by default. `to-trig` and `from-trig` provide a
 readable TriG graph-block projection over the same folded RDF content as N-Quads. The optional
 `rdf-codecs` feature adds RDF 1.2 Turtle-family text codecs through `oxttl`; with it, `to-trig`
-and `from-trig` use the full codec path and `to-turtle`/`from-turtle` provide default-graph
-Turtle interchange. The optional
+and `from-trig` use the full codec path and `to-nt`/`from-nt` plus `to-turtle`/`from-turtle`
+provide default-graph N-Triples and Turtle interchange. The optional
 OKF profile (`--features okf`) imports and exports Markdown bundle directories with
 content-addressed body blobs, link edges, a `gts-okf-v1` manifest, and `_unmapped.nq` sidecars
 for out-of-profile RDF. The optional tar bridge (`--features tar`) imports and exports

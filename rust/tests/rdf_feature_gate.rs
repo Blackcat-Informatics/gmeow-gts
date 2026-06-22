@@ -128,10 +128,14 @@ fn rdf_feature_enables_adapter_module() {
 
 #[cfg(feature = "rdf-codecs")]
 #[test]
-fn rdf_codecs_feature_enables_turtle_family_modules() {
-    let text = "@prefix ex: <https://ex/> .\nex:s ex:p ex:o .\n";
-    let bytes = gmeow_gts::rdf_codecs::from_turtle(text).unwrap();
-    assert!(!bytes.is_empty());
+fn rdf_codecs_feature_enables_rdf_text_codec_modules() {
+    let turtle = "@prefix ex: <https://ex/> .\nex:s ex:p ex:o .\n";
+    let turtle_bytes = gmeow_gts::rdf_codecs::from_turtle(turtle).unwrap();
+    assert!(!turtle_bytes.is_empty());
+
+    let ntriples = "<https://ex/s> <https://ex/p> <https://ex/o> .\n";
+    let ntriples_bytes = gmeow_gts::rdf_codecs::from_ntriples(ntriples).unwrap();
+    assert!(!ntriples_bytes.is_empty());
 }
 
 #[cfg(feature = "oxigraph-adapter")]
