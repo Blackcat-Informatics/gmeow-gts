@@ -50,7 +50,7 @@ def is_forbidden(name: str, version: str) -> bool:
         return True
     if name.startswith(("sophia_", "sophia-")):
         return True
-    return name == "getrandom" and version.startswith("0.3")
+    return name == "getrandom" and version.split(".")[:2] == ["0", "3"]
 
 
 def main() -> int:
