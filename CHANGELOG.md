@@ -21,6 +21,8 @@ change before `1.0`.
 - Installable C ABI archive packaging for `libgts`, including pkg-config,
   CMake, checksum, SBOM, provenance, and immutable GitHub Release publication
   through the `capi-v*` tag lane.
+- Credential-free package dry-run CI for the C ABI wrapper family, covering
+  local package/artifact validation without registry publication secrets.
 
 ### Changed
 

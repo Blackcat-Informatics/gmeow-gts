@@ -254,7 +254,14 @@ cargo package --manifest-path rust/Cargo.toml --locked
 )
 archive="$(bash rust/capi/scripts/package.sh)"
 bash rust/capi/scripts/verify-archive.sh "${archive}"
+GTS_PACKAGE_DRY_RUN_OUT="${OUT}/packages/wrappers" \
+  bash scripts/package_dry_run_wrappers.sh
 ```
+
+The wrapper dry-run covers the Rust C ABI package list, installable C ABI
+archive verification, installed C++ archive consumption, .NET local NuGet
+packing, Composer validation, LuaRocks lint/make/pack, SwiftPM metadata and
+smoke execution, Ruby gem build/install, R build/check, and Julia package tests.
 
 For Go release parity, also dry-run the cross-build shape used by
 `.github/workflows/release-go.yaml`:
