@@ -263,7 +263,8 @@ archive verification, installed C++ archive consumption, Conan and vcpkg
 package-manager consumer smoke tests, .NET local NuGet packing, Composer
 validation, PHP Packagist package-root generation plus local path-repository
 consumer smoke testing, LuaRocks lint/make/pack plus installed-rock smoke
-execution, Ruby gem build/install, R build/check, and Julia package tests.
+execution, Swift root package dump/run validation, Ruby gem build/install, R
+build/check, and Julia package tests.
 
 For Go release parity, also dry-run the cross-build shape used by
 `.github/workflows/release-go.yaml`:
@@ -354,11 +355,13 @@ git tag "py-v${VERSION}" "${MERGE_COMMIT}"
 git tag "go-v${VERSION}" "${MERGE_COMMIT}"
 git tag "npm-v${VERSION}" "${MERGE_COMMIT}"
 git tag "capi-v${VERSION}" "${MERGE_COMMIT}"
+git tag "${VERSION}" "${MERGE_COMMIT}" # Swift Package Manager / Swift Package Index
 git push origin "rust-v${VERSION}"
 git push origin "py-v${VERSION}"
 git push origin "go-v${VERSION}"
 git push origin "npm-v${VERSION}"
 git push origin "capi-v${VERSION}"
+git push origin "${VERSION}"
 ```
 
 If `visual-hashing` changed, publish it before `rust-v*` tags that depend on the
@@ -383,6 +386,22 @@ gh run list --workflow release-pypi.yml --branch "py-v${VERSION}" --limit 5
 gh run list --workflow release-go.yaml --branch "go-v${VERSION}" --limit 5
 gh run list --workflow release-npm.yaml --branch "npm-v${VERSION}" --limit 5
 gh run list --workflow release-capi.yaml --branch "capi-v${VERSION}" --limit 5
+```
+
+After the plain Swift semantic-version tag exists, validate the root package
+and submit the repository URL with protocol and `.git` extension to Swift
+Package Index:
+
+```bash
+diff -u rust/capi/include/gts.h swift/Sources/CGts/include/gts.h
+swift package dump-package --package-path .
+bash swift/scripts/smoke.sh
+```
+
+Submit:
+
+```text
+https://github.com/Blackcat-Informatics/gmeow-gts.git
 ```
 
 If `visual-hashing` was released, monitor its workflow by tag:

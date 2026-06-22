@@ -12,6 +12,31 @@ Swift; all GTS semantics come from the C ABI in `rust/capi/include/gts.h`.
 - Swift 6.0 or newer.
 - A built `libgts` shared library from `rust/capi`.
 
+## Swift Package Manager
+
+Public Swift Package Manager consumption uses the repository root
+`Package.swift`, which exposes the existing sources under `swift/`. The
+subdirectory manifest at `swift/Package.swift` remains for local validation.
+
+After the first Swift publication tag is pushed, consumers can depend on this
+repository with:
+
+```swift
+.package(
+    url: "https://github.com/Blackcat-Informatics/gmeow-gts.git",
+    from: "0.9.4"
+)
+```
+
+and add the library product:
+
+```swift
+.product(name: "GmeowGTS", package: "gmeow-gts")
+```
+
+The wrapper is source-only. Consumers must install or otherwise expose `libgts`
+separately; no `libgts` binaries are bundled in the Swift package.
+
 Build the shared library from the repository root:
 
 ```sh
@@ -24,7 +49,7 @@ dynamic loader:
 ```sh
 LIBRARY_PATH="$PWD/rust/capi/target/debug" \
 LD_LIBRARY_PATH="$PWD/rust/capi/target/debug" \
-swift run --package-path swift \
+swift run --package-path . \
   -Xlinker -L"$PWD/rust/capi/target/debug" \
   -Xlinker -rpath \
   -Xlinker "$PWD/rust/capi/target/debug" \
@@ -34,6 +59,9 @@ swift run --package-path swift \
 On macOS use `DYLD_LIBRARY_PATH` instead of `LD_LIBRARY_PATH`. The package links
 against `-lgts`, so the shared library must be named `libgts.so` on Linux or
 `libgts.dylib` on macOS.
+
+See [`SWIFT_PACKAGE_INDEX.md`](./SWIFT_PACKAGE_INDEX.md) for the maintainer
+tagging and Swift Package Index submission process.
 
 ## API Shape
 
