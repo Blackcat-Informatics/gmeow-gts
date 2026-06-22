@@ -22,7 +22,8 @@ lockstep with the GTS release family unless a Julia-only patch is needed.
 ## First Registration
 
 After the implementation PR for issue #245 is merged to `main`, trigger
-Registrator from the repository issue or merged PR:
+Registrator from a repository issue or commit comment. Prefer the issue comment
+so the registration discussion stays linked to the work item:
 
 ```text
 @JuliaRegistrator register subdir=julia

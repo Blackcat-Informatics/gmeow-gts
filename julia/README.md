@@ -39,7 +39,7 @@ using Pkg
 Pkg.add("GmeowGTS")
 ```
 
-Registration is triggered from this monorepo with:
+Registration is triggered from a repository issue or commit comment with:
 
 ```text
 @JuliaRegistrator register subdir=julia
