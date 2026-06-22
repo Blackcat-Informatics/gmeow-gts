@@ -756,7 +756,7 @@ Wrapper package registry names and public release surfaces are:
 |---|---|---|---|
 | C ABI source crate | crates.io `gmeow-gts-capi` | `capi-v<version>` | Downloaded and attestation-checked by wrapper verifier |
 | C ABI native assets | GitHub Release `capi-v<version>` | `capi-v<version>` | Downloaded, checksum-checked, release-verified, and attestation-checked |
-| .NET | NuGet `Gmeow.Gts` | `<version>` | Metadata and `.nupkg` download checked |
+| .NET | NuGet `Gmeow.Gts` deferred | Not in the first wrapper publication wave | Source-tree and CI-smoke support only |
 | PHP | Packagist `blackcatinformatics/gmeow-gts` | `<version>` or `v<version>` on the generated package-root commit | Metadata and source reference checked |
 | LuaJIT | LuaRocks `gmeow-gts` | `<version>-1` from `lua-v<version>` | Root manifest and rockspec download checked |
 | Swift | Swift Package Index `Blackcat-Informatics/gmeow-gts` | Plain semantic version tag, such as `<version>` | Git tag checked and canonical SPI package URL recorded |
@@ -764,6 +764,15 @@ Wrapper package registry names and public release surfaces are:
 | R | r-universe `gmeowgts` under `blackcat-informatics.r-universe.dev` | `<version>` | PACKAGES index and source tarball checked |
 | Julia | Julia General `GmeowGTS` | `<version>` | General registry package identity and version checked |
 | Conan/vcpkg | first-party package name `gmeow-gts` | tagged source archive when upstreamed | Local dry-runs only until upstream recipes land |
+
+At first-wave tracker closeout on 2026-06-22, the C ABI distribution,
+wrapper dry-run, registry-prep, release-verification, and per-ecosystem child
+issues for the source-only wrapper wave were closed. The .NET/NuGet lane was
+intentionally skipped for this wave; the .NET wrapper remains supported in the
+source tree and smoke tests. Julia General, R-universe, Swift Package Index,
+Packagist, LuaRocks, RubyGems, crates.io, Conan, and vcpkg follow their
+documented registry or upstream-review paths after the repository-side package
+surfaces and dry-runs are in place.
 
 All wrapper packages are source-only bindings over the Rust C ABI. They do not
 bundle `libgts` and they are not independent GTS engines; users must install or
