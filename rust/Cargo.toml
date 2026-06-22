@@ -21,10 +21,11 @@ duckdb = []
 # intentionally opt-in so default transport users do not inherit RDF toolkit or
 # graph-store dependencies.
 rdf = ["dep:oxrdf"]
-# Enables RDF 1.2 Turtle-family text codecs. This uses the same native RDF
-# adapter plus Oxigraph's Turtle/TriG parser/serializer stack, but stays opt-in
-# so default transport and wasm builds keep their current dependency profile.
-rdf-codecs = ["rdf", "dep:oxttl"]
+# Enables RDF 1.2 text codecs. This uses the same native RDF adapter plus
+# Oxigraph's N-Triples/Turtle/TriG and RDF/XML parser/serializer stacks, but
+# stays opt-in so default transport and wasm builds keep their current
+# dependency profile.
+rdf-codecs = ["rdf", "dep:oxttl", "dep:oxrdfxml"]
 # Enables an optional Oxigraph in-memory Store adapter. This pulls in Oxigraph
 # only for callers that ask for the store bridge; defaults remain unchanged.
 oxigraph-adapter = ["rdf", "dep:oxigraph"]
@@ -77,6 +78,7 @@ sha1 = "0.11"
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
 oxrdf = { version = "0.3.3", default-features = false, features = ["rdf-12"], optional = true }
 oxttl = { version = "0.2.3", default-features = false, features = ["rdf-12"], optional = true }
+oxrdfxml = { version = "0.2.3", default-features = false, features = ["rdf-12"], optional = true }
 oxigraph = { version = "0.5.8", default-features = false, features = ["rdf-12"], optional = true }
 sophia_api = { version = "0.10.0", default-features = false, optional = true }
 sophia_inmem = { version = "0.10.0", default-features = false, optional = true }

@@ -86,6 +86,16 @@ fn rdf_codecs_commands_report_feature_gate_when_disabled() {
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("--features rdf-codecs"), "stderr: {err}");
 
+    let out = gts(&["to-rdfxml"]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--features rdf-codecs"), "stderr: {err}");
+
+    let out = gts(&["from-rdfxml"]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("--features rdf-codecs"), "stderr: {err}");
+
     let out = gts(&["to-turtle"]);
     assert_eq!(out.status.code(), Some(2));
     let err = String::from_utf8_lossy(&out.stderr);

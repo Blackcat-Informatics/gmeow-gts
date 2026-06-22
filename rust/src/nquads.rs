@@ -85,6 +85,12 @@ pub fn to_nquads(g: &Graph) -> String {
         }
     }
     for &(rid, (s, p, o)) in &g.reifiers {
+        if g.terms
+            .get(rid)
+            .is_some_and(|term| term.kind == TermKind::Triple && term.reifier == Some(rid))
+        {
+            continue;
+        }
         let quoted = format!(
             "<<( {} {} {} )>>",
             render_term(g, s),

@@ -27,6 +27,7 @@ the following operations and folded fields are the compatibility target.
 | `to_nquads(graph)` | Project the folded RDF dataset to sorted N-Quads text with the same value semantics across engines. | Python `to_nquads`; Rust `nquads::to_nquads`; Go `nquads.ToNQuads`; TypeScript `toNQuads`; Smalltalk `GtsNQuads`; Kotlin `toNQuads`. |
 | `from_nquads(input)` | Build a GTS file from N-Quads text using the shared writer semantics. | Python `from_nquads`; Rust `from_nquads::from_nquads`; Go `fromnquads.FromNQuads`; TypeScript `fromNQuads`; Smalltalk `GtsFromNQuads`; Kotlin `fromNQuads`; CLI `gts from-nq` in every engine. |
 | `to_ntriples(graph)` / `from_ntriples(input)` | Project a default-graph RDF dataset to N-Triples and rebuild GTS bytes from N-Triples text using the shared RDF 1.2 parser/serializer. | Rust `rdf_codecs::to_ntriples` / `from_ntriples` behind `--features rdf-codecs`; CLI `gts to-nt` and `gts from-nt` in Rust. |
+| `to_rdf_xml(graph)` / `from_rdf_xml(input)` | Project a default-graph RDF dataset to RDF/XML and rebuild GTS bytes from RDF/XML text, including RDF/XML namespace, parseType, collection, reification, annotation, and RDF 1.2 triple-term grammar. | Rust `rdf_codecs::to_rdf_xml` / `from_rdf_xml` behind `--features rdf-codecs`; CLI `gts to-rdfxml` and `gts from-rdfxml` in Rust. |
 | `to_trig(graph)` / `from_trig(input)` | Project folded RDF to readable TriG graph blocks and rebuild GTS bytes from the supported TriG surface without changing N-Quads content. | Python `gts.trig.to_trig` / `from_trig`; Rust `trig::to_trig` / `from_trig::from_trig`; Rust `rdf_codecs::to_trig` / `from_trig` with `--features rdf-codecs`; CLI `gts to-trig` and `gts from-trig` in Python and Rust. |
 | `to_turtle(graph)` / `from_turtle(input)` | Project a default-graph RDF dataset to Turtle and rebuild GTS bytes from Turtle text using the shared Turtle-family RDF 1.2 parser/serializer. | Rust `rdf_codecs::to_turtle` / `from_turtle` behind `--features rdf-codecs`; CLI `gts to-turtle` and `gts from-turtle` in Rust. |
 | graph iterators/accessors | Expose resolved access to terms, quads, reifier bindings, annotations, suppressions, blobs, opaque nodes, signatures, diagnostics, segment heads, profiles, metadata, and streamable state. | Native fields on `Graph`/`GtsGraph` in all six engines, with helper lookups where idiomatic. |
@@ -94,6 +95,8 @@ actual dispatch surfaces.
 | `from-trig` | yes | yes | no | no | no | no | Python/Rust transform extension |
 | `to-nt` | no | yes | no | no | no | no | Rust RDF text codec extension |
 | `from-nt` | no | yes | no | no | no | no | Rust RDF text codec extension |
+| `to-rdfxml` | no | yes | no | no | no | no | Rust RDF text codec extension |
+| `from-rdfxml` | no | yes | no | no | no | no | Rust RDF text codec extension |
 | `to-turtle` | no | yes | no | no | no | no | Rust Turtle-family transform extension |
 | `from-turtle` | no | yes | no | no | no | no | Rust Turtle-family transform extension |
 | `to-yaml-ld` | no | yes | no | no | no | no | Rust transform extension |
@@ -130,6 +133,12 @@ actual dispatch surfaces.
   `to-nt` accepts only default-graph RDF projections; named-graph datasets should use `to-trig`.
   Python, Go, TypeScript, Smalltalk, and Kotlin parity can land later against the same
   parser/round-trip expectations.
+- `to-rdfxml` and `from-rdfxml` are Rust-only RDF text codec extensions behind
+  `--features rdf-codecs`. They cover RDF/XML parse and serialization through the event
+  contract, including namespace, `rdf:parseType`, collection, reification, annotation,
+  and RDF 1.2 triple-term surfaces. `to-rdfxml` accepts only default-graph RDF projections;
+  named-graph datasets should use `to-trig`. Python, Go, TypeScript, Smalltalk, and Kotlin parity
+  can land later against the same W3C RDF/XML suite expectations.
 - `to-turtle` and `from-turtle` are Rust-only Turtle-family transform extensions behind
   `--features rdf-codecs`. They use the same RDF 1.2 parser/serializer stack as the full TriG
   path. `to-turtle` accepts only default-graph RDF projections; named-graph datasets should use
