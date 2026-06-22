@@ -325,6 +325,14 @@ workflow `release-cargo.yaml`, and environment `(none)`. The normal Rust
 release path uses GitHub Actions OIDC and does not require
 `CARGO_REGISTRY_TOKEN`.
 
+Before the first `gmeow-gts-capi` source-crate publish, confirm the
+`CARGO_REGISTRY_TOKEN` bootstrap secret is available to
+`release-cargo-capi.yaml`. This token is only for the initial crate bootstrap.
+After the first version appears on crates.io, file and complete the follow-on
+Trusted Publishing migration for `gmeow-gts-capi`, owner/repo
+`Blackcat-Informatics/gmeow-gts`, workflow `release-cargo-capi.yaml`, and
+environment `(none)` unless a protected release environment is added.
+
 If the `gmeow-gts` Rust crate depends on a newer `visual-hashing` version,
 publish that crate first from its standalone repository. Its crates.io Trusted
 Publisher entry must use owner/repo `Blackcat-Informatics/visual-hashing`,
@@ -368,6 +376,7 @@ Monitor the release workflows:
 ```bash
 gh run list --event push --limit 30
 gh run list --workflow release-cargo.yaml --branch "rust-v${VERSION}" --limit 5
+gh run list --workflow release-cargo-capi.yaml --branch "capi-v${VERSION}" --limit 5
 gh run list --workflow release-pypi.yml --branch "py-v${VERSION}" --limit 5
 gh run list --workflow release-go.yaml --branch "go-v${VERSION}" --limit 5
 gh run list --workflow release-npm.yaml --branch "npm-v${VERSION}" --limit 5
@@ -441,7 +450,8 @@ Release evidence durability:
 |---|---|---|
 | Go | Immutable GitHub Release archives, `checksums.txt`, and `sbom-go-gts.spdx.json` | GitHub release attestation for the immutable release; SLSA provenance attestations for release assets; SPDX SBOM attestations for release archives |
 | C ABI | Immutable GitHub Release archives, `checksums.txt`, and `sbom-gmeow-gts-capi.spdx.json` | GitHub release attestation for the immutable release; SLSA provenance attestations for release assets; SPDX SBOM attestations for release archives |
-| crates.io | Registry-hosted `.crate` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store |
+| crates.io `gmeow-gts` | Registry-hosted `.crate` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store |
+| crates.io `gmeow-gts-capi` | Registry-hosted `.crate` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store; bootstrap token until Trusted Publishing follow-up lands |
 | PyPI | Registry-hosted wheel/sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
 | npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |
 
@@ -460,6 +470,8 @@ npm pack "@blackcatinformatics/gmeow-gts@${VERSION}" \
   --pack-destination "${OUT}/packages/npm"
 curl -L "https://crates.io/api/v1/crates/gmeow-gts/${VERSION}/download" \
   -o "${OUT}/packages/rust/gmeow-gts-${VERSION}.crate"
+curl -L "https://crates.io/api/v1/crates/gmeow-gts-capi/${VERSION}/download" \
+  -o "${OUT}/packages/rust/gmeow-gts-capi-${VERSION}.crate"
 ```
 
 Verify default SLSA provenance on representative artifacts and Go release
@@ -471,6 +483,7 @@ for artifact in "${OUT}"/packages/go-release/gts_"${VERSION}"_*; do
 done
 for artifact in \
   "${OUT}/packages/rust/gmeow-gts-${VERSION}.crate" \
+  "${OUT}/packages/rust/gmeow-gts-capi-${VERSION}.crate" \
   "${OUT}"/packages/npm/*.tgz \
   "${OUT}"/packages/python/*; do
   gh attestation verify "$artifact" --repo Blackcat-Informatics/gmeow-gts
@@ -515,6 +528,7 @@ for artifact in "${OUT}"/packages/go-release/gts_"${VERSION}"_*; do
 done
 for artifact in \
   "${OUT}/packages/rust/gmeow-gts-${VERSION}.crate" \
+  "${OUT}/packages/rust/gmeow-gts-capi-${VERSION}.crate" \
   "${OUT}"/packages/npm/*.tgz \
   "${OUT}"/packages/python/*; do
   gh attestation verify "$artifact" \
@@ -528,6 +542,7 @@ Record final registry state:
 | Surface | Expected version/tag | Evidence | Status |
 |---|---|---|---|
 | crates.io `gmeow-gts` | | | |
+| crates.io `gmeow-gts-capi` | | | |
 | PyPI `gmeow-gts` | | | |
 | Go release `go.blackcatinformatics.ca/gts` | | | |
 | npm `@blackcatinformatics/gmeow-gts` | | | |

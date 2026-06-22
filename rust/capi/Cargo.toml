@@ -4,18 +4,29 @@
 [package]
 name = "gmeow-gts-capi"
 description = "Stable C ABI wrapper for the Rust GTS core"
-version = "0.9.4"
+version = "0.9.5"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://blackcatinformatics.ca/projects/gts"
 repository = "https://github.com/Blackcat-Informatics/gmeow-gts"
 readme = "README.md"
-publish = false
+keywords = ["rdf", "rdf-12", "cbor", "ffi", "linked-data"]
+categories = ["api-bindings", "encoding"]
+include = [
+  "/Cargo.lock",
+  "/Cargo.toml",
+  "/README.md",
+  "/cmake/**",
+  "/examples/**",
+  "/gts.pc.in",
+  "/include/**",
+  "/src/**",
+]
 
 [lib]
 name = "gts"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-gmeow-gts = { path = "..", features = ["rdf-codecs", "yaml-ld"] }
+gmeow-gts = { version = "0.9.5", path = "..", features = ["rdf-codecs", "yaml-ld"] }
 serde_json = "1"

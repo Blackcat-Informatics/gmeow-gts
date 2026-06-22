@@ -11,6 +11,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 rust_v=$(grep -m1 '^version = ' "$ROOT/rust/Cargo.toml" | sed -E 's/.*"([^"]+)".*/\1/')
+capi_v=$(grep -m1 '^version = ' "$ROOT/rust/capi/Cargo.toml" | sed -E 's/.*"([^"]+)".*/\1/')
 py_v=$(grep -m1 '^version = ' "$ROOT/python/pyproject.toml" | sed -E 's/.*"([^"]+)".*/\1/')
 npm_v=$(grep -m1 '"version"' "$ROOT/ts/package.json" | sed -E 's/.*"version": "([^"]+)".*/\1/')
 citation_v=$(grep -m1 '^version:' "$ROOT/CITATION.cff" | sed -E 's/.*"([^"]+)".*/\1/')
@@ -18,7 +19,7 @@ py_floor=$(grep -m1 '^requires-python = ' "$ROOT/python/pyproject.toml" | sed -E
 node_floor=$(grep -m1 '"node"' "$ROOT/ts/package.json" | sed -E 's/.*"node": "([^"]+)".*/\1/')
 go_floor=$(grep -m1 '^go ' "$ROOT/go/go.mod" | awk '{print $2}')
 
-printf 'rust     %s\npython   %s\nnpm      %s\ncitation %s\n' "$rust_v" "$py_v" "$npm_v" "$citation_v"
+printf 'rust     %s\ncapi     %s\npython   %s\nnpm      %s\ncitation %s\n' "$rust_v" "$capi_v" "$py_v" "$npm_v" "$citation_v"
 
 errors=0
 
@@ -46,10 +47,16 @@ else
   fi
 fi
 
+if [ "$capi_v" != "$rust_v" ]; then
+  echo "ERROR: C ABI crate version ($capi_v) must stay lockstep with Rust crate version ($rust_v)." >&2
+  errors=1
+fi
+
 check_contains "README.md" "gmeow-gts = \"$rust_v\"" "README Rust dependency snippet"
 check_contains "README.md" "gmeow-gts = { version = \"$rust_v\"" "README Rust feature snippet"
 check_contains "rust/README.md" "gmeow-gts = \"$rust_v\"" "Rust README dependency snippet"
 check_contains "docs/GTS-ECOSYSTEM-INTEGRATIONS.md" "gmeow-gts = { version = \"$rust_v\"" "ecosystem Rust feature snippet"
+check_contains "rust/capi/Cargo.toml" "gmeow-gts = { version = \"$rust_v\"" "C ABI Rust dependency"
 check_contains "README.md" "Runtime support policy: Python $py_floor, Node.js $node_floor, and Go $go_floor" "README runtime support policy"
 
 for file in CITATION.cff rust/Cargo.toml python/pyproject.toml; do

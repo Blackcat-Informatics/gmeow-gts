@@ -1,0 +1,85 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: Release Cargo gmeow-gts-capi
+
+# On a capi-v* tag, verify, attest, and publish the Rust C ABI source crate to
+# crates.io. The first publish uses the temporary bootstrap CARGO_REGISTRY_TOKEN
+# secret. After the crate exists on crates.io, migrate this workflow to crates.io
+# Trusted Publishing/OIDC and remove the bootstrap token path.
+
+on:
+  push:
+    tags:
+      - 'capi-v*'
+
+concurrency:
+  group: release-cargo-capi-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Verify tag matches C ABI crate version
+        working-directory: rust/capi
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#capi-v}"
+          PKG_VERSION="$(cargo metadata --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["packages"][0]["version"])')"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag version $TAG_VERSION does not match rust/capi/Cargo.toml version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Verify package builds and tests
+        working-directory: rust/capi
+        run: cargo test --locked
+
+      - name: Package the crate
+        working-directory: rust/capi
+        run: cargo package --locked
+
+      - name: Attest build provenance for the crate
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: rust/capi/target/package/*.crate
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: rust/capi
+          format: spdx-json
+          output-file: sbom-rust-gmeow-gts-capi.spdx.json
+          upload-artifact: false
+
+      - name: Attest SBOM for crate
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: rust/capi/target/package/*.crate
+          sbom-path: sbom-rust-gmeow-gts-capi.spdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sbom-rust-gmeow-gts-capi
+          path: sbom-rust-gmeow-gts-capi.spdx.json
+
+      - name: Publish to crates.io with bootstrap token
+        working-directory: rust/capi
+        run: cargo publish --locked --no-verify
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

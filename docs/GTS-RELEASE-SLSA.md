@@ -34,6 +34,7 @@ except for `visual-hashing`, which now publishes from its standalone repository:
 | Release lane | Workflow | Current publication path |
 |---|---|---|
 | Rust `gmeow-gts` crate | `.github/workflows/release-cargo.yaml` | crates.io Trusted Publishing through GitHub Actions OIDC |
+| Rust `gmeow-gts-capi` source crate | `.github/workflows/release-cargo-capi.yaml` | crates.io bootstrap token for first publish; Trusted Publishing follow-up required |
 | Rust `visual-hashing` crate | `Blackcat-Informatics/visual-hashing:.github/workflows/release.yml` | crates.io Trusted Publishing through GitHub Actions OIDC |
 | Python package | `.github/workflows/release-pypi.yml` | PyPI trusted publishing with package attestations |
 | TypeScript package | `.github/workflows/release-npm.yaml` | npm trusted publishing and npm provenance |
@@ -53,7 +54,7 @@ Every release lane must keep these controls:
 - tag-to-manifest version checks before publication;
 - least-privilege GitHub Actions permissions for release jobs;
 - pinned third-party actions;
-- registry OIDC or registry-native provenance where the ecosystem supports it;
+- registry OIDC, registry-native provenance, or a documented first-publish token bootstrap where needed;
 - GitHub build-provenance attestations for released artifacts;
 - SPDX SBOM attestations for representative registry artifacts and Go archives;
 - immutable Go and C ABI GitHub Releases for archives, checksums, and SBOM assets;
@@ -65,7 +66,8 @@ The current evidence durability is:
 |---|---|---|
 | Go | Immutable GitHub Release archives, `checksums.txt`, and `sbom-go-gts.spdx.json` | GitHub release attestation, SLSA provenance attestations, and SPDX SBOM attestations |
 | C ABI | Immutable GitHub Release archives, `checksums.txt`, and `sbom-gmeow-gts-capi.spdx.json` | GitHub release attestation, SLSA provenance attestations, and SPDX SBOM attestations |
-| crates.io | Registry-hosted `.crate` package | GitHub SLSA provenance and SPDX SBOM attestations |
+| crates.io `gmeow-gts` | Registry-hosted `.crate` package | GitHub SLSA provenance and SPDX SBOM attestations |
+| crates.io `gmeow-gts-capi` | Registry-hosted `.crate` package | GitHub SLSA provenance and SPDX SBOM attestations; bootstrap token until Trusted Publishing follow-up lands |
 | PyPI | Registry-hosted wheel and sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
 | npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |
 
