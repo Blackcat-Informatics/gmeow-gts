@@ -457,7 +457,7 @@ dotnet nuget search Gmeow.Gts --source https://api.nuget.org/v3/index.json
 composer show blackcatinformatics/gmeow-gts --available
 curl -fsSL https://luarocks.org/manifest.json | python -m json.tool >/dev/null
 gem info gmeow-gts --remote
-curl -fsSL https://blackcatinformatics.r-universe.dev/src/contrib/PACKAGES
+curl -fsSL https://blackcat-informatics.r-universe.dev/src/contrib/PACKAGES
 curl -fsSL https://raw.githubusercontent.com/JuliaRegistries/General/master/G/GmeowGTS/Package.toml
 gh release view "go-v${VERSION}" \
   --json tagName,name,url,isDraft,isImmutable,isPrerelease,publishedAt
@@ -531,7 +531,7 @@ curl -L "https://api.nuget.org/v3-flatcontainer/gmeow.gts/${VERSION}/gmeow.gts.$
   -o "${OUT}/packages/wrappers/Gmeow.Gts.${VERSION}.nupkg"
 curl -L "https://luarocks.org/gmeow-gts-${VERSION}-1.rockspec" \
   -o "${OUT}/packages/wrappers/gmeow-gts-${VERSION}-1.rockspec"
-curl -L "https://blackcatinformatics.r-universe.dev/src/contrib/gmeowgts_${VERSION}.tar.gz" \
+curl -L "https://blackcat-informatics.r-universe.dev/src/contrib/gmeowgts_${VERSION}.tar.gz" \
   -o "${OUT}/packages/wrappers/gmeowgts_${VERSION}.tar.gz"
 ```
 

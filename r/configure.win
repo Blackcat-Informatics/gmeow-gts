@@ -1,0 +1,35 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+set -eu
+
+MAKEVARS="src/Makevars.win"
+
+fail() {
+  cat >&2 <<EOF
+configure.win: error: gmeowgts is a source-only wrapper and does not bundle libgts.
+
+Set GTS_LIB_DIR to the directory containing the Windows libgts import library
+and runtime DLL before installing the package.
+EOF
+  exit 1
+}
+
+case "${GTS_LIB_DIR:-}" in
+  "")
+    fail
+    ;;
+  *[[:space:]]*)
+    echo "configure.win: error: GTS_LIB_DIR paths containing whitespace are not supported: ${GTS_LIB_DIR}" >&2
+    exit 1
+    ;;
+esac
+
+if [ ! -d "${GTS_LIB_DIR}" ]; then
+  fail
+fi
+
+abs_lib_dir="$(cd "${GTS_LIB_DIR}" && pwd)"
+escaped_libs="$(printf '%s\n' "-L${abs_lib_dir} -lgts" | sed -e 's/\\/\\\\/g' -e 's/[&|]/\\&/g')"
+sed "s|@GTS_PKG_LIBS@|${escaped_libs}|g" src/Makevars.win.in >"${MAKEVARS}"

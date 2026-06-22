@@ -761,7 +761,7 @@ Wrapper package registry names and public release surfaces are:
 | LuaJIT | LuaRocks `gmeow-gts` | `<version>-1` from `lua-v<version>` | Root manifest and rockspec download checked |
 | Swift | Swift Package Index `Blackcat-Informatics/gmeow-gts` | Plain semantic version tag, such as `<version>` | Git tag checked and canonical SPI package URL recorded |
 | Ruby | RubyGems `gmeow-gts` | `ruby-v<version>` | Metadata, `.gem` download, provenance, and SBOM attestations checked |
-| R | r-universe `gmeowgts` under `blackcatinformatics.r-universe.dev` | `<version>` | PACKAGES index and source tarball checked |
+| R | r-universe `gmeowgts` under `blackcat-informatics.r-universe.dev` | `<version>` | PACKAGES index and source tarball checked |
 | Julia | Julia General `GmeowGTS` | `<version>` | General registry package identity and version checked |
 | Conan/vcpkg | first-party package name `gmeow-gts` | tagged source archive when upstreamed | Local dry-runs only until upstream recipes land |
 

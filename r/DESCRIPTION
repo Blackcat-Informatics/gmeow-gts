@@ -2,14 +2,23 @@ Package: gmeowgts
 Type: Package
 Title: R Wrapper for the GTS C ABI
 Version: 0.9.4
+Depends: R (>= 4.3)
 Authors@R: c(
     person("Blackcat Informatics", role = c("aut", "cre"), email = "paudley@blackcatinformatics.ca")
     )
 Author: Blackcat Informatics
 Maintainer: Blackcat Informatics <paudley@blackcatinformatics.ca>
-Description: Thin R wrapper over the Rust-backed libgts C ABI.
+Description: Provides R bindings to the GTS C ABI backed by the Rust
+    implementation in gmeow-gts. The package exposes archive metadata,
+    validation, RDF/N-Quads conversion, and files-profile helpers while
+    requiring an externally installed libgts shared library at build and
+    runtime.
 License: MIT + file LICENSE | Apache License (>= 2)
 Encoding: UTF-8
 NeedsCompilation: yes
-URL: https://blackcatinformatics.ca/projects/gts
+SystemRequirements: libgts shared library from the gmeow-gts C ABI; set
+    GTS_LIB_DIR to the directory containing libgts when it is not installed in
+    a standard system library path.
+URL: https://blackcatinformatics.ca/projects/gts,
+    https://github.com/Blackcat-Informatics/gmeow-gts
 BugReports: https://github.com/Blackcat-Informatics/gmeow-gts/issues
