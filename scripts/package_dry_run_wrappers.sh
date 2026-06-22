@@ -96,7 +96,11 @@ docker_build() {
 }
 
 run_dotnet() {
-  if command -v dotnet >/dev/null 2>&1; then
+  if [ "${GTS_PACKAGE_DRY_RUN_USE_LOCAL_DOTNET:-0}" = "1" ]; then
+    if ! command -v dotnet >/dev/null 2>&1; then
+      echo "GTS_PACKAGE_DRY_RUN_USE_LOCAL_DOTNET=1 requires dotnet on PATH" >&2
+      exit 1
+    fi
     DOTNET_CLI_HOME="${CACHE}/dotnet-cli" \
       NUGET_HTTP_CACHE_PATH="${CACHE}/nuget-http-cache" \
       NUGET_PACKAGES="${CACHE}/nuget-packages" \
