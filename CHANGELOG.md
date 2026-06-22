@@ -18,6 +18,10 @@ change before `1.0`.
 
 ### Changed
 
+- Moved canonical `visual-hashing` publication to
+  `Blackcat-Informatics/visual-hashing`; version `0.1.3` is published from that
+  repository with crates.io Trusted Publishing provenance, and the old monorepo
+  release workflow is retired.
 - Replaced the Rust Oxigraph/OxRDF/Sophia adapter surfaces with native RDF
   dataset, text-codec, RDF/XML, ULID, and in-memory store implementations; CI
   now locks the `wasm32-unknown-unknown --all-features` library build and audits

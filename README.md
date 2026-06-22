@@ -660,12 +660,17 @@ Each engine publishes to its native registry from this repo via a tag-triggered 
 | Go | GitHub Releases (GoReleaser) | `go-v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
 | TypeScript | npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
 
-Rust crate publication uses crates.io Trusted Publishing through GitHub Actions OIDC.
-Configure Trusted Publisher entries on crates.io for both `gmeow-gts` and
-`visual-hashing` with owner/repo `Blackcat-Informatics/gmeow-gts`, workflows
-`release-cargo.yaml` and `release-visual-hashing.yaml`, and environment `(none)`.
-The normal Rust release path does not require a `CARGO_REGISTRY_TOKEN` repository
-secret.
+Rust crate publication uses crates.io Trusted Publishing through GitHub Actions
+OIDC. Configure the `gmeow-gts` Trusted Publisher entry with owner/repo
+`Blackcat-Informatics/gmeow-gts`, workflow `release-cargo.yaml`, and environment
+`(none)`. The normal Rust release path does not require a
+`CARGO_REGISTRY_TOKEN` repository secret.
+
+The `visual-hashing` crate now publishes from its standalone repository:
+`https://github.com/Blackcat-Informatics/visual-hashing`. Its Trusted Publisher
+entry should use owner/repo `Blackcat-Informatics/visual-hashing`, workflow
+`release.yml`, and environment `(none)`. The historical monorepo
+`visual-hashing-v*` release lane is retired.
 
 Each release workflow verifies the tag matches the manifest version before publishing.
 The C ABI and derived wrappers currently ship from the repository source tree and CI smoke tests;

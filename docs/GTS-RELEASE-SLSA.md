@@ -28,12 +28,13 @@ GitHub also documents reusable workflows as the route to stronger isolation for
 SLSA v1.0 Build Level 3 alignment, because the build can be tied to known,
 vetted build instructions.
 
-The current GTS release lanes are first-party workflow files in this repository:
+The current GTS release lanes are first-party workflow files in this repository,
+except for `visual-hashing`, which now publishes from its standalone repository:
 
 | Release lane | Workflow | Current publication path |
 |---|---|---|
 | Rust `gmeow-gts` crate | `.github/workflows/release-cargo.yaml` | crates.io Trusted Publishing through GitHub Actions OIDC |
-| Rust `visual-hashing` crate | `.github/workflows/release-visual-hashing.yaml` | crates.io Trusted Publishing through GitHub Actions OIDC |
+| Rust `visual-hashing` crate | `Blackcat-Informatics/visual-hashing:.github/workflows/release.yml` | crates.io Trusted Publishing through GitHub Actions OIDC |
 | Python package | `.github/workflows/release-pypi.yml` | PyPI trusted publishing with package attestations |
 | TypeScript package | `.github/workflows/release-npm.yaml` | npm trusted publishing and npm provenance |
 | Go CLI assets | `.github/workflows/release-go.yaml` | Immutable GitHub Release assets |
