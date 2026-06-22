@@ -118,6 +118,7 @@ impl GraphBuilder {
             value: Some(value),
             datatype: datatype_id,
             lang,
+            direction: None,
             reifier: None,
         });
         self.ids.insert(key, id);
