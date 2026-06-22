@@ -221,7 +221,13 @@ jobs:
       - name: Install native dry-run tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends build-essential cmake pkg-config
+          sudo apt-get install -y --no-install-recommends build-essential cmake curl git ninja-build pipx pkg-config unzip zip
+          pipx install conan
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git "${HOME}/vcpkg"
+          "${HOME}/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
+          echo "VCPKG_ROOT=${HOME}/vcpkg" >> "${GITHUB_ENV}"
+          echo "${HOME}/vcpkg" >> "${GITHUB_PATH}"
 
       - name: Wrapper package dry-runs
         run: bash scripts/package_dry_run_wrappers.sh

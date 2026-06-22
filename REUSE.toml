@@ -18,6 +18,7 @@ path = [
   "ts/tsconfig.test.json",
   "ts/.gitignore",
   "php/composer.json",
+  "packaging/vcpkg/ports/gmeow-gts/vcpkg.json",
   "r/DESCRIPTION",
   "r/LICENSE",
   "julia/Project.toml",
