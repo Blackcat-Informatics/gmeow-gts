@@ -52,6 +52,8 @@ pub mod rdf;
 #[cfg(feature = "rdf-codecs")]
 pub mod rdf_codecs;
 pub mod rdf_events;
+#[cfg(feature = "rdf-codecs")]
+mod rdf_xml;
 pub mod reader;
 pub mod replication;
 #[cfg(feature = "sophia-adapter")]

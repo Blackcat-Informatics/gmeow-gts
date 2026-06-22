@@ -25,9 +25,8 @@ rdf = ["xsd"]
 # dependencies unless they ask for parser-facing datatype semantics.
 xsd = ["dep:oxsdatatypes"]
 # Enables RDF 1.2 text codecs. N-Triples/Turtle/TriG use native code; RDF/XML
-# remains behind Oxigraph's RDF/XML parser/serializer stack until the dedicated
-# native RDF/XML issue lands.
-rdf-codecs = ["rdf", "dep:oxrdf", "dep:oxrdfxml"]
+# uses a native RDF/XML mapper over a small XML tokenizer.
+rdf-codecs = ["rdf", "dep:quick-xml"]
 # Enables an optional Oxigraph in-memory Store adapter. This pulls in Oxigraph
 # only for callers that ask for the store bridge; defaults remain unchanged.
 oxigraph-adapter = ["rdf", "dep:oxigraph"]
@@ -86,13 +85,12 @@ serde = { version = "1", default-features = false, features = ["derive", "std"],
 serde_json = { version = "1", optional = true }
 serde_yaml = { version = "0.9", optional = true }
 tar = { version = "0.4", optional = true }
+quick-xml = { version = "0.37.5", optional = true }
 
 # The random-IV `encrypt0` convenience needs an OS CSPRNG; restrict it to
 # non-wasm targets so `wasm32-unknown-unknown` never tries to link getrandom.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 getrandom = "0.2"
-oxrdf = { version = "0.3.3", default-features = false, features = ["rdf-12"], optional = true }
-oxrdfxml = { version = "0.2.3", default-features = false, features = ["rdf-12"], optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

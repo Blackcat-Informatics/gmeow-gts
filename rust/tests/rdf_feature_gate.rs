@@ -37,7 +37,7 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(package["features"]["rdf"], serde_json::json!(["xsd"]));
     assert_eq!(
         package["features"]["rdf-codecs"],
-        serde_json::json!(["rdf", "dep:oxrdf", "dep:oxrdfxml"])
+        serde_json::json!(["rdf", "dep:quick-xml"])
     );
     assert_eq!(
         package["features"]["oxigraph-adapter"],
@@ -64,20 +64,6 @@ fn optional_adapters_are_not_enabled_by_default() {
         serde_json::json!(["dep:oxsdatatypes"])
     );
 
-    let oxrdf = package["dependencies"]
-        .as_array()
-        .expect("metadata dependencies are an array")
-        .iter()
-        .find(|dependency| dependency["name"] == "oxrdf")
-        .expect("oxrdf dependency is present");
-    assert_eq!(oxrdf["optional"], serde_json::json!(true));
-    assert_eq!(oxrdf["uses_default_features"], serde_json::json!(false));
-    assert_eq!(oxrdf["features"], serde_json::json!(["rdf-12"]));
-    assert_eq!(
-        oxrdf["target"],
-        serde_json::json!("cfg(not(target_arch = \"wasm32\"))")
-    );
-
     let oxsdatatypes = package["dependencies"]
         .as_array()
         .expect("metadata dependencies are an array")
@@ -86,28 +72,24 @@ fn optional_adapters_are_not_enabled_by_default() {
         .expect("oxsdatatypes dependency is present");
     assert_eq!(oxsdatatypes["optional"], serde_json::json!(true));
 
-    assert!(
-        !package["dependencies"]
-            .as_array()
-            .expect("metadata dependencies are an array")
-            .iter()
-            .any(|dependency| dependency["name"] == "oxttl"),
-        "rdf-codecs must not depend on oxttl"
-    );
-
-    let oxrdfxml = package["dependencies"]
+    let quick_xml = package["dependencies"]
         .as_array()
         .expect("metadata dependencies are an array")
         .iter()
-        .find(|dependency| dependency["name"] == "oxrdfxml")
-        .expect("oxrdfxml dependency is present");
-    assert_eq!(oxrdfxml["optional"], serde_json::json!(true));
-    assert_eq!(oxrdfxml["uses_default_features"], serde_json::json!(false));
-    assert_eq!(oxrdfxml["features"], serde_json::json!(["rdf-12"]));
-    assert_eq!(
-        oxrdfxml["target"],
-        serde_json::json!("cfg(not(target_arch = \"wasm32\"))")
-    );
+        .find(|dependency| dependency["name"] == "quick-xml")
+        .expect("quick-xml dependency is present");
+    assert_eq!(quick_xml["optional"], serde_json::json!(true));
+
+    for removed in ["oxttl", "oxrdf", "oxrdfxml"] {
+        assert!(
+            !package["dependencies"]
+                .as_array()
+                .expect("metadata dependencies are an array")
+                .iter()
+                .any(|dependency| dependency["name"] == removed),
+            "rdf-codecs must not depend on {removed}"
+        );
+    }
 
     let oxigraph = package["dependencies"]
         .as_array()
