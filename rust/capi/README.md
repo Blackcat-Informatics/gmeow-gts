@@ -44,6 +44,10 @@ as `text/turtle; charset=utf-8`.
 cargo build --manifest-path rust/capi/Cargo.toml --release
 ```
 
+From the packaged crate root, use `cargo build --release`. The crate is
+published as [`gmeow-gts-capi`](https://crates.io/crates/gmeow-gts-capi) and
+depends on the matching `gmeow-gts` crate version.
+
 The crate emits both shared and static native libraries where supported by the target:
 
 - `libgts.so` / `libgts.dylib` / `gts.dll`
@@ -91,7 +95,8 @@ library discovery remains platform-specific: set `LD_LIBRARY_PATH` on Linux,
 `DYLD_LIBRARY_PATH` on macOS, or add `bin/` to `PATH` on Windows unless the
 library is installed into a platform default search path.
 
-The release tag lane is `capi-v*`. A tag such as `capi-v0.9.4` builds C ABI
-archives, checksums, SBOM evidence, and GitHub provenance attestations, then
-publishes an immutable GitHub Release. Wrapper packages should depend on this
-native asset contract instead of bundling `libgts`.
+The release tag lane is `capi-v*`. A tag such as `capi-v0.9.5` publishes the
+`gmeow-gts-capi` source crate, builds C ABI archives, checksums, SBOM evidence,
+and GitHub provenance attestations, then publishes an immutable GitHub Release.
+Wrapper packages should depend on this native asset contract instead of
+bundling `libgts`.

@@ -187,6 +187,11 @@ Rust-backed C ABI and derived wrappers:
 The package family consistently uses the `gmeow-gts` distribution identity where ecosystem
 naming permits. Ecosystem-specific module/package names are shown above; the CLI binary stays
 `gts`, and GTS files keep the `.gts` extension.
+The Rust engine crate is [`gmeow-gts`](https://crates.io/crates/gmeow-gts);
+the Rust-backed C ABI source crate is
+[`gmeow-gts-capi`](https://crates.io/crates/gmeow-gts-capi). Use the former for
+Rust library/CLI consumers and the latter when the desired artifact is `libgts`
+plus the stable `gts.h` ABI surface.
 
 ## Quick start
 
@@ -682,6 +687,7 @@ Each engine publishes to its native registry from this repo via a tag-triggered 
 | Python | PyPI (trusted publishing) | `py-v*` | [`release-pypi.yml`](./.github/workflows/release-pypi.yml) |
 | Go | GitHub Releases (GoReleaser) | `go-v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
 | TypeScript | npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
+| C ABI source crate | crates.io (bootstrap token first publish) | `capi-v*` | [`release-cargo-capi.yaml`](./.github/workflows/release-cargo-capi.yaml) |
 | C ABI native assets | GitHub Releases (immutable archives) | `capi-v*` | [`release-capi.yaml`](./.github/workflows/release-capi.yaml) |
 
 Rust crate publication uses crates.io Trusted Publishing through GitHub Actions
@@ -695,6 +701,12 @@ The `visual-hashing` crate now publishes from its standalone repository:
 entry should use owner/repo `Blackcat-Informatics/visual-hashing`, workflow
 `release.yml`, and environment `(none)`. The historical monorepo
 `visual-hashing-v*` release lane is retired.
+
+The first `gmeow-gts-capi` crates.io publish uses the temporary
+`CARGO_REGISTRY_TOKEN` bootstrap secret in `release-cargo-capi.yaml` because
+crates.io Trusted Publishing can be configured only after the crate exists. File
+and complete the follow-on Trusted Publishing migration after that first version
+is visible on crates.io, then remove the bootstrap-token path.
 
 Each release workflow verifies the tag matches the manifest version before publishing.
 The C ABI archive lane publishes installable `libgts` archives for wrapper
