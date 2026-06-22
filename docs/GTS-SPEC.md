@@ -287,6 +287,7 @@ MAY map them to error returns or structured warnings):
 | `PositionConstraint` | a term appears in an illegal subject, predicate, object, or graph-name position; reject/diagnose the offending row (§7.4) |
 | `ForwardReference` | a term-id reference names a term not introduced by an earlier frame in the same segment (§7.2, §7.5) |
 | `SegmentBoundary` | a compatibility reader reaches a later segment header where file-global term ids would misfold; stop with a fatal diagnostic (§3.1, §19) |
+| `IllTypedLiteral` | a recognized XSD datatype literal has an invalid lexical form; preserve the literal verbatim and surface a diagnostic/metadata flag (§7.1) |
 | `RecursionLimit` | nested-GTS depth or decoded-size budget exceeded (§12.1, §18) |
 | `StreamableLayoutError` | a segment claims `"layout": "streamable"` but its covered region violates delivery ordering, or its index footer is missing or contradicts the frames it covers (§3.3) |
 | `IndexMmrError` | an optional `index.mmr` root is present but does not match the covered frame ids (§6.2) |
@@ -2248,8 +2249,8 @@ diagnostic = {
 diagnostic-code = "EmptyFile"
 / "TornAppendError" / "DamagedFrame" / "BrokenChain"
 / "TruncatedLog" / "UnknownCodec" / "MissingKey"
-/ "KeyWrapFailed" / "ConflictingReifier" / "RecursionLimit"
-/ "StreamableLayoutError" / "PositionConstraint"
+/ "KeyWrapFailed" / "ConflictingReifier" / "IllTypedLiteral"
+/ "RecursionLimit" / "StreamableLayoutError" / "PositionConstraint"
 / "ForwardReference" / "SegmentBoundary" / "IndexMmrError"
 / "UnknownFrameType" / tstr
 

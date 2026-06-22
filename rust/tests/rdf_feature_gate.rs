@@ -6,6 +6,7 @@
     feature = "rdf-codecs",
     feature = "duckdb",
     feature = "sophia-adapter",
+    feature = "xsd",
     feature = "yaml-ld"
 )))]
 #[test]
@@ -33,7 +34,10 @@ fn optional_adapters_are_not_enabled_by_default() {
 
     assert_eq!(package["features"]["default"], serde_json::json!([]));
     assert_eq!(package["features"]["duckdb"], serde_json::json!([]));
-    assert_eq!(package["features"]["rdf"], serde_json::json!(["dep:oxrdf"]));
+    assert_eq!(
+        package["features"]["rdf"],
+        serde_json::json!(["xsd", "dep:oxrdf"])
+    );
     assert_eq!(
         package["features"]["rdf-codecs"],
         serde_json::json!(["rdf", "dep:oxttl", "dep:oxrdfxml"])
@@ -58,6 +62,10 @@ fn optional_adapters_are_not_enabled_by_default() {
         package["features"]["yaml-ld"],
         serde_json::json!(["dep:serde", "dep:serde_json", "dep:serde_yaml"])
     );
+    assert_eq!(
+        package["features"]["xsd"],
+        serde_json::json!(["dep:oxsdatatypes"])
+    );
 
     let oxrdf = package["dependencies"]
         .as_array()
@@ -68,6 +76,14 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(oxrdf["optional"], serde_json::json!(true));
     assert_eq!(oxrdf["uses_default_features"], serde_json::json!(false));
     assert_eq!(oxrdf["features"], serde_json::json!(["rdf-12"]));
+
+    let oxsdatatypes = package["dependencies"]
+        .as_array()
+        .expect("metadata dependencies are an array")
+        .iter()
+        .find(|dependency| dependency["name"] == "oxsdatatypes")
+        .expect("oxsdatatypes dependency is present");
+    assert_eq!(oxsdatatypes["optional"], serde_json::json!(true));
 
     let oxttl = package["dependencies"]
         .as_array()
