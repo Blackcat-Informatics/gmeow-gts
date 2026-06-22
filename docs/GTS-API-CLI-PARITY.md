@@ -212,7 +212,7 @@ ecosystems:
 | ABI metadata | `gts_abi_version`, `gts_version`, build metadata JSON, and capability JSON identify the loaded `libgts` surface. |
 | Read/fold | `gts_read_json` returns a stable JSON report for folded archive state. |
 | Verify | `gts_verify_json` returns the Rust verifier report as JSON. |
-| N-Quads | `gts_to_nquads` and `gts_from_nquads` bridge folded RDF content and GTS bytes. |
+| RDF text formats | `gts_formats_json`, `gts_to_format`, and `gts_from_format` expose registry-driven conversion for N-Quads, N-Triples, Turtle, TriG, RDF/XML, and the deterministic JSON-LD-star profile. `gts_to_nquads` and `gts_from_nquads` remain compatibility helpers. |
 | Files profile | `gts_files_pack`, `gts_files_unpack`, and `gts_files_diff_json` expose files-profile helpers. |
 | Ownership | Returned `gts_buffer` values are copied into ecosystem-native strings or byte arrays, then released with `gts_buffer_free`. |
 | Errors | Non-OK `gts_status` returns are copied from `gts_error` handles into structured ecosystem errors, then released with `gts_error_free`. |

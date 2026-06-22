@@ -22,13 +22,21 @@ Do not edit `gts_buffer.capacity`; it is part of the Rust allocation handle used
 
 - `gts_build_metadata_json`: ABI version, package version, build profile, and target metadata.
 - `gts_capabilities_json`: ABI version, library version, and operation discovery.
+- `gts_formats_json`: registry of supported RDF text codec ids, aliases, extensions, and media types.
 - `gts_read_json`: fold/read report with counts, diagnostics, segment heads, signatures, streamable state, and blob summaries.
 - `gts_verify_json`: verification report mirroring the Rust verifier result.
+- `gts_to_format`: clean GTS bytes to a registered RDF text format.
+- `gts_from_format`: registered RDF text format input to GTS bytes.
 - `gts_to_nquads`: clean GTS bytes to N-Quads text.
 - `gts_from_nquads`: N-Quads text to GTS bytes.
 - `gts_files_pack`: path list to files-profile GTS bytes.
 - `gts_files_unpack`: files-profile GTS bytes to a destination directory.
 - `gts_files_diff_json`: files-profile GTS bytes compared to a directory.
+
+The format registry covers N-Quads, N-Triples, Turtle, TriG, RDF/XML, and the
+repository's deterministic JSON-LD-star profile (`application/ld+json`). It
+accepts registry ids, common extensions, and media types with parameters, such
+as `text/turtle; charset=utf-8`.
 
 ## Build
 
@@ -49,4 +57,4 @@ The public header is checked in at `rust/capi/include/gts.h`. `gts.pc.in` and `c
 bash rust/capi/scripts/smoke.sh
 ```
 
-The smoke test builds `libgts`, compiles `examples/smoke.c`, and exercises build metadata, read/fold JSON, verify JSON, N-Quads export/import, files pack/unpack/diff, and structured error handling.
+The smoke test builds `libgts`, compiles `examples/smoke.c`, and exercises build metadata, capability and format discovery, read/fold JSON, verify JSON, registry-driven RDF format export/import, N-Quads compatibility export/import, files pack/unpack/diff, and structured error handling.

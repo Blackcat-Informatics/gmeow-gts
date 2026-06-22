@@ -49,8 +49,19 @@ const char *gts_error_message(const gts_error *error);
 
 gts_status gts_build_metadata_json(gts_buffer *out, gts_error **error);
 gts_status gts_capabilities_json(gts_buffer *out, gts_error **error);
+gts_status gts_formats_json(gts_buffer *out, gts_error **error);
 gts_status gts_read_json(const uint8_t *data, size_t len, gts_buffer *out, gts_error **error);
 gts_status gts_verify_json(const uint8_t *data, size_t len, gts_buffer *out, gts_error **error);
+gts_status gts_to_format(const uint8_t *data,
+                         size_t len,
+                         const char *format,
+                         gts_buffer *out,
+                         gts_error **error);
+gts_status gts_from_format(const char *format,
+                           const char *text,
+                           size_t len,
+                           gts_buffer *out,
+                           gts_error **error);
 gts_status gts_to_nquads(const uint8_t *data, size_t len, gts_buffer *out, gts_error **error);
 gts_status gts_from_nquads(const char *text, size_t len, gts_buffer *out, gts_error **error);
 
