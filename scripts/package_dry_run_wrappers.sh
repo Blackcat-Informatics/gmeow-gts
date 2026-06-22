@@ -124,7 +124,7 @@ run_composer() {
 }
 
 has_php_ffi() {
-  command -v php >/dev/null 2>&1 && php -m | grep -Eq '^FFI$'
+  command -v php >/dev/null 2>&1 && php -m 2>/dev/null | grep -Eq '^FFI$'
 }
 
 run_php() {

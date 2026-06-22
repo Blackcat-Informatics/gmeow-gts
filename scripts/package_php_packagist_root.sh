@@ -7,14 +7,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${1:-${ROOT}/dist/php-packagist-root}"
 
 rm -rf "${OUT}"
-mkdir -p "${OUT}/src" "${OUT}/tests"
+mkdir -p "${OUT}"
 
 cp "${ROOT}/php/composer.json" "${OUT}/composer.json"
 cp "${ROOT}/php/README.md" "${OUT}/README.md"
 cp "${ROOT}/LICENSE-MIT" "${OUT}/LICENSE-MIT"
 cp "${ROOT}/LICENSE-APACHE" "${OUT}/LICENSE-APACHE"
-cp -R "${ROOT}/php/src/." "${OUT}/src/"
-cp -R "${ROOT}/php/tests/." "${OUT}/tests/"
+cp -R "${ROOT}/php/src" "${OUT}/src"
+cp -R "${ROOT}/php/tests" "${OUT}/tests"
 
 unexpected="$(
   cd "${OUT}"
