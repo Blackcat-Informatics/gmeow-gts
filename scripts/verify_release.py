@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import http.client
 import json
 import shutil
 import subprocess
@@ -95,7 +96,12 @@ def fetch_json(
                 request(url, headers=headers), timeout=30
             ) as response:
                 return json.load(response)
-        except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+        except (
+            OSError,
+            urllib.error.URLError,
+            json.JSONDecodeError,
+            http.client.HTTPException,
+        ) as exc:
             last_error = exc
             if attempt < attempts:
                 time.sleep(attempt)
@@ -112,7 +118,12 @@ def fetch_text(
                 request(url, headers=headers), timeout=30
             ) as response:
                 return response.read().decode("utf-8")
-        except (OSError, UnicodeDecodeError, urllib.error.URLError) as exc:
+        except (
+            OSError,
+            UnicodeDecodeError,
+            urllib.error.URLError,
+            http.client.HTTPException,
+        ) as exc:
             last_error = exc
             if attempt < attempts:
                 time.sleep(attempt)
@@ -132,7 +143,7 @@ def download(
                 with destination.open("wb") as handle:
                     shutil.copyfileobj(response, handle)
             return
-        except (OSError, urllib.error.URLError) as exc:
+        except (OSError, urllib.error.URLError, http.client.HTTPException) as exc:
             last_error = exc
             if destination.exists():
                 try:
@@ -629,7 +640,9 @@ def verify_luarocks(
         return artifacts
     recorder.pass_(surface, "package version", rock_version)
     arch_values = sorted(
-        entry.get("arch", "unknown") for entry in entries if isinstance(entry, dict)
+        str(entry.get("arch", "unknown"))
+        for entry in entries
+        if isinstance(entry, dict)
     )
     if arch_values:
         recorder.pass_(surface, "published artifact types", ", ".join(arch_values))
@@ -709,6 +722,8 @@ def parse_r_packages_index(text: str) -> dict[str, dict[str, str]]:
                 packages[name] = current
             current = {}
             continue
+        if line.startswith((" ", "\t")):
+            continue
         if ":" not in line:
             continue
         key, value = line.split(":", 1)
@@ -768,6 +783,9 @@ def julia_registry_path(package: str) -> str:
 
 def verify_julia_general(args: argparse.Namespace, recorder: Recorder) -> None:
     surface = f"Julia General {args.julia_package}"
+    if not args.julia_package:
+        recorder.fail(surface, "registry metadata", "Julia package name is empty")
+        return
     base = f"https://raw.githubusercontent.com/JuliaRegistries/General/master/{julia_registry_path(args.julia_package)}"
     package_url = f"{base}/Package.toml"
     versions_url = f"{base}/Versions.toml"
@@ -806,6 +824,11 @@ def verify_julia_general(args: argparse.Namespace, recorder: Recorder) -> None:
 def verify_swift_package(args: argparse.Namespace, recorder: Recorder) -> None:
     surface = "Swift Package Index GmeowGTS"
     tag = args.swift_tag or args.version
+    if "/" not in args.repo:
+        recorder.fail(
+            surface, "semantic version tag", f"invalid repository format: {args.repo}"
+        )
+        return
     owner, repo_name = args.repo.split("/", 1)
     encoded_tag = urllib.parse.quote(tag, safe="")
     ref_url = (
