@@ -21,8 +21,12 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 write_makevars() {
-  escaped_libs="$(printf '%s\n' "$1" | sed 's/[&|]/\\&/g')"
+  escaped_libs="$(printf '%s\n' "$1" | sed -e 's/\\/\\\\/g' -e 's/[&|]/\\&/g')"
   sed "s|@GTS_PKG_LIBS@|${escaped_libs}|g" src/Makevars.in >"${MAKEVARS}"
+}
+
+absolute_dir() {
+  (cd "$1" && pwd)
 }
 
 fail_missing() {
@@ -102,7 +106,8 @@ if [ -n "${GTS_LIB_DIR:-}" ]; then
   if [ ! -d "${GTS_LIB_DIR}" ]; then
     fail_explicit
   fi
-  GTS_PKG_LIBS="-L${GTS_LIB_DIR} -lgts"
+  abs_lib_dir="$(absolute_dir "${GTS_LIB_DIR}")"
+  GTS_PKG_LIBS="-L${abs_lib_dir} -lgts"
   if try_link "${GTS_PKG_LIBS}" "GTS_LIB_DIR=${GTS_LIB_DIR}"; then
     write_makevars "${GTS_PKG_LIBS}"
     exit 0
@@ -117,9 +122,12 @@ fi
 
 for dir in ${SEARCH_DIRS}; do
   reject_space_path "${dir}"
-  if [ -d "${dir}" ] && try_link "-L${dir} -lgts" "${dir}"; then
-    write_makevars "-L${dir} -lgts"
-    exit 0
+  if [ -d "${dir}" ]; then
+    abs_dir="$(absolute_dir "${dir}")"
+    if try_link "-L${abs_dir} -lgts" "${dir}"; then
+      write_makevars "-L${abs_dir} -lgts"
+      exit 0
+    fi
   fi
 done
 
