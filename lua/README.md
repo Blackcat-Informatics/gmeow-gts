@@ -12,6 +12,15 @@ come from the checked-in C ABI in `rust/capi/include/gts.h`.
 - LuaJIT 2.1 with the `ffi` module.
 - A built `libgts` shared library from `rust/capi`.
 
+Install the source-only LuaRocks package after publication:
+
+```sh
+luarocks install gmeow-gts
+```
+
+The rock does not bundle `libgts`; keep `GTS_LIBGTS` or the platform dynamic
+loader pointed at a compatible shared library.
+
 Build the shared library from the repository root:
 
 ```sh
@@ -103,3 +112,5 @@ The script builds `libgts` and exercises ABI metadata, capabilities, read/fold,
 verify, N-Quads export/import, structured errors, and files-profile
 pack/diff/unpack. If local LuaJIT is missing, it uses the pinned fallback image
 defined in `lua/Dockerfile`.
+
+LuaRocks release and validation details are in [`LUAROCKS.md`](./LUAROCKS.md).

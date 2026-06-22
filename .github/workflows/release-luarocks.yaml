@@ -1,0 +1,88 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: Release LuaRocks gmeow-gts
+
+# On a lua-v* tag, validate and publish the source-only LuaJIT FFI wrapper to
+# LuaRocks with the repository LUAROCKS_API_KEY secret.
+
+on:
+  push:
+    tags:
+      - 'lua-v*'
+
+concurrency:
+  group: release-luarocks-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Install LuaRocks tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends git luajit luarocks
+
+      - name: Validate tag matches rockspec
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#lua-v}"
+          rockspec="lua/gmeow-gts-${tag_version}-1.rockspec"
+          if [ ! -f "$rockspec" ]; then
+            echo "Expected rockspec not found: $rockspec"
+            exit 1
+          fi
+          grep -Fx "version = \"${tag_version}-1\"" "$rockspec"
+          grep -Fx "  tag = \"${GITHUB_REF_NAME}\"" "$rockspec"
+          echo "GTS_LUAROCKS_VERSION=${tag_version}-1" >> "$GITHUB_ENV"
+          echo "GTS_LUAROCKS_ROCKSPEC=${rockspec}" >> "$GITHUB_ENV"
+
+      - name: Build C ABI library
+        run: cargo build --manifest-path rust/capi/Cargo.toml
+
+      - name: LuaRocks lint, make, pack, and smoke
+        run: |
+          set -euo pipefail
+          capi_target="$(
+            cargo metadata --manifest-path rust/capi/Cargo.toml --no-deps --format-version 1 \
+              | python3 -c "import json,sys; print(json.load(sys.stdin)['target_directory'])"
+          )/debug"
+          export GTS_LIBGTS="${capi_target}/libgts.so"
+          export LD_LIBRARY_PATH="${capi_target}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+          rm -rf /tmp/gts-luarocks
+          luarocks lint "$GTS_LUAROCKS_ROCKSPEC"
+          luarocks make "$GTS_LUAROCKS_ROCKSPEC" --tree /tmp/gts-luarocks
+          rm -f gmeow-gts-*.rock
+          luarocks --tree /tmp/gts-luarocks pack gmeow-gts "$GTS_LUAROCKS_VERSION"
+          eval "$(luarocks --tree /tmp/gts-luarocks path --bin)"
+          luajit lua/tests/smoke.lua vectors/01-minimal.gts
+
+      - name: Upload LuaRocks artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: luarocks-gmeow-gts
+          path: gmeow-gts-*.rock
+          if-no-files-found: error
+
+      - name: Publish to LuaRocks
+        env:
+          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${LUAROCKS_API_KEY:-}" ]; then
+            echo "LUAROCKS_API_KEY is required to publish to LuaRocks"
+            exit 1
+          fi
+          luarocks upload "$GTS_LUAROCKS_ROCKSPEC" --api-key="$LUAROCKS_API_KEY"
