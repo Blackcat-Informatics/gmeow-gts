@@ -2,10 +2,10 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0
 #
-# Enforce lockstep versioning: the Rust crate, Python package, and npm package
-# must all declare the same version. (The Go module is versioned by git tag, so
-# it has no manifest version to compare.) A release is a single `<v>` cut across
-# all engines; this guards against a half-bumped release.
+# Verify versioned package metadata and docs. Cross-engine releases normally bump
+# Rust, Python, npm, and citation metadata together, but narrow Rust-first
+# releases may bump only the Rust crate. The Go module is versioned by git tag,
+# so it has no manifest version to compare here.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,8 +35,15 @@ check_contains() {
 if [ "$rust_v" = "$py_v" ] && [ "$py_v" = "$npm_v" ] && [ "$citation_v" = "$rust_v" ]; then
   echo "OK: engine and citation versions agree ($rust_v)"
 else
-  echo "ERROR: versions disagree — bump rust/Cargo.toml, python/pyproject.toml, ts/package.json, and CITATION.cff together." >&2
-  errors=1
+  echo "OK: ecosystem versions are not lockstep; checking per-ecosystem surfaces independently."
+  if [ "$py_v" != "$npm_v" ]; then
+    echo "ERROR: Python ($py_v) and npm ($npm_v) versions disagree." >&2
+    errors=1
+  fi
+  if [ "$citation_v" != "$rust_v" ] && [ "$citation_v" != "$py_v" ]; then
+    echo "ERROR: Citation version ($citation_v) must match either Rust ($rust_v) or Python/npm ($py_v)." >&2
+    errors=1
+  fi
 fi
 
 check_contains "README.md" "gmeow-gts = \"$rust_v\"" "README Rust dependency snippet"

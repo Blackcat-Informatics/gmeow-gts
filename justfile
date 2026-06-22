@@ -90,7 +90,7 @@ interop:
 bench-release engines="rust,python,go,ts,smalltalk,kotlin" iterations="3":
     python scripts/bench_release_suite.py --engines "{{engines}}" --iterations "{{iterations}}"
 
-# Verify the Rust, Python, and npm versions agree (lockstep release).
+# Verify package version metadata and versioned documentation snippets.
 check-versions:
     bash scripts/check-versions.sh
 

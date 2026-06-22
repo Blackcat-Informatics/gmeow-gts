@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Engine versions agree (lockstep release)
+      - name: Package versions and docs
         run: bash scripts/check-versions.sh
 
       - name: Repository contracts
@@ -74,7 +74,6 @@ jobs:
         with:
           workspaces: |
             rust
-            rust/rdf-events
             rust/capi
             visual-hashing
 
@@ -82,7 +81,6 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cargo fmt --manifest-path visual-hashing/Cargo.toml --check
-          cargo fmt --manifest-path rust/rdf-events/Cargo.toml --check
           cargo fmt --manifest-path rust/Cargo.toml --check
           cargo fmt --manifest-path rust/capi/Cargo.toml --check
 
@@ -90,7 +88,6 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cargo clippy --manifest-path visual-hashing/Cargo.toml --all-targets -- -D warnings
-          cargo clippy --manifest-path rust/rdf-events/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features duckdb -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf -- -D warnings
@@ -106,7 +103,6 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: |
           cargo doc --manifest-path visual-hashing/Cargo.toml --no-deps
-          cargo doc --manifest-path rust/rdf-events/Cargo.toml --no-deps
           cargo doc --manifest-path rust/Cargo.toml --no-deps
           cargo doc --manifest-path rust/Cargo.toml --no-deps --features rdf-codecs
           cargo doc --manifest-path rust/Cargo.toml --no-deps --features yaml-ld
@@ -115,7 +111,6 @@ jobs:
       - name: Conformance corpus + CLI tests
         run: |
           cargo test --manifest-path visual-hashing/Cargo.toml
-          cargo test --manifest-path rust/rdf-events/Cargo.toml
           cargo test --manifest-path rust/Cargo.toml --no-default-features
           cargo test --manifest-path rust/Cargo.toml
           cargo test --manifest-path rust/Cargo.toml --features duckdb

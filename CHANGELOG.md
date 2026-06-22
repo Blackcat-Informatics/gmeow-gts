@@ -5,14 +5,36 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 # Changelog
 
 All notable changes to GTS are documented here. The format is based on
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The four engines are
-released in **lockstep** under a single version (the Go module is tagged
-`go-v<version>`); see [`scripts/check-versions.sh`](./scripts/check-versions.sh).
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Primary engines
+publish from this repo through per-ecosystem release tags; versions are normally
+kept aligned for cross-engine releases, while narrow Rust-first releases may
+bump the Rust crate independently. See
+[`scripts/check-versions.sh`](./scripts/check-versions.sh).
 
 The wire format is a working draft (`GTS-SPEC.md` is at draft `v0.3`) and MAY
 change before `1.0`.
 
 ## [Unreleased]
+
+## [0.9.5] — 2026-06-22
+
+Rust-only release. Python, Go, TypeScript, and wrapper package versions remain
+at `0.9.4`.
+
+### Added
+
+- Rust RDF event source/sink API for folded GTS graphs, including declaration
+  ordering for sinks that require term declarations before references.
+- Rust RDF text codecs for N-Triples, Turtle, TriG, and RDF/XML behind the
+  `rdf-codecs` feature.
+- Rust XSD lexical validation annotations for parsed RDF literals.
+- C ABI RDF format discovery and conversion helpers for the new Rust codec
+  surface.
+
+### Changed
+
+- Folded the RDF event protocol back into the main `gmeow-gts` crate so the
+  Rust release does not require publishing a second support crate.
 
 ## [0.9.4] — 2026-06-21
 
@@ -251,7 +273,8 @@ change before `1.0`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.4...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...HEAD
+[0.9.5]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.4...rust-v0.9.5
 [0.9.4]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.2...py-v0.9.4
 [0.9.2]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.1...py-v0.9.2
 [0.9.1]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.0...py-v0.9.1

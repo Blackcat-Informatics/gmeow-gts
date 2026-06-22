@@ -129,7 +129,7 @@ Add to `Cargo.toml`:
 
 ```toml
 [dependencies]
-gmeow-gts = "0.9.4"
+gmeow-gts = "0.9.5"
 ```
 
 Verify a signed file with its embedded transport key:
