@@ -1,0 +1,126 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+set -eu
+
+MAKEVARS="src/Makevars"
+CONFIG_LOG="config.log"
+SEARCH_DIRS="/usr/local/lib /usr/local/lib64 /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib/aarch64-linux-gnu /opt/homebrew/lib /opt/local/lib"
+
+if [ -n "${GTS_HOME:-}" ]; then
+  SEARCH_DIRS="${GTS_HOME}/lib ${GTS_HOME}/lib64 ${SEARCH_DIRS}"
+fi
+
+: >"${CONFIG_LOG}"
+
+# shellcheck disable=SC2317 # Invoked by trap.
+cleanup() {
+  rm -f conftest conftest.c conftest.o conftest.exe
+}
+trap cleanup EXIT INT TERM
+
+write_makevars() {
+  escaped_libs="$(printf '%s\n' "$1" | sed 's/[&|]/\\&/g')"
+  sed "s|@GTS_PKG_LIBS@|${escaped_libs}|g" src/Makevars.in >"${MAKEVARS}"
+}
+
+fail_missing() {
+  cat >&2 <<EOF
+configure: error: could not find a linkable libgts C ABI library.
+
+Set GTS_LIB_DIR to the directory containing libgts, or install libgts in a
+standard system library path before installing gmeowgts.
+
+For a repository checkout, build the C ABI first:
+  cargo build --manifest-path rust/capi/Cargo.toml
+
+Then install the R package with:
+  GTS_LIB_DIR=/absolute/path/to/rust/capi/target/debug R CMD INSTALL r
+
+Searched the default linker path and:
+  ${SEARCH_DIRS}
+
+See ${CONFIG_LOG} for compiler output.
+EOF
+  exit 1
+}
+
+fail_explicit() {
+  cat >&2 <<EOF
+configure: error: GTS_LIB_DIR is set to '${GTS_LIB_DIR}', but libgts could not be linked from that directory.
+
+Build or install the GTS C ABI shared library, then point GTS_LIB_DIR at the
+directory containing libgts.so, libgts.dylib, or libgts.a.
+
+See ${CONFIG_LOG} for compiler output.
+EOF
+  exit 1
+}
+
+reject_space_path() {
+  case "$1" in
+    *[[:space:]]*)
+      echo "configure: error: libgts paths containing whitespace are not supported: $1" >&2
+      exit 1
+      ;;
+  esac
+}
+
+try_link() {
+  libs="$1"
+  label="$2"
+  echo "checking for libgts using ${label}..." >&2
+  cat >conftest.c <<'EOF'
+#include "src/gts.h"
+
+int main(void) {
+  return gts_abi_version() == 0;
+}
+EOF
+
+  CC="${CC:-$(R CMD config CC)}"
+  CFLAGS="${CFLAGS:-$(R CMD config CFLAGS)}"
+  CPPFLAGS="${CPPFLAGS:-$(R CMD config CPPFLAGS)}"
+  LDFLAGS="${LDFLAGS:-$(R CMD config LDFLAGS)}"
+  LIBS="${LIBS:-}"
+
+  echo "${CC} ${CPPFLAGS} ${CFLAGS} conftest.c ${LDFLAGS} ${libs} ${LIBS} -o conftest" >>"${CONFIG_LOG}"
+  # shellcheck disable=SC2086 # R compiler/linker flags must remain word-split.
+  if ${CC} ${CPPFLAGS} ${CFLAGS} conftest.c ${LDFLAGS} ${libs} ${LIBS} -o conftest >>"${CONFIG_LOG}" 2>&1; then
+    echo "yes" >&2
+    return 0
+  fi
+  echo "no" >&2
+  return 1
+}
+
+rm -f "${MAKEVARS}"
+
+if [ -n "${GTS_LIB_DIR:-}" ]; then
+  reject_space_path "${GTS_LIB_DIR}"
+  if [ ! -d "${GTS_LIB_DIR}" ]; then
+    fail_explicit
+  fi
+  GTS_PKG_LIBS="-L${GTS_LIB_DIR} -lgts"
+  if try_link "${GTS_PKG_LIBS}" "GTS_LIB_DIR=${GTS_LIB_DIR}"; then
+    write_makevars "${GTS_PKG_LIBS}"
+    exit 0
+  fi
+  fail_explicit
+fi
+
+if try_link "-lgts" "default linker path"; then
+  write_makevars "-lgts"
+  exit 0
+fi
+
+for dir in ${SEARCH_DIRS}; do
+  reject_space_path "${dir}"
+  if [ -d "${dir}" ] && try_link "-L${dir} -lgts" "${dir}"; then
+    write_makevars "-L${dir} -lgts"
+    exit 0
+  fi
+done
+
+fail_missing

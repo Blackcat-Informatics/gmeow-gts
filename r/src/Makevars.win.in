@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-GTS_LIB_DIR ?= ../../rust/capi/target/debug
-
+# Template for configure.win-generated src/Makevars.win.
 PKG_CPPFLAGS = -I.
-PKG_LIBS = -L$(GTS_LIB_DIR) -lgts
+PKG_LIBS = @GTS_PKG_LIBS@

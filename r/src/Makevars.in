@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Template for configure-generated src/Makevars.
+PKG_CPPFLAGS = -I.
+PKG_LIBS = @GTS_PKG_LIBS@

@@ -10,7 +10,7 @@ checked-in C ABI in `rust/capi/include/gts.h`.
 ## Requirements
 
 - R 4.3 or newer with native package compilation tools.
-- A built `libgts` shared library from `rust/capi`.
+- A built or installed `libgts` shared library from the GTS C ABI.
 
 Build the shared library from the repository root:
 
@@ -24,6 +24,12 @@ Install the package against that library:
 GTS_LIB_DIR="$PWD/rust/capi/target/debug" R CMD INSTALL r
 ```
 
+When `GTS_LIB_DIR` is not set, package configuration tries the default linker
+path followed by common system library locations such as `/usr/local/lib`,
+`/usr/lib`, `/opt/homebrew/lib`, and `/opt/local/lib`. If no linkable `libgts`
+is found, installation stops during `configure` with the searched paths and the
+compiler output location.
+
 At runtime, the platform dynamic loader must also find `libgts`:
 
 ```sh
@@ -33,6 +39,24 @@ Rscript r/tests/smoke.R vectors/01-minimal.gts
 
 On macOS use `DYLD_LIBRARY_PATH`; on Windows make `gts.dll` discoverable through
 `PATH` or package the native library next to the package DLL.
+
+## r-universe
+
+The Blackcat Informatics universe is configured to build this package from the
+`r/` subdirectory:
+
+```r
+options(repos = c(
+  "blackcat-informatics" = "https://blackcat-informatics.r-universe.dev",
+  CRAN = "https://cloud.r-project.org"
+))
+install.packages("gmeowgts")
+```
+
+Use the r-universe install path after the package page reports a successful
+source build. The package remains source-only, so `libgts` must still be
+installed in a system location or made discoverable with `GTS_LIB_DIR` during
+source installation and with the platform loader at runtime.
 
 ## API Shape
 
@@ -93,6 +117,10 @@ not share raw native state between R processes.
 
 The wrapper targets `GTS_ABI_VERSION` 1. Check `abi_version()` and
 `capabilities_json()` when loading a system-provided `libgts`.
+
+CRAN submission is tracked separately in
+[`CRAN-READINESS.md`](./CRAN-READINESS.md); it is not a blocker for the first
+r-universe publication.
 
 ## Validation
 

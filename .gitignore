@@ -55,6 +55,9 @@ python/build/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+r/config.log
+r/src/Makevars
+r/src/Makevars.win
 
 # Environments / tooling
 .venv/
