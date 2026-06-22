@@ -49,6 +49,8 @@ pub use policy::{
 };
 #[cfg(feature = "rdf")]
 pub mod rdf;
+#[cfg(feature = "rdf-codecs")]
+pub mod rdf_codecs;
 pub mod rdf_events;
 pub mod reader;
 pub mod replication;
