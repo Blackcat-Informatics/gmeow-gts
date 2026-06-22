@@ -1,0 +1,110 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: Release RubyGems gmeow-gts
+
+# On a ruby-v* tag, verify and publish the source-only Ruby FFI wrapper to
+# RubyGems through Trusted Publishing/OIDC. No RubyGems API token is expected.
+
+on:
+  push:
+    tags:
+      - 'ruby-v*'
+
+concurrency:
+  group: release-rubygems-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74 # v1.314.0
+        with:
+          ruby-version: '3.4'
+          bundler-cache: false
+
+      - name: Install Ruby dependencies
+        working-directory: ruby
+        run: bundle install
+
+      - name: Validate tag matches gem version
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#ruby-v}"
+          gem_version="$(ruby -I ruby/lib -rgmeow/gts -e 'print Gmeow::Gts::VERSION')"
+          if [ "$tag_version" != "$gem_version" ]; then
+            echo "Tag version $tag_version does not match ruby/lib/gmeow/gts.rb version $gem_version"
+            exit 1
+          fi
+          echo "GTS_RUBY_VERSION=${gem_version}" >> "$GITHUB_ENV"
+
+      - name: Build C ABI library
+        run: cargo build --manifest-path rust/capi/Cargo.toml
+
+      - name: Ruby syntax, gem build, install, and smoke
+        run: |
+          set -euo pipefail
+          ruby -c ruby/lib/gmeow/gts.rb
+          bash ruby/scripts/smoke.sh
+
+      - name: Build release gem
+        run: |
+          set -euo pipefail
+          mkdir -p ruby/pkg
+          rm -f ruby/pkg/*.gem
+          gem build ruby/gmeow-gts.gemspec --output "ruby/pkg/gmeow-gts-${GTS_RUBY_VERSION}.gem"
+
+      - name: Attest build provenance for the gem
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: ruby/pkg/*.gem
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: ruby
+          format: spdx-json
+          output-file: sbom-ruby-gmeow-gts.spdx.json
+          upload-artifact: false
+
+      - name: Attest SBOM for the gem
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: ruby/pkg/*.gem
+          sbom-path: sbom-ruby-gmeow-gts.spdx.json
+
+      - name: Upload RubyGems artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: rubygems-gmeow-gts
+          path: ruby/pkg/*.gem
+          if-no-files-found: error
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sbom-ruby-gmeow-gts
+          path: sbom-ruby-gmeow-gts.spdx.json
+
+      - name: Configure RubyGems trusted publishing credentials
+        uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
+
+      - name: Publish to RubyGems
+        run: gem push ruby/pkg/*.gem

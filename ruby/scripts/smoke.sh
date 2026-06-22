@@ -11,6 +11,9 @@ RUBY_IMAGE="${RUBY_IMAGE:-gmeow-gts-ruby-ffi-smoke:3.4}"
 
 cd "${ROOT}"
 
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/gmeow-gts-ruby-smoke.XXXXXXXXXX")"
+trap 'rm -rf "${TMP}"' EXIT
+
 cargo build --manifest-path "${CAPI}/Cargo.toml"
 
 case "$(uname -s)" in
@@ -31,11 +34,26 @@ has_ruby_ffi() {
 }
 
 run_smoke() {
-  (
-    cd ruby
-    gem build gmeow-gts.gemspec --output "${TMPDIR:-/tmp}/gmeow-gts-ruby-smoke.gem" >/dev/null
-  )
+  local gem_file="${TMP}/gmeow-gts-ruby-smoke.gem"
+  local gem_home="${TMP}/gems"
+  local base_gem_path
+  local gem_path
+  local sep
+
+  mkdir -p "${gem_home}"
+  sep="$(ruby -e 'puts File::PATH_SEPARATOR')"
+  base_gem_path="$(ruby -e 'puts Gem.path.join(File::PATH_SEPARATOR)')"
+  gem_path="${gem_home}${sep}${base_gem_path}"
+
+  (cd ruby && gem build gmeow-gts.gemspec --output "${gem_file}" >/dev/null)
   ruby -I ruby/lib ruby/tests/smoke.rb "${VECTOR}"
+  GEM_HOME="${gem_home}" \
+    GEM_PATH="${gem_path}" \
+    gem install --local "${gem_file}" --no-document >/dev/null
+  GEM_HOME="${gem_home}" \
+    GEM_PATH="${gem_path}" \
+    GTS_RUBY_SMOKE_INSTALLED=1 \
+    ruby ruby/tests/smoke.rb "${VECTOR}"
 }
 
 if [[ "${GTS_RUBY_FORCE_DOCKER:-0}" != "1" ]] && has_ruby_ffi; then
@@ -55,7 +73,21 @@ else
     -v "${ROOT}:/workspace" \
     -w /workspace \
     "${RUBY_IMAGE}" \
-    sh -c 'cd ruby && gem build gmeow-gts.gemspec --output /tmp/gmeow-gts-ruby-smoke.gem >/dev/null && cd /workspace && ruby -I ruby/lib ruby/tests/smoke.rb vectors/01-minimal.gts'
+    bash -lc 'set -euo pipefail
+      tmp="$(mktemp -d /tmp/gmeow-gts-ruby-smoke.XXXXXXXXXX)"
+      trap "rm -rf \"${tmp}\"" EXIT
+      gem_file="${tmp}/gmeow-gts-ruby-smoke.gem"
+      gem_home="${tmp}/gems"
+      mkdir -p "${gem_home}"
+      sep="$(ruby -e "puts File::PATH_SEPARATOR")"
+      base_gem_path="$(ruby -e "puts Gem.path.join(File::PATH_SEPARATOR)")"
+      gem_path="${gem_home}${sep}${base_gem_path}"
+      cd ruby
+      gem build gmeow-gts.gemspec --output "${gem_file}" >/dev/null
+      cd /workspace
+      ruby -I ruby/lib ruby/tests/smoke.rb vectors/01-minimal.gts
+      GEM_HOME="${gem_home}" GEM_PATH="${gem_path}" gem install --local "${gem_file}" --no-document >/dev/null
+      GEM_HOME="${gem_home}" GEM_PATH="${gem_path}" GTS_RUBY_SMOKE_INSTALLED=1 ruby ruby/tests/smoke.rb vectors/01-minimal.gts'
 fi
 
 echo "Ruby C ABI wrapper smoke test passed"

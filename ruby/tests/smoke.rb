@@ -5,7 +5,9 @@ require "fileutils"
 require "json"
 require "tmpdir"
 
-$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+unless ENV["GTS_RUBY_SMOKE_INSTALLED"] == "1"
+  $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+end
 require "gmeow/gts"
 
 def expect_json_property(label, json, property, expected)

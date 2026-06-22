@@ -26,6 +26,7 @@ release revision; generate the stamped artifact described below.
 | Python package/tag | `gmeow-gts` / `py-v<version>` |
 | Go module/tag | `go.blackcatinformatics.ca/gts` / `go-v<version>` |
 | npm package/tag | `@blackcatinformatics/gmeow-gts` / `npm-v<version>` |
+| Ruby package/tag | `gmeow-gts` / `ruby-v<version>` |
 | Release notes commit | |
 | Release manager | |
 | Date | |
@@ -341,6 +342,11 @@ publish that crate first from its standalone repository. Its crates.io Trusted
 Publisher entry must use owner/repo `Blackcat-Informatics/visual-hashing`,
 workflow `release.yml`, and environment `(none)`.
 
+Before pushing RubyGems tags, confirm the RubyGems pending Trusted Publisher for
+`gmeow-gts` uses owner/repo `Blackcat-Informatics/gmeow-gts`, workflow
+`release-rubygems.yaml`, and environment `(none)` unless the release explicitly
+adds a protected environment.
+
 Before pushing Go tags, confirm repository-level immutable releases are enabled:
 
 ```bash
@@ -355,12 +361,14 @@ git tag "py-v${VERSION}" "${MERGE_COMMIT}"
 git tag "go-v${VERSION}" "${MERGE_COMMIT}"
 git tag "npm-v${VERSION}" "${MERGE_COMMIT}"
 git tag "capi-v${VERSION}" "${MERGE_COMMIT}"
+git tag "ruby-v${VERSION}" "${MERGE_COMMIT}"
 git tag "${VERSION}" "${MERGE_COMMIT}" # Swift Package Manager / Swift Package Index
 git push origin "rust-v${VERSION}"
 git push origin "py-v${VERSION}"
 git push origin "go-v${VERSION}"
 git push origin "npm-v${VERSION}"
 git push origin "capi-v${VERSION}"
+git push origin "ruby-v${VERSION}"
 git push origin "${VERSION}"
 ```
 
@@ -437,6 +445,7 @@ Record quick registry state before or after the smoke verifier:
 cargo search gmeow-gts --limit 1
 python -m pip index versions gmeow-gts
 npm view @blackcatinformatics/gmeow-gts version
+gem info gmeow-gts --remote
 gh release view "go-v${VERSION}" \
   --json tagName,name,url,isDraft,isImmutable,isPrerelease,publishedAt
 gh release view "capi-v${VERSION}" \
@@ -475,6 +484,7 @@ Release evidence durability:
 | crates.io `gmeow-gts-capi` | Registry-hosted `.crate` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store; bootstrap token until Trusted Publishing follow-up lands |
 | PyPI | Registry-hosted wheel/sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
 | npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |
+| RubyGems | Registry-hosted `.gem` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store |
 
 Download representative artifacts for verification:
 
@@ -483,12 +493,15 @@ mkdir -p \
   "${OUT}/packages/go-release" \
   "${OUT}/packages/npm" \
   "${OUT}/packages/python" \
+  "${OUT}/packages/ruby" \
   "${OUT}/packages/rust"
 gh release download "go-v${VERSION}" --dir "${OUT}/packages/go-release"
 
 python -m pip download --no-deps --dest "${OUT}/packages/python" "gmeow-gts==${VERSION}"
 npm pack "@blackcatinformatics/gmeow-gts@${VERSION}" \
   --pack-destination "${OUT}/packages/npm"
+gem fetch gmeow-gts --version "${VERSION}" --clear-sources --source https://rubygems.org
+mv "gmeow-gts-${VERSION}.gem" "${OUT}/packages/ruby/"
 curl -L "https://crates.io/api/v1/crates/gmeow-gts/${VERSION}/download" \
   -o "${OUT}/packages/rust/gmeow-gts-${VERSION}.crate"
 curl -L "https://crates.io/api/v1/crates/gmeow-gts-capi/${VERSION}/download" \
@@ -506,7 +519,8 @@ for artifact in \
   "${OUT}/packages/rust/gmeow-gts-${VERSION}.crate" \
   "${OUT}/packages/rust/gmeow-gts-capi-${VERSION}.crate" \
   "${OUT}"/packages/npm/*.tgz \
-  "${OUT}"/packages/python/*; do
+  "${OUT}"/packages/python/* \
+  "${OUT}"/packages/ruby/*.gem; do
   gh attestation verify "$artifact" --repo Blackcat-Informatics/gmeow-gts
 done
 gh attestation verify "${OUT}/packages/go-release/checksums.txt" \
@@ -567,6 +581,7 @@ Record final registry state:
 | PyPI `gmeow-gts` | | | |
 | Go release `go.blackcatinformatics.ca/gts` | | | |
 | npm `@blackcatinformatics/gmeow-gts` | | | |
+| RubyGems `gmeow-gts` | | | |
 | SBOM attestations | | | |
 | Build-provenance attestations | | | |
 
