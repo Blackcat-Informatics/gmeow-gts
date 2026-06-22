@@ -351,6 +351,17 @@ bash r/scripts/smoke.sh
 bash julia/scripts/smoke.sh
 ```
 
+Run the credential-free wrapper package dry-runs from the repository root:
+
+```bash
+bash scripts/package_dry_run_wrappers.sh
+```
+
+The dry-run builds local package artifacts or package metadata for the C ABI,
+C++, .NET, PHP, Lua, Swift, Ruby, R, and Julia wrapper family without registry
+credentials. CI uploads the resulting `dist/package-dry-runs/` evidence from
+the `wrapper-package-dry-runs` job.
+
 Each wrapper README documents local toolchain requirements, `libgts` discovery (`GTS_LIBGTS`,
 `GTS_LIB_DIR`, or platform loader defaults where supported), ownership rules, threading
 expectations, and fallback container behavior where practical.
