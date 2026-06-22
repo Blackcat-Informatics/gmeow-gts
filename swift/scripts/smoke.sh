@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
 CAPI_TARGET="${CAPI}/target/debug"
-PACKAGE="${ROOT}/swift"
+PACKAGE="${GTS_SWIFT_PACKAGE_PATH:-${ROOT}}"
 SMOKE_TARGET="GmeowGTSSmoke"
 VECTOR="vectors/01-minimal.gts"
 SWIFT_IMAGE="${SWIFT_IMAGE:-swift@sha256:4e50a9e711e8682a8c42bacfeed204568adfd6985a63b3789a165f28d296a28a}"
@@ -18,6 +18,7 @@ diff -u rust/capi/include/gts.h swift/Sources/CGts/include/gts.h
 cargo build --manifest-path "${CAPI}/Cargo.toml"
 
 run_smoke() {
+  swift package dump-package --package-path "${PACKAGE}" >/dev/null
   swift run \
     --package-path "${PACKAGE}" \
     --scratch-path "${SWIFT_SCRATCH}" \
@@ -43,17 +44,22 @@ else
     -e HOME=/tmp/swift-home \
     -e LIBRARY_PATH=/workspace/rust/capi/target/debug \
     -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e GTS_SWIFT_PACKAGE_PATH=/workspace \
+    -e GTS_SWIFT_SMOKE_TARGET="${SMOKE_TARGET}" \
+    -e GTS_SWIFT_VECTOR=/workspace/vectors/01-minimal.gts \
     -v "${ROOT}:/workspace" \
     -w /workspace \
     "${SWIFT_IMAGE}" \
+    bash -lc 'set -euo pipefail
+    swift package dump-package --package-path "${GTS_SWIFT_PACKAGE_PATH}" >/dev/null
     swift run \
-      --package-path swift \
+      --package-path "${GTS_SWIFT_PACKAGE_PATH}" \
       --scratch-path /tmp/gmeow-gts-swift-build \
       -Xlinker -L/workspace/rust/capi/target/debug \
       -Xlinker -rpath \
       -Xlinker /workspace/rust/capi/target/debug \
-      "${SMOKE_TARGET}" \
-      "${VECTOR}"
+      "${GTS_SWIFT_SMOKE_TARGET}" \
+      "${GTS_SWIFT_VECTOR}"'
 fi
 
 echo "Swift C ABI wrapper smoke test passed"

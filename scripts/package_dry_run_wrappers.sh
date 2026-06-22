@@ -417,16 +417,21 @@ rm -rf "${lua_tree}" "${lua_tree_dev}"'
 log "Swift package dump and smoke executable"
 # shellcheck disable=SC2016 # expanded inside the local/container shell.
 run_swift_shell 'set -euo pipefail
-mkdir -p "${GTS_PACKAGE_DRY_RUN_OUT}/swift"
-swift package dump-package --package-path "${GTS_WORKSPACE}/swift" > "${GTS_PACKAGE_DRY_RUN_OUT}/swift/package.json"
+swift_out="${GTS_PACKAGE_DRY_RUN_OUT}/swift"
+swift_scratch="${swift_out}/scratch"
+mkdir -p "${swift_out}"
+rm -rf "${swift_scratch}"
+swift package dump-package --package-path "${GTS_WORKSPACE}" > "${swift_out}/package-root.json"
+swift package dump-package --package-path "${GTS_WORKSPACE}/swift" > "${swift_out}/package-subdir.json"
 swift run \
-  --package-path "${GTS_WORKSPACE}/swift" \
-  --scratch-path /tmp/gts-swift-package-dry-run \
+  --package-path "${GTS_WORKSPACE}" \
+  --scratch-path "${swift_scratch}" \
   -Xlinker "-L${GTS_CAPI_TARGET}" \
   -Xlinker -rpath \
   -Xlinker "${GTS_CAPI_TARGET}" \
   GmeowGTSSmoke \
-  "${GTS_WORKSPACE}/vectors/01-minimal.gts"'
+  "${GTS_WORKSPACE}/vectors/01-minimal.gts"
+rm -rf "${swift_scratch}"'
 
 log "Ruby gem build, install, and installed-gem load"
 # shellcheck disable=SC2016 # expanded inside the local/container shell.

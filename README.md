@@ -179,7 +179,7 @@ Rust-backed C ABI and derived wrappers:
 | **.NET** | [`dotnet/`](./dotnet/README.md) | `Gmeow.Gts` P/Invoke wrapper |
 | **PHP** | [`php/`](./php/README.md) | PHP FFI Composer package |
 | **Lua** | [`lua/`](./lua/README.md) | `gmeow-gts` LuaRocks LuaJIT FFI module |
-| **Swift** | [`swift/`](./swift/README.md) | Swift Package Manager wrapper |
+| **Swift** | [`swift/`](./swift/README.md) | Swift Package Manager wrapper via root `Package.swift` |
 | **Ruby** | [`ruby/`](./ruby/README.md) | `gmeow-gts` FFI gem |
 | **R** | [`r/`](./r/README.md) | `gmeowgts` package |
 | **Julia** | [`julia/`](./julia/README.md) | `GmeowGTS.jl` package |
@@ -738,6 +738,10 @@ Registry-hosted package files keep their durable provenance and SBOM evidence
 in GitHub's attestation store. Verify provenance with
 `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gts`; verify the
 SBOM predicate with `--predicate-type https://spdx.dev/Document/v2.3`.
+Swift Package Manager publication uses the repository root `Package.swift`, the
+plain semantic-version tag lane such as `0.9.4`, and manual Swift Package Index
+submission of `https://github.com/Blackcat-Informatics/gmeow-gts.git` after the
+tag exists.
 The current SLSA posture is documented in
 [`GTS-RELEASE-SLSA.md`](./docs/GTS-RELEASE-SLSA.md): artifact attestations are
 treated as SLSA v1.0 Build Level 2 evidence, and Build Level 3 is not claimed
