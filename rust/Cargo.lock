@@ -491,9 +491,11 @@ dependencies = [
  "filetime",
  "flate2",
  "getrandom 0.2.17",
+ "gmeow-rdf-events",
  "libc",
  "oxigraph",
  "oxrdf",
+ "oxttl",
  "ruzstd",
  "serde",
  "serde_json",
@@ -506,6 +508,10 @@ dependencies = [
  "time",
  "visual-hashing",
 ]
+
+[[package]]
+name = "gmeow-rdf-events"
+version = "0.1.0"
 
 [[package]]
 name = "half"
@@ -672,9 +678,9 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "oxigraph"
-version = "0.5.8"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4ee83ce0422e6dce39a325810a9c66af71577a0a6fb5d887764bf3ae6304667"
+checksum = "6d945cbe78640ab719a73697b9bd250054ea82c60470754efea79c21d5fc1cd1"
 dependencies = [
  "dashmap",
  "getrandom 0.3.4",

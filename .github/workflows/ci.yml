@@ -18,7 +18,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -59,7 +59,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -74,6 +74,7 @@ jobs:
         with:
           workspaces: |
             rust
+            rust/rdf-events
             rust/capi
             visual-hashing
 
@@ -81,6 +82,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cargo fmt --manifest-path visual-hashing/Cargo.toml --check
+          cargo fmt --manifest-path rust/rdf-events/Cargo.toml --check
           cargo fmt --manifest-path rust/Cargo.toml --check
           cargo fmt --manifest-path rust/capi/Cargo.toml --check
 
@@ -88,9 +90,11 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cargo clippy --manifest-path visual-hashing/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path rust/rdf-events/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features duckdb -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf-codecs -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features sophia-adapter -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features tar -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features yaml-ld -- -D warnings
@@ -102,17 +106,21 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: |
           cargo doc --manifest-path visual-hashing/Cargo.toml --no-deps
+          cargo doc --manifest-path rust/rdf-events/Cargo.toml --no-deps
           cargo doc --manifest-path rust/Cargo.toml --no-deps
+          cargo doc --manifest-path rust/Cargo.toml --no-deps --features rdf-codecs
           cargo doc --manifest-path rust/Cargo.toml --no-deps --features yaml-ld
           cargo doc --manifest-path rust/capi/Cargo.toml --no-deps
 
       - name: Conformance corpus + CLI tests
         run: |
           cargo test --manifest-path visual-hashing/Cargo.toml
+          cargo test --manifest-path rust/rdf-events/Cargo.toml
           cargo test --manifest-path rust/Cargo.toml --no-default-features
           cargo test --manifest-path rust/Cargo.toml
           cargo test --manifest-path rust/Cargo.toml --features duckdb
           cargo test --manifest-path rust/Cargo.toml --features rdf
+          cargo test --manifest-path rust/Cargo.toml --features rdf-codecs
           cargo test --manifest-path rust/Cargo.toml --features sophia-adapter
           cargo test --manifest-path rust/Cargo.toml --features tar
           cargo test --manifest-path rust/Cargo.toml --features yaml-ld
@@ -166,13 +174,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout gmeow-gts
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           path: gmeow-gts
           persist-credentials: false
 
       - name: Checkout gmeow-ontology
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: Blackcat-Informatics/gmeow-ontology
           path: gmeow-ontology
@@ -209,7 +217,7 @@ jobs:
     env:
       CGO_ENABLED: "0"
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -229,7 +237,7 @@ jobs:
 
       - name: staticcheck
         if: runner.os == 'Linux'
-        uses: dominikh/staticcheck-action@672a31696676d1592844bf0164b3bbfd855a4d50 # v1.4.1
+        uses: dominikh/staticcheck-action@9716614d4101e79b4340dd97b10e54d68234e431 # v1.4.1
         with:
           version: "2026.1"
           install-go: false
@@ -255,7 +263,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -289,7 +297,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -327,7 +335,7 @@ jobs:
   smalltalk:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -344,7 +352,7 @@ jobs:
   kotlin:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -372,7 +380,7 @@ jobs:
   interop:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 

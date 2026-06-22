@@ -412,6 +412,16 @@ gts dump <file> --directory <dir> [--include-suppressed] [--force] [--metadata-o
                                   expand an archive into a directory dump
 ```
 
+Rust-only RDF 1.2 text-codec extension:
+
+```text
+gts to-nt <file>                fold the default graph to N-Triples (--features rdf-codecs)
+gts from-nt <in.nt> [-o out]    build a GTS from N-Triples (--features rdf-codecs)
+gts to-turtle <file>            fold the default graph to Turtle (--features rdf-codecs)
+gts from-turtle <in.ttl> [-o out]
+                                  build a GTS from Turtle (--features rdf-codecs)
+```
+
 Rust-only tar-compatible extension:
 
 ```text
@@ -449,7 +459,9 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 engine depends on and re-exports as `gmeow_gts::emojihash`.
 
 `from-nq` is common across all six engines. Python and Rust also expose `to-trig`/`from-trig`
-for readable TriG graph-block interchange over the same folded RDF content. The Rust OKF
+for readable TriG graph-block interchange over the same folded RDF content. Rust additionally
+exposes `to-nt`/`from-nt` and `to-turtle`/`from-turtle` behind `--features rdf-codecs` for
+default-graph N-Triples and Turtle interchange through the same RDF 1.2 codec stack. The Rust OKF
 profile extension maps Markdown bundles to verifiable GTS package bytes and back behind
 `--features okf`; see [`docs/GTS-OKF.md`](./docs/GTS-OKF.md). The Rust `tar`
 extension provides tar-style `-c/-x/-t/-d` commands over `.gts` and `.tar` files behind
