@@ -243,6 +243,7 @@ Severity values:
 | `PositionConstraint` | error | graph fold | Reject the offending row and continue folding other rows/frames. | yes | none | Baseline Reader |
 | `ForwardReference` | error | term dictionary | Drop or ignore the invalid forward reference and continue folding safely. | yes | none | Baseline Reader |
 | `SegmentBoundary` | fatal | pre-segment compatibility mode | Stop before misfolding a later segment as file-global ids. | no for that mode | none | Baseline Reader compatibility test |
+| `IllTypedLiteral` | warning | RDF/XSD syntax import | Preserve the literal lexical form and datatype verbatim; expose a diagnostic and/or `gts:illTypedLiterals` metadata sidecar. | yes | none | RDF codec / Profile-Aware Tool |
 | `TruncatedLog` | error | expected head / freshness | Fold observed bytes but fail verification against the requested head. | yes | none | Full Reader or Validating Tool |
 | `StreamableLayoutError` | error | streamable layout claim | Fold bytes but make strict/profile verify fail for the layout claim. | yes | none | Validating Tool |
 | `IndexMmrError` | error | optional index MMR root | Fold bytes but make strict verification fail for the index commitment. | yes | none | Full Reader when MMR/proof support is claimed |

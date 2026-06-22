@@ -20,7 +20,11 @@ duckdb = []
 # Enables native RDF dataset interop through `oxrdf`'s data-model crate. This is
 # intentionally opt-in so default transport users do not inherit RDF toolkit or
 # graph-store dependencies.
-rdf = ["dep:oxrdf"]
+rdf = ["xsd", "dep:oxrdf"]
+# Enables syntax-side XML Schema datatype lexical validation/canonicalization.
+# This is kept opt-in so default transport users do not inherit RDF/XSD helper
+# dependencies unless they ask for parser-facing datatype semantics.
+xsd = ["dep:oxsdatatypes"]
 # Enables RDF 1.2 text codecs. This uses the same native RDF adapter plus
 # Oxigraph's N-Triples/Turtle/TriG and RDF/XML parser/serializer stacks, but
 # stays opt-in so default transport and wasm builds keep their current
@@ -77,6 +81,7 @@ sha1 = "0.11"
 # only pulled in on non-wasm targets (the deterministic seal/open paths need no RNG).
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
 oxrdf = { version = "0.3.3", default-features = false, features = ["rdf-12"], optional = true }
+oxsdatatypes = { version = "0.2.2", optional = true }
 oxttl = { version = "0.2.3", default-features = false, features = ["rdf-12"], optional = true }
 oxrdfxml = { version = "0.2.3", default-features = false, features = ["rdf-12"], optional = true }
 oxigraph = { version = "0.5.8", default-features = false, features = ["rdf-12"], optional = true }

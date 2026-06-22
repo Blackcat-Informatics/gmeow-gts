@@ -24,6 +24,7 @@ use crate::rdf_events::{
     EventTerm, EventTermId, EventTermKind, EventTriple, GraphRdfEventSource, RdfEventSink,
     RdfEventSource,
 };
+use crate::xsd::annotate_ill_typed_literals;
 
 const RDF_NS: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const XSD_NS: &str = "http://www.w3.org/2001/XMLSchema#";
@@ -373,14 +374,16 @@ impl EventGraphSink {
             .map(event_diagnostic_to_model)
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(Graph {
+        let mut graph = Graph {
             terms,
             quads,
             reifiers,
             annotations,
             diagnostics,
             ..Default::default()
-        })
+        };
+        annotate_ill_typed_literals(&mut graph);
+        Ok(graph)
     }
 
     fn ensure_not_finished(&self, event: &str) -> Result<(), EventError> {

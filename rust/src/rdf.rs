@@ -19,6 +19,9 @@ use oxrdf::{
 
 use crate::model::{Graph, Quad, Term, TermKind, Triple3, RDF_LANG_STRING, XSD_STRING};
 use crate::writer::Writer;
+use crate::xsd::{
+    ill_typed_literals_in_terms, ill_typed_literals_metadata, ILL_TYPED_LITERAL_META_KEY,
+};
 
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
@@ -207,6 +210,13 @@ pub fn writer_from_oxrdf_dataset_with_profile(
     let reifiers: Vec<(usize, Triple3)> = reifiers.into_iter().collect();
     if !reifiers.is_empty() {
         writer.add_reifies(&reifiers);
+    }
+    let ill_typed = ill_typed_literals_in_terms(&interner.terms);
+    if !ill_typed.is_empty() {
+        writer.add_meta(ciborium::value::Value::Map(vec![(
+            ILL_TYPED_LITERAL_META_KEY.into(),
+            ill_typed_literals_metadata(&ill_typed),
+        )]));
     }
     Ok(writer)
 }

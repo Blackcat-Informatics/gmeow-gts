@@ -8,6 +8,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use ciborium::value::Value;
 use oxrdf::dataset::CanonicalizationAlgorithm;
 use oxrdf::{Dataset, GraphNameRef};
 use oxttl::{NQuadsParser, NTriplesParser};
@@ -15,13 +16,14 @@ use oxttl::{NQuadsParser, NTriplesParser};
 use gmeow_gts::model::{Graph, Term, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::rdf_codecs::{
-    from_ntriples, from_rdf_xml, from_rdf_xml_with_base_iri, from_trig, from_turtle, to_ntriples,
-    to_ntriples_from_erased_source, to_rdf_xml, to_rdf_xml_from_erased_source,
-    to_trig_from_erased_source, to_turtle, to_turtle_from_source,
+    from_ntriples, from_rdf_xml, from_rdf_xml_with_base_iri, from_trig, from_turtle,
+    graph_from_source, to_ntriples, to_ntriples_from_erased_source, to_rdf_xml,
+    to_rdf_xml_from_erased_source, to_trig_from_erased_source, to_turtle, to_turtle_from_source,
 };
 use gmeow_gts::rdf_events::{GraphRdfEventSource, RdfEventSource};
 use gmeow_gts::reader::read;
 use gmeow_gts::writer::Writer;
+use gmeow_gts::xsd::{ILL_TYPED_LITERAL_CODE, ILL_TYPED_LITERAL_META_KEY};
 
 fn sorted_lines(text: &str) -> Vec<String> {
     let mut lines: Vec<String> = text
@@ -67,6 +69,30 @@ fn assert_nquads_isomorphic_to_ntriples(actual_nquads: &str, expected_ntriples: 
         actual, expected,
         "{name}: RDF datasets differ\nactual:\n{actual}\nexpected:\n{expected}"
     );
+}
+
+fn graph_meta<'a>(graph: &'a Graph, key: &str) -> Option<&'a Value> {
+    graph
+        .meta
+        .iter()
+        .find_map(|(stored, value)| (stored == key).then_some(value))
+}
+
+fn map_value<'a>(value: &'a Value, key: &str) -> Option<&'a Value> {
+    let Value::Map(entries) = value else {
+        return None;
+    };
+    entries.iter().find_map(|(stored, value)| match stored {
+        Value::Text(stored) if stored == key => Some(value),
+        _ => None,
+    })
+}
+
+fn text_value<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
+    match map_value(value, key) {
+        Some(Value::Text(text)) => Some(text),
+        _ => None,
+    }
 }
 
 fn term(kind: TermKind, value: &str) -> Term {
@@ -262,6 +288,84 @@ _:b0 <https://ex/name> "Kit\nTab\tQuote\""@en .
     assert!(out.contains("<<( <https://ex/s> <https://ex/p> <https://ex/o> )>>"));
     assert!(out.contains("<http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>"));
     assert!(out.contains("<https://ex/source> <https://ex/doc>"));
+}
+
+#[test]
+fn ntriples_import_preserves_and_flags_ill_typed_xsd_literals() {
+    let ntriples = r#"<https://ex/s> <https://ex/p> "maybe"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<https://ex/s> <https://ex/n> "+0007"^^<http://www.w3.org/2001/XMLSchema#integer> .
+"#;
+
+    let bytes = from_ntriples(ntriples).expect("ill-typed RDF literal is imported");
+    let graph = read(&bytes, true, None);
+    let out = to_nquads(&graph);
+    assert!(out.contains(
+        "<https://ex/s> <https://ex/p> \"maybe\"^^<http://www.w3.org/2001/XMLSchema#boolean> ."
+    ));
+    assert!(out.contains(
+        "<https://ex/s> <https://ex/n> \"+0007\"^^<http://www.w3.org/2001/XMLSchema#integer> ."
+    ));
+
+    let meta = graph_meta(&graph, ILL_TYPED_LITERAL_META_KEY).expect("ill-typed metadata");
+    let Some(Value::Array(items)) = map_value(meta, "items") else {
+        panic!("ill-typed metadata has items array");
+    };
+    assert_eq!(items.len(), 1);
+    assert_eq!(
+        text_value(&items[0], "datatype"),
+        Some("http://www.w3.org/2001/XMLSchema#boolean")
+    );
+    assert_eq!(text_value(&items[0], "lexical"), Some("maybe"));
+}
+
+#[test]
+fn event_graph_materialization_surfaces_ill_typed_xsd_diagnostics() {
+    let graph = Graph {
+        terms: vec![
+            Term {
+                kind: TermKind::Iri,
+                value: Some("https://ex/s".to_string()),
+                datatype: None,
+                lang: None,
+                direction: None,
+                reifier: None,
+            },
+            Term {
+                kind: TermKind::Iri,
+                value: Some("https://ex/p".to_string()),
+                datatype: None,
+                lang: None,
+                direction: None,
+                reifier: None,
+            },
+            Term {
+                kind: TermKind::Iri,
+                value: Some("http://www.w3.org/2001/XMLSchema#unsignedByte".to_string()),
+                datatype: None,
+                lang: None,
+                direction: None,
+                reifier: None,
+            },
+            Term {
+                kind: TermKind::Literal,
+                value: Some("256".to_string()),
+                datatype: Some(2),
+                lang: None,
+                direction: None,
+                reifier: None,
+            },
+        ],
+        quads: vec![(0, 1, 3, None)],
+        ..Default::default()
+    };
+
+    let materialized =
+        graph_from_source(&GraphRdfEventSource::new(&graph)).expect("event graph materializes");
+    assert!(materialized
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.code == ILL_TYPED_LITERAL_CODE));
+    assert!(graph_meta(&materialized, ILL_TYPED_LITERAL_META_KEY).is_some());
 }
 
 #[test]

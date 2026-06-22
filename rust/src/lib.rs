@@ -63,5 +63,7 @@ pub mod trig;
 pub mod verify;
 pub mod wire;
 pub mod writer;
+#[cfg(feature = "xsd")]
+pub mod xsd;
 #[cfg(feature = "yaml-ld")]
 pub mod yamlld;
