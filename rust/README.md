@@ -483,6 +483,10 @@ The optional `rdf-codecs` feature adds native N-Triples, Turtle, TriG, and
 RDF/XML text codecs. External RDF crates such as Sophia, Oxigraph, or Rio should
 interoperate through the N-Quads bridge at the application boundary rather than
 through an in-crate adapter.
+The all-features Rust library must continue to build for
+`wasm32-unknown-unknown`; CI runs `scripts/check_rust_wasm_dependency_audit.py`
+to prevent Oxigraph/OxRDF/OxTTL/OxRDFXML, Sophia crates, `uuid`, or
+`getrandom` 0.3 from re-entering that dependency tree.
 The optional `policy-config` feature adds JSON loading helpers for
 `gmeow_gts::policy::TrustPolicy` and enables `gts verify --policy <file>` for
 release/profile verification workflows. `policy-config-yaml` layers YAML parsing

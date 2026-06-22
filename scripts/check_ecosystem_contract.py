@@ -30,6 +30,8 @@ REQUIRED_DOC_MARKERS = [
     'features = ["native-store"]',
     "to_rdf_dataset_lossy",
     "Rio remains deferred",
+    "scripts/check_rust_wasm_dependency_audit.py",
+    "wasm32-unknown-unknown --all-features",
     "## TypeScript: Browser And Range Fetch",
     "ReadableStream<Uint8Array>",
     "## Go: Services And Object Stores",
