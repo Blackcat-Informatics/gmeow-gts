@@ -54,7 +54,7 @@ impl From<RdfAdapterError> for NativeStoreError {
 /// diagnostics, segment heads, profiles, and metadata stay in this sidecar so
 /// callers can inspect them without encoding GTS implementation details into
 /// the RDF graph.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GtsSidecar {
     pub blob_meta: Vec<(String, Value)>,
     pub blobs: Vec<(String, BlobEntry)>,
@@ -145,7 +145,16 @@ impl<'a> IntoIterator for &'a NativeStore {
     }
 }
 
+impl Extend<RdfQuad> for NativeStore {
+    fn extend<T: IntoIterator<Item = RdfQuad>>(&mut self, iter: T) {
+        for quad in iter {
+            self.insert(quad);
+        }
+    }
+}
+
 /// Native store plus the GTS-only sidecar state split out of the source graph.
+#[derive(Clone, Debug, PartialEq)]
 pub struct StoreWithSidecar {
     pub store: NativeStore,
     pub sidecar: GtsSidecar,
@@ -159,8 +168,26 @@ pub struct IntoQuads {
 impl Iterator for IntoQuads {
     type Item = RdfQuad;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next()
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+
+    #[inline]
+    fn count(self) -> usize {
+        self.inner.len()
+    }
+}
+
+impl ExactSizeIterator for IntoQuads {
+    #[inline]
+    fn len(&self) -> usize {
+        self.inner.len()
     }
 }
 

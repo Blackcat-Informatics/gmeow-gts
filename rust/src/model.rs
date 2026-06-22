@@ -106,7 +106,7 @@ impl<'a> Iterator for QuadTermsIter<'a> {
 }
 
 /// A frame the reader could not decode, surfaced rather than dropped (§7.6).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct OpaqueNode {
     /// Frame content id when available.
     pub id: Vec<u8>,
@@ -123,7 +123,7 @@ pub struct OpaqueNode {
 }
 
 /// A recorded `suppress` directive (§11) — a display/precedence overlay.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Suppression {
     /// Target maps (`{"kind": "term"|"quad"|"reifier"|"frame"|"blob", ...}`).
     pub targets: Vec<Value>,
@@ -134,7 +134,7 @@ pub struct Suppression {
 }
 
 /// A machine-observable reader diagnostic (§2.3).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Diagnostic {
     /// Stable diagnostic code, matching the cross-engine diagnostic vocabulary.
     pub code: String,
@@ -149,7 +149,7 @@ pub struct Diagnostic {
 /// `cose` retains the raw COSE_Sign1 bytes so streamable compaction (§10.1)
 /// can carry the signature *detached* — forever verifiable against
 /// `frame_id` even after the frame itself is re-authored into a new chain.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Signature {
     /// Frame id the COSE_Sign1 signature authenticates.
     pub frame_id: Vec<u8>,
@@ -167,7 +167,7 @@ pub struct Signature {
 /// `tail` counts the legal unpresaged frames after it ("streamable through
 /// frame *covered*, accretive tail of *tail* frame(s)"). For an unclaimed
 /// (accretive) segment all fields are their zero values.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct StreamableInfo {
     /// Whether the segment header explicitly claimed `layout = "streamable"`.
     pub claimed: bool,

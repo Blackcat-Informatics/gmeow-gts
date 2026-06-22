@@ -51,6 +51,8 @@ fn graph_to_store_preserves_named_graphs_and_sidecar() -> Result<(), Box<dyn Err
     let projected = graph_to_store_with_sidecar(graph)?;
     let rows = projected.store.iter().collect::<Vec<_>>();
 
+    assert_eq!(projected, projected.clone());
+    assert!(format!("{projected:?}").contains("StoreWithSidecar"));
     assert_eq!(rows.len(), 1);
     match &rows[0].graph_name {
         GraphName::Iri(iri) => assert_eq!(iri.as_str(), "https://example.org/g"),
@@ -76,6 +78,8 @@ fn graph_into_quads_returns_gts_sidecar() -> Result<(), Box<dyn Error>> {
     let graph = read(&writer.to_bytes(), true, None);
     let (quads, sidecar) = graph_into_quads_with_sidecar(graph)?;
 
+    assert_eq!(quads.len(), 1);
+    assert_eq!(quads.size_hint(), (1, Some(1)));
     assert_eq!(quads.count(), 1);
     assert_eq!(sidecar.meta.len(), 1);
     assert_eq!(sidecar.segment_profiles, vec!["dist".to_string()]);
@@ -150,12 +154,14 @@ fn store_to_writer_roundtrips_native_quads() -> Result<(), Box<dyn Error>> {
     let subject = Iri::new("https://example.org/s")?;
     let predicate = Iri::new("https://example.org/p")?;
     let object = RdfLiteral::new_simple_literal("object");
-    store.insert(RdfQuad::new(
+    let quad = RdfQuad::new(
         subject.clone(),
         predicate.clone(),
         object,
         GraphName::from(graph_name.clone()),
-    ));
+    );
+    store.extend([quad.clone(), quad]);
+    assert_eq!(store.len(), 1);
 
     let bytes = Writer::from_store(&store, "dist")?.to_bytes();
     assert_eq!(bytes, store_to_gts_bytes(&store, "dist")?);
