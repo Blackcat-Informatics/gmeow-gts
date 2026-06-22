@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: Julia TagBot
+
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: julia-tagbot-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  tagbot:
+    if: github.event_name == 'workflow_dispatch' || github.actor == 'JuliaTagBot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tag Julia subpackage
+        uses: JuliaRegistries/TagBot@304fc93e4623081443fee5b6317ac73b37923574 # v1.25.8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          subdir: julia
+          tag_prefix: julia

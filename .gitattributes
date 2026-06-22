@@ -9,3 +9,7 @@ vectors/tar/*.tar.zst -text -diff
 ts/package-lock.json linguist-generated=true -diff
 rust/Cargo.lock linguist-generated=true -diff
 go/go.sum linguist-generated=true -diff
+
+# YAML and copied upstream license text require space indentation.
+.github/workflows/julia-tagbot.yml whitespace=trailing-space,space-before-tab
+julia/LICENSE-APACHE whitespace=trailing-space,space-before-tab

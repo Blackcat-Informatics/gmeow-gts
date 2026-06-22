@@ -29,6 +29,26 @@ GTS_JULIA_VECTOR="$PWD/vectors/01-minimal.gts" julia --project=julia julia/test/
 On macOS use `DYLD_LIBRARY_PATH` and `libgts.dylib`. On Windows make `gts.dll`
 discoverable through `PATH` or set `GTS_LIBGTS` to the DLL path.
 
+## General Registry
+
+After `GmeowGTS` is accepted into the Julia General registry, users can install
+the source-only wrapper with:
+
+```julia
+using Pkg
+Pkg.add("GmeowGTS")
+```
+
+Registration is triggered from this monorepo with:
+
+```text
+@JuliaRegistrator register subdir=julia
+```
+
+The package still requires an externally available `libgts` at runtime. See
+[`REGISTRATION.md`](./REGISTRATION.md) for the maintainer release flow, TagBot
+tagging, and native binary follow-up boundaries.
+
 ## API Shape
 
 ```julia
