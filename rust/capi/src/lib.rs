@@ -245,11 +245,10 @@ fn serialize_json_ld_format(graph: &Graph) -> Result<String, ApiError> {
 }
 
 fn normalize_format(value: &str) -> String {
-    let without_parameters = value.split_once(';').map_or(value, |(base, _)| base);
+    let without_parameters = value.split_once(';').map_or(value, |(base, _)| base).trim();
     without_parameters
-        .trim()
         .strip_prefix('.')
-        .unwrap_or_else(|| without_parameters.trim())
+        .unwrap_or(without_parameters)
         .to_ascii_lowercase()
 }
 
