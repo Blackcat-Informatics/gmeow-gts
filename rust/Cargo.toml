@@ -30,9 +30,6 @@ rdf-codecs = ["rdf", "dep:quick-xml"]
 # Enables an optional native in-memory RDF store. This reuses the crate's native
 # RDF dataset model and adds no third-party graph-store dependency.
 native-store = ["rdf"]
-# Enables optional Sophia dataset interop. This pulls in Sophia's in-memory
-# dataset plus N-Quads parser/serializer only for callers that ask for it.
-sophia-adapter = ["dep:sophia_api", "dep:sophia_inmem", "dep:sophia_turtle"]
 # Enables JSON trust-policy file loading for release/profile tooling.
 # This is opt-in so default readers do not inherit serialization deps.
 policy-config = ["dep:serde", "dep:serde_json"]
@@ -77,9 +74,6 @@ sha1 = "0.11"
 # only pulled in on non-wasm targets (the deterministic seal/open paths need no RNG).
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
 oxsdatatypes = { version = "0.2.2", optional = true }
-sophia_api = { version = "0.10.0", default-features = false, optional = true }
-sophia_inmem = { version = "0.10.0", default-features = false, optional = true }
-sophia_turtle = { version = "0.10.0", default-features = false, optional = true }
 serde = { version = "1", default-features = false, features = ["derive", "std"], optional = true }
 serde_json = { version = "1", optional = true }
 serde_yaml = { version = "0.9", optional = true }

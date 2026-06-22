@@ -197,6 +197,53 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
 }
 
 #[test]
+fn strict_export_rejects_quoted_triple_graph_names() {
+    let graph = Graph {
+        terms: vec![
+            Term {
+                kind: TermKind::Iri,
+                value: Some("https://example.org/subject".to_string()),
+                datatype: None,
+                lang: None,
+                direction: None,
+                reifier: None,
+            },
+            Term {
+                kind: TermKind::Iri,
+                value: Some("https://example.org/predicate".to_string()),
+                datatype: None,
+                lang: None,
+                direction: None,
+                reifier: None,
+            },
+            Term {
+                kind: TermKind::Literal,
+                value: Some("object".to_string()),
+                datatype: None,
+                lang: None,
+                direction: None,
+                reifier: None,
+            },
+            Term {
+                kind: TermKind::Triple,
+                value: None,
+                datatype: None,
+                lang: None,
+                direction: None,
+                reifier: Some(3),
+            },
+        ],
+        quads: vec![(0, 1, 2, Some(3))],
+        reifiers: vec![(3, (0, 1, 2))],
+        ..Graph::default()
+    };
+
+    let err = to_rdf_dataset(&graph).expect_err("strict mode rejects triple graph names");
+    assert!(err.detail().contains("graph name"));
+    assert!(err.detail().contains("quoted triple"));
+}
+
+#[test]
 fn native_rdf_dataset_roundtrips_directional_literals() -> Result<(), Box<dyn Error>> {
     let graph = Graph {
         terms: vec![
@@ -301,6 +348,8 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
         .map(|quad| quad.subject.to_string())
         .collect();
     assert_eq!(subjects.len(), 2);
+    assert!(subjects.contains("_:b1"));
+    assert!(subjects.contains("_:gts_00000000000000000000000001"));
 }
 
 #[test]

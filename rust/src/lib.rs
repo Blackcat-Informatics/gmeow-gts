@@ -56,12 +56,11 @@ pub mod rdf_events;
 mod rdf_xml;
 pub mod reader;
 pub mod replication;
-#[cfg(feature = "sophia-adapter")]
-pub mod sophia;
 pub mod stream;
 #[cfg(feature = "tar")]
 pub mod tar;
 pub mod trig;
+pub mod ulid;
 pub mod verify;
 pub mod wire;
 pub mod writer;

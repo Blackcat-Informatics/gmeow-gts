@@ -93,9 +93,9 @@ jobs:
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf-codecs -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features native-store -- -D warnings
-          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features sophia-adapter -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features tar -- -D warnings
           cargo clippy --manifest-path rust/Cargo.toml --all-targets --features yaml-ld -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --all-features -- -D warnings
           cargo clippy --manifest-path rust/capi/Cargo.toml --all-targets -- -D warnings
 
       - name: Rustdoc (warnings are errors)
@@ -118,9 +118,9 @@ jobs:
           cargo test --manifest-path rust/Cargo.toml --features rdf
           cargo test --manifest-path rust/Cargo.toml --features rdf-codecs
           cargo test --manifest-path rust/Cargo.toml --features native-store
-          cargo test --manifest-path rust/Cargo.toml --features sophia-adapter
           cargo test --manifest-path rust/Cargo.toml --features tar
           cargo test --manifest-path rust/Cargo.toml --features yaml-ld
+          cargo test --manifest-path rust/Cargo.toml --all-features
           cargo test --manifest-path rust/capi/Cargo.toml
 
       - name: C ABI smoke test
@@ -164,6 +164,7 @@ jobs:
         run: |
           cargo build --manifest-path visual-hashing/Cargo.toml --lib --target wasm32-unknown-unknown
           cargo build --manifest-path rust/Cargo.toml --lib --target wasm32-unknown-unknown
+          cargo build --manifest-path rust/Cargo.toml --lib --target wasm32-unknown-unknown --all-features
 
   # Downstream Rust API contract: ontology validator compiles against this crate.
   downstream-gmeow-ontology:

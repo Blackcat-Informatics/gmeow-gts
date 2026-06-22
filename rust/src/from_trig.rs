@@ -14,6 +14,7 @@ use std::fmt;
 
 use crate::from_nquads::from_nquads;
 use crate::nquads::escape_literal;
+use crate::ulid::deterministic_label;
 
 const RDF_NS: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
@@ -525,7 +526,7 @@ impl<'a> Parser<'a> {
     fn next_bnode(&mut self) -> Node {
         let id = self.bnode_counter;
         self.bnode_counter += 1;
-        Node::Bnode(format!("gts_b{id}"))
+        Node::Bnode(deterministic_label("gts_", id as u128))
     }
 
     fn literal(&mut self) -> Result<Node, TriGParseError> {
