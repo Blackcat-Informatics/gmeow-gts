@@ -53,9 +53,9 @@ name = "gts"
 path = "src/bin/gts.rs"
 
 [dependencies]
-# emojihash + randomart visual fingerprints, factored out as a standalone crate
-# (#16). Path for in-repo builds; the version is what `cargo publish` resolves
-# from crates.io, so visual-hashing must be published first.
+# emojihash + randomart visual fingerprints. Path for in-repo builds; the
+# version is what `cargo publish` resolves from crates.io, so publish new
+# visual-hashing versions from Blackcat-Informatics/visual-hashing first.
 visual-hashing = { version = "0.1.2", path = "../visual-hashing" }
 blake3 = "1"
 ciborium = "0.2"

@@ -310,11 +310,16 @@ rg -n "<version>|spec commit|corpus revision|conformance|SBOM|attestation" CHANG
 After the release PR is merged, tag the exact merge commit. Push release tags
 one at a time so each tag-triggered workflow receives its own event.
 
-Before pushing Rust tags, confirm crates.io Trusted Publisher entries are active
-for both crates with owner/repo `Blackcat-Informatics/gmeow-gts`, workflow
-`release-cargo.yaml` for `gmeow-gts`, workflow `release-visual-hashing.yaml` for
-`visual-hashing`, and environment `(none)`. The normal Rust release path uses
-GitHub Actions OIDC and does not require `CARGO_REGISTRY_TOKEN`.
+Before pushing Rust tags, confirm the crates.io Trusted Publisher entry for
+`gmeow-gts` is active with owner/repo `Blackcat-Informatics/gmeow-gts`,
+workflow `release-cargo.yaml`, and environment `(none)`. The normal Rust
+release path uses GitHub Actions OIDC and does not require
+`CARGO_REGISTRY_TOKEN`.
+
+If the `gmeow-gts` Rust crate depends on a newer `visual-hashing` version,
+publish that crate first from its standalone repository. Its crates.io Trusted
+Publisher entry must use owner/repo `Blackcat-Informatics/visual-hashing`,
+workflow `release.yml`, and environment `(none)`.
 
 Before pushing Go tags, confirm repository-level immutable releases are enabled:
 
@@ -340,8 +345,10 @@ new crate version:
 
 ```bash
 VISUAL_HASHING_VERSION="<visual-hashing-version>"
-git tag "visual-hashing-v${VISUAL_HASHING_VERSION}" "${MERGE_COMMIT}"
-git push origin "visual-hashing-v${VISUAL_HASHING_VERSION}"
+gh repo clone Blackcat-Informatics/visual-hashing ../visual-hashing
+cd ../visual-hashing
+git tag "v${VISUAL_HASHING_VERSION}" "<visual-hashing-merge-commit>"
+git push origin "v${VISUAL_HASHING_VERSION}"
 ```
 
 Monitor the release workflows:
@@ -357,7 +364,7 @@ gh run list --workflow release-npm.yaml --branch "npm-v${VERSION}" --limit 5
 If `visual-hashing` was released, monitor its workflow by tag:
 
 ```bash
-gh run list --workflow release-visual-hashing.yaml --branch "visual-hashing-v${VISUAL_HASHING_VERSION}" --limit 5
+gh run list --repo Blackcat-Informatics/visual-hashing --workflow release.yml --branch "v${VISUAL_HASHING_VERSION}" --limit 5
 ```
 
 If a tag was pushed to the wrong commit or with the wrong version, stop and file

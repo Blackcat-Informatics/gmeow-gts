@@ -9,8 +9,8 @@ name: Release Cargo gmeow-gts
 #   Workflow: release-cargo.yaml · Environment: (none)
 #
 # NOTE: gmeow-gts depends on the `visual-hashing` crate, so a matching
-# visual-hashing version must already be published to crates.io (see
-# release-visual-hashing.yaml) before this workflow can publish.
+# visual-hashing version must already be published from
+# Blackcat-Informatics/visual-hashing before this workflow can publish.
 
 on:
   push:
