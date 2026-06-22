@@ -496,7 +496,6 @@ dependencies = [
  "oxrdf",
  "oxrdfxml",
  "oxsdatatypes",
- "oxttl",
  "ruzstd",
  "serde",
  "serde_json",

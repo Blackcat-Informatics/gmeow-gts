@@ -409,7 +409,6 @@ dependencies = [
  "oxrdf",
  "oxrdfxml",
  "oxsdatatypes",
- "oxttl",
  "ruzstd",
  "serde",
  "serde_json",
@@ -558,19 +557,6 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06fa874d87eae638daae9b4e3198864fe2cce68589f227c0b2cf5b62b1530516"
 dependencies = [
- "thiserror",
-]
-
-[[package]]
-name = "oxttl"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f03fd471bd54c23d76631c0a2677aa4bb308d905f6e491ee35dcb0732b7c5c6c"
-dependencies = [
- "memchr",
- "oxilangtag",
- "oxiri",
- "oxrdf",
  "thiserror",
 ]
 

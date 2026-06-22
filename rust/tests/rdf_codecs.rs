@@ -9,10 +9,8 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use ciborium::value::Value;
-use oxrdf::dataset::CanonicalizationAlgorithm;
-use oxrdf::{Dataset, GraphNameRef};
-use oxttl::{NQuadsParser, NTriplesParser};
 
+use gmeow_gts::from_nquads::from_ntriples as native_from_ntriples;
 use gmeow_gts::model::{Graph, Term, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::rdf_codecs::{
@@ -39,35 +37,14 @@ fn nquads_from_gts(bytes: &[u8]) -> String {
     to_nquads(&read(bytes, true, None))
 }
 
-fn canonical_dataset_from_nquads(text: &str) -> Dataset {
-    let mut dataset = Dataset::new();
-    for quad in NQuadsParser::new().for_slice(text.as_bytes()) {
-        dataset.insert(quad.expect("N-Quads parser accepts codec output").as_ref());
-    }
-    dataset.canonicalize(CanonicalizationAlgorithm::Unstable);
-    dataset
-}
-
-fn canonical_dataset_from_ntriples(text: &str) -> Dataset {
-    let mut dataset = Dataset::new();
-    for triple in NTriplesParser::new().for_slice(text.as_bytes()) {
-        dataset.insert(
-            triple
-                .expect("N-Triples parser accepts expected RDF")
-                .as_ref()
-                .in_graph(GraphNameRef::DefaultGraph),
-        );
-    }
-    dataset.canonicalize(CanonicalizationAlgorithm::Unstable);
-    dataset
-}
-
 fn assert_nquads_isomorphic_to_ntriples(actual_nquads: &str, expected_ntriples: &str, name: &str) {
-    let actual = canonical_dataset_from_nquads(actual_nquads);
-    let expected = canonical_dataset_from_ntriples(expected_ntriples);
+    let expected_gts = native_from_ntriples(expected_ntriples)
+        .unwrap_or_else(|err| panic!("{name}: expected N-Triples did not parse: {err}"));
+    let expected = nquads_from_gts(&expected_gts);
     assert_eq!(
-        actual, expected,
-        "{name}: RDF datasets differ\nactual:\n{actual}\nexpected:\n{expected}"
+        sorted_lines(actual_nquads),
+        sorted_lines(&expected),
+        "{name}: RDF datasets differ\nactual:\n{actual_nquads}\nexpected:\n{expected_ntriples}"
     );
 }
 

@@ -11,7 +11,7 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::model::{Quad, Term, TermKind, Triple3};
+use crate::model::{Quad, Term, TermKind, Triple3, RDF_DIR_LANG_STRING, RDF_LANG_STRING};
 use crate::writer::Writer;
 
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
@@ -71,6 +71,70 @@ fn is_bnode_char(b: u8) -> bool {
 
 fn is_lang_char(b: u8) -> bool {
     b.is_ascii_alphanumeric() || b == b'-'
+}
+
+fn has_iri_scheme(value: &str) -> bool {
+    let mut chars = value.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !first.is_ascii_alphabetic() {
+        return false;
+    }
+    for ch in chars {
+        if ch == ':' {
+            return true;
+        }
+        if !(ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.')) {
+            return false;
+        }
+    }
+    false
+}
+
+fn validate_iri(value: &str, line: &str) -> Result<(), NQuadsParseError> {
+    if value.is_empty() || value.starts_with("//") || !has_iri_scheme(value) {
+        return Err(NQuadsParseError::new(format!(
+            "IRI must be absolute: {line:?}"
+        )));
+    }
+    if value
+        .chars()
+        .any(|ch| ch.is_control() || ch.is_whitespace() || matches!(ch, '<' | '>' | '"'))
+    {
+        return Err(NQuadsParseError::new(format!(
+            "invalid character in IRI: {line:?}"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_language_tag(tag: &str, line: &str) -> Result<(), NQuadsParseError> {
+    let mut parts = tag.split('-');
+    let Some(primary) = parts.next() else {
+        return Err(NQuadsParseError::new(format!(
+            "empty language tag in {line:?}"
+        )));
+    };
+    if primary.is_empty()
+        || primary.len() > 8
+        || !primary.bytes().all(|byte| byte.is_ascii_alphabetic())
+    {
+        return Err(NQuadsParseError::new(format!(
+            "invalid language tag {tag:?} in {line:?}"
+        )));
+    }
+    for subtag in parts {
+        if subtag.is_empty()
+            || subtag.len() > 8
+            || !subtag.bytes().all(|byte| byte.is_ascii_alphanumeric())
+        {
+            return Err(NQuadsParseError::new(format!(
+                "invalid language tag {tag:?} in {line:?}"
+            )));
+        }
+    }
+    Ok(())
 }
 
 impl<'a> Tokenizer<'a> {
@@ -143,7 +207,9 @@ impl<'a> Tokenizer<'a> {
             .ok_or_else(|| NQuadsParseError::new(format!("unterminated IRI in {:?}", self.text)))?;
         let end = start + rel;
         self.pos = end + 1;
-        Ok(self.text[start..end].to_string())
+        let value = &self.text[start..end];
+        validate_iri(value, self.text)?;
+        Ok(value.to_string())
     }
 
     fn bnode(&mut self) -> Result<String, NQuadsParseError> {
@@ -210,6 +276,7 @@ impl<'a> Tokenizer<'a> {
             let raw_lang = &self.text[start..self.pos];
             if let Some((base, dir)) = raw_lang.rsplit_once("--") {
                 if matches!(dir, "ltr" | "rtl") && !base.is_empty() {
+                    validate_language_tag(base, self.text)?;
                     lang = Some(base.to_string());
                     direction = Some(dir.to_string());
                 } else {
@@ -219,12 +286,20 @@ impl<'a> Tokenizer<'a> {
                     )));
                 }
             } else {
+                validate_language_tag(raw_lang, self.text)?;
                 lang = Some(raw_lang.to_string());
             }
         } else if self.text[self.pos..].starts_with("^^") {
             self.pos += 2;
             self.skip_ws();
-            datatype = Some(self.iri()?);
+            let iri = self.iri()?;
+            if matches!(iri.as_str(), RDF_LANG_STRING | RDF_DIR_LANG_STRING) {
+                return Err(NQuadsParseError::new(format!(
+                    "literal cannot explicitly use RDF language-string datatype in {:?}",
+                    self.text
+                )));
+            }
+            datatype = Some(iri);
         }
 
         Ok(Atom {
@@ -401,7 +476,63 @@ fn set_reifier(reifiers: &mut Vec<(usize, Triple3)>, rid: usize, spo: Triple3) {
     }
 }
 
-fn validate_statement(nodes: &[Node], line: &str) -> Result<(), NQuadsParseError> {
+fn validate_subject(
+    node: &Node,
+    line: &str,
+    allow_triple_subject: bool,
+) -> Result<(), NQuadsParseError> {
+    let is_iri = |node: &Node| {
+        matches!(
+            node,
+            Node::Atom(Atom {
+                kind: TermKind::Iri,
+                ..
+            })
+        )
+    };
+    let is_bnode = |node: &Node| {
+        matches!(
+            node,
+            Node::Atom(Atom {
+                kind: TermKind::Bnode,
+                ..
+            })
+        )
+    };
+    if is_iri(node) || is_bnode(node) {
+        return Ok(());
+    }
+    if allow_triple_subject {
+        if let Node::Triple(triple) = node {
+            return validate_triple_node(triple, line, allow_triple_subject);
+        }
+    }
+    Err(NQuadsParseError::new(format!(
+        "invalid subject term: {line:?}"
+    )))
+}
+
+fn validate_predicate(node: &Node, line: &str) -> Result<(), NQuadsParseError> {
+    if matches!(
+        node,
+        Node::Atom(Atom {
+            kind: TermKind::Iri,
+            ..
+        })
+    ) {
+        Ok(())
+    } else {
+        Err(NQuadsParseError::new(format!(
+            "predicate must be IRI: {line:?}"
+        )))
+    }
+}
+
+fn validate_object(
+    node: &Node,
+    line: &str,
+    allow_triple_subject: bool,
+) -> Result<(), NQuadsParseError> {
     let is_iri = |node: &Node| {
         matches!(
             node,
@@ -429,26 +560,43 @@ fn validate_statement(nodes: &[Node], line: &str) -> Result<(), NQuadsParseError
             })
         )
     };
-    let is_triple = |node: &Node| matches!(node, Node::Triple(_));
+    if is_iri(node) || is_bnode(node) || is_literal(node) {
+        return Ok(());
+    }
+    if let Node::Triple(triple) = node {
+        return validate_triple_node(triple, line, allow_triple_subject);
+    }
+    Err(NQuadsParseError::new(format!(
+        "invalid object term: {line:?}"
+    )))
+}
 
-    if !(is_iri(&nodes[0]) || is_bnode(&nodes[0]) || is_triple(&nodes[0])) {
-        return Err(NQuadsParseError::new(format!(
-            "invalid subject term: {line:?}"
-        )));
-    }
-    if !is_iri(&nodes[1]) {
-        return Err(NQuadsParseError::new(format!(
-            "predicate must be IRI: {line:?}"
-        )));
-    }
-    if !(is_iri(&nodes[2]) || is_bnode(&nodes[2]) || is_literal(&nodes[2]) || is_triple(&nodes[2]))
-    {
-        return Err(NQuadsParseError::new(format!(
-            "invalid object term: {line:?}"
-        )));
-    }
+fn validate_triple_node(
+    triple: &TripleNode,
+    line: &str,
+    allow_triple_subject: bool,
+) -> Result<(), NQuadsParseError> {
+    validate_subject(&triple.s, line, allow_triple_subject)?;
+    validate_predicate(&triple.p, line)?;
+    validate_object(&triple.o, line, allow_triple_subject)
+}
+
+fn validate_statement(
+    nodes: &[Node],
+    line: &str,
+    allow_triple_subject: bool,
+) -> Result<(), NQuadsParseError> {
+    validate_subject(&nodes[0], line, allow_triple_subject)?;
+    validate_predicate(&nodes[1], line)?;
+    validate_object(&nodes[2], line, allow_triple_subject)?;
     if let Some(graph_name) = nodes.get(3) {
-        if !(is_iri(graph_name) || is_bnode(graph_name)) {
+        if !matches!(
+            graph_name,
+            Node::Atom(Atom {
+                kind: TermKind::Iri | TermKind::Bnode,
+                ..
+            })
+        ) {
             return Err(NQuadsParseError::new(format!(
                 "invalid graph name term: {line:?}"
             )));
@@ -457,8 +605,13 @@ fn validate_statement(nodes: &[Node], line: &str) -> Result<(), NQuadsParseError
     Ok(())
 }
 
-/// Parse N-Quads(-star) text into a canonical GTS file.
-pub fn from_nquads(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
+#[derive(Clone, Copy)]
+struct ParseOptions {
+    allow_graph: bool,
+    allow_triple_subject: bool,
+}
+
+fn parse_text(text: &str, options: ParseOptions) -> Result<Vec<Vec<Node>>, NQuadsParseError> {
     let mut statements: Vec<Vec<Node>> = Vec::new();
     for raw in text.lines() {
         let line = raw.trim();
@@ -470,22 +623,31 @@ pub fn from_nquads(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
         while !tokenizer.at_end() {
             nodes.push(tokenizer.node()?);
         }
-        if !(nodes.len() == 3 || nodes.len() == 4) {
+        let valid_len = if options.allow_graph {
+            nodes.len() == 3 || nodes.len() == 4
+        } else {
+            nodes.len() == 3
+        };
+        if !valid_len {
             return Err(NQuadsParseError::new(format!(
-                "expected 3 or 4 terms, got {}: {:?}",
+                "expected {} terms, got {}: {:?}",
+                if options.allow_graph { "3 or 4" } else { "3" },
                 nodes.len(),
                 line
             )));
         }
-        validate_statement(&nodes, line)?;
+        validate_statement(&nodes, line, options.allow_triple_subject)?;
         statements.push(nodes);
     }
+    Ok(statements)
+}
 
+fn build_gts(statements: &[Vec<Node>]) -> Vec<u8> {
     let mut interner = Interner::new();
     let mut reifiers: Vec<(usize, Triple3)> = Vec::new();
     let mut quads: Vec<Quad> = Vec::new();
 
-    for nodes in &statements {
+    for nodes in statements {
         let s = &nodes[0];
         let p = &nodes[1];
         let o = &nodes[2];
@@ -521,5 +683,29 @@ pub fn from_nquads(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
     if !reifiers.is_empty() {
         writer.add_reifies(&reifiers);
     }
-    Ok(writer.to_bytes())
+    writer.to_bytes()
+}
+
+/// Parse N-Triples(-star) text into a canonical GTS file.
+pub fn from_ntriples(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
+    let statements = parse_text(
+        text,
+        ParseOptions {
+            allow_graph: false,
+            allow_triple_subject: false,
+        },
+    )?;
+    Ok(build_gts(&statements))
+}
+
+/// Parse N-Quads(-star) text into a canonical GTS file.
+pub fn from_nquads(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
+    let statements = parse_text(
+        text,
+        ParseOptions {
+            allow_graph: true,
+            allow_triple_subject: true,
+        },
+    )?;
+    Ok(build_gts(&statements))
 }

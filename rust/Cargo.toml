@@ -24,11 +24,10 @@ rdf = ["xsd"]
 # This is kept opt-in so default transport users do not inherit RDF/XSD helper
 # dependencies unless they ask for parser-facing datatype semantics.
 xsd = ["dep:oxsdatatypes"]
-# Enables RDF 1.2 text codecs. This uses the same native RDF adapter plus
-# Oxigraph's N-Triples/Turtle/TriG and RDF/XML parser/serializer stacks, but
-# stays opt-in so default transport and wasm builds keep their current
-# dependency profile.
-rdf-codecs = ["rdf", "dep:oxrdf", "dep:oxttl", "dep:oxrdfxml"]
+# Enables RDF 1.2 text codecs. N-Triples/Turtle/TriG use native code; RDF/XML
+# remains behind Oxigraph's RDF/XML parser/serializer stack until the dedicated
+# native RDF/XML issue lands.
+rdf-codecs = ["rdf", "dep:oxrdf", "dep:oxrdfxml"]
 # Enables an optional Oxigraph in-memory Store adapter. This pulls in Oxigraph
 # only for callers that ask for the store bridge; defaults remain unchanged.
 oxigraph-adapter = ["rdf", "dep:oxigraph"]
@@ -78,10 +77,7 @@ sha1 = "0.11"
 # build stays clean; the random-IV nonce comes from `getrandom` below, which is
 # only pulled in on non-wasm targets (the deterministic seal/open paths need no RNG).
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
-oxrdf = { version = "0.3.3", default-features = false, features = ["rdf-12"], optional = true }
 oxsdatatypes = { version = "0.2.2", optional = true }
-oxttl = { version = "0.2.3", default-features = false, features = ["rdf-12"], optional = true }
-oxrdfxml = { version = "0.2.3", default-features = false, features = ["rdf-12"], optional = true }
 oxigraph = { version = "0.5.8", default-features = false, features = ["rdf-12"], optional = true }
 sophia_api = { version = "0.10.0", default-features = false, optional = true }
 sophia_inmem = { version = "0.10.0", default-features = false, optional = true }
@@ -95,6 +91,8 @@ tar = { version = "0.4", optional = true }
 # non-wasm targets so `wasm32-unknown-unknown` never tries to link getrandom.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 getrandom = "0.2"
+oxrdf = { version = "0.3.3", default-features = false, features = ["rdf-12"], optional = true }
+oxrdfxml = { version = "0.2.3", default-features = false, features = ["rdf-12"], optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
