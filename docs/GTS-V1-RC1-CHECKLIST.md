@@ -252,6 +252,8 @@ cargo package --manifest-path rust/Cargo.toml --locked
   CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" \
     -o "../${OUT}/packages/go/gts" ./cmd/gts
 )
+archive="$(bash rust/capi/scripts/package.sh)"
+bash rust/capi/scripts/verify-archive.sh "${archive}"
 ```
 
 For Go release parity, also dry-run the cross-build shape used by
@@ -334,10 +336,12 @@ git tag "rust-v${VERSION}" "${MERGE_COMMIT}"
 git tag "py-v${VERSION}" "${MERGE_COMMIT}"
 git tag "go-v${VERSION}" "${MERGE_COMMIT}"
 git tag "npm-v${VERSION}" "${MERGE_COMMIT}"
+git tag "capi-v${VERSION}" "${MERGE_COMMIT}"
 git push origin "rust-v${VERSION}"
 git push origin "py-v${VERSION}"
 git push origin "go-v${VERSION}"
 git push origin "npm-v${VERSION}"
+git push origin "capi-v${VERSION}"
 ```
 
 If `visual-hashing` changed, publish it before `rust-v*` tags that depend on the
@@ -360,6 +364,7 @@ gh run list --workflow release-cargo.yaml --branch "rust-v${VERSION}" --limit 5
 gh run list --workflow release-pypi.yml --branch "py-v${VERSION}" --limit 5
 gh run list --workflow release-go.yaml --branch "go-v${VERSION}" --limit 5
 gh run list --workflow release-npm.yaml --branch "npm-v${VERSION}" --limit 5
+gh run list --workflow release-capi.yaml --branch "capi-v${VERSION}" --limit 5
 ```
 
 If `visual-hashing` was released, monitor its workflow by tag:
@@ -397,7 +402,10 @@ python -m pip index versions gmeow-gts
 npm view @blackcatinformatics/gmeow-gts version
 gh release view "go-v${VERSION}" \
   --json tagName,name,url,isDraft,isImmutable,isPrerelease,publishedAt
+gh release view "capi-v${VERSION}" \
+  --json tagName,name,url,isDraft,isImmutable,isPrerelease,publishedAt
 gh release verify "go-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
+gh release verify "capi-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
 ```
 
 Consumer-facing verification commands, all of which are covered by the
@@ -413,7 +421,10 @@ gh attestation verify <downloaded-artifact> \
   --repo Blackcat-Informatics/gmeow-gts \
   --predicate-type https://spdx.dev/Document/v2.3
 gh release verify "go-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
+gh release verify "capi-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
 gh release verify-asset "go-v${VERSION}" <downloaded-go-asset> \
+  --repo Blackcat-Informatics/gmeow-gts
+gh release verify-asset "capi-v${VERSION}" <downloaded-capi-asset> \
   --repo Blackcat-Informatics/gmeow-gts
 ```
 
@@ -422,6 +433,7 @@ Release evidence durability:
 | Surface | Durable artifact | Attestation evidence |
 |---|---|---|
 | Go | Immutable GitHub Release archives, `checksums.txt`, and `sbom-go-gts.spdx.json` | GitHub release attestation for the immutable release; SLSA provenance attestations for release assets; SPDX SBOM attestations for release archives |
+| C ABI | Immutable GitHub Release archives, `checksums.txt`, and `sbom-gmeow-gts-capi.spdx.json` | GitHub release attestation for the immutable release; SLSA provenance attestations for release assets; SPDX SBOM attestations for release archives |
 | crates.io | Registry-hosted `.crate` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store |
 | PyPI | Registry-hosted wheel/sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
 | npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |

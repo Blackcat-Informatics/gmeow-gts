@@ -522,6 +522,121 @@ def verify_go(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> li
     return artifacts
 
 
+def verify_capi(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -> list[Path]:
+    surface = "C ABI release"
+    capi_dir = out_dir / "capi-release"
+    capi_version = args.capi_tag.removeprefix("capi-v")
+    artifacts: list[Path] = []
+    if not require_tool("gh", recorder, surface):
+        return artifacts
+
+    release = run_json_command(
+        recorder,
+        surface,
+        "release metadata",
+        [
+            "gh",
+            "release",
+            "view",
+            args.capi_tag,
+            "--repo",
+            args.repo,
+            "--json",
+            "tagName,isDraft,isImmutable,isPrerelease,publishedAt,assets",
+        ],
+    )
+    if not release:
+        return artifacts
+    if not isinstance(release, dict):
+        recorder.fail(surface, "release metadata", "invalid metadata structure returned by gh")
+        return artifacts
+
+    if release.get("isDraft"):
+        recorder.fail(surface, "published release", f"{args.capi_tag} is still a draft")
+    else:
+        recorder.pass_(surface, "published release", str(release.get("publishedAt")))
+
+    if release.get("isImmutable"):
+        recorder.pass_(surface, "immutable release", args.capi_tag)
+    elif args.allow_legacy_release_gaps:
+        recorder.warn(surface, "immutable release", "legacy release predates immutable-release enforcement")
+    else:
+        recorder.fail(surface, "immutable release", "release is mutable")
+
+    assets = release.get("assets") or []
+    if not isinstance(assets, list):
+        recorder.fail(surface, "release assets metadata", "assets is not a list")
+        assets = []
+    asset_names = {
+        asset["name"]
+        for asset in assets
+        if isinstance(asset, dict) and isinstance(asset.get("name"), str)
+    }
+    required_assets = {"checksums.txt", "sbom-gmeow-gts-capi.spdx.json"}
+    archive_assets = {
+        name
+        for name in asset_names
+        if name.startswith(f"gmeow-gts-capi_{capi_version}_") and name.endswith(".tar.gz")
+    }
+    missing_assets = required_assets - asset_names
+    if missing_assets:
+        recorder.fail(surface, "required assets", f"missing {', '.join(sorted(missing_assets))}")
+    elif archive_assets:
+        recorder.pass_(surface, "required assets", f"{len(archive_assets)} archives plus checksums/SBOM")
+    else:
+        recorder.fail(surface, "required assets", f"no C ABI archives found for {capi_version}")
+
+    if capi_dir.exists():
+        shutil.rmtree(capi_dir)
+    capi_dir.mkdir(parents=True)
+    result = run_command(
+        recorder,
+        surface,
+        "download release assets",
+        ["gh", "release", "download", args.capi_tag, "--repo", args.repo, "--dir", str(capi_dir), "--clobber"],
+    )
+    if result.returncode != 0:
+        return artifacts
+
+    artifacts = sorted(path for path in capi_dir.iterdir() if path.is_file())
+    checksum_file = capi_dir / "checksums.txt"
+    if checksum_file.exists():
+        checksums = parse_checksums(checksum_file)
+        checked = 0
+        for name, expected in checksums.items():
+            candidate = capi_dir / name
+            if not candidate.exists():
+                recorder.fail(surface, f"checksum target {name}", "listed in checksums.txt but not downloaded")
+                continue
+            actual = sha256_file(candidate)
+            checked += 1
+            if actual == expected:
+                recorder.pass_(surface, f"checksum {name}", actual)
+            else:
+                recorder.fail(surface, f"checksum {name}", f"expected {expected}, got {actual}")
+        if not checked:
+            recorder.fail(surface, "checksums.txt contents", "no checksum entries parsed")
+    else:
+        recorder.fail(surface, "checksums.txt download", "checksums.txt not downloaded")
+
+    run_command(
+        recorder,
+        surface,
+        "immutable release attestation",
+        ["gh", "release", "verify", args.capi_tag, "--repo", args.repo],
+        allow_legacy_gap=args.allow_legacy_release_gaps,
+    )
+    for artifact in artifacts:
+        run_command(
+            recorder,
+            surface,
+            f"release asset attestation {artifact.name}",
+            ["gh", "release", "verify-asset", args.capi_tag, str(artifact), "--repo", args.repo],
+            allow_legacy_gap=args.allow_legacy_release_gaps,
+        )
+    return artifacts
+
+
 def verify_github_attestations(
     args: argparse.Namespace,
     recorder: Recorder,
@@ -561,6 +676,7 @@ def artifact_attestation_plan(
     npm_artifacts: list[Path],
     crate_artifacts: list[Path],
     go_artifacts: list[Path],
+    capi_artifacts: list[Path],
 ) -> list[tuple[str, Path, bool]]:
     plan: list[tuple[str, Path, bool]] = []
     plan.extend(("PyPI", artifact, True) for artifact in pypi_artifacts)
@@ -571,6 +687,11 @@ def artifact_attestation_plan(
             plan.append(("Go release", artifact, False))
         elif artifact.suffix == ".zip" or artifact.name.endswith(".tar.gz"):
             plan.append(("Go release", artifact, True))
+    for artifact in capi_artifacts:
+        if artifact.name == "checksums.txt" or artifact.name == "sbom-gmeow-gts-capi.spdx.json":
+            plan.append(("C ABI release", artifact, False))
+        elif artifact.name.endswith(".tar.gz"):
+            plan.append(("C ABI release", artifact, True))
     return plan
 
 
@@ -586,6 +707,7 @@ def write_summary(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -
         "visual_hashing_version": args.visual_hashing_version,
         "repo": args.repo,
         "go_tag": args.go_tag,
+        "capi_tag": args.capi_tag,
         "allow_legacy_release_gaps": args.allow_legacy_release_gaps,
         "results": [asdict(result) for result in recorder.results],
     }
@@ -596,6 +718,7 @@ def write_summary(args: argparse.Namespace, recorder: Recorder, out_dir: Path) -
         "",
         f"- Version: `{args.version}`",
         f"- Go tag: `{args.go_tag}`",
+        f"- C ABI tag: `{args.capi_tag}`",
         f"- visual-hashing version: `{args.visual_hashing_version}`",
         f"- Repository: `{args.repo}`",
         f"- Legacy gap override: `{str(args.allow_legacy_release_gaps).lower()}`",
@@ -642,6 +765,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--rust-crate", default=DEFAULT_RUST_CRATE)
     parser.add_argument("--visual-hashing-crate", default=DEFAULT_VISUAL_HASHING_CRATE)
     parser.add_argument("--go-tag", help="Go release tag. Defaults to go-v<version>.")
+    parser.add_argument("--capi-tag", help="C ABI release tag. Defaults to capi-v<version>.")
     parser.add_argument(
         "--out-dir",
         type=Path,
@@ -657,6 +781,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     args = parser.parse_args(argv)
     args.go_tag = args.go_tag or f"go-v{args.version}"
+    args.capi_tag = args.capi_tag or f"capi-v{args.version}"
     args.out_dir = args.out_dir or Path("dist") / "release-verification" / args.version
     return args
 
@@ -674,10 +799,11 @@ def main(argv: list[str]) -> int:
         verify_crate(args, recorder, out_dir, args.visual_hashing_crate, args.visual_hashing_version)
     )
     go_artifacts = verify_go(args, recorder, out_dir)
+    capi_artifacts = verify_capi(args, recorder, out_dir)
     verify_github_attestations(
         args,
         recorder,
-        artifact_attestation_plan(pypi_artifacts, npm_artifacts, crate_artifacts, go_artifacts),
+        artifact_attestation_plan(pypi_artifacts, npm_artifacts, crate_artifacts, go_artifacts, capi_artifacts),
     )
     write_summary(args, recorder, out_dir)
     return 1 if recorder.has_failures() else 0

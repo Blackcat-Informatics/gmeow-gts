@@ -355,6 +355,18 @@ Each wrapper README documents local toolchain requirements, `libgts` discovery (
 `GTS_LIB_DIR`, or platform loader defaults where supported), ownership rules, threading
 expectations, and fallback container behavior where practical.
 
+Installable `libgts` archives are built and checked by the C ABI packaging scripts:
+
+```bash
+archive="$(bash rust/capi/scripts/package.sh)"
+bash rust/capi/scripts/verify-archive.sh "${archive}"
+```
+
+Release archives include `include/gts.h`, `include/gts/gts.hpp`, shared/static
+native libraries, pkg-config and CMake metadata, license files, checksums, SBOM
+evidence, and provenance attestations. Wrapper packages remain source-only and
+resolve a locally built or separately installed `libgts`.
+
 ## Command-line interface
 
 `cargo install gmeow-gts`, `pip install gmeow-gts`, `npm i -g @blackcatinformatics/gmeow-gts`,
@@ -659,6 +671,7 @@ Each engine publishes to its native registry from this repo via a tag-triggered 
 | Python | PyPI (trusted publishing) | `py-v*` | [`release-pypi.yml`](./.github/workflows/release-pypi.yml) |
 | Go | GitHub Releases (GoReleaser) | `go-v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
 | TypeScript | npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
+| C ABI native assets | GitHub Releases (immutable archives) | `capi-v*` | [`release-capi.yaml`](./.github/workflows/release-capi.yaml) |
 
 Rust crate publication uses crates.io Trusted Publishing through GitHub Actions
 OIDC. Configure the `gmeow-gts` Trusted Publisher entry with owner/repo
@@ -673,17 +686,16 @@ entry should use owner/repo `Blackcat-Informatics/visual-hashing`, workflow
 `visual-hashing-v*` release lane is retired.
 
 Each release workflow verifies the tag matches the manifest version before publishing.
-The C ABI and derived wrappers currently ship from the repository source tree and CI smoke tests;
-registry release automation for those wrapper packages is intentionally separate from the four
-tag-triggered engine release lanes above unless a wrapper README or future release workflow says
+The C ABI archive lane publishes installable `libgts` archives for wrapper
+ecosystems. Registry release automation for the source-only wrapper packages is
+intentionally separate unless a wrapper README or future release workflow says
 otherwise.
 Release artifacts carry GitHub SLSA provenance attestations. Go archives and
-registry-hosted Rust, Python, and TypeScript package files also carry SPDX SBOM
-attestations. Go releases are immutable GitHub Releases that attach archives,
-`checksums.txt`, and the SPDX SBOM as durable assets; `checksums.txt` and the
-SBOM file have SLSA provenance coverage, while Go archives have both provenance
-and SBOM predicates. Registry-hosted package files keep their durable provenance
-and SBOM evidence in GitHub's attestation store. Verify provenance with
+C ABI archives plus registry-hosted Rust, Python, and TypeScript package files
+also carry SPDX SBOM attestations. Go and C ABI releases are immutable GitHub
+Releases that attach archives, checksums, and SPDX SBOMs as durable assets.
+Registry-hosted package files keep their durable provenance and SBOM evidence
+in GitHub's attestation store. Verify provenance with
 `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gts`; verify the
 SBOM predicate with `--predicate-type https://spdx.dev/Document/v2.3`.
 The current SLSA posture is documented in
@@ -700,8 +712,9 @@ just verify-release <version> <visual-hashing-version>
 
 The same check is available as the manual
 [`verify-release.yml`](./.github/workflows/verify-release.yml) workflow. It downloads
-the PyPI wheel/sdist, npm tarball, crates.io packages, and Go release assets; verifies
-registry hashes/signatures/provenance; checks GitHub SLSA and SPDX SBOM attestations;
+the PyPI wheel/sdist, npm tarball, crates.io packages, and Go/C ABI release
+assets; verifies registry hashes/signatures/provenance; checks GitHub SLSA and
+SPDX SBOM attestations;
 and writes Markdown/JSON summaries under `dist/release-verification/<version>/`.
 For historical releases that predate SBOM and immutable-release hardening, pass
 `--allow-legacy-release-gaps` explicitly and treat warnings as release-record caveats.

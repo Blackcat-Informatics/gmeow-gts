@@ -38,6 +38,7 @@ except for `visual-hashing`, which now publishes from its standalone repository:
 | Python package | `.github/workflows/release-pypi.yml` | PyPI trusted publishing with package attestations |
 | TypeScript package | `.github/workflows/release-npm.yaml` | npm trusted publishing and npm provenance |
 | Go CLI assets | `.github/workflows/release-go.yaml` | Immutable GitHub Release assets |
+| C ABI native assets | `.github/workflows/release-capi.yaml` | Immutable GitHub Release archives |
 
 Refactoring those jobs into same-repository reusable workflows would centralize
 release logic, but it would not by itself add enough governance separation to
@@ -55,7 +56,7 @@ Every release lane must keep these controls:
 - registry OIDC or registry-native provenance where the ecosystem supports it;
 - GitHub build-provenance attestations for released artifacts;
 - SPDX SBOM attestations for representative registry artifacts and Go archives;
-- immutable Go GitHub Releases for Go CLI archives, checksums, and SBOM assets;
+- immutable Go and C ABI GitHub Releases for archives, checksums, and SBOM assets;
 - public post-release verification through `just verify-release`.
 
 The current evidence durability is:
@@ -63,6 +64,7 @@ The current evidence durability is:
 | Surface | Durable artifact | Attestation evidence |
 |---|---|---|
 | Go | Immutable GitHub Release archives, `checksums.txt`, and `sbom-go-gts.spdx.json` | GitHub release attestation, SLSA provenance attestations, and SPDX SBOM attestations |
+| C ABI | Immutable GitHub Release archives, `checksums.txt`, and `sbom-gmeow-gts-capi.spdx.json` | GitHub release attestation, SLSA provenance attestations, and SPDX SBOM attestations |
 | crates.io | Registry-hosted `.crate` package | GitHub SLSA provenance and SPDX SBOM attestations |
 | PyPI | Registry-hosted wheel and sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
 | npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |

@@ -1,0 +1,200 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: Release C ABI
+
+# On a capi-v* tag, build installable libgts archives for wrapper ecosystems,
+# attest provenance and SBOM evidence, and publish an immutable GitHub Release.
+
+on:
+  push:
+    tags:
+      - 'capi-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Build C ABI archive
+        shell: bash
+        run: bash rust/capi/scripts/package.sh
+
+      - name: Install archive verifier dependencies
+        if: runner.os == 'macOS'
+        run: brew install pkgconf
+
+      - name: Verify C ABI archive
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          archive="$(ls dist/capi/gmeow-gts-capi_*.tar.gz)"
+          bash rust/capi/scripts/verify-archive.sh "$archive"
+
+      - name: Upload C ABI archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: capi-${{ runner.os }}
+          path: |
+            dist/capi/*.tar.gz
+            dist/capi/*.sha256
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Download C ABI archives
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          pattern: capi-*
+          path: dist/capi
+          merge-multiple: true
+
+      - name: Verify tag matches C ABI version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#capi-v}"
+          PKG_VERSION="$(cargo metadata --manifest-path rust/capi/Cargo.toml --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["packages"][0]["version"])')"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag version $TAG_VERSION does not match rust/capi/Cargo.toml version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Verify checksums
+        working-directory: dist/capi
+        run: sha256sum -c -- *.sha256
+
+      - name: Write combined checksums
+        working-directory: dist/capi
+        run: sha256sum -- *.tar.gz > checksums.txt
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: rust/capi
+          format: spdx-json
+          output-file: dist/capi/sbom-gmeow-gts-capi.spdx.json
+          upload-artifact: false
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: |
+            dist/capi/*.tar.gz
+            dist/capi/checksums.txt
+            dist/capi/sbom-gmeow-gts-capi.spdx.json
+
+      - name: Attest SBOM for release archives
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: dist/capi/*.tar.gz
+          sbom-path: dist/capi/sbom-gmeow-gts-capi.spdx.json
+
+      - name: Write release notes
+        run: |
+          cat > release-notes-capi.md <<EOF
+          Installable C ABI archives for \`libgts\`.
+
+          These archives provide the native library, \`gts.h\`,
+          \`gts.hpp\`, pkg-config metadata, CMake metadata, license files,
+          version metadata, checksums, SBOM evidence, and GitHub provenance
+          attestations. First-wave language wrapper packages remain
+          source-only and do not bundle native \`libgts\` binaries.
+
+          Verify the immutable GitHub release attestation:
+          \`\`\`
+          gh release verify "$GITHUB_REF_NAME" --repo $GITHUB_REPOSITORY
+          \`\`\`
+
+          Verify build provenance for a downloaded archive:
+          \`\`\`
+          gh attestation verify <archive> --repo $GITHUB_REPOSITORY
+          \`\`\`
+          EOF
+
+      - name: Create draft GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_draft_state="$(
+            gh release view "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json isDraft \
+              --jq '.isDraft' 2>/dev/null || true
+          )"
+          case "$release_draft_state" in
+            true)
+              echo "Draft release $GITHUB_REF_NAME already exists; reusing it"
+              ;;
+            false)
+              echo "Release $GITHUB_REF_NAME already exists and is published"
+              exit 1
+              ;;
+            *)
+              gh release create "$GITHUB_REF_NAME" \
+                --repo "$GITHUB_REPOSITORY" \
+                --verify-tag \
+                --draft \
+                --title "GTS C ABI ${GITHUB_REF_NAME#capi-v}" \
+                --notes-file release-notes-capi.md
+              ;;
+          esac
+
+      - name: Upload release assets before publication
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          assets=(dist/capi/*)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No release assets found in dist/capi/"
+            exit 1
+          fi
+          gh release upload "$GITHUB_REF_NAME" "${assets[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+          printf '%s\n' "${assets[@]##*/}" | sort > expected-assets.txt
+          gh release view "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json assets \
+            --jq '.assets[].name' | sort > uploaded-assets.txt
+          diff -u expected-assets.txt uploaded-assets.txt
+
+      - name: Publish immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft=false
+
+      - name: Assert release is immutable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json isImmutable \
+            --jq '.isImmutable' | grep -qx true
