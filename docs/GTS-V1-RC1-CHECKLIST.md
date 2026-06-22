@@ -349,6 +349,7 @@ gh repo clone Blackcat-Informatics/visual-hashing ../visual-hashing
 cd ../visual-hashing
 git tag "v${VISUAL_HASHING_VERSION}" "<visual-hashing-merge-commit>"
 git push origin "v${VISUAL_HASHING_VERSION}"
+cd -
 ```
 
 Monitor the release workflows:
