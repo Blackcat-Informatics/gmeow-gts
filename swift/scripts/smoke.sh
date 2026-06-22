@@ -14,6 +14,30 @@ SWIFT_SCRATCH="${SWIFT_SCRATCH:-${TMPDIR:-/tmp}/gmeow-gts-swift-build}"
 
 cd "${ROOT}"
 
+container_package_path() {
+  case "${PACKAGE}" in
+    "${ROOT}")
+      printf '/workspace'
+      ;;
+    "${ROOT}/"*)
+      printf '/workspace/%s' "${PACKAGE#"${ROOT}/"}"
+      ;;
+    .)
+      printf '/workspace'
+      ;;
+    ./*)
+      printf '/workspace/%s' "${PACKAGE#./}"
+      ;;
+    /*)
+      echo "GTS_SWIFT_PACKAGE_PATH must point inside ${ROOT} when using Docker fallback." >&2
+      exit 1
+      ;;
+    *)
+      printf '/workspace/%s' "${PACKAGE}"
+      ;;
+  esac
+}
+
 diff -u rust/capi/include/gts.h swift/Sources/CGts/include/gts.h
 cargo build --manifest-path "${CAPI}/Cargo.toml"
 
@@ -39,12 +63,13 @@ else
     echo "Swift is unavailable locally and the Docker fallback requires a Linux libgts build." >&2
     exit 1
   fi
+  PACKAGE_CONTAINER="$(container_package_path)"
   docker run --rm \
     --user "$(id -u):$(id -g)" \
     -e HOME=/tmp/swift-home \
     -e LIBRARY_PATH=/workspace/rust/capi/target/debug \
     -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
-    -e GTS_SWIFT_PACKAGE_PATH=/workspace \
+    -e GTS_SWIFT_PACKAGE_PATH="${PACKAGE_CONTAINER}" \
     -e GTS_SWIFT_SMOKE_TARGET="${SMOKE_TARGET}" \
     -e GTS_SWIFT_VECTOR=/workspace/vectors/01-minimal.gts \
     -v "${ROOT}:/workspace" \
