@@ -58,3 +58,40 @@ bash rust/capi/scripts/smoke.sh
 ```
 
 The smoke test builds `libgts`, compiles `examples/smoke.c`, and exercises build metadata, capability and format discovery, read/fold JSON, verify JSON, registry-driven RDF format export/import, N-Quads compatibility export/import, files pack/unpack/diff, and structured error handling.
+
+## Distribution Archives
+
+The first wrapper publication wave keeps language packages source-only. Native
+`libgts` binaries are distributed separately through the C ABI archive lane:
+
+```sh
+archive="$(bash rust/capi/scripts/package.sh)"
+bash rust/capi/scripts/verify-archive.sh "${archive}"
+```
+
+Each archive has a relocatable install layout:
+
+```text
+include/gts.h
+include/gts/gts.hpp
+lib/libgts.so | lib/libgts.dylib | bin/gts.dll
+lib/libgts.a | lib/gts.lib             # when produced by the target
+lib/pkgconfig/gts.pc
+lib/cmake/Gts/GtsConfig.cmake
+share/gts/VERSION
+share/gts/ABI_VERSION
+share/gts/archive.json
+README.md
+licenses/
+```
+
+Consumers can point `PKG_CONFIG_PATH` at `lib/pkgconfig` or set
+`CMAKE_PREFIX_PATH` to the unpacked archive root and link `Gts::gts`. Runtime
+library discovery remains platform-specific: set `LD_LIBRARY_PATH` on Linux,
+`DYLD_LIBRARY_PATH` on macOS, or add `bin/` to `PATH` on Windows unless the
+library is installed into a platform default search path.
+
+The release tag lane is `capi-v*`. A tag such as `capi-v0.9.4` builds C ABI
+archives, checksums, SBOM evidence, and GitHub provenance attestations, then
+publishes an immutable GitHub Release. Wrapper packages should depend on this
+native asset contract instead of bundling `libgts`.

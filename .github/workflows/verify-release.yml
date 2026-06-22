@@ -18,6 +18,11 @@ on:
         required: true
         default: "0.1.2"
         type: string
+      capi_tag:
+        description: Optional C ABI release tag override, such as capi-v0.9.4.
+        required: false
+        default: ""
+        type: string
       allow_legacy_release_gaps:
         description: Downgrade known pre-hardening gaps to warnings.
         required: true
@@ -53,6 +58,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERIFY_ALLOW_LEGACY_RELEASE_GAPS: ${{ inputs.allow_legacy_release_gaps }}
+          VERIFY_CAPI_TAG: ${{ inputs.capi_tag }}
           VERIFY_VERSION: ${{ inputs.version }}
           VERIFY_VISUAL_HASHING_VERSION: ${{ inputs.visual_hashing_version }}
         run: |
@@ -60,6 +66,9 @@ jobs:
             --version "${VERIFY_VERSION}"
             --visual-hashing-version "${VERIFY_VISUAL_HASHING_VERSION}"
           )
+          if [ -n "${VERIFY_CAPI_TAG}" ]; then
+            args+=(--capi-tag "${VERIFY_CAPI_TAG}")
+          fi
           if [ "${VERIFY_ALLOW_LEGACY_RELEASE_GAPS}" = "true" ]; then
             args+=(--allow-legacy-release-gaps)
           fi

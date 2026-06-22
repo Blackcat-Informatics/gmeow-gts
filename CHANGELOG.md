@@ -16,6 +16,12 @@ change before `1.0`.
 
 ## [Unreleased]
 
+### Added
+
+- Installable C ABI archive packaging for `libgts`, including pkg-config,
+  CMake, checksum, SBOM, provenance, and immutable GitHub Release publication
+  through the `capi-v*` tag lane.
+
 ### Changed
 
 - Moved canonical `visual-hashing` publication to
