@@ -16,6 +16,13 @@ change before `1.0`.
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced the Rust Oxigraph/OxRDF/Sophia adapter surfaces with native RDF
+  dataset, text-codec, RDF/XML, ULID, and in-memory store implementations; CI
+  now locks the `wasm32-unknown-unknown --all-features` library build and audits
+  that dependency tree to keep the removed toolkit blockers out.
+
 ## [0.9.5] — 2026-06-22
 
 Rust-only release. Python, Go, TypeScript, and wrapper package versions remain
