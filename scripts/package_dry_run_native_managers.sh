@@ -84,8 +84,10 @@ cmake -S packaging/native-consumer -B "${conan_build}" \
 cmake --build "${conan_build}"
 (
   set +u
-  # shellcheck source=/dev/null
-  source "${conan_build}/conanrun.sh"
+  if [ -f "${conan_build}/conanrun.sh" ]; then
+    # shellcheck source=/dev/null
+    source "${conan_build}/conanrun.sh"
+  fi
   "${conan_build}/gts-native-consumer" vectors/01-minimal.gts
 )
 printf '%s\n' "conan create . --version ${VERSION}" > "${OUT}/conan/create.txt"
@@ -96,7 +98,15 @@ triplet="${GTS_VCPKG_TRIPLET:-x64-linux-dynamic}"
 vcpkg_root="${VCPKG_ROOT:-}"
 if [ -z "${vcpkg_root}" ]; then
   vcpkg_bin="$(command -v vcpkg)"
-  vcpkg_root="$(cd "$(dirname "${vcpkg_bin}")" && pwd)"
+  vcpkg_dir="$(cd "$(dirname "${vcpkg_bin}")" && pwd)"
+  if [ -f "${vcpkg_dir}/scripts/buildsystems/vcpkg.cmake" ]; then
+    vcpkg_root="${vcpkg_dir}"
+  elif [ "$(basename "${vcpkg_dir}")" = "bin" ] \
+    && [ -f "${vcpkg_dir}/../scripts/buildsystems/vcpkg.cmake" ]; then
+    vcpkg_root="$(cd "${vcpkg_dir}/.." && pwd)"
+  else
+    vcpkg_root="${vcpkg_dir}"
+  fi
 fi
 if [ ! -f "${vcpkg_root}/scripts/buildsystems/vcpkg.cmake" ]; then
   echo "could not locate vcpkg.cmake under VCPKG_ROOT=${vcpkg_root}" >&2

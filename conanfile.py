@@ -21,6 +21,7 @@ class GmeowGtsConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False]}
     default_options = {"shared": True}
+    _metadata = None
     exports_sources = (
         "cpp/include/**",
         "LICENSE-APACHE",
@@ -47,12 +48,15 @@ class GmeowGtsConan(ConanFile):
     )
 
     def build(self):
-        self.run("cargo build --manifest-path rust/capi/Cargo.toml --release --locked")
+        cmd = "cargo build --manifest-path rust/capi/Cargo.toml --locked"
+        if self._cargo_profile() == "release":
+            cmd += " --release"
+        self.run(cmd)
 
     def package(self):
         source = Path(self.source_folder)
         package = Path(self.package_folder)
-        target = self._target_directory() / "release"
+        target = self._target_directory() / self._cargo_profile()
         version = self._metadata_value("version")
         abi_version = self._abi_version(source / "rust/capi/include/gts.h")
 
@@ -107,29 +111,33 @@ class GmeowGtsConan(ConanFile):
         metadata = self._cargo_metadata()
         return metadata["packages"][0][key]
 
+    def _cargo_profile(self):
+        return "release" if str(self.settings.build_type) == "Release" else "debug"
+
     def _cargo_metadata(self):
-        output = subprocess.check_output(
-            [
-                "cargo",
-                "metadata",
-                "--manifest-path",
-                "rust/capi/Cargo.toml",
-                "--no-deps",
-                "--format-version",
-                "1",
-            ],
-            cwd=self.source_folder,
-            text=True,
-        )
-        return json.loads(output)
+        if self._metadata is None:
+            output = subprocess.check_output(
+                [
+                    "cargo",
+                    "metadata",
+                    "--manifest-path",
+                    "rust/capi/Cargo.toml",
+                    "--no-deps",
+                    "--format-version",
+                    "1",
+                ],
+                cwd=self.source_folder,
+                text=True,
+            )
+            self._metadata = json.loads(output)
+        return self._metadata
 
     @staticmethod
     def _abi_version(header):
         for line in header.read_text(encoding="utf-8").splitlines():
-            if line.startswith("#define GTS_ABI_VERSION "):
-                match = re.match(r"([0-9]+)", line.split()[2])
-                if match:
-                    return match.group(1)
+            match = re.match(r"#define\s+GTS_ABI_VERSION\s+([0-9]+)", line)
+            if match:
+                return match.group(1)
         raise ValueError(f"could not determine GTS_ABI_VERSION from {header}")
 
     @staticmethod
