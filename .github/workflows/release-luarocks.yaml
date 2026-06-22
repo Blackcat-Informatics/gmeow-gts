@@ -61,12 +61,13 @@ jobs:
           )/debug"
           export GTS_LIBGTS="${capi_target}/libgts.so"
           export LD_LIBRARY_PATH="${capi_target}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
-          rm -rf /tmp/gts-luarocks
+          luarocks_tree="${RUNNER_TEMP}/gts-luarocks"
+          rm -rf "$luarocks_tree"
           luarocks lint "$GTS_LUAROCKS_ROCKSPEC"
-          luarocks make "$GTS_LUAROCKS_ROCKSPEC" --tree /tmp/gts-luarocks
+          luarocks make "$GTS_LUAROCKS_ROCKSPEC" --tree "$luarocks_tree"
           rm -f gmeow-gts-*.rock
-          luarocks --tree /tmp/gts-luarocks pack gmeow-gts "$GTS_LUAROCKS_VERSION"
-          eval "$(luarocks --tree /tmp/gts-luarocks path --bin)"
+          luarocks --tree "$luarocks_tree" pack gmeow-gts "$GTS_LUAROCKS_VERSION"
+          eval "$(luarocks --tree "$luarocks_tree" path --bin)"
           luajit lua/tests/smoke.lua vectors/01-minimal.gts
 
       - name: Upload LuaRocks artifact
