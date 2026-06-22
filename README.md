@@ -324,7 +324,8 @@ runtimes that can load native libraries. The ABI returns JSON reports or owned b
 
 - ABI/version/build metadata and capability discovery;
 - read/fold and verify reports;
-- GTS to N-Quads and N-Quads to GTS conversion;
+- registry-driven RDF text conversion for N-Quads, N-Triples, Turtle, TriG,
+  RDF/XML, and the deterministic JSON-LD-star profile;
 - files-profile pack, unpack, and diff helpers;
 - structured error status, code, and detail fields.
 

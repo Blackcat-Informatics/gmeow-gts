@@ -17,5 +17,5 @@ name = "gts"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-gmeow-gts = { path = ".." }
+gmeow-gts = { path = "..", features = ["rdf-codecs", "yaml-ld"] }
 serde_json = "1"

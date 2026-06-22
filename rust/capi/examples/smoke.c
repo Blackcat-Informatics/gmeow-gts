@@ -122,10 +122,13 @@ int main(int argc, char **argv) {
   size_t input_len = 0;
   unsigned char *input = read_file(argv[1], &input_len);
   gts_buffer build_metadata = {0};
+  gts_buffer capabilities = {0};
+  gts_buffer format_registry = {0};
   gts_buffer read_json = {0};
   gts_buffer verify_json = {0};
   gts_buffer nquads = {0};
   gts_buffer roundtrip = {0};
+  gts_buffer codec_source = {0};
   gts_error *error = NULL;
 
   gts_status status = gts_build_metadata_json(&build_metadata, &error);
@@ -133,6 +136,18 @@ int main(int argc, char **argv) {
     fail_error("gts_build_metadata_json", status, error);
   }
   expect_contains("build_metadata", &build_metadata, "\"schema\":\"gts-capi-build-v1\"");
+
+  status = gts_capabilities_json(&capabilities, &error);
+  if (status != GTS_STATUS_OK) {
+    fail_error("gts_capabilities_json", status, error);
+  }
+  expect_contains("capabilities", &capabilities, "\"to_format\"");
+
+  status = gts_formats_json(&format_registry, &error);
+  if (status != GTS_STATUS_OK) {
+    fail_error("gts_formats_json", status, error);
+  }
+  expect_contains("format_registry", &format_registry, "\"application/ld+json\"");
 
   status = gts_read_json(input, input_len, &read_json, &error);
   if (status != GTS_STATUS_OK) {
@@ -170,6 +185,79 @@ int main(int argc, char **argv) {
   }
   gts_error_free(error);
   error = NULL;
+
+  const char sample_nt[] = "<https://example.test/s> <https://example.test/p> \"Cat\"@en .\n";
+  status = gts_from_format("application/n-triples",
+                           sample_nt,
+                           strlen(sample_nt),
+                           &codec_source,
+                           &error);
+  if (status != GTS_STATUS_OK) {
+    fail_error("gts_from_format application/n-triples", status, error);
+  }
+
+  const char *codec_ids[] = {"nquads", "ntriples", "turtle", "trig", "rdfxml", "jsonld"};
+  for (size_t i = 0; i < sizeof(codec_ids) / sizeof(codec_ids[0]); i++) {
+    gts_buffer formatted = {0};
+    gts_buffer restored = {0};
+    status = gts_to_format(codec_source.data, codec_source.len, codec_ids[i], &formatted, &error);
+    if (status != GTS_STATUS_OK) {
+      fail_error(codec_ids[i], status, error);
+    }
+    if (formatted.len == 0) {
+      fprintf(stderr, "%s serialization was empty\n", codec_ids[i]);
+      return 1;
+    }
+    status = gts_from_format(codec_ids[i],
+                             (const char *)formatted.data,
+                             formatted.len,
+                             &restored,
+                             &error);
+    if (status != GTS_STATUS_OK) {
+      fail_error(codec_ids[i], status, error);
+    }
+    if (restored.len == 0) {
+      fprintf(stderr, "%s parse output was empty\n", codec_ids[i]);
+      return 1;
+    }
+    gts_buffer_free(&formatted);
+    gts_buffer_free(&restored);
+  }
+
+  gts_buffer turtle_alias = {0};
+  gts_buffer ttl_roundtrip = {0};
+  status = gts_to_format(codec_source.data,
+                         codec_source.len,
+                         "text/turtle; charset=utf-8",
+                         &turtle_alias,
+                         &error);
+  if (status != GTS_STATUS_OK) {
+    fail_error("gts_to_format text/turtle", status, error);
+  }
+  expect_contains("turtle_alias", &turtle_alias, "Cat");
+  status = gts_from_format(".ttl",
+                           (const char *)turtle_alias.data,
+                           turtle_alias.len,
+                           &ttl_roundtrip,
+                           &error);
+  if (status != GTS_STATUS_OK) {
+    fail_error("gts_from_format .ttl", status, error);
+  }
+
+  status = gts_to_format(codec_source.data,
+                         codec_source.len,
+                         "application/x-not-rdf",
+                         &unused,
+                         &error);
+  if (status != GTS_STATUS_INVALID_ARGUMENT || error == NULL) {
+    fprintf(stderr, "unsupported format did not return structured invalid-argument error\n");
+    return 1;
+  }
+  gts_error_free(error);
+  error = NULL;
+  gts_buffer_free(&unused);
+  gts_buffer_free(&turtle_alias);
+  gts_buffer_free(&ttl_roundtrip);
 
   char temp_template[] = "/tmp/gts-capi-smoke-XXXXXX";
   char *temp = mkdtemp(temp_template);
@@ -214,10 +302,13 @@ int main(int argc, char **argv) {
   expect_contains("unpack_json", &unpack_json, "\"ok\":true");
 
   gts_buffer_free(&build_metadata);
+  gts_buffer_free(&capabilities);
+  gts_buffer_free(&format_registry);
   gts_buffer_free(&read_json);
   gts_buffer_free(&verify_json);
   gts_buffer_free(&nquads);
   gts_buffer_free(&roundtrip);
+  gts_buffer_free(&codec_source);
   gts_buffer_free(&packed);
   gts_buffer_free(&diff_json);
   gts_buffer_free(&unpack_json);

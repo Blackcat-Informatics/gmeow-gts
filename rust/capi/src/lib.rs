@@ -16,11 +16,17 @@ use std::slice;
 
 use gmeow_gts::files::{diff, pack, unpack_with_options, UnpackOptions};
 use gmeow_gts::from_nquads::from_nquads;
+use gmeow_gts::from_yamlld::from_json_ld;
 use gmeow_gts::model::{BlobEntry, Diagnostic, Graph};
 use gmeow_gts::nquads::to_nquads;
+use gmeow_gts::rdf_codecs::{
+    from_ntriples, from_rdf_xml, from_trig, from_turtle, to_ntriples, to_rdf_xml, to_trig,
+    to_turtle,
+};
 use gmeow_gts::reader::read;
 use gmeow_gts::verify::{verify_file, VerificationResult};
 use gmeow_gts::wire::hex;
+use gmeow_gts::yamlld::to_json_ld_string;
 use serde_json::json;
 
 const ABI_VERSION: u32 = 1;
@@ -108,6 +114,191 @@ impl ApiError {
             message: "Rust panic was caught at the C ABI boundary".to_string(),
         }
     }
+}
+
+type FormatParser = fn(&str) -> Result<Vec<u8>, ApiError>;
+type FormatSerializer = fn(&Graph) -> Result<String, ApiError>;
+
+struct FormatCodec {
+    id: &'static str,
+    label: &'static str,
+    media_types: &'static [&'static str],
+    aliases: &'static [&'static str],
+    extensions: &'static [&'static str],
+    parse: FormatParser,
+    serialize: FormatSerializer,
+}
+
+impl FormatCodec {
+    fn matches(&self, normalized: &str) -> bool {
+        self.id == normalized
+            || self.aliases.contains(&normalized)
+            || self.media_types.contains(&normalized)
+            || self.extensions.contains(&normalized)
+    }
+}
+
+const FORMAT_CODECS: &[FormatCodec] = &[
+    FormatCodec {
+        id: "nquads",
+        label: "N-Quads",
+        media_types: &["application/n-quads", "application/nquads"],
+        aliases: &["n-quads", "nq"],
+        extensions: &["nq"],
+        parse: parse_nquads_format,
+        serialize: serialize_nquads_format,
+    },
+    FormatCodec {
+        id: "ntriples",
+        label: "N-Triples",
+        media_types: &["application/n-triples", "application/ntriples"],
+        aliases: &["n-triples", "nt"],
+        extensions: &["nt"],
+        parse: parse_ntriples_format,
+        serialize: serialize_ntriples_format,
+    },
+    FormatCodec {
+        id: "turtle",
+        label: "Turtle",
+        media_types: &["text/turtle", "application/turtle"],
+        aliases: &["ttl"],
+        extensions: &["ttl"],
+        parse: parse_turtle_format,
+        serialize: serialize_turtle_format,
+    },
+    FormatCodec {
+        id: "trig",
+        label: "TriG",
+        media_types: &["application/trig", "application/x-trig"],
+        aliases: &[],
+        extensions: &["trig"],
+        parse: parse_trig_format,
+        serialize: serialize_trig_format,
+    },
+    FormatCodec {
+        id: "rdfxml",
+        label: "RDF/XML",
+        media_types: &["application/rdf+xml"],
+        aliases: &["rdf-xml"],
+        extensions: &["rdf", "owl", "xml"],
+        parse: parse_rdf_xml_format,
+        serialize: serialize_rdf_xml_format,
+    },
+    FormatCodec {
+        id: "jsonld",
+        label: "JSON-LD-star profile",
+        media_types: &["application/ld+json"],
+        aliases: &["json-ld", "json"],
+        extensions: &["jsonld", "json"],
+        parse: parse_json_ld_format,
+        serialize: serialize_json_ld_format,
+    },
+];
+
+fn parse_nquads_format(text: &str) -> Result<Vec<u8>, ApiError> {
+    from_nquads(text).map_err(|err| ApiError::parse(err.to_string()))
+}
+
+fn serialize_nquads_format(graph: &Graph) -> Result<String, ApiError> {
+    Ok(to_nquads(graph))
+}
+
+fn parse_ntriples_format(text: &str) -> Result<Vec<u8>, ApiError> {
+    from_ntriples(text).map_err(|err| ApiError::parse(err.to_string()))
+}
+
+fn serialize_ntriples_format(graph: &Graph) -> Result<String, ApiError> {
+    to_ntriples(graph).map_err(|err| ApiError::diagnostic(err.to_string()))
+}
+
+fn parse_turtle_format(text: &str) -> Result<Vec<u8>, ApiError> {
+    from_turtle(text).map_err(|err| ApiError::parse(err.to_string()))
+}
+
+fn serialize_turtle_format(graph: &Graph) -> Result<String, ApiError> {
+    to_turtle(graph).map_err(|err| ApiError::diagnostic(err.to_string()))
+}
+
+fn parse_trig_format(text: &str) -> Result<Vec<u8>, ApiError> {
+    from_trig(text).map_err(|err| ApiError::parse(err.to_string()))
+}
+
+fn serialize_trig_format(graph: &Graph) -> Result<String, ApiError> {
+    to_trig(graph).map_err(|err| ApiError::diagnostic(err.to_string()))
+}
+
+fn parse_rdf_xml_format(text: &str) -> Result<Vec<u8>, ApiError> {
+    from_rdf_xml(text).map_err(|err| ApiError::parse(err.to_string()))
+}
+
+fn serialize_rdf_xml_format(graph: &Graph) -> Result<String, ApiError> {
+    to_rdf_xml(graph).map_err(|err| ApiError::diagnostic(err.to_string()))
+}
+
+fn parse_json_ld_format(text: &str) -> Result<Vec<u8>, ApiError> {
+    from_json_ld(text).map_err(|err| ApiError::parse(err.to_string()))
+}
+
+fn serialize_json_ld_format(graph: &Graph) -> Result<String, ApiError> {
+    to_json_ld_string(graph)
+        .map_err(|err| ApiError::internal(format!("JSON-LD serialization failed: {err}")))
+}
+
+fn normalize_format(value: &str) -> String {
+    let without_parameters = value.split_once(';').map_or(value, |(base, _)| base);
+    without_parameters
+        .trim()
+        .strip_prefix('.')
+        .unwrap_or_else(|| without_parameters.trim())
+        .to_ascii_lowercase()
+}
+
+fn resolve_format(format: &str) -> Result<&'static FormatCodec, ApiError> {
+    let normalized = normalize_format(format);
+    if normalized.is_empty() {
+        return Err(ApiError::invalid_argument("format is empty"));
+    }
+    FORMAT_CODECS
+        .iter()
+        .find(|codec| codec.matches(&normalized))
+        .ok_or_else(|| {
+            ApiError::invalid_argument(format!("unsupported RDF format or media type: {format}"))
+        })
+}
+
+fn format_entries_json() -> Vec<serde_json::Value> {
+    FORMAT_CODECS
+        .iter()
+        .map(|codec| {
+            json!({
+                "id": codec.id,
+                "label": codec.label,
+                "media_types": codec.media_types,
+                "aliases": codec.aliases,
+                "extensions": codec.extensions,
+                "can_parse": true,
+                "can_serialize": true,
+            })
+        })
+        .collect()
+}
+
+fn format_registry_json() -> serde_json::Value {
+    json!({
+        "schema": "gts-capi-format-registry-v1",
+        "formats": format_entries_json(),
+    })
+}
+
+fn serialize_gts_as_format(data: &[u8], format: &str) -> Result<Vec<u8>, ApiError> {
+    let codec = resolve_format(format)?;
+    let graph = clean_graph(data)?;
+    (codec.serialize)(&graph).map(String::into_bytes)
+}
+
+fn parse_format_to_gts(format: &str, text: &str) -> Result<Vec<u8>, ApiError> {
+    let codec = resolve_format(format)?;
+    (codec.parse)(text)
 }
 
 fn ffi_entry<F>(error_out: *mut *mut GtsError, f: F) -> c_int
@@ -204,6 +395,17 @@ fn input_str<'a>(data: *const c_char, len: usize) -> Result<&'a str, ApiError> {
     let bytes = input_slice(data.cast::<u8>(), len)?;
     std::str::from_utf8(bytes)
         .map_err(|err| ApiError::invalid_argument(format!("input is not UTF-8: {err}")))
+}
+
+fn input_cstr<'a>(value: *const c_char, name: &str) -> Result<&'a str, ApiError> {
+    if value.is_null() {
+        return Err(ApiError::invalid_argument(format!(
+            "{name} pointer is null"
+        )));
+    }
+    let raw = unsafe { CStr::from_ptr(value) };
+    raw.to_str()
+        .map_err(|err| ApiError::invalid_argument(format!("{name} is not UTF-8: {err}")))
 }
 
 fn c_path<'a>(path: *const c_char, name: &str) -> Result<&'a Path, ApiError> {
@@ -485,8 +687,11 @@ pub unsafe extern "C" fn gts_capabilities_json(
                 "threading": "operations are reentrant; buffers and errors are caller-owned",
                 "operations": [
                     "build_metadata_json",
+                    "formats_json",
                     "read_json",
                     "verify_json",
+                    "to_format",
+                    "from_format",
                     "to_nquads",
                     "from_nquads",
                     "files_pack",
@@ -494,13 +699,31 @@ pub unsafe extern "C" fn gts_capabilities_json(
                     "files_diff_json"
                 ],
                 "features": {
+                    "format_registry": true,
                     "files_profile": true,
+                    "rdf_formats": true,
+                    "json_ld_star_profile": true,
                     "nquads": true,
                     "verification": true,
                     "opaque_graph_handles": false
-                }
+                },
+                "formats": format_entries_json()
             }))?,
         )
+    })
+}
+
+#[no_mangle]
+/// Return the registered RDF text codecs as UTF-8 JSON.
+///
+/// # Safety
+///
+/// `out` must be a valid writable buffer pointer. `error` may be null or a
+/// valid writable error-handle slot.
+pub unsafe extern "C" fn gts_formats_json(out: *mut GtsBuffer, error: *mut *mut GtsError) -> c_int {
+    ffi_entry(error, || {
+        require_out(out)?;
+        write_buffer(out, json_bytes(format_registry_json())?)
     })
 }
 
@@ -559,8 +782,8 @@ pub unsafe extern "C" fn gts_to_nquads(
 ) -> c_int {
     ffi_entry(error, || {
         require_out(out)?;
-        let graph = clean_graph(input_slice(data, len)?)?;
-        write_buffer(out, to_nquads(&graph).into_bytes())
+        let output = serialize_gts_as_format(input_slice(data, len)?, "nquads")?;
+        write_buffer(out, output)
     })
 }
 
@@ -580,7 +803,60 @@ pub unsafe extern "C" fn gts_from_nquads(
     ffi_entry(error, || {
         require_out(out)?;
         let nq = input_str(text, len)?;
-        let data = from_nquads(nq).map_err(|err| ApiError::parse(err.to_string()))?;
+        let data = parse_format_to_gts("nquads", nq)?;
+        write_buffer(out, data)
+    })
+}
+
+#[no_mangle]
+/// Convert clean GTS bytes to a registered RDF text format.
+///
+/// `format` may be a registry id, alias, extension, or media type. Media type
+/// parameters such as `charset=utf-8` are ignored during dispatch.
+///
+/// # Safety
+///
+/// `data` must point to `len` readable bytes unless `len` is zero. `format`
+/// must be a NUL-terminated UTF-8 C string. `out` must be writable. `error`
+/// may be null or a writable error-handle slot.
+pub unsafe extern "C" fn gts_to_format(
+    data: *const u8,
+    len: usize,
+    format: *const c_char,
+    out: *mut GtsBuffer,
+    error: *mut *mut GtsError,
+) -> c_int {
+    ffi_entry(error, || {
+        require_out(out)?;
+        let format = input_cstr(format, "format")?;
+        let output = serialize_gts_as_format(input_slice(data, len)?, format)?;
+        write_buffer(out, output)
+    })
+}
+
+#[no_mangle]
+/// Convert registered RDF text format input to GTS bytes.
+///
+/// `format` may be a registry id, alias, extension, or media type. Media type
+/// parameters such as `charset=utf-8` are ignored during dispatch.
+///
+/// # Safety
+///
+/// `format` must be a NUL-terminated UTF-8 C string. `text` must point to
+/// `len` readable UTF-8 bytes unless `len` is zero. `out` must be writable.
+/// `error` may be null or a writable error-handle slot.
+pub unsafe extern "C" fn gts_from_format(
+    format: *const c_char,
+    text: *const c_char,
+    len: usize,
+    out: *mut GtsBuffer,
+    error: *mut *mut GtsError,
+) -> c_int {
+    ffi_entry(error, || {
+        require_out(out)?;
+        let format = input_cstr(format, "format")?;
+        let text = input_str(text, len)?;
+        let data = parse_format_to_gts(format, text)?;
         write_buffer(out, data)
     })
 }
@@ -680,6 +956,10 @@ mod tests {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../vectors")
     }
 
+    fn sample_default_graph_gts() -> Vec<u8> {
+        from_nquads("<https://example.test/s> <https://example.test/p> \"Cat\"@en .\n").unwrap()
+    }
+
     fn call_buffer(
         f: impl FnOnce(*mut GtsBuffer, *mut *mut GtsError) -> c_int,
     ) -> Result<Vec<u8>, String> {
@@ -719,6 +999,12 @@ mod tests {
             .unwrap()
             .iter()
             .any(|item| item == "build_metadata_json"));
+        assert!(value["operations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item == "to_format"));
+        assert_eq!(value["features"]["format_registry"], true);
 
         let metadata =
             call_buffer(|out, err| unsafe { gts_build_metadata_json(out, err) }).unwrap();
@@ -727,6 +1013,22 @@ mod tests {
         assert_eq!(value["abi_version"], ABI_VERSION);
         assert_eq!(value["library"], "libgts");
         assert!(!value["target"]["arch"].as_str().unwrap().is_empty());
+    }
+
+    #[test]
+    fn format_registry_reports_supported_codecs() {
+        let formats = call_buffer(|out, err| unsafe { gts_formats_json(out, err) }).unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&formats).unwrap();
+        assert_eq!(value["schema"], "gts-capi-format-registry-v1");
+        let ids = value["formats"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["id"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        for expected in ["nquads", "ntriples", "turtle", "trig", "rdfxml", "jsonld"] {
+            assert!(ids.contains(&expected), "missing format {expected}");
+        }
     }
 
     #[test]
@@ -757,6 +1059,93 @@ mod tests {
         })
         .unwrap();
         assert!(!round.is_empty());
+    }
+
+    #[test]
+    fn registered_formats_round_trip_through_c_abi() {
+        let data = sample_default_graph_gts();
+        for format in ["nquads", "ntriples", "turtle", "trig", "rdfxml", "jsonld"] {
+            let format_c = CString::new(format).unwrap();
+            let text = call_buffer(|out, err| unsafe {
+                gts_to_format(data.as_ptr(), data.len(), format_c.as_ptr(), out, err)
+            })
+            .unwrap_or_else(|err| panic!("{format} serialize failed: {err}"));
+            assert!(!text.is_empty(), "{format} serialization was empty");
+
+            let round = call_buffer(|out, err| unsafe {
+                gts_from_format(
+                    format_c.as_ptr(),
+                    text.as_ptr().cast::<c_char>(),
+                    text.len(),
+                    out,
+                    err,
+                )
+            })
+            .unwrap_or_else(|err| panic!("{format} parse failed: {err}"));
+            assert!(!round.is_empty(), "{format} parse output was empty");
+
+            let read_json = call_buffer(|out, err| unsafe {
+                gts_read_json(round.as_ptr(), round.len(), out, err)
+            })
+            .unwrap();
+            let value: serde_json::Value = serde_json::from_slice(&read_json).unwrap();
+            assert_eq!(value["clean"], true, "{format} round trip was not clean");
+        }
+    }
+
+    #[test]
+    fn media_type_and_extension_dispatch_share_the_registry() {
+        let data = sample_default_graph_gts();
+        let media_type = CString::new("text/turtle; charset=utf-8").unwrap();
+        let turtle = call_buffer(|out, err| unsafe {
+            gts_to_format(data.as_ptr(), data.len(), media_type.as_ptr(), out, err)
+        })
+        .unwrap();
+        assert!(String::from_utf8(turtle.clone()).unwrap().contains("Cat"));
+
+        let extension = CString::new(".ttl").unwrap();
+        let round = call_buffer(|out, err| unsafe {
+            gts_from_format(
+                extension.as_ptr(),
+                turtle.as_ptr().cast::<c_char>(),
+                turtle.len(),
+                out,
+                err,
+            )
+        })
+        .unwrap();
+        assert!(!round.is_empty());
+    }
+
+    #[test]
+    fn unsupported_format_reports_structured_error() {
+        let data = sample_default_graph_gts();
+        let format = CString::new("application/x-not-rdf").unwrap();
+        let mut buffer = GtsBuffer {
+            data: ptr::null_mut(),
+            len: 0,
+            capacity: 0,
+        };
+        let mut error: *mut GtsError = ptr::null_mut();
+        let status = unsafe {
+            gts_to_format(
+                data.as_ptr(),
+                data.len(),
+                format.as_ptr(),
+                &mut buffer,
+                &mut error,
+            )
+        };
+        assert_eq!(status, STATUS_INVALID_ARGUMENT);
+        assert!(!error.is_null());
+        let message = unsafe { CStr::from_ptr(gts_error_message(error)) }
+            .to_str()
+            .unwrap();
+        assert!(message.contains("unsupported RDF format"));
+        unsafe {
+            gts_error_free(error);
+            gts_buffer_free(&mut buffer);
+        }
     }
 
     #[test]
