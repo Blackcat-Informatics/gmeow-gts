@@ -326,6 +326,9 @@ fn serialize_trig_graph(graph: &Graph) -> Result<String, RdfCodecError> {
     String::from_utf8(serializer.finish()?).map_err(Into::into)
 }
 
+// Keep these codec-local conversions separate from the Oxigraph adapter for
+// now: the features have different error types, independent dependency gates,
+// and may intentionally move across different RDF toolkit versions.
 fn native_dataset_from_oxrdf(dataset: &OxDataset) -> Result<Dataset, RdfCodecError> {
     let mut native = Dataset::new();
     for quad in dataset {
