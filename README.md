@@ -503,7 +503,7 @@ folded quad.
 | Streamable compaction CLI | yes | yes | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | yes | yes | yes | yes |
 | TriG transform | yes | yes | no | no | no | no |
-| Native RDF/store adapter | rdflib extra | `rdf` feature (`oxrdf` data model); `oxigraph-adapter` feature (Oxigraph store); `sophia-adapter` feature (Sophia dataset) | no | no | no | no |
+| Native RDF/store adapter | rdflib extra | `rdf` feature (native dataset model); `oxigraph-adapter` feature (Oxigraph store); `sophia-adapter` feature (Sophia dataset) | no | no | no | no |
 | SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no | no | no |
 | Package registry | PyPI | crates.io | Go module | npm | Tonel/Metacello source | Gradle source |
 
