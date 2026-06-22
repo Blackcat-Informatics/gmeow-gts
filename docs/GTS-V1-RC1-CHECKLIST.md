@@ -261,8 +261,9 @@ GTS_PACKAGE_DRY_RUN_OUT="${OUT}/packages/wrappers" \
 The wrapper dry-run covers the Rust C ABI package list, installable C ABI
 archive verification, installed C++ archive consumption, Conan and vcpkg
 package-manager consumer smoke tests, .NET local NuGet packing, Composer
-validation, LuaRocks lint/make/pack, SwiftPM metadata and smoke execution, Ruby
-gem build/install, R build/check, and Julia package tests.
+validation, PHP Packagist package-root generation plus local path-repository
+consumer smoke testing, LuaRocks lint/make/pack, SwiftPM metadata and smoke
+execution, Ruby gem build/install, R build/check, and Julia package tests.
 
 For Go release parity, also dry-run the cross-build shape used by
 `.github/workflows/release-go.yaml`:
