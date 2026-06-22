@@ -34,13 +34,13 @@ pub mod from_trig;
 pub mod from_yamlld;
 pub mod mmr;
 pub mod model;
+#[cfg(feature = "native-store")]
+pub mod native_store;
 pub mod nested;
 pub mod nquads;
 #[cfg(feature = "okf")]
 pub mod okf;
 pub mod openpgp;
-#[cfg(feature = "oxigraph-adapter")]
-pub mod oxigraph;
 pub mod policy;
 #[cfg(feature = "policy-config")]
 pub use policy::PolicyConfigError;

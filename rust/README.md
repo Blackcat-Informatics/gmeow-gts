@@ -98,9 +98,9 @@ a GTS file.
 - **`gmeow_gts::model::Graph`** — consume raw quad-id rows with `into_quads()` or
   lazily resolve them with `quad_terms()`.
 - **`gmeow_gts::rdf`** — optional `--features rdf` native adapter for
-  `oxrdf::Dataset` without an embedded graph-store dependency.
-- **`gmeow_gts::oxigraph`** — optional `--features oxigraph-adapter` bridge between
-  folded GTS graphs and Oxigraph's in-memory `Store`, with GTS metadata kept in a sidecar.
+  dependency-free `Dataset`/`RdfQuad` interop without an embedded graph-store dependency.
+- **`gmeow_gts::native_store`** — optional `--features native-store` deterministic
+  in-memory RDF store with GTS metadata kept in a sidecar.
 - **`gmeow_gts::examples::agent_memory`** — a dependency-light grounded-memory
   example built on ordinary GTS frames.
 - **`gmeow_gts::stream`** — stream-vocabulary constants and helpers.
@@ -475,10 +475,10 @@ folded `Graph` and are decoded transiently only when the stable `blobs.bytes` co
 emitted.
 
 Default Cargo features are empty. The optional `rdf` feature enables
-`gmeow_gts::rdf::{to_oxrdf_dataset, from_oxrdf_dataset}` through `oxrdf`'s RDF
-data-model crate. The optional `oxigraph-adapter` feature adds
-`gmeow_gts::oxigraph::{graph_to_store, store_to_writer}` and
-`Writer::from_store` using Oxigraph's in-memory store with Oxigraph defaults disabled.
+`gmeow_gts::rdf::{to_rdf_dataset, from_rdf_dataset}` through the crate's native
+RDF data-model types. The optional `native-store` feature adds
+`gmeow_gts::native_store::{graph_to_store, store_to_writer}` and
+`Writer::from_store` using a deterministic dependency-free in-memory RDF store.
 The optional `sophia-adapter` feature adds
 `gmeow_gts::sophia::{to_sophia_dataset, from_sophia_dataset}` using Sophia's
 in-memory dataset plus N-Quads parser/serializer.
