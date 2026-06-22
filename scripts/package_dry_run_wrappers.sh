@@ -393,18 +393,26 @@ printf '%s\n' \
   "php -d ffi.enable=1 ${OUT_REL}/php/consumer/smoke.php vectors/01-minimal.gts" \
   > "${OUT}/php/packagist-consumer.txt"
 
-log "LuaRocks lint, make, and pack"
+log "LuaRocks lint, make, pack, and installed-rock smoke"
 # shellcheck disable=SC2016 # expanded inside the local/container shell.
 run_lua_shell 'set -euo pipefail
 mkdir -p "${GTS_PACKAGE_DRY_RUN_OUT}/lua"
+lua_tree="${GTS_PACKAGE_DRY_RUN_OUT}/lua/tree"
+lua_tree_dev="${GTS_PACKAGE_DRY_RUN_OUT}/lua/tree-dev"
+rm -rf "${lua_tree}" "${lua_tree_dev}"
 cd "${GTS_WORKSPACE}/lua"
 luarocks lint gmeow-gts-dev-1.rockspec
-rm -rf /tmp/gts-luarocks
-luarocks make gmeow-gts-dev-1.rockspec --tree /tmp/gts-luarocks
-rm -f gmeow-gts-dev-1.all.rock
-luarocks --tree /tmp/gts-luarocks pack gmeow-gts dev-1
+luarocks make gmeow-gts-dev-1.rockspec --tree "${lua_tree_dev}"
+cd "${GTS_WORKSPACE}"
+luarocks lint lua/gmeow-gts-0.9.4-1.rockspec
+luarocks make lua/gmeow-gts-0.9.4-1.rockspec --tree "${lua_tree}"
+rm -f gmeow-gts-0.9.4-1.all.rock
+luarocks --tree "${lua_tree}" pack gmeow-gts 0.9.4-1
 cp ./*.rock "${GTS_PACKAGE_DRY_RUN_OUT}/lua/"
-rm -f gmeow-gts-dev-1.all.rock'
+eval "$(luarocks --tree "${lua_tree}" path --bin)"
+luajit lua/tests/smoke.lua vectors/01-minimal.gts
+rm -f gmeow-gts-0.9.4-1.all.rock
+rm -rf "${lua_tree}" "${lua_tree_dev}"'
 
 log "Swift package dump and smoke executable"
 # shellcheck disable=SC2016 # expanded inside the local/container shell.

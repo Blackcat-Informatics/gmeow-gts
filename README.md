@@ -178,7 +178,7 @@ Rust-backed C ABI and derived wrappers:
 | **C++** | [`cpp/`](./cpp/README.md) | header-only RAII wrapper over `libgts` |
 | **.NET** | [`dotnet/`](./dotnet/README.md) | `Gmeow.Gts` P/Invoke wrapper |
 | **PHP** | [`php/`](./php/README.md) | PHP FFI Composer package |
-| **Lua** | [`lua/`](./lua/README.md) | LuaJIT FFI module |
+| **Lua** | [`lua/`](./lua/README.md) | `gmeow-gts` LuaRocks LuaJIT FFI module |
 | **Swift** | [`swift/`](./swift/README.md) | Swift Package Manager wrapper |
 | **Ruby** | [`ruby/`](./ruby/README.md) | `gmeow-gts` FFI gem |
 | **R** | [`r/`](./r/README.md) | `gmeowgts` package |

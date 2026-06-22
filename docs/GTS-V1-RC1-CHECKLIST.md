@@ -262,7 +262,7 @@ The wrapper dry-run covers the Rust C ABI package list, installable C ABI
 archive verification, installed C++ archive consumption, Conan and vcpkg
 package-manager consumer smoke tests, .NET local NuGet packing, Composer
 validation, PHP Packagist package-root generation plus local path-repository
-consumer smoke testing, LuaRocks lint/make/pack, SwiftPM metadata and smoke
+consumer smoke testing, LuaRocks lint/make/pack plus installed-rock smoke
 execution, Ruby gem build/install, R build/check, and Julia package tests.
 
 For Go release parity, also dry-run the cross-build shape used by
