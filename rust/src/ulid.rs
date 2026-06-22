@@ -8,7 +8,6 @@
 //! JavaScript RNG, `uuid`, `ulid`, `rand`, or `getrandom`.
 
 use std::fmt;
-use std::fmt::Write as _;
 use std::str::FromStr;
 
 const CROCKFORD: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -106,12 +105,14 @@ impl Ulid {
 impl fmt::Display for Ulid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let value = u128::from_be_bytes(self.0);
-        for index in 0..ULID_LEN {
+        let mut buffer = [0u8; ULID_LEN];
+        for (index, byte) in buffer.iter_mut().enumerate() {
             let shift = 125 - index * 5;
             let digit = ((value >> shift) & 0x1f) as usize;
-            f.write_char(CROCKFORD[digit] as char)?;
+            *byte = CROCKFORD[digit];
         }
-        Ok(())
+        let text = std::str::from_utf8(&buffer).map_err(|_| fmt::Error)?;
+        f.write_str(text)
     }
 }
 
