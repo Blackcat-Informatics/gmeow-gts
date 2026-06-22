@@ -756,7 +756,7 @@ Wrapper package registry names and public release surfaces are:
 |---|---|---|---|
 | C ABI source crate | crates.io `gmeow-gts-capi` | `capi-v<version>` | Downloaded and attestation-checked by wrapper verifier |
 | C ABI native assets | GitHub Release `capi-v<version>` | `capi-v<version>` | Downloaded, checksum-checked, release-verified, and attestation-checked |
-| .NET | NuGet `Gmeow.Gts` deferred | Not in the first wrapper publication wave | Source-tree and CI-smoke support only |
+| .NET | NuGet `Gmeow.Gts` (deferred) | Not in the first wrapper publication wave | Source-tree and CI-smoke support only |
 | PHP | Packagist `blackcatinformatics/gmeow-gts` | `<version>` or `v<version>` on the generated package-root commit | Metadata and source reference checked |
 | LuaJIT | LuaRocks `gmeow-gts` | `<version>-1` from `lua-v<version>` | Root manifest and rockspec download checked |
 | Swift | Swift Package Index `Blackcat-Informatics/gmeow-gts` | Plain semantic version tag, such as `<version>` | Git tag checked and canonical SPI package URL recorded |
