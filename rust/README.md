@@ -445,7 +445,7 @@ adding a full OpenPGP crate dependency. `gts dump` writes a versioned inspection
 folded N-Quads, JSONL tables, unfolded frame views, blob indexes, and files-profile payloads
 without duplicating large payload bytes by default. `to-trig` and `from-trig` provide a
 readable TriG graph-block projection over the same folded RDF content as N-Quads. The optional
-`rdf-codecs` feature adds native N-Triples/Turtle/TriG codecs plus native-target RDF/XML through `oxrdfxml`; with it,
+`rdf-codecs` feature adds native N-Triples/Turtle/TriG/RDF/XML codecs; with it,
 `to-trig` and `from-trig` use the full codec path and `to-nt`/`from-nt`,
 `to-rdfxml`/`from-rdfxml`, plus `to-turtle`/`from-turtle` provide default-graph RDF text
 interchange. The optional

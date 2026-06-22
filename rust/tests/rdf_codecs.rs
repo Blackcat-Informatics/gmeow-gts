@@ -9,12 +9,6 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use ciborium::value::Value;
-use oxrdf::dataset::CanonicalizationAlgorithm;
-use oxrdf::{
-    BaseDirection as OxBaseDirection, BlankNode as OxBlankNode, Dataset as OxDataset,
-    GraphName as OxGraphName, Literal as OxLiteral, NamedNode as OxNamedNode,
-    NamedOrBlankNode as OxNamedOrBlankNode, Quad as OxQuad, Term as OxTerm, Triple as OxTriple,
-};
 
 use gmeow_gts::from_nquads::{
     from_nquads as native_from_nquads, from_ntriples as native_from_ntriples,
@@ -46,93 +40,11 @@ fn nquads_from_gts(bytes: &[u8]) -> String {
     to_nquads(&read(bytes, true, None))
 }
 
-fn ox_named_node(iri: &native_rdf::Iri) -> OxNamedNode {
-    OxNamedNode::new(iri.as_str()).expect("native IRI is valid OxRDF IRI")
-}
-
-fn ox_blank_node(node: &native_rdf::BlankNode) -> OxBlankNode {
-    OxBlankNode::new(node.as_str()).expect("native blank node is valid OxRDF blank node")
-}
-
-fn ox_named_or_blank(node: &native_rdf::NamedOrBlankNode) -> OxNamedOrBlankNode {
-    match node {
-        native_rdf::NamedOrBlankNode::Iri(iri) => ox_named_node(iri).into(),
-        native_rdf::NamedOrBlankNode::BlankNode(node) => ox_blank_node(node).into(),
-    }
-}
-
-fn ox_graph_name(graph_name: &native_rdf::GraphName) -> OxGraphName {
-    match graph_name {
-        native_rdf::GraphName::DefaultGraph => OxGraphName::DefaultGraph,
-        native_rdf::GraphName::Iri(iri) => ox_named_node(iri).into(),
-        native_rdf::GraphName::BlankNode(node) => ox_blank_node(node).into(),
-    }
-}
-
-fn ox_base_direction(direction: native_rdf::BaseDirection) -> OxBaseDirection {
-    match direction {
-        native_rdf::BaseDirection::Ltr => OxBaseDirection::Ltr,
-        native_rdf::BaseDirection::Rtl => OxBaseDirection::Rtl,
-    }
-}
-
-fn ox_literal(literal: &native_rdf::Literal) -> OxLiteral {
-    if let Some(language) = &literal.language {
-        if let Some(direction) = literal.direction {
-            OxLiteral::new_directional_language_tagged_literal(
-                literal.lexical.clone(),
-                language,
-                ox_base_direction(direction),
-            )
-            .expect("native directional language literal is valid OxRDF literal")
-        } else {
-            OxLiteral::new_language_tagged_literal(literal.lexical.clone(), language)
-                .expect("native language literal is valid OxRDF literal")
-        }
-    } else if let Some(datatype) = &literal.datatype {
-        OxLiteral::new_typed_literal(literal.lexical.clone(), ox_named_node(datatype))
-    } else {
-        OxLiteral::new_simple_literal(literal.lexical.clone())
-    }
-}
-
-fn ox_term(term: &native_rdf::RdfTerm) -> OxTerm {
-    match term {
-        native_rdf::RdfTerm::Iri(iri) => ox_named_node(iri).into(),
-        native_rdf::RdfTerm::BlankNode(node) => ox_blank_node(node).into(),
-        native_rdf::RdfTerm::Literal(literal) => ox_literal(literal).into(),
-        native_rdf::RdfTerm::Triple(triple) => OxTerm::Triple(Box::new(ox_triple(triple))),
-    }
-}
-
-fn ox_triple(triple: &native_rdf::RdfTriple) -> OxTriple {
-    OxTriple::new(
-        ox_named_or_blank(&triple.subject),
-        ox_named_node(&triple.predicate),
-        ox_term(&triple.object),
-    )
-}
-
-fn ox_quad(quad: &native_rdf::RdfQuad) -> OxQuad {
-    OxQuad::new(
-        ox_named_or_blank(&quad.subject),
-        ox_named_node(&quad.predicate),
-        ox_term(&quad.object),
-        ox_graph_name(&quad.graph_name),
-    )
-}
-
-fn canonical_oxrdf_dataset(bytes: &[u8], name: &str, side: &str) -> OxDataset {
+fn canonical_native_lines(bytes: &[u8], name: &str, side: &str) -> Vec<String> {
     let graph = read(bytes, true, None);
-    let native = native_rdf::to_rdf_dataset(&graph)
+    native_rdf::to_rdf_dataset(&graph)
         .unwrap_or_else(|err| panic!("{name}: {side} dataset projection failed: {err}"));
-    let mut dataset = OxDataset::new();
-    for quad in native.iter() {
-        let quad = ox_quad(quad);
-        dataset.insert(quad.as_ref());
-    }
-    dataset.canonicalize(CanonicalizationAlgorithm::Unstable);
-    dataset
+    canonicalize_blank_nodes(&to_nquads(&graph))
 }
 
 fn assert_nquads_isomorphic_to_ntriples(actual_nquads: &str, expected_ntriples: &str, name: &str) {
@@ -140,13 +52,56 @@ fn assert_nquads_isomorphic_to_ntriples(actual_nquads: &str, expected_ntriples: 
         .unwrap_or_else(|err| panic!("{name}: actual N-Quads did not parse: {err}"));
     let expected_gts = native_from_ntriples(expected_ntriples)
         .unwrap_or_else(|err| panic!("{name}: expected N-Triples did not parse: {err}"));
-    let actual = canonical_oxrdf_dataset(&actual_gts, name, "actual");
-    let expected = canonical_oxrdf_dataset(&expected_gts, name, "expected");
+    let actual = canonical_native_lines(&actual_gts, name, "actual");
+    let expected = canonical_native_lines(&expected_gts, name, "expected");
     assert_eq!(
-        actual.to_string(),
-        expected.to_string(),
+        actual, expected,
         "{name}: RDF datasets differ\nactual:\n{actual_nquads}\nexpected:\n{expected_ntriples}"
     );
+}
+
+fn canonicalize_blank_nodes(text: &str) -> Vec<String> {
+    let mut labels = std::collections::BTreeMap::new();
+    let mut next = 0usize;
+    let mut lines = sorted_lines(text)
+        .into_iter()
+        .map(|line| {
+            let mut out = String::new();
+            let mut index = 0usize;
+            while index < line.len() {
+                if line[index..].starts_with("_:") {
+                    let start = index + 2;
+                    let mut end = start;
+                    while end < line.len() && is_blank_label_char(line.as_bytes()[end]) {
+                        end += 1;
+                    }
+                    let label = &line[start..end];
+                    let canonical = labels.entry(label.to_string()).or_insert_with(|| {
+                        let label = format!("b{next}");
+                        next += 1;
+                        label
+                    });
+                    out.push_str("_:");
+                    out.push_str(canonical);
+                    index = end;
+                } else {
+                    let ch = line[index..]
+                        .chars()
+                        .next()
+                        .expect("index is inside the string");
+                    out.push(ch);
+                    index += ch.len_utf8();
+                }
+            }
+            out
+        })
+        .collect::<Vec<_>>();
+    lines.sort();
+    lines
+}
+
+fn is_blank_label_char(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.')
 }
 
 fn graph_meta<'a>(graph: &'a Graph, key: &str) -> Option<&'a Value> {

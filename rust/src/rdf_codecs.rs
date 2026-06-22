@@ -4,32 +4,14 @@
 //! Optional RDF 1.2 text codecs.
 //!
 //! This module is compiled only with `--features rdf-codecs`. N-Triples,
-//! Turtle, and TriG use the crate's native parsers and serializers; RDF/XML
-//! still uses `oxrdfxml` until the dedicated native RDF/XML issue lands. GTS
-//! import and export stay routed through the native RDF adapter and RDF event
-//! contract.
+//! Turtle, TriG, and RDF/XML use the crate's native parsers and serializers.
+//! GTS import and export stay routed through the native RDF adapter and RDF
+//! event contract.
 
 use std::collections::BTreeMap;
 use std::fmt;
 
-#[cfg(not(target_arch = "wasm32"))]
-use oxrdf::{
-    BaseDirection as OxBaseDirection, BlankNode as OxBlankNode, BlankNodeRef as OxBlankNodeRef,
-    Dataset as OxDataset, GraphName as OxGraphName, GraphNameRef, Literal as OxLiteral,
-    LiteralRef as OxLiteralRef, NamedNode as OxNamedNode, NamedNodeRef as OxNamedNodeRef,
-    NamedOrBlankNode as OxNamedOrBlankNode, NamedOrBlankNodeRef as OxNamedOrBlankNodeRef,
-    Quad as OxQuad, QuadRef as OxQuadRef, Term as OxTerm, TermRef as OxTermRef, Triple as OxTriple,
-    TripleRef as OxTripleRef,
-};
-#[cfg(not(target_arch = "wasm32"))]
-use oxrdfxml::{RdfXmlParser, RdfXmlSerializer};
-
 use crate::model::{Diagnostic, Graph, Quad, Term, TermKind, Triple3};
-#[cfg(not(target_arch = "wasm32"))]
-use crate::rdf::{
-    from_rdf_dataset, BaseDirection, BlankNode, Dataset, GraphName, Iri, Literal, NamedOrBlankNode,
-    RdfQuad, RdfTerm, RdfTriple,
-};
 use crate::rdf::{to_rdf_quads, RdfAdapterError};
 use crate::rdf_events::{
     EventDiagnostic, EventError, EventErrorKind, EventLiteralDirection, EventQuad, EventScopeId,
@@ -50,7 +32,7 @@ pub struct RdfCodecError {
 }
 
 impl RdfCodecError {
-    fn new(detail: impl Into<String>) -> Self {
+    pub(crate) fn new(detail: impl Into<String>) -> Self {
         Self {
             detail: detail.into(),
         }
@@ -73,27 +55,6 @@ impl std::error::Error for RdfCodecError {}
 impl From<RdfAdapterError> for RdfCodecError {
     fn from(error: RdfAdapterError) -> Self {
         Self::new(format!("RDF adapter error: {error}"))
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl From<oxrdfxml::RdfXmlParseError> for RdfCodecError {
-    fn from(error: oxrdfxml::RdfXmlParseError) -> Self {
-        Self::new(format!("RDF/XML parse error: {error}"))
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl From<oxrdfxml::RdfXmlSyntaxError> for RdfCodecError {
-    fn from(error: oxrdfxml::RdfXmlSyntaxError) -> Self {
-        Self::new(format!("RDF/XML syntax error: {error}"))
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl From<oxrdf::IriParseError> for RdfCodecError {
-    fn from(error: oxrdf::IriParseError) -> Self {
-        Self::new(format!("invalid serializer IRI: {error}"))
     }
 }
 
@@ -125,44 +86,13 @@ pub fn from_ntriples(text: &str) -> Result<Vec<u8>, RdfCodecError> {
 }
 
 /// Parse RDF/XML text into a GTS byte stream using the `dist` profile.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn from_rdf_xml(text: &str) -> Result<Vec<u8>, RdfCodecError> {
-    parse_rdf_xml_with_parser(text, RdfXmlParser::new())
-}
-
-/// Parse RDF/XML text into a GTS byte stream using the `dist` profile.
-#[cfg(target_arch = "wasm32")]
-pub fn from_rdf_xml(_text: &str) -> Result<Vec<u8>, RdfCodecError> {
-    Err(RdfCodecError::new(
-        "RDF/XML codecs are not available on wasm until the native RDF/XML codec lands",
-    ))
+    crate::rdf_xml::from_rdf_xml(text, None)
 }
 
 /// Parse RDF/XML text with an explicit document base IRI.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn from_rdf_xml_with_base_iri(text: &str, base_iri: &str) -> Result<Vec<u8>, RdfCodecError> {
-    let parser = RdfXmlParser::new()
-        .with_base_iri(base_iri)
-        .map_err(|error| RdfCodecError::new(format!("invalid parser base IRI: {error}")))?;
-    parse_rdf_xml_with_parser(text, parser)
-}
-
-/// Parse RDF/XML text with an explicit document base IRI.
-#[cfg(target_arch = "wasm32")]
-pub fn from_rdf_xml_with_base_iri(_text: &str, _base_iri: &str) -> Result<Vec<u8>, RdfCodecError> {
-    Err(RdfCodecError::new(
-        "RDF/XML codecs are not available on wasm until the native RDF/XML codec lands",
-    ))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn parse_rdf_xml_with_parser(text: &str, parser: RdfXmlParser) -> Result<Vec<u8>, RdfCodecError> {
-    let mut dataset = OxDataset::new();
-    for triple in parser.for_slice(text.as_bytes()) {
-        let triple = triple?;
-        dataset.insert(triple.as_ref().in_graph(GraphNameRef::DefaultGraph));
-    }
-    from_rdf_dataset(&native_dataset_from_oxrdf(&dataset)?).map_err(Into::into)
+    crate::rdf_xml::from_rdf_xml(text, Some(base_iri))
 }
 
 /// Parse Turtle text into a GTS byte stream using the `dist` profile.
@@ -281,33 +211,8 @@ fn serialize_ntriples_graph(graph: &Graph) -> Result<String, RdfCodecError> {
     Ok(crate::nquads::to_nquads(graph))
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn serialize_rdf_xml_graph(graph: &Graph) -> Result<String, RdfCodecError> {
-    let mut serializer = RdfXmlSerializer::new()
-        .with_prefix("xsd", XSD_NS)
-        .map_err(|error| RdfCodecError::new(format!("invalid serializer IRI: {error}")))?
-        .for_writer(Vec::new());
-
-    for quad in to_rdf_quads(graph)? {
-        if !quad.graph_name.is_default_graph() {
-            return Err(RdfCodecError::new(format!(
-                "RDF/XML cannot serialize named graph {}",
-                quad.graph_name
-            )));
-        }
-        let quad = oxrdf_quad(&quad)?;
-        let quad = quad.as_ref();
-        serializer.serialize_triple(OxTripleRef::new(quad.subject, quad.predicate, quad.object))?;
-    }
-
-    String::from_utf8(serializer.finish()?).map_err(Into::into)
-}
-
-#[cfg(target_arch = "wasm32")]
-fn serialize_rdf_xml_graph(_graph: &Graph) -> Result<String, RdfCodecError> {
-    Err(RdfCodecError::new(
-        "RDF/XML codecs are not available on wasm until the native RDF/XML codec lands",
-    ))
+    crate::rdf_xml::to_rdf_xml(graph)
 }
 
 fn serialize_turtle_graph(graph: &Graph) -> Result<String, RdfCodecError> {
@@ -337,201 +242,6 @@ fn ensure_default_graph_projection(graph: &Graph, format: &str) -> Result<(), Rd
         }
     }
     Ok(())
-}
-
-// Keep these codec-local conversions separate from the Oxigraph adapter for
-// now: the features have different error types, independent dependency gates,
-// and may intentionally move across different RDF toolkit versions.
-#[cfg(not(target_arch = "wasm32"))]
-fn native_dataset_from_oxrdf(dataset: &OxDataset) -> Result<Dataset, RdfCodecError> {
-    let mut native = Dataset::new();
-    for quad in dataset {
-        native.insert(native_quad_from_oxrdf(quad)?);
-    }
-    Ok(native)
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn native_quad_from_oxrdf(quad: OxQuadRef<'_>) -> Result<RdfQuad, RdfCodecError> {
-    Ok(RdfQuad::new(
-        native_named_or_blank_from_oxrdf(quad.subject)?,
-        native_iri_from_oxrdf(quad.predicate)?,
-        native_term_from_oxrdf(quad.object)?,
-        native_graph_name_from_oxrdf(quad.graph_name)?,
-    ))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn native_graph_name_from_oxrdf(graph_name: GraphNameRef<'_>) -> Result<GraphName, RdfCodecError> {
-    match graph_name {
-        GraphNameRef::DefaultGraph => Ok(GraphName::DefaultGraph),
-        GraphNameRef::NamedNode(node) => Ok(native_iri_from_oxrdf(node)?.into()),
-        GraphNameRef::BlankNode(node) => Ok(native_blank_node_from_oxrdf(node)?.into()),
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn native_named_or_blank_from_oxrdf(
-    node: OxNamedOrBlankNodeRef<'_>,
-) -> Result<NamedOrBlankNode, RdfCodecError> {
-    match node {
-        OxNamedOrBlankNodeRef::NamedNode(node) => Ok(native_iri_from_oxrdf(node)?.into()),
-        OxNamedOrBlankNodeRef::BlankNode(node) => Ok(native_blank_node_from_oxrdf(node)?.into()),
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn native_term_from_oxrdf(term: OxTermRef<'_>) -> Result<RdfTerm, RdfCodecError> {
-    match term {
-        OxTermRef::NamedNode(node) => Ok(native_iri_from_oxrdf(node)?.into()),
-        OxTermRef::BlankNode(node) => Ok(native_blank_node_from_oxrdf(node)?.into()),
-        OxTermRef::Literal(literal) => Ok(native_literal_from_oxrdf(literal)?.into()),
-        OxTermRef::Triple(triple) => Ok(native_triple_from_oxrdf(triple.into())?.into()),
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn native_triple_from_oxrdf(triple: OxTripleRef<'_>) -> Result<RdfTriple, RdfCodecError> {
-    Ok(RdfTriple::new(
-        native_named_or_blank_from_oxrdf(triple.subject)?,
-        native_iri_from_oxrdf(triple.predicate)?,
-        native_term_from_oxrdf(triple.object)?,
-    ))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn native_literal_from_oxrdf(literal: OxLiteralRef<'_>) -> Result<Literal, RdfCodecError> {
-    if let Some(direction) = literal.direction() {
-        let language = literal
-            .language()
-            .ok_or_else(|| RdfCodecError::new("directional literal is missing its language tag"))?;
-        let direction = match direction {
-            OxBaseDirection::Ltr => BaseDirection::Ltr,
-            OxBaseDirection::Rtl => BaseDirection::Rtl,
-        };
-        return Literal::new_directional_language_tagged_literal(
-            literal.value(),
-            language,
-            direction,
-        )
-        .map_err(Into::into);
-    }
-    if let Some(language) = literal.language() {
-        return Literal::new_language_tagged_literal(literal.value(), language).map_err(Into::into);
-    }
-    let datatype = literal.datatype().as_str();
-    if datatype == crate::model::XSD_STRING {
-        Ok(Literal::new_simple_literal(literal.value()))
-    } else {
-        Ok(Literal::new_typed_literal(
-            literal.value(),
-            Iri::new(datatype)?,
-        ))
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn native_iri_from_oxrdf(node: OxNamedNodeRef<'_>) -> Result<Iri, RdfCodecError> {
-    Iri::new(node.as_str()).map_err(Into::into)
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn native_blank_node_from_oxrdf(node: OxBlankNodeRef<'_>) -> Result<BlankNode, RdfCodecError> {
-    BlankNode::new(node.as_str()).map_err(Into::into)
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn oxrdf_quad(quad: &RdfQuad) -> Result<OxQuad, RdfCodecError> {
-    Ok(OxQuad::new(
-        oxrdf_named_or_blank(&quad.subject)?,
-        oxrdf_iri(&quad.predicate)?,
-        oxrdf_term(&quad.object)?,
-        oxrdf_graph_name(&quad.graph_name)?,
-    ))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn oxrdf_graph_name(graph_name: &GraphName) -> Result<OxGraphName, RdfCodecError> {
-    match graph_name {
-        GraphName::DefaultGraph => Ok(OxGraphName::DefaultGraph),
-        GraphName::Iri(iri) => Ok(oxrdf_iri(iri)?.into()),
-        GraphName::BlankNode(node) => Ok(oxrdf_blank_node(node)?.into()),
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn oxrdf_named_or_blank(node: &NamedOrBlankNode) -> Result<OxNamedOrBlankNode, RdfCodecError> {
-    match node {
-        NamedOrBlankNode::Iri(iri) => Ok(oxrdf_iri(iri)?.into()),
-        NamedOrBlankNode::BlankNode(node) => Ok(oxrdf_blank_node(node)?.into()),
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn oxrdf_term(term: &RdfTerm) -> Result<OxTerm, RdfCodecError> {
-    match term {
-        RdfTerm::Iri(iri) => Ok(oxrdf_iri(iri)?.into()),
-        RdfTerm::BlankNode(node) => Ok(oxrdf_blank_node(node)?.into()),
-        RdfTerm::Literal(literal) => Ok(oxrdf_literal(literal)?.into()),
-        RdfTerm::Triple(triple) => Ok(OxTerm::Triple(Box::new(oxrdf_triple(triple)?))),
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn oxrdf_triple(triple: &RdfTriple) -> Result<OxTriple, RdfCodecError> {
-    Ok(OxTriple::new(
-        oxrdf_named_or_blank(&triple.subject)?,
-        oxrdf_iri(&triple.predicate)?,
-        oxrdf_term(&triple.object)?,
-    ))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn oxrdf_literal(literal: &Literal) -> Result<OxLiteral, RdfCodecError> {
-    if let Some(direction) = literal.direction {
-        let language = literal
-            .language
-            .as_deref()
-            .ok_or_else(|| RdfCodecError::new("directional literal is missing its language tag"))?;
-        let direction = match direction {
-            BaseDirection::Ltr => OxBaseDirection::Ltr,
-            BaseDirection::Rtl => OxBaseDirection::Rtl,
-        };
-        return OxLiteral::new_directional_language_tagged_literal(
-            &literal.lexical,
-            language,
-            direction,
-        )
-        .map_err(|error| {
-            RdfCodecError::new(format!(
-                "invalid directional language-tagged literal: {error}"
-            ))
-        });
-    }
-    if let Some(language) = &literal.language {
-        return OxLiteral::new_language_tagged_literal(&literal.lexical, language).map_err(
-            |error| RdfCodecError::new(format!("invalid language-tagged literal: {error}")),
-        );
-    }
-    if let Some(datatype) = &literal.datatype {
-        Ok(OxLiteral::new_typed_literal(
-            &literal.lexical,
-            oxrdf_iri(datatype)?,
-        ))
-    } else {
-        Ok(OxLiteral::new_simple_literal(&literal.lexical))
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn oxrdf_iri(iri: &Iri) -> Result<OxNamedNode, RdfCodecError> {
-    OxNamedNode::new(iri.as_str()).map_err(Into::into)
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn oxrdf_blank_node(node: &BlankNode) -> Result<OxBlankNode, RdfCodecError> {
-    OxBlankNode::new(node.as_str())
-        .map_err(|error| RdfCodecError::new(format!("invalid blank-node identifier: {error}")))
 }
 
 /// RDF event sink that materializes one event scope as a folded graph.
