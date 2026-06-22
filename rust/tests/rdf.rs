@@ -332,3 +332,24 @@ fn native_rdf_import_rejects_conflicting_reifier_bindings() -> Result<(), Box<dy
     assert!(err.detail().contains("conflicting rdf:reifies"));
     Ok(())
 }
+
+#[test]
+fn native_rdf_lexical_validators_reject_unsafe_values() {
+    assert!(Iri::new("https://example.org/<bad>").is_err());
+    assert!(Iri::new("https://example.org/>bad").is_err());
+    assert!(Iri::new("https://example.org/good").is_ok());
+
+    assert!(BlankNode::new("-bad").is_err());
+    assert!(BlankNode::new("bad:label").is_err());
+    assert!(BlankNode::new("bad.").is_err());
+    assert!(BlankNode::new("good_label-1.2").is_ok());
+
+    assert!(Literal::new_language_tagged_literal("Cat", "en_US").is_err());
+    assert!(Literal::new_language_tagged_literal("Cat", "-en").is_err());
+    assert!(Literal::new_language_tagged_literal("Cat", "en-").is_err());
+    assert!(Literal::new_language_tagged_literal("Cat", "en--US").is_err());
+    assert!(
+        Literal::new_directional_language_tagged_literal("Cat", "en-US", BaseDirection::Ltr)
+            .is_ok()
+    );
+}

@@ -87,9 +87,9 @@ impl Iri {
         let value = value.into();
         if value.is_empty()
             || !value.contains(':')
-            || value
-                .chars()
-                .any(|ch| ch.is_ascii_control() || ch.is_ascii_whitespace())
+            || value.chars().any(|ch| {
+                ch.is_ascii_control() || ch.is_ascii_whitespace() || ch == '<' || ch == '>'
+            })
         {
             return Err(RdfAdapterError::new(format!("invalid IRI {value:?}")));
         }
@@ -118,11 +118,7 @@ impl BlankNode {
     /// Create a blank node label.
     pub fn new(label: impl Into<String>) -> Result<Self, RdfAdapterError> {
         let label = label.into();
-        if label.is_empty()
-            || label
-                .chars()
-                .any(|ch| ch.is_ascii_control() || ch.is_ascii_whitespace())
-        {
+        if !is_valid_blank_node_label(&label) {
             return Err(RdfAdapterError::new(format!(
                 "invalid blank-node identifier {label:?}"
             )));
@@ -830,16 +826,39 @@ fn is_internal_triple_self_binding(graph: &Graph, rid: usize) -> bool {
 }
 
 fn validate_language_tag(language: &str) -> Result<(), RdfAdapterError> {
-    if language.is_empty()
-        || language
-            .chars()
-            .any(|ch| ch.is_ascii_control() || ch.is_ascii_whitespace())
-    {
+    if !is_valid_language_tag(language) {
         return Err(RdfAdapterError::new(format!(
             "invalid language tag {language:?}"
         )));
     }
     Ok(())
+}
+
+fn is_valid_blank_node_label(label: &str) -> bool {
+    let mut chars = label.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !first.is_ascii_alphanumeric() && first != '_' {
+        return false;
+    }
+    let mut last = first;
+    for ch in chars {
+        if !ch.is_ascii_alphanumeric() && ch != '_' && ch != '-' && ch != '.' {
+            return false;
+        }
+        last = ch;
+    }
+    last != '.'
+}
+
+fn is_valid_language_tag(language: &str) -> bool {
+    if language.is_empty() {
+        return false;
+    }
+    language
+        .split('-')
+        .all(|subtag| !subtag.is_empty() && subtag.chars().all(|ch| ch.is_ascii_alphanumeric()))
 }
 
 struct BnodeLabels {
