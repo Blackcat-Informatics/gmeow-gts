@@ -74,7 +74,7 @@ impl From<oxrdf::IriParseError> for RdfCodecError {
 
 impl From<std::io::Error> for RdfCodecError {
     fn from(error: std::io::Error) -> Self {
-        Self::new(format!("Turtle-family serialization error: {error}"))
+        Self::new(format!("RDF text serialization error: {error}"))
     }
 }
 
