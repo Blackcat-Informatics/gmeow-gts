@@ -12,8 +12,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 
 use oxrdf::{
-    BlankNode, BlankNodeRef, Dataset, GraphName, GraphNameRef, Literal, LiteralRef, NamedNode,
-    NamedNodeRef, NamedOrBlankNode, NamedOrBlankNodeRef, Quad as OxQuad, Term as OxTerm,
+    BaseDirection, BlankNode, BlankNodeRef, Dataset, GraphName, GraphNameRef, Literal, LiteralRef,
+    NamedNode, NamedNodeRef, NamedOrBlankNode, NamedOrBlankNodeRef, Quad as OxQuad, Term as OxTerm,
     TermRef as OxTermRef, Triple as OxTriple, TripleRef as OxTripleRef,
 };
 
@@ -395,9 +395,27 @@ fn literal_term(
 ) -> Result<Literal, RdfAdapterError> {
     let value = term_value(term, role, id)?;
     if let Some(direction) = &term.direction {
-        return Err(RdfAdapterError::new(format!(
-            "{role} literal term id {id} has RDF 1.2 base direction {direction:?}; oxrdf literal export cannot carry base direction"
-        )));
+        let Some(lang) = &term.lang else {
+            return Err(RdfAdapterError::new(format!(
+                "{role} literal term id {id} has RDF 1.2 base direction {direction:?} without a language tag"
+            )));
+        };
+        let direction = match direction.as_str() {
+            "ltr" => BaseDirection::Ltr,
+            "rtl" => BaseDirection::Rtl,
+            _ => {
+                return Err(RdfAdapterError::new(format!(
+                    "{role} literal term id {id} has invalid RDF 1.2 base direction {direction:?}"
+                )));
+            }
+        };
+        return Literal::new_directional_language_tagged_literal(value, lang, direction).map_err(
+            |err| {
+                RdfAdapterError::new(format!(
+                    "{role} literal term id {id} has invalid language tag {lang:?}: {err}"
+                ))
+            },
+        );
     }
     if let Some(lang) = &term.lang {
         return Literal::new_language_tagged_literal(value, lang).map_err(|err| {
@@ -487,6 +505,7 @@ enum TermKey {
     Literal {
         value: String,
         lang: Option<String>,
+        direction: Option<String>,
         datatype: Option<usize>,
     },
     Triple(usize, usize, usize),
@@ -537,6 +556,7 @@ impl Interner {
     fn literal_ref(&mut self, literal: LiteralRef<'_>) -> usize {
         let value = literal.value().to_string();
         let lang = literal.language().map(str::to_string);
+        let direction = literal.direction().map(|direction| direction.to_string());
         let datatype_id = if lang.is_some() {
             None
         } else {
@@ -558,6 +578,7 @@ impl Interner {
         let key = TermKey::Literal {
             value: value.clone(),
             lang: lang.clone(),
+            direction: direction.clone(),
             datatype: datatype_id,
         };
         self.intern(key, || Term {
@@ -565,7 +586,7 @@ impl Interner {
             value: Some(value),
             datatype: datatype_id,
             lang,
-            direction: None,
+            direction,
             reifier: None,
         })
     }

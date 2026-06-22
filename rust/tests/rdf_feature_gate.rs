@@ -36,7 +36,7 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(package["features"]["rdf"], serde_json::json!(["dep:oxrdf"]));
     assert_eq!(
         package["features"]["rdf-codecs"],
-        serde_json::json!(["rdf", "dep:oxttl"])
+        serde_json::json!(["rdf", "dep:oxttl", "dep:oxrdfxml"])
     );
     assert_eq!(
         package["features"]["oxigraph-adapter"],
@@ -78,6 +78,16 @@ fn optional_adapters_are_not_enabled_by_default() {
     assert_eq!(oxttl["optional"], serde_json::json!(true));
     assert_eq!(oxttl["uses_default_features"], serde_json::json!(false));
     assert_eq!(oxttl["features"], serde_json::json!(["rdf-12"]));
+
+    let oxrdfxml = package["dependencies"]
+        .as_array()
+        .expect("metadata dependencies are an array")
+        .iter()
+        .find(|dependency| dependency["name"] == "oxrdfxml")
+        .expect("oxrdfxml dependency is present");
+    assert_eq!(oxrdfxml["optional"], serde_json::json!(true));
+    assert_eq!(oxrdfxml["uses_default_features"], serde_json::json!(false));
+    assert_eq!(oxrdfxml["features"], serde_json::json!(["rdf-12"]));
 
     let oxigraph = package["dependencies"]
         .as_array()
@@ -136,6 +146,16 @@ fn rdf_codecs_feature_enables_rdf_text_codec_modules() {
     let ntriples = "<https://ex/s> <https://ex/p> <https://ex/o> .\n";
     let ntriples_bytes = gmeow_gts::rdf_codecs::from_ntriples(ntriples).unwrap();
     assert!(!ntriples_bytes.is_empty());
+
+    let rdf_xml = r#"<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:ex="https://ex/">
+  <rdf:Description rdf:about="https://ex/s">
+    <ex:p rdf:resource="https://ex/o"/>
+  </rdf:Description>
+</rdf:RDF>"#;
+    let rdf_xml_bytes = gmeow_gts::rdf_codecs::from_rdf_xml(rdf_xml).unwrap();
+    assert!(!rdf_xml_bytes.is_empty());
 }
 
 #[cfg(feature = "oxigraph-adapter")]

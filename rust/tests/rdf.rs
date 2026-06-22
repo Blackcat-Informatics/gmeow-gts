@@ -11,8 +11,8 @@ use gmeow_gts::rdf::{from_oxrdf_dataset, to_oxrdf_dataset, to_oxrdf_dataset_loss
 use gmeow_gts::reader::read;
 use gmeow_gts::writer::Writer;
 use oxrdf::{
-    BlankNode, Dataset, GraphName, Literal, NamedNode, NamedOrBlankNodeRef, Quad as OxQuad,
-    Term as OxTerm, TermRef as OxTermRef, Triple as OxTriple,
+    BaseDirection, BlankNode, Dataset, GraphName, Literal, NamedNode, NamedOrBlankNodeRef,
+    Quad as OxQuad, Term as OxTerm, TermRef as OxTermRef, Triple as OxTriple,
 };
 
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
@@ -204,7 +204,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
 }
 
 #[test]
-fn oxrdf_export_refuses_directional_literals_instead_of_losing_direction() {
+fn oxrdf_dataset_roundtrips_directional_literals() -> Result<(), Box<dyn Error>> {
     let graph = Graph {
         terms: vec![
             Term {
@@ -236,8 +236,28 @@ fn oxrdf_export_refuses_directional_literals_instead_of_losing_direction() {
         ..Graph::default()
     };
 
-    let err = to_oxrdf_dataset(&graph).expect_err("adapter refuses direction loss");
-    assert!(err.detail().contains("base direction"));
+    let dataset = to_oxrdf_dataset(&graph).expect("adapter preserves direction");
+    let has_directional_literal = dataset.iter().any(|quad| {
+        matches!(
+            quad.object,
+            OxTermRef::Literal(literal)
+                if literal.value() == "Cat"
+                    && literal.language() == Some("en")
+                    && literal.direction() == Some(BaseDirection::Ltr)
+        )
+    });
+    assert!(has_directional_literal);
+
+    let bytes = from_oxrdf_dataset(&dataset)?;
+    let folded = read(&bytes, true, None);
+    let term = folded
+        .terms
+        .iter()
+        .find(|term| term.kind == TermKind::Literal && term.value.as_deref() == Some("Cat"))
+        .expect("literal survives import");
+    assert_eq!(term.lang.as_deref(), Some("en"));
+    assert_eq!(term.direction.as_deref(), Some("ltr"));
+    Ok(())
 }
 
 #[test]

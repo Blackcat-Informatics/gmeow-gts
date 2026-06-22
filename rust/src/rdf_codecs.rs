@@ -1,17 +1,18 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Optional RDF 1.2 Turtle-family and line-format codecs.
+//! Optional RDF 1.2 text codecs.
 //!
 //! This module is compiled only with `--features rdf-codecs`. It uses
-//! `oxttl` for shared N-Triples/Turtle/TriG parsing and serialization, while
-//! GTS import and export stay routed through the crate's native RDF adapter and
-//! RDF event contract.
+//! `oxttl` for shared N-Triples/Turtle/TriG parsing and serialization, and
+//! `oxrdfxml` for RDF/XML. GTS import and export stay routed through the
+//! crate's native RDF adapter and RDF event contract.
 
 use std::collections::BTreeMap;
 use std::fmt;
 
 use oxrdf::{Dataset, GraphNameRef, TripleRef};
+use oxrdfxml::{RdfXmlParser, RdfXmlSerializer};
 use oxttl::{
     NTriplesParser, NTriplesSerializer, TriGParser, TriGSerializer, TurtleParser, TurtleSerializer,
 };
@@ -27,7 +28,7 @@ use crate::rdf_events::{
 const RDF_NS: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const XSD_NS: &str = "http://www.w3.org/2001/XMLSchema#";
 
-/// Error raised by the optional Turtle-family codec layer.
+/// Error raised by the optional RDF text codec layer.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RdfCodecError {
     detail: String,
@@ -63,6 +64,18 @@ impl From<RdfAdapterError> for RdfCodecError {
 impl From<oxttl::TurtleSyntaxError> for RdfCodecError {
     fn from(error: oxttl::TurtleSyntaxError) -> Self {
         Self::new(format!("RDF text syntax error: {error}"))
+    }
+}
+
+impl From<oxrdfxml::RdfXmlParseError> for RdfCodecError {
+    fn from(error: oxrdfxml::RdfXmlParseError) -> Self {
+        Self::new(format!("RDF/XML parse error: {error}"))
+    }
+}
+
+impl From<oxrdfxml::RdfXmlSyntaxError> for RdfCodecError {
+    fn from(error: oxrdfxml::RdfXmlSyntaxError) -> Self {
+        Self::new(format!("RDF/XML syntax error: {error}"))
     }
 }
 
@@ -102,6 +115,28 @@ pub fn from_ntriples(text: &str) -> Result<Vec<u8>, RdfCodecError> {
     from_oxrdf_dataset(&dataset).map_err(Into::into)
 }
 
+/// Parse RDF/XML text into a GTS byte stream using the `dist` profile.
+pub fn from_rdf_xml(text: &str) -> Result<Vec<u8>, RdfCodecError> {
+    parse_rdf_xml_with_parser(text, RdfXmlParser::new())
+}
+
+/// Parse RDF/XML text with an explicit document base IRI.
+pub fn from_rdf_xml_with_base_iri(text: &str, base_iri: &str) -> Result<Vec<u8>, RdfCodecError> {
+    let parser = RdfXmlParser::new()
+        .with_base_iri(base_iri)
+        .map_err(|error| RdfCodecError::new(format!("invalid parser base IRI: {error}")))?;
+    parse_rdf_xml_with_parser(text, parser)
+}
+
+fn parse_rdf_xml_with_parser(text: &str, parser: RdfXmlParser) -> Result<Vec<u8>, RdfCodecError> {
+    let mut dataset = Dataset::new();
+    for triple in parser.for_slice(text.as_bytes()) {
+        let triple = triple?;
+        dataset.insert(triple.as_ref().in_graph(GraphNameRef::DefaultGraph));
+    }
+    from_oxrdf_dataset(&dataset).map_err(Into::into)
+}
+
 /// Parse Turtle text into a GTS byte stream using the `dist` profile.
 pub fn from_turtle(text: &str) -> Result<Vec<u8>, RdfCodecError> {
     let mut dataset = Dataset::new();
@@ -128,6 +163,14 @@ pub fn from_trig(text: &str) -> Result<Vec<u8>, RdfCodecError> {
 /// graph's RDF projection contains named-graph quads.
 pub fn to_ntriples(graph: &Graph) -> Result<String, RdfCodecError> {
     to_ntriples_from_source(&GraphRdfEventSource::new(graph))
+}
+
+/// Serialize a folded graph to RDF/XML through the RDF event contract.
+///
+/// RDF/XML is a graph format. This returns an error if the folded graph's RDF
+/// projection contains named-graph quads.
+pub fn to_rdf_xml(graph: &Graph) -> Result<String, RdfCodecError> {
+    to_rdf_xml_from_source(&GraphRdfEventSource::new(graph))
 }
 
 /// Serialize a folded graph to Turtle through the RDF event contract.
@@ -169,6 +212,16 @@ pub fn to_ntriples_from_erased_source(
     serialize_ntriples_graph(&graph_from_erased_source(source)?)
 }
 
+/// Serialize an RDF event source to RDF/XML.
+pub fn to_rdf_xml_from_source<S: RdfEventSource>(source: &S) -> Result<String, RdfCodecError> {
+    serialize_rdf_xml_graph(&graph_from_source(source)?)
+}
+
+/// Serialize a trait-object RDF event source to RDF/XML.
+pub fn to_rdf_xml_from_erased_source(source: &dyn RdfEventSource) -> Result<String, RdfCodecError> {
+    serialize_rdf_xml_graph(&graph_from_erased_source(source)?)
+}
+
 /// Serialize an RDF event source to Turtle.
 pub fn to_turtle_from_source<S: RdfEventSource>(source: &S) -> Result<String, RdfCodecError> {
     serialize_turtle_graph(&graph_from_source(source)?)
@@ -204,6 +257,26 @@ fn serialize_ntriples_graph(graph: &Graph) -> Result<String, RdfCodecError> {
     }
 
     String::from_utf8(serializer.finish()).map_err(Into::into)
+}
+
+fn serialize_rdf_xml_graph(graph: &Graph) -> Result<String, RdfCodecError> {
+    let mut serializer = RdfXmlSerializer::new()
+        .with_prefix("xsd", XSD_NS)
+        .map_err(|error| RdfCodecError::new(format!("invalid serializer IRI: {error}")))?
+        .for_writer(Vec::new());
+
+    for quad in to_oxrdf_quads(graph)? {
+        let quad = quad.as_ref();
+        if !quad.graph_name.is_default_graph() {
+            return Err(RdfCodecError::new(format!(
+                "RDF/XML cannot serialize named graph {}",
+                quad.graph_name
+            )));
+        }
+        serializer.serialize_triple(TripleRef::new(quad.subject, quad.predicate, quad.object))?;
+    }
+
+    String::from_utf8(serializer.finish()?).map_err(Into::into)
 }
 
 fn serialize_turtle_graph(graph: &Graph) -> Result<String, RdfCodecError> {

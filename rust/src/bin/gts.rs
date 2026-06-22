@@ -52,6 +52,9 @@ macro_rules! rdf_codecs_usage {
     () => {
         "  to-nt <file>             fold the default graph to N-Triples on stdout
   from-nt <in.nt> [-o out]  build a GTS from N-Triples; '-' reads stdin
+  to-rdfxml <file>         fold the default graph to RDF/XML on stdout
+  from-rdfxml <in.rdf> [-o out]
+                            build a GTS from RDF/XML; '-' reads stdin
   to-turtle <file>         fold the default graph to Turtle on stdout
   from-turtle <in.ttl> [-o out]
                             build a GTS from Turtle; '-' reads stdin
@@ -65,6 +68,9 @@ macro_rules! rdf_codecs_usage {
         "optional:
   to-nt <file>             build with --features rdf-codecs
   from-nt <in.nt> [-o out] build with --features rdf-codecs
+  to-rdfxml <file>         build with --features rdf-codecs
+  from-rdfxml <in.rdf> [-o out]
+                            build with --features rdf-codecs
   to-turtle <file>         build with --features rdf-codecs
   from-turtle <in.ttl> [-o out]
                             build with --features rdf-codecs
@@ -282,11 +288,17 @@ fn main() -> ExitCode {
         #[cfg(feature = "rdf-codecs")]
         "from-nt" => cmd_from_nt(&args[1..]),
         #[cfg(feature = "rdf-codecs")]
+        "to-rdfxml" => cmd_to_rdfxml(&args[1..]),
+        #[cfg(feature = "rdf-codecs")]
+        "from-rdfxml" => cmd_from_rdfxml(&args[1..]),
+        #[cfg(feature = "rdf-codecs")]
         "to-turtle" => cmd_to_turtle(&args[1..]),
         #[cfg(feature = "rdf-codecs")]
         "from-turtle" => cmd_from_turtle(&args[1..]),
         #[cfg(not(feature = "rdf-codecs"))]
-        "to-nt" | "from-nt" | "to-turtle" | "from-turtle" => cmd_rdf_codecs_disabled(cmd),
+        "to-nt" | "from-nt" | "to-rdfxml" | "from-rdfxml" | "to-turtle" | "from-turtle" => {
+            cmd_rdf_codecs_disabled(cmd)
+        }
         #[cfg(feature = "yaml-ld")]
         "to-yaml-ld" => cmd_to_yaml_ld(&args[1..]),
         #[cfg(feature = "yaml-ld")]
@@ -861,6 +873,33 @@ fn cmd_to_turtle(paths: &[String]) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+#[cfg(feature = "rdf-codecs")]
+fn cmd_to_rdfxml(paths: &[String]) -> ExitCode {
+    let [path] = paths else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+    let data = match load(path) {
+        Ok(d) => d,
+        Err(code) => return code,
+    };
+    let g = read(&data, true, None);
+    for d in &g.diagnostics {
+        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+    }
+    match gmeow_gts::rdf_codecs::to_rdf_xml(&g) {
+        Ok(text) => print!("{text}"),
+        Err(e) => {
+            eprintln!("gts to-rdfxml: {e}");
+            return ExitCode::from(1);
+        }
+    }
+    if !g.diagnostics.is_empty() || g.segment_heads.is_empty() {
+        return ExitCode::from(1);
+    }
+    ExitCode::SUCCESS
+}
+
 fn cmd_from_nq(args: &[String]) -> ExitCode {
     let mut out_path: Option<&str> = None;
     let mut inputs: Vec<&str> = Vec::new();
@@ -1131,6 +1170,72 @@ fn cmd_from_turtle(args: &[String]) -> ExitCode {
             use std::io::Write;
             if let Err(e) = std::io::stdout().write_all(&bytes) {
                 eprintln!("gts from-turtle: cannot write stdout: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+#[cfg(feature = "rdf-codecs")]
+fn cmd_from_rdfxml(args: &[String]) -> ExitCode {
+    let mut out_path: Option<&str> = None;
+    let mut inputs: Vec<&str> = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-o" | "--out" => match it.next() {
+                Some(p) => out_path = Some(p),
+                None => {
+                    eprintln!("gts from-rdfxml: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            },
+            other => inputs.push(other),
+        }
+    }
+    let [path] = inputs[..] else {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    };
+
+    let text = if path == "-" {
+        let mut input = String::new();
+        let mut stdin = std::io::stdin();
+        if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
+            eprintln!("gts from-rdfxml: cannot read stdin: {e}");
+            return ExitCode::from(2);
+        }
+        input
+    } else {
+        match std::fs::read_to_string(path) {
+            Ok(text) => text,
+            Err(e) => {
+                eprintln!("gts from-rdfxml: cannot read {path}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    };
+
+    let bytes = match gmeow_gts::rdf_codecs::from_rdf_xml(&text) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            eprintln!("gts from-rdfxml: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    match out_path {
+        Some(p) => {
+            if let Err(e) = std::fs::write(p, &bytes) {
+                eprintln!("gts from-rdfxml: cannot write {p}: {e}");
+                return ExitCode::from(2);
+            }
+        }
+        None => {
+            use std::io::Write;
+            if let Err(e) = std::io::stdout().write_all(&bytes) {
+                eprintln!("gts from-rdfxml: cannot write stdout: {e}");
                 return ExitCode::from(2);
             }
         }

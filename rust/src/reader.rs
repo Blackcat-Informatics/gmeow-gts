@@ -404,19 +404,25 @@ impl Folder<'_, '_, '_> {
             let rf_raw = map_get(entries, "rf").and_then(as_i128);
             let tid = self.g.terms.len() as i128;
             let term_id = self.g.terms.len();
-            // Sanitise refs: dt/rf MUST name an already-introduced term
-            // (§7.5). A forward/out-of-bounds ref is diagnosed and dropped,
-            // so resolution and serialisation can never panic. (A negative
-            // ref is dropped silently — same diagnostic surface as Python,
-            // which only flags refs at-or-past the current id.)
-            let sanitize = |r: Option<i128>| match r {
+            // Sanitise refs: dt MUST name an already-introduced term, and rf
+            // normally does too (§7.5). A quoted-triple term may self-bind
+            // its reifier (`rf == term_id`) so the term can be used directly
+            // as an RDF 1.2 triple term while the following `reifies` frame
+            // supplies the SPO binding.
+            let sanitize_prior = |r: Option<i128>| match r {
                 Some(d) if (0..tid).contains(&d) => Some(d as usize),
                 _ => None,
             };
-            let dt = sanitize(dt_raw);
-            let rf = sanitize(rf_raw);
-            let out_of_range = |r: Option<i128>| matches!(r, Some(d) if d >= tid);
-            if out_of_range(dt_raw) || out_of_range(rf_raw) {
+            let dt = sanitize_prior(dt_raw);
+            let rf = match rf_raw {
+                Some(d) if (0..tid).contains(&d) => Some(d as usize),
+                Some(d) if kind == TermKind::Triple && d == tid => Some(d as usize),
+                _ => None,
+            };
+            let dt_out_of_range = matches!(dt_raw, Some(d) if d >= tid);
+            let rf_out_of_range =
+                matches!(rf_raw, Some(d) if d >= tid && !(kind == TermKind::Triple && d == tid));
+            if dt_out_of_range || rf_out_of_range {
                 self.diag(
                     "ForwardReference",
                     format!("term {tid} has an out-of-range ref"),
@@ -1500,9 +1506,9 @@ fn check_index_mmr(
 // Multi-segment union (§3.1, §7.5): term-ids are segment-scoped compression
 // artifacts; the union re-interns BY TERM VALUE. Blank nodes carry a segment
 // discriminator (labels are segment-local and never merge); quoted-triple
-// terms intern recursively through their reifier's interned identity. Because
-// the union is value-interned, "apply suppression value-wise" (§11) reduces
-// to applying it by result-id.
+// terms intern through their bound SPO identity. Because the union is
+// value-interned, "apply suppression value-wise" (§11) reduces to applying it
+// by result-id.
 // --------------------------------------------------------------------------- //
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -1510,7 +1516,7 @@ enum InternKey {
     Iri(Option<String>),
     Lit(Option<String>, String, Option<String>, Option<String>),
     Bnode(usize, Option<String>, Option<usize>),
-    Qt(Option<usize>),
+    Qt(Option<Triple3>),
 }
 
 #[derive(Default)]
@@ -1537,8 +1543,17 @@ impl Unioner {
                 let anon_tid = label.is_none().then_some(tid);
                 InternKey::Bnode(seg_idx, label, anon_tid)
             }
-            // Quoted triple: identity is the reifier's interned identity.
-            TermKind::Triple => InternKey::Qt(t.reifier.map(|rf| self.map_term(seg, seg_idx, rf))),
+            // Quoted triple: identity is the interned SPO binding. Self-bound
+            // triple terms use `rf == tid`; do not recursively map the reifier.
+            TermKind::Triple => InternKey::Qt(t.reifier.and_then(|rf| {
+                seg.reifier(rf).map(|(s, p, o)| {
+                    (
+                        self.map_term(seg, seg_idx, s),
+                        self.map_term(seg, seg_idx, p),
+                        self.map_term(seg, seg_idx, o),
+                    )
+                })
+            })),
         }
     }
 
@@ -1548,8 +1563,13 @@ impl Unioner {
             return got;
         }
         let t = seg.terms[tid].clone();
+        let new_id = self.out.terms.len();
         let datatype = t.datatype.map(|d| self.map_term(seg, seg_idx, d));
-        let reifier = t.reifier.map(|r| self.map_term(seg, seg_idx, r));
+        let reifier = if t.kind == TermKind::Triple && t.reifier == Some(tid) {
+            Some(new_id)
+        } else {
+            t.reifier.map(|r| self.map_term(seg, seg_idx, r))
+        };
         // Blank nodes are relabelled with a segment prefix (§7.1 permits
         // isomorphism-preserving relabeling): within a segment, byte-identical
         // entries already intern to one union term (§7.8); ACROSS segments the
@@ -1561,7 +1581,7 @@ impl Unioner {
         let value = if t.kind == TermKind::Bnode {
             Some(match t.value.as_deref() {
                 Some(label) if !label.is_empty() => format!("s{seg_idx}.{label}"),
-                _ => format!("s{seg_idx}._anon{}", self.out.terms.len()),
+                _ => format!("s{seg_idx}._anon{new_id}"),
             })
         } else {
             t.value.clone()
@@ -1574,7 +1594,6 @@ impl Unioner {
             direction: t.direction,
             reifier,
         });
-        let new_id = self.out.terms.len() - 1;
         self.intern.insert(key, new_id);
         new_id
     }
