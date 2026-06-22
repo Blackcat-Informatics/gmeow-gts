@@ -6,10 +6,21 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CAPI="${ROOT}/rust/capi"
 OUT="${GTS_PACKAGE_DRY_RUN_OUT:-${ROOT}/dist/package-dry-runs}"
-CACHE="${GTS_PACKAGE_DRY_RUN_CACHE:-${ROOT}/dist/package-dry-run-cache}"
-TMP="$(mktemp -d)"
-trap 'rm -rf "${TMP}" "${CACHE}"' EXIT
+TMP="$(mktemp -d "${ROOT}/.package-dry-run.XXXXXXXXXX")"
+CACHE="${TMP}/cache"
+ARCHIVE_TMP="${TMP}/archive"
+trap 'rm -rf "${TMP}"' EXIT
 cd "${ROOT}"
+
+case "${OUT}" in
+  "${ROOT}/dist"/*)
+    OUT_REL="${OUT#"${ROOT}/"}"
+    ;;
+  *)
+    echo "GTS_PACKAGE_DRY_RUN_OUT must be inside ${ROOT}/dist for Docker-backed dry-runs" >&2
+    exit 1
+    ;;
+esac
 
 DOTNET_SDK_IMAGE="${DOTNET_SDK_IMAGE:-mcr.microsoft.com/dotnet/sdk:8.0@sha256:d80fdd84f7e18eea12f8e45c52914f1353395009c95c41197178ea19944e6d48}"
 COMPOSER_IMAGE="${COMPOSER_IMAGE:-composer@sha256:7725eb4545c438629ae8bde3ef0bb9a5038ef566126ad878442a69007242d267}"
@@ -198,8 +209,9 @@ case "$(uname -s)" in
   *) LIB_NAME="libgts.so" ;;
 esac
 
-rm -rf "${OUT}" "${CACHE}"
+rm -rf "${OUT}"
 mkdir -p \
+  "${ARCHIVE_TMP}" \
   "${CACHE}" \
   "${OUT}/capi" \
   "${OUT}/cpp" \
@@ -242,9 +254,9 @@ log "C ABI release archive and installed C++ consumer"
 archive="$(bash rust/capi/scripts/package.sh)"
 bash rust/capi/scripts/verify-archive.sh "${archive}"
 cp "${archive}" "${archive}.sha256" "${OUT}/capi/"
-tar -C "${TMP}" -xzf "${archive}"
+tar -C "${ARCHIVE_TMP}" -xzf "${archive}"
 rm -rf "${archive%.tar.gz}" "${archive}" "${archive}.sha256"
-archive_prefix="$(find "${TMP}" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+archive_prefix="$(find "${ARCHIVE_TMP}" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
 if [ -z "${archive_prefix}" ]; then
   echo "archive did not contain a top-level directory" >&2
   exit 1
@@ -264,9 +276,9 @@ read -r -a pkg_libs <<< "$(pkg-config --libs gts)"
 "${OUT}/cpp/gts-cpp-archive-smoke" vectors/01-minimal.gts
 
 log ".NET pack and local NuGet consumer"
-run_dotnet pack dotnet/Gmeow.Gts/Gmeow.Gts.csproj -c Release -o dist/package-dry-runs/dotnet
+run_dotnet pack dotnet/Gmeow.Gts/Gmeow.Gts.csproj -c Release -o "${OUT_REL}/dotnet"
 rm -rf "${OUT}/dotnet-consumer"
-run_dotnet new console --force -n GtsPackageConsumer -o dist/package-dry-runs/dotnet-consumer
+run_dotnet new console --force -n GtsPackageConsumer -o "${OUT_REL}/dotnet-consumer"
 cat > "${OUT}/dotnet-consumer/Program.cs" <<'EOF'
 using Gmeow.Gts;
 
@@ -280,9 +292,9 @@ if (string.IsNullOrEmpty(Gts.Version))
 }
 Console.WriteLine(Gts.Version);
 EOF
-run_dotnet add dist/package-dry-runs/dotnet-consumer/GtsPackageConsumer.csproj package Gmeow.Gts \
-  --source dist/package-dry-runs/dotnet
-run_dotnet run --no-restore --project dist/package-dry-runs/dotnet-consumer/GtsPackageConsumer.csproj
+run_dotnet add "${OUT_REL}/dotnet-consumer/GtsPackageConsumer.csproj" package Gmeow.Gts \
+  --source "${OUT_REL}/dotnet"
+run_dotnet run --no-restore --project "${OUT_REL}/dotnet-consumer/GtsPackageConsumer.csproj"
 
 log "PHP Composer validation"
 run_composer validate --strict php/composer.json
