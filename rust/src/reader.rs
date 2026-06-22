@@ -78,6 +78,55 @@ fn pub_digest(value: &Value) -> Option<String> {
     }
 }
 
+fn term_depends_on_anchor(
+    graph: &Graph,
+    term_id: usize,
+    anchor: usize,
+    pending: (usize, Triple3),
+    seen: &mut HashSet<usize>,
+) -> bool {
+    if term_id == anchor {
+        return true;
+    }
+    if !seen.insert(term_id) {
+        return false;
+    }
+    let Some(term) = graph.terms.get(term_id) else {
+        return false;
+    };
+    if term.kind != TermKind::Triple {
+        return false;
+    }
+    let Some(reifier) = term.reifier else {
+        return false;
+    };
+    let binding = if reifier == pending.0 {
+        Some(pending.1)
+    } else {
+        graph.reifier(reifier)
+    };
+    let Some((s, p, o)) = binding else {
+        return false;
+    };
+    [s, p, o]
+        .into_iter()
+        .any(|component| term_depends_on_anchor(graph, component, anchor, pending, seen))
+}
+
+fn reifier_binding_is_recursive(graph: &Graph, rid: usize, triple: Triple3) -> bool {
+    graph
+        .terms
+        .iter()
+        .enumerate()
+        .filter(|(_, term)| term.kind == TermKind::Triple && term.reifier == Some(rid))
+        .any(|(anchor, _)| {
+            [triple.0, triple.1, triple.2].into_iter().any(|component| {
+                let mut seen = HashSet::new();
+                term_depends_on_anchor(graph, component, anchor, (rid, triple), &mut seen)
+            })
+        })
+}
+
 enum PayloadError {
     /// Missing capability — degrade to an opaque node with this reason.
     Unavailable {
@@ -510,6 +559,14 @@ impl Folder<'_, '_, '_> {
                     );
                     continue; // keep the first binding
                 }
+            }
+            if reifier_binding_is_recursive(self.g, rid, triple) {
+                self.diag(
+                    "DamagedFrame",
+                    format!("reifier {rid} creates a recursive quoted-triple binding"),
+                    Some(index),
+                );
+                continue;
             }
             self.g.set_reifier(rid, triple);
             self.with_sink(|segment_index, sink| sink.reifier(segment_index, rid, triple));
