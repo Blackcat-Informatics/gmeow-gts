@@ -5,7 +5,6 @@
     feature = "rdf",
     feature = "rdf-codecs",
     feature = "duckdb",
-    feature = "sophia-adapter",
     feature = "xsd",
     feature = "yaml-ld"
 )))]
@@ -47,9 +46,9 @@ fn optional_adapters_are_not_enabled_by_default() {
         package["features"].get("oxigraph-adapter").is_none(),
         "oxigraph-adapter feature must be removed"
     );
-    assert_eq!(
-        package["features"]["sophia-adapter"],
-        serde_json::json!(["dep:sophia_api", "dep:sophia_inmem", "dep:sophia_turtle"])
+    assert!(
+        package["features"].get("sophia-adapter").is_none(),
+        "sophia-adapter feature must be removed"
     );
     assert_eq!(
         package["features"]["policy-config"],
@@ -105,14 +104,15 @@ fn optional_adapters_are_not_enabled_by_default() {
         assert_eq!(dependency["optional"], serde_json::json!(true));
     }
 
-    for name in ["sophia_api", "sophia_inmem", "sophia_turtle"] {
-        let dependency = package["dependencies"]
-            .as_array()
-            .expect("metadata dependencies are an array")
-            .iter()
-            .find(|dependency| dependency["name"] == name)
-            .unwrap_or_else(|| panic!("{name} dependency is present"));
-        assert_eq!(dependency["optional"], serde_json::json!(true));
+    for removed in ["sophia_api", "sophia_inmem", "sophia_turtle", "uuid"] {
+        assert!(
+            !package["dependencies"]
+                .as_array()
+                .expect("metadata dependencies are an array")
+                .iter()
+                .any(|dependency| dependency["name"] == removed),
+            "gmeow-gts must not depend on {removed}"
+        );
     }
 
     assert!(
@@ -159,12 +159,6 @@ fn rdf_codecs_feature_enables_rdf_text_codec_modules() {
 fn native_store_feature_enables_adapter_module() {
     let sidecar = gmeow_gts::native_store::GtsSidecar::default();
     assert!(sidecar.diagnostics.is_empty());
-}
-
-#[cfg(feature = "sophia-adapter")]
-#[test]
-fn sophia_feature_enables_adapter_module() {
-    let _dataset = gmeow_gts::sophia::SophiaDataset::new();
 }
 
 #[cfg(feature = "yaml-ld")]

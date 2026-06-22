@@ -479,9 +479,10 @@ Default Cargo features are empty. The optional `rdf` feature enables
 RDF data-model types. The optional `native-store` feature adds
 `gmeow_gts::native_store::{graph_to_store, store_to_writer}` and
 `Writer::from_store` using a deterministic dependency-free in-memory RDF store.
-The optional `sophia-adapter` feature adds
-`gmeow_gts::sophia::{to_sophia_dataset, from_sophia_dataset}` using Sophia's
-in-memory dataset plus N-Quads parser/serializer.
+The optional `rdf-codecs` feature adds native N-Triples, Turtle, TriG, and
+RDF/XML text codecs. External RDF crates such as Sophia, Oxigraph, or Rio should
+interoperate through the N-Quads bridge at the application boundary rather than
+through an in-crate adapter.
 The optional `policy-config` feature adds JSON loading helpers for
 `gmeow_gts::policy::TrustPolicy` and enables `gts verify --policy <file>` for
 release/profile verification workflows. `policy-config-yaml` layers YAML parsing

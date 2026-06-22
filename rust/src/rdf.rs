@@ -12,6 +12,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt;
 
 use crate::model::{Graph, Quad, Term as GtsTerm, TermKind, Triple3, RDF_LANG_STRING, XSD_STRING};
+use crate::ulid::deterministic_label;
 use crate::writer::Writer;
 use crate::xsd::{
     ill_typed_literals_in_terms, ill_typed_literals_metadata, ILL_TYPED_LITERAL_META_KEY,
@@ -879,11 +880,13 @@ impl BnodeLabels {
             if term.kind != TermKind::Bnode || term.value.is_some() {
                 continue;
             }
-            let mut label = format!("b{id}");
+            let mut counter = id as u128;
+            let mut label = deterministic_label("gts_", counter);
             let mut suffix = 0usize;
             while used.contains(&label) {
                 suffix += 1;
-                label = format!("gts_b{id}_{suffix}");
+                counter = graph.terms.len() as u128 + suffix as u128;
+                label = deterministic_label("gts_", counter);
             }
             used.insert(label.clone());
             generated.insert(id, label);

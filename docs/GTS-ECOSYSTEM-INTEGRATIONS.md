@@ -15,7 +15,7 @@ deferred.
 
 | Ecosystem | Current integration path | Deferrals |
 |---|---|---|
-| Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge; `--features rdf` enables `gmeow_gts::rdf::{to_rdf_dataset, from_rdf_dataset}` for dependency-free native `Dataset` interop without an embedded graph store; `--features native-store` enables `gmeow_gts::native_store::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using the deterministic native in-memory RDF store; `--features sophia-adapter` enables `gmeow_gts::sophia::{to_sophia_dataset, from_sophia_dataset}` using Sophia's in-memory dataset and N-Quads parser/serializer; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Rio remains deferred because the current `rio_api` crate is marked unmaintained upstream; the zero-dependency N-Quads bridge remains the Rio-compatible path. |
+| Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge for external RDF crates; `--features rdf` enables `gmeow_gts::rdf::{to_rdf_dataset, from_rdf_dataset}` for dependency-free native `Dataset` interop without an embedded graph store; `--features native-store` enables `gmeow_gts::native_store::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using the deterministic native in-memory RDF store; `--features rdf-codecs` enables native N-Triples, Turtle, TriG, and RDF/XML text codecs; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Rio remains deferred because the current `rio_api` crate is marked unmaintained upstream; external Sophia/Oxigraph/Rio interop uses the zero-dependency N-Quads text bridge rather than an in-crate adapter. |
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
 | TypeScript browser | `@blackcatinformatics/gmeow-gts/browser` exposes `foldStream(ReadableStream<Uint8Array>, options)`, `readStream`, `toNQuads`, progressive fold events, and WebCrypto-backed COSE Sign1/Encrypt0 key-provider hooks. The package root also carries a browser condition that resolves to this narrower surface for bundlers. | This is a progressive Web Streams surface and does not satisfy the current non-materializing Streaming Reader tier. Node-only CLI and filesystem `pack`/`unpack`/`diff` helpers remain outside the browser export. Range fetch still needs a verified index or boundary scan. |
 | Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides graph-returning service integration, while `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` provides cancellation-aware, byte-limited streaming fold events for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | Service-specific replication orchestration remains application code built on the shared verbs. |
@@ -209,35 +209,19 @@ RDF; GTS-only state such as blobs, suppressions, signatures, diagnostics,
 segment heads, and streamable-layout metadata is returned in a sidecar. The
 adapter walks native quads and does not materialize N-Quads text in the hot path.
 
-For native Sophia dataset interop, enable the optional Sophia adapter:
-
-```toml
-gmeow-gts = { version = "0.9.5", default-features = false, features = ["sophia-adapter"] }
-```
-
-```rust
-let graph = gmeow_gts::reader::read(&bytes, true, None);
-let dataset = gmeow_gts::sophia::to_sophia_dataset(&graph)?;
-let bytes = gmeow_gts::sophia::from_sophia_dataset(&dataset)?;
-```
-
-The `sophia-adapter` feature depends on Sophia's `sophia_inmem` dataset and
-`sophia_turtle` N-Quads parser/serializer. It deliberately stays out of default
-builds. The bridge follows the existing GTS N-Quads projection, so it preserves
-IRIs, blank nodes, language literals, datatypes, named graphs, and RDF 1.2
-`rdf:reifies`/quoted-triple terms that Sophia can parse and serialize. GTS-only
-state such as blobs, signatures, suppressions, opaque frames, diagnostics, and
-segment metadata is outside this pure RDF projection. Rio remains deferred
-because `rio_api` 0.8.6 is marked unmaintained upstream; callers that need Rio
-can continue to use the zero-dependency N-Quads text bridge.
+For Sophia, Oxigraph, Rio, or other external RDF crates, keep the dependency at
+the application boundary and exchange N-Quads text with GTS. The core Rust crate
+does not publish an in-crate Sophia adapter, because Sophia's N-Quads stack pulls
+UUID generation into the all-features dependency graph. The native `rdf`,
+`native-store`, and `rdf-codecs` features cover the in-crate structured and text
+interop paths while preserving `wasm32-unknown-unknown` builds.
 
 Strict export is the default. GTS reifiers project to RDF 1.2 triple terms in
 object position. If a GTS graph uses quoted triples in positions the native
 dataset surface intentionally does not represent, such as subject or graph-name
-position, `to_rdf_dataset` raises `RdfAdapterError`; Sophia's parser likewise
-rejects N-Quads shapes that RDF 1.2 concrete syntax cannot preserve. The
-explicit `to_rdf_dataset_lossy` path drops only those unrepresentable rows and
-is covered by feature-gated tests.
+position, `to_rdf_dataset` raises `RdfAdapterError`. The explicit
+`to_rdf_dataset_lossy` path drops only those unrepresentable rows and is covered
+by feature-gated tests.
 
 For application parity, the Rust crate includes a runnable grounded-memory
 example:

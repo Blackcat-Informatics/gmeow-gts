@@ -14,6 +14,7 @@ use std::fmt;
 use serde_json::{Map, Number, Value};
 
 use crate::model::{Graph, Quad, Term, TermKind, Triple3};
+use crate::ulid::deterministic_label;
 use crate::writer::Writer;
 use crate::yamlld::{
     ANNOTATION, GTS_GRAPH, GTS_REIFIERS, GTS_SUBJECT, GTS_TRIPLE, RDF_TYPE, XSD_BOOLEAN,
@@ -128,7 +129,7 @@ impl Interner {
 
     fn generated_bnode(&mut self, prefix: &str) -> usize {
         loop {
-            let label = format!("{prefix}{}", self.generated_bnodes);
+            let label = deterministic_label(prefix, self.generated_bnodes as u128);
             self.generated_bnodes += 1;
             let key = TermKey::Atom {
                 kind: TermKind::Bnode,

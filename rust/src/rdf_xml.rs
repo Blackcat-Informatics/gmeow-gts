@@ -19,6 +19,7 @@ use crate::rdf::{
     NamedOrBlankNode, RdfQuad, RdfTerm, RdfTriple,
 };
 use crate::rdf_codecs::RdfCodecError;
+use crate::ulid::deterministic_label;
 
 const RDF_NS: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const XML_NS: &str = "http://www.w3.org/XML/1998/namespace";
@@ -853,13 +854,13 @@ impl RdfXmlParser {
     fn fresh_bnode(&mut self) -> Result<NamedOrBlankNode, RdfCodecError> {
         let id = self.bnode_counter;
         self.bnode_counter += 1;
-        Ok(BlankNode::new(format!("rdfxml_b{id}"))?.into())
+        Ok(BlankNode::new(deterministic_label("rdfxml_", id as u128))?.into())
     }
 
     fn fresh_collection_bnode(&mut self) -> Result<NamedOrBlankNode, RdfCodecError> {
         let id = self.collection_counter;
         self.collection_counter += 1;
-        Ok(BlankNode::new(format!("rdfxml_list{id}"))?.into())
+        Ok(BlankNode::new(deterministic_label("rdfxml_list_", id as u128))?.into())
     }
 }
 
