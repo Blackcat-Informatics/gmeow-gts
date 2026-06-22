@@ -509,6 +509,48 @@ fn rdf_xml_parser_accepts_core_w3c_rdf_xml_shapes() {
 }
 
 #[test]
+fn rdf_xml_parser_preserves_empty_property_attributes_on_resource_objects() {
+    let rdf_xml = r#"<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:ex="http://example.org/">
+  <rdf:Description rdf:about="http://example.org/s">
+    <ex:related rdf:resource="http://example.org/o" ex:label="Object label"/>
+    <ex:blank rdf:nodeID="target" ex:label="Blank label"/>
+  </rdf:Description>
+</rdf:RDF>"#;
+
+    let out = nquads_from_gts(&from_rdf_xml(rdf_xml).expect("RDF/XML imports"));
+    assert!(
+        out.contains("<http://example.org/s> <http://example.org/related> <http://example.org/o>")
+    );
+    assert!(out.contains("<http://example.org/o> <http://example.org/label> \"Object label\""));
+    assert!(out.contains("<http://example.org/s> <http://example.org/blank> _:target"));
+    assert!(out.contains("_:target <http://example.org/label> \"Blank label\""));
+}
+
+#[test]
+fn rdf_xml_parser_resolves_rdf_id_against_base_without_fragment() {
+    let rdf_xml = r#"<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:ex="http://example.org/">
+  <rdf:Description rdf:about="">
+    <ex:related rdf:ID="statement" rdf:resource="http://example.org/o"/>
+  </rdf:Description>
+</rdf:RDF>"#;
+
+    let out = nquads_from_gts(
+        &from_rdf_xml_with_base_iri(rdf_xml, "http://example.org/doc#old")
+            .expect("RDF/XML imports"),
+    );
+    assert!(out
+        .contains("<http://example.org/doc> <http://example.org/related> <http://example.org/o>"));
+    assert!(out.contains(
+        "<http://example.org/doc#statement> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>"
+    ));
+    assert!(!out.contains("#old#statement"));
+}
+
+#[test]
 fn rdf_xml_parser_accepts_w3c_rdf12_triple_terms_and_annotations() {
     let rdf_xml = r#"<?xml version="1.0"?>
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -815,6 +857,33 @@ fn rdf_xml_serialization_uses_event_source_and_rejects_named_graphs() {
     assert!(err
         .to_string()
         .contains("RDF/XML cannot serialize named graph"));
+}
+
+#[test]
+fn rdf_xml_serialization_roundtrips_unicode_predicate_local_names() {
+    let mut writer = Writer::new("dist");
+    writer.add_terms(&[
+        term(TermKind::Iri, "https://ex/s"),
+        term(TermKind::Iri, "https://ex/étiquette"),
+        Term {
+            kind: TermKind::Literal,
+            value: Some("chat".to_string()),
+            datatype: None,
+            lang: Some("fr".to_string()),
+            direction: None,
+            reifier: None,
+        },
+    ]);
+    writer.add_quads(&[(0, 1, 2, None)]);
+
+    let graph = read(&writer.to_bytes(), true, None);
+    let rdf_xml = to_rdf_xml(&graph).expect("RDF/XML serializes");
+    assert!(rdf_xml.contains("étiquette"));
+    let imported = from_rdf_xml(&rdf_xml).expect("serialized RDF/XML imports");
+    assert_eq!(
+        sorted_lines(&to_nquads(&graph)),
+        sorted_lines(&nquads_from_gts(&imported))
+    );
 }
 
 fn tmpdir() -> PathBuf {

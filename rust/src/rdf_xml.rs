@@ -494,12 +494,28 @@ impl RdfXmlParser {
             .transpose()?;
 
         if let Some(resource) = element.attr_rdf(RDF_RESOURCE) {
-            let object = self.iri_ref(resource, &context)?.into();
-            return self.insert_statement(subject.clone(), predicate, object, reifier, annotation);
+            let object: NamedOrBlankNode = self.iri_ref(resource, &context)?.into();
+            self.insert_statement(
+                subject.clone(),
+                predicate,
+                named_or_blank_term(&object),
+                reifier,
+                annotation,
+            )?;
+            self.insert_property_attribute_statements(&object, element, &context)?;
+            return Ok(());
         }
         if let Some(node_id) = element.attr_rdf(RDF_NODE_ID) {
-            let object = BlankNode::new(node_id)?.into();
-            return self.insert_statement(subject.clone(), predicate, object, reifier, annotation);
+            let object: NamedOrBlankNode = BlankNode::new(node_id)?.into();
+            self.insert_statement(
+                subject.clone(),
+                predicate,
+                named_or_blank_term(&object),
+                reifier,
+                annotation,
+            )?;
+            self.insert_property_attribute_statements(&object, element, &context)?;
+            return Ok(());
         }
 
         match element.attr_rdf(RDF_PARSE_TYPE) {
@@ -512,16 +528,7 @@ impl RdfXmlParser {
                     reifier,
                     annotation,
                 )?;
-                for attr in element.property_attrs() {
-                    let literal = self.context_literal(&attr.value, None, &context)?;
-                    self.insert_statement(
-                        object.clone(),
-                        attr.name.iri()?,
-                        literal.into(),
-                        None,
-                        None,
-                    )?;
-                }
+                self.insert_property_attribute_statements(&object, element, &context)?;
                 for child in element.children.iter().filter_map(element_child) {
                     self.parse_property_element(&object, child, &context)?;
                 }
@@ -612,16 +619,7 @@ impl RdfXmlParser {
                 reifier,
                 annotation,
             )?;
-            for attr in element.property_attrs() {
-                let literal = self.context_literal(&attr.value, None, &context)?;
-                self.insert_statement(
-                    object.clone(),
-                    attr.name.iri()?,
-                    literal.into(),
-                    None,
-                    None,
-                )?;
-            }
+            self.insert_property_attribute_statements(&object, element, &context)?;
             return Ok(());
         }
 
@@ -633,6 +631,25 @@ impl RdfXmlParser {
             reifier,
             annotation,
         )
+    }
+
+    fn insert_property_attribute_statements(
+        &mut self,
+        subject: &NamedOrBlankNode,
+        element: &Element,
+        context: &ParseContext,
+    ) -> Result<(), RdfCodecError> {
+        for attr in element.property_attrs() {
+            let literal = self.context_literal(&attr.value, None, context)?;
+            self.insert_statement(
+                subject.clone(),
+                attr.name.iri()?,
+                literal.into(),
+                None,
+                None,
+            )?;
+        }
+        Ok(())
     }
 
     fn parse_collection(
@@ -827,7 +844,10 @@ impl RdfXmlParser {
         let Some(base) = &context.base_iri else {
             return Iri::new(format!("#{value}")).map_err(Into::into);
         };
-        Iri::new(format!("{base}#{value}")).map_err(Into::into)
+        let base_without_fragment = base
+            .split_once('#')
+            .map_or(base.as_str(), |(before, _)| before);
+        Iri::new(format!("{base_without_fragment}#{value}")).map_err(Into::into)
     }
 
     fn fresh_bnode(&mut self) -> Result<NamedOrBlankNode, RdfCodecError> {
@@ -1010,11 +1030,11 @@ fn is_xml_name(value: &str) -> bool {
 }
 
 fn is_xml_name_start(ch: char) -> bool {
-    ch == '_' || ch.is_ascii_alphabetic()
+    ch == '_' || ch.is_alphabetic()
 }
 
 fn is_xml_name_char(ch: char) -> bool {
-    is_xml_name_start(ch) || ch.is_ascii_digit() || matches!(ch, '-' | '.')
+    is_xml_name_start(ch) || ch.is_numeric() || matches!(ch, '-' | '.')
 }
 
 fn serialize_children_as_xml(element: &Element) -> String {
