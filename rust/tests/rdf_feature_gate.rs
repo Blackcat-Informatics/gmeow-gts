@@ -34,13 +34,10 @@ fn optional_adapters_are_not_enabled_by_default() {
 
     assert_eq!(package["features"]["default"], serde_json::json!([]));
     assert_eq!(package["features"]["duckdb"], serde_json::json!([]));
-    assert_eq!(
-        package["features"]["rdf"],
-        serde_json::json!(["xsd", "dep:oxrdf"])
-    );
+    assert_eq!(package["features"]["rdf"], serde_json::json!(["xsd"]));
     assert_eq!(
         package["features"]["rdf-codecs"],
-        serde_json::json!(["rdf", "dep:oxttl", "dep:oxrdfxml"])
+        serde_json::json!(["rdf", "dep:oxrdf", "dep:oxttl", "dep:oxrdfxml"])
     );
     assert_eq!(
         package["features"]["oxigraph-adapter"],

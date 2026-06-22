@@ -17,10 +17,9 @@ default = []
 # Enables DuckDB/Parquet relational exports. This feature intentionally adds no
 # Cargo dependencies; it shells out to a `duckdb` binary on PATH at runtime.
 duckdb = []
-# Enables native RDF dataset interop through `oxrdf`'s data-model crate. This is
-# intentionally opt-in so default transport users do not inherit RDF toolkit or
-# graph-store dependencies.
-rdf = ["xsd", "dep:oxrdf"]
+# Enables native RDF dataset interop. This is intentionally opt-in so default
+# transport users do not inherit RDF dataset helpers unless they ask for them.
+rdf = ["xsd"]
 # Enables syntax-side XML Schema datatype lexical validation/canonicalization.
 # This is kept opt-in so default transport users do not inherit RDF/XSD helper
 # dependencies unless they ask for parser-facing datatype semantics.
@@ -29,7 +28,7 @@ xsd = ["dep:oxsdatatypes"]
 # Oxigraph's N-Triples/Turtle/TriG and RDF/XML parser/serializer stacks, but
 # stays opt-in so default transport and wasm builds keep their current
 # dependency profile.
-rdf-codecs = ["rdf", "dep:oxttl", "dep:oxrdfxml"]
+rdf-codecs = ["rdf", "dep:oxrdf", "dep:oxttl", "dep:oxrdfxml"]
 # Enables an optional Oxigraph in-memory Store adapter. This pulls in Oxigraph
 # only for callers that ask for the store bridge; defaults remain unchanged.
 oxigraph-adapter = ["rdf", "dep:oxigraph"]

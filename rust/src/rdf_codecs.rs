@@ -11,14 +11,24 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use oxrdf::{Dataset, GraphNameRef, TripleRef};
+use oxrdf::{
+    BaseDirection as OxBaseDirection, BlankNode as OxBlankNode, BlankNodeRef as OxBlankNodeRef,
+    Dataset as OxDataset, GraphName as OxGraphName, GraphNameRef, Literal as OxLiteral,
+    LiteralRef as OxLiteralRef, NamedNode as OxNamedNode, NamedNodeRef as OxNamedNodeRef,
+    NamedOrBlankNode as OxNamedOrBlankNode, NamedOrBlankNodeRef as OxNamedOrBlankNodeRef,
+    Quad as OxQuad, QuadRef as OxQuadRef, Term as OxTerm, TermRef as OxTermRef, Triple as OxTriple,
+    TripleRef as OxTripleRef,
+};
 use oxrdfxml::{RdfXmlParser, RdfXmlSerializer};
 use oxttl::{
     NTriplesParser, NTriplesSerializer, TriGParser, TriGSerializer, TurtleParser, TurtleSerializer,
 };
 
-use crate::model::{Diagnostic, Graph, Quad, Term, TermKind, Triple3};
-use crate::rdf::{from_oxrdf_dataset, to_oxrdf_quads, RdfAdapterError};
+use crate::model::{Diagnostic, Graph, Quad, Term, TermKind, Triple3, XSD_STRING};
+use crate::rdf::{
+    from_rdf_dataset, to_rdf_quads, BaseDirection, BlankNode, Dataset, GraphName, Iri, Literal,
+    NamedOrBlankNode, RdfAdapterError, RdfQuad, RdfTerm, RdfTriple,
+};
 use crate::rdf_events::{
     EventDiagnostic, EventError, EventErrorKind, EventLiteralDirection, EventQuad, EventScopeId,
     EventTerm, EventTermId, EventTermKind, EventTriple, GraphRdfEventSource, RdfEventSink,
@@ -108,12 +118,12 @@ impl From<EventError> for RdfCodecError {
 
 /// Parse N-Triples text into a GTS byte stream using the `dist` profile.
 pub fn from_ntriples(text: &str) -> Result<Vec<u8>, RdfCodecError> {
-    let mut dataset = Dataset::new();
+    let mut dataset = OxDataset::new();
     for triple in NTriplesParser::new().for_slice(text.as_bytes()) {
         let triple = triple?;
         dataset.insert(triple.as_ref().in_graph(GraphNameRef::DefaultGraph));
     }
-    from_oxrdf_dataset(&dataset).map_err(Into::into)
+    from_rdf_dataset(&native_dataset_from_oxrdf(&dataset)?).map_err(Into::into)
 }
 
 /// Parse RDF/XML text into a GTS byte stream using the `dist` profile.
@@ -130,32 +140,32 @@ pub fn from_rdf_xml_with_base_iri(text: &str, base_iri: &str) -> Result<Vec<u8>,
 }
 
 fn parse_rdf_xml_with_parser(text: &str, parser: RdfXmlParser) -> Result<Vec<u8>, RdfCodecError> {
-    let mut dataset = Dataset::new();
+    let mut dataset = OxDataset::new();
     for triple in parser.for_slice(text.as_bytes()) {
         let triple = triple?;
         dataset.insert(triple.as_ref().in_graph(GraphNameRef::DefaultGraph));
     }
-    from_oxrdf_dataset(&dataset).map_err(Into::into)
+    from_rdf_dataset(&native_dataset_from_oxrdf(&dataset)?).map_err(Into::into)
 }
 
 /// Parse Turtle text into a GTS byte stream using the `dist` profile.
 pub fn from_turtle(text: &str) -> Result<Vec<u8>, RdfCodecError> {
-    let mut dataset = Dataset::new();
+    let mut dataset = OxDataset::new();
     for triple in TurtleParser::new().for_slice(text.as_bytes()) {
         let triple = triple?;
         dataset.insert(triple.as_ref().in_graph(GraphNameRef::DefaultGraph));
     }
-    from_oxrdf_dataset(&dataset).map_err(Into::into)
+    from_rdf_dataset(&native_dataset_from_oxrdf(&dataset)?).map_err(Into::into)
 }
 
 /// Parse TriG text into a GTS byte stream using the `dist` profile.
 pub fn from_trig(text: &str) -> Result<Vec<u8>, RdfCodecError> {
-    let mut dataset = Dataset::new();
+    let mut dataset = OxDataset::new();
     for quad in TriGParser::new().for_slice(text.as_bytes()) {
         let quad = quad?;
         dataset.insert(quad.as_ref());
     }
-    from_oxrdf_dataset(&dataset).map_err(Into::into)
+    from_rdf_dataset(&native_dataset_from_oxrdf(&dataset)?).map_err(Into::into)
 }
 
 /// Serialize a folded graph to N-Triples through the RDF event contract.
@@ -246,15 +256,16 @@ pub fn to_trig_from_erased_source(source: &dyn RdfEventSource) -> Result<String,
 fn serialize_ntriples_graph(graph: &Graph) -> Result<String, RdfCodecError> {
     let mut serializer = NTriplesSerializer::new().for_writer(Vec::new());
 
-    for quad in to_oxrdf_quads(graph)? {
-        let quad = quad.as_ref();
+    for quad in to_rdf_quads(graph)? {
         if !quad.graph_name.is_default_graph() {
             return Err(RdfCodecError::new(format!(
                 "N-Triples cannot serialize named graph {}",
                 quad.graph_name
             )));
         }
-        serializer.serialize_triple(TripleRef::new(quad.subject, quad.predicate, quad.object))?;
+        let quad = oxrdf_quad(&quad)?;
+        let quad = quad.as_ref();
+        serializer.serialize_triple(OxTripleRef::new(quad.subject, quad.predicate, quad.object))?;
     }
 
     String::from_utf8(serializer.finish()).map_err(Into::into)
@@ -266,15 +277,16 @@ fn serialize_rdf_xml_graph(graph: &Graph) -> Result<String, RdfCodecError> {
         .map_err(|error| RdfCodecError::new(format!("invalid serializer IRI: {error}")))?
         .for_writer(Vec::new());
 
-    for quad in to_oxrdf_quads(graph)? {
-        let quad = quad.as_ref();
+    for quad in to_rdf_quads(graph)? {
         if !quad.graph_name.is_default_graph() {
             return Err(RdfCodecError::new(format!(
                 "RDF/XML cannot serialize named graph {}",
                 quad.graph_name
             )));
         }
-        serializer.serialize_triple(TripleRef::new(quad.subject, quad.predicate, quad.object))?;
+        let quad = oxrdf_quad(&quad)?;
+        let quad = quad.as_ref();
+        serializer.serialize_triple(OxTripleRef::new(quad.subject, quad.predicate, quad.object))?;
     }
 
     String::from_utf8(serializer.finish()?).map_err(Into::into)
@@ -286,15 +298,16 @@ fn serialize_turtle_graph(graph: &Graph) -> Result<String, RdfCodecError> {
         .with_prefix("xsd", XSD_NS)?
         .for_writer(Vec::new());
 
-    for quad in to_oxrdf_quads(graph)? {
-        let quad = quad.as_ref();
+    for quad in to_rdf_quads(graph)? {
         if !quad.graph_name.is_default_graph() {
             return Err(RdfCodecError::new(format!(
                 "Turtle cannot serialize named graph {}",
                 quad.graph_name
             )));
         }
-        serializer.serialize_triple(TripleRef::new(quad.subject, quad.predicate, quad.object))?;
+        let quad = oxrdf_quad(&quad)?;
+        let quad = quad.as_ref();
+        serializer.serialize_triple(OxTripleRef::new(quad.subject, quad.predicate, quad.object))?;
     }
 
     String::from_utf8(serializer.finish()?).map_err(Into::into)
@@ -306,11 +319,186 @@ fn serialize_trig_graph(graph: &Graph) -> Result<String, RdfCodecError> {
         .with_prefix("xsd", XSD_NS)?
         .for_writer(Vec::new());
 
-    for quad in to_oxrdf_quads(graph)? {
-        serializer.serialize_quad(quad.as_ref())?;
+    for quad in to_rdf_quads(graph)? {
+        serializer.serialize_quad(oxrdf_quad(&quad)?.as_ref())?;
     }
 
     String::from_utf8(serializer.finish()?).map_err(Into::into)
+}
+
+fn native_dataset_from_oxrdf(dataset: &OxDataset) -> Result<Dataset, RdfCodecError> {
+    let mut native = Dataset::new();
+    for quad in dataset {
+        native.insert(native_quad_from_oxrdf(quad)?);
+    }
+    Ok(native)
+}
+
+fn native_quad_from_oxrdf(quad: OxQuadRef<'_>) -> Result<RdfQuad, RdfCodecError> {
+    Ok(RdfQuad::new(
+        native_named_or_blank_from_oxrdf(quad.subject)?,
+        native_iri_from_oxrdf(quad.predicate)?,
+        native_term_from_oxrdf(quad.object)?,
+        native_graph_name_from_oxrdf(quad.graph_name)?,
+    ))
+}
+
+fn native_graph_name_from_oxrdf(graph_name: GraphNameRef<'_>) -> Result<GraphName, RdfCodecError> {
+    match graph_name {
+        GraphNameRef::DefaultGraph => Ok(GraphName::DefaultGraph),
+        GraphNameRef::NamedNode(node) => Ok(native_iri_from_oxrdf(node)?.into()),
+        GraphNameRef::BlankNode(node) => Ok(native_blank_node_from_oxrdf(node)?.into()),
+    }
+}
+
+fn native_named_or_blank_from_oxrdf(
+    node: OxNamedOrBlankNodeRef<'_>,
+) -> Result<NamedOrBlankNode, RdfCodecError> {
+    match node {
+        OxNamedOrBlankNodeRef::NamedNode(node) => Ok(native_iri_from_oxrdf(node)?.into()),
+        OxNamedOrBlankNodeRef::BlankNode(node) => Ok(native_blank_node_from_oxrdf(node)?.into()),
+    }
+}
+
+fn native_term_from_oxrdf(term: OxTermRef<'_>) -> Result<RdfTerm, RdfCodecError> {
+    match term {
+        OxTermRef::NamedNode(node) => Ok(native_iri_from_oxrdf(node)?.into()),
+        OxTermRef::BlankNode(node) => Ok(native_blank_node_from_oxrdf(node)?.into()),
+        OxTermRef::Literal(literal) => Ok(native_literal_from_oxrdf(literal)?.into()),
+        OxTermRef::Triple(triple) => Ok(native_triple_from_oxrdf(triple.into())?.into()),
+    }
+}
+
+fn native_triple_from_oxrdf(triple: OxTripleRef<'_>) -> Result<RdfTriple, RdfCodecError> {
+    Ok(RdfTriple::new(
+        native_named_or_blank_from_oxrdf(triple.subject)?,
+        native_iri_from_oxrdf(triple.predicate)?,
+        native_term_from_oxrdf(triple.object)?,
+    ))
+}
+
+fn native_literal_from_oxrdf(literal: OxLiteralRef<'_>) -> Result<Literal, RdfCodecError> {
+    if let Some(direction) = literal.direction() {
+        let language = literal
+            .language()
+            .ok_or_else(|| RdfCodecError::new("directional literal is missing its language tag"))?;
+        let direction = match direction {
+            OxBaseDirection::Ltr => BaseDirection::Ltr,
+            OxBaseDirection::Rtl => BaseDirection::Rtl,
+        };
+        return Literal::new_directional_language_tagged_literal(
+            literal.value(),
+            language,
+            direction,
+        )
+        .map_err(Into::into);
+    }
+    if let Some(language) = literal.language() {
+        return Literal::new_language_tagged_literal(literal.value(), language).map_err(Into::into);
+    }
+    let datatype = literal.datatype().as_str();
+    if datatype == XSD_STRING {
+        Ok(Literal::new_simple_literal(literal.value()))
+    } else {
+        Ok(Literal::new_typed_literal(
+            literal.value(),
+            Iri::new(datatype)?,
+        ))
+    }
+}
+
+fn native_iri_from_oxrdf(node: OxNamedNodeRef<'_>) -> Result<Iri, RdfCodecError> {
+    Iri::new(node.as_str()).map_err(Into::into)
+}
+
+fn native_blank_node_from_oxrdf(node: OxBlankNodeRef<'_>) -> Result<BlankNode, RdfCodecError> {
+    BlankNode::new(node.as_str()).map_err(Into::into)
+}
+
+fn oxrdf_quad(quad: &RdfQuad) -> Result<OxQuad, RdfCodecError> {
+    Ok(OxQuad::new(
+        oxrdf_named_or_blank(&quad.subject)?,
+        oxrdf_iri(&quad.predicate)?,
+        oxrdf_term(&quad.object)?,
+        oxrdf_graph_name(&quad.graph_name)?,
+    ))
+}
+
+fn oxrdf_graph_name(graph_name: &GraphName) -> Result<OxGraphName, RdfCodecError> {
+    match graph_name {
+        GraphName::DefaultGraph => Ok(OxGraphName::DefaultGraph),
+        GraphName::Iri(iri) => Ok(oxrdf_iri(iri)?.into()),
+        GraphName::BlankNode(node) => Ok(oxrdf_blank_node(node)?.into()),
+    }
+}
+
+fn oxrdf_named_or_blank(node: &NamedOrBlankNode) -> Result<OxNamedOrBlankNode, RdfCodecError> {
+    match node {
+        NamedOrBlankNode::Iri(iri) => Ok(oxrdf_iri(iri)?.into()),
+        NamedOrBlankNode::BlankNode(node) => Ok(oxrdf_blank_node(node)?.into()),
+    }
+}
+
+fn oxrdf_term(term: &RdfTerm) -> Result<OxTerm, RdfCodecError> {
+    match term {
+        RdfTerm::Iri(iri) => Ok(oxrdf_iri(iri)?.into()),
+        RdfTerm::BlankNode(node) => Ok(oxrdf_blank_node(node)?.into()),
+        RdfTerm::Literal(literal) => Ok(oxrdf_literal(literal)?.into()),
+        RdfTerm::Triple(triple) => Ok(OxTerm::Triple(Box::new(oxrdf_triple(triple)?))),
+    }
+}
+
+fn oxrdf_triple(triple: &RdfTriple) -> Result<OxTriple, RdfCodecError> {
+    Ok(OxTriple::new(
+        oxrdf_named_or_blank(&triple.subject)?,
+        oxrdf_iri(&triple.predicate)?,
+        oxrdf_term(&triple.object)?,
+    ))
+}
+
+fn oxrdf_literal(literal: &Literal) -> Result<OxLiteral, RdfCodecError> {
+    if let Some(direction) = literal.direction {
+        let language = literal
+            .language
+            .as_deref()
+            .ok_or_else(|| RdfCodecError::new("directional literal is missing its language tag"))?;
+        let direction = match direction {
+            BaseDirection::Ltr => OxBaseDirection::Ltr,
+            BaseDirection::Rtl => OxBaseDirection::Rtl,
+        };
+        return OxLiteral::new_directional_language_tagged_literal(
+            &literal.lexical,
+            language,
+            direction,
+        )
+        .map_err(|error| {
+            RdfCodecError::new(format!(
+                "invalid directional language-tagged literal: {error}"
+            ))
+        });
+    }
+    if let Some(language) = &literal.language {
+        return OxLiteral::new_language_tagged_literal(&literal.lexical, language).map_err(
+            |error| RdfCodecError::new(format!("invalid language-tagged literal: {error}")),
+        );
+    }
+    if let Some(datatype) = &literal.datatype {
+        Ok(OxLiteral::new_typed_literal(
+            &literal.lexical,
+            oxrdf_iri(datatype)?,
+        ))
+    } else {
+        Ok(OxLiteral::new_simple_literal(&literal.lexical))
+    }
+}
+
+fn oxrdf_iri(iri: &Iri) -> Result<OxNamedNode, RdfCodecError> {
+    OxNamedNode::new(iri.as_str()).map_err(Into::into)
+}
+
+fn oxrdf_blank_node(node: &BlankNode) -> Result<OxBlankNode, RdfCodecError> {
+    OxBlankNode::new(node.as_str())
+        .map_err(|error| RdfCodecError::new(format!("invalid blank-node identifier: {error}")))
 }
 
 /// RDF event sink that materializes one event scope as a folded graph.

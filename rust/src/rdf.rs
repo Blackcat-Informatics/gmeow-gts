@@ -1,23 +1,17 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Optional native RDF interop through `oxrdf`.
+//! Optional native RDF dataset interop.
 //!
-//! This module is compiled only with `--features rdf`. It uses `oxrdf`'s
-//! in-memory RDF data model, not the `oxigraph` store, so default transport
-//! users do not inherit an RDF toolkit or embedded graph database dependency.
+//! This module is compiled only with `--features rdf`. It provides a small
+//! dependency-free RDF 1.2 dataset model for callers that need structured RDF
+//! rows without inheriting an external RDF toolkit or graph store.
 
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt;
 
-use oxrdf::{
-    BaseDirection, BlankNode, BlankNodeRef, Dataset, GraphName, GraphNameRef, Literal, LiteralRef,
-    NamedNode, NamedNodeRef, NamedOrBlankNode, NamedOrBlankNodeRef, Quad as OxQuad, Term as OxTerm,
-    TermRef as OxTermRef, Triple as OxTriple, TripleRef as OxTripleRef,
-};
-
-use crate::model::{Graph, Quad, Term, TermKind, Triple3, RDF_LANG_STRING, XSD_STRING};
+use crate::model::{Graph, Quad, Term as GtsTerm, TermKind, Triple3, RDF_LANG_STRING, XSD_STRING};
 use crate::writer::Writer;
 use crate::xsd::{
     ill_typed_literals_in_terms, ill_typed_literals_metadata, ILL_TYPED_LITERAL_META_KEY,
@@ -32,7 +26,7 @@ pub struct RdfAdapterError {
 }
 
 impl RdfAdapterError {
-    fn new(detail: impl Into<String>) -> Self {
+    pub(crate) fn new(detail: impl Into<String>) -> Self {
         Self {
             detail: detail.into(),
         }
@@ -52,26 +46,436 @@ impl fmt::Display for RdfAdapterError {
 
 impl std::error::Error for RdfAdapterError {}
 
-/// Export options for converting folded GTS graphs into an `oxrdf::Dataset`.
+/// RDF 1.2 literal base direction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BaseDirection {
+    /// Left-to-right text direction.
+    Ltr,
+    /// Right-to-left text direction.
+    Rtl,
+}
+
+impl BaseDirection {
+    /// Return the RDF 1.2 lexical direction string.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Ltr => "ltr",
+            Self::Rtl => "rtl",
+        }
+    }
+}
+
+impl fmt::Display for BaseDirection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// RDF IRI node.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Iri {
+    value: String,
+}
+
+impl Iri {
+    /// Create an IRI node.
+    ///
+    /// This validates the minimal syntactic contract GTS needs for generated
+    /// and imported rows: the value must be non-empty, contain a scheme
+    /// separator, and avoid ASCII whitespace/control characters.
+    pub fn new(value: impl Into<String>) -> Result<Self, RdfAdapterError> {
+        let value = value.into();
+        if value.is_empty()
+            || !value.contains(':')
+            || value
+                .chars()
+                .any(|ch| ch.is_ascii_control() || ch.is_ascii_whitespace())
+        {
+            return Err(RdfAdapterError::new(format!("invalid IRI {value:?}")));
+        }
+        Ok(Self { value })
+    }
+
+    /// Borrow the IRI string.
+    pub fn as_str(&self) -> &str {
+        &self.value
+    }
+}
+
+impl fmt::Display for Iri {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// RDF blank node label.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct BlankNode {
+    label: String,
+}
+
+impl BlankNode {
+    /// Create a blank node label.
+    pub fn new(label: impl Into<String>) -> Result<Self, RdfAdapterError> {
+        let label = label.into();
+        if label.is_empty()
+            || label
+                .chars()
+                .any(|ch| ch.is_ascii_control() || ch.is_ascii_whitespace())
+        {
+            return Err(RdfAdapterError::new(format!(
+                "invalid blank-node identifier {label:?}"
+            )));
+        }
+        Ok(Self { label })
+    }
+
+    /// Borrow the blank node label.
+    pub fn as_str(&self) -> &str {
+        &self.label
+    }
+}
+
+impl fmt::Display for BlankNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "_:{}", self.as_str())
+    }
+}
+
+/// RDF subject node: IRI or blank node.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum NamedOrBlankNode {
+    /// IRI node.
+    Iri(Iri),
+    /// Blank node.
+    BlankNode(BlankNode),
+}
+
+impl fmt::Display for NamedOrBlankNode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Iri(iri) => write!(f, "<{iri}>"),
+            Self::BlankNode(node) => node.fmt(f),
+        }
+    }
+}
+
+impl From<Iri> for NamedOrBlankNode {
+    fn from(value: Iri) -> Self {
+        Self::Iri(value)
+    }
+}
+
+impl From<BlankNode> for NamedOrBlankNode {
+    fn from(value: BlankNode) -> Self {
+        Self::BlankNode(value)
+    }
+}
+
+/// RDF graph name.
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum GraphName {
+    /// Default graph.
+    #[default]
+    DefaultGraph,
+    /// Named graph IRI.
+    Iri(Iri),
+    /// Named graph blank node.
+    BlankNode(BlankNode),
+}
+
+impl GraphName {
+    /// Whether this graph name is the default graph.
+    pub fn is_default_graph(&self) -> bool {
+        matches!(self, Self::DefaultGraph)
+    }
+}
+
+impl fmt::Display for GraphName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DefaultGraph => f.write_str("default graph"),
+            Self::Iri(iri) => write!(f, "<{iri}>"),
+            Self::BlankNode(node) => node.fmt(f),
+        }
+    }
+}
+
+impl From<Iri> for GraphName {
+    fn from(value: Iri) -> Self {
+        Self::Iri(value)
+    }
+}
+
+impl From<BlankNode> for GraphName {
+    fn from(value: BlankNode) -> Self {
+        Self::BlankNode(value)
+    }
+}
+
+/// RDF literal value.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Literal {
+    /// Literal lexical form.
+    pub lexical: String,
+    /// Explicit datatype for typed literals.
+    pub datatype: Option<Iri>,
+    /// Language tag for language-tagged literals.
+    pub language: Option<String>,
+    /// RDF 1.2 base direction for directional language-tagged literals.
+    pub direction: Option<BaseDirection>,
+}
+
+impl Literal {
+    /// Create a simple `xsd:string` literal.
+    pub fn new_simple_literal(lexical: impl Into<String>) -> Self {
+        Self {
+            lexical: lexical.into(),
+            datatype: None,
+            language: None,
+            direction: None,
+        }
+    }
+
+    /// Create a typed literal.
+    pub fn new_typed_literal(lexical: impl Into<String>, datatype: Iri) -> Self {
+        Self {
+            lexical: lexical.into(),
+            datatype: Some(datatype),
+            language: None,
+            direction: None,
+        }
+    }
+
+    /// Create a language-tagged literal.
+    pub fn new_language_tagged_literal(
+        lexical: impl Into<String>,
+        language: impl Into<String>,
+    ) -> Result<Self, RdfAdapterError> {
+        let language = language.into();
+        validate_language_tag(&language)?;
+        Ok(Self {
+            lexical: lexical.into(),
+            datatype: None,
+            language: Some(language),
+            direction: None,
+        })
+    }
+
+    /// Create a directional language-tagged literal.
+    pub fn new_directional_language_tagged_literal(
+        lexical: impl Into<String>,
+        language: impl Into<String>,
+        direction: BaseDirection,
+    ) -> Result<Self, RdfAdapterError> {
+        let language = language.into();
+        validate_language_tag(&language)?;
+        Ok(Self {
+            lexical: lexical.into(),
+            datatype: None,
+            language: Some(language),
+            direction: Some(direction),
+        })
+    }
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.lexical)?;
+        if let Some(language) = &self.language {
+            write!(f, "@{language}")?;
+            if let Some(direction) = self.direction {
+                write!(f, "--{direction}")?;
+            }
+        } else if let Some(datatype) = &self.datatype {
+            write!(f, "^^<{datatype}>")?;
+        }
+        Ok(())
+    }
+}
+
+/// RDF object term.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum RdfTerm {
+    /// IRI node.
+    Iri(Iri),
+    /// Blank node.
+    BlankNode(BlankNode),
+    /// Literal node.
+    Literal(Literal),
+    /// RDF 1.2 quoted triple term.
+    Triple(Box<RdfTriple>),
+}
+
+impl fmt::Display for RdfTerm {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Iri(iri) => write!(f, "<{iri}>"),
+            Self::BlankNode(node) => node.fmt(f),
+            Self::Literal(literal) => literal.fmt(f),
+            Self::Triple(triple) => write!(f, "<<( {triple} )>>"),
+        }
+    }
+}
+
+impl From<Iri> for RdfTerm {
+    fn from(value: Iri) -> Self {
+        Self::Iri(value)
+    }
+}
+
+impl From<BlankNode> for RdfTerm {
+    fn from(value: BlankNode) -> Self {
+        Self::BlankNode(value)
+    }
+}
+
+impl From<Literal> for RdfTerm {
+    fn from(value: Literal) -> Self {
+        Self::Literal(value)
+    }
+}
+
+impl From<RdfTriple> for RdfTerm {
+    fn from(value: RdfTriple) -> Self {
+        Self::Triple(Box::new(value))
+    }
+}
+
+/// RDF 1.2 quoted triple.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RdfTriple {
+    /// Triple subject.
+    pub subject: NamedOrBlankNode,
+    /// Triple predicate.
+    pub predicate: Iri,
+    /// Triple object.
+    pub object: RdfTerm,
+}
+
+impl RdfTriple {
+    /// Create a quoted triple.
+    pub fn new(
+        subject: impl Into<NamedOrBlankNode>,
+        predicate: Iri,
+        object: impl Into<RdfTerm>,
+    ) -> Self {
+        Self {
+            subject: subject.into(),
+            predicate,
+            object: object.into(),
+        }
+    }
+}
+
+impl fmt::Display for RdfTriple {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} <{}> {}", self.subject, self.predicate, self.object)
+    }
+}
+
+/// RDF quad row.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RdfQuad {
+    /// Quad subject.
+    pub subject: NamedOrBlankNode,
+    /// Quad predicate.
+    pub predicate: Iri,
+    /// Quad object.
+    pub object: RdfTerm,
+    /// Quad graph name.
+    pub graph_name: GraphName,
+}
+
+impl RdfQuad {
+    /// Create an RDF quad.
+    pub fn new(
+        subject: impl Into<NamedOrBlankNode>,
+        predicate: Iri,
+        object: impl Into<RdfTerm>,
+        graph_name: impl Into<GraphName>,
+    ) -> Self {
+        Self {
+            subject: subject.into(),
+            predicate,
+            object: object.into(),
+            graph_name: graph_name.into(),
+        }
+    }
+}
+
+impl fmt::Display for RdfQuad {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} <{}> {}", self.subject, self.predicate, self.object)?;
+        if !self.graph_name.is_default_graph() {
+            write!(f, " {}", self.graph_name)?;
+        }
+        f.write_str(" .")
+    }
+}
+
+/// Native RDF dataset.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Dataset {
+    quads: BTreeSet<RdfQuad>,
+}
+
+impl Dataset {
+    /// Create an empty dataset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Insert a quad. Returns `true` if the quad was not already present.
+    pub fn insert(&mut self, quad: RdfQuad) -> bool {
+        self.quads.insert(quad)
+    }
+
+    /// Iterate over quads in deterministic order.
+    pub fn iter(&self) -> impl Iterator<Item = &RdfQuad> {
+        self.quads.iter()
+    }
+
+    /// Number of unique quads.
+    pub fn len(&self) -> usize {
+        self.quads.len()
+    }
+
+    /// Whether the dataset is empty.
+    pub fn is_empty(&self) -> bool {
+        self.quads.is_empty()
+    }
+}
+
+impl<'a> IntoIterator for &'a Dataset {
+    type Item = &'a RdfQuad;
+    type IntoIter = std::collections::btree_set::Iter<'a, RdfQuad>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.quads.iter()
+    }
+}
+
+/// Export options for converting folded GTS graphs into a native RDF dataset.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ExportOptions {
     /// Drop quads/reifier rows that use RDF 1.2 quoted triples in positions
-    /// `oxrdf` cannot represent.
+    /// this dataset surface intentionally does not represent.
     ///
     /// Strict mode is the default. It returns [`RdfAdapterError`] instead of
     /// silently changing the graph.
     pub allow_rdf12_lossy: bool,
 }
 
-/// Convert a folded GTS graph into an `oxrdf::Dataset` in strict mode.
-pub fn to_oxrdf_dataset(graph: &Graph) -> Result<Dataset, RdfAdapterError> {
-    to_oxrdf_dataset_with_options(graph, ExportOptions::default())
+/// Convert a folded GTS graph into a native RDF dataset in strict mode.
+pub fn to_rdf_dataset(graph: &Graph) -> Result<Dataset, RdfAdapterError> {
+    to_rdf_dataset_with_options(graph, ExportOptions::default())
 }
 
-/// Convert a folded GTS graph into an `oxrdf::Dataset`, dropping only RDF 1.2
-/// quoted-triple rows that `oxrdf` cannot represent.
-pub fn to_oxrdf_dataset_lossy(graph: &Graph) -> Result<Dataset, RdfAdapterError> {
-    to_oxrdf_dataset_with_options(
+/// Convert a folded GTS graph into a native RDF dataset, dropping only RDF 1.2
+/// quoted-triple rows that this dataset surface cannot represent.
+pub fn to_rdf_dataset_lossy(graph: &Graph) -> Result<Dataset, RdfAdapterError> {
+    to_rdf_dataset_with_options(
         graph,
         ExportOptions {
             allow_rdf12_lossy: true,
@@ -79,43 +483,38 @@ pub fn to_oxrdf_dataset_lossy(graph: &Graph) -> Result<Dataset, RdfAdapterError>
     )
 }
 
-/// Convert a folded GTS graph into an `oxrdf::Dataset`.
-pub fn to_oxrdf_dataset_with_options(
+/// Convert a folded GTS graph into a native RDF dataset.
+pub fn to_rdf_dataset_with_options(
     graph: &Graph,
     options: ExportOptions,
 ) -> Result<Dataset, RdfAdapterError> {
     let mut dataset = Dataset::new();
-    for quad in to_oxrdf_quads_with_options(graph, options)? {
-        dataset.insert(quad.as_ref());
+    for quad in to_rdf_quads_with_options(graph, options)? {
+        dataset.insert(quad);
     }
     Ok(dataset)
 }
 
-/// Convert a folded GTS graph into `oxrdf::Quad` rows in strict mode.
-///
-/// This is the native RDF row path used by heavier optional store adapters. It
-/// avoids materializing N-Quads text while preserving the same RDF projection as
-/// [`to_oxrdf_dataset`].
-pub fn to_oxrdf_quads(graph: &Graph) -> Result<Vec<OxQuad>, RdfAdapterError> {
-    to_oxrdf_quads_with_options(graph, ExportOptions::default())
+/// Convert a folded GTS graph into native RDF quad rows in strict mode.
+pub fn to_rdf_quads(graph: &Graph) -> Result<Vec<RdfQuad>, RdfAdapterError> {
+    to_rdf_quads_with_options(graph, ExportOptions::default())
 }
 
-/// Convert a folded GTS graph into `oxrdf::Quad` rows with export options.
-pub fn to_oxrdf_quads_with_options(
+/// Convert a folded GTS graph into native RDF quad rows with export options.
+pub fn to_rdf_quads_with_options(
     graph: &Graph,
     options: ExportOptions,
-) -> Result<Vec<OxQuad>, RdfAdapterError> {
+) -> Result<Vec<RdfQuad>, RdfAdapterError> {
     let mut quads = Vec::new();
     let bnode_labels = BnodeLabels::for_graph(graph);
 
     for &(s, p, o, graph_name) in &graph.quads {
-        if let Some(quad) = graph_quad_to_oxrdf(graph, &bnode_labels, s, p, o, graph_name, options)?
-        {
+        if let Some(quad) = graph_quad_to_rdf(graph, &bnode_labels, s, p, o, graph_name, options)? {
             quads.push(quad);
         }
     }
 
-    let rdf_reifies = named_node(RDF_REIFIES, "rdf:reifies predicate")?;
+    let rdf_reifies = Iri::new(RDF_REIFIES)?;
     for &(rid, (s, p, o)) in &graph.reifiers {
         if is_internal_triple_self_binding(graph, rid) {
             continue;
@@ -129,17 +528,16 @@ pub fn to_oxrdf_quads_with_options(
         else {
             continue;
         };
-        let quad = OxQuad::new(
+        quads.push(RdfQuad::new(
             subject,
             rdf_reifies.clone(),
-            OxTerm::Triple(Box::new(object)),
+            RdfTerm::Triple(Box::new(object)),
             GraphName::DefaultGraph,
-        );
-        quads.push(quad);
+        ));
     }
 
     for &(s, p, o) in &graph.annotations {
-        if let Some(quad) = graph_quad_to_oxrdf(graph, &bnode_labels, s, p, o, None, options)? {
+        if let Some(quad) = graph_quad_to_rdf(graph, &bnode_labels, s, p, o, None, options)? {
             quads.push(quad);
         }
     }
@@ -149,29 +547,29 @@ pub fn to_oxrdf_quads_with_options(
 
 /// Alias for callers that do not need the concrete adapter name in their API.
 pub fn to_dataset(graph: &Graph) -> Result<Dataset, RdfAdapterError> {
-    to_oxrdf_dataset(graph)
+    to_rdf_dataset(graph)
 }
 
-/// Convert an `oxrdf::Dataset` into a GTS file using the `dist` profile.
-pub fn from_oxrdf_dataset(dataset: &Dataset) -> Result<Vec<u8>, RdfAdapterError> {
-    from_oxrdf_dataset_with_profile(dataset, "dist")
+/// Convert a native RDF dataset into a GTS file using the `dist` profile.
+pub fn from_rdf_dataset(dataset: &Dataset) -> Result<Vec<u8>, RdfAdapterError> {
+    from_rdf_dataset_with_profile(dataset, "dist")
 }
 
-/// Convert an `oxrdf::Dataset` into a GTS file using the requested profile.
-pub fn from_oxrdf_dataset_with_profile(
+/// Convert a native RDF dataset into a GTS file using the requested profile.
+pub fn from_rdf_dataset_with_profile(
     dataset: &Dataset,
     profile: &str,
 ) -> Result<Vec<u8>, RdfAdapterError> {
-    Ok(writer_from_oxrdf_dataset_with_profile(dataset, profile)?.to_bytes())
+    Ok(writer_from_rdf_dataset_with_profile(dataset, profile)?.to_bytes())
 }
 
-/// Build a [`Writer`] from an `oxrdf::Dataset` using the `dist` profile.
-pub fn writer_from_oxrdf_dataset(dataset: &Dataset) -> Result<Writer, RdfAdapterError> {
-    writer_from_oxrdf_dataset_with_profile(dataset, "dist")
+/// Build a [`Writer`] from a native RDF dataset using the `dist` profile.
+pub fn writer_from_rdf_dataset(dataset: &Dataset) -> Result<Writer, RdfAdapterError> {
+    writer_from_rdf_dataset_with_profile(dataset, "dist")
 }
 
-/// Build a [`Writer`] from an `oxrdf::Dataset` using the requested profile.
-pub fn writer_from_oxrdf_dataset_with_profile(
+/// Build a [`Writer`] from a native RDF dataset using the requested profile.
+pub fn writer_from_rdf_dataset_with_profile(
     dataset: &Dataset,
     profile: &str,
 ) -> Result<Writer, RdfAdapterError> {
@@ -182,21 +580,21 @@ pub fn writer_from_oxrdf_dataset_with_profile(
     for quad in dataset {
         if quad.graph_name.is_default_graph()
             && quad.predicate.as_str() == RDF_REIFIES
-            && matches!(quad.object, OxTermRef::Triple(_))
+            && matches!(quad.object, RdfTerm::Triple(_))
         {
-            let rid = interner.named_or_blank_ref(quad.subject);
-            let OxTermRef::Triple(triple) = quad.object else {
+            let rid = interner.named_or_blank(&quad.subject);
+            let RdfTerm::Triple(triple) = &quad.object else {
                 unreachable!("matched above")
             };
-            let binding = interner.triple_ref(triple.into(), &mut reifiers)?;
+            let binding = interner.triple(triple, &mut reifiers)?;
             insert_reifier(&mut reifiers, rid, binding)?;
             continue;
         }
 
-        let s = interner.named_or_blank_ref(quad.subject);
-        let p = interner.named_node_ref(quad.predicate);
-        let o = interner.term_ref(quad.object, &mut reifiers)?;
-        let g = graph_name_id(quad.graph_name, &mut interner);
+        let s = interner.named_or_blank(&quad.subject);
+        let p = interner.iri(&quad.predicate);
+        let o = interner.term(&quad.object, &mut reifiers)?;
+        let g = graph_name_id(&quad.graph_name, &mut interner);
         quads.push((s, p, o, g));
     }
 
@@ -223,10 +621,10 @@ pub fn writer_from_oxrdf_dataset_with_profile(
 
 /// Alias for callers that do not need the concrete adapter name in their API.
 pub fn from_dataset(dataset: &Dataset) -> Result<Vec<u8>, RdfAdapterError> {
-    from_oxrdf_dataset(dataset)
+    from_rdf_dataset(dataset)
 }
 
-fn graph_quad_to_oxrdf(
+fn graph_quad_to_rdf(
     graph: &Graph,
     bnode_labels: &BnodeLabels,
     s: usize,
@@ -234,7 +632,7 @@ fn graph_quad_to_oxrdf(
     o: usize,
     graph_name: Option<usize>,
     options: ExportOptions,
-) -> Result<Option<OxQuad>, RdfAdapterError> {
+) -> Result<Option<RdfQuad>, RdfAdapterError> {
     let Some(subject) = named_or_blank_term(graph, bnode_labels, s, "quad subject", options)?
     else {
         return Ok(None);
@@ -242,38 +640,25 @@ fn graph_quad_to_oxrdf(
     let Some(predicate) = predicate_term(graph, p, "quad predicate", options)? else {
         return Ok(None);
     };
-    let Some(object) = oxrdf_term(graph, bnode_labels, o, "quad object", options)? else {
+    let Some(object) = rdf_term(graph, bnode_labels, o, "quad object", options)? else {
         return Ok(None);
     };
     let Some(graph_name) = graph_name_term(graph, bnode_labels, graph_name, options)? else {
         return Ok(None);
     };
-    Ok(Some(OxQuad::new(subject, predicate, object, graph_name)))
+    Ok(Some(RdfQuad::new(subject, predicate, object, graph_name)))
 }
 
-fn graph_term<'a>(graph: &'a Graph, id: usize, role: &str) -> Result<&'a Term, RdfAdapterError> {
+fn graph_term<'a>(graph: &'a Graph, id: usize, role: &str) -> Result<&'a GtsTerm, RdfAdapterError> {
     graph
         .terms
         .get(id)
         .ok_or_else(|| RdfAdapterError::new(format!("{role} references missing term id {id}")))
 }
 
-fn term_value<'a>(term: &'a Term, role: &str, id: usize) -> Result<&'a str, RdfAdapterError> {
+fn term_value<'a>(term: &'a GtsTerm, role: &str, id: usize) -> Result<&'a str, RdfAdapterError> {
     term.value.as_deref().ok_or_else(|| {
         RdfAdapterError::new(format!("{role} term id {id} is missing its lexical value"))
-    })
-}
-
-fn named_node(value: &str, role: &str) -> Result<NamedNode, RdfAdapterError> {
-    NamedNode::new(value)
-        .map_err(|err| RdfAdapterError::new(format!("{role} has invalid IRI {value:?}: {err}")))
-}
-
-fn blank_node(value: &str, role: &str) -> Result<BlankNode, RdfAdapterError> {
-    BlankNode::new(value).map_err(|err| {
-        RdfAdapterError::new(format!(
-            "{role} has invalid blank-node identifier {value:?}: {err}"
-        ))
     })
 }
 
@@ -286,14 +671,14 @@ fn named_or_blank_term(
 ) -> Result<Option<NamedOrBlankNode>, RdfAdapterError> {
     let term = graph_term(graph, id, role)?;
     match term.kind {
-        TermKind::Iri => Ok(Some(named_node(term_value(term, role, id)?, role)?.into())),
+        TermKind::Iri => Ok(Some(Iri::new(term_value(term, role, id)?)?.into())),
         TermKind::Bnode => {
             let label = bnode_labels.label(term, id);
-            Ok(Some(blank_node(&label, role)?.into()))
+            Ok(Some(BlankNode::new(label.as_ref())?.into()))
         }
         TermKind::Triple if options.allow_rdf12_lossy => Ok(None),
         TermKind::Triple => Err(RdfAdapterError::new(format!(
-            "{role} term id {id} is an RDF 1.2 quoted triple; oxrdf cannot represent quoted triples in this position"
+            "{role} term id {id} is an RDF 1.2 quoted triple; this dataset surface does not represent quoted triples in this position"
         ))),
         TermKind::Literal => Err(RdfAdapterError::new(format!(
             "{role} term id {id} is a literal, but RDF requires an IRI or blank node"
@@ -306,10 +691,10 @@ fn predicate_term(
     id: usize,
     role: &str,
     options: ExportOptions,
-) -> Result<Option<NamedNode>, RdfAdapterError> {
+) -> Result<Option<Iri>, RdfAdapterError> {
     let term = graph_term(graph, id, role)?;
     match term.kind {
-        TermKind::Iri => Ok(Some(named_node(term_value(term, role, id)?, role)?)),
+        TermKind::Iri => Ok(Some(Iri::new(term_value(term, role, id)?)?)),
         TermKind::Triple if options.allow_rdf12_lossy => Ok(None),
         TermKind::Triple => Err(RdfAdapterError::new(format!(
             "{role} term id {id} is an RDF 1.2 quoted triple; RDF predicates must be IRIs"
@@ -320,19 +705,19 @@ fn predicate_term(
     }
 }
 
-fn oxrdf_term(
+fn rdf_term(
     graph: &Graph,
     bnode_labels: &BnodeLabels,
     id: usize,
     role: &str,
     options: ExportOptions,
-) -> Result<Option<OxTerm>, RdfAdapterError> {
+) -> Result<Option<RdfTerm>, RdfAdapterError> {
     let term = graph_term(graph, id, role)?;
     match term.kind {
-        TermKind::Iri => Ok(Some(named_node(term_value(term, role, id)?, role)?.into())),
+        TermKind::Iri => Ok(Some(Iri::new(term_value(term, role, id)?)?.into())),
         TermKind::Bnode => {
             let label = bnode_labels.label(term, id);
-            Ok(Some(blank_node(&label, role)?.into()))
+            Ok(Some(BlankNode::new(label.as_ref())?.into()))
         }
         TermKind::Literal => Ok(Some(literal_term(graph, term, id, role)?.into())),
         TermKind::Triple => {
@@ -345,7 +730,7 @@ fn oxrdf_term(
                 )));
             };
             Ok(quoted_triple(graph, bnode_labels, s, p, o, role, options)?
-                .map(|triple| OxTerm::Triple(Box::new(triple))))
+                .map(|triple| RdfTerm::Triple(Box::new(triple))))
         }
     }
 }
@@ -361,14 +746,14 @@ fn graph_name_term(
     };
     let term = graph_term(graph, id, "graph name")?;
     match term.kind {
-        TermKind::Iri => Ok(Some(named_node(term_value(term, "graph name", id)?, "graph name")?.into())),
+        TermKind::Iri => Ok(Some(Iri::new(term_value(term, "graph name", id)?)?.into())),
         TermKind::Bnode => {
             let label = bnode_labels.label(term, id);
-            Ok(Some(blank_node(&label, "graph name")?.into()))
+            Ok(Some(BlankNode::new(label.as_ref())?.into()))
         }
         TermKind::Triple if options.allow_rdf12_lossy => Ok(None),
         TermKind::Triple => Err(RdfAdapterError::new(format!(
-            "graph name term id {id} is an RDF 1.2 quoted triple; oxrdf cannot represent quoted triples in this position"
+            "graph name term id {id} is an RDF 1.2 quoted triple; this dataset surface does not represent quoted triples in this position"
         ))),
         TermKind::Literal => Err(RdfAdapterError::new(format!(
             "graph name term id {id} is a literal, but RDF graph names must be IRIs or blank nodes"
@@ -384,22 +769,22 @@ fn quoted_triple(
     o: usize,
     role: &str,
     options: ExportOptions,
-) -> Result<Option<OxTriple>, RdfAdapterError> {
+) -> Result<Option<RdfTriple>, RdfAdapterError> {
     let Some(subject) = named_or_blank_term(graph, bnode_labels, s, role, options)? else {
         return Ok(None);
     };
     let Some(predicate) = predicate_term(graph, p, role, options)? else {
         return Ok(None);
     };
-    let Some(object) = oxrdf_term(graph, bnode_labels, o, role, options)? else {
+    let Some(object) = rdf_term(graph, bnode_labels, o, role, options)? else {
         return Ok(None);
     };
-    Ok(Some(OxTriple::new(subject, predicate, object)))
+    Ok(Some(RdfTriple::new(subject, predicate, object)))
 }
 
 fn literal_term(
     graph: &Graph,
-    term: &Term,
+    term: &GtsTerm,
     id: usize,
     role: &str,
 ) -> Result<Literal, RdfAdapterError> {
@@ -419,42 +804,42 @@ fn literal_term(
                 )));
             }
         };
-        return Literal::new_directional_language_tagged_literal(value, lang, direction).map_err(
-            |err| {
-                RdfAdapterError::new(format!(
-                    "{role} literal term id {id} has invalid language tag {lang:?}: {err}"
-                ))
-            },
-        );
+        return Literal::new_directional_language_tagged_literal(value, lang, direction);
     }
     if let Some(lang) = &term.lang {
-        return Literal::new_language_tagged_literal(value, lang).map_err(|err| {
-            RdfAdapterError::new(format!(
-                "{role} literal term id {id} has invalid language tag {lang:?}: {err}"
-            ))
-        });
+        return Literal::new_language_tagged_literal(value, lang);
     }
 
     let datatype = graph.datatype_iri(term);
     if datatype == XSD_STRING {
         Ok(Literal::new_simple_literal(value))
     } else {
-        Ok(Literal::new_typed_literal(
-            value,
-            named_node(&datatype, "literal datatype")?,
-        ))
+        Ok(Literal::new_typed_literal(value, Iri::new(datatype)?))
     }
 }
 
 fn is_internal_triple_self_binding(graph: &Graph, rid: usize) -> bool {
     matches!(
         graph.terms.get(rid),
-        Some(Term {
+        Some(GtsTerm {
             kind: TermKind::Triple,
             reifier: Some(reifier),
             ..
         }) if *reifier == rid
     )
+}
+
+fn validate_language_tag(language: &str) -> Result<(), RdfAdapterError> {
+    if language.is_empty()
+        || language
+            .chars()
+            .any(|ch| ch.is_ascii_control() || ch.is_ascii_whitespace())
+    {
+        return Err(RdfAdapterError::new(format!(
+            "invalid language tag {language:?}"
+        )));
+    }
+    Ok(())
 }
 
 struct BnodeLabels {
@@ -488,7 +873,7 @@ impl BnodeLabels {
         Self { generated }
     }
 
-    fn label<'a>(&'a self, term: &'a Term, id: usize) -> Cow<'a, str> {
+    fn label<'a>(&'a self, term: &'a GtsTerm, id: usize) -> Cow<'a, str> {
         match &term.value {
             Some(value) => Cow::Borrowed(value),
             None => Cow::Borrowed(
@@ -500,11 +885,11 @@ impl BnodeLabels {
     }
 }
 
-fn graph_name_id(graph_name: GraphNameRef<'_>, interner: &mut Interner) -> Option<usize> {
+fn graph_name_id(graph_name: &GraphName, interner: &mut Interner) -> Option<usize> {
     match graph_name {
-        GraphNameRef::DefaultGraph => None,
-        GraphNameRef::NamedNode(node) => Some(interner.named_node_ref(node)),
-        GraphNameRef::BlankNode(node) => Some(interner.blank_node_ref(node)),
+        GraphName::DefaultGraph => None,
+        GraphName::Iri(iri) => Some(interner.iri(iri)),
+        GraphName::BlankNode(node) => Some(interner.blank_node(node)),
     }
 }
 
@@ -523,7 +908,7 @@ enum TermKey {
 
 struct Interner {
     ids: HashMap<TermKey, usize>,
-    terms: Vec<Term>,
+    terms: Vec<GtsTerm>,
 }
 
 impl Interner {
@@ -534,8 +919,8 @@ impl Interner {
         }
     }
 
-    fn named_node_ref(&mut self, node: NamedNodeRef<'_>) -> usize {
-        self.intern(TermKey::Iri(node.as_str().to_string()), || Term {
+    fn iri(&mut self, node: &Iri) -> usize {
+        self.intern(TermKey::Iri(node.as_str().to_string()), || GtsTerm {
             kind: TermKind::Iri,
             value: Some(node.as_str().to_string()),
             datatype: None,
@@ -545,8 +930,8 @@ impl Interner {
         })
     }
 
-    fn blank_node_ref(&mut self, node: BlankNodeRef<'_>) -> usize {
-        self.intern(TermKey::Bnode(node.as_str().to_string()), || Term {
+    fn blank_node(&mut self, node: &BlankNode) -> usize {
+        self.intern(TermKey::Bnode(node.as_str().to_string()), || GtsTerm {
             kind: TermKind::Bnode,
             value: Some(node.as_str().to_string()),
             datatype: None,
@@ -556,26 +941,27 @@ impl Interner {
         })
     }
 
-    fn named_or_blank_ref(&mut self, node: NamedOrBlankNodeRef<'_>) -> usize {
+    fn named_or_blank(&mut self, node: &NamedOrBlankNode) -> usize {
         match node {
-            NamedOrBlankNodeRef::NamedNode(node) => self.named_node_ref(node),
-            NamedOrBlankNodeRef::BlankNode(node) => self.blank_node_ref(node),
+            NamedOrBlankNode::Iri(node) => self.iri(node),
+            NamedOrBlankNode::BlankNode(node) => self.blank_node(node),
         }
     }
 
-    fn literal_ref(&mut self, literal: LiteralRef<'_>) -> usize {
-        let value = literal.value().to_string();
-        let lang = literal.language().map(str::to_string);
-        let direction = literal.direction().map(|direction| direction.to_string());
-        let datatype_id = if lang.is_some() {
+    fn literal(&mut self, literal: &Literal) -> usize {
+        let datatype_id = if literal.language.is_some() {
             None
         } else {
-            let datatype = literal.datatype().as_str();
+            let datatype = literal
+                .datatype
+                .as_ref()
+                .map(|iri| iri.as_str())
+                .unwrap_or(XSD_STRING);
             if datatype == XSD_STRING || datatype == RDF_LANG_STRING {
                 None
             } else {
                 let iri = datatype.to_string();
-                Some(self.intern(TermKey::Iri(iri.clone()), || Term {
+                Some(self.intern(TermKey::Iri(iri.clone()), || GtsTerm {
                     kind: TermKind::Iri,
                     value: Some(iri),
                     datatype: None,
@@ -585,39 +971,42 @@ impl Interner {
                 }))
             }
         };
+        let direction = literal
+            .direction
+            .map(|direction| direction.as_str().to_string());
         let key = TermKey::Literal {
-            value: value.clone(),
-            lang: lang.clone(),
+            value: literal.lexical.clone(),
+            lang: literal.language.clone(),
             direction: direction.clone(),
             datatype: datatype_id,
         };
-        self.intern(key, || Term {
+        self.intern(key, || GtsTerm {
             kind: TermKind::Literal,
-            value: Some(value),
+            value: Some(literal.lexical.clone()),
             datatype: datatype_id,
-            lang,
+            lang: literal.language.clone(),
             direction,
             reifier: None,
         })
     }
 
-    fn term_ref(
+    fn term(
         &mut self,
-        term: OxTermRef<'_>,
+        term: &RdfTerm,
         reifiers: &mut BTreeMap<usize, Triple3>,
     ) -> Result<usize, RdfAdapterError> {
         match term {
-            OxTermRef::NamedNode(node) => Ok(self.named_node_ref(node)),
-            OxTermRef::BlankNode(node) => Ok(self.blank_node_ref(node)),
-            OxTermRef::Literal(literal) => Ok(self.literal_ref(literal)),
-            OxTermRef::Triple(triple) => {
-                let (s, p, o) = self.triple_ref(triple.into(), reifiers)?;
+            RdfTerm::Iri(node) => Ok(self.iri(node)),
+            RdfTerm::BlankNode(node) => Ok(self.blank_node(node)),
+            RdfTerm::Literal(literal) => Ok(self.literal(literal)),
+            RdfTerm::Triple(triple) => {
+                let (s, p, o) = self.triple(triple, reifiers)?;
                 let key = TermKey::Triple(s, p, o);
                 if let Some(id) = self.ids.get(&key) {
                     return Ok(*id);
                 }
                 let id = self.terms.len();
-                self.terms.push(Term {
+                self.terms.push(GtsTerm {
                     kind: TermKind::Triple,
                     value: None,
                     datatype: None,
@@ -632,19 +1021,19 @@ impl Interner {
         }
     }
 
-    fn triple_ref(
+    fn triple(
         &mut self,
-        triple: OxTripleRef<'_>,
+        triple: &RdfTriple,
         reifiers: &mut BTreeMap<usize, Triple3>,
     ) -> Result<Triple3, RdfAdapterError> {
         Ok((
-            self.named_or_blank_ref(triple.subject),
-            self.named_node_ref(triple.predicate),
-            self.term_ref(triple.object, reifiers)?,
+            self.named_or_blank(&triple.subject),
+            self.iri(&triple.predicate),
+            self.term(&triple.object, reifiers)?,
         ))
     }
 
-    fn intern(&mut self, key: TermKey, make: impl FnOnce() -> Term) -> usize {
+    fn intern(&mut self, key: TermKey, make: impl FnOnce() -> GtsTerm) -> usize {
         if let Some(id) = self.ids.get(&key) {
             return *id;
         }
