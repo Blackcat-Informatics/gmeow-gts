@@ -396,7 +396,7 @@ dependencies = [
 
 [[package]]
 name = "gmeow-gts"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "aes-gcm",
  "blake3",
@@ -405,7 +405,6 @@ dependencies = [
  "filetime",
  "flate2",
  "getrandom 0.2.17",
- "gmeow-rdf-events",
  "libc",
  "oxrdf",
  "oxrdfxml",
@@ -427,10 +426,6 @@ dependencies = [
  "gmeow-gts",
  "serde_json",
 ]
-
-[[package]]
-name = "gmeow-rdf-events"
-version = "0.1.0"
 
 [[package]]
 name = "half"

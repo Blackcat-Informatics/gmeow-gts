@@ -31,9 +31,9 @@ release revision; generate the stamped artifact described below.
 | Date | |
 
 Before choosing a pre-release package version, verify the string is accepted by
-Cargo, PyPI, npm, and the repository lockstep guard. If ecosystem syntax differs
+Cargo, PyPI, npm, and the repository version guard. If ecosystem syntax differs
 for the same release candidate, record the exact per-ecosystem versions here and
-update the release guard before tagging. A version-string mismatch is a release
+update the release guard before tagging. A tag/manifest mismatch is a release
 blocker because the tag workflows verify manifest versions before publishing.
 
 ## 2. Blocker Classification
