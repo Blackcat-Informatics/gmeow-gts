@@ -57,6 +57,7 @@ check_contains "README.md" "gmeow-gts = { version = \"$rust_v\"" "README Rust fe
 check_contains "rust/README.md" "gmeow-gts = \"$rust_v\"" "Rust README dependency snippet"
 check_contains "docs/GTS-ECOSYSTEM-INTEGRATIONS.md" "gmeow-gts = { version = \"$rust_v\"" "ecosystem Rust feature snippet"
 check_contains "rust/capi/Cargo.toml" "gmeow-gts = { version = \"$rust_v\"" "C ABI Rust dependency"
+check_contains "rust/capi/gts.pc.in" "Version: $rust_v" "C ABI pkg-config template version"
 check_contains "README.md" "Runtime support policy: Python $py_floor, Node.js $node_floor, and Go $go_floor" "README runtime support policy"
 
 for file in CITATION.cff rust/Cargo.toml python/pyproject.toml; do
