@@ -236,9 +236,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-`cargo install gmeow-gts` installs the `gts` binary. Advanced Rust feature flags, evented
-projection APIs, encryption/signing, proof generation, RDF/store adapters, and database export
-details live in [`rust/README.md`](./rust/README.md).
+`cargo install gmeow-gts` installs the `gts` binary. The Rust crate uses native RDF dataset,
+native RDF text-codec, native RDF/XML, and native in-memory store features rather than in-crate
+Oxigraph/OxRDF/Sophia adapters; CI keeps the `wasm32-unknown-unknown` all-features library
+build locked and audits that dependency tree. Advanced Rust feature flags, evented projection
+APIs, encryption/signing, proof generation, RDF/store adapters, and database export details live
+in [`rust/README.md`](./rust/README.md).
 
 ### Go
 

@@ -1642,6 +1642,7 @@ fn create_socket(target: &Path, entry: &FileEntry) -> Result<(), String> {
         .map_err(|e| format!("create socket {target:?} for {}: {e}", entry.path))
 }
 
+#[cfg(unix)]
 fn sanitized_mode(mode: u32, preserve_setid: bool) -> u32 {
     if preserve_setid {
         mode & 0o7777

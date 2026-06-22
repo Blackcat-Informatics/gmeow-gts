@@ -215,6 +215,10 @@ does not publish an in-crate Sophia adapter, because Sophia's N-Quads stack pull
 UUID generation into the all-features dependency graph. The native `rdf`,
 `native-store`, and `rdf-codecs` features cover the in-crate structured and text
 interop paths while preserving `wasm32-unknown-unknown` builds.
+CI also treats all-features wasm as a permanent Rust library contract:
+`scripts/check_rust_wasm_dependency_audit.py` checks the
+`wasm32-unknown-unknown --all-features` normal/build dependency tree and fails if
+Oxigraph/OxRDF/OxTTL/OxRDFXML, Sophia crates, `uuid`, or `getrandom` 0.3 return.
 
 Strict export is the default. GTS reifiers project to RDF 1.2 triple terms in
 object position. If a GTS graph uses quoted triples in positions the native
