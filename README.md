@@ -706,6 +706,7 @@ Each engine publishes to its native registry from this repo via a tag-triggered 
 | TypeScript | npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
 | C ABI source crate | crates.io (bootstrap token first publish) | `capi-v*` | [`release-cargo-capi.yaml`](./.github/workflows/release-cargo-capi.yaml) |
 | C ABI native assets | GitHub Releases (immutable archives) | `capi-v*` | [`release-capi.yaml`](./.github/workflows/release-capi.yaml) |
+| Ruby | RubyGems (trusted publishing) | `ruby-v*` | [`release-rubygems.yaml`](./.github/workflows/release-rubygems.yaml) |
 
 Rust crate publication uses crates.io Trusted Publishing through GitHub Actions
 OIDC. Configure the `gmeow-gts` Trusted Publisher entry with owner/repo
@@ -742,6 +743,11 @@ Swift Package Manager publication uses the repository root `Package.swift`, the
 plain semantic-version tag lane such as `0.9.4`, and manual Swift Package Index
 submission of `https://github.com/Blackcat-Informatics/gmeow-gts.git` after the
 tag exists.
+RubyGems publication uses RubyGems Trusted Publishing through GitHub Actions
+OIDC. Configure the `gmeow-gts` pending Trusted Publisher entry with owner/repo
+`Blackcat-Informatics/gmeow-gts`, workflow `release-rubygems.yaml`, and
+environment `(none)`. The Ruby gem is source-only and expects `libgts` to be
+provided by the host at runtime.
 The current SLSA posture is documented in
 [`GTS-RELEASE-SLSA.md`](./docs/GTS-RELEASE-SLSA.md): artifact attestations are
 treated as SLSA v1.0 Build Level 2 evidence, and Build Level 3 is not claimed

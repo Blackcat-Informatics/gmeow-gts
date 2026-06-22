@@ -38,6 +38,7 @@ except for `visual-hashing`, which now publishes from its standalone repository:
 | Rust `visual-hashing` crate | `Blackcat-Informatics/visual-hashing:.github/workflows/release.yml` | crates.io Trusted Publishing through GitHub Actions OIDC |
 | Python package | `.github/workflows/release-pypi.yml` | PyPI trusted publishing with package attestations |
 | TypeScript package | `.github/workflows/release-npm.yaml` | npm trusted publishing and npm provenance |
+| Ruby package | `.github/workflows/release-rubygems.yaml` | RubyGems Trusted Publishing through GitHub Actions OIDC |
 | Go CLI assets | `.github/workflows/release-go.yaml` | Immutable GitHub Release assets |
 | C ABI native assets | `.github/workflows/release-capi.yaml` | Immutable GitHub Release archives |
 
@@ -70,6 +71,7 @@ The current evidence durability is:
 | crates.io `gmeow-gts-capi` | Registry-hosted `.crate` package | GitHub SLSA provenance and SPDX SBOM attestations; bootstrap token until Trusted Publishing follow-up lands |
 | PyPI | Registry-hosted wheel and sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
 | npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |
+| RubyGems | Registry-hosted `.gem` package | GitHub SLSA provenance and SPDX SBOM attestations |
 
 ## Future Build Level 3 Path
 

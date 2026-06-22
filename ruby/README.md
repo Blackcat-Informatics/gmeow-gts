@@ -29,6 +29,19 @@ ruby -I ruby/lib ruby/tests/smoke.rb vectors/01-minimal.gts
 On macOS use `libgts.dylib`; on Windows use `gts.dll`. If `GTS_LIBGTS` is not
 set, the wrapper asks the platform dynamic loader for the default library name.
 
+## RubyGems Installation
+
+The published `gmeow-gts` gem is source-only. It ships the Ruby FFI wrapper and
+declares the `ffi` dependency, but it does not vendor `libgts`.
+
+```sh
+gem install gmeow-gts
+export GTS_LIBGTS=/path/to/libgts.so
+ruby -rgmeow/gts -e 'puts Gmeow::Gts.load.version'
+```
+
+On macOS set `GTS_LIBGTS` to the `.dylib`; on Windows set it to `gts.dll`.
+
 ## API Shape
 
 ```ruby
@@ -100,5 +113,7 @@ bash ruby/scripts/smoke.sh
 
 The script builds `libgts`, validates the gemspec, and exercises ABI metadata,
 capabilities, read/fold, verify, N-Quads export/import, structured errors, and
-files-profile pack/diff/unpack. If local Ruby with the `ffi` gem is missing, it
-uses the pinned fallback image defined in `ruby/Dockerfile`.
+files-profile pack/diff/unpack. It runs the smoke once from the checkout and
+once through an installed local gem with the checkout removed from Ruby's load
+path. If local Ruby with the `ffi` gem is missing, it uses the pinned fallback
+image defined in `ruby/Dockerfile`.
