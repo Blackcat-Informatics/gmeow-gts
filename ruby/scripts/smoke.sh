@@ -38,10 +38,12 @@ run_smoke() {
   local gem_home="${TMP}/gems"
   local base_gem_path
   local gem_path
+  local sep
 
   mkdir -p "${gem_home}"
-  base_gem_path="$(ruby -e 'puts Gem.path.join(":")')"
-  gem_path="${gem_home}:${base_gem_path}"
+  sep="$(ruby -e 'puts File::PATH_SEPARATOR')"
+  base_gem_path="$(ruby -e 'puts Gem.path.join(File::PATH_SEPARATOR)')"
+  gem_path="${gem_home}${sep}${base_gem_path}"
 
   (cd ruby && gem build gmeow-gts.gemspec --output "${gem_file}" >/dev/null)
   ruby -I ruby/lib ruby/tests/smoke.rb "${VECTOR}"
@@ -77,8 +79,9 @@ else
       gem_file="${tmp}/gmeow-gts-ruby-smoke.gem"
       gem_home="${tmp}/gems"
       mkdir -p "${gem_home}"
-      base_gem_path="$(ruby -e "puts Gem.path.join(\":\")")"
-      gem_path="${gem_home}:${base_gem_path}"
+      sep="$(ruby -e "puts File::PATH_SEPARATOR")"
+      base_gem_path="$(ruby -e "puts Gem.path.join(File::PATH_SEPARATOR)")"
+      gem_path="${gem_home}${sep}${base_gem_path}"
       cd ruby
       gem build gmeow-gts.gemspec --output "${gem_file}" >/dev/null
       cd /workspace

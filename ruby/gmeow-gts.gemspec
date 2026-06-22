@@ -3,13 +3,13 @@
 
 root = File.expand_path(__dir__)
 lib = File.join(root, "lib")
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-
-require "gmeow/gts"
+version_file = File.join(lib, "gmeow", "gts.rb")
+version = File.read(version_file, encoding: "UTF-8")[/^\s*VERSION\s*=\s*"([^"]+)"/, 1]
+raise "Unable to find Gmeow::Gts::VERSION in #{version_file}" if version.nil?
 
 Gem::Specification.new do |spec|
   spec.name = "gmeow-gts"
-  spec.version = Gmeow::Gts::VERSION
+  spec.version = version
   spec.authors = ["Blackcat Informatics"]
   spec.email = ["paudley@blackcatinformatics.ca"]
   spec.summary = "Ruby FFI wrapper for the source-only GTS C ABI."
