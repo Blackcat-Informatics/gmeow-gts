@@ -94,12 +94,21 @@ cmake -S "${tmp}" -B "${tmp}/build" -DCMAKE_PREFIX_PATH="${prefix}" >/dev/null
 cmake --build "${tmp}/build" >/dev/null
 "${tmp}/build/cmake-smoke"
 
+rpath_opts=()
+if [ "${library_env}" != PATH ]; then
+  rpath_opts=("-Wl,-rpath,${prefix}/lib")
+fi
+pkg_cflags=()
+pkg_libs=()
+read -r -a pkg_cflags <<< "$(pkg-config --cflags gts)"
+read -r -a pkg_libs <<< "$(pkg-config --libs gts)"
+
 cc -std=c11 -Wall -Wextra -Werror \
   -D_GNU_SOURCE \
-  $(pkg-config --cflags gts) \
+  "${pkg_cflags[@]}" \
   "${ROOT}/rust/capi/examples/smoke.c" \
-  $(pkg-config --libs gts) \
-  -Wl,-rpath,"${prefix}/lib" \
+  "${pkg_libs[@]}" \
+  "${rpath_opts[@]}" \
   -o "${tmp}/gts-capi-smoke"
 "${tmp}/gts-capi-smoke" "${ROOT}/vectors/01-minimal.gts"
 

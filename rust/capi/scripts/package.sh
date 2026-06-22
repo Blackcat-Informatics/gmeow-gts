@@ -5,12 +5,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
-TARGET="${CAPI}/target/release"
 DIST="${ROOT}/dist/capi"
 
 metadata_value() {
   cargo metadata --manifest-path "${CAPI}/Cargo.toml" --no-deps --format-version 1 \
     | python3 -c "import json,sys; print(json.load(sys.stdin)['packages'][0]['$1'])"
+}
+
+target_directory() {
+  cargo metadata --manifest-path "${CAPI}/Cargo.toml" --no-deps --format-version 1 \
+    | python3 -c "import json,sys; print(json.load(sys.stdin)['target_directory'])"
 }
 
 sha256_file() {
@@ -25,6 +29,7 @@ sha256_file() {
 }
 
 VERSION="${GTS_CAPI_VERSION:-$(metadata_value version)}"
+TARGET="$(target_directory)/release"
 ABI_VERSION="$(
   sed -n 's/^#define GTS_ABI_VERSION \([0-9][0-9]*\).*/\1/p' "${CAPI}/include/gts.h" \
     | head -n 1
