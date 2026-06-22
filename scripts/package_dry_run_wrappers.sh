@@ -221,6 +221,7 @@ mkdir -p \
   "${OUT}/cpp" \
   "${OUT}/dotnet" \
   "${OUT}/lua" \
+  "${OUT}/native" \
   "${OUT}/php" \
   "${OUT}/r" \
   "${OUT}/ruby" \
@@ -278,6 +279,10 @@ read -r -a pkg_libs <<< "$(pkg-config --libs gts)"
   "-Wl,-rpath,${archive_prefix}/lib" \
   -o "${OUT}/cpp/gts-cpp-archive-smoke"
 "${OUT}/cpp/gts-cpp-archive-smoke" vectors/01-minimal.gts
+
+log "Conan and vcpkg native package-manager dry-runs"
+GTS_NATIVE_PACKAGE_DRY_RUN_OUT="${OUT}/native" \
+  bash scripts/package_dry_run_native_managers.sh
 
 log ".NET pack and local NuGet consumer"
 run_dotnet pack dotnet/Gmeow.Gts/Gmeow.Gts.csproj -c Release -o "${OUT_REL}/dotnet"

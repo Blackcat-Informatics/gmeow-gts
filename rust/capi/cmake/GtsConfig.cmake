@@ -6,6 +6,7 @@ include_guard(GLOBAL)
 set(_GTS_PREFIX "")
 foreach(_GTS_CANDIDATE
     "${CMAKE_CURRENT_LIST_DIR}/../../.."
+    "${CMAKE_CURRENT_LIST_DIR}/../.."
     "${CMAKE_CURRENT_LIST_DIR}/..")
   get_filename_component(_GTS_CANDIDATE_ABS "${_GTS_CANDIDATE}" ABSOLUTE)
   if(EXISTS "${_GTS_CANDIDATE_ABS}/include/gts.h")

@@ -363,9 +363,9 @@ bash scripts/package_dry_run_wrappers.sh
 ```
 
 The dry-run builds local package artifacts or package metadata for the C ABI,
-C++, .NET, PHP, Lua, Swift, Ruby, R, and Julia wrapper family without registry
-credentials. CI uploads the resulting `dist/package-dry-runs/` evidence from
-the `wrapper-package-dry-runs` job.
+C++, Conan, vcpkg, .NET, PHP, Lua, Swift, Ruby, R, and Julia wrapper family
+without registry credentials. CI uploads the resulting `dist/package-dry-runs/`
+evidence from the `wrapper-package-dry-runs` job.
 
 Each wrapper README documents local toolchain requirements, `libgts` discovery (`GTS_LIBGTS`,
 `GTS_LIB_DIR`, or platform loader defaults where supported), ownership rules, threading
@@ -382,6 +382,20 @@ Release archives include `include/gts.h`, `include/gts/gts.hpp`, shared/static
 native libraries, pkg-config and CMake metadata, license files, checksums, SBOM
 evidence, and provenance attestations. Wrapper packages remain source-only and
 resolve a locally built or separately installed `libgts`.
+
+Local C/C++ package-manager dry-runs use the first-party package name
+`gmeow-gts`:
+
+```bash
+bash scripts/package_dry_run_native_managers.sh
+```
+
+The Conan recipe builds the Rust-backed C ABI from the source tree and packages
+the same install layout as the release archive. The vcpkg overlay port validates
+the same layout from a local checkout by setting `GMEOW_GTS_SOURCE_PATH`; an
+upstream vcpkg PR should replace that local source hook with the tagged release
+source and its checksum. Both package-manager checks build the shared
+`packaging/native-consumer` CMake fixture and link `Gts::gts`.
 
 ## Command-line interface
 
