@@ -24,6 +24,7 @@ esac
 
 DOTNET_SDK_IMAGE="${DOTNET_SDK_IMAGE:-mcr.microsoft.com/dotnet/sdk:8.0@sha256:d80fdd84f7e18eea12f8e45c52914f1353395009c95c41197178ea19944e6d48}"
 COMPOSER_IMAGE="${COMPOSER_IMAGE:-composer@sha256:7725eb4545c438629ae8bde3ef0bb9a5038ef566126ad878442a69007242d267}"
+PHP_FFI_IMAGE="${PHP_FFI_IMAGE:-gmeow-gts-php-ffi-smoke:8.4}"
 LUAJIT_IMAGE="${LUAJIT_IMAGE:-gmeow-gts-luajit-package-dry-run:2.1}"
 SWIFT_IMAGE="${SWIFT_IMAGE:-swift@sha256:4e50a9e711e8682a8c42bacfeed204568adfd6985a63b3789a165f28d296a28a}"
 RUBY_IMAGE="${RUBY_IMAGE:-gmeow-gts-ruby-package-dry-run:3.4}"
@@ -119,6 +120,19 @@ run_composer() {
     COMPOSER_HOME="${TMP}/composer" composer "$@"
   else
     docker_run "${COMPOSER_IMAGE}" composer "$@"
+  fi
+}
+
+has_php_ffi() {
+  command -v php >/dev/null 2>&1 && php -m 2>/dev/null | grep -Eq '^FFI$'
+}
+
+run_php() {
+  if has_php_ffi; then
+    php "$@"
+  else
+    docker_build "${PHP_FFI_IMAGE}" php
+    docker_run "${PHP_FFI_IMAGE}" php "$@"
   fi
 }
 
@@ -308,6 +322,76 @@ run_dotnet run --no-restore --project "${OUT_REL}/dotnet-consumer/GtsPackageCons
 log "PHP Composer validation"
 run_composer validate --strict php/composer.json
 printf '%s\n' "composer validate --strict php/composer.json" > "${OUT}/php/composer-validate.txt"
+
+log "PHP Packagist package-root validation"
+php_package_root="${OUT}/php/packagist-root"
+php_consumer="${OUT}/php/consumer"
+bash scripts/package_php_packagist_root.sh "${php_package_root}" > "${OUT}/php/packagist-root-files.txt"
+run_composer validate --strict "${OUT_REL}/php/packagist-root/composer.json"
+rm -rf "${php_consumer}"
+mkdir -p "${php_consumer}"
+cat > "${php_consumer}/composer.json" <<'EOF'
+{
+  "name": "gmeow-gts/php-packagist-dry-run",
+  "description": "Local Composer consumer for the gmeow-gts PHP package dry-run.",
+  "type": "project",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../packagist-root",
+      "options": {
+        "symlink": false
+      }
+    }
+  ],
+  "require": {
+    "blackcatinformatics/gmeow-gts": "*"
+  }
+}
+EOF
+# The pinned Composer image used on hosts without Composer does not enable ext-ffi.
+# The runtime check immediately below runs in the FFI-enabled PHP smoke image.
+run_composer --working-dir "${OUT_REL}/php/consumer" install --no-interaction --no-progress --ignore-platform-req=ext-ffi
+cat > "${php_consumer}/smoke.php" <<'EOF'
+<?php
+declare(strict_types=1);
+
+use Gmeow\Gts\Gts;
+
+require __DIR__ . '/vendor/autoload.php';
+
+if ($argc !== 2) {
+    fwrite(STDERR, "usage: php -d ffi.enable=1 smoke.php vectors/01-minimal.gts\n");
+    exit(2);
+}
+
+$gts = Gts::load();
+if ($gts->abiVersion() !== 1) {
+    throw new RuntimeException(sprintf('Unexpected ABI version: %d', $gts->abiVersion()));
+}
+if ($gts->version() === '') {
+    throw new RuntimeException('Empty library version.');
+}
+
+$input = file_get_contents($argv[1]);
+if ($input === false) {
+    throw new RuntimeException(sprintf('Unable to read vector: %s', $argv[1]));
+}
+
+$decoded = json_decode($gts->verifyJson($input), true, 512, JSON_THROW_ON_ERROR);
+if (!is_array($decoded) || ($decoded['schema'] ?? null) !== 'gts-capi-verify-v1') {
+    throw new RuntimeException('Verification smoke did not return the expected schema.');
+}
+EOF
+run_php -d ffi.enable=1 "${OUT_REL}/php/consumer/smoke.php" vectors/01-minimal.gts
+printf '%s\n' \
+  "bash scripts/package_php_packagist_root.sh ${php_package_root}" \
+  "composer validate --strict ${OUT_REL}/php/packagist-root/composer.json" \
+  "composer --working-dir ${OUT_REL}/php/consumer install --no-interaction --no-progress --ignore-platform-req=ext-ffi" \
+  "php -d ffi.enable=1 ${OUT_REL}/php/consumer/smoke.php vectors/01-minimal.gts" \
+  > "${OUT}/php/packagist-consumer.txt"
 
 log "LuaRocks lint, make, and pack"
 # shellcheck disable=SC2016 # expanded inside the local/container shell.

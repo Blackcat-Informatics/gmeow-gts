@@ -366,6 +366,9 @@ The dry-run builds local package artifacts or package metadata for the C ABI,
 C++, Conan, vcpkg, .NET, PHP, Lua, Swift, Ruby, R, and Julia wrapper family
 without registry credentials. CI uploads the resulting `dist/package-dry-runs/`
 evidence from the `wrapper-package-dry-runs` job.
+The PHP portion also generates the Packagist package root, validates it with
+Composer, installs it into a temporary path-repository consumer, and runs a PHP
+FFI smoke test against `libgts`.
 
 Each wrapper README documents local toolchain requirements, `libgts` discovery (`GTS_LIBGTS`,
 `GTS_LIB_DIR`, or platform loader defaults where supported), ownership rules, threading

@@ -11,9 +11,24 @@ come from the checked-in C ABI in `rust/capi/include/gts.h`.
 
 - PHP 8.2 or newer.
 - The PHP FFI extension with `ffi.enable=1` at runtime.
-- A built `libgts` shared library from `rust/capi`.
+- A separately installed `libgts` shared library.
 
-Build the shared library from the repository root:
+## Composer Install
+
+The Composer package name is `blackcatinformatics/gmeow-gts`:
+
+```sh
+composer require blackcatinformatics/gmeow-gts
+```
+
+The package is source-only. It does not bundle `libgts`, does not implement GTS
+in PHP, and requires PHP FFI plus the native C ABI library at runtime.
+
+## Loading `libgts`
+
+Install `libgts` from a C ABI release archive, a package-manager integration,
+or a local build. For local development, build the shared library from the
+repository root:
 
 ```sh
 cargo build --manifest-path rust/capi/Cargo.toml

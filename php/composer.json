@@ -2,10 +2,30 @@
   "name": "blackcatinformatics/gmeow-gts",
   "description": "PHP FFI wrapper for the GTS C ABI.",
   "type": "library",
+  "keywords": [
+    "gts",
+    "rdf",
+    "rdf-1.2",
+    "cbor",
+    "ffi",
+    "c-abi"
+  ],
+  "homepage": "https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/php",
   "license": [
     "MIT",
     "Apache-2.0"
   ],
+  "authors": [
+    {
+      "name": "Blackcat Informatics Inc.",
+      "homepage": "https://github.com/Blackcat-Informatics",
+      "role": "Maintainer"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/Blackcat-Informatics/gmeow-gts/issues",
+    "source": "https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/php"
+  },
   "require": {
     "php": ">=8.2",
     "ext-ffi": "*",
