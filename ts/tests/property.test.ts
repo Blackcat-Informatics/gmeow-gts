@@ -11,13 +11,17 @@ import { Writer } from "../src/writer.js";
 
 const CAT = "https://example.org/Cat";
 const LABEL = "http://www.w3.org/2000/01/rdf-schema#label";
+const POSITIVE_DECIMAL_INTEGER = /^[1-9][0-9]*$/;
 
 function envInt(name: string, fallback: number): number {
     const raw = process.env[name];
     if (raw === undefined) return fallback;
-    const value = Number.parseInt(raw, 10);
-    if (!Number.isInteger(value) || value <= 0) {
-        throw new Error(`${name} must be a positive integer`);
+    if (!POSITIVE_DECIMAL_INTEGER.test(raw)) {
+        throw new Error(`${name} must be a positive decimal integer`);
+    }
+    const value = Number(raw);
+    if (!Number.isSafeInteger(value)) {
+        throw new Error(`${name} must be a safe positive integer`);
     }
     return value;
 }
@@ -61,7 +65,7 @@ test("reader refuses arbitrary bytes without throwing", () => {
 test("writer decode, projection, and torn append are deterministic", () => {
     fc.assert(
         fc.property(
-            fc.array(fc.string({ unit: "binary-ascii", maxLength: 24 }), {
+            fc.array(fc.string({ unit: "binary", maxLength: 24 }), {
                 minLength: 1,
                 maxLength: 5,
             }),

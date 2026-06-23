@@ -9,7 +9,7 @@ import os
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from gts import Term, TermKind, Writer, read, to_nquads
+from gts import Graph, Term, TermKind, Writer, read, to_nquads
 
 CAT = "https://example.org/Cat"
 LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
@@ -22,8 +22,8 @@ PROPERTY_SETTINGS = settings(
 )
 
 
-def _diag_codes(graph: object) -> list[str]:
-    return [d.code for d in graph.diagnostics]  # type: ignore[attr-defined]
+def _diag_codes(graph: Graph) -> list[str]:
+    return [d.code for d in graph.diagnostics]
 
 
 @PROPERTY_SETTINGS
