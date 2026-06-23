@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Gmeow.Gts;
 
@@ -149,15 +150,14 @@ internal static class Program
         {
             throw new InvalidOperationException($"{label} missing diagnostics array");
         }
-        foreach (JsonElement diagnostic in diagnostics.EnumerateArray())
+        bool hasExpectedDiagnostic = diagnostics.EnumerateArray()
+            .Where(diagnostic => diagnostic.TryGetProperty("code", out JsonElement code) &&
+                                 string.Equals(code.GetString(), expectedCode, StringComparison.Ordinal))
+            .Any();
+        if (!hasExpectedDiagnostic)
         {
-            if (diagnostic.TryGetProperty("code", out JsonElement code) &&
-                string.Equals(code.GetString(), expectedCode, StringComparison.Ordinal))
-            {
-                return;
-            }
+            throw new InvalidOperationException($"{label} missing diagnostic {expectedCode}");
         }
-        throw new InvalidOperationException($"{label} missing diagnostic {expectedCode}");
     }
 
     private static void ExpectGtsException(string label, Func<object> action, GtsStatus expected)
