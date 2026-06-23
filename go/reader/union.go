@@ -17,7 +17,8 @@ type internKey struct {
 	c            string
 	d            string
 	seg          int
-	rf           *int
+	rf           int
+	hasRF        bool
 	bnodeTID     int // anonymous bnode source term id (typ==2, value empty)
 	bnodeLabeled bool
 }
@@ -47,12 +48,12 @@ func (u *unioner) keyFor(seg *model.Graph, segIdx, tid int) internKey {
 		}
 		return internKey{typ: 2, seg: segIdx, bnodeTID: tid}
 	case model.Triple:
-		var rf *int
+		key := internKey{typ: 3}
 		if t.Reifier != nil {
-			r := u.mapTerm(seg, segIdx, *t.Reifier)
-			rf = &r
+			key.rf = u.mapTerm(seg, segIdx, *t.Reifier)
+			key.hasRF = true
 		}
-		return internKey{typ: 3, rf: rf}
+		return key
 	}
 	return internKey{}
 }
