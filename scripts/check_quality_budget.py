@@ -382,6 +382,10 @@ def load_baseline(path: Path) -> dict[str, Any]:
         ) from None
 
 
+def empty_baseline() -> dict[str, Any]:
+    return {"line_budgets": {}, "metrics": {}}
+
+
 def load_baseline_from_git(root: Path, ref: str, baseline_path: Path) -> dict[str, Any]:
     try:
         rel = posix(baseline_path.resolve().relative_to(root.resolve()))
@@ -400,6 +404,13 @@ def load_baseline_from_git(root: Path, ref: str, baseline_path: Path) -> dict[st
     )
     if result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip()
+        missing_path_markers = (
+            "does not exist in",
+            "exists on disk, but not in",
+            "exists on disk but not in",
+        )
+        if any(marker in detail for marker in missing_path_markers):
+            return empty_baseline()
         raise SystemExit(
             f"check_quality_budget: unable to read {rel} from {ref}: {detail}"
         ) from None
@@ -739,6 +750,22 @@ def self_test() -> int:
         ):
             print(
                 "check_quality_budget: self-test did not catch silent baseline increase",
+                file=sys.stderr,
+            )
+            return 1
+
+        missing_previous_errors = baseline_increase_errors(
+            increased_baseline,
+            empty_baseline(),
+            allow_baseline_increase=False,
+        )
+        if not any(
+            "baseline increase requires explicit review" in error
+            for error in missing_previous_errors
+        ):
+            print(
+                "check_quality_budget: self-test did not handle missing "
+                "previous baseline",
                 file=sys.stderr,
             )
             return 1
