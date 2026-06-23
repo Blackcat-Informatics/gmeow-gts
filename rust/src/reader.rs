@@ -1260,25 +1260,7 @@ impl ActiveStreamingSegment {
             described,
             blob_events,
         };
-        {
-            let Value::Map(frame) = raw else {
-                folder.diag(
-                    "DamagedFrame",
-                    "frame is not a map".to_string(),
-                    Some(abs_index),
-                );
-                self.frame_ids.push(Vec::new());
-                let catalog = std::mem::take(&mut folder.catalog);
-                let index_records = std::mem::take(&mut folder.index_records);
-                let described = std::mem::take(&mut folder.described);
-                let blob_events = std::mem::take(&mut folder.blob_events);
-                drop(folder);
-                self.catalog = catalog;
-                self.index_records = index_records;
-                self.described = described;
-                self.blob_events = blob_events;
-                return;
-            };
+        if let Value::Map(frame) = raw {
             let stored_id: Option<&Vec<u8>> = match map_get(frame, "id") {
                 Some(Value::Bytes(b)) => Some(b),
                 _ => None,
@@ -1294,41 +1276,39 @@ impl ActiveStreamingSegment {
                 folder.opaque(frame, &ftype, "damaged");
                 self.expected_prev = stored_id.cloned().unwrap_or(computed);
                 self.frame_ids.push(self.expected_prev.clone());
-                let catalog = std::mem::take(&mut folder.catalog);
-                let index_records = std::mem::take(&mut folder.index_records);
-                let described = std::mem::take(&mut folder.described);
-                let blob_events = std::mem::take(&mut folder.blob_events);
-                drop(folder);
-                self.catalog = catalog;
-                self.index_records = index_records;
-                self.described = described;
-                self.blob_events = blob_events;
-                return;
+            } else {
+                let prev_ok = matches!(map_get(frame, "prev"),
+                    Some(Value::Bytes(b)) if *b == self.expected_prev);
+                if !prev_ok {
+                    folder.diag(
+                        "BrokenChain",
+                        "prev does not match".to_string(),
+                        Some(abs_index),
+                    );
+                }
+                self.expected_prev = computed.clone();
+                self.frame_ids.push(self.expected_prev.clone());
+                if let Some(sig) = map_get(frame, "sig") {
+                    let (status, cose) = match sig {
+                        Value::Bytes(b) => ("unverified", Some(b.clone())),
+                        _ => ("invalid", None),
+                    };
+                    folder.push_signature(Signature {
+                        frame_id: computed,
+                        kid: None,
+                        status: status.to_string(),
+                        cose,
+                    });
+                }
+                folder.fold_frame(frame, abs_index);
             }
-            let prev_ok = matches!(map_get(frame, "prev"),
-                Some(Value::Bytes(b)) if *b == self.expected_prev);
-            if !prev_ok {
-                folder.diag(
-                    "BrokenChain",
-                    "prev does not match".to_string(),
-                    Some(abs_index),
-                );
-            }
-            self.expected_prev = computed.clone();
-            self.frame_ids.push(self.expected_prev.clone());
-            if let Some(sig) = map_get(frame, "sig") {
-                let (status, cose) = match sig {
-                    Value::Bytes(b) => ("unverified", Some(b.clone())),
-                    _ => ("invalid", None),
-                };
-                folder.push_signature(Signature {
-                    frame_id: computed,
-                    kid: None,
-                    status: status.to_string(),
-                    cose,
-                });
-            }
-            folder.fold_frame(frame, abs_index);
+        } else {
+            folder.diag(
+                "DamagedFrame",
+                "frame is not a map".to_string(),
+                Some(abs_index),
+            );
+            self.frame_ids.push(Vec::new());
         }
         let catalog = std::mem::take(&mut folder.catalog);
         let index_records = std::mem::take(&mut folder.index_records);
@@ -1375,13 +1355,9 @@ impl ActiveStreamingSegment {
             );
             self.g.segment_streamable.push(info);
             if let Some(sink) = sink_slot {
-                sink.streamable_layout(
-                    self.segment_index,
-                    self.g
-                        .segment_streamable
-                        .last()
-                        .expect("streamable info was just pushed"),
-                );
+                if let Some(info) = self.g.segment_streamable.last() {
+                    sink.streamable_layout(self.segment_index, info);
+                }
             }
         }
         absorb_segment_result(result, &self.g);

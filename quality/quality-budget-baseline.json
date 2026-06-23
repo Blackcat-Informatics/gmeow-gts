@@ -17,16 +17,16 @@
       "target_lines": 2655
     },
     "rust/src/reader.rs": {
-      "max_lines": 1782,
-      "target_lines": 1603
+      "max_lines": 2087,
+      "target_lines": 1878
     },
     "ts/src/browser.ts": {
-      "max_lines": 2268,
-      "target_lines": 2041
+      "max_lines": 2412,
+      "target_lines": 2170
     },
     "ts/src/reader.ts": {
-      "max_lines": 1160,
-      "target_lines": 1044
+      "max_lines": 1149,
+      "target_lines": 1034
     }
   },
   "metrics": {

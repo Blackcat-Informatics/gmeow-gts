@@ -22,6 +22,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 PY_SRC = ROOT / "python" / "src"
 RUST_EXAMPLE_TIMEOUT_SECONDS = 30
+_TS_BUILT = False
 if str(PY_SRC) not in sys.path:
     sys.path.insert(0, str(PY_SRC))
 
@@ -178,17 +179,20 @@ def rust_streaming_fold(
 def typescript_streaming_fold(
     path: Path,
 ) -> tuple[dict[str, int | None], float | None, float]:
+    global _TS_BUILT
     npm = shutil.which("npm")
     node = shutil.which("node")
     if npm is None or node is None:
         raise RuntimeError(
             "npm and node are required for TypeScript streaming evidence"
         )
-    subprocess.run(
-        [npm, "run", "build", "--silent"],
-        cwd=ROOT / "ts",
-        check=True,
-    )
+    if not _TS_BUILT:
+        subprocess.run(
+            [npm, "run", "build", "--silent"],
+            cwd=ROOT / "ts",
+            check=True,
+        )
+        _TS_BUILT = True
     script = r"""
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
