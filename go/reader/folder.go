@@ -11,6 +11,21 @@ import (
 	"go.blackcatinformatics.ca/gts/wire"
 )
 
+func termRef(raw interface{}, limit int) (*int, bool) {
+	if raw == nil {
+		return nil, false
+	}
+	n, ok := asInt64(raw)
+	if !ok || n < 0 {
+		return nil, false
+	}
+	if n >= int64(limit) {
+		return nil, true
+	}
+	i := int(n)
+	return &i, false
+}
+
 func (f *folder) hTerms(payload interface{}, index int) {
 	rows, ok := payload.([]interface{})
 	if !ok {
@@ -50,27 +65,9 @@ func (f *folder) hTerms(payload interface{}, index int) {
 		dtRaw, hasDt := wire.MapGet(entries, "dt")
 		rfRaw, hasRf := wire.MapGet(entries, "rf")
 		tid := len(f.g.Terms)
-		sanitize := func(r interface{}) *int {
-			if r == nil {
-				return nil
-			}
-			n, ok := asInt64(r)
-			if !ok || n < 0 || n >= int64(tid) {
-				return nil
-			}
-			i := int(n)
-			return &i
-		}
-		dt := sanitize(dtRaw)
-		rf := sanitize(rfRaw)
-		outOfRange := func(r interface{}) bool {
-			if r == nil {
-				return false
-			}
-			n, ok := asInt64(r)
-			return ok && n >= int64(tid)
-		}
-		if (hasDt && outOfRange(dtRaw)) || (hasRf && outOfRange(rfRaw)) {
+		dt, dtOutOfRange := termRef(dtRaw, tid)
+		rf, rfOutOfRange := termRef(rfRaw, tid)
+		if (hasDt && dtOutOfRange) || (hasRf && rfOutOfRange) {
 			f.diag("ForwardReference", fmt.Sprintf("term %d has an out-of-range ref", tid), &index)
 		}
 		f.g.Terms = append(f.g.Terms, model.Term{
@@ -160,7 +157,7 @@ func (f *folder) hReifies(payload interface{}, index int) {
 		p, pOk := asIdx(items[1])
 		o, oOk := asIdx(items[2])
 		n := len(f.g.Terms)
-		ridOk := rid >= 0 && int(rid) < n
+		ridOk := rid >= 0 && rid < int64(n)
 		spoOk := sOk && pOk && oOk && s < n && p < n && o < n
 		if !ridOk || !spoOk {
 			f.diag("DamagedFrame", fmt.Sprintf("reifier %d has bad/out-of-range ids", rid), &index)
