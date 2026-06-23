@@ -26,7 +26,8 @@ Then build or run the .NET wrapper:
 ```sh
 dotnet build dotnet/Gmeow.Gts/Gmeow.Gts.csproj
 LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-  dotnet run --project dotnet/Gmeow.Gts.Smoke/Gmeow.Gts.Smoke.csproj -- vectors/01-minimal.gts
+  dotnet run --project dotnet/Gmeow.Gts.Smoke/Gmeow.Gts.Smoke.csproj -- \
+  vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```
 
 On Linux, P/Invoke resolves `gts` to `libgts.so`; on macOS it resolves

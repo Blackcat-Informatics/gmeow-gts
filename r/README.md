@@ -34,7 +34,8 @@ At runtime, the platform dynamic loader must also find `libgts`:
 
 ```sh
 export LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-Rscript r/tests/smoke.R vectors/01-minimal.gts
+Rscript r/tests/smoke.R \
+  vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```
 
 On macOS use `DYLD_LIBRARY_PATH`; on Windows make `gts.dll` discoverable through

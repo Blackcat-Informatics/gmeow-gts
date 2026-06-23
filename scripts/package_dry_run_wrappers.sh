@@ -4,6 +4,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=/dev/null
+source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 CAPI="${ROOT}/rust/capi"
 OUT="${GTS_PACKAGE_DRY_RUN_OUT:-${ROOT}/dist/package-dry-runs}"
 TMP="$(mktemp -d "${ROOT}/.package-dry-run.XXXXXXXXXX")"
@@ -80,6 +82,10 @@ docker_run() {
     -e GTS_LIBGTS="${LIB_PATH_CONTAINER}" \
     -e GTS_CAPI_TARGET="${CAPI_TARGET_CONTAINER}" \
     -e GTS_LIB_DIR="${CAPI_TARGET_CONTAINER}" \
+    -e GTS_WRAPPER_CLEAN_VECTOR="$(container_path "${GTS_WRAPPER_CLEAN_VECTOR}")" \
+    -e GTS_WRAPPER_DAMAGED_VECTOR="$(container_path "${GTS_WRAPPER_DAMAGED_VECTOR}")" \
+    -e GTS_WRAPPER_EMPTY_VECTOR="$(container_path "${GTS_WRAPPER_EMPTY_VECTOR}")" \
+    -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
     -e LD_LIBRARY_PATH="${CAPI_TARGET_CONTAINER}" \
     -e DYLD_LIBRARY_PATH="${CAPI_TARGET_CONTAINER}" \
     -e LIBRARY_PATH="${CAPI_TARGET_CONTAINER}" \
@@ -292,7 +298,10 @@ read -r -a pkg_libs <<< "$(pkg-config --libs gts)"
   "${pkg_libs[@]}" \
   "-Wl,-rpath,${archive_prefix}/lib" \
   -o "${OUT}/cpp/gts-cpp-archive-smoke"
-"${OUT}/cpp/gts-cpp-archive-smoke" vectors/01-minimal.gts
+"${OUT}/cpp/gts-cpp-archive-smoke" \
+  "${GTS_WRAPPER_CLEAN_VECTOR}" \
+  "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+  "${GTS_WRAPPER_EMPTY_VECTOR}"
 
 log "Conan and vcpkg native package-manager dry-runs"
 GTS_NATIVE_PACKAGE_DRY_RUN_OUT="${OUT}/native" \
@@ -305,6 +314,25 @@ run_dotnet new console --force -n GtsPackageConsumer -o "${OUT_REL}/dotnet-consu
 cat > "${OUT}/dotnet-consumer/Program.cs" <<'EOF'
 using Gmeow.Gts;
 
+static void ExpectContains(string label, string haystack, string needle)
+{
+    if (!haystack.Contains(needle, StringComparison.Ordinal))
+    {
+        throw new InvalidOperationException($"{label} did not contain {needle}");
+    }
+}
+
+if (args.Length != 0 && args.Length != 3)
+{
+    throw new InvalidOperationException("expected no arguments or clean, damaged, and empty fixture paths");
+}
+string cleanVector = args.Length == 3 ? args[0] : Environment.GetEnvironmentVariable("GTS_WRAPPER_CLEAN_VECTOR") ?? "";
+string damagedVector = args.Length == 3 ? args[1] : Environment.GetEnvironmentVariable("GTS_WRAPPER_DAMAGED_VECTOR") ?? "";
+string emptyVector = args.Length == 3 ? args[2] : Environment.GetEnvironmentVariable("GTS_WRAPPER_EMPTY_VECTOR") ?? "";
+if (cleanVector.Length == 0 || damagedVector.Length == 0 || emptyVector.Length == 0)
+{
+    throw new InvalidOperationException("missing wrapper smoke fixture paths");
+}
 if (Gts.AbiVersion == 0)
 {
     throw new InvalidOperationException("ABI version was zero.");
@@ -313,7 +341,11 @@ if (string.IsNullOrEmpty(Gts.Version))
 {
     throw new InvalidOperationException("GTS version was empty.");
 }
-Console.WriteLine(Gts.Version);
+ExpectContains("dotnet package build metadata", Gts.BuildMetadataJson(), "\"schema\":\"gts-capi-build-v1\"");
+ExpectContains("dotnet package clean-read", Gts.ReadJson(File.ReadAllBytes(cleanVector)), "\"clean\":true");
+ExpectContains("dotnet package damaged-diagnostic-read", Gts.ReadJson(File.ReadAllBytes(damagedVector)), "\"code\":\"DamagedFrame\"");
+ExpectContains("dotnet package empty-malformed-refusal", Gts.ReadJson(File.ReadAllBytes(emptyVector)), "\"code\":\"EmptyFile\"");
+Console.WriteLine("dotnet package smoke ok");
 EOF
 run_dotnet add "${OUT_REL}/dotnet-consumer/GtsPackageConsumer.csproj" package Gmeow.Gts \
   --source "${OUT_REL}/dotnet"
@@ -362,8 +394,8 @@ use Gmeow\Gts\Gts;
 
 require __DIR__ . '/vendor/autoload.php';
 
-if ($argc !== 2) {
-    fwrite(STDERR, "usage: php -d ffi.enable=1 smoke.php vectors/01-minimal.gts\n");
+if ($argc !== 1 && $argc !== 4) {
+    fwrite(STDERR, "usage: php -d ffi.enable=1 smoke.php [clean.gts damaged.gts empty.gts]\n");
     exit(2);
 }
 
@@ -375,22 +407,36 @@ if ($gts->version() === '') {
     throw new RuntimeException('Empty library version.');
 }
 
-$input = file_get_contents($argv[1]);
-if ($input === false) {
-    throw new RuntimeException(sprintf('Unable to read vector: %s', $argv[1]));
+$clean = $argc === 4 ? $argv[1] : (getenv('GTS_WRAPPER_CLEAN_VECTOR') ?: '');
+$damaged = $argc === 4 ? $argv[2] : (getenv('GTS_WRAPPER_DAMAGED_VECTOR') ?: '');
+$empty = $argc === 4 ? $argv[3] : (getenv('GTS_WRAPPER_EMPTY_VECTOR') ?: '');
+if ($clean === '' || $damaged === '' || $empty === '') {
+    throw new RuntimeException('Missing wrapper smoke fixture paths.');
 }
 
-$decoded = json_decode($gts->verifyJson($input), true, 512, JSON_THROW_ON_ERROR);
-if (!is_array($decoded) || ($decoded['schema'] ?? null) !== 'gts-capi-verify-v1') {
-    throw new RuntimeException('Verification smoke did not return the expected schema.');
+$input = file_get_contents($clean);
+if ($input === false) {
+    throw new RuntimeException(sprintf('Unable to read vector: %s', $clean));
 }
+
+function expectContains(string $label, string $haystack, string $needle): void
+{
+    if (!str_contains($haystack, $needle)) {
+        throw new RuntimeException(sprintf('%s did not contain %s.', $label, $needle));
+    }
+}
+
+expectContains('php package build metadata', $gts->buildMetadataJson(), '"schema":"gts-capi-build-v1"');
+expectContains('php package clean-read', $gts->readJson($input), '"clean":true');
+expectContains('php package damaged-diagnostic-read', $gts->readJson((string) file_get_contents($damaged)), '"code":"DamagedFrame"');
+expectContains('php package empty-malformed-refusal', $gts->readJson((string) file_get_contents($empty)), '"code":"EmptyFile"');
 EOF
-run_php -d ffi.enable=1 "${OUT_REL}/php/consumer/smoke.php" vectors/01-minimal.gts
+run_php -d ffi.enable=1 "${OUT_REL}/php/consumer/smoke.php"
 printf '%s\n' \
   "bash scripts/package_php_packagist_root.sh ${php_package_root}" \
   "composer validate --strict ${OUT_REL}/php/packagist-root/composer.json" \
   "composer --working-dir ${OUT_REL}/php/consumer install --no-interaction --no-progress --ignore-platform-req=ext-ffi" \
-  "php -d ffi.enable=1 ${OUT_REL}/php/consumer/smoke.php vectors/01-minimal.gts" \
+  "php -d ffi.enable=1 ${OUT_REL}/php/consumer/smoke.php" \
   > "${OUT}/php/packagist-consumer.txt"
 
 log "LuaRocks lint, make, pack, and installed-rock smoke"
@@ -410,7 +456,7 @@ rm -f gmeow-gts-0.9.4-1.all.rock
 luarocks --tree "${lua_tree}" pack gmeow-gts 0.9.4-1
 cp ./*.rock "${GTS_PACKAGE_DRY_RUN_OUT}/lua/"
 eval "$(luarocks --tree "${lua_tree}" path --bin)"
-luajit lua/tests/smoke.lua vectors/01-minimal.gts
+luajit lua/tests/smoke.lua "${GTS_WRAPPER_CLEAN_VECTOR}" "${GTS_WRAPPER_DAMAGED_VECTOR}" "${GTS_WRAPPER_EMPTY_VECTOR}"
 rm -f gmeow-gts-0.9.4-1.all.rock
 rm -rf "${lua_tree}" "${lua_tree_dev}"'
 
@@ -430,7 +476,9 @@ swift run \
   -Xlinker -rpath \
   -Xlinker "${GTS_CAPI_TARGET}" \
   GmeowGTSSmoke \
-  "${GTS_WORKSPACE}/vectors/01-minimal.gts"
+  "${GTS_WRAPPER_CLEAN_VECTOR}" \
+  "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+  "${GTS_WRAPPER_EMPTY_VECTOR}"
 rm -rf "${swift_scratch}"'
 
 log "Ruby gem build, install, and installed-gem load"
@@ -440,13 +488,11 @@ mkdir -p "${GTS_PACKAGE_DRY_RUN_OUT}/ruby"
 cd "${GTS_WORKSPACE}/ruby"
 gem build gmeow-gts.gemspec --output "${GTS_PACKAGE_DRY_RUN_OUT}/ruby/gmeow-gts.gem" >/dev/null
 gem install --local "${GTS_PACKAGE_DRY_RUN_OUT}/ruby/gmeow-gts.gem" --no-document
-ruby <<RUBY
-require "gmeow/gts"
-
-gts = Gmeow::Gts.load
-raise "bad ABI" unless gts.abi_version == Gmeow::Gts::ABI_VERSION
-raise "empty version" if gts.version.empty?
-RUBY'
+cd "${GTS_WORKSPACE}"
+GTS_RUBY_SMOKE_INSTALLED=1 ruby ruby/tests/smoke.rb \
+  "${GTS_WRAPPER_CLEAN_VECTOR}" \
+  "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+  "${GTS_WRAPPER_EMPTY_VECTOR}"'
 
 log "R CMD build and check"
 # shellcheck disable=SC2016 # expanded inside the local/container shell.
@@ -457,7 +503,11 @@ cp -R "${GTS_WORKSPACE}/r" /tmp/gmeowgts-r-package
 GTS_LIB_DIR="${GTS_CAPI_TARGET}" R CMD INSTALL --library=/tmp/gmeowgts-r-lib /tmp/gmeowgts-r-package
 cd "${GTS_PACKAGE_DRY_RUN_OUT}/r"
 GTS_LIB_DIR="${GTS_CAPI_TARGET}" R CMD build /tmp/gmeowgts-r-package
-GTS_LIB_DIR="${GTS_CAPI_TARGET}" R CMD check --no-manual --library=/tmp/gmeowgts-r-lib gmeowgts_*.tar.gz'
+GTS_LIB_DIR="${GTS_CAPI_TARGET}" R CMD check --no-manual --library=/tmp/gmeowgts-r-lib gmeowgts_*.tar.gz
+R_LIBS_USER=/tmp/gmeowgts-r-lib Rscript "${GTS_WORKSPACE}/r/tests/smoke.R" \
+  "${GTS_WRAPPER_CLEAN_VECTOR}" \
+  "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+  "${GTS_WRAPPER_EMPTY_VECTOR}"'
 
 log "Julia package instantiate and test"
 run_julia_shell 'using Pkg; pkg = "/tmp/gmeowgts-julia-package"; rm(pkg; recursive=true, force=true); cp(joinpath(ENV["GTS_WORKSPACE"], "julia"), pkg); ENV["GTS_LIBGTS"] = get(ENV, "GTS_LIBGTS", ""); ENV["LD_LIBRARY_PATH"] = ENV["GTS_CAPI_TARGET"]; Pkg.activate(pkg); Pkg.instantiate(); Pkg.test()'

@@ -6,6 +6,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
 TARGET="${CAPI}/target/debug"
+# shellcheck source=/dev/null
+source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
 cargo build --manifest-path "${CAPI}/Cargo.toml"
 
@@ -18,4 +20,7 @@ cc -std=c11 -Wall -Wextra -Werror \
   -o "${TARGET}/gts-capi-smoke"
 
 LD_LIBRARY_PATH="${TARGET}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
-  "${TARGET}/gts-capi-smoke" "${ROOT}/vectors/01-minimal.gts"
+  "${TARGET}/gts-capi-smoke" \
+  "${GTS_WRAPPER_CLEAN_VECTOR}" \
+  "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+  "${GTS_WRAPPER_EMPTY_VECTOR}"

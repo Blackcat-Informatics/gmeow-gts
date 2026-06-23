@@ -47,7 +47,8 @@ swift run --package-path . \
   -Xlinker -L"$PWD/rust/capi/target/debug" \
   -Xlinker -rpath \
   -Xlinker "$PWD/rust/capi/target/debug" \
-  GmeowGTSSmoke vectors/01-minimal.gts
+  GmeowGTSSmoke \
+  vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```
 
 On macOS, use `DYLD_LIBRARY_PATH` instead of `LD_LIBRARY_PATH`, and ensure the

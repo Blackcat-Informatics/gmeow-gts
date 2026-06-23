@@ -22,8 +22,27 @@ def expect_contains(label, haystack, needle)
   raise "#{label} did not contain #{needle}." unless haystack.include?(needle)
 end
 
-unless ARGV.length == 1
-  warn "usage: ruby -I ruby/lib ruby/tests/smoke.rb vectors/01-minimal.gts"
+def expect_diagnostic(label, json, expected_code)
+  decoded = JSON.parse(json)
+  diagnostics = decoded.fetch("diagnostics")
+  return if diagnostics.any? { |diagnostic| diagnostic.fetch("code") == expected_code }
+
+  raise "#{label} missing diagnostic #{expected_code}."
+end
+
+def expect_gts_error(label, expected_status)
+  yield
+rescue Gmeow::Gts::Error => error
+  raise "#{label} expected #{Gmeow::Gts.status_name(expected_status)}, got #{error.status_name}." unless error.status == expected_status
+  raise "#{label} structured error did not include code and detail." if error.code.empty? || error.detail.empty?
+
+  return
+else
+  raise "#{label} did not fail with #{Gmeow::Gts.status_name(expected_status)}."
+end
+
+unless ARGV.length == 3
+  warn "usage: ruby -I ruby/lib ruby/tests/smoke.rb vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts"
   exit 2
 end
 
@@ -32,11 +51,31 @@ raise "Unexpected ABI version: #{gts.abi_version}" unless gts.abi_version == Gme
 raise "Empty library version." if gts.version.empty?
 
 input = File.binread(ARGV.fetch(0))
+damaged = File.binread(ARGV.fetch(1))
+empty = File.binread(ARGV.fetch(2))
 
 expect_json_property("build metadata", gts.build_metadata_json, "schema", "gts-capi-build-v1")
 expect_json_property("capabilities", gts.capabilities_json, "schema", "gts-capi-capabilities-v1")
-expect_json_property("read JSON", gts.read_json(input), "schema", "gts-capi-read-v1")
+clean_read = gts.read_json(input)
+expect_json_property("ruby clean-read read JSON", clean_read, "schema", "gts-capi-read-v1")
+expect_json_property("ruby clean-read read JSON", clean_read, "clean", true)
 expect_json_property("verify JSON", gts.verify_json(input), "schema", "gts-capi-verify-v1")
+
+damaged_read = gts.read_json(damaged)
+expect_json_property("ruby damaged-diagnostic-read read JSON", damaged_read, "schema", "gts-capi-read-v1")
+expect_json_property("ruby damaged-diagnostic-read read JSON", damaged_read, "clean", false)
+expect_diagnostic("ruby damaged-diagnostic-read read JSON", damaged_read, "DamagedFrame")
+expect_gts_error("ruby damaged-diagnostic-read to_nquads", Gmeow::Gts::Status::DIAGNOSTIC) do
+  gts.to_nquads(damaged)
+end
+
+empty_read = gts.read_json(empty)
+expect_json_property("ruby empty-malformed-refusal read JSON", empty_read, "schema", "gts-capi-read-v1")
+expect_json_property("ruby empty-malformed-refusal read JSON", empty_read, "clean", false)
+expect_diagnostic("ruby empty-malformed-refusal read JSON", empty_read, "EmptyFile")
+expect_gts_error("ruby empty-malformed-refusal to_nquads", Gmeow::Gts::Status::DIAGNOSTIC) do
+  gts.to_nquads(empty)
+end
 
 nquads = gts.to_nquads(input)
 expect_contains("N-Quads", nquads, '"Cat"@en')
@@ -44,12 +83,8 @@ expect_contains("N-Quads", nquads, '"Cat"@en')
 round_trip = gts.from_nquads(nquads)
 raise "Round-trip GTS output was empty." if round_trip.empty?
 
-begin
-  gts.from_nquads("<https://example/s> <https://example/p> .\n")
-  raise "Bad N-Quads did not fail."
-rescue Gmeow::Gts::Error => error
-  raise "Expected parse status, got #{error.status_name}." unless error.status == Gmeow::Gts::Status::PARSE
-  raise "Structured error did not include code and detail." if error.code.empty? || error.detail.empty?
+expect_gts_error("ruby malformed-nquads-refusal from_nquads", Gmeow::Gts::Status::PARSE) do
+  gts.from_nquads(ENV.fetch("GTS_WRAPPER_BAD_NQUADS", "<https://example/s> <https://example/p> .\n"))
 end
 
 Dir.mktmpdir("gts-ruby-smoke-") do |temp|

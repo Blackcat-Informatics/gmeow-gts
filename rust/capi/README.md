@@ -61,7 +61,10 @@ The public header is checked in at `rust/capi/include/gts.h`. `gts.pc.in` and `c
 bash rust/capi/scripts/smoke.sh
 ```
 
-The smoke test builds `libgts`, compiles `examples/smoke.c`, and exercises build metadata, capability and format discovery, read/fold JSON, verify JSON, registry-driven RDF format export/import, N-Quads compatibility export/import, files pack/unpack/diff, and structured error handling.
+The smoke test builds `libgts`, compiles `examples/smoke.c`, and exercises the
+shared wrapper smoke matrix plus capability and format discovery,
+registry-driven RDF format export/import, N-Quads compatibility export/import,
+files pack/unpack/diff, and structured error handling.
 
 ## Distribution Archives
 

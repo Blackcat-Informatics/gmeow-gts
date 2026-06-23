@@ -39,19 +39,58 @@ func expectJSONBool(_ label: String, _ json: String, key: String, expected: Bool
     try expectContains(label, compactJSON(json), needle)
 }
 
+func expectDiagnostic(_ label: String, _ json: String, code: String) throws {
+    try expectContains(label, compactJSON(json), #""code":"\#(code)""#)
+}
+
+func expectGtsError(_ label: String, status: GtsStatus, _ body: () throws -> Void) throws {
+    do {
+        try body()
+    } catch let error as GtsError {
+        try require(error.status == status, "\(label) returned unexpected status")
+        try require(!error.code.isEmpty, "\(label) structured error code was empty")
+        try require(!error.detail.isEmpty, "\(label) structured error detail was empty")
+        return
+    }
+    throw SmokeError.failure("\(label) did not fail")
+}
+
 let arguments = CommandLine.arguments
-try require(arguments.count == 2, "usage: GmeowGTSSmoke vectors/01-minimal.gts")
+try require(
+    arguments.count == 4,
+    "usage: GmeowGTSSmoke vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts"
+)
 
 let vector = URL(fileURLWithPath: arguments[1])
 let input = try Data(contentsOf: vector)
+let damaged = try Data(contentsOf: URL(fileURLWithPath: arguments[2]))
+let empty = try Data(contentsOf: URL(fileURLWithPath: arguments[3]))
 
 try require(GTS.abiVersion == 1, "unexpected ABI version")
 try require(!GTS.version.isEmpty, "empty library version")
 
 try expectJSONString("build metadata", try GTS.buildMetadataJSON(), key: "schema", expected: "gts-capi-build-v1")
 try expectJSONString("capabilities", try GTS.capabilitiesJSON(), key: "schema", expected: "gts-capi-capabilities-v1")
-try expectJSONString("read JSON", try GTS.readJSON(input), key: "schema", expected: "gts-capi-read-v1")
+let cleanRead = try GTS.readJSON(input)
+try expectJSONString("swift clean-read read JSON", cleanRead, key: "schema", expected: "gts-capi-read-v1")
+try expectJSONBool("swift clean-read read JSON", cleanRead, key: "clean", expected: true)
 try expectJSONString("verify JSON", try GTS.verifyJSON(input), key: "schema", expected: "gts-capi-verify-v1")
+
+let damagedRead = try GTS.readJSON(damaged)
+try expectJSONString("swift damaged-diagnostic-read read JSON", damagedRead, key: "schema", expected: "gts-capi-read-v1")
+try expectJSONBool("swift damaged-diagnostic-read read JSON", damagedRead, key: "clean", expected: false)
+try expectDiagnostic("swift damaged-diagnostic-read read JSON", damagedRead, code: "DamagedFrame")
+try expectGtsError("swift damaged-diagnostic-read toNQuads", status: .diagnostic) {
+    _ = try GTS.toNQuads(damaged)
+}
+
+let emptyRead = try GTS.readJSON(empty)
+try expectJSONString("swift empty-malformed-refusal read JSON", emptyRead, key: "schema", expected: "gts-capi-read-v1")
+try expectJSONBool("swift empty-malformed-refusal read JSON", emptyRead, key: "clean", expected: false)
+try expectDiagnostic("swift empty-malformed-refusal read JSON", emptyRead, code: "EmptyFile")
+try expectGtsError("swift empty-malformed-refusal toNQuads", status: .diagnostic) {
+    _ = try GTS.toNQuads(empty)
+}
 
 let nquads = try GTS.toNQuads(input)
 try expectContains("N-Quads", nquads, #""Cat"@en"#)
@@ -59,13 +98,11 @@ try expectContains("N-Quads", nquads, #""Cat"@en"#)
 let roundTrip = try GTS.fromNQuads(nquads)
 try require(!roundTrip.isEmpty, "round-trip GTS output was empty")
 
-do {
-    _ = try GTS.fromNQuads("<https://example/s> <https://example/p> .\n")
-    throw SmokeError.failure("bad N-Quads did not fail")
-} catch let error as GtsError {
-    try require(error.status == .parse, "structured error status was not parse")
-    try require(!error.code.isEmpty, "structured error code was empty")
-    try require(!error.detail.isEmpty, "structured error detail was empty")
+try expectGtsError("swift malformed-nquads-refusal fromNQuads", status: .parse) {
+    _ = try GTS.fromNQuads(
+        ProcessInfo.processInfo.environment["GTS_WRAPPER_BAD_NQUADS"] ??
+            "<https://example/s> <https://example/p> .\n"
+    )
 }
 
 let fileManager = FileManager.default

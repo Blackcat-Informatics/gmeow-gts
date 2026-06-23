@@ -342,6 +342,12 @@ and releases native memory with `gts_buffer_free`; structured errors are copied 
 `gts_error_free`. Wrappers are thin bindings over the Rust engine, not independent parsers,
 writers, or CLI parity engines.
 
+The wrapper smoke tests use the shared
+[`GTS-WRAPPER-SMOKE-MATRIX`](./docs/GTS-WRAPPER-SMOKE-MATRIX.md): clean read,
+damaged diagnostic read, empty/malformed refusal, ABI/build metadata, structured
+parse errors, and package dry-run linkage. The matrix deliberately remains
+separate from the six full-engine parity columns.
+
 Run the C ABI and wrapper smoke tests from the repository root:
 
 ```bash
@@ -364,7 +370,8 @@ bash scripts/package_dry_run_wrappers.sh
 
 The dry-run builds local package artifacts or package metadata for the C ABI,
 C++, Conan, vcpkg, .NET, PHP, Lua, Swift, Ruby, R, and Julia wrapper family
-without registry credentials. CI uploads the resulting `dist/package-dry-runs/`
+without registry credentials, then links package consumers back to the shared
+wrapper smoke matrix. CI uploads the resulting `dist/package-dry-runs/`
 evidence from the `wrapper-package-dry-runs` job.
 The PHP portion also generates the Packagist package root, validates it with
 Composer, installs it into a temporary path-repository consumer, and runs a PHP

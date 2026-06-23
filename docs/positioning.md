@@ -143,4 +143,7 @@ Current derived wrappers live in:
 
 Each wrapper owns C memory at the ecosystem boundary, exposes ABI/build/capability metadata,
 read/verify JSON reports, N-Quads conversion, files-profile helpers, and structured errors, and
-is smoke-tested against the checked-in C ABI.
+is smoke-tested against the checked-in C ABI with the shared
+[`GTS-WRAPPER-SMOKE-MATRIX`](GTS-WRAPPER-SMOKE-MATRIX.md). Those smokes cover
+wrapper-observable clean, damaged, empty/malformed, metadata, and package dry-run
+linkage checks without promoting wrappers into the full-engine parity matrix.

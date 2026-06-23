@@ -7,8 +7,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
 CAPI_TARGET="${CAPI}/target/debug"
 SMOKE="lua/tests/smoke.lua"
-VECTOR="vectors/01-minimal.gts"
 LUAJIT_IMAGE="${LUAJIT_IMAGE:-gmeow-gts-luajit-smoke:2.1}"
+# shellcheck source=/dev/null
+source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
 cd "${ROOT}"
 
@@ -29,7 +30,10 @@ LIB_PATH="${CAPI_TARGET}/${LIB_NAME}"
 
 run_smoke() {
   LUA_PATH="${ROOT}/lua/?.lua;${ROOT}/lua/?/init.lua;${LUA_PATH:-}" \
-    luajit "${SMOKE}" "${VECTOR}"
+    luajit "${SMOKE}" \
+    "${GTS_WRAPPER_CLEAN_VECTOR}" \
+    "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+    "${GTS_WRAPPER_EMPTY_VECTOR}"
 }
 
 if [[ "${GTS_LUA_FORCE_DOCKER:-0}" != "1" ]] && command -v luajit >/dev/null 2>&1; then
@@ -47,10 +51,14 @@ else
     -e GTS_LIBGTS=/workspace/rust/capi/target/debug/libgts.so \
     -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
     -e LUA_PATH='/workspace/lua/?.lua;/workspace/lua/?/init.lua;;' \
+    -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
     -v "${ROOT}:/workspace" \
     -w /workspace \
     "${LUAJIT_IMAGE}" \
-    luajit lua/tests/smoke.lua vectors/01-minimal.gts
+    luajit lua/tests/smoke.lua \
+    /workspace/vectors/01-minimal.gts \
+    /workspace/vectors/04-damaged-frame.gts \
+    /workspace/vectors/28-empty-file.gts
 fi
 
 echo "Lua C ABI wrapper smoke test passed"

@@ -32,7 +32,8 @@ Point the wrapper at the library with `GTS_LIBGTS`:
 ```sh
 export GTS_LIBGTS="$PWD/rust/capi/target/debug/libgts.so"
 LUA_PATH="$PWD/lua/?.lua;$PWD/lua/?/init.lua;;" \
-  luajit lua/tests/smoke.lua vectors/01-minimal.gts
+  luajit lua/tests/smoke.lua \
+  vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```
 
 On macOS use `libgts.dylib`; on Windows use `gts.dll`. If `GTS_LIBGTS` is not

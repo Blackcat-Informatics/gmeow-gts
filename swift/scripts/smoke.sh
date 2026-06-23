@@ -8,9 +8,10 @@ CAPI="${ROOT}/rust/capi"
 CAPI_TARGET="${CAPI}/target/debug"
 PACKAGE="${GTS_SWIFT_PACKAGE_PATH:-${ROOT}}"
 SMOKE_TARGET="GmeowGTSSmoke"
-VECTOR="vectors/01-minimal.gts"
 SWIFT_IMAGE="${SWIFT_IMAGE:-swift@sha256:4e50a9e711e8682a8c42bacfeed204568adfd6985a63b3789a165f28d296a28a}"
 SWIFT_SCRATCH="${SWIFT_SCRATCH:-${TMPDIR:-/tmp}/gmeow-gts-swift-build}"
+# shellcheck source=/dev/null
+source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
 cd "${ROOT}"
 
@@ -50,7 +51,9 @@ run_smoke() {
     -Xlinker "-rpath" \
     -Xlinker "${CAPI_TARGET}" \
     "${SMOKE_TARGET}" \
-    "${VECTOR}"
+    "${GTS_WRAPPER_CLEAN_VECTOR}" \
+    "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+    "${GTS_WRAPPER_EMPTY_VECTOR}"
 }
 
 if command -v swift >/dev/null 2>&1; then
@@ -71,7 +74,7 @@ else
     -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
     -e GTS_SWIFT_PACKAGE_PATH="${PACKAGE_CONTAINER}" \
     -e GTS_SWIFT_SMOKE_TARGET="${SMOKE_TARGET}" \
-    -e GTS_SWIFT_VECTOR=/workspace/vectors/01-minimal.gts \
+    -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
     -v "${ROOT}:/workspace" \
     -w /workspace \
     "${SWIFT_IMAGE}" \
@@ -84,7 +87,9 @@ else
       -Xlinker -rpath \
       -Xlinker /workspace/rust/capi/target/debug \
       "${GTS_SWIFT_SMOKE_TARGET}" \
-      "${GTS_SWIFT_VECTOR}"'
+      /workspace/vectors/01-minimal.gts \
+      /workspace/vectors/04-damaged-frame.gts \
+      /workspace/vectors/28-empty-file.gts'
 fi
 
 echo "Swift C ABI wrapper smoke test passed"

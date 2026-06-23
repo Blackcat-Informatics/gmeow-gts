@@ -48,7 +48,8 @@ luarocks lint lua/gmeow-gts-0.9.4-1.rockspec
 luarocks make lua/gmeow-gts-0.9.4-1.rockspec --tree /tmp/gts-luarocks
 luarocks --tree /tmp/gts-luarocks pack gmeow-gts 0.9.4-1
 eval "$(luarocks --tree /tmp/gts-luarocks path --bin)"
-luajit lua/tests/smoke.lua vectors/01-minimal.gts
+luajit lua/tests/smoke.lua \
+  vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```
 
 Use `libgts.dylib` on macOS and `gts.dll` on Windows.
