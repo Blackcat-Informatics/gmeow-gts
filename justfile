@@ -110,6 +110,14 @@ verify-release version visual_hashing_version extra_args="":
 verify-wrapper-release version visual_hashing_version extra_args="":
     python scripts/verify_release.py --version "{{version}}" --visual-hashing-version "{{visual_hashing_version}}" --include-wrapper-packages {{extra_args}}
 
+# Write a deterministic release verification plan without live registry access.
+verify-release-dry-run version visual_hashing_version extra_args="":
+    python scripts/verify_release.py --version "{{version}}" --visual-hashing-version "{{visual_hashing_version}}" --dry-run {{extra_args}}
+
+# Write a deterministic wrapper-aware release verification plan.
+verify-wrapper-release-dry-run version visual_hashing_version extra_args="":
+    python scripts/verify_release.py --version "{{version}}" --visual-hashing-version "{{visual_hashing_version}}" --include-wrapper-packages --dry-run {{extra_args}}
+
 # --- fuzzing --------------------------------------------------------------- #
 
 # Fuzz the Rust reader (needs nightly + cargo-fuzz). Pass a duration, e.g. `just fuzz-rust 300`.

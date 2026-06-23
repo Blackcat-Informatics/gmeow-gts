@@ -808,9 +808,17 @@ Maintainers can run the public release smoke verifier after all tag workflows fi
 just verify-release <version> <visual-hashing-version>
 ```
 
+Before publication or while registries are still propagating, run the deterministic
+planned-check report:
+
+```bash
+just verify-release-dry-run <version> <visual-hashing-version>
+```
+
 After wrapper package publication, use the wrapper-aware verifier:
 
 ```bash
+just verify-wrapper-release-dry-run <version> <visual-hashing-version>
 just verify-wrapper-release <version> <visual-hashing-version>
 ```
 
@@ -819,9 +827,13 @@ The same check is available as the manual
 the `include_wrapper_packages` input for wrapper releases. The verifier downloads
 the PyPI wheel/sdist, npm tarball, crates.io packages, wrapper artifacts where a
 downloadable registry artifact exists, and Go/C ABI release assets; verifies
-registry hashes/signatures/provenance; checks GitHub SLSA and SPDX SBOM
-attestations where release lanes generate them; and writes Markdown/JSON
-summaries under `dist/release-verification/<version>/`.
+registry hashes/signatures/provenance; checks package metadata repository,
+homepage, and source-directory links where registries expose them; checks GitHub
+SLSA and SPDX SBOM attestations where release lanes generate them; and writes
+Markdown/JSON summaries under `dist/release-verification/<version>/`. The
+structured report keeps severity separate from release status so registry lag is
+reported as `pending`, bad metadata as `metadata-mismatch`, absent artifacts as
+`missing`, and visible release surfaces as `published`.
 For historical releases that predate SBOM and immutable-release hardening, pass
 `--allow-legacy-release-gaps` explicitly and treat warnings as release-record caveats.
 

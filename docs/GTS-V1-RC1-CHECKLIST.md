@@ -430,19 +430,26 @@ GitHub SLSA, SPDX SBOM, and immutable-release checks from public surfaces only:
 
 ```bash
 VISUAL_HASHING_VERSION="<visual-hashing-version>"
+just verify-release-dry-run "${VERSION}" "${VISUAL_HASHING_VERSION}"
 just verify-release "${VERSION}" "${VISUAL_HASHING_VERSION}"
 ```
 
 After C ABI wrapper packages are published, run the wrapper-aware verifier:
 
 ```bash
+just verify-wrapper-release-dry-run "${VERSION}" "${VISUAL_HASHING_VERSION}"
 just verify-wrapper-release "${VERSION}" "${VISUAL_HASHING_VERSION}"
 ```
 
 The same verifier can be run from the GitHub Actions UI with the manual
-`Verify published release` workflow. Enable `include_wrapper_packages` for the
+`Verify published release` workflow. Enable `dry_run` before credentials or
+registry propagation are ready, and enable `include_wrapper_packages` for the
 wrapper pass. It uploads
 `dist/release-verification/${VERSION}/release-verification-summary.md` and
+the matching JSON report. The report keeps pass/warn/fail severity separate
+from release status values such as `published`, `pending`,
+`metadata-mismatch`, and `missing`, so propagation lag is not conflated with
+bad metadata or absent artifacts.
 `release-verification-summary.json` as workflow artifacts. Do not pass
 `--allow-legacy-release-gaps` for new releases; that override is only for
 auditing releases that predate the SBOM and immutable-release hardening.
