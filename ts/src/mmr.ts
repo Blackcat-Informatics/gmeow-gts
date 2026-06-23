@@ -248,7 +248,8 @@ export function proofFromJson(text: string): Proof {
     try {
         parsed = JSON.parse(text);
     } catch (err) {
-        mmrParseError(`invalid proof JSON: ${(err as Error).message}`);
+        const message = err instanceof Error ? err.message : String(err);
+        mmrParseError(`invalid proof JSON: ${message}`);
     }
     const obj = objectValue(parsed, "proof");
     const schema = stringField(obj, "schema");

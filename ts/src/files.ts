@@ -422,19 +422,26 @@ function destPath(dest: string, archivePath: string): string {
 }
 
 function prepareReplaceTarget(target: string, archivePath: string): void {
+    let st;
     try {
-        const st = lstatSync(target);
-        if (st.isSymbolicLink()) {
-            filesProfileError(
-                "extract-refused",
-                `refusing to write through symlink: ${archivePath}`,
-            );
-        }
-        if (st.isFile()) unlinkSync(target);
+        st = lstatSync(target);
     } catch (err) {
         const code = (err as NodeJS.ErrnoException).code;
         if (code === "ENOENT") return;
         throw err;
+    }
+    if (st.isSymbolicLink()) {
+        filesProfileError(
+            "extract-refused",
+            `refusing to write through symlink: ${archivePath}`,
+        );
+    }
+    if (!st.isFile()) return;
+    try {
+        unlinkSync(target);
+    } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code !== "ENOENT") throw err;
     }
 }
 
