@@ -60,9 +60,12 @@ Every release lane must keep these controls:
 - GitHub build-provenance attestations for released artifacts;
 - SPDX SBOM attestations for representative registry artifacts and Go archives;
 - immutable Go and C ABI GitHub Releases for archives, checksums, and SBOM assets;
-- public post-release verification through `just verify-release`.
+- public post-release verification through `just verify-release`, with
+  deterministic `just verify-release-dry-run` planning before registries are live.
 - wrapper package post-release verification through `just verify-wrapper-release`
-  when C ABI wrapper packages are published.
+  when C ABI wrapper packages are published, including registry metadata-link
+  checks and archived `published` / `pending` / `metadata-mismatch` / `missing`
+  status reports.
 
 The current evidence durability is:
 

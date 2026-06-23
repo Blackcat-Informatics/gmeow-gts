@@ -28,6 +28,11 @@ on:
         required: true
         default: false
         type: boolean
+      dry_run:
+        description: Write a planned-check report with pending registry statuses and no live verification.
+        required: true
+        default: false
+        type: boolean
       allow_legacy_release_gaps:
         description: Downgrade known pre-hardening gaps to warnings.
         required: true
@@ -64,6 +69,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERIFY_ALLOW_LEGACY_RELEASE_GAPS: ${{ inputs.allow_legacy_release_gaps }}
           VERIFY_CAPI_TAG: ${{ inputs.capi_tag }}
+          VERIFY_DRY_RUN: ${{ inputs.dry_run }}
           VERIFY_INCLUDE_WRAPPER_PACKAGES: ${{ inputs.include_wrapper_packages }}
           VERIFY_VERSION: ${{ inputs.version }}
           VERIFY_VISUAL_HASHING_VERSION: ${{ inputs.visual_hashing_version }}
@@ -77,6 +83,9 @@ jobs:
           fi
           if [ "${VERIFY_INCLUDE_WRAPPER_PACKAGES}" = "true" ]; then
             args+=(--include-wrapper-packages)
+          fi
+          if [ "${VERIFY_DRY_RUN}" = "true" ]; then
+            args+=(--dry-run)
           fi
           if [ "${VERIFY_ALLOW_LEGACY_RELEASE_GAPS}" = "true" ]; then
             args+=(--allow-legacy-release-gaps)
