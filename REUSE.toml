@@ -83,3 +83,14 @@ path = "dist/benchmarks/paper-evidence/release-benchmark-report.*"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+# The kramdown-rfc source must start with YAML front matter and the generated
+# RFCXML must be byte-for-byte generated from that source.
+[[annotations]]
+path = [
+  "ietf/draft-audley-gts-graph-transport-substrate.md",
+  "ietf/draft-audley-gts-graph-transport-substrate-00.xml",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0"

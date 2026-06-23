@@ -1,0 +1,1322 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rfc xmlns:xi="http://www.w3.org/2001/XInclude" version="3" ipr="trust200902" docName="draft-audley-gts-graph-transport-substrate-00" category="info" submissionType="IETF" xml:lang="en" consensus="false" prepTime="2026-06-23T00:56:06" indexInclude="true" scripts="Common,Latin" sortRefs="false" symRefs="true" tocDepth="3" tocInclude="true">
+  <!-- xml2rfc v2v3 conversion 3.34.0 -->
+  <front>
+    <title abbrev="GTS">Graph Transport Substrate</title>
+    <seriesInfo name="Internet-Draft" value="draft-audley-gts-graph-transport-substrate-00" stream="IETF"/>
+    <author initials="P." surname="Audley" fullname="Patrick Audley" role="editor">
+      <organization showOnFrontPage="true">Blackcat Informatics Inc.</organization>
+      <address>
+        <postal>
+          <country>Canada</country>
+        </postal>
+        <email>paudley@blackcatinformatics.ca</email>
+      </address>
+    </author>
+    <date month="06" year="2026" day="23"/>
+    <area>Applications and Real-Time Area</area>
+    <keyword>CBOR Sequence</keyword>
+    <keyword>RDF</keyword>
+    <keyword>content-addressed</keyword>
+    <keyword>graph transport</keyword>
+    <abstract pn="section-abstract">
+      <t indent="0" pn="section-abstract-1">GTS (Graph Transport Substrate) is an ontology-independent binary
+container and transport format for RDF 1.2 datasets and
+content-addressed binary payloads.  A GTS file is a CBOR Sequence of one
+or more append-only segments.  Each segment consists of a deterministic
+CBOR header followed by deterministic CBOR frames linked by BLAKE3
+content identifiers.  The logical dataset is obtained by a deterministic
+fold over the segment sequence.  GTS supports partial readability,
+opaque encrypted or unknown-codec frames, append-only suppression,
+optional signatures and encryption, and cross-language conformance
+through a shared vector corpus.</t>
+    </abstract>
+    <boilerplate>
+      <section anchor="status-of-memo" numbered="false" removeInRFC="false" toc="exclude" pn="section-boilerplate.1">
+        <name slugifiedName="name-status-of-this-memo">Status of This Memo</name>
+        <t indent="0" pn="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.
+        </t>
+        <t indent="0" pn="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <eref target="https://datatracker.ietf.org/drafts/current/" brackets="none"/>.
+        </t>
+        <t indent="0" pn="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."
+        </t>
+        <t indent="0" pn="section-boilerplate.1-4">
+        This Internet-Draft will expire on 25 December 2026.
+        </t>
+      </section>
+      <section anchor="copyright" numbered="false" removeInRFC="false" toc="exclude" pn="section-boilerplate.2">
+        <name slugifiedName="name-copyright-notice">Copyright Notice</name>
+        <t indent="0" pn="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.
+        </t>
+        <t indent="0" pn="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<eref target="https://trustee.ietf.org/license-info" brackets="none"/>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.
+        </t>
+      </section>
+    </boilerplate>
+    <toc>
+      <section anchor="toc" numbered="false" removeInRFC="false" toc="exclude" pn="section-toc.1">
+        <name slugifiedName="name-table-of-contents">Table of Contents</name>
+        <ul bare="true" empty="true" indent="2" spacing="compact" pn="section-toc.1-1">
+          <li pn="section-toc.1-1.1">
+            <t indent="0" keepWithNext="true" pn="section-toc.1-1.1.1"><xref derivedContent="1" format="counter" sectionFormat="of" target="section-1"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-introduction">Introduction</xref></t>
+          </li>
+          <li pn="section-toc.1-1.2">
+            <t indent="0" keepWithNext="true" pn="section-toc.1-1.2.1"><xref derivedContent="2" format="counter" sectionFormat="of" target="section-2"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-terminology-and-conventions">Terminology and Conventions</xref></t>
+          </li>
+          <li pn="section-toc.1-1.3">
+            <t indent="0" pn="section-toc.1-1.3.1"><xref derivedContent="3" format="counter" sectionFormat="of" target="section-3"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-file-structure-and-wire-for">File Structure and Wire Format</xref></t>
+            <ul bare="true" empty="true" indent="2" spacing="compact" pn="section-toc.1-1.3.2">
+              <li pn="section-toc.1-1.3.2.1">
+                <t indent="0" keepWithNext="true" pn="section-toc.1-1.3.2.1.1"><xref derivedContent="3.1" format="counter" sectionFormat="of" target="section-3.1"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-multi-segment-composition">Multi-Segment Composition</xref></t>
+              </li>
+              <li pn="section-toc.1-1.3.2.2">
+                <t indent="0" pn="section-toc.1-1.3.2.2.1"><xref derivedContent="3.2" format="counter" sectionFormat="of" target="section-3.2"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-streaming-prefixes-and-layo">Streaming Prefixes and Layout States</xref></t>
+              </li>
+            </ul>
+          </li>
+          <li pn="section-toc.1-1.4">
+            <t indent="0" pn="section-toc.1-1.4.1"><xref derivedContent="4" format="counter" sectionFormat="of" target="section-4"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-cbor-conventions">CBOR Conventions</xref></t>
+          </li>
+          <li pn="section-toc.1-1.5">
+            <t indent="0" pn="section-toc.1-1.5.1"><xref derivedContent="5" format="counter" sectionFormat="of" target="section-5"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-header-and-frame-grammar">Header and Frame Grammar</xref></t>
+            <ul bare="true" empty="true" indent="2" spacing="compact" pn="section-toc.1-1.5.2">
+              <li pn="section-toc.1-1.5.2.1">
+                <t indent="0" pn="section-toc.1-1.5.2.1.1"><xref derivedContent="5.1" format="counter" sectionFormat="of" target="section-5.1"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-payload-resolution">Payload Resolution</xref></t>
+              </li>
+              <li pn="section-toc.1-1.5.2.2">
+                <t indent="0" pn="section-toc.1-1.5.2.2.1"><xref derivedContent="5.2" format="counter" sectionFormat="of" target="section-5.2"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-index-frame">Index Frame</xref></t>
+              </li>
+            </ul>
+          </li>
+          <li pn="section-toc.1-1.6">
+            <t indent="0" pn="section-toc.1-1.6.1"><xref derivedContent="6" format="counter" sectionFormat="of" target="section-6"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-graph-data-model-and-fold">Graph Data Model and Fold</xref></t>
+            <ul bare="true" empty="true" indent="2" spacing="compact" pn="section-toc.1-1.6.2">
+              <li pn="section-toc.1-1.6.2.1">
+                <t indent="0" pn="section-toc.1-1.6.2.1.1"><xref derivedContent="6.1" format="counter" sectionFormat="of" target="section-6.1"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-terms">Terms</xref></t>
+              </li>
+              <li pn="section-toc.1-1.6.2.2">
+                <t indent="0" pn="section-toc.1-1.6.2.2.1"><xref derivedContent="6.2" format="counter" sectionFormat="of" target="section-6.2"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-reifiers-quads-and-annotati">Reifiers, Quads, and Annotations</xref></t>
+              </li>
+              <li pn="section-toc.1-1.6.2.3">
+                <t indent="0" pn="section-toc.1-1.6.2.3.1"><xref derivedContent="6.3" format="counter" sectionFormat="of" target="section-6.3"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-fold-algorithm">Fold Algorithm</xref></t>
+              </li>
+            </ul>
+          </li>
+          <li pn="section-toc.1-1.7">
+            <t indent="0" pn="section-toc.1-1.7.1"><xref derivedContent="7" format="counter" sectionFormat="of" target="section-7"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-transform-catalog">Transform Catalog</xref></t>
+          </li>
+          <li pn="section-toc.1-1.8">
+            <t indent="0" pn="section-toc.1-1.8.1"><xref derivedContent="8" format="counter" sectionFormat="of" target="section-8"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-integrity-and-confidentiali">Integrity and Confidentiality</xref></t>
+            <ul bare="true" empty="true" indent="2" spacing="compact" pn="section-toc.1-1.8.2">
+              <li pn="section-toc.1-1.8.2.1">
+                <t indent="0" pn="section-toc.1-1.8.2.1.1"><xref derivedContent="8.1" format="counter" sectionFormat="of" target="section-8.1"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-hash-chain">Hash Chain</xref></t>
+              </li>
+              <li pn="section-toc.1-1.8.2.2">
+                <t indent="0" pn="section-toc.1-1.8.2.2.1"><xref derivedContent="8.2" format="counter" sectionFormat="of" target="section-8.2"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-signatures-and-encryption">Signatures and Encryption</xref></t>
+              </li>
+              <li pn="section-toc.1-1.8.2.3">
+                <t indent="0" pn="section-toc.1-1.8.2.3.1"><xref derivedContent="8.3" format="counter" sectionFormat="of" target="section-8.3"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-opacity-invariant">Opacity Invariant</xref></t>
+              </li>
+            </ul>
+          </li>
+          <li pn="section-toc.1-1.9">
+            <t indent="0" pn="section-toc.1-1.9.1"><xref derivedContent="9" format="counter" sectionFormat="of" target="section-9"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-profiles-and-nested-gts">Profiles and Nested GTS</xref></t>
+          </li>
+          <li pn="section-toc.1-1.10">
+            <t indent="0" pn="section-toc.1-1.10.1"><xref derivedContent="10" format="counter" sectionFormat="of" target="section-10"/>. <xref derivedContent="" format="title" sectionFormat="of" target="name-media-type-and-http-serving">Media Type and HTTP Serving Semantics</xref></t>
+          </li>
+          <li pn="section-toc.1-1.11">
+            <t indent="0" pn="section-toc.1-1.11.1"><xref derivedContent="11" format="counter" sectionFormat="of" target="section-11"/>. <xref derivedContent="" format="title" sectionFormat="of" target="name-security-considerations">Security Considerations</xref></t>
+          </li>
+          <li pn="section-toc.1-1.12">
+            <t indent="0" pn="section-toc.1-1.12.1"><xref derivedContent="12" format="counter" sectionFormat="of" target="section-12"/>. <xref derivedContent="" format="title" sectionFormat="of" target="name-iana-considerations">IANA Considerations</xref></t>
+            <ul bare="true" empty="true" indent="2" spacing="compact" pn="section-toc.1-1.12.2">
+              <li pn="section-toc.1-1.12.2.1">
+                <t indent="0" pn="section-toc.1-1.12.2.1.1"><xref derivedContent="12.1" format="counter" sectionFormat="of" target="section-12.1"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-media-type-registration-app">Media Type Registration: application/vnd.blackcat.gts+cbor-seq</xref></t>
+              </li>
+            </ul>
+          </li>
+          <li pn="section-toc.1-1.13">
+            <t indent="0" pn="section-toc.1-1.13.1"><xref derivedContent="13" format="counter" sectionFormat="of" target="section-13"/>. <xref derivedContent="" format="title" sectionFormat="of" target="name-references">References</xref></t>
+            <ul bare="true" empty="true" indent="2" spacing="compact" pn="section-toc.1-1.13.2">
+              <li pn="section-toc.1-1.13.2.1">
+                <t indent="0" pn="section-toc.1-1.13.2.1.1"><xref derivedContent="13.1" format="counter" sectionFormat="of" target="section-13.1"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-normative-references">Normative References</xref></t>
+              </li>
+              <li pn="section-toc.1-1.13.2.2">
+                <t indent="0" pn="section-toc.1-1.13.2.2.1"><xref derivedContent="13.2" format="counter" sectionFormat="of" target="section-13.2"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-informative-references">Informative References</xref></t>
+              </li>
+            </ul>
+          </li>
+          <li pn="section-toc.1-1.14">
+            <t indent="0" pn="section-toc.1-1.14.1"><xref derivedContent="Appendix A" format="default" sectionFormat="of" target="section-appendix.a"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-cddl-appendix">CDDL Appendix</xref></t>
+          </li>
+          <li pn="section-toc.1-1.15">
+            <t indent="0" pn="section-toc.1-1.15.1"><xref derivedContent="Appendix B" format="default" sectionFormat="of" target="section-appendix.b"/>.  <xref derivedContent="" format="title" sectionFormat="of" target="name-hash-and-signature-preimage">Hash and Signature Preimages</xref></t>
+          </li>
+          <li pn="section-toc.1-1.16">
+            <t indent="0" pn="section-toc.1-1.16.1"><xref derivedContent="" format="none" sectionFormat="of" target="section-appendix.c"/><xref derivedContent="" format="title" sectionFormat="of" target="name-authors-address">Author's Address</xref></t>
+          </li>
+        </ul>
+      </section>
+    </toc>
+  </front>
+  <middle>
+    <section anchor="introduction" numbered="true" removeInRFC="false" toc="include" pn="section-1">
+      <name slugifiedName="name-introduction">Introduction</name>
+      <t indent="0" pn="section-1-1">GTS encodes a graph as an append-only log of CBOR frames.  The logical
+graph is the fold, or replay, of the log.  Growth is an append; deletion
+is represented as additive suppression; optimization is a separate
+lossy compaction step that rewrites the log into a snapshot.</t>
+      <t indent="0" pn="section-1-2">At revision -00, this document is an individual Internet-Draft and work
+in progress.  It is not an IETF standard, a Proposed Standard, an
+adopted working-group item, or a CBOR working-group document.  The
+primary goals of this draft, derived from the repository specification
+<xref target="GTS-SPEC" format="default" sectionFormat="of" derivedContent="GTS-SPEC"/>, are to make the wire format reviewable in IETF form,
+prepare media type registration for
+<tt>application/vnd.blackcat.gts+cbor-seq</tt>, and invite review of the CBOR
+Sequence framing, CDDL, deterministic-CBOR preimages, and media type
+template.</t>
+      <t indent="0" pn="section-1-3">Four properties define the format:</t>
+      <ul spacing="normal" bare="false" empty="false" indent="3" pn="section-1-4">
+        <li pn="section-1-4.1">
+          <t indent="0" pn="section-1-4.1.1">CBOR all the way down.  A GTS file is a CBOR Sequence <xref target="RFC8742" format="default" sectionFormat="of" derivedContent="RFC8742"/> of
+data items with no whole-file enclosing CBOR item.</t>
+        </li>
+        <li pn="section-1-4.2">
+          <t indent="0" pn="section-1-4.2.1">A durable transform catalog.  Payloads name stackable codecs from a
+file-local catalog whose entries use ecosystem-wide canonical names.</t>
+        </li>
+        <li pn="section-1-4.3">
+          <t indent="0" pn="section-1-4.3.1">Integrity by construction.  Headers and frames use deterministic CBOR
+<xref target="RFC8949" format="default" sectionFormat="of" derivedContent="RFC8949"/> preimages and BLAKE3-256 content identifiers <xref target="BLAKE3" format="default" sectionFormat="of" derivedContent="BLAKE3"/>.</t>
+        </li>
+        <li pn="section-1-4.4">
+          <t indent="0" pn="section-1-4.4.1">Recursive composition.  A blob can itself carry a complete GTS file,
+including a signed or encrypted nested graph.</t>
+        </li>
+      </ul>
+      <t indent="0" pn="section-1-5">GTS does not define a query language, a mandatory random-access index, a
+reasoner, or a mutation protocol.  Those are profile, projection, or
+application-layer concerns.</t>
+    </section>
+    <section anchor="terminology-and-conventions" numbered="true" removeInRFC="false" toc="include" pn="section-2">
+      <name slugifiedName="name-terminology-and-conventions">Terminology and Conventions</name>
+      <t indent="0" pn="section-2-1">The key words "<bcp14>MUST</bcp14>", "<bcp14>MUST NOT</bcp14>", "<bcp14>REQUIRED</bcp14>", "<bcp14>SHALL</bcp14>", "<bcp14>SHALL NOT</bcp14>", "<bcp14>SHOULD</bcp14>", "<bcp14>SHOULD NOT</bcp14>", "<bcp14>RECOMMENDED</bcp14>", "<bcp14>NOT RECOMMENDED</bcp14>",
+"<bcp14>MAY</bcp14>", and "<bcp14>OPTIONAL</bcp14>" in this document are to be interpreted as
+described in BCP 14 <xref target="RFC2119" format="default" sectionFormat="of" derivedContent="RFC2119"/> <xref target="RFC8174" format="default" sectionFormat="of" derivedContent="RFC8174"/> when, and only when, they
+appear in all capitals, as shown here.</t>
+      <t indent="0" pn="section-2-2">This document uses these terms:</t>
+      <dl indent="3" newline="false" spacing="normal" pn="section-2-3">
+        <dt pn="section-2-3.1">Log:</dt>
+        <dd pn="section-2-3.2">
+          <t indent="0" pn="section-2-3.2.1">The ordered sequence of frames in a GTS segment.</t>
+        </dd>
+        <dt pn="section-2-3.3">Segment:</dt>
+        <dd pn="section-2-3.4">
+          <t indent="0" pn="section-2-3.4.1">One self-contained GTS header followed by zero or more frames.</t>
+        </dd>
+        <dt pn="section-2-3.5">Frame:</dt>
+        <dd pn="section-2-3.6">
+          <t indent="0" pn="section-2-3.6.1">A CBOR data item after the segment header.</t>
+        </dd>
+        <dt pn="section-2-3.7">Fold:</dt>
+        <dd pn="section-2-3.8">
+          <t indent="0" pn="section-2-3.8.1">The deterministic replay of a segment or file into graph state.</t>
+        </dd>
+        <dt pn="section-2-3.9">Term:</dt>
+        <dd pn="section-2-3.10">
+          <t indent="0" pn="section-2-3.10.1">An RDF term, including an IRI, literal, blank node, or quoted triple,
+represented by a segment-local integer identifier while reading.</t>
+        </dd>
+        <dt pn="section-2-3.11">Reifier:</dt>
+        <dd pn="section-2-3.12">
+          <t indent="0" pn="section-2-3.12.1">A term that denotes a quoted triple and can carry statement-level
+metadata under the RDF 1.2 <tt>rdf:reifies</tt> model <xref target="RDF12" format="default" sectionFormat="of" derivedContent="RDF12"/>.</t>
+        </dd>
+        <dt pn="section-2-3.13">Capability:</dt>
+        <dd pn="section-2-3.14">
+          <t indent="0" pn="section-2-3.14.1">A library or key needed to reverse a payload transform.</t>
+        </dd>
+        <dt pn="section-2-3.15">Opaque node:</dt>
+        <dd pn="section-2-3.16">
+          <t indent="0" pn="section-2-3.16.1">The graph representation of a frame whose payload cannot be decoded
+by the reader.</t>
+        </dd>
+        <dt pn="section-2-3.17">Baseline Reader:</dt>
+        <dd pn="section-2-3.18">
+          <t indent="0" pn="section-2-3.18.1">A reader that parses the CBOR Sequence, verifies the header/frame
+chain, supports the baseline codecs, folds the core frame types, and
+surfaces undecodable frames as opaque nodes.</t>
+        </dd>
+        <dt pn="section-2-3.19">Full Reader:</dt>
+        <dd pn="section-2-3.20">
+          <t indent="0" pn="section-2-3.20.1">A reader that also verifies COSE signatures, decrypts frames for which
+it holds keys, recurses into nested GTS blobs when requested, and can
+use optional index data.</t>
+        </dd>
+      </dl>
+    </section>
+    <section anchor="file-structure-and-wire-format" numbered="true" removeInRFC="false" toc="include" pn="section-3">
+      <name slugifiedName="name-file-structure-and-wire-for">File Structure and Wire Format</name>
+      <t indent="0" pn="section-3-1">A GTS file is a CBOR Sequence, not one enclosing CBOR item.  A file is
+one or more segments; each segment begins with a Header and then carries
+zero or more Frame items.</t>
+      <sourcecode type="text" markers="false" pn="section-3-2">
+GTS-file = segment *segment
+segment  = [ self-describe-tag ] header *frame
+</sourcecode>
+      <t indent="0" pn="section-3-3">The optional self-describe tag is CBOR tag 55799
+(<tt>0xd9 0xd9 0xf7</tt>) from <xref target="RFC8949" format="default" sectionFormat="of" derivedContent="RFC8949"/>.  If present, it tags the segment
+Header item only.  It is not a separate log item, does not have an
+<tt>"id"</tt>, and does not participate in the id/prev chain.</t>
+      <t indent="0" pn="section-3-4">The first data item of every segment <bcp14>MUST</bcp14> be a Header.  Every subsequent
+data item of the segment is a Frame until the next Header or end of
+input.  A writer appends by concatenating another frame to the current
+segment or by concatenating a complete later segment.  There is no
+length prefix or item count that a writer must rewrite.</t>
+      <section anchor="multi-segment-composition" numbered="true" removeInRFC="false" toc="include" pn="section-3.1">
+        <name slugifiedName="name-multi-segment-composition">Multi-Segment Composition</name>
+        <t indent="0" pn="section-3.1-1">Byte-concatenation of valid GTS files yields a valid multi-segment GTS
+file.  After a reader has consumed at least one frame, a later data item
+that is a map containing the key <tt>"gts"</tt> and lacking the frame key <tt>"t"</tt>
+          <bcp14>MUST</bcp14> be treated as the Header of a new segment.  Any self-describe tag
+on that item tags the new Header.</t>
+        <t indent="0" pn="section-3.1-2">Each segment has its own genesis Header, id/prev chain, signatures, and
+optional index.  A file's composite identity is the ordered list of
+segment head identifiers.  Term identifiers are segment-scoped; the only
+cross-segment identity is term value.  Blank-node labels <bcp14>MUST NOT</bcp14> be
+merged across segments.</t>
+      </section>
+      <section anchor="streaming-prefixes-and-layout-states" numbered="true" removeInRFC="false" toc="include" pn="section-3.2">
+        <name slugifiedName="name-streaming-prefixes-and-layo">Streaming Prefixes and Layout States</name>
+        <t indent="0" pn="section-3.2-1">Every byte prefix of a valid GTS file that ends at a CBOR item boundary
+is itself a valid prefix fold.  A reader <bcp14>MUST</bcp14> ignore trailing incomplete
+CBOR bytes as a torn append and surface a diagnostic.</t>
+        <t indent="0" pn="section-3.2-2">The default layout state is accretive, meaning append-optimized.  A
+segment can instead claim a streamable layout with Header key
+<tt>"layout": "streamable"</tt>.  A verifying reader <bcp14>MUST</bcp14> check that the
+claimed covered region has an intact trailing index and that each inline
+blob is preceded by graph metadata describing its digest.  Violations
+are reported as <tt>StreamableLayoutError</tt>.</t>
+      </section>
+    </section>
+    <section anchor="cbor-conventions" numbered="true" removeInRFC="false" toc="include" pn="section-4">
+      <name slugifiedName="name-cbor-conventions">CBOR Conventions</name>
+      <t indent="0" pn="section-4-1">Any bytes that are hashed or signed <bcp14>MUST</bcp14> use deterministic CBOR encoding
+under <xref target="RFC8949" format="default" sectionFormat="of" derivedContent="RFC8949"/>, Section 4.2: shortest-form integers,
+definite-length items, and map keys sorted bytewise on their encoded
+form.  Implementations <bcp14>MUST NOT</bcp14> rely on older <xref target="RFC7049" format="default" sectionFormat="of" derivedContent="RFC7049"/> canonical
+ordering if that library sorts map keys length-first.</t>
+      <t indent="0" pn="section-4-2">Maps use short text-string keys such as <tt>"t"</tt> and <tt>"d"</tt>.  BLAKE3 digests
+are 32-byte byte strings.  The complete CDDL appendix is in
+<xref target="CDDL-appendix" format="default" sectionFormat="of" derivedContent="Appendix A"/> and uses the Concise Data Definition Language from
+<xref target="RFC8610" format="default" sectionFormat="of" derivedContent="RFC8610"/>.</t>
+    </section>
+    <section anchor="header-and-frame-grammar" numbered="true" removeInRFC="false" toc="include" pn="section-5">
+      <name slugifiedName="name-header-and-frame-grammar">Header and Frame Grammar</name>
+      <t indent="0" pn="section-5-1">The Header is the first data item in a segment and the chain genesis.
+It is not a frame and has no <tt>"prev"</tt> key.</t>
+      <sourcecode type="cddl" markers="false" pn="section-5-2">
+header = {
+  "gts"  : "GTS1",
+  "v"    : uint,
+  "prof" : tstr,
+  "cat"  : { * codec-id =&gt; codec },
+  ? "layout": tstr,
+  ? "dct": { * tstr =&gt; bstr },
+  ? "meta": any,
+  "id"   : content-id,
+}
+
+codec = {
+  "name" : tstr,
+  "cls"  : "encode" / "compress" / "encrypt",
+  ? "dct": tstr,
+  ? "p"  : any,
+}
+</sourcecode>
+      <t indent="0" pn="section-5-3">The Header <tt>"id"</tt> <bcp14>MUST</bcp14> equal <tt>BLAKE3-256</tt> over the deterministic CBOR of
+the Header map excluding only the <tt>"id"</tt> key.  All other keys, including
+unknown extension keys, participate.  The optional self-describe tag is
+outside the Header map and outside the preimage.</t>
+      <t indent="0" pn="section-5-4">The Header <tt>"dct"</tt> map is a segment-local dictionary registry keyed by
+text identifiers.  Each value is an uninterpreted byte string until a
+codec catalog entry references that key through its own <tt>"dct"</tt> field.
+A codec <tt>"dct"</tt> value names the dictionary bytes used to reverse that
+codec.  A codec <tt>"p"</tt> value carries codec-specific parameters as
+deterministic CBOR.  A reader that does not understand required
+parameters or cannot resolve a referenced dictionary folds the affected
+frame as opaque.</t>
+      <t indent="0" pn="section-5-5">All frames share one envelope:</t>
+      <sourcecode type="cddl" markers="false" pn="section-5-6">
+frame = {
+  "t"   : frame-type,
+  ? "x" : [+ codec-id],
+  ? "pub": any,
+  ? "to": [+ recipient],
+  ? "d" : bstr / any,
+  "prev": content-id,
+  "id"  : content-id,
+  ? "sig": bstr,
+}
+
+frame-type = "terms" / "quads" / "reifies" / "annot" / "blob" /
+             "suppress" / "snapshot" / "meta" / "index" / "opaque"
+
+recipient = { "kid": tstr, ? "alg": tstr, * tstr =&gt; any }
+</sourcecode>
+      <t indent="0" pn="section-5-7">Each frame's <tt>"id"</tt> <bcp14>MUST</bcp14> equal <tt>BLAKE3-256</tt> over the deterministic CBOR
+of the frame map excluding <tt>"id"</tt> and <tt>"sig"</tt>.  Each frame's <tt>"prev"</tt>
+        <bcp14>MUST</bcp14> equal the previous data item's <tt>"id"</tt>; for the first frame in a
+segment, <tt>"prev"</tt> is the Header <tt>"id"</tt>.  Because <tt>"prev"</tt> is inside the
+hashed frame content, each frame id transitively commits to the prior
+items in the segment.</t>
+      <section anchor="payload-resolution" numbered="true" removeInRFC="false" toc="include" pn="section-5.1">
+        <name slugifiedName="name-payload-resolution">Payload Resolution</name>
+        <t indent="0" pn="section-5.1-1">If <tt>"x"</tt> is absent, the payload is <tt>"d"</tt> directly.  If <tt>"x"</tt> is present,
+<tt>"d"</tt> <bcp14>MUST</bcp14> be a byte string and each codec identifier <bcp14>MUST</bcp14> resolve
+through the segment Header catalog.  The reader reverses the codec chain
+last-to-first.  If a codec library or key is missing, the reader stops
+and folds the frame as opaque.  After a transform chain is reversed, the
+decoded bytes are interpreted as the frame-type-specific CBOR payload,
+except that a <tt>blob</tt> payload is raw bytes.</t>
+      </section>
+      <section anchor="index-frame" numbered="true" removeInRFC="false" toc="include" pn="section-5.2">
+        <name slugifiedName="name-index-frame">Index Frame</name>
+        <t indent="0" pn="section-5.2-1">An <tt>index</tt> frame is optional and accelerates reading; it is not required
+by a Baseline Reader.</t>
+        <sourcecode type="cddl" markers="false" pn="section-5.2-2">
+index-payload = {
+  "count"  : uint,
+  "head"   : content-id,
+  ? "off"  : [+ uint],
+  ? "ti"   : { * frame-type =&gt; [+ uint] },
+  ? "dict" : [+ uint],
+  ? "mmr"  : content-id,
+}
+</sourcecode>
+        <t indent="0" pn="section-5.2-3"><tt>"off"</tt> records byte offsets, <tt>"dict"</tt> locates term dictionary frames,
+<tt>"head"</tt> records the last covered frame id, and <tt>"mmr"</tt> records an
+optional Merkle-Mountain-Range root over covered frame ids.  A later
+index <bcp14>MAY</bcp14> cover an earlier index as an ordinary frame.  An index never
+covers itself.</t>
+      </section>
+    </section>
+    <section anchor="graph-data-model-and-fold" numbered="true" removeInRFC="false" toc="include" pn="section-6">
+      <name slugifiedName="name-graph-data-model-and-fold">Graph Data Model and Fold</name>
+      <t indent="0" pn="section-6-1">A reader folds each segment into logical state containing terms, quads,
+reifier bindings, annotations, blobs, blob metadata, segment metadata,
+suppressions, opaque nodes, signatures, diagnostics, segment heads,
+profile declarations, and layout state.  A file fold is the ordered
+value-union of segment folds.  Segment-local term ids are resolved
+inside their own segment before any cross-segment union.</t>
+      <t indent="0" pn="section-6-2">GTS imports the RDF 1.2 Concepts and Abstract Data Model Candidate
+Recommendation Snapshot dated 7 April 2026 for IRIs, blank nodes,
+literals, RDF datasets, triple terms, version label <tt>"1.2"</tt>, and
+<tt>rdf:reifies</tt> <xref target="RDF12" format="default" sectionFormat="of" derivedContent="RDF12"/>.  Core GTS does not require an RDF parser, query
+language, entailment regime, canonicalization algorithm, or concrete RDF
+syntax.</t>
+      <t indent="0" pn="section-6-3">Value equality is exact at the transport layer:</t>
+      <ul spacing="normal" bare="false" empty="false" indent="3" pn="section-6-4">
+        <li pn="section-6-4.1">
+          <t indent="0" pn="section-6-4.1.1">IRIs compare by exact Unicode string value after CBOR decoding.</t>
+        </li>
+        <li pn="section-6-4.2">
+          <t indent="0" pn="section-6-4.2.1">Literals compare by lexical string, datatype IRI, language tag when
+present, and RDF 1.2 base direction when present.  Datatype lexical
+canonicalization is not applied.</t>
+        </li>
+        <li pn="section-6-4.3">
+          <t indent="0" pn="section-6-4.3.1">Blank nodes compare only within their blank-node scope.  Blank nodes
+from different segments or nested GTS files are never equal.</t>
+        </li>
+        <li pn="section-6-4.4">
+          <t indent="0" pn="section-6-4.4.1">Quoted triple terms compare by their resolved subject, predicate, and
+object term values.</t>
+        </li>
+        <li pn="section-6-4.5">
+          <t indent="0" pn="section-6-4.5.1">Opaque nodes preserve occurrence identity by segment identity and
+frame content id.</t>
+        </li>
+      </ul>
+      <section anchor="terms" numbered="true" removeInRFC="false" toc="include" pn="section-6.1">
+        <name slugifiedName="name-terms">Terms</name>
+        <t indent="0" pn="section-6.1-1">A <tt>terms</tt> payload is an ordered array.  Term ids are unsigned integers
+assigned in append order, starting at zero for each segment.</t>
+        <sourcecode type="cddl" markers="false" pn="section-6.1-2">
+terms-payload = [+ term]
+term = {
+  "k"   : 0 / 1 / 2 / 3,
+  ? "v" : tstr,
+  ? "dt": term-id,
+  ? "l" : tstr,
+  ? "dir": "ltr" / "rtl",
+  ? "rf": term-id,
+}
+</sourcecode>
+        <t indent="0" pn="section-6.1-3">For literals, absent datatype is defaulted to <tt>rdf:dirLangString</tt> when
+both <tt>"l"</tt> and <tt>"dir"</tt> are present, <tt>rdf:langString</tt> when only <tt>"l"</tt> is
+present, and <tt>xsd:string</tt> otherwise.  Language tags use BCP 47 syntax
+<xref target="RFC5646" format="default" sectionFormat="of" derivedContent="RFC5646"/>.  A <tt>"dir"</tt> value has no meaning without <tt>"l"</tt>.</t>
+        <t indent="0" pn="section-6.1-4">The term kind <tt>"k"</tt> identifies the row form: <tt>0</tt> is an IRI whose <tt>"v"</tt> is
+the IRI string, <tt>1</tt> is a blank node whose <tt>"v"</tt> is the segment-local
+blank-node label, <tt>2</tt> is a literal whose <tt>"v"</tt> is the lexical form, and
+<tt>3</tt> is a quoted triple term.  A quoted triple term uses <tt>"rf"</tt> to name
+the reifier term id whose binding appears in a <tt>reifies</tt> payload.  The
+<tt>"dt"</tt>, <tt>"l"</tt>, and <tt>"dir"</tt> fields apply only to literals.</t>
+      </section>
+      <section anchor="reifiers-quads-and-annotations" numbered="true" removeInRFC="false" toc="include" pn="section-6.2">
+        <name slugifiedName="name-reifiers-quads-and-annotati">Reifiers, Quads, and Annotations</name>
+        <t indent="0" pn="section-6.2-1">RDF 1.2 permits a triple to be the subject or object of another triple.
+GTS represents a quoted triple through a reifier term and a <tt>reifies</tt>
+frame:</t>
+        <sourcecode type="cddl" markers="false" pn="section-6.2-2">
+reifies-payload = { * term-id =&gt; [term-id, term-id, term-id] }
+quads-payload = [+ [term-id, term-id, term-id, ? term-id]]
+annot-payload = [+ [term-id, term-id, term-id]]
+</sourcecode>
+        <t indent="0" pn="section-6.2-3">A <tt>quads</tt> row asserts a triple in the default graph or the named graph
+identified by the fourth term id.  A <tt>reifies</tt> binding asserts
+<tt>R rdf:reifies &lt;&lt;( S P O )&gt;&gt;</tt> in the default graph.  An <tt>annot</tt> row
+asserts metadata about a reifier; its positions are <tt>[reifier,
+predicate, object]</tt>.  Referencing a quoted triple does not assert the
+base triple; the base triple is asserted only if it appears in a
+<tt>quads</tt> frame.</t>
+        <t indent="0" pn="section-6.2-4">Predicates in <tt>quads</tt>, <tt>reifies</tt>, and <tt>annot</tt> rows <bcp14>MUST</bcp14> be IRIs.  A quad
+subject <bcp14>MUST</bcp14> be an IRI, blank node, or quoted triple.  A graph name, when
+present, <bcp14>MUST</bcp14> be an IRI or blank node.</t>
+      </section>
+      <section anchor="fold-algorithm" numbered="true" removeInRFC="false" toc="include" pn="section-6.3">
+        <name slugifiedName="name-fold-algorithm">Fold Algorithm</name>
+        <t indent="0" pn="section-6.3-1">The fold is deterministic.  In outline:</t>
+        <sourcecode type="text" markers="false" pn="section-6.3-2">
+result := empty file state
+for segment in file order:
+  verify the Header id and each frame id/prev link within the segment
+  terms := [] ; graph := {} ; reifiers := {} ; annotations := []
+  blobs := {} ; meta := {} ; suppressions := [] ; opaque := []
+  for frame in segment order:
+    payload := resolve frame payload
+    if undecodable: append an opaque node and continue
+    switch frame.t:
+      "terms"    : append terms and assign segment-local ids
+      "quads"    : add each resolved quad value tuple
+      "reifies"  : bind each reifier, keeping the first non-conflict
+      "annot"    : append annotation rows
+      "blob"     : store inline bytes or register external digest
+      "suppress" : append suppression directives
+      "snapshot" : replace segment state
+      "meta"     : shallow-merge segment metadata
+      "opaque"   : append explicit opaque node
+  union the segment fold into result by value, not raw term id
+</sourcecode>
+        <t indent="0" pn="section-6.3-3">Duplicate quads collapse as set entries.  Annotation rows remain an
+ordered multiset.  Conflicting reifier bindings produce a
+<tt>ConflictingReifier</tt> diagnostic and keep the first binding.  Unknown
+structural frame types preserve chain verification and are surfaced as
+opaque nodes or diagnostics until a profile-aware reader handles them.</t>
+        <t indent="0" pn="section-6.3-4">Suppressions are additive tombstones.  They never remove bytes from the
+CBOR Sequence, never change frame ids, and never break chain
+verification.  A default projection applies suppression directives by
+value across the folded file state unless a profile defines a narrower
+scope.  A <tt>frame</tt> target suppresses that frame's logical contribution
+while leaving term definitions available for resolving later rows.  A
+<tt>blob</tt> target suppresses the matching blob digest.  A <tt>quad</tt> target
+suppresses matching resolved quads.  A <tt>reifier</tt> target suppresses the
+reifier binding and annotation rows whose first position is that reifier.
+A <tt>term</tt> target suppresses only direct exposure of that term-table entry;
+it does not cascade to quads, quoted triples, reifiers, annotations, or
+blobs that reference the term.</t>
+        <t indent="0" pn="section-6.3-5">On full replay, a <tt>snapshot</tt> frame replaces the accumulated state for
+the current segment at that frame position, and following frames apply on
+top of the snapshot state.  A snapshot does not erase state already
+folded from earlier segments; it can only affect earlier visible content
+through explicit suppression directives carried in or after the
+snapshot.</t>
+      </section>
+    </section>
+    <section anchor="transform-catalog" numbered="true" removeInRFC="false" toc="include" pn="section-7">
+      <name slugifiedName="name-transform-catalog">Transform Catalog</name>
+      <t indent="0" pn="section-7-1">Each codec catalog entry declares a class:</t>
+      <table align="center" pn="table-1">
+        <thead>
+          <tr>
+            <th align="left" colspan="1" rowspan="1">Class</th>
+            <th align="left" colspan="1" rowspan="1">Examples</th>
+            <th align="left" colspan="1" rowspan="1">Capability needed to reverse</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>encode</tt></td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>identity</tt>, <tt>base64url</tt>, <tt>base85</tt></td>
+            <td align="left" colspan="1" rowspan="1">None</td>
+          </tr>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>compress</tt></td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>gzip</tt>, <tt>zstd</tt>, <tt>lzma2</tt></td>
+            <td align="left" colspan="1" rowspan="1">Codec library</td>
+          </tr>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>encrypt</tt></td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>cose-encrypt0</tt>, <tt>cose-encrypt</tt></td>
+            <td align="left" colspan="1" rowspan="1">Recipient key</td>
+          </tr>
+        </tbody>
+      </table>
+      <t indent="0" pn="section-7-3">The <tt>"x"</tt> transform array is applied in order on encode and reversed in
+the opposite order on decode.  Decoding requires every named capability.
+A missing library or key yields an opaque node rather than data loss.</t>
+      <t indent="0" pn="section-7-4">A Baseline Reader <bcp14>MUST</bcp14> implement <tt>identity</tt>, <tt>gzip</tt>, and <tt>zstd</tt>.
+Writers targeting maximum longevity <bcp14>SHOULD</bcp14> restrict payload transforms
+to this core set.  Conformance claims are checked against the project
+vector corpus and conformance policy <xref target="GTS-CONFORMANCE" format="default" sectionFormat="of" derivedContent="GTS-CONFORMANCE"/>.</t>
+    </section>
+    <section anchor="integrity-and-confidentiality" numbered="true" removeInRFC="false" toc="include" pn="section-8">
+      <name slugifiedName="name-integrity-and-confidentiali">Integrity and Confidentiality</name>
+      <t indent="0" pn="section-8-1">GTS separates four concerns:</t>
+      <ul spacing="normal" bare="false" empty="false" indent="3" pn="section-8-2">
+        <li pn="section-8-2.1">
+          <t indent="0" pn="section-8-2.1.1">frame integrity, via each Header or frame <tt>"id"</tt>;</t>
+        </li>
+        <li pn="section-8-2.2">
+          <t indent="0" pn="section-8-2.2.1">history integrity, via the frame <tt>"prev"</tt> chain;</t>
+        </li>
+        <li pn="section-8-2.3">
+          <t indent="0" pn="section-8-2.3.1">origin or authorship, via optional COSE signatures; and</t>
+        </li>
+        <li pn="section-8-2.4">
+          <t indent="0" pn="section-8-2.4.1">freshness or non-truncation, via a head commitment such as a signature
+over the head id or an index <tt>"head"</tt>/<tt>"mmr"</tt> commitment.</t>
+        </li>
+      </ul>
+      <t indent="0" pn="section-8-3">The first two are mandatory and key-free.  The last two are optional and
+profile-specific.</t>
+      <section anchor="hash-chain" numbered="true" removeInRFC="false" toc="include" pn="section-8.1">
+        <name slugifiedName="name-hash-chain">Hash Chain</name>
+        <t indent="0" pn="section-8.1-1">Each frame id is a hash of self-contained frame content.  With known
+offsets, frame hashes can be verified in parallel followed by a simple
+<tt>"prev"</tt> equality pass.  A corrupt frame fails its own id.  Recovery of
+later frames is guaranteed only when later offsets are known from an
+intact index, checkpoint, external framing, or storage layer.</t>
+        <t indent="0" pn="section-8.1-2">The id/prev chain does not detect truncation by itself.  A verifier
+needs a trusted head commitment.</t>
+      </section>
+      <section anchor="signatures-and-encryption" numbered="true" removeInRFC="false" toc="include" pn="section-8.2">
+        <name slugifiedName="name-signatures-and-encryption">Signatures and Encryption</name>
+        <t indent="0" pn="section-8.2-1">A frame <bcp14>MAY</bcp14> carry <tt>"sig"</tt>, a serialized <tt>COSE_Sign1</tt> <xref target="RFC9052" format="default" sectionFormat="of" derivedContent="RFC9052"/> over
+the frame id as a detached payload.  Because the frame id commits to the
+public envelope, transformed payload bytes, and chain position, the
+signature binds those fields to the signer.  The signature algorithm is
+declared by COSE and uses algorithm identifiers such as those registered
+for COSE algorithms <xref target="RFC9053" format="default" sectionFormat="of" derivedContent="RFC9053"/>.</t>
+        <t indent="0" pn="section-8.2-2">COSE is profile-specific in this draft.  GTS references COSE only for
+optional signature and encryption behavior.  Review of signature and
+encryption profiles, including any request to the COSE working group, is
+a future-focused step after those profiles are stable enough for that
+review.</t>
+        <t indent="0" pn="section-8.2-3">An <tt>encrypt</tt>-class codec wraps the payload as <tt>COSE_Encrypt0</tt> or
+<tt>COSE_Encrypt</tt>.  Recipients are listed in cleartext by key identifier
+only.  A reader that lacks the needed key folds the frame as opaque.</t>
+      </section>
+      <section anchor="opacity-invariant" numbered="true" removeInRFC="false" toc="include" pn="section-8.3">
+        <name slugifiedName="name-opacity-invariant">Opacity Invariant</name>
+        <t indent="0" pn="section-8.3-1">Opacity hides content, not existence, provenance, or position.  For
+every frame, <tt>"id"</tt>, <tt>"prev"</tt>, <tt>"t"</tt>, <tt>"x"</tt>, <tt>"to"</tt>, <tt>"pub"</tt>, and
+<tt>"sig"</tt> remain in cleartext when present.  A reader without a key can
+still carry the frame, verify its chain position, and report public
+envelope metadata.</t>
+      </section>
+    </section>
+    <section anchor="profiles-and-nested-gts" numbered="true" removeInRFC="false" toc="include" pn="section-9">
+      <name slugifiedName="name-profiles-and-nested-gts">Profiles and Nested GTS</name>
+      <t indent="0" pn="section-9-1">A profile is a named set of conventions above the core wire format,
+declared by the Header <tt>"prof"</tt> field.  Profiles can define vocabulary,
+validation rules, trust policy, capability requirements, and publication
+workflows.  Profiles <bcp14>MUST NOT</bcp14> change Header or frame grammar,
+segment-boundary detection, id or signature preimages, transform-catalog
+resolution, or the core fold.</t>
+      <t indent="0" pn="section-9-2">Baseline readers parse and fold a file even when they do not implement a
+named profile, subject to normal capability limitations.  Profile-aware
+tools can apply stricter validation and diagnostics.</t>
+      <t indent="0" pn="section-9-3">A blob whose media type is <tt>application/vnd.blackcat.gts+cbor-seq</tt> is
+itself a complete GTS file.  A Full Reader <bcp14>MAY</bcp14> recurse into such a blob,
+folding the inner file as an independent subgraph.  The nested GTS has
+its own Header, id/prev chain, signatures, and blank-node scope.  A
+reader that recurses <bcp14>MUST</bcp14> enforce maximum nesting depth and total
+decoded-size budgets.</t>
+    </section>
+    <section anchor="media-type-and-http-serving-semantics" numbered="true" removeInRFC="false" toc="include" pn="section-10">
+      <name slugifiedName="name-media-type-and-http-serving">Media Type and HTTP Serving Semantics</name>
+      <t indent="0" pn="section-10-1">The media type for GTS is <tt>application/vnd.blackcat.gts+cbor-seq</tt>.  The
+<tt>+cbor-seq</tt> structured syntax suffix <xref target="RFC9277" format="default" sectionFormat="of" derivedContent="RFC9277"/> is used because a GTS
+file is a CBOR Sequence, not a single enclosing CBOR data item.  The
+file extension is <tt>.gts</tt>.</t>
+      <t indent="0" pn="section-10-2">When identifying bytes without trusted metadata, a reader treats <tt>.gts</tt>
+and <tt>application/octet-stream</tt> as hints only.  It then parses the first
+CBOR item, optionally unwrapping self-describe tag 55799, and confirms a
+Header map containing <tt>"gts": "GTS1"</tt> and lacking frame key <tt>"t"</tt>.
+Complete validity still requires parsing the whole observed byte stream
+and applying the selected conformance checks.</t>
+      <t indent="0" pn="section-10-3">HTTP deployments that serve GTS <bcp14>SHOULD</bcp14> preserve bytes exactly, <bcp14>SHOULD</bcp14>
+avoid transport-layer transformations that would break content hashes,
+and <bcp14>SHOULD</bcp14> support byte ranges for partial consumption.  Versioned,
+immutable URLs can use long-lived immutable caching.  Mutable <tt>latest</tt>
+or content-negotiated aliases need conservative cache behavior and
+appropriate <tt>Vary</tt> handling; see <xref target="RFC9111" format="default" sectionFormat="of" derivedContent="RFC9111"/>.  Profile negotiation
+through mechanisms such as the profile link relation <xref target="RFC6906" format="default" sectionFormat="of" derivedContent="RFC6906"/> is a
+possible future extension and is not required by this draft.</t>
+    </section>
+    <section anchor="Security" numbered="true" removeInRFC="false" toc="include" pn="section-11">
+      <name slugifiedName="name-security-considerations">Security Considerations</name>
+      <t indent="0" pn="section-11-1">The id/prev chain provides integrity, not confidentiality.  Use
+<tt>encrypt</tt>-class codecs for confidentiality.</t>
+      <t indent="0" pn="section-11-2">Truncation is undetectable from the chain alone.  Evidence or archival
+profiles need a trusted head commitment, such as a signature over the
+head id or an index <tt>"head"</tt>/<tt>"mmr"</tt> commitment.</t>
+      <t indent="0" pn="section-11-3">Recovery after a damaged frame requires known offsets.  In a bare CBOR
+Sequence, arbitrary corruption can desynchronize the decoder.  GTS does
+not define parity or erasure coding.</t>
+      <t indent="0" pn="section-11-4">Cleartext <tt>"to"</tt> key identifiers, <tt>"pub"</tt> envelopes, and metadata can
+leak relationship or content metadata.  High-privacy profiles need
+pseudonymous or pairwise key identifiers and must avoid secrets in
+cleartext fields.</t>
+      <t indent="0" pn="section-11-5">A valid signature attests that a signer signed the frame bytes.  It does
+not assert that the signed graph claims are true.</t>
+      <t indent="0" pn="section-11-6">Compaction rewrites ordering.  Snapshot compaction discards original
+frame signatures.  Streamable compaction can preserve old frame
+signatures only as detached provenance over old frame ids, while the new
+ordering is attested by the compactor.</t>
+      <t indent="0" pn="section-11-7">Readers <bcp14>MUST</bcp14> bound decompression of attacker-supplied frames.  Readers
+<bcp14>MUST</bcp14> also bound nested-GTS recursion depth and total decoded size to
+avoid resource-exhaustion attacks.</t>
+      <t indent="0" pn="section-11-8">Segments are independently authentic, not mutually vouched.  Concatenating
+a segment does not imply endorsement by earlier segment signers.  An
+untrusted appended segment can suppress earlier content from default
+presentation; high-assurance consumers need policy about which segment
+signers may issue suppression directives.</t>
+    </section>
+    <section anchor="iana-considerations" numbered="true" removeInRFC="false" toc="include" pn="section-12">
+      <name slugifiedName="name-iana-considerations">IANA Considerations</name>
+      <t indent="0" pn="section-12-1">This document requests registration of one media type under the
+procedures of <xref target="RFC6838" format="default" sectionFormat="of" derivedContent="RFC6838"/>.  The registration is an interoperability step
+and is not an IETF endorsement or standardization of GTS.</t>
+      <section anchor="media-type-registration-applicationvndblackcatgtscbor-seq" numbered="true" removeInRFC="false" toc="include" pn="section-12.1">
+        <name slugifiedName="name-media-type-registration-app">Media Type Registration: application/vnd.blackcat.gts+cbor-seq</name>
+        <dl indent="3" newline="false" spacing="normal" pn="section-12.1-1">
+          <dt pn="section-12.1-1.1">Type name:</dt>
+          <dd pn="section-12.1-1.2">
+            <t indent="0" pn="section-12.1-1.2.1"><tt>application</tt></t>
+          </dd>
+          <dt pn="section-12.1-1.3">Subtype name:</dt>
+          <dd pn="section-12.1-1.4">
+            <t indent="0" pn="section-12.1-1.4.1"><tt>vnd.blackcat.gts+cbor-seq</tt></t>
+          </dd>
+          <dt pn="section-12.1-1.5">Required parameters:</dt>
+          <dd pn="section-12.1-1.6">
+            <t indent="0" pn="section-12.1-1.6.1">None.</t>
+          </dd>
+          <dt pn="section-12.1-1.7">Optional parameters:</dt>
+          <dd pn="section-12.1-1.8">
+            <t indent="0" pn="section-12.1-1.8.1">None.</t>
+          </dd>
+          <dt pn="section-12.1-1.9">Encoding considerations:</dt>
+          <dd pn="section-12.1-1.10">
+            <t indent="0" pn="section-12.1-1.10.1">Binary.  A GTS file is a CBOR Sequence and is not restricted to
+7-bit or textual transports.  Transports that are not 8-bit clean
+need a content-transfer encoding.</t>
+          </dd>
+          <dt pn="section-12.1-1.11">Security considerations:</dt>
+          <dd pn="section-12.1-1.12">
+            <t indent="0" pn="section-12.1-1.12.1">See <xref target="Security" format="default" sectionFormat="of" derivedContent="Section 11"/>.  In summary, the content-id chain provides integrity
+but not confidentiality; truncation requires a head commitment;
+decompression and nested-GTS recursion must be bounded; signatures
+attest bytes, not claim truth; and cleartext envelope fields can leak
+metadata.</t>
+          </dd>
+          <dt pn="section-12.1-1.13">Interoperability considerations:</dt>
+          <dd pn="section-12.1-1.14">
+            <t indent="0" pn="section-12.1-1.14.1">The <tt>+cbor-seq</tt> suffix signals that the payload is a CBOR Sequence, so
+generic sequence tooling can inspect ordered data items before
+applying GTS-specific rules.  GTS requires deterministic CBOR for
+hashed and signed preimages.  The self-describe tag 55799 can tag a
+segment Header as a magic number.  Conformance is defined by the
+versioned vector corpus maintained with the specification.</t>
+          </dd>
+          <dt pn="section-12.1-1.15">Published specification:</dt>
+          <dd pn="section-12.1-1.16">
+            <t indent="0" pn="section-12.1-1.16.1">This Internet-Draft while in draft form; the resulting RFC if this
+draft is published as an RFC.</t>
+          </dd>
+          <dt pn="section-12.1-1.17">Applications that use this media type:</dt>
+          <dd pn="section-12.1-1.18">
+            <t indent="0" pn="section-12.1-1.18.1">Content-addressed RDF 1.2 graph transport and archival; signed
+agent-memory and provenance artifacts; package distribution where the
+payload bundles a graph and the binary content it references.</t>
+          </dd>
+          <dt pn="section-12.1-1.19">Fragment identifier considerations:</dt>
+          <dd pn="section-12.1-1.20">
+            <t indent="0" pn="section-12.1-1.20.1">None.  Fragment identifiers are not defined for this media type.</t>
+          </dd>
+          <dt pn="section-12.1-1.21">Additional information:</dt>
+          <dd pn="section-12.1-1.22">
+            <t indent="0" pn="section-12.1-1.22.1">Magic numbers: optional <tt>0xd9 0xd9 0xf7</tt>, the CBOR self-describe tag
+55799, when present at the start of a segment Header.  File extension:
+<tt>.gts</tt>.  Macintosh file type code: none.</t>
+          </dd>
+          <dt pn="section-12.1-1.23">Person and email address to contact for further information:</dt>
+          <dd pn="section-12.1-1.24">
+            <t indent="0" pn="section-12.1-1.24.1">Patrick Audley <eref target="mailto:paudley@blackcatinformatics.ca" brackets="none">paudley@blackcatinformatics.ca</eref></t>
+          </dd>
+          <dt pn="section-12.1-1.25">Intended usage:</dt>
+          <dd pn="section-12.1-1.26">
+            <t indent="0" pn="section-12.1-1.26.1">COMMON.</t>
+          </dd>
+          <dt pn="section-12.1-1.27">Restrictions on usage:</dt>
+          <dd pn="section-12.1-1.28">
+            <t indent="0" pn="section-12.1-1.28.1">None.</t>
+          </dd>
+          <dt pn="section-12.1-1.29">Author:</dt>
+          <dd pn="section-12.1-1.30">
+            <t indent="0" pn="section-12.1-1.30.1">Blackcat Informatics Inc.</t>
+          </dd>
+          <dt pn="section-12.1-1.31">Change controller:</dt>
+          <dd pn="section-12.1-1.32">
+            <t indent="0" pn="section-12.1-1.32.1">Blackcat Informatics Inc., unless changed through a later IETF
+process.</t>
+          </dd>
+        </dl>
+      </section>
+    </section>
+  </middle>
+  <back>
+    <references anchor="sec-combined-references" pn="section-13">
+      <name slugifiedName="name-references">References</name>
+      <references anchor="sec-normative-references" pn="section-13.1">
+        <name slugifiedName="name-normative-references">Normative References</name>
+        <reference anchor="RFC6838" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc6838" derivedAnchor="RFC6838">
+          <front>
+            <title>Media Type Specifications and Registration Procedures</title>
+            <author fullname="N. Freed" initials="N." surname="Freed"/>
+            <author fullname="J. Klensin" initials="J." surname="Klensin"/>
+            <author fullname="T. Hansen" initials="T." surname="Hansen"/>
+            <date month="January" year="2013"/>
+            <abstract>
+              <t indent="0">This document defines procedures for the specification and registration of media types for use in HTTP, MIME, and other Internet protocols. This memo documents an Internet Best Current Practice.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="13"/>
+          <seriesInfo name="RFC" value="6838"/>
+          <seriesInfo name="DOI" value="10.17487/RFC6838"/>
+        </reference>
+        <reference anchor="RFC8610" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc8610" derivedAnchor="RFC8610">
+          <front>
+            <title>Concise Data Definition Language (CDDL): A Notational Convention to Express Concise Binary Object Representation (CBOR) and JSON Data Structures</title>
+            <author fullname="H. Birkholz" initials="H." surname="Birkholz"/>
+            <author fullname="C. Vigano" initials="C." surname="Vigano"/>
+            <author fullname="C. Bormann" initials="C." surname="Bormann"/>
+            <date month="June" year="2019"/>
+            <abstract>
+              <t indent="0">This document proposes a notational convention to express Concise Binary Object Representation (CBOR) data structures (RFC 7049). Its main goal is to provide an easy and unambiguous way to express structures for protocol messages and data formats that use CBOR or JSON.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8610"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8610"/>
+        </reference>
+        <reference anchor="RFC8742" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc8742" derivedAnchor="RFC8742">
+          <front>
+            <title>Concise Binary Object Representation (CBOR) Sequences</title>
+            <author fullname="C. Bormann" initials="C." surname="Bormann"/>
+            <date month="February" year="2020"/>
+            <abstract>
+              <t indent="0">This document describes the Concise Binary Object Representation (CBOR) Sequence format and associated media type "application/cbor-seq". A CBOR Sequence consists of any number of encoded CBOR data items, simply concatenated in sequence.</t>
+              <t indent="0">Structured syntax suffixes for media types allow other media types to build on them and make it explicit that they are built on an existing media type as their foundation. This specification defines and registers "+cbor-seq" as a structured syntax suffix for CBOR Sequences.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8742"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8742"/>
+        </reference>
+        <reference anchor="RFC8949" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc8949" derivedAnchor="RFC8949">
+          <front>
+            <title>Concise Binary Object Representation (CBOR)</title>
+            <author fullname="C. Bormann" initials="C." surname="Bormann"/>
+            <author fullname="P. Hoffman" initials="P." surname="Hoffman"/>
+            <date month="December" year="2020"/>
+            <abstract>
+              <t indent="0">The Concise Binary Object Representation (CBOR) is a data format whose design goals include the possibility of extremely small code size, fairly small message size, and extensibility without the need for version negotiation. These design goals make it different from earlier binary serializations such as ASN.1 and MessagePack.</t>
+              <t indent="0">This document obsoletes RFC 7049, providing editorial improvements, new details, and errata fixes while keeping full compatibility with the interchange format of RFC 7049. It does not create a new version of the format.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="STD" value="94"/>
+          <seriesInfo name="RFC" value="8949"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8949"/>
+        </reference>
+        <reference anchor="RFC9052" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc9052" derivedAnchor="RFC9052">
+          <front>
+            <title>CBOR Object Signing and Encryption (COSE): Structures and Process</title>
+            <author fullname="J. Schaad" initials="J." surname="Schaad"/>
+            <date month="August" year="2022"/>
+            <abstract>
+              <t indent="0">Concise Binary Object Representation (CBOR) is a data format designed for small code size and small message size. There is a need to be able to define basic security services for this data format. This document defines the CBOR Object Signing and Encryption (COSE) protocol. This specification describes how to create and process signatures, message authentication codes, and encryption using CBOR for serialization. This specification additionally describes how to represent cryptographic keys using CBOR.</t>
+              <t indent="0">This document, along with RFC 9053, obsoletes RFC 8152.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="STD" value="96"/>
+          <seriesInfo name="RFC" value="9052"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9052"/>
+        </reference>
+        <reference anchor="RFC9053" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc9053" derivedAnchor="RFC9053">
+          <front>
+            <title>CBOR Object Signing and Encryption (COSE): Initial Algorithms</title>
+            <author fullname="J. Schaad" initials="J." surname="Schaad"/>
+            <date month="August" year="2022"/>
+            <abstract>
+              <t indent="0">Concise Binary Object Representation (CBOR) is a data format designed for small code size and small message size. There is a need to be able to define basic security services for this data format. This document defines a set of algorithms that can be used with the CBOR Object Signing and Encryption (COSE) protocol (RFC 9052).</t>
+              <t indent="0">This document, along with RFC 9052, obsoletes RFC 8152.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="9053"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9053"/>
+        </reference>
+        <reference anchor="RFC9277" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc9277" derivedAnchor="RFC9277">
+          <front>
+            <title>On Stable Storage for Items in Concise Binary Object Representation (CBOR)</title>
+            <author fullname="M. Richardson" initials="M." surname="Richardson"/>
+            <author fullname="C. Bormann" initials="C." surname="Bormann"/>
+            <date month="August" year="2022"/>
+            <abstract>
+              <t indent="0">This document defines a stored ("file") format for Concise Binary Object Representation (CBOR) data items that is friendly to common systems that recognize file types, such as the Unix file(1) command.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="9277"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9277"/>
+        </reference>
+        <reference anchor="RFC5646" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc5646" derivedAnchor="RFC5646">
+          <front>
+            <title>Tags for Identifying Languages</title>
+            <author fullname="A. Phillips" initials="A." role="editor" surname="Phillips"/>
+            <author fullname="M. Davis" initials="M." role="editor" surname="Davis"/>
+            <date month="September" year="2009"/>
+            <abstract>
+              <t indent="0">This document describes the structure, content, construction, and semantics of language tags for use in cases where it is desirable to indicate the language used in an information object. It also describes how to register values for use in language tags and the creation of user-defined extensions for private interchange. This document specifies an Internet Best Current Practices for the Internet Community, and requests discussion and suggestions for improvements.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="47"/>
+          <seriesInfo name="RFC" value="5646"/>
+          <seriesInfo name="DOI" value="10.17487/RFC5646"/>
+        </reference>
+        <reference anchor="RDF12" target="https://www.w3.org/TR/2026/CR-rdf12-concepts-20260407/" quoteTitle="true" derivedAnchor="RDF12">
+          <front>
+            <title>RDF 1.2 Concepts and Abstract Data Model</title>
+            <author>
+              <organization showOnFrontPage="true">W3C</organization>
+            </author>
+            <date year="2026" month="April" day="07"/>
+          </front>
+        </reference>
+        <reference anchor="BLAKE3" target="https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf" quoteTitle="true" derivedAnchor="BLAKE3">
+          <front>
+            <title>BLAKE3</title>
+            <author initials="J." surname="O'Connor" fullname="Jack O'Connor">
+              <organization showOnFrontPage="true"/>
+            </author>
+            <author initials="J.-P." surname="Aumasson" fullname="Jean-Philippe Aumasson">
+              <organization showOnFrontPage="true"/>
+            </author>
+            <author initials="S." surname="Neves" fullname="Samuel Neves">
+              <organization showOnFrontPage="true"/>
+            </author>
+            <author initials="Z." surname="Wilcox-O'Hearn" fullname="Zooko Wilcox-O'Hearn">
+              <organization showOnFrontPage="true"/>
+            </author>
+            <date year="2020"/>
+          </front>
+        </reference>
+        <reference anchor="RFC2119" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc2119" derivedAnchor="RFC2119">
+          <front>
+            <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+            <author fullname="S. Bradner" initials="S." surname="Bradner"/>
+            <date month="March" year="1997"/>
+            <abstract>
+              <t indent="0">In many standards track documents several words are used to signify the requirements in the specification. These words are often capitalized. This document defines these words as they should be interpreted in IETF documents. This document specifies an Internet Best Current Practices for the Internet Community, and requests discussion and suggestions for improvements.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="14"/>
+          <seriesInfo name="RFC" value="2119"/>
+          <seriesInfo name="DOI" value="10.17487/RFC2119"/>
+        </reference>
+        <reference anchor="RFC8174" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc8174" derivedAnchor="RFC8174">
+          <front>
+            <title>Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words</title>
+            <author fullname="B. Leiba" initials="B." surname="Leiba"/>
+            <date month="May" year="2017"/>
+            <abstract>
+              <t indent="0">RFC 2119 specifies common key words that may be used in protocol specifications. This document aims to reduce the ambiguity by clarifying that only UPPERCASE usage of the key words have the defined special meanings.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="14"/>
+          <seriesInfo name="RFC" value="8174"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8174"/>
+        </reference>
+      </references>
+      <references anchor="sec-informative-references" pn="section-13.2">
+        <name slugifiedName="name-informative-references">Informative References</name>
+        <reference anchor="RFC7049" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc7049" derivedAnchor="RFC7049">
+          <front>
+            <title>Concise Binary Object Representation (CBOR)</title>
+            <author fullname="C. Bormann" initials="C." surname="Bormann"/>
+            <author fullname="P. Hoffman" initials="P." surname="Hoffman"/>
+            <date month="October" year="2013"/>
+            <abstract>
+              <t indent="0">The Concise Binary Object Representation (CBOR) is a data format whose design goals include the possibility of extremely small code size, fairly small message size, and extensibility without the need for version negotiation. These design goals make it different from earlier binary serializations such as ASN.1 and MessagePack.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="7049"/>
+          <seriesInfo name="DOI" value="10.17487/RFC7049"/>
+        </reference>
+        <reference anchor="RFC9111" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc9111" derivedAnchor="RFC9111">
+          <front>
+            <title>HTTP Caching</title>
+            <author fullname="R. Fielding" initials="R." role="editor" surname="Fielding"/>
+            <author fullname="M. Nottingham" initials="M." role="editor" surname="Nottingham"/>
+            <author fullname="J. Reschke" initials="J." role="editor" surname="Reschke"/>
+            <date month="June" year="2022"/>
+            <abstract>
+              <t indent="0">The Hypertext Transfer Protocol (HTTP) is a stateless application-level protocol for distributed, collaborative, hypertext information systems. This document defines HTTP caches and the associated header fields that control cache behavior or indicate cacheable response messages.</t>
+              <t indent="0">This document obsoletes RFC 7234.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="STD" value="98"/>
+          <seriesInfo name="RFC" value="9111"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9111"/>
+        </reference>
+        <reference anchor="RFC6906" quoteTitle="true" target="https://www.rfc-editor.org/rfc/rfc6906" derivedAnchor="RFC6906">
+          <front>
+            <title>The 'profile' Link Relation Type</title>
+            <author fullname="E. Wilde" initials="E." surname="Wilde"/>
+            <date month="March" year="2013"/>
+            <abstract>
+              <t indent="0">This specification defines the 'profile' link relation type that allows resource representations to indicate that they are following one or more profiles. A profile is defined not to alter the semantics of the resource representation itself, but to allow clients to learn about additional semantics (constraints, conventions, extensions) that are associated with the resource representation, in addition to those defined by the media type and possibly other mechanisms.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="6906"/>
+          <seriesInfo name="DOI" value="10.17487/RFC6906"/>
+        </reference>
+        <reference anchor="GTS-SPEC" target="https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md" quoteTitle="true" derivedAnchor="GTS-SPEC">
+          <front>
+            <title>GTS - Graph Transport Substrate - Specification</title>
+            <author initials="P." surname="Audley" fullname="Patrick Audley">
+              <organization showOnFrontPage="true">Blackcat Informatics Inc.</organization>
+            </author>
+            <date year="2026" month="June" day="18"/>
+          </front>
+        </reference>
+        <reference anchor="GTS-CONFORMANCE" target="https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-CONFORMANCE.md" quoteTitle="true" derivedAnchor="GTS-CONFORMANCE">
+          <front>
+            <title>GTS Conformance</title>
+            <author initials="P." surname="Audley" fullname="Patrick Audley">
+              <organization showOnFrontPage="true">Blackcat Informatics Inc.</organization>
+            </author>
+            <date year="2026"/>
+          </front>
+        </reference>
+      </references>
+    </references>
+    <section anchor="CDDL-appendix" numbered="true" removeInRFC="false" toc="include" pn="section-appendix.a">
+      <name slugifiedName="name-cddl-appendix">CDDL Appendix</name>
+      <t indent="0" pn="section-appendix.a-1">This appendix is the copyable schema surface for implementers.  The
+top-level file is a CBOR Sequence; CDDL describes the individual items
+in that sequence.</t>
+      <sourcecode type="cddl" markers="false" pn="section-appendix.a-2">
+gts-item = header-item / frame
+header-item = header / self-described-header
+self-described-header = #6.55799(header)
+
+term-id = uint
+frame-index = uint
+codec-id = uint
+digest = bstr .size 32
+content-id = digest
+blake3-uri = tstr
+digest-ref = digest / blake3-uri
+profile-name = tstr
+layout-state = "streamable" / tstr
+extension-key = tstr
+
+header = {
+  "gts": "GTS1",
+  "v": 1,
+  "prof": profile-name,
+  "cat": { * codec-id =&gt; codec },
+  ? "layout": layout-state,
+  ? "dct": { * tstr =&gt; bstr },
+  ? "meta": any,
+  "id": content-id,
+  * extension-key =&gt; any,
+}
+
+codec = {
+  "name": tstr,
+  "cls": "encode" / "compress" / "encrypt",
+  ? "dct": tstr,
+  ? "p": any,
+  * extension-key =&gt; any,
+}
+
+frame = {
+  "t": frame-type,
+  ? "x": [+ codec-id],
+  ? "pub": any,
+  ? "to": [+ recipient],
+  ? "d": frame-payload / bstr,
+  "prev": content-id,
+  "id": content-id,
+  ? "sig": cose-sign1,
+  * extension-key =&gt; any,
+}
+
+frame-type = "terms" / "quads" / "reifies" / "annot" / "blob" /
+             "suppress" / "snapshot" / "meta" / "index" / "opaque"
+
+recipient = {
+  "kid": tstr,
+  ? "alg": tstr,
+  * extension-key =&gt; any,
+}
+
+cose-sign1 = bstr
+
+frame-payload = terms-payload / quads-payload / reifies-payload /
+                annot-payload / blob-payload / suppress-payload /
+                snapshot-payload / meta-payload / index-payload /
+                opaque-node
+
+terms-payload = [+ term]
+term = {
+  "k": 0 / 1 / 2 / 3,
+  ? "v": tstr,
+  ? "dt": term-id,
+  ? "l": tstr,
+  ? "dir": "ltr" / "rtl",
+  ? "rf": term-id,
+  * extension-key =&gt; any,
+}
+
+triple-row = [term-id, term-id, term-id]
+quad-row = [term-id, term-id, term-id] /
+           [term-id, term-id, term-id, term-id]
+
+quads-payload = [+ quad-row]
+reifies-payload = { * term-id =&gt; triple-row }
+annot-payload = [+ triple-row]
+
+blob-payload = bstr
+blob-pub = {
+  ? "mt": tstr,
+  ? "rep": tstr,
+  ? "digest": digest-ref,
+  * extension-key =&gt; any,
+}
+
+suppress-payload = {
+  "targets": [+ suppress-target],
+  ? "reason": tstr,
+  ? "by": term-id,
+  * extension-key =&gt; any,
+}
+
+suppress-target = suppress-frame / suppress-blob / suppress-term /
+                  suppress-quad / suppress-reifier
+suppress-frame = { "kind": "frame", "id": digest-ref,
+                   * extension-key =&gt; any }
+suppress-blob = { "kind": "blob", "digest": digest-ref,
+                  * extension-key =&gt; any }
+suppress-term = { "kind": "term", "id": term-id,
+                  * extension-key =&gt; any }
+suppress-quad = { "kind": "quad", "q": quad-row,
+                  * extension-key =&gt; any }
+suppress-reifier = { "kind": "reifier", "id": term-id,
+                     * extension-key =&gt; any }
+
+snapshot-payload = {
+  "terms": terms-payload,
+  ? "quads": quads-payload,
+  ? "reifies": reifies-payload,
+  ? "annot": annot-payload,
+  ? "blobs": { * digest-ref =&gt; bstr },
+  ? "meta": any,
+  * extension-key =&gt; any,
+}
+
+meta-payload = any
+
+index-payload = {
+  "count": uint,
+  "head": content-id,
+  ? "off": [+ uint],
+  ? "ti": { * frame-type =&gt; [+ frame-index] },
+  ? "dict": [+ frame-index],
+  ? "mmr": content-id,
+  * extension-key =&gt; any,
+}
+
+opaque-node = {
+  "id": content-id,
+  "type": frame-type,
+  ? "pub": any,
+  ? "to": [+ recipient],
+  ? "sigstat": sig-status,
+  "reason": opaque-reason,
+  * extension-key =&gt; any,
+}
+
+sig-status = "none" / "valid" / "invalid" / "unverified"
+opaque-reason = "unknown-codec" / "missing-key" / "damaged" /
+                "unknown-frame-type"
+
+diagnostic = {
+  "code": diagnostic-code,
+  "detail": tstr,
+  ? "frame_index": frame-index,
+  * extension-key =&gt; any,
+}
+
+diagnostic-code = "EmptyFile" / "TornAppendError" / "DamagedFrame" /
+                  "BrokenChain" / "TruncatedLog" / "UnknownCodec" /
+                  "MissingKey" / "KeyWrapFailed" /
+                  "ConflictingReifier" / "IllTypedLiteral" /
+                  "RecursionLimit" / "StreamableLayoutError" /
+                  "PositionConstraint" / "ForwardReference" /
+                  "SegmentBoundary" / "IndexMmrError" /
+                  "UnknownFrameType" / tstr
+
+profile-status = "core-required" / "optional-standard" /
+                 "experimental" / "domain-specific"
+profile-registration = {
+  "name": profile-name,
+  "status": profile-status,
+  ? "owner": tstr,
+  ? "spec": tstr,
+  ? "namespace": [+ tstr],
+  ? "requires": any,
+  ? "validation": any,
+  ? "security": any,
+  * extension-key =&gt; any,
+}
+</sourcecode>
+      <t indent="0" pn="section-appendix.a-3">When <tt>"x"</tt> is present and non-empty, the frame <tt>"d"</tt> value is a byte
+string carrying the encoded, compressed, or encrypted payload.  After
+reversing the transform chain, those bytes decode to the
+frame-type-specific payload above, except for <tt>blob</tt>, whose decoded
+payload is raw bytes.</t>
+    </section>
+    <section anchor="hash-and-signature-preimages" numbered="true" removeInRFC="false" toc="include" pn="section-appendix.b">
+      <name slugifiedName="name-hash-and-signature-preimage">Hash and Signature Preimages</name>
+      <t indent="0" pn="section-appendix.b-1">All preimages use deterministic CBOR.  Unless a row explicitly excludes
+a field, every key/value pair in the map participates, including unknown
+extension keys.</t>
+      <table align="center" pn="table-2">
+        <thead>
+          <tr>
+            <th align="left" colspan="1" rowspan="1">Subject</th>
+            <th align="left" colspan="1" rowspan="1">Bytes hashed or signed</th>
+            <th align="left" colspan="1" rowspan="1">Excluded fields</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">Header <tt>"id"</tt></td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>BLAKE3-256(deterministic-CBOR(header without "id"))</tt></td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>"id"</tt> only</td>
+          </tr>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">Frame <tt>"id"</tt></td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>BLAKE3-256(deterministic-CBOR(frame without "id" and "sig"))</tt></td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>"id"</tt> and <tt>"sig"</tt> only</td>
+          </tr>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">Frame <tt>"prev"</tt> link</td>
+            <td align="left" colspan="1" rowspan="1">The <tt>"prev"</tt> value participates in the frame id preimage</td>
+            <td align="left" colspan="1" rowspan="1">None beyond frame id exclusions</td>
+          </tr>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">COSE frame signature</td>
+            <td align="left" colspan="1" rowspan="1">Detached <tt>COSE_Sign1</tt> over the frame id bytes</td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>"sig"</tt> is excluded from frame id</td>
+          </tr>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">Inline blob digest</td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>BLAKE3-256(decoded blob bytes)</tt></td>
+            <td align="left" colspan="1" rowspan="1">Frame envelope fields</td>
+          </tr>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">External blob digest</td>
+            <td align="left" colspan="1" rowspan="1">
+              <tt>pub.digest</tt> names external bytes</td>
+            <td align="left" colspan="1" rowspan="1">External bytes are absent from the frame</td>
+          </tr>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">Index <tt>"head"</tt></td>
+            <td align="left" colspan="1" rowspan="1">Content id of the last covered frame</td>
+            <td align="left" colspan="1" rowspan="1">Not applicable</td>
+          </tr>
+          <tr>
+            <td align="left" colspan="1" rowspan="1">Index <tt>"mmr"</tt></td>
+            <td align="left" colspan="1" rowspan="1">MMR root over covered frame ids</td>
+            <td align="left" colspan="1" rowspan="1">The index frame itself unless covered by a later index</td>
+          </tr>
+        </tbody>
+      </table>
+      <t indent="0" pn="section-appendix.b-3">Readers <bcp14>MUST</bcp14> include unknown extension keys when recomputing Header and
+frame preimages.  Readers <bcp14>MUST NOT</bcp14> reject an otherwise valid map solely
+because it contains an unknown extension key.  A re-authoring tool that
+cannot preserve unknown extension keys <bcp14>MUST</bcp14> treat the operation as lossy
+and <bcp14>MUST NOT</bcp14> claim old frame signatures remain attached to rewritten
+frames.</t>
+    </section>
+    <section anchor="authors-addresses" numbered="false" removeInRFC="false" toc="include" pn="section-appendix.c">
+      <name slugifiedName="name-authors-address">Author's Address</name>
+      <author initials="P." surname="Audley" fullname="Patrick Audley" role="editor">
+        <organization showOnFrontPage="true">Blackcat Informatics Inc.</organization>
+        <address>
+          <postal>
+            <country>Canada</country>
+          </postal>
+          <email>paudley@blackcatinformatics.ca</email>
+        </address>
+      </author>
+    </section>
+  </back>
+</rfc>
