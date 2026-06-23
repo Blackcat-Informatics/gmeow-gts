@@ -6,6 +6,23 @@ import * as wire from "./wire.js";
 import { ReadFileSegments } from "./reader.js";
 import type { Diagnostic, StreamableInfo } from "./model.js";
 
+export type ReplicationErrorKind = "unclean-input" | "missing-frame";
+
+/** Error raised for replication range/resume refusal paths. */
+export class ReplicationError extends Error {
+    constructor(
+        readonly kind: ReplicationErrorKind,
+        message: string,
+    ) {
+        super(message);
+        this.name = "ReplicationError";
+    }
+}
+
+function replicationError(kind: ReplicationErrorKind, message: string): never {
+    throw new ReplicationError(kind, message);
+}
+
 /** Byte and chain metadata for one non-header frame. */
 export interface FrameInventory {
     /** Absolute CBOR item index in the file. */
@@ -433,7 +450,10 @@ export function missingJson(result: MissingResult): string {
 export function resumeAfter(data: Uint8Array, frameId: Uint8Array): Uint8Array {
     const inv = inventory(data);
     if (hasProblems(inv)) {
-        throw new Error(problemDetail(inv) ?? "input is not clean");
+        replicationError(
+            "unclean-input",
+            problemDetail(inv) ?? "input is not clean",
+        );
     }
     for (const segment of inv.segments) {
         for (const frame of segment.frames) {
@@ -442,5 +462,5 @@ export function resumeAfter(data: Uint8Array, frameId: Uint8Array): Uint8Array {
             }
         }
     }
-    throw new Error(`frame ${wire.hex(frameId)} not found`);
+    replicationError("missing-frame", `frame ${wire.hex(frameId)} not found`);
 }

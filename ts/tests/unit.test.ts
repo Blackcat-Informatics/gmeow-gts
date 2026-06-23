@@ -8,11 +8,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Graph, TermKind } from "../src/model.js";
 import * as wire from "../src/wire.js";
-import { Writer } from "../src/writer.js";
+import { Writer, WriterError } from "../src/writer.js";
 import { Read } from "../src/reader.js";
 import { unionSegments } from "../src/reader_union.js";
 import { toNQuads } from "../src/nquads.js";
 import { decodeChain, gzip, identity, isCodecError } from "../src/codec.js";
+import { ReplicationError, resumeAfter } from "../src/replication.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -36,6 +37,30 @@ test("wire.encode emits plain byte strings, not tag-64 typed arrays", () => {
     const encoded = wire.encode(new Uint8Array([0, 1, 2]));
     // 0x43 = major type 2 (byte string), length 3.
     assert.deepEqual(new Uint8Array(encoded), new Uint8Array([0x43, 0, 1, 2]));
+});
+
+test("wire parser and encoder failures use typed errors", () => {
+    assert.throws(
+        () => wire.encode(1.5),
+        (err: unknown) =>
+            err instanceof wire.WireError &&
+            err.kind === "encode" &&
+            err.message.includes("integer numbers"),
+    );
+    assert.throws(
+        () => wire.cborItemLength(Uint8Array.of(0x1c), 0),
+        (err: unknown) =>
+            err instanceof wire.WireError &&
+            err.kind === "decode" &&
+            err.message.includes("reserved additional info"),
+    );
+    assert.throws(
+        () => wire.unwrapHeader(1),
+        (err: unknown) =>
+            err instanceof wire.WireError &&
+            err.kind === "header" &&
+            err.message.includes("header item"),
+    );
 });
 
 test("blake3_256 returns 32 bytes", () => {
@@ -93,6 +118,26 @@ test("writer produces a readable GTS log", () => {
     assert.equal(g.quads.length, 1);
     assert.equal(g.segmentProfiles[0], "dist");
     assert.equal(g.diagnostics.length, 0);
+});
+
+test("writer and replication refusal paths use typed errors", () => {
+    assert.throws(
+        () => new Writer("generic", "sorted"),
+        (err: unknown) =>
+            err instanceof WriterError &&
+            err.kind === "layout" &&
+            err.message.includes("unsupported layout"),
+    );
+
+    const w = new Writer("generic");
+    w.addBlob(Buffer.from("payload"), "text/plain");
+    assert.throws(
+        () => resumeAfter(w.toBytes(), new Uint8Array(32)),
+        (err: unknown) =>
+            err instanceof ReplicationError &&
+            err.kind === "missing-frame" &&
+            err.message.includes("not found"),
+    );
 });
 
 test("toNQuads serialises a simple graph", () => {

@@ -32,14 +32,9 @@
   "metrics": {
     "generic_parser_throws": {
       "by_file": {
-        "ruby/lib/gmeow/gts.rb": 1,
-        "ts/src/files.ts": 20,
-        "ts/src/mmr.ts": 27,
-        "ts/src/replication.ts": 2,
-        "ts/src/wire.ts": 22,
-        "ts/src/writer.ts": 5
+        "ruby/lib/gmeow/gts.rb": 1
       },
-      "max_total": 77
+      "max_total": 1
     },
     "maintenance_markers": {
       "by_file": {},

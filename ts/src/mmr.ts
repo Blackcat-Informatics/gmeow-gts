@@ -12,6 +12,35 @@ const LeafDomain = "gts-mmr-leaf-v1";
 const ParentDomain = "gts-mmr-parent-v1";
 const RootDomain = "gts-mmr-root-v1";
 
+export type MmrErrorKind = "preimage" | "parse" | "validation";
+
+/** Error raised for MMR preimage, proof JSON, and proof validation failures. */
+export class MmrError extends Error {
+    constructor(
+        readonly kind: MmrErrorKind,
+        message: string,
+    ) {
+        super(message);
+        this.name = "MmrError";
+    }
+}
+
+export function isMmrError(err: unknown): err is MmrError {
+    return err instanceof MmrError;
+}
+
+function mmrPreimageError(message: string): never {
+    throw new MmrError("preimage", message);
+}
+
+function mmrParseError(message: string): never {
+    throw new MmrError("parse", message);
+}
+
+function mmrValidationError(message: string): never {
+    throw new MmrError("validation", message);
+}
+
 /** One Merkle-Mountain-Range peak in left-to-right order. */
 export interface MmrPeak {
     /** Tree height of this peak. */
@@ -52,7 +81,7 @@ type MmrPreimage = string | number | Uint8Array | MmrPreimage[];
 
 function cborHead(major: number, length: number): Uint8Array {
     if (!Number.isSafeInteger(length) || length < 0) {
-        throw new Error("CBOR length must be a safe unsigned integer");
+        mmrPreimageError("CBOR length must be a safe unsigned integer");
     }
     const prefix = major << 5;
     if (length < 24) return new Uint8Array([prefix | length]);
@@ -97,7 +126,7 @@ function encodeMmr(value: MmrPreimage): Uint8Array {
     }
     if (typeof value === "number") {
         if (!Number.isSafeInteger(value) || value < 0) {
-            throw new Error("MMR preimage integer must be unsigned");
+            mmrPreimageError("MMR preimage integer must be unsigned");
         }
         return cborHead(0, value);
     }
@@ -142,7 +171,7 @@ function peakIndexForLeaf(
     leafIndex: number,
 ): number {
     if (leafIndex >= count) {
-        throw new Error(
+        mmrValidationError(
             `leaf_index ${leafIndex} is outside covered count ${count}`,
         );
     }
@@ -152,7 +181,7 @@ function peakIndexForLeaf(
         if (leafIndex >= start && leafIndex < end) return index;
         start = end;
     }
-    throw new Error(
+    mmrValidationError(
         `peak ranges do not cover leaf_index ${leafIndex} for count ${count}`,
     );
 }
@@ -166,23 +195,23 @@ function peakIndexForLeaf(
 export function parseHex32(input: string): Uint8Array {
     const raw = input.trim().replace(/^blake3:/, "");
     if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
-        throw new Error("expected a 32-byte hex value");
+        mmrParseError("expected a 32-byte hex value");
     }
     const out = new Uint8Array(Buffer.from(raw, "hex"));
-    if (out.length !== 32) throw new Error("expected a 32-byte hex value");
+    if (out.length !== 32) mmrParseError("expected a 32-byte hex value");
     return out;
 }
 
 function objectValue(value: unknown, context: string): Record<string, unknown> {
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
-        throw new Error(`${context} must be a JSON object`);
+        mmrParseError(`${context} must be a JSON object`);
     }
     return value as Record<string, unknown>;
 }
 
 function arrayValue(value: unknown, context: string): unknown[] {
     if (!Array.isArray(value)) {
-        throw new Error(`${context} must be a JSON array`);
+        mmrParseError(`${context} must be a JSON array`);
     }
     return value;
 }
@@ -190,7 +219,7 @@ function arrayValue(value: unknown, context: string): unknown[] {
 function stringField(obj: Record<string, unknown>, key: string): string {
     const value = obj[key];
     if (typeof value !== "string") {
-        throw new Error(`${JSON.stringify(key)} must be a string`);
+        mmrParseError(`${JSON.stringify(key)} must be a string`);
     }
     return value;
 }
@@ -202,9 +231,7 @@ function intField(obj: Record<string, unknown>, key: string): number {
         !Number.isSafeInteger(value) ||
         value < 0
     ) {
-        throw new Error(
-            `${JSON.stringify(key)} must be a safe unsigned integer`,
-        );
+        mmrParseError(`${JSON.stringify(key)} must be a safe unsigned integer`);
     }
     return value;
 }
@@ -217,18 +244,24 @@ function intField(obj: Record<string, unknown>, key: string): number {
  * unsigned integer, or a proof hash is not a 32-byte hex value.
  */
 export function proofFromJson(text: string): Proof {
-    const obj = objectValue(JSON.parse(text), "proof");
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(text);
+    } catch (err) {
+        mmrParseError(`invalid proof JSON: ${(err as Error).message}`);
+    }
+    const obj = objectValue(parsed, "proof");
     const schema = stringField(obj, "schema");
     if (schema !== ProofSchema) {
-        throw new Error(`unsupported proof schema ${JSON.stringify(schema)}`);
+        mmrParseError(`unsupported proof schema ${JSON.stringify(schema)}`);
     }
     const hash = stringField(obj, "hash");
     if (hash !== HashAlgorithm) {
-        throw new Error(`unsupported hash algorithm ${JSON.stringify(hash)}`);
+        mmrParseError(`unsupported hash algorithm ${JSON.stringify(hash)}`);
     }
     const preimage = stringField(obj, "preimage");
     if (preimage !== PreimageVersion) {
-        throw new Error(
+        mmrParseError(
             `unsupported preimage version ${JSON.stringify(preimage)}`,
         );
     }
@@ -244,7 +277,7 @@ export function proofFromJson(text: string): Proof {
         const step = objectValue(item, "path step");
         const side = stringField(step, "side");
         if (side !== "left" && side !== "right") {
-            throw new Error(`unsupported proof side ${JSON.stringify(side)}`);
+            mmrParseError(`unsupported proof side ${JSON.stringify(side)}`);
         }
         return {
             parentHeight: intField(step, "parent_height"),
@@ -288,20 +321,20 @@ function numbersEqual(left: number[], right: number[]): boolean {
  */
 export function verifyProof(proof: Proof): void {
     if (proof.frameId.length !== 32)
-        throw new Error("frame_id must be 32 bytes");
-    if (proof.root.length !== 32) throw new Error("root must be 32 bytes");
+        mmrValidationError("frame_id must be 32 bytes");
+    if (proof.root.length !== 32) mmrValidationError("root must be 32 bytes");
     if (proof.leafIndex >= proof.count) {
-        throw new Error(
+        mmrValidationError(
             `leaf_index ${proof.leafIndex} is outside covered count ${proof.count}`,
         );
     }
     if (proof.peakIndex >= proof.peaks.length) {
-        throw new Error(`peak_index ${proof.peakIndex} is out of range`);
+        mmrValidationError(`peak_index ${proof.peakIndex} is out of range`);
     }
     const expectedHeights = expectedPeakHeights(proof.count);
     const actualHeights = proof.peaks.map((peak) => peak.height);
     if (!numbersEqual(actualHeights, expectedHeights)) {
-        throw new Error(
+        mmrValidationError(
             `peak heights ${JSON.stringify(actualHeights)} ` +
                 `do not match count ${proof.count}`,
         );
@@ -312,23 +345,23 @@ export function verifyProof(proof: Proof): void {
         proof.leafIndex,
     );
     if (computedPeakIndex !== proof.peakIndex) {
-        throw new Error(
+        mmrValidationError(
             `leaf_index ${proof.leafIndex} belongs to peak ` +
                 `${computedPeakIndex}, not ${proof.peakIndex}`,
         );
     }
     for (const peak of proof.peaks) {
         if (peak.hash.length !== 32)
-            throw new Error("peak hash must be 32 bytes");
+            mmrValidationError("peak hash must be 32 bytes");
     }
 
     let carried = leafHash(proof.leafIndex, proof.frameId);
     let height = 0;
     for (const step of proof.path) {
         if (step.hash.length !== 32)
-            throw new Error("path hash must be 32 bytes");
+            mmrValidationError("path hash must be 32 bytes");
         if (step.parentHeight !== height + 1) {
-            throw new Error(
+            mmrValidationError(
                 `path parent height ${step.parentHeight} does not follow ` +
                     `height ${height}`,
             );
@@ -341,7 +374,7 @@ export function verifyProof(proof: Proof): void {
                 carried = parentHash(step.parentHeight, carried, step.hash);
                 break;
             default:
-                throw new Error(
+                mmrValidationError(
                     `unsupported proof side ${JSON.stringify(step.side)}`,
                 );
         }
@@ -350,15 +383,15 @@ export function verifyProof(proof: Proof): void {
 
     const peak = proof.peaks[proof.peakIndex];
     if (height !== peak.height) {
-        throw new Error(
+        mmrValidationError(
             `path height ${height} does not reach peak height ${peak.height}`,
         );
     }
     if (!bytesEqual(carried, peak.hash)) {
-        throw new Error("proof path does not reconstruct the selected peak");
+        mmrValidationError("proof path does not reconstruct the selected peak");
     }
     if (!bytesEqual(rootHash(proof.count, proof.peaks), proof.root)) {
-        throw new Error("proof peaks do not reconstruct the declared root");
+        mmrValidationError("proof peaks do not reconstruct the declared root");
     }
 }
 
