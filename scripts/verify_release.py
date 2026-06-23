@@ -39,6 +39,13 @@ DEFAULT_JULIA_PACKAGE = "GmeowGTS"
 DEFAULT_JULIA_UUID = "2d7fe44c-1957-4481-aa09-d6d0150c36ae"
 SPDX_PREDICATE = "https://spdx.dev/Document/v2.3"
 USER_AGENT = "gmeow-gts-release-verifier/1.0"
+PERMANENT_MISSING_HTTP_STATUSES = {404, 410}
+
+
+class FetchError(RuntimeError):
+    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
 
 
 @dataclass
@@ -211,6 +218,18 @@ def check_any_metadata_link(
         )
 
 
+def record_registry_fetch_error(
+    recorder: Recorder, surface: str, check: str, exc: BaseException
+) -> None:
+    if (
+        isinstance(exc, FetchError)
+        and exc.status_code in PERMANENT_MISSING_HTTP_STATUSES
+    ):
+        recorder.missing(surface, check, str(exc))
+    else:
+        recorder.pending(surface, check, str(exc))
+
+
 def repository_directory_matches(actual: Any, expected: str) -> bool:
     return isinstance(actual, str) and actual.strip("/").casefold() == expected.strip(
         "/"
@@ -246,6 +265,13 @@ def request(
     return urllib.request.Request(url, headers=merged)
 
 
+def raise_fetch_error(kind: str, url: str, last_error: Exception | None) -> None:
+    message = f"failed to fetch {kind} from {url}: {last_error}"
+    if isinstance(last_error, FetchError):
+        raise FetchError(message, status_code=last_error.status_code) from last_error
+    raise RuntimeError(message) from last_error
+
+
 def fetch_json(
     url: str, *, headers: dict[str, str] | None = None, attempts: int = 3
 ) -> Any:
@@ -256,6 +282,14 @@ def fetch_json(
                 request(url, headers=headers), timeout=30
             ) as response:
                 return json.load(response)
+        except urllib.error.HTTPError as exc:
+            last_error = FetchError(
+                f"HTTP {exc.code} {exc.reason}", status_code=exc.code
+            )
+            if exc.code in PERMANENT_MISSING_HTTP_STATUSES:
+                break
+            if attempt < attempts:
+                time.sleep(attempt)
         except (
             OSError,
             urllib.error.URLError,
@@ -265,7 +299,7 @@ def fetch_json(
             last_error = exc
             if attempt < attempts:
                 time.sleep(attempt)
-    raise RuntimeError(f"failed to fetch JSON from {url}: {last_error}") from last_error
+    raise_fetch_error("JSON", url, last_error)
 
 
 def fetch_text(
@@ -278,6 +312,14 @@ def fetch_text(
                 request(url, headers=headers), timeout=30
             ) as response:
                 return response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            last_error = FetchError(
+                f"HTTP {exc.code} {exc.reason}", status_code=exc.code
+            )
+            if exc.code in PERMANENT_MISSING_HTTP_STATUSES:
+                break
+            if attempt < attempts:
+                time.sleep(attempt)
         except (
             OSError,
             UnicodeDecodeError,
@@ -287,7 +329,7 @@ def fetch_text(
             last_error = exc
             if attempt < attempts:
                 time.sleep(attempt)
-    raise RuntimeError(f"failed to fetch text from {url}: {last_error}") from last_error
+    raise_fetch_error("text", url, last_error)
 
 
 def download(
@@ -416,7 +458,7 @@ def verify_pypi(
             raise RuntimeError("metadata is not a dictionary")
         recorder.published(surface, "release metadata", pypi_json_url)
     except RuntimeError as exc:
-        recorder.pending(surface, "release metadata", str(exc))
+        record_registry_fetch_error(recorder, surface, "release metadata", exc)
         return artifacts
     info = metadata.get("info")
     if isinstance(info, dict):
@@ -533,7 +575,7 @@ def verify_npm(
             raise RuntimeError("invalid version metadata structure")
         recorder.published(surface, "registry metadata", args.npm_package)
     except (RuntimeError, KeyError, TypeError) as exc:
-        recorder.pending(surface, "registry metadata", str(exc))
+        record_registry_fetch_error(recorder, surface, "registry metadata", exc)
         return artifacts
     check_metadata_link(
         recorder,
@@ -668,6 +710,14 @@ def crate_version_metadata(crate: str, version: str) -> dict[str, Any]:
     return metadata
 
 
+def crate_repository_metadata(crate: str) -> dict[str, Any]:
+    metadata = fetch_json(f"https://crates.io/api/v1/crates/{crate}")
+    crate_info = metadata.get("crate") if isinstance(metadata, dict) else None
+    if not isinstance(crate_info, dict):
+        raise RuntimeError("crate repository metadata missing from crates.io response")
+    return crate_info
+
+
 def crate_checksum(metadata: dict[str, Any], crate: str, version: str) -> str:
     version_info = metadata.get("version")
     if not isinstance(version_info, dict) or not version_info.get("checksum"):
@@ -696,12 +746,14 @@ def verify_crate(
         recorder.published(surface, "registry metadata", crate)
         recorder.published(surface, "registry checksum metadata", expected_checksum)
     except RuntimeError as exc:
-        recorder.pending(surface, "registry checksum metadata", str(exc))
+        record_registry_fetch_error(
+            recorder, surface, "registry checksum metadata", exc
+        )
         expected_checksum = ""
         metadata = {}
 
-    crate_info = metadata.get("crate") if isinstance(metadata, dict) else None
-    if isinstance(crate_info, dict):
+    try:
+        crate_info = crate_repository_metadata(crate)
         check_metadata_link(
             recorder,
             surface,
@@ -709,6 +761,8 @@ def verify_crate(
             crate_info.get("repository"),
             expected_repo_urls(args),
         )
+    except RuntimeError as exc:
+        record_registry_fetch_error(recorder, surface, "repository metadata", exc)
 
     try:
         download(download_url, destination)
@@ -749,7 +803,7 @@ def verify_nuget(
             raise RuntimeError("versions list missing")
         recorder.published(surface, "registry metadata", metadata_url)
     except RuntimeError as exc:
-        recorder.pending(surface, "registry metadata", str(exc))
+        record_registry_fetch_error(recorder, surface, "registry metadata", exc)
         return artifacts
 
     if version_present(versions, args.version):
@@ -811,7 +865,7 @@ def verify_packagist(args: argparse.Namespace, recorder: Recorder) -> None:
             raise RuntimeError("package versions missing")
         recorder.published(surface, "registry metadata", metadata_url)
     except RuntimeError as exc:
-        recorder.pending(surface, "registry metadata", str(exc))
+        record_registry_fetch_error(recorder, surface, "registry metadata", exc)
         return
 
     accepted_versions = {args.version, f"v{args.version}"}
@@ -870,7 +924,7 @@ def verify_luarocks(
             raise RuntimeError("package missing from root manifest")
         recorder.published(surface, "registry metadata", manifest_url)
     except RuntimeError as exc:
-        recorder.pending(surface, "registry metadata", str(exc))
+        record_registry_fetch_error(recorder, surface, "registry metadata", exc)
         return artifacts
 
     entries = package_versions.get(rock_version)
@@ -921,7 +975,7 @@ def verify_rubygems(
             raise RuntimeError("versions response is not a list")
         recorder.published(surface, "registry metadata", versions_url)
     except RuntimeError as exc:
-        recorder.pending(surface, "registry metadata", str(exc))
+        record_registry_fetch_error(recorder, surface, "registry metadata", exc)
         return artifacts
 
     if version_present(
@@ -1004,7 +1058,7 @@ def verify_runiverse(
             raise RuntimeError("package missing from PACKAGES index")
         recorder.published(surface, "registry metadata", packages_url)
     except RuntimeError as exc:
-        recorder.pending(surface, "registry metadata", str(exc))
+        record_registry_fetch_error(recorder, surface, "registry metadata", exc)
         return artifacts
 
     published_version = metadata.get("Version")
@@ -1059,7 +1113,7 @@ def verify_julia_general(args: argparse.Namespace, recorder: Recorder) -> None:
         package_toml = fetch_text(package_url)
         recorder.published(surface, "registry metadata", package_url)
     except RuntimeError as exc:
-        recorder.pending(surface, "registry metadata", str(exc))
+        record_registry_fetch_error(recorder, surface, "registry metadata", exc)
         return
 
     if (
@@ -1094,7 +1148,7 @@ def verify_julia_general(args: argparse.Namespace, recorder: Recorder) -> None:
         else:
             recorder.pending(surface, "package version", f"{args.version} not present")
     except RuntimeError as exc:
-        recorder.pending(surface, "package version", str(exc))
+        record_registry_fetch_error(recorder, surface, "package version", exc)
     recorder.pass_(
         surface,
         "native dependency expectation",
@@ -1687,6 +1741,33 @@ def run_self_test() -> int:
     if link_statuses != ["published", "metadata-mismatch"]:
         print(
             "verify_release self-test: metadata link classification drifted",
+            file=sys.stderr,
+        )
+        return 1
+
+    fetch_recorder = Recorder(emit=False)
+    record_registry_fetch_error(
+        fetch_recorder,
+        "fixture",
+        "registry metadata",
+        FetchError("HTTP 404 Not Found", status_code=404),
+    )
+    record_registry_fetch_error(
+        fetch_recorder,
+        "fixture",
+        "registry metadata",
+        FetchError("HTTP 500 Internal Server Error", status_code=500),
+    )
+    record_registry_fetch_error(
+        fetch_recorder,
+        "fixture",
+        "registry metadata",
+        RuntimeError("version not present"),
+    )
+    fetch_statuses = [result.release_status for result in fetch_recorder.results]
+    if fetch_statuses != ["missing", "pending", "pending"]:
+        print(
+            "verify_release self-test: registry fetch classification drifted",
             file=sys.stderr,
         )
         return 1
