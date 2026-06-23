@@ -116,6 +116,14 @@ fuzz-rust seconds="60":
 fuzz-go duration="60s":
     cd go && CGO_ENABLED=0 go test -run='^$' -fuzz=FuzzRead -fuzztime={{duration}} ./reader
 
+# Run the Python property suite. Pass examples, e.g. `just property-py 300`.
+property-py examples="40":
+    cd python && GTS_PROPERTY_EXAMPLES={{examples}} uv run pytest tests/test_properties.py
+
+# Run the TypeScript property suite. Pass runs and seed, e.g. `just property-ts 500 20260623`.
+property-ts runs="50" seed="20260623":
+    cd ts && GTS_PROPERTY_RUNS={{runs}} GTS_PROPERTY_SEED={{seed}} npm run test:property
+
 # --- supply chain ---------------------------------------------------------- #
 
 # Scan every lockfile for known vulnerabilities (needs osv-scanner).

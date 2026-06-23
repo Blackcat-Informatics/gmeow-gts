@@ -36,6 +36,7 @@
     "format:check": "prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
     "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts'",
     "test": "npm run build && tsc -p tsconfig.test.json && node --test dist/tests/*.test.js",
+    "test:property": "npm run build && tsc -p tsconfig.test.json && node --test dist/tests/property.test.js",
     "cli": "node dist/bin/gts.js"
   },
   "dependencies": {
@@ -51,6 +52,7 @@
     "@typescript-eslint/eslint-plugin": "^8.30.0",
     "@typescript-eslint/parser": "^8.30.0",
     "eslint": "^10.5.0",
+    "fast-check": "^4.8.0",
     "prettier": "^3.5.0",
     "typescript": "^6.0.3"
   },
