@@ -284,6 +284,81 @@ def read_lines(path: Path) -> list[str]:
     return path.read_text(encoding="utf-8", errors="replace").splitlines()
 
 
+def rust_brace_delta(line: str) -> int:
+    delta = 0
+    in_string = False
+    in_char = False
+    escaped = False
+    index = 0
+    while index < len(line):
+        char = line[index]
+        next_char = line[index + 1] if index + 1 < len(line) else ""
+        if not in_string and not in_char and char == "/" and next_char == "/":
+            break
+        if escaped:
+            escaped = False
+        elif in_string:
+            if char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+        elif in_char:
+            if char == "\\":
+                escaped = True
+            elif char == "'":
+                in_char = False
+        elif char == '"':
+            in_string = True
+        elif char == "'":
+            in_char = True
+        elif char == "{":
+            delta += 1
+        elif char == "}":
+            delta -= 1
+        index += 1
+    return delta
+
+
+def strip_rust_cfg_test_modules(lines: list[str]) -> list[str]:
+    stripped = list(lines)
+    index = 0
+    while index < len(lines):
+        if lines[index].strip() != "#[cfg(test)]":
+            index += 1
+            continue
+
+        attr_start = index
+        module_line = index + 1
+        while module_line < len(lines):
+            candidate = lines[module_line].strip()
+            if not candidate or candidate.startswith("#["):
+                module_line += 1
+                continue
+            break
+        if module_line >= len(lines) or not re.match(
+            r"(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\s*\{", lines[module_line].strip()
+        ):
+            index += 1
+            continue
+
+        depth = 0
+        block_end = module_line
+        for block_end in range(module_line, len(lines)):
+            depth += rust_brace_delta(lines[block_end])
+            if depth <= 0:
+                break
+        for skipped in range(attr_start, block_end + 1):
+            stripped[skipped] = ""
+        index = block_end + 1
+    return stripped
+
+
+def metric_lines(path: Path, lines: list[str]) -> list[str]:
+    if path.suffix.lower() == ".rs":
+        return strip_rust_cfg_test_modules(lines)
+    return lines
+
+
 def matches_for_line(
     metric: str, suffix: str, line: str
 ) -> list[tuple[str, re.Match[str]]]:
@@ -306,7 +381,7 @@ def scan(root: Path) -> dict[str, Any]:
         lines = read_lines(path)
         line_counts[rel] = len(lines)
         suffix = path.suffix.lower()
-        for line_number, line in enumerate(lines, start=1):
+        for line_number, line in enumerate(metric_lines(path, lines), start=1):
             stripped = line.strip()
             for metric in METRICS:
                 for label, _match in matches_for_line(metric, suffix, line):
@@ -670,7 +745,13 @@ def self_test() -> int:
         root = Path(tmp)
         write_text(
             root / "rust/src/lib.rs",
-            "# SPDX-License-Identifier: MIT OR Apache-2.0\npub fn ok() -> u8 { 1 }\n",
+            "# SPDX-License-Identifier: MIT OR Apache-2.0\n"
+            "pub fn ok() -> u8 { 1 }\n"
+            "#[cfg(test)]\n"
+            "mod tests {\n"
+            "    #[test]\n"
+            "    fn ignored_embedded_test_panic() { panic!(\"test-only\"); }\n"
+            "}\n",
         )
         write_text(
             root / "rust/tests/lib_test.rs",

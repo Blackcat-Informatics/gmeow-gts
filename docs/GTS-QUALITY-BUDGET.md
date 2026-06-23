@@ -60,7 +60,8 @@ how many tracked hotspots remain over target and the closest next ratchet opport
 The gate is scoped to production code. It excludes tests, fixtures, examples, fuzz targets,
 generated/build output, vendored code, `dist`, `target`, `node_modules`, worktrees, and cache
 directories. It also skips test-style filenames such as `_test.go`, `.test.ts`, `.spec.ts`, and
-`Test.kt`.
+`Test.kt`. Rust `#[cfg(test)] mod ...` blocks embedded in production files are blanked before
+metric matching so unit-test assertions do not count as production panic-like calls.
 
 The initial production roots are the implementation surfaces under `rust/src`, `rust/capi`,
 `go`, `python/src`, `ts/src`, `kotlin/src/main`, `smalltalk/src`, and the C ABI wrapper package
