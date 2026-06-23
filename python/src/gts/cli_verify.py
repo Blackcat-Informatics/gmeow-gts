@@ -76,11 +76,11 @@ def _cmd_verify(
                     problems = True
         # §9.2: COSE signature verification against the provided keys.
         if keys is not None:
-            graph = read(data, keys=keys)
-            for sig in graph.signatures:
-                print(f"  signature {sig.kid or '?'}: {sig.status}")
-                if sig.status == "invalid":
-                    problems = True
+            for seg in segments:
+                for sig in seg.signatures:
+                    print(f"  signature {sig.kid or '?'}: {sig.status}")
+                    if sig.status == "invalid":
+                        problems = True
     return 1 if problems else 0
 
 

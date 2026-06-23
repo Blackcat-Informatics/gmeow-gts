@@ -18,6 +18,7 @@ ietf/draft-audley-gts-graph-transport-substrate-00.xml linguist-generated=true
 quality/*.json whitespace=trailing-space,space-before-tab
 ietf/draft-audley-gts-graph-transport-substrate-00.xml whitespace=trailing-space,space-before-tab
 scripts/*.py whitespace=trailing-space,space-before-tab
+python/**/*.py whitespace=trailing-space,space-before-tab
 scripts/*.sh whitespace=trailing-space,space-before-tab
 *.c whitespace=trailing-space,space-before-tab
 *.h whitespace=trailing-space,space-before-tab
