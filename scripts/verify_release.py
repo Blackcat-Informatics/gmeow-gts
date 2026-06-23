@@ -130,8 +130,11 @@ def normalize_url(value: str) -> str:
     text = value.strip()
     if text.startswith("git+"):
         text = text[4:]
-    if text.startswith("git://github.com/"):
-        text = "https://github.com/" + text.removeprefix("git://github.com/")
+    parsed = urllib.parse.urlsplit(text)
+    if parsed.scheme == "git" and parsed.netloc.casefold() == "github.com":
+        text = urllib.parse.urlunsplit(
+            ("https", parsed.netloc, parsed.path, parsed.query, parsed.fragment)
+        )
     text = text.removesuffix(".git").rstrip("/")
     return text.casefold()
 
