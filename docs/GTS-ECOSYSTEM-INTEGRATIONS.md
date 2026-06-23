@@ -17,7 +17,7 @@ deferred.
 |---|---|---|
 | Rust RDF | `gmeow_gts::nquads::to_nquads(&graph)` and `gmeow_gts::from_nquads::from_nquads(text)` remain the zero-extra-dependency bridge for external RDF crates; `--features rdf` enables `gmeow_gts::rdf::{to_rdf_dataset, from_rdf_dataset}` for dependency-free native `Dataset` interop without an embedded graph store; `--features native-store` enables `gmeow_gts::native_store::{graph_to_store, graph_to_store_with_sidecar, store_to_writer}` and `Writer::from_store` using the deterministic native in-memory RDF store; `--features rdf-codecs` enables native N-Triples, Turtle, TriG, and RDF/XML text codecs; `gmeow_gts::examples::agent_memory` demonstrates a downstream application shape without extra dependencies; `gts to-sqlite` exports the folded integer table model by default, while `to-duckdb` and `to-parquet` are behind the no-dependency Cargo feature `duckdb`. | Rio remains deferred because the current `rio_api` crate is marked unmaintained upstream; external Sophia/Oxigraph/Rio interop uses the zero-dependency N-Quads text bridge rather than an in-crate adapter. |
 | Python RDF/data | `gts.from_rdflib()` and `gts.to_rdflib()` cover rdflib RDF 1.1 `Graph`/`Dataset` interop; `gts to-sqlite`, `to-duckdb`, and `to-parquet` cover relational/data-frame handoff. | RDF 1.2 quoted-triple export to rdflib is strict-by-default and lossy only when explicitly requested. |
-| TypeScript browser | `@blackcatinformatics/gmeow-gts/browser` exposes `foldStream(ReadableStream<Uint8Array>, options)`, `readStream`, `toNQuads`, progressive fold events, and WebCrypto-backed COSE Sign1/Encrypt0 key-provider hooks. The package root also carries a browser condition that resolves to this narrower surface for bundlers. | This is a progressive Web Streams surface and does not satisfy the current non-materializing Streaming Reader tier. Node-only CLI and filesystem `pack`/`unpack`/`diff` helpers remain outside the browser export. Range fetch still needs a verified index or boundary scan. |
+| TypeScript browser | `@blackcatinformatics/gmeow-gts/browser` exposes `foldStreamToSink(ReadableStream<Uint8Array>, options)` for the non-materializing Streaming Reader tier, plus graph-returning `foldStream`, `readStream`, `toNQuads`, progressive fold events, and WebCrypto-backed COSE Sign1/Encrypt0 key-provider hooks. The package root also carries a browser condition that resolves to this narrower surface for bundlers. | Node-only CLI and filesystem `pack`/`unpack`/`diff` helpers remain outside the browser export. Range fetch still needs a verified index or boundary scan. |
 | Go services | `reader.ReadFrom(ctx, io.Reader, reader.Options)` provides graph-returning service integration, while `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` provides cancellation-aware, byte-limited streaming fold events for HTTP bodies, object-store objects, and pipes; the Go CLI also exposes the shared replication inventory verbs. | Service-specific replication orchestration remains application code built on the shared verbs. |
 | C ABI wrappers | `rust/capi/` builds `libgts` and `rust/capi/include/gts.h` for C-compatible runtimes. C++, .NET, PHP, Lua, Swift, Ruby, R, and Julia wrappers expose ABI metadata, read/verify JSON reports, registry-driven RDF text conversion, files-profile helpers, and structured errors while copying native buffers into ecosystem-owned values. | These wrappers delegate to the Rust engine and are not independent parity engines or new CLI columns. Installable native `libgts` archives publish through the `capi-v*` GitHub Release lane; wrapper registry release automation remains separate from the current Rust/Python/Go/TypeScript engine release lanes. |
 | Tar-compatible archives | Rust `gts from-tar`, `gts to-tar`, and `gts tar -c/-x/-t/-d` are available behind `--features tar`. They bridge `.tar`, `.tar.gz`, and `.tar.zst` streams to files-profile-v2 GTS archives with digest-addressed file bodies, tar-equivalent metadata, unknown PAX preservation, and explicit extraction opt-ins. | Python/Go/TypeScript parity is intentionally deferred. Those engines should implement files-profile-v2 import/export and pass `vectors/tar/` before their CLIs claim `from-tar`, `to-tar`, or `tar`. |
@@ -266,7 +266,7 @@ it.
 The TypeScript package exposes a browser-specific entrypoint for Web Streams:
 
 ```typescript
-import { foldStream, readStream, toNQuads } from "@blackcatinformatics/gmeow-gts/browser";
+import { foldStream, foldStreamToSink, readStream, toNQuads } from "@blackcatinformatics/gmeow-gts/browser";
 
 const response = await fetch("/artifacts/example.gts");
 const result = await foldStream(response.body!, {
@@ -277,6 +277,12 @@ const result = await foldStream(response.body!, {
 });
 
 console.log(toNQuads(result.graph));
+
+await foldStreamToSink(response.body!, {
+  onEvent(event) {
+    if (event.kind === "quad") projectRow(event.segmentIndex, event.quad);
+  },
+});
 ```
 
 The browser path can also use platform WebCrypto for practical COSE verification and
@@ -291,12 +297,12 @@ const graph = await readStream(response.body!, {
 });
 ```
 
-The browser export emits term, quad, reifier, annotation, suppression, blob, opaque,
-signature, diagnostic, segment-head, and streamable-layout events in frame order. It is the
-TypeScript package's browser-safe progressive stream surface and does not satisfy the current
-non-materializing `GTS Streaming Reader` tier requirements. The root Node
-`Read(bytes, allowSegments)` API remains materializing, and browser code must not rely on the
-Node-only CLI/filesystem helpers.
+The browser export emits term, quad, reifier, annotation, suppression, blob, opaque, signature,
+diagnostic, segment-head, and streamable-layout events in frame order. `foldStreamToSink` is the
+TypeScript package's non-materializing `GTS Streaming Reader` surface; `foldStream` and
+`readStream` remain graph-returning conveniences. The root Node `Read(bytes, allowSegments)` API
+remains a materializing reader, and browser code must not rely on the Node-only CLI/filesystem
+helpers.
 
 Range rule: callers may use HTTP `Range` only for byte spans that are known from
 an index frame or from a sequential CBOR boundary scan. A range that cuts through

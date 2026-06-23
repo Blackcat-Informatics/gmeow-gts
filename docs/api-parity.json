@@ -94,7 +94,7 @@
     {
       "operation": "streaming/full-reader options",
       "contract": "Carry read mode, segment allowance, expected head, key provider, recursion/decode budgets, and streamable validation as options. Engines MAY stage these as separate helpers while preserving the same observable fold and diagnostics.",
-      "current_native_surface": "Python `keys`, Rust `ReadOptions`/`read_to_sink_with_options`, Go `reader.Options`/`reader.ReadToSink`, TypeScript `allowSegments`, Smalltalk `allowSegments`, Kotlin `allowSegments`, and CLI flags today; deeper recursion/MMR options are future Full Reader work."
+      "current_native_surface": "Python `keys`, Rust `ReadOptions`/`read_to_sink_with_options`/`read_to_sink_from_reader`, Go `reader.Options`/`reader.ReadToSink`, TypeScript `allowSegments`/`foldStreamToSink`, Smalltalk `allowSegments`, Kotlin `allowSegments`, and CLI flags today; deeper recursion/MMR options are future Full Reader work."
     }
   ],
   "readme_feature_matrix": [

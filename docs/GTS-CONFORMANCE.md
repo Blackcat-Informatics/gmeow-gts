@@ -74,22 +74,20 @@ profile-aware trust-policy and nested-GTS recursion assertions.
 | Validating Tool | Baseline Reader plus strict verify and publish-class verify modes (§7); `profile-layout` refusal vectors produce the required non-zero/refusal outcomes. | `GTS Validating Tool, corpus <commit>` |
 | Profile-Aware Tool | Validating Tool plus the named profile validator; profile-specific diagnostics and warnings match the profile contract. | `GTS Profile-Aware Tool (<profile>), corpus <commit>` |
 
-Within this repository, only the Go engine currently claims the Streaming Reader tier. Its
-`reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` API reads from an `io.Reader` and emits
-sink events without materializing the folded graph. The `go test ./reader -run
-TestStreamingFoldCorpusEquivalence` harness checks corpus equivalence against the full Go reader
-for final diagnostic codes, segment heads, profiles, metadata, streamable-layout state, and
-segment-local fold event counts.
+Within this repository, Go, Rust, and TypeScript currently claim the Streaming Reader tier for
+specific sink APIs. Go uses `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)`. Rust uses
+`gmeow_gts::reader::read_to_sink_from_reader(reader, ReadOptions, sink)`. TypeScript uses the
+browser export `foldStreamToSink(stream, options)`. These APIs read from stream/reader inputs and
+emit sink events without materializing the folded graph union, folded triples, or blob payload
+table. Their corpus gates check final diagnostic codes, segment heads, profiles, metadata,
+streamable-layout state, and segment-local fold event counts against full-reader or segment-reader
+oracles.
 
-The Rust `read_to_sink` API provides event-emitting reader evidence, but does not satisfy the
-current Streaming Reader tier requirements: it accepts a byte slice, decodes the item collection,
-and uses the segment `Graph` path while emitting events. The TypeScript browser
-`foldStream(stream, options)` and
-`readStream(stream, options)` APIs are progressive Web Streams surfaces where `options.onEvent`
-receives segment-local events as CBOR items arrive, but they still return materialized graph
-state. Python currently provides prefix-fold and full-reader evidence only. Future Rust,
-TypeScript, or Python claims need a non-materializing sink path plus memory evidence matching the
-bound above.
+Rust's legacy `read_to_sink(&[u8], ...)` remains a compatibility wrapper for callers that already
+hold bytes. TypeScript `foldStream(stream, options)` and `readStream(stream, options)` remain
+graph-returning browser conveniences. Python currently provides prefix-fold and full-reader
+evidence only. Future claims for additional APIs must include a non-materializing sink path plus
+memory evidence matching the bound above.
 
 A tool can claim multiple tiers. A command-line package that exposes `read`, `verify`,
 `compact`, and `files` archive commands might claim Baseline Reader, Writer, Validating Tool,

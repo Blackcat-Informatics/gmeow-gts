@@ -203,6 +203,7 @@ Browser bundlers can import the browser-safe surface directly:
 ```typescript
 import {
   foldStream,
+  foldStreamToSink,
   readStream,
   toNQuads,
   type BrowserFoldEvent,
@@ -218,12 +219,21 @@ const result = await foldStream(response.body!, {
 });
 
 console.log(toNQuads(result.graph));
+
+await foldStreamToSink(response.body!, {
+  allowSegments: true,
+  onEvent(event) {
+    if (event.kind === "quad") projectRow(event.segmentIndex, event.quad);
+  },
+});
 ```
 
 `foldStream(stream, options)` consumes a `ReadableStream<Uint8Array>` and emits progressive
 term, quad, blob, signature, diagnostic, segment-head, and streamable-layout events as CBOR
-items arrive. `readStream(stream, options)` is a convenience wrapper that returns only the
-final `Graph`.
+items arrive while returning a materialized graph. `foldStreamToSink(stream, options)` emits the
+same segment-local events and returns only reader sidecar state for non-materializing Streaming
+Reader use. `readStream(stream, options)` is a convenience wrapper that returns only the final
+`Graph`.
 
 The browser export also accepts a `BrowserKeyProvider` for WebCrypto-backed COSE verification
 and decryption:
@@ -238,10 +248,10 @@ const graph = await readStream(response.body!, {
 ```
 
 The browser path is intentionally narrower than the Node root export. It does not expose the
-CLI, filesystem `pack`/`unpack`/`diff` helpers, or other Node-only behavior. It may claim the
-`GTS Streaming Reader` surface for `@blackcatinformatics/gmeow-gts/browser` when the release
-claim names the corpus commit and browser streaming test harness used. The Node `Read(bytes,
-...)` API remains a materializing reader, not the streaming surface.
+CLI, filesystem `pack`/`unpack`/`diff` helpers, or other Node-only behavior. `foldStreamToSink`
+is the `GTS Streaming Reader` surface for `@blackcatinformatics/gmeow-gts/browser` when the
+release claim names the corpus commit and browser streaming test harness used. The Node
+`Read(bytes, ...)` API remains a materializing reader, not the streaming surface.
 
 ---
 

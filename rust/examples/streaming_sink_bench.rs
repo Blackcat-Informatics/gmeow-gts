@@ -3,12 +3,13 @@
 
 use std::env;
 use std::fs;
+use std::fs::File;
 use std::process::ExitCode;
 
 use gmeow_gts::model::{
     Diagnostic, OpaqueNode, Quad, Signature, StreamableInfo, Suppression, Term, Triple3,
 };
-use gmeow_gts::reader::{read_to_sink, StreamingSink};
+use gmeow_gts::reader::{read_to_sink_from_reader, ReadOptions, StreamingSink};
 
 #[derive(Default)]
 struct CountingSink {
@@ -92,15 +93,15 @@ fn main() -> ExitCode {
         eprintln!("usage: streaming_sink_bench <file.gts>");
         return ExitCode::from(2);
     };
-    let data = match fs::read(&path) {
-        Ok(data) => data,
+    let file = match File::open(&path) {
+        Ok(file) => file,
         Err(err) => {
             eprintln!("streaming_sink_bench: {err}");
             return ExitCode::from(2);
         }
     };
     let mut sink = CountingSink::default();
-    let result = read_to_sink(&data, true, None, &mut sink);
+    let result = read_to_sink_from_reader(file, ReadOptions::new(true, None), &mut sink);
     let peak = linux_peak_kib()
         .map(|value| value.to_string())
         .unwrap_or_else(|| "null".to_string());

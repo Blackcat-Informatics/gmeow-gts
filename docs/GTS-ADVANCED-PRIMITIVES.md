@@ -18,16 +18,16 @@ and what is intentionally deferred from the v1 surface.
 | MMR proof JSON | All engines verify detached proof JSON against `vectors/proofs/`; Rust also exposes `Writer::add_index_with_mmr`, validates optional `index.mmr`, and implements `gts prove`. | Detached verification is cross-engine; proof creation from indexed GTS files remains Rust-only. |
 | Replication inventory | All four CLIs expose `gts heads`, `gts segments`, `gts missing`, and `gts resume` for machine-readable head comparison and byte-range resume. | Shared v1 replication surface; `resume` starts only after a verified frame id at a scanned CBOR item boundary. |
 | Blob introspection | `gts ls` lists content-addressed blob digests, sizes, and media types. | Range fetch still needs a verified index or a boundary scan. |
-| Memory benchmark helper | `scripts/bench_reader_memory.py` reports full-reader materialization, a frame-scan baseline, and a Rust `read_to_sink` evented-fold row when Cargo is available. Go reports its full-reader and non-materializing streaming-sink allocation evidence with `go test ./reader -bench 'Benchmark(ReadFull\|ReadToSink)CorpusVector' -benchmem`. TypeScript exposes browser `foldStream` events, but memory reporting for browser runtimes remains release-report evidence rather than a shared script row. | The frame scan is not a Streaming Reader fold; Rust and TypeScript rows are event/progressive API evidence, while Go satisfies the current Streaming Reader tier. |
+| Memory benchmark helper | `scripts/bench_reader_memory.py` reports full-reader materialization, a frame-scan baseline, Rust `read_to_sink_from_reader`, and TypeScript browser `foldStreamToSink` rows. Go reports its full-reader and non-materializing streaming-sink allocation evidence with `go test ./reader -bench 'Benchmark(ReadFull\|ReadToSink)CorpusVector' -benchmem`. | The frame scan is not a Streaming Reader fold; the Rust, TypeScript, and Go rows are sink-memory evidence for their named APIs. |
 
 The current Go package may claim the `Streaming Reader` tier for
-`reader.ReadToSink(ctx, io.Reader, reader.Options, sink)`. The current Rust package SHOULD NOT
-claim that tier for `read_to_sink` yet because it accepts a byte slice and uses the segment
-`Graph` path while emitting events. The current TypeScript browser package SHOULD NOT claim that
-tier for `foldStream(stream, options)` or `readStream(stream, options)` yet because those APIs are
-progressive Web Streams readers that still return materialized graph state. Rust remains the only
-package that may claim MMR proof creation. All four packages may claim detached proof
-verification for the fixture set in `vectors/proofs/` and the shared replication inventory verbs.
+`reader.ReadToSink(ctx, io.Reader, reader.Options, sink)`. The Rust package may claim that tier for
+`read_to_sink_from_reader(reader, ReadOptions, sink)`. The TypeScript browser package may claim
+that tier for `foldStreamToSink(stream, options)`. Rust's `read_to_sink(&[u8], ...)` and
+TypeScript's `foldStream(stream, options)`/`readStream(stream, options)` remain compatibility or
+graph-returning helpers rather than the named claim surfaces. Rust remains the only package that
+may claim MMR proof creation. All four packages may claim detached proof verification for the
+fixture set in `vectors/proofs/` and the shared replication inventory verbs.
 Python SHOULD NOT claim the sink or proof-creation tiers yet; Go and TypeScript SHOULD NOT claim
 proof creation yet.
 
@@ -161,13 +161,15 @@ cd python
 uv run python ../scripts/bench_reader_memory.py ../vectors/25-streamable-source.gts
 ```
 
-The helper emits three rows per file:
+The helper emits four rows per file when Rust, Cargo, Node, npm, and the TypeScript build
+dependencies are available:
 
 - `full-reader`: materializes a `Graph` with the current Python reader;
 - `frame-scan`: decodes one CBOR item at a time and counts headers/frames without folding;
-- `streaming-fold`: runs the Rust `read_to_sink` evented-fold benchmark helper when Cargo is
-  available and reports the Rust process high-water RSS (`VmHWM`) on Linux; this row is
-  projection evidence and does not satisfy the current Rust Streaming Reader tier requirements.
+- `streaming-fold`: runs the Rust `read_to_sink_from_reader` sink benchmark helper and reports
+  the Rust process high-water RSS (`VmHWM`) on Linux;
+- `typescript-streaming-fold`: runs the browser `foldStreamToSink` sink path under Node's Web
+  Streams runtime and reports Node RSS.
 
 Rust relational export regression fixtures cover the bounded row-emission path: the DB loader
 streams SQL into `sqlite3`/`duckdb`, leaves lazy blob entries uncached in the folded graph, and
@@ -175,6 +177,6 @@ stops before `COMMIT` if a transformed blob cannot be decoded. The remaining sch
 intentional: `blobs.bytes` exports must still decode each inline payload transiently for the row
 being written.
 
-Future non-Go streaming implementations should replace fallback rows with engine-specific
-non-materializing sink benchmarks that report peak memory by distinct terms, maximum decoded
-frame size, validation sidecar state, triples, and blob sizes.
+Future streaming implementations should add engine-specific non-materializing sink benchmarks
+that report peak memory by distinct terms, maximum decoded frame size, validation sidecar state,
+triples, and blob sizes.

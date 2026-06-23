@@ -79,8 +79,9 @@ a GTS file.
 ## What this crate provides
 
 - **`gmeow_gts::reader`** — read a GTS byte slice into a `Graph`, verify chains, detect
-  torn appends, decrypt `COSE_Encrypt0` frames when a content-key resolver is supplied, and
-  handle opaque/degraded frames.
+  torn appends, decrypt `COSE_Encrypt0` frames when a content-key resolver is supplied, handle
+  opaque/degraded frames, and stream reader inputs through `read_to_sink_from_reader` without
+  materializing folded triples or blob payloads.
 - **`gmeow_gts::writer`** — build frames and emit full GTS files, including
   `Writer::deterministic(&graph, profile)` for reproducible graph authoring and
   `FrameOptions` for transformed, encrypted, explicitly signed, or recipient-addressed frames.
