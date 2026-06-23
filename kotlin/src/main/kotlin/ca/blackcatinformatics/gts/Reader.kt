@@ -75,7 +75,7 @@ private class Folder(
             }
         } catch (err: RuntimeException) {
             opaque(frame, frameType, "damaged")
-            diag("DamagedFrame", "fold failed: ${err.message}", index)
+            diag("DamagedFrame", "fold failed: ${err.message ?: err.toString()}", index)
         }
     }
 
