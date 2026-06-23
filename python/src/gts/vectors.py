@@ -167,6 +167,35 @@ def _malformed_transform_shape() -> bytes:
     return bytes(w.to_bytes()) + canonical(frame)
 
 
+def _damaged_compressed_payload() -> bytes:
+    """A zstd-transformed frame whose payload bytes are not zstd data."""
+    w = Writer(catalog={0: Codec("identity", "encode"), 2: Codec("zstd", "compress")})
+    frame: dict[str, object] = {
+        "t": "terms",
+        "x": [2],
+        "d": b"not zstd frame data",
+        "prev": w.head,
+    }
+    frame["id"] = content_id(frame)
+    return bytes(w.to_bytes()) + canonical(frame)
+
+
+def _malformed_security_metadata() -> bytes:
+    """An encrypt-class frame with malformed recipient metadata and no key."""
+    w = Writer(
+        catalog={0: Codec("identity", "encode"), 7: Codec("cose-encrypt0", "encrypt")}
+    )
+    frame: dict[str, object] = {
+        "t": "quads",
+        "x": [7],
+        "d": b"sealed payload",
+        "to": [{"kid": 7, "alg": ["not", "a", "string"]}],
+        "prev": w.head,
+    }
+    frame["id"] = content_id(frame)
+    return bytes(w.to_bytes()) + canonical(frame)
+
+
 def _suppression() -> bytes:
     w = Writer()
     w.add_terms([Term(TermKind.IRI, CAT)])
@@ -633,6 +662,8 @@ def corpus() -> list[VectorCase]:
         VectorCase("28d-unknown-frame-type", _unknown_frame_type()),
         VectorCase("28e-forward-term-reference", _forward_term_reference()),
         VectorCase("28f-malformed-transform-shape", _malformed_transform_shape()),
+        VectorCase("28g-damaged-compressed-payload", _damaged_compressed_payload()),
+        VectorCase("28h-malformed-security-metadata", _malformed_security_metadata()),
         VectorCase("29-deterministic-writer", _deterministic_writer()),
     ]
 

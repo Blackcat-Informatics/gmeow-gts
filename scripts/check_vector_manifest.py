@@ -34,6 +34,7 @@ VALID_SUBSETS = {
     "total-reader",
     "graph-fold",
     "profile-layout",
+    "resilience-negative",
     "streaming-property",
     "corpus-generator-determinism",
     "writer-determinism",
@@ -55,14 +56,35 @@ VALID_TIERS = {
     "validating-tool",
     "profile-aware-tool",
 }
+RESILIENCE_NEGATIVE_MAX_BYTES = 64 * 1024
+RESILIENCE_NEGATIVE_TOP_LEVEL = frozenset(
+    {
+        "03-unknown-codec",
+        "04-damaged-frame",
+        "05-torn-append",
+        "06-header-tampered",
+        "17-pre-segment-hard-fail",
+        "19-profile-union-opacity",
+        "21-degenerate-composition",
+        "26-streamable-lie",
+        "28-empty-file",
+        "28b-non-header-item",
+        "28c-unsupported-version",
+        "28d-unknown-frame-type",
+        "28e-forward-term-reference",
+        "28f-malformed-transform-shape",
+        "28g-damaged-compressed-payload",
+        "28h-malformed-security-metadata",
+    }
+)
 
 TOP_LEVEL_SUBSETS = {
     "01-minimal": ("wire-core",),
     "02-zstd-frame": ("wire-core",),
-    "03-unknown-codec": ("total-reader",),
-    "04-damaged-frame": ("total-reader",),
-    "05-torn-append": ("total-reader",),
-    "06-header-tampered": ("wire-core",),
+    "03-unknown-codec": ("total-reader", "resilience-negative"),
+    "04-damaged-frame": ("total-reader", "resilience-negative"),
+    "05-torn-append": ("total-reader", "resilience-negative"),
+    "06-header-tampered": ("wire-core", "resilience-negative"),
     "09-suppression": ("graph-fold",),
     "11-datatype-defaulting": ("graph-fold",),
     "12-conflicting-reifier": ("graph-fold",),
@@ -71,24 +93,26 @@ TOP_LEVEL_SUBSETS = {
     "15-two-segment-union": ("graph-fold",),
     "15b-anon-bnode-union": ("graph-fold",),
     "16-composed-round-trip": ("graph-fold",),
-    "17-pre-segment-hard-fail": ("total-reader",),
+    "17-pre-segment-hard-fail": ("total-reader", "resilience-negative"),
     "18-cross-segment-suppression": ("graph-fold",),
-    "19-profile-union-opacity": ("total-reader",),
+    "19-profile-union-opacity": ("total-reader", "resilience-negative"),
     "20-language-tag-discipline": ("profile-layout",),
-    "21-degenerate-composition": ("profile-layout",),
+    "21-degenerate-composition": ("profile-layout", "resilience-negative"),
     "22-inline-blob": ("graph-fold",),
     "23-files-profile-tree": ("profile-layout",),
     "24-files-profile-dedup": ("profile-layout",),
     "25-streamable-source": ("profile-layout",),
     "25b-streamable-compacted": ("profile-layout",),
-    "26-streamable-lie": ("profile-layout",),
+    "26-streamable-lie": ("profile-layout", "resilience-negative"),
     "27-streamable-tail": ("profile-layout",),
-    "28-empty-file": ("total-reader",),
-    "28b-non-header-item": ("total-reader",),
-    "28c-unsupported-version": ("total-reader",),
-    "28d-unknown-frame-type": ("total-reader",),
-    "28e-forward-term-reference": ("total-reader",),
-    "28f-malformed-transform-shape": ("total-reader",),
+    "28-empty-file": ("total-reader", "resilience-negative"),
+    "28b-non-header-item": ("total-reader", "resilience-negative"),
+    "28c-unsupported-version": ("total-reader", "resilience-negative"),
+    "28d-unknown-frame-type": ("total-reader", "resilience-negative"),
+    "28e-forward-term-reference": ("total-reader", "resilience-negative"),
+    "28f-malformed-transform-shape": ("total-reader", "resilience-negative"),
+    "28g-damaged-compressed-payload": ("total-reader", "resilience-negative"),
+    "28h-malformed-security-metadata": ("total-reader", "resilience-negative"),
     "29-deterministic-writer": ("writer-determinism",),
 }
 
@@ -107,6 +131,13 @@ TOP_LEVEL_CAPABILITIES = {
     ),
     "26-streamable-lie": ("cbor", "blake3", "identity", "streamable-index"),
     "27-streamable-tail": ("cbor", "blake3", "identity", "streamable-index"),
+    "28g-damaged-compressed-payload": ("cbor", "blake3", "identity", "zstd"),
+    "28h-malformed-security-metadata": (
+        "cbor",
+        "blake3",
+        "identity",
+        "cose-encrypt0",
+    ),
     "29-deterministic-writer": ("cbor", "blake3", "identity", "inline-blob"),
 }
 
@@ -606,6 +637,17 @@ def build_manifest() -> dict[str, Any]:
         raise ManifestError(
             f"top-level vector metadata drift: unknown={unknown} missing={missing}"
         )
+    resilience_ids = {
+        vector_id
+        for vector_id, subsets in TOP_LEVEL_SUBSETS.items()
+        if "resilience-negative" in subsets
+    }
+    if resilience_ids != RESILIENCE_NEGATIVE_TOP_LEVEL:
+        raise ManifestError(
+            "resilience-negative metadata drift: "
+            f"declared={sorted(resilience_ids)} "
+            f"expected={sorted(RESILIENCE_NEGATIVE_TOP_LEVEL)}"
+        )
 
     json_paths = sorted(
         path for path in VECTORS.glob("*/*.json") if path.parent.name != "tar"
@@ -752,6 +794,48 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
         and (expected["expected_head"] is None or isinstance(expected["expected_head"], str)),
         f"{vector_id}: expected_head must be string/null",
     )
+    if "resilience-negative" in subsets:
+        rest = input_path.removeprefix("vectors/")
+        is_top_level_gts = (
+            media_type == "application/vnd.blackcat.gts+cbor-seq"
+            and input_path.startswith("vectors/")
+            and "/" not in rest
+            and input_path.endswith(".gts")
+        )
+        require(
+            is_top_level_gts,
+            f"{vector_id}: resilience-negative entries must be top-level GTS vectors",
+        )
+        require(
+            negative,
+            f"{vector_id}: resilience-negative vectors must be negative",
+        )
+        require(
+            vector_id in RESILIENCE_NEGATIVE_TOP_LEVEL,
+            f"{vector_id}: unexpected resilience-negative vector",
+        )
+        require(
+            {"baseline-reader", "streaming-reader"} <= tiers,
+            f"{vector_id}: resilience-negative vectors must exercise reader tiers",
+        )
+        require(
+            {"streaming-property", "corpus-generator-determinism"} <= subsets,
+            f"{vector_id}: resilience-negative vectors must use shared top-level gates",
+        )
+        require(
+            graph == f"vectors/{vector_id}.expected.json",
+            f"{vector_id}: resilience-negative expected graph must match id",
+        )
+        require(
+            resolved_input.stat().st_size <= RESILIENCE_NEGATIVE_MAX_BYTES,
+            f"{vector_id}: resilience-negative vector exceeds bounded size",
+        )
+        require(
+            bool(expected.get("diagnostics"))
+            or "exit_code" in expected
+            or bool(expected.get("profile_findings")),
+            f"{vector_id}: resilience-negative vectors must document diagnostics or refusal",
+        )
 
 
 PINNED_ENTRY_FIELDS = (
@@ -1005,6 +1089,33 @@ def run_self_tests() -> None:
     )
     writer_top_level["subsets"].remove("writer-determinism")
     expect_invalid(manifest, "writer tier requires writer-determinism subset")
+
+    manifest = mutated_manifest()
+    positive_top_level = next(
+        entry for entry in manifest["vectors"] if entry["id"] == "01-minimal"
+    )
+    positive_top_level["subsets"].append("resilience-negative")
+    expect_invalid(manifest, "resilience-negative vectors must be negative")
+
+    manifest = mutated_manifest()
+    json_negative = next(
+        entry for entry in manifest["vectors"] if entry["id"] == "security-profile-policy"
+    )
+    json_negative["subsets"].append("resilience-negative")
+    expect_invalid(
+        manifest,
+        "resilience-negative entries must be top-level GTS vectors",
+    )
+
+    manifest = mutated_manifest()
+    resilience_top_level = next(
+        entry for entry in manifest["vectors"] if entry["id"] == "04-damaged-frame"
+    )
+    resilience_top_level["expected"]["diagnostics"] = []
+    expect_invalid(
+        manifest,
+        "resilience-negative vectors must document diagnostics or refusal",
+    )
 
     manifest = mutated_manifest()
     fixture = next(
