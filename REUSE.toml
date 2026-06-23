@@ -25,6 +25,7 @@ path = [
   "rust/Cargo.lock",
   "rust/capi/Cargo.lock",
   "python/uv.lock",
+  "quality/quality-budget-baseline.json",
   "python/src/gts/py.typed",
   "CITATION.cff",
   ".gitignore",

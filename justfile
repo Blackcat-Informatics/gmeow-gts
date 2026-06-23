@@ -33,13 +33,17 @@ test-kotlin:
 # --- lint / format --------------------------------------------------------- #
 
 # Run every engine's lint + the repo-wide pre-commit hooks.
-lint:
+lint: check-quality-budget
     cd rust && cargo fmt --check && cargo clippy --all-targets -- -D warnings
     cd go && go vet ./... && golangci-lint run ./...
     cd ts && npm run lint
     cd python && uv run ruff check . && uv run mypy
     cd kotlin && gradle detekt
     pre-commit run --all-files
+
+# Fail if production-code quality budgets regress.
+check-quality-budget:
+    python scripts/check_quality_budget.py
 
 # Auto-format every engine.
 fmt:

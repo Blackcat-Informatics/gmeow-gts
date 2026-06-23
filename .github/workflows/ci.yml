@@ -38,6 +38,7 @@ jobs:
           python scripts/check_rust_wasm_dependency_audit.py
           python scripts/check_security_contract.py
           python scripts/check_crypto_deferrals.py
+          python scripts/check_quality_budget.py
           python scripts/check_vector_manifest.py
           python scripts/check_vector_manifest.py --self-test
 

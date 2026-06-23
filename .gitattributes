@@ -11,5 +11,8 @@ rust/Cargo.lock linguist-generated=true -diff
 go/go.sum linguist-generated=true -diff
 
 # YAML and copied upstream license text require space indentation.
-.github/workflows/julia-tagbot.yml whitespace=trailing-space,space-before-tab
+.github/workflows/*.yml whitespace=trailing-space,space-before-tab
+.github/workflows/*.yaml whitespace=trailing-space,space-before-tab
+quality/*.json whitespace=trailing-space,space-before-tab
+scripts/*.py whitespace=trailing-space,space-before-tab
 julia/LICENSE-APACHE whitespace=trailing-space,space-before-tab
