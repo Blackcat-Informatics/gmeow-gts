@@ -1,9 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics(R) Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-import cbor, { Tagged } from "cbor";
 import { decompress as zstdDecompress } from "fzstd";
-import { blake3 } from "@noble/hashes/blake3.js";
 
 import {
     Graph,
@@ -20,9 +18,44 @@ import {
     type Triple,
 } from "./model.js";
 import { DIGEST as STREAM_DIGEST } from "./stream.js";
+import {
+    BrowserCoseError,
+    decrypt0WithWebCrypto,
+    signatureKid,
+    verifySign1WithWebCrypto,
+    type BrowserKeyProvider,
+} from "./browser_crypto.js";
+import {
+    MAGIC,
+    VERSION,
+    asBytes,
+    asInt,
+    asInt64,
+    asText,
+    bytesEqual,
+    cborItemLength,
+    concatBytes,
+    contentId,
+    decodeFirst,
+    digestStr,
+    headerId,
+    isHeaderItem,
+    mapGet,
+    textOr,
+    toBufferSource,
+    tripleEqual,
+    unwrapHeader,
+} from "./browser_wire.js";
 
 export { Graph, TermKind } from "./model.js";
 export { toNQuads } from "./nquads.js";
+export {
+    BrowserCoseError,
+    decrypt0WithWebCrypto,
+    recipientKid,
+    signatureKid,
+    verifySign1WithWebCrypto,
+} from "./browser_crypto.js";
 export type {
     BlobEntry,
     Diagnostic,
@@ -35,27 +68,15 @@ export type {
     Term,
     Triple,
 } from "./model.js";
+export type {
+    BrowserDecrypt0Reason,
+    BrowserKeyProvider,
+    BrowserSigStatus,
+} from "./browser_crypto.js";
 
-const SELF_DESCRIBE_TAG = 55799;
-const MAGIC = "GTS1";
-const VERSION = 1;
-const KID = 4;
-const IV = 5;
-const TAG_SIGN1 = 18;
-const TAG_ENCRYPT0 = 16;
 const MAX_ZSTD_DECODED_SIZE = 16 * 1024 * 1024;
 
-type MaybePromise<T> = T | Promise<T>;
-type KeyLike = CryptoKey | Uint8Array | ArrayBuffer;
 type EventSink = (event: BrowserFoldEvent) => void | Promise<void>;
-
-/** WebCrypto-backed key lookup for browser-side signature and envelope handling. */
-export interface BrowserKeyProvider {
-    /** Return an Ed25519 verification key for a signer kid, or null/undefined if unknown. */
-    verificationKey?: (kid: string) => MaybePromise<KeyLike | null | undefined>;
-    /** Return a 32-byte AES-GCM content key for a recipient kid, or null/undefined if absent. */
-    contentKey?: (kid: string) => MaybePromise<KeyLike | null | undefined>;
-}
 
 /** Options for browser ReadableStream folding. */
 export interface BrowserReadOptions {
@@ -302,103 +323,6 @@ async function consumeStreamItems(
 
     if (pending.length > 0 && torn < 0) torn = consumed;
     return torn;
-}
-
-/** Signature status reported by browser WebCrypto verification. */
-export type BrowserSigStatus = "valid" | "invalid" | "unverified";
-/** Failure class for browser COSE_Encrypt0 handling. */
-export type BrowserDecrypt0Reason =
-    | "malformed"
-    | "missing-key"
-    | "auth-failed"
-    | "unsupported";
-
-/** Error raised when browser COSE parsing, key lookup, or decryption fails. */
-export class BrowserCoseError extends Error {
-    constructor(
-        readonly reason: BrowserDecrypt0Reason,
-        message: string,
-    ) {
-        super(message);
-        this.name = "BrowserCoseError";
-    }
-}
-
-/** Return the kid from a COSE_Sign1, or null if malformed. */
-export function signatureKid(cose: Uint8Array): string | null {
-    return parseSign1(cose)?.kid ?? null;
-}
-
-/** Verify a detached COSE_Sign1 over a frame id using WebCrypto. */
-export async function verifySign1WithWebCrypto(
-    cose: Uint8Array,
-    frameId: Uint8Array,
-    keys: BrowserKeyProvider,
-): Promise<{ kid: string; status: BrowserSigStatus }> {
-    const parsed = parseSign1(cose);
-    if (!parsed || parsed.signature.length !== 64) {
-        return { kid: "", status: "invalid" };
-    }
-    const key = await keys.verificationKey?.(parsed.kid);
-    if (!key) return { kid: parsed.kid, status: "unverified" };
-    try {
-        const cryptoKey = await ed25519VerificationKey(key);
-        const ok = await subtleCrypto().verify(
-            { name: "Ed25519" },
-            cryptoKey,
-            toBufferSource(parsed.signature),
-            toBufferSource(sigStructure(parsed.protected, frameId)),
-        );
-        return { kid: parsed.kid, status: ok ? "valid" : "invalid" };
-    } catch {
-        return { kid: parsed.kid, status: "invalid" };
-    }
-}
-
-/** Return the kid from a COSE_Encrypt0, or null if malformed. */
-export function recipientKid(cose: Uint8Array): string | null {
-    return parseEncrypt0(cose)?.kid ?? null;
-}
-
-/** Decrypt a COSE_Encrypt0 envelope using a WebCrypto AES-GCM content key. */
-export async function decrypt0WithWebCrypto(
-    cose: Uint8Array,
-    keys: BrowserKeyProvider,
-): Promise<Uint8Array> {
-    const parsed = parseEncrypt0(cose);
-    if (!parsed) {
-        throw new BrowserCoseError("malformed", "malformed COSE_Encrypt0");
-    }
-    if (parsed.iv.length !== 12) {
-        throw new BrowserCoseError("malformed", "bad COSE_Encrypt0 IV length");
-    }
-    const key = await keys.contentKey?.(parsed.kid);
-    if (!key) {
-        throw new BrowserCoseError(
-            "missing-key",
-            `no content key for ${parsed.kid}`,
-        );
-    }
-    try {
-        const cryptoKey = await aesGcmKey(key);
-        const plaintext = await subtleCrypto().decrypt(
-            {
-                name: "AES-GCM",
-                iv: toBufferSource(parsed.iv),
-                additionalData: toBufferSource(encStructure(parsed.protected)),
-                tagLength: 128,
-            },
-            cryptoKey,
-            toBufferSource(parsed.ciphertext),
-        );
-        return new Uint8Array(plaintext);
-    } catch (e) {
-        if (e instanceof BrowserCoseError) throw e;
-        throw new BrowserCoseError(
-            "auth-failed",
-            "authentication failed (AES-GCM tag mismatch)",
-        );
-    }
 }
 
 class BrowserStreamProcessor {
@@ -1690,132 +1614,6 @@ function layoutCheck(
     return { claimed: true, covered: last.count, tail, head: last.head };
 }
 
-interface ParsedSign1 {
-    kid: string;
-    protected: Uint8Array;
-    signature: Uint8Array;
-}
-
-function parseSign1(cose: Uint8Array): ParsedSign1 | null {
-    try {
-        let body = decodeFirst(cose);
-        if (body instanceof Tagged) {
-            if (body.tag !== TAG_SIGN1) return null;
-            body = body.value;
-        }
-        if (!Array.isArray(body) || body.length !== 4) return null;
-        const prot = asBytes(body[0]);
-        const signature = asBytes(body[3]);
-        const unprotected = body[1];
-        if (!prot || !signature || !(unprotected instanceof Map)) return null;
-        const kidVal = asBytes(unprotected.get(KID));
-        if (!kidVal) return null;
-        return {
-            kid: new TextDecoder().decode(kidVal),
-            protected: prot,
-            signature,
-        };
-    } catch {
-        return null;
-    }
-}
-
-interface ParsedEncrypt0 {
-    kid: string;
-    protected: Uint8Array;
-    iv: Uint8Array;
-    ciphertext: Uint8Array;
-}
-
-function parseEncrypt0(cose: Uint8Array): ParsedEncrypt0 | null {
-    try {
-        let body = decodeFirst(cose);
-        if (body instanceof Tagged) {
-            if (body.tag !== TAG_ENCRYPT0) return null;
-            body = body.value;
-        }
-        if (!Array.isArray(body) || body.length !== 3) return null;
-        const prot = asBytes(body[0]);
-        const ciphertext = asBytes(body[2]);
-        const unprotected = body[1];
-        if (!prot || !ciphertext || !(unprotected instanceof Map)) return null;
-        const kidVal = asBytes(unprotected.get(KID));
-        const iv = asBytes(unprotected.get(IV));
-        if (!kidVal || !iv) return null;
-        return {
-            kid: new TextDecoder().decode(kidVal),
-            protected: prot,
-            iv,
-            ciphertext,
-        };
-    } catch {
-        return null;
-    }
-}
-
-function sigStructure(prot: Uint8Array, frameId: Uint8Array): Uint8Array {
-    return encodeCanonical(["Signature1", prot, new Uint8Array(0), frameId]);
-}
-
-function encStructure(prot: Uint8Array): Uint8Array {
-    return encodeCanonical(["Encrypt0", prot, new Uint8Array(0)]);
-}
-
-function subtleCrypto(): SubtleCrypto {
-    const subtle = globalThis.crypto?.subtle;
-    if (!subtle) {
-        throw new BrowserCoseError(
-            "unsupported",
-            "WebCrypto SubtleCrypto is not available",
-        );
-    }
-    return subtle;
-}
-
-async function ed25519VerificationKey(key: KeyLike): Promise<CryptoKey> {
-    if (isCryptoKey(key)) return key;
-    return subtleCrypto().importKey(
-        "raw",
-        toBufferSource(keyBytes(key)),
-        { name: "Ed25519" },
-        false,
-        ["verify"],
-    );
-}
-
-async function aesGcmKey(key: KeyLike): Promise<CryptoKey> {
-    if (isCryptoKey(key)) return key;
-    const raw = keyBytes(key);
-    if (raw.length !== 32) {
-        throw new BrowserCoseError(
-            "missing-key",
-            "AES-GCM content key must be 32 bytes",
-        );
-    }
-    return subtleCrypto().importKey(
-        "raw",
-        toBufferSource(raw),
-        { name: "AES-GCM" },
-        false,
-        ["decrypt"],
-    );
-}
-
-function keyBytes(key: Uint8Array | ArrayBuffer): Uint8Array {
-    if (key instanceof Uint8Array) return copyBytes(key);
-    return new Uint8Array(key);
-}
-
-function toBufferSource(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
-    const out = new Uint8Array(bytes.byteLength);
-    out.set(bytes);
-    return out;
-}
-
-function isCryptoKey(value: unknown): value is CryptoKey {
-    return typeof CryptoKey !== "undefined" && value instanceof CryptoKey;
-}
-
 function isPromiseLike(value: unknown): value is Promise<void> {
     return (
         typeof value === "object" &&
@@ -1823,395 +1621,6 @@ function isPromiseLike(value: unknown): value is Promise<void> {
         "then" in value &&
         typeof (value as { then?: unknown }).then === "function"
     );
-}
-
-function isHeaderItem(item: unknown): boolean {
-    let inner = item;
-    if (item instanceof Tagged) inner = item.value;
-    if (!(inner instanceof Map)) return false;
-    const hasGts = mapGet(inner, "gts") !== undefined;
-    const hasT = mapGet(inner, "t") !== undefined;
-    return hasGts && !hasT;
-}
-
-function unwrapHeader(item: unknown): Map<unknown, unknown> {
-    let inner = item;
-    if (item instanceof Tagged) {
-        if (item.tag !== SELF_DESCRIBE_TAG) {
-            throw new Error(`unexpected CBOR tag ${item.tag} on header item`);
-        }
-        inner = item.value;
-    }
-    if (inner instanceof Map) return inner;
-    throw new Error("header item is not a CBOR map");
-}
-
-function decodeFirst(data: Uint8Array): unknown {
-    return cbor.decodeFirstSync(data, { preferMap: true });
-}
-
-function blake3_256(data: Uint8Array): Uint8Array {
-    return blake3(data);
-}
-
-function hex(data: Uint8Array): string {
-    let out = "";
-    for (const b of data) out += b.toString(16).padStart(2, "0");
-    return out;
-}
-
-function digestStr(data: Uint8Array): string {
-    return "blake3:" + hex(blake3_256(data));
-}
-
-function mapGet(
-    m: Map<unknown, unknown> | undefined,
-    key: string,
-): unknown | undefined {
-    if (!m) return undefined;
-    if (m.has(key)) return m.get(key);
-    for (const [k, v] of m) {
-        if (k === key) return v;
-    }
-    return undefined;
-}
-
-function asText(value: unknown): string | undefined {
-    if (typeof value === "string") return value;
-    return undefined;
-}
-
-function asBytes(value: unknown): Uint8Array | undefined {
-    if (value instanceof Uint8Array) {
-        return copyBytes(value);
-    }
-    if (value instanceof ArrayBuffer) return new Uint8Array(value);
-    return undefined;
-}
-
-function asInt(value: unknown): number | undefined {
-    if (typeof value === "number") {
-        if (Number.isInteger(value) && value >= 0) return value;
-    }
-    if (typeof value === "bigint") {
-        if (value >= 0n && value <= Number.MAX_SAFE_INTEGER)
-            return Number(value);
-    }
-    return undefined;
-}
-
-function asInt64(value: unknown): number | undefined {
-    if (typeof value === "number") {
-        if (Number.isInteger(value)) return value;
-    }
-    if (typeof value === "bigint") {
-        if (
-            value >= Number.MIN_SAFE_INTEGER &&
-            value <= Number.MAX_SAFE_INTEGER
-        ) {
-            return Number(value);
-        }
-    }
-    return undefined;
-}
-
-function textOr(value: unknown, def: string): string {
-    return asText(value) ?? def;
-}
-
-function cloneMap(m: Map<unknown, unknown>): Map<unknown, unknown> {
-    const out = new Map<unknown, unknown>();
-    for (const [k, v] of m) out.set(k, v);
-    return out;
-}
-
-function hashExcluding(
-    m: Map<unknown, unknown>,
-    excluded: string[],
-): Uint8Array {
-    const content = cloneMap(m);
-    for (const k of excluded) {
-        if (content.has(k)) content.delete(k);
-    }
-    return blake3_256(encodeCanonical(content));
-}
-
-function contentId(frame: Map<unknown, unknown>): Uint8Array {
-    return hashExcluding(frame, ["id", "sig"]);
-}
-
-function headerId(header: Map<unknown, unknown>): Uint8Array {
-    return hashExcluding(header, ["id"]);
-}
-
-function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-    return true;
-}
-
-function tripleEqual(a: Triple, b: Triple): boolean {
-    return a.s === b.s && a.p === b.p && a.o === b.o;
-}
-
-function copyBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
-    const out = new Uint8Array(bytes.byteLength);
-    out.set(bytes);
-    return out;
-}
-
-function concatBytes(
-    chunks: ReadonlyArray<Uint8Array<ArrayBufferLike>>,
-): Uint8Array<ArrayBuffer> {
-    let length = 0;
-    for (const c of chunks) length += c.length;
-    const out = new Uint8Array(length);
-    let offset = 0;
-    for (const c of chunks) {
-        out.set(c, offset);
-        offset += c.length;
-    }
-    return out;
-}
-
-function encodeCanonical(value: unknown): Uint8Array {
-    if (value === null) return new Uint8Array([0xf6]);
-    if (value === undefined) return new Uint8Array([0xf7]);
-    if (typeof value === "boolean")
-        return new Uint8Array([value ? 0xf5 : 0xf4]);
-    if (typeof value === "string") {
-        const bytes = new TextEncoder().encode(value);
-        return concatBytes([encodeMajor(3, BigInt(bytes.length)), bytes]);
-    }
-    if (typeof value === "number") {
-        if (!Number.isInteger(value)) {
-            throw new Error(
-                "canonical CBOR encoder only supports integer numbers",
-            );
-        }
-        return encodeInteger(BigInt(value));
-    }
-    if (typeof value === "bigint") return encodeInteger(value);
-    if (value instanceof ArrayBuffer) {
-        const bytes = new Uint8Array(value);
-        return concatBytes([encodeMajor(2, BigInt(bytes.length)), bytes]);
-    }
-    if (value instanceof Uint8Array) {
-        const bytes = copyBytes(value);
-        return concatBytes([encodeMajor(2, BigInt(bytes.length)), bytes]);
-    }
-    if (Array.isArray(value)) {
-        const body = value.map((v) => encodeCanonical(v));
-        return concatBytes([encodeMajor(4, BigInt(value.length)), ...body]);
-    }
-    if (value instanceof Map) {
-        const entries = [...value.entries()].map(([k, v]) => ({
-            key: encodeCanonical(k),
-            value: encodeCanonical(v),
-        }));
-        entries.sort((a, b) => compareCborKeys(a.key, b.key));
-        const pieces: Uint8Array[] = [encodeMajor(5, BigInt(entries.length))];
-        for (const entry of entries) pieces.push(entry.key, entry.value);
-        return concatBytes(pieces);
-    }
-    if (value instanceof Tagged) {
-        return concatBytes([
-            encodeMajor(6, BigInt(value.tag)),
-            encodeCanonical(value.value),
-        ]);
-    }
-    throw new Error(`unsupported canonical CBOR value: ${typeof value}`);
-}
-
-function encodeInteger(value: bigint): Uint8Array {
-    if (value >= 0) return encodeMajor(0, value);
-    return encodeMajor(1, -1n - value);
-}
-
-function encodeMajor(major: number, value: bigint): Uint8Array {
-    if (value < 0n) throw new Error("negative CBOR length");
-    const prefix = major << 5;
-    if (value <= 23n) return new Uint8Array([prefix | Number(value)]);
-    if (value <= 0xffn) return new Uint8Array([prefix | 24, Number(value)]);
-    if (value <= 0xffffn) {
-        return new Uint8Array([
-            prefix | 25,
-            Number((value >> 8n) & 0xffn),
-            Number(value & 0xffn),
-        ]);
-    }
-    if (value <= 0xffffffffn) {
-        return new Uint8Array([
-            prefix | 26,
-            Number((value >> 24n) & 0xffn),
-            Number((value >> 16n) & 0xffn),
-            Number((value >> 8n) & 0xffn),
-            Number(value & 0xffn),
-        ]);
-    }
-    if (value <= 0xffffffffffffffffn) {
-        const out = new Uint8Array(9);
-        out[0] = prefix | 27;
-        for (let i = 0; i < 8; i++) {
-            out[8 - i] = Number((value >> BigInt(i * 8)) & 0xffn);
-        }
-        return out;
-    }
-    throw new Error("CBOR integer exceeds uint64 range");
-}
-
-function compareCborKeys(a: Uint8Array, b: Uint8Array): number {
-    if (a.length !== b.length) return a.length - b.length;
-    for (let i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) return a[i] - b[i];
-    }
-    return 0;
-}
-
-function readLength(
-    data: Uint8Array,
-    offset: number,
-    info: number,
-): { length: number; extra: number } {
-    switch (info) {
-        case 24:
-            if (offset >= data.length) throw new Error("unexpected EOF");
-            return { length: data[offset], extra: 1 };
-        case 25: {
-            if (offset + 2 > data.length) throw new Error("unexpected EOF");
-            return { length: (data[offset] << 8) | data[offset + 1], extra: 2 };
-        }
-        case 26: {
-            if (offset + 4 > data.length) throw new Error("unexpected EOF");
-            const n =
-                (data[offset] << 24) |
-                (data[offset + 1] << 16) |
-                (data[offset + 2] << 8) |
-                data[offset + 3];
-            return { length: n >>> 0, extra: 4 };
-        }
-        case 27: {
-            if (offset + 8 > data.length) throw new Error("unexpected EOF");
-            let n = 0n;
-            for (let i = 0; i < 8; i++)
-                n = (n << 8n) | BigInt(data[offset + i]);
-            if (n > BigInt(Number.MAX_SAFE_INTEGER)) {
-                throw new Error("length exceeds safe integer range");
-            }
-            return { length: Number(n), extra: 8 };
-        }
-        default:
-            throw new Error(`unsupported additional info for length: ${info}`);
-    }
-}
-
-function cborItemLength(data: Uint8Array, offset: number): number {
-    if (offset >= data.length) throw new Error("EOF");
-    const start = offset;
-    const stack: { remaining: number }[] = [];
-
-    const complete = () => {
-        while (stack.length > 0) {
-            const top = stack[stack.length - 1];
-            if (top.remaining > 0) top.remaining--;
-            if (top.remaining === 0) stack.pop();
-            else break;
-        }
-    };
-
-    for (;;) {
-        if (offset >= data.length) throw new Error("unexpected EOF");
-        const b = data[offset];
-        const major = b >> 5;
-        const info = b & 0x1f;
-        offset++;
-
-        let extra = 0;
-        let length = -1;
-        if (info <= 23) {
-            length = info;
-        } else if (info === 24 || info === 25 || info === 26 || info === 27) {
-            const res = readLength(data, offset, info);
-            length = res.length;
-            extra = res.extra;
-        } else if (info >= 28 && info <= 30) {
-            throw new Error(`reserved additional info ${info}`);
-        } else if (info === 31) {
-            switch (major) {
-                case 2:
-                case 3:
-                    for (;;) {
-                        if (offset >= data.length)
-                            throw new Error("unexpected EOF");
-                        const nb = data[offset];
-                        if (nb === 0xff) {
-                            offset++;
-                            break;
-                        }
-                        const nmajor = nb >> 5;
-                        const ninfo = nb & 0x1f;
-                        if (nmajor !== major || ninfo === 31) {
-                            throw new Error("invalid indefinite string chunk");
-                        }
-                        let nlen: number;
-                        let nextra = 0;
-                        if (ninfo <= 23) nlen = ninfo;
-                        else {
-                            const res = readLength(data, offset + 1, ninfo);
-                            nlen = res.length;
-                            nextra = res.extra;
-                        }
-                        offset += 1 + nextra;
-                        if (data.length - offset < nlen) {
-                            throw new Error("unexpected EOF");
-                        }
-                        offset += nlen;
-                    }
-                    complete();
-                    if (stack.length === 0) return offset - start;
-                    continue;
-                case 4:
-                case 5:
-                    throw new Error(
-                        `indefinite-length ${major === 5 ? "map" : "array"} not supported`,
-                    );
-                default:
-                    throw new Error(
-                        `indefinite length for major type ${major}`,
-                    );
-            }
-        }
-
-        offset += extra;
-
-        switch (major) {
-            case 0:
-            case 1:
-            case 7:
-                complete();
-                break;
-            case 2:
-            case 3:
-                if (data.length - offset < length)
-                    throw new Error("unexpected EOF");
-                offset += length;
-                complete();
-                break;
-            case 4:
-                if (length === 0) complete();
-                else stack.push({ remaining: length });
-                break;
-            case 5:
-                if (length === 0) complete();
-                else stack.push({ remaining: length * 2 });
-                break;
-            case 6:
-                stack.push({ remaining: 1 });
-                break;
-        }
-
-        if (stack.length === 0) return offset - start;
-    }
 }
 
 interface InternKey {

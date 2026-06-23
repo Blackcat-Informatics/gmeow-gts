@@ -21,8 +21,8 @@
       "target_lines": 1878
     },
     "ts/src/browser.ts": {
-      "max_lines": 2412,
-      "target_lines": 2170
+      "max_lines": 1821,
+      "target_lines": 1638
     },
     "ts/src/reader.ts": {
       "max_lines": 1149,
@@ -33,14 +33,13 @@
     "generic_parser_throws": {
       "by_file": {
         "ruby/lib/gmeow/gts.rb": 1,
-        "ts/src/browser.ts": 21,
         "ts/src/files.ts": 20,
         "ts/src/mmr.ts": 27,
         "ts/src/replication.ts": 2,
         "ts/src/wire.ts": 22,
         "ts/src/writer.ts": 5
       },
-      "max_total": 98
+      "max_total": 77
     },
     "maintenance_markers": {
       "by_file": {},
@@ -99,6 +98,6 @@
       "max_total": 266
     }
   },
-  "production_file_count": 184,
+  "production_file_count": 186,
   "version": 1
 }
