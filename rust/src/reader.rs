@@ -1693,10 +1693,10 @@ fn read_segment_with_sink(
     };
     sink = restored_sink;
 
-    g.segment_heads.push(expected_prev.clone());
     if let Some(sink) = sink.as_deref_mut() {
         sink.segment_head(segment_index, &expected_prev);
     }
+    g.segment_heads.push(expected_prev);
     let seg_meta = g.meta.clone();
     g.segment_meta.push(seg_meta);
     g.segment_profiles
