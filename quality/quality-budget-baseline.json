@@ -1,0 +1,104 @@
+{
+  "line_budgets": {
+    "go/cmd/gts/main.go": {
+      "max_lines": 1200,
+      "target_lines": 1080
+    },
+    "go/reader/reader.go": {
+      "max_lines": 1284,
+      "target_lines": 1155
+    },
+    "python/src/gts/cli.py": {
+      "max_lines": 838,
+      "target_lines": 754
+    },
+    "rust/src/bin/gts.rs": {
+      "max_lines": 2951,
+      "target_lines": 2655
+    },
+    "rust/src/reader.rs": {
+      "max_lines": 1782,
+      "target_lines": 1603
+    },
+    "ts/src/browser.ts": {
+      "max_lines": 2268,
+      "target_lines": 2041
+    },
+    "ts/src/reader.ts": {
+      "max_lines": 1160,
+      "target_lines": 1044
+    }
+  },
+  "metrics": {
+    "generic_parser_throws": {
+      "by_file": {
+        "ruby/lib/gmeow/gts.rb": 1,
+        "ts/src/browser.ts": 21,
+        "ts/src/files.ts": 20,
+        "ts/src/mmr.ts": 27,
+        "ts/src/replication.ts": 2,
+        "ts/src/wire.ts": 22,
+        "ts/src/writer.ts": 5
+      },
+      "max_total": 98
+    },
+    "maintenance_markers": {
+      "by_file": {},
+      "max_total": 0
+    },
+    "unchecked_panic_calls": {
+      "by_file": {
+        "dotnet/Gmeow.Gts/Gts.cs": 1,
+        "go/replication/replication.go": 1,
+        "go/wire/wire.go": 2,
+        "go/writer/writer.go": 5,
+        "julia/src/GmeowGTS.jl": 2,
+        "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/FilesProfile.kt": 12,
+        "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/Mmr.kt": 2,
+        "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/OpenPgp.kt": 4,
+        "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/Replication.kt": 2,
+        "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/Writer.kt": 2,
+        "lua/gmeow/gts.lua": 3,
+        "php/src/Gts.php": 2,
+        "rust/capi/src/lib.rs": 38,
+        "rust/src/bin/gts.rs": 6,
+        "rust/src/codec.rs": 7,
+        "rust/src/cose.rs": 2,
+        "rust/src/db.rs": 2,
+        "rust/src/dumpdir.rs": 1,
+        "rust/src/mmr.rs": 5,
+        "rust/src/okf.rs": 1,
+        "rust/src/openpgp.rs": 28,
+        "rust/src/rdf.rs": 1,
+        "rust/src/rdf_xml.rs": 2,
+        "rust/src/reader.rs": 12,
+        "rust/src/ulid.rs": 1,
+        "rust/src/verify.rs": 1,
+        "rust/src/wire.rs": 1,
+        "rust/src/writer.rs": 2,
+        "rust/src/xsd.rs": 1,
+        "rust/src/yamlld.rs": 1,
+        "smalltalk/src/Gts-Core/GtsCLI.class.st": 2,
+        "smalltalk/src/Gts-Core/GtsCborReader.class.st": 5,
+        "smalltalk/src/Gts-Core/GtsCborWriter.class.st": 2,
+        "smalltalk/src/Gts-Core/GtsCompact.class.st": 4,
+        "smalltalk/src/Gts-Core/GtsCose.class.st": 11,
+        "smalltalk/src/Gts-Core/GtsFiles.class.st": 13,
+        "smalltalk/src/Gts-Core/GtsFromNQuads.class.st": 5,
+        "smalltalk/src/Gts-Core/GtsHex.class.st": 2,
+        "smalltalk/src/Gts-Core/GtsMMR.class.st": 15,
+        "smalltalk/src/Gts-Core/GtsNQuadsTokenizer.class.st": 18,
+        "smalltalk/src/Gts-Core/GtsOpenPGP.class.st": 28,
+        "smalltalk/src/Gts-Core/GtsReplication.class.st": 2,
+        "smalltalk/src/Gts-Core/GtsSodium.class.st": 4,
+        "smalltalk/src/Gts-Core/GtsTerm.class.st": 1,
+        "smalltalk/src/Gts-Core/GtsWire.class.st": 1,
+        "smalltalk/src/Gts-Core/GtsWriter.class.st": 4,
+        "smalltalk/src/Gts-Core/GtsZstd.class.st": 3
+      },
+      "max_total": 270
+    }
+  },
+  "production_file_count": 183,
+  "version": 1
+}
