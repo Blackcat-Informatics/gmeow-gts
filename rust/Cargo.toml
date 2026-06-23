@@ -77,7 +77,7 @@ serde = { version = "1", default-features = false, features = ["derive", "std"],
 serde_json = { version = "1", optional = true }
 serde_yaml = { version = "0.9", optional = true }
 tar = { version = "0.4", optional = true }
-quick-xml = { version = "0.37.5", optional = true }
+quick-xml = { version = "0.40.1", optional = true }
 
 # The random-IV `encrypt0` convenience needs an OS CSPRNG; restrict it to
 # non-wasm targets so `wasm32-unknown-unknown` never tries to link getrandom.
