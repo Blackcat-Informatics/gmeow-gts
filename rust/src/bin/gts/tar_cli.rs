@@ -11,7 +11,6 @@ use gmeow_gts::tar::{to_tar, TarCompression, ToTarOptions};
 
 use super::{export_graph, USAGE};
 
-#[cfg(feature = "tar")]
 pub(super) fn cmd_from_tar(args: &[String]) -> ExitCode {
     let mut out_path: Option<&str> = None;
     let mut input: Option<&str> = None;
@@ -58,7 +57,6 @@ pub(super) fn cmd_from_tar(args: &[String]) -> ExitCode {
     write_from_tar_output(&mut file, out_path, &options)
 }
 
-#[cfg(feature = "tar")]
 pub(super) fn cmd_to_tar(args: &[String]) -> ExitCode {
     let mut out_path: Option<&str> = None;
     let mut input: Option<&str> = None;
@@ -102,37 +100,9 @@ pub(super) fn cmd_to_tar(args: &[String]) -> ExitCode {
         Err(code) => return code,
     };
 
-    match out_path {
-        Some("-") | None => {
-            let mut stdout = std::io::stdout();
-            match to_tar(&graph, &mut stdout, &options) {
-                Ok(()) => ExitCode::SUCCESS,
-                Err(e) => {
-                    eprintln!("gts to-tar: {e}");
-                    ExitCode::from(1)
-                }
-            }
-        }
-        Some(path) => {
-            let mut file = match std::fs::File::create(path) {
-                Ok(file) => file,
-                Err(e) => {
-                    eprintln!("gts to-tar: cannot write {path}: {e}");
-                    return ExitCode::from(2);
-                }
-            };
-            match to_tar(&graph, &mut file, &options) {
-                Ok(()) => ExitCode::SUCCESS,
-                Err(e) => {
-                    eprintln!("gts to-tar: {e}");
-                    ExitCode::from(1)
-                }
-            }
-        }
-    }
+    write_tar_output("to-tar", out_path.unwrap_or("-"), &graph, &options)
 }
 
-#[cfg(feature = "tar")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TarOperation {
     Create,
@@ -141,7 +111,6 @@ enum TarOperation {
     Diff,
 }
 
-#[cfg(feature = "tar")]
 #[derive(Debug, Default)]
 struct TarCliArgs {
     operation: Option<TarOperation>,
@@ -153,14 +122,12 @@ struct TarCliArgs {
     unpack_options: UnpackOptions,
 }
 
-#[cfg(feature = "tar")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ArchiveKind {
     Gts,
     Tar,
 }
 
-#[cfg(feature = "tar")]
 pub(super) fn cmd_tar(args: &[String]) -> ExitCode {
     let parsed = match parse_tar_cli_args(args) {
         Ok(parsed) => parsed,
@@ -181,7 +148,6 @@ pub(super) fn cmd_tar(args: &[String]) -> ExitCode {
     }
 }
 
-#[cfg(feature = "tar")]
 fn parse_tar_cli_args(args: &[String]) -> Result<TarCliArgs, String> {
     let mut parsed = TarCliArgs::default();
     let mut i = 0;
@@ -255,7 +221,6 @@ fn parse_tar_cli_args(args: &[String]) -> Result<TarCliArgs, String> {
     Ok(parsed)
 }
 
-#[cfg(feature = "tar")]
 fn parse_tar_short_option(
     args: &[String],
     index: &mut usize,
@@ -295,7 +260,6 @@ fn parse_tar_short_option(
     Ok(())
 }
 
-#[cfg(feature = "tar")]
 fn set_tar_operation(parsed: &mut TarCliArgs, operation: TarOperation) -> Result<(), String> {
     if parsed
         .operation
@@ -307,7 +271,6 @@ fn set_tar_operation(parsed: &mut TarCliArgs, operation: TarOperation) -> Result
     Ok(())
 }
 
-#[cfg(feature = "tar")]
 fn cmd_tar_create(parsed: &TarCliArgs) -> ExitCode {
     let Some(archive) = parsed.archive.as_deref() else {
         eprintln!("gts tar: -f requires an archive path\n{USAGE}");
@@ -358,7 +321,6 @@ fn cmd_tar_create(parsed: &TarCliArgs) -> ExitCode {
     write_tar_output("tar", archive, &graph, &options)
 }
 
-#[cfg(feature = "tar")]
 fn cmd_tar_extract(parsed: &TarCliArgs) -> ExitCode {
     let Some(archive) = parsed.archive.as_deref() else {
         eprintln!("gts tar: -f requires an archive path\n{USAGE}");
@@ -382,7 +344,6 @@ fn cmd_tar_extract(parsed: &TarCliArgs) -> ExitCode {
     }
 }
 
-#[cfg(feature = "tar")]
 fn cmd_tar_list(parsed: &TarCliArgs) -> ExitCode {
     let graph = match read_archive_graph_for_tar(parsed, true) {
         Ok(graph) => graph,
@@ -397,7 +358,6 @@ fn cmd_tar_list(parsed: &TarCliArgs) -> ExitCode {
     }
 }
 
-#[cfg(feature = "tar")]
 fn cmd_tar_diff(parsed: &TarCliArgs) -> ExitCode {
     let graph = match read_archive_graph_for_tar(parsed, true) {
         Ok(graph) => graph,
@@ -429,7 +389,6 @@ fn cmd_tar_diff(parsed: &TarCliArgs) -> ExitCode {
     }
 }
 
-#[cfg(feature = "tar")]
 fn resolve_tar_sources(sources: &[String], directory: Option<&str>) -> Vec<std::path::PathBuf> {
     sources
         .iter()
@@ -437,7 +396,6 @@ fn resolve_tar_sources(sources: &[String], directory: Option<&str>) -> Vec<std::
         .collect()
 }
 
-#[cfg(feature = "tar")]
 fn tar_diff_directory(parsed: &TarCliArgs) -> Result<std::path::PathBuf, String> {
     match (parsed.sources.as_slice(), parsed.directory.as_deref()) {
         ([source], directory) => Ok(path_under_directory(source, directory)),
@@ -447,7 +405,6 @@ fn tar_diff_directory(parsed: &TarCliArgs) -> Result<std::path::PathBuf, String>
     }
 }
 
-#[cfg(feature = "tar")]
 fn path_under_directory(source: &str, directory: Option<&str>) -> std::path::PathBuf {
     let path = std::path::PathBuf::from(source);
     if path.is_absolute() {
@@ -459,7 +416,6 @@ fn path_under_directory(source: &str, directory: Option<&str>) -> std::path::Pat
     }
 }
 
-#[cfg(feature = "tar")]
 fn read_archive_graph_for_tar(parsed: &TarCliArgs, read_only: bool) -> Result<Graph, ExitCode> {
     let Some(archive) = parsed.archive.as_deref() else {
         eprintln!("gts tar: -f requires an archive path\n{USAGE}");
@@ -479,7 +435,6 @@ fn read_archive_graph_for_tar(parsed: &TarCliArgs, read_only: bool) -> Result<Gr
     }
 }
 
-#[cfg(feature = "tar")]
 fn read_tar_as_gts_bytes(
     command: &str,
     archive: &str,
@@ -507,7 +462,6 @@ fn read_tar_as_gts_bytes(
     Ok(data)
 }
 
-#[cfg(feature = "tar")]
 fn graph_from_clean_bytes(command: &str, label: &str, data: &[u8]) -> Result<Graph, ExitCode> {
     let graph = read(data, true, None);
     for d in &graph.diagnostics {
@@ -520,7 +474,6 @@ fn graph_from_clean_bytes(command: &str, label: &str, data: &[u8]) -> Result<Gra
     Ok(graph)
 }
 
-#[cfg(feature = "tar")]
 fn write_tar_output(
     command: &str,
     archive: &str,
@@ -554,7 +507,6 @@ fn write_tar_output(
     }
 }
 
-#[cfg(feature = "tar")]
 fn print_files_profile_listing(graph: &Graph) -> Result<(), String> {
     for entry in read_entries(graph)?.values() {
         let size = entry
@@ -588,7 +540,6 @@ fn print_files_profile_listing(graph: &Graph) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(feature = "tar")]
 fn infer_tar_output_compression(
     archive: &str,
     options: &mut ToTarOptions,
@@ -605,7 +556,6 @@ fn infer_tar_output_compression(
     Ok(())
 }
 
-#[cfg(feature = "tar")]
 fn archive_kind(path: &str) -> ArchiveKind {
     if path.to_ascii_lowercase().ends_with(".gts") {
         ArchiveKind::Gts
@@ -614,7 +564,6 @@ fn archive_kind(path: &str) -> ArchiveKind {
     }
 }
 
-#[cfg(feature = "tar")]
 fn set_tar_compression(
     options: &mut ToTarOptions,
     compression: TarCompression,
@@ -626,7 +575,6 @@ fn set_tar_compression(
     Ok(())
 }
 
-#[cfg(feature = "tar")]
 fn write_from_tar_output<R: std::io::Read>(
     reader: R,
     out_path: Option<&str>,
