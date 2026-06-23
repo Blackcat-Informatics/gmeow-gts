@@ -18,6 +18,52 @@
 
 Do not edit `gts_buffer.capacity`; it is part of the Rust allocation handle used by `gts_buffer_free`.
 
+## Compatibility Policy
+
+`GTS_ABI_VERSION` is the native compatibility contract for `gts.h`, `libgts`,
+and the `share/gts/ABI_VERSION` file included in release archives. It is
+separate from the Rust crate/package version: package versions may advance for
+implementation fixes, packaging changes, documentation updates, or JSON-report
+extensions without changing the native ABI version.
+
+The following changes are ABI-compatible and do not require a
+`GTS_ABI_VERSION` bump:
+
+- adding new exported symbols;
+- adding optional JSON report fields or new report schemas;
+- adding capability metadata for newly exposed operations;
+- changing implementation behavior while preserving existing function
+  signatures, status values, ownership rules, and documented report contracts.
+
+The following changes require a `GTS_ABI_VERSION` increment:
+
+- removing or renaming exported symbols;
+- changing an existing function signature, argument type, return type, or
+  calling convention;
+- changing the layout or ownership contract of `gts_buffer` or any future
+  public struct;
+- changing `gts_status` numeric values or the meaning of existing status
+  values;
+- changing the ownership, lifetime, mutability, reentrancy, or free-function
+  rules for returned buffers and errors;
+- changing path encoding expectations or other native boundary rules in a way
+  that existing wrappers cannot safely adapt to.
+
+JSON report schemas are versioned independently from `GTS_ABI_VERSION`. The
+`gts_read_json`, `gts_verify_json`, `gts_build_metadata_json`,
+`gts_capabilities_json`, and related report shapes may add fields or new schema
+ids without a native ABI bump when existing documented fields keep their
+meaning. Removing fields, changing field types, or changing report semantics is
+a report-schema compatibility change even when the native function signatures
+stay stable.
+
+Wrappers must reject unsupported ABI versions clearly. A wrapper that loads a
+system-provided `libgts` must compare `gts_abi_version()` or the metadata
+`abi_version` against the wrapper's supported version range before relying on
+the wider surface. Unsupported versions should fail with the wrapper's normal
+structured exception, error object, or install/configure error instead of
+silently continuing.
+
 ## Operations
 
 - `gts_build_metadata_json`: ABI version, package version, build profile, and target metadata.

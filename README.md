@@ -337,10 +337,19 @@ runtimes that can load native libraries. The ABI returns JSON reports or owned b
 - files-profile pack, unpack, and diff helpers;
 - structured error status, code, and detail fields.
 
+The native compatibility policy is documented in
+[`rust/capi/README.md#compatibility-policy`](./rust/capi/README.md#compatibility-policy).
+`GTS_ABI_VERSION` is separate from package versions and from JSON report schema
+versions: package releases can advance without an ABI bump, and JSON report
+schemas can evolve without changing the native function boundary.
+
 Every wrapper copies returned `gts_buffer` values into ecosystem-owned strings or byte containers
 and releases native memory with `gts_buffer_free`; structured errors are copied before
 `gts_error_free`. Wrappers are thin bindings over the Rust engine, not independent parsers,
 writers, or CLI parity engines.
+Wrappers must reject unsupported `GTS_ABI_VERSION` values clearly when loading a
+system-provided `libgts`; they should not continue silently against an unknown
+native contract.
 
 The wrapper smoke tests use the shared
 [`GTS-WRAPPER-SMOKE-MATRIX`](./docs/GTS-WRAPPER-SMOKE-MATRIX.md): clean read,
