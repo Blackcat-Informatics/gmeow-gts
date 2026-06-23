@@ -42,9 +42,6 @@ class GmeowGtsConan(ConanFile):
         "rust/capi/include/**",
         "rust/capi/src/**",
         "rust/src/**",
-        "visual-hashing/Cargo.lock",
-        "visual-hashing/Cargo.toml",
-        "visual-hashing/src/**",
     )
 
     def build(self):

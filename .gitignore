@@ -2,7 +2,6 @@
 rust/target/
 rust/rdf-events/target/
 rust/capi/target/
-visual-hashing/target/
 
 # Go
 go/bin/

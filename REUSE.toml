@@ -24,7 +24,6 @@ path = [
   "julia/Project.toml",
   "rust/Cargo.lock",
   "rust/capi/Cargo.lock",
-  "visual-hashing/Cargo.lock",
   "python/uv.lock",
   "python/src/gts/py.typed",
   "CITATION.cff",

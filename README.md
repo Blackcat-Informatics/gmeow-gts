@@ -507,8 +507,8 @@ emojihash:   🐷 🦆 🐵 🦋 🍎 🍐 🦊 🐸 🐟 🍒 🍎
 ```
 
 The emojihash (and OpenSSH-style randomart) are also published standalone as the
-[`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which this repo's Rust
-engine depends on and re-exports as `gmeow_gts::emojihash`.
+[`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which the Rust engine
+depends on from crates.io and re-exports as `gmeow_gts::emojihash`.
 
 `from-nq` is common across all six engines. Python and Rust also expose `to-trig`/`from-trig`
 for readable TriG graph-block interchange over the same folded RDF content. Rust additionally
@@ -651,7 +651,6 @@ gmeow-gts/
 ├── ruby/        # Ruby FFI gem wrapper over the C ABI
 ├── r/           # R package wrapper over the C ABI
 ├── julia/       # Julia package wrapper over the C ABI
-├── visual-hashing/ # Standalone `visual-hashing` crate (emojihash + randomart)
 ├── vectors/     # Frozen conformance corpus (*.gts + *.expected.json)
 ├── docs/        # GTS-SPEC.md (normative) + gts-reference.md
 └── .github/     # CI (six parity engines, C ABI wrapper smoke tests, release workflows)
