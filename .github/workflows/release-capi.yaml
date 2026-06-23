@@ -44,6 +44,16 @@ jobs:
           archive="$(ls dist/capi/gmeow-gts-capi_*.tar.gz)"
           bash rust/capi/scripts/verify-archive.sh "$archive"
 
+      - name: Verify C ABI archive on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = Get-ChildItem -Path dist/capi -Filter 'gmeow-gts-capi_*.tar.gz' | Select-Object -First 1
+          if ($null -eq $archive) {
+            throw "No C ABI archive found in dist/capi"
+          }
+          pwsh -NoProfile -ExecutionPolicy Bypass -File rust/capi/scripts/verify-archive-windows.ps1 -Archive $archive.FullName
+
       - name: Upload C ABI archive
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

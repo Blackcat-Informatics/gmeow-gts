@@ -141,6 +141,9 @@ archive="$(bash rust/capi/scripts/package.sh)"
 bash rust/capi/scripts/verify-archive.sh "${archive}"
 ```
 
+On Windows, use `rust/capi/scripts/verify-archive-windows.ps1` instead; the
+release workflow resolves the archive path and runs it before artifact upload.
+
 Each archive has a relocatable install layout:
 
 ```text
