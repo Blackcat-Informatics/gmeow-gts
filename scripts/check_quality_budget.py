@@ -10,6 +10,7 @@ import json
 import math
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -18,6 +19,10 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASELINE = ROOT / "quality" / "quality-budget-baseline.json"
+REVIEW_BASE_ENV = "GTS_QUALITY_BUDGET_REVIEW_BASE"
+BASELINE_INCREASE_APPROVED_ENV = "GTS_QUALITY_BUDGET_BASELINE_INCREASE_APPROVED"
+BASELINE_INCREASE_REVIEW_LABEL = "quality-budget-baseline-increase"
+BASELINE_REVIEW_NOTE_KEY = "baseline_increase_review"
 
 INCLUDE_ROOTS = (
     "cpp/include",
@@ -116,6 +121,14 @@ class Occurrence:
     line_number: int
     label: str
     text: str
+
+
+@dataclass(frozen=True)
+class BaselineIncrease:
+    scope: str
+    key: str
+    old: int
+    new: int
 
 
 METRICS: dict[str, tuple[PatternSpec, ...]] = {
@@ -225,6 +238,10 @@ METRICS: dict[str, tuple[PatternSpec, ...]] = {
 
 def posix(path: Path) -> str:
     return path.as_posix()
+
+
+def is_truthy(value: str | None) -> bool:
+    return value is not None and value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def is_excluded(path: Path) -> bool:
@@ -365,6 +382,176 @@ def load_baseline(path: Path) -> dict[str, Any]:
         ) from None
 
 
+def load_baseline_from_git(root: Path, ref: str, baseline_path: Path) -> dict[str, Any]:
+    try:
+        rel = posix(baseline_path.resolve().relative_to(root.resolve()))
+    except ValueError:
+        raise SystemExit(
+            "check_quality_budget: --review-base requires the baseline path "
+            "to be inside --root"
+        ) from None
+
+    result = subprocess.run(
+        ["git", "-C", str(root), "show", f"{ref}:{rel}"],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        raise SystemExit(
+            f"check_quality_budget: unable to read {rel} from {ref}: {detail}"
+        ) from None
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise SystemExit(
+            f"check_quality_budget: malformed baseline {rel} at {ref}: {error}"
+        ) from None
+
+
+def append_increase(
+    increases: list[BaselineIncrease],
+    scope: str,
+    key: str,
+    old_value: Any,
+    new_value: Any,
+) -> None:
+    old = int(old_value or 0)
+    new = int(new_value or 0)
+    if new > old:
+        increases.append(BaselineIncrease(scope=scope, key=key, old=old, new=new))
+
+
+def find_baseline_increases(
+    current: dict[str, Any], previous: dict[str, Any]
+) -> list[BaselineIncrease]:
+    increases: list[BaselineIncrease] = []
+
+    previous_line_budgets = previous.get("line_budgets", {})
+    for path, current_budget in sorted(current.get("line_budgets", {}).items()):
+        previous_budget = previous_line_budgets.get(path, {})
+        append_increase(
+            increases,
+            "line_budgets",
+            f"{path}.max_lines",
+            previous_budget.get("max_lines"),
+            current_budget.get("max_lines"),
+        )
+        append_increase(
+            increases,
+            "line_budgets",
+            f"{path}.target_lines",
+            previous_budget.get("target_lines"),
+            current_budget.get("target_lines"),
+        )
+
+    previous_metrics = previous.get("metrics", {})
+    for metric, current_metric in sorted(current.get("metrics", {}).items()):
+        previous_metric = previous_metrics.get(metric, {})
+        append_increase(
+            increases,
+            "metrics",
+            f"{metric}.max_total",
+            previous_metric.get("max_total"),
+            current_metric.get("max_total"),
+        )
+
+        previous_by_file = previous_metric.get("by_file", {})
+        for path, current_count in sorted(current_metric.get("by_file", {}).items()):
+            append_increase(
+                increases,
+                "metrics",
+                f"{metric}.by_file.{path}",
+                previous_by_file.get(path),
+                current_count,
+            )
+
+    return increases
+
+
+def architecture_review_note(baseline: dict[str, Any]) -> dict[str, str] | None:
+    note = baseline.get(BASELINE_REVIEW_NOTE_KEY)
+    if not isinstance(note, dict):
+        return None
+    reviewed_by = note.get("reviewed_by")
+    reason = note.get("reason")
+    if not isinstance(reviewed_by, str) or not reviewed_by.strip():
+        return None
+    if not isinstance(reason, str) or not reason.strip():
+        return None
+    return {"reviewed_by": reviewed_by.strip(), "reason": reason.strip()}
+
+
+def has_updated_architecture_review_note(
+    current: dict[str, Any], previous: dict[str, Any]
+) -> bool:
+    current_note = architecture_review_note(current)
+    previous_note = architecture_review_note(previous)
+    return current_note is not None and current_note != previous_note
+
+
+def baseline_increase_errors(
+    current: dict[str, Any],
+    previous: dict[str, Any],
+    *,
+    allow_baseline_increase: bool,
+) -> list[str]:
+    increases = find_baseline_increases(current, previous)
+    if not increases:
+        return []
+    if allow_baseline_increase or has_updated_architecture_review_note(
+        current, previous
+    ):
+        return []
+
+    errors = [
+        "check_quality_budget: baseline increase requires explicit review: "
+        f"add the `{BASELINE_INCREASE_REVIEW_LABEL}` PR label, set "
+        f"`{BASELINE_INCREASE_APPROVED_ENV}=1`, or update "
+        f"`{BASELINE_REVIEW_NOTE_KEY}` with `reviewed_by` and `reason`."
+    ]
+    for increase in increases[:20]:
+        errors.append(
+            f"  {increase.scope}: {increase.key} increased "
+            f"from {increase.old} to {increase.new}"
+        )
+    if len(increases) > 20:
+        errors.append(f"  ... {len(increases) - 20} more baseline increase(s)")
+    return errors
+
+
+def ratchet_opportunities(
+    snapshot: dict[str, Any], baseline: dict[str, Any]
+) -> list[tuple[int, str, int, int]]:
+    line_counts: dict[str, int] = snapshot["line_counts"]
+    opportunities: list[tuple[int, str, int, int]] = []
+    for path, budget in sorted(baseline.get("line_budgets", {}).items()):
+        current_lines = line_counts.get(path)
+        if current_lines is None:
+            continue
+        target_lines = int(budget.get("target_lines", current_lines))
+        if current_lines > target_lines:
+            opportunities.append(
+                (current_lines - target_lines, path, current_lines, target_lines)
+            )
+    return sorted(opportunities)
+
+
+def ratchet_summary(snapshot: dict[str, Any], baseline: dict[str, Any]) -> str:
+    opportunities = ratchet_opportunities(snapshot, baseline)
+    if not opportunities:
+        return "check_quality_budget: all tracked hotspots are at or below target_lines"
+
+    delta, path, current_lines, target_lines = opportunities[0]
+    return (
+        f"check_quality_budget: {len(opportunities)} over-target hotspot(s); "
+        f"closest ratchet is {path} ({current_lines} lines, "
+        f"target {target_lines}, reduce by {delta})"
+    )
+
+
 def compare(snapshot: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     line_counts: dict[str, int] = snapshot["line_counts"]
@@ -428,14 +615,31 @@ def write_baseline(root: Path, path: Path) -> None:
     )
 
 
-def run_check(root: Path, baseline_path: Path) -> int:
+def run_check(
+    root: Path,
+    baseline_path: Path,
+    *,
+    review_base: str | None,
+    allow_baseline_increase: bool,
+) -> int:
     baseline = load_baseline(baseline_path)
-    errors = compare(scan(root), baseline)
+    snapshot = scan(root)
+    errors = compare(snapshot, baseline)
+    if review_base:
+        previous_baseline = load_baseline_from_git(root, review_base, baseline_path)
+        errors.extend(
+            baseline_increase_errors(
+                baseline,
+                previous_baseline,
+                allow_baseline_increase=allow_baseline_increase,
+            )
+        )
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
     print("check_quality_budget: OK")
+    print(ratchet_summary(snapshot, baseline))
     return 0
 
 
@@ -522,6 +726,68 @@ def self_test() -> int:
                 print(error, file=sys.stderr)
             return 1
 
+        increased_baseline = json.loads(json.dumps(baseline))
+        increased_baseline["metrics"]["unchecked_panic_calls"]["max_total"] = 1
+        increase_errors = baseline_increase_errors(
+            increased_baseline,
+            baseline,
+            allow_baseline_increase=False,
+        )
+        if not any(
+            "baseline increase requires explicit review" in error
+            for error in increase_errors
+        ):
+            print(
+                "check_quality_budget: self-test did not catch silent baseline increase",
+                file=sys.stderr,
+            )
+            return 1
+
+        approved_increase_errors = baseline_increase_errors(
+            increased_baseline,
+            baseline,
+            allow_baseline_increase=True,
+        )
+        if approved_increase_errors:
+            print(
+                "check_quality_budget: self-test rejected approved baseline increase",
+                file=sys.stderr,
+            )
+            return 1
+
+        reviewed_baseline = json.loads(json.dumps(increased_baseline))
+        reviewed_baseline[BASELINE_REVIEW_NOTE_KEY] = {
+            "reviewed_by": "architecture review",
+            "reason": "temporary release exception under quality-budget policy",
+        }
+        reviewed_errors = baseline_increase_errors(
+            reviewed_baseline,
+            baseline,
+            allow_baseline_increase=False,
+        )
+        if reviewed_errors:
+            print(
+                "check_quality_budget: self-test rejected reviewed baseline increase",
+                file=sys.stderr,
+            )
+            return 1
+
+        previous_reviewed_baseline = json.loads(json.dumps(baseline))
+        previous_reviewed_baseline[BASELINE_REVIEW_NOTE_KEY] = reviewed_baseline[
+            BASELINE_REVIEW_NOTE_KEY
+        ]
+        stale_review_errors = baseline_increase_errors(
+            reviewed_baseline,
+            previous_reviewed_baseline,
+            allow_baseline_increase=False,
+        )
+        if not stale_review_errors:
+            print(
+                "check_quality_budget: self-test accepted stale review note",
+                file=sys.stderr,
+            )
+            return 1
+
         malformed = root / "quality/quality-budget-baseline.json"
         write_text(malformed, "{")
         try:
@@ -565,6 +831,23 @@ def parse_args() -> argparse.Namespace:
         help="replace the baseline with the current scan",
     )
     parser.add_argument(
+        "--review-base",
+        default=os.environ.get(REVIEW_BASE_ENV),
+        help=(
+            "git ref whose baseline is used to reject unreviewed baseline "
+            f"increases; defaults to ${REVIEW_BASE_ENV}"
+        ),
+    )
+    parser.add_argument(
+        "--allow-baseline-increase",
+        action="store_true",
+        default=is_truthy(os.environ.get(BASELINE_INCREASE_APPROVED_ENV)),
+        help=(
+            "allow baseline increases, normally set by an approved PR label "
+            f"via ${BASELINE_INCREASE_APPROVED_ENV}"
+        ),
+    )
+    parser.add_argument(
         "--self-test",
         action="store_true",
         help="run checker self-tests for covered regressions and exclusions",
@@ -582,7 +865,12 @@ def main() -> int:
         write_baseline(root, baseline)
         print(f"check_quality_budget: wrote {baseline}")
         return 0
-    return run_check(root, baseline)
+    return run_check(
+        root,
+        baseline,
+        review_base=args.review_base,
+        allow_baseline_increase=args.allow_baseline_increase,
+    )
 
 
 if __name__ == "__main__":

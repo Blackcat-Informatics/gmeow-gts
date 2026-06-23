@@ -55,6 +55,7 @@ Classify every finding against the blocker and non-blocker lists in
 | Media type and distribution guidance is present | `application/vnd.blackcat.gts+cbor-seq`, HTTP/range behavior, immutable publication, and artifact verification guidance are present in spec/docs. | |
 | Compatibility language is clear | Wire, corpus, package, and profile compatibility rules are present in governance and cited by release notes. | |
 | Implementer review has no blocking findings | Review issues/comments are closed, deferred as non-blockers, or recorded below with owner and rationale. | |
+| Quality-budget paydown is recorded | Release PR reduces at least one over-target hotspot toward `target_lines`, or records a deliberate exception with owner, rationale, and follow-up issue; no baseline increase is accepted without the quality-budget review label or architecture-review note. | |
 
 ### 2.2 Release-Adjacent Non-Blockers
 
@@ -134,6 +135,7 @@ python scripts/check_advanced_contract.py
 python scripts/check_ecosystem_contract.py
 python scripts/check_security_contract.py
 python scripts/check_crypto_deferrals.py
+python scripts/check_quality_budget.py
 python scripts/check_vector_manifest.py
 python scripts/check_vector_manifest.py --self-test
 ```
@@ -308,6 +310,7 @@ Release notes must include:
 - conformance tier claims by implementation;
 - package registry names and release tags;
 - blocker review summary;
+- quality-budget reduction summary, or a documented exception with owner and follow-up issue;
 - release-adjacent non-blockers and follow-up issue links;
 - SBOM and attestation verification instructions;
 - known limitations and deferred capabilities.
