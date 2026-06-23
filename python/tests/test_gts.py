@@ -330,6 +330,17 @@ def test_robust_invalid_header() -> None:
     assert g.quads == []
 
 
+def test_public_reader_reports_malformed_input_diagnostics_without_raising() -> None:
+    torn = Writer().to_bytes() + b"\xa3"  # announces a 3-entry map, no contents
+    cases = (
+        (b"", ["EmptyFile"]),
+        (b"\x01", ["DamagedFrame"]),
+        (torn, ["TornAppendError"]),
+    )
+    for data, expected in cases:
+        assert _diag_codes(read(data)) == expected
+
+
 def test_robust_out_of_bounds_snapshot() -> None:
     """A snapshot quad with an out-of-range id is diagnosed, not crashed."""
     w = Writer(profile="dist")

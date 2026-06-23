@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use gmeow_gts::model::{Term, TermKind};
+use gmeow_gts::model::{Graph, Term, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::read;
 use gmeow_gts::writer::Writer;
@@ -32,6 +32,39 @@ fn has_recursive_reifier_diagnostic(graph: &gmeow_gts::model::Graph) -> bool {
     graph.diagnostics.iter().any(|diagnostic| {
         diagnostic.code == "DamagedFrame" && diagnostic.detail.contains("recursive quoted-triple")
     })
+}
+
+fn read_without_panic(data: &[u8]) -> Graph {
+    std::panic::catch_unwind(|| read(data, true, None)).expect("public reader must not panic")
+}
+
+fn diagnostic_codes(graph: &Graph) -> Vec<&str> {
+    graph
+        .diagnostics
+        .iter()
+        .map(|diagnostic| diagnostic.code.as_str())
+        .collect()
+}
+
+#[test]
+fn public_reader_reports_malformed_input_diagnostics_without_panicking() {
+    assert_eq!(
+        diagnostic_codes(&read_without_panic(&[])),
+        vec!["EmptyFile"]
+    );
+    assert_eq!(
+        diagnostic_codes(&read_without_panic(&[0x01])),
+        vec!["DamagedFrame"]
+    );
+
+    let writer = Writer::new("generic");
+    let mut torn = writer.to_bytes();
+    torn.push(0xa3);
+
+    assert_eq!(
+        diagnostic_codes(&read_without_panic(&torn)),
+        vec!["TornAppendError"]
+    );
 }
 
 #[test]

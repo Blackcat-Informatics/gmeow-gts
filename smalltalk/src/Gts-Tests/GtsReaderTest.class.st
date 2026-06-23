@@ -16,6 +16,11 @@ GtsReaderTest >> readZstdVectorBytes [
 		binaryReadStreamDo: [ :stream | stream upToEnd ]
 ]
 
+{ #category : #private }
+GtsReaderTest >> diagnosticCodesFor: aByteArray [
+	^ (GtsReader read: aByteArray) diagnostics collect: [ :diagnostic | diagnostic code ]
+]
+
 { #category : #tests }
 GtsReaderTest >> testMinimalVectorFoldsToExpectedGraph [
 	| graph |
@@ -71,6 +76,15 @@ GtsReaderTest >> testUnionSegmentsSeparatesDistinctLocalTripleReifiers [
 	tripleTerms := union terms select: [ :term | term kind = #triple ].
 	self assert: tripleTerms size equals: 2.
 	self assert: union quads size equals: 2
+]
+
+{ #category : #tests }
+GtsReaderTest >> testPublicReaderReportsMalformedInputDiagnostics [
+	self assert: (self diagnosticCodesFor: ByteArray new) equals: #('EmptyFile').
+	self assert: (self diagnosticCodesFor: (ByteArray with: 16r01)) equals: #('DamagedFrame').
+	self
+		assert: (self diagnosticCodesFor: self readMinimalVectorBytes , (ByteArray with: 16rA3))
+		equals: #('TornAppendError')
 ]
 
 { #category : #tests }
