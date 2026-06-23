@@ -33,6 +33,11 @@ reject unsupported ABI versions with a clear wrapper error, exception, or
 install/configure failure rather than silently continuing with an unknown
 native contract.
 
+Files-profile path helpers use the ABI v1 NUL-terminated UTF-8 C-string path
+contract. Wrapper docs must not present those helpers as full Windows
+wide-character path coverage; future wide-character path functions should be
+new additive C ABI symbols under the compatibility policy.
+
 ## Tar-Compatible Archive Bridge
 
 The Rust tar bridge makes GTS usable as a signed, append-only, deduplicated

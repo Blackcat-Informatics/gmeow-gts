@@ -52,6 +52,11 @@ Public APIs return `string` for textual JSON/N-Quads results and `byte[]` for
 GTS bytes. Callers do not manipulate `gts_buffer`, `gts_error`, raw capacity
 fields, or Rust-owned allocations.
 
+Files-profile path helpers forward paths through the C ABI's NUL-terminated
+UTF-8 `char *` contract. On Windows they cover paths expressible by that
+contract, not every native wide-character filesystem path; future
+wide-character entry points would be additive C ABI symbols.
+
 ## Ownership And Threading
 
 The wrapper copies successful C ABI outputs into managed .NET values, then

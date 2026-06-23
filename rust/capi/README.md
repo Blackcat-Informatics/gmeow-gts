@@ -8,7 +8,8 @@
 ## ABI model
 
 - All byte inputs use pointer plus length.
-- Path lists use NUL-terminated UTF-8 C strings because they are passed to path-based filesystem APIs.
+- Path lists use NUL-terminated UTF-8 C strings because they are passed to
+  path-based filesystem APIs. See [Path Encoding](#path-encoding).
 - Rust graph structs are never exposed. Graph-shaped results are returned as stable JSON reports.
 - Output buffers are returned as `gts_buffer` and must be released with `gts_buffer_free`.
 - Errors are returned as opaque `gts_error *` handles and must be released with `gts_error_free`.
@@ -17,6 +18,24 @@
 - Functions are reentrant. Returned buffers and errors are caller-owned and must not be shared mutably across threads.
 
 Do not edit `gts_buffer.capacity`; it is part of the Rust allocation handle used by `gts_buffer_free`.
+
+## Path Encoding
+
+The files-profile path APIs (`gts_files_pack`, `gts_files_unpack`, and
+`gts_files_diff_json`) accept NUL-terminated UTF-8 C strings (`const char *`)
+for input paths, destination directories, and comparison directories. This is
+the ABI v1 contract for path-based filesystem calls.
+
+On Unix-like platforms this matches the wrapper-facing contract used by the
+current implementations. On Windows it does not represent every native path
+that the wide-character filesystem APIs can open. Wrapper authors and packagers
+must describe these helpers as covering paths expressible as UTF-8 C strings,
+not as full Windows path coverage.
+
+Future Windows wide-character path entry points can be added as new symbols.
+That would be an additive ABI-compatible extension under the compatibility
+policy below; it does not require changing the existing UTF-8 C-string
+functions in ABI v1.
 
 ## Compatibility Policy
 

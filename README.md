@@ -337,6 +337,11 @@ runtimes that can load native libraries. The ABI returns JSON reports or owned b
 - files-profile pack, unpack, and diff helpers;
 - structured error status, code, and detail fields.
 
+Files-profile path helpers inherit the C ABI path contract: paths are
+NUL-terminated UTF-8 `char *` values. On Windows this does not cover every
+native wide-character path; future wide-character entry points would be
+additive ABI symbols under the compatibility policy.
+
 The native compatibility policy is documented in
 [`rust/capi/README.md#compatibility-policy`](./rust/capi/README.md#compatibility-policy).
 `GTS_ABI_VERSION` is separate from package versions and from JSON report schema
