@@ -197,10 +197,9 @@ The relevant tiers for the paper narrative are:
 - Baseline Reader: parse, verify, fold, report diagnostics, and degrade unsupported recoverable
   frames to opaque nodes.
 - Streaming Reader: Baseline Reader behavior plus a sink/event API that avoids materializing
-  the whole graph. In the current repository, only the Go engine claims this tier. Rust has
-  evented projection evidence, and TypeScript has progressive browser-stream evidence, but both
-  return materialized graph state and therefore do not claim the non-materializing Streaming
-  Reader tier.
+  the whole graph. In the current repository, Go claims this tier for `reader.ReadToSink`,
+  Rust claims it for `read_to_sink_from_reader`, and the TypeScript browser export claims it
+  for `foldStreamToSink`.
 - Full Reader: Baseline Reader behavior plus claimed optional capabilities such as COSE,
   decryption, nested-GTS recursion, security policy, or index/MMR behavior.
 - Writer and Validating Tool: deterministic output and stricter tool/profile checks where

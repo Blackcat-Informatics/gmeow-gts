@@ -136,7 +136,8 @@ def display_command(command: Iterable[str]) -> str:
 def display_invocation(
     command: Iterable[str], *, cwd: Path, env_prefix: str = ""
 ) -> str:
-    return f"(cd {shlex.quote(display_path(cwd))} && {env_prefix}{display_command(command)})"
+    rendered = display_command(command)
+    return f"(cd {shlex.quote(display_path(cwd))} && {env_prefix}{rendered})"
 
 
 def display_text(text: str) -> str:
@@ -186,8 +187,7 @@ def run_process(
             cwd=cwd,
             env=env,
             check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             timeout=timeout,
         )
         elapsed_ms = (time.perf_counter() - started) * 1000.0
@@ -694,6 +694,13 @@ def run_cli_benchmarks(
                     None,
                 )
 
+            write_output_path = out_file.with_name(
+                f"{out_file.stem}-{iterations - 1}{out_file.suffix}"
+            )
+
+            def write_output(path: Path = write_output_path) -> OutputRow | None:
+                return output_file(path)
+
             rows.append(
                 measure_command(
                     engine=engine,
@@ -702,9 +709,7 @@ def run_cli_benchmarks(
                     input_bytes=nq.stat().st_size,
                     iterations=iterations,
                     command_factory=write_command,
-                    output_factory=lambda path=out_file.with_name(f"{out_file.stem}-{iterations - 1}{out_file.suffix}"): (
-                        output_file(path)
-                    ),
+                    output_factory=write_output,
                     timeout=timeout,
                 )
             )
@@ -732,6 +737,13 @@ def run_cli_benchmarks(
                 target.unlink()
             return [*rt.command, "pack", str(source), "-o", str(target)], rt.cwd, None
 
+        pack_output_path = archive.with_name(
+            f"{archive.stem}-{iterations - 1}{archive.suffix}"
+        )
+
+        def pack_output(path: Path = pack_output_path) -> OutputRow | None:
+            return output_file(path)
+
         rows.append(
             measure_command(
                 engine=engine,
@@ -740,9 +752,7 @@ def run_cli_benchmarks(
                 input_bytes=tree_digest(pack_dir)[1],
                 iterations=iterations,
                 command_factory=pack_command,
-                output_factory=lambda path=archive.with_name(f"{archive.stem}-{iterations - 1}{archive.suffix}"): (
-                    output_file(path)
-                ),
+                output_factory=pack_output,
                 timeout=timeout,
             )
         )
@@ -769,6 +779,11 @@ def run_cli_benchmarks(
                     None,
                 )
 
+            unpack_output_path = products / f"{engine}-unpack-{iterations - 1}"
+
+            def unpack_output(path: Path = unpack_output_path) -> OutputRow | None:
+                return output_tree(path)
+
             rows.append(
                 measure_command(
                     engine=engine,
@@ -777,9 +792,7 @@ def run_cli_benchmarks(
                     input_bytes=archive_for_unpack.stat().st_size,
                     iterations=iterations,
                     command_factory=unpack_command,
-                    output_factory=lambda path=products / f"{engine}-unpack-{iterations - 1}": (
-                        output_tree(path)
-                    ),
+                    output_factory=unpack_output,
                     timeout=timeout,
                 )
             )
@@ -798,7 +811,7 @@ def run_memory_helper(
     timeout: int,
 ) -> list[MemoryRow]:
     rows: list[MemoryRow] = []
-    if "python" not in engines and "rust" not in engines:
+    if "python" not in engines and "rust" not in engines and "ts" not in engines:
         return rows
 
     command = [
@@ -813,7 +826,7 @@ def run_memory_helper(
     if shutil.which("uv") is None:
         rows.append(
             MemoryRow(
-                engine="python/rust",
+                engine="python/rust/ts",
                 mode="streaming-memory",
                 input=stream_vector.name,
                 input_bytes=stream_vector.stat().st_size,
@@ -831,7 +844,7 @@ def run_memory_helper(
     if result.returncode != 0:
         rows.append(
             MemoryRow(
-                engine="python/rust",
+                engine="python/rust/ts",
                 mode="streaming-memory",
                 input=stream_vector.name,
                 input_bytes=stream_vector.stat().st_size,
@@ -849,7 +862,7 @@ def run_memory_helper(
     except json.JSONDecodeError as exc:
         rows.append(
             MemoryRow(
-                engine="python/rust",
+                engine="python/rust/ts",
                 mode="streaming-memory",
                 input=stream_vector.name,
                 input_bytes=stream_vector.stat().st_size,
@@ -866,6 +879,7 @@ def run_memory_helper(
         "full-reader": "python",
         "frame-scan": "cbor-frame-scan",
         "streaming-fold": "rust",
+        "typescript-streaming-fold": "ts",
     }
     for item in payload:
         mode = str(item.get("mode", "unknown"))
@@ -1013,23 +1027,6 @@ def run_memory_benchmarks(
     if "go" in engines:
         rows.extend(
             run_go_memory_benchmarks(stream_vector=stream_vector, timeout=timeout)
-        )
-    if "ts" in engines:
-        rows.append(
-            MemoryRow(
-                engine="ts",
-                mode="browser-foldStream-memory",
-                input=stream_vector.name,
-                input_bytes=stream_vector.stat().st_size,
-                status="skipped",
-                elapsed_ms=None,
-                peak_kib=None,
-                command="manual browser harness required",
-                note=(
-                    "TypeScript memory evidence is gathered in a browser runtime; "
-                    "record the browser harness output in the release report."
-                ),
-            )
         )
     return rows
 
@@ -1201,9 +1198,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
         (
             "Benchmarks were run on `<platform summary>` at `<repo_commit>` "
             "against spec commit `<spec_commit>` and corpus commit `<corpus_commit>`. "
-            "Use the median values above for cited read/fold/write/pack/unpack numbers, "
-            "and cite the streaming-memory rows separately because they measure RSS or "
-            "runtime allocation behavior rather than CLI wall time."
+            "Use the median values above for cited read/fold/write/pack/unpack "
+            "numbers, and cite the streaming-memory rows separately because they "
+            "measure RSS or runtime allocation behavior rather than CLI wall time."
         ),
         "",
     ]
@@ -1254,7 +1251,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--engines",
         default=DEFAULT_ENGINES,
-        help="comma or whitespace separated engines: rust, python, go, ts, smalltalk, kotlin",
+        help=(
+            "comma or whitespace separated engines: rust, python, go, ts, "
+            "smalltalk, kotlin"
+        ),
     )
     parser.add_argument(
         "--vectors",
@@ -1302,7 +1302,9 @@ def main() -> int:
     if args.iterations < 1:
         raise SystemExit("--iterations must be >= 1")
     engines = split_csv(args.engines)
-    unknown = sorted(set(engines) - {"rust", "python", "go", "ts", "smalltalk", "kotlin"})
+    unknown = sorted(
+        set(engines) - {"rust", "python", "go", "ts", "smalltalk", "kotlin"}
+    )
     if unknown:
         raise SystemExit(f"unknown engine(s): {', '.join(unknown)}")
 

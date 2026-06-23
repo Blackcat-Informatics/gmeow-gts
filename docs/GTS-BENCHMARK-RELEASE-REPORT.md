@@ -99,9 +99,9 @@ name the method used for each engine.
 | Engine | Method | Input | Elapsed | Peak memory / allocation evidence | Notes |
 |---|---|---|---:|---:|---|
 | Python | full-reader materialization | | | | |
-| Rust | `read_to_sink` streaming fold | | | | |
+| Rust | `read_to_sink_from_reader` streaming fold | | | | |
 | Go | `go test ./reader -bench ... -benchmem` | | | | |
-| TypeScript | browser `foldStream` harness | | | | |
+| TypeScript | browser `foldStreamToSink` harness | | | | |
 
 ## Release-Note Excerpt
 

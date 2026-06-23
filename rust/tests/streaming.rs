@@ -9,7 +9,9 @@ use ciborium::value::Value;
 use gmeow_gts::model::{
     Diagnostic, OpaqueNode, Quad, Signature, StreamableInfo, Suppression, Term, Triple3,
 };
-use gmeow_gts::reader::{read, read_file_segments, read_to_sink, StreamingSink};
+use gmeow_gts::reader::{
+    read, read_file_segments, read_to_sink, read_to_sink_from_reader, ReadOptions, StreamingSink,
+};
 
 #[derive(Default)]
 struct RecordingSink {
@@ -115,6 +117,14 @@ fn assert_final_state_matches(name: &str, data: &[u8], allow_segments: bool) -> 
         "{name}: segment heads differ from full reader"
     );
     assert_eq!(
+        streamed.segment_profiles, full.segment_profiles,
+        "{name}: segment profiles differ from full reader"
+    );
+    assert_eq!(
+        streamed.segment_meta, full.segment_meta,
+        "{name}: segment metadata differs from full reader"
+    );
+    assert_eq!(
         sink.segment_heads.clone(),
         streamed
             .segment_heads
@@ -171,6 +181,87 @@ fn streaming_sink_final_state_matches_full_reader_for_corpus() {
         let name = path.file_name().unwrap().to_string_lossy().to_string();
         let data = fs::read(&path).expect("vector bytes");
         assert_final_state_matches(&name, &data, true);
+    }
+}
+
+#[test]
+fn streaming_sink_from_reader_matches_slice_api_for_corpus() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../vectors");
+    for entry in fs::read_dir(&dir).expect("corpus dir") {
+        let path = entry.expect("dir entry").path();
+        if path.extension().and_then(|e| e.to_str()) != Some("gts") {
+            continue;
+        }
+        let name = path.file_name().unwrap().to_string_lossy().to_string();
+        let data = fs::read(&path).expect("vector bytes");
+        let mut slice_sink = RecordingSink::default();
+        let slice = read_to_sink(&data, true, None, &mut slice_sink);
+        let mut reader_sink = RecordingSink::default();
+        let streamed =
+            read_to_sink_from_reader(&data[..], ReadOptions::new(true, None), &mut reader_sink);
+
+        assert_eq!(
+            diagnostics_shape(&streamed.diagnostics),
+            diagnostics_shape(&slice.diagnostics),
+            "{name}: reader diagnostics differ from slice API"
+        );
+        assert_eq!(
+            streamed.segment_heads, slice.segment_heads,
+            "{name}: reader segment heads differ from slice API"
+        );
+        assert_eq!(
+            streamed.segment_profiles, slice.segment_profiles,
+            "{name}: reader segment profiles differ from slice API"
+        );
+        assert_eq!(
+            streamed.segment_meta, slice.segment_meta,
+            "{name}: reader segment metadata differs from slice API"
+        );
+        assert_eq!(
+            streamable_shape(&streamed.segment_streamable),
+            streamable_shape(&slice.segment_streamable),
+            "{name}: reader streamable state differs from slice API"
+        );
+        assert_eq!(
+            reader_sink.terms.len(),
+            slice_sink.terms.len(),
+            "{name}: terms"
+        );
+        assert_eq!(
+            reader_sink.quads.len(),
+            slice_sink.quads.len(),
+            "{name}: quads"
+        );
+        assert_eq!(
+            reader_sink.reifiers.len(),
+            slice_sink.reifiers.len(),
+            "{name}: reifiers"
+        );
+        assert_eq!(
+            reader_sink.annotations.len(),
+            slice_sink.annotations.len(),
+            "{name}: annotations"
+        );
+        assert_eq!(
+            reader_sink.suppressions.len(),
+            slice_sink.suppressions.len(),
+            "{name}: suppressions"
+        );
+        assert_eq!(
+            reader_sink.opaque.len(),
+            slice_sink.opaque.len(),
+            "{name}: opaque"
+        );
+        assert_eq!(
+            reader_sink.signatures.len(),
+            slice_sink.signatures.len(),
+            "{name}: signatures"
+        );
+        assert_eq!(
+            reader_sink.blobs.len(),
+            slice_sink.blobs.len(),
+            "{name}: blobs"
+        );
     }
 }
 

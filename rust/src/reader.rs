@@ -12,6 +12,7 @@
 //! nodes. Callers that hold content keys can use [`read_with_options`].
 
 use std::collections::{HashMap, HashSet};
+use std::io::Read;
 
 use ciborium::value::Value;
 
@@ -186,6 +187,8 @@ pub struct StreamingReadResult {
     pub segment_heads: Vec<Vec<u8>>,
     /// Ordered per-segment profile names.
     pub segment_profiles: Vec<String>,
+    /// Ordered per-segment metadata snapshots.
+    pub segment_meta: Vec<Vec<(String, Value)>>,
     /// Ordered per-segment streamable-layout state.
     pub segment_streamable: Vec<StreamableInfo>,
     /// Byte offset of a torn trailing CBOR item, if present.
@@ -285,6 +288,9 @@ fn absorb_segment_result(result: &mut StreamingReadResult, segment: &Graph) {
         .segment_profiles
         .extend(segment.segment_profiles.iter().cloned());
     result
+        .segment_meta
+        .extend(segment.segment_meta.iter().cloned());
+    result
         .segment_streamable
         .extend(segment.segment_streamable.iter().cloned());
 }
@@ -295,6 +301,7 @@ struct Folder<'g, 's, 'k> {
     sink: Option<&'s mut dyn StreamingSink>,
     content_key: Option<&'k ContentKeyResolver<'k>>,
     segment_index: usize,
+    materialize: bool,
     catalog: HashMap<i128, Codec>,
     // Layout-state bookkeeping (§3.3): intact index frames seen, digests the
     // graph has described via stream:digest so far, and each inline blob's
@@ -335,12 +342,16 @@ impl Folder<'_, '_, '_> {
 
     fn push_opaque(&mut self, opaque: OpaqueNode) {
         self.with_sink(|segment_index, sink| sink.opaque(segment_index, &opaque));
-        self.g.opaque.push(opaque);
+        if self.materialize {
+            self.g.opaque.push(opaque);
+        }
     }
 
     fn push_signature(&mut self, signature: Signature) {
         self.with_sink(|segment_index, sink| sink.signature(segment_index, &signature));
-        self.g.signatures.push(signature);
+        if self.materialize {
+            self.g.signatures.push(signature);
+        }
     }
 
     fn resolve_codecs(&self, ids: &[Value]) -> Result<Vec<Codec>, PayloadError> {
@@ -515,8 +526,10 @@ impl Folder<'_, '_, '_> {
                 continue;
             }
             let quad = (s, p, o, gslot);
-            self.g.quads.push(quad);
             self.with_sink(|segment_index, sink| sink.quad(segment_index, quad));
+            if self.materialize {
+                self.g.quads.push(quad);
+            }
             // Layout bookkeeping (§3.3): a stream:digest quad describes an
             // upcoming manifestation — record the IOU for the blob check.
             if self.g.terms[p].value.as_deref() == Some(STREAM_DIGEST) {
@@ -602,8 +615,10 @@ impl Folder<'_, '_, '_> {
                 continue;
             }
             let annotation = (r, p, v);
-            self.g.annotations.push(annotation);
             self.with_sink(|segment_index, sink| sink.annotation(segment_index, annotation));
+            if self.materialize {
+                self.g.annotations.push(annotation);
+            }
         }
     }
 
@@ -646,7 +661,9 @@ impl Folder<'_, '_, '_> {
                         digest.clone(),
                         self.described.contains(&digest),
                     ));
-                    self.g.set_blob(digest.clone(), bytes);
+                    if self.materialize {
+                        self.g.set_blob(digest.clone(), bytes);
+                    }
                     self.emit_blob(&digest);
                 }
                 Ok(_) => {}
@@ -671,10 +688,12 @@ impl Folder<'_, '_, '_> {
                 self.g.set_blob_meta(digest.clone(), meta);
             }
             if let Some(Value::Bytes(raw)) = d {
-                if chain.is_empty() {
-                    self.g.set_blob(digest.clone(), raw.clone());
-                } else {
-                    self.g.set_lazy_blob(digest.clone(), raw.clone(), chain);
+                if self.materialize {
+                    if chain.is_empty() {
+                        self.g.set_blob(digest.clone(), raw.clone());
+                    } else {
+                        self.g.set_lazy_blob(digest.clone(), raw.clone(), chain);
+                    }
                 }
             }
             self.blob_events
@@ -694,7 +713,9 @@ impl Folder<'_, '_, '_> {
                 }
                 self.blob_events
                     .push((index, digest.clone(), self.described.contains(&digest)));
-                self.g.set_blob(digest.clone(), bytes);
+                if self.materialize {
+                    self.g.set_blob(digest.clone(), bytes);
+                }
                 self.emit_blob(&digest);
             }
             Ok(_) => {}
@@ -741,7 +762,9 @@ impl Folder<'_, '_, '_> {
             by: map_get(entries, "by").and_then(as_idx),
         };
         self.with_sink(|segment_index, sink| sink.suppression(segment_index, &suppression));
-        self.g.suppressions.push(suppression);
+        if self.materialize {
+            self.g.suppressions.push(suppression);
+        }
     }
 
     /// Fold a self-contained snapshot (§10).
@@ -805,7 +828,9 @@ impl Folder<'_, '_, '_> {
             for (_, b) in blobs {
                 if let Value::Bytes(bytes) = b {
                     let digest = digest_str(bytes);
-                    self.g.set_blob(digest.clone(), bytes.clone());
+                    if self.materialize {
+                        self.g.set_blob(digest.clone(), bytes.clone());
+                    }
                     self.emit_blob(&digest);
                 }
             }
@@ -1087,12 +1112,368 @@ pub fn read_to_sink_with_options(
     options: ReadOptions<'_>,
     sink: &mut dyn StreamingSink,
 ) -> StreamingReadResult {
-    let (items, torn) = iter_items(data);
+    read_to_sink_from_reader(std::io::Cursor::new(data), options, sink)
+}
+
+struct StreamingCountingReader<R> {
+    inner: R,
+    pos: usize,
+}
+
+impl<R: Read> Read for StreamingCountingReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let read = self.inner.read(buf)?;
+        self.pos += read;
+        Ok(read)
+    }
+}
+
+fn next_stream_item<R: Read>(
+    reader: &mut StreamingCountingReader<R>,
+) -> Result<Option<Value>, usize> {
+    let start = reader.pos;
+    match ciborium::de::from_reader::<Value, _>(&mut *reader) {
+        Ok(item) => Ok(Some(item)),
+        Err(_) if reader.pos == start => Ok(None),
+        Err(_) => Err(start),
+    }
+}
+
+struct ActiveStreamingSegment {
+    g: Graph,
+    header: Vec<(Value, Value)>,
+    expected_prev: Vec<u8>,
+    frame_ids: Vec<Vec<u8>>,
+    index_offset: usize,
+    segment_index: usize,
+    valid_header: bool,
+    catalog: HashMap<i128, Codec>,
+    index_records: Vec<IndexRecord>,
+    described: HashSet<String>,
+    blob_events: Vec<(usize, String, bool)>,
+}
+
+impl ActiveStreamingSegment {
+    fn new(
+        raw_header: &Value,
+        index_offset: usize,
+        segment_index: usize,
+        sink: &mut dyn StreamingSink,
+    ) -> Self {
+        let mut g = Graph::default();
+        let mut sink_slot = Some(sink);
+        let mut header = Vec::new();
+        let mut expected_prev = Vec::new();
+        let mut valid_header = false;
+        match unwrap_header(raw_header) {
+            Ok(entries) => {
+                header = entries.clone();
+                valid_header = true;
+                let stored_hid: Option<Vec<u8>> = match map_get(&header, "id") {
+                    Some(Value::Bytes(b)) => Some(b.clone()),
+                    _ => None,
+                };
+                if stored_hid.as_deref() != Some(&header_id(&header)[..]) {
+                    push_diagnostic(
+                        &mut g,
+                        &mut sink_slot,
+                        Diagnostic {
+                            code: "DamagedFrame".to_string(),
+                            detail: "header self-hash mismatch".to_string(),
+                            frame_index: Some(index_offset),
+                        },
+                    );
+                }
+                if map_get(&header, "gts").and_then(as_text) != Some(MAGIC)
+                    || map_get(&header, "v").and_then(as_i128) != Some(i128::from(VERSION))
+                {
+                    push_diagnostic(
+                        &mut g,
+                        &mut sink_slot,
+                        Diagnostic {
+                            code: "DamagedFrame".to_string(),
+                            detail: format!(
+                                "unsupported header magic/version {:?}/{:?}",
+                                map_get(&header, "gts"),
+                                map_get(&header, "v")
+                            ),
+                            frame_index: Some(index_offset),
+                        },
+                    );
+                }
+                expected_prev = stored_hid.unwrap_or_default();
+            }
+            Err(e) => {
+                push_diagnostic(
+                    &mut g,
+                    &mut sink_slot,
+                    Diagnostic {
+                        code: "DamagedFrame".to_string(),
+                        detail: format!("invalid header: {e}"),
+                        frame_index: Some(index_offset),
+                    },
+                );
+            }
+        }
+        let catalog = if valid_header {
+            catalog_from(&header)
+        } else {
+            HashMap::new()
+        };
+        Self {
+            g,
+            header,
+            expected_prev,
+            frame_ids: Vec::new(),
+            index_offset,
+            segment_index,
+            valid_header,
+            catalog,
+            index_records: Vec::new(),
+            described: HashSet::new(),
+            blob_events: Vec::new(),
+        }
+    }
+
+    fn process_frame<'k>(
+        &mut self,
+        raw: &Value,
+        abs_index: usize,
+        sink: &mut dyn StreamingSink,
+        content_key: Option<&'k ContentKeyResolver<'k>>,
+    ) {
+        if !self.valid_header {
+            return;
+        }
+        let catalog = std::mem::take(&mut self.catalog);
+        let index_records = std::mem::take(&mut self.index_records);
+        let described = std::mem::take(&mut self.described);
+        let blob_events = std::mem::take(&mut self.blob_events);
+        let mut folder = Folder {
+            g: &mut self.g,
+            sink: Some(sink),
+            content_key,
+            segment_index: self.segment_index,
+            materialize: false,
+            catalog,
+            index_records,
+            described,
+            blob_events,
+        };
+        {
+            let Value::Map(frame) = raw else {
+                folder.diag(
+                    "DamagedFrame",
+                    "frame is not a map".to_string(),
+                    Some(abs_index),
+                );
+                self.frame_ids.push(Vec::new());
+                let catalog = std::mem::take(&mut folder.catalog);
+                let index_records = std::mem::take(&mut folder.index_records);
+                let described = std::mem::take(&mut folder.described);
+                let blob_events = std::mem::take(&mut folder.blob_events);
+                drop(folder);
+                self.catalog = catalog;
+                self.index_records = index_records;
+                self.described = described;
+                self.blob_events = blob_events;
+                return;
+            };
+            let stored_id: Option<&Vec<u8>> = match map_get(frame, "id") {
+                Some(Value::Bytes(b)) => Some(b),
+                _ => None,
+            };
+            let computed = content_id(frame);
+            if stored_id.map(|b| &b[..]) != Some(&computed[..]) {
+                folder.diag(
+                    "DamagedFrame",
+                    "frame self-hash mismatch".to_string(),
+                    Some(abs_index),
+                );
+                let ftype = text_or(map_get(frame, "t"), "").to_string();
+                folder.opaque(frame, &ftype, "damaged");
+                self.expected_prev = stored_id.cloned().unwrap_or(computed);
+                self.frame_ids.push(self.expected_prev.clone());
+                let catalog = std::mem::take(&mut folder.catalog);
+                let index_records = std::mem::take(&mut folder.index_records);
+                let described = std::mem::take(&mut folder.described);
+                let blob_events = std::mem::take(&mut folder.blob_events);
+                drop(folder);
+                self.catalog = catalog;
+                self.index_records = index_records;
+                self.described = described;
+                self.blob_events = blob_events;
+                return;
+            }
+            let prev_ok = matches!(map_get(frame, "prev"),
+                Some(Value::Bytes(b)) if *b == self.expected_prev);
+            if !prev_ok {
+                folder.diag(
+                    "BrokenChain",
+                    "prev does not match".to_string(),
+                    Some(abs_index),
+                );
+            }
+            self.expected_prev = computed.clone();
+            self.frame_ids.push(self.expected_prev.clone());
+            if let Some(sig) = map_get(frame, "sig") {
+                let (status, cose) = match sig {
+                    Value::Bytes(b) => ("unverified", Some(b.clone())),
+                    _ => ("invalid", None),
+                };
+                folder.push_signature(Signature {
+                    frame_id: computed,
+                    kid: None,
+                    status: status.to_string(),
+                    cose,
+                });
+            }
+            folder.fold_frame(frame, abs_index);
+        }
+        let catalog = std::mem::take(&mut folder.catalog);
+        let index_records = std::mem::take(&mut folder.index_records);
+        let described = std::mem::take(&mut folder.described);
+        let blob_events = std::mem::take(&mut folder.blob_events);
+        drop(folder);
+        self.catalog = catalog;
+        self.index_records = index_records;
+        self.described = described;
+        self.blob_events = blob_events;
+    }
+
+    fn finish_into_result(
+        mut self,
+        result: &mut StreamingReadResult,
+        sink: &mut dyn StreamingSink,
+    ) {
+        if self.valid_header {
+            self.g.segment_heads.push(self.expected_prev);
+            if let Some(head) = self.g.segment_heads.last() {
+                sink.segment_head(self.segment_index, head);
+            }
+            let seg_meta = self.g.meta.clone();
+            self.g.segment_meta.push(seg_meta);
+            self.g
+                .segment_profiles
+                .push(text_or(map_get(&self.header, "prof"), "generic").to_string());
+            let mut sink_slot = Some(sink);
+            check_index_mmr(
+                &mut self.g,
+                &self.index_records,
+                &self.frame_ids,
+                self.index_offset,
+                &mut sink_slot,
+            );
+            let info = layout_check(
+                &mut self.g,
+                &self.header,
+                &self.index_records,
+                &self.blob_events,
+                &self.frame_ids,
+                self.index_offset,
+                &mut sink_slot,
+            );
+            self.g.segment_streamable.push(info);
+            if let Some(sink) = sink_slot {
+                sink.streamable_layout(
+                    self.segment_index,
+                    self.g
+                        .segment_streamable
+                        .last()
+                        .expect("streamable info was just pushed"),
+                );
+            }
+        }
+        absorb_segment_result(result, &self.g);
+    }
+}
+
+/// Read a GTS CBOR Sequence from a byte stream into a [`StreamingSink`].
+///
+/// This additive API consumes one CBOR item at a time and returns only reader
+/// sidecar state. It keeps the segment-local term table and validation
+/// sidecars needed for correct diagnostics, but it does not materialize the
+/// final graph union, folded quads, suppressions, annotations, opaque rows,
+/// signatures, or blob payloads.
+pub fn read_to_sink_from_reader<R: Read>(
+    reader: R,
+    options: ReadOptions<'_>,
+    sink: &mut dyn StreamingSink,
+) -> StreamingReadResult {
+    let mut reader = StreamingCountingReader {
+        inner: reader,
+        pos: 0,
+    };
     let mut result = StreamingReadResult {
-        torn,
         ..StreamingReadResult::default()
     };
-    if items.is_empty() {
+    let mut item_index = 0usize;
+    let mut current: Option<ActiveStreamingSegment> = None;
+    loop {
+        let item = match next_stream_item(&mut reader) {
+            Ok(Some(item)) => item,
+            Ok(None) => break,
+            Err(torn) => {
+                result.torn = Some(torn);
+                break;
+            }
+        };
+        if is_header_item(&item) {
+            if let Some(segment) = current.take() {
+                if !options.allow_segments {
+                    segment.finish_into_result(&mut result, sink);
+                    push_result_diagnostic(
+                        &mut result,
+                        sink,
+                        Diagnostic {
+                            code: "SegmentBoundary".to_string(),
+                            detail: format!(
+                                "segment boundary at item {item_index} but reader is in \
+                                 pre-segment mode; remainder of file NOT folded (folding \
+                                 it with file-global term-ids would silently misfold — §16)"
+                            ),
+                            frame_index: Some(item_index),
+                        },
+                    );
+                    return result;
+                }
+                segment.finish_into_result(&mut result, sink);
+            } else if item_index != 0 {
+                push_result_diagnostic(
+                    &mut result,
+                    sink,
+                    Diagnostic {
+                        code: "DamagedFrame".to_string(),
+                        detail: "first item is not a header".to_string(),
+                        frame_index: Some(0),
+                    },
+                );
+                return result;
+            }
+            current = Some(ActiveStreamingSegment::new(
+                &item,
+                item_index,
+                result.segment_heads.len(),
+                sink,
+            ));
+        } else if let Some(segment) = current.as_mut() {
+            segment.process_frame(&item, item_index, sink, options.content_key);
+        } else {
+            push_result_diagnostic(
+                &mut result,
+                sink,
+                Diagnostic {
+                    code: "DamagedFrame".to_string(),
+                    detail: "first item is not a header".to_string(),
+                    frame_index: Some(0),
+                },
+            );
+            return result;
+        }
+        item_index += 1;
+    }
+
+    if item_index == 0 {
         push_result_diagnostic(
             &mut result,
             sink,
@@ -1104,61 +1485,8 @@ pub fn read_to_sink_with_options(
         );
         return result;
     }
-
-    let bounds: Vec<usize> = items
-        .iter()
-        .enumerate()
-        .filter(|(_, (_, item))| is_header_item(item))
-        .map(|(i, _)| i)
-        .collect();
-    if bounds.first() != Some(&0) {
-        push_result_diagnostic(
-            &mut result,
-            sink,
-            Diagnostic {
-                code: "DamagedFrame".to_string(),
-                detail: "first item is not a header".to_string(),
-                frame_index: Some(0),
-            },
-        );
-        return result;
-    }
-    if bounds.len() > 1 && !options.allow_segments {
-        let segment = read_segment_with_sink(
-            &items[..bounds[1]],
-            0,
-            0,
-            Some(&mut *sink),
-            options.content_key,
-        );
-        absorb_segment_result(&mut result, &segment);
-        push_result_diagnostic(
-            &mut result,
-            sink,
-            Diagnostic {
-                code: "SegmentBoundary".to_string(),
-                detail: format!(
-                    "segment boundary at item {} but reader is in pre-segment mode; \
-                     remainder of file NOT folded (folding it with file-global \
-                     term-ids would silently misfold — §16)",
-                    bounds[1]
-                ),
-                frame_index: Some(bounds[1]),
-            },
-        );
-        return result;
-    }
-
-    let ends = bounds.iter().skip(1).copied().chain([items.len()]);
-    for (segment_index, (&a, b)) in bounds.iter().zip(ends).enumerate() {
-        let segment = read_segment_with_sink(
-            &items[a..b],
-            a,
-            segment_index,
-            Some(&mut *sink),
-            options.content_key,
-        );
-        absorb_segment_result(&mut result, &segment);
+    if let Some(segment) = current {
+        segment.finish_into_result(&mut result, sink);
     }
 
     if let Some(expected) = options.expected_head {
@@ -1175,7 +1503,7 @@ pub fn read_to_sink_with_options(
             );
         }
     }
-    if let Some(offset) = torn {
+    if let Some(offset) = result.torn {
         push_result_diagnostic(
             &mut result,
             sink,
@@ -1322,6 +1650,7 @@ fn read_segment_with_sink(
             sink: sink.take(),
             content_key,
             segment_index,
+            materialize: true,
             catalog,
             index_records: Vec::new(),
             described: HashSet::new(),

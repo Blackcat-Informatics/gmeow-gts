@@ -7,6 +7,7 @@ import { blake3 } from "@noble/hashes/blake3.js";
 
 import {
     Graph,
+    type MetaEntry,
     TermKind,
     termKindFromWire,
     type Diagnostic,
@@ -26,6 +27,7 @@ export type {
     BlobEntry,
     Diagnostic,
     Graph as BrowserGraph,
+    MetaEntry,
     Quad,
     Signature,
     StreamableInfo,
@@ -73,6 +75,22 @@ export interface BrowserFoldResult {
     graph: Graph;
     /** Per-segment folded graphs in file order. */
     segments: Graph[];
+    /** Byte offset of a torn final CBOR item, or -1 for a clean end. */
+    torn: number;
+}
+
+/** Sidecar state returned by the sink-only browser stream fold. */
+export interface BrowserStreamingFoldResult {
+    /** Reader diagnostics in the same order as `foldStream` would report them. */
+    diagnostics: Diagnostic[];
+    /** Ordered per-segment head ids. */
+    segmentHeads: Uint8Array[];
+    /** Ordered per-segment profile names. */
+    segmentProfiles: string[];
+    /** Ordered per-segment metadata snapshots. */
+    segmentMeta: MetaEntry[][];
+    /** Ordered per-segment streamable-layout state. */
+    segmentStreamable: StreamableInfo[];
     /** Byte offset of a torn final CBOR item, or -1 for a clean end. */
     torn: number;
 }
@@ -224,7 +242,32 @@ export async function foldStream(
     stream: ReadableStream<Uint8Array>,
     options: BrowserReadOptions = {},
 ): Promise<BrowserFoldResult> {
-    const processor = new BrowserStreamProcessor(options);
+    const processor = new BrowserStreamProcessor(options, true);
+    const torn = await consumeStreamItems(stream, processor);
+    return processor.finish(torn);
+}
+
+/**
+ * Consume a browser `ReadableStream<Uint8Array>` into a progressive event sink.
+ *
+ * This additive API uses the same event vocabulary and validation checks as
+ * `foldStream`, but returns only reader sidecar state. Folded quads,
+ * annotations, suppressions, opaque rows, signatures, and blob payloads are
+ * emitted to `options.onEvent` instead of retained in a materialized `Graph`.
+ */
+export async function foldStreamToSink(
+    stream: ReadableStream<Uint8Array>,
+    options: BrowserReadOptions = {},
+): Promise<BrowserStreamingFoldResult> {
+    const processor = new BrowserStreamProcessor(options, false);
+    const torn = await consumeStreamItems(stream, processor);
+    return processor.finishToSink(torn);
+}
+
+async function consumeStreamItems(
+    stream: ReadableStream<Uint8Array>,
+    processor: BrowserStreamProcessor,
+): Promise<number> {
     const reader = stream.getReader();
     let pending: Uint8Array = new Uint8Array();
     let consumed = 0;
@@ -258,7 +301,7 @@ export async function foldStream(
     }
 
     if (pending.length > 0 && torn < 0) torn = consumed;
-    return processor.finish(torn);
+    return torn;
 }
 
 /** Signature status reported by browser WebCrypto verification. */
@@ -369,7 +412,10 @@ class BrowserStreamProcessor {
     private fatal: Graph | undefined;
     private pending: Promise<void>[] = [];
 
-    constructor(private readonly options: BrowserReadOptions) {
+    constructor(
+        private readonly options: BrowserReadOptions,
+        private readonly materialize: boolean,
+    ) {
         this.allowSegments = options.allowSegments ?? true;
         this.emit = options.onEvent ?? (() => undefined);
         this.keys = options.keys;
@@ -456,6 +502,7 @@ class BrowserStreamProcessor {
                 this.segments.length,
                 this.keys,
                 this.emit,
+                this.materialize,
             );
             await this.current.ready();
             return;
@@ -482,8 +529,84 @@ class BrowserStreamProcessor {
             this.segments.length,
             this.keys,
             this.emit,
+            this.materialize,
         );
         await this.current.ready();
+    }
+
+    async finishToSink(torn: number): Promise<BrowserStreamingFoldResult> {
+        if (this.current) {
+            this.segments.push(await this.current.finish(this.itemIndex - 1));
+            this.current = undefined;
+        }
+
+        let diagnostics: Diagnostic[] = [];
+        let segmentHeads: Uint8Array[] = [];
+        let segmentProfiles: string[] = [];
+        let segmentMeta: MetaEntry[][] = [];
+        let segmentStreamable: StreamableInfo[] = [];
+        if (this.fatal) {
+            diagnostics = [...this.fatal.diagnostics];
+        } else if (this.segments.length === 0) {
+            const diagnostic: Diagnostic = {
+                code: "EmptyFile",
+                detail: "no CBOR items",
+                frameIndex: 0,
+            };
+            diagnostics.push(diagnostic);
+            this.emitEvent({
+                kind: "diagnostic",
+                segmentIndex: 0,
+                frameIndex: 0,
+                diagnostic,
+            });
+        } else {
+            for (const segment of this.segments) {
+                diagnostics.push(...segment.diagnostics);
+                segmentHeads.push(...segment.segmentHeads);
+                segmentProfiles.push(...segment.segmentProfiles);
+                segmentMeta.push(...segment.segmentMeta);
+                segmentStreamable.push(...segment.segmentStreamable);
+            }
+        }
+
+        const pushSidecarDiagnostic = (diagnostic: Diagnostic): void => {
+            diagnostics.push(diagnostic);
+            this.emitEvent({
+                kind: "diagnostic",
+                segmentIndex: segmentHeads.length,
+                frameIndex: diagnostic.frameIndex,
+                diagnostic,
+            });
+        };
+        const expectedHead = this.options.expectedHead;
+        if (expectedHead) {
+            const lastHead =
+                segmentHeads.length > 0
+                    ? segmentHeads[segmentHeads.length - 1]
+                    : new Uint8Array();
+            if (!bytesEqual(lastHead, expectedHead)) {
+                pushSidecarDiagnostic({
+                    code: "TruncatedLog",
+                    detail: "observed head does not match expected head",
+                });
+            }
+        }
+        if (torn >= 0) {
+            pushSidecarDiagnostic({
+                code: "TornAppendError",
+                detail: `torn at offset ${torn}`,
+            });
+        }
+        await this.flush();
+        return {
+            diagnostics,
+            segmentHeads,
+            segmentProfiles,
+            segmentMeta,
+            segmentStreamable,
+            torn,
+        };
     }
 
     private pushDiagnostic(graph: Graph, diagnostic: Diagnostic): void {
@@ -524,6 +647,7 @@ class SegmentProcessor {
         private readonly segmentIndex: number,
         private readonly keys: BrowserKeyProvider | undefined,
         private readonly emit: EventSink,
+        private readonly materialize: boolean,
     ) {}
 
     async ready(): Promise<void> {
@@ -565,6 +689,7 @@ class SegmentProcessor {
             this.segmentIndex,
             this.keys,
             this.emitEvent.bind(this),
+            this.materialize,
         );
         this.emitEvent({
             kind: "segment-start",
@@ -676,7 +801,7 @@ class SegmentProcessor {
                 cose: sigBytes,
             };
         }
-        this.g.signatures.push(signature);
+        if (this.materialize) this.g.signatures.push(signature);
         this.emitEvent({
             kind: "signature",
             segmentIndex: this.segmentIndex,
@@ -721,6 +846,7 @@ class Folder {
         private readonly segmentIndex: number,
         private readonly keys: BrowserKeyProvider | undefined,
         private readonly emit: (event: BrowserFoldEvent) => void,
+        private readonly materialize: boolean,
     ) {}
 
     diag(code: string, detail: string, index?: number): void {
@@ -845,16 +971,36 @@ class Folder {
         }
         try {
             switch (ftype) {
-                case "terms": this.hTerms(payload, index); break;
-                case "quads": this.hQuads(payload, index); break;
-                case "reifies": this.hReifies(payload, index); break;
-                case "annot": this.hAnnot(payload, index); break;
-                case "blob": this.hBlob(payload as Uint8Array | null, frame, index); break;
-                case "meta": this.hMeta(payload, index); break;
-                case "suppress": this.hSuppress(payload, index); break;
-                case "snapshot": this.hSnapshot(payload, index); break;
-                case "index": this.hIndex(payload, index); break;
-                case "opaque": this.hOpaque(payload); break;
+                case "terms":
+                    this.hTerms(payload, index);
+                    break;
+                case "quads":
+                    this.hQuads(payload, index);
+                    break;
+                case "reifies":
+                    this.hReifies(payload, index);
+                    break;
+                case "annot":
+                    this.hAnnot(payload, index);
+                    break;
+                case "blob":
+                    this.hBlob(payload as Uint8Array | null, frame, index);
+                    break;
+                case "meta":
+                    this.hMeta(payload, index);
+                    break;
+                case "suppress":
+                    this.hSuppress(payload, index);
+                    break;
+                case "snapshot":
+                    this.hSnapshot(payload, index);
+                    break;
+                case "index":
+                    this.hIndex(payload, index);
+                    break;
+                case "opaque":
+                    this.hOpaque(payload, index);
+                    break;
                 default:
                     this.opaque(frame, ftype, "unknown-frame-type", index);
                     this.diag(
@@ -971,13 +1117,13 @@ class Folder {
             }
             if (!this.checkPositions(s, p, o, gslot, index)) continue;
             const quad: Quad = { s, p, o, g: gslot };
-            this.g.quads.push(quad);
             this.emit({
                 kind: "quad",
                 segmentIndex: this.segmentIndex,
                 frameIndex: index,
                 quad,
             });
+            if (this.materialize) this.g.quads.push(quad);
             if (this.g.terms[p].value === STREAM_DIGEST) {
                 const obj = this.g.terms[o];
                 if (obj.value !== "") this.described.add(obj.value);
@@ -1069,13 +1215,13 @@ class Folder {
                 continue;
             }
             const annotation: Triple = { s: r, p, o: v };
-            this.g.annotations.push(annotation);
             this.emit({
                 kind: "annotation",
                 segmentIndex: this.segmentIndex,
                 frameIndex: index,
                 annotation,
             });
+            if (this.materialize) this.g.annotations.push(annotation);
         }
     }
 
@@ -1089,7 +1235,7 @@ class Folder {
         const pub = mapGet(frame, "pub");
         if (pub instanceof Map) this.g.setBlobMeta(digest, pub);
         const described = this.described.has(digest);
-        this.g.setBlob(digest, payload);
+        if (this.materialize) this.g.setBlob(digest, payload);
         this.blobEvents.push({ pos: index, digest, described });
         this.emit({
             kind: "blob",
@@ -1135,13 +1281,13 @@ class Folder {
         };
         const by = asInt(mapGet(entries, "by"));
         if (by !== undefined) sup.by = by;
-        this.g.suppressions.push(sup);
         this.emit({
             kind: "suppression",
             segmentIndex: this.segmentIndex,
             frameIndex: index,
             suppression: sup,
         });
+        if (this.materialize) this.g.suppressions.push(sup);
     }
 
     hSnapshot(payload: unknown, index: number): void {
@@ -1198,7 +1344,7 @@ class Folder {
         if (blobs instanceof Map) {
             for (const v of blobs.values()) {
                 const b = asBytes(v);
-                if (b) this.g.setBlob(digestStr(b), b);
+                if (b && this.materialize) this.g.setBlob(digestStr(b), b);
             }
         }
         const meta = mapGet(entries, "meta");
@@ -1221,19 +1367,27 @@ class Folder {
             this.indexRecords.push({ pos: index, count, head });
     }
 
-    hOpaque(payload: unknown): void {
+    hOpaque(payload: unknown, index: number): void {
         const entries = payload instanceof Map ? payload : undefined;
         if (!entries) return;
         let id: Uint8Array | undefined;
         const b = asBytes(mapGet(entries, "id"));
         if (b) id = b;
-        this.g.opaque.push({
+        const opaque = {
             id: id ?? new Uint8Array(),
             frameType: textOr(mapGet(entries, "type"), "opaque"),
             reason: textOr(mapGet(entries, "reason"), "unknown-codec"),
             sigStat: textOr(mapGet(entries, "sigstat"), "none"),
             pubMeta: mapGet(entries, "pub"),
             recipients: [],
+        };
+        if (this.materialize) this.g.opaque.push(opaque);
+        this.emit({
+            kind: "opaque",
+            segmentIndex: this.segmentIndex,
+            frameIndex: index,
+            frameType: opaque.frameType,
+            reason: opaque.reason,
         });
     }
 
@@ -1289,14 +1443,15 @@ class Folder {
                 if (it instanceof Map) recipients.push(it);
             }
         }
-        this.g.opaque.push({
+        const opaque = {
             id: id ?? new Uint8Array(),
             frameType: ftype,
             reason,
             sigStat: sigstat,
             pubMeta: frame.get("pub"),
             recipients,
-        });
+        };
+        if (this.materialize) this.g.opaque.push(opaque);
         this.emit({
             kind: "opaque",
             segmentIndex: this.segmentIndex,

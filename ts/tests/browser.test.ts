@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics(R) Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import {
     decrypt0WithWebCrypto,
     foldStream,
+    foldStreamToSink,
     readStream,
     recipientKid,
     type BrowserFoldEvent,
@@ -17,9 +18,38 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../../../");
+const vectorsDir = join(repoRoot, "vectors");
 
 function unhex(s: string): Uint8Array {
     return Uint8Array.from(Buffer.from(s, "hex"));
+}
+
+function vectorNames(): string[] {
+    const names = new Set<string>();
+    for (const file of readdirSync(vectorsDir)) {
+        if (file.endsWith(".gts")) names.add(file.replace(/\.gts$/, ""));
+    }
+    return [...names].sort();
+}
+
+function eventKinds(events: BrowserFoldEvent[]): string[] {
+    return events.map((event) => event.kind);
+}
+
+function streamableShape(
+    items: {
+        claimed: boolean;
+        covered: number;
+        tail: number;
+        head?: Uint8Array;
+    }[],
+): { claimed: boolean; covered: number; tail: number; head?: Uint8Array }[] {
+    return items.map((info) => ({
+        claimed: info.claimed,
+        covered: info.covered,
+        tail: info.tail,
+        head: info.head,
+    }));
 }
 
 function chunkedStream(
@@ -103,6 +133,57 @@ test("browser stream fold reports malformed input diagnostics without throwing",
         assert.deepEqual(
             graph.diagnostics.map((d) => d.code),
             expected,
+        );
+    }
+});
+
+test("browser sink-only fold matches materialized browser fold for corpus", async () => {
+    for (const name of vectorNames()) {
+        const bytes = readFileSync(join(vectorsDir, `${name}.gts`));
+        const materializedEvents: BrowserFoldEvent[] = [];
+        const sinkEvents: BrowserFoldEvent[] = [];
+        const materialized = await foldStream(chunkedStream(bytes, 19), {
+            allowSegments: true,
+            onEvent(event) {
+                materializedEvents.push(event);
+            },
+        });
+        const streamed = await foldStreamToSink(chunkedStream(bytes, 19), {
+            allowSegments: true,
+            onEvent(event) {
+                sinkEvents.push(event);
+            },
+        });
+
+        assert.deepEqual(
+            streamed.diagnostics,
+            materialized.graph.diagnostics,
+            `${name}: diagnostics`,
+        );
+        assert.deepEqual(
+            streamed.segmentHeads,
+            materialized.graph.segmentHeads,
+            `${name}: segment heads`,
+        );
+        assert.deepEqual(
+            streamed.segmentProfiles,
+            materialized.graph.segmentProfiles,
+            `${name}: segment profiles`,
+        );
+        assert.deepEqual(
+            streamed.segmentMeta,
+            materialized.graph.segmentMeta,
+            `${name}: segment metadata`,
+        );
+        assert.deepEqual(
+            streamableShape(streamed.segmentStreamable),
+            streamableShape(materialized.graph.segmentStreamable),
+            `${name}: streamable layout`,
+        );
+        assert.deepEqual(
+            eventKinds(sinkEvents),
+            eventKinds(materializedEvents),
+            `${name}: event kinds`,
         );
     }
 });
