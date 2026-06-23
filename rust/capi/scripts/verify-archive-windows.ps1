@@ -46,7 +46,7 @@ function Read-TrimmedText {
     [string]$Path
   )
 
-  return (Get-Content -LiteralPath $Path -Raw).Trim()
+  return (Get-Content -LiteralPath $Path -Raw -Encoding utf8).Trim()
 }
 
 $scriptDir = Split-Path -Parent $PSCommandPath
@@ -89,7 +89,7 @@ try {
   }
 
   $headerPath = Join-ArchivePath -Base $prefix -Relative "include/gts.h"
-  $header = Get-Content -LiteralPath $headerPath -Raw
+  $header = Get-Content -LiteralPath $headerPath -Raw -Encoding utf8
   $abiMatch = [regex]::Match($header, "(?m)^#define\s+GTS_ABI_VERSION\s+([0-9]+)u?\b")
   if (-not $abiMatch.Success) {
     throw "could not determine GTS_ABI_VERSION from include/gts.h"
@@ -109,7 +109,7 @@ try {
   }
 
   $archiveJsonPath = Join-ArchivePath -Base $prefix -Relative "share/gts/archive.json"
-  $archiveJson = Get-Content -LiteralPath $archiveJsonPath -Raw | ConvertFrom-Json
+  $archiveJson = Get-Content -LiteralPath $archiveJsonPath -Raw -Encoding utf8 | ConvertFrom-Json
   if ($archiveJson.schema -ne "gts-capi-archive-v1") {
     throw "unexpected archive schema: $($archiveJson.schema)"
   }
@@ -133,6 +133,7 @@ try {
 
   $smokeSource = @"
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -161,7 +162,16 @@ namespace Gts.Capi.Verify {
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate IntPtr ErrorTextDelegate(IntPtr error);
 
-    private readonly IntPtr library;
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "LoadLibraryW")]
+    private static extern IntPtr LoadLibrary(string fileName);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Ansi, EntryPoint = "GetProcAddress")]
+    private static extern IntPtr GetProcAddress(IntPtr module, string procName);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool FreeLibrary(IntPtr module);
+
+    private IntPtr library;
     private readonly AbiVersionDelegate abiVersion;
     private readonly ReadJsonDelegate readJson;
     private readonly BufferFreeDelegate bufferFree;
@@ -170,7 +180,10 @@ namespace Gts.Capi.Verify {
     private readonly ErrorTextDelegate errorMessage;
 
     public GtsArchiveSmoke(string dllPath) {
-      library = NativeLibrary.Load(dllPath);
+      library = LoadLibrary(dllPath);
+      if (library == IntPtr.Zero) {
+	throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to load library: " + dllPath);
+      }
       abiVersion = Load<AbiVersionDelegate>("gts_abi_version");
       readJson = Load<ReadJsonDelegate>("gts_read_json");
       bufferFree = Load<BufferFreeDelegate>("gts_buffer_free");
@@ -180,7 +193,10 @@ namespace Gts.Capi.Verify {
     }
 
     private T Load<T>(string symbol) {
-      IntPtr ptr = NativeLibrary.GetExport(library, symbol);
+      IntPtr ptr = GetProcAddress(library, symbol);
+      if (ptr == IntPtr.Zero) {
+	throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to get export: " + symbol);
+      }
       return (T)(object)Marshal.GetDelegateForFunctionPointer(ptr, typeof(T));
     }
 
@@ -199,6 +215,9 @@ namespace Gts.Capi.Verify {
 
     private static string BufferText(GtsBuffer buffer) {
       ulong len64 = buffer.len.ToUInt64();
+      if (len64 == 0 || buffer.data == IntPtr.Zero) {
+	return "";
+      }
       if (len64 > int.MaxValue) {
 	throw new InvalidOperationException("gts_read_json output is too large to verify in memory");
       }
@@ -257,14 +276,17 @@ namespace Gts.Capi.Verify {
 
     public void Dispose() {
       if (library != IntPtr.Zero) {
-	NativeLibrary.Free(library);
+	FreeLibrary(library);
+	library = IntPtr.Zero;
       }
     }
   }
 }
 "@
 
-  Add-Type -TypeDefinition $smokeSource -Language CSharp
+  if (-not ("Gts.Capi.Verify.GtsArchiveSmoke" -as [type])) {
+    Add-Type -TypeDefinition $smokeSource -Language CSharp
+  }
   $cleanVector = Join-Path $root "vectors/01-minimal.gts"
   $smoke = [Gts.Capi.Verify.GtsArchiveSmoke]::new($dllPath)
   try {
