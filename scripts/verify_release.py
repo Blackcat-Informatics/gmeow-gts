@@ -741,8 +741,9 @@ def verify_crate(
     destination = crate_dir / f"{crate}-{version}.crate"
 
     try:
-        metadata = crate_version_metadata(crate, version)
-        expected_checksum = crate_checksum(metadata, crate, version)
+        expected_checksum = crate_checksum(
+            crate_version_metadata(crate, version), crate, version
+        )
         recorder.published(surface, "registry metadata", crate)
         recorder.published(surface, "registry checksum metadata", expected_checksum)
     except RuntimeError as exc:
@@ -750,7 +751,6 @@ def verify_crate(
             recorder, surface, "registry checksum metadata", exc
         )
         expected_checksum = ""
-        metadata = {}
 
     try:
         crate_info = crate_repository_metadata(crate)
