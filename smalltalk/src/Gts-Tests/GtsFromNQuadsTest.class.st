@@ -107,3 +107,10 @@ GtsFromNQuadsTest >> testFromNQuadsRejectsMalformedStatements [
 		should: [ GtsFromNQuads fromString: '<https://ex/s> <https://ex/p> "Cat"@ .', String lf ]
 		raise: Error
 ]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testTokenizerSignalsParserError [
+	self
+		should: [ GtsFromNQuads fromString: '<https://ex/s> <https://ex/p> "Cat"@ .', String lf ]
+		raise: GtsParserError
+]

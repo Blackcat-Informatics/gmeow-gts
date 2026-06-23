@@ -72,13 +72,8 @@
         "smalltalk/src/Gts-Core/GtsCborReader.class.st": 5,
         "smalltalk/src/Gts-Core/GtsCborWriter.class.st": 2,
         "smalltalk/src/Gts-Core/GtsCompact.class.st": 4,
-        "smalltalk/src/Gts-Core/GtsCose.class.st": 11,
-        "smalltalk/src/Gts-Core/GtsFiles.class.st": 13,
         "smalltalk/src/Gts-Core/GtsFromNQuads.class.st": 5,
         "smalltalk/src/Gts-Core/GtsHex.class.st": 2,
-        "smalltalk/src/Gts-Core/GtsMMR.class.st": 15,
-        "smalltalk/src/Gts-Core/GtsNQuadsTokenizer.class.st": 18,
-        "smalltalk/src/Gts-Core/GtsOpenPGP.class.st": 28,
         "smalltalk/src/Gts-Core/GtsReplication.class.st": 2,
         "smalltalk/src/Gts-Core/GtsSodium.class.st": 4,
         "smalltalk/src/Gts-Core/GtsTerm.class.st": 1,
@@ -86,9 +81,9 @@
         "smalltalk/src/Gts-Core/GtsWriter.class.st": 4,
         "smalltalk/src/Gts-Core/GtsZstd.class.st": 3
       },
-      "max_total": 167
+      "max_total": 82
     }
   },
-  "production_file_count": 191,
+  "production_file_count": 195,
   "version": 1
 }

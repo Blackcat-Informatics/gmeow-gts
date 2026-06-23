@@ -34,3 +34,8 @@ GtsOpenPGPTest >> testParseFrozenTransportKey [
 		assert: (GtsOpenPGP emojihash: (key at: 'rawPublic') length: 11)
 		equals: (vector at: 'emojihash')
 ]
+
+{ #category : #tests }
+GtsOpenPGPTest >> testMalformedTransportKeySignalsCryptoError [
+	self should: [ GtsOpenPGP parseTransportKey: '' ] raise: GtsCryptoError
+]

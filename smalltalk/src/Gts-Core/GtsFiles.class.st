@@ -32,22 +32,22 @@ GtsFiles class >> archiveEntriesForSources: sourcePaths [
 	sourcePaths do: [ :path |
 		| source |
 		source := path asFileReference.
-		source exists ifFalse: [ self error: 'source does not exist: ', path ].
-		source isSymlink ifTrue: [ self error: 'symlink not supported: ', path ].
+		source exists ifFalse: [ GtsArchiveError signal: 'source does not exist: ', path ].
+		source isSymlink ifTrue: [ GtsArchiveError signal: 'symlink not supported: ', path ].
 		source isDirectory
 			ifTrue: [
 				(source allChildren select: [ :child | child isFile ]) do: [ :child |
 					| relpath |
-					child isSymlink ifTrue: [ self error: 'symlink not supported: ', child fullName ].
+					child isSymlink ifTrue: [ GtsArchiveError signal: 'symlink not supported: ', child fullName ].
 					relpath := (child relativeTo: source) pathString.
 					self validateArchivePath: relpath.
-					(seen includesKey: relpath) ifTrue: [ self error: 'duplicate archive path: ', relpath ].
+					(seen includesKey: relpath) ifTrue: [ GtsArchiveError signal: 'duplicate archive path: ', relpath ].
 					seen at: relpath put: true.
 					entries add: { child. relpath } ] ]
 			ifFalse: [
-				source isFile ifFalse: [ self error: 'unsupported source type: ', path ].
+				source isFile ifFalse: [ GtsArchiveError signal: 'unsupported source type: ', path ].
 				self validateArchivePath: source basename.
-				(seen includesKey: source basename) ifTrue: [ self error: 'duplicate archive path: ', source basename ].
+				(seen includesKey: source basename) ifTrue: [ GtsArchiveError signal: 'duplicate archive path: ', source basename ].
 				seen at: source basename put: true.
 				entries add: { source. source basename } ] ].
 	^ entries asSortedCollection: [ :left :right | (left at: 2) < (right at: 2) ]
@@ -105,7 +105,7 @@ GtsFiles class >> fileEntriesIn: graph [
 					at: (value copyFrom: self filesNamespace size + 1 to: value size)
 					put: termId ] ] ].
 	(typeId isNil or: [ fileEntryId isNil ])
-		ifTrue: [ self error: 'not a files-profile archive' ].
+		ifTrue: [ GtsArchiveError signal: 'not a files-profile archive' ].
 	entries := Dictionary new.
 	graph quads do: [ :quad |
 		| object predicate subject |
@@ -150,10 +150,10 @@ GtsFiles class >> guessMediaTypeFor: fileReference [
 GtsFiles class >> guardSafeWriteTarget: target under: destinationRef archivePath: archivePath [
 	| parent |
 	target exists ifTrue: [
-		target isSymlink ifTrue: [ self error: 'refusing to write through symlink: ', archivePath ] ].
+		target isSymlink ifTrue: [ GtsArchiveError signal: 'refusing to write through symlink: ', archivePath ] ].
 	parent := target parent.
 	[ parent exists and: [ parent ~= destinationRef ] ] whileTrue: [
-		parent isSymlink ifTrue: [ self error: 'path escapes destination: ', archivePath ].
+		parent isSymlink ifTrue: [ GtsArchiveError signal: 'path escapes destination: ', archivePath ].
 		parent := parent parent ]
 ]
 
@@ -291,11 +291,11 @@ GtsFiles class >> unpackGraph: graph to: destination includeSuppressed: includeS
 		ifFalse: [ self suppressedBlobDigestsIn: graph ].
 	entries associationsDo: [ :association |
 		| data digest target |
-		digest := association value at: 'digest' ifAbsent: [ self error: 'missing digest for ', association key ].
+		digest := association value at: 'digest' ifAbsent: [ GtsArchiveError signal: 'missing digest for ', association key ].
 		(suppressed includesKey: digest) ifFalse: [
-			data := blobByDigest at: digest ifAbsent: [ self error: 'missing inline blob for ', association key ].
+			data := blobByDigest at: digest ifAbsent: [ GtsArchiveError signal: 'missing inline blob for ', association key ].
 			(GtsWriter digestString: data) = digest
-				ifFalse: [ self error: 'integrity failure for ', association key ].
+				ifFalse: [ GtsArchiveError signal: 'integrity failure for ', association key ].
 			target := self pathFor: association key under: destination.
 			target parent ensureCreateDirectory.
 			self guardSafeWriteTarget: target under: destinationRef archivePath: association key.
@@ -306,5 +306,5 @@ GtsFiles class >> unpackGraph: graph to: destination includeSuppressed: includeS
 { #category : #private }
 GtsFiles class >> validateArchivePath: archivePath [
 	(self hasUnsafePathComponent: archivePath)
-		ifTrue: [ self error: 'unsafe archive path: ', archivePath ]
+		ifTrue: [ GtsArchiveError signal: 'unsafe archive path: ', archivePath ]
 ]
