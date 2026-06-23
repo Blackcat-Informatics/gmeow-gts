@@ -173,6 +173,61 @@ test("reader allows clean multi-segment file", () => {
     assert.equal(g.quads.length, 2);
 });
 
+test("reader union isolates blank nodes and remaps suppressions", () => {
+    const predicate = "https://example.org/p";
+    const w1 = new Writer("generic");
+    w1.addTerms([
+        { kind: TermKind.Bnode, value: "shared" },
+        { kind: TermKind.Iri, value: predicate },
+        { kind: TermKind.Literal, value: "one" },
+    ]);
+    w1.addQuads([{ s: 0, p: 1, o: 2 }]);
+    const termTarget = new Map<unknown, unknown>();
+    termTarget.set("kind", "term");
+    termTarget.set("id", 0);
+    w1.addSuppress([termTarget], "redacted", 0);
+
+    const w2 = new Writer("generic");
+    w2.addTerms([
+        { kind: TermKind.Bnode, value: "shared" },
+        { kind: TermKind.Iri, value: predicate },
+        { kind: TermKind.Literal, value: "two" },
+    ]);
+    w2.addQuads([{ s: 0, p: 1, o: 2 }]);
+    const quadTarget = new Map<unknown, unknown>();
+    quadTarget.set("kind", "quad");
+    quadTarget.set("q", [0, 1, 2]);
+    w2.addSuppress([quadTarget], "superseded");
+
+    const first = w1.toBytes();
+    const second = w2.toBytes();
+    const combined = new Uint8Array(first.length + second.length);
+    combined.set(first);
+    combined.set(second, first.length);
+
+    const g = Read(combined, true);
+    const bnodes = g.terms
+        .map((term, id) => ({ term, id }))
+        .filter(({ term }) => term.kind === TermKind.Bnode);
+    assert.deepEqual(
+        bnodes.map(({ term }) => term.value),
+        ["s0.shared", "s1.shared"],
+    );
+    assert.equal(g.quads.length, 2);
+    assert.equal(g.suppressions.length, 2);
+
+    const firstTarget = g.suppressions[0].targets[0] as Map<unknown, unknown>;
+    assert.equal(firstTarget.get("id"), bnodes[0].id);
+    assert.equal(g.suppressions[0].by, bnodes[0].id);
+
+    const secondTarget = g.suppressions[1].targets[0] as Map<unknown, unknown>;
+    assert.deepEqual(secondTarget.get("q"), [
+        bnodes[1].id,
+        g.quads[1].p,
+        g.quads[1].o,
+    ]);
+});
+
 import { existsSync, mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
