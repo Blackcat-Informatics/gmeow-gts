@@ -174,7 +174,7 @@ func formatFingerprint(fp string) string {
 
 // cmdExtractKey prints the embedded transport (verification) key (§9.2).
 func cmdExtractKey(args []string) int {
-	if len(args) == 0 {
+	if len(args) != 1 {
 		fmt.Fprintln(os.Stderr, usage)
 		return 2
 	}

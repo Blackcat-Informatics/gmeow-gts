@@ -114,13 +114,15 @@ func cmdExtract(args []string) int {
 	digest = normalizeDigest(digest)
 
 	var blobData []byte
+	foundBlob := false
 	for _, b := range g.Blobs {
 		if b.Digest == digest {
 			blobData = b.Data
+			foundBlob = true
 			break
 		}
 	}
-	if blobData == nil {
+	if !foundBlob {
 		fmt.Fprintf(os.Stderr, "gts: no inline blob %s in %s\n", digest, path)
 		return 1
 	}

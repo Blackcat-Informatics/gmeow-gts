@@ -57,6 +57,13 @@ func cmdCat(args []string) int {
 	}
 
 	folded := reader.Read(combined, true, nil)
+	for _, d := range folded.Diagnostics {
+		fmt.Fprintf(os.Stderr, "gts: diagnostic %s: %s\n", d.Code, d.Detail)
+	}
+	if len(folded.Diagnostics) > 0 || len(folded.SegmentHeads) == 0 {
+		fmt.Fprintln(os.Stderr, "gts: refusing composition: composed output did not read cleanly")
+		return 1
+	}
 	if allQuadsSuppressed(folded) {
 		fmt.Fprintln(os.Stderr, "gts: refusing composition: suppressions hide every quad in the folded output")
 		return 1

@@ -11,6 +11,14 @@ import (
 	"go.blackcatinformatics.ca/gts/replication"
 )
 
+func printReplicationJSON(command, payload string) int {
+	if _, err := fmt.Print(payload); err != nil {
+		fmt.Fprintf(os.Stderr, "gts %s: cannot write stdout: %v\n", command, err)
+		return 2
+	}
+	return 0
+}
+
 func cmdHeads(args []string) int {
 	if len(args) != 1 {
 		fmt.Fprintln(os.Stderr, usage)
@@ -21,7 +29,9 @@ func cmdHeads(args []string) int {
 		return code
 	}
 	inv := replication.InventoryFor(data)
-	fmt.Print(replication.HeadsJSON(inv))
+	if code := printReplicationJSON("heads", replication.HeadsJSON(inv)); code != 0 {
+		return code
+	}
 	if inv.HasProblems() {
 		return 1
 	}
@@ -38,7 +48,9 @@ func cmdSegments(args []string) int {
 		return code
 	}
 	inv := replication.InventoryFor(data)
-	fmt.Print(replication.SegmentsJSON(inv))
+	if code := printReplicationJSON("segments", replication.SegmentsJSON(inv)); code != 0 {
+		return code
+	}
 	if inv.HasProblems() {
 		return 1
 	}
@@ -60,7 +72,9 @@ func cmdMissing(args []string) int {
 		return code
 	}
 	result := replication.Missing(replication.InventoryFor(data), fromHead)
-	fmt.Print(replication.MissingJSON(result))
+	if code := printReplicationJSON("missing", replication.MissingJSON(result)); code != 0 {
+		return code
+	}
 	if result.Status == replication.MissingError {
 		return 1
 	}

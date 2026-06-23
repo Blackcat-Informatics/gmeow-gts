@@ -350,6 +350,26 @@ func TestLsListsDigestSizeAndMediaType(t *testing.T) {
 	}
 }
 
+func TestExtractAllowsEmptyInlineBlob(t *testing.T) {
+	tmp := t.TempDir()
+	w := writer.New("generic")
+	empty := []byte{}
+	digest := wire.DigestStr(empty)
+	w.AddBlob(empty, "application/octet-stream", "")
+	path := filepath.Join(tmp, "empty-blob.gts")
+	if err := os.WriteFile(path, w.ToBytes(), 0o644); err != nil { //nolint:gosec // test fixture.
+		t.Fatal(err)
+	}
+
+	cmd, stdout, stderr := run(t, "extract", path, digest)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("expected exit 0, got %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("expected empty blob output, got %q", stdout.String())
+	}
+}
+
 func TestPackUnpackRoundTrip(t *testing.T) {
 	tmp := t.TempDir()
 	src := filepath.Join(tmp, "src")
@@ -646,5 +666,15 @@ func TestExtractKeyMissingExits1(t *testing.T) {
 	cmd, _, _ := run(t, "extract-key", vector(t, "01-minimal.gts"))
 	if cmd.ProcessState.ExitCode() != 1 {
 		t.Errorf("exit = %d, want 1", cmd.ProcessState.ExitCode())
+	}
+}
+
+func TestExtractKeyRejectsExtraArgs(t *testing.T) {
+	cmd, _, stderr := run(t, "extract-key", vector(t, "01-minimal.gts"), "extra")
+	if cmd.ProcessState.ExitCode() != 2 {
+		t.Errorf("exit = %d, want 2", cmd.ProcessState.ExitCode())
+	}
+	if !bytes.Contains(stderr.Bytes(), []byte("usage: gts")) {
+		t.Fatalf("stderr did not include usage: %s", stderr.String())
 	}
 }
