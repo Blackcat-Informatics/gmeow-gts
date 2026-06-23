@@ -21,6 +21,13 @@ interface InternKey {
     bnodeLabeled?: boolean;
 }
 
+class SegmentUnionError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "SegmentUnionError";
+    }
+}
+
 function asText(value: unknown): string | undefined {
     if (typeof value === "string") return value;
     return undefined;
@@ -52,6 +59,11 @@ class SegmentUnioner {
 
     keyFor(seg: Graph, segIdx: number, tid: number): InternKey {
         const t = seg.terms[tid];
+        if (!t) {
+            throw new SegmentUnionError(
+                `term ${tid} missing from segment ${segIdx}`,
+            );
+        }
         switch (t.kind) {
             case TermKind.Iri:
                 return { typ: 0, a: t.value, b: "", c: "" };

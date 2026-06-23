@@ -10,6 +10,7 @@ import { Graph, TermKind } from "../src/model.js";
 import * as wire from "../src/wire.js";
 import { Writer } from "../src/writer.js";
 import { Read } from "../src/reader.js";
+import { unionSegments } from "../src/reader_union.js";
 import { toNQuads } from "../src/nquads.js";
 import { decodeChain, gzip, identity, isCodecError } from "../src/codec.js";
 
@@ -226,6 +227,19 @@ test("reader union isolates blank nodes and remaps suppressions", () => {
         g.quads[1].p,
         g.quads[1].o,
     ]);
+});
+
+test("reader union reports invalid programmatic term references", () => {
+    const g = new Graph();
+    g.quads.push({ s: 0, p: 0, o: 0 });
+
+    assert.throws(
+        () => unionSegments([g]),
+        (error) =>
+            error instanceof Error &&
+            error.name === "SegmentUnionError" &&
+            error.message === "term 0 missing from segment 0",
+    );
 });
 
 import { existsSync, mkdirSync, mkdtempSync, symlinkSync } from "node:fs";
