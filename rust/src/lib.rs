@@ -55,6 +55,8 @@ pub mod rdf_events;
 #[cfg(feature = "rdf-codecs")]
 mod rdf_xml;
 pub mod reader;
+mod reader_layout;
+mod reader_union;
 pub mod replication;
 pub mod stream;
 #[cfg(feature = "tar")]

@@ -17,8 +17,8 @@
       "target_lines": 2079
     },
     "rust/src/reader.rs": {
-      "max_lines": 2087,
-      "target_lines": 1878
+      "max_lines": 1722,
+      "target_lines": 1549
     },
     "ts/src/browser.ts": {
       "max_lines": 1821,
@@ -98,6 +98,6 @@
       "max_total": 266
     }
   },
-  "production_file_count": 186,
+  "production_file_count": 188,
   "version": 1
 }
