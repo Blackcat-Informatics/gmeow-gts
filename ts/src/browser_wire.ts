@@ -112,9 +112,7 @@ export function textOr(value: unknown, def: string): string {
 }
 
 function cloneMap(m: Map<unknown, unknown>): Map<unknown, unknown> {
-    const out = new Map<unknown, unknown>();
-    for (const [k, v] of m) out.set(k, v);
-    return out;
+    return new Map(m);
 }
 
 function hashExcluding(
@@ -154,9 +152,7 @@ export function tripleEqual(
 }
 
 export function copyBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
-    const out = new Uint8Array(bytes.byteLength);
-    out.set(bytes);
-    return out;
+    return bytes.slice();
 }
 
 export function concatBytes(
@@ -174,6 +170,12 @@ export function concatBytes(
 }
 
 export function toBufferSource(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+    if (
+        bytes.byteOffset === 0 &&
+        bytes.byteLength === bytes.buffer.byteLength
+    ) {
+        return bytes as Uint8Array<ArrayBuffer>;
+    }
     return copyBytes(bytes);
 }
 
@@ -257,8 +259,10 @@ function encodeMajor(major: number, value: bigint): Uint8Array {
     if (value <= 0xffffffffffffffffn) {
         const out = new Uint8Array(9);
         out[0] = prefix | 27;
+        let temp = value;
         for (let i = 0; i < 8; i++) {
-            out[8 - i] = Number((value >> BigInt(i * 8)) & 0xffn);
+            out[8 - i] = Number(temp & 0xffn);
+            temp >>= 8n;
         }
         return out;
     }
