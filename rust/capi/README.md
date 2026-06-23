@@ -23,7 +23,7 @@ Do not edit `gts_buffer.capacity`; it is part of the Rust allocation handle used
 `GTS_ABI_VERSION` is the native compatibility contract for `gts.h`, `libgts`,
 and the `share/gts/ABI_VERSION` file included in release archives. It is
 separate from the Rust crate/package version: package versions may advance for
-implementation fixes, packaging changes, documentation updates, or JSON-report
+implementation fixes, packaging changes, documentation updates, or JSON report
 extensions without changing the native ABI version.
 
 The following changes are ABI-compatible and do not require a
@@ -52,7 +52,7 @@ The following changes require a `GTS_ABI_VERSION` increment:
 JSON report schemas are versioned independently from `GTS_ABI_VERSION`. The
 `gts_read_json`, `gts_verify_json`, `gts_build_metadata_json`,
 `gts_capabilities_json`, and related report shapes may add fields or new schema
-ids without a native ABI bump when existing documented fields keep their
+IDs without a native ABI bump when existing documented fields keep their
 meaning. Removing fields, changing field types, or changing report semantics is
 a report-schema compatibility change even when the native function signatures
 stay stable.
