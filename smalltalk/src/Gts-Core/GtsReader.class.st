@@ -151,34 +151,42 @@ GtsReader class >> foldFrame: frame index: frameIndex into: graph catalog: catal
 			frameIndex: frameIndex).
 		^ self ].
 	payload := payloadResult at: 'payload'.
-	frameType = 'terms' ifTrue: [ ^ self foldTerms: payload into: graph index: frameIndex ].
-	frameType = 'quads' ifTrue: [ ^ self foldQuads: payload into: graph index: frameIndex described: described ].
-	frameType = 'reifies' ifTrue: [ ^ self foldReifies: payload into: graph index: frameIndex ].
-	frameType = 'annot' ifTrue: [ ^ self foldAnnot: payload into: graph index: frameIndex ].
-	frameType = 'blob' ifTrue: [
-		^ self
-			foldBlob: payload
-			frame: frame
-			into: graph
-			index: frameIndex
-			blobEvents: blobEvents
-			described: described ].
-	frameType = 'meta' ifTrue: [ ^ self foldMeta: payload into: graph ].
-	frameType = 'suppress' ifTrue: [ ^ self foldSuppress: payload into: graph ].
-	frameType = 'snapshot' ifTrue: [
-		^ self
-			foldSnapshot: payload
-			into: graph
-			index: frameIndex
-			blobEvents: blobEvents
-			described: described ].
-	frameType = 'index' ifTrue: [ ^ self foldIndex: payload index: frameIndex into: indexRecords ].
-	frameType = 'opaque' ifTrue: [ ^ self foldOpaque: payload into: graph ].
-	graph addOpaqueReason: 'unknown-frame-type'.
-	graph addDiagnostic: (GtsDiagnostic
-		code: 'UnknownFrameType'
-		detail: 'unsupported frame type'
-		frameIndex: frameIndex)
+	[
+		frameType = 'terms' ifTrue: [ ^ self foldTerms: payload into: graph index: frameIndex ].
+		frameType = 'quads' ifTrue: [ ^ self foldQuads: payload into: graph index: frameIndex described: described ].
+		frameType = 'reifies' ifTrue: [ ^ self foldReifies: payload into: graph index: frameIndex ].
+		frameType = 'annot' ifTrue: [ ^ self foldAnnot: payload into: graph index: frameIndex ].
+		frameType = 'blob' ifTrue: [
+			^ self
+				foldBlob: payload
+				frame: frame
+				into: graph
+				index: frameIndex
+				blobEvents: blobEvents
+				described: described ].
+		frameType = 'meta' ifTrue: [ ^ self foldMeta: payload into: graph ].
+		frameType = 'suppress' ifTrue: [ ^ self foldSuppress: payload into: graph ].
+		frameType = 'snapshot' ifTrue: [
+			^ self
+				foldSnapshot: payload
+				into: graph
+				index: frameIndex
+				blobEvents: blobEvents
+				described: described ].
+		frameType = 'index' ifTrue: [ ^ self foldIndex: payload index: frameIndex into: indexRecords ].
+		frameType = 'opaque' ifTrue: [ ^ self foldOpaque: payload into: graph ].
+		graph addOpaqueReason: 'unknown-frame-type'.
+		graph addDiagnostic: (GtsDiagnostic
+			code: 'UnknownFrameType'
+			detail: 'unsupported frame type'
+			frameIndex: frameIndex) ]
+		on: Error
+		do: [ :error |
+			graph addOpaqueReason: 'damaged'.
+			graph addDiagnostic: (GtsDiagnostic
+				code: 'DamagedFrame'
+				detail: 'fold failed: ', (error messageText ifNil: [ error printString ])
+				frameIndex: frameIndex) ]
 ]
 
 { #category : #folding }

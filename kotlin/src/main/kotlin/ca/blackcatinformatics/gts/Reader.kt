@@ -56,21 +56,26 @@ private class Folder(
             }
             return
         }
-        when (frameType) {
-            "terms" -> hTerms(payload.value, index)
-            "quads" -> hQuads(payload.value, index)
-            "reifies" -> hReifies(payload.value, index)
-            "annot" -> hAnnot(payload.value, index)
-            "blob" -> hBlob(payload.value as? CborBytes, frame, index)
-            "meta" -> hMeta(payload.value)
-            "suppress" -> hSuppress(payload.value)
-            "snapshot" -> hSnapshot(payload.value, index)
-            "index" -> hIndex(payload.value, index)
-            "opaque" -> hOpaque(payload.value)
-            else -> {
-                opaque(frame, frameType, "unknown-frame-type")
-                diag("UnknownFrameType", "unsupported frame type '$frameType'", index)
+        try {
+            when (frameType) {
+                "terms" -> hTerms(payload.value, index)
+                "quads" -> hQuads(payload.value, index)
+                "reifies" -> hReifies(payload.value, index)
+                "annot" -> hAnnot(payload.value, index)
+                "blob" -> hBlob(payload.value as? CborBytes, frame, index)
+                "meta" -> hMeta(payload.value)
+                "suppress" -> hSuppress(payload.value)
+                "snapshot" -> hSnapshot(payload.value, index)
+                "index" -> hIndex(payload.value, index)
+                "opaque" -> hOpaque(payload.value)
+                else -> {
+                    opaque(frame, frameType, "unknown-frame-type")
+                    diag("UnknownFrameType", "unsupported frame type '$frameType'", index)
+                }
             }
+        } catch (err: RuntimeException) {
+            opaque(frame, frameType, "damaged")
+            diag("DamagedFrame", "fold failed: ${err.message ?: err.toString()}", index)
         }
     }
 

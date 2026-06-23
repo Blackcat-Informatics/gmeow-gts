@@ -158,6 +158,49 @@ func segmentEventCounts(data []byte, allowSegments bool) streamingEventCounts {
 	return counts
 }
 
+func readWithoutPanic(t *testing.T, data []byte) (g *model.Graph) {
+	t.Helper()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("Read panicked on malformed input: %v", r)
+		}
+	}()
+	return Read(data, true, nil)
+}
+
+func diagnosticCodes(g *model.Graph) []string {
+	codes := []string{}
+	for _, d := range g.Diagnostics {
+		codes = append(codes, d.Code)
+	}
+	return codes
+}
+
+func TestPublicReaderMalformedInputDiagnostics(t *testing.T) {
+	valid, err := os.ReadFile(filepath.Join(vectorsDir(t), "01-minimal.gts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	torn := append(append([]byte{}, valid...), 0xa3)
+	cases := []struct {
+		name string
+		data []byte
+		want []string
+	}{
+		{"empty", []byte{}, []string{"EmptyFile"}},
+		{"non-header", []byte{0x01}, []string{"DamagedFrame"}},
+		{"torn-append", torn, []string{"TornAppendError"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := diagnosticCodes(readWithoutPanic(t, tc.data))
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("diagnostics = %#v, want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestCorpus(t *testing.T) {
 	dir := vectorsDir(t)
 	entries, err := os.ReadDir(dir)

@@ -85,6 +85,28 @@ test("browser stream fold emits useful events before full materialization", asyn
     );
 });
 
+test("browser stream fold reports malformed input diagnostics without throwing", async () => {
+    const valid = readFileSync(join(repoRoot, "vectors", "01-minimal.gts"));
+    const torn = new Uint8Array(valid.length + 1);
+    torn.set(valid);
+    torn.set([0xa3], valid.length);
+
+    const cases: [Uint8Array, string[]][] = [
+        [new Uint8Array(), ["EmptyFile"]],
+        [Uint8Array.of(0x01), ["DamagedFrame"]],
+        [torn, ["TornAppendError"]],
+    ];
+    for (const [data, expected] of cases) {
+        const graph = await readStream(chunkedStream(data), {
+            allowSegments: false,
+        });
+        assert.deepEqual(
+            graph.diagnostics.map((d) => d.code),
+            expected,
+        );
+    }
+});
+
 test("browser stream fold verifies COSE_Sign1 with WebCrypto keys", async () => {
     const vector = JSON.parse(
         readFileSync(

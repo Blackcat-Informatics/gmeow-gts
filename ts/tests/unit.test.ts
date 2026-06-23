@@ -121,6 +121,25 @@ test("reader rejects a torn file", () => {
     assert.ok(g.diagnostics.some((d) => d.code === "TornAppendError"));
 });
 
+test("public reader reports malformed input diagnostics without throwing", () => {
+    const writer = new Writer("generic");
+    const torn = new Uint8Array(writer.toBytes().length + 1);
+    torn.set(writer.toBytes());
+    torn.set([0xa3], writer.toBytes().length);
+
+    const cases: [Uint8Array, string[]][] = [
+        [new Uint8Array(), ["EmptyFile"]],
+        [Uint8Array.of(0x01), ["DamagedFrame"]],
+        [torn, ["TornAppendError"]],
+    ];
+    for (const [data, expected] of cases) {
+        assert.deepEqual(
+            Read(data, false).diagnostics.map((d) => d.code),
+            expected,
+        );
+    }
+});
+
 test("reader allows clean multi-segment file", () => {
     const w1 = new Writer("dist");
     w1.addTerms([

@@ -165,6 +165,21 @@ class KotlinParityTest {
     }
 
     @Test
+    fun publicReaderReportsMalformedInputDiagnosticsWithoutThrowing() {
+        val writer = Writer("generic")
+        val torn = writer.toBytes() + byteArrayOf(0xa3.toByte())
+        val cases =
+            listOf(
+                byteArrayOf() to listOf("EmptyFile"),
+                byteArrayOf(0x01) to listOf("DamagedFrame"),
+                torn to listOf("TornAppendError"),
+            )
+        for ((data, expected) in cases) {
+            assertEquals(expected, read(data, true).diagnostics.map { it.code })
+        }
+    }
+
+    @Test
     fun fullCommittedCorpusMatchesExpectedJson() {
         Files.list(vectors).use { paths ->
             val names =

@@ -843,44 +843,33 @@ class Folder {
             }
             return;
         }
-        switch (ftype) {
-            case "terms":
-                this.hTerms(payload, index);
-                break;
-            case "quads":
-                this.hQuads(payload, index);
-                break;
-            case "reifies":
-                this.hReifies(payload, index);
-                break;
-            case "annot":
-                this.hAnnot(payload, index);
-                break;
-            case "blob":
-                this.hBlob(payload as Uint8Array | null, frame, index);
-                break;
-            case "meta":
-                this.hMeta(payload, index);
-                break;
-            case "suppress":
-                this.hSuppress(payload, index);
-                break;
-            case "snapshot":
-                this.hSnapshot(payload, index);
-                break;
-            case "index":
-                this.hIndex(payload, index);
-                break;
-            case "opaque":
-                this.hOpaque(payload);
-                break;
-            default:
-                this.opaque(frame, ftype, "unknown-frame-type", index);
-                this.diag(
-                    "UnknownFrameType",
-                    `unsupported frame type '${ftype}'`,
-                    index,
-                );
+        try {
+            switch (ftype) {
+                case "terms": this.hTerms(payload, index); break;
+                case "quads": this.hQuads(payload, index); break;
+                case "reifies": this.hReifies(payload, index); break;
+                case "annot": this.hAnnot(payload, index); break;
+                case "blob": this.hBlob(payload as Uint8Array | null, frame, index); break;
+                case "meta": this.hMeta(payload, index); break;
+                case "suppress": this.hSuppress(payload, index); break;
+                case "snapshot": this.hSnapshot(payload, index); break;
+                case "index": this.hIndex(payload, index); break;
+                case "opaque": this.hOpaque(payload); break;
+                default:
+                    this.opaque(frame, ftype, "unknown-frame-type", index);
+                    this.diag(
+                        "UnknownFrameType",
+                        `unsupported frame type '${ftype}'`,
+                        index,
+                    );
+            }
+        } catch (e) {
+            this.opaque(frame, ftype, "damaged", index);
+            this.diag(
+                "DamagedFrame",
+                `fold failed: ${e instanceof Error ? e.message : String(e)}`,
+                index,
+            );
         }
     }
 
