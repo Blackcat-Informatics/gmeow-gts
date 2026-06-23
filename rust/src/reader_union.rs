@@ -6,32 +6,8 @@ use std::collections::{HashMap, HashSet};
 use ciborium::value::Value;
 
 use crate::model::{Graph, Quad, Suppression, Term, TermKind, Triple3};
+use crate::reader::{as_idx, as_text, text_or};
 use crate::wire::map_get;
-
-fn as_i128(v: &Value) -> Option<i128> {
-    if let Value::Integer(i) = v {
-        Some(i128::from(*i))
-    } else {
-        None
-    }
-}
-
-/// Coerce a value to a non-negative index, else `None` (Python `_as_int`).
-fn as_idx(v: &Value) -> Option<usize> {
-    as_i128(v).and_then(|n| usize::try_from(n).ok())
-}
-
-fn as_text(v: &Value) -> Option<&str> {
-    if let Value::Text(t) = v {
-        Some(t)
-    } else {
-        None
-    }
-}
-
-fn text_or<'a>(v: Option<&'a Value>, default: &'a str) -> &'a str {
-    v.and_then(as_text).unwrap_or(default)
-}
 
 // --------------------------------------------------------------------------- //
 // Multi-segment union (§3.1, §7.5): term-ids are segment-scoped compression

@@ -28,7 +28,7 @@ use crate::wire::{
     content_id, digest_str, header_id, hex, iter_items, map_get, unwrap_header, MAGIC, VERSION,
 };
 
-fn as_i128(v: &Value) -> Option<i128> {
+pub(crate) fn as_i128(v: &Value) -> Option<i128> {
     if let Value::Integer(i) = v {
         Some(i128::from(*i))
     } else {
@@ -37,11 +37,11 @@ fn as_i128(v: &Value) -> Option<i128> {
 }
 
 /// Coerce a value to a non-negative index, else `None` (Python `_as_int`).
-fn as_idx(v: &Value) -> Option<usize> {
+pub(crate) fn as_idx(v: &Value) -> Option<usize> {
     as_i128(v).and_then(|n| usize::try_from(n).ok())
 }
 
-fn as_text(v: &Value) -> Option<&str> {
+pub(crate) fn as_text(v: &Value) -> Option<&str> {
     if let Value::Text(t) = v {
         Some(t)
     } else {
@@ -49,7 +49,7 @@ fn as_text(v: &Value) -> Option<&str> {
     }
 }
 
-fn text_or<'a>(v: Option<&'a Value>, default: &'a str) -> &'a str {
+pub(crate) fn text_or<'a>(v: Option<&'a Value>, default: &'a str) -> &'a str {
     v.and_then(as_text).unwrap_or(default)
 }
 
@@ -250,7 +250,7 @@ impl<'a> ReadOptions<'a> {
     }
 }
 
-fn push_diagnostic(
+pub(crate) fn push_diagnostic(
     g: &mut Graph,
     sink: &mut Option<&mut dyn StreamingSink>,
     diagnostic: Diagnostic,

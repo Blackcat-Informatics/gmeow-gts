@@ -5,7 +5,7 @@ use ciborium::value::Value;
 
 use crate::mmr;
 use crate::model::{Diagnostic, Graph, StreamableInfo};
-use crate::reader::StreamingSink;
+use crate::reader::{push_diagnostic, StreamingSink};
 use crate::wire::map_get;
 
 #[derive(Clone, Debug)]
@@ -14,17 +14,6 @@ pub(crate) struct IndexRecord {
     pub(crate) count: usize,
     pub(crate) head: Vec<u8>,
     pub(crate) mmr: Option<Vec<u8>>,
-}
-
-fn push_diagnostic(
-    g: &mut Graph,
-    sink: &mut Option<&mut dyn StreamingSink>,
-    diagnostic: Diagnostic,
-) {
-    if let Some(sink) = sink.as_deref_mut() {
-        sink.diagnostic(&diagnostic);
-    }
-    g.diagnostics.push(diagnostic);
 }
 
 /// Compute one segment's layout state and check its claim (§3.3).
