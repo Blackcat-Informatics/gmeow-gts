@@ -70,12 +70,20 @@ impl Unioner {
             return got;
         }
         let t = seg.terms[tid].clone();
-        let new_id = self.out.terms.len();
         let datatype = t.datatype.map(|d| self.map_term(seg, seg_idx, d));
-        let reifier = if t.kind == TermKind::Triple && t.reifier == Some(tid) {
-            Some(new_id)
+        let self_bound = t.kind == TermKind::Triple && t.reifier == Some(tid);
+        let mapped_reifier = if self_bound {
+            None
         } else {
             t.reifier.map(|r| self.map_term(seg, seg_idx, r))
+        };
+        // Recursive datatype/reifier mapping can push terms, so capture this
+        // term's output id only after those mappings have completed.
+        let new_id = self.out.terms.len();
+        let reifier = if self_bound {
+            Some(new_id)
+        } else {
+            mapped_reifier
         };
         // Blank nodes are relabelled with a segment prefix (§7.1 permits
         // isomorphism-preserving relabeling): within a segment, byte-identical
