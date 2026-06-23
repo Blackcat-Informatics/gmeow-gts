@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import sys
 import tempfile
@@ -226,11 +227,6 @@ def posix(path: Path) -> str:
     return path.as_posix()
 
 
-def is_included(path: Path) -> bool:
-    rel = posix(path)
-    return any(rel == root or rel.startswith(f"{root}/") for root in INCLUDE_ROOTS)
-
-
 def is_excluded(path: Path) -> bool:
     parts = set(path.parts)
     if parts & EXCLUDED_PARTS:
@@ -244,17 +240,26 @@ def is_code_file(path: Path) -> bool:
 
 def production_files(root: Path) -> list[Path]:
     files: list[Path] = []
-    for path in root.rglob("*"):
-        if not path.is_file():
+    for include_root in INCLUDE_ROOTS:
+        include_path = root / include_root
+        if not include_path.is_dir():
             continue
-        rel = path.relative_to(root)
-        if not is_included(rel):
-            continue
-        if is_excluded(rel):
-            continue
-        if not is_code_file(path):
-            continue
-        files.append(path)
+
+        for dirpath, dirnames, filenames in os.walk(include_path):
+            dir_rel = Path(dirpath).relative_to(root)
+            dirnames[:] = [
+                dirname
+                for dirname in dirnames
+                if not is_excluded(dir_rel / dirname)
+            ]
+            for filename in filenames:
+                path = Path(dirpath) / filename
+                rel = path.relative_to(root)
+                if is_excluded(rel):
+                    continue
+                if not is_code_file(path):
+                    continue
+                files.append(path)
     return sorted(files, key=lambda candidate: posix(candidate.relative_to(root)))
 
 
@@ -354,6 +359,10 @@ def load_baseline(path: Path) -> dict[str, Any]:
         return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         raise SystemExit(f"check_quality_budget: missing baseline {path}") from None
+    except json.JSONDecodeError as error:
+        raise SystemExit(
+            f"check_quality_budget: malformed baseline {path}: {error}"
+        ) from None
 
 
 def compare(snapshot: dict[str, Any], baseline: dict[str, Any]) -> list[str]:
@@ -511,6 +520,25 @@ def self_test() -> int:
             )
             for error in test_only_errors:
                 print(error, file=sys.stderr)
+            return 1
+
+        malformed = root / "quality/quality-budget-baseline.json"
+        write_text(malformed, "{")
+        try:
+            load_baseline(malformed)
+        except SystemExit as error:
+            if "malformed baseline" not in str(error):
+                print(
+                    "check_quality_budget: self-test reported the wrong malformed "
+                    "baseline error",
+                    file=sys.stderr,
+                )
+                return 1
+        else:
+            print(
+                "check_quality_budget: self-test did not catch malformed baseline",
+                file=sys.stderr,
+            )
             return 1
 
     print("check_quality_budget: self-test OK")
