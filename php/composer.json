@@ -42,6 +42,6 @@
     }
   },
   "scripts": {
-    "smoke": "php -d ffi.enable=1 tests/smoke.php"
+    "smoke": "php -d ffi.enable=1 tests/smoke.php ../vectors/01-minimal.gts ../vectors/04-damaged-frame.gts ../vectors/28-empty-file.gts"
   }
 }

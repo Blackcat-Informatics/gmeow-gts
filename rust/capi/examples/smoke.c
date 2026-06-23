@@ -106,8 +106,10 @@ static void checked_snprintf(char *dest, size_t len, const char *fmt, const char
 }
 
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    fprintf(stderr, "usage: %s vectors/01-minimal.gts\n", argv[0]);
+  if (argc != 4) {
+    fprintf(stderr,
+            "usage: %s vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts\n",
+            argv[0]);
     return 2;
   }
   if (gts_abi_version() != GTS_ABI_VERSION) {
@@ -121,11 +123,17 @@ int main(int argc, char **argv) {
 
   size_t input_len = 0;
   unsigned char *input = read_file(argv[1], &input_len);
+  size_t damaged_len = 0;
+  unsigned char *damaged = read_file(argv[2], &damaged_len);
+  size_t empty_len = 0;
+  unsigned char *empty = read_file(argv[3], &empty_len);
   gts_buffer build_metadata = {0};
   gts_buffer capabilities = {0};
   gts_buffer format_registry = {0};
   gts_buffer read_json = {0};
   gts_buffer verify_json = {0};
+  gts_buffer damaged_read_json = {0};
+  gts_buffer empty_read_json = {0};
   gts_buffer nquads = {0};
   gts_buffer roundtrip = {0};
   gts_buffer codec_source = {0};
@@ -153,13 +161,55 @@ int main(int argc, char **argv) {
   if (status != GTS_STATUS_OK) {
     fail_error("gts_read_json", status, error);
   }
-  expect_contains("read_json", &read_json, "\"schema\":\"gts-capi-read-v1\"");
+  expect_contains("capi clean-read read_json", &read_json, "\"schema\":\"gts-capi-read-v1\"");
+  expect_contains("capi clean-read read_json", &read_json, "\"clean\":true");
 
   status = gts_verify_json(input, input_len, &verify_json, &error);
   if (status != GTS_STATUS_OK) {
     fail_error("gts_verify_json", status, error);
   }
   expect_contains("verify_json", &verify_json, "\"schema\":\"gts-capi-verify-v1\"");
+
+  status = gts_read_json(damaged, damaged_len, &damaged_read_json, &error);
+  if (status != GTS_STATUS_OK) {
+    fail_error("capi damaged-diagnostic-read read_json", status, error);
+  }
+  expect_contains("capi damaged-diagnostic-read read_json",
+                  &damaged_read_json,
+                  "\"schema\":\"gts-capi-read-v1\"");
+  expect_contains("capi damaged-diagnostic-read read_json", &damaged_read_json, "\"clean\":false");
+  expect_contains("capi damaged-diagnostic-read read_json",
+                  &damaged_read_json,
+                  "\"code\":\"DamagedFrame\"");
+
+  gts_buffer refused = {0};
+  status = gts_to_nquads(damaged, damaged_len, &refused, &error);
+  if (status != GTS_STATUS_DIAGNOSTIC || error == NULL) {
+    fprintf(stderr, "capi damaged-diagnostic-read to_nquads did not refuse damaged input\n");
+    return 1;
+  }
+  gts_error_free(error);
+  error = NULL;
+  gts_buffer_free(&refused);
+
+  status = gts_read_json(empty, empty_len, &empty_read_json, &error);
+  if (status != GTS_STATUS_OK) {
+    fail_error("capi empty-malformed-refusal read_json", status, error);
+  }
+  expect_contains("capi empty-malformed-refusal read_json",
+                  &empty_read_json,
+                  "\"schema\":\"gts-capi-read-v1\"");
+  expect_contains("capi empty-malformed-refusal read_json", &empty_read_json, "\"clean\":false");
+  expect_contains("capi empty-malformed-refusal read_json", &empty_read_json, "\"code\":\"EmptyFile\"");
+
+  status = gts_to_nquads(empty, empty_len, &refused, &error);
+  if (status != GTS_STATUS_DIAGNOSTIC || error == NULL) {
+    fprintf(stderr, "capi empty-malformed-refusal to_nquads did not refuse empty input\n");
+    return 1;
+  }
+  gts_error_free(error);
+  error = NULL;
+  gts_buffer_free(&refused);
 
   status = gts_to_nquads(input, input_len, &nquads, &error);
   if (status != GTS_STATUS_OK) {
@@ -306,6 +356,8 @@ int main(int argc, char **argv) {
   gts_buffer_free(&format_registry);
   gts_buffer_free(&read_json);
   gts_buffer_free(&verify_json);
+  gts_buffer_free(&damaged_read_json);
+  gts_buffer_free(&empty_read_json);
   gts_buffer_free(&nquads);
   gts_buffer_free(&roundtrip);
   gts_buffer_free(&codec_source);
@@ -313,5 +365,7 @@ int main(int argc, char **argv) {
   gts_buffer_free(&diff_json);
   gts_buffer_free(&unpack_json);
   free(input);
+  free(damaged);
+  free(empty);
   return 0;
 }

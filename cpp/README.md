@@ -80,5 +80,6 @@ bash cpp/scripts/smoke.sh
 ```
 
 The smoke test builds `libgts`, compiles `examples/smoke.cpp`, and exercises
-build metadata, capabilities, read/fold JSON, verify JSON, N-Quads export/import,
-files pack/unpack/diff, and structured error handling.
+the shared wrapper smoke matrix: build metadata, capabilities, clean and
+diagnostic read/fold JSON, verify JSON, N-Quads export/import, files
+pack/unpack/diff, and structured error handling.

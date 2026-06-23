@@ -8,6 +8,8 @@ CAPI="${ROOT}/rust/capi"
 CPP="${ROOT}/cpp"
 CAPI_TARGET="${CAPI}/target/debug"
 CXX_BIN="${CXX:-c++}"
+# shellcheck source=/dev/null
+source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
 cargo build --manifest-path "${CAPI}/Cargo.toml"
 
@@ -20,4 +22,7 @@ cargo build --manifest-path "${CAPI}/Cargo.toml"
   -o "${CAPI_TARGET}/gts-cpp-smoke"
 
 LD_LIBRARY_PATH="${CAPI_TARGET}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
-  "${CAPI_TARGET}/gts-cpp-smoke" "${ROOT}/vectors/01-minimal.gts"
+  "${CAPI_TARGET}/gts-cpp-smoke" \
+  "${GTS_WRAPPER_CLEAN_VECTOR}" \
+  "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+  "${GTS_WRAPPER_EMPTY_VECTOR}"

@@ -23,7 +23,10 @@ Run the smoke test against that library:
 ```sh
 export GTS_LIBGTS="$PWD/rust/capi/target/debug/libgts.so"
 export LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-GTS_JULIA_VECTOR="$PWD/vectors/01-minimal.gts" julia --project=julia julia/test/runtests.jl
+GTS_WRAPPER_CLEAN_VECTOR="$PWD/vectors/01-minimal.gts" \
+GTS_WRAPPER_DAMAGED_VECTOR="$PWD/vectors/04-damaged-frame.gts" \
+GTS_WRAPPER_EMPTY_VECTOR="$PWD/vectors/28-empty-file.gts" \
+  julia --project=julia julia/test/runtests.jl
 ```
 
 On macOS use `DYLD_LIBRARY_PATH` and `libgts.dylib`. On Windows make `gts.dll`

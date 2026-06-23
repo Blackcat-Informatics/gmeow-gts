@@ -9,6 +9,8 @@ if [ "$#" -ne 1 ]; then
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+# shellcheck source=/dev/null
+source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 archive="$1"
 tmp="$(mktemp -d)"
 trap 'rm -rf "${tmp}"' EXIT
@@ -110,6 +112,9 @@ cc -std=c11 -Wall -Wextra -Werror \
   "${pkg_libs[@]}" \
   "${rpath_opts[@]}" \
   -o "${tmp}/gts-capi-smoke"
-"${tmp}/gts-capi-smoke" "${ROOT}/vectors/01-minimal.gts"
+"${tmp}/gts-capi-smoke" \
+  "${GTS_WRAPPER_CLEAN_VECTOR}" \
+  "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+  "${GTS_WRAPPER_EMPTY_VECTOR}"
 
 echo "archive verification OK: ${archive}"

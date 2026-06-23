@@ -10,8 +10,11 @@ use Gmeow\Gts\GtsStatus;
 
 require __DIR__ . '/autoload.php';
 
-if ($argc !== 2) {
-    fwrite(STDERR, "usage: php -d ffi.enable=1 php/tests/smoke.php vectors/01-minimal.gts\n");
+if ($argc !== 4) {
+    fwrite(
+        STDERR,
+        "usage: php -d ffi.enable=1 php/tests/smoke.php vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts\n"
+    );
     exit(2);
 }
 
@@ -28,11 +31,41 @@ try {
     if ($input === false) {
         throw new RuntimeException(sprintf('Unable to read vector: %s', $argv[1]));
     }
+    $damaged = file_get_contents($argv[2]);
+    if ($damaged === false) {
+        throw new RuntimeException(sprintf('Unable to read vector: %s', $argv[2]));
+    }
+    $empty = file_get_contents($argv[3]);
+    if ($empty === false) {
+        throw new RuntimeException(sprintf('Unable to read vector: %s', $argv[3]));
+    }
 
     expectJsonProperty('build metadata', $gts->buildMetadataJson(), 'schema', 'gts-capi-build-v1');
     expectJsonProperty('capabilities', $gts->capabilitiesJson(), 'schema', 'gts-capi-capabilities-v1');
-    expectJsonProperty('read JSON', $gts->readJson($input), 'schema', 'gts-capi-read-v1');
+    $cleanRead = $gts->readJson($input);
+    expectJsonProperty('php clean-read read JSON', $cleanRead, 'schema', 'gts-capi-read-v1');
+    expectJsonProperty('php clean-read read JSON', $cleanRead, 'clean', true);
     expectJsonProperty('verify JSON', $gts->verifyJson($input), 'schema', 'gts-capi-verify-v1');
+
+    $damagedRead = $gts->readJson($damaged);
+    expectJsonProperty('php damaged-diagnostic-read read JSON', $damagedRead, 'schema', 'gts-capi-read-v1');
+    expectJsonProperty('php damaged-diagnostic-read read JSON', $damagedRead, 'clean', false);
+    expectDiagnostic('php damaged-diagnostic-read read JSON', $damagedRead, 'DamagedFrame');
+    expectGtsException(
+        'php damaged-diagnostic-read toNQuads',
+        fn (): string => $gts->toNQuads($damaged),
+        GtsStatus::DIAGNOSTIC
+    );
+
+    $emptyRead = $gts->readJson($empty);
+    expectJsonProperty('php empty-malformed-refusal read JSON', $emptyRead, 'schema', 'gts-capi-read-v1');
+    expectJsonProperty('php empty-malformed-refusal read JSON', $emptyRead, 'clean', false);
+    expectDiagnostic('php empty-malformed-refusal read JSON', $emptyRead, 'EmptyFile');
+    expectGtsException(
+        'php empty-malformed-refusal toNQuads',
+        fn (): string => $gts->toNQuads($empty),
+        GtsStatus::DIAGNOSTIC
+    );
 
     $nquads = $gts->toNQuads($input);
     expectContains('N-Quads', $nquads, '"Cat"@en');
@@ -42,17 +75,11 @@ try {
         throw new RuntimeException('Round-trip GTS output was empty.');
     }
 
-    try {
-        $gts->fromNQuads("<https://example/s> <https://example/p> .\n");
-        throw new RuntimeException('Bad N-Quads did not fail.');
-    } catch (GtsException $error) {
-        if ($error->status !== GtsStatus::PARSE) {
-            throw new RuntimeException(sprintf('Expected parse status, got %s.', GtsStatus::name($error->status)));
-        }
-        if ($error->errorCode === '' || $error->detail === '') {
-            throw new RuntimeException('Structured error did not include code and detail.');
-        }
-    }
+    expectGtsException(
+        'php malformed-nquads-refusal fromNQuads',
+        fn (): string => $gts->fromNQuads(getenv('GTS_WRAPPER_BAD_NQUADS') ?: "<https://example/s> <https://example/p> .\n"),
+        GtsStatus::PARSE
+    );
 
     $temp = sys_get_temp_dir() . '/gts-php-smoke-' . bin2hex(random_bytes(8));
     $sourceDir = $temp . '/src';
@@ -93,6 +120,39 @@ function expectContains(string $label, string $haystack, string $needle): void
     if (!str_contains($haystack, $needle)) {
         throw new RuntimeException(sprintf('%s did not contain %s.', $label, $needle));
     }
+}
+
+function expectDiagnostic(string $label, string $json, string $expectedCode): void
+{
+    $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+    if (!is_array($decoded) || !isset($decoded['diagnostics']) || !is_array($decoded['diagnostics'])) {
+        throw new RuntimeException(sprintf('%s missing diagnostics array.', $label));
+    }
+    foreach ($decoded['diagnostics'] as $diagnostic) {
+        if (is_array($diagnostic) && ($diagnostic['code'] ?? null) === $expectedCode) {
+            return;
+        }
+    }
+    throw new RuntimeException(sprintf('%s missing diagnostic %s.', $label, $expectedCode));
+}
+
+/**
+ * @param callable(): mixed $callback
+ */
+function expectGtsException(string $label, callable $callback, int $expectedStatus): void
+{
+    try {
+        $callback();
+    } catch (GtsException $error) {
+        if ($error->status !== $expectedStatus) {
+            throw new RuntimeException(sprintf('%s expected %s, got %s.', $label, GtsStatus::name($expectedStatus), GtsStatus::name($error->status)));
+        }
+        if ($error->errorCode === '' || $error->detail === '') {
+            throw new RuntimeException(sprintf('%s structured error did not include code and detail.', $label));
+        }
+        return;
+    }
+    throw new RuntimeException(sprintf('%s did not fail with %s.', $label, GtsStatus::name($expectedStatus)));
 }
 
 function removeTree(string $path): void

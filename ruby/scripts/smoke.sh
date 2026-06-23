@@ -6,8 +6,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
 CAPI_TARGET="${CAPI}/target/debug"
-VECTOR="vectors/01-minimal.gts"
 RUBY_IMAGE="${RUBY_IMAGE:-gmeow-gts-ruby-ffi-smoke:3.4}"
+# shellcheck source=/dev/null
+source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
 cd "${ROOT}"
 
@@ -46,14 +47,20 @@ run_smoke() {
   gem_path="${gem_home}${sep}${base_gem_path}"
 
   (cd ruby && gem build gmeow-gts.gemspec --output "${gem_file}" >/dev/null)
-  ruby -I ruby/lib ruby/tests/smoke.rb "${VECTOR}"
+  ruby -I ruby/lib ruby/tests/smoke.rb \
+    "${GTS_WRAPPER_CLEAN_VECTOR}" \
+    "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+    "${GTS_WRAPPER_EMPTY_VECTOR}"
   GEM_HOME="${gem_home}" \
     GEM_PATH="${gem_path}" \
     gem install --local "${gem_file}" --no-document >/dev/null
   GEM_HOME="${gem_home}" \
     GEM_PATH="${gem_path}" \
     GTS_RUBY_SMOKE_INSTALLED=1 \
-    ruby ruby/tests/smoke.rb "${VECTOR}"
+    ruby ruby/tests/smoke.rb \
+    "${GTS_WRAPPER_CLEAN_VECTOR}" \
+    "${GTS_WRAPPER_DAMAGED_VECTOR}" \
+    "${GTS_WRAPPER_EMPTY_VECTOR}"
 }
 
 if [[ "${GTS_RUBY_FORCE_DOCKER:-0}" != "1" ]] && has_ruby_ffi; then
@@ -70,6 +77,7 @@ else
   docker run --rm \
     -e GTS_LIBGTS=/workspace/rust/capi/target/debug/libgts.so \
     -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
     -v "${ROOT}:/workspace" \
     -w /workspace \
     "${RUBY_IMAGE}" \
@@ -85,9 +93,9 @@ else
       cd ruby
       gem build gmeow-gts.gemspec --output "${gem_file}" >/dev/null
       cd /workspace
-      ruby -I ruby/lib ruby/tests/smoke.rb vectors/01-minimal.gts
+      ruby -I ruby/lib ruby/tests/smoke.rb /workspace/vectors/01-minimal.gts /workspace/vectors/04-damaged-frame.gts /workspace/vectors/28-empty-file.gts
       GEM_HOME="${gem_home}" GEM_PATH="${gem_path}" gem install --local "${gem_file}" --no-document >/dev/null
-      GEM_HOME="${gem_home}" GEM_PATH="${gem_path}" GTS_RUBY_SMOKE_INSTALLED=1 ruby ruby/tests/smoke.rb vectors/01-minimal.gts'
+      GEM_HOME="${gem_home}" GEM_PATH="${gem_path}" GTS_RUBY_SMOKE_INSTALLED=1 ruby ruby/tests/smoke.rb /workspace/vectors/01-minimal.gts /workspace/vectors/04-damaged-frame.gts /workspace/vectors/28-empty-file.gts'
 fi
 
 echo "Ruby C ABI wrapper smoke test passed"

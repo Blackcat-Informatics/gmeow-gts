@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Gmeow.Gts;
 
@@ -12,9 +13,10 @@ internal static class Program
     {
         try
         {
-            if (args.Length != 1)
+            if (args.Length != 3)
             {
-                Console.Error.WriteLine("usage: Gmeow.Gts.Smoke vectors/01-minimal.gts");
+                Console.Error.WriteLine(
+                    "usage: Gmeow.Gts.Smoke vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts");
                 return 2;
             }
 
@@ -28,11 +30,33 @@ internal static class Program
             }
 
             byte[] input = File.ReadAllBytes(args[0]);
+            byte[] damaged = File.ReadAllBytes(args[1]);
+            byte[] empty = File.ReadAllBytes(args[2]);
 
             ExpectJsonPropertyEquals("build metadata", Gts.BuildMetadataJson(), "schema", "gts-capi-build-v1");
             ExpectJsonPropertyEquals("capabilities", Gts.CapabilitiesJson(), "schema", "gts-capi-capabilities-v1");
-            ExpectJsonPropertyEquals("read JSON", Gts.ReadJson(input), "schema", "gts-capi-read-v1");
+            string cleanRead = Gts.ReadJson(input);
+            ExpectJsonPropertyEquals("dotnet clean-read read JSON", cleanRead, "schema", "gts-capi-read-v1");
+            ExpectJsonPropertyEquals("dotnet clean-read read JSON", cleanRead, "clean", true);
             ExpectJsonPropertyEquals("verify JSON", Gts.VerifyJson(input), "schema", "gts-capi-verify-v1");
+
+            string damagedRead = Gts.ReadJson(damaged);
+            ExpectJsonPropertyEquals("dotnet damaged-diagnostic-read read JSON", damagedRead, "schema", "gts-capi-read-v1");
+            ExpectJsonPropertyEquals("dotnet damaged-diagnostic-read read JSON", damagedRead, "clean", false);
+            ExpectDiagnostic("dotnet damaged-diagnostic-read read JSON", damagedRead, "DamagedFrame");
+            ExpectGtsException(
+                "dotnet damaged-diagnostic-read to_nquads",
+                () => Gts.ToNQuads(damaged),
+                GtsStatus.Diagnostic);
+
+            string emptyRead = Gts.ReadJson(empty);
+            ExpectJsonPropertyEquals("dotnet empty-malformed-refusal read JSON", emptyRead, "schema", "gts-capi-read-v1");
+            ExpectJsonPropertyEquals("dotnet empty-malformed-refusal read JSON", emptyRead, "clean", false);
+            ExpectDiagnostic("dotnet empty-malformed-refusal read JSON", emptyRead, "EmptyFile");
+            ExpectGtsException(
+                "dotnet empty-malformed-refusal to_nquads",
+                () => Gts.ToNQuads(empty),
+                GtsStatus.Diagnostic);
 
             string nquads = Gts.ToNQuads(input);
             ExpectContains("N-Quads", nquads, "\"Cat\"@en");
@@ -43,18 +67,11 @@ internal static class Program
                 throw new InvalidOperationException("Round-trip GTS output was empty");
             }
 
-            try
-            {
-                _ = Gts.FromNQuads("<https://example/s> <https://example/p> .\n");
-                throw new InvalidOperationException("Bad N-Quads did not fail");
-            }
-            catch (GtsException error) when (error.Status == GtsStatus.Parse)
-            {
-                if (string.IsNullOrEmpty(error.Code) || string.IsNullOrEmpty(error.Detail))
-                {
-                    throw new InvalidOperationException("Structured error did not include code and detail");
-                }
-            }
+            ExpectGtsException(
+                "dotnet malformed-nquads-refusal from_nquads",
+                () => Gts.FromNQuads(Environment.GetEnvironmentVariable("GTS_WRAPPER_BAD_NQUADS") ??
+                                     "<https://example/s> <https://example/p> .\n"),
+                GtsStatus.Parse);
 
             string temp = Path.Combine(Path.GetTempPath(), "gts-dotnet-smoke-" + Guid.NewGuid().ToString("N"));
             try
@@ -123,5 +140,40 @@ internal static class Program
         {
             throw new InvalidOperationException($"{label} JSON property {propertyName} expected {expected}, got {actual}");
         }
+    }
+
+    private static void ExpectDiagnostic(string label, string json, string expectedCode)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty("diagnostics", out JsonElement diagnostics) ||
+            diagnostics.ValueKind != JsonValueKind.Array)
+        {
+            throw new InvalidOperationException($"{label} missing diagnostics array");
+        }
+        bool hasExpectedDiagnostic = diagnostics.EnumerateArray()
+            .Where(diagnostic => diagnostic.TryGetProperty("code", out JsonElement code) &&
+                                 string.Equals(code.GetString(), expectedCode, StringComparison.Ordinal))
+            .Any();
+        if (!hasExpectedDiagnostic)
+        {
+            throw new InvalidOperationException($"{label} missing diagnostic {expectedCode}");
+        }
+    }
+
+    private static void ExpectGtsException(string label, Func<object> action, GtsStatus expected)
+    {
+        try
+        {
+            _ = action();
+        }
+        catch (GtsException error) when (error.Status == expected)
+        {
+            if (string.IsNullOrEmpty(error.Code) || string.IsNullOrEmpty(error.Detail))
+            {
+                throw new InvalidOperationException($"{label} structured error did not include code and detail");
+            }
+            return;
+        }
+        throw new InvalidOperationException($"{label} did not fail with {expected}");
     }
 }

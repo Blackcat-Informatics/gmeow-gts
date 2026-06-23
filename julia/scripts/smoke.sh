@@ -6,10 +6,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
 CAPI_TARGET="${CAPI}/target/debug"
-VECTOR="vectors/01-minimal.gts"
 JULIA_IMAGE="${JULIA_IMAGE:-gmeow-gts-julia-smoke:1.12.2}"
 JULIA_PKG="${JULIA_PKG:-${TMPDIR:-/tmp}/gmeowgts-julia-package}"
 export JULIA_NUM_THREADS="${JULIA_NUM_THREADS:-4}"
+# shellcheck source=/dev/null
+source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
 cd "${ROOT}"
 
@@ -31,7 +32,7 @@ LIB_PATH="${CAPI_TARGET}/${LIB_NAME}"
 run_smoke() {
   rm -rf "${JULIA_PKG}"
   cp -R julia "${JULIA_PKG}"
-  GTS_JULIA_VECTOR="${ROOT}/${VECTOR}" julia --project="${JULIA_PKG}" "${JULIA_PKG}/test/runtests.jl"
+  julia --project="${JULIA_PKG}" "${JULIA_PKG}/test/runtests.jl"
 }
 
 # Set GTS_JULIA_FORCE_DOCKER=1 to reproduce the CI Docker path even when Julia is installed locally.
@@ -50,10 +51,14 @@ else
     -e GTS_LIBGTS=/workspace/rust/capi/target/debug/libgts.so \
     -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
     -e JULIA_NUM_THREADS="${JULIA_NUM_THREADS}" \
+    -e GTS_WRAPPER_CLEAN_VECTOR=/workspace/vectors/01-minimal.gts \
+    -e GTS_WRAPPER_DAMAGED_VECTOR=/workspace/vectors/04-damaged-frame.gts \
+    -e GTS_WRAPPER_EMPTY_VECTOR=/workspace/vectors/28-empty-file.gts \
+    -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
     -v "${ROOT}:/workspace" \
     -w /workspace \
     "${JULIA_IMAGE}" \
-    sh -c 'rm -rf /tmp/gmeowgts-julia-package && cp -R julia /tmp/gmeowgts-julia-package && GTS_JULIA_VECTOR=/workspace/vectors/01-minimal.gts julia --project=/tmp/gmeowgts-julia-package /tmp/gmeowgts-julia-package/test/runtests.jl'
+    sh -c 'rm -rf /tmp/gmeowgts-julia-package && cp -R julia /tmp/gmeowgts-julia-package && julia --project=/tmp/gmeowgts-julia-package /tmp/gmeowgts-julia-package/test/runtests.jl'
 fi
 
 echo "Julia C ABI wrapper smoke test passed"

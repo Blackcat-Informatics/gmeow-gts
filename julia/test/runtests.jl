@@ -4,10 +4,19 @@
 using GmeowGTS
 using Test
 
-vector_path = length(ARGS) == 1 ? ARGS[1] : get(ENV, "GTS_JULIA_VECTOR", "")
+vector_path = if length(ARGS) >= 1
+    ARGS[1]
+else
+    get(ENV, "GTS_WRAPPER_CLEAN_VECTOR", get(ENV, "GTS_JULIA_VECTOR", ""))
+end
 if isempty(vector_path)
-    @info "Skipping external GTS smoke test; pass a vector path as the sole argument to run it."
+    @info "Skipping external GTS smoke test; pass shared wrapper fixture paths to run it."
     exit(0)
+end
+damaged_path = length(ARGS) >= 2 ? ARGS[2] : get(ENV, "GTS_WRAPPER_DAMAGED_VECTOR", "")
+empty_path = length(ARGS) >= 3 ? ARGS[3] : get(ENV, "GTS_WRAPPER_EMPTY_VECTOR", "")
+if isempty(damaged_path) || isempty(empty_path)
+    error("missing damaged or empty wrapper smoke fixture path")
 end
 
 compact_json(json::AbstractString) = replace(json, r"\s+" => "")
@@ -23,7 +32,27 @@ function expect_json_bool(label::AbstractString, json::AbstractString, key::Abst
     @test occursin(needle, compact_json(json)) || error("$label did not contain $needle")
 end
 
+function expect_diagnostic(label::AbstractString, json::AbstractString, code::AbstractString)
+    needle = "\"code\":\"$code\""
+    @test occursin(needle, compact_json(json)) || error("$label did not contain $needle")
+end
+
+function expect_gts_error(fn, label::AbstractString, expected_status::Int32)
+    observed = try
+        fn()
+        nothing
+    catch error
+        error
+    end
+    @test observed isa GtsError || error("$label did not raise GtsError")
+    @test observed.status == expected_status || error("$label returned $(observed.status_name)")
+    @test !isempty(observed.code) || error("$label structured error code was empty")
+    @test !isempty(observed.detail) || error("$label structured error detail was empty")
+end
+
 input = read(vector_path)
+damaged = read(damaged_path)
+empty = read(empty_path)
 
 version_tasks = [Threads.@spawn abi_version() for _ in 1:8]
 @test all(fetch.(version_tasks) .== ABI_VERSION)
@@ -33,8 +62,26 @@ version_tasks = [Threads.@spawn abi_version() for _ in 1:8]
 
 expect_json_string("build metadata", build_metadata_json(), "schema", "gts-capi-build-v1")
 expect_json_string("capabilities", capabilities_json(), "schema", "gts-capi-capabilities-v1")
-expect_json_string("read JSON", read_json(input), "schema", "gts-capi-read-v1")
+clean_read = read_json(input)
+expect_json_string("julia clean-read read JSON", clean_read, "schema", "gts-capi-read-v1")
+expect_json_bool("julia clean-read read JSON", clean_read, "clean", true)
 expect_json_string("verify JSON", verify_json(input), "schema", "gts-capi-verify-v1")
+
+damaged_read = read_json(damaged)
+expect_json_string("julia damaged-diagnostic-read read JSON", damaged_read, "schema", "gts-capi-read-v1")
+expect_json_bool("julia damaged-diagnostic-read read JSON", damaged_read, "clean", false)
+expect_diagnostic("julia damaged-diagnostic-read read JSON", damaged_read, "DamagedFrame")
+expect_gts_error("julia damaged-diagnostic-read to_nquads", Status.DIAGNOSTIC) do
+    to_nquads(damaged)
+end
+
+empty_read = read_json(empty)
+expect_json_string("julia empty-malformed-refusal read JSON", empty_read, "schema", "gts-capi-read-v1")
+expect_json_bool("julia empty-malformed-refusal read JSON", empty_read, "clean", false)
+expect_diagnostic("julia empty-malformed-refusal read JSON", empty_read, "EmptyFile")
+expect_gts_error("julia empty-malformed-refusal to_nquads", Status.DIAGNOSTIC) do
+    to_nquads(empty)
+end
 
 nquads = to_nquads(input)
 @test occursin("\"Cat\"@en", nquads)
@@ -48,16 +95,9 @@ round_trip_substring = from_nquads(SubString(wrapped_nquads, 2, lastindex(wrappe
 @test round_trip_substring isa Vector{UInt8}
 @test !isempty(round_trip_substring)
 
-parse_error = try
-    from_nquads("<https://example/s> <https://example/p> .\n")
-    nothing
-catch error
-    error
+expect_gts_error("julia malformed-nquads-refusal from_nquads", Status.PARSE) do
+    from_nquads(get(ENV, "GTS_WRAPPER_BAD_NQUADS", "<https://example/s> <https://example/p> .\n"))
 end
-@test parse_error isa GtsError
-@test parse_error.status == Status.PARSE
-@test !isempty(parse_error.code)
-@test !isempty(parse_error.detail)
 
 mktempdir() do temp
     source_dir = joinpath(temp, "src")

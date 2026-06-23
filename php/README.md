@@ -38,7 +38,8 @@ Point the wrapper at the library with `GTS_LIBGTS`:
 
 ```sh
 export GTS_LIBGTS="$PWD/rust/capi/target/debug/libgts.so"
-php -d ffi.enable=1 php/tests/smoke.php vectors/01-minimal.gts
+php -d ffi.enable=1 php/tests/smoke.php \
+  vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```
 
 On macOS use `libgts.dylib`; on Windows use `gts.dll`. If `GTS_LIBGTS` is not
