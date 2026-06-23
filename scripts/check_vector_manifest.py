@@ -682,6 +682,17 @@ def build_entries() -> list[dict[str, Any]]:
             f"declared={sorted(resilience_ids)} "
             f"expected={sorted(RESILIENCE_NEGATIVE_TOP_LEVEL)}"
         )
+    excluded_core_negatives = sorted(
+        vector_id
+        for vector_id in resilience_ids
+        if "profile-layout" not in TOP_LEVEL_SUBSETS[vector_id]
+        and not (set(TOP_LEVEL_SUBSETS[vector_id]) & CORE_MANIFEST_SUBSETS)
+    )
+    if excluded_core_negatives:
+        raise ManifestError(
+            "core resilience-negative vector missing core subset: "
+            f"{excluded_core_negatives}"
+        )
 
     json_paths = sorted(
         path for path in VECTORS.glob("*/*.json") if path.parent.name != "tar"
