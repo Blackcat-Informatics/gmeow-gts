@@ -542,7 +542,13 @@ def ratchet_opportunities(
         current_lines = line_counts.get(path)
         if current_lines is None:
             continue
-        target_lines = int(budget.get("target_lines", current_lines))
+        try:
+            target_lines = int(budget["target_lines"])
+        except KeyError:
+            raise SystemExit(
+                "check_quality_budget: "
+                f"{path}: line_budgets entry is missing target_lines"
+            ) from None
         if current_lines > target_lines:
             opportunities.append(
                 (current_lines - target_lines, path, current_lines, target_lines)
@@ -685,6 +691,27 @@ def self_test() -> int:
             print("check_quality_budget: self-test initial scan failed", file=sys.stderr)
             for error in initial_errors:
                 print(error, file=sys.stderr)
+            return 1
+
+        missing_target_baseline = json.loads(json.dumps(baseline))
+        missing_target_baseline["line_budgets"]["ts/src/reader.ts"].pop(
+            "target_lines"
+        )
+        try:
+            ratchet_summary(scan(root), missing_target_baseline)
+        except SystemExit as error:
+            if "missing target_lines" not in str(error):
+                print(
+                    "check_quality_budget: self-test reported wrong missing "
+                    "target_lines error",
+                    file=sys.stderr,
+                )
+                return 1
+        else:
+            print(
+                "check_quality_budget: self-test accepted missing target_lines",
+                file=sys.stderr,
+            )
             return 1
 
         write_text(
