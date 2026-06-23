@@ -1,6 +1,7 @@
 {
   "schema": "https://blackcatinformatics.ca/gts/vector-manifest/v1",
   "manifest_version": 1,
+  "manifest_scope": "aggregate",
   "corpus_revision": "git:repository-commit-containing-manifest",
   "generated_by": "scripts/check_vector_manifest.py --write",
   "vectors": [
@@ -653,8 +654,6 @@
         "writer-determinism"
       ],
       "tiers": [
-        "baseline-reader",
-        "streaming-reader",
         "validating-tool",
         "writer"
       ],
@@ -690,8 +689,6 @@
         "streaming-property"
       ],
       "tiers": [
-        "baseline-reader",
-        "streaming-reader",
         "validating-tool"
       ],
       "expected": {
@@ -769,8 +766,6 @@
         "writer-determinism"
       ],
       "tiers": [
-        "baseline-reader",
-        "streaming-reader",
         "validating-tool",
         "writer"
       ],
@@ -807,8 +802,6 @@
         "writer-determinism"
       ],
       "tiers": [
-        "baseline-reader",
-        "streaming-reader",
         "validating-tool",
         "writer"
       ],
@@ -845,8 +838,6 @@
         "writer-determinism"
       ],
       "tiers": [
-        "baseline-reader",
-        "streaming-reader",
         "validating-tool",
         "writer"
       ],
@@ -884,8 +875,6 @@
         "writer-determinism"
       ],
       "tiers": [
-        "baseline-reader",
-        "streaming-reader",
         "validating-tool",
         "writer"
       ],
@@ -922,8 +911,6 @@
         "streaming-property"
       ],
       "tiers": [
-        "baseline-reader",
-        "streaming-reader",
         "validating-tool"
       ],
       "expected": {
@@ -961,8 +948,6 @@
         "writer-determinism"
       ],
       "tiers": [
-        "baseline-reader",
-        "streaming-reader",
         "validating-tool",
         "writer"
       ],
@@ -2333,7 +2318,7 @@
         "tar-archive"
       ],
       "tiers": [
-        "profile-aware-tool"
+        "transform-tool"
       ],
       "expected": {
         "graph": null,
@@ -2366,7 +2351,7 @@
         "tar-archive"
       ],
       "tiers": [
-        "profile-aware-tool"
+        "transform-tool"
       ],
       "expected": {
         "graph": "vectors/tar/danger-symlink-escape.folded.nq",
@@ -2399,7 +2384,7 @@
         "tar-archive"
       ],
       "tiers": [
-        "profile-aware-tool"
+        "transform-tool"
       ],
       "expected": {
         "graph": null,
@@ -2429,12 +2414,10 @@
         "tar"
       ],
       "subsets": [
-        "tar-archive",
-        "writer-determinism"
+        "tar-archive"
       ],
       "tiers": [
-        "profile-aware-tool",
-        "writer"
+        "transform-tool"
       ],
       "expected": {
         "graph": "vectors/tar/gnu-links.folded.nq",
@@ -2463,12 +2446,10 @@
         "gzip"
       ],
       "subsets": [
-        "tar-archive",
-        "writer-determinism"
+        "tar-archive"
       ],
       "tiers": [
-        "profile-aware-tool",
-        "writer"
+        "transform-tool"
       ],
       "expected": {
         "graph": "vectors/tar/gzip-basic.folded.nq",
@@ -2496,12 +2477,10 @@
         "tar"
       ],
       "subsets": [
-        "tar-archive",
-        "writer-determinism"
+        "tar-archive"
       ],
       "tiers": [
-        "profile-aware-tool",
-        "writer"
+        "transform-tool"
       ],
       "expected": {
         "graph": "vectors/tar/pax-metadata.folded.nq",
@@ -2529,12 +2508,10 @@
         "tar"
       ],
       "subsets": [
-        "tar-archive",
-        "writer-determinism"
+        "tar-archive"
       ],
       "tiers": [
-        "profile-aware-tool",
-        "writer"
+        "transform-tool"
       ],
       "expected": {
         "graph": "vectors/tar/special-nodes.folded.nq",
@@ -2562,12 +2539,10 @@
         "tar"
       ],
       "subsets": [
-        "tar-archive",
-        "writer-determinism"
+        "tar-archive"
       ],
       "tiers": [
-        "profile-aware-tool",
-        "writer"
+        "transform-tool"
       ],
       "expected": {
         "graph": "vectors/tar/ustar-basic.folded.nq",
@@ -2596,12 +2571,10 @@
         "zstd"
       ],
       "subsets": [
-        "tar-archive",
-        "writer-determinism"
+        "tar-archive"
       ],
       "tiers": [
-        "profile-aware-tool",
-        "writer"
+        "transform-tool"
       ],
       "expected": {
         "graph": "vectors/tar/zstd-basic.folded.nq",

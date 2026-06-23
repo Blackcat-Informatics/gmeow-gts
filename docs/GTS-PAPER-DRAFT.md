@@ -188,10 +188,10 @@ The repository contains six engines:
 | Smalltalk/Pharo | Tonel + Metacello source package, Docker `gts` runtime | Pharo engine for the common corpus, CLI, and interop surface. |
 | Kotlin/JVM | Gradle source package and `gts` runtime | JVM engine for the common corpus, CLI, and Java-callable library surface. |
 
-The shared compatibility oracle is the checked-in vector corpus under `vectors/` and the
-portable manifest at `vectors/manifest.json`. Conformance claims name a tier, the corpus
-revision, vector subsets, enabled optional capabilities, and the command or harness that
-produced the evidence.
+The shared compatibility oracle is the checked-in vector corpus under `vectors/` plus the
+aggregate and scoped portable manifests under `vectors/manifest*.json`. Conformance claims name a
+tier, the corpus revision, vector subsets, enabled optional capabilities, and the command or
+harness that produced the evidence.
 
 The relevant tiers for the paper narrative are:
 

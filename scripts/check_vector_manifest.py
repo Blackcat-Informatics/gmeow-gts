@@ -18,9 +18,30 @@ ROOT = Path(__file__).resolve().parents[1]
 ROOT_RESOLVED = ROOT.resolve()
 VECTORS = ROOT / "vectors"
 MANIFEST = VECTORS / "manifest.json"
+MANIFESTS = {
+    "aggregate": MANIFEST,
+    "core": VECTORS / "manifest.core.json",
+    "profiles": VECTORS / "manifest.profiles.json",
+    "transforms": VECTORS / "manifest.transforms.json",
+}
 SCHEMA = "https://blackcatinformatics.ca/gts/vector-manifest/v1"
+GTS_MEDIA_TYPE = "application/vnd.blackcat.gts+cbor-seq"
 DEFAULT_CORPUS_REVISION = "git:repository-commit-containing-manifest"
 FULL_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+CORE_MANIFEST_SUBSETS = {
+    "wire-core",
+    "total-reader",
+    "graph-fold",
+    "writer-determinism",
+}
+PROFILE_MANIFEST_SUBSETS = {
+    "profile-layout",
+    "okf-bundle",
+    "security-policy",
+}
+TRANSFORM_MANIFEST_SUBSETS = {
+    "tar-archive",
+}
 
 VALID_MODES = {
     "permissive-read",
@@ -55,6 +76,7 @@ VALID_TIERS = {
     "writer",
     "validating-tool",
     "profile-aware-tool",
+    "transform-tool",
 }
 RESILIENCE_NEGATIVE_MAX_BYTES = 64 * 1024
 RESILIENCE_NEGATIVE_TOP_LEVEL = frozenset(
@@ -431,19 +453,21 @@ def top_level_entry(vector_id: str) -> dict[str, Any]:
         "streaming-property",
         "corpus-generator-determinism",
     }
-    tiers = {"baseline-reader", "streaming-reader"}
+    tiers: set[str]
+    if "profile-layout" in primary_subsets:
+        tiers = {"validating-tool"}
+    else:
+        tiers = {"baseline-reader", "streaming-reader"}
     if not negative:
         subsets.add("writer-determinism")
         tiers.add("writer")
-    if "profile-layout" in primary_subsets:
-        tiers.add("validating-tool")
 
     return {
         "id": vector_id,
         "title": title_for(vector_id),
         "input": {
             "path": f"vectors/{vector_id}.gts",
-            "media_type": "application/vnd.blackcat.gts+cbor-seq",
+            "media_type": GTS_MEDIA_TYPE,
         },
         "mode": mode,
         "negative": negative,
@@ -577,6 +601,10 @@ def tar_fixture_entry(path: Path) -> dict[str, Any]:
     meta = TAR_FIXTURES[fixture_id]
     expected_path = VECTORS / "tar" / f"{fixture_id}.expected.json"
     expected_data = load_json(expected_path)
+    if expected_data.get("fixture") != fixture_id:
+        raise ManifestError(f"tar-{fixture_id}: tar expected fixture id drift")
+    if expected_data.get("input") != path.name:
+        raise ManifestError(f"tar-{fixture_id}: tar expected input drift")
     negative = bool(meta.get("negative", False))
     graph_path = VECTORS / "tar" / f"{fixture_id}.folded.nq"
     expected: dict[str, Any] = {
@@ -593,10 +621,7 @@ def tar_fixture_entry(path: Path) -> dict[str, Any]:
         capabilities.append("zstd")
 
     subsets = ["tar-archive"]
-    tiers = ["profile-aware-tool"]
-    if not negative:
-        subsets.append("writer-determinism")
-        tiers.append("writer")
+    tiers = ["transform-tool"]
 
     return {
         "id": f"tar-{fixture_id}",
@@ -629,13 +654,22 @@ def okf_concept_document_count(path: Path) -> int:
     return count
 
 
-def build_manifest() -> dict[str, Any]:
+def build_entries() -> list[dict[str, Any]]:
     top_level_ids = sorted(path.stem for path in VECTORS.glob("*.gts"))
     unknown = sorted(set(top_level_ids) - set(TOP_LEVEL_SUBSETS))
     missing = sorted(set(TOP_LEVEL_SUBSETS) - set(top_level_ids))
     if unknown or missing:
         raise ManifestError(
             f"top-level vector metadata drift: unknown={unknown} missing={missing}"
+        )
+    expected_filesystem = sorted(
+        path.name.removesuffix(".expected.json")
+        for path in VECTORS.glob("*.expected.json")
+    )
+    if top_level_ids != expected_filesystem:
+        raise ManifestError(
+            "top-level expected-json coverage drift: "
+            f"vectors={top_level_ids} expected={expected_filesystem}"
         )
     resilience_ids = {
         vector_id
@@ -664,6 +698,15 @@ def build_manifest() -> dict[str, Any]:
         raise ManifestError(
             f"OKF bundle metadata drift: unknown={unknown_okf} missing={missing_okf}"
         )
+    filesystem_okf_expected = sorted(
+        path.name.removesuffix(".folded.nq")
+        for path in (VECTORS / "okf").glob("*.folded.nq")
+    )
+    if sorted(okf_names) != filesystem_okf_expected:
+        raise ManifestError(
+            "OKF folded expectation coverage drift: "
+            f"bundles={sorted(okf_names)} expected={filesystem_okf_expected}"
+        )
 
     tar_paths = tar_fixture_paths()
     tar_inputs = {path.name for path in tar_paths}
@@ -674,15 +717,54 @@ def build_manifest() -> dict[str, Any]:
         raise ManifestError(
             f"tar fixture metadata drift: unknown={unknown_tar} missing={missing_tar}"
         )
+    filesystem_tar_expected = sorted(
+        path.name.removesuffix(".expected.json")
+        for path in (VECTORS / "tar").glob("*.expected.json")
+    )
+    if sorted(TAR_FIXTURES) != filesystem_tar_expected:
+        raise ManifestError(
+            "tar expected-json coverage drift: "
+            f"metadata={sorted(TAR_FIXTURES)} expected={filesystem_tar_expected}"
+        )
 
     entries = [top_level_entry(vector_id) for vector_id in top_level_ids]
     entries.extend(json_fixture_entry(path) for path in json_paths)
     entries.extend(okf_fixture_entry(path) for path in okf_paths)
     entries.extend(tar_fixture_entry(path) for path in tar_paths)
     entries.sort(key=lambda item: item["input"]["path"])
+    return entries
+
+
+def entry_in_manifest_scope(entry: dict[str, Any], scope: str) -> bool:
+    if scope == "aggregate":
+        return True
+
+    subsets = set(entry["subsets"])
+    if scope == "core":
+        return (
+            entry["input"]["media_type"] == GTS_MEDIA_TYPE
+            and "profile-layout" not in subsets
+            and bool(subsets & CORE_MANIFEST_SUBSETS)
+        )
+    if scope == "profiles":
+        return bool(subsets & PROFILE_MANIFEST_SUBSETS)
+    if scope == "transforms":
+        return bool(subsets & TRANSFORM_MANIFEST_SUBSETS)
+    raise ManifestError(f"unknown manifest scope: {scope}")
+
+
+def build_manifest(scope: str = "aggregate") -> dict[str, Any]:
+    if scope not in MANIFESTS:
+        raise ManifestError(f"unknown manifest scope: {scope}")
+    entries = [
+        entry for entry in build_entries() if entry_in_manifest_scope(entry, scope)
+    ]
+    if not entries:
+        raise ManifestError(f"{scope} manifest would be empty")
     return {
         "schema": SCHEMA,
         "manifest_version": 1,
+        "manifest_scope": scope,
         "corpus_revision": DEFAULT_CORPUS_REVISION,
         "generated_by": "scripts/check_vector_manifest.py --write",
         "vectors": entries,
@@ -760,7 +842,7 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
     require(
         input_info.get("media_type")
         in {
-            "application/vnd.blackcat.gts+cbor-seq",
+            GTS_MEDIA_TYPE,
             "application/json",
             OKF_MEDIA_TYPE,
             *TAR_MEDIA_TYPES.values(),
@@ -797,7 +879,7 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
     if "resilience-negative" in subsets:
         rest = input_path.removeprefix("vectors/")
         is_top_level_gts = (
-            media_type == "application/vnd.blackcat.gts+cbor-seq"
+            media_type == GTS_MEDIA_TYPE
             and input_path.startswith("vectors/")
             and "/" not in rest
             and input_path.endswith(".gts")
@@ -814,10 +896,16 @@ def validate_entry(entry: Any, ids: set[str]) -> None:
             vector_id in RESILIENCE_NEGATIVE_TOP_LEVEL,
             f"{vector_id}: unexpected resilience-negative vector",
         )
-        require(
-            {"baseline-reader", "streaming-reader"} <= tiers,
-            f"{vector_id}: resilience-negative vectors must exercise reader tiers",
-        )
+        if "profile-layout" in subsets:
+            require(
+                "validating-tool" in tiers,
+                f"{vector_id}: profile resilience-negative vectors must exercise validating tools",
+            )
+        else:
+            require(
+                {"baseline-reader", "streaming-reader"} <= tiers,
+                f"{vector_id}: resilience-negative vectors must exercise reader tiers",
+            )
         require(
             {"streaming-property", "corpus-generator-determinism"} <= subsets,
             f"{vector_id}: resilience-negative vectors must use shared top-level gates",
@@ -861,10 +949,19 @@ def require_generated_metadata(entry: dict[str, Any], expected: dict[str, Any]) 
         )
 
 
-def validate_manifest(manifest: Any, *, require_release_revision: bool = False) -> None:
+def validate_manifest(
+    manifest: Any,
+    *,
+    require_release_revision: bool = False,
+    expected_scope: str | None = None,
+) -> None:
     require(isinstance(manifest, dict), "manifest must be a JSON object")
     require(manifest.get("schema") == SCHEMA, "manifest schema mismatch")
     require(manifest.get("manifest_version") == 1, "manifest_version must be 1")
+    scope = manifest.get("manifest_scope", "aggregate")
+    require(scope in MANIFESTS, "manifest_scope must name a committed manifest scope")
+    if expected_scope is not None:
+        require(scope == expected_scope, f"manifest_scope must be {expected_scope}")
     require_corpus_revision(
         manifest.get("corpus_revision"),
         require_release_revision=require_release_revision,
@@ -877,158 +974,21 @@ def validate_manifest(manifest: Any, *, require_release_revision: bool = False) 
     for entry in vectors:
         validate_entry(entry, ids)
 
-    top_level_entries = [
-        entry for entry in vectors if entry["input"]["path"].startswith("vectors/")
-        and "/" not in entry["input"]["path"][len("vectors/") :]
-        and entry["input"]["path"].endswith(".gts")
-    ]
-    manifest_top_level = sorted(entry["id"] for entry in top_level_entries)
-    filesystem_top_level = sorted(path.stem for path in VECTORS.glob("*.gts"))
+    expected_manifest = build_manifest(scope)
     require(
-        manifest_top_level == filesystem_top_level,
-        "manifest top-level .gts coverage drift: "
-        f"manifest={manifest_top_level} filesystem={filesystem_top_level}",
+        manifest.get("generated_by") == expected_manifest["generated_by"],
+        f"{scope} manifest generated_by drift",
     )
-    expected_filesystem = sorted(
-        path.name.removesuffix(".expected.json")
-        for path in VECTORS.glob("*.expected.json")
-    )
+    manifest_ids = [entry["id"] for entry in vectors]
+    expected_ids = [entry["id"] for entry in expected_manifest["vectors"]]
     require(
-        manifest_top_level == expected_filesystem,
-        "manifest top-level expected-json coverage drift: "
-        f"manifest={manifest_top_level} filesystem={expected_filesystem}",
+        manifest_ids == expected_ids,
+        f"{scope} manifest vector coverage drift: "
+        f"manifest={manifest_ids} generated={expected_ids}",
     )
-
-    for entry in top_level_entries:
-        vector_id = entry["id"]
-        require(
-            entry["input"]["path"] == f"vectors/{vector_id}.gts",
-            f"{vector_id}: top-level input path must match id",
-        )
-        require(
-            entry["expected"]["graph"] == f"vectors/{vector_id}.expected.json",
-            f"{vector_id}: top-level expected graph path must match id",
-        )
-        expected = load_json(VECTORS / f"{vector_id}.expected.json")
-        expected_mode = "pre-segment" if expected["mode"] == "pre-segment" else "permissive-read"
-        require(entry["mode"] == expected_mode, f"{vector_id}: manifest/read mode mismatch")
-        require(
-            entry["expected"]["diagnostics"] == expected["diagnostics"],
-            f"{vector_id}: diagnostics drift from expected JSON",
-        )
-        segment_heads = expected["segment_heads"]
-        require(
-            entry["expected"].get("segment_heads") == segment_heads,
-            f"{vector_id}: segment_heads drift from expected JSON",
-        )
-        require(
-            entry["expected"]["expected_head"] == (segment_heads[-1] if segment_heads else None),
-            f"{vector_id}: expected_head drift from expected JSON",
-        )
-        require(
-            "streaming-property" in entry["subsets"],
-            f"{vector_id}: top-level vectors must declare streaming-property",
-        )
-        require(
-            "corpus-generator-determinism" in entry["subsets"],
-            f"{vector_id}: top-level vectors must declare corpus-generator-determinism",
-        )
-        require_generated_metadata(entry, top_level_entry(vector_id))
-
-    manifest_json_paths = sorted(
-        entry["input"]["path"]
-        for entry in vectors
-        if entry["input"]["path"].startswith("vectors/")
-        and "/" in entry["input"]["path"][len("vectors/") :]
-        and entry["input"]["path"].endswith(".json")
-    )
-    filesystem_json_paths = sorted(
-        rel(path) for path in VECTORS.glob("*/*.json") if path.parent.name != "tar"
-    )
-    require(
-        manifest_json_paths == filesystem_json_paths,
-        "manifest JSON subcorpus coverage drift: "
-        f"manifest={manifest_json_paths} filesystem={filesystem_json_paths}",
-    )
+    expected_entries = {entry["id"]: entry for entry in expected_manifest["vectors"]}
     for entry in vectors:
-        input_path = entry["input"]["path"]
-        if not input_path.endswith(".json") or "/" not in input_path[len("vectors/") :]:
-            continue
-        fixture_path = repo_path(input_path, "input.path", entry["id"])
-        subdir = fixture_path.parent.name
-        require(
-            subdir in JSON_SUBCORPUS,
-            f"{entry['id']}: JSON subcorpus metadata missing for {subdir}",
-        )
-        require_generated_metadata(entry, json_fixture_entry(fixture_path))
-
-    okf_entries = [
-        entry for entry in vectors if entry["input"]["media_type"] == OKF_MEDIA_TYPE
-    ]
-    manifest_okf = sorted(entry["id"].removeprefix("okf-") for entry in okf_entries)
-    filesystem_okf = sorted(path.name for path in okf_bundle_dirs())
-    require(
-        manifest_okf == filesystem_okf,
-        "manifest OKF bundle coverage drift: "
-        f"manifest={manifest_okf} filesystem={filesystem_okf}",
-    )
-    filesystem_okf_expected = sorted(
-        path.name.removesuffix(".folded.nq")
-        for path in (VECTORS / "okf").glob("*.folded.nq")
-    )
-    require(
-        filesystem_okf == filesystem_okf_expected,
-        "manifest OKF folded expectation coverage drift: "
-        f"bundles={filesystem_okf} expected={filesystem_okf_expected}",
-    )
-    for entry in okf_entries:
-        fixture_id = entry["id"].removeprefix("okf-")
-        require(fixture_id in OKF_BUNDLES, f"{entry['id']}: OKF metadata missing")
-        require_generated_metadata(entry, okf_fixture_entry(VECTORS / "okf" / fixture_id))
-
-    tar_entries = [
-        entry for entry in vectors if entry["input"]["media_type"] in TAR_MEDIA_TYPES.values()
-    ]
-    manifest_tar = sorted(Path(entry["input"]["path"]).name for entry in tar_entries)
-    filesystem_tar = sorted(path.name for path in tar_fixture_paths())
-    require(
-        manifest_tar == filesystem_tar,
-        "manifest tar fixture coverage drift: "
-        f"manifest={manifest_tar} filesystem={filesystem_tar}",
-    )
-    filesystem_tar_expected = sorted(
-        path.name.removesuffix(".expected.json")
-        for path in (VECTORS / "tar").glob("*.expected.json")
-    )
-    require(
-        sorted(TAR_FIXTURES) == filesystem_tar_expected,
-        "manifest tar expected-json coverage drift: "
-        f"metadata={sorted(TAR_FIXTURES)} expected={filesystem_tar_expected}",
-    )
-    for entry in tar_entries:
-        fixture_path = repo_path(entry["input"]["path"], "input.path", entry["id"])
-        fixture_id = entry["id"].removeprefix("tar-")
-        require(fixture_id in TAR_FIXTURES, f"{entry['id']}: tar metadata missing")
-        expected_json = VECTORS / "tar" / f"{fixture_id}.expected.json"
-        require(expected_json.is_file(), f"{entry['id']}: missing tar expected JSON")
-        expected_data = load_json(expected_json)
-        require(
-            expected_data.get("fixture") == fixture_id,
-            f"{entry['id']}: tar expected fixture id drift",
-        )
-        require(
-            expected_data.get("input") == fixture_path.name,
-            f"{entry['id']}: tar expected input drift",
-        )
-        graph_path = VECTORS / "tar" / f"{fixture_id}.folded.nq"
-        if entry["expected"]["graph"] is None:
-            require(
-                not graph_path.exists(),
-                f"{entry['id']}: folded graph exists but manifest expected.graph is null",
-            )
-        else:
-            require(graph_path.is_file(), f"{entry['id']}: missing tar folded graph")
-        require_generated_metadata(entry, tar_fixture_entry(fixture_path))
+        require_generated_metadata(entry, expected_entries[entry["id"]])
 
 
 def expect_invalid(
@@ -1047,6 +1007,23 @@ def expect_invalid(
 
 def mutated_manifest() -> dict[str, Any]:
     return deepcopy(build_manifest())
+
+
+def load_committed_manifest(scope: str) -> dict[str, Any]:
+    path = MANIFESTS[scope]
+    if not path.is_file():
+        raise ManifestError(f"missing {rel(path)}")
+    manifest = load_json(path)
+    validate_manifest(manifest, expected_scope=scope)
+    return manifest
+
+
+def write_manifest(scope: str) -> None:
+    path = MANIFESTS[scope]
+    path.write_text(
+        json.dumps(build_manifest(scope), indent=2, sort_keys=False) + "\n",
+        encoding="utf-8",
+    )
 
 
 def run_self_tests() -> None:
@@ -1167,7 +1144,7 @@ def main() -> int:
     parser.add_argument(
         "--write",
         action="store_true",
-        help="rewrite vectors/manifest.json from the current corpus files",
+        help="rewrite committed vector manifests from the current corpus files",
     )
     parser.add_argument(
         "--corpus-revision",
@@ -1195,15 +1172,11 @@ def main() -> int:
         if args.self_test:
             run_self_tests()
         if args.write:
-            manifest = build_manifest()
-            MANIFEST.write_text(
-                json.dumps(manifest, indent=2, sort_keys=False) + "\n",
-                encoding="utf-8",
-            )
-        else:
-            if not MANIFEST.is_file():
-                raise ManifestError(f"missing {rel(MANIFEST)}")
-            manifest = load_json(MANIFEST)
+            for scope in MANIFESTS:
+                write_manifest(scope)
+
+        manifests = {scope: load_committed_manifest(scope) for scope in MANIFESTS}
+        manifest = deepcopy(manifests["aggregate"])
         require_release_revision = (
             args.corpus_revision is not None or args.release_manifest is not None
         )
@@ -1212,7 +1185,11 @@ def main() -> int:
         elif args.release_manifest is not None:
             manifest["corpus_revision"] = current_head_revision()
 
-        validate_manifest(manifest, require_release_revision=require_release_revision)
+        validate_manifest(
+            manifest,
+            require_release_revision=require_release_revision,
+            expected_scope="aggregate",
+        )
 
         if args.release_manifest is not None:
             args.release_manifest.parent.mkdir(parents=True, exist_ok=True)

@@ -39,6 +39,8 @@ used by tier claims:
 | `total-reader` | `03-unknown-codec`, `04-damaged-frame`, `05-torn-append`, `17-pre-segment-hard-fail`, `19-profile-union-opacity`, `28-empty-file`, `28b-non-header-item`, `28c-unsupported-version`, `28d-unknown-frame-type`, `28e-forward-term-reference`, `28f-malformed-transform-shape`, `28g-damaged-compressed-payload`, `28h-malformed-security-metadata` | Graceful degradation, diagnostics, opaque nodes, torn input, malformed/boundary behavior, unsupported headers, damaged compressed payloads, malformed security metadata, and extension-frame opacity. |
 | `graph-fold` | `09-suppression`, `11-datatype-defaulting`, `12-conflicting-reifier`, `13-position-constraint`, `14-bnode-label`, `15-two-segment-union`, `15b-anon-bnode-union`, `16-composed-round-trip`, `18-cross-segment-suppression`, `22-inline-blob` | Core graph fold, value equality, annotations/reifiers, suppressions, blobs, and multi-segment union. |
 | `profile-layout` | `20-language-tag-discipline`, `21-degenerate-composition`, `23-files-profile-tree`, `24-files-profile-dedup`, `25-streamable-source`, `25b-streamable-compacted`, `26-streamable-lie`, `27-streamable-tail` | Profile conventions, archive/files profile behavior, streamable layout, compaction, and publication-tool refusal cases. The live `scripts/interop.sh` guard adds cross-engine `files` pack/unpack/diff command evidence for this subset. |
+| `okf-bundle` | `vectors/okf/*` Markdown bundle directories | OKF profile import fixtures, folded graph expectations, and unmapped sidecar behavior for profile-aware tools. |
+| `tar-archive` | `vectors/tar/*.tar`, `vectors/tar/*.tar.gz`, `vectors/tar/*.tar.zst` | Tar import/export transform fixtures, including positive archive projections and unsafe archive refusal cases. |
 | `resilience-negative` | `03-unknown-codec`, `04-damaged-frame`, `05-torn-append`, `06-header-tampered`, `17-pre-segment-hard-fail`, `19-profile-union-opacity`, `21-degenerate-composition`, `26-streamable-lie`, `28-empty-file`, `28b-non-header-item`, `28c-unsupported-version`, `28d-unknown-frame-type`, `28e-forward-term-reference`, `28f-malformed-transform-shape`, `28g-damaged-compressed-payload`, `28h-malformed-security-metadata` | Audit overlay for adversarial top-level inputs: truncated CBOR, damaged frames, damaged compression, bad segment boundaries, malformed transform/profile/security metadata, empty/non-header input, and bounded-size refusal/diagnostic behavior. |
 | `streaming-property` | every top-level `vectors/*.gts`, tested at each CBOR item boundary | Prefix-fold totality and monotone fold growth for streaming readers. |
 | `corpus-generator-determinism` | every top-level `vectors/*.gts` | Reference generator reproducibility for the frozen corpus, including intentionally damaged, torn, tampered, and malformed fixtures. This proves corpus-build repeatability, not public Writer conformance. |
@@ -52,8 +54,14 @@ used by tier claims:
 | `advanced-index-proof` | `vectors/proofs/*.json` plus implementation-created indexed files | Stable MMR preimages, detached inclusion-proof JSON verification, bad-proof rejection, and optional `index.mmr` reader diagnostics. |
 
 A tier MAY require a subset plus extra mode-specific assertions. For example,
-`profile-layout` contains files that permissive readers fold, while validating tools must also
-refuse specific publish-class or verify-class violations.
+`profile-layout` contains files that permissive readers can fold as local GTS bytes, while
+validating tools must also refuse specific publish-class or verify-class violations.
+
+The committed scoped manifests group these subsets by conformance surface:
+`vectors/manifest.core.json` contains the core wire-format reader/writer corpus,
+`vectors/manifest.profiles.json` contains profile and profile-policy fixtures,
+`vectors/manifest.transforms.json` contains transform/tool fixtures, and
+`vectors/manifest.json` remains the aggregate manifest for repository-wide checks.
 
 The `resilience-negative` subset is an audit overlay, not a separate tier. Every entry is a
 top-level GTS vector, is marked negative, is kept within a bounded committed byte size, and has a
@@ -67,12 +75,13 @@ profile-aware trust-policy and nested-GTS recursion assertions.
 
 | tier | required subsets and checks | claim string |
 |---|---|---|
-| Baseline Reader | `wire-core`, `total-reader`, `graph-fold`, `profile-layout`, and their `resilience-negative` overlay in permissive-read mode; expected graph JSON matches; diagnostics match; malformed inputs never panic or abort the process. | `GTS Baseline Reader, corpus <commit>` |
+| Baseline Reader | `wire-core`, `total-reader`, `graph-fold`, and their core `resilience-negative` overlay in permissive-read mode; expected graph JSON matches; diagnostics match; malformed inputs never panic or abort the process. | `GTS Baseline Reader, corpus <commit>` |
 | Streaming Reader | Baseline Reader plus `streaming-property`; implementation exposes a non-materializing sink API that emits segment-local fold events while preserving final diagnostics and segment heads. Retained memory is expected to be bounded by `O(distinct terms + maximum decoded frame size + validation sidecar state)`, not folded triples or blobs. | `GTS Streaming Reader, corpus <commit>` |
 | Full Reader | Baseline Reader plus implemented optional subsets, at minimum `crypto-cose` for signature verification if claiming signature support, `crypto-encrypt` if claiming decrypt support, `security-policy` when claiming nested-GTS recursion, and index/MMR behavior when present. | `GTS Full Reader (<capabilities>), corpus <commit>` |
 | Writer | Emitted bytes are deterministic where the spec requires deterministic output, and writer-created files pass Baseline Reader expectations. Reproducible generation of intentionally invalid corpus fixtures is covered by `corpus-generator-determinism` and does not imply public Writer conformance. | `GTS Writer, corpus <commit>` |
 | Validating Tool | Baseline Reader plus strict verify and publish-class verify modes (§7); `profile-layout` refusal vectors produce the required non-zero/refusal outcomes. | `GTS Validating Tool, corpus <commit>` |
 | Profile-Aware Tool | Validating Tool plus the named profile validator; profile-specific diagnostics and warnings match the profile contract. | `GTS Profile-Aware Tool (<profile>), corpus <commit>` |
+| Transform Tool | The named transform or archive operation round-trips or refuses fixtures according to its profile/tool contract without claiming core Writer determinism. | `GTS Transform Tool (<transform>), corpus <commit>` |
 
 Within this repository, Go, Rust, and TypeScript currently claim the Streaming Reader tier for
 specific sink APIs. Go uses `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)`. Rust uses
@@ -91,8 +100,8 @@ memory evidence matching the bound above.
 
 A tool can claim multiple tiers. A command-line package that exposes `read`, `verify`,
 `compact`, and `files` archive commands might claim Baseline Reader, Writer, Validating Tool,
-and Profile-Aware Tool (`files`), while not claiming Full Reader if it cannot decrypt or
-recurse into nested GTS blobs.
+Profile-Aware Tool (`files`), and Transform Tool (`tar`), while not claiming Full Reader if it
+cannot decrypt or recurse into nested GTS blobs.
 The cross-language API and command matrix for those public surfaces is maintained in
 [`GTS-API-CLI-PARITY.md`](./GTS-API-CLI-PARITY.md).
 The advanced streaming sink, index/MMR/proof, replication, range-fetch, and benchmark deferrals
@@ -145,15 +154,24 @@ Field semantics:
 
 ## 5. Vector Manifest Schema
 
-The repository commits `vectors/manifest.json` as the portable manifest for the frozen corpus.
-It makes the former file-pair convention explicit for top-level byte vectors and names the JSON
-subcorpora used by optional crypto, human-hash, OpenPGP, signed, and security-policy checks.
-The manifest uses this shape:
+The repository commits portable manifests for the frozen corpus:
+
+- `vectors/manifest.core.json`: core wire-format reader/writer vectors for Baseline Reader,
+  Streaming Reader, and core Writer claims.
+- `vectors/manifest.profiles.json`: profile-layout, OKF bundle, and security-policy fixtures for
+  validating and profile-aware tools.
+- `vectors/manifest.transforms.json`: tar archive transform/tool fixtures.
+- `vectors/manifest.json`: aggregate manifest used by repository-wide checks and release reports.
+
+These manifests make the former file-pair convention explicit for top-level byte vectors and name
+the JSON subcorpora used by optional crypto, human-hash, OpenPGP, signed, profile, and security
+checks. Each manifest uses this shape:
 
 ```json
 {
   "schema": "https://blackcatinformatics.ca/gts/vector-manifest/v1",
   "manifest_version": 1,
+  "manifest_scope": "core",
   "corpus_revision": "git:<commit>",
   "generated_by": "gts.vectors",
   "vectors": [
@@ -181,9 +199,9 @@ The manifest uses this shape:
 }
 ```
 
-The checked-in manifest uses
+The checked-in manifests use
 `"corpus_revision": "git:repository-commit-containing-manifest"` as a deliberate placeholder.
-That placeholder avoids a self-referential commit hash in the file that contains the hash. It
+That placeholder avoids self-referential commit hashes in the files that contain the hash. It
 is valid for repository validation, but it is not a release conformance identifier.
 
 Release candidates and third-party conformance reports MUST replace the placeholder at report
@@ -200,7 +218,12 @@ That command validates the corpus and writes a copy of the manifest whose `corpu
 names the current `HEAD` commit. To stamp a release tag or an explicit commit instead, pass
 `--corpus-revision git:<tag-or-full-commit>`. The plain
 `python scripts/check_vector_manifest.py` command continues to validate the checked-in
-placeholder manifest.
+placeholder manifests. `python scripts/check_vector_manifest.py --write` rewrites all committed
+manifests from the fixture tree.
+
+Required top-level manifest fields are `schema`, `manifest_version`, `manifest_scope`,
+`corpus_revision`, `generated_by`, and `vectors`. `manifest_scope` is one of `aggregate`, `core`,
+`profiles`, or `transforms`.
 
 Required vector fields:
 
@@ -264,7 +287,7 @@ profile namespace or document the code in the profile specification.
 
 | mode | purpose | behavior | test evidence |
 |---|---|---|---|
-| `permissive-read` | Library read/fold for consumers that want the best recoverable graph. | Never panic on malformed corpus inputs; return graph state plus diagnostics/opaque nodes; diagnostics do not prevent returning a result. | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` as folded graph expectations. |
+| `permissive-read` | Library read/fold for consumers that want the best recoverable graph. | Never panic on malformed corpus inputs; return graph state plus diagnostics/opaque nodes; diagnostics do not prevent returning a result. | `wire-core`, `total-reader`, and `graph-fold` as core folded graph expectations; `profile-layout` as profile/tool evidence. |
 | `strict-verify` | Transport verifier for chain/hash/layout/signature checks requested by the caller. | Exit/fail on any error or fatal diagnostic; MAY permit documented warnings such as unsupported profiles if the mode declares them warnings. | CLI `verify` tests, `04`, `05`, `06`, `17`, `26`, signed/head tests. |
 | `publish-verify` | Publication and rewrite gate for commands that create or distribute artifacts. | Refuse structurally valid but policy-invalid artifacts, such as empty-fold composition, suppress-everything composition, streamable lies, unsafe extraction, or non-reproducible compaction. | `21-degenerate-composition`, `22-inline-blob`, `25b-streamable-compacted`, `26-streamable-lie`. |
 | `profile-verify` | Profile-aware validation above core wire-format validity. | Apply profile vocabulary, capability, trust, layout, and archive rules without redefining core GTS validity. | `19-profile-union-opacity`, `20-language-tag-discipline`, `23-files-profile-tree`, `24-files-profile-dedup`, `25`-`27`. |

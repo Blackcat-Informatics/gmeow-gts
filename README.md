@@ -636,8 +636,8 @@ cd python && uv run python scripts/gen_vectors.py
 git diff --exit-code vectors        # no changes ⇒ reproducible
 ```
 
-Validate the committed manifest metadata and validator guards without stamping a release
-revision:
+Validate the committed aggregate/scoped manifest metadata and validator guards without stamping
+a release revision:
 
 ```bash
 just check-vector-manifest
@@ -650,12 +650,12 @@ Current CI-gated conformance status:
 
 | Engine | Baseline Reader | Streaming / Prefix Evidence | Writer | Validating Tool | Profile-Aware Tool |
 |---|---|---|---|---|---|
-| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `read_to_sink_from_reader` non-materializing sink API plus corpus equivalence and memory-helper gate | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Rust | `wire-core`, `total-reader`, `graph-fold` | `read_to_sink_from_reader` non-materializing sink API plus corpus equivalence and memory-helper gate | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser `foldStreamToSink` non-materializing sink API plus corpus equivalence and memory-helper gate; `foldStream` remains graph-returning | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| Smalltalk/Pharo | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` via SUnit top-level corpus | streamable layout checks and interop evidence; no non-materializing Streaming Reader claim | deterministic writer, `from-nq`, compact oracle `25b`, and files pack byte identity | CLI verify diagnostics plus COSE/MMR/OpenPGP vector tests | files profile pack/unpack/diff in interop |
-| Kotlin/JVM | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` via Gradle tests | streamable layout checks and interop evidence; no non-materializing Streaming Reader claim | deterministic writer, `from-nq`, compact oracle `25b`, and files pack byte identity | CLI verify diagnostics plus COSE/MMR/OpenPGP vector tests | files profile pack/unpack/diff in interop |
+| Go | `wire-core`, `total-reader`, `graph-fold` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| TypeScript | `wire-core`, `total-reader`, `graph-fold` | browser `foldStreamToSink` non-materializing sink API plus corpus equivalence and memory-helper gate; `foldStream` remains graph-returning | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Smalltalk/Pharo | `wire-core`, `total-reader`, `graph-fold` via SUnit top-level corpus | streamable layout checks and interop evidence; no non-materializing Streaming Reader claim | deterministic writer, `from-nq`, compact oracle `25b`, and files pack byte identity | CLI verify diagnostics plus COSE/MMR/OpenPGP vector tests | files profile pack/unpack/diff in interop |
+| Kotlin/JVM | `wire-core`, `total-reader`, `graph-fold` via Gradle tests | streamable layout checks and interop evidence; no non-materializing Streaming Reader claim | deterministic writer, `from-nq`, compact oracle `25b`, and files pack byte identity | CLI verify diagnostics plus COSE/MMR/OpenPGP vector tests | files profile pack/unpack/diff in interop |
 
 ## Repository layout
 
