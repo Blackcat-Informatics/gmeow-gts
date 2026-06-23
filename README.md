@@ -682,7 +682,15 @@ bash julia/scripts/smoke.sh                           # Julia wrapper
 
 Or use the [`justfile`](./justfile): `just test` (all engines), `just lint`, `just fmt`,
 `just gen-vectors`, `just check-vector-manifest`, `just interop`, `just fuzz-rust` /
-`just fuzz-go`, `just audit`, `just wasm`.
+`just fuzz-go`, `just property-py`, `just property-ts`, `just audit`, `just wasm`.
+
+The property jobs use bounded defaults on pull requests and larger scheduled budgets.
+Replay those local equivalents with:
+
+```bash
+cd python && GTS_PROPERTY_EXAMPLES=300 uv run pytest tests/test_properties.py
+cd ts && GTS_PROPERTY_RUNS=500 GTS_PROPERTY_SEED=20260623 npm run test:property
+```
 
 Repo-wide hygiene (formatting, SPDX/REUSE headers, YAML/Markdown/shell, secrets) runs through
 `pre-commit run --all-files`. CI runs Rust, Python, Go, and TypeScript on Linux, macOS,
