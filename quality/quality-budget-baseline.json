@@ -13,8 +13,8 @@
       "target_lines": 754
     },
     "rust/src/bin/gts.rs": {
-      "max_lines": 2951,
-      "target_lines": 2655
+      "max_lines": 2311,
+      "target_lines": 2079
     },
     "rust/src/reader.rs": {
       "max_lines": 2087,
@@ -61,7 +61,7 @@
         "lua/gmeow/gts.lua": 3,
         "php/src/Gts.php": 2,
         "rust/capi/src/lib.rs": 38,
-        "rust/src/bin/gts.rs": 6,
+        "rust/src/bin/gts.rs": 2,
         "rust/src/codec.rs": 7,
         "rust/src/cose.rs": 2,
         "rust/src/db.rs": 2,
@@ -96,9 +96,9 @@
         "smalltalk/src/Gts-Core/GtsWriter.class.st": 4,
         "smalltalk/src/Gts-Core/GtsZstd.class.st": 3
       },
-      "max_total": 270
+      "max_total": 266
     }
   },
-  "production_file_count": 183,
+  "production_file_count": 184,
   "version": 1
 }
