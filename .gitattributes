@@ -11,6 +11,7 @@ rust/Cargo.lock linguist-generated=true -diff
 go/go.sum linguist-generated=true -diff
 
 # YAML and copied upstream license text require space indentation.
+.pre-commit-config.yaml whitespace=trailing-space,space-before-tab
 .github/workflows/*.yml whitespace=trailing-space,space-before-tab
 .github/workflows/*.yaml whitespace=trailing-space,space-before-tab
 quality/*.json whitespace=trailing-space,space-before-tab

@@ -49,7 +49,12 @@ def repo_path(value: str) -> Path:
 
 
 def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ApiParityError(f"cannot read {rel(path)}: {exc.strerror}") from exc
+    except UnicodeDecodeError as exc:
+        raise ApiParityError(f"{rel(path)} is not valid UTF-8: {exc}") from exc
 
 
 def between(text: str, start: str, end: str) -> str:
@@ -155,14 +160,22 @@ def expect_list(value: Any, label: str) -> list[Any]:
 
 
 def python_all_symbols(path: Path) -> set[str]:
-    module = ast.parse(read_text(path), filename=rel(path))
+    try:
+        module = ast.parse(read_text(path), filename=rel(path))
+    except SyntaxError as exc:
+        raise ApiParityError(
+            f"{rel(path)} is not valid Python: {exc.msg} at line {exc.lineno}"
+        ) from exc
     for node in module.body:
         if not isinstance(node, ast.Assign):
             continue
-        if not any(isinstance(target, ast.Name) and target.id == "__all__" for target in node.targets):
+        if not any(
+            isinstance(target, ast.Name) and target.id == "__all__"
+            for target in node.targets
+        ):
             continue
-        if not isinstance(node.value, ast.List):
-            raise ApiParityError(f"{rel(path)} __all__ must be a list literal")
+        if not isinstance(node.value, ast.List | ast.Tuple):
+            raise ApiParityError(f"{rel(path)} __all__ must be a list or tuple literal")
         symbols = set()
         for elt in node.value.elts:
             if not isinstance(elt, ast.Constant) or not isinstance(elt.value, str):
@@ -232,7 +245,17 @@ def check_smalltalk_class(item: Mapping[str, Any], label: str) -> list[str]:
 
 def check_kotlin_file(item: Mapping[str, Any], label: str) -> list[str]:
     filename = expect_string(item.get("file"), f"{label}.file")
-    path = ROOT / "kotlin" / "src" / "main" / "kotlin" / "ca" / "blackcatinformatics" / "gts" / filename
+    path = (
+        ROOT
+        / "kotlin"
+        / "src"
+        / "main"
+        / "kotlin"
+        / "ca"
+        / "blackcatinformatics"
+        / "gts"
+        / filename
+    )
     if not path.is_file():
         return [f"{label}: missing Kotlin file {rel(path)}"]
     return []
@@ -289,7 +312,9 @@ def validate_api_shape(declaration: Mapping[str, Any], errors: list[str]) -> Non
         if doc_row["contract"] != expected_contract:
             errors.append(f"{operation}: API contract text drifted from declaration")
         if doc_row["current native surface"] != expected_surface:
-            errors.append(f"{operation}: API native surface text drifted from declaration")
+            errors.append(
+                f"{operation}: API native surface text drifted from declaration"
+            )
 
 
 def validate_feature_matrix(declaration: Mapping[str, Any], errors: list[str]) -> None:
@@ -301,7 +326,9 @@ def validate_feature_matrix(declaration: Mapping[str, Any], errors: list[str]) -
     declared: dict[str, Mapping[str, Any]] = {}
     for index, raw_row in enumerate(declared_rows):
         row = expect_mapping(raw_row, f"readme_feature_matrix[{index}]")
-        capability = expect_string(row.get("capability"), f"feature[{index}].capability")
+        capability = expect_string(
+            row.get("capability"), f"feature[{index}].capability"
+        )
         if capability in declared:
             errors.append(f"feature matrix declares {capability!r} more than once")
         declared[capability] = row
@@ -326,7 +353,9 @@ def validate_feature_matrix(declaration: Mapping[str, Any], errors: list[str]) -
             errors.append(f"{capability}: claims must declare exactly {list(ENGINES)}")
             continue
         for engine in ENGINES:
-            expected_cell = expect_string(cells.get(engine), f"{capability}.{engine}.cell")
+            expected_cell = expect_string(
+                cells.get(engine), f"{capability}.{engine}.cell"
+            )
             actual_cell = readme_rows[capability][engine]
             if actual_cell != expected_cell:
                 errors.append(
@@ -337,13 +366,17 @@ def validate_feature_matrix(declaration: Mapping[str, Any], errors: list[str]) -
             status = expect_string(claim.get("status"), f"{capability}.{engine}.status")
             if status == "supported":
                 if expected_cell == "no":
-                    errors.append(f"{capability}: {engine} is supported but README says no")
+                    errors.append(
+                        f"{capability}: {engine} is supported but README says no"
+                    )
                 evidence_items = expect_list(
                     claim.get("evidence"),
                     f"{capability}.{engine}.evidence",
                 )
                 if not evidence_items:
-                    errors.append(f"{capability}: {engine} supported claim lacks evidence")
+                    errors.append(
+                        f"{capability}: {engine} supported claim lacks evidence"
+                    )
                 for evidence_index, evidence in enumerate(evidence_items):
                     errors.extend(
                         check_evidence(
@@ -371,7 +404,9 @@ def validate_schema(declaration: Mapping[str, Any], errors: list[str]) -> None:
     if not isinstance(full_engines, list) or tuple(full_engines) != ENGINES:
         errors.append(f"full_engines must be {list(ENGINES)}")
     wrappers = declaration.get("wrapper_surfaces")
-    if not isinstance(wrappers, list) or not all(isinstance(item, str) for item in wrappers):
+    if not isinstance(wrappers, list) or not all(
+        isinstance(item, str) for item in wrappers
+    ):
         errors.append("wrapper_surfaces must be a list of strings")
         return
     overlap = sorted(set(wrappers) & set(ENGINES))
