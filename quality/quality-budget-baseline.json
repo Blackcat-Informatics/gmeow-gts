@@ -17,8 +17,8 @@
       "target_lines": 2079
     },
     "rust/src/reader.rs": {
-      "max_lines": 1722,
-      "target_lines": 1549
+      "max_lines": 1719,
+      "target_lines": 1547
     },
     "ts/src/browser.ts": {
       "max_lines": 1821,
@@ -62,7 +62,6 @@
         "rust/src/openpgp.rs": 2,
         "rust/src/rdf.rs": 1,
         "rust/src/rdf_xml.rs": 2,
-        "rust/src/reader.rs": 12,
         "rust/src/ulid.rs": 1,
         "rust/src/verify.rs": 1,
         "rust/src/wire.rs": 1,
@@ -87,7 +86,7 @@
         "smalltalk/src/Gts-Core/GtsWriter.class.st": 4,
         "smalltalk/src/Gts-Core/GtsZstd.class.st": 3
       },
-      "max_total": 179
+      "max_total": 167
     }
   },
   "production_file_count": 191,

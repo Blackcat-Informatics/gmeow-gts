@@ -514,7 +514,9 @@ impl Folder<'_, '_, '_> {
                 );
                 continue;
             }
-            let (s, p, o) = (s.unwrap(), p.unwrap(), o.unwrap());
+            let (Some(s), Some(p), Some(o)) = (s, p, o) else {
+                continue;
+            };
             if !self.check_positions(s, p, o, gslot, index) {
                 continue;
             }
@@ -555,7 +557,10 @@ impl Folder<'_, '_, '_> {
                 continue;
             }
             let rid = rid as usize;
-            let triple: Triple3 = (s.unwrap(), p.unwrap(), o.unwrap());
+            let (Some(s), Some(p), Some(o)) = (s, p, o) else {
+                continue;
+            };
+            let triple: Triple3 = (s, p, o);
             if let Some(existing) = self.g.reifier(rid) {
                 if existing != triple {
                     self.diag(
@@ -598,7 +603,9 @@ impl Folder<'_, '_, '_> {
                 );
                 continue;
             }
-            let (r, p, v) = (r.unwrap(), p.unwrap(), v.unwrap());
+            let (Some(r), Some(p), Some(v)) = (r, p, v) else {
+                continue;
+            };
             if self.g.terms[p].kind != TermKind::Iri {
                 self.diag(
                     "PositionConstraint",
@@ -1047,14 +1054,14 @@ pub fn read_with_options(data: &[u8], options: ReadOptions<'_>) -> Graph {
     // Each segment owns its term-id namespace. Unioning happens after segment
     // folds by semantic term value, which avoids silently treating equal
     // numeric ids from different segments as equal terms.
-    let folded: Vec<Graph> = bounds
+    let mut folded: Vec<Graph> = bounds
         .iter()
         .zip(ends)
         .map(|(&a, b)| read_segment_with_sink(&items[a..b], a, 0, None, options.content_key))
         .collect();
 
     let mut g = if folded.len() == 1 {
-        folded.into_iter().next().expect("one segment")
+        folded.remove(0)
     } else {
         union_segments(&folded)
     };
@@ -1686,14 +1693,9 @@ fn read_segment_with_sink(
     };
     sink = restored_sink;
 
-    g.segment_heads.push(expected_prev);
+    g.segment_heads.push(expected_prev.clone());
     if let Some(sink) = sink.as_deref_mut() {
-        sink.segment_head(
-            segment_index,
-            g.segment_heads
-                .last()
-                .expect("segment head was just pushed"),
-        );
+        sink.segment_head(segment_index, &expected_prev);
     }
     let seg_meta = g.meta.clone();
     g.segment_meta.push(seg_meta);
@@ -1709,14 +1711,9 @@ fn read_segment_with_sink(
         index_offset,
         &mut sink,
     );
-    g.segment_streamable.push(info);
     if let Some(sink) = sink {
-        sink.streamable_layout(
-            segment_index,
-            g.segment_streamable
-                .last()
-                .expect("streamable info was just pushed"),
-        );
+        sink.streamable_layout(segment_index, &info);
     }
+    g.segment_streamable.push(info);
     g
 }
