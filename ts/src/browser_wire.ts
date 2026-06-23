@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics(R) Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-import cbor, { Tagged } from "cbor";
+import { Decoder, Tagged } from "cbor";
 import { blake3 } from "@noble/hashes/blake3.js";
 
 export const SELF_DESCRIBE_TAG = 55799;
@@ -39,7 +39,7 @@ export function unwrapHeader(item: unknown): Map<unknown, unknown> {
 }
 
 export function decodeFirst(data: Uint8Array): unknown {
-    return cbor.decodeFirstSync(data, { preferMap: true });
+    return Decoder.decodeFirstSync(data, { preferMap: true });
 }
 
 export function blake3_256(data: Uint8Array): Uint8Array {
@@ -346,9 +346,16 @@ export function cborItemLength(data: Uint8Array, offset: number): number {
         if (info <= 23) {
             length = info;
         } else if (info === 24 || info === 25 || info === 26 || info === 27) {
-            const res = readLength(data, offset, info);
-            length = res.length;
-            extra = res.extra;
+            if (major === 7) {
+                extra = info === 24 ? 1 : info === 25 ? 2 : info === 26 ? 4 : 8;
+                if (offset + extra > data.length) {
+                    throw new BrowserWireError("unexpected EOF");
+                }
+            } else {
+                const res = readLength(data, offset, info);
+                length = res.length;
+                extra = res.extra;
+            }
         } else if (info >= 28 && info <= 30) {
             throw new BrowserWireError(`reserved additional info ${info}`);
         } else if (info === 31) {
