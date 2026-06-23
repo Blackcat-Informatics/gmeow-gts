@@ -70,6 +70,10 @@ check-vector-manifest:
 check-cli-parity:
     python scripts/check_cli_parity.py
 
+# Fail if the API parity declaration drifts from implementation or docs.
+check-api-parity:
+    python scripts/check_api_parity.py
+
 # Fail if deferred advanced verbs become public without being tiered.
 check-advanced-contract:
     python scripts/check_advanced_contract.py

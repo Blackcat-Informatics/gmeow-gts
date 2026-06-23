@@ -18,6 +18,7 @@ and do not add columns to the full-engine API/CLI parity tables below.
 The stable waist is semantic, not syntactic. Each engine MAY use native names and containers, but
 the following operations and folded fields are the compatibility target.
 
+<!-- api-parity-shape:start -->
 | operation | contract | current native surface |
 |---|---|---|
 | `read(input, options)` | Parse a byte buffer or path as a CBOR Sequence, verify the id/prev chain, fold every recoverable frame, and return a graph/result with diagnostics instead of panicking on malformed input. | Python `gts.read(data, keys=None, expected_head=None, allow_segments=True)`; Rust `reader::read(&bytes, allow_segments, expected_head)` or `reader::read_with_options` with `ReadOptions::with_content_key`; Go `reader.Read(data, allowSegments, expectedHead)`; TypeScript `Read(bytes, allowSegments, expectedHead?)`; Smalltalk `GtsReader read:allowSegments:`; Kotlin `read(data, allowSegments)`. |
@@ -35,6 +36,7 @@ the following operations and folded fields are the compatibility target.
 | opaque nodes | Preserve undecodable or unsupported recoverable frames as graph-visible opaque nodes with a frame id, frame type, reason, and signature status. | `OpaqueNode` in every engine. |
 | diagnostics | Preserve stable diagnostic `code` values and optional frame indexes; native detail text may differ. | `Diagnostic.code/detail/frame_index`, `Diagnostic { code, detail, frame_index }`, `Diagnostic{Code, Detail, FrameIndex}`, `Diagnostic.code/detail/frameIndex`. |
 | streaming/full-reader options | Carry read mode, segment allowance, expected head, key provider, recursion/decode budgets, and streamable validation as options. Engines MAY stage these as separate helpers while preserving the same observable fold and diagnostics. | Python `keys`, Rust `ReadOptions`/`read_to_sink_with_options`, Go `reader.Options`/`reader.ReadToSink`, TypeScript `allowSegments`, Smalltalk `allowSegments`, Kotlin `allowSegments`, and CLI flags today; deeper recursion/MMR options are future Full Reader work. |
+<!-- api-parity-shape:end -->
 
 ## Cross-Language Equality Targets
 
@@ -185,18 +187,38 @@ actual dispatch surfaces.
 
 ## Drift Guard
 
-Run the parity check locally with:
+Run the parity checks locally with:
 
 ```bash
+python scripts/check_api_parity.py
 python scripts/check_cli_parity.py
 ```
 
-The CI lint job runs the same command. The check fails when:
+The CI lint job runs the same commands. The API check reads
+[`api-parity.json`](./api-parity.json), this document, the README engine feature matrix, and
+small source-level smoke evidence for the six full engines. Full engines are Rust, Python, Go,
+TypeScript, Smalltalk/Pharo, and Kotlin/JVM. C ABI-derived wrappers stay declared separately and
+must not become full-engine parity columns.
+
+The API check fails when:
+
+- the rendered API shape table changes without the matching declaration update;
+- the README feature matrix changes without the matching declaration update;
+- a supported claim lacks source evidence or the declared public export/module/file disappears;
+- a deferred claim is not explicitly recorded as deferred;
+- a wrapper surface is added to the full-engine declaration.
+
+The CLI check fails when:
 
 - an engine implements a CLI verb not represented in the matrix;
 - the matrix marks a verb `yes` for an engine whose dispatch surface lacks it;
 - the matrix marks a verb `no` for an engine that now implements it;
 - the README common and Python-extension command blocks drift from the matrix.
+
+When adding an API parity claim, update the engine implementation/export, the source evidence in
+`docs/api-parity.json`, this API shape table or README feature matrix, and package-level tests in
+the same change. When deferring parity for an engine, keep the README cell as `no` and add a
+deferred reason in the declaration instead of relying on omission.
 
 When adding or removing a CLI verb, update the implementation, this matrix, the README command
 blocks, and package-specific README text in the same change.

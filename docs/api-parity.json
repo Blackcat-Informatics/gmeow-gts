@@ -1,0 +1,402 @@
+{
+  "schema": "gts-api-parity-v1",
+  "description": "Machine-readable declaration for the six full-engine API parity claims rendered in README.md and docs/GTS-API-CLI-PARITY.md.",
+  "full_engines": [
+    "Python",
+    "Rust",
+    "Go",
+    "TypeScript",
+    "Smalltalk",
+    "Kotlin"
+  ],
+  "wrapper_surfaces": [
+    "C ABI",
+    "C++",
+    ".NET",
+    "PHP",
+    "Lua",
+    "Swift",
+    "Ruby",
+    "R",
+    "Julia"
+  ],
+  "api_shape": [
+    {
+      "operation": "`read(input, options)`",
+      "contract": "Parse a byte buffer or path as a CBOR Sequence, verify the id/prev chain, fold every recoverable frame, and return a graph/result with diagnostics instead of panicking on malformed input.",
+      "current_native_surface": "Python `gts.read(data, keys=None, expected_head=None, allow_segments=True)`; Rust `reader::read(&bytes, allow_segments, expected_head)` or `reader::read_with_options` with `ReadOptions::with_content_key`; Go `reader.Read(data, allowSegments, expectedHead)`; TypeScript `Read(bytes, allowSegments, expectedHead?)`; Smalltalk `GtsReader read:allowSegments:`; Kotlin `read(data, allowSegments)`."
+    },
+    {
+      "operation": "`verify(input, options)`",
+      "contract": "Apply strict transport checks over the same fold: chain/hash diagnostics, expected-head freshness when provided, streamable-layout checks when requested, and COSE signature status when keys are provided.",
+      "current_native_surface": "CLI `gts verify`; Python `gts.verify.verify_file`; Rust `gmeow_gts::verify::verify_file` plus folded diagnostics and lower-level COSE helpers in every engine."
+    },
+    {
+      "operation": "`write(graph/events, options)`",
+      "contract": "Emit deterministic CBOR for hashed or signed bytes, compute each frame id from its content, and set `prev` to the previous frame id.",
+      "current_native_surface": "Python `Writer`; Rust `writer::Writer`; Go `writer.New`; TypeScript `Writer`; Smalltalk `GtsWriter`; Kotlin `Writer`."
+    },
+    {
+      "operation": "`fold(input)`",
+      "contract": "Return the deterministic GTS value fold: terms, quads, reifiers, annotations, blobs, suppressions, opaque nodes, signatures, segment heads, profiles, and streamable layout state.",
+      "current_native_surface": "Same object returned by `read`."
+    },
+    {
+      "operation": "`to_nquads(graph)`",
+      "contract": "Project the folded RDF dataset to sorted N-Quads text with the same value semantics across engines.",
+      "current_native_surface": "Python `to_nquads`; Rust `nquads::to_nquads`; Go `nquads.ToNQuads`; TypeScript `toNQuads`; Smalltalk `GtsNQuads`; Kotlin `toNQuads`."
+    },
+    {
+      "operation": "`from_nquads(input)`",
+      "contract": "Build a GTS file from N-Quads text using the shared writer semantics.",
+      "current_native_surface": "Python `from_nquads`; Rust `from_nquads::from_nquads`; Go `fromnquads.FromNQuads`; TypeScript `fromNQuads`; Smalltalk `GtsFromNQuads`; Kotlin `fromNQuads`; CLI `gts from-nq` in every engine."
+    },
+    {
+      "operation": "`to_ntriples(graph)` / `from_ntriples(input)`",
+      "contract": "Project a default-graph RDF dataset to N-Triples and rebuild GTS bytes from N-Triples text using the shared RDF 1.2 parser/serializer.",
+      "current_native_surface": "Rust `rdf_codecs::to_ntriples` / `from_ntriples` behind `--features rdf-codecs`; CLI `gts to-nt` and `gts from-nt` in Rust."
+    },
+    {
+      "operation": "`to_rdf_xml(graph)` / `from_rdf_xml(input)`",
+      "contract": "Project a default-graph RDF dataset to RDF/XML and rebuild GTS bytes from RDF/XML text, including RDF/XML namespace, parseType, collection, reification, annotation, and RDF 1.2 triple-term grammar.",
+      "current_native_surface": "Rust `rdf_codecs::to_rdf_xml` / `from_rdf_xml` behind `--features rdf-codecs`; CLI `gts to-rdfxml` and `gts from-rdfxml` in Rust."
+    },
+    {
+      "operation": "`to_trig(graph)` / `from_trig(input)`",
+      "contract": "Project folded RDF to readable TriG graph blocks and rebuild GTS bytes from the supported TriG surface without changing N-Quads content.",
+      "current_native_surface": "Python `gts.trig.to_trig` / `from_trig`; Rust `trig::to_trig` / `from_trig::from_trig`; Rust `rdf_codecs::to_trig` / `from_trig` with `--features rdf-codecs`; CLI `gts to-trig` and `gts from-trig` in Python and Rust."
+    },
+    {
+      "operation": "`to_turtle(graph)` / `from_turtle(input)`",
+      "contract": "Project a default-graph RDF dataset to Turtle and rebuild GTS bytes from Turtle text using the shared Turtle-family RDF 1.2 parser/serializer.",
+      "current_native_surface": "Rust `rdf_codecs::to_turtle` / `from_turtle` behind `--features rdf-codecs`; CLI `gts to-turtle` and `gts from-turtle` in Rust."
+    },
+    {
+      "operation": "graph iterators/accessors",
+      "contract": "Expose resolved access to terms, quads, reifier bindings, annotations, suppressions, blobs, opaque nodes, signatures, diagnostics, segment heads, profiles, metadata, and streamable state.",
+      "current_native_surface": "Native fields on `Graph`/`GtsGraph` in all six engines, with helper lookups where idiomatic."
+    },
+    {
+      "operation": "blobs",
+      "contract": "Preserve inline blob bytes by `blake3:<hex>` digest and retain declared blob metadata such as media type. Extraction MUST re-hash bytes before writing them. Implementations MAY keep transformed blob bytes lazy until access.",
+      "current_native_surface": "Python `Graph.blobs`/`blob_meta`; Rust `Graph.blobs` lazy `BlobEntry` plus `blob_entry`/`blob_bytes`/`decoded_blobs`; Go `Graph.Blobs`/`BlobMeta`; TypeScript `Graph.blobs`/`blobMeta`; Smalltalk `GtsGraph blobs`/`blobMeta`; Kotlin `Graph.blobs`/`blobMeta`."
+    },
+    {
+      "operation": "opaque nodes",
+      "contract": "Preserve undecodable or unsupported recoverable frames as graph-visible opaque nodes with a frame id, frame type, reason, and signature status.",
+      "current_native_surface": "`OpaqueNode` in every engine."
+    },
+    {
+      "operation": "diagnostics",
+      "contract": "Preserve stable diagnostic `code` values and optional frame indexes; native detail text may differ.",
+      "current_native_surface": "`Diagnostic.code/detail/frame_index`, `Diagnostic { code, detail, frame_index }`, `Diagnostic{Code, Detail, FrameIndex}`, `Diagnostic.code/detail/frameIndex`."
+    },
+    {
+      "operation": "streaming/full-reader options",
+      "contract": "Carry read mode, segment allowance, expected head, key provider, recursion/decode budgets, and streamable validation as options. Engines MAY stage these as separate helpers while preserving the same observable fold and diagnostics.",
+      "current_native_surface": "Python `keys`, Rust `ReadOptions`/`read_to_sink_with_options`, Go `reader.Options`/`reader.ReadToSink`, TypeScript `allowSegments`, Smalltalk `allowSegments`, Kotlin `allowSegments`, and CLI flags today; deeper recursion/MMR options are future Full Reader work."
+    }
+  ],
+  "readme_feature_matrix": [
+    {
+      "capability": "Baseline read/fold/verify",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {
+          "status": "supported",
+          "evidence": [
+            {"kind": "python_all", "symbol": "read"},
+            {"kind": "python_all", "symbol": "Graph"},
+            {"kind": "contains", "path": "python/src/gts/verify.py", "text": "def verify_file"}
+          ]
+        },
+        "Rust": {
+          "status": "supported",
+          "evidence": [
+            {"kind": "rust_pub_mod", "module": "reader"},
+            {"kind": "rust_pub_mod", "module": "verify"}
+          ]
+        },
+        "Go": {
+          "status": "supported",
+          "evidence": [
+            {"kind": "contains", "path": "go/reader/reader.go", "text": "func Read(data []byte, allowSegments bool, expectedHead []byte) *model.Graph"}
+          ]
+        },
+        "TypeScript": {
+          "status": "supported",
+          "evidence": [
+            {"kind": "contains", "path": "ts/src/index.ts", "text": "export { Read, ReadFileSegments } from \"./reader.js\";"}
+          ]
+        },
+        "Smalltalk": {
+          "status": "supported",
+          "evidence": [
+            {"kind": "smalltalk_class", "class": "GtsReader"},
+            {"kind": "smalltalk_class", "class": "GtsGraph"}
+          ]
+        },
+        "Kotlin": {
+          "status": "supported",
+          "evidence": [
+            {"kind": "contains", "path": "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/Reader.kt", "text": "fun read(data: ByteArray, allowSegments: Boolean = true, expectedHead: ByteArray? = null): Graph"}
+          ]
+        }
+      }
+    },
+    {
+      "capability": "Writer",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "python_all", "symbol": "Writer"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "rust_pub_mod", "module": "writer"}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/writer/writer.go", "text": "func New(profile string) *Writer"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "contains", "path": "ts/src/index.ts", "text": "export { Writer, digestString } from \"./writer.js\";"}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "smalltalk_class", "class": "GtsWriter"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "kotlin_file", "file": "Writer.kt"}]}
+      }
+    },
+    {
+      "capability": "Shared conformance corpus",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "python/tests/test_gts.py"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "rust/tests/conformance.rs"}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "go/reader/conformance_test.go"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "ts/tests/corpus.test.ts"}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "smalltalk/src/Gts-Tests/GtsConformanceTest.class.st"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "kotlin/src/test/kotlin/ca/blackcatinformatics/gts/KotlinParityTest.kt"}]}
+      }
+    },
+    {
+      "capability": "Deterministic-CBOR primitive/vector tests",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "python/src/gts/vectors.py"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "rust/tests/deterministic_writer.rs"}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "go/wire/wire_test.go"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "ts/tests/unit.test.ts"}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "smalltalk/src/Gts-Tests/GtsCborWriterTest.class.st"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "kotlin/src/test/kotlin/ca/blackcatinformatics/gts/KotlinParityTest.kt"}]}
+      }
+    },
+    {
+      "capability": "zstd native codec",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "contains", "path": "python/src/gts/codec.py", "text": "\"zstd-rsyncable\""}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "contains", "path": "rust/Cargo.toml", "text": "ruzstd = \"0.8\""}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/codec/codec.go", "text": "github.com/klauspost/compress/zstd"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "contains", "path": "ts/src/codec.ts", "text": "fzstd"}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "smalltalk_class", "class": "GtsZstd"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "contains", "path": "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/Codec.kt", "text": "Zstd"}]}
+      }
+    },
+    {
+      "capability": "COSE signing and verification",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "contains", "path": "python/src/gts/crypto.py", "text": "def sign_id"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "contains", "path": "rust/src/cose.rs", "text": "pub fn sign_id"}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/cose/cose.go", "text": "func SignID"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "contains", "path": "ts/src/cose.ts", "text": "export function signId"}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "smalltalk_class", "class": "GtsCose"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "contains", "path": "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/Cose.kt", "text": "fun signId"}]}
+      }
+    },
+    {
+      "capability": "COSE Encrypt0 helpers",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "contains", "path": "python/src/gts/crypto.py", "text": "def encrypt0"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "contains", "path": "rust/src/cose.rs", "text": "pub fn encrypt0"}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/cose/encrypt0.go", "text": "func Encrypt0"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "contains", "path": "ts/src/cose.ts", "text": "export function encrypt0"}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "contains", "path": "smalltalk/src/Gts-Core/GtsCose.class.st", "text": "encrypt0:"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "contains", "path": "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/Cose.kt", "text": "fun encrypt0"}]}
+      }
+    },
+    {
+      "capability": "Files profile `pack`/`unpack`/`diff`",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "contains", "path": "python/src/gts/files.py", "text": "def pack"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "rust_pub_mod", "module": "files"}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/files/files.go", "text": "func Pack"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "contains", "path": "ts/src/index.ts", "text": "export { pack, unpack, diff } from \"./files.js\";"}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "smalltalk_class", "class": "GtsFiles"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "kotlin_file", "file": "FilesProfile.kt"}]}
+      }
+    },
+    {
+      "capability": "Streamable compaction CLI",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "contains", "path": "python/src/gts/compact.py", "text": "def compact_streamable"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "contains", "path": "rust/src/compact.rs", "text": "pub fn compact_streamable"}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/compact/compact.go", "text": "func Streamable"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "contains", "path": "ts/src/index.ts", "text": "export { compactStreamable, CompactRefusedError } from \"./compact.js\";"}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "smalltalk_class", "class": "GtsCompact"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "kotlin_file", "file": "Compact.kt"}]}
+      }
+    },
+    {
+      "capability": "`from-nq` inverse",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "yes",
+        "TypeScript": "yes",
+        "Smalltalk": "yes",
+        "Kotlin": "yes"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "python_all", "symbol": "from_nquads"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "rust_pub_mod", "module": "from_nquads"}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/fromnquads/fromnquads.go", "text": "func FromNQuads"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "contains", "path": "ts/src/index.ts", "text": "export { fromNQuads, NQuadsParseError } from \"./from_nquads.js\";"}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "smalltalk_class", "class": "GtsFromNQuads"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "contains", "path": "kotlin/src/main/kotlin/ca/blackcatinformatics/gts/FromNQuads.kt", "text": "fun fromNQuads"}]}
+      }
+    },
+    {
+      "capability": "TriG transform",
+      "cells": {
+        "Python": "yes",
+        "Rust": "yes",
+        "Go": "no",
+        "TypeScript": "no",
+        "Smalltalk": "no",
+        "Kotlin": "no"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "python_all", "symbol": "to_trig"}, {"kind": "python_all", "symbol": "from_trig"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "rust_pub_mod", "module": "trig"}, {"kind": "rust_pub_mod", "module": "from_trig"}]},
+        "Go": {"status": "deferred", "deferred_reason": "TriG transform parity is intentionally deferred until it can share the Python/Rust round-trip expectations."},
+        "TypeScript": {"status": "deferred", "deferred_reason": "TriG transform parity is intentionally deferred until it can share the Python/Rust round-trip expectations."},
+        "Smalltalk": {"status": "deferred", "deferred_reason": "TriG transform parity is intentionally deferred until it can share the Python/Rust round-trip expectations."},
+        "Kotlin": {"status": "deferred", "deferred_reason": "TriG transform parity is intentionally deferred until it can share the Python/Rust round-trip expectations."}
+      }
+    },
+    {
+      "capability": "Native RDF/store adapter",
+      "cells": {
+        "Python": "rdflib extra",
+        "Rust": "`rdf` feature (native dataset model); `native-store` feature (native in-memory store)",
+        "Go": "no",
+        "TypeScript": "no",
+        "Smalltalk": "no",
+        "Kotlin": "no"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "python_all", "symbol": "to_rdflib"}, {"kind": "python_all", "symbol": "from_rdflib"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "rust_pub_mod", "module": "rdf"}, {"kind": "rust_pub_mod", "module": "native_store"}]},
+        "Go": {"status": "deferred", "deferred_reason": "Native RDF/store adapters are intentionally deferred for Go until an ecosystem adapter lands."},
+        "TypeScript": {"status": "deferred", "deferred_reason": "Native RDF/store adapters are intentionally deferred for TypeScript until an ecosystem adapter lands."},
+        "Smalltalk": {"status": "deferred", "deferred_reason": "Native RDF/store adapters are intentionally deferred for Smalltalk/Pharo until an ecosystem adapter lands."},
+        "Kotlin": {"status": "deferred", "deferred_reason": "Native RDF/store adapters are intentionally deferred for Kotlin/JVM until an ecosystem adapter lands."}
+      }
+    },
+    {
+      "capability": "SQLite/DuckDB/Parquet exports",
+      "cells": {
+        "Python": "yes",
+        "Rust": "SQLite default; DuckDB/Parquet with `duckdb` feature",
+        "Go": "no",
+        "TypeScript": "no",
+        "Smalltalk": "no",
+        "Kotlin": "no"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "contains", "path": "python/src/gts/db.py", "text": "def to_sqlite"}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "rust_pub_mod", "module": "db"}, {"kind": "contains", "path": "rust/src/db.rs", "text": "pub fn to_sqlite"}]},
+        "Go": {"status": "deferred", "deferred_reason": "Relational exports are intentionally deferred for Go."},
+        "TypeScript": {"status": "deferred", "deferred_reason": "Relational exports are intentionally deferred for TypeScript."},
+        "Smalltalk": {"status": "deferred", "deferred_reason": "Relational exports are intentionally deferred for Smalltalk/Pharo."},
+        "Kotlin": {"status": "deferred", "deferred_reason": "Relational exports are intentionally deferred for Kotlin/JVM."}
+      }
+    },
+    {
+      "capability": "Package registry",
+      "cells": {
+        "Python": "PyPI",
+        "Rust": "crates.io",
+        "Go": "Go module",
+        "TypeScript": "npm",
+        "Smalltalk": "Tonel/Metacello source",
+        "Kotlin": "Gradle source"
+      },
+      "claims": {
+        "Python": {"status": "supported", "evidence": [{"kind": "contains", "path": "python/pyproject.toml", "text": "name = \"gmeow-gts\""}]},
+        "Rust": {"status": "supported", "evidence": [{"kind": "contains", "path": "rust/Cargo.toml", "text": "name = \"gmeow-gts\""}]},
+        "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/go.mod", "text": "module go.blackcatinformatics.ca/gts"}]},
+        "TypeScript": {"status": "supported", "evidence": [{"kind": "contains", "path": "ts/package.json", "text": "\"name\": \"@blackcatinformatics/gmeow-gts\""}]},
+        "Smalltalk": {"status": "supported", "evidence": [{"kind": "path_exists", "path": "smalltalk/src/BaselineOfGts/BaselineOfGts.class.st"}]},
+        "Kotlin": {"status": "supported", "evidence": [{"kind": "contains", "path": "kotlin/settings.gradle.kts", "text": "rootProject.name = \"gmeow-gts-kotlin\""}]}
+      }
+    }
+  ]
+}
