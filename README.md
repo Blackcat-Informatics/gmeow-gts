@@ -163,26 +163,26 @@ Full parity engines:
 
 | Language | Package | Install |
 |---|---|---|
-| **Rust** | [`gmeow-gts`](https://crates.io/crates/gmeow-gts) (binary `gts`) | `cargo install gmeow-gts` |
-| **Python** | [`gmeow-gts`](https://pypi.org/project/gmeow-gts/) (module `gts`) | `pip install gmeow-gts` |
-| **Go** | `go.blackcatinformatics.ca/gts` | `go install go.blackcatinformatics.ca/gts/cmd/gts@latest` |
-| **TypeScript** | [`@blackcatinformatics/gmeow-gts`](https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts) | `npm i @blackcatinformatics/gmeow-gts` |
-| **Smalltalk/Pharo** | Tonel + Metacello source package | `docker build -t gmeow-gts-smalltalk smalltalk` |
-| **Kotlin/JVM** | Gradle source project | `cd kotlin && gradle installDist` |
+| **Rust** | [`gmeow-gts`](https://crates.io/crates/gmeow-gts) (binary `gts`; [source dir](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/rust)) | `cargo install gmeow-gts` |
+| **Python** | [`gmeow-gts`](https://pypi.org/project/gmeow-gts/) (module `gts`; [source dir](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/python)) | `pip install gmeow-gts` |
+| **Go** | [`go.blackcatinformatics.ca/gts`](https://pkg.go.dev/go.blackcatinformatics.ca/gts) ([source dir](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/go)) | `go install go.blackcatinformatics.ca/gts/cmd/gts@latest` |
+| **TypeScript** | [`@blackcatinformatics/gmeow-gts`](https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts) ([source dir](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/ts)) | `npm i @blackcatinformatics/gmeow-gts` |
+| **Smalltalk/Pharo** | Tonel + Metacello [source package](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/smalltalk) | `docker build -t gmeow-gts-smalltalk smalltalk` |
+| **Kotlin/JVM** | Gradle [source project](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/kotlin) | `cd kotlin && gradle installDist` |
 
 Rust-backed C ABI and derived wrappers:
 
-| Surface | Directory | Entry point |
-|---|---|---|
-| **C ABI** | [`rust/capi/`](./rust/capi/README.md) | `cargo build --manifest-path rust/capi/Cargo.toml` |
-| **C++** | [`cpp/`](./cpp/README.md) | header-only RAII wrapper over `libgts` |
-| **.NET** | [`dotnet/`](./dotnet/README.md) | `Gmeow.Gts` P/Invoke wrapper |
-| **PHP** | [`php/`](./php/README.md) | PHP FFI Composer package |
-| **Lua** | [`lua/`](./lua/README.md) | `gmeow-gts` LuaRocks LuaJIT FFI module |
-| **Swift** | [`swift/`](./swift/README.md) | Swift Package Manager wrapper via root `Package.swift` |
-| **Ruby** | [`ruby/`](./ruby/README.md) | `gmeow-gts` FFI gem |
-| **R** | [`r/`](./r/README.md) | `gmeowgts` package |
-| **Julia** | [`julia/`](./julia/README.md) | `GmeowGTS.jl` package |
+| Surface | Package index / remote | Source directory | Entry point |
+|---|---|---|---|
+| **C ABI** | [`gmeow-gts-capi`](https://crates.io/crates/gmeow-gts-capi) on crates.io; [`capi-v*` releases](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=capi-v&expanded=true) | [`rust/capi/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/rust/capi) | `cargo build --manifest-path rust/capi/Cargo.toml` |
+| **C++** | Source-only wrapper | [`cpp/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/cpp) | header-only RAII wrapper over `libgts` |
+| **.NET** | NuGet `Gmeow.Gts` deferred for the first publication wave | [`dotnet/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/dotnet) | `Gmeow.Gts` P/Invoke wrapper |
+| **PHP** | [`blackcatinformatics/gmeow-gts` Packagist search](https://packagist.org/?query=blackcatinformatics%2Fgmeow-gts), pending generated-root tag metadata | [`php/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/php) | PHP FFI Composer package |
+| **Lua** | [`gmeow-gts` LuaRocks search](https://luarocks.org/search?q=gmeow-gts), pending first upload | [`lua/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/lua) | `gmeow-gts` LuaRocks LuaJIT FFI module |
+| **Swift** | [`Blackcat-Informatics/gmeow-gts`](https://swiftpackageindex.com/Blackcat-Informatics/gmeow-gts) Swift Package Index target | [`swift/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/swift) | Swift Package Manager wrapper via root `Package.swift` |
+| **Ruby** | [`gmeow-gts` RubyGems search](https://rubygems.org/search?query=gmeow-gts), pending first gem push | [`ruby/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/ruby) | `gmeow-gts` FFI gem |
+| **R** | [`blackcat-informatics.r-universe.dev`](https://blackcat-informatics.r-universe.dev/src/contrib/PACKAGES) source index; [universe config repo](https://github.com/Blackcat-Informatics/blackcat-informatics.r-universe.dev) | [`r/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/r) | `gmeowgts` package |
+| **Julia** | [`JuliaRegistries/General#158733`](https://github.com/JuliaRegistries/General/pull/158733), pending General registry merge | [`julia/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/julia) | `GmeowGTS.jl` package |
 
 The package family consistently uses the `gmeow-gts` distribution identity where ecosystem
 naming permits. Ecosystem-specific module/package names are shown above; the CLI binary stays
@@ -700,14 +700,14 @@ Each engine publishes to its native registry from this repo via a tag-triggered 
 
 | Engine | Registry | Release tag | Workflow |
 |---|---|---|---|
-| Rust | crates.io (trusted publishing) | `rust-v*` | [`release-cargo.yaml`](./.github/workflows/release-cargo.yaml) |
-| Python | PyPI (trusted publishing) | `py-v*` | [`release-pypi.yml`](./.github/workflows/release-pypi.yml) |
-| Go | GitHub Releases (GoReleaser) | `go-v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
-| TypeScript | npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
-| C ABI source crate | crates.io (bootstrap token first publish) | `capi-v*` | [`release-cargo-capi.yaml`](./.github/workflows/release-cargo-capi.yaml) |
-| C ABI native assets | GitHub Releases (immutable archives) | `capi-v*` | [`release-capi.yaml`](./.github/workflows/release-capi.yaml) |
-| Lua wrapper | LuaRocks `gmeow-gts` | `lua-v*` | [`release-luarocks.yaml`](./.github/workflows/release-luarocks.yaml) |
-| Ruby | RubyGems (trusted publishing) | `ruby-v*` | [`release-rubygems.yaml`](./.github/workflows/release-rubygems.yaml) |
+| Rust | [`gmeow-gts`](https://crates.io/crates/gmeow-gts) on crates.io (trusted publishing) | `rust-v*` | [`release-cargo.yaml`](./.github/workflows/release-cargo.yaml) |
+| Python | [`gmeow-gts`](https://pypi.org/project/gmeow-gts/) on PyPI (trusted publishing) | `py-v*` | [`release-pypi.yml`](./.github/workflows/release-pypi.yml) |
+| Go | [`go.blackcatinformatics.ca/gts`](https://pkg.go.dev/go.blackcatinformatics.ca/gts) plus [GitHub Releases](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=go-v&expanded=true) | `go-v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
+| TypeScript | [`@blackcatinformatics/gmeow-gts`](https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts) on npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
+| C ABI source crate | [`gmeow-gts-capi`](https://crates.io/crates/gmeow-gts-capi) on crates.io (bootstrap token first publish) | `capi-v*` | [`release-cargo-capi.yaml`](./.github/workflows/release-cargo-capi.yaml) |
+| C ABI native assets | [`capi-v*` GitHub Releases](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=capi-v&expanded=true) (immutable archives) | `capi-v*` | [`release-capi.yaml`](./.github/workflows/release-capi.yaml) |
+| Lua wrapper | [`gmeow-gts` LuaRocks search](https://luarocks.org/search?q=gmeow-gts) pending first upload | `lua-v*` | [`release-luarocks.yaml`](./.github/workflows/release-luarocks.yaml) |
+| Ruby | [`gmeow-gts` RubyGems search](https://rubygems.org/search?query=gmeow-gts) pending first gem push | `ruby-v*` | [`release-rubygems.yaml`](./.github/workflows/release-rubygems.yaml) |
 
 Rust crate publication uses crates.io Trusted Publishing through GitHub Actions
 OIDC. Configure the `gmeow-gts` Trusted Publisher entry with owner/repo
@@ -754,16 +754,16 @@ Wrapper package registry names and public release surfaces are:
 
 | Wrapper surface | Registry/package | Version or tag shape | Verification status |
 |---|---|---|---|
-| C ABI source crate | crates.io `gmeow-gts-capi` | `capi-v<version>` | Downloaded and attestation-checked by wrapper verifier |
-| C ABI native assets | GitHub Release `capi-v<version>` | `capi-v<version>` | Downloaded, checksum-checked, release-verified, and attestation-checked |
-| .NET | NuGet `Gmeow.Gts` (deferred) | Not in the first wrapper publication wave | Source-tree and CI-smoke support only |
-| PHP | Packagist `blackcatinformatics/gmeow-gts` | `<version>` or `v<version>` on the generated package-root commit | Metadata and source reference checked |
-| LuaJIT | LuaRocks `gmeow-gts` | `<version>-1` from `lua-v<version>` | Root manifest and rockspec download checked |
-| Swift | Swift Package Index `Blackcat-Informatics/gmeow-gts` | Plain semantic version tag, such as `<version>` | Git tag checked and canonical SPI package URL recorded |
-| Ruby | RubyGems `gmeow-gts` | `ruby-v<version>` | Metadata, `.gem` download, provenance, and SBOM attestations checked |
-| R | r-universe `gmeowgts` under `blackcat-informatics.r-universe.dev` | `<version>` | PACKAGES index and source tarball checked |
-| Julia | Julia General `GmeowGTS` | `<version>` | General registry package identity and version checked |
-| Conan/vcpkg | first-party package name `gmeow-gts` | tagged source archive when upstreamed | Local dry-runs only until upstream recipes land |
+| C ABI source crate | [`gmeow-gts-capi`](https://crates.io/crates/gmeow-gts-capi) on crates.io | `capi-v<version>` | Downloaded and attestation-checked by wrapper verifier |
+| C ABI native assets | [`capi-v<version>` GitHub Release](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=capi-v&expanded=true) | `capi-v<version>` | Downloaded, checksum-checked, release-verified, and attestation-checked |
+| .NET | NuGet `Gmeow.Gts` deferred; [source directory](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/dotnet) | Not in the first wrapper publication wave | Source-tree and CI-smoke support only |
+| PHP | [`blackcatinformatics/gmeow-gts` Packagist search](https://packagist.org/?query=blackcatinformatics%2Fgmeow-gts); generated package-root commit | `<version>` or `v<version>` on the generated package-root commit | Metadata and source reference checked after generated-root tag metadata appears |
+| LuaJIT | [`gmeow-gts` LuaRocks search](https://luarocks.org/search?q=gmeow-gts); [source directory](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/lua) | `<version>-1` from `lua-v<version>` | Root manifest and rockspec download checked after first upload |
+| Swift | [`Blackcat-Informatics/gmeow-gts`](https://swiftpackageindex.com/Blackcat-Informatics/gmeow-gts) Swift Package Index target | Plain semantic version tag, such as `<version>` | Git tag checked and canonical SPI package URL recorded |
+| Ruby | [`gmeow-gts` RubyGems search](https://rubygems.org/search?query=gmeow-gts); [source directory](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/ruby) | `ruby-v<version>` | Metadata, `.gem` download, provenance, and SBOM attestations checked after first gem push |
+| R | [`blackcat-informatics.r-universe.dev`](https://blackcat-informatics.r-universe.dev/src/contrib/PACKAGES) source index; [`gmeowgts` source dir](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/r) | `<version>` | PACKAGES index and source tarball checked after r-universe build pickup |
+| Julia | [`JuliaRegistries/General#158733`](https://github.com/JuliaRegistries/General/pull/158733), then General registry `GmeowGTS` after merge | `<version>` | General registry package identity and version checked after registry PR merge |
+| Conan/vcpkg | First-party package name `gmeow-gts`; [native packaging docs](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/packaging) and [vcpkg overlay port](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/packaging/vcpkg/ports/gmeow-gts) | tagged source archive when upstreamed | Local dry-runs only until upstream recipes land |
 
 At first-wave tracker closeout on 2026-06-22, the C ABI distribution,
 wrapper dry-run, registry-prep, release-verification, and per-ecosystem child
