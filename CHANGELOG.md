@@ -11,8 +11,8 @@ kept aligned for cross-engine releases, while narrow Rust-first releases may
 bump the Rust crate independently. See
 [`scripts/check-versions.sh`](./scripts/check-versions.sh).
 
-The wire format is a working draft (`GTS-SPEC.md` is at draft `v0.3`) and MAY
-change before `1.0`.
+The wire format is a working draft (`GTS-SPEC.md` document version `0.9-draft`)
+and MAY change before `1.0`.
 
 ## [Unreleased]
 

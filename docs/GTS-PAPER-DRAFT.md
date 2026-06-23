@@ -20,10 +20,10 @@ payloads, partial readability, and cross-language conformance. GTS addresses tha
 encoding RDF 1.2 graph state and referenced binary assets as a CBOR Sequence of deterministic
 segments and frames. Each segment is folded into a graph state, frames are linked by BLAKE3
 content identifiers, and unsupported or inaccessible payloads degrade to opaque graph nodes
-rather than disappearing. The current repository hosts four reference engines in Rust, Python,
-Go, and TypeScript, plus a shared vector manifest and corpus used to compare fold results and
-diagnostics. GTS is not a database, reasoner, ontology, or consensus protocol; it is a narrow
-waist for durable, verifiable graph transport.
+rather than disappearing. The current repository hosts six reference engines in Rust, Python,
+Go, TypeScript, Smalltalk/Pharo, and Kotlin/JVM, plus a shared vector manifest and corpus used
+to compare fold results and diagnostics. GTS is not a database, reasoner, ontology, or
+consensus protocol; it is a narrow waist for durable, verifiable graph transport.
 
 ## 1. Introduction
 
@@ -47,8 +47,8 @@ The intended contributions of the work are:
    an opacity model for missing capabilities.
 4. Multi-segment composition by byte concatenation plus streamable layout compaction for
    delivery-oriented artifacts.
-5. A cross-language conformance corpus and reference implementations in Rust, Python, Go, and
-   TypeScript.
+5. A cross-language conformance corpus and reference implementations in Rust, Python, Go,
+   TypeScript, Smalltalk/Pharo, and Kotlin/JVM.
 
 ## 2. Design Overview
 
@@ -177,7 +177,7 @@ fixtures, interop tests, and key-management policy exist.
 
 ## 6. Conformance And Implementation Status
 
-The repository contains five engines:
+The repository contains six engines:
 
 | Engine | Package surface | Current role |
 |---|---|---|
@@ -186,6 +186,7 @@ The repository contains five engines:
 | Go | `go.blackcatinformatics.ca/gts` | Go package and CLI with streaming sink evidence. |
 | TypeScript | `@blackcatinformatics/gmeow-gts` | npm package, Node reader surface, and browser progressive stream/WebCrypto surface. |
 | Smalltalk/Pharo | Tonel + Metacello source package, Docker `gts` runtime | Pharo engine for the common corpus, CLI, and interop surface. |
+| Kotlin/JVM | Gradle source package and `gts` runtime | JVM engine for the common corpus, CLI, and Java-callable library surface. |
 
 The shared compatibility oracle is the checked-in vector corpus under `vectors/` and the
 portable manifest at `vectors/manifest.json`. Conformance claims name a tier, the corpus
@@ -206,7 +207,7 @@ The relevant tiers for the paper narrative are:
   those claims are made.
 
 Implementation status should be presented as a moving repository fact, not as a standards
-claim. At the time of this draft, all five engines are described as gating against the shared
+claim. At the time of this draft, all six engines are described as gating against the shared
 corpus for their public surfaces, while several capabilities remain deliberately outside the
 baseline: database and Parquet exports are not present in every engine, non-Rust proof creation
 is deferred, range-fetch helpers still depend on verified boundaries, object-store service

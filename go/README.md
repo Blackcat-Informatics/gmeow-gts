@@ -33,10 +33,11 @@ data item.
 4. **Recursive composition (matryoshka)** — a reversed payload is just bytes, and a GTS file
    is just bytes, so a payload MAY itself be a complete signed GTS.
 
-This is one of **four interoperable engines** (Rust, Python, Go, TypeScript) that all gate
-against one frozen, byte-exact conformance corpus — every engine folds identical bytes to
-identical N-Quads. See the [project README](https://github.com/Blackcat-Informatics/gmeow-gts#readme)
-for the cross-engine picture.
+This is one of **six interoperable full engines** (Rust, Python, Go, TypeScript,
+Smalltalk/Pharo, Kotlin/JVM) that all gate against one frozen, byte-exact conformance corpus —
+every engine folds identical bytes to identical N-Quads. See the
+[project README](https://github.com/Blackcat-Informatics/gmeow-gts#readme) for the
+cross-engine picture.
 
 GTS is ontology-independent. GTS is the primary distribution method for GMEOW, but GTS does
 not depend on GMEOW. The module path is neutral (`go.blackcatinformatics.ca/gts`), while the
@@ -175,7 +176,7 @@ handling:
   payload confidentiality; an undecryptable frame degrades to an opaque node.
 - **Transport key** — `gts extract-key` parses the embedded OpenPGP transport key and
   prints its kid, fingerprint, **emojihash** (a stable visual fingerprint), and armored
-  public block. `verify --key` and `extract-key` are cross-engine: all four `gts`
+  public block. `verify --key` and `extract-key` are cross-engine: all six `gts`
   binaries resolve the same fingerprint and emojihash and verify COSE signatures
   identically.
 

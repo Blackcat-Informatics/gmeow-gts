@@ -19,6 +19,7 @@ path = [
   "ts/.gitignore",
   "php/composer.json",
   "docs/api-parity.json",
+  "docs/documentation-roster.json",
   "packaging/vcpkg/ports/gmeow-gts/vcpkg.json",
   "r/DESCRIPTION",
   "r/LICENSE",
