@@ -1240,6 +1240,46 @@
       "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
+      "id": "28h-malformed-security-metadata",
+      "title": "malformed security metadata",
+      "input": {
+        "path": "vectors/28h-malformed-security-metadata.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "cose-encrypt0"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28h-malformed-security-metadata.expected.json",
+        "diagnostics": [
+          "MissingKey"
+        ],
+        "expected_head": "475114a3339de892b189783055032fe171a3c1441c7400233bf1500140428b89",
+        "segment_heads": [
+          "475114a3339de892b189783055032fe171a3c1441c7400233bf1500140428b89"
+        ],
+        "opaque_reasons": [
+          "missing-key"
+        ]
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
       "id": "29-deterministic-writer",
       "title": "deterministic writer",
       "input": {

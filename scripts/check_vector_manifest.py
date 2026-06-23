@@ -74,6 +74,7 @@ RESILIENCE_NEGATIVE_TOP_LEVEL = frozenset(
         "28e-forward-term-reference",
         "28f-malformed-transform-shape",
         "28g-damaged-compressed-payload",
+        "28h-malformed-security-metadata",
     }
 )
 
@@ -111,6 +112,7 @@ TOP_LEVEL_SUBSETS = {
     "28e-forward-term-reference": ("total-reader", "resilience-negative"),
     "28f-malformed-transform-shape": ("total-reader", "resilience-negative"),
     "28g-damaged-compressed-payload": ("total-reader", "resilience-negative"),
+    "28h-malformed-security-metadata": ("total-reader", "resilience-negative"),
     "29-deterministic-writer": ("writer-determinism",),
 }
 
@@ -130,6 +132,12 @@ TOP_LEVEL_CAPABILITIES = {
     "26-streamable-lie": ("cbor", "blake3", "identity", "streamable-index"),
     "27-streamable-tail": ("cbor", "blake3", "identity", "streamable-index"),
     "28g-damaged-compressed-payload": ("cbor", "blake3", "identity", "zstd"),
+    "28h-malformed-security-metadata": (
+        "cbor",
+        "blake3",
+        "identity",
+        "cose-encrypt0",
+    ),
     "29-deterministic-writer": ("cbor", "blake3", "identity", "inline-blob"),
 }
 
