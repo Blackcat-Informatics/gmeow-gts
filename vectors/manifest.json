@@ -93,6 +93,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -113,7 +114,7 @@
           "unknown-codec"
         ]
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "04-damaged-frame",
@@ -131,6 +132,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -151,7 +153,7 @@
           "damaged"
         ]
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "05-torn-append",
@@ -169,6 +171,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -187,7 +190,7 @@
         ],
         "opaque_reasons": []
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "06-header-tampered",
@@ -205,6 +208,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "wire-core"
       ],
@@ -221,7 +225,7 @@
         "segment_heads": [],
         "opaque_reasons": []
       },
-      "notes": "Top-level GTS conformance vector for wire-core."
+      "notes": "Top-level GTS conformance vector for wire-core, resilience-negative."
     },
     {
       "id": "09-suppression",
@@ -530,6 +534,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -548,7 +553,7 @@
         ],
         "opaque_reasons": []
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "18-cross-segment-suppression",
@@ -603,6 +608,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -624,7 +630,7 @@
           "unknown-codec"
         ]
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "20-language-tag-discipline",
@@ -680,6 +686,7 @@
       "subsets": [
         "corpus-generator-determinism",
         "profile-layout",
+        "resilience-negative",
         "streaming-property"
       ],
       "tiers": [
@@ -701,7 +708,7 @@
           "hide every quad"
         ]
       },
-      "notes": "Top-level GTS conformance vector for profile-layout."
+      "notes": "Top-level GTS conformance vector for profile-layout, resilience-negative."
     },
     {
       "id": "22-inline-blob",
@@ -911,6 +918,7 @@
       "subsets": [
         "corpus-generator-determinism",
         "profile-layout",
+        "resilience-negative",
         "streaming-property"
       ],
       "tiers": [
@@ -929,7 +937,7 @@
         ],
         "opaque_reasons": []
       },
-      "notes": "Top-level GTS conformance vector for profile-layout."
+      "notes": "Top-level GTS conformance vector for profile-layout, resilience-negative."
     },
     {
       "id": "27-streamable-tail",
@@ -985,6 +993,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -1001,7 +1010,7 @@
         "segment_heads": [],
         "opaque_reasons": []
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "28b-non-header-item",
@@ -1019,6 +1028,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -1035,7 +1045,7 @@
         "segment_heads": [],
         "opaque_reasons": []
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "28c-unsupported-version",
@@ -1053,6 +1063,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -1071,7 +1082,7 @@
         ],
         "opaque_reasons": []
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "28d-unknown-frame-type",
@@ -1089,6 +1100,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -1109,7 +1121,7 @@
           "unknown-frame-type"
         ]
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "28e-forward-term-reference",
@@ -1127,6 +1139,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -1145,7 +1158,7 @@
         ],
         "opaque_reasons": []
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "28f-malformed-transform-shape",
@@ -1163,6 +1176,7 @@
       ],
       "subsets": [
         "corpus-generator-determinism",
+        "resilience-negative",
         "streaming-property",
         "total-reader"
       ],
@@ -1183,7 +1197,47 @@
           "damaged"
         ]
       },
-      "notes": "Top-level GTS conformance vector for total-reader."
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
+      "id": "28g-damaged-compressed-payload",
+      "title": "damaged compressed payload",
+      "input": {
+        "path": "vectors/28g-damaged-compressed-payload.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "zstd"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28g-damaged-compressed-payload.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "30e3dcd80bb7d61127e16fdf81c533ef0bc6a288798a88dc963e5c8e0c4440aa",
+        "segment_heads": [
+          "30e3dcd80bb7d61127e16fdf81c533ef0bc6a288798a88dc963e5c8e0c4440aa"
+        ],
+        "opaque_reasons": [
+          "damaged"
+        ]
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
       "id": "29-deterministic-writer",
