@@ -129,6 +129,7 @@ Run these from the repository root.
 ```bash
 bash scripts/check-versions.sh
 python scripts/check_cli_parity.py
+python scripts/check_api_parity.py
 python scripts/check_advanced_contract.py
 python scripts/check_ecosystem_contract.py
 python scripts/check_security_contract.py

@@ -538,6 +538,7 @@ folded quad.
 
 ## Engine feature matrix
 
+<!-- api-feature-matrix:start -->
 | Capability | Python | Rust | Go | TypeScript | Smalltalk/Pharo | Kotlin/JVM |
 |---|---|---|---|---|---|---|
 | Baseline read/fold/verify | yes | yes | yes | yes | yes | yes |
@@ -554,12 +555,15 @@ folded quad.
 | Native RDF/store adapter | rdflib extra | `rdf` feature (native dataset model); `native-store` feature (native in-memory store) | no | no | no | no |
 | SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no | no | no |
 | Package registry | PyPI | crates.io | Go module | npm | Tonel/Metacello source | Gradle source |
+<!-- api-feature-matrix:end -->
 
 The frozen vector corpus remains the compatibility oracle. The matrix summarizes public package
 surfaces for the six full engines; it is not a replacement for conformance tests. The C ABI and
 derived wrappers reuse the Rust engine through `libgts` and are validated by their smoke tests
-rather than by adding new full-engine columns here. The command-level contract is maintained in
-[`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md).
+rather than by adding new full-engine columns here. The API declaration and command-level
+contract are maintained in
+[`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md) and
+[`docs/api-parity.json`](./docs/api-parity.json).
 
 ## The file format in one minute
 
@@ -833,6 +837,8 @@ For historical releases that predate SBOM and immutable-release hardening, pass
   implementers.
 - [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md) — cross-language API shape, CLI
   parity matrix, intentional gaps, and drift guard.
+- [`docs/api-parity.json`](./docs/api-parity.json) — machine-checkable full-engine API parity
+  declaration and source evidence.
 - [`docs/GTS-ADVANCED-PRIMITIVES.md`](./docs/GTS-ADVANCED-PRIMITIVES.md) — streaming sink,
   index/MMR/proof, replication, range-fetch, and benchmark contract.
 - [`docs/GTS-PAPER-DRAFT.md`](./docs/GTS-PAPER-DRAFT.md) — informative publication draft

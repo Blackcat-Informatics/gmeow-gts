@@ -33,6 +33,7 @@ jobs:
       - name: Repository contracts
         run: |
           python scripts/check_cli_parity.py
+          python scripts/check_api_parity.py
           python scripts/check_advanced_contract.py
           python scripts/check_ecosystem_contract.py
           python scripts/check_rust_wasm_dependency_audit.py
