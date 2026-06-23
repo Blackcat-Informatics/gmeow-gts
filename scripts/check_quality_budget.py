@@ -284,39 +284,79 @@ def read_lines(path: Path) -> list[str]:
     return path.read_text(encoding="utf-8", errors="replace").splitlines()
 
 
-def rust_brace_delta(line: str) -> int:
-    delta = 0
+def is_rust_char_literal_start(line: str, index: int) -> bool:
+    next_char = line[index + 1] if index + 1 < len(line) else ""
+    return bool(next_char) and not (next_char.isalpha() or next_char == "_")
+
+
+def rust_cfg_test_module_end(lines: list[str], module_line: int) -> int | None:
+    module_decl = lines[module_line].strip()
+    if not re.match(r"(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\b", module_decl):
+        return None
+
+    depth = 0
+    started = False
     in_string = False
     in_char = False
+    in_block_comment = False
     escaped = False
-    index = 0
-    while index < len(line):
-        char = line[index]
-        next_char = line[index + 1] if index + 1 < len(line) else ""
-        if not in_string and not in_char and char == "/" and next_char == "/":
-            break
-        if escaped:
-            escaped = False
-        elif in_string:
-            if char == "\\":
-                escaped = True
+
+    for block_end in range(module_line, len(lines)):
+        line = lines[block_end]
+        if block_end > module_line and not started:
+            candidate = line.strip()
+            if (
+                not candidate
+                or candidate.startswith("//")
+                or candidate.startswith("/*")
+                or candidate.startswith("*")
+            ):
+                pass
+            elif not candidate.startswith("{"):
+                return None
+
+        index = 0
+        while index < len(line):
+            char = line[index]
+            next_char = line[index + 1] if index + 1 < len(line) else ""
+            if escaped:
+                escaped = False
+            elif in_block_comment:
+                if char == "*" and next_char == "/":
+                    in_block_comment = False
+                    index += 1
+            elif in_string:
+                if char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+            elif in_char:
+                if char == "\\":
+                    escaped = True
+                elif char == "'":
+                    in_char = False
+            elif char == "/" and next_char == "/":
+                break
+            elif char == "/" and next_char == "*":
+                in_block_comment = True
+                index += 1
             elif char == '"':
-                in_string = False
-        elif in_char:
-            if char == "\\":
-                escaped = True
-            elif char == "'":
-                in_char = False
-        elif char == '"':
-            in_string = True
-        elif char == "'":
-            in_char = True
-        elif char == "{":
-            delta += 1
-        elif char == "}":
-            delta -= 1
-        index += 1
-    return delta
+                in_string = True
+            elif char == "'" and is_rust_char_literal_start(line, index):
+                in_char = True
+            elif char == ";":
+                if not started:
+                    return None
+            elif char == "{":
+                started = True
+                depth += 1
+            elif char == "}" and started:
+                depth -= 1
+            index += 1
+
+        if started and depth <= 0:
+            return block_end
+    return len(lines) - 1 if started else None
 
 
 def strip_rust_cfg_test_modules(lines: list[str]) -> list[str]:
@@ -335,18 +375,15 @@ def strip_rust_cfg_test_modules(lines: list[str]) -> list[str]:
                 module_line += 1
                 continue
             break
-        if module_line >= len(lines) or not re.match(
-            r"(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\s*\{", lines[module_line].strip()
-        ):
+        block_end = (
+            rust_cfg_test_module_end(lines, module_line)
+            if module_line < len(lines)
+            else None
+        )
+        if block_end is None:
             index += 1
             continue
 
-        depth = 0
-        block_end = module_line
-        for block_end in range(module_line, len(lines)):
-            depth += rust_brace_delta(lines[block_end])
-            if depth <= 0:
-                break
         for skipped in range(attr_start, block_end + 1):
             stripped[skipped] = ""
         index = block_end + 1
@@ -748,9 +785,14 @@ def self_test() -> int:
             "# SPDX-License-Identifier: MIT OR Apache-2.0\n"
             "pub fn ok() -> u8 { 1 }\n"
             "#[cfg(test)]\n"
-            "mod tests {\n"
+            "mod tests\n"
+            "{\n"
             "    #[test]\n"
-            "    fn ignored_embedded_test_panic() { panic!(\"test-only\"); }\n"
+            "    fn ignored_embedded_test_panic() {\n"
+            "        let braces = \"not a module brace: }\";\n"
+            "        assert!(!braces.is_empty());\n"
+            "        panic!(\"test-only\");\n"
+            "    }\n"
             "}\n",
         )
         write_text(
@@ -798,11 +840,12 @@ def self_test() -> int:
         write_text(
             root / "rust/src/lib.rs",
             "# SPDX-License-Identifier: MIT OR Apache-2.0\n"
-            "pub fn ok() -> u8 { 1 }\n"
+            "#[cfg(test)]\n"
+            "mod tests;\n"
             "pub fn new_panic() { panic!(\"new unchecked panic\"); }\n",
         )
         panic_errors = compare(scan(root), baseline)
-        if not any("rust/src/lib.rs:3" in error for error in panic_errors):
+        if not any("rust/src/lib.rs:4" in error for error in panic_errors):
             print(
                 "check_quality_budget: self-test did not catch production panic",
                 file=sys.stderr,

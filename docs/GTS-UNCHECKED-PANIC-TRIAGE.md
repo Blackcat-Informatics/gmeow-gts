@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
+SPDX-License-Identifier: MIT OR Apache-2.0
+-->
+
 # Unchecked Panic-Like Triage
 
 This records the issue #318 triage for the largest `unchecked_panic_calls` clusters.
