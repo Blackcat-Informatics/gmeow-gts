@@ -5,8 +5,8 @@
       "target_lines": 1080
     },
     "go/reader/reader.go": {
-      "max_lines": 1284,
-      "target_lines": 1155
+      "max_lines": 501,
+      "target_lines": 450
     },
     "python/src/gts/cli.py": {
       "max_lines": 838,
@@ -98,6 +98,6 @@
       "max_total": 266
     }
   },
-  "production_file_count": 188,
+  "production_file_count": 191,
   "version": 1
 }
