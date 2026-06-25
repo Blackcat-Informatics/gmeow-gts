@@ -87,6 +87,16 @@ pub fn to_trig(g: &Graph) -> String {
     close_graph(&mut lines, &mut open_graph);
 
     for &(rid, (s, p, o)) in &g.reifiers {
+        // A triple TERM keys its own components under its own id (a self-reference,
+        // not a reifier relationship); rendering it as `<<( … )>> rdf:reifies <<( … )>>`
+        // would assert a triple term in subject position. Its components are already
+        // carried inline wherever the term appears, so skip the entry.
+        if g.terms
+            .get(rid)
+            .is_some_and(|t| t.kind == TermKind::Triple && t.reifier == Some(rid))
+        {
+            continue;
+        }
         let quoted = format!(
             "<<( {} {} {} )>>",
             render_trig_term(g, s),
