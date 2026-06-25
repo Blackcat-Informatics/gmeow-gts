@@ -16,6 +16,18 @@ change before `1.0`.
 
 ## [Unreleased]
 
+## [0.9.6] — 2026-06-24
+
+Rust-only release. Python, Go, TypeScript, and wrapper package versions remain
+at `0.9.4`.
+
+### Changed
+
+- Lenient RDF text codecs (oxttl `.lenient()`) so private-use language subtags
+  longer than eight characters (`x-gmeow-*`, e.g. `x-gmeow-norwegiannynorsk`)
+  parse, matching the prior oxigraph behavior. The Turtle, TriG, N-Triples, and
+  RDF/XML parsers now relax BCP-47 lexical validation on language tags.
+
 ## [0.9.5] — 2026-06-22
 
 Rust-only release. Python, Go, TypeScript, and wrapper package versions remain
@@ -273,7 +285,8 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.6...HEAD
+[0.9.6]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...rust-v0.9.6
 [0.9.5]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.4...rust-v0.9.5
 [0.9.4]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.2...py-v0.9.4
 [0.9.2]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.1...py-v0.9.2

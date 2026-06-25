@@ -13,6 +13,7 @@ use oxrdf::dataset::CanonicalizationAlgorithm;
 use oxrdf::{Dataset, GraphNameRef};
 use oxttl::{NQuadsParser, NTriplesParser};
 
+use gmeow_gts::from_nquads::from_nquads;
 use gmeow_gts::model::{Graph, Term, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::rdf_codecs::{
@@ -205,10 +206,6 @@ const W3C_NTRIPLES_NEGATIVE_SYNTAX: &[(&str, &str)] = &[
         "<<( <http://example/s> <http://example/p> <http://example/o> )>> <http://example/a> <http://example/z> .\n",
     ),
     (
-        "ntriples12-bad-iri-1",
-        "<http://example/a> <http://example/b> <//example/missing-scheme> .\n",
-    ),
-    (
         "ntriples12-bad-reified-syntax-1",
         "<< <http://example/s> <http://example/p> <http://example/o> >> <http://example/q> <http://example/z> .\n",
     ),
@@ -240,14 +237,33 @@ const W3C_NTRIPLES_NEGATIVE_SYNTAX: &[(&str, &str)] = &[
         "ntriples-langdir-bad-2",
         "<http://example/a> <http://example/b> \"Hello\"@en--LTR .\n",
     ),
+];
+
+/// W3C negative-syntax cases that the lenient codecs deliberately accept.
+///
+/// These are *lexical* (not grammatical) violations. The 0.9.6 codecs run
+/// oxttl in `lenient()` mode — matching the prior oxigraph `RdfParser::lenient()`
+/// behavior gmeow-ontology #909 depends on — which relaxes IRI and language-tag
+/// lexical validation so the long private-use `x-gmeow-*` subtags the ontology
+/// uses parse. The same relaxation accepts these strictly-invalid lexical
+/// forms; the grammar-level cases above still reject.
+const W3C_NTRIPLES_LEXICAL_ACCEPTED_UNDER_LENIENT: &[(&str, &str)] = &[
+    // Lexically-invalid IRI (missing scheme).
+    (
+        "ntriples12-bad-iri-1",
+        "<http://example/a> <http://example/b> <//example/missing-scheme> .\n",
+    ),
+    // `rdf:langString` datatype used without an accompanying language tag.
     (
         "ntriples-langdir-bad-3",
         "<http://example/a> <http://example/b> \"Hello\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#langString> .\n",
     ),
+    // Over-long primary language subtag (the relaxation that lets `x-gmeow-*` parse).
     (
         "ntriples-langdir-bad-4",
         "<http://example/a> <http://example/b> \"Hello\"@cantbethislong .\n",
     ),
+    // `rdf:dirLangString` datatype used without a base direction.
     (
         "ntriples-langdir-bad-5",
         "<http://example/a> <http://example/b> \"Hello\"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString> .\n",
@@ -265,6 +281,17 @@ fn ntriples_parser_accepts_w3c_rdf12_positive_syntax_suite() {
 fn ntriples_parser_rejects_w3c_rdf12_negative_syntax_suite() {
     for (name, text) in W3C_NTRIPLES_NEGATIVE_SYNTAX {
         assert!(from_ntriples(text).is_err(), "{name} unexpectedly parsed");
+    }
+}
+
+#[test]
+fn ntriples_parser_accepts_lexically_invalid_cases_under_lenient_mode() {
+    // The lenient codecs relax lexical validation (IRI + language tag) to admit
+    // the long private-use `x-gmeow-*` subtags; the same relaxation accepts
+    // these strictly-invalid lexical forms. Grammar-level violations still error.
+    for (name, text) in W3C_NTRIPLES_LEXICAL_ACCEPTED_UNDER_LENIENT {
+        from_ntriples(text)
+            .unwrap_or_else(|err| panic!("{name} should parse under lenient mode: {err}"));
     }
 }
 
@@ -914,4 +941,77 @@ fn cli_turtle_and_feature_trig_imports_roundtrip() {
     );
     let folded = String::from_utf8(folded.stdout).unwrap();
     assert!(folded.contains("<https://ex/q> <https://ex/r> <https://ex/g>"));
+}
+
+/// The long private-use language subtag GMEOW emits on localized literals.
+///
+/// BCP-47 caps private-use subtags at eight characters, so a strict parser
+/// (oxttl without `lenient()`) rejects `x-gmeow-norwegiannynorsk`. The lenient
+/// codecs must accept and round-trip it, matching the prior oxigraph behavior
+/// gmeow-ontology #909 depends on.
+const LONG_PRIVATE_USE_TAG: &str = "x-gmeow-norwegiannynorsk";
+
+#[test]
+fn turtle_codec_accepts_long_private_use_language_subtag() {
+    let turtle = format!("<https://ex/s> <https://ex/p> \"hallo\"@{LONG_PRIVATE_USE_TAG} .\n");
+    let out = nquads_from_gts(&from_turtle(&turtle).expect("Turtle accepts long private-use tag"));
+    assert!(
+        out.contains(&format!("\"hallo\"@{LONG_PRIVATE_USE_TAG}")),
+        "Turtle round-trip preserved the long private-use tag: {out}"
+    );
+}
+
+#[test]
+fn ntriples_codec_accepts_long_private_use_language_subtag() {
+    let ntriples = format!("<https://ex/s> <https://ex/p> \"hallo\"@{LONG_PRIVATE_USE_TAG} .\n");
+    let out =
+        nquads_from_gts(&from_ntriples(&ntriples).expect("N-Triples accepts long private-use tag"));
+    assert!(
+        out.contains(&format!("\"hallo\"@{LONG_PRIVATE_USE_TAG}")),
+        "N-Triples round-trip preserved the long private-use tag: {out}"
+    );
+}
+
+#[test]
+fn trig_codec_accepts_long_private_use_language_subtag() {
+    let trig = format!("<https://ex/s> <https://ex/p> \"hallo\"@{LONG_PRIVATE_USE_TAG} .\n");
+    let out = nquads_from_gts(&from_trig(&trig).expect("TriG accepts long private-use tag"));
+    assert!(
+        out.contains(&format!("\"hallo\"@{LONG_PRIVATE_USE_TAG}")),
+        "TriG round-trip preserved the long private-use tag: {out}"
+    );
+}
+
+#[test]
+fn nquads_codec_accepts_long_private_use_language_subtag() {
+    let nquads = format!("<https://ex/s> <https://ex/p> \"hallo\"@{LONG_PRIVATE_USE_TAG} .\n");
+    let out = nquads_from_gts(&from_nquads(&nquads).expect("N-Quads accepts long private-use tag"));
+    assert!(
+        out.contains(&format!("\"hallo\"@{LONG_PRIVATE_USE_TAG}")),
+        "N-Quads round-trip preserved the long private-use tag: {out}"
+    );
+}
+
+#[test]
+fn turtle_codec_parses_numeric_and_boolean_literals() {
+    // Regression guard: the oxttl-free hand-rolled Turtle parser on `main`
+    // cannot parse bare numeric or boolean literals; the oxttl-backed codecs
+    // must, so the 0.9.6 fix stays based on the 0.9.5 (oxttl) release.
+    let turtle = "<https://ex/s> <https://ex/p> 1 .\n\
+                  <https://ex/s> <https://ex/q> true .\n\
+                  <https://ex/s> <https://ex/r> 1.5 .\n";
+    let out =
+        nquads_from_gts(&from_turtle(turtle).expect("Turtle parses numeric/boolean literals"));
+    assert!(
+        out.contains("\"1\"^^<http://www.w3.org/2001/XMLSchema#integer>"),
+        "integer literal kept its xsd:integer datatype: {out}"
+    );
+    assert!(
+        out.contains("\"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>"),
+        "boolean literal kept its xsd:boolean datatype: {out}"
+    );
+    assert!(
+        out.contains("\"1.5\"^^<http://www.w3.org/2001/XMLSchema#decimal>"),
+        "decimal literal kept its xsd:decimal datatype: {out}"
+    );
 }

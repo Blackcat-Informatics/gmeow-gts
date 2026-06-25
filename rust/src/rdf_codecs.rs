@@ -109,7 +109,10 @@ impl From<EventError> for RdfCodecError {
 /// Parse N-Triples text into a GTS byte stream using the `dist` profile.
 pub fn from_ntriples(text: &str) -> Result<Vec<u8>, RdfCodecError> {
     let mut dataset = Dataset::new();
-    for triple in NTriplesParser::new().for_slice(text.as_bytes()) {
+    // `lenient()` relaxes lexical validation (matching oxigraph's
+    // `RdfParser::lenient()`), notably accepting BCP-47 private-use language
+    // subtags longer than eight characters such as `x-gmeow-norwegiannynorsk`.
+    for triple in NTriplesParser::new().lenient().for_slice(text.as_bytes()) {
         let triple = triple?;
         dataset.insert(triple.as_ref().in_graph(GraphNameRef::DefaultGraph));
     }
@@ -118,12 +121,15 @@ pub fn from_ntriples(text: &str) -> Result<Vec<u8>, RdfCodecError> {
 
 /// Parse RDF/XML text into a GTS byte stream using the `dist` profile.
 pub fn from_rdf_xml(text: &str) -> Result<Vec<u8>, RdfCodecError> {
-    parse_rdf_xml_with_parser(text, RdfXmlParser::new())
+    // `lenient()` accepts the long private-use language subtags (`x-gmeow-*`)
+    // GMEOW relies on, matching the prior oxigraph `RdfParser::lenient()` path.
+    parse_rdf_xml_with_parser(text, RdfXmlParser::new().lenient())
 }
 
 /// Parse RDF/XML text with an explicit document base IRI.
 pub fn from_rdf_xml_with_base_iri(text: &str, base_iri: &str) -> Result<Vec<u8>, RdfCodecError> {
     let parser = RdfXmlParser::new()
+        .lenient()
         .with_base_iri(base_iri)
         .map_err(|error| RdfCodecError::new(format!("invalid parser base IRI: {error}")))?;
     parse_rdf_xml_with_parser(text, parser)
@@ -141,7 +147,9 @@ fn parse_rdf_xml_with_parser(text: &str, parser: RdfXmlParser) -> Result<Vec<u8>
 /// Parse Turtle text into a GTS byte stream using the `dist` profile.
 pub fn from_turtle(text: &str) -> Result<Vec<u8>, RdfCodecError> {
     let mut dataset = Dataset::new();
-    for triple in TurtleParser::new().for_slice(text.as_bytes()) {
+    // `lenient()` accepts the long private-use language subtags (`x-gmeow-*`)
+    // GMEOW relies on, matching the prior oxigraph `RdfParser::lenient()` path.
+    for triple in TurtleParser::new().lenient().for_slice(text.as_bytes()) {
         let triple = triple?;
         dataset.insert(triple.as_ref().in_graph(GraphNameRef::DefaultGraph));
     }
@@ -151,7 +159,9 @@ pub fn from_turtle(text: &str) -> Result<Vec<u8>, RdfCodecError> {
 /// Parse TriG text into a GTS byte stream using the `dist` profile.
 pub fn from_trig(text: &str) -> Result<Vec<u8>, RdfCodecError> {
     let mut dataset = Dataset::new();
-    for quad in TriGParser::new().for_slice(text.as_bytes()) {
+    // `lenient()` accepts the long private-use language subtags (`x-gmeow-*`)
+    // GMEOW relies on, matching the prior oxigraph `RdfParser::lenient()` path.
+    for quad in TriGParser::new().lenient().for_slice(text.as_bytes()) {
         let quad = quad?;
         dataset.insert(quad.as_ref());
     }

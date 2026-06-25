@@ -178,7 +178,7 @@ let bytes = gmeow_gts::from_nquads::from_nquads(nquads.as_str())?;
 For native Rust data-model interop, enable the optional `rdf` feature:
 
 ```toml
-gmeow-gts = { version = "0.9.5", default-features = false, features = ["rdf"] }
+gmeow-gts = { version = "0.9.6", default-features = false, features = ["rdf"] }
 ```
 
 ```rust
@@ -196,7 +196,7 @@ crate.
 For native Oxigraph store interop, enable the heavier optional adapter:
 
 ```toml
-gmeow-gts = { version = "0.9.5", default-features = false, features = ["oxigraph-adapter"] }
+gmeow-gts = { version = "0.9.6", default-features = false, features = ["oxigraph-adapter"] }
 ```
 
 ```rust
@@ -214,7 +214,7 @@ N-Quads text in the hot path.
 For native Sophia dataset interop, enable the optional Sophia adapter:
 
 ```toml
-gmeow-gts = { version = "0.9.5", default-features = false, features = ["sophia-adapter"] }
+gmeow-gts = { version = "0.9.6", default-features = false, features = ["sophia-adapter"] }
 ```
 
 ```rust
