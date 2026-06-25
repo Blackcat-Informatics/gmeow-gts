@@ -33,7 +33,7 @@ import (
 	"go.blackcatinformatics.ca/gts/model"
 )
 
-// XML Schema namespace used by RDF typed literals.
+// Namespace is the XML Schema namespace used by RDF typed literals.
 const Namespace = "http://www.w3.org/2001/XMLSchema#"
 
 // IllTypedLiteralCode is the stable diagnostic code for invalid recognized XSD literals.
@@ -251,21 +251,29 @@ func validateIntegerFamily(local, lexical string) LexicalStatus {
 	case "positiveInteger":
 		validFacet = canonical.sign > 0
 	case "long":
-		validFacet = integerInRange(canonical.lexical, "-9223372036854775808", "9223372036854775807")
+		_, err := strconv.ParseInt(canonical.lexical, 10, 64)
+		validFacet = err == nil
 	case "int":
-		validFacet = integerInRange(canonical.lexical, "-2147483648", "2147483647")
+		value, err := strconv.ParseInt(canonical.lexical, 10, 64)
+		validFacet = err == nil && value >= -2147483648 && value <= 2147483647
 	case "short":
-		validFacet = integerInRange(canonical.lexical, "-32768", "32767")
+		value, err := strconv.ParseInt(canonical.lexical, 10, 64)
+		validFacet = err == nil && value >= -32768 && value <= 32767
 	case "byte":
-		validFacet = integerInRange(canonical.lexical, "-128", "127")
+		value, err := strconv.ParseInt(canonical.lexical, 10, 64)
+		validFacet = err == nil && value >= -128 && value <= 127
 	case "unsignedLong":
-		validFacet = integerInRange(canonical.lexical, "0", "18446744073709551615")
+		_, err := strconv.ParseUint(canonical.lexical, 10, 64)
+		validFacet = err == nil
 	case "unsignedInt":
-		validFacet = integerInRange(canonical.lexical, "0", "4294967295")
+		value, err := strconv.ParseUint(canonical.lexical, 10, 64)
+		validFacet = err == nil && value <= 4294967295
 	case "unsignedShort":
-		validFacet = integerInRange(canonical.lexical, "0", "65535")
+		value, err := strconv.ParseUint(canonical.lexical, 10, 64)
+		validFacet = err == nil && value <= 65535
 	case "unsignedByte":
-		validFacet = integerInRange(canonical.lexical, "0", "255")
+		value, err := strconv.ParseUint(canonical.lexical, 10, 64)
+		validFacet = err == nil && value <= 255
 	}
 	if !validFacet {
 		return invalid(fmt.Sprintf("xsd:%s facet violation", local))
@@ -300,16 +308,6 @@ func canonicalIntegerLexical(lexical string) (canonicalInteger, error) {
 		return canonicalInteger{lexical: "-" + trimmed, sign: -1}, nil
 	}
 	return canonicalInteger{lexical: trimmed, sign: 1}, nil
-}
-
-func integerInRange(lexical, minText, maxText string) bool {
-	value, ok := new(big.Int).SetString(lexical, 10)
-	if !ok {
-		return false
-	}
-	min, _ := new(big.Int).SetString(minText, 10)
-	max, _ := new(big.Int).SetString(maxText, 10)
-	return value.Cmp(min) >= 0 && value.Cmp(max) <= 0
 }
 
 func validateDecimal(lexical string) LexicalStatus {
@@ -446,7 +444,7 @@ func validateDateTimeFamily(local, lexical string) LexicalStatus {
 		if m == nil {
 			return invalid("invalid xsd:dateTime lexical form")
 		}
-		if !validDate(m[1], m[2], m[3]) || !validTime(m[4], m[5], m[6]) || !validTimezone(m[8]) {
+		if !validDate(m[1], m[2], m[3]) || !validTime(m[4], m[5], m[6], m[7]) || !validTimezone(m[8]) {
 			return invalid("invalid xsd:dateTime lexical form")
 		}
 	case "date":
@@ -462,7 +460,7 @@ func validateDateTimeFamily(local, lexical string) LexicalStatus {
 		if m == nil {
 			return invalid("invalid xsd:time lexical form")
 		}
-		if !validTime(m[1], m[2], m[3]) || !validTimezone(m[5]) {
+		if !validTime(m[1], m[2], m[3], m[4]) || !validTimezone(m[5]) {
 			return invalid("invalid xsd:time lexical form")
 		}
 	case "gYearMonth":
@@ -570,7 +568,7 @@ func validDay(dayText string, maxDay int) bool {
 	return ok && day >= 1 && day <= maxDay
 }
 
-func validTime(hourText, minuteText, secondText string) bool {
+func validTime(hourText, minuteText, secondText, fractionalText string) bool {
 	hour, ok := parseTwoDigits(hourText)
 	if !ok {
 		return false
@@ -584,9 +582,18 @@ func validTime(hourText, minuteText, secondText string) bool {
 		return false
 	}
 	if hour == 24 {
-		return minute == 0 && second == 0
+		return minute == 0 && second == 0 && !hasNonZeroFractionalSecond(fractionalText)
 	}
 	return hour <= 23
+}
+
+func hasNonZeroFractionalSecond(value string) bool {
+	for i := 0; i < len(value); i++ {
+		if value[i] >= '1' && value[i] <= '9' {
+			return true
+		}
+	}
+	return false
 }
 
 func validTimezone(value string) bool {
@@ -683,7 +690,26 @@ func replaceXMLWhitespace(value string) string {
 }
 
 func collapseXMLWhitespace(value string) string {
-	return strings.Join(strings.Fields(replaceXMLWhitespace(value)), " ")
+	replaced := replaceXMLWhitespace(value)
+	var out strings.Builder
+	out.Grow(len(replaced))
+	inSpace := true
+	for i := 0; i < len(replaced); i++ {
+		if replaced[i] == ' ' {
+			if !inSpace {
+				out.WriteByte(' ')
+				inSpace = true
+			}
+			continue
+		}
+		out.WriteByte(replaced[i])
+		inSpace = false
+	}
+	result := out.String()
+	if len(result) > 0 && result[len(result)-1] == ' ' {
+		result = result[:len(result)-1]
+	}
+	return result
 }
 
 func effectiveDatatypeIRI(terms []model.Term, term *model.Term) string {

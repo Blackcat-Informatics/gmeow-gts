@@ -29,8 +29,10 @@ func TestValidateLexicalRecognizedValidExamples(t *testing.T) {
 		{"float", "float", "1.25E2", "125"},
 		{"double", "double", "-INF", "-INF"},
 		{"dateTime", "dateTime", "2026-06-10T20:00:00Z", "2026-06-10T20:00:00Z"},
+		{"dateTime midnight", "dateTime", "2026-06-10T24:00:00.000Z", "2026-06-10T24:00:00.000Z"},
 		{"date", "date", "2024-02-29", "2024-02-29"},
 		{"time", "time", "23:59:59-07:00", "23:59:59-07:00"},
+		{"time midnight", "time", "24:00:00", "24:00:00"},
 		{"duration", "duration", "P1Y2M3DT4H5M6.7S", "P1Y2M3DT4H5M6.7S"},
 		{"yearMonthDuration", "yearMonthDuration", "P1Y2M", "P1Y2M"},
 		{"dayTimeDuration", "dayTimeDuration", "P3DT4H", "P3DT4H"},
@@ -62,8 +64,10 @@ func TestValidateLexicalRecognizedInvalidExamples(t *testing.T) {
 		{"float", "float", "1e"},
 		{"double", "double", "++1"},
 		{"dateTime", "dateTime", "2026-02-31T00:00:00Z"},
+		{"dateTime fractional midnight", "dateTime", "2026-06-10T24:00:00.001Z"},
 		{"date", "date", "2026-02-31"},
 		{"time", "time", "25:00:00"},
+		{"time fractional midnight", "time", "24:00:00.001"},
 		{"duration", "duration", "P"},
 		{"yearMonthDuration", "yearMonthDuration", "P1D"},
 		{"dayTimeDuration", "dayTimeDuration", "P1Y"},
@@ -80,6 +84,16 @@ func TestValidateLexicalRecognizedInvalidExamples(t *testing.T) {
 				t.Fatal("invalid status did not include a reason")
 			}
 		})
+	}
+}
+
+func TestTokenWhitespaceCollapseOnlyUsesXMLWhitespace(t *testing.T) {
+	status := ValidateLexical(xsdIRI("token"), " a\tb\u00a0 c  ")
+	if !status.IsValid() {
+		t.Fatalf("status = %#v, want valid", status)
+	}
+	if status.Canonical != "a b\u00a0 c" {
+		t.Fatalf("canonical = %q, want XML-only whitespace collapse", status.Canonical)
 	}
 }
 
