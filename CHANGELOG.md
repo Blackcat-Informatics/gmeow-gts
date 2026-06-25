@@ -28,6 +28,9 @@ and MAY change before `1.0`.
 
 ### Changed
 
+- Corrected the Go module release tag shape to `go/v<version>` so
+  `go.blackcatinformatics.ca/gts` versions in the `go/` subdirectory are
+  discoverable by the Go proxy and pkg.go.dev.
 - Moved canonical `visual-hashing` publication to
   `Blackcat-Informatics/visual-hashing`; version `0.1.3` is published from that
   repository with crates.io Trusted Publishing provenance, and the old monorepo

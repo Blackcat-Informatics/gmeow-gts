@@ -50,7 +50,7 @@ go install go.blackcatinformatics.ca/gts/cmd/gts@latest
 ```
 
 The module path is `go.blackcatinformatics.ca/gts`. Releases are tagged in the
-`gmeow-gts` repository, e.g. `go-v0.9.4`.
+`gmeow-gts` repository with the module subdirectory prefix, e.g. `go/v0.9.4`.
 
 ## Library quick start
 
@@ -183,7 +183,7 @@ handling:
 ## Binary releases
 
 Pre-built binaries for Linux, macOS, and Windows are published to GitHub Releases when a
-`go-v*` tag is pushed. See the
+`go/v*` tag is pushed. See the
 [releases page](https://github.com/Blackcat-Informatics/gmeow-gts/releases).
 
 ## Build and test

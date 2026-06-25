@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 name: Release Go GTS
 
-# On a go-v* tag, cross-build the gts CLI, attest provenance and SBOM evidence,
+# On a go/v* tag, cross-build the gts CLI, attest provenance and SBOM evidence,
 # and publish an immutable GitHub Release with the archives, checksums, and SBOM.
 
 on:
   push:
     tags:
-      - 'go-v*'
+      - 'go/v*'
 
 permissions:
   contents: read
@@ -37,7 +37,7 @@ jobs:
 
       - name: Cross-build the gts CLI
         run: |
-          VERSION="${GITHUB_REF_NAME#go-v}"
+          VERSION="${GITHUB_REF_NAME#go/v}"
           rm -rf dist
           mkdir -p dist
           cd go
@@ -123,7 +123,7 @@ jobs:
                 --repo "$GITHUB_REPOSITORY" \
                 --verify-tag \
                 --draft \
-                --title "GTS Go ${GITHUB_REF_NAME#go-}" \
+                --title "GTS Go v${GITHUB_REF_NAME#go/v}" \
                 --notes-file release-notes-go.md
               ;;
           esac
