@@ -8,7 +8,8 @@
 ## ABI model
 
 - All byte inputs use pointer plus length.
-- Path lists use NUL-terminated UTF-8 C strings because they are passed to path-based filesystem APIs.
+- Path lists use NUL-terminated UTF-8 C strings because they are passed to
+  path-based filesystem APIs. See [Path Encoding](#path-encoding).
 - Rust graph structs are never exposed. Graph-shaped results are returned as stable JSON reports.
 - Output buffers are returned as `gts_buffer` and must be released with `gts_buffer_free`.
 - Errors are returned as opaque `gts_error *` handles and must be released with `gts_error_free`.
@@ -17,6 +18,70 @@
 - Functions are reentrant. Returned buffers and errors are caller-owned and must not be shared mutably across threads.
 
 Do not edit `gts_buffer.capacity`; it is part of the Rust allocation handle used by `gts_buffer_free`.
+
+## Path Encoding
+
+The files-profile path APIs (`gts_files_pack`, `gts_files_unpack`, and
+`gts_files_diff_json`) accept NUL-terminated UTF-8 C strings (`const char *`)
+for input paths, destination directories, and comparison directories. This is
+the ABI v1 contract for path-based filesystem calls.
+
+On Unix-like platforms this matches the wrapper-facing contract used by the
+current implementations. On Windows it does not represent every native path
+that the wide-character filesystem APIs can open. Wrapper authors and packagers
+must describe these helpers as covering paths expressible as UTF-8 C strings,
+not as full Windows path coverage.
+
+Future Windows wide-character path entry points can be added as new symbols.
+That would be an additive ABI-compatible extension under the compatibility
+policy below; it does not require changing the existing UTF-8 C-string
+functions in ABI v1.
+
+## Compatibility Policy
+
+`GTS_ABI_VERSION` is the native compatibility contract for `gts.h`, `libgts`,
+and the `share/gts/ABI_VERSION` file included in release archives. It is
+separate from the Rust crate/package version: package versions may advance for
+implementation fixes, packaging changes, documentation updates, or JSON report
+extensions without changing the native ABI version.
+
+The following changes are ABI-compatible and do not require a
+`GTS_ABI_VERSION` bump:
+
+- adding new exported symbols;
+- adding optional JSON report fields or new report schemas;
+- adding capability metadata for newly exposed operations;
+- changing implementation behavior while preserving existing function
+  signatures, status values, ownership rules, and documented report contracts.
+
+The following changes require a `GTS_ABI_VERSION` increment:
+
+- removing or renaming exported symbols;
+- changing an existing function signature, argument type, return type, or
+  calling convention;
+- changing the layout or ownership contract of `gts_buffer` or any future
+  public struct;
+- changing `gts_status` numeric values or the meaning of existing status
+  values;
+- changing the ownership, lifetime, mutability, reentrancy, or free-function
+  rules for returned buffers and errors;
+- changing path encoding expectations or other native boundary rules in a way
+  that existing wrappers cannot safely adapt to.
+
+JSON report schemas are versioned independently from `GTS_ABI_VERSION`. The
+`gts_read_json`, `gts_verify_json`, `gts_build_metadata_json`,
+`gts_capabilities_json`, and related report shapes may add fields or new schema
+IDs without a native ABI bump when existing documented fields keep their
+meaning. Removing fields, changing field types, or changing report semantics is
+a report-schema compatibility change even when the native function signatures
+stay stable.
+
+Wrappers must reject unsupported ABI versions clearly. A wrapper that loads a
+system-provided `libgts` must compare `gts_abi_version()` or the metadata
+`abi_version` against the wrapper's supported version range before relying on
+the wider surface. Unsupported versions should fail with the wrapper's normal
+structured exception, error object, or install/configure error instead of
+silently continuing.
 
 ## Operations
 
@@ -75,6 +140,9 @@ The first wrapper publication wave keeps language packages source-only. Native
 archive="$(bash rust/capi/scripts/package.sh)"
 bash rust/capi/scripts/verify-archive.sh "${archive}"
 ```
+
+On Windows, use `rust/capi/scripts/verify-archive-windows.ps1` instead; the
+release workflow resolves the archive path and runs it before artifact upload.
 
 Each archive has a relocatable install layout:
 

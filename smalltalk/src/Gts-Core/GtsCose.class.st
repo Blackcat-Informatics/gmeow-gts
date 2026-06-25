@@ -9,7 +9,7 @@ GtsCose class >> decrypt0: coseBytes keys: keyMap [
 	| aad ciphertext iv key kid parsed protected |
 	parsed := self parseEncrypt0: coseBytes.
 	kid := parsed at: 'kid'.
-	key := keyMap at: kid ifAbsent: [ self error: 'no content key for recipient' ].
+	key := keyMap at: kid ifAbsent: [ GtsCryptoError signal: 'no content key for recipient' ].
 	protected := parsed at: 'protected'.
 	iv := parsed at: 'iv'.
 	ciphertext := parsed at: 'ciphertext'.
@@ -49,14 +49,14 @@ GtsCose class >> parseEncrypt0: coseBytes [
 	| arr kid iv tag unprotected |
 	tag := GtsCborReader decode: coseBytes.
 	((tag isKindOf: GtsCborTag) and: [ tag tag = 16 ])
-		ifFalse: [ self error: 'malformed COSE_Encrypt0' ].
+		ifFalse: [ GtsCryptoError signal: 'malformed COSE_Encrypt0' ].
 	arr := tag value.
 	(arr isArray and: [ arr size = 3 ])
-		ifFalse: [ self error: 'malformed COSE_Encrypt0' ].
+		ifFalse: [ GtsCryptoError signal: 'malformed COSE_Encrypt0' ].
 	unprotected := arr at: 2.
-	unprotected isDictionary ifFalse: [ self error: 'malformed COSE_Encrypt0' ].
-	kid := unprotected at: 4 ifAbsent: [ self error: 'malformed COSE_Encrypt0' ].
-	iv := unprotected at: 5 ifAbsent: [ self error: 'malformed COSE_Encrypt0' ].
+	unprotected isDictionary ifFalse: [ GtsCryptoError signal: 'malformed COSE_Encrypt0' ].
+	kid := unprotected at: 4 ifAbsent: [ GtsCryptoError signal: 'malformed COSE_Encrypt0' ].
+	iv := unprotected at: 5 ifAbsent: [ GtsCryptoError signal: 'malformed COSE_Encrypt0' ].
 	^ Dictionary newFromPairs: {
 		'kid'. kid utf8Decoded.
 		'protected'. (arr at: 1).
@@ -69,14 +69,14 @@ GtsCose class >> parseSign1: coseBytes [
 	| arr kid tag unprotected |
 	tag := GtsCborReader decode: coseBytes.
 	((tag isKindOf: GtsCborTag) and: [ tag tag = 18 ])
-		ifFalse: [ self error: 'malformed COSE_Sign1' ].
+		ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
 	arr := tag value.
 	(arr isArray and: [ arr size = 4 ])
-		ifFalse: [ self error: 'malformed COSE_Sign1' ].
-	(arr at: 3) isNil ifFalse: [ self error: 'malformed COSE_Sign1' ].
+		ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
+	(arr at: 3) isNil ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
 	unprotected := arr at: 2.
-	unprotected isDictionary ifFalse: [ self error: 'malformed COSE_Sign1' ].
-	kid := unprotected at: 4 ifAbsent: [ self error: 'malformed COSE_Sign1' ].
+	unprotected isDictionary ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
+	kid := unprotected at: 4 ifAbsent: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
 	^ Dictionary newFromPairs: {
 		'kid'. kid utf8Decoded.
 		'protected'. (arr at: 1).

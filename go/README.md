@@ -33,10 +33,11 @@ data item.
 4. **Recursive composition (matryoshka)** — a reversed payload is just bytes, and a GTS file
    is just bytes, so a payload MAY itself be a complete signed GTS.
 
-This is one of **four interoperable engines** (Rust, Python, Go, TypeScript) that all gate
-against one frozen, byte-exact conformance corpus — every engine folds identical bytes to
-identical N-Quads. See the [project README](https://github.com/Blackcat-Informatics/gmeow-gts#readme)
-for the cross-engine picture.
+This is one of **six interoperable full engines** (Rust, Python, Go, TypeScript,
+Smalltalk/Pharo, Kotlin/JVM) that all gate against one frozen, byte-exact conformance corpus —
+every engine folds identical bytes to identical N-Quads. See the
+[project README](https://github.com/Blackcat-Informatics/gmeow-gts#readme) for the
+cross-engine picture.
 
 GTS is ontology-independent. GTS is the primary distribution method for GMEOW, but GTS does
 not depend on GMEOW. The module path is neutral (`go.blackcatinformatics.ca/gts`), while the
@@ -49,7 +50,7 @@ go install go.blackcatinformatics.ca/gts/cmd/gts@latest
 ```
 
 The module path is `go.blackcatinformatics.ca/gts`. Releases are tagged in the
-`gmeow-gts` repository, e.g. `go-v0.9.4`.
+`gmeow-gts` repository with the module subdirectory prefix, e.g. `go/v0.9.4`.
 
 ## Library quick start
 
@@ -79,7 +80,11 @@ return. Pass `allowSegments=true` to fold a multi-segment (concatenated) file, a
 non-nil `expectedHead` to assert the file's head digest.
 
 Use `fromnquads.FromNQuads(text)` for the inverse transform when rebuilding a GTS file
-from N-Quads text.
+from N-Quads text. During import, recognized invalid XSD typed literals are preserved
+verbatim and recorded under metadata key `gts:illTypedLiterals` as
+`{"version": 1, "items": [{"term": <term-id>, "datatype": <iri>, "lexical": <text>, "reason": <detail>}]}`.
+The companion `xsd` package exposes `IllTypedLiteral` diagnostics with stable code
+`IllTypedLiteral` for callers working with a materialized graph.
 
 For service code that receives an `io.Reader`, `reader.ReadFrom(ctx, r, opts)` returns the
 same materialized graph with cancellation and byte-limit handling. For incremental folds,
@@ -152,6 +157,14 @@ gts pack <dir|file>... -o <out>            package files/directories into a file
 gts unpack <archive> [-C dir] extract a files profile (refuses path traversal)
 gts diff <archive> <dir>      compare a files profile to a directory by digest
 gts from-nq <in.nq> [-o out]  build a GTS from N-Quads (`-` reads stdin)
+gts to-nt <file>              fold the default graph to N-Triples
+gts from-nt <in.nt> [-o out]  build a GTS from N-Triples (`-` reads stdin)
+gts to-trig <file>            fold to TriG
+gts from-trig <in.trig> [-o out]  build a GTS from TriG (`-` reads stdin)
+gts to-turtle <file>          fold the default graph to Turtle
+gts from-turtle <in.ttl> [-o out]  build a GTS from Turtle (`-` reads stdin)
+gts to-rdfxml <file>          fold the default graph to RDF/XML
+gts from-rdfxml <in.rdf> [-o out]  build a GTS from RDF/XML (`-` reads stdin)
 ```
 
 Exit codes: `0` clean · `1` diagnostics found or input refused · `2` usage/IO error.
@@ -175,14 +188,14 @@ handling:
   payload confidentiality; an undecryptable frame degrades to an opaque node.
 - **Transport key** — `gts extract-key` parses the embedded OpenPGP transport key and
   prints its kid, fingerprint, **emojihash** (a stable visual fingerprint), and armored
-  public block. `verify --key` and `extract-key` are cross-engine: all four `gts`
+  public block. `verify --key` and `extract-key` are cross-engine: all six `gts`
   binaries resolve the same fingerprint and emojihash and verify COSE signatures
   identically.
 
 ## Binary releases
 
 Pre-built binaries for Linux, macOS, and Windows are published to GitHub Releases when a
-`go-v*` tag is pushed. See the
+`go/v*` tag is pushed. See the
 [releases page](https://github.com/Blackcat-Informatics/gmeow-gts/releases).
 
 ## Build and test

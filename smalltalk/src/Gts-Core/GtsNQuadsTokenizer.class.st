@@ -50,14 +50,14 @@ GtsNQuadsTokenizer >> atomKind: kind value: value language: language direction: 
 { #category : #private }
 GtsNQuadsTokenizer >> bnode [
 	| start |
-	(self startsWith: '_:') ifFalse: [ self error: 'bad blank node in ', source ].
+	(self startsWith: '_:') ifFalse: [ GtsParserError signal: 'bad blank node in ', source ].
 	position := position + 2.
 	start := position.
 	[ position <= source size and: [ self isBlankNodeCharacter: (source at: position) ] ]
 		whileTrue: [ position := position + 1 ].
 	(position > start and: [ (source at: position - 1) = $. ])
 		ifTrue: [ position := position - 1 ].
-	position = start ifTrue: [ self error: 'empty blank node label in ', source ].
+	position = start ifTrue: [ GtsParserError signal: 'empty blank node label in ', source ].
 	^ source copyFrom: start to: position - 1
 ]
 
@@ -65,17 +65,17 @@ GtsNQuadsTokenizer >> bnode [
 GtsNQuadsTokenizer >> consumeStatementTerminator [
 	self skipWhitespace.
 	(position <= source size and: [ (source at: position) = $. ])
-		ifFalse: [ self error: 'expected statement terminator in ', source ].
+		ifFalse: [ GtsParserError signal: 'expected statement terminator in ', source ].
 	position := position + 1.
 	self skipWhitespace.
 	position <= source size
-		ifTrue: [ self error: 'unexpected trailing tokens in ', source ]
+		ifTrue: [ GtsParserError signal: 'unexpected trailing tokens in ', source ]
 ]
 
 { #category : #private }
 GtsNQuadsTokenizer >> escape [
 	| character code raw width |
-	position > source size ifTrue: [ self error: 'bad escape at end of ', source ].
+	position > source size ifTrue: [ GtsParserError signal: 'bad escape at end of ', source ].
 	character := source at: position.
 	position := position + 1.
 	character = $\ ifTrue: [ ^ '\' ].
@@ -88,19 +88,19 @@ GtsNQuadsTokenizer >> escape [
 	(character = $u or: [ character = $U ]) ifTrue: [
 		width := character = $u ifTrue: [ 4 ] ifFalse: [ 8 ].
 		position + width - 1 > source size
-			ifTrue: [ self error: 'bad unicode escape in ', source ].
+			ifTrue: [ GtsParserError signal: 'bad unicode escape in ', source ].
 		raw := source copyFrom: position to: position + width - 1.
 		(raw allSatisfy: [ :each | self isHexDigitCharacter: each ])
-			ifFalse: [ self error: 'bad unicode escape in ', source ].
+			ifFalse: [ GtsParserError signal: 'bad unicode escape in ', source ].
 		position := position + width.
 		code := self integerFromHex: raw.
 		^ String with: (Character value: code) ].
-	self error: 'unsupported escape \', character asString, ' in ', source
+	GtsParserError signal: 'unsupported escape \', character asString, ' in ', source
 ]
 
 { #category : #private }
 GtsNQuadsTokenizer >> expect: token [
-	(self startsWith: token) ifFalse: [ self error: 'expected ', token, ' in ', source ].
+	(self startsWith: token) ifFalse: [ GtsParserError signal: 'expected ', token, ' in ', source ].
 	position := position + token size
 ]
 
@@ -114,7 +114,7 @@ GtsNQuadsTokenizer >> hexValueOf: character [
 		ifTrue: [ ^ code - $a asciiValue + 10 ].
 	(code between: $A asciiValue and: $F asciiValue)
 		ifTrue: [ ^ code - $A asciiValue + 10 ].
-	self error: 'invalid hex digit'
+	GtsParserError signal: 'invalid hex digit'
 ]
 
 { #category : #initialization }
@@ -137,12 +137,12 @@ GtsNQuadsTokenizer >> integerFromHex: text [
 GtsNQuadsTokenizer >> iri [
 	| end start |
 	(position <= source size and: [ (source at: position) = $< ])
-		ifFalse: [ self error: 'bad IRI in ', source ].
+		ifFalse: [ GtsParserError signal: 'bad IRI in ', source ].
 	start := position + 1.
 	end := start.
 	[ end <= source size and: [ (source at: end) ~= $> ] ]
 		whileTrue: [ end := end + 1 ].
-	end > source size ifTrue: [ self error: 'unterminated IRI in ', source ].
+	end > source size ifTrue: [ GtsParserError signal: 'unterminated IRI in ', source ].
 	position := end + 1.
 	^ source copyFrom: start to: end - 1
 ]
@@ -195,7 +195,7 @@ GtsNQuadsTokenizer >> literal [
 						start := position.
 						[ position <= source size and: [ self isLanguageCharacter: (source at: position) ] ]
 							whileTrue: [ position := position + 1 ].
-						position = start ifTrue: [ self error: 'empty language tag in ', source ].
+						position = start ifTrue: [ GtsParserError signal: 'empty language tag in ', source ].
 						language := source copyFrom: start to: position - 1.
 						(language size >= 5 and: [ (language copyFrom: language size - 4 to: language size) = '--ltr' ])
 							ifTrue: [
@@ -209,9 +209,9 @@ GtsNQuadsTokenizer >> literal [
 								language := language size = 5
 									ifTrue: [ '' ]
 									ifFalse: [ language copyFrom: 1 to: language size - 5 ] ].
-						language isEmpty ifTrue: [ self error: 'empty language tag in ', source ].
+						language isEmpty ifTrue: [ GtsParserError signal: 'empty language tag in ', source ].
 						((direction isNil and: [ language includesSubstring: '--' ]))
-							ifTrue: [ self error: 'invalid literal direction in ', source ] ]
+							ifTrue: [ GtsParserError signal: 'invalid literal direction in ', source ] ]
 					ifFalse: [
 						(self startsWith: '^^') ifTrue: [
 							position := position + 2.
@@ -224,18 +224,18 @@ GtsNQuadsTokenizer >> literal [
 					direction: direction
 					datatype: datatype ].
 			stream nextPut: character ] ] ].
-	self error: 'unterminated literal in ', source
+	GtsParserError signal: 'unterminated literal in ', source
 ]
 
 { #category : #parsing }
 GtsNQuadsTokenizer >> node [
 	self skipWhitespace.
-	position > source size ifTrue: [ self error: 'unexpected end of line: ', source ].
+	position > source size ifTrue: [ GtsParserError signal: 'unexpected end of line: ', source ].
 	(self startsWith: '<<(') ifTrue: [ ^ self quotedTriple ].
 	(source at: position) = $< ifTrue: [ ^ self atomKind: #iri value: self iri ].
 	(source at: position) = $_ ifTrue: [ ^ self atomKind: #blankNode value: self bnode ].
 	(source at: position) = $" ifTrue: [ ^ self literal ].
-	self error: 'unexpected token in ', source
+	GtsParserError signal: 'unexpected token in ', source
 ]
 
 { #category : #private }

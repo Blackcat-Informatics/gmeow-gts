@@ -23,6 +23,21 @@ deferred.
 | Tar-compatible archives | Rust `gts from-tar`, `gts to-tar`, and `gts tar -c/-x/-t/-d` are available behind `--features tar`. They bridge `.tar`, `.tar.gz`, and `.tar.zst` streams to files-profile-v2 GTS archives with digest-addressed file bodies, tar-equivalent metadata, unknown PAX preservation, and explicit extraction opt-ins. | Python/Go/TypeScript parity is intentionally deferred. Those engines should implement files-profile-v2 import/export and pass `vectors/tar/` before their CLIs claim `from-tar`, `to-tar`, or `tar`. |
 | OKF bundles | Rust `gts from-okf` and `gts to-okf` are available behind `--features okf`. They turn Markdown + YAML-frontmatter OKF bundles into GTS profile `okf` packages and project OKF-profile graphs back to bundle directories. The committed corpus includes a BigQuery-style bundle under `vectors/okf/bigquery-join/`, including frontmatter-less navigation `index.md` pages matching Google's checked-in Knowledge Catalog samples. | Python/Go/TypeScript parity is intentionally deferred. Those engines should implement the same `gts-okf-v1` directory contract and pass the OKF corpus before their CLIs claim `from-okf` or `to-okf`. |
 
+## C ABI Wrapper Contract
+
+The C ABI compatibility policy lives in
+[`rust/capi/README.md#compatibility-policy`](../rust/capi/README.md#compatibility-policy).
+`GTS_ABI_VERSION` governs the native `gts.h`/`libgts` boundary and is separate
+from package versions and JSON report schema versions. Wrapper packages must
+reject unsupported ABI versions with a clear wrapper error, exception, or
+install/configure failure rather than silently continuing with an unknown
+native contract.
+
+Files-profile path helpers use the ABI v1 NUL-terminated UTF-8 C-string path
+contract. Wrapper docs must not present those helpers as full Windows
+wide-character path coverage; future wide-character path functions should be
+new additive C ABI symbols under the compatibility policy.
+
 ## Tar-Compatible Archive Bridge
 
 The Rust tar bridge makes GTS usable as a signed, append-only, deduplicated
@@ -178,7 +193,7 @@ let bytes = gmeow_gts::from_nquads::from_nquads(nquads.as_str())?;
 For native Rust data-model interop, enable the optional `rdf` feature:
 
 ```toml
-gmeow-gts = { version = "0.9.5", default-features = false, features = ["rdf"] }
+gmeow-gts = { version = "0.9.6", default-features = false, features = ["rdf"] }
 ```
 
 ```rust
@@ -195,7 +210,7 @@ an external RDF store, so `--features rdf` remains suitable for
 For native in-memory RDF store interop, enable the optional native store:
 
 ```toml
-gmeow-gts = { version = "0.9.5", default-features = false, features = ["native-store"] }
+gmeow-gts = { version = "0.9.6", default-features = false, features = ["native-store"] }
 ```
 
 ```rust

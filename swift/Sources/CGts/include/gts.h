@@ -65,6 +65,13 @@ gts_status gts_from_format(const char *format,
 gts_status gts_to_nquads(const uint8_t *data, size_t len, gts_buffer *out, gts_error **error);
 gts_status gts_from_nquads(const char *text, size_t len, gts_buffer *out, gts_error **error);
 
+/*
+ * Files-profile path APIs use NUL-terminated UTF-8 C strings for paths,
+ * destination directories, and comparison directories. On Windows this does
+ * not cover every path accepted by native wide-character filesystem APIs.
+ * Future wide-character variants may be added as new ABI symbols; callers
+ * should not assume these UTF-8 functions provide full Windows path coverage.
+ */
 gts_status gts_files_pack(const char *const *paths, size_t path_count, gts_buffer *out, gts_error **error);
 gts_status gts_files_unpack(const uint8_t *data,
                             size_t len,

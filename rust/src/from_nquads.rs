@@ -127,14 +127,26 @@ fn validate_language_tag(tag: &str, line: &str) -> Result<(), NQuadsParseError> 
             "invalid language tag {tag:?} in {line:?}"
         )));
     }
+    // BCP-47 private-use sequences are introduced by the singleton `x`. GMEOW relies on
+    // long private-use subtags (e.g. `x-gmeow-norwegiannynorsk`) that exceed the 8-char
+    // per-subtag limit, so once `x` appears the length cap is dropped for the remainder
+    // (subtags must still be non-empty and alphanumeric). This is the native equivalent
+    // of the oxttl `.lenient()` mode the 909 branch depended on.
+    let mut private_use = primary.eq_ignore_ascii_case("x");
     for subtag in parts {
-        if subtag.is_empty()
-            || subtag.len() > 8
-            || !subtag.bytes().all(|byte| byte.is_ascii_alphanumeric())
-        {
+        let alnum = !subtag.is_empty() && subtag.bytes().all(|byte| byte.is_ascii_alphanumeric());
+        let acceptable = if private_use {
+            alnum
+        } else {
+            alnum && subtag.len() <= 8
+        };
+        if !acceptable {
             return Err(NQuadsParseError::new(format!(
                 "invalid language tag {tag:?} in {line:?}"
             )));
+        }
+        if subtag.eq_ignore_ascii_case("x") {
+            private_use = true;
         }
     }
     Ok(())

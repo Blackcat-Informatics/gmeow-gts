@@ -63,3 +63,6 @@ r/src/Makevars.win
 .cache/
 .worktrees/
 dist/benchmarks/
+.agents
+.codex
+.claude
