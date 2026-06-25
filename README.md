@@ -27,6 +27,13 @@ SPDX-License-Identifier: MIT OR Apache-2.0
   <a href="./LICENSING.md"><img src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg" alt="License: MIT OR Apache-2.0"></a>
 </p>
 
+<p align="center">
+  Localized documentation:
+  <a href="./docs/i18n/README.md">index</a>
+  (<a href="./docs/i18n/fr-CA/README.md">fr-CA</a>,
+  <a href="./docs/i18n/zh-Hans/README.md">zh-Hans</a>)
+</p>
+
 ---
 
 ## Why does this exist?
