@@ -159,7 +159,7 @@ func TestRDFTextCodecCLIRoundTrips(t *testing.T) {
 
 	ntPath := filepath.Join(tmp, "in.nt")
 	ntGTS := filepath.Join(tmp, "nt.gts")
-	if err := os.WriteFile(ntPath, []byte("<https://ex/s> <https://ex/p> <https://ex/o> .\n<https://ex/s> <https://ex/name> \"Cat\"@en .\n"), 0o644); err != nil {
+	if err := os.WriteFile(ntPath, []byte("<https://ex/s> <https://ex/p> <https://ex/o> .\n<https://ex/s> <https://ex/name> \"Cat\"@en .\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	cmd, _, stderr := run(t, "from-nt", ntPath, "-o", ntGTS)
@@ -195,7 +195,7 @@ func TestRDFTextCodecCLIRoundTrips(t *testing.T) {
   <rdf:Description rdf:about="https://ex/s">
     <ex:p rdf:resource="https://ex/o"/>
   </rdf:Description>
-</rdf:RDF>`), 0o644); err != nil {
+</rdf:RDF>`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	cmd, _, stderr = run(t, "from-rdfxml", rdfXMLPath, "-o", rdfXMLGTS)
@@ -212,7 +212,7 @@ func TestRDFTextCodecCLIRoundTrips(t *testing.T) {
 
 	trigPath := filepath.Join(tmp, "in.trig")
 	trigGTS := filepath.Join(tmp, "trig.gts")
-	if err := os.WriteFile(trigPath, []byte("PREFIX ex: <https://ex/>\nex:g { ex:s ex:p ex:o ; ex:q ex:r . }\n"), 0o644); err != nil {
+	if err := os.WriteFile(trigPath, []byte("PREFIX ex: <https://ex/>\nex:g { ex:s ex:p ex:o ; ex:q ex:r . }\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	cmd, _, stderr = run(t, "from-trig", trigPath, "-o", trigGTS)

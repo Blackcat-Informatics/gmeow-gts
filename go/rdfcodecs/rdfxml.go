@@ -147,7 +147,7 @@ func ToRDFXML(g *model.Graph) (string, error) {
 		if prefix == "rdf" || prefix == "xsd" {
 			continue
 		}
-		out.WriteString(fmt.Sprintf(" xmlns:%s=\"%s\"", prefix, escapeXMLAttr(ns)))
+		fmt.Fprintf(&out, " xmlns:%s=\"%s\"", prefix, escapeXMLAttr(ns))
 	}
 	out.WriteString(">\n")
 
@@ -155,9 +155,9 @@ func ToRDFXML(g *model.Graph) (string, error) {
 		subject := subjectNodes[key]
 		out.WriteString("  <rdf:Description")
 		if subject.kind == nodeIRI {
-			out.WriteString(fmt.Sprintf(" rdf:about=\"%s\"", escapeXMLAttr(subject.value)))
+			fmt.Fprintf(&out, " rdf:about=\"%s\"", escapeXMLAttr(subject.value))
 		} else {
-			out.WriteString(fmt.Sprintf(" rdf:nodeID=\"%s\"", escapeXMLAttr(subject.value)))
+			fmt.Fprintf(&out, " rdf:nodeID=\"%s\"", escapeXMLAttr(subject.value))
 		}
 		out.WriteString(">\n")
 		for _, prop := range subjects[key] {
@@ -734,14 +734,40 @@ func subjectKey(subject rdfNode) string {
 func rdfXMLNamespaces(subjects map[string][]property) map[string]string {
 	namespaces := map[string]string{rdfNS: "rdf", xsdNS: "xsd"}
 	next := 0
+	addIRI := func(iri string) {
+		ns, _ := splitPropertyIRI(iri)
+		if _, ok := namespaces[ns]; ok {
+			return
+		}
+		namespaces[ns] = fmt.Sprintf("ns%d", next)
+		next++
+	}
+	var collectNode func(node rdfNode)
+	collectNode = func(node rdfNode) {
+		switch node.kind {
+		case nodeLiteral:
+			if node.datatype != "" {
+				addIRI(node.datatype)
+			}
+		case nodeTriple:
+			if node.s != nil {
+				collectNode(*node.s)
+			}
+			if node.p != nil {
+				if node.p.kind == nodeIRI {
+					addIRI(node.p.value)
+				}
+				collectNode(*node.p)
+			}
+			if node.o != nil {
+				collectNode(*node.o)
+			}
+		}
+	}
 	for _, props := range subjects {
 		for _, prop := range props {
-			ns, _ := splitPropertyIRI(prop.predicate)
-			if _, ok := namespaces[ns]; ok {
-				continue
-			}
-			namespaces[ns] = fmt.Sprintf("ns%d", next)
-			next++
+			addIRI(prop.predicate)
+			collectNode(prop.object)
 		}
 	}
 	return namespaces
@@ -756,29 +782,29 @@ func writeRDFXMLProperty(out *strings.Builder, indent, predicate string, object 
 	name := serializerQName(predicate, namespaces)
 	switch object.kind {
 	case nodeIRI:
-		out.WriteString(fmt.Sprintf("%s<%s rdf:resource=\"%s\"/>\n", indent, name, escapeXMLAttr(object.value)))
+		fmt.Fprintf(out, "%s<%s rdf:resource=\"%s\"/>\n", indent, name, escapeXMLAttr(object.value))
 	case nodeBNode:
-		out.WriteString(fmt.Sprintf("%s<%s rdf:nodeID=\"%s\"/>\n", indent, name, escapeXMLAttr(object.value)))
+		fmt.Fprintf(out, "%s<%s rdf:nodeID=\"%s\"/>\n", indent, name, escapeXMLAttr(object.value))
 	case nodeLiteral:
-		out.WriteString(fmt.Sprintf("%s<%s", indent, name))
+		fmt.Fprintf(out, "%s<%s", indent, name)
 		if object.lang != "" {
-			out.WriteString(fmt.Sprintf(" xml:lang=\"%s\"", escapeXMLAttr(object.lang)))
+			fmt.Fprintf(out, " xml:lang=\"%s\"", escapeXMLAttr(object.lang))
 		}
 		if object.direction == "ltr" || object.direction == "rtl" {
-			out.WriteString(fmt.Sprintf(" xmlns:its=\"%s\" its:dir=\"%s\"", itsNS, object.direction))
+			fmt.Fprintf(out, " xmlns:its=\"%s\" its:dir=\"%s\"", itsNS, object.direction)
 		}
 		if object.datatype != "" {
-			out.WriteString(fmt.Sprintf(" rdf:datatype=\"%s\"", escapeXMLAttr(object.datatype)))
+			fmt.Fprintf(out, " rdf:datatype=\"%s\"", escapeXMLAttr(object.datatype))
 		}
 		out.WriteString(">")
 		out.WriteString(escapeXMLText(object.value))
-		out.WriteString(fmt.Sprintf("</%s>\n", name))
+		fmt.Fprintf(out, "</%s>\n", name)
 	case nodeTriple:
-		out.WriteString(fmt.Sprintf("%s<%s rdf:parseType=\"Triple\">\n", indent, name))
+		fmt.Fprintf(out, "%s<%s rdf:parseType=\"Triple\">\n", indent, name)
 		if err := writeRDFXMLTripleNode(out, indent+"  ", object, namespaces); err != nil {
 			return err
 		}
-		out.WriteString(fmt.Sprintf("%s</%s>\n", indent, name))
+		fmt.Fprintf(out, "%s</%s>\n", indent, name)
 	default:
 		return codecError("RDF/XML cannot serialize object %s", object.token())
 	}
@@ -792,9 +818,9 @@ func writeRDFXMLTripleNode(out *strings.Builder, indent string, triple rdfNode, 
 	out.WriteString(indent + "<rdf:Description")
 	switch triple.s.kind {
 	case nodeIRI:
-		out.WriteString(fmt.Sprintf(" rdf:about=\"%s\"", escapeXMLAttr(triple.s.value)))
+		fmt.Fprintf(out, " rdf:about=\"%s\"", escapeXMLAttr(triple.s.value))
 	case nodeBNode:
-		out.WriteString(fmt.Sprintf(" rdf:nodeID=\"%s\"", escapeXMLAttr(triple.s.value)))
+		fmt.Fprintf(out, " rdf:nodeID=\"%s\"", escapeXMLAttr(triple.s.value))
 	default:
 		return codecError("RDF/XML cannot serialize triple subject %s", triple.s.token())
 	}
@@ -839,16 +865,24 @@ func isXMLName(value string) bool {
 	}
 	for i, ch := range value {
 		if i == 0 {
-			if !(ch == '_' || unicode.IsLetter(ch)) {
+			if !isXMLNameStart(ch) {
 				return false
 			}
 			continue
 		}
-		if !(ch == '_' || ch == '-' || ch == '.' || unicode.IsLetter(ch) || unicode.IsDigit(ch)) {
+		if !isXMLNameContinue(ch) {
 			return false
 		}
 	}
 	return true
+}
+
+func isXMLNameStart(ch rune) bool {
+	return ch == '_' || unicode.IsLetter(ch)
+}
+
+func isXMLNameContinue(ch rune) bool {
+	return isXMLNameStart(ch) || ch == '-' || ch == '.' || unicode.IsDigit(ch)
 }
 
 func escapeXMLText(value string) string {

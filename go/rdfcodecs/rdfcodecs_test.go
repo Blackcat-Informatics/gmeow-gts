@@ -95,6 +95,10 @@ func TestTurtleParserAcceptsSharedGrammar(t *testing.T) {
     ex:label "Cat"@en ;
     ex:related ex:a, ex:b ;
     ex:nested [ ex:name "Kit" ] ;
+    ex:count 12 ;
+    ex:ratio 3.14 ;
+    ex:enabled true ;
+    ex:scientific -1.2e+3 ;
     ex:list ( ex:a ex:b ) .
 `
 	out := graphNQuads(mustBytes(FromTurtle(turtle)))
@@ -105,6 +109,10 @@ func TestTurtleParserAcceptsSharedGrammar(t *testing.T) {
 		"<https://ex/ns#related> <https://ex/ns#a>",
 		"<https://ex/ns#related> <https://ex/ns#b>",
 		"<https://ex/ns#name> \"Kit\"",
+		"<https://ex/ns#count> \"12\"^^<http://www.w3.org/2001/XMLSchema#integer>",
+		"<https://ex/ns#ratio> \"3.14\"^^<http://www.w3.org/2001/XMLSchema#decimal>",
+		"<https://ex/ns#enabled> \"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>",
+		"<https://ex/ns#scientific> \"-1.2e+3\"^^<http://www.w3.org/2001/XMLSchema#double>",
 		"<http://www.w3.org/1999/02/22-rdf-syntax-ns#first>",
 	} {
 		if !strings.Contains(out, want) {
@@ -217,6 +225,25 @@ func TestRDFXMLParserAcceptsCommittedShapes(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRDFXMLSerializerDeclaresTripleTermPredicateNamespaces(t *testing.T) {
+	data := mustBytes(FromTurtle(`@prefix ex: <http://example.org/> .
+@prefix other: <http://example.org/other#> .
+
+ex:s ex:hasTriple <<( ex:a other:p ex:b )>> .
+`))
+	rendered, err := ToRDFXML(reader.Read(data, true, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(rendered, "http://example.org/other#") {
+		t.Fatalf("RDF/XML output missed triple predicate namespace:\n%s", rendered)
+	}
+	imported := graphNQuads(mustBytes(FromRDFXML(rendered)))
+	if !strings.Contains(imported, "<http://example.org/other#p>") {
+		t.Fatalf("RDF/XML roundtrip missed triple predicate:\n%s\nrendered:\n%s", imported, rendered)
 	}
 }
 

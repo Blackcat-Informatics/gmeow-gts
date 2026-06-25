@@ -269,11 +269,100 @@ func (p *trigParser) term(graph *rdfNode) (rdfNode, error) {
 	case '(':
 		return p.collection(graph)
 	default:
+		if lit, ok, err := p.numericLiteral(); ok || err != nil {
+			return lit, err
+		}
+		if lit, ok := p.booleanLiteral(); ok {
+			return lit, nil
+		}
 		iri, err := p.prefixedName()
 		if err != nil {
 			return rdfNode{}, err
 		}
 		return iriNode(iri), nil
+	}
+}
+
+func (p *trigParser) booleanLiteral() (rdfNode, bool) {
+	for _, token := range []string{"true", "false"} {
+		if !strings.HasPrefix(p.text[p.pos:], token) {
+			continue
+		}
+		end := p.pos + len(token)
+		if end < len(p.text) && !isTriGTermDelimiterByte(p.text[end]) {
+			continue
+		}
+		p.pos = end
+		return literalNode(token, "", "", xsdNS+"boolean"), true
+	}
+	return rdfNode{}, false
+}
+
+func (p *trigParser) numericLiteral() (rdfNode, bool, error) {
+	start := p.pos
+	pos := start
+	if pos < len(p.text) && (p.text[pos] == '+' || p.text[pos] == '-') {
+		pos++
+	}
+	digitStart := pos
+	for pos < len(p.text) && isASCIIDigit(p.text[pos]) {
+		pos++
+	}
+	hasDigitsBeforeDot := pos > digitStart
+	hasDot := false
+	if pos < len(p.text) && p.text[pos] == '.' && pos+1 < len(p.text) && isASCIIDigit(p.text[pos+1]) {
+		hasDot = true
+		pos++
+		for pos < len(p.text) && isASCIIDigit(p.text[pos]) {
+			pos++
+		}
+	}
+	if !hasDigitsBeforeDot && !hasDot {
+		return rdfNode{}, false, nil
+	}
+	hasExponent := false
+	if pos < len(p.text) && (p.text[pos] == 'e' || p.text[pos] == 'E') {
+		hasExponent = true
+		pos++
+		if pos < len(p.text) && (p.text[pos] == '+' || p.text[pos] == '-') {
+			pos++
+		}
+		exponentStart := pos
+		for pos < len(p.text) && isASCIIDigit(p.text[pos]) {
+			pos++
+		}
+		if pos == exponentStart {
+			return rdfNode{}, true, codecError("invalid numeric literal %q", p.text[start:pos])
+		}
+	}
+	if pos < len(p.text) && !isTriGTermDelimiterByte(p.text[pos]) {
+		return rdfNode{}, false, nil
+	}
+	datatype := xsdNS + "integer"
+	if hasExponent {
+		datatype = xsdNS + "double"
+	} else if hasDot {
+		datatype = xsdNS + "decimal"
+	}
+	lexical := p.text[start:pos]
+	p.pos = pos
+	return literalNode(lexical, "", "", datatype), true, nil
+}
+
+func isASCIIDigit(ch byte) bool {
+	return ch >= '0' && ch <= '9'
+}
+
+func isASCIIHexDigit(ch byte) bool {
+	return isASCIIDigit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')
+}
+
+func isTriGTermDelimiterByte(ch byte) bool {
+	switch ch {
+	case '{', '}', '[', ']', '(', ')', '<', '>', ';', ',', '.':
+		return true
+	default:
+		return ch <= ' '
 	}
 }
 
@@ -443,7 +532,7 @@ func (p *trigParser) escape() (rune, error) {
 		}
 		raw := p.text[p.pos:end]
 		for _, b := range []byte(raw) {
-			if !((b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')) {
+			if !isASCIIHexDigit(b) {
 				return 0, codecError("bad unicode escape \\%c%s", ch, raw)
 			}
 		}

@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"unicode"
 
 	"go.blackcatinformatics.ca/gts/fromnquads"
 	"go.blackcatinformatics.ca/gts/model"
@@ -352,19 +351,23 @@ func sortedKeys[V any](m map[string]V) []string {
 }
 
 func hasIRIScheme(value string) bool {
-	runes := []rune(value)
-	if len(runes) == 0 || !isASCIILetter(runes[0]) {
+	if len(value) == 0 || !isASCIILetter(rune(value[0])) {
 		return false
 	}
-	for _, ch := range runes[1:] {
+	for i := 1; i < len(value); i++ {
+		ch := value[i]
 		if ch == ':' {
 			return true
 		}
-		if !(isASCIILetter(ch) || unicode.IsDigit(ch) || ch == '+' || ch == '-' || ch == '.') {
+		if !isIRISchemeByte(ch) {
 			return false
 		}
 	}
 	return false
+}
+
+func isIRISchemeByte(ch byte) bool {
+	return isASCIILetter(rune(ch)) || (ch >= '0' && ch <= '9') || ch == '+' || ch == '-' || ch == '.'
 }
 
 func isASCIILetter(ch rune) bool {
