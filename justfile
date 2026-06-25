@@ -90,6 +90,10 @@ check-security-contract:
 check-crypto-deferrals:
     python scripts/check_crypto_deferrals.py
 
+# Fail if localized docs drift from source metadata and protected literals.
+check-i18n:
+    python scripts/check_i18n_docs.py
+
 # Live cross-engine interoperability check (each engine reads every other's output).
 interop:
     bash scripts/interop.sh

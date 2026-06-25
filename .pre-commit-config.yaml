@@ -52,9 +52,10 @@ repos:
       - id: codespell
         additional_dependencies: ["tomli"]
         # crate/crates (Rust), ser (serde/serialize), derails (a real verb) are
-        # domain words codespell mistakes for typos.
+        # domain words codespell mistakes for typos. Localized docs are checked
+        # by their own metadata/literal guard instead of English spelling rules.
         args: ["--ignore-words-list=crate,crates,ser,derails"]
-        exclude: '^(vectors/.*|ts/package-lock.json|rust/Cargo.lock|rust/capi/Cargo.lock)$'
+        exclude: '^(docs/i18n/.*|vectors/.*|ts/package-lock.json|rust/Cargo.lock|rust/capi/Cargo.lock)$'
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
