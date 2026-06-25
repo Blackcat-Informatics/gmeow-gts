@@ -147,12 +147,12 @@ function resolveLocale(env: NodeJS.ProcessEnv = process.env): CliLocale {
 
 function usageText(locale: CliLocale): string {
     switch (locale) {
+        case "en":
+            return usageEN;
         case "fr-CA":
             return usageFRCA;
         case "zh-Hans":
             return usageZHHans;
-        default:
-            return usageEN;
     }
 }
 
@@ -161,12 +161,12 @@ const usage = usageText(locale);
 
 function unknownCommandMessage(command: string): string {
     switch (locale) {
+        case "en":
+            return `gts: unknown command '${command}'\n${usage}`;
         case "fr-CA":
             return `gts: commande inconnue '${command}'\n${usage}`;
         case "zh-Hans":
             return `gts: 未知命令 '${command}'\n${usage}`;
-        default:
-            return `gts: unknown command '${command}'\n${usage}`;
     }
 }
 
