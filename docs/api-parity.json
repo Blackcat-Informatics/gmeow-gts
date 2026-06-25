@@ -54,22 +54,22 @@
     {
       "operation": "`to_ntriples(graph)` / `from_ntriples(input)`",
       "contract": "Project a default-graph RDF dataset to N-Triples and rebuild GTS bytes from N-Triples text using the shared RDF 1.2 parser/serializer.",
-      "current_native_surface": "Rust `rdf_codecs::to_ntriples` / `from_ntriples` behind `--features rdf-codecs`; CLI `gts to-nt` and `gts from-nt` in Rust."
+      "current_native_surface": "Rust `rdf_codecs::to_ntriples` / `from_ntriples` behind `--features rdf-codecs`; Go `rdfcodecs.ToNTriples` / `FromNTriples`; CLI `gts to-nt` and `gts from-nt` in Rust and Go."
     },
     {
       "operation": "`to_rdf_xml(graph)` / `from_rdf_xml(input)`",
       "contract": "Project a default-graph RDF dataset to RDF/XML and rebuild GTS bytes from RDF/XML text, including RDF/XML namespace, parseType, collection, reification, annotation, and RDF 1.2 triple-term grammar.",
-      "current_native_surface": "Rust `rdf_codecs::to_rdf_xml` / `from_rdf_xml` behind `--features rdf-codecs`; CLI `gts to-rdfxml` and `gts from-rdfxml` in Rust."
+      "current_native_surface": "Rust `rdf_codecs::to_rdf_xml` / `from_rdf_xml` behind `--features rdf-codecs`; Go `rdfcodecs.ToRDFXML` / `FromRDFXML`; CLI `gts to-rdfxml` and `gts from-rdfxml` in Rust and Go."
     },
     {
       "operation": "`to_trig(graph)` / `from_trig(input)`",
       "contract": "Project folded RDF to readable TriG graph blocks and rebuild GTS bytes from the supported TriG surface without changing N-Quads content.",
-      "current_native_surface": "Python `gts.trig.to_trig` / `from_trig`; Rust `trig::to_trig` / `from_trig::from_trig`; Rust `rdf_codecs::to_trig` / `from_trig` with `--features rdf-codecs`; CLI `gts to-trig` and `gts from-trig` in Python and Rust."
+      "current_native_surface": "Python `gts.trig.to_trig` / `from_trig`; Rust `trig::to_trig` / `from_trig::from_trig`; Rust `rdf_codecs::to_trig` / `from_trig` with `--features rdf-codecs`; Go `rdfcodecs.ToTriG` / `FromTriG`; CLI `gts to-trig` and `gts from-trig` in Python, Rust, and Go."
     },
     {
       "operation": "`to_turtle(graph)` / `from_turtle(input)`",
       "contract": "Project a default-graph RDF dataset to Turtle and rebuild GTS bytes from Turtle text using the shared Turtle-family RDF 1.2 parser/serializer.",
-      "current_native_surface": "Rust `rdf_codecs::to_turtle` / `from_turtle` behind `--features rdf-codecs`; CLI `gts to-turtle` and `gts from-turtle` in Rust."
+      "current_native_surface": "Rust `rdf_codecs::to_turtle` / `from_turtle` behind `--features rdf-codecs`; Go `rdfcodecs.ToTurtle` / `FromTurtle`; CLI `gts to-turtle` and `gts from-turtle` in Rust and Go."
     },
     {
       "operation": "graph iterators/accessors",
@@ -327,7 +327,7 @@
       "cells": {
         "Python": "yes",
         "Rust": "yes",
-        "Go": "no",
+      "Go": "yes",
         "TypeScript": "no",
         "Smalltalk": "no",
         "Kotlin": "no"
@@ -335,7 +335,7 @@
       "claims": {
         "Python": {"status": "supported", "evidence": [{"kind": "python_all", "symbol": "to_trig"}, {"kind": "python_all", "symbol": "from_trig"}]},
         "Rust": {"status": "supported", "evidence": [{"kind": "rust_pub_mod", "module": "trig"}, {"kind": "rust_pub_mod", "module": "from_trig"}]},
-        "Go": {"status": "deferred", "deferred_reason": "TriG transform parity is intentionally deferred until it can share the Python/Rust round-trip expectations."},
+      "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/rdfcodecs/rdfcodecs.go", "text": "func ToTriG"}, {"kind": "contains", "path": "go/rdfcodecs/rdfcodecs.go", "text": "func FromTriG"}]},
         "TypeScript": {"status": "deferred", "deferred_reason": "TriG transform parity is intentionally deferred until it can share the Python/Rust round-trip expectations."},
         "Smalltalk": {"status": "deferred", "deferred_reason": "TriG transform parity is intentionally deferred until it can share the Python/Rust round-trip expectations."},
         "Kotlin": {"status": "deferred", "deferred_reason": "TriG transform parity is intentionally deferred until it can share the Python/Rust round-trip expectations."}

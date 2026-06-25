@@ -19,6 +19,23 @@ const Catalog: Record<number, CatalogEntry> = {
     7: { name: "cose-encrypt0", cls: "encrypt" },
 };
 
+export type WriterErrorKind = "layout" | "codec" | "frame";
+
+/** Error raised for invalid writer configuration or frame construction. */
+export class WriterError extends Error {
+    constructor(
+        readonly kind: WriterErrorKind,
+        message: string,
+    ) {
+        super(message);
+        this.name = "WriterError";
+    }
+}
+
+function writerError(kind: WriterErrorKind, message: string): never {
+    throw new WriterError(kind, message);
+}
+
 function termToWire(t: Term): Map<unknown, unknown> {
     const entries = new Map<unknown, unknown>();
     entries.set("k", t.kind);
@@ -60,7 +77,10 @@ export class Writer {
         if (layout !== undefined && layout !== "streamable") {
             // §5: "streamable" is the only layout this revision defines; a
             // typo'd claim would persist into the tamper-evident header.
-            throw new Error(`unsupported layout claim '${layout}' (§3.3)`);
+            writerError(
+                "layout",
+                `unsupported layout claim '${layout}' (§3.3)`,
+            );
         }
         this.nameToId = new Map<string, number>();
         const catEntries = new Map<unknown, unknown>();
@@ -93,7 +113,8 @@ export class Writer {
     private chainIds(chain: string[]): unknown[] {
         return chain.map((name) => {
             const id = this.nameToId.get(name);
-            if (id === undefined) throw new Error(`unknown codec '${name}'`);
+            if (id === undefined)
+                writerError("codec", `unknown codec '${name}'`);
             return id;
         });
     }
@@ -111,7 +132,7 @@ export class Writer {
         pubMeta?: unknown,
     ): Uint8Array {
         if (payload !== undefined && raw !== undefined) {
-            throw new Error("payload and raw are mutually exclusive");
+            writerError("frame", "payload and raw are mutually exclusive");
         }
         const frame = new Map<unknown, unknown>();
         frame.set("t", frameType);
@@ -119,11 +140,15 @@ export class Writer {
         let data: unknown = undefined;
         if (transform && transform.length > 0) {
             if (raw === undefined && payload === undefined) {
-                throw new Error("transform requires a raw or payload source");
+                writerError(
+                    "frame",
+                    "transform requires a raw or payload source",
+                );
             }
             for (const name of transform) {
                 if (name !== "identity") {
-                    throw new Error(
+                    writerError(
+                        "codec",
                         "non-identity transforms require the Python producer",
                     );
                 }

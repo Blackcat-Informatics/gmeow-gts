@@ -17,6 +17,17 @@ fn iri(value: &str) -> Term {
     }
 }
 
+fn literal(value: &str, datatype: Option<usize>) -> Term {
+    Term {
+        kind: TermKind::Literal,
+        value: Some(value.to_string()),
+        datatype,
+        lang: None,
+        direction: None,
+        reifier: None,
+    }
+}
+
 fn triple(reifier: usize) -> Term {
     Term {
         kind: TermKind::Triple,
@@ -44,6 +55,33 @@ fn diagnostic_codes(graph: &Graph) -> Vec<&str> {
         .iter()
         .map(|diagnostic| diagnostic.code.as_str())
         .collect()
+}
+
+#[test]
+fn multi_segment_union_preserves_literal_datatype_mapping() {
+    let datatype_iri = "http://www.w3.org/2001/XMLSchema#integer";
+    let mut first = Writer::new("dist");
+    first.add_terms(&[
+        iri("https://example.org/s"),
+        iri("https://example.org/p"),
+        iri(datatype_iri),
+        literal("7", Some(2)),
+    ]);
+    first.add_quads(&[(0, 1, 3, None)]);
+
+    let second = Writer::new("dist");
+    let mut data = first.to_bytes();
+    data.extend(second.to_bytes());
+
+    let graph = read(&data, true, None);
+
+    assert!(graph.diagnostics.is_empty());
+    assert_eq!(graph.quads.len(), 1);
+    let object = graph.quads[0].2;
+    assert_eq!(graph.terms[object].kind, TermKind::Literal);
+    assert_eq!(graph.terms[object].value.as_deref(), Some("7"));
+    let datatype = graph.terms[object].datatype.expect("literal datatype");
+    assert_eq!(graph.terms[datatype].value.as_deref(), Some(datatype_iri));
 }
 
 #[test]

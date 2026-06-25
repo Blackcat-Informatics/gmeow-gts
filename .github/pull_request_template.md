@@ -22,3 +22,5 @@ SPDX-License-Identifier: MIT OR Apache-2.0
       (`cd python && uv run python scripts/gen_vectors.py && git diff --exit-code vectors`)
 - [ ] If behaviour changed: all six engines agree on the new corpus
 - [ ] Docs / spec updated if behaviour, flags, or the wire format changed
+- [ ] If the quality-budget baseline increased: PR has the
+      `quality-budget-baseline-increase` label or an updated architecture-review note

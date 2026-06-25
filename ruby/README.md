@@ -68,6 +68,11 @@ diff = gts.files_diff_json(packed, "/path/to/tree")
 report = gts.files_unpack(packed, "/tmp/unpacked")
 ```
 
+These path strings are forwarded to `libgts` as NUL-terminated UTF-8 C strings.
+On Windows this covers only paths representable by that contract, not every
+native wide-character filesystem path. Future wide-character C ABI entry points
+would be additive symbols under the compatibility policy.
+
 ## Ownership And Errors
 
 The wrapper copies every returned `gts_buffer` into a Ruby string and then calls

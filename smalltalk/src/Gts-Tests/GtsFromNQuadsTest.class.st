@@ -105,5 +105,5 @@ GtsFromNQuadsTest >> testFromNQuadsRejectsMalformedStatements [
 		raise: Error.
 	self
 		should: [ GtsFromNQuads fromString: '<https://ex/s> <https://ex/p> "Cat"@ .', String lf ]
-		raise: Error
+		raise: GtsParserError
 ]

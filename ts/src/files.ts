@@ -32,6 +32,38 @@ const rdfType = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const xsdInteger = "http://www.w3.org/2001/XMLSchema#integer";
 const xsdDateTime = "http://www.w3.org/2001/XMLSchema#dateTime";
 
+export type FilesProfileErrorKind =
+    | "archive-path"
+    | "unsupported-source"
+    | "duplicate-path"
+    | "invalid-profile"
+    | "extract-refused"
+    | "missing-blob"
+    | "integrity"
+    | "filesystem";
+
+/** Error raised for files-profile archive, refusal, and extraction failures. */
+export class FilesProfileError extends Error {
+    constructor(
+        readonly kind: FilesProfileErrorKind,
+        message: string,
+    ) {
+        super(message);
+        this.name = "FilesProfileError";
+    }
+}
+
+export function isFilesProfileError(err: unknown): err is FilesProfileError {
+    return err instanceof FilesProfileError;
+}
+
+function filesProfileError(
+    kind: FilesProfileErrorKind,
+    message: string,
+): never {
+    throw new FilesProfileError(kind, message);
+}
+
 function iriTerm(value: string): Term {
     return { kind: TermKind.Iri, value };
 }
@@ -45,23 +77,29 @@ function bnodeTerm(label: string): Term {
 }
 
 function safeArchivePath(name: string): void {
-    if (name === "") throw new Error("empty archive path");
+    if (name === "") filesProfileError("archive-path", "empty archive path");
     const normalized = name.replaceAll("\\", "/");
     if (/^[a-zA-Z]:/.test(name) || normalized.startsWith("/"))
-        throw new Error(
+        filesProfileError(
+            "archive-path",
             `absolute or drive-relative path not allowed in archive: ${name}`,
         );
     const parts = normalized.split("/");
     for (const part of parts) {
         if (part === "..")
-            throw new Error(`path traversal not allowed in archive: ${name}`);
+            filesProfileError(
+                "archive-path",
+                `path traversal not allowed in archive: ${name}`,
+            );
     }
     if (name.includes("\\"))
-        throw new Error(
+        filesProfileError(
+            "archive-path",
             `backslash path separator not allowed in archive: ${name}`,
         );
     if (parts.some((part) => part === "" || part === "."))
-        throw new Error(
+        filesProfileError(
+            "archive-path",
             `empty or current-directory path component not allowed in archive: ${name}`,
         );
 }
@@ -74,7 +112,10 @@ function walkDirSorted(dir: string): string[] {
         for (const ent of entries) {
             const full = join(path, ent.name);
             if (ent.isSymbolicLink()) {
-                throw new Error(`symlink not supported: ${full}`);
+                filesProfileError(
+                    "unsupported-source",
+                    `symlink not supported: ${full}`,
+                );
             }
             if (ent.isDirectory()) {
                 walk(full);
@@ -94,7 +135,10 @@ function resolveSources(sources: string[]): Array<[string, string]> {
     for (const src of sources) {
         const info = lstatSync(src);
         if (info.isSymbolicLink()) {
-            throw new Error(`symlink not supported: ${src}`);
+            filesProfileError(
+                "unsupported-source",
+                `symlink not supported: ${src}`,
+            );
         }
         if (info.isDirectory()) {
             const files = walkDirSorted(src);
@@ -103,7 +147,10 @@ function resolveSources(sources: string[]): Array<[string, string]> {
                 const relpath = rel.replaceAll("\\", "/");
                 safeArchivePath(relpath);
                 if (seen.has(relpath))
-                    throw new Error(`duplicate archive path: ${relpath}`);
+                    filesProfileError(
+                        "duplicate-path",
+                        `duplicate archive path: ${relpath}`,
+                    );
                 seen.add(relpath);
                 entries.push([fpath, relpath]);
             }
@@ -111,11 +158,17 @@ function resolveSources(sources: string[]): Array<[string, string]> {
             const name = basename(src);
             safeArchivePath(name);
             if (seen.has(name))
-                throw new Error(`duplicate archive path: ${name}`);
+                filesProfileError(
+                    "duplicate-path",
+                    `duplicate archive path: ${name}`,
+                );
             seen.add(name);
             entries.push([src, name]);
         } else {
-            throw new Error(`unsupported source type: ${src}`);
+            filesProfileError(
+                "unsupported-source",
+                `unsupported source type: ${src}`,
+            );
         }
     }
     entries.sort((a, b) => a[1].localeCompare(b[1]));
@@ -270,13 +323,20 @@ function readFileEntries(g: Graph): FileEntries {
         }
     }
     if (typeID === undefined) {
-        throw new Error("not a files-profile archive: missing rdf:type");
+        filesProfileError(
+            "invalid-profile",
+            "not a files-profile archive: missing rdf:type",
+        );
     }
     if (fileEntryID === undefined) {
-        throw new Error("not a files-profile archive: missing FileEntry");
+        filesProfileError(
+            "invalid-profile",
+            "not a files-profile archive: missing FileEntry",
+        );
     }
 
-    const entries: { [s: number]: { [field: string]: string } } = Object.create(null);
+    const entries: { [s: number]: { [field: string]: string } } =
+        Object.create(null);
     const fileEntrySubjects = new Set<number>();
     for (const q of g.quads) {
         if (q.p === typeID && q.o === fileEntryID) {
@@ -286,7 +346,8 @@ function readFileEntries(g: Graph): FileEntries {
             for (const [name, id] of Object.entries(fieldIDs)) {
                 if (id === q.p) {
                     if (q.o < 0 || q.o >= g.terms.length) {
-                        throw new Error(
+                        filesProfileError(
+                            "invalid-profile",
                             `invalid term reference ${q.o} for files:${name}`,
                         );
                     }
@@ -303,7 +364,10 @@ function readFileEntries(g: Graph): FileEntries {
         const path = entry.path;
         if (path === undefined) continue;
         if (byPath[path])
-            throw new Error(`duplicate files:path in archive: ${path}`);
+            filesProfileError(
+                "duplicate-path",
+                `duplicate files:path in archive: ${path}`,
+            );
         byPath[path] = entry;
     }
     return byPath;
@@ -349,22 +413,35 @@ function destPath(dest: string, archivePath: string): string {
     const ancestorCanon = realpathSync(ancestor);
     const rel = relative(destCanon, ancestorCanon);
     if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
-        throw new Error(`path escapes destination: ${archivePath}`);
+        filesProfileError(
+            "extract-refused",
+            `path escapes destination: ${archivePath}`,
+        );
     }
     return target;
 }
 
 function prepareReplaceTarget(target: string, archivePath: string): void {
+    let st;
     try {
-        const st = lstatSync(target);
-        if (st.isSymbolicLink()) {
-            throw new Error(`refusing to write through symlink: ${archivePath}`);
-        }
-        if (st.isFile()) unlinkSync(target);
+        st = lstatSync(target);
     } catch (err) {
         const code = (err as NodeJS.ErrnoException).code;
         if (code === "ENOENT") return;
         throw err;
+    }
+    if (st.isSymbolicLink()) {
+        filesProfileError(
+            "extract-refused",
+            `refusing to write through symlink: ${archivePath}`,
+        );
+    }
+    if (!st.isFile()) return;
+    try {
+        unlinkSync(target);
+    } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code !== "ENOENT") throw err;
     }
 }
 
@@ -376,10 +453,7 @@ function writeFileWithoutFollowingSymlink(
     const parent = dirname(target);
     const base = basename(target);
     for (let attempt = 0; attempt < 100; attempt++) {
-        const temp = join(
-            parent,
-            `.${base}.gts-tmp-${process.pid}-${attempt}`,
-        );
+        const temp = join(parent, `.${base}.gts-tmp-${process.pid}-${attempt}`);
         try {
             writeFileSync(temp, data, { flag: "wx", mode: 0o644 });
         } catch (err) {
@@ -401,7 +475,10 @@ function writeFileWithoutFollowingSymlink(
             throw err;
         }
     }
-    throw new Error(`create temp file for ${target}: too many attempts`);
+    filesProfileError(
+        "filesystem",
+        `create temp file for ${target}: too many attempts`,
+    );
 }
 
 /** Extract FileEntry quads from a folded graph into dest. */
@@ -421,13 +498,20 @@ export function unpack(
     for (const [path, entry] of Object.entries(entries)) {
         const target = destPath(dest, path);
         const digest = entry.digest;
-        if (digest === undefined) throw new Error(`missing digest for ${path}`);
+        if (digest === undefined)
+            filesProfileError("invalid-profile", `missing digest for ${path}`);
         if (suppressed.has(digest)) continue;
         const data = blobByDigest.get(digest);
         if (!data)
-            throw new Error(`missing inline blob for ${path}: ${digest}`);
+            filesProfileError(
+                "missing-blob",
+                `missing inline blob for ${path}: ${digest}`,
+            );
         if (digestString(data) !== digest) {
-            throw new Error(`integrity failure for ${path}: ${digest}`);
+            filesProfileError(
+                "integrity",
+                `integrity failure for ${path}: ${digest}`,
+            );
         }
 
         const parent = dirname(target);

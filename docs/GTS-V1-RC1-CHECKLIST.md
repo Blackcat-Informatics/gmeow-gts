@@ -24,7 +24,7 @@ release revision; generate the stamped artifact described below.
 | Vector manifest artifact | `dist/v1.0-rc1/vector-manifest.release.json` |
 | Rust package/tag | `gmeow-gts` / `rust-v<version>` |
 | Python package/tag | `gmeow-gts` / `py-v<version>` |
-| Go module/tag | `go.blackcatinformatics.ca/gts` / `go-v<version>` |
+| Go module/tag | `go.blackcatinformatics.ca/gts` / `go/v<version>` |
 | npm package/tag | `@blackcatinformatics/gmeow-gts` / `npm-v<version>` |
 | Ruby package/tag | `gmeow-gts` / `ruby-v<version>` |
 | Release notes commit | |
@@ -55,6 +55,7 @@ Classify every finding against the blocker and non-blocker lists in
 | Media type and distribution guidance is present | `application/vnd.blackcat.gts+cbor-seq`, HTTP/range behavior, immutable publication, and artifact verification guidance are present in spec/docs. | |
 | Compatibility language is clear | Wire, corpus, package, and profile compatibility rules are present in governance and cited by release notes. | |
 | Implementer review has no blocking findings | Review issues/comments are closed, deferred as non-blockers, or recorded below with owner and rationale. | |
+| Quality-budget paydown is recorded | Release PR reduces at least one over-target hotspot toward `target_lines`, or records a deliberate exception with owner, rationale, and follow-up issue; no baseline increase is accepted without the quality-budget review label or architecture-review note. | |
 
 ### 2.2 Release-Adjacent Non-Blockers
 
@@ -134,6 +135,7 @@ python scripts/check_advanced_contract.py
 python scripts/check_ecosystem_contract.py
 python scripts/check_security_contract.py
 python scripts/check_crypto_deferrals.py
+python scripts/check_quality_budget.py
 python scripts/check_vector_manifest.py
 python scripts/check_vector_manifest.py --self-test
 ```
@@ -308,6 +310,7 @@ Release notes must include:
 - conformance tier claims by implementation;
 - package registry names and release tags;
 - blocker review summary;
+- quality-budget reduction summary, or a documented exception with owner and follow-up issue;
 - release-adjacent non-blockers and follow-up issue links;
 - SBOM and attestation verification instructions;
 - known limitations and deferred capabilities.
@@ -359,14 +362,14 @@ MERGE_COMMIT="<full-merge-commit>"
 VERSION="<version>"
 git tag "rust-v${VERSION}" "${MERGE_COMMIT}"
 git tag "py-v${VERSION}" "${MERGE_COMMIT}"
-git tag "go-v${VERSION}" "${MERGE_COMMIT}"
+git tag "go/v${VERSION}" "${MERGE_COMMIT}"
 git tag "npm-v${VERSION}" "${MERGE_COMMIT}"
 git tag "capi-v${VERSION}" "${MERGE_COMMIT}"
 git tag "ruby-v${VERSION}" "${MERGE_COMMIT}"
 git tag "${VERSION}" "${MERGE_COMMIT}" # Swift Package Manager / Swift Package Index
 git push origin "rust-v${VERSION}"
 git push origin "py-v${VERSION}"
-git push origin "go-v${VERSION}"
+git push origin "go/v${VERSION}"
 git push origin "npm-v${VERSION}"
 git push origin "capi-v${VERSION}"
 git push origin "ruby-v${VERSION}"
@@ -392,7 +395,7 @@ gh run list --event push --limit 30
 gh run list --workflow release-cargo.yaml --branch "rust-v${VERSION}" --limit 5
 gh run list --workflow release-cargo-capi.yaml --branch "capi-v${VERSION}" --limit 5
 gh run list --workflow release-pypi.yml --branch "py-v${VERSION}" --limit 5
-gh run list --workflow release-go.yaml --branch "go-v${VERSION}" --limit 5
+gh run list --workflow release-go.yaml --branch "go/v${VERSION}" --limit 5
 gh run list --workflow release-npm.yaml --branch "npm-v${VERSION}" --limit 5
 gh run list --workflow release-capi.yaml --branch "capi-v${VERSION}" --limit 5
 ```
@@ -467,11 +470,11 @@ curl -fsSL https://luarocks.org/manifest.json | python -m json.tool >/dev/null
 gem info gmeow-gts --remote
 curl -fsSL https://blackcat-informatics.r-universe.dev/src/contrib/PACKAGES
 curl -fsSL https://raw.githubusercontent.com/JuliaRegistries/General/master/G/GmeowGTS/Package.toml
-gh release view "go-v${VERSION}" \
+gh release view "go/v${VERSION}" \
   --json tagName,name,url,isDraft,isImmutable,isPrerelease,publishedAt
 gh release view "capi-v${VERSION}" \
   --json tagName,name,url,isDraft,isImmutable,isPrerelease,publishedAt
-gh release verify "go-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
+gh release verify "go/v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
 gh release verify "capi-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
 ```
 
@@ -487,9 +490,9 @@ gh attestation verify <downloaded-artifact> --repo Blackcat-Informatics/gmeow-gt
 gh attestation verify <downloaded-artifact> \
   --repo Blackcat-Informatics/gmeow-gts \
   --predicate-type https://spdx.dev/Document/v2.3
-gh release verify "go-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
+gh release verify "go/v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
 gh release verify "capi-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
-gh release verify-asset "go-v${VERSION}" <downloaded-go-asset> \
+gh release verify-asset "go/v${VERSION}" <downloaded-go-asset> \
   --repo Blackcat-Informatics/gmeow-gts
 gh release verify-asset "capi-v${VERSION}" <downloaded-capi-asset> \
   --repo Blackcat-Informatics/gmeow-gts
@@ -524,7 +527,7 @@ mkdir -p \
   "${OUT}/packages/ruby" \
   "${OUT}/packages/rust" \
   "${OUT}/packages/wrappers"
-gh release download "go-v${VERSION}" --dir "${OUT}/packages/go-release"
+gh release download "go/v${VERSION}" --dir "${OUT}/packages/go-release"
 
 python -m pip download --no-deps --dest "${OUT}/packages/python" "gmeow-gts==${VERSION}"
 npm pack "@blackcatinformatics/gmeow-gts@${VERSION}" \
@@ -577,9 +580,9 @@ gh attestation verify <downloaded-artifact> \
 Verify the immutable Go release attestation and each downloaded release asset:
 
 ```bash
-gh release verify "go-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
+gh release verify "go/v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
 for artifact in "${OUT}"/packages/go-release/*; do
-  gh release verify-asset "go-v${VERSION}" "$artifact" \
+  gh release verify-asset "go/v${VERSION}" "$artifact" \
     --repo Blackcat-Informatics/gmeow-gts
 done
 ```

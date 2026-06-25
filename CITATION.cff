@@ -12,9 +12,9 @@ abstract: >-
   whose fold is the value-union of the inputs, so memory grows by append, never by rewrite.
   Integrity is content-addressed (parallel BLAKE3 verification, optional layered COSE
   signing and encryption); the format is deliberately reader-simple — a conformant baseline
-  reader needs only a CBOR library. This repository provides four interoperable engines
-  (Rust, Python, Go, and TypeScript) that all gate against one frozen, byte-exact conformance
-  corpus, plus the specification that defines them.
+  reader needs only a CBOR library. This repository provides six interoperable engines
+  (Rust, Python, Go, TypeScript, Smalltalk/Pharo, and Kotlin/JVM) that all gate against one
+  frozen, byte-exact conformance corpus, plus the specification that defines them.
 type: software
 doi: "10.67342/umcdg7675h/v1"
 authors:

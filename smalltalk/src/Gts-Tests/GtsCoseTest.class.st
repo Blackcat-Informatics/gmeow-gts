@@ -48,5 +48,5 @@ GtsCoseTest >> testSign1RejectsAttachedPayload [
 		Dictionary newFromPairs: { 4. 'kid' utf8Encoded }.
 		'payload' utf8Encoded.
 		ByteArray new: GtsSodium ed25519SignatureBytes withAll: 0 }).
-	self should: [ GtsCose parseSign1: cose ] raise: Error
+	self should: [ GtsCose parseSign1: cose ] raise: GtsCryptoError
 ]

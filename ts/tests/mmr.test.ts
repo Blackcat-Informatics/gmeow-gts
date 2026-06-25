@@ -6,7 +6,12 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { proofFromJson, verifyProof, verifyProofJson } from "../src/mmr.js";
+import {
+    MmrError,
+    proofFromJson,
+    verifyProof,
+    verifyProofJson,
+} from "../src/mmr.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const proofsDir = resolve(__dirname, "../../../vectors/proofs");
@@ -24,7 +29,13 @@ test("positive proof fixture verifies", () => {
 
 test("negative proof fixture fails", () => {
     const p = proofFromJson(proof("mmr-basic-proof-bad-root.json"));
-    assert.throws(() => verifyProof(p), /root/);
+    assert.throws(
+        () => verifyProof(p),
+        (err: unknown) =>
+            err instanceof MmrError &&
+            err.kind === "validation" &&
+            err.message.includes("root"),
+    );
 });
 
 test("proofFromJson rejects unsafe integer fields", () => {
@@ -32,7 +43,20 @@ test("proofFromJson rejects unsafe integer fields", () => {
     doc.count = Number.MAX_SAFE_INTEGER + 1;
     assert.throws(
         () => proofFromJson(JSON.stringify(doc)),
-        /safe unsigned integer/,
+        (err: unknown) =>
+            err instanceof MmrError &&
+            err.kind === "parse" &&
+            err.message.includes("safe unsigned integer"),
+    );
+});
+
+test("proofFromJson rejects malformed JSON with a typed parse error", () => {
+    assert.throws(
+        () => proofFromJson("{"),
+        (err: unknown) =>
+            err instanceof MmrError &&
+            err.kind === "parse" &&
+            err.message.includes("invalid proof JSON"),
     );
 });
 
@@ -46,7 +70,13 @@ test("verify proof rejects invalid direct-call step sides", () => {
         ],
     };
 
-    assert.throws(() => verifyProof(invalid), /unsupported proof side/);
+    assert.throws(
+        () => verifyProof(invalid),
+        (err: unknown) =>
+            err instanceof MmrError &&
+            err.kind === "validation" &&
+            err.message.includes("unsupported proof side"),
+    );
 });
 
 test("verifyProofJson returns a verified proof", () => {

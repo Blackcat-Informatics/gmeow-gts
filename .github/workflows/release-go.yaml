@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 name: Release Go GTS
 
-# On a go-v* tag, cross-build the gts CLI, attest provenance and SBOM evidence,
+# On a go/v* tag, cross-build the gts CLI, attest provenance and SBOM evidence,
 # and publish an immutable GitHub Release with the archives, checksums, and SBOM.
 
 on:
   push:
     tags:
-      - 'go-v*'
+      - 'go/v*'
 
 permissions:
   contents: read
@@ -37,7 +37,7 @@ jobs:
 
       - name: Cross-build the gts CLI
         run: |
-          VERSION="${GITHUB_REF_NAME#go-v}"
+          VERSION="${GITHUB_REF_NAME#go/v}"
           rm -rf dist
           mkdir -p dist
           cd go
@@ -86,8 +86,30 @@ jobs:
 
       - name: Write release notes
         run: |
+          VERSION="${GITHUB_REF_NAME#go/v}"
           cat > release-notes-go.md <<EOF
-          Pre-built \`gts\` CLI binaries for \`go.blackcatinformatics.ca/gts\`.
+          GTS Go v${VERSION} release for \`go.blackcatinformatics.ca/gts\`.
+          EOF
+
+          if [ "$VERSION" = "0.9.5" ]; then
+            cat >> release-notes-go.md <<EOF
+
+          This is the Go 0.9.5 parity release. It publishes the Go engine and CLI
+          from \`Blackcat-Informatics/gmeow-gts\`, including the Go RDF event
+          source/sink API, XSD lexical validation diagnostics, and RDF 1.2 text
+          codec API/CLI parity surface completed for this release.
+          EOF
+          else
+            cat >> release-notes-go.md <<EOF
+
+          This release publishes the Go engine and CLI from
+          \`Blackcat-Informatics/gmeow-gts\`.
+          EOF
+          fi
+
+          cat >> release-notes-go.md <<EOF
+
+          Pre-built \`gts\` CLI binaries are attached for Linux, macOS, and Windows.
 
           Verify the immutable GitHub release attestation:
           \`\`\`
@@ -123,7 +145,7 @@ jobs:
                 --repo "$GITHUB_REPOSITORY" \
                 --verify-tag \
                 --draft \
-                --title "GTS Go ${GITHUB_REF_NAME#go-}" \
+                --title "GTS Go v${GITHUB_REF_NAME#go/v}" \
                 --notes-file release-notes-go.md
               ;;
           esac

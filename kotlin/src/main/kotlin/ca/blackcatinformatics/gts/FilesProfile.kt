@@ -27,6 +27,10 @@ private const val RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 private const val XSD_INTEGER = "http://www.w3.org/2001/XMLSchema#integer"
 private const val XSD_DATETIME = "http://www.w3.org/2001/XMLSchema#dateTime"
 
+class FilesProfileException(message: String) : IllegalArgumentException(message)
+
+private fun filesProfileError(message: String): Nothing = throw FilesProfileException(message)
+
 private fun iriTerm(value: String) = Term(TermKind.IRI, value)
 
 private fun literalTerm(value: String, datatype: Int? = null) = Term(TermKind.LITERAL, value, datatype = datatype)
@@ -106,17 +110,17 @@ fun unpack(graph: Graph, dest: Path, includeSuppressed: Boolean = false) {
     val suppressed = if (includeSuppressed) emptySet() else suppressedBlobDigests(graph)
     dest.createDirectories()
     for ((archivePath, entry) in entries) {
-        val digest = entry["digest"] ?: error("missing digest for $archivePath")
+        val digest = entry["digest"] ?: filesProfileError("missing digest for $archivePath")
         if (digest in suppressed) continue
-        val data = blobByDigest[digest] ?: error("missing inline blob for $archivePath: $digest")
-        if (digestStr(data) != digest) error("integrity failure for $archivePath: $digest")
+        val data = blobByDigest[digest] ?: filesProfileError("missing inline blob for $archivePath: $digest")
+        if (digestStr(data) != digest) filesProfileError("integrity failure for $archivePath: $digest")
         val target = destPath(dest, archivePath)
         target.parent?.createDirectories()
         val tmp = target.parent.resolve(".${target.fileName}.gts-tmp-${ProcessHandle.current().pid()}")
         tmp.writeBytes(data)
         if (target.exists(LinkOption.NOFOLLOW_LINKS) && target.isSymbolicLink()) {
             Files.deleteIfExists(tmp)
-            error("refusing to write through symlink: $archivePath")
+            filesProfileError("refusing to write through symlink: $archivePath")
         }
         Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
         entry["mode"]?.toIntOrNull()?.let { setFileMode(target, it) }
@@ -143,23 +147,23 @@ private fun resolveSources(sources: List<Path>): List<SourceEntry> {
     val out = mutableListOf<SourceEntry>()
     val seen = mutableSetOf<String>()
     for (source in sources) {
-        if (source.isSymbolicLink()) error("symlink not supported: $source")
+        if (source.isSymbolicLink()) filesProfileError("symlink not supported: $source")
         when {
             source.isDirectory(LinkOption.NOFOLLOW_LINKS) -> {
                 for (file in walkDirSorted(source)) {
                     val rel = source.relativize(file).joinToStringPath()
                     safeArchivePath(rel)
-                    if (!seen.add(rel)) error("duplicate archive path: $rel")
+                    if (!seen.add(rel)) filesProfileError("duplicate archive path: $rel")
                     out += SourceEntry(file, rel)
                 }
             }
             source.isRegularFile(LinkOption.NOFOLLOW_LINKS) -> {
                 val name = source.name
                 safeArchivePath(name)
-                if (!seen.add(name)) error("duplicate archive path: $name")
+                if (!seen.add(name)) filesProfileError("duplicate archive path: $name")
                 out += SourceEntry(source, name)
             }
-            else -> error("unsupported source type: $source")
+            else -> filesProfileError("unsupported source type: $source")
         }
     }
     return out.sortedBy { it.archivePath }
@@ -170,7 +174,7 @@ private fun walkDirSorted(dir: Path): List<Path> {
     Files.walk(dir).use { stream ->
         stream.sorted().forEach { path ->
             if (path == dir) return@forEach
-            if (path.isSymbolicLink()) error("symlink not supported: $path")
+            if (path.isSymbolicLink()) filesProfileError("symlink not supported: $path")
             if (path.isRegularFile(LinkOption.NOFOLLOW_LINKS)) out.add(path)
         }
     }
@@ -203,8 +207,8 @@ private fun readFileEntries(graph: Graph): Map<String, Map<String, String>> {
             else -> if (term.value.startsWith(FILES_NS)) fieldIds[term.value.removePrefix(FILES_NS)] = idx
         }
     }
-    val t = typeId ?: error("not a files-profile archive: missing rdf:type")
-    val fileEntry = fileEntryId ?: error("not a files-profile archive: missing FileEntry")
+    val t = typeId ?: filesProfileError("not a files-profile archive: missing rdf:type")
+    val fileEntry = fileEntryId ?: filesProfileError("not a files-profile archive: missing FileEntry")
     val entries = mutableMapOf<Int, MutableMap<String, String>>()
     val fileSubjects = mutableSetOf<Int>()
     for (quad in graph.quads) {
@@ -223,7 +227,7 @@ private fun readFileEntries(graph: Graph): Map<String, Map<String, String>> {
     for ((subject, entry) in entries) {
         if (subject !in fileSubjects) continue
         val path = entry["path"] ?: continue
-        if (path in byPath) error("duplicate files:path in archive: $path")
+        if (path in byPath) filesProfileError("duplicate files:path in archive: $path")
         byPath[path] = entry
     }
     return byPath

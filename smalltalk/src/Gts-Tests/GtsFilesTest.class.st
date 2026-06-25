@@ -22,3 +22,8 @@ GtsFilesTest >> testPackSourcesProducesReadableFilesProfileArchive [
 	self assert: graph blobs size equals: 2.
 	root ensureDeleteAll
 ]
+
+{ #category : #tests }
+GtsFilesTest >> testUnsafeArchivePathSignalsArchiveError [
+	self should: [ GtsFiles validateArchivePath: '../escape.txt' ] raise: GtsArchiveError
+]

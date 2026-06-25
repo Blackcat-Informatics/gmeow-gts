@@ -8,10 +8,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Graph, TermKind } from "../src/model.js";
 import * as wire from "../src/wire.js";
-import { Writer } from "../src/writer.js";
+import { Writer, WriterError } from "../src/writer.js";
 import { Read } from "../src/reader.js";
+import { unionSegments } from "../src/reader_union.js";
 import { toNQuads } from "../src/nquads.js";
 import { decodeChain, gzip, identity, isCodecError } from "../src/codec.js";
+import { ReplicationError, resumeAfter } from "../src/replication.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,6 +37,30 @@ test("wire.encode emits plain byte strings, not tag-64 typed arrays", () => {
     const encoded = wire.encode(new Uint8Array([0, 1, 2]));
     // 0x43 = major type 2 (byte string), length 3.
     assert.deepEqual(new Uint8Array(encoded), new Uint8Array([0x43, 0, 1, 2]));
+});
+
+test("wire parser and encoder failures use typed errors", () => {
+    assert.throws(
+        () => wire.encode(1.5),
+        (err: unknown) =>
+            err instanceof wire.WireError &&
+            err.kind === "encode" &&
+            err.message.includes("integer numbers"),
+    );
+    assert.throws(
+        () => wire.cborItemLength(Uint8Array.of(0x1c), 0),
+        (err: unknown) =>
+            err instanceof wire.WireError &&
+            err.kind === "decode" &&
+            err.message.includes("reserved additional info"),
+    );
+    assert.throws(
+        () => wire.unwrapHeader(1),
+        (err: unknown) =>
+            err instanceof wire.WireError &&
+            err.kind === "header" &&
+            err.message.includes("header item"),
+    );
 });
 
 test("blake3_256 returns 32 bytes", () => {
@@ -92,6 +118,26 @@ test("writer produces a readable GTS log", () => {
     assert.equal(g.quads.length, 1);
     assert.equal(g.segmentProfiles[0], "dist");
     assert.equal(g.diagnostics.length, 0);
+});
+
+test("writer and replication refusal paths use typed errors", () => {
+    assert.throws(
+        () => new Writer("generic", "sorted"),
+        (err: unknown) =>
+            err instanceof WriterError &&
+            err.kind === "layout" &&
+            err.message.includes("unsupported layout"),
+    );
+
+    const w = new Writer("generic");
+    w.addBlob(Buffer.from("payload"), "text/plain");
+    assert.throws(
+        () => resumeAfter(w.toBytes(), new Uint8Array(32)),
+        (err: unknown) =>
+            err instanceof ReplicationError &&
+            err.kind === "missing-frame" &&
+            err.message.includes("not found"),
+    );
 });
 
 test("toNQuads serialises a simple graph", () => {
@@ -171,6 +217,74 @@ test("reader allows clean multi-segment file", () => {
     const g = Read(combined, true);
     assert.equal(g.segmentHeads.length, 2);
     assert.equal(g.quads.length, 2);
+});
+
+test("reader union isolates blank nodes and remaps suppressions", () => {
+    const predicate = "https://example.org/p";
+    const w1 = new Writer("generic");
+    w1.addTerms([
+        { kind: TermKind.Bnode, value: "shared" },
+        { kind: TermKind.Iri, value: predicate },
+        { kind: TermKind.Literal, value: "one" },
+    ]);
+    w1.addQuads([{ s: 0, p: 1, o: 2 }]);
+    const termTarget = new Map<unknown, unknown>();
+    termTarget.set("kind", "term");
+    termTarget.set("id", 0);
+    w1.addSuppress([termTarget], "redacted", 0);
+
+    const w2 = new Writer("generic");
+    w2.addTerms([
+        { kind: TermKind.Bnode, value: "shared" },
+        { kind: TermKind.Iri, value: predicate },
+        { kind: TermKind.Literal, value: "two" },
+    ]);
+    w2.addQuads([{ s: 0, p: 1, o: 2 }]);
+    const quadTarget = new Map<unknown, unknown>();
+    quadTarget.set("kind", "quad");
+    quadTarget.set("q", [0, 1, 2]);
+    w2.addSuppress([quadTarget], "superseded");
+
+    const first = w1.toBytes();
+    const second = w2.toBytes();
+    const combined = new Uint8Array(first.length + second.length);
+    combined.set(first);
+    combined.set(second, first.length);
+
+    const g = Read(combined, true);
+    const bnodes = g.terms
+        .map((term, id) => ({ term, id }))
+        .filter(({ term }) => term.kind === TermKind.Bnode);
+    assert.deepEqual(
+        bnodes.map(({ term }) => term.value),
+        ["s0.shared", "s1.shared"],
+    );
+    assert.equal(g.quads.length, 2);
+    assert.equal(g.suppressions.length, 2);
+
+    const firstTarget = g.suppressions[0].targets[0] as Map<unknown, unknown>;
+    assert.equal(firstTarget.get("id"), bnodes[0].id);
+    assert.equal(g.suppressions[0].by, bnodes[0].id);
+
+    const secondTarget = g.suppressions[1].targets[0] as Map<unknown, unknown>;
+    assert.deepEqual(secondTarget.get("q"), [
+        bnodes[1].id,
+        g.quads[1].p,
+        g.quads[1].o,
+    ]);
+});
+
+test("reader union reports invalid programmatic term references", () => {
+    const g = new Graph();
+    g.quads.push({ s: 0, p: 0, o: 0 });
+
+    assert.throws(
+        () => unionSegments([g]),
+        (error) =>
+            error instanceof Error &&
+            error.name === "SegmentUnionError" &&
+            error.message === "term 0 missing from segment 0",
+    );
 });
 
 import { existsSync, mkdirSync, mkdtempSync, symlinkSync } from "node:fs";

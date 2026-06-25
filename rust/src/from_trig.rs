@@ -22,6 +22,14 @@ const RDF_FIRST: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#first";
 const RDF_REST: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest";
 const RDF_NIL: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil";
 
+// XSD datatypes for Turtle's bare numeric and boolean literals. The lexical form is
+// preserved verbatim (no canonicalisation) so `0.70`, `1.0E0`, `+00:00`-style values
+// survive the codec unchanged.
+const XSD_INTEGER: &str = "http://www.w3.org/2001/XMLSchema#integer";
+const XSD_DECIMAL: &str = "http://www.w3.org/2001/XMLSchema#decimal";
+const XSD_DOUBLE: &str = "http://www.w3.org/2001/XMLSchema#double";
+const XSD_BOOLEAN: &str = "http://www.w3.org/2001/XMLSchema#boolean";
+
 /// Raised when Turtle/TriG input is malformed or outside the supported surface.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TriGParseError {
@@ -437,12 +445,121 @@ impl<'a> Parser<'a> {
         match self.peek_char() {
             Some('<') => self.iri().map(Node::Iri),
             Some('_') => self.bnode().map(Node::Bnode),
-            Some('"') => self.literal(),
+            Some('"') | Some('\'') => self.literal(),
             Some('[') => self.blank_node_property_list(graph),
             Some('(') => self.collection(graph),
-            Some(_) => self.prefixed_name().map(Node::Iri),
+            Some(_) if self.looks_like_number() => self.numeric_literal(),
+            Some(_) => match self.try_boolean_literal() {
+                Some(node) => Ok(node),
+                None => self.prefixed_name().map(Node::Iri),
+            },
             None => Err(TriGParseError::new("unexpected end of Turtle/TriG input")),
         }
+    }
+
+    /// True when the cursor sits on a Turtle numeric literal: an optional sign then a
+    /// digit, or a `.` immediately followed by a digit (`.5`). Prefixed names never
+    /// start this way, so the lookahead unambiguously separates `42`/`-1.5e3` from
+    /// `ex:foo`.
+    fn looks_like_number(&self) -> bool {
+        let bytes = self.text.as_bytes();
+        let mut i = self.pos;
+        if matches!(bytes.get(i), Some(b'+') | Some(b'-')) {
+            i += 1;
+        }
+        match bytes.get(i) {
+            Some(b'0'..=b'9') => true,
+            Some(b'.') => matches!(bytes.get(i + 1), Some(b'0'..=b'9')),
+            _ => false,
+        }
+    }
+
+    /// Parse a Turtle INTEGER / DECIMAL / DOUBLE, typing it by shape and keeping the
+    /// lexical form verbatim. DOUBLE wins if an exponent is present, else DECIMAL if a
+    /// fraction is present, else INTEGER.
+    fn numeric_literal(&mut self) -> Result<Node, TriGParseError> {
+        let start = self.pos;
+        let bytes = self.text.as_bytes();
+        if matches!(bytes.get(self.pos), Some(b'+') | Some(b'-')) {
+            self.pos += 1;
+        }
+        let mut has_digits = false;
+        while matches!(bytes.get(self.pos), Some(b'0'..=b'9')) {
+            self.pos += 1;
+            has_digits = true;
+        }
+        let mut is_decimal = false;
+        if bytes.get(self.pos) == Some(&b'.')
+            && matches!(bytes.get(self.pos + 1), Some(b'0'..=b'9'))
+        {
+            is_decimal = true;
+            self.pos += 1;
+            while matches!(bytes.get(self.pos), Some(b'0'..=b'9')) {
+                self.pos += 1;
+                has_digits = true;
+            }
+        }
+        let mut is_double = false;
+        if matches!(bytes.get(self.pos), Some(b'e') | Some(b'E')) {
+            is_double = true;
+            self.pos += 1;
+            if matches!(bytes.get(self.pos), Some(b'+') | Some(b'-')) {
+                self.pos += 1;
+            }
+            let exp_start = self.pos;
+            while matches!(bytes.get(self.pos), Some(b'0'..=b'9')) {
+                self.pos += 1;
+            }
+            if self.pos == exp_start {
+                return Err(TriGParseError::new(format!(
+                    "malformed exponent in numeric literal at byte {start}"
+                )));
+            }
+        }
+        if !has_digits {
+            return Err(TriGParseError::new(format!(
+                "malformed numeric literal at byte {start}"
+            )));
+        }
+        let datatype = if is_double {
+            XSD_DOUBLE
+        } else if is_decimal {
+            XSD_DECIMAL
+        } else {
+            XSD_INTEGER
+        };
+        Ok(Node::Literal {
+            value: self.text[start..self.pos].to_string(),
+            lang: None,
+            datatype: Some(datatype.to_string()),
+        })
+    }
+
+    /// Consume a `true`/`false` boolean keyword (case-sensitive per Turtle) when it is
+    /// followed by a name boundary, so `true`/`false` parse as `xsd:boolean` but
+    /// `trueish`/`false:x` stay prefixed names.
+    fn try_boolean_literal(&mut self) -> Option<Node> {
+        for keyword in ["true", "false"] {
+            let rest = &self.text[self.pos..];
+            if let Some(after) = rest.strip_prefix(keyword) {
+                let boundary = match after.chars().next() {
+                    Some(ch) => {
+                        ch.is_whitespace()
+                            || matches!(ch, '.' | ';' | ',' | ')' | ']' | '}' | '>' | '#')
+                    }
+                    None => true,
+                };
+                if boundary {
+                    self.pos += keyword.len();
+                    return Some(Node::Literal {
+                        value: keyword.to_string(),
+                        lang: None,
+                        datatype: Some(XSD_BOOLEAN.to_string()),
+                    });
+                }
+            }
+        }
+        None
     }
 
     fn predicate(&mut self) -> Result<Node, TriGParseError> {
@@ -531,20 +648,7 @@ impl<'a> Parser<'a> {
 
     fn literal(&mut self) -> Result<Node, TriGParseError> {
         self.skip_ws_and_comments();
-        if self.bump_char() != Some('"') {
-            return Err(TriGParseError::new("expected literal"));
-        }
-        let mut value = String::new();
-        loop {
-            let Some(ch) = self.bump_char() else {
-                return Err(TriGParseError::new("unterminated literal"));
-            };
-            match ch {
-                '\\' => value.push(self.escape()?),
-                '"' => break,
-                _ => value.push(ch),
-            }
-        }
+        let value = self.quoted_string()?;
 
         let mut lang = None;
         let mut datatype = None;
@@ -582,6 +686,55 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Read a Turtle string literal in any of its four quote styles: short `"…"` /
+    /// `'…'` and long (triple-quoted) `"""…"""` / `'''…'''`. Long strings may span
+    /// newlines and contain up to two consecutive quote characters; both forms honour
+    /// the shared backslash escapes.
+    fn quoted_string(&mut self) -> Result<String, TriGParseError> {
+        let (quote, long) = match self.peek_char() {
+            Some('"') => ('"', "\"\"\""),
+            Some('\'') => ('\'', "'''"),
+            _ => return Err(TriGParseError::new("expected literal")),
+        };
+        if self.text[self.pos..].starts_with(long) {
+            self.pos += long.len();
+            return self.long_string(long);
+        }
+        self.bump_char();
+        let mut value = String::new();
+        loop {
+            let Some(ch) = self.bump_char() else {
+                return Err(TriGParseError::new("unterminated literal"));
+            };
+            match ch {
+                '\\' => value.push(self.escape()?),
+                c if c == quote => break,
+                _ => value.push(ch),
+            }
+        }
+        Ok(value)
+    }
+
+    /// Read the body of a long (triple-quoted) string up to its closing triple quote.
+    /// A lone or doubled quote inside the body is literal content; only the closing
+    /// triple terminates.
+    fn long_string(&mut self, closing: &str) -> Result<String, TriGParseError> {
+        let mut value = String::new();
+        loop {
+            if self.text[self.pos..].starts_with(closing) {
+                self.pos += closing.len();
+                return Ok(value);
+            }
+            let Some(ch) = self.bump_char() else {
+                return Err(TriGParseError::new("unterminated long string literal"));
+            };
+            match ch {
+                '\\' => value.push(self.escape()?),
+                _ => value.push(ch),
+            }
+        }
+    }
+
     fn escape(&mut self) -> Result<char, TriGParseError> {
         let Some(ch) = self.bump_char() else {
             return Err(TriGParseError::new("bad escape at end of literal"));
@@ -589,6 +742,7 @@ impl<'a> Parser<'a> {
         match ch {
             '\\' => Ok('\\'),
             '"' => Ok('"'),
+            '\'' => Ok('\''),
             'b' => Ok('\u{0008}'),
             'f' => Ok('\u{000c}'),
             'n' => Ok('\n'),
