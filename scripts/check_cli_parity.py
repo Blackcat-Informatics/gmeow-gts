@@ -64,7 +64,7 @@ def python_verbs() -> set[str]:
 def rust_verbs() -> set[str]:
     text = read("rust/src/bin/gts.rs")
     block = between(text, "match cmd.as_str() {", "_ =>")
-    return set(re.findall(r'"([^"]+)"\s*=>\s*cmd_', block))
+    return set(re.findall(r'"([^"]+)"\s*=>\s*(?:[A-Za-z_][A-Za-z0-9_]*::)*cmd_', block))
 
 
 def go_verbs() -> set[str]:

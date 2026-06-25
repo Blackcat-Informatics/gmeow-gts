@@ -15,6 +15,7 @@ import {
     recipientKid,
     type BrowserFoldEvent,
 } from "../src/browser.js";
+import { BrowserWireError, cborItemLength } from "../src/browser_wire.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../../../");
@@ -135,6 +136,18 @@ test("browser stream fold reports malformed input diagnostics without throwing",
             expected,
         );
     }
+});
+
+test("browser wire item length skips CBOR major-7 payload bytes", () => {
+    assert.equal(
+        cborItemLength(Uint8Array.of(0xfb, 0x3f, 0xf0, 0, 0, 0, 0, 0, 0), 0),
+        9,
+    );
+    assert.equal(cborItemLength(Uint8Array.of(0xf9, 0x3c, 0), 0), 3);
+    assert.throws(
+        () => cborItemLength(Uint8Array.of(0xfb, 0x3f, 0xf0), 0),
+        BrowserWireError,
+    );
 });
 
 test("browser sink-only fold matches materialized browser fold for corpus", async () => {

@@ -95,6 +95,13 @@ PY
   errors=1
 fi
 
+if ! python3 "$ROOT/scripts/check_doc_roster.py"; then
+  errors=1
+fi
+if ! python3 "$ROOT/scripts/check_doc_roster.py" --self-test; then
+  errors=1
+fi
+
 if [ "$errors" -ne 0 ]; then
   exit 1
 fi

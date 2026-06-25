@@ -9,9 +9,12 @@ independent parser, writer, or CLI conformance.
 
 The shared matrix is defined in `scripts/wrapper_smoke_matrix.sh` and is used by
 the C ABI, C++, .NET, PHP, Lua, Swift, Ruby, R, and Julia smoke entrypoints.
+The ABI compatibility policy is documented in
+[`rust/capi/README.md#compatibility-policy`](../rust/capi/README.md#compatibility-policy).
 
 | Fixture | Source | Required observable result |
 |---|---|---|
+| `abi-version-guard` | `GTS_WRAPPER_EXPECT_ABI_VERSION` | The wrapper observes the expected `GTS_ABI_VERSION`; unsupported runtime ABI versions must fail clearly instead of continuing silently. |
 | `clean-read` | `vectors/01-minimal.gts` | ABI/version/build metadata are present; `read_json` reports `schema=gts-capi-read-v1` and `clean=true`; `verify_json` reports `schema=gts-capi-verify-v1`; N-Quads output contains `"Cat"@en`; N-Quads round-trip returns non-empty GTS bytes. |
 | `damaged-diagnostic-read` | `vectors/04-damaged-frame.gts` | `read_json` reports `clean=false` and diagnostic code `DamagedFrame`; clean-output conversions refuse the input with a structured diagnostic error. |
 | `empty-malformed-refusal` | `vectors/28-empty-file.gts` | `read_json` reports `clean=false` and diagnostic code `EmptyFile`; clean-output conversions refuse the input with a structured diagnostic error. |

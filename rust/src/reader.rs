@@ -17,17 +17,18 @@ use std::io::Read;
 use ciborium::value::Value;
 
 use crate::codec::{decode_chain, decode_chain_with_decrypt, Codec, CodecError};
-use crate::mmr;
 use crate::model::{
     Diagnostic, Graph, OpaqueNode, Quad, Signature, StreamableInfo, Suppression, Term, TermKind,
     Triple3,
 };
+use crate::reader_layout::{check_index_mmr, layout_check, IndexRecord};
+use crate::reader_union::union_segments;
 use crate::stream::DIGEST as STREAM_DIGEST;
 use crate::wire::{
     content_id, digest_str, header_id, hex, iter_items, map_get, unwrap_header, MAGIC, VERSION,
 };
 
-fn as_i128(v: &Value) -> Option<i128> {
+pub(crate) fn as_i128(v: &Value) -> Option<i128> {
     if let Value::Integer(i) = v {
         Some(i128::from(*i))
     } else {
@@ -36,11 +37,11 @@ fn as_i128(v: &Value) -> Option<i128> {
 }
 
 /// Coerce a value to a non-negative index, else `None` (Python `_as_int`).
-fn as_idx(v: &Value) -> Option<usize> {
+pub(crate) fn as_idx(v: &Value) -> Option<usize> {
     as_i128(v).and_then(|n| usize::try_from(n).ok())
 }
 
-fn as_text(v: &Value) -> Option<&str> {
+pub(crate) fn as_text(v: &Value) -> Option<&str> {
     if let Value::Text(t) = v {
         Some(t)
     } else {
@@ -48,7 +49,7 @@ fn as_text(v: &Value) -> Option<&str> {
     }
 }
 
-fn text_or<'a>(v: Option<&'a Value>, default: &'a str) -> &'a str {
+pub(crate) fn text_or<'a>(v: Option<&'a Value>, default: &'a str) -> &'a str {
     v.and_then(as_text).unwrap_or(default)
 }
 
@@ -136,14 +137,6 @@ enum PayloadError {
     },
     /// Anything else — the frame is damaged.
     Damaged(String),
-}
-
-#[derive(Clone, Debug)]
-struct IndexRecord {
-    abs_index: usize,
-    count: usize,
-    head: Vec<u8>,
-    mmr: Option<Vec<u8>>,
 }
 
 impl From<CodecError> for PayloadError {
@@ -257,7 +250,7 @@ impl<'a> ReadOptions<'a> {
     }
 }
 
-fn push_diagnostic(
+pub(crate) fn push_diagnostic(
     g: &mut Graph,
     sink: &mut Option<&mut dyn StreamingSink>,
     diagnostic: Diagnostic,
@@ -521,7 +514,9 @@ impl Folder<'_, '_, '_> {
                 );
                 continue;
             }
-            let (s, p, o) = (s.unwrap(), p.unwrap(), o.unwrap());
+            let (Some(s), Some(p), Some(o)) = (s, p, o) else {
+                continue;
+            };
             if !self.check_positions(s, p, o, gslot, index) {
                 continue;
             }
@@ -562,7 +557,10 @@ impl Folder<'_, '_, '_> {
                 continue;
             }
             let rid = rid as usize;
-            let triple: Triple3 = (s.unwrap(), p.unwrap(), o.unwrap());
+            let (Some(s), Some(p), Some(o)) = (s, p, o) else {
+                continue;
+            };
+            let triple: Triple3 = (s, p, o);
             if let Some(existing) = self.g.reifier(rid) {
                 if existing != triple {
                     self.diag(
@@ -605,7 +603,9 @@ impl Folder<'_, '_, '_> {
                 );
                 continue;
             }
-            let (r, p, v) = (r.unwrap(), p.unwrap(), v.unwrap());
+            let (Some(r), Some(p), Some(v)) = (r, p, v) else {
+                continue;
+            };
             if self.g.terms[p].kind != TermKind::Iri {
                 self.diag(
                     "PositionConstraint",
@@ -1054,14 +1054,14 @@ pub fn read_with_options(data: &[u8], options: ReadOptions<'_>) -> Graph {
     // Each segment owns its term-id namespace. Unioning happens after segment
     // folds by semantic term value, which avoids silently treating equal
     // numeric ids from different segments as equal terms.
-    let folded: Vec<Graph> = bounds
+    let mut folded: Vec<Graph> = bounds
         .iter()
         .zip(ends)
         .map(|(&a, b)| read_segment_with_sink(&items[a..b], a, 0, None, options.content_key))
         .collect();
 
     let mut g = if folded.len() == 1 {
-        folded.into_iter().next().expect("one segment")
+        folded.remove(0)
     } else {
         union_segments(&folded)
     };
@@ -1693,15 +1693,10 @@ fn read_segment_with_sink(
     };
     sink = restored_sink;
 
-    g.segment_heads.push(expected_prev);
     if let Some(sink) = sink.as_deref_mut() {
-        sink.segment_head(
-            segment_index,
-            g.segment_heads
-                .last()
-                .expect("segment head was just pushed"),
-        );
+        sink.segment_head(segment_index, &expected_prev);
     }
+    g.segment_heads.push(expected_prev);
     let seg_meta = g.meta.clone();
     g.segment_meta.push(seg_meta);
     g.segment_profiles
@@ -1716,372 +1711,9 @@ fn read_segment_with_sink(
         index_offset,
         &mut sink,
     );
-    g.segment_streamable.push(info);
     if let Some(sink) = sink {
-        sink.streamable_layout(
-            segment_index,
-            g.segment_streamable
-                .last()
-                .expect("streamable info was just pushed"),
-        );
+        sink.streamable_layout(segment_index, &info);
     }
+    g.segment_streamable.push(info);
     g
-}
-
-/// Compute one segment's layout state and check its claim (§3.3).
-///
-/// For a segment claiming `"layout": "streamable"`: (a) it must carry an
-/// intact `index` footer, (b) the last index's `head` must be the id of
-/// frame `count`, and (c) every covered inline blob must arrive after the
-/// `stream:digest` quad describing it. Frames after the last index are the
-/// legal accretive tail — boundary info, never a diagnostic. Unknown layout
-/// values impose no check (§5).
-fn layout_check(
-    g: &mut Graph,
-    header: &[(Value, Value)],
-    index_records: &[IndexRecord],
-    blob_events: &[(usize, String, bool)],
-    frame_ids: &[Vec<u8>],
-    index_offset: usize,
-    sink: &mut Option<&mut dyn StreamingSink>,
-) -> StreamableInfo {
-    let claimed = matches!(map_get(header, "layout"), Some(Value::Text(t)) if t == "streamable");
-    let total = frame_ids.len();
-    if !claimed {
-        return StreamableInfo::default();
-    }
-    let Some(record) = index_records.last() else {
-        push_diagnostic(
-            g,
-            sink,
-            Diagnostic {
-                code: "StreamableLayoutError".to_string(),
-                detail: "segment claims layout 'streamable' but carries no intact \
-                     index footer (§3.3)"
-                    .to_string(),
-                frame_index: None,
-            },
-        );
-        return StreamableInfo {
-            claimed: true,
-            covered: 0,
-            tail: total,
-            head: None,
-        };
-    };
-    let (abs_pos, count, head) = (record.abs_index, record.count, &record.head);
-    let rel_pos = abs_pos - index_offset; // 1-based frame position of the index
-    let tail = total - rel_pos;
-    // The footer must IMMEDIATELY follow the frames it covers (§3.3): a
-    // permissive `count <= rel_pos - 1` would let frames sit between the
-    // covered prefix and the footer, counted neither as covered nor as tail.
-    if count != rel_pos - 1 || count < 1 || frame_ids[count - 1] != *head {
-        push_diagnostic(
-            g,
-            sink,
-            Diagnostic {
-                code: "StreamableLayoutError".to_string(),
-                detail: format!(
-                    "index footer contradicts the frames it covers: count {count} \
-                 must name the frame immediately before the footer and head \
-                 must be that frame's id (§3.3)"
-                ),
-                frame_index: Some(abs_pos),
-            },
-        );
-    }
-    for (blob_abs, digest, described) in blob_events {
-        let blob_rel = blob_abs - index_offset;
-        if blob_rel <= count && !described {
-            push_diagnostic(
-                g,
-                sink,
-                Diagnostic {
-                    code: "StreamableLayoutError".to_string(),
-                    detail: format!(
-                        "covered blob {digest} delivered before its stream:digest \
-                     description (catalog-before-payload, §3.3)"
-                    ),
-                    frame_index: Some(*blob_abs),
-                },
-            );
-        }
-    }
-    StreamableInfo {
-        claimed: true,
-        covered: count,
-        tail,
-        head: Some(head.clone()),
-    }
-}
-
-fn check_index_mmr(
-    g: &mut Graph,
-    index_records: &[IndexRecord],
-    frame_ids: &[Vec<u8>],
-    index_offset: usize,
-    sink: &mut Option<&mut dyn StreamingSink>,
-) {
-    for record in index_records {
-        let Some(root) = &record.mmr else {
-            continue;
-        };
-        let rel_pos = record.abs_index.saturating_sub(index_offset);
-        let preceding = rel_pos.saturating_sub(1);
-        let mut detail = None;
-        if root.len() != 32 {
-            detail = Some("index mmr root is not a 32-byte digest".to_string());
-        } else if record.count > preceding {
-            detail = Some(format!(
-                "index mmr covers {} frame(s), but only {preceding} precede the index",
-                record.count
-            ));
-        } else if record.count > frame_ids.len() {
-            detail = Some(format!(
-                "index mmr covers {} frame(s), but the segment has {} frame id(s)",
-                record.count,
-                frame_ids.len()
-            ));
-        } else if record.count > 0 && frame_ids[record.count - 1] != record.head {
-            detail = Some("index mmr head does not match the last covered frame".to_string());
-        } else {
-            let computed = mmr::root(&frame_ids[..record.count]);
-            if computed != *root {
-                detail = Some("index mmr root does not match the covered frame ids".to_string());
-            }
-        }
-        if let Some(detail) = detail {
-            push_diagnostic(
-                g,
-                sink,
-                Diagnostic {
-                    code: "IndexMmrError".to_string(),
-                    detail,
-                    frame_index: Some(record.abs_index),
-                },
-            );
-        }
-    }
-}
-
-// --------------------------------------------------------------------------- //
-// Multi-segment union (§3.1, §7.5): term-ids are segment-scoped compression
-// artifacts; the union re-interns BY TERM VALUE. Blank nodes carry a segment
-// discriminator (labels are segment-local and never merge); quoted-triple
-// terms intern through their bound SPO identity. Because the union is
-// value-interned, "apply suppression value-wise" (§11) reduces to applying it
-// by result-id.
-// --------------------------------------------------------------------------- //
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-enum InternKey {
-    Iri(Option<String>),
-    Lit(Option<String>, String, Option<String>, Option<String>),
-    Bnode(usize, Option<String>, Option<usize>),
-    Qt(Option<Triple3>),
-}
-
-#[derive(Default)]
-struct Unioner {
-    out: Graph,
-    intern: HashMap<InternKey, usize>,
-}
-
-impl Unioner {
-    fn key_for(&mut self, seg: &Graph, seg_idx: usize, tid: usize) -> InternKey {
-        let t = &seg.terms[tid];
-        match t.kind {
-            TermKind::Iri => InternKey::Iri(t.value.clone()),
-            TermKind::Literal => InternKey::Lit(
-                t.value.clone(),
-                seg.datatype_iri(t),
-                t.lang.clone(),
-                t.direction.clone(),
-            ),
-            // Non-empty labels are segment-local; absent/empty labels are fresh
-            // anonymous nodes keyed by their source term entry (§7.1).
-            TermKind::Bnode => {
-                let label = t.value.as_ref().filter(|v| !v.is_empty()).cloned();
-                let anon_tid = label.is_none().then_some(tid);
-                InternKey::Bnode(seg_idx, label, anon_tid)
-            }
-            // Quoted triple: identity is the interned SPO binding. Self-bound
-            // triple terms use `rf == tid`; do not recursively map the reifier.
-            TermKind::Triple => InternKey::Qt(t.reifier.and_then(|rf| {
-                seg.reifier(rf).map(|(s, p, o)| {
-                    (
-                        self.map_term(seg, seg_idx, s),
-                        self.map_term(seg, seg_idx, p),
-                        self.map_term(seg, seg_idx, o),
-                    )
-                })
-            })),
-        }
-    }
-
-    fn map_term(&mut self, seg: &Graph, seg_idx: usize, tid: usize) -> usize {
-        let key = self.key_for(seg, seg_idx, tid);
-        if let Some(&got) = self.intern.get(&key) {
-            return got;
-        }
-        let t = seg.terms[tid].clone();
-        let new_id = self.out.terms.len();
-        let datatype = t.datatype.map(|d| self.map_term(seg, seg_idx, d));
-        let reifier = if t.kind == TermKind::Triple && t.reifier == Some(tid) {
-            Some(new_id)
-        } else {
-            t.reifier.map(|r| self.map_term(seg, seg_idx, r))
-        };
-        // Blank nodes are relabelled with a segment prefix (§7.1 permits
-        // isomorphism-preserving relabeling): within a segment, byte-identical
-        // entries already intern to one union term (§7.8); ACROSS segments the
-        // same label names DIFFERENT nodes, and emitting the raw label from
-        // the union would merge them. Label-less nodes (absent or empty "v")
-        // are distinct TERMS under the intern key, so their serialized labels
-        // must stay distinct too — the union id disambiguates them. Computed
-        // after dt/rf mapping so out.terms.len() IS this term's id.
-        let value = if t.kind == TermKind::Bnode {
-            Some(match t.value.as_deref() {
-                Some(label) if !label.is_empty() => format!("s{seg_idx}.{label}"),
-                _ => format!("s{seg_idx}._anon{new_id}"),
-            })
-        } else {
-            t.value.clone()
-        };
-        self.out.terms.push(Term {
-            kind: t.kind,
-            value,
-            datatype,
-            lang: t.lang,
-            direction: t.direction,
-            reifier,
-        });
-        self.intern.insert(key, new_id);
-        new_id
-    }
-
-    /// Re-intern a suppression's id-addressed targets (§11).
-    ///
-    /// Digest-addressed targets (`frame`, `blob`) pass through unchanged
-    /// (content-ids are file-global). Id-addressed targets resolve in their
-    /// OWN segment and re-intern into the union — exactly the value-wise
-    /// application the spec requires, because the union is value-interned.
-    fn remap_suppression(&mut self, sup: &Suppression, seg: &Graph, seg_idx: usize) -> Suppression {
-        let n = seg.terms.len();
-        let mut new_targets = Vec::with_capacity(sup.targets.len());
-        for target in &sup.targets {
-            let Value::Map(entries) = target else {
-                new_targets.push(target.clone());
-                continue;
-            };
-            let kind = text_or(map_get(entries, "kind"), "");
-            if kind == "frame" || kind == "blob" {
-                new_targets.push(target.clone());
-                continue;
-            }
-            let mapped: Vec<(Value, Value)> = entries
-                .iter()
-                .map(|(k, v)| {
-                    let key = as_text(k);
-                    if (kind == "term" || kind == "reifier") && key == Some("id") {
-                        if let Some(tid) = as_idx(v) {
-                            if tid < n {
-                                let new = self.map_term(seg, seg_idx, tid);
-                                return (k.clone(), Value::from(new as u64));
-                            }
-                        }
-                    } else if kind == "quad" && key == Some("q") {
-                        if let Value::Array(ids) = v {
-                            let remapped: Vec<Value> = ids
-                                .iter()
-                                .map(|x| match as_idx(x) {
-                                    Some(tid) if tid < n => {
-                                        Value::from(self.map_term(seg, seg_idx, tid) as u64)
-                                    }
-                                    _ => x.clone(),
-                                })
-                                .collect();
-                            return (k.clone(), Value::Array(remapped));
-                        }
-                    }
-                    (k.clone(), v.clone())
-                })
-                .collect();
-            new_targets.push(Value::Map(mapped));
-        }
-        Suppression {
-            targets: new_targets,
-            reason: sup.reason.clone(),
-            // "by" is a segment-scoped term-id (the suppressing agent) —
-            // remap it into the union's id space like every other id ref.
-            by: sup
-                .by
-                .and_then(|b| (b < n).then(|| self.map_term(seg, seg_idx, b))),
-        }
-    }
-}
-
-/// Union per-segment folds into one value-interned [`Graph`].
-fn union_segments(segments: &[Graph]) -> Graph {
-    let mut u = Unioner::default();
-    let mut seen: HashSet<Quad> = HashSet::new();
-    for (seg_idx, seg) in segments.iter().enumerate() {
-        for &(s, p, o, gq) in &seg.quads {
-            let q: Quad = (
-                u.map_term(seg, seg_idx, s),
-                u.map_term(seg, seg_idx, p),
-                u.map_term(seg, seg_idx, o),
-                gq.map(|x| u.map_term(seg, seg_idx, x)),
-            );
-            if seen.insert(q) {
-                // the folded graph is a set (§7.8)
-                u.out.quads.push(q);
-            }
-        }
-        for &(rf, (s, p, o)) in &seg.reifiers {
-            let new_rf = u.map_term(seg, seg_idx, rf);
-            let spo = (
-                u.map_term(seg, seg_idx, s),
-                u.map_term(seg, seg_idx, p),
-                u.map_term(seg, seg_idx, o),
-            );
-            u.out.set_reifier(new_rf, spo);
-        }
-        for &(r, p, v) in &seg.annotations {
-            let row = (
-                u.map_term(seg, seg_idx, r),
-                u.map_term(seg, seg_idx, p),
-                u.map_term(seg, seg_idx, v),
-            );
-            u.out.annotations.push(row);
-        }
-        for (digest, entry) in &seg.blobs {
-            u.out.set_blob_entry(digest.clone(), entry.clone());
-        }
-        for (digest, meta) in &seg.blob_meta {
-            u.out.set_blob_meta(digest.clone(), meta.clone());
-        }
-        for (k, v) in &seg.meta {
-            // file-level shallow merge; later segments win
-            u.out.set_meta(k.clone(), v.clone());
-        }
-        u.out.segment_meta.extend(seg.segment_meta.iter().cloned());
-        for sup in &seg.suppressions {
-            let remapped = u.remap_suppression(sup, seg, seg_idx);
-            u.out.suppressions.push(remapped);
-        }
-        u.out.opaque.extend(seg.opaque.iter().cloned());
-        u.out.signatures.extend(seg.signatures.iter().cloned());
-        u.out.diagnostics.extend(seg.diagnostics.iter().cloned());
-        u.out
-            .segment_heads
-            .extend(seg.segment_heads.iter().cloned());
-        u.out
-            .segment_profiles
-            .extend(seg.segment_profiles.iter().cloned());
-        u.out
-            .segment_streamable
-            .extend(seg.segment_streamable.iter().cloned());
-    }
-    u.out
 }

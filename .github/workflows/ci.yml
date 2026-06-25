@@ -6,6 +6,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -29,6 +30,18 @@ jobs:
 
       - name: Package versions and docs
         run: bash scripts/check-versions.sh
+
+      - name: Prepare quality-budget review base
+        if: github.event_name == 'pull_request'
+        env:
+          QUALITY_BUDGET_LABEL_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'quality-budget-baseline-increase') }}
+          QUALITY_BUDGET_REVIEW_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$QUALITY_BUDGET_REVIEW_BASE"
+          echo "GTS_QUALITY_BUDGET_REVIEW_BASE=$QUALITY_BUDGET_REVIEW_BASE" >> "$GITHUB_ENV"
+          if [ "$QUALITY_BUDGET_LABEL_APPROVED" = "true" ]; then
+            echo "GTS_QUALITY_BUDGET_BASELINE_INCREASE_APPROVED=1" >> "$GITHUB_ENV"
+          fi
 
       - name: Repository contracts
         run: |

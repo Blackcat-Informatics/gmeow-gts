@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { diff, pack } from "../src/files.js";
+import { diff, isFilesProfileError, pack } from "../src/files.js";
 import { Read } from "../src/reader.js";
 import { toNQuads } from "../src/nquads.js";
 
@@ -60,6 +60,18 @@ test("files profile refuses symlink entries for pack and diff", () => {
     const archive = Read(pack([dir]), false);
     symlinkSync(f, join(dir, "linked.txt"));
 
-    assert.throws(() => pack([dir]), /symlink/);
-    assert.throws(() => diff(archive, dir), /symlink/);
+    assert.throws(
+        () => pack([dir]),
+        (err: unknown) =>
+            isFilesProfileError(err) &&
+            err.kind === "unsupported-source" &&
+            err.message.includes("symlink"),
+    );
+    assert.throws(
+        () => diff(archive, dir),
+        (err: unknown) =>
+            isFilesProfileError(err) &&
+            err.kind === "unsupported-source" &&
+            err.message.includes("symlink"),
+    );
 });

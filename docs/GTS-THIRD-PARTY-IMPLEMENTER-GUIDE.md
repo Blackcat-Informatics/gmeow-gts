@@ -139,20 +139,24 @@ The important properties are totality and observability: malformed or
 unsupported corpus inputs must return a result with diagnostics rather than
 aborting the process.
 
-## Using `vectors/manifest.json`
+## Using `vectors/manifest.core.json`
 
-The manifest is the portable conformance index. It names the input file,
-expected graph JSON, required capabilities, subsets, tiers, diagnostics, and
-notes for each vector.
+The core manifest is the portable Baseline Reader conformance index. It names
+the input file, expected graph JSON, required capabilities, subsets, tiers,
+diagnostics, and notes for each vector. The aggregate `vectors/manifest.json`
+also includes optional profile, transform, crypto, proof, and human-hash
+fixtures that are useful for full repository checks but are not the Baseline
+Reader starting point.
 
-Start with vectors whose `tiers` contain `baseline-reader`:
+Start with vectors in the core manifest whose `tiers` contain
+`baseline-reader`:
 
 ```bash
 python - <<'PY'
 import json
 from pathlib import Path
 
-manifest = json.loads(Path("vectors/manifest.json").read_text())
+manifest = json.loads(Path("vectors/manifest.core.json").read_text())
 for vector in manifest["vectors"]:
     if "baseline-reader" in vector["tiers"]:
         expected = vector["expected"].get("graph")
@@ -265,9 +269,9 @@ Implementation: ExampleGTS Reader 0.1.0
 Conformance tier: GTS Baseline Reader
 Corpus revision: git:0123456789abcdef0123456789abcdef01234567
 Read mode: permissive-read
-Vector subsets passed: wire-core, total-reader, graph-fold, profile-layout
+Vector subsets passed: wire-core, total-reader, graph-fold
 Capabilities enabled: cbor, blake3, identity, gzip, zstd
-Command: example-gts-conformance --manifest vectors/manifest.json --tier baseline-reader
+Command: example-gts-conformance --manifest vectors/manifest.core.json --tier baseline-reader
 Skipped vectors: none for the claimed tier
 Optional capabilities not claimed: signatures, encryption, nested GTS, MMR proofs, profile policy
 ```

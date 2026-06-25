@@ -67,6 +67,23 @@ func run(t *testing.T, args ...string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer)
 	return cmd, &stdout, &stderr
 }
 
+func runWithInput(t *testing.T, input string, args ...string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer) {
+	t.Helper()
+	//nolint:gosec // subprocess is intentional test scaffolding for the compiled CLI.
+	cmd := exec.Command(binPath, args...)
+	cmd.Stdin = strings.NewReader(input)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		if _, ok := err.(*exec.ExitError); !ok {
+			t.Fatalf("failed to start command: %v", err)
+		}
+	}
+	return cmd, &stdout, &stderr
+}
+
 func vectorsDir(t *testing.T) string {
 	t.Helper()
 	dir, err := filepath.Abs("../../../vectors")
@@ -134,6 +151,111 @@ func TestFromNQInvertsFold(t *testing.T) {
 	sort.Strings(want)
 	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("fold mismatch\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestRDFTextCodecCLIRoundTrips(t *testing.T) {
+	tmp := t.TempDir()
+
+	ntPath := filepath.Join(tmp, "in.nt")
+	ntGTS := filepath.Join(tmp, "nt.gts")
+	if err := os.WriteFile(ntPath, []byte("<https://ex/s> <https://ex/p> <https://ex/o> .\n<https://ex/s> <https://ex/name> \"Cat\"@en .\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd, _, stderr := run(t, "from-nt", ntPath, "-o", ntGTS)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("from-nt exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	cmd, stdout, stderr := run(t, "to-nt", ntGTS)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("to-nt exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	if got := stdout.String(); !strings.Contains(got, "<https://ex/s> <https://ex/p> <https://ex/o> .") || !strings.Contains(got, "\"Cat\"@en") {
+		t.Fatalf("to-nt output mismatch:\n%s", got)
+	}
+
+	turtleGTS := filepath.Join(tmp, "turtle.gts")
+	turtle := "@prefix ex: <https://ex/> .\nex:s ex:p ex:o ; ex:q ex:r .\n"
+	cmd, _, stderr = runWithInput(t, turtle, "from-turtle", "-", "-o", turtleGTS)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("from-turtle stdin exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	cmd, stdout, stderr = run(t, "to-turtle", turtleGTS)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("to-turtle exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	if got := stdout.String(); !strings.Contains(got, "@prefix") || !strings.Contains(got, "https://ex/") {
+		t.Fatalf("to-turtle output mismatch:\n%s", got)
+	}
+
+	rdfXMLPath := filepath.Join(tmp, "in.rdf")
+	rdfXMLGTS := filepath.Join(tmp, "rdfxml.gts")
+	if err := os.WriteFile(rdfXMLPath, []byte(`<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ex="https://ex/">
+  <rdf:Description rdf:about="https://ex/s">
+    <ex:p rdf:resource="https://ex/o"/>
+  </rdf:Description>
+</rdf:RDF>`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd, _, stderr = run(t, "from-rdfxml", rdfXMLPath, "-o", rdfXMLGTS)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("from-rdfxml exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	cmd, stdout, stderr = run(t, "to-rdfxml", rdfXMLGTS)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("to-rdfxml exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	if got := stdout.String(); !strings.Contains(got, "<rdf:RDF") || !strings.Contains(got, "https://ex/s") {
+		t.Fatalf("to-rdfxml output mismatch:\n%s", got)
+	}
+
+	trigPath := filepath.Join(tmp, "in.trig")
+	trigGTS := filepath.Join(tmp, "trig.gts")
+	if err := os.WriteFile(trigPath, []byte("PREFIX ex: <https://ex/>\nex:g { ex:s ex:p ex:o ; ex:q ex:r . }\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd, _, stderr = run(t, "from-trig", trigPath, "-o", trigGTS)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("from-trig exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	cmd, stdout, stderr = run(t, "to-trig", trigGTS)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("to-trig exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	if got := stdout.String(); !strings.Contains(got, "<https://ex/g> {") || !strings.Contains(got, "<https://ex/q> <https://ex/r> .") {
+		t.Fatalf("to-trig output mismatch:\n%s", got)
+	}
+}
+
+func TestRDFTextCodecCLIRefusalsAndMalformedInput(t *testing.T) {
+	tmp := t.TempDir()
+	namedGTS := filepath.Join(tmp, "named.gts")
+	cmd, _, stderr := runWithInput(t, "PREFIX ex: <https://ex/>\nex:g { ex:s ex:p ex:o . }\n", "from-trig", "-", "-o", namedGTS)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("from-trig named graph exit %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	for _, verb := range []string{"to-nt", "to-turtle", "to-rdfxml"} {
+		cmd, _, stderr = run(t, verb, namedGTS)
+		if cmd.ProcessState.ExitCode() != 1 {
+			t.Fatalf("%s named graph exit %d, stderr %s", verb, cmd.ProcessState.ExitCode(), stderr.String())
+		}
+		if !bytes.Contains(stderr.Bytes(), []byte("named graph")) {
+			t.Fatalf("%s stderr did not mention named graph: %s", verb, stderr.String())
+		}
+	}
+
+	cmd, _, stderr = runWithInput(t, "<https://ex/s> <https://ex/p> <https://ex/o> <https://ex/g> .\n", "from-nt", "-")
+	if cmd.ProcessState.ExitCode() != 1 || !bytes.Contains(stderr.Bytes(), []byte("named graph")) {
+		t.Fatalf("from-nt named graph exit %d, stderr %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	cmd, _, stderr = runWithInput(t, "@prefix ex: <https://ex/> .\nex:s ex:p .\n", "from-turtle", "-")
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("from-turtle malformed exit %d, stderr %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	cmd, _, stderr = runWithInput(t, `<?xml version="1.0"?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="https://ex/s"><p></rdf:Description></rdf:RDF>`, "from-rdfxml", "-")
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("from-rdfxml malformed exit %d, stderr %s", cmd.ProcessState.ExitCode(), stderr.String())
 	}
 }
 
@@ -347,6 +469,26 @@ func TestLsListsDigestSizeAndMediaType(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("no blob line found in: %s", out)
+	}
+}
+
+func TestExtractAllowsEmptyInlineBlob(t *testing.T) {
+	tmp := t.TempDir()
+	w := writer.New("generic")
+	empty := []byte{}
+	digest := wire.DigestStr(empty)
+	w.AddBlob(empty, "application/octet-stream", "")
+	path := filepath.Join(tmp, "empty-blob.gts")
+	if err := os.WriteFile(path, w.ToBytes(), 0o644); err != nil { //nolint:gosec // test fixture.
+		t.Fatal(err)
+	}
+
+	cmd, stdout, stderr := run(t, "extract", path, digest)
+	if cmd.ProcessState.ExitCode() != 0 {
+		t.Fatalf("expected exit 0, got %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("expected empty blob output, got %q", stdout.String())
 	}
 }
 
@@ -646,5 +788,15 @@ func TestExtractKeyMissingExits1(t *testing.T) {
 	cmd, _, _ := run(t, "extract-key", vector(t, "01-minimal.gts"))
 	if cmd.ProcessState.ExitCode() != 1 {
 		t.Errorf("exit = %d, want 1", cmd.ProcessState.ExitCode())
+	}
+}
+
+func TestExtractKeyRejectsExtraArgs(t *testing.T) {
+	cmd, _, stderr := run(t, "extract-key", vector(t, "01-minimal.gts"), "extra")
+	if cmd.ProcessState.ExitCode() != 2 {
+		t.Errorf("exit = %d, want 2", cmd.ProcessState.ExitCode())
+	}
+	if !bytes.Contains(stderr.Bytes(), []byte("usage: gts")) {
+		t.Fatalf("stderr did not include usage: %s", stderr.String())
 	}
 }

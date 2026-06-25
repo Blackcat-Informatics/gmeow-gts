@@ -1,0 +1,23 @@
+{
+  "schema": "gts-documentation-roster-v1",
+  "description": "Authoritative current documentation roster for independent GTS engines, derived C ABI wrappers, and the spec document version.",
+  "independent_engines": [
+    "rust",
+    "python",
+    "go",
+    "typescript",
+    "smalltalk",
+    "kotlin"
+  ],
+  "derived_wrappers": [
+    "cpp",
+    "dotnet",
+    "php",
+    "lua",
+    "swift",
+    "ruby",
+    "r",
+    "julia"
+  ],
+  "spec_document_version": "0.9-draft"
+}

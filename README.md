@@ -29,6 +29,200 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 ---
 
+## Why does this exist?
+
+Most “portable data” is not actually one thing.
+
+It is a database export, a directory of files, a manifest, some checksums, a signature, and a README explaining how the pieces fit together. Updates add another layer of conventions. Copy the wrong subset, lose a sidecar, or encounter an unsupported tool, and the package becomes incomplete or unverifiable.
+
+**GTS exists because the package itself should be the unit of trust.**
+
+A `.gts` file can carry structured data, the files that data refers to, provenance, integrity information, and an append-only history of change. It can be copied, streamed, verified, extended, concatenated, and partially read without depending on the system that created it.
+
+Think of GTS as the transport layer between:
+
+- a pile of files;
+- a database export;
+- an event log;
+- and a signed data package.
+
+It does not replace databases, archives, or query engines. It gives them a common artifact they can exchange without losing meaning, history, or integrity.
+
+Under the hood, GTS uses RDF 1.2 for structured data and CBOR Sequences for the container. You do not need to adopt a particular ontology, database, or application architecture to use it.
+
+Use GTS when you need to hand another person, service, or system **one verifiable file containing data, attachments, provenance, and history**.
+
+---
+
+## What does this look like in practice?
+
+GTS is most useful when the thing being moved is more than a single file or database export.
+
+In each example below, the `.gts` file becomes the artifact: data, files, machine-readable context, provenance, signatures, and history travel together.
+
+### 1. A document reviewed by several AIs—and a human
+
+A research team asks three AI systems to analyze the same report:
+
+- one extracts factual claims;
+- one checks citations and supporting evidence;
+- one identifies risks, omissions, and contradictions;
+- a human reviewer accepts, rejects, or qualifies the results.
+
+Without a shared artifact, the review quickly becomes a collection of PDFs, JSON responses, spreadsheets, chat logs, and comments. It becomes difficult to determine which model produced a claim, which document passage supported it, and whether a human later overruled it.
+
+A GTS package can carry the complete review:
+
+```text
+document-review.gts
+├── original report and attachments
+├── extracted claims
+├── source-page and passage references
+├── model identities and versions
+├── confidence and uncertainty annotations
+├── citation checks
+├── contradiction and risk analysis
+├── human review decisions
+└── signatures and review history
+```
+
+Each participant can append a separate segment.
+
+The claim-extraction model records what it found and where it found it. The citation-checking model adds evidence or challenges. The risk model contributes a different analysis without overwriting the first two. The human reviewer then appends a signed decision explaining which claims are accepted, rejected, disputed, or still unresolved.
+
+If a claim is superseded, it can be suppressed from the current view without erasing the original claim or the analysis that produced it.
+
+The resulting file can answer questions that are otherwise surprisingly difficult:
+
+- Which version of the document was analyzed?
+- Which model produced each claim?
+- What source passage supports it?
+- Did another model disagree?
+- What did the human reviewer decide?
+- Has any part of the review changed since it was signed?
+
+The recipient can verify the artifact, inspect the disagreements, reproduce the current folded view, and project the result into a database, review interface, or knowledge system.
+
+> **GTS does not decide which AI is correct.** It preserves what each participant said, the evidence they cited, and the history of the review.
+
+---
+
+### 2. A digital artwork that keeps its license and history
+
+A museum publishes a high-resolution reproduction of a painting.
+
+The image may be accompanied by:
+
+- a catalog record;
+- a public-domain or licensed-use statement;
+- required attribution text;
+- provenance and historical context;
+- accessibility descriptions;
+- conservation notes;
+- capture and color-calibration information;
+- smaller web derivatives.
+
+Normally, these pieces live in different systems. The image is downloaded without its catalog page. The license is copied separately. A thumbnail circulates without attribution. A later correction to the artist or date does not travel with earlier copies.
+
+A GTS artifact can bind that context to the exact image bytes:
+
+```text
+artwork-reproduction.gts
+├── archival TIFF
+├── web-resolution JPEG
+├── thumbnail
+├── color profile
+├── title, artist, date, and dimensions
+├── collection and accession information
+├── provenance and historical context
+├── multilingual description and alt text
+├── capture and restoration metadata
+├── signed license and attribution terms
+└── correction and relicensing history
+```
+
+Each image derivative is content-addressed and linked to the master reproduction. The license can identify the exact digest to which it applies, rather than referring ambiguously to “the image.”
+
+A curator or rights holder can sign the license and catalog record. A later correction, new scan, or revised license can be appended without silently replacing the earlier record.
+
+Someone receiving the file can determine:
+
+- whether the image bytes are the published reproduction;
+- who issued the license;
+- which attribution text is required;
+- how a derivative relates to the master;
+- whether metadata has been corrected;
+- what historical and accessibility context belongs with the image.
+
+This makes the reproduction portable without stripping it of identity or context.
+
+> **GTS is not DRM and does not enforce copyright law.** It makes the license, provenance, and exact licensed content explicit, verifiable, and difficult to separate accidentally.
+
+---
+
+### 3. A portable AI tool capsule
+
+An AI system creates a small WASM module that exposes MCP-compatible tools when loaded by a suitable host.
+
+The tool might answer questions about a specialized dataset, validate documents against a schema, transform records, or perform a domain-specific calculation. Alongside the code, it needs a knowledge graph, tool definitions, examples, permissions, and build information.
+
+Normally, distribution means assembling a `.wasm` file, README, schemas, package metadata, model documentation, test fixtures, license, and perhaps a container image. The receiving system must determine which pieces belong together and whether they can be trusted.
+
+A GTS package can distribute the tool as one self-describing artifact:
+
+```text
+portable-tool.gts
+├── tool.wasm
+├── MCP tool and resource declarations
+├── input and output schemas
+├── selected domain knowledge graph
+├── usage examples
+├── test vectors and expected results
+├── required host capabilities
+├── network and filesystem permission declarations
+├── build provenance and source revision
+├── SBOM and license
+└── publisher and reviewer signatures
+```
+
+The package can describe:
+
+- which tools the module provides;
+- what each tool accepts and returns;
+- what concepts and datasets it understands;
+- which host ABI it requires;
+- whether it expects network, filesystem, or clock access;
+- which version supersedes an earlier module;
+- what tests establish expected behavior.
+
+A source AI can export a selected portion of its domain knowledge together with the tool that operates on it. A receiving AI or application can then:
+
+1. verify the package and publisher;
+2. inspect the tool’s declared capabilities before execution;
+3. review its knowledge and examples;
+4. decide whether its requested permissions are acceptable;
+5. load the WASM module in an appropriate sandbox;
+6. import or query the accompanying knowledge graph;
+7. run the included tests before trusting the tool.
+
+An update can append a new module, changed schemas, migration notes, and review signatures while preserving the exact package that preceded it.
+
+> **GTS does not execute the WASM module or grant it permissions.** The host remains responsible for sandboxing, authorization, and runtime policy. GTS provides the portable unit that binds the code to its interface, knowledge, provenance, and verification evidence.
+
+---
+
+These examples show three different reasons for GTS to exist:
+
+| Example | What GTS keeps together |
+|---|---|
+| **Document review** | Layered claims, disagreement, evidence, model identity, and human decisions |
+| **Artwork reproduction** | Binary content, license, attribution, accessibility, provenance, and corrections |
+| **Portable AI tooling** | Executable code, machine-readable interfaces, knowledge, permissions, tests, and trust evidence |
+
+In every case, GTS remains the exchanged artifact—not the database, AI model, policy engine, or execution environment.
+
+---
+
 GTS encodes a graph as an **append-only log of CBOR frames**. The logical graph is the
 *fold* (replay) of the log. Growth is an append; "deletion" is **suppression**, never a
 physical removal; optimisation is a separate, explicitly lossy compaction. Concatenating
@@ -224,8 +418,8 @@ Path("cat.gts").write_bytes(w.to_bytes())
 
 ### Rust
 
-Add `gmeow-gts = "0.9.5"` to `Cargo.toml`. Optional feature builds use the standard Cargo
-shape `gmeow-gts = { version = "0.9.5", default-features = false, features = [...] }`.
+Add `gmeow-gts = "0.9.6"` to `Cargo.toml`. Optional feature builds use the standard Cargo
+shape `gmeow-gts = { version = "0.9.6", default-features = false, features = [...] }`.
 
 ```rust
 use std::fs;
@@ -337,10 +531,24 @@ runtimes that can load native libraries. The ABI returns JSON reports or owned b
 - files-profile pack, unpack, and diff helpers;
 - structured error status, code, and detail fields.
 
+Files-profile path helpers inherit the C ABI path contract: paths are
+NUL-terminated UTF-8 `char *` values. On Windows this does not cover every
+native wide-character path; future wide-character entry points would be
+additive ABI symbols under the compatibility policy.
+
+The native compatibility policy is documented in
+[`rust/capi/README.md#compatibility-policy`](./rust/capi/README.md#compatibility-policy).
+`GTS_ABI_VERSION` is separate from package versions and from JSON report schema
+versions: package releases can advance without an ABI bump, and JSON report
+schemas can evolve without changing the native function boundary.
+
 Every wrapper copies returned `gts_buffer` values into ecosystem-owned strings or byte containers
 and releases native memory with `gts_buffer_free`; structured errors are copied before
 `gts_error_free`. Wrappers are thin bindings over the Rust engine, not independent parsers,
 writers, or CLI parity engines.
+Wrappers must reject unsupported `GTS_ABI_VERSION` values clearly when loading a
+system-provided `libgts`; they should not continue silently against an unknown
+native contract.
 
 The wrapper smoke tests use the shared
 [`GTS-WRAPPER-SMOKE-MATRIX`](./docs/GTS-WRAPPER-SMOKE-MATRIX.md): clean read,
@@ -468,18 +676,19 @@ gts dump <file> --directory <dir> [--include-suppressed] [--force] [--metadata-o
                                   expand an archive into a directory dump
 ```
 
-Rust-only RDF 1.2 text-codec extension:
+Rust/Go RDF 1.2 text-codec extension:
 
 ```text
-gts to-nt <file>                fold the default graph to N-Triples (--features rdf-codecs)
-gts from-nt <in.nt> [-o out]    build a GTS from N-Triples (--features rdf-codecs)
-gts to-rdfxml <file>            fold the default graph to RDF/XML (--features rdf-codecs)
-gts from-rdfxml <in.rdf> [-o out]
-                                  build a GTS from RDF/XML (--features rdf-codecs)
-gts to-turtle <file>            fold the default graph to Turtle (--features rdf-codecs)
-gts from-turtle <in.ttl> [-o out]
-                                  build a GTS from Turtle (--features rdf-codecs)
+gts to-nt <file>                fold the default graph to N-Triples
+gts from-nt <in.nt> [-o out]    build a GTS from N-Triples
+gts to-rdfxml <file>            fold the default graph to RDF/XML
+gts from-rdfxml <in.rdf> [-o out]   build a GTS from RDF/XML
+gts to-turtle <file>            fold the default graph to Turtle
+gts from-turtle <in.ttl> [-o out]   build a GTS from Turtle
 ```
+
+Rust builds expose these verbs behind `--features rdf-codecs`; the Go module binary ships them
+by default.
 
 Rust-only tar-compatible extension:
 
@@ -517,11 +726,12 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 [`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which the Rust engine
 depends on from crates.io and re-exports as `gmeow_gts::emojihash`.
 
-`from-nq` is common across all six engines. Python and Rust also expose `to-trig`/`from-trig`
-for readable TriG graph-block interchange over the same folded RDF content. Rust additionally
-exposes `to-nt`/`from-nt`, `to-rdfxml`/`from-rdfxml`, and `to-turtle`/`from-turtle` behind
-`--features rdf-codecs` for default-graph RDF text interchange through the same RDF 1.2 codec
-stack. The Rust OKF
+`from-nq` is common across all six engines. Python, Rust, and Go also expose `to-trig`/`from-trig`
+for readable TriG graph-block interchange over the same folded RDF content. Rust and Go additionally
+expose `to-nt`/`from-nt`, `to-rdfxml`/`from-rdfxml`, and `to-turtle`/`from-turtle` for
+default-graph RDF text interchange through the same RDF 1.2 codec stack. Rust builds gate
+these RDF text-codec verbs behind `--features rdf-codecs`; the Go module binary ships them by
+default. The Rust OKF
 profile extension maps Markdown bundles to verifiable GTS package bytes and back behind
 `--features okf`; see [`docs/GTS-OKF.md`](./docs/GTS-OKF.md). The Rust `tar`
 extension provides tar-style `-c/-x/-t/-d` commands over `.gts` and `.tar` files behind
@@ -558,7 +768,7 @@ folded quad.
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | yes | yes | yes | yes |
-| TriG transform | yes | yes | no | no | no | no |
+| TriG transform | yes | yes | yes | no | no | no |
 | Native RDF/store adapter | rdflib extra | `rdf` feature (native dataset model); `native-store` feature (native in-memory store) | no | no | no | no |
 | SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no | no | no |
 | Package registry | PyPI | crates.io | Go module | npm | Tonel/Metacello source | Gradle source |
@@ -622,8 +832,8 @@ cd python && uv run python scripts/gen_vectors.py
 git diff --exit-code vectors        # no changes ⇒ reproducible
 ```
 
-Validate the committed manifest metadata and validator guards without stamping a release
-revision:
+Validate the committed aggregate/scoped manifest metadata and validator guards without stamping
+a release revision:
 
 ```bash
 just check-vector-manifest
@@ -636,12 +846,12 @@ Current CI-gated conformance status:
 
 | Engine | Baseline Reader | Streaming / Prefix Evidence | Writer | Validating Tool | Profile-Aware Tool |
 |---|---|---|---|---|---|
-| Rust | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `read_to_sink_from_reader` non-materializing sink API plus corpus equivalence and memory-helper gate | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Rust | `wire-core`, `total-reader`, `graph-fold` | `read_to_sink_from_reader` non-materializing sink API plus corpus equivalence and memory-helper gate | deterministic compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
 | Python | corpus oracle and regenerated expected JSON | prefix-fold Python tests | source generator and compact oracle `25b` | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| Go | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| TypeScript | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` | browser `foldStreamToSink` non-materializing sink API plus corpus equivalence and memory-helper gate; `foldStream` remains graph-returning | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
-| Smalltalk/Pharo | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` via SUnit top-level corpus | streamable layout checks and interop evidence; no non-materializing Streaming Reader claim | deterministic writer, `from-nq`, compact oracle `25b`, and files pack byte identity | CLI verify diagnostics plus COSE/MMR/OpenPGP vector tests | files profile pack/unpack/diff in interop |
-| Kotlin/JVM | `wire-core`, `total-reader`, `graph-fold`, `profile-layout` via Gradle tests | streamable layout checks and interop evidence; no non-materializing Streaming Reader claim | deterministic writer, `from-nq`, compact oracle `25b`, and files pack byte identity | CLI verify diagnostics plus COSE/MMR/OpenPGP vector tests | files profile pack/unpack/diff in interop |
+| Go | `wire-core`, `total-reader`, `graph-fold` | `reader.ReadToSink` non-materializing sink API plus corpus equivalence gate; fuzz seeded from vectors | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| TypeScript | `wire-core`, `total-reader`, `graph-fold` | browser `foldStreamToSink` non-materializing sink API plus corpus equivalence and memory-helper gate; `foldStream` remains graph-returning | writer and compact tests | CLI verify diagnostics | files profile pack/unpack/diff in interop |
+| Smalltalk/Pharo | `wire-core`, `total-reader`, `graph-fold` via SUnit top-level corpus | streamable layout checks and interop evidence; no non-materializing Streaming Reader claim | deterministic writer, `from-nq`, compact oracle `25b`, and files pack byte identity | CLI verify diagnostics plus COSE/MMR/OpenPGP vector tests | files profile pack/unpack/diff in interop |
+| Kotlin/JVM | `wire-core`, `total-reader`, `graph-fold` via Gradle tests | streamable layout checks and interop evidence; no non-materializing Streaming Reader claim | deterministic writer, `from-nq`, compact oracle `25b`, and files pack byte identity | CLI verify diagnostics plus COSE/MMR/OpenPGP vector tests | files profile pack/unpack/diff in interop |
 
 ## Repository layout
 
@@ -720,7 +930,7 @@ Each engine publishes to its native registry from this repo via a tag-triggered 
 |---|---|---|---|
 | Rust | [`gmeow-gts`](https://crates.io/crates/gmeow-gts) on crates.io (trusted publishing) | `rust-v*` | [`release-cargo.yaml`](./.github/workflows/release-cargo.yaml) |
 | Python | [`gmeow-gts`](https://pypi.org/project/gmeow-gts/) on PyPI (trusted publishing) | `py-v*` | [`release-pypi.yml`](./.github/workflows/release-pypi.yml) |
-| Go | [`go.blackcatinformatics.ca/gts`](https://pkg.go.dev/go.blackcatinformatics.ca/gts) plus [GitHub Releases](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=go-v&expanded=true) | `go-v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
+| Go | [`go.blackcatinformatics.ca/gts`](https://pkg.go.dev/go.blackcatinformatics.ca/gts) plus [GitHub Releases](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=go%2Fv&expanded=true) | `go/v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
 | TypeScript | [`@blackcatinformatics/gmeow-gts`](https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts) on npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
 | C ABI source crate | [`gmeow-gts-capi`](https://crates.io/crates/gmeow-gts-capi) on crates.io (bootstrap token first publish) | `capi-v*` | [`release-cargo-capi.yaml`](./.github/workflows/release-cargo-capi.yaml) |
 | C ABI native assets | [`capi-v*` GitHub Releases](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=capi-v&expanded=true) (immutable archives) | `capi-v*` | [`release-capi.yaml`](./.github/workflows/release-capi.yaml) |

@@ -10,7 +10,7 @@ GtsMMRTest >> testBadRootProofFails [
 		should: [
 			GtsMMR verifyProofJson: ('/workspace/vectors/proofs/mmr-basic-proof-bad-root.json' asFileReference
 				binaryReadStreamDo: [ :stream | stream upToEnd ]) ]
-		raise: Error
+		raise: GtsProofError
 ]
 
 { #category : #tests }

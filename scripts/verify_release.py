@@ -1869,7 +1869,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--swift-tag", help="Swift semantic version tag. Defaults to <version>."
     )
-    parser.add_argument("--go-tag", help="Go release tag. Defaults to go-v<version>.")
+    parser.add_argument("--go-tag", help="Go release tag. Defaults to go/v<version>.")
     parser.add_argument(
         "--capi-tag", help="C ABI release tag. Defaults to capi-v<version>."
     )
@@ -1911,7 +1911,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         parser.error("--version is required unless --self-test is used")
     if not args.visual_hashing_version:
         parser.error("--visual-hashing-version is required unless --self-test is used")
-    args.go_tag = args.go_tag or f"go-v{args.version}"
+    args.go_tag = args.go_tag or f"go/v{args.version}"
     args.capi_tag = args.capi_tag or f"capi-v{args.version}"
     args.out_dir = args.out_dir or Path("dist") / "release-verification" / args.version
     return args

@@ -13,7 +13,9 @@ import (
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/nquads"
 	"go.blackcatinformatics.ca/gts/reader"
+	"go.blackcatinformatics.ca/gts/wire"
 	"go.blackcatinformatics.ca/gts/writer"
+	"go.blackcatinformatics.ca/gts/xsd"
 )
 
 func sortedLines(text string) []string {
@@ -111,6 +113,53 @@ func TestFromNQuadsPreservesDirectionalLanguageLiterals(t *testing.T) {
 	}
 }
 
+func TestFromNQuadsAddsIllTypedLiteralMetadata(t *testing.T) {
+	boolIRI := xsd.Namespace + "boolean"
+	customIRI := "https://example.org/customDatatype"
+	nq := "<https://ex/s> <https://ex/bad> \"maybe\"^^<" + boolIRI + "> .\n" +
+		"<https://ex/s> <https://ex/good> \"true\"^^<" + boolIRI + "> .\n" +
+		"<https://ex/s> <https://ex/custom> \"not our syntax\"^^<" + customIRI + "> .\n"
+
+	graph := reader.Read(mustFromNQuads(t, nq), false, nil)
+	items := xsd.IllTypedLiterals(graph)
+	if len(items) != 1 {
+		t.Fatalf("ill typed literals = %#v, want one recognized invalid literal", items)
+	}
+	if diag := items[0].Diagnostic(); diag.Code != xsd.IllTypedLiteralCode {
+		t.Fatalf("diagnostic code = %q, want %q", diag.Code, xsd.IllTypedLiteralCode)
+	}
+
+	sidecar := metaMap(t, graph, xsd.IllTypedLiteralMetaKey)
+	version, ok := wire.AsInt(sidecar["version"])
+	if !ok || version != 1 {
+		t.Fatalf("sidecar version = %#v, want 1", sidecar["version"])
+	}
+	rows, ok := sidecar["items"].([]interface{})
+	if !ok || len(rows) != 1 {
+		t.Fatalf("sidecar items = %#v, want one row", sidecar["items"])
+	}
+	row, ok := rows[0].(map[interface{}]interface{})
+	if !ok {
+		t.Fatalf("sidecar row type = %T, want map", rows[0])
+	}
+	termID, ok := wire.AsInt(row["term"])
+	if !ok || termID != items[0].TermID {
+		t.Fatalf("row term = %#v, want %d", row["term"], items[0].TermID)
+	}
+	if got, _ := wire.AsText(row["datatype"]); got != boolIRI {
+		t.Fatalf("row datatype = %q, want %q", got, boolIRI)
+	}
+	if got, _ := wire.AsText(row["lexical"]); got != "maybe" {
+		t.Fatalf("row lexical = %q, want maybe", got)
+	}
+	if got, _ := wire.AsText(row["reason"]); got == "" {
+		t.Fatal("row reason is empty")
+	}
+	if got := nquads.ToNQuads(graph); !strings.Contains(got, "\"not our syntax\"^^<"+customIRI+">") {
+		t.Fatalf("unsupported datatype was not preserved in N-Quads:\n%s", got)
+	}
+}
+
 func TestWriterAllowsMultipleReifiersForSameStatement(t *testing.T) {
 	w := writer.New("dist")
 	w.AddTerms([]model.Term{
@@ -160,6 +209,22 @@ func mustFromNQuads(t *testing.T, nq string) []byte {
 		t.Fatal(err)
 	}
 	return data
+}
+
+func metaMap(t *testing.T, graph *model.Graph, key string) map[interface{}]interface{} {
+	t.Helper()
+	for _, entry := range graph.Meta {
+		if entry.Key != key {
+			continue
+		}
+		sidecar, ok := entry.Value.(map[interface{}]interface{})
+		if !ok {
+			t.Fatalf("metadata %s type = %T, want map", key, entry.Value)
+		}
+		return sidecar
+	}
+	t.Fatalf("metadata %s not found in %#v", key, graph.Meta)
+	return nil
 }
 
 func TestFromNQuadsQuotedTripleAdjacentDelimiters(t *testing.T) {

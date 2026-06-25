@@ -10,6 +10,39 @@ export const SelfDescribeTag = 55799;
 export const Magic = "GTS1";
 export const Version = 1;
 
+export type WireErrorKind = "encode" | "decode" | "header" | "internal";
+
+/** Error raised for typed CBOR wire encoding/decoding failures. */
+export class WireError extends Error {
+    constructor(
+        readonly kind: WireErrorKind,
+        message: string,
+    ) {
+        super(message);
+        this.name = "WireError";
+    }
+}
+
+export function isWireError(err: unknown): err is WireError {
+    return err instanceof WireError;
+}
+
+function wireEncodeError(message: string): never {
+    throw new WireError("encode", message);
+}
+
+function wireDecodeError(message: string): never {
+    throw new WireError("decode", message);
+}
+
+function wireHeaderError(message: string): never {
+    throw new WireError("header", message);
+}
+
+function wireInternalError(message: string): never {
+    throw new WireError("internal", message);
+}
+
 /** Encode a value to canonical CBOR bytes (RFC 8949 §4.2). */
 export function encode(value: unknown): Uint8Array {
     return encodeCanonical(value);
@@ -51,7 +84,7 @@ function encodeCanonical(value: unknown): Uint8Array {
     }
     if (typeof value === "number") {
         if (!Number.isInteger(value)) {
-            throw new Error(
+            wireEncodeError(
                 "canonical CBOR encoder only supports integer numbers",
             );
         }
@@ -86,7 +119,7 @@ function encodeCanonical(value: unknown): Uint8Array {
             encodeCanonical(value.value),
         ]);
     }
-    throw new Error(`unsupported canonical CBOR value: ${typeof value}`);
+    wireEncodeError(`unsupported canonical CBOR value: ${typeof value}`);
 }
 
 function encodeInteger(value: bigint): Uint8Array {
@@ -95,7 +128,7 @@ function encodeInteger(value: bigint): Uint8Array {
 }
 
 function encodeMajor(major: number, value: bigint): Uint8Array {
-    if (value < 0n) throw new Error("negative CBOR length");
+    if (value < 0n) wireEncodeError("negative CBOR length");
     const prefix = major << 5;
     if (value <= 23n) return new Uint8Array([prefix | Number(value)]);
     if (value <= 0xffn) return new Uint8Array([prefix | 24, Number(value)]);
@@ -123,7 +156,7 @@ function encodeMajor(major: number, value: bigint): Uint8Array {
         }
         return out;
     }
-    throw new Error("CBOR integer exceeds uint64 range");
+    wireEncodeError("CBOR integer exceeds uint64 range");
 }
 
 function compareCborKeys(a: Uint8Array, b: Uint8Array): number {
@@ -271,15 +304,15 @@ function readLength(
 ): { length: number; extra: number } {
     switch (info) {
         case 24:
-            if (offset >= data.length) throw new Error("unexpected EOF");
+            if (offset >= data.length) wireDecodeError("unexpected EOF");
             return { length: data[offset], extra: 1 };
         case 25: {
-            if (offset + 2 > data.length) throw new Error("unexpected EOF");
+            if (offset + 2 > data.length) wireDecodeError("unexpected EOF");
             const n = (data[offset] << 8) | data[offset + 1];
             return { length: n, extra: 2 };
         }
         case 26: {
-            if (offset + 4 > data.length) throw new Error("unexpected EOF");
+            if (offset + 4 > data.length) wireDecodeError("unexpected EOF");
             const n =
                 (data[offset] << 24) |
                 (data[offset + 1] << 16) |
@@ -289,24 +322,24 @@ function readLength(
             return { length: n >>> 0, extra: 4 };
         }
         case 27: {
-            if (offset + 8 > data.length) throw new Error("unexpected EOF");
+            if (offset + 8 > data.length) wireDecodeError("unexpected EOF");
             let n = 0n;
             for (let i = 0; i < 8; i++) {
                 n = (n << 8n) | BigInt(data[offset + i]);
             }
             if (n > BigInt(Number.MAX_SAFE_INTEGER)) {
-                throw new Error("length exceeds safe integer range");
+                wireDecodeError("length exceeds safe integer range");
             }
             return { length: Number(n), extra: 8 };
         }
         default:
-            throw new Error(`unsupported additional info for length: ${info}`);
+            wireDecodeError(`unsupported additional info for length: ${info}`);
     }
 }
 
 /** Return the byte length of the next well-formed CBOR item at data[offset]. */
 export function cborItemLength(data: Uint8Array, offset: number): number {
-    if (offset >= data.length) throw new Error("EOF");
+    if (offset >= data.length) wireDecodeError("EOF");
     const start = offset;
     const stack: { major: number; remaining: number }[] = [];
 
@@ -323,7 +356,7 @@ export function cborItemLength(data: Uint8Array, offset: number): number {
     };
 
     for (;;) {
-        if (offset >= data.length) throw new Error("unexpected EOF");
+        if (offset >= data.length) wireDecodeError("unexpected EOF");
         const b = data[offset];
         const major = b >> 5;
         const info = b & 0x1f;
@@ -339,7 +372,7 @@ export function cborItemLength(data: Uint8Array, offset: number): number {
             length = res.length;
             extra = res.extra;
         } else if (info >= 28 && info <= 30) {
-            throw new Error(`reserved additional info ${info}`);
+            wireDecodeError(`reserved additional info ${info}`);
         } else if (info === 31) {
             // Indefinite length.
             switch (major) {
@@ -347,7 +380,7 @@ export function cborItemLength(data: Uint8Array, offset: number): number {
                 case 3: {
                     for (;;) {
                         if (offset >= data.length)
-                            throw new Error("unexpected EOF");
+                            wireDecodeError("unexpected EOF");
                         const nb = data[offset];
                         if (nb === 0xff) {
                             offset++;
@@ -356,7 +389,7 @@ export function cborItemLength(data: Uint8Array, offset: number): number {
                         const nmajor = nb >> 5;
                         const ninfo = nb & 0x1f;
                         if (nmajor !== major || ninfo === 31) {
-                            throw new Error("invalid indefinite string chunk");
+                            wireDecodeError("invalid indefinite string chunk");
                         }
                         let nlen: number;
                         let nextra = 0;
@@ -369,7 +402,7 @@ export function cborItemLength(data: Uint8Array, offset: number): number {
                         }
                         offset += 1 + nextra;
                         if (data.length - offset < nlen)
-                            throw new Error("unexpected EOF");
+                            wireDecodeError("unexpected EOF");
                         offset += nlen;
                     }
                     complete();
@@ -378,18 +411,18 @@ export function cborItemLength(data: Uint8Array, offset: number): number {
                 }
                 case 4:
                 case 5:
-                    throw new Error(
+                    wireDecodeError(
                         `indefinite-length ${major === 5 ? "map" : "array"} not supported`,
                     );
                 default:
-                    throw new Error(
+                    wireDecodeError(
                         `indefinite length for major type ${major}`,
                     );
             }
         }
 
         if (length < 0 && extra > 0) {
-            throw new Error("unreachable");
+            wireInternalError("unreachable");
         }
 
         offset += extra;
@@ -403,7 +436,7 @@ export function cborItemLength(data: Uint8Array, offset: number): number {
             case 2:
             case 3:
                 if (data.length - offset < length)
-                    throw new Error("unexpected EOF");
+                    wireDecodeError("unexpected EOF");
                 offset += length;
                 complete();
                 break;
@@ -478,10 +511,10 @@ export function unwrapHeader(item: unknown): Map<unknown, unknown> {
     let inner = item;
     if (item instanceof Tagged) {
         if (item.tag !== SelfDescribeTag) {
-            throw new Error(`unexpected CBOR tag ${item.tag} on header item`);
+            wireHeaderError(`unexpected CBOR tag ${item.tag} on header item`);
         }
         inner = item.value;
     }
     if (inner instanceof Map) return inner;
-    throw new Error("header item is not a CBOR map");
+    wireHeaderError("header item is not a CBOR map");
 }
