@@ -419,20 +419,22 @@ fn literal_term(
                 )));
             }
         };
-        return Literal::new_directional_language_tagged_literal(value, lang, direction).map_err(
-            |err| {
-                RdfAdapterError::new(format!(
-                    "{role} literal term id {id} has invalid language tag {lang:?}: {err}"
-                ))
-            },
-        );
+        // Use the unchecked constructor so egress matches the lenient
+        // oxttl ingress: long private-use subtags (e.g. `x-gmeow-*`) were
+        // already accepted on parse, and the prior oxigraph serialize path
+        // emitted them fine. Lowercase to mirror the checked constructor.
+        return Ok(Literal::new_directional_language_tagged_literal_unchecked(
+            value,
+            lang.to_ascii_lowercase(),
+            direction,
+        ));
     }
     if let Some(lang) = &term.lang {
-        return Literal::new_language_tagged_literal(value, lang).map_err(|err| {
-            RdfAdapterError::new(format!(
-                "{role} literal term id {id} has invalid language tag {lang:?}: {err}"
-            ))
-        });
+        // Unchecked for the same lenient-serialize reason as above.
+        return Ok(Literal::new_language_tagged_literal_unchecked(
+            value,
+            lang.to_ascii_lowercase(),
+        ));
     }
 
     let datatype = graph.datatype_iri(term);

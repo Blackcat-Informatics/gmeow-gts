@@ -295,6 +295,114 @@ fn ntriples_parser_accepts_lexically_invalid_cases_under_lenient_mode() {
     }
 }
 
+/// Build a single-triple graph whose object is a language-tagged literal,
+/// optionally carrying an RDF 1.2 base direction.
+fn lang_literal_graph(value: &str, lang: &str, direction: Option<&str>) -> Graph {
+    let mut writer = Writer::new("dist");
+    writer.add_terms(&[
+        term(TermKind::Iri, "https://ex/s"),
+        term(TermKind::Iri, "https://ex/p"),
+        Term {
+            kind: TermKind::Literal,
+            value: Some(value.to_string()),
+            datatype: None,
+            lang: Some(lang.to_string()),
+            direction: direction.map(str::to_string),
+            reifier: None,
+        },
+    ]);
+    writer.add_quads(&[(0, 1, 2, None)]);
+    read(&writer.to_bytes(), true, None)
+}
+
+/// The serialize path must accept the over-long private-use language subtags
+/// (`x-gmeow-*`) the parsers now ingest. Before the unchecked-constructor fix,
+/// `to_turtle`/`to_ntriples`/`to_trig` re-validated the BCP-47 8-char subtag
+/// limit through the oxrdf adapter and rejected the ontology's tags; only the
+/// byte-direct `to_nquads` writer was lenient. gmeow-ontology #909.
+#[test]
+fn serialize_emits_long_private_use_language_subtags() {
+    let graph = lang_literal_graph("hallo", "x-gmeow-norwegiannynorsk", None);
+
+    let turtle = to_turtle(&graph).expect("to_turtle accepts long private-use language subtag");
+    assert!(
+        turtle.contains("@x-gmeow-norwegiannynorsk"),
+        "turtle missing long language tag: {turtle}"
+    );
+
+    let ntriples =
+        to_ntriples(&graph).expect("to_ntriples accepts long private-use language subtag");
+    assert!(
+        ntriples.contains("\"hallo\"@x-gmeow-norwegiannynorsk"),
+        "ntriples missing long language tag: {ntriples}"
+    );
+
+    let source = GraphRdfEventSource::new(&graph);
+    let trig =
+        to_trig_from_erased_source(&source).expect("to_trig accepts long private-use subtag");
+    assert!(
+        trig.contains("@x-gmeow-norwegiannynorsk"),
+        "trig missing long language tag: {trig}"
+    );
+
+    let nquads = to_nquads(&graph);
+    assert!(
+        nquads.contains("\"hallo\"@x-gmeow-norwegiannynorsk"),
+        "nquads missing long language tag: {nquads}"
+    );
+}
+
+/// A full parse -> serialize -> parse round-trip through both Turtle and
+/// N-Triples must preserve the long private-use language tag.
+#[test]
+fn round_trip_preserves_long_private_use_language_subtag() {
+    let graph = lang_literal_graph("hallo", "x-gmeow-norwegiannynorsk", None);
+
+    // Turtle round-trip.
+    let turtle = to_turtle(&graph).expect("to_turtle");
+    let reparsed = from_turtle(&turtle).expect("from_turtle re-ingests long tag");
+    let out = to_nquads(&read(&reparsed, true, None));
+    assert!(
+        out.contains("\"hallo\"@x-gmeow-norwegiannynorsk"),
+        "turtle round-trip dropped the long language tag: {out}"
+    );
+
+    // N-Triples round-trip.
+    let ntriples = to_ntriples(&graph).expect("to_ntriples");
+    let reparsed = from_ntriples(&ntriples).expect("from_ntriples re-ingests long tag");
+    let out = to_nquads(&read(&reparsed, true, None));
+    assert!(
+        out.contains("\"hallo\"@x-gmeow-norwegiannynorsk"),
+        "ntriples round-trip dropped the long language tag: {out}"
+    );
+}
+
+/// Directional language-tagged literals must still serialize through the
+/// unchecked path (the structural direction checks are retained).
+#[test]
+fn serialize_emits_directional_language_literal() {
+    let graph = lang_literal_graph("Hello", "en", Some("rtl"));
+
+    let ntriples = to_ntriples(&graph).expect("to_ntriples accepts directional literal");
+    assert!(
+        ntriples.contains("\"Hello\"@en--rtl"),
+        "ntriples missing directional literal: {ntriples}"
+    );
+
+    let turtle = to_turtle(&graph).expect("to_turtle accepts directional literal");
+    assert!(
+        turtle.contains("@en--rtl"),
+        "turtle missing directional literal: {turtle}"
+    );
+
+    let reparsed = from_ntriples(&ntriples).expect("from_ntriples re-ingests directional literal");
+    let out = to_nquads(&read(&reparsed, true, None));
+    assert!(
+        out.contains("\"Hello\"@en--rtl"),
+        "directional round-trip dropped the direction: {out}"
+    );
+}
+
 #[test]
 fn ntriples_parser_accepts_w3c_syntax_cases_and_rdf12_triple_terms() {
     let ntriples = r#"# comments and blank lines are valid N-Triples
