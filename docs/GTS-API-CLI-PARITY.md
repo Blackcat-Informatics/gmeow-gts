@@ -27,10 +27,10 @@ the following operations and folded fields are the compatibility target.
 | `fold(input)` | Return the deterministic GTS value fold: terms, quads, reifiers, annotations, blobs, suppressions, opaque nodes, signatures, segment heads, profiles, and streamable layout state. | Same object returned by `read`. |
 | `to_nquads(graph)` | Project the folded RDF dataset to sorted N-Quads text with the same value semantics across engines. | Python `to_nquads`; Rust `nquads::to_nquads`; Go `nquads.ToNQuads`; TypeScript `toNQuads`; Smalltalk `GtsNQuads`; Kotlin `toNQuads`. |
 | `from_nquads(input)` | Build a GTS file from N-Quads text using the shared writer semantics. | Python `from_nquads`; Rust `from_nquads::from_nquads`; Go `fromnquads.FromNQuads`; TypeScript `fromNQuads`; Smalltalk `GtsFromNQuads`; Kotlin `fromNQuads`; CLI `gts from-nq` in every engine. |
-| `to_ntriples(graph)` / `from_ntriples(input)` | Project a default-graph RDF dataset to N-Triples and rebuild GTS bytes from N-Triples text using the shared RDF 1.2 parser/serializer. | Rust `rdf_codecs::to_ntriples` / `from_ntriples` behind `--features rdf-codecs`; CLI `gts to-nt` and `gts from-nt` in Rust. |
-| `to_rdf_xml(graph)` / `from_rdf_xml(input)` | Project a default-graph RDF dataset to RDF/XML and rebuild GTS bytes from RDF/XML text, including RDF/XML namespace, parseType, collection, reification, annotation, and RDF 1.2 triple-term grammar. | Rust `rdf_codecs::to_rdf_xml` / `from_rdf_xml` behind `--features rdf-codecs`; CLI `gts to-rdfxml` and `gts from-rdfxml` in Rust. |
-| `to_trig(graph)` / `from_trig(input)` | Project folded RDF to readable TriG graph blocks and rebuild GTS bytes from the supported TriG surface without changing N-Quads content. | Python `gts.trig.to_trig` / `from_trig`; Rust `trig::to_trig` / `from_trig::from_trig`; Rust `rdf_codecs::to_trig` / `from_trig` with `--features rdf-codecs`; CLI `gts to-trig` and `gts from-trig` in Python and Rust. |
-| `to_turtle(graph)` / `from_turtle(input)` | Project a default-graph RDF dataset to Turtle and rebuild GTS bytes from Turtle text using the shared Turtle-family RDF 1.2 parser/serializer. | Rust `rdf_codecs::to_turtle` / `from_turtle` behind `--features rdf-codecs`; CLI `gts to-turtle` and `gts from-turtle` in Rust. |
+| `to_ntriples(graph)` / `from_ntriples(input)` | Project a default-graph RDF dataset to N-Triples and rebuild GTS bytes from N-Triples text using the shared RDF 1.2 parser/serializer. | Rust `rdf_codecs::to_ntriples` / `from_ntriples` behind `--features rdf-codecs`; Go `rdfcodecs.ToNTriples` / `FromNTriples`; CLI `gts to-nt` and `gts from-nt` in Rust and Go. |
+| `to_rdf_xml(graph)` / `from_rdf_xml(input)` | Project a default-graph RDF dataset to RDF/XML and rebuild GTS bytes from RDF/XML text, including RDF/XML namespace, parseType, collection, reification, annotation, and RDF 1.2 triple-term grammar. | Rust `rdf_codecs::to_rdf_xml` / `from_rdf_xml` behind `--features rdf-codecs`; Go `rdfcodecs.ToRDFXML` / `FromRDFXML`; CLI `gts to-rdfxml` and `gts from-rdfxml` in Rust and Go. |
+| `to_trig(graph)` / `from_trig(input)` | Project folded RDF to readable TriG graph blocks and rebuild GTS bytes from the supported TriG surface without changing N-Quads content. | Python `gts.trig.to_trig` / `from_trig`; Rust `trig::to_trig` / `from_trig::from_trig`; Rust `rdf_codecs::to_trig` / `from_trig` with `--features rdf-codecs`; Go `rdfcodecs.ToTriG` / `FromTriG`; CLI `gts to-trig` and `gts from-trig` in Python, Rust, and Go. |
+| `to_turtle(graph)` / `from_turtle(input)` | Project a default-graph RDF dataset to Turtle and rebuild GTS bytes from Turtle text using the shared Turtle-family RDF 1.2 parser/serializer. | Rust `rdf_codecs::to_turtle` / `from_turtle` behind `--features rdf-codecs`; Go `rdfcodecs.ToTurtle` / `FromTurtle`; CLI `gts to-turtle` and `gts from-turtle` in Rust and Go. |
 | graph iterators/accessors | Expose resolved access to terms, quads, reifier bindings, annotations, suppressions, blobs, opaque nodes, signatures, diagnostics, segment heads, profiles, metadata, and streamable state. | Native fields on `Graph`/`GtsGraph` in all six engines, with helper lookups where idiomatic. |
 | blobs | Preserve inline blob bytes by `blake3:<hex>` digest and retain declared blob metadata such as media type. Extraction MUST re-hash bytes before writing them. Implementations MAY keep transformed blob bytes lazy until access. | Python `Graph.blobs`/`blob_meta`; Rust `Graph.blobs` lazy `BlobEntry` plus `blob_entry`/`blob_bytes`/`decoded_blobs`; Go `Graph.Blobs`/`BlobMeta`; TypeScript `Graph.blobs`/`blobMeta`; Smalltalk `GtsGraph blobs`/`blobMeta`; Kotlin `Graph.blobs`/`blobMeta`. |
 | opaque nodes | Preserve undecodable or unsupported recoverable frames as graph-visible opaque nodes with a frame id, frame type, reason, and signature status. | `OpaqueNode` in every engine. |
@@ -93,14 +93,14 @@ actual dispatch surfaces.
 | `unpack` | yes | yes | yes | yes | yes | yes | common |
 | `diff` | yes | yes | yes | yes | yes | yes | common |
 | `from-nq` | yes | yes | yes | yes | yes | yes | common |
-| `to-trig` | yes | yes | no | no | no | no | Python/Rust transform extension |
-| `from-trig` | yes | yes | no | no | no | no | Python/Rust transform extension |
-| `to-nt` | no | yes | no | no | no | no | Rust RDF text codec extension |
-| `from-nt` | no | yes | no | no | no | no | Rust RDF text codec extension |
-| `to-rdfxml` | no | yes | no | no | no | no | Rust RDF text codec extension |
-| `from-rdfxml` | no | yes | no | no | no | no | Rust RDF text codec extension |
-| `to-turtle` | no | yes | no | no | no | no | Rust Turtle-family transform extension |
-| `from-turtle` | no | yes | no | no | no | no | Rust Turtle-family transform extension |
+| `to-trig` | yes | yes | yes | no | no | no | Python/Rust/Go transform extension |
+| `from-trig` | yes | yes | yes | no | no | no | Python/Rust/Go transform extension |
+| `to-nt` | no | yes | yes | no | no | no | Rust/Go RDF text codec extension |
+| `from-nt` | no | yes | yes | no | no | no | Rust/Go RDF text codec extension |
+| `to-rdfxml` | no | yes | yes | no | no | no | Rust/Go RDF text codec extension |
+| `from-rdfxml` | no | yes | yes | no | no | no | Rust/Go RDF text codec extension |
+| `to-turtle` | no | yes | yes | no | no | no | Rust/Go Turtle-family transform extension |
+| `from-turtle` | no | yes | yes | no | no | no | Rust/Go Turtle-family transform extension |
 | `to-yaml-ld` | no | yes | no | no | no | no | Rust transform extension |
 | `from-yaml-ld` | no | yes | no | no | no | no | Rust transform extension |
 | `to-okf` | no | yes | no | no | no | no | Rust OKF profile extension |
@@ -128,23 +128,21 @@ actual dispatch surfaces.
   tool instead of retaining all relational rows or a complete SQL script in memory; the stable
   `blobs.bytes` schema still requires transient blob decoding while each blob row is emitted.
 - Go, TypeScript, Smalltalk, and Kotlin do not yet expose relational exports.
-- `to-trig` and `from-trig` are Python/Rust transform extensions. They preserve the same
-  folded RDF content as the N-Quads projection while using readable TriG graph blocks; Go,
-  TypeScript, Smalltalk, and Kotlin parity can land later against the same round-trip expectations.
-- `to-nt` and `from-nt` are Rust-only RDF text codec extensions behind `--features rdf-codecs`.
+- `to-trig` and `from-trig` are Python/Rust/Go transform extensions. They preserve the same
+  folded RDF content as the N-Quads projection while using readable TriG graph blocks; TypeScript,
+  Smalltalk, and Kotlin parity can land later against the same round-trip expectations.
+- `to-nt` and `from-nt` are Rust/Go RDF text codec extensions.
   `to-nt` accepts only default-graph RDF projections; named-graph datasets should use `to-trig`.
-  Python, Go, TypeScript, Smalltalk, and Kotlin parity can land later against the same
+  Python, TypeScript, Smalltalk, and Kotlin parity can land later against the same
   parser/round-trip expectations.
-- `to-rdfxml` and `from-rdfxml` are Rust-only RDF text codec extensions behind
-  `--features rdf-codecs`. They cover RDF/XML parse and serialization through the event
+- `to-rdfxml` and `from-rdfxml` are Rust/Go RDF text codec extensions. They cover RDF/XML parse and serialization through the event
   contract, including namespace, `rdf:parseType`, collection, reification, annotation,
   and RDF 1.2 triple-term surfaces. `to-rdfxml` accepts only default-graph RDF projections;
-  named-graph datasets should use `to-trig`. Python, Go, TypeScript, Smalltalk, and Kotlin parity
+  named-graph datasets should use `to-trig`. Python, TypeScript, Smalltalk, and Kotlin parity
   can land later against the same W3C RDF/XML suite expectations.
-- `to-turtle` and `from-turtle` are Rust-only Turtle-family transform extensions behind
-  `--features rdf-codecs`. They use the same RDF 1.2 parser/serializer stack as the full TriG
+- `to-turtle` and `from-turtle` are Rust/Go Turtle-family transform extensions. They use the same RDF 1.2 parser/serializer stack as the full TriG
   path. `to-turtle` accepts only default-graph RDF projections; named-graph datasets should use
-  `to-trig`. Python, Go, TypeScript, Smalltalk, and Kotlin parity can land later against the same
+  `to-trig`. Python, TypeScript, Smalltalk, and Kotlin parity can land later against the same
   parser/round-trip expectations.
 - `to-yaml-ld` and `from-yaml-ld` are Rust-only extension verbs behind
   `--features yaml-ld`. They are transform-only shims over folded graph tables,

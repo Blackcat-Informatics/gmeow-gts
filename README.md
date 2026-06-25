@@ -676,18 +676,19 @@ gts dump <file> --directory <dir> [--include-suppressed] [--force] [--metadata-o
                                   expand an archive into a directory dump
 ```
 
-Rust-only RDF 1.2 text-codec extension:
+Rust/Go RDF 1.2 text-codec extension:
 
 ```text
-gts to-nt <file>                fold the default graph to N-Triples (--features rdf-codecs)
-gts from-nt <in.nt> [-o out]    build a GTS from N-Triples (--features rdf-codecs)
-gts to-rdfxml <file>            fold the default graph to RDF/XML (--features rdf-codecs)
-gts from-rdfxml <in.rdf> [-o out]
-                                  build a GTS from RDF/XML (--features rdf-codecs)
-gts to-turtle <file>            fold the default graph to Turtle (--features rdf-codecs)
-gts from-turtle <in.ttl> [-o out]
-                                  build a GTS from Turtle (--features rdf-codecs)
+gts to-nt <file>                fold the default graph to N-Triples
+gts from-nt <in.nt> [-o out]    build a GTS from N-Triples
+gts to-rdfxml <file>            fold the default graph to RDF/XML
+gts from-rdfxml <in.rdf> [-o out]   build a GTS from RDF/XML
+gts to-turtle <file>            fold the default graph to Turtle
+gts from-turtle <in.ttl> [-o out]   build a GTS from Turtle
 ```
+
+Rust builds expose these verbs behind `--features rdf-codecs`; the Go module binary ships them
+by default.
 
 Rust-only tar-compatible extension:
 
@@ -725,11 +726,12 @@ The emojihash (and OpenSSH-style randomart) are also published standalone as the
 [`visual-hashing`](https://crates.io/crates/visual-hashing) crate, which the Rust engine
 depends on from crates.io and re-exports as `gmeow_gts::emojihash`.
 
-`from-nq` is common across all six engines. Python and Rust also expose `to-trig`/`from-trig`
-for readable TriG graph-block interchange over the same folded RDF content. Rust additionally
-exposes `to-nt`/`from-nt`, `to-rdfxml`/`from-rdfxml`, and `to-turtle`/`from-turtle` behind
-`--features rdf-codecs` for default-graph RDF text interchange through the same RDF 1.2 codec
-stack. The Rust OKF
+`from-nq` is common across all six engines. Python, Rust, and Go also expose `to-trig`/`from-trig`
+for readable TriG graph-block interchange over the same folded RDF content. Rust and Go additionally
+expose `to-nt`/`from-nt`, `to-rdfxml`/`from-rdfxml`, and `to-turtle`/`from-turtle` for
+default-graph RDF text interchange through the same RDF 1.2 codec stack. Rust builds gate
+these RDF text-codec verbs behind `--features rdf-codecs`; the Go module binary ships them by
+default. The Rust OKF
 profile extension maps Markdown bundles to verifiable GTS package bytes and back behind
 `--features okf`; see [`docs/GTS-OKF.md`](./docs/GTS-OKF.md). The Rust `tar`
 extension provides tar-style `-c/-x/-t/-d` commands over `.gts` and `.tar` files behind
@@ -766,7 +768,7 @@ folded quad.
 | Files profile `pack`/`unpack`/`diff` | yes | yes | yes | yes | yes | yes |
 | Streamable compaction CLI | yes | yes | yes | yes | yes | yes |
 | `from-nq` inverse | yes | yes | yes | yes | yes | yes |
-| TriG transform | yes | yes | no | no | no | no |
+| TriG transform | yes | yes | yes | no | no | no |
 | Native RDF/store adapter | rdflib extra | `rdf` feature (native dataset model); `native-store` feature (native in-memory store) | no | no | no | no |
 | SQLite/DuckDB/Parquet exports | yes | SQLite default; DuckDB/Parquet with `duckdb` feature | no | no | no | no |
 | Package registry | PyPI | crates.io | Go module | npm | Tonel/Metacello source | Gradle source |
