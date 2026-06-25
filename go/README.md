@@ -157,6 +157,14 @@ gts pack <dir|file>... -o <out>            package files/directories into a file
 gts unpack <archive> [-C dir] extract a files profile (refuses path traversal)
 gts diff <archive> <dir>      compare a files profile to a directory by digest
 gts from-nq <in.nq> [-o out]  build a GTS from N-Quads (`-` reads stdin)
+gts to-nt <file>              fold the default graph to N-Triples
+gts from-nt <in.nt> [-o out]  build a GTS from N-Triples (`-` reads stdin)
+gts to-trig <file>            fold to TriG
+gts from-trig <in.trig> [-o out]  build a GTS from TriG (`-` reads stdin)
+gts to-turtle <file>          fold the default graph to Turtle
+gts from-turtle <in.ttl> [-o out]  build a GTS from Turtle (`-` reads stdin)
+gts to-rdfxml <file>          fold the default graph to RDF/XML
+gts from-rdfxml <in.rdf> [-o out]  build a GTS from RDF/XML (`-` reads stdin)
 ```
 
 Exit codes: `0` clean · `1` diagnostics found or input refused · `2` usage/IO error.

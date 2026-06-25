@@ -40,7 +40,15 @@ commands:
   unpack <archive> [-C dir] [--include-suppressed]
                             unpack a files-profile archive
   diff <archive> <dir>      compare archive to directory by digest
-  from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin`
+  from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
+  to-nt <file>              fold the default graph to N-Triples on stdout
+  from-nt <in.nt> [-o out]  build a GTS from N-Triples; '-' reads stdin
+  to-trig <file>            fold to TriG on stdout
+  from-trig <in.trig> [-o out] build a GTS from TriG; '-' reads stdin
+  to-turtle <file>          fold the default graph to Turtle on stdout
+  from-turtle <in.ttl> [-o out] build a GTS from Turtle; '-' reads stdin
+  to-rdfxml <file>          fold the default graph to RDF/XML on stdout
+  from-rdfxml <in.rdf> [-o out] build a GTS from RDF/XML; '-' reads stdin`
 
 func main() {
 	args := os.Args[1:]
@@ -84,6 +92,22 @@ func main() {
 		os.Exit(cmdDiff(args[1:]))
 	case "from-nq":
 		os.Exit(cmdFromNQ(args[1:]))
+	case "to-nt":
+		os.Exit(cmdToRDFText(cmd, args[1:]))
+	case "to-trig":
+		os.Exit(cmdToRDFText(cmd, args[1:]))
+	case "to-turtle":
+		os.Exit(cmdToRDFText(cmd, args[1:]))
+	case "to-rdfxml":
+		os.Exit(cmdToRDFText(cmd, args[1:]))
+	case "from-nt":
+		os.Exit(cmdFromRDFText(cmd, args[1:]))
+	case "from-trig":
+		os.Exit(cmdFromRDFText(cmd, args[1:]))
+	case "from-turtle":
+		os.Exit(cmdFromRDFText(cmd, args[1:]))
+	case "from-rdfxml":
+		os.Exit(cmdFromRDFText(cmd, args[1:]))
 	case "-h", "--help", "help":
 		fmt.Println(usage)
 		os.Exit(0)
