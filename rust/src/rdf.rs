@@ -179,7 +179,18 @@ pub fn writer_from_oxrdf_dataset_with_profile(
     let mut quads: Vec<Quad> = Vec::new();
     let mut reifiers: BTreeMap<usize, Triple3> = BTreeMap::new();
 
-    for quad in dataset {
+    // `oxrdf::Dataset` iterates in hash-seed order, which is not stable across
+    // runs. Term-id interning and quad emission below both depend on iteration
+    // order, so sort the dataset's quads by a canonical N-Quads-style key first.
+    // This makes the produced GTS bytes deterministic (content-canonical) and
+    // independent of the dataset's hash iteration order. A Dataset holds a set,
+    // so the canonical keys are unique and no tie-breaking is required. The
+    // canonical string is deterministic for RDF 1.2 quoted-triple objects too,
+    // because `oxrdf`'s `Display` for quoted triples is itself deterministic.
+    let mut ordered: Vec<_> = dataset.iter().collect();
+    ordered.sort_by_cached_key(|quad| quad.to_string());
+
+    for quad in ordered {
         if quad.graph_name.is_default_graph()
             && quad.predicate.as_str() == RDF_REIFIES
             && matches!(quad.object, OxTermRef::Triple(_))

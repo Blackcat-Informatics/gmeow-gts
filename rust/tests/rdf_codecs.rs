@@ -1123,3 +1123,69 @@ fn turtle_codec_parses_numeric_and_boolean_literals() {
         "decimal literal kept its xsd:decimal datatype: {out}"
     );
 }
+
+#[test]
+fn turtle_and_ntriples_codecs_are_deterministic() {
+    // Regression guard for the hash-seed non-determinism fix: the codecs build
+    // an `oxrdf::Dataset` (hash-backed, random-seeded iteration order) and then
+    // intern terms / emit quads while iterating it. Before the fix, two
+    // consecutive calls with identical input could assign term-ids and order
+    // quads differently, producing different GTS bytes. Multiple subjects,
+    // predicates, objects, and a language-tagged literal are included so a
+    // hash-order regression has many chances to flip the byte output.
+    let turtle = "\
+<https://ex/alpha> <https://ex/p1> <https://ex/beta> .\n\
+<https://ex/beta> <https://ex/p2> \"hello\"@en .\n\
+<https://ex/gamma> <https://ex/p3> \"world\"@fr .\n\
+<https://ex/delta> <https://ex/p1> <https://ex/alpha> .\n\
+<https://ex/epsilon> <https://ex/p4> \"42\"^^<http://www.w3.org/2001/XMLSchema#integer> .\n\
+<https://ex/alpha> <https://ex/p2> <https://ex/gamma> .\n\
+<https://ex/zeta> <https://ex/p5> \"plain\" .\n";
+
+    let first = from_turtle(turtle).expect("Turtle parses determinism corpus");
+    for _ in 0..5 {
+        let again = from_turtle(turtle).expect("Turtle parses determinism corpus");
+        assert_eq!(
+            first, again,
+            "from_turtle must produce identical GTS bytes on identical input"
+        );
+    }
+
+    // N-Triples shares the same Dataset -> from_oxrdf_dataset path.
+    let ntriples = turtle; // the corpus above is also valid N-Triples
+    let first_nt = from_ntriples(ntriples).expect("N-Triples parses determinism corpus");
+    for _ in 0..5 {
+        let again_nt = from_ntriples(ntriples).expect("N-Triples parses determinism corpus");
+        assert_eq!(
+            first_nt, again_nt,
+            "from_ntriples must produce identical GTS bytes on identical input"
+        );
+    }
+}
+
+#[test]
+fn turtle_codec_is_content_canonical_across_source_order() {
+    // Two different *source* orderings of the same triple set must fold to the
+    // same GTS bytes: the canonical sort before interning makes term-id
+    // assignment and quad order depend only on the set's contents, not on how
+    // the triples happened to be laid out in the input document (nor on the
+    // dataset's hash iteration order).
+    let order_a = "\
+<https://ex/s1> <https://ex/p1> \"one\"@en .\n\
+<https://ex/s2> <https://ex/p2> <https://ex/s3> .\n\
+<https://ex/s3> <https://ex/p3> \"three\" .\n\
+<https://ex/s1> <https://ex/p2> <https://ex/s2> .\n";
+    let order_b = "\
+<https://ex/s1> <https://ex/p2> <https://ex/s2> .\n\
+<https://ex/s3> <https://ex/p3> \"three\" .\n\
+<https://ex/s1> <https://ex/p1> \"one\"@en .\n\
+<https://ex/s2> <https://ex/p2> <https://ex/s3> .\n";
+
+    let a = from_turtle(order_a).expect("Turtle parses order A");
+    let b = from_turtle(order_b).expect("Turtle parses order B");
+    assert_eq!(
+        a, b,
+        "the same triple set must produce identical (content-canonical) GTS bytes \
+         regardless of source order"
+    );
+}
