@@ -471,7 +471,16 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
             TermKind::Triple => {
                 if let Some(reifier) = term.reifier {
                     if let Some(triple) = self.graph.reifier(reifier) {
-                        self.emit_reifier(reifier, triple, depth + 1)?;
+                        if reifier == id {
+                            // A triple TERM stores its own components under its own id in
+                            // the reifiers map (a self-reference, not a reifier
+                            // relationship). Declare the s/p/o components directly —
+                            // routing through `emit_reifier` would re-enter `emit_term`
+                            // for this same id and trip the cycle guard.
+                            self.emit_triple_deps(triple, depth + 1)?;
+                        } else {
+                            self.emit_reifier(reifier, triple, depth + 1)?;
+                        }
                     }
                 }
             }
