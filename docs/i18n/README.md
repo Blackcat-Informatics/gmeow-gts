@@ -1,7 +1,5 @@
-<!--
-SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-SPDX-License-Identifier: MIT OR Apache-2.0
--->
+<!-- SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca> -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
 
 # Localization
 
@@ -27,6 +25,36 @@ source paths. For example:
 |---|---|---|
 | `README.md` | `docs/i18n/fr-CA/README.md` | `docs/i18n/zh-Hans/README.md` |
 | `docs/GTS-SPEC.md` | `docs/i18n/fr-CA/docs/GTS-SPEC.md` | `docs/i18n/zh-Hans/docs/GTS-SPEC.md` |
+
+## Current Coverage
+
+The #364 public-entrypoint tranche adds paired `draft` counterparts for these
+existing source documents:
+
+| English source | `fr-CA` | `zh-Hans` |
+|---|---|---|
+| `README.md` | [`fr-CA/README.md`](./fr-CA/README.md) | [`zh-Hans/README.md`](./zh-Hans/README.md) |
+| `docs/positioning.md` | [`fr-CA/docs/positioning.md`](./fr-CA/docs/positioning.md) | [`zh-Hans/docs/positioning.md`](./zh-Hans/docs/positioning.md) |
+| `rust/README.md` | [`fr-CA/rust/README.md`](./fr-CA/rust/README.md) | [`zh-Hans/rust/README.md`](./zh-Hans/rust/README.md) |
+| `python/README.md` | [`fr-CA/python/README.md`](./fr-CA/python/README.md) | [`zh-Hans/python/README.md`](./zh-Hans/python/README.md) |
+| `go/README.md` | [`fr-CA/go/README.md`](./fr-CA/go/README.md) | [`zh-Hans/go/README.md`](./zh-Hans/go/README.md) |
+| `ts/README.md` | [`fr-CA/ts/README.md`](./fr-CA/ts/README.md) | [`zh-Hans/ts/README.md`](./zh-Hans/ts/README.md) |
+| `smalltalk/README.md` | [`fr-CA/smalltalk/README.md`](./fr-CA/smalltalk/README.md) | [`zh-Hans/smalltalk/README.md`](./zh-Hans/smalltalk/README.md) |
+| `kotlin/README.md` | [`fr-CA/kotlin/README.md`](./fr-CA/kotlin/README.md) | [`zh-Hans/kotlin/README.md`](./zh-Hans/kotlin/README.md) |
+| `rust/capi/README.md` | [`fr-CA/rust/capi/README.md`](./fr-CA/rust/capi/README.md) | [`zh-Hans/rust/capi/README.md`](./zh-Hans/rust/capi/README.md) |
+| `cpp/README.md` | [`fr-CA/cpp/README.md`](./fr-CA/cpp/README.md) | [`zh-Hans/cpp/README.md`](./zh-Hans/cpp/README.md) |
+| `dotnet/README.md` | [`fr-CA/dotnet/README.md`](./fr-CA/dotnet/README.md) | [`zh-Hans/dotnet/README.md`](./zh-Hans/dotnet/README.md) |
+| `php/README.md` | [`fr-CA/php/README.md`](./fr-CA/php/README.md) | [`zh-Hans/php/README.md`](./zh-Hans/php/README.md) |
+| `lua/README.md` | [`fr-CA/lua/README.md`](./fr-CA/lua/README.md) | [`zh-Hans/lua/README.md`](./zh-Hans/lua/README.md) |
+| `swift/README.md` | [`fr-CA/swift/README.md`](./fr-CA/swift/README.md) | [`zh-Hans/swift/README.md`](./zh-Hans/swift/README.md) |
+| `ruby/README.md` | [`fr-CA/ruby/README.md`](./fr-CA/ruby/README.md) | [`zh-Hans/ruby/README.md`](./zh-Hans/ruby/README.md) |
+| `r/README.md` | [`fr-CA/r/README.md`](./fr-CA/r/README.md) | [`zh-Hans/r/README.md`](./zh-Hans/r/README.md) |
+| `julia/README.md` | [`fr-CA/julia/README.md`](./fr-CA/julia/README.md) | [`zh-Hans/julia/README.md`](./zh-Hans/julia/README.md) |
+| `python/examples/README.md` | [`fr-CA/python/examples/README.md`](./fr-CA/python/examples/README.md) | [`zh-Hans/python/examples/README.md`](./zh-Hans/python/examples/README.md) |
+
+Issue #364 also named `visual-hashing/README.md`, but that source file is not
+present in this repository on current `main`; the standalone `visual-hashing`
+crate is referenced from the root README instead.
 
 Every localized Markdown file must declare its source path, locale, and status:
 
