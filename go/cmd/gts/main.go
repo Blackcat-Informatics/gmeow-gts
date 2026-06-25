@@ -9,9 +9,20 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
-const usage = `usage: gts <command> [args]
+type cliLocale int
+
+const (
+	localeEnglish cliLocale = iota
+	localeFrenchCanada
+	localeChineseHans
+)
+
+var usage = usageText(resolveLocale())
+
+const usageEN = `usage: gts <command> [args]
 
 commands:
   info <file>...            per-segment composition ledger
@@ -49,6 +60,124 @@ commands:
   from-turtle <in.ttl> [-o out] build a GTS from Turtle; '-' reads stdin
   to-rdfxml <file>          fold the default graph to RDF/XML on stdout
   from-rdfxml <in.rdf> [-o out] build a GTS from RDF/XML; '-' reads stdin`
+
+const usageFRCA = `utilisation: gts <command> [args]
+
+commandes:
+  info <file>...            affiche le registre de composition par segment
+  fold <file>               plie vers N-Quads sur stdout
+  verify <file>...          verifie les chaines, le registre et les diagnostics
+  verify-proof <proof.json>  verifie une preuve MMR detachee sans fichier GTS
+  heads <file>              emet les tetes de segments et le digest agrege en JSON
+  segments <file>           emet les plages d'octets et l'inventaire en JSON
+  missing --from-head <head> <file>
+emet les plages JSON requises apres une tete de pair
+  resume --after <frame-id> <file>
+emet les octets apres une frontiere de trame valide
+  extract-key <file>        imprime la cle de transport: kid, OpenPGP,
+fingerprint, emojihash et cle publique blindee
+  ls <file>                 liste les blobs: digest, taille, type media declare
+  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+extrait un blob par digest de contenu
+  cat -o <out> <file>...    compose en validant et refuse les entrees degenerees
+  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+reecrit vers l'etat de disposition diffusable
+  pack <dir|file>... -o out.gts
+emballe des fichiers en archive de profil files
+  unpack <archive> [-C dir] [--include-suppressed]
+deballe une archive de profil files
+  diff <archive> <dir>      compare une archive a un repertoire par digest
+  from-nq <in.nq> [-o out]  construit un GTS depuis N-Quads; '-' lit stdin
+  to-nt <file>              plie le graphe par defaut vers N-Triples
+  from-nt <in.nt> [-o out]  construit un GTS depuis N-Triples; '-' lit stdin
+  to-trig <file>            plie vers TriG sur stdout
+  from-trig <in.trig> [-o out] construit un GTS depuis TriG; '-' lit stdin
+  to-turtle <file>          plie le graphe par defaut vers Turtle
+  from-turtle <in.ttl> [-o out] construit un GTS depuis Turtle; '-' lit stdin
+  to-rdfxml <file>          plie le graphe par defaut vers RDF/XML
+  from-rdfxml <in.rdf> [-o out] construit un GTS depuis RDF/XML; '-' lit stdin`
+
+const usageZHHans = `用法: gts <command> [args]
+
+命令:
+  info <file>...            显示每个段的组合账本
+  fold <file>               将内容折叠为 N-Quads 并写到 stdout
+  verify <file>...          验证链、账本和诊断；发现问题时退出 1
+  verify-proof <proof.json>  在没有 GTS 文件时验证分离的 MMR 证明
+  heads <file>              输出段头和聚合比较摘要的 JSON
+  segments <file>           输出段字节范围和布局清单的 JSON
+  missing --from-head <head> <file>
+输出对等段头之后所需的字节范围 JSON
+  resume --after <frame-id> <file>
+输出已验证帧边界之后的字节
+  extract-key <file>        打印内嵌传输密钥、fingerprint、emojihash 和公钥
+  ls <file>                 列出内联 blob 的摘要、大小和声明媒体类型
+  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+按内容摘要提取一个 blob
+  cat -o <out> <file>...    验证后组合，拒绝退化输入
+  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+重写为可流式布局状态
+  pack <dir|file>... -o out.gts
+将文件或目录打包为 files 配置文件归档
+  unpack <archive> [-C dir] [--include-suppressed]
+解包 files 配置文件归档
+  diff <archive> <dir>      按摘要比较归档和目录
+  from-nq <in.nq> [-o out]  从 N-Quads 构建 GTS；'-' 读取 stdin
+  to-nt <file>              将默认图折叠为 N-Triples
+  from-nt <in.nt> [-o out]  从 N-Triples 构建 GTS；'-' 读取 stdin
+  to-trig <file>            将内容折叠为 TriG 并写到 stdout
+  from-trig <in.trig> [-o out] 从 TriG 构建 GTS；'-' 读取 stdin
+  to-turtle <file>          将默认图折叠为 Turtle
+  from-turtle <in.ttl> [-o out] 从 Turtle 构建 GTS；'-' 读取 stdin
+  to-rdfxml <file>          将默认图折叠为 RDF/XML
+  from-rdfxml <in.rdf> [-o out] 从 RDF/XML 构建 GTS；'-' 读取 stdin`
+
+func resolveLocale() cliLocale {
+	for _, key := range []string{"GTS_LANG", "LC_ALL", "LC_MESSAGES", "LANG"} {
+		raw := strings.TrimSpace(os.Getenv(key))
+		if raw != "" {
+			return localeFrom(raw)
+		}
+	}
+	return localeEnglish
+}
+
+func localeFrom(raw string) cliLocale {
+	value := strings.ToLower(strings.ReplaceAll(raw, "_", "-"))
+	if idx := strings.IndexAny(value, ".@"); idx >= 0 {
+		value = value[:idx]
+	}
+	switch value {
+	case "fr", "fr-ca":
+		return localeFrenchCanada
+	case "zh", "zh-cn", "zh-hans", "zh-hans-cn":
+		return localeChineseHans
+	default:
+		return localeEnglish
+	}
+}
+
+func usageText(locale cliLocale) string {
+	switch locale {
+	case localeFrenchCanada:
+		return usageFRCA
+	case localeChineseHans:
+		return usageZHHans
+	default:
+		return usageEN
+	}
+}
+
+func unknownCommandMessage(command string) string {
+	switch resolveLocale() {
+	case localeFrenchCanada:
+		return fmt.Sprintf("gts: commande inconnue '%s'\n%s", command, usage)
+	case localeChineseHans:
+		return fmt.Sprintf("gts: 未知命令 '%s'\n%s", command, usage)
+	default:
+		return fmt.Sprintf("gts: unknown command '%s'\n%s", command, usage)
+	}
+}
 
 func main() {
 	args := os.Args[1:]
@@ -112,7 +241,7 @@ func main() {
 		fmt.Println(usage)
 		os.Exit(0)
 	default:
-		fmt.Fprintf(os.Stderr, "gts: unknown command '%s'\n%s\n", cmd, usage)
+		fmt.Fprintln(os.Stderr, unknownCommandMessage(cmd))
 		os.Exit(2)
 	}
 }

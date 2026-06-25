@@ -27,7 +27,7 @@ GtsCLI class >> run: args [
 		command = 'extract' ifTrue: [ ^ self runExtract: args allButFirst ].
 		command = 'cat' ifTrue: [ ^ self runCat: args allButFirst ].
 		command = 'compact' ifTrue: [ ^ self runCompact: args allButFirst ].
-		self stderr: 'gts: unknown command ', command, String lf, self usage.
+		self stderr: (self unknownCommandMessage: command).
 		^ 2 ]
 		on: Error
 		do: [ :error |
@@ -552,8 +552,64 @@ GtsCLI class >> stdoutBytes: bytes [
 ]
 
 { #category : #usage }
+GtsCLI class >> locale [
+	| environment |
+	environment := (Smalltalk globals at: #OSEnvironment ifAbsent: [ ^ #en ]) current.
+	#('GTS_LANG' 'LC_ALL' 'LC_MESSAGES' 'LANG') do: [ :key |
+		| raw |
+		raw := environment at: key ifAbsent: [ '' ].
+		raw isEmpty ifFalse: [ ^ self localeFrom: raw ] ].
+	^ #en
+]
+
+{ #category : #usage }
+GtsCLI class >> localeFrom: raw [
+	| value |
+	value := (raw copyUpTo: $.) copyUpTo: $@.
+	value := (value copyReplaceAll: '_' with: '-') asLowercase.
+	((value = 'fr') or: [ value = 'fr-ca' ]) ifTrue: [ ^ #frCA ].
+	((value = 'zh') or: [
+		(value = 'zh-cn') or: [
+			(value = 'zh-hans') or: [ value = 'zh-hans-cn' ] ] ])
+		ifTrue: [ ^ #zhHans ].
+	^ #en
+]
+
+{ #category : #usage }
+GtsCLI class >> unknownCommandMessage: command [
+	^ self unknownCommandMessage: command locale: self locale
+]
+
+{ #category : #usage }
+GtsCLI class >> unknownCommandMessage: command locale: locale [
+	locale = #frCA ifTrue: [
+		^ 'gts: commande inconnue ', command, String lf, (self usageForLocale: locale) ].
+	locale = #zhHans ifTrue: [
+		^ 'gts: 未知命令 ', command, String lf, (self usageForLocale: locale) ].
+	^ 'gts: unknown command ', command, String lf, (self usageForLocale: locale)
+]
+
+{ #category : #usage }
 GtsCLI class >> usage [
-	^ 'usage: gts <command> [args]', String lf
+	^ self usageForLocale: self locale
+]
+
+{ #category : #usage }
+GtsCLI class >> usageForLocale: locale [
+	locale = #frCA ifTrue: [
+		^ 'utilisation: gts <command> [args]', String lf,
+			'commandes:', String lf,
+			'  info fold verify verify-proof heads segments missing resume extract-key', String lf,
+			'  ls extract cat compact pack unpack diff from-nq', String lf ].
+	locale = #zhHans ifTrue: [
+		^ '用法: gts <command> [args]', String lf,
+			'命令:', String lf,
+			'  info fold verify verify-proof heads segments missing resume extract-key', String lf,
+			'  ls extract cat compact pack unpack diff from-nq', String lf ].
+	^ 'usage: gts <command> [args]', String lf,
+		'commands:', String lf,
+		'  info fold verify verify-proof heads segments missing resume extract-key', String lf,
+		'  ls extract cat compact pack unpack diff from-nq', String lf
 ]
 
 { #category : #io }

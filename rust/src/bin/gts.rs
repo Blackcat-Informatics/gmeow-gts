@@ -10,6 +10,7 @@
 //! Exit codes: 0 clean; 1 diagnostics found or input refused; 2 usage/IO error.
 
 use std::collections::HashSet;
+use std::fmt;
 use std::process::ExitCode;
 
 use ciborium::value::Value;
@@ -135,7 +136,7 @@ commands:
 }
 
 #[cfg(all(feature = "duckdb", feature = "yaml-ld", feature = "okf"))]
-const USAGE: &str = usage_text!(
+const USAGE_EN: &str = usage_text!(
     "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
   from-yaml-ld <in.yaml> [-o out]
                             build a GTS from YAML-LD-star; '-' reads stdin",
@@ -151,7 +152,7 @@ const USAGE: &str = usage_text!(
 );
 
 #[cfg(all(feature = "duckdb", feature = "yaml-ld", not(feature = "okf")))]
-const USAGE: &str = usage_text!(
+const USAGE_EN: &str = usage_text!(
     "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
   from-yaml-ld <in.yaml> [-o out]
                             build a GTS from YAML-LD-star; '-' reads stdin",
@@ -167,7 +168,7 @@ optional:
 );
 
 #[cfg(all(feature = "duckdb", not(feature = "yaml-ld"), feature = "okf"))]
-const USAGE: &str = usage_text!(
+const USAGE_EN: &str = usage_text!(
     "optional:
   to-yaml-ld <file>         build with --features yaml-ld
   from-yaml-ld <in.yaml> [-o out]
@@ -184,7 +185,7 @@ const USAGE: &str = usage_text!(
 );
 
 #[cfg(all(feature = "duckdb", not(feature = "yaml-ld"), not(feature = "okf")))]
-const USAGE: &str = usage_text!(
+const USAGE_EN: &str = usage_text!(
     "optional:
   to-yaml-ld <file>         build with --features yaml-ld
   from-yaml-ld <in.yaml> [-o out]
@@ -201,7 +202,7 @@ optional:
 );
 
 #[cfg(all(not(feature = "duckdb"), feature = "yaml-ld", feature = "okf"))]
-const USAGE: &str = usage_text!(
+const USAGE_EN: &str = usage_text!(
     "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
   from-yaml-ld <in.yaml> [-o out]
                             build a GTS from YAML-LD-star; '-' reads stdin",
@@ -217,7 +218,7 @@ optional:
 );
 
 #[cfg(all(not(feature = "duckdb"), feature = "yaml-ld", not(feature = "okf")))]
-const USAGE: &str = usage_text!(
+const USAGE_EN: &str = usage_text!(
     "  to-yaml-ld <file>         fold to YAML-LD-star on stdout
   from-yaml-ld <in.yaml> [-o out]
                             build a GTS from YAML-LD-star; '-' reads stdin",
@@ -233,7 +234,7 @@ optional:
 );
 
 #[cfg(all(not(feature = "duckdb"), not(feature = "yaml-ld"), feature = "okf"))]
-const USAGE: &str = usage_text!(
+const USAGE_EN: &str = usage_text!(
     "optional:
   to-yaml-ld <file>         build with --features yaml-ld
   from-yaml-ld <in.yaml> [-o out]
@@ -254,7 +255,7 @@ optional:
     not(feature = "yaml-ld"),
     not(feature = "okf")
 ))]
-const USAGE: &str = usage_text!(
+const USAGE_EN: &str = usage_text!(
     "optional:
   to-yaml-ld <file>         build with --features yaml-ld
   from-yaml-ld <in.yaml> [-o out]
@@ -268,6 +269,130 @@ optional:
   to-duckdb <file> <out>    build with --features duckdb; needs duckdb on PATH
   to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
 );
+
+const USAGE_FR_CA: &str = r#"utilisation: gts <command> [args]
+
+commandes:
+  info <file>...            affiche le registre de composition par segment
+  fold <file>               plie vers N-Quads sur stdout
+  from-nq <in.nq> [-o out]  construit un GTS depuis N-Quads; '-' lit stdin
+  to-trig <file>            plie vers TriG sur stdout
+  from-trig <in.trig> [-o out]
+                            construit un GTS depuis TriG; '-' lit stdin
+  verify [--key kid:hexpubkey] [--policy file] <file>...
+                            verifie les chaines, signatures et politiques
+  prove <file> <frame-id>   emet une preuve JSON d'inclusion MMR
+  verify-proof <proof.json> verifie une preuve detachee sans fichier GTS
+  heads <file>              emet les tetes de segments en JSON
+  segments <file>           emet les plages d'octets des segments en JSON
+  missing --from-head <head> <file>
+                            emet les plages JSON requises apres une tete de pair
+  resume --after <frame-id> <file>
+                            emet les octets apres une frontiere de trame valide
+  extract-key <file>        imprime la cle de transport integree
+  ls <file>                 liste les blobs: digest, taille, type media declare
+  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+                            extrait un blob par digest de contenu
+  cat -o <out> <file>...    compose en validant et refuse les entrees degenerees
+  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+                            reecrit vers l'etat de disposition diffusable
+  pack <dir|file>... -o out.gts
+                            emballe des fichiers en archive de profil files
+  unpack <archive> [-C dir] [--include-suppressed]
+                            deballe une archive de profil files
+  diff <archive> <dir>      compare une archive a un repertoire par digest
+  dump <archive> --directory dir
+                            developpe une archive dans un repertoire d'inspection"#;
+
+const USAGE_ZH_HANS: &str = r#"用法: gts <command> [args]
+
+命令:
+  info <file>...            显示每个段的组合账本
+  fold <file>               将内容折叠为 N-Quads 并写到 stdout
+  from-nq <in.nq> [-o out]  从 N-Quads 构建 GTS；'-' 读取 stdin
+  to-trig <file>            将内容折叠为 TriG 并写到 stdout
+  from-trig <in.trig> [-o out]
+                            从 TriG 构建 GTS；'-' 读取 stdin
+  verify [--key kid:hexpubkey] [--policy file] <file>...
+                            验证链、签名和可选配置文件策略
+  prove <file> <frame-id>   从 index.mmr 根输出 JSON 包含证明
+  verify-proof <proof.json> 在没有 GTS 文件时验证分离的证明 JSON
+  heads <file>              输出段头和聚合比较摘要的 JSON
+  segments <file>           输出段字节范围和布局清单的 JSON
+  missing --from-head <head> <file>
+                            输出对等段头之后所需的字节范围 JSON
+  resume --after <frame-id> <file>
+                            输出已验证帧边界之后的字节
+  extract-key <file>        打印内嵌的传输密钥
+  ls <file>                 列出内联 blob 的摘要、大小和声明媒体类型
+  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+                            按内容摘要提取一个 blob
+  cat -o <out> <file>...    验证后组合，拒绝退化输入
+  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+                            重写为可流式布局状态
+  pack <dir|file>... -o out.gts
+                            将文件或目录打包为 files 配置文件归档
+  unpack <archive> [-C dir] [--include-suppressed]
+                            解包 files 配置文件归档
+  diff <archive> <dir>      按摘要比较归档和目录
+  dump <archive> --directory dir
+                            将归档展开到检查目录"#;
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum CliLocale {
+    English,
+    FrenchCanada,
+    ChineseHans,
+}
+
+fn locale_from(raw: &str) -> CliLocale {
+    let mut value = raw.trim().to_ascii_lowercase().replace('_', "-");
+    if let Some(idx) = value.find(['.', '@']) {
+        value.truncate(idx);
+    }
+    match value.as_str() {
+        "fr" | "fr-ca" => CliLocale::FrenchCanada,
+        "zh" | "zh-cn" | "zh-hans" | "zh-hans-cn" => CliLocale::ChineseHans,
+        _ => CliLocale::English,
+    }
+}
+
+fn cli_locale() -> CliLocale {
+    for key in ["GTS_LANG", "LC_ALL", "LC_MESSAGES", "LANG"] {
+        if let Ok(raw) = std::env::var(key) {
+            if !raw.trim().is_empty() {
+                return locale_from(&raw);
+            }
+        }
+    }
+    CliLocale::English
+}
+
+fn usage_text(locale: CliLocale) -> &'static str {
+    match locale {
+        CliLocale::FrenchCanada => USAGE_FR_CA,
+        CliLocale::ChineseHans => USAGE_ZH_HANS,
+        CliLocale::English => USAGE_EN,
+    }
+}
+
+struct LocalizedUsage;
+
+impl fmt::Display for LocalizedUsage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(usage_text(cli_locale()))
+    }
+}
+
+static USAGE: LocalizedUsage = LocalizedUsage;
+
+fn unknown_command_message(command: &str) -> String {
+    match cli_locale() {
+        CliLocale::FrenchCanada => format!("gts: commande inconnue '{command}'\n{USAGE}"),
+        CliLocale::ChineseHans => format!("gts: 未知命令 '{command}'\n{USAGE}"),
+        CliLocale::English => format!("gts: unknown command '{command}'\n{USAGE}"),
+    }
+}
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -345,7 +470,7 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         other => {
-            eprintln!("gts: unknown command '{other}'\n{USAGE}");
+            eprintln!("{}", unknown_command_message(other));
             ExitCode::from(2)
         }
     }

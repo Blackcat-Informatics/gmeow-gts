@@ -43,7 +43,16 @@ import java.time.Instant
 import java.time.format.DateTimeFormatter
 import kotlin.system.exitProcess
 
-private const val USAGE = """usage: gts <command> [args]
+private enum class CliLocale {
+    EN,
+    FR_CA,
+    ZH_HANS,
+}
+
+private val USAGE: String
+    get() = usageText(resolveCliLocale())
+
+private const val USAGE_EN = """usage: gts <command> [args]
 
 commands:
   info <file>...
@@ -64,8 +73,62 @@ commands:
   diff <archive> <dir>
   from-nq <in.nq> [-o out]"""
 
+private const val USAGE_FR_CA = """utilisation: gts <command> [args]
+
+commandes:
+  info <file>...
+  fold <file>
+  verify <file>... [--key KID:HEXPUB]
+  verify-proof <proof.json>
+  heads <file>
+  segments <file>
+  missing --from-head <head> <file>
+  resume --after <frame-id> <file>
+  extract-key <file>
+  ls <file>
+  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+  cat -o <out> <file>...
+  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+  pack <dir|file>... -o out.gts
+  unpack <archive> [-C dir] [--include-suppressed]
+  diff <archive> <dir>
+  from-nq <in.nq> [-o out]
+
+description:
+  commandes et drapeaux inchanges; descriptions localisees pour l'aide CLI"""
+
+private const val USAGE_ZH_HANS = """用法: gts <command> [args]
+
+命令:
+  info <file>...
+  fold <file>
+  verify <file>... [--key KID:HEXPUB]
+  verify-proof <proof.json>
+  heads <file>
+  segments <file>
+  missing --from-head <head> <file>
+  resume --after <frame-id> <file>
+  extract-key <file>
+  ls <file>
+  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+  cat -o <out> <file>...
+  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+  pack <dir|file>... -o out.gts
+  unpack <archive> [-C dir] [--include-suppressed]
+  diff <archive> <dir>
+  from-nq <in.nq> [-o out]
+
+说明:
+  命令和标志保持不变；CLI 帮助说明已本地化"""
+
 fun main(args: Array<String>) {
-    if (args.isEmpty()) dieUsage()
+    exitProcess(runCli(args))
+}
+
+internal fun runCliForLocale(args: Array<String>, rawLocale: String): Int = runCli(args, localeFrom(rawLocale))
+
+private fun runCli(args: Array<String>, locale: CliLocale = resolveCliLocale()): Int {
+    if (args.isEmpty()) return dieUsage(locale)
     val code =
         when (args[0]) {
             "info" -> cmdInfo(args.drop(1))
@@ -86,15 +149,15 @@ fun main(args: Array<String>) {
             "diff" -> cmdDiff(args.drop(1))
             "from-nq" -> cmdFromNq(args.drop(1))
             "-h", "--help", "help" -> {
-                println(USAGE)
+                println(usageText(locale))
                 0
             }
             else -> {
-                System.err.println("gts: unknown command '${args[0]}'\n$USAGE")
+                System.err.println(unknownCommandMessage(args[0], locale))
                 2
             }
         }
-    exitProcess(code)
+    return code
 }
 
 private fun cmdInfo(paths: List<String>): Int {
@@ -629,8 +692,45 @@ private fun load(path: String): ByteArray? =
         null
     }
 
-private fun dieUsage(): Int {
-    System.err.println(USAGE)
+private fun resolveCliLocale(env: Map<String, String> = System.getenv()): CliLocale {
+    for (key in listOf("GTS_LANG", "LC_ALL", "LC_MESSAGES", "LANG")) {
+        val raw = env[key]?.trim()
+        if (!raw.isNullOrEmpty()) return localeFrom(raw)
+    }
+    return CliLocale.EN
+}
+
+private fun localeFrom(raw: String): CliLocale {
+    val value =
+        raw
+            .trim()
+            .substringBefore('.')
+            .substringBefore('@')
+            .replace('_', '-')
+            .lowercase()
+    return when (value) {
+        "fr", "fr-ca" -> CliLocale.FR_CA
+        "zh", "zh-cn", "zh-hans", "zh-hans-cn" -> CliLocale.ZH_HANS
+        else -> CliLocale.EN
+    }
+}
+
+private fun usageText(locale: CliLocale): String =
+    when (locale) {
+        CliLocale.FR_CA -> USAGE_FR_CA
+        CliLocale.ZH_HANS -> USAGE_ZH_HANS
+        CliLocale.EN -> USAGE_EN
+    }
+
+private fun unknownCommandMessage(command: String, locale: CliLocale): String =
+    when (locale) {
+        CliLocale.FR_CA -> "gts: commande inconnue '$command'\n${usageText(locale)}"
+        CliLocale.ZH_HANS -> "gts: 未知命令 '$command'\n${usageText(locale)}"
+        CliLocale.EN -> "gts: unknown command '$command'\n${usageText(locale)}"
+    }
+
+private fun dieUsage(locale: CliLocale = resolveCliLocale()): Int {
+    System.err.println(usageText(locale))
     return 2
 }
 

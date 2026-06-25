@@ -67,6 +67,34 @@ func run(t *testing.T, args ...string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer)
 	return cmd, &stdout, &stderr
 }
 
+func runWithEnv(t *testing.T, env map[string]string, args ...string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer) {
+	t.Helper()
+	//nolint:gosec // subprocess is intentional test scaffolding for the compiled CLI.
+	cmd := exec.Command(binPath, args...)
+	cmd.Env = os.Environ()
+	for key, value := range map[string]string{
+		"GTS_LANG":    "",
+		"LC_ALL":      "",
+		"LC_MESSAGES": "",
+		"LANG":        "",
+	} {
+		cmd.Env = append(cmd.Env, key+"="+value)
+	}
+	for key, value := range env {
+		cmd.Env = append(cmd.Env, key+"="+value)
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		if _, ok := err.(*exec.ExitError); !ok {
+			t.Fatalf("failed to start command: %v", err)
+		}
+	}
+	return cmd, &stdout, &stderr
+}
+
 func runWithInput(t *testing.T, input string, args ...string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer) {
 	t.Helper()
 	//nolint:gosec // subprocess is intentional test scaffolding for the compiled CLI.
@@ -101,6 +129,39 @@ func vector(t *testing.T, name string) string {
 func proofVector(t *testing.T, name string) string {
 	t.Helper()
 	return filepath.Join(vectorsDir(t), "proofs", name)
+}
+
+func TestLocalizedHelpAndUnknownCommand(t *testing.T) {
+	cases := []struct {
+		name        string
+		locale      string
+		usageMarker string
+		errorMarker string
+	}{
+		{name: "english fallback", locale: "nonsense", usageMarker: "usage: gts", errorMarker: "unknown command"},
+		{name: "fr ca", locale: "fr_CA", usageMarker: "utilisation: gts", errorMarker: "commande inconnue"},
+		{name: "zh hans", locale: "zh_CN", usageMarker: "用法: gts", errorMarker: "未知命令"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := map[string]string{"GTS_LANG": tc.locale}
+			cmd, stdout, stderr := runWithEnv(t, env, "help")
+			if cmd.ProcessState.ExitCode() != 0 {
+				t.Fatalf("help exit = %d, stderr: %s", cmd.ProcessState.ExitCode(), stderr.String())
+			}
+			if !strings.Contains(stdout.String(), tc.usageMarker) || !strings.Contains(stdout.String(), "from-nq") {
+				t.Fatalf("localized help mismatch:\n%s", stdout.String())
+			}
+
+			cmd, _, stderr = runWithEnv(t, env, "not-a-gts-command")
+			if cmd.ProcessState.ExitCode() != 2 {
+				t.Fatalf("unknown command exit = %d", cmd.ProcessState.ExitCode())
+			}
+			if !strings.Contains(stderr.String(), tc.errorMarker) || !strings.Contains(stderr.String(), "not-a-gts-command") {
+				t.Fatalf("localized error mismatch:\n%s", stderr.String())
+			}
+		})
+	}
 }
 
 func TestFoldEmitsNQuads(t *testing.T) {

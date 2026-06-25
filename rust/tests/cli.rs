@@ -18,6 +18,38 @@ fn gts(args: &[&str]) -> Output {
         .expect("gts binary runs")
 }
 
+fn gts_with_locale(locale: &str, args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_gts"))
+        .env("GTS_LANG", locale)
+        .env("LC_ALL", "")
+        .env("LC_MESSAGES", "")
+        .env("LANG", "")
+        .args(args)
+        .output()
+        .expect("gts binary runs")
+}
+
+#[test]
+fn localized_help_and_unknown_command() {
+    for (locale, usage_marker, error_marker) in [
+        ("nonsense", "usage: gts", "unknown command"),
+        ("fr_CA", "utilisation: gts", "commande inconnue"),
+        ("zh_CN", "用法: gts", "未知命令"),
+    ] {
+        let out = gts_with_locale(locale, &["help"]);
+        assert!(out.status.success());
+        let help = String::from_utf8(out.stdout).unwrap();
+        assert!(help.contains(usage_marker), "help: {help}");
+        assert!(help.contains("from-nq"), "help: {help}");
+
+        let out = gts_with_locale(locale, &["not-a-gts-command"]);
+        assert_eq!(out.status.code(), Some(2));
+        let err = String::from_utf8(out.stderr).unwrap();
+        assert!(err.contains(error_marker), "stderr: {err}");
+        assert!(err.contains("not-a-gts-command"), "stderr: {err}");
+    }
+}
+
 #[test]
 fn fold_emits_nquads() {
     let v = vectors().join("01-minimal.gts");
