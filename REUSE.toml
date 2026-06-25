@@ -66,6 +66,15 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
 
+# Localized Simplified Chinese Markdown also carries inline SPDX comments, but
+# REUSE 5 can miss them on some non-Latin Markdown files; keep an aggregate
+# subtree annotation so the licensing gate remains deterministic.
+[[annotations]]
+path = "docs/i18n/zh-Hans/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+
 # Pharo Tonel source and smalltalkCI configuration are annotated here because
 # several Tonel metadata files conventionally do not carry inline comments.
 [[annotations]]
