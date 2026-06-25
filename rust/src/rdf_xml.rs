@@ -36,6 +36,7 @@ const RDF_PARSE_TYPE: &str = "parseType";
 const RDF_TYPE: &str = "type";
 const RDF_VERSION: &str = "version";
 const RDF_ANNOTATION: &str = "annotation";
+const RDF_ANNOTATION_NODE_ID: &str = "annotationNodeID";
 const RDF_REIFIES: &str = "reifies";
 const RDF_FIRST: &str = "first";
 const RDF_REST: &str = "rest";
@@ -168,6 +169,7 @@ impl Element {
                             | RDF_TYPE
                             | RDF_VERSION
                             | RDF_ANNOTATION
+                            | RDF_ANNOTATION_NODE_ID
                     ))
             })
     }
@@ -486,13 +488,15 @@ impl RdfXmlParser {
             .attr_rdf(RDF_ID)
             .map(|id| self.rdf_id_iri(id, &context).map(NamedOrBlankNode::from))
             .transpose()?;
-        let annotation = element
-            .attr_rdf(RDF_ANNOTATION)
-            .map(|annotation| {
-                self.iri_ref(annotation, &context)
-                    .map(NamedOrBlankNode::from)
-            })
-            .transpose()?;
+        // `rdf:annotation="IRI"` and `rdf:annotationNodeID="id"` both name the reifier
+        // of the asserted triple; the former is an IRI, the latter a blank node.
+        let annotation = match element.attr_rdf(RDF_ANNOTATION) {
+            Some(annotation) => Some(self.iri_ref(annotation, &context)?.into()),
+            None => match element.attr_rdf(RDF_ANNOTATION_NODE_ID) {
+                Some(node_id) => Some(BlankNode::new(node_id)?.into()),
+                None => None,
+            },
+        };
 
         if let Some(resource) = element.attr_rdf(RDF_RESOURCE) {
             let object: NamedOrBlankNode = self.iri_ref(resource, &context)?.into();
