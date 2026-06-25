@@ -685,6 +685,20 @@ fn rdf_xml_parser_accepts_core_w3c_rdf_xml_shapes() {
 }
 
 #[test]
+fn rdf_xml_parser_resolves_text_entity_references() {
+    let rdf_xml = r#"<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:ex="http://example.org/">
+  <rdf:Description rdf:about="http://example.org/s">
+    <ex:label>A &amp; B &lt; C &#x21;</ex:label>
+  </rdf:Description>
+</rdf:RDF>"#;
+
+    let out = nquads_from_gts(&from_rdf_xml(rdf_xml).expect("RDF/XML imports"));
+    assert!(out.contains("\"A & B < C !\""), "{out}");
+}
+
+#[test]
 fn rdf_xml_parser_preserves_empty_property_attributes_on_resource_objects() {
     let rdf_xml = r#"<?xml version="1.0"?>
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
