@@ -476,19 +476,34 @@ impl Interner {
                     reifier: Some(id),
                 });
                 self.ids.insert(key, id);
-                set_reifier(reifiers, id, (s, p, o));
+                // A triple TERM stores its own components under its freshly-minted id
+                // (the key dedup above guarantees this id is bound exactly once), so the
+                // self-reference can never be a conflicting rebind.
+                set_reifier(reifiers, id, (s, p, o))
+                    .expect("a fresh triple-term id is bound exactly once");
                 id
             }
         }
     }
 }
 
-fn set_reifier(reifiers: &mut Vec<(usize, Triple3)>, rid: usize, spo: Triple3) {
-    if let Some((_, existing)) = reifiers.iter_mut().find(|(r, _)| *r == rid) {
-        *existing = spo;
+fn set_reifier(
+    reifiers: &mut Vec<(usize, Triple3)>,
+    rid: usize,
+    spo: Triple3,
+) -> Result<(), NQuadsParseError> {
+    if let Some((_, existing)) = reifiers.iter().find(|(r, _)| *r == rid) {
+        // A reifier bound to a DIFFERENT triple is a hard conflict (CONSTITUTION P7:
+        // never silently last-write-win). An identical rebind is idempotent.
+        if *existing != spo {
+            return Err(NQuadsParseError::new(format!(
+                "conflicting rdf:reifies binding for reifier term {rid}"
+            )));
+        }
     } else {
         reifiers.push((rid, spo));
     }
+    Ok(())
 }
 
 fn validate_subject(
@@ -645,7 +660,7 @@ fn parse_text(text: &str, options: ParseOptions) -> Result<Vec<Vec<Node>>, NQuad
     Ok(statements)
 }
 
-fn build_gts(statements: &[Vec<Node>]) -> Vec<u8> {
+fn build_gts(statements: &[Vec<Node>]) -> Result<Vec<u8>, NQuadsParseError> {
     let mut interner = Interner::new();
     let mut reifiers: Vec<(usize, Triple3)> = Vec::new();
     let mut quads: Vec<Quad> = Vec::new();
@@ -664,7 +679,7 @@ fn build_gts(statements: &[Vec<Node>]) -> Vec<u8> {
                 let ss = interner.node(&object.s, &mut reifiers);
                 let pp = interner.node(&object.p, &mut reifiers);
                 let oo = interner.node(&object.o, &mut reifiers);
-                set_reifier(&mut reifiers, rid, (ss, pp, oo));
+                set_reifier(&mut reifiers, rid, (ss, pp, oo))?;
                 continue;
             }
         }
@@ -686,7 +701,7 @@ fn build_gts(statements: &[Vec<Node>]) -> Vec<u8> {
     if !reifiers.is_empty() {
         writer.add_reifies(&reifiers);
     }
-    writer.to_bytes()
+    Ok(writer.to_bytes())
 }
 
 /// Parse N-Triples(-star) text into a canonical GTS file.
@@ -698,7 +713,7 @@ pub fn from_ntriples(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
             allow_triple_subject: false,
         },
     )?;
-    Ok(build_gts(&statements))
+    build_gts(&statements)
 }
 
 /// Parse N-Quads(-star) text into a canonical GTS file.
@@ -710,5 +725,5 @@ pub fn from_nquads(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
             allow_triple_subject: true,
         },
     )?;
-    Ok(build_gts(&statements))
+    build_gts(&statements)
 }

@@ -193,7 +193,7 @@ let bytes = gmeow_gts::from_nquads::from_nquads(nquads.as_str())?;
 For native Rust data-model interop, enable the optional `rdf` feature:
 
 ```toml
-gmeow-gts = { version = "0.9.7", default-features = false, features = ["rdf"] }
+gmeow-gts = { version = "0.9.8", default-features = false, features = ["rdf"] }
 ```
 
 ```rust
@@ -210,7 +210,7 @@ an external RDF store, so `--features rdf` remains suitable for
 For native in-memory RDF store interop, enable the optional native store:
 
 ```toml
-gmeow-gts = { version = "0.9.7", default-features = false, features = ["native-store"] }
+gmeow-gts = { version = "0.9.8", default-features = false, features = ["native-store"] }
 ```
 
 ```rust

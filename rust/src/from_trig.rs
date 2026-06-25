@@ -891,16 +891,23 @@ impl<'a> Parser<'a> {
     fn prefixed_name(&mut self) -> Result<String, TriGParseError> {
         self.skip_ws_and_comments();
         let start = self.pos;
+        // A `.` is NOT a delimiter here: Turtle's PN_LOCAL admits internal dots
+        // (`repo:README.md`). A *trailing* dot is the statement terminator and is
+        // stripped back below — PN_LOCAL may not end in `.`.
         while let Some(ch) = self.peek_char() {
             if ch.is_whitespace()
                 || matches!(
                     ch,
-                    '{' | '}' | '[' | ']' | '(' | ')' | '<' | '>' | '.' | ';' | ','
+                    '{' | '}' | '[' | ']' | '(' | ')' | '<' | '>' | ';' | ','
                 )
             {
                 break;
             }
             self.bump_char();
+        }
+        // Strip any trailing dot(s): they terminate the statement, not the name.
+        while self.pos > start && self.text.as_bytes()[self.pos - 1] == b'.' {
+            self.pos -= 1;
         }
         if self.pos == start {
             return Err(TriGParseError::new(format!(
