@@ -484,30 +484,30 @@ impl<'a> Parser<'a> {
             self.pos += 1;
         }
         let mut has_digits = false;
-        while matches!(self.text.as_bytes().get(self.pos), Some(b'0'..=b'9')) {
+        while matches!(bytes.get(self.pos), Some(b'0'..=b'9')) {
             self.pos += 1;
             has_digits = true;
         }
         let mut is_decimal = false;
-        if self.text.as_bytes().get(self.pos) == Some(&b'.')
-            && matches!(self.text.as_bytes().get(self.pos + 1), Some(b'0'..=b'9'))
+        if bytes.get(self.pos) == Some(&b'.')
+            && matches!(bytes.get(self.pos + 1), Some(b'0'..=b'9'))
         {
             is_decimal = true;
             self.pos += 1;
-            while matches!(self.text.as_bytes().get(self.pos), Some(b'0'..=b'9')) {
+            while matches!(bytes.get(self.pos), Some(b'0'..=b'9')) {
                 self.pos += 1;
                 has_digits = true;
             }
         }
         let mut is_double = false;
-        if matches!(self.text.as_bytes().get(self.pos), Some(b'e') | Some(b'E')) {
+        if matches!(bytes.get(self.pos), Some(b'e') | Some(b'E')) {
             is_double = true;
             self.pos += 1;
-            if matches!(self.text.as_bytes().get(self.pos), Some(b'+') | Some(b'-')) {
+            if matches!(bytes.get(self.pos), Some(b'+') | Some(b'-')) {
                 self.pos += 1;
             }
             let exp_start = self.pos;
-            while matches!(self.text.as_bytes().get(self.pos), Some(b'0'..=b'9')) {
+            while matches!(bytes.get(self.pos), Some(b'0'..=b'9')) {
                 self.pos += 1;
             }
             if self.pos == exp_start {
@@ -542,10 +542,13 @@ impl<'a> Parser<'a> {
         for keyword in ["true", "false"] {
             let rest = &self.text[self.pos..];
             if let Some(after) = rest.strip_prefix(keyword) {
-                let boundary = after.chars().next().is_none_or(|ch| {
-                    ch.is_whitespace()
-                        || matches!(ch, '.' | ';' | ',' | ')' | ']' | '}' | '>' | '#')
-                });
+                let boundary = match after.chars().next() {
+                    Some(ch) => {
+                        ch.is_whitespace()
+                            || matches!(ch, '.' | ';' | ',' | ')' | ']' | '}' | '>' | '#')
+                    }
+                    None => true,
+                };
                 if boundary {
                     self.pos += keyword.len();
                     return Some(Node::Literal {
@@ -688,15 +691,14 @@ impl<'a> Parser<'a> {
     /// newlines and contain up to two consecutive quote characters; both forms honour
     /// the shared backslash escapes.
     fn quoted_string(&mut self) -> Result<String, TriGParseError> {
-        let quote = match self.peek_char() {
-            Some('"') => '"',
-            Some('\'') => '\'',
+        let (quote, long) = match self.peek_char() {
+            Some('"') => ('"', "\"\"\""),
+            Some('\'') => ('\'', "'''"),
             _ => return Err(TriGParseError::new("expected literal")),
         };
-        let long = [quote, quote, quote].iter().collect::<String>();
-        if self.text[self.pos..].starts_with(&long) {
+        if self.text[self.pos..].starts_with(long) {
             self.pos += long.len();
-            return self.long_string(&long);
+            return self.long_string(long);
         }
         self.bump_char();
         let mut value = String::new();
