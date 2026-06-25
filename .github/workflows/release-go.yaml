@@ -86,8 +86,30 @@ jobs:
 
       - name: Write release notes
         run: |
+          VERSION="${GITHUB_REF_NAME#go/v}"
           cat > release-notes-go.md <<EOF
-          Pre-built \`gts\` CLI binaries for \`go.blackcatinformatics.ca/gts\`.
+          GTS Go v${VERSION} release for \`go.blackcatinformatics.ca/gts\`.
+          EOF
+
+          if [ "$VERSION" = "0.9.5" ]; then
+            cat >> release-notes-go.md <<EOF
+
+          This is the Go 0.9.5 parity release. It publishes the Go engine and CLI
+          from \`Blackcat-Informatics/gmeow-gts\`, including the Go RDF event
+          source/sink API, XSD lexical validation diagnostics, and RDF 1.2 text
+          codec API/CLI parity surface completed for this release.
+          EOF
+          else
+            cat >> release-notes-go.md <<EOF
+
+          This release publishes the Go engine and CLI from
+          \`Blackcat-Informatics/gmeow-gts\`.
+          EOF
+          fi
+
+          cat >> release-notes-go.md <<EOF
+
+          Pre-built \`gts\` CLI binaries are attached for Linux, macOS, and Windows.
 
           Verify the immutable GitHub release attestation:
           \`\`\`
