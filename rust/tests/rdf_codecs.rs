@@ -497,6 +497,71 @@ long''' .
 }
 
 #[test]
+fn turtle_parser_expands_rdf12_reifying_triples_and_annotations() {
+    // RDF 1.2 reifier/annotation syntax must EXPAND (not be treated as triple terms):
+    // `<< s p o >>`   -> fresh `_:r` + `_:r rdf:reifies <<( s p o )>>`, evaluates to `_:r`
+    // `<< s p o ~ i >>` -> `i rdf:reifies <<( s p o )>>`, evaluates to `i`
+    // `s p o {| a v |}` -> assert `s p o` + `_:r a v` + `_:r rdf:reifies <<( s p o )>>`
+    let reifies = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>";
+
+    // Subject reifying triple, anonymous reifier.
+    let out = nquads_from_gts(
+        &from_turtle("PREFIX : <http://example/>\n<<:s :p :o>> :q :z .\n").expect("rt-01"),
+    );
+    assert!(
+        out.contains(&format!(
+            "{reifies} <<( <http://example/s> <http://example/p> <http://example/o> )>>"
+        )),
+        "reifies a triple term:\n{out}"
+    );
+    assert!(
+        out.contains("<http://example/q> <http://example/z>"),
+        "the reifier is the subject of :q :z:\n{out}"
+    );
+    assert!(
+        !out.contains(
+            "<<( <http://example/s> <http://example/p> <http://example/o> )>> <http://example/q>"
+        ),
+        "the triple term must NOT be the asserted subject:\n{out}"
+    );
+
+    // Reifying triple with explicit IRI reifier identifier.
+    let out = nquads_from_gts(
+        &from_turtle("PREFIX : <http://example/>\n<< :s :p :o ~ :i >> :q :z .\n").expect("rt-03"),
+    );
+    assert!(
+        out.contains(&format!(
+            "<http://example/i> {reifies} <<( <http://example/s>"
+        )),
+        "explicit reifier id used:\n{out}"
+    );
+    assert!(
+        out.contains("<http://example/i> <http://example/q> <http://example/z>"),
+        "explicit reifier is the subject:\n{out}"
+    );
+
+    // Annotation syntax.
+    let out = nquads_from_gts(
+        &from_turtle("PREFIX : <http://example/>\n:s :p :o {| :r :z |} .\n")
+            .expect("annotation-01"),
+    );
+    assert!(
+        out.contains("<http://example/s> <http://example/p> <http://example/o>"),
+        "base triple asserted:\n{out}"
+    );
+    assert!(
+        out.contains(&format!(
+            "{reifies} <<( <http://example/s> <http://example/p> <http://example/o> )>>"
+        )),
+        "annotation reifies the base triple:\n{out}"
+    );
+    assert!(
+        out.contains("<http://example/r> <http://example/z>"),
+        "annotation pair:\n{out}"
+    );
+}
+
+#[test]
 fn native_codecs_roundtrip_long_private_use_language_subtags() {
     // The driver behind gmeow-gts #358: GMEOW relies on long BCP-47 private-use
     // subtags like `x-gmeow-norwegiannynorsk` (>8 chars) which oxttl rejected without

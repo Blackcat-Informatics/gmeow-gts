@@ -21,6 +21,7 @@ const RDF_TYPE: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const RDF_FIRST: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#first";
 const RDF_REST: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest";
 const RDF_NIL: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil";
+const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
 // XSD datatypes for Turtle's bare numeric and boolean literals. The lexical form is
 // preserved verbatim (no canonicalisation) so `0.70`, `1.0E0`, `+00:00`-style values
@@ -262,6 +263,18 @@ impl<'a> Parser<'a> {
                 self.base_directive(false)?;
                 continue;
             }
+            // RDF 1.2 version directives. The declared version string is recorded
+            // structurally elsewhere; the codec only needs to accept and skip it.
+            // `@version "x" .` (dot-terminated) and `VERSION "x"` (keyword form).
+            if self.consume("@version") {
+                self.version_string()?;
+                self.expect_char('.', "after @version directive")?;
+                continue;
+            }
+            if self.consume_keyword("VERSION") {
+                self.version_string()?;
+                continue;
+            }
             if self.consume_keyword("GRAPH") {
                 if !self.allow_named_graphs {
                     return Err(TriGParseError::new(
@@ -273,6 +286,7 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
+            let allow_empty = self.subject_allows_empty_pol();
             let first = self.term(None)?;
             self.skip_ws_and_comments();
             if self.consume_char('{') {
@@ -283,7 +297,7 @@ impl<'a> Parser<'a> {
                 }
                 self.graph_block_after_open(first)?;
             } else {
-                self.statement_after_subject(first, None)?;
+                self.statement_after_subject(first, None, allow_empty)?;
             }
         }
         Ok(if self.nquads.is_empty() {
@@ -440,7 +454,7 @@ impl<'a> Parser<'a> {
             return self.parenthesized_quoted_triple(graph);
         }
         if self.text[self.pos..].starts_with("<<") {
-            return self.legacy_quoted_triple(graph);
+            return self.reifying_triple(graph);
         }
         match self.peek_char() {
             Some('<') => self.iri().map(Node::Iri),
@@ -571,6 +585,28 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// A subject/object inside a quoted or reifying triple. Unlike a normal term it
+    /// MUST NOT be a blank-node property list `[ … ]` or an RDF collection `( … )`:
+    /// those expand to extra triples that cannot live inside a triple term, so the
+    /// W3C suite treats them as syntax errors.
+    fn quoted_component(&mut self, graph: Option<&Node>) -> Result<Node, TriGParseError> {
+        self.skip_ws_and_comments();
+        // An EMPTY `[]` (anonymous blank node) or `()` (rdf:nil) is a plain term and
+        // is allowed; a NON-empty `[ pol ]` or `( … )` generates extra triples that
+        // cannot live inside a triple term, so the W3C suite rejects those.
+        match self.peek_char() {
+            Some('[') if !self.text[self.pos + 1..].trim_start().starts_with(']') => {
+                Err(TriGParseError::new(
+                    "blank-node property list is not allowed inside a quoted triple",
+                ))
+            }
+            Some('(') if !self.text[self.pos + 1..].trim_start().starts_with(')') => Err(
+                TriGParseError::new("RDF collection is not allowed inside a quoted triple"),
+            ),
+            _ => self.term(graph),
+        }
+    }
+
     fn iri_raw(&mut self) -> Result<String, TriGParseError> {
         self.skip_ws_and_comments();
         if self.bump_char() != Some('<') {
@@ -677,6 +713,18 @@ impl<'a> Parser<'a> {
         })
     }
 
+    /// The string argument of a `VERSION` / `@version` directive: a SHORT string
+    /// literal only (a triple-quoted string is a syntax error per the W3C suite).
+    fn version_string(&mut self) -> Result<String, TriGParseError> {
+        self.skip_ws_and_comments();
+        if self.text[self.pos..].starts_with("\"\"\"") || self.text[self.pos..].starts_with("'''") {
+            return Err(TriGParseError::new(
+                "version directive requires a simple (non-triple-quoted) string",
+            ));
+        }
+        self.quoted_string()
+    }
+
     fn datatype_iri(&mut self) -> Result<String, TriGParseError> {
         self.skip_ws_and_comments();
         if self.peek_char() == Some('<') {
@@ -776,9 +824,9 @@ impl<'a> Parser<'a> {
         graph: Option<&Node>,
     ) -> Result<Node, TriGParseError> {
         self.pos += 3;
-        let s = self.term(graph)?;
+        let s = self.quoted_component(graph)?;
         let p = self.predicate()?;
-        let o = self.term(graph)?;
+        let o = self.quoted_component(graph)?;
         self.skip_ws_and_comments();
         if !self.text[self.pos..].starts_with(")>>") {
             return Err(TriGParseError::new("unterminated quoted triple"));
@@ -787,17 +835,41 @@ impl<'a> Parser<'a> {
         Ok(Node::Triple(Box::new(s), Box::new(p), Box::new(o)))
     }
 
-    fn legacy_quoted_triple(&mut self, graph: Option<&Node>) -> Result<Node, TriGParseError> {
+    /// RDF 1.2 reifying triple `<< s p o [~ reifier] >>`. Unlike the triple-term
+    /// form `<<( s p o )>>` (a value), this *asserts a reifier*: it evaluates to a
+    /// reifier node — the explicit `~`-identifier when present, otherwise a fresh
+    /// blank node — and emits `reifier rdf:reifies <<( s p o )>>`. The reifier node
+    /// is what the enclosing statement uses as its subject/object.
+    fn reifying_triple(&mut self, graph: Option<&Node>) -> Result<Node, TriGParseError> {
         self.pos += 2;
-        let s = self.term(graph)?;
+        let s = self.quoted_component(graph)?;
         let p = self.predicate()?;
-        let o = self.term(graph)?;
+        let o = self.quoted_component(graph)?;
+        self.skip_ws_and_comments();
+        let reifier = if self.consume_char('~') {
+            self.skip_ws_and_comments();
+            // `~` with no identifier before `>>` is an anonymous reifier.
+            if self.text[self.pos..].starts_with(">>") {
+                self.next_bnode()
+            } else {
+                self.term(graph)?
+            }
+        } else {
+            self.next_bnode()
+        };
         self.skip_ws_and_comments();
         if !self.text[self.pos..].starts_with(">>") {
-            return Err(TriGParseError::new("unterminated quoted triple"));
+            return Err(TriGParseError::new("unterminated reifying triple"));
         }
         self.pos += 2;
-        Ok(Node::Triple(Box::new(s), Box::new(p), Box::new(o)))
+        let triple_term = Node::Triple(Box::new(s), Box::new(p), Box::new(o));
+        self.emit_statement(
+            &reifier,
+            &Node::Iri(RDF_REIFIES.to_string()),
+            &triple_term,
+            graph,
+        );
+        Ok(reifier)
     }
 
     fn prefixed_name(&mut self) -> Result<String, TriGParseError> {
@@ -884,8 +956,9 @@ impl<'a> Parser<'a> {
             if self.eof() {
                 return Err(TriGParseError::new("unterminated graph block"));
             }
+            let allow_empty = self.subject_allows_empty_pol();
             let subject = self.term(Some(&graph))?;
-            self.statement_after_subject(subject, Some(&graph))?;
+            self.statement_after_subject(subject, Some(&graph), allow_empty)?;
         }
         Ok(())
     }
@@ -894,9 +967,33 @@ impl<'a> Parser<'a> {
         &mut self,
         subject: Node,
         graph: Option<&Node>,
+        allow_empty: bool,
     ) -> Result<(), TriGParseError> {
-        self.predicate_object_list(&subject, graph)?;
-        self.expect_char('.', "to terminate statement")
+        // A reifying triple (`<< s p o >>`) or blank-node property list (`[ … ]`)
+        // already asserts itself, so its predicate-object list is OPTIONAL — the
+        // statement may end immediately at `.`. A plain subject still requires one.
+        self.skip_ws_and_comments();
+        if !(allow_empty && matches!(self.peek_char(), Some('.' | '}'))) {
+            self.predicate_object_list(&subject, graph)?;
+        }
+        self.skip_ws_and_comments();
+        // The trailing `.` is optional for the final statement inside a graph block
+        // (`{ … }`): a `}` may follow directly.
+        if self.consume_char('.') || (graph.is_some() && self.peek_char() == Some('}')) {
+            Ok(())
+        } else {
+            Err(TriGParseError::new(format!(
+                "expected '.' to terminate statement at byte {}",
+                self.pos
+            )))
+        }
+    }
+
+    /// True when the upcoming subject is self-asserting (a reifying triple or a
+    /// blank-node property list), so its predicate-object list may be omitted.
+    fn subject_allows_empty_pol(&self) -> bool {
+        let rest = self.text[self.pos..].trim_start();
+        (rest.starts_with("<<") && !rest.starts_with("<<(")) || rest.starts_with('[')
     }
 
     fn predicate_object_list(
@@ -909,6 +1006,7 @@ impl<'a> Parser<'a> {
             loop {
                 let object = self.term(graph)?;
                 self.emit_statement(subject, &predicate, &object, graph);
+                self.maybe_reify_and_annotate(subject, &predicate, &object, graph)?;
                 if self.consume_char(',') {
                     continue;
                 }
@@ -916,12 +1014,77 @@ impl<'a> Parser<'a> {
             }
             if self.consume_char(';') {
                 self.skip_ws_and_comments();
-                if matches!(self.peek_char(), Some('.' | ']' | '}')) {
+                if matches!(self.peek_char(), Some('.' | ']' | '}'))
+                    || self.text[self.pos..].starts_with("|}")
+                {
                     break;
                 }
                 continue;
             }
             break;
+        }
+        Ok(())
+    }
+
+    /// RDF 1.2 reifier/annotation suffix on a just-asserted triple `s p o`:
+    /// an optional `~ reifier` identifier and zero or more `{| pol |}` annotation
+    /// blocks. Each reifier (the explicit `~`-id for the first, a fresh blank for
+    /// each subsequent block) gets `reifier rdf:reifies <<( s p o )>>`, and an
+    /// annotation block applies its predicate-object list to that reifier.
+    fn maybe_reify_and_annotate(
+        &mut self,
+        s: &Node,
+        p: &Node,
+        o: &Node,
+        graph: Option<&Node>,
+    ) -> Result<(), TriGParseError> {
+        let triple_term = Node::Triple(
+            Box::new(s.clone()),
+            Box::new(p.clone()),
+            Box::new(o.clone()),
+        );
+        let reifies = Node::Iri(RDF_REIFIES.to_string());
+
+        // The reifier/annotation suffix is a SEQUENCE of items in any order: each
+        // `~ id` declares a reifier (and becomes the pending target), and each
+        // `{| pol |}` block applies its predicate-object list to the pending reifier
+        // (consuming it) or to a fresh blank node when none is pending. Every reifier
+        // — named, anonymous, or block-minted — gets `reifier rdf:reifies <<( s p o )>>`.
+        let mut pending: Option<Node> = None;
+        loop {
+            self.skip_ws_and_comments();
+            if self.consume_char('~') {
+                self.skip_ws_and_comments();
+                let id = if self.text[self.pos..].starts_with("{|")
+                    || matches!(self.peek_char(), Some('.' | ',' | ';' | ']' | '}' | '~'))
+                {
+                    self.next_bnode()
+                } else {
+                    self.term(graph)?
+                };
+                self.emit_statement(&id, &reifies, &triple_term, graph);
+                pending = Some(id);
+            } else if self.text[self.pos..].starts_with("{|") {
+                let reifier = match pending.take() {
+                    Some(r) => r,
+                    None => {
+                        let r = self.next_bnode();
+                        self.emit_statement(&r, &reifies, &triple_term, graph);
+                        r
+                    }
+                };
+                self.pos += 2; // consume "{|"
+                self.predicate_object_list(&reifier, graph)?;
+                self.skip_ws_and_comments();
+                if !self.text[self.pos..].starts_with("|}") {
+                    return Err(TriGParseError::new(
+                        "unterminated annotation block (expected `|}`)",
+                    ));
+                }
+                self.pos += 2; // consume "|}"
+            } else {
+                break;
+            }
         }
         Ok(())
     }
