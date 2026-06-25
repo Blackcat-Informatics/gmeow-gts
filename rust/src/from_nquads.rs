@@ -477,10 +477,11 @@ impl Interner {
                 });
                 self.ids.insert(key, id);
                 // A triple TERM stores its own components under its freshly-minted id
-                // (the key dedup above guarantees this id is bound exactly once), so the
-                // self-reference can never be a conflicting rebind.
-                set_reifier(reifiers, id, (s, p, o))
-                    .expect("a fresh triple-term id is bound exactly once");
+                // (the key dedup above guarantees this id is bound exactly once), so this
+                // is always a first bind — push directly rather than going through the
+                // conflict-checking `set_reifier` (which would force panic/error handling
+                // on a branch that can never conflict).
+                reifiers.push((id, (s, p, o)));
                 id
             }
         }
