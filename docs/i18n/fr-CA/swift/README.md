@@ -10,7 +10,7 @@
 
 ## Aperçu
 
-Guide de l enveloppe Swift Package Manager et du miroir d entete C.
+Guide de l'enveloppe Swift Package Manager et du miroir d'en-tête C.
 
 Cette page est une première traduction de lecture pour le lot #364. Elle suit la terminologie de [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et sera vérifiée dans le passage final #369 avant d'être marquée comme traduction soumise au contrôle de dérive.
 

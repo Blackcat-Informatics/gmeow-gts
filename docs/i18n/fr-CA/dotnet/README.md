@@ -10,7 +10,7 @@
 
 ## Aperçu
 
-Guide de l enveloppe .NET et de son chargement de la bibliothèque native.
+Guide de l'enveloppe .NET et de son chargement de la bibliothèque native.
 
 Cette page est une première traduction de lecture pour le lot #364. Elle suit la terminologie de [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et sera vérifiée dans le passage final #369 avant d'être marquée comme traduction soumise au contrôle de dérive.
 
