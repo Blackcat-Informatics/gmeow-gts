@@ -433,6 +433,26 @@ fn turtle_parser_accepts_shared_turtle_grammar() {
 }
 
 #[test]
+fn turtle_parser_accepts_prefixed_names_with_internal_dots() {
+    // Turtle PN_LOCAL admits internal dots (`repo:README.md`); only a TRAILING dot is
+    // the statement terminator. The hand-rolled parser must not split the local name at
+    // the first dot. Two statements exercise both the space-terminated and the
+    // dot-terminated (no space) forms.
+    let turtle = "PREFIX repo: <https://ex/repo/>\n\
+                  <https://ex/a> <https://ex/p> repo:README.md .\n\
+                  <https://ex/b> <https://ex/p> repo:docs.guide.v2.\n";
+    let out = nquads_from_gts(&from_turtle(turtle).expect("Turtle imports dotted local names"));
+    assert!(
+        out.contains("<https://ex/p> <https://ex/repo/README.md>"),
+        "internal-dot local name (space-terminated):\n{out}"
+    );
+    assert!(
+        out.contains("<https://ex/p> <https://ex/repo/docs.guide.v2>"),
+        "internal-dot local name (dot-terminated, no space):\n{out}"
+    );
+}
+
+#[test]
 fn turtle_parser_accepts_bare_numeric_boolean_and_long_string_literals() {
     // The literal forms the native parser previously lacked (which forced the oxttl
     // stopgap on the 909 branch): bare integer/decimal/double, boolean, single- and

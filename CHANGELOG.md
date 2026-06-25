@@ -30,6 +30,16 @@ and MAY change before `1.0`.
   (a triple term keying its own components in the reifiers map) no longer trips the
   event source's `cycle while declaring term N` guard.
 
+## [0.9.8]
+
+### Fixed
+
+- Turtle/TriG prefixed names admit internal dots (`repo:README.md`): a `.` is no longer
+  a name delimiter; only a trailing dot terminates the statement.
+- The N-Triples/N-Quads statement-layer fold HARD-FAILS on a conflicting `rdf:reifies`
+  rebind (same reifier subject, different triple term) instead of silently
+  last-write-winning (CONSTITUTION P7); an identical rebind stays idempotent.
+
 ## [Unreleased]
 
 ### Added
@@ -333,6 +343,7 @@ at `0.9.4`.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
 [Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...HEAD
+[0.9.8]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.7...rust-v0.9.8
 [0.9.7]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.6...rust-v0.9.7
 [0.9.6]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...rust-v0.9.6
 [0.9.5]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.4...rust-v0.9.5
