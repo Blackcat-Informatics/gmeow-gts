@@ -952,6 +952,42 @@ ex:r ex:confidence "0.9" .
 }
 
 #[test]
+fn trig_parser_allows_comment_only_empty_structures_inside_rdf12_triples() {
+    let trig = r#"PREFIX ex: <https://ex/>
+<< [
+  # empty blank node subject
+] ex:p (
+  # rdf:nil object
+) >> ex:source ex:doc .
+"#;
+
+    let out = nquads_from_gts(&from_trig(trig).expect("TriG imports"));
+    assert!(out.contains("<http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>"));
+    assert!(out.contains("<<( _:"));
+    assert!(out.contains("<https://ex/p> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>"));
+    assert!(out.contains("<https://ex/source> <https://ex/doc>"));
+}
+
+#[test]
+fn trig_parser_rejects_non_empty_structures_inside_rdf12_triples_after_comments() {
+    let blank_node_property_list = r#"PREFIX ex: <https://ex/>
+<< [
+  # non-empty property list
+  ex:p ex:o
+] ex:p ex:o >> ex:source ex:doc .
+"#;
+    assert!(from_trig(blank_node_property_list).is_err());
+
+    let collection = r#"PREFIX ex: <https://ex/>
+<< ex:s ex:p (
+  # non-empty collection
+  ex:o
+) >> ex:source ex:doc .
+"#;
+    assert!(from_trig(collection).is_err());
+}
+
+#[test]
 fn trig_serialization_roundtrips_through_event_source() {
     let graph = sample_graph(true);
     let source: &dyn RdfEventSource = &GraphRdfEventSource::new(&graph);

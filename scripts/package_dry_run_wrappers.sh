@@ -42,6 +42,24 @@ target_directory() {
     | python3 -c "import json,sys; print(json.load(sys.stdin)['target_directory'])"
 }
 
+cargo_package_version() {
+  cargo metadata --manifest-path "$1" --no-deps --format-version 1 \
+    | python3 -c "import json,sys; print(json.load(sys.stdin)['packages'][0]['version'])"
+}
+
+core_crate_is_published() {
+  local version="$1"
+  local cargo_info="${TMP}/cargo-info-gmeow-gts.txt"
+  if cargo info "gmeow-gts@${version}" > "${cargo_info}" 2>&1; then
+    return 0
+  fi
+  if grep -Eq "could not find .+gmeow-gts@${version}" "${cargo_info}"; then
+    return 1
+  fi
+  cat "${cargo_info}" >&2
+  exit 1
+}
+
 container_path() {
   case "$1" in
     "${ROOT}"/*)
@@ -266,10 +284,28 @@ export DYLD_LIBRARY_PATH="${CAPI_TARGET}${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PAT
 export LIBRARY_PATH="${CAPI_TARGET}${LIBRARY_PATH:+:${LIBRARY_PATH}}"
 
 log "Rust C ABI cargo package list"
-cargo package --manifest-path rust/capi/Cargo.toml --locked --list \
-  > "${OUT}/rust/cargo-package-list.txt"
+CORE_VERSION="$(cargo_package_version rust/Cargo.toml)"
+CAPI_VERSION="$(cargo_package_version rust/capi/Cargo.toml)"
+if core_crate_is_published "${CORE_VERSION}"; then
+  CORE_CRATE_PUBLISHED=1
+else
+  CORE_CRATE_PUBLISHED=0
+fi
+
+if [ "${CORE_CRATE_PUBLISHED}" = "1" ]; then
+  cargo package --manifest-path rust/capi/Cargo.toml --locked --list \
+    > "${OUT}/rust/cargo-package-list.txt"
+else
+  printf '%s\n' \
+    "cargo package --list skipped: rust/capi depends on gmeow-gts ${CORE_VERSION}, which is not published yet; paired release order publishes rust-v${CORE_VERSION} before capi-v${CAPI_VERSION}." \
+    > "${OUT}/rust/cargo-package-list.txt"
+fi
 if grep -Eq '^publish = false$' rust/capi/Cargo.toml; then
   printf '%s\n' "cargo publish --dry-run skipped: rust/capi/Cargo.toml has publish = false" \
+    > "${OUT}/rust/publish-dry-run.txt"
+elif [ "${CORE_CRATE_PUBLISHED}" = "0" ]; then
+  printf '%s\n' \
+    "cargo publish --dry-run skipped: rust/capi depends on gmeow-gts ${CORE_VERSION}, which is not published yet; paired release order publishes rust-v${CORE_VERSION} before capi-v${CAPI_VERSION}." \
     > "${OUT}/rust/publish-dry-run.txt"
 else
   cargo publish --manifest-path rust/capi/Cargo.toml --locked --dry-run

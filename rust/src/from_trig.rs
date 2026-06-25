@@ -594,17 +594,33 @@ impl<'a> Parser<'a> {
         // An EMPTY `[]` (anonymous blank node) or `()` (rdf:nil) is a plain term and
         // is allowed; a NON-empty `[ pol ]` or `( … )` generates extra triples that
         // cannot live inside a triple term, so the W3C suite rejects those.
+        let start_pos = self.pos;
         match self.peek_char() {
-            Some('[') if !self.text[self.pos + 1..].trim_start().starts_with(']') => {
-                Err(TriGParseError::new(
-                    "blank-node property list is not allowed inside a quoted triple",
-                ))
+            Some('[') => {
+                self.bump_char();
+                self.skip_ws_and_comments();
+                let is_empty = self.peek_char() == Some(']');
+                self.pos = start_pos;
+                if !is_empty {
+                    return Err(TriGParseError::new(
+                        "blank-node property list is not allowed inside a quoted triple",
+                    ));
+                }
             }
-            Some('(') if !self.text[self.pos + 1..].trim_start().starts_with(')') => Err(
-                TriGParseError::new("RDF collection is not allowed inside a quoted triple"),
-            ),
-            _ => self.term(graph),
+            Some('(') => {
+                self.bump_char();
+                self.skip_ws_and_comments();
+                let is_empty = self.peek_char() == Some(')');
+                self.pos = start_pos;
+                if !is_empty {
+                    return Err(TriGParseError::new(
+                        "RDF collection is not allowed inside a quoted triple",
+                    ));
+                }
+            }
+            _ => {}
         }
+        self.term(graph)
     }
 
     fn iri_raw(&mut self) -> Result<String, TriGParseError> {
