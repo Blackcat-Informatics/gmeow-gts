@@ -123,7 +123,7 @@ function localeFrom(raw: string): CliLocale {
         .trim()
         .split(".", 1)[0]
         .split("@", 1)[0]
-        .replaceAll("_", "-")
+        .replace(/_/g, "-")
         .toLowerCase();
     if (value === "fr" || value === "fr-ca") return "fr-CA";
     if (

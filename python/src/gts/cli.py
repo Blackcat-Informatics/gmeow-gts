@@ -177,6 +177,12 @@ _USAGE_ZH_HANS = """用法: gts <command> [args]
   to-parquet <file> <out_dir>
                             将折叠图导出到 Parquet"""
 
+_USAGE_BY_LOCALE = {
+    "en": _USAGE_EN,
+    "fr-CA": _USAGE_FR_CA,
+    "zh-Hans": _USAGE_ZH_HANS,
+}
+
 
 def _locale_from(raw: str) -> str:
     value = raw.strip().split(".", 1)[0].split("@", 1)[0].replace("_", "-").lower()
@@ -197,13 +203,7 @@ def _cli_locale(env: Mapping[str, str] | None = None) -> str:
 
 
 def _usage_text(locale: str | None = None) -> str:
-    match locale or _cli_locale():
-        case "fr-CA":
-            return _USAGE_FR_CA
-        case "zh-Hans":
-            return _USAGE_ZH_HANS
-        case _:
-            return _USAGE_EN
+    return _USAGE_BY_LOCALE.get(locale or _cli_locale(), _USAGE_EN)
 
 
 def _unknown_command(command: str, locale: str) -> str:

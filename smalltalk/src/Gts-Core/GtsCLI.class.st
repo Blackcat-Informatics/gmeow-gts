@@ -557,7 +557,7 @@ GtsCLI class >> locale [
 	environment := (Smalltalk globals at: #OSEnvironment ifAbsent: [ ^ #en ]) current.
 	#('GTS_LANG' 'LC_ALL' 'LC_MESSAGES' 'LANG') do: [ :key |
 		| raw |
-		raw := environment at: key ifAbsent: [ '' ].
+		raw := (environment at: key ifAbsent: [ '' ]) trim.
 		raw isEmpty ifFalse: [ ^ self localeFrom: raw ] ].
 	^ #en
 ]
@@ -565,7 +565,7 @@ GtsCLI class >> locale [
 { #category : #usage }
 GtsCLI class >> localeFrom: raw [
 	| value |
-	value := (raw copyUpTo: $.) copyUpTo: $@.
+	value := ((raw trim) copyUpTo: $.) copyUpTo: $@.
 	value := (value copyReplaceAll: '_' with: '-') asLowercase.
 	((value = 'fr') or: [ value = 'fr-ca' ]) ifTrue: [ ^ #frCA ].
 	((value = 'zh') or: [
