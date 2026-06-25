@@ -28,6 +28,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 </p>
 
 ---
+
 ## Why does this exist?
 
 Most “portable data” is not actually one thing.
@@ -50,7 +51,9 @@ It does not replace databases, archives, or query engines. It gives them a commo
 Under the hood, GTS uses RDF 1.2 for structured data and CBOR Sequences for the container. You do not need to adopt a particular ontology, database, or application architecture to use it.
 
 Use GTS when you need to hand another person, service, or system **one verifiable file containing data, attachments, provenance, and history**.
+
 ---
+
 ## What does this look like in practice?
 
 GTS is most useful when the thing being moved is more than a single file or database export.
@@ -217,6 +220,7 @@ These examples show three different reasons for GTS to exist:
 | **Portable AI tooling** | Executable code, machine-readable interfaces, knowledge, permissions, tests, and trust evidence |
 
 In every case, GTS remains the exchanged artifact—not the database, AI model, policy engine, or execution environment.
+
 ---
 
 GTS encodes a graph as an **append-only log of CBOR frames**. The logical graph is the
@@ -924,7 +928,7 @@ Each engine publishes to its native registry from this repo via a tag-triggered 
 |---|---|---|---|
 | Rust | [`gmeow-gts`](https://crates.io/crates/gmeow-gts) on crates.io (trusted publishing) | `rust-v*` | [`release-cargo.yaml`](./.github/workflows/release-cargo.yaml) |
 | Python | [`gmeow-gts`](https://pypi.org/project/gmeow-gts/) on PyPI (trusted publishing) | `py-v*` | [`release-pypi.yml`](./.github/workflows/release-pypi.yml) |
-| Go | [`go.blackcatinformatics.ca/gts`](https://pkg.go.dev/go.blackcatinformatics.ca/gts) plus [GitHub Releases](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=go-v&expanded=true) | `go-v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
+| Go | [`go.blackcatinformatics.ca/gts`](https://pkg.go.dev/go.blackcatinformatics.ca/gts) plus [GitHub Releases](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=go%2Fv&expanded=true) | `go/v*` | [`release-go.yaml`](./.github/workflows/release-go.yaml) |
 | TypeScript | [`@blackcatinformatics/gmeow-gts`](https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts) on npm (provenance) | `npm-v*` | [`release-npm.yaml`](./.github/workflows/release-npm.yaml) |
 | C ABI source crate | [`gmeow-gts-capi`](https://crates.io/crates/gmeow-gts-capi) on crates.io (bootstrap token first publish) | `capi-v*` | [`release-cargo-capi.yaml`](./.github/workflows/release-cargo-capi.yaml) |
 | C ABI native assets | [`capi-v*` GitHub Releases](https://github.com/Blackcat-Informatics/gmeow-gts/releases?q=capi-v&expanded=true) (immutable archives) | `capi-v*` | [`release-capi.yaml`](./.github/workflows/release-capi.yaml) |
