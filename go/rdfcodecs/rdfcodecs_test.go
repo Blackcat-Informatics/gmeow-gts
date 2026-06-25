@@ -99,6 +99,7 @@ func TestTurtleParserAcceptsSharedGrammar(t *testing.T) {
     ex:ratio 3.14 ;
     ex:enabled true ;
     ex:scientific -1.2e+3 ;
+    ex:dotted ex:file.name ;
     ex:list ( ex:a ex:b ) .
 `
 	out := graphNQuads(mustBytes(FromTurtle(turtle)))
@@ -113,6 +114,7 @@ func TestTurtleParserAcceptsSharedGrammar(t *testing.T) {
 		"<https://ex/ns#ratio> \"3.14\"^^<http://www.w3.org/2001/XMLSchema#decimal>",
 		"<https://ex/ns#enabled> \"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>",
 		"<https://ex/ns#scientific> \"-1.2e+3\"^^<http://www.w3.org/2001/XMLSchema#double>",
+		"<https://ex/ns#dotted> <https://ex/ns#file.name>",
 		"<http://www.w3.org/1999/02/22-rdf-syntax-ns#first>",
 	} {
 		if !strings.Contains(out, want) {
@@ -122,12 +124,27 @@ func TestTurtleParserAcceptsSharedGrammar(t *testing.T) {
 	if _, err := FromTurtle("GRAPH <https://ex/g> { <https://ex/s> <https://ex/p> <https://ex/o> . }"); err == nil {
 		t.Fatal("expected Turtle to reject graph blocks")
 	}
+	if _, err := FromTurtle("<https://ex/s> <https://ex/p> \"bad\nliteral\" ."); err == nil {
+		t.Fatal("expected Turtle to reject raw newlines in short string literals")
+	}
+}
+
+func TestTurtleParserPreservesEmptyPathSegments(t *testing.T) {
+	out := graphNQuads(mustBytes(FromTurtle(`@base <https://ex/a//b/> .
+<c> <p> <o> .
+`)))
+	if !strings.Contains(out, "<https://ex/a//b/c> <https://ex/a//b/p> <https://ex/a//b/o>") {
+		t.Fatalf("relative IRI resolution collapsed empty path segments:\n%s", out)
+	}
 }
 
 func TestTriGParserAcceptsNamedGraphsAndTripleTerms(t *testing.T) {
 	trig := `PREFIX ex: <https://ex/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
+{
+  ex:default ex:p ex:o .
+}
 GRAPH ex:g {
   ex:s ex:p ex:o ;
        ex:label "Cat"@en .
@@ -138,6 +155,7 @@ ex:r ex:confidence "0.9" .
 `
 	out := graphNQuads(mustBytes(FromTriG(trig)))
 	for _, want := range []string{
+		"<https://ex/default> <https://ex/p> <https://ex/o> .",
 		"<https://ex/s> <https://ex/p> <https://ex/o> <https://ex/g> .",
 		"\"Cat\"@en <https://ex/g>",
 		"<http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>",
@@ -201,7 +219,7 @@ func TestRDFXMLParserAcceptsCommittedShapes(t *testing.T) {
     </rdf:type>
   </rdf:Description>
   <rdf:Description rdf:about="http://example.org/doc">
-    <eg:markup rdf:parseType="Literal"><span xmlns="http://www.w3.org/1999/xhtml">Hi</span></eg:markup>
+    <eg:markup rdf:parseType="Literal"><x:span xmlns:x="http://www.w3.org/1999/xhtml">Hi</x:span></eg:markup>
   </rdf:Description>
 </rdf:RDF>`,
 			want: []string{
@@ -212,7 +230,8 @@ func TestRDFXMLParserAcceptsCommittedShapes(t *testing.T) {
 				"<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest>",
 				"<http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>",
 				"<http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral>",
-				"span",
+				"x:span",
+				"xmlns:x",
 			},
 		},
 	}
@@ -225,6 +244,62 @@ func TestRDFXMLParserAcceptsCommittedShapes(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRDFXMLParserRejectsMalformedPropertyContent(t *testing.T) {
+	cases := []struct {
+		name string
+		xml  string
+	}{
+		{
+			name: "resource-with-child",
+			xml: `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ex="http://example.org/">
+  <rdf:Description rdf:about="http://example.org/s">
+    <ex:p rdf:resource="http://example.org/o"><rdf:Description rdf:about="http://example.org/extra"/></ex:p>
+  </rdf:Description>
+</rdf:RDF>`,
+		},
+		{
+			name: "resource-with-text",
+			xml: `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ex="http://example.org/">
+  <rdf:Description rdf:about="http://example.org/s">
+    <ex:p rdf:resource="http://example.org/o">text</ex:p>
+  </rdf:Description>
+</rdf:RDF>`,
+		},
+		{
+			name: "child-node-with-text",
+			xml: `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ex="http://example.org/">
+  <rdf:Description rdf:about="http://example.org/s">
+    <ex:p><rdf:Description rdf:about="http://example.org/o"/> text</ex:p>
+  </rdf:Description>
+</rdf:RDF>`,
+		},
+		{
+			name: "property-attributes-with-text",
+			xml: `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ex="http://example.org/">
+  <rdf:Description rdf:about="http://example.org/s">
+    <ex:p ex:q="value">text</ex:p>
+  </rdf:Description>
+</rdf:RDF>`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := FromRDFXML(tc.xml); err == nil {
+				t.Fatal("expected malformed RDF/XML property content to fail")
+			}
+		})
+	}
+}
+
+func TestRDFXMLSerializerRejectsUnsplittablePredicates(t *testing.T) {
+	data := mustBytes(FromNTriples(`<https://ex/s> <https://ex/123> <https://ex/o> .
+`))
+	_, err := ToRDFXML(reader.Read(data, true, nil))
+	if err == nil || !strings.Contains(err.Error(), "XML QName") {
+		t.Fatalf("expected RDF/XML QName serialization error, got %v", err)
 	}
 }
 

@@ -375,35 +375,54 @@ func isASCIILetter(ch rune) bool {
 }
 
 func removeDotSegments(path string) string {
-	absolute := strings.HasPrefix(path, "/")
-	keepTrailingSlash := strings.HasSuffix(path, "/") ||
-		strings.HasSuffix(path, "/.") ||
-		strings.HasSuffix(path, "/..") ||
-		path == "." ||
-		path == ".."
-	segments := []string{}
-	for _, segment := range strings.Split(path, "/") {
-		switch segment {
-		case "", ".":
-		case "..":
-			if len(segments) > 0 {
-				segments = segments[:len(segments)-1]
-			}
+	var output strings.Builder
+	input := path
+	for input != "" {
+		switch {
+		case strings.HasPrefix(input, "../"):
+			input = input[3:]
+		case strings.HasPrefix(input, "./"):
+			input = input[2:]
+		case strings.HasPrefix(input, "/./"):
+			input = "/" + input[3:]
+		case input == "/.":
+			input = "/"
+		case strings.HasPrefix(input, "/../"):
+			input = "/" + input[4:]
+			removeLastPathSegment(&output)
+		case input == "/..":
+			input = "/"
+			removeLastPathSegment(&output)
+		case input == "." || input == "..":
+			input = ""
 		default:
-			segments = append(segments, segment)
+			end := len(input)
+			if strings.HasPrefix(input, "/") {
+				if next := strings.IndexByte(input[1:], '/'); next >= 0 {
+					end = next + 1
+				}
+			} else if next := strings.IndexByte(input, '/'); next >= 0 {
+				end = next
+			}
+			output.WriteString(input[:end])
+			input = input[end:]
 		}
 	}
-	normalized := strings.Join(segments, "/")
-	if absolute {
-		normalized = "/" + normalized
+	return output.String()
+}
+
+func removeLastPathSegment(output *strings.Builder) {
+	value := output.String()
+	if value == "" {
+		return
 	}
-	if keepTrailingSlash && !strings.HasSuffix(normalized, "/") {
-		normalized += "/"
+	if lastSlash := strings.LastIndexByte(value, '/'); lastSlash >= 0 {
+		value = value[:lastSlash]
+	} else {
+		value = ""
 	}
-	if normalized == "" && absolute {
-		normalized = "/"
-	}
-	return normalized
+	output.Reset()
+	output.WriteString(value)
 }
 
 func splitRawPathSuffix(raw string) (string, string) {

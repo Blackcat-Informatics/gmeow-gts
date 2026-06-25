@@ -212,6 +212,7 @@ type xmlNode struct {
 func parseXMLDOM(text string) (*xmlElement, error) {
 	decoder := xml.NewDecoder(strings.NewReader(text))
 	stack := []*xmlElement{}
+	namespaceStack := []map[string]string{}
 	var root *xmlElement
 	for {
 		tok, err := decoder.Token()
@@ -223,20 +224,39 @@ func parseXMLDOM(text string) (*xmlElement, error) {
 		}
 		switch tok := tok.(type) {
 		case xml.StartElement:
-			element := &xmlElement{name: convertXMLName(tok.Name, true)}
+			namespaces := map[string]string{}
+			if len(namespaceStack) > 0 {
+				for uri, prefix := range namespaceStack[len(namespaceStack)-1] {
+					namespaces[uri] = prefix
+				}
+			}
 			for _, attr := range tok.Attr {
-				if attr.Name.Space == "xmlns" || attr.Name.Local == "xmlns" {
+				if !isXMLNSAttr(attr.Name) {
 					continue
 				}
-				element.attrs = append(element.attrs, xmlAttr{name: convertXMLName(attr.Name, false), value: attr.Value})
+				prefix := attr.Name.Local
+				if attr.Name.Local == "xmlns" {
+					prefix = ""
+				}
+				namespaces[attr.Value] = prefix
+			}
+			element := &xmlElement{name: convertXMLName(tok.Name, true, namespaces)}
+			element.attrs = append(element.attrs, namespaceAttrs(namespaces)...)
+			for _, attr := range tok.Attr {
+				if isXMLNSAttr(attr.Name) {
+					continue
+				}
+				element.attrs = append(element.attrs, xmlAttr{name: convertXMLName(attr.Name, false, namespaces), value: attr.Value})
 			}
 			stack = append(stack, element)
+			namespaceStack = append(namespaceStack, namespaces)
 		case xml.EndElement:
 			if len(stack) == 0 {
 				return nil, codecError("RDF/XML parse error: unmatched closing tag")
 			}
 			element := stack[len(stack)-1]
 			stack = stack[:len(stack)-1]
+			namespaceStack = namespaceStack[:len(namespaceStack)-1]
 			if len(stack) == 0 {
 				if root != nil {
 					return nil, codecError("RDF/XML parse error: multiple document elements")
@@ -267,7 +287,36 @@ func parseXMLDOM(text string) (*xmlElement, error) {
 	return root, nil
 }
 
-func convertXMLName(name xml.Name, element bool) xmlName {
+func isXMLNSAttr(name xml.Name) bool {
+	return name.Space == "xmlns" || name.Space == "" && name.Local == "xmlns"
+}
+
+func namespaceAttrs(namespaces map[string]string) []xmlAttr {
+	uris := sortedKeys(namespaces)
+	attrs := make([]xmlAttr, 0, len(uris))
+	for _, uri := range uris {
+		if uri == "" || uri == xmlNS {
+			continue
+		}
+		prefix := namespaces[uri]
+		raw := "xmlns"
+		local := "xmlns"
+		if prefix != "" {
+			raw = "xmlns:" + prefix
+			local = prefix
+		}
+		attrs = append(attrs, xmlAttr{name: xmlName{raw: raw, space: "xmlns", local: local}, value: uri})
+	}
+	return attrs
+}
+
+func convertXMLName(name xml.Name, element bool, namespaces map[string]string) xmlName {
+	if name.Space == "xmlns" {
+		return xmlName{raw: "xmlns:" + name.Local, space: "xmlns", local: name.Local}
+	}
+	if name.Space == "" && name.Local == "xmlns" {
+		return xmlName{raw: "xmlns", space: "xmlns", local: name.Local}
+	}
 	raw := name.Local
 	switch name.Space {
 	case rdfNS:
@@ -277,8 +326,14 @@ func convertXMLName(name xml.Name, element bool) xmlName {
 	case itsNS:
 		raw = "its:" + name.Local
 	default:
-		if name.Space != "" && !element {
-			raw = "ns:" + name.Local
+		if name.Space != "" {
+			if prefix, ok := namespaces[name.Space]; ok {
+				if prefix != "" {
+					raw = prefix + ":" + name.Local
+				}
+			} else if !element {
+				raw = "ns:" + name.Local
+			}
 		}
 	}
 	return xmlName{raw: raw, space: name.Space, local: name.Local}
@@ -421,12 +476,18 @@ func (p *rdfXMLParser) parsePropertyElement(subject rdfNode, element *xmlElement
 	}
 
 	if resource, ok := element.attrRDF("resource"); ok {
+		if len(elementChildren(element)) > 0 || hasNonWhitespaceText(element) {
+			return codecError("RDF/XML parse error: rdf:resource property cannot contain child content")
+		}
 		object := iriNode(p.iriRef(resource, context))
 		p.insertStatement(subject, predicate, object, reifier, annotation)
 		p.insertPropertyAttributeStatements(object, element, context)
 		return nil
 	}
 	if nodeID, ok := element.attrRDF("nodeID"); ok {
+		if len(elementChildren(element)) > 0 || hasNonWhitespaceText(element) {
+			return codecError("RDF/XML parse error: rdf:nodeID property cannot contain child content")
+		}
 		object := bnodeNode(nodeID)
 		p.insertStatement(subject, predicate, object, reifier, annotation)
 		p.insertPropertyAttributeStatements(object, element, context)
@@ -436,6 +497,9 @@ func (p *rdfXMLParser) parsePropertyElement(subject rdfNode, element *xmlElement
 	if parseType, ok := element.attrRDF("parseType"); ok {
 		switch parseType {
 		case "Resource":
+			if hasNonWhitespaceText(element) {
+				return codecError("RDF/XML parse error: rdf:parseType=\"Resource\" cannot contain text")
+			}
 			object := p.freshBNode()
 			p.insertStatement(subject, predicate, object, reifier, annotation)
 			p.insertPropertyAttributeStatements(object, element, context)
@@ -446,6 +510,9 @@ func (p *rdfXMLParser) parsePropertyElement(subject rdfNode, element *xmlElement
 			}
 			return nil
 		case "Collection":
+			if hasNonWhitespaceText(element) {
+				return codecError("RDF/XML parse error: rdf:parseType=\"Collection\" cannot contain text")
+			}
 			head, err := p.parseCollection(element, context)
 			if err != nil {
 				return err
@@ -476,6 +543,9 @@ func (p *rdfXMLParser) parsePropertyElement(subject rdfNode, element *xmlElement
 		return nil
 	}
 	if len(children) == 1 {
+		if hasNonWhitespaceText(element) {
+			return codecError("RDF/XML parse error: node-valued property cannot contain text")
+		}
 		object, err := p.parseNodeElement(children[0], context)
 		if err != nil {
 			return err
@@ -487,6 +557,9 @@ func (p *rdfXMLParser) parsePropertyElement(subject rdfNode, element *xmlElement
 		return codecError("RDF/XML parse error: property element contains more than one node element")
 	}
 	if len(element.propertyAttrs()) > 0 {
+		if hasNonWhitespaceText(element) {
+			return codecError("RDF/XML parse error: property attributes cannot be mixed with text")
+		}
 		object := p.freshBNode()
 		p.insertStatement(subject, predicate, object, reifier, annotation)
 		p.insertPropertyAttributeStatements(object, element, context)
@@ -527,6 +600,9 @@ func (p *rdfXMLParser) parseCollection(element *xmlElement, context rdfXMLContex
 }
 
 func (p *rdfXMLParser) parseTripleElement(element *xmlElement, context rdfXMLContext) (rdfNode, error) {
+	if hasNonWhitespaceText(element) {
+		return rdfNode{}, codecError("RDF/XML parse error: rdf:parseType=\"Triple\" cannot contain text")
+	}
 	nodes := elementChildren(element)
 	if len(nodes) != 1 {
 		return rdfNode{}, codecError("RDF/XML parse error: rdf:parseType=\"Triple\" requires one node element")
@@ -553,9 +629,15 @@ func (p *rdfXMLParser) tripleObject(property *xmlElement, parent rdfXMLContext) 
 		return rdfNode{}, err
 	}
 	if resource, ok := property.attrRDF("resource"); ok {
+		if len(elementChildren(property)) > 0 || hasNonWhitespaceText(property) {
+			return rdfNode{}, codecError("RDF/XML parse error: rdf:resource property cannot contain child content")
+		}
 		return iriNode(p.iriRef(resource, context)), nil
 	}
 	if nodeID, ok := property.attrRDF("nodeID"); ok {
+		if len(elementChildren(property)) > 0 || hasNonWhitespaceText(property) {
+			return rdfNode{}, codecError("RDF/XML parse error: rdf:nodeID property cannot contain child content")
+		}
 		return bnodeNode(nodeID), nil
 	}
 	if parseType, ok := property.attrRDF("parseType"); ok && parseType == "Triple" {
@@ -563,6 +645,9 @@ func (p *rdfXMLParser) tripleObject(property *xmlElement, parent rdfXMLContext) 
 	}
 	nodes := elementChildren(property)
 	if len(nodes) == 1 {
+		if hasNonWhitespaceText(property) {
+			return rdfNode{}, codecError("RDF/XML parse error: node-valued property cannot contain text")
+		}
 		return p.subjectForNode(nodes[0], context)
 	}
 	if len(nodes) > 1 {
@@ -688,6 +773,15 @@ func elementText(element *xmlElement) string {
 	return out.String()
 }
 
+func hasNonWhitespaceText(element *xmlElement) bool {
+	for _, child := range element.children {
+		if child.element == nil && strings.TrimSpace(child.text) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func serializeChildrenAsXML(element *xmlElement) string {
 	var out strings.Builder
 	for _, child := range element.children {
@@ -735,7 +829,10 @@ func rdfXMLNamespaces(subjects map[string][]property) map[string]string {
 	namespaces := map[string]string{rdfNS: "rdf", xsdNS: "xsd"}
 	next := 0
 	addIRI := func(iri string) {
-		ns, _ := splitPropertyIRI(iri)
+		ns, _, ok := splitPropertyIRI(iri)
+		if !ok {
+			return
+		}
 		if _, ok := namespaces[ns]; ok {
 			return
 		}
@@ -779,7 +876,10 @@ type property struct {
 }
 
 func writeRDFXMLProperty(out *strings.Builder, indent, predicate string, object rdfNode, namespaces map[string]string) error {
-	name := serializerQName(predicate, namespaces)
+	name, err := serializerQName(predicate, namespaces)
+	if err != nil {
+		return err
+	}
 	switch object.kind {
 	case nodeIRI:
 		fmt.Fprintf(out, "%s<%s rdf:resource=\"%s\"/>\n", indent, name, escapeXMLAttr(object.value))
@@ -835,16 +935,19 @@ func writeRDFXMLTripleNode(out *strings.Builder, indent string, triple rdfNode, 
 	return nil
 }
 
-func serializerQName(iri string, namespaces map[string]string) string {
-	ns, local := splitPropertyIRI(iri)
+func serializerQName(iri string, namespaces map[string]string) (string, error) {
+	ns, local, ok := splitPropertyIRI(iri)
+	if !ok {
+		return "", codecError("RDF/XML cannot serialize predicate IRI %q as an XML QName", iri)
+	}
 	prefix := namespaces[ns]
 	if prefix == "" {
 		prefix = "ns"
 	}
-	return prefix + ":" + local
+	return prefix + ":" + local, nil
 }
 
-func splitPropertyIRI(iri string) (string, string) {
+func splitPropertyIRI(iri string) (string, string, bool) {
 	split := strings.LastIndexAny(iri, "#/:")
 	if split >= 0 {
 		split++
@@ -854,9 +957,9 @@ func splitPropertyIRI(iri string) (string, string) {
 	}
 	ns, local := iri[:split], iri[split:]
 	if local == "" || !isXMLName(local) {
-		return iri, "property"
+		return "", "", false
 	}
-	return ns, local
+	return ns, local, true
 }
 
 func isXMLName(value string) bool {

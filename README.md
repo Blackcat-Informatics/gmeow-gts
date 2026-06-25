@@ -682,11 +682,9 @@ Rust/Go RDF 1.2 text-codec extension:
 gts to-nt <file>                fold the default graph to N-Triples
 gts from-nt <in.nt> [-o out]    build a GTS from N-Triples
 gts to-rdfxml <file>            fold the default graph to RDF/XML
-gts from-rdfxml <in.rdf> [-o out]
-build a GTS from RDF/XML
+gts from-rdfxml <in.rdf> [-o out]   build a GTS from RDF/XML
 gts to-turtle <file>            fold the default graph to Turtle
-gts from-turtle <in.ttl> [-o out]
-build a GTS from Turtle
+gts from-turtle <in.ttl> [-o out]   build a GTS from Turtle
 ```
 
 Rust builds expose these verbs behind `--features rdf-codecs`; the Go module binary ships them

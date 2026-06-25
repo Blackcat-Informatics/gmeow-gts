@@ -72,6 +72,15 @@ func (p *trigParser) parse() (string, error) {
 			}
 			continue
 		}
+		if p.consumeChar('{') {
+			if !p.allowNamedGraphs {
+				return "", codecError("Turtle input cannot contain graph blocks")
+			}
+			if err := p.defaultGraphBlockAfterOpen(); err != nil {
+				return "", err
+			}
+			continue
+		}
 
 		first, err := p.term(nil)
 		if err != nil {
@@ -460,6 +469,8 @@ func (p *trigParser) literal() (rdfNode, error) {
 				return rdfNode{}, err
 			}
 			value.WriteRune(escaped)
+		case '\n', '\r':
+			return rdfNode{}, codecError("raw newline in short string literal")
 		case '"':
 			lang := ""
 			datatype := ""
@@ -600,7 +611,16 @@ func (p *trigParser) prefixedName() (string, error) {
 	start := p.pos
 	for {
 		ch, ok := p.peekChar()
-		if !ok || unicode.IsSpace(ch) || strings.ContainsRune("{}[]()<>\n\t.;,", ch) {
+		if !ok || unicode.IsSpace(ch) || strings.ContainsRune("{}[]()<>\n\t;,", ch) {
+			break
+		}
+		if ch == '.' {
+			next := p.pos + 1
+			if next >= len(p.text) || p.text[next] <= ' ' || strings.ContainsRune("{}[]()<>\n\t;,", rune(p.text[next])) {
+				break
+			}
+		}
+		if ch == ',' {
 			break
 		}
 		p.bumpChar()
@@ -689,6 +709,22 @@ func (p *trigParser) graphBlockAfterOpen(graph rdfNode) error {
 			return err
 		}
 		if err := p.statementAfterSubject(subject, &graph); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *trigParser) defaultGraphBlockAfterOpen() error {
+	for !p.consumeChar('}') {
+		if p.eof() {
+			return codecError("unterminated graph block")
+		}
+		subject, err := p.term(nil)
+		if err != nil {
+			return err
+		}
+		if err := p.statementAfterSubject(subject, nil); err != nil {
 			return err
 		}
 	}
