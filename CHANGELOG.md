@@ -14,6 +14,22 @@ bump the Rust crate independently. See
 The wire format is a working draft (`GTS-SPEC.md` document version `0.9-draft`)
 and MAY change before `1.0`.
 
+## [0.9.7]
+
+### Added
+
+- Full RDF 1.2 reification/annotation surface in the native Turtle/TriG parser:
+  `<< s p o [~ id] >>` reifying triples (expanding to `reifier rdf:reifies <<( s p o )>>`),
+  `{| … |}` annotation blocks and `~` reifiers in any sequence, `VERSION`/`@version`
+  directives, optional predicate-object lists for self-asserting subjects, and
+  `rdf:annotationNodeID` (blank-node reifier) in RDF/XML.
+
+### Fixed
+
+- Serialize a triple term in quad-object position: the self-referential reifier entry
+  (a triple term keying its own components in the reifiers map) no longer trips the
+  event source's `cycle while declaring term N` guard.
+
 ## [Unreleased]
 
 ### Added
@@ -317,6 +333,7 @@ at `0.9.4`.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
 [Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...HEAD
+[0.9.7]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.6...rust-v0.9.7
 [0.9.6]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...rust-v0.9.6
 [0.9.5]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.4...rust-v0.9.5
 [0.9.4]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.2...py-v0.9.4
