@@ -497,6 +497,71 @@ long''' .
 }
 
 #[test]
+fn turtle_parser_expands_rdf12_reifying_triples_and_annotations() {
+    // RDF 1.2 reifier/annotation syntax must EXPAND (not be treated as triple terms):
+    // `<< s p o >>`   -> fresh `_:r` + `_:r rdf:reifies <<( s p o )>>`, evaluates to `_:r`
+    // `<< s p o ~ i >>` -> `i rdf:reifies <<( s p o )>>`, evaluates to `i`
+    // `s p o {| a v |}` -> assert `s p o` + `_:r a v` + `_:r rdf:reifies <<( s p o )>>`
+    let reifies = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>";
+
+    // Subject reifying triple, anonymous reifier.
+    let out = nquads_from_gts(
+        &from_turtle("PREFIX : <http://example/>\n<<:s :p :o>> :q :z .\n").expect("rt-01"),
+    );
+    assert!(
+        out.contains(&format!(
+            "{reifies} <<( <http://example/s> <http://example/p> <http://example/o> )>>"
+        )),
+        "reifies a triple term:\n{out}"
+    );
+    assert!(
+        out.contains("<http://example/q> <http://example/z>"),
+        "the reifier is the subject of :q :z:\n{out}"
+    );
+    assert!(
+        !out.contains(
+            "<<( <http://example/s> <http://example/p> <http://example/o> )>> <http://example/q>"
+        ),
+        "the triple term must NOT be the asserted subject:\n{out}"
+    );
+
+    // Reifying triple with explicit IRI reifier identifier.
+    let out = nquads_from_gts(
+        &from_turtle("PREFIX : <http://example/>\n<< :s :p :o ~ :i >> :q :z .\n").expect("rt-03"),
+    );
+    assert!(
+        out.contains(&format!(
+            "<http://example/i> {reifies} <<( <http://example/s>"
+        )),
+        "explicit reifier id used:\n{out}"
+    );
+    assert!(
+        out.contains("<http://example/i> <http://example/q> <http://example/z>"),
+        "explicit reifier is the subject:\n{out}"
+    );
+
+    // Annotation syntax.
+    let out = nquads_from_gts(
+        &from_turtle("PREFIX : <http://example/>\n:s :p :o {| :r :z |} .\n")
+            .expect("annotation-01"),
+    );
+    assert!(
+        out.contains("<http://example/s> <http://example/p> <http://example/o>"),
+        "base triple asserted:\n{out}"
+    );
+    assert!(
+        out.contains(&format!(
+            "{reifies} <<( <http://example/s> <http://example/p> <http://example/o> )>>"
+        )),
+        "annotation reifies the base triple:\n{out}"
+    );
+    assert!(
+        out.contains("<http://example/r> <http://example/z>"),
+        "annotation pair:\n{out}"
+    );
+}
+
+#[test]
 fn native_codecs_roundtrip_long_private_use_language_subtags() {
     // The driver behind gmeow-gts #358: GMEOW relies on long BCP-47 private-use
     // subtags like `x-gmeow-norwegiannynorsk` (>8 chars) which oxttl rejected without
@@ -635,8 +700,14 @@ fn rdf_xml_parser_resolves_rdf_id_against_base_without_fragment() {
     );
     assert!(out
         .contains("<http://example.org/doc> <http://example.org/related> <http://example.org/o>"));
+    // `rdf:ID` is RDF 1.0 reification: the reifier IRI is resolved against the base
+    // WITHOUT the base fragment (`#statement`, not `#old#statement`) and carries the
+    // classic rdf:Statement/subject/predicate/object quads.
     assert!(out.contains(
-        "<http://example.org/doc#statement> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>"
+        "<http://example.org/doc#statement> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement>"
+    ));
+    assert!(out.contains(
+        "<http://example.org/doc#statement> <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> <http://example.org/o>"
     ));
     assert!(!out.contains("#old#statement"));
 }
@@ -878,6 +949,42 @@ ex:r ex:confidence "0.9" .
     assert!(out.contains("<<( <https://ex/s> <https://ex/p> <https://ex/o> )>>"));
     assert!(out.contains("<https://ex/confidence> \"0.9\""));
     assert!(out.contains("<https://ex/source> <https://ex/doc>"));
+}
+
+#[test]
+fn trig_parser_allows_comment_only_empty_structures_inside_rdf12_triples() {
+    let trig = r#"PREFIX ex: <https://ex/>
+<< [
+  # empty blank node subject
+] ex:p (
+  # rdf:nil object
+) >> ex:source ex:doc .
+"#;
+
+    let out = nquads_from_gts(&from_trig(trig).expect("TriG imports"));
+    assert!(out.contains("<http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>"));
+    assert!(out.contains("<<( _:"));
+    assert!(out.contains("<https://ex/p> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>"));
+    assert!(out.contains("<https://ex/source> <https://ex/doc>"));
+}
+
+#[test]
+fn trig_parser_rejects_non_empty_structures_inside_rdf12_triples_after_comments() {
+    let blank_node_property_list = r#"PREFIX ex: <https://ex/>
+<< [
+  # non-empty property list
+  ex:p ex:o
+] ex:p ex:o >> ex:source ex:doc .
+"#;
+    assert!(from_trig(blank_node_property_list).is_err());
+
+    let collection = r#"PREFIX ex: <https://ex/>
+<< ex:s ex:p (
+  # non-empty collection
+  ex:o
+) >> ex:source ex:doc .
+"#;
+    assert!(from_trig(collection).is_err());
 }
 
 #[test]

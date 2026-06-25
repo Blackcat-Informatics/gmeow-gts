@@ -36,14 +36,20 @@ const RDF_PARSE_TYPE: &str = "parseType";
 const RDF_TYPE: &str = "type";
 const RDF_VERSION: &str = "version";
 const RDF_ANNOTATION: &str = "annotation";
+const RDF_ANNOTATION_NODE_ID: &str = "annotationNodeID";
 const RDF_REIFIES: &str = "reifies";
 const RDF_FIRST: &str = "first";
 const RDF_REST: &str = "rest";
 const RDF_NIL: &str = "nil";
+const RDF_STATEMENT: &str = "Statement";
+const RDF_SUBJECT: &str = "subject";
+const RDF_PREDICATE: &str = "predicate";
+const RDF_OBJECT: &str = "object";
 const RDF_XML_LITERAL: &str = "XMLLiteral";
 const XML_BASE: &str = "base";
 const XML_LANG: &str = "lang";
 const ITS_DIR: &str = "dir";
+const ITS_VERSION: &str = "version";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Name {
@@ -92,6 +98,10 @@ struct Element {
     name: Name,
     attrs: Vec<Attribute>,
     children: Vec<XmlNode>,
+    /// In-scope namespace declarations `(prefix, iri)` in source-declaration order
+    /// (excluding the implicit `xml`), used to canonicalize `rdf:parseType="Literal"`
+    /// XML literals (inherited namespaces are rendered on the literal's apex elements).
+    ns_scope: Vec<(String, String)>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -99,11 +109,23 @@ struct ParseContext {
     base_iri: Option<String>,
     language: Option<String>,
     direction: Option<BaseDirection>,
+    /// `rdf:version="1.2"` declared on this element or an ancestor: gates the RDF 1.2
+    /// features (triple terms via `parseType="Triple"`, ITS base direction).
+    rdf_version_12: bool,
+    /// `its:version` declared (ITS 2.0 processing mode).
+    its_version: bool,
 }
 
 impl ParseContext {
     fn for_child(&self, element: &Element) -> Result<Self, RdfCodecError> {
         let mut next = self.clone();
+        // Version flags are sticky once declared on any ancestor.
+        if element.attr_rdf(RDF_VERSION) == Some("1.2") {
+            next.rdf_version_12 = true;
+        }
+        if element.attr_its(ITS_VERSION).is_some() {
+            next.its_version = true;
+        }
         if let Some(base) = element.attr_xml(XML_BASE) {
             next.base_iri = Some(match &self.base_iri {
                 Some(parent) => resolve_relative_iri(parent, base),
@@ -114,14 +136,21 @@ impl ParseContext {
             next.language = (!language.is_empty()).then(|| language.to_string());
         }
         if let Some(direction) = element.attr_its(ITS_DIR) {
-            next.direction = match direction {
-                "ltr" => Some(BaseDirection::Ltr),
-                "rtl" => Some(BaseDirection::Rtl),
+            let parsed = match direction {
+                "ltr" => BaseDirection::Ltr,
+                "rtl" => BaseDirection::Rtl,
                 other => {
                     return Err(RdfCodecError::new(format!(
                         "RDF/XML parse error: invalid ITS direction {other:?}"
                     )))
                 }
+            };
+            // RDF 1.2 base direction is suppressed in ITS 2.0 mode (`its:version`)
+            // unless the document explicitly opts into RDF 1.2 via `rdf:version="1.2"`.
+            next.direction = if next.its_version && !next.rdf_version_12 {
+                None
+            } else {
+                Some(parsed)
             };
         }
         Ok(next)
@@ -168,6 +197,7 @@ impl Element {
                             | RDF_TYPE
                             | RDF_VERSION
                             | RDF_ANNOTATION
+                            | RDF_ANNOTATION_NODE_ID
                     ))
             })
     }
@@ -222,7 +252,9 @@ pub(crate) fn to_rdf_xml(graph: &Graph) -> Result<String, RdfCodecError> {
             ));
         }
     }
-    out.push_str(">\n");
+    // Declare RDF 1.2 so a round-trip preserves triple terms and base direction (their
+    // parse is gated on `rdf:version="1.2"`).
+    out.push_str(" rdf:version=\"1.2\">\n");
 
     for (key, properties) in subjects {
         let subject = subject_nodes
@@ -258,18 +290,20 @@ impl XmlDomParser {
         let mut reader = Reader::from_str(text);
         reader.config_mut().trim_text(false);
         let mut namespaces = vec![initial_namespaces()];
+        let mut ns_order: Vec<Vec<(String, String)>> = vec![Vec::new()];
         let mut stack: Vec<Element> = Vec::new();
         let mut root: Option<Element> = None;
 
         loop {
             match reader.read_event() {
                 Ok(Event::Start(start)) => {
-                    let element = parse_start(&start, &mut namespaces, &reader)?;
+                    let element = parse_start(&start, &mut namespaces, &mut ns_order, &reader)?;
                     stack.push(element);
                 }
                 Ok(Event::Empty(start)) => {
-                    let element = parse_start(&start, &mut namespaces, &reader)?;
+                    let element = parse_start(&start, &mut namespaces, &mut ns_order, &reader)?;
                     namespaces.pop();
+                    ns_order.pop();
                     attach_element(&mut stack, &mut root, element)?;
                 }
                 Ok(Event::Text(text)) => {
@@ -290,6 +324,7 @@ impl XmlDomParser {
                 }
                 Ok(Event::End(_)) => {
                     namespaces.pop();
+                    ns_order.pop();
                     let element = stack.pop().ok_or_else(|| {
                         RdfCodecError::new("RDF/XML parse error: unmatched closing tag")
                     })?;
@@ -313,6 +348,7 @@ impl XmlDomParser {
 fn parse_start(
     start: &BytesStart<'_>,
     namespaces: &mut Vec<HashMap<String, String>>,
+    ns_order: &mut Vec<Vec<(String, String)>>,
     reader: &Reader<&[u8]>,
 ) -> Result<Element, RdfCodecError> {
     let raw_name = raw_xml_name(start.name().as_ref())?;
@@ -320,6 +356,7 @@ fn parse_start(
         .last()
         .cloned()
         .ok_or_else(|| RdfCodecError::new("RDF/XML parse error: missing namespace scope"))?;
+    let mut order = ns_order.last().cloned().unwrap_or_default();
 
     let mut raw_attrs = Vec::new();
     for attr in start.attributes() {
@@ -330,15 +367,18 @@ fn parse_start(
             .map_err(xml_error)?
             .into_owned();
         if raw == "xmlns" {
-            scope.insert(String::new(), value);
+            scope.insert(String::new(), value.clone());
+            update_ns_order(&mut order, String::new(), value);
         } else if let Some(prefix) = raw.strip_prefix("xmlns:") {
-            scope.insert(prefix.to_string(), value);
+            scope.insert(prefix.to_string(), value.clone());
+            update_ns_order(&mut order, prefix.to_string(), value);
         } else {
             raw_attrs.push((raw, value));
         }
     }
 
     namespaces.push(scope.clone());
+    ns_order.push(order.clone());
     let name = expand_name(&raw_name, &scope, true)?;
     let attrs = raw_attrs
         .into_iter()
@@ -354,7 +394,21 @@ fn parse_start(
         name,
         attrs,
         children: Vec::new(),
+        ns_scope: order,
     })
+}
+
+/// Insert or update a namespace declaration in source-declaration order, keeping the
+/// implicit `xml` prefix out (it is never rendered on canonicalized XML literals).
+fn update_ns_order(order: &mut Vec<(String, String)>, prefix: String, iri: String) {
+    if prefix == "xml" {
+        return;
+    }
+    if let Some(slot) = order.iter_mut().find(|(p, _)| *p == prefix) {
+        slot.1 = iri;
+    } else {
+        order.push((prefix, iri));
+    }
 }
 
 fn initial_namespaces() -> HashMap<String, String> {
@@ -486,13 +540,15 @@ impl RdfXmlParser {
             .attr_rdf(RDF_ID)
             .map(|id| self.rdf_id_iri(id, &context).map(NamedOrBlankNode::from))
             .transpose()?;
-        let annotation = element
-            .attr_rdf(RDF_ANNOTATION)
-            .map(|annotation| {
-                self.iri_ref(annotation, &context)
-                    .map(NamedOrBlankNode::from)
-            })
-            .transpose()?;
+        // `rdf:annotation="IRI"` and `rdf:annotationNodeID="id"` both name the reifier
+        // of the asserted triple; the former is an IRI, the latter a blank node.
+        let annotation = match element.attr_rdf(RDF_ANNOTATION) {
+            Some(annotation) => Some(self.iri_ref(annotation, &context)?.into()),
+            None => match element.attr_rdf(RDF_ANNOTATION_NODE_ID) {
+                Some(node_id) => Some(BlankNode::new(node_id)?.into()),
+                None => None,
+            },
+        };
 
         if let Some(resource) = element.attr_rdf(RDF_RESOURCE) {
             let object: NamedOrBlankNode = self.iri_ref(resource, &context)?.into();
@@ -557,6 +613,11 @@ impl RdfXmlParser {
                 );
             }
             Some("Triple") => {
+                // A triple term is an RDF 1.2 feature: without `rdf:version="1.2"` the
+                // whole property is ignored (W3C `rdf12-xml-tt-01`, "Ignored triple term").
+                if !context.rdf_version_12 {
+                    return Ok(());
+                }
                 let triple = self.parse_triple_element(element, &context)?;
                 return self.insert_statement(
                     subject.clone(),
@@ -697,16 +758,36 @@ impl RdfXmlParser {
                 "RDF/XML parse error: rdf:parseType=\"Triple\" requires one node element",
             ));
         }
-        let triple_subject = self.subject_for_node(nodes[0], context)?;
-        let properties: Vec<&Element> =
-            nodes[0].children.iter().filter_map(element_child).collect();
-        if properties.len() != 1 {
+        let node = nodes[0];
+        let triple_subject = self.subject_for_node(node, context)?;
+        let node_ctx = context.for_child(node)?;
+
+        // The single predicate/object may come from a child property element, a
+        // `rdf:type` attribute, or another property attribute (literal-valued).
+        let type_attr = node.attr_rdf(RDF_TYPE);
+        let prop_attrs: Vec<&Attribute> = node.property_attrs().collect();
+        let child_props: Vec<&Element> = node.children.iter().filter_map(element_child).collect();
+        if type_attr.is_some() as usize + prop_attrs.len() + child_props.len() != 1 {
             return Err(RdfCodecError::new(
                 "RDF/XML parse error: rdf:parseType=\"Triple\" requires exactly one predicate/object",
             ));
         }
-        let predicate = properties[0].name.iri()?;
-        let object = self.triple_object(properties[0], context)?;
+        let (predicate, object): (Iri, RdfTerm) = if let Some(type_iri) = type_attr {
+            (
+                rdf_iri(RDF_TYPE)?,
+                self.iri_ref(type_iri, &node_ctx)?.into(),
+            )
+        } else if let Some(attr) = prop_attrs.first() {
+            (
+                attr.name.iri()?,
+                self.context_literal(&attr.value, None, &node_ctx)?.into(),
+            )
+        } else {
+            (
+                child_props[0].name.iri()?,
+                self.triple_object(child_props[0], context)?,
+            )
+        };
         Ok(RdfTriple::new(triple_subject, predicate, object))
     }
 
@@ -777,12 +858,52 @@ impl RdfXmlParser {
             object.clone(),
             GraphName::DefaultGraph,
         ));
+        // `rdf:ID` on a property element is RDF 1.0 reification (the classic
+        // rdf:Statement/subject/predicate/object quads); `rdf:annotation` /
+        // `rdf:annotationNodeID` is the RDF 1.2 reifier (rdf:reifies a triple term).
         if let Some(reifier) = reifier {
-            self.insert_reifier(reifier, subject.clone(), predicate.clone(), object.clone())?;
+            self.insert_classic_reification(
+                reifier,
+                subject.clone(),
+                predicate.clone(),
+                object.clone(),
+            )?;
         }
         if let Some(annotation) = annotation {
             self.insert_reifier(annotation, subject, predicate, object)?;
         }
+        Ok(())
+    }
+
+    /// Emit the RDF 1.0 reification quads for a property element carrying `rdf:ID`.
+    fn insert_classic_reification(
+        &mut self,
+        reifier: NamedOrBlankNode,
+        subject: NamedOrBlankNode,
+        predicate: Iri,
+        object: RdfTerm,
+    ) -> Result<(), RdfCodecError> {
+        let g = GraphName::DefaultGraph;
+        self.dataset.insert(RdfQuad::new(
+            reifier.clone(),
+            rdf_iri(RDF_TYPE)?,
+            rdf_iri(RDF_STATEMENT)?,
+            g.clone(),
+        ));
+        self.dataset.insert(RdfQuad::new(
+            reifier.clone(),
+            rdf_iri(RDF_SUBJECT)?,
+            named_or_blank_term(&subject),
+            g.clone(),
+        ));
+        self.dataset.insert(RdfQuad::new(
+            reifier.clone(),
+            rdf_iri(RDF_PREDICATE)?,
+            predicate,
+            g.clone(),
+        ));
+        self.dataset
+            .insert(RdfQuad::new(reifier, rdf_iri(RDF_OBJECT)?, object, g));
         Ok(())
     }
 
@@ -1041,17 +1162,28 @@ fn is_xml_name_char(ch: char) -> bool {
 fn serialize_children_as_xml(element: &Element) -> String {
     let mut out = String::new();
     for child in &element.children {
-        serialize_xml_node(child, &mut out);
+        // The literal's apex elements carry the in-scope namespace declarations
+        // (inclusive canonicalization); descendants inherit them and add none.
+        serialize_xml_node(child, Some(&element.ns_scope), &mut out);
     }
     out
 }
 
-fn serialize_xml_node(node: &XmlNode, out: &mut String) {
+fn serialize_xml_node(node: &XmlNode, apex_ns: Option<&[(String, String)]>, out: &mut String) {
     match node {
         XmlNode::Text(text) => out.push_str(&escape_xml_text(text)),
         XmlNode::Element(element) => {
             out.push('<');
             out.push_str(&element.name.raw);
+            if let Some(namespaces) = apex_ns {
+                for (prefix, iri) in namespaces {
+                    if prefix.is_empty() {
+                        out.push_str(&format!(" xmlns=\"{}\"", escape_xml_attr(iri)));
+                    } else {
+                        out.push_str(&format!(" xmlns:{prefix}=\"{}\"", escape_xml_attr(iri)));
+                    }
+                }
+            }
             for attr in &element.attrs {
                 out.push(' ');
                 out.push_str(&attr.name.raw);
@@ -1059,17 +1191,14 @@ fn serialize_xml_node(node: &XmlNode, out: &mut String) {
                 out.push_str(&escape_xml_attr(&attr.value));
                 out.push('"');
             }
-            if element.children.is_empty() {
-                out.push_str("/>");
-            } else {
-                out.push('>');
-                for child in &element.children {
-                    serialize_xml_node(child, out);
-                }
-                out.push_str("</");
-                out.push_str(&element.name.raw);
-                out.push('>');
+            // Canonical XML has no self-closing form: always emit a start/end pair.
+            out.push('>');
+            for child in &element.children {
+                serialize_xml_node(child, None, out);
             }
+            out.push_str("</");
+            out.push_str(&element.name.raw);
+            out.push('>');
         }
     }
 }

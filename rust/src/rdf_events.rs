@@ -430,6 +430,18 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
             self.emit_term(id, 0)?;
         }
         for &(reifier, triple) in &self.graph.reifiers {
+            // A triple TERM keys its own components under its own id (a self-reference,
+            // not a reifier relationship). Those components are declared via emit_term;
+            // emitting this entry as a reifier would render a spurious
+            // `<<( s p o )>> rdf:reifies <<( s p o )>>`.
+            if self
+                .graph
+                .terms
+                .get(reifier)
+                .is_some_and(|t| t.kind == TermKind::Triple && t.reifier == Some(reifier))
+            {
+                continue;
+            }
             self.emit_reifier(reifier, triple, 0)?;
         }
         for &quad in &self.graph.quads {
@@ -471,7 +483,16 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
             TermKind::Triple => {
                 if let Some(reifier) = term.reifier {
                     if let Some(triple) = self.graph.reifier(reifier) {
-                        self.emit_reifier(reifier, triple, depth + 1)?;
+                        if reifier == id {
+                            // A triple TERM stores its own components under its own id in
+                            // the reifiers map (a self-reference, not a reifier
+                            // relationship). Declare the s/p/o components directly —
+                            // routing through `emit_reifier` would re-enter `emit_term`
+                            // for this same id and trip the cycle guard.
+                            self.emit_triple_deps(triple, depth + 1)?;
+                        } else {
+                            self.emit_reifier(reifier, triple, depth + 1)?;
+                        }
                     }
                 }
             }

@@ -4,7 +4,7 @@
 [package]
 name = "gmeow-gts-capi"
 description = "Stable C ABI wrapper for the Rust GTS core"
-version = "0.9.6"
+version = "0.9.7"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://blackcatinformatics.ca/projects/gts"
@@ -30,5 +30,5 @@ name = "gts"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-gmeow-gts = { version = "0.9.6", path = "..", features = ["rdf-codecs", "yaml-ld"] }
+gmeow-gts = { version = "0.9.7", path = "..", features = ["rdf-codecs", "yaml-ld"] }
 serde_json = "1"
