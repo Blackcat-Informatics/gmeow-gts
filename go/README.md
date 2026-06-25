@@ -80,7 +80,11 @@ return. Pass `allowSegments=true` to fold a multi-segment (concatenated) file, a
 non-nil `expectedHead` to assert the file's head digest.
 
 Use `fromnquads.FromNQuads(text)` for the inverse transform when rebuilding a GTS file
-from N-Quads text.
+from N-Quads text. During import, recognized invalid XSD typed literals are preserved
+verbatim and recorded under metadata key `gts:illTypedLiterals` as
+`{"version": 1, "items": [{"term": <term-id>, "datatype": <iri>, "lexical": <text>, "reason": <detail>}]}`.
+The companion `xsd` package exposes `IllTypedLiteral` diagnostics with stable code
+`IllTypedLiteral` for callers working with a materialized graph.
 
 For service code that receives an `io.Reader`, `reader.ReadFrom(ctx, r, opts)` returns the
 same materialized graph with cancellation and byte-limit handling. For incremental folds,

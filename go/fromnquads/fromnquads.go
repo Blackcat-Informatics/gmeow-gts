@@ -12,6 +12,7 @@ import (
 
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/writer"
+	"go.blackcatinformatics.ca/gts/xsd"
 )
 
 const rdfReifies = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
@@ -478,6 +479,11 @@ func FromNQuads(text string) ([]byte, error) {
 	}
 	if len(reifiers) > 0 {
 		w.AddReifies(reifiers)
+	}
+	if illTyped := xsd.IllTypedLiteralsInTerms(interner.terms); len(illTyped) > 0 {
+		w.AddMeta(map[interface{}]interface{}{
+			xsd.IllTypedLiteralMetaKey: xsd.IllTypedLiteralsMetadata(illTyped),
+		})
 	}
 	return w.ToBytes(), nil
 }
