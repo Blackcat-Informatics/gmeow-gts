@@ -486,6 +486,7 @@ func (e *declarationOrderEmitter) emitTerm(id int, depth int) error {
 	defer delete(e.visitingTerms, id)
 
 	term := e.graph.Terms[id]
+	var selfReifierTriple *model.Triple3
 	switch term.Kind {
 	case model.Literal:
 		if term.Datatype != nil {
@@ -502,8 +503,15 @@ func (e *declarationOrderEmitter) emitTerm(id int, depth int) error {
 					fmt.Sprintf("triple term %d does not have a resolvable reifier binding", id),
 				)
 			}
-			if err := e.emitReifier(*term.Reifier, triple, depth+1); err != nil {
-				return err
+			if *term.Reifier == id {
+				if err := e.emitTripleDeps(triple, depth+1); err != nil {
+					return err
+				}
+				selfReifierTriple = &triple
+			} else {
+				if err := e.emitReifier(*term.Reifier, triple, depth+1); err != nil {
+					return err
+				}
 			}
 		}
 	case model.Iri, model.Bnode:
@@ -519,6 +527,18 @@ func (e *declarationOrderEmitter) emitTerm(id int, depth int) error {
 		return sinkError(err)
 	}
 	e.emittedTerms[id] = struct{}{}
+	if selfReifierTriple != nil {
+		if _, ok := e.emittedReifiers[id]; !ok {
+			e.emittedReifiers[id] = struct{}{}
+			eventTriple, err := toEventTriple(*selfReifierTriple)
+			if err != nil {
+				return err
+			}
+			if err := e.sink.Reifier(TermID(id), eventTriple); err != nil {
+				return sinkError(err)
+			}
+		}
+	}
 	return nil
 }
 

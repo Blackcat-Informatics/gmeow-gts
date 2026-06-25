@@ -195,6 +195,28 @@ func TestDeclarationOrderEmitterDeclaresDependenciesFirst(t *testing.T) {
 	}
 }
 
+func TestDeclarationOrderEmitterSelfReifyingTripleTerm(t *testing.T) {
+	reifier := 0
+	graph := &model.Graph{
+		Terms: []model.Term{
+			{Kind: model.Triple, Reifier: &reifier},
+			{Kind: model.Iri, Value: "https://ex/s"},
+			{Kind: model.Iri, Value: "https://ex/p"},
+			{Kind: model.Iri, Value: "https://ex/o"},
+		},
+		Reifiers: []model.ReifierEntry{{RID: 0, SPO: model.Triple3{S: 1, P: 2, O: 3}}},
+	}
+	sink := &recordingSink{beforeReferences: true}
+	if err := NewGraphSource(graph).Drive(sink); err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(sink.events, ",")
+	wantPrefix := "start,term:1,term:2,term:3,term:0,reifier:0"
+	if !strings.HasPrefix(joined, wantPrefix) {
+		t.Fatalf("declaration order = %s, want prefix %s", joined, wantPrefix)
+	}
+}
+
 func TestGraphSinkRejectsDuplicateDeclarations(t *testing.T) {
 	sink := NewGraphSink()
 	if err := sink.StartScope(0); err != nil {
