@@ -427,14 +427,14 @@ func isSignedDigits(value string) bool {
 }
 
 var (
-	dateTimeRE = regexp.MustCompile(`^(-?[0-9]{4,})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$`)
-	dateRE     = regexp.MustCompile(`^(-?[0-9]{4,})-([0-9]{2})-([0-9]{2})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
-	timeRE     = regexp.MustCompile(`^([0-9]{2}):([0-9]{2}):([0-9]{2})(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$`)
-	gYearMonth = regexp.MustCompile(`^(-?[0-9]{4,})-([0-9]{2})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
-	gYear      = regexp.MustCompile(`^(-?[0-9]{4,})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
-	gMonthDay  = regexp.MustCompile(`^--([0-9]{2})-([0-9]{2})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
-	gMonth     = regexp.MustCompile(`^--([0-9]{2})(?:--)?(Z|[+-][0-9]{2}:[0-9]{2})?$`)
-	gDay       = regexp.MustCompile(`^---([0-9]{2})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
+	dateTimeRE  = regexp.MustCompile(`^(-?[0-9]{4,})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$`)
+	dateRE      = regexp.MustCompile(`^(-?[0-9]{4,})-([0-9]{2})-([0-9]{2})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
+	timePattern = regexp.MustCompile(`^([0-9]{2}):([0-9]{2}):([0-9]{2})(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$`)
+	gYearMonth  = regexp.MustCompile(`^(-?[0-9]{4,})-([0-9]{2})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
+	gYear       = regexp.MustCompile(`^(-?[0-9]{4,})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
+	gMonthDay   = regexp.MustCompile(`^--([0-9]{2})-([0-9]{2})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
+	gMonth      = regexp.MustCompile(`^--([0-9]{2})(?:--)?(Z|[+-][0-9]{2}:[0-9]{2})?$`)
+	gDay        = regexp.MustCompile(`^---([0-9]{2})(Z|[+-][0-9]{2}:[0-9]{2})?$`)
 )
 
 func validateDateTimeFamily(local, lexical string) LexicalStatus {
@@ -456,7 +456,7 @@ func validateDateTimeFamily(local, lexical string) LexicalStatus {
 			return invalid("invalid xsd:date lexical form")
 		}
 	case "time":
-		m := timeRE.FindStringSubmatch(lexical)
+		m := timePattern.FindStringSubmatch(lexical)
 		if m == nil {
 			return invalid("invalid xsd:time lexical form")
 		}
