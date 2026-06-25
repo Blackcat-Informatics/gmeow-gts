@@ -433,6 +433,97 @@ fn turtle_parser_accepts_shared_turtle_grammar() {
 }
 
 #[test]
+fn turtle_parser_accepts_bare_numeric_boolean_and_long_string_literals() {
+    // The literal forms the native parser previously lacked (which forced the oxttl
+    // stopgap on the 909 branch): bare integer/decimal/double, boolean, single- and
+    // triple-quoted strings. Lexical forms are preserved verbatim.
+    let turtle = r#"@prefix ex: <https://ex/ns#> .
+ex:s ex:int 42 ;
+     ex:neg -7 ;
+     ex:dec 0.70 ;
+     ex:dotdec .5 ;
+     ex:dbl 1.0e0 ;
+     ex:expneg 6.022E23 ;
+     ex:yes true ;
+     ex:no false ;
+     ex:apos 'single' ;
+     ex:long """multi
+line""" ;
+     ex:longapos '''also
+long''' .
+"#;
+    let out = nquads_from_gts(&from_turtle(turtle).expect("Turtle imports bare literals"));
+    assert!(
+        out.contains("\"42\"^^<http://www.w3.org/2001/XMLSchema#integer>"),
+        "integer typed + verbatim:\n{out}"
+    );
+    assert!(
+        out.contains("\"-7\"^^<http://www.w3.org/2001/XMLSchema#integer>"),
+        "signed integer:\n{out}"
+    );
+    assert!(
+        out.contains("\"0.70\"^^<http://www.w3.org/2001/XMLSchema#decimal>"),
+        "decimal lexical form preserved (0.70, not 0.7):\n{out}"
+    );
+    assert!(
+        out.contains("\".5\"^^<http://www.w3.org/2001/XMLSchema#decimal>"),
+        "leading-dot decimal:\n{out}"
+    );
+    assert!(
+        out.contains("\"1.0e0\"^^<http://www.w3.org/2001/XMLSchema#double>"),
+        "double lexical form preserved (1.0e0):\n{out}"
+    );
+    assert!(
+        out.contains("\"6.022E23\"^^<http://www.w3.org/2001/XMLSchema#double>"),
+        "double with capital E and exponent:\n{out}"
+    );
+    assert!(
+        out.contains("\"true\"^^<http://www.w3.org/2001/XMLSchema#boolean>"),
+        "boolean true:\n{out}"
+    );
+    assert!(
+        out.contains("\"false\"^^<http://www.w3.org/2001/XMLSchema#boolean>"),
+        "boolean false:\n{out}"
+    );
+    assert!(out.contains("\"single\""), "single-quoted string:\n{out}");
+    assert!(
+        out.contains("multi\\nline"),
+        "triple-quoted string spans newlines (escaped in N-Triples):\n{out}"
+    );
+    assert!(
+        out.contains("also\\nlong"),
+        "triple single-quoted string:\n{out}"
+    );
+}
+
+#[test]
+fn native_codecs_roundtrip_long_private_use_language_subtags() {
+    // The driver behind gmeow-gts #358: GMEOW relies on long BCP-47 private-use
+    // subtags like `x-gmeow-norwegiannynorsk` (>8 chars) which oxttl rejected without
+    // `.lenient()`. The hand-rolled native parser/serializer do no BCP-47 length
+    // validation, so the tag survives Turtle and N-Triples round-trips with no oxttl.
+    let turtle =
+        "@prefix ex: <https://ex/ns#> .\nex:s ex:greet \"hallo\"@x-gmeow-norwegiannynorsk .\n";
+    let gts = from_turtle(turtle).expect("Turtle imports long private-use subtag");
+
+    let turtle_out = to_turtle(&read(&gts, true, None)).expect("to_turtle");
+    let reparsed = from_turtle(&turtle_out).expect("Turtle re-ingests long tag");
+    let nq = to_nquads(&read(&reparsed, true, None));
+    assert!(
+        nq.contains("\"hallo\"@x-gmeow-norwegiannynorsk"),
+        "turtle round-trip kept the long language tag:\n{nq}"
+    );
+
+    let ntriples_out = to_ntriples(&read(&gts, true, None)).expect("to_ntriples");
+    let reparsed_nt = from_ntriples(&ntriples_out).expect("N-Triples re-ingests long tag");
+    let nq_nt = to_nquads(&read(&reparsed_nt, true, None));
+    assert!(
+        nq_nt.contains("\"hallo\"@x-gmeow-norwegiannynorsk"),
+        "ntriples round-trip kept the long language tag:\n{nq_nt}"
+    );
+}
+
+#[test]
 fn rdf_xml_parser_accepts_core_w3c_rdf_xml_shapes() {
     let cases = [
         (

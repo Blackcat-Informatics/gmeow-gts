@@ -40,6 +40,25 @@ and MAY change before `1.0`.
   now locks the `wasm32-unknown-unknown --all-features` library build and audits
   that dependency tree to keep the removed toolkit blockers out.
 
+## [0.9.6]
+
+### Added
+
+- Native Turtle/TriG parsing of bare numeric (`xsd:integer`/`decimal`/`double`),
+  boolean (`xsd:boolean`), and single- and triple-quoted string literals, with
+  lexical forms preserved verbatim (`0.70`, `1.0E0` survive unchanged). This
+  closes the gaps that previously forced an oxttl-backed codec fallback, so the
+  hand-rolled native codecs fully replace `oxttl`/`oxrdfxml`/`oxrdfio` with no
+  text-codec dependency on the Oxigraph family.
+
+### Changed
+
+- N-Quads/N-Triples language-tag validation now accepts long BCP-47 private-use
+  subtags (e.g. `x-gmeow-norwegiannynorsk`): once the `x` singleton appears the
+  8-char per-subtag cap is dropped for the remainder. This is the native
+  equivalent of the prior oxttl `.lenient()` mode and lets GMEOW's long
+  private-use language tags round-trip through every native text codec.
+
 ## [0.9.5] — 2026-06-22
 
 Rust-only release. Python, Go, TypeScript, and wrapper package versions remain
@@ -298,6 +317,7 @@ at `0.9.4`.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
 [Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...HEAD
+[0.9.6]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...rust-v0.9.6
 [0.9.5]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.4...rust-v0.9.5
 [0.9.4]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.2...py-v0.9.4
 [0.9.2]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.1...py-v0.9.2
