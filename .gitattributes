@@ -13,6 +13,7 @@ ietf/draft-audley-gts-graph-transport-substrate-00.xml linguist-generated=true
 
 # YAML and copied upstream license text require space indentation.
 .pre-commit-config.yaml whitespace=trailing-space,space-before-tab
+go/.golangci.yml whitespace=trailing-space,space-before-tab
 .github/workflows/*.yml whitespace=trailing-space,space-before-tab
 .github/workflows/*.yaml whitespace=trailing-space,space-before-tab
 quality/*.json whitespace=trailing-space,space-before-tab

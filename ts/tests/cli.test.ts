@@ -18,12 +18,13 @@ const vectorsDir = join(repoRoot, "vectors");
 
 function run(
     args: string[],
-    opts?: { cwd?: string; input?: Uint8Array },
+    opts?: { cwd?: string; input?: Uint8Array; env?: NodeJS.ProcessEnv },
 ): { code: number; stdout: string; stderr: string } {
     // spawnSync (not execFileSync): stderr must be observable on success
     // too — verify emits §14.1 warnings without failing.
     const r = spawnSync("node", [cli, ...args], {
         cwd: opts?.cwd,
+        env: opts?.env,
         input: opts?.input,
         encoding: "utf8",
     });
@@ -31,6 +32,16 @@ function run(
         code: r.status ?? 1,
         stdout: r.stdout ?? "",
         stderr: r.stderr ?? "",
+    };
+}
+
+function localeEnv(locale: string): NodeJS.ProcessEnv {
+    return {
+        ...process.env,
+        GTS_LANG: locale,
+        LC_ALL: "",
+        LC_MESSAGES: "",
+        LANG: "",
     };
 }
 
@@ -51,6 +62,38 @@ test("CLI fold emits N-Quads for a clean vector", () => {
     const r = run(["fold", join(vectorsDir, "01-minimal.gts")]);
     assert.equal(r.code, 0);
     assert.match(r.stdout, /<https:\/\/example.org\/Cat>/);
+});
+
+test("CLI localizes help and unknown-command errors", () => {
+    const cases = [
+        {
+            locale: "nonsense",
+            usageMarker: "usage: gts",
+            errorMarker: "unknown command",
+        },
+        {
+            locale: "fr_CA",
+            usageMarker: "utilisation: gts",
+            errorMarker: "commande inconnue",
+        },
+        {
+            locale: "zh_CN",
+            usageMarker: "用法: gts",
+            errorMarker: "未知命令",
+        },
+    ];
+
+    for (const c of cases) {
+        const help = run(["help"], { env: localeEnv(c.locale) });
+        assert.equal(help.code, 0, help.stderr);
+        assert.match(help.stdout, new RegExp(c.usageMarker));
+        assert.match(help.stdout, /from-nq/);
+
+        const bad = run(["not-a-gts-command"], { env: localeEnv(c.locale) });
+        assert.equal(bad.code, 2);
+        assert.match(bad.stderr, new RegExp(c.errorMarker));
+        assert.match(bad.stderr, /not-a-gts-command/);
+    }
 });
 
 test("CLI verify reports diagnostics for damaged vector", () => {

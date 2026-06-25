@@ -57,6 +57,11 @@ linters:
         text: G304
         linters:
           - gosec
+      # The CLI help intentionally contains ASCII French localization text.
+      - path: cmd/gts/main\.go
+        text: "`commandes` is a misspelling of `commands`"
+        linters:
+          - misspell
 
 run:
   timeout: 5m

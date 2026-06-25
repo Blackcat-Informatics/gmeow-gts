@@ -29,6 +29,38 @@ LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 BLOB = b"not really webp bytes"
 
 
+@pytest.mark.parametrize(
+    ("locale", "usage_marker", "error_marker"),
+    [
+        ("nonsense", "usage: gts", "unknown command"),
+        ("fr_CA", "utilisation: gts", "commande inconnue"),
+        ("zh_CN", "用法: gts", "未知命令"),
+    ],
+)
+def test_cli_localized_help_and_unknown_command(
+    locale: str,
+    usage_marker: str,
+    error_marker: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("GTS_LANG", locale)
+    monkeypatch.delenv("LC_ALL", raising=False)
+    monkeypatch.delenv("LC_MESSAGES", raising=False)
+    monkeypatch.delenv("LANG", raising=False)
+
+    assert main(["help"]) == 0
+    out = capsys.readouterr().out
+    assert usage_marker in out
+    assert "from-nq" in out
+
+    assert main(["not-a-gts-command"]) == 2
+    err = capsys.readouterr().err
+    assert error_marker in err
+    assert "not-a-gts-command" in err
+    assert "from-nq" in err
+
+
 def _replication_file(tmp_path: Path) -> tuple[Path, bytes, bytes, bytes]:
     first = Writer()
     first_head = first.add_blob(b"a", mt="text/plain")

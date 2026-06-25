@@ -33,6 +33,19 @@ GtsCliParityTest >> testCatRequiresAtLeastTwoInputs [
 ]
 
 { #category : #tests }
+GtsCliParityTest >> testLocalizedUsageAndUnknownCommand [
+	self assert: (GtsCLI localeFrom: 'nonsense') equals: #en.
+	self assert: (GtsCLI localeFrom: 'fr_CA') equals: #frCA.
+	self assert: (GtsCLI localeFrom: ' zh_CN.UTF-8 ') equals: #zhHans.
+	self assert: ((GtsCLI usageForLocale: #en) includesSubstring: 'usage: gts').
+	self assert: ((GtsCLI usageForLocale: #frCA) includesSubstring: 'utilisation: gts').
+	self assert: ((GtsCLI usageForLocale: #zhHans) includesSubstring: '用法: gts').
+	self assert: ((GtsCLI unknownCommandMessage: 'not-a-gts-command' locale: #en) includesSubstring: 'unknown command').
+	self assert: ((GtsCLI unknownCommandMessage: 'not-a-gts-command' locale: #frCA) includesSubstring: 'commande inconnue').
+	self assert: ((GtsCLI unknownCommandMessage: 'not-a-gts-command' locale: #zhHans) includesSubstring: '未知命令')
+]
+
+{ #category : #tests }
 GtsCliParityTest >> testReplicationJsonStringsEscapeSpecialCharacters [
 	self
 		assert: (GtsReplication jsonString: ('a"b\c', String lf, String tab, 'd'))

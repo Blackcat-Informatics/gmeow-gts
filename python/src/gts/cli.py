@@ -14,7 +14,9 @@ Exit codes: 0 clean; 1 diagnostics found or input refused; 2 usage/IO error.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+from collections.abc import Mapping
 
 from gts.cli_common import _load, _print_ledger, _write_out
 from gts.cli_export import (
@@ -46,6 +48,170 @@ from gts.replication import (
     resume_after,
     segments_json,
 )
+
+_CLI_COMMANDS = {
+    "cat",
+    "compact",
+    "diff",
+    "extract",
+    "extract-key",
+    "fold",
+    "from-nq",
+    "from-trig",
+    "heads",
+    "info",
+    "ls",
+    "missing",
+    "pack",
+    "resume",
+    "segments",
+    "to-duckdb",
+    "to-parquet",
+    "to-sqlite",
+    "to-trig",
+    "unpack",
+    "verify",
+    "verify-proof",
+}
+
+_USAGE_EN = """usage: gts <command> [args]
+
+commands:
+  info <file>...            per-segment composition ledger
+  fold <file>               fold to N-Quads on stdout
+  verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
+  verify-proof <proof.json> verify detached MMR proof JSON without the GTS file
+  heads <file>              JSON segment heads and aggregate comparison digest
+  segments <file>           JSON segment byte ranges and layout inventory
+  missing --from-head <head> <file>
+                            JSON byte ranges needed after a peer head
+  resume --after <frame-id> <file>
+                            emit bytes after a verified frame boundary
+  extract-key <file>        print the embedded transport/verification key
+  ls <file>                 list inline blobs: digest, size, declared media type
+  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+                            extract one blob by content digest
+  cat -o <out> <file>...    validating composer: refuse degenerate inputs,
+                            then byte-concatenate
+  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+                            rewrite into the streamable layout state
+  pack <dir|file>... -o out.gts
+                            pack files/directories into a files-profile archive
+  unpack <archive> [-C dir] [--include-suppressed]
+                            unpack a files-profile archive
+  diff <archive> <dir>      compare archive to directory by digest
+  from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
+  to-trig <file>            fold to TriG on stdout
+  from-trig <in.trig> [-o out]
+                            build a GTS from TriG; '-' reads stdin
+  to-sqlite <file> <out>    export a folded graph to SQLite
+  to-duckdb <file> <out>    export a folded graph to DuckDB
+  to-parquet <file> <out_dir>
+                            export a folded graph to Parquet"""
+
+_USAGE_FR_CA = """utilisation: gts <command> [args]
+
+commandes:
+  info <file>...            affiche le registre de composition par segment
+  fold <file>               plie vers N-Quads sur stdout
+  verify <file>...          verifie les chaines, le registre et les diagnostics
+  verify-proof <proof.json> verifie une preuve MMR detachee sans fichier GTS
+  heads <file>              emet les tetes de segments en JSON
+  segments <file>           emet les plages d'octets des segments en JSON
+  missing --from-head <head> <file>
+                            emet les plages JSON requises apres une tete de pair
+  resume --after <frame-id> <file>
+                            emet les octets apres une frontiere de trame valide
+  extract-key <file>        imprime la cle de transport/verification integree
+  ls <file>                 liste les blobs: digest, taille, type media declare
+  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+                            extrait un blob par digest de contenu
+  cat -o <out> <file>...    compose en validant et refuse les entrees degenerees
+  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+                            reecrit vers l'etat de disposition diffusable
+  pack <dir|file>... -o out.gts
+                            emballe des fichiers en archive de profil files
+  unpack <archive> [-C dir] [--include-suppressed]
+                            deballe une archive de profil files
+  diff <archive> <dir>      compare une archive a un repertoire par digest
+  from-nq <in.nq> [-o out]  construit un GTS depuis N-Quads; '-' lit stdin
+  to-trig <file>            plie vers TriG sur stdout
+  from-trig <in.trig> [-o out]
+                            construit un GTS depuis TriG; '-' lit stdin
+  to-sqlite <file> <out>    exporte le graphe plie vers SQLite
+  to-duckdb <file> <out>    exporte le graphe plie vers DuckDB
+  to-parquet <file> <out_dir>
+                            exporte le graphe plie vers Parquet"""
+
+_USAGE_ZH_HANS = """用法: gts <command> [args]
+
+命令:
+  info <file>...            显示每个段的组合账本
+  fold <file>               将内容折叠为 N-Quads 并写到 stdout
+  verify <file>...          验证链、账本和诊断；发现问题时退出 1
+  verify-proof <proof.json> 在没有 GTS 文件时验证分离的 MMR 证明
+  heads <file>              输出段头和聚合摘要的 JSON
+  segments <file>           输出段字节范围和布局清单的 JSON
+  missing --from-head <head> <file>
+                            输出对等段头之后所需的字节范围 JSON
+  resume --after <frame-id> <file>
+                            输出已验证帧边界之后的字节
+  extract-key <file>        打印内嵌的传输/验证密钥
+  ls <file>                 列出内联 blob 的摘要、大小和声明媒体类型
+  extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
+                            按内容摘要提取一个 blob
+  cat -o <out> <file>...    验证后组合，拒绝退化输入
+  compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
+                            重写为可流式布局状态
+  pack <dir|file>... -o out.gts
+                            将文件或目录打包为 files 配置文件归档
+  unpack <archive> [-C dir] [--include-suppressed]
+                            解包 files 配置文件归档
+  diff <archive> <dir>      按摘要比较归档和目录
+  from-nq <in.nq> [-o out]  从 N-Quads 构建 GTS；'-' 读取 stdin
+  to-trig <file>            将内容折叠为 TriG 并写到 stdout
+  from-trig <in.trig> [-o out]
+                            从 TriG 构建 GTS；'-' 读取 stdin
+  to-sqlite <file> <out>    将折叠图导出到 SQLite
+  to-duckdb <file> <out>    将折叠图导出到 DuckDB
+  to-parquet <file> <out_dir>
+                            将折叠图导出到 Parquet"""
+
+_USAGE_BY_LOCALE = {
+    "en": _USAGE_EN,
+    "fr-CA": _USAGE_FR_CA,
+    "zh-Hans": _USAGE_ZH_HANS,
+}
+
+
+def _locale_from(raw: str) -> str:
+    value = raw.strip().split(".", 1)[0].split("@", 1)[0].replace("_", "-").lower()
+    if value in {"fr", "fr-ca"}:
+        return "fr-CA"
+    if value in {"zh", "zh-cn", "zh-hans", "zh-hans-cn"}:
+        return "zh-Hans"
+    return "en"
+
+
+def _cli_locale(env: Mapping[str, str] | None = None) -> str:
+    source = os.environ if env is None else env
+    for key in ("GTS_LANG", "LC_ALL", "LC_MESSAGES", "LANG"):
+        raw = source.get(key, "")
+        if raw.strip():
+            return _locale_from(raw)
+    return "en"
+
+
+def _usage_text(locale: str | None = None) -> str:
+    return _USAGE_BY_LOCALE.get(locale or _cli_locale(), _USAGE_EN)
+
+
+def _unknown_command(command: str, locale: str) -> str:
+    if locale == "fr-CA":
+        return f"gts: commande inconnue '{command}'\n{_usage_text(locale)}"
+    if locale == "zh-Hans":
+        return f"gts: 未知命令 '{command}'\n{_usage_text(locale)}"
+    return f"gts: unknown command '{command}'\n{_usage_text(locale)}"
 
 
 def _cmd_info(paths: list[str]) -> int:
@@ -110,6 +276,18 @@ def _cmd_resume(after: str, path: str) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     """Entry point for the ``gts`` console script."""
+    raw_args = list(sys.argv[1:] if argv is None else argv)
+    locale = _cli_locale()
+    if not raw_args:
+        print(_usage_text(locale), file=sys.stderr)
+        return 2
+    if raw_args[0] in {"-h", "--help", "help"}:
+        print(_usage_text(locale))
+        return 0
+    if raw_args[0] not in _CLI_COMMANDS:
+        print(_unknown_command(raw_args[0], locale), file=sys.stderr)
+        return 2
+
     parser = argparse.ArgumentParser(
         prog="gts",
         description="Inspect, fold, verify, and compose GTS files.",
@@ -283,7 +461,7 @@ def main(argv: list[str] | None = None) -> int:
     p_diff.add_argument("archive")
     p_diff.add_argument("directory")
 
-    args = parser.parse_args(argv)
+    args = parser.parse_args(raw_args)
     if args.command == "info":
         return _cmd_info(args.files)
     if args.command == "fold":
