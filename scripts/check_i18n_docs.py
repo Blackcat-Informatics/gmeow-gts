@@ -74,13 +74,7 @@ def has_unclosed_fence(text: str) -> bool:
 
 
 def unique_in_order(values: Iterable[str]) -> list[str]:
-    seen: set[str] = set()
-    result: list[str] = []
-    for value in values:
-        if value not in seen:
-            seen.add(value)
-            result.append(value)
-    return result
+    return list(dict.fromkeys(values))
 
 
 def protected_literals(text: str) -> list[str]:
@@ -125,13 +119,17 @@ def validate_enforced_file(
             f"{relative(localized_path)}: code fence count differs from "
             f"{relative(source_path)} ({len(localized_blocks)} != {len(source_blocks)})",
         )
-    missing_blocks = [block for block in source_blocks if block not in localized_text]
-    if missing_blocks:
-        fail(
-            errors,
-            f"{relative(localized_path)}: {len(missing_blocks)} source code block(s) "
-            "are not preserved exactly",
-        )
+    else:
+        for index, (source_block, localized_block) in enumerate(
+            zip(source_blocks, localized_blocks, strict=True),
+            start=1,
+        ):
+            if source_block != localized_block:
+                fail(
+                    errors,
+                    f"{relative(localized_path)}: code block {index} does not match "
+                    f"{relative(source_path)} exactly",
+                )
 
     missing_literals = [
         literal for literal in protected_literals(source_text) if literal not in localized_text
@@ -180,9 +178,14 @@ def main() -> int:
             if source_path is None:
                 continue
 
-            if locale in by_source[source]:
-                fail(errors, f"{relative(doc_path)}: duplicate source for locale: {source}")
-            by_source[source][locale] = doc_path
+            normalized_source = relative(source_path)
+            if locale in by_source[normalized_source]:
+                fail(
+                    errors,
+                    f"{relative(doc_path)}: duplicate source for locale: "
+                    f"{normalized_source}",
+                )
+            by_source[normalized_source][locale] = doc_path
 
             if status in ENFORCED_STATUSES:
                 source_text = source_path.read_text(encoding="utf-8")
