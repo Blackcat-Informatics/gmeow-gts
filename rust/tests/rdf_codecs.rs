@@ -700,8 +700,14 @@ fn rdf_xml_parser_resolves_rdf_id_against_base_without_fragment() {
     );
     assert!(out
         .contains("<http://example.org/doc> <http://example.org/related> <http://example.org/o>"));
+    // `rdf:ID` is RDF 1.0 reification: the reifier IRI is resolved against the base
+    // WITHOUT the base fragment (`#statement`, not `#old#statement`) and carries the
+    // classic rdf:Statement/subject/predicate/object quads.
     assert!(out.contains(
-        "<http://example.org/doc#statement> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>"
+        "<http://example.org/doc#statement> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement>"
+    ));
+    assert!(out.contains(
+        "<http://example.org/doc#statement> <http://www.w3.org/1999/02/22-rdf-syntax-ns#object> <http://example.org/o>"
     ));
     assert!(!out.contains("#old#statement"));
 }

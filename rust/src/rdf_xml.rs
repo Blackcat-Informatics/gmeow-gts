@@ -41,6 +41,10 @@ const RDF_REIFIES: &str = "reifies";
 const RDF_FIRST: &str = "first";
 const RDF_REST: &str = "rest";
 const RDF_NIL: &str = "nil";
+const RDF_STATEMENT: &str = "Statement";
+const RDF_SUBJECT: &str = "subject";
+const RDF_PREDICATE: &str = "predicate";
+const RDF_OBJECT: &str = "object";
 const RDF_XML_LITERAL: &str = "XMLLiteral";
 const XML_BASE: &str = "base";
 const XML_LANG: &str = "lang";
@@ -781,12 +785,52 @@ impl RdfXmlParser {
             object.clone(),
             GraphName::DefaultGraph,
         ));
+        // `rdf:ID` on a property element is RDF 1.0 reification (the classic
+        // rdf:Statement/subject/predicate/object quads); `rdf:annotation` /
+        // `rdf:annotationNodeID` is the RDF 1.2 reifier (rdf:reifies a triple term).
         if let Some(reifier) = reifier {
-            self.insert_reifier(reifier, subject.clone(), predicate.clone(), object.clone())?;
+            self.insert_classic_reification(
+                reifier,
+                subject.clone(),
+                predicate.clone(),
+                object.clone(),
+            )?;
         }
         if let Some(annotation) = annotation {
             self.insert_reifier(annotation, subject, predicate, object)?;
         }
+        Ok(())
+    }
+
+    /// Emit the RDF 1.0 reification quads for a property element carrying `rdf:ID`.
+    fn insert_classic_reification(
+        &mut self,
+        reifier: NamedOrBlankNode,
+        subject: NamedOrBlankNode,
+        predicate: Iri,
+        object: RdfTerm,
+    ) -> Result<(), RdfCodecError> {
+        let g = GraphName::DefaultGraph;
+        self.dataset.insert(RdfQuad::new(
+            reifier.clone(),
+            rdf_iri(RDF_TYPE)?,
+            rdf_iri(RDF_STATEMENT)?,
+            g.clone(),
+        ));
+        self.dataset.insert(RdfQuad::new(
+            reifier.clone(),
+            rdf_iri(RDF_SUBJECT)?,
+            named_or_blank_term(&subject),
+            g.clone(),
+        ));
+        self.dataset.insert(RdfQuad::new(
+            reifier.clone(),
+            rdf_iri(RDF_PREDICATE)?,
+            predicate,
+            g.clone(),
+        ));
+        self.dataset
+            .insert(RdfQuad::new(reifier, rdf_iri(RDF_OBJECT)?, object, g));
         Ok(())
     }
 
