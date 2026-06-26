@@ -16,6 +16,7 @@ Cette page sert d'entrée locale pour le lot de traduction #364. Les termes suiv
 
 | Source anglaise | Page fr-CA |
 |---|---|
+| `docs/GTS-SPEC.md` | [Spécification GTS](docs/GTS-SPEC.md) |
 | `README.md` | [Projet](README.md) |
 | `docs/positioning.md` | [Positionnement](docs/positioning.md) |
 | `rust/README.md` | [Rust](rust/README.md) |
@@ -37,4 +38,4 @@ Cette page sert d'entrée locale pour le lot de traduction #364. Les termes suiv
 
 ## Statut
 
-Ces pages sont marquées `draft` afin de séparer la traduction initiale de la revue finale prévue par #369. Les commandes, chemins, URLs, noms de paquets, identifiants d'API, valeurs JSON, codes de diagnostic et extraits de code doivent rester exactement comme dans les sources anglaises.
+La spécification localisée est marquée `translated` et demeure informative par rapport au document anglais. Les autres pages sont marquées `draft` afin de séparer la traduction initiale de la revue finale prévue par #369. Les commandes, chemins, URLs, noms de paquets, identifiants d'API, valeurs JSON, codes de diagnostic et extraits de code doivent rester exactement comme dans les sources anglaises.
