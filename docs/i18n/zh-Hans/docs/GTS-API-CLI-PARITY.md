@@ -6,7 +6,7 @@
 
 # GTS API 与 CLI 对等协约
 
-> [`docs/GTS-API-CLI-PARITY.md`](../../../docs/GTS-API-CLI-PARITY.md) 的信息性中文翻译。英文文档仍然是兼容性规则、一致性声明、对等矩阵、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md)，仅供参考。
+> [`docs/GTS-API-CLI-PARITY.md`](../../../../docs/GTS-API-CLI-PARITY.md) 的信息性中文翻译。英文文档仍然是兼容性规则、一致性声明、对等矩阵、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md)，仅供参考。
 
 本文件定义了 Rust、Python、Go、TypeScript、Smalltalk/Pharo 以及 Kotlin/JVM 保持兼容的跨语言表面，同时各引擎继续暴露原生习语。传输格式在 [`GTS-SPEC.md`](./GTS-SPEC.md) 中保持规范性，语料库/层级规则在 [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md) 中保持规范性。本协约确立了公共 API 形态和 CLI 对等矩阵，使功能差距显性化，而非从特定软件包的文档中推断。
 

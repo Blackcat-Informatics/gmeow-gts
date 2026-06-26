@@ -6,7 +6,7 @@
 
 # Implémentation de référence GTS Python (`gts`)
 
-> Traduction informative de [`docs/gts-reference.md`](../../../docs/gts-reference.md). Le document anglais demeure la source normative pour les règles de compatibilité, les déclarations de conformité, les matrices de parité, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et reste informative.
+> Traduction informative de [`docs/gts-reference.md`](../../../../docs/gts-reference.md). Le document anglais demeure la source normative pour les règles de compatibilité, les déclarations de conformité, les matrices de parité, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et reste informative.
 
 Un lecteur/rédacteur léger en dépendances pour le format filaire **Graph Transport Substrate** spécifié dans [`GTS-SPEC.md`](./GTS-SPEC.md). Le paquet `gts` (PyPI : `gmeow-gts`) est le niveau **baseline** : il valide la spécification de manière empirique et constitue la source unique de vérité pour le corpus de conformité neutre vis-à-vis des langages par rapport auquel les moteurs Rust, Go et TypeScript effectuent également leurs validations. Les déclarations de niveau et les sous-ensembles de vecteurs sont définis dans [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md).
 

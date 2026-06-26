@@ -157,6 +157,35 @@ Before translating a tranche:
    literals from the English source are intentionally preserved.
 5. Run `just check-i18n`.
 
+When an English source in the coverage tables changes, update both localized
+counterparts in the same change or leave an explicit `draft`/`placeholder`
+status until the localized content is brought current. When a new in-scope
+English document is added, add it to the coverage table with both `fr-CA` and
+`zh-Hans` counterparts; if it is intentionally excluded, record that exclusion
+in this index. Keep source-path metadata and the backlink to the English source
+near the top of every localized document.
+
+When CLI user-visible text changes, update the English fallback and the
+`fr-CA`/`zh-Hans` string tables for Rust, Python, Go, TypeScript,
+Smalltalk/Pharo, and Kotlin/JVM together. Run `python
+scripts/check_cli_parity.py` and the localized CLI runtime tests for all six
+engines before treating the CLI text as synchronized.
+
+When glossary terminology changes, update [`GLOSSARY.md`](./GLOSSARY.md) before
+touching tranche translations, then review existing localized files for terms
+that should follow the new canonical wording.
+
 The localization guard lives at `scripts/check_i18n_docs.py`. It validates
-metadata, paired locale coverage, source paths, code-fence balance, and protected
-literal preservation for translated or reviewed files.
+metadata, paired locale coverage, source paths, English-source backlinks,
+coverage-table entries, code-fence balance, and protected literal preservation
+for translated or reviewed files. Final localization QA should run:
+
+```bash
+just check-i18n
+python scripts/check_i18n_docs.py
+python scripts/check_cli_parity.py
+python scripts/check_ecosystem_contract.py
+python scripts/check_security_contract.py
+bash scripts/check-versions.sh
+pre-commit run --all-files
+```

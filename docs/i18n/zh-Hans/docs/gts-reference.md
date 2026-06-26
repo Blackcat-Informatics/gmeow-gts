@@ -6,7 +6,7 @@
 
 # GTS Python 参考实现 (`gts`)
 
-> [`docs/gts-reference.md`](../../../docs/gts-reference.md) 的信息性中文翻译。英文文档仍然是兼容性规则、一致性声明、对等矩阵、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md)，仅供参考。
+> [`docs/gts-reference.md`](../../../../docs/gts-reference.md) 的信息性中文翻译。英文文档仍然是兼容性规则、一致性声明、对等矩阵、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md)，仅供参考。
 
 一个轻量级、低依赖的 **Graph Transport Substrate** 线格式读取器/写入器，该格式在 [`GTS-SPEC.md`](./GTS-SPEC.md) 中规定。`gts` 软件包 (PyPI: `gmeow-gts`) 是 **baseline** 层级：它对规范进行了实证验证，是 Rust、Go 和 TypeScript 引擎所对标的语言无关一致性语料库的唯一事实来源。层级声明和向量子集在 [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md) 中定义。
 

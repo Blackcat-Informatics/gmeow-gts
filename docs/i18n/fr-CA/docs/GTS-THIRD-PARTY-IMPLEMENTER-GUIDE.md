@@ -6,7 +6,7 @@
 
 # Guide de l'implémenteur tiers GTS
 
-> Traduction informative de [`docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md`](../../../docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md). Le document anglais demeure la source normative pour les règles de compatibilité, les déclarations de conformité, les matrices de parité, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et reste informative.
+> Traduction informative de [`docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md`](../../../../docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md). Le document anglais demeure la source normative pour les règles de compatibilité, les déclarations de conformité, les matrices de parité, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et reste informative.
 
 Ce guide s'adresse aux implémenteurs qui souhaitent créer un lecteur (reader) GTS indépendant et faire une déclaration de conformité Baseline Reader testable. Il n'est pas normatif. Le format filaire demeure défini par [`GTS-SPEC.md`](./GTS-SPEC.md), et les déclarations de conformité demeurent définies par [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md).
 

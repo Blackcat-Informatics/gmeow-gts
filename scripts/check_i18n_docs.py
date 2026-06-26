@@ -22,6 +22,7 @@ INLINE_CODE_RE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
 URL_RE = re.compile(r"https?://[^\s)>\"']+")
 MARKDOWN_TARGET_RE = re.compile(r"!?\[[^\]]*]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 HTML_ATTR_RE = re.compile(r"\b(?:href|src)=\"([^\"]+)\"")
+INDEX_SOURCE_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|", re.MULTILINE)
 
 
 def relative(path: Path) -> str:
@@ -84,6 +85,46 @@ def protected_literals(text: str) -> list[str]:
     tokens.extend(MARKDOWN_TARGET_RE.findall(text))
     tokens.extend(HTML_ATTR_RE.findall(text))
     return unique_in_order(tokens)
+
+
+def indexed_sources(errors: list[str]) -> set[str]:
+    index_path = I18N_ROOT / "README.md"
+    if not index_path.is_file():
+        return set()
+    sources: set[str] = set()
+    for source in INDEX_SOURCE_RE.findall(index_path.read_text(encoding="utf-8")):
+        if not source.endswith(".md"):
+            continue
+        source_path = Path(source)
+        if source_path.is_absolute() or ".." in source_path.parts:
+            fail(errors, f"{relative(index_path)}: indexed source must be repo-relative: {source}")
+            continue
+        if not (ROOT / source_path).is_file():
+            fail(errors, f"{relative(index_path)}: indexed source does not exist: {source}")
+            continue
+        if (ROOT / source_path).is_relative_to(I18N_ROOT):
+            fail(errors, f"{relative(index_path)}: indexed source cannot be under docs/i18n: {source}")
+            continue
+        sources.add(relative(ROOT / source_path))
+    return sources
+
+
+def has_source_link(localized_path: Path, localized_text: str, source_path: Path) -> bool:
+    source_resolved = source_path.resolve()
+    for target in MARKDOWN_TARGET_RE.findall(localized_text):
+        if (
+            target.startswith("#")
+            or "://" in target
+            or target.startswith("mailto:")
+        ):
+            continue
+        target_without_anchor = target.split("#", 1)[0]
+        if not target_without_anchor:
+            continue
+        resolved = (localized_path.parent / target_without_anchor).resolve()
+        if resolved == source_resolved:
+            return True
+    return False
 
 
 def validate_source_path(source: str, errors: list[str], doc_path: Path) -> Path | None:
@@ -149,6 +190,7 @@ def main() -> int:
             fail(errors, f"missing required localization file: {relative(required)}")
 
     by_source: dict[str, dict[str, Path]] = defaultdict(dict)
+    declared_sources = indexed_sources(errors)
 
     for locale in LOCALES:
         locale_dir = I18N_ROOT / locale
@@ -177,6 +219,12 @@ def main() -> int:
             source_path = validate_source_path(source, errors, doc_path)
             if source_path is None:
                 continue
+            if not has_source_link(doc_path, text, source_path):
+                fail(
+                    errors,
+                    f"{relative(doc_path)}: missing link back to English source "
+                    f"{relative(source_path)}",
+                )
 
             normalized_source = relative(source_path)
             if locale in by_source[normalized_source]:
@@ -195,6 +243,16 @@ def main() -> int:
         missing = sorted(set(LOCALES) - set(locale_paths))
         if missing:
             fail(errors, f"{source}: missing localized coverage for {', '.join(missing)}")
+
+    for source in sorted(declared_sources):
+        locale_paths = by_source.get(source, {})
+        missing = sorted(set(LOCALES) - set(locale_paths))
+        if missing:
+            fail(
+                errors,
+                f"{source}: indexed localization scope missing coverage for "
+                f"{', '.join(missing)}",
+            )
 
     if errors:
         for error in errors:

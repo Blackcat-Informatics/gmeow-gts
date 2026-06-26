@@ -6,7 +6,7 @@
 
 # Contrat de parité API et CLI GTS
 
-> Traduction informative de [`docs/GTS-API-CLI-PARITY.md`](../../../docs/GTS-API-CLI-PARITY.md). Le document anglais demeure la source normative pour les règles de compatibilité, les déclarations de conformité, les matrices de parité, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et reste informative.
+> Traduction informative de [`docs/GTS-API-CLI-PARITY.md`](../../../../docs/GTS-API-CLI-PARITY.md). Le document anglais demeure la source normative pour les règles de compatibilité, les déclarations de conformité, les matrices de parité, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et reste informative.
 
 Ce document définit la surface multi-langage que Rust, Python, Go, TypeScript, Smalltalk/Pharo et Kotlin/JVM maintiennent compatible alors que les moteurs continuent d'exposer des idiomes natifs. Le format de transfert demeure normatif dans [`GTS-SPEC.md`](./GTS-SPEC.md), et les règles de corpus/niveau demeurent normatives dans [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md). Ce contrat possède la forme de l'API publique et la matrice de parité CLI afin que les écarts de fonctionnalités soient explicites plutôt que déduits de la documentation spécifique à chaque paquet.
 
