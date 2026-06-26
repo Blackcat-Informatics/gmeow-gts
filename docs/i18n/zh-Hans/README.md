@@ -21,6 +21,12 @@ GTS，即 `Graph Transport Substrate`，是一种 append-only 格式，用于传
 | `docs/GTS-API-CLI-PARITY.md` | [API/CLI 对等](docs/GTS-API-CLI-PARITY.md) |
 | `docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md` | [第三方实现者指南](docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) |
 | `docs/gts-reference.md` | [Python 参考](docs/gts-reference.md) |
+| `docs/GTS-ECOSYSTEM-INTEGRATIONS.md` | [生态系统集成](docs/GTS-ECOSYSTEM-INTEGRATIONS.md) |
+| `docs/GTS-ADVANCED-PRIMITIVES.md` | [高级基元](docs/GTS-ADVANCED-PRIMITIVES.md) |
+| `docs/GTS-OKF.md` | [OKF](docs/GTS-OKF.md) |
+| `docs/GTS-DUMP-DIR.md` | [Dump 目录](docs/GTS-DUMP-DIR.md) |
+| `docs/GTS-PAPER-DRAFT.md` | [论文草稿](docs/GTS-PAPER-DRAFT.md) |
+| `docs/GTS-BENCHMARK-RELEASE-REPORT.md` | [基准发布报告](docs/GTS-BENCHMARK-RELEASE-REPORT.md) |
 | `README.md` | [项目](README.md) |
 | `docs/positioning.md` | [定位](docs/positioning.md) |
 | `rust/README.md` | [Rust](rust/README.md) |

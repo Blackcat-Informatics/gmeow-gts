@@ -21,6 +21,12 @@ Cette page sert d'entrée locale pour le lot de traduction #364. Les termes suiv
 | `docs/GTS-API-CLI-PARITY.md` | [Parité API/CLI](docs/GTS-API-CLI-PARITY.md) |
 | `docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md` | [Guide d'implémentation tierce](docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) |
 | `docs/gts-reference.md` | [Référence Python](docs/gts-reference.md) |
+| `docs/GTS-ECOSYSTEM-INTEGRATIONS.md` | [Intégrations de l'écosystème](docs/GTS-ECOSYSTEM-INTEGRATIONS.md) |
+| `docs/GTS-ADVANCED-PRIMITIVES.md` | [Primitives avancées](docs/GTS-ADVANCED-PRIMITIVES.md) |
+| `docs/GTS-OKF.md` | [OKF](docs/GTS-OKF.md) |
+| `docs/GTS-DUMP-DIR.md` | [Répertoire de dump](docs/GTS-DUMP-DIR.md) |
+| `docs/GTS-PAPER-DRAFT.md` | [Brouillon d'article](docs/GTS-PAPER-DRAFT.md) |
+| `docs/GTS-BENCHMARK-RELEASE-REPORT.md` | [Rapport de publication des benchmarks](docs/GTS-BENCHMARK-RELEASE-REPORT.md) |
 | `README.md` | [Projet](README.md) |
 | `docs/positioning.md` | [Positionnement](docs/positioning.md) |
 | `rust/README.md` | [Rust](rust/README.md) |

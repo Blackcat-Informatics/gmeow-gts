@@ -28,6 +28,22 @@ source paths. For example:
 
 ## Current Coverage
 
+The #367 ecosystem/advanced tranche adds paired `translated` counterparts for
+ecosystem integrations, advanced primitives, OKF interoperability, dump
+directories, the paper draft, and the benchmark release report template. These
+translations are informative; the English sources remain authoritative for
+package names, API surfaces, vocabulary IRIs, benchmark data, and deferred
+feature status.
+
+| English source | `fr-CA` | `zh-Hans` |
+|---|---|---|
+| `docs/GTS-ECOSYSTEM-INTEGRATIONS.md` | [`fr-CA/docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](./fr-CA/docs/GTS-ECOSYSTEM-INTEGRATIONS.md) | [`zh-Hans/docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](./zh-Hans/docs/GTS-ECOSYSTEM-INTEGRATIONS.md) |
+| `docs/GTS-ADVANCED-PRIMITIVES.md` | [`fr-CA/docs/GTS-ADVANCED-PRIMITIVES.md`](./fr-CA/docs/GTS-ADVANCED-PRIMITIVES.md) | [`zh-Hans/docs/GTS-ADVANCED-PRIMITIVES.md`](./zh-Hans/docs/GTS-ADVANCED-PRIMITIVES.md) |
+| `docs/GTS-OKF.md` | [`fr-CA/docs/GTS-OKF.md`](./fr-CA/docs/GTS-OKF.md) | [`zh-Hans/docs/GTS-OKF.md`](./zh-Hans/docs/GTS-OKF.md) |
+| `docs/GTS-DUMP-DIR.md` | [`fr-CA/docs/GTS-DUMP-DIR.md`](./fr-CA/docs/GTS-DUMP-DIR.md) | [`zh-Hans/docs/GTS-DUMP-DIR.md`](./zh-Hans/docs/GTS-DUMP-DIR.md) |
+| `docs/GTS-PAPER-DRAFT.md` | [`fr-CA/docs/GTS-PAPER-DRAFT.md`](./fr-CA/docs/GTS-PAPER-DRAFT.md) | [`zh-Hans/docs/GTS-PAPER-DRAFT.md`](./zh-Hans/docs/GTS-PAPER-DRAFT.md) |
+| `docs/GTS-BENCHMARK-RELEASE-REPORT.md` | [`fr-CA/docs/GTS-BENCHMARK-RELEASE-REPORT.md`](./fr-CA/docs/GTS-BENCHMARK-RELEASE-REPORT.md) | [`zh-Hans/docs/GTS-BENCHMARK-RELEASE-REPORT.md`](./zh-Hans/docs/GTS-BENCHMARK-RELEASE-REPORT.md) |
+
 The #366 conformance/reference tranche adds paired `translated` counterparts
 for the compatibility, conformance, and implementer reference documents. These
 translations are informative; the English sources remain authoritative for
