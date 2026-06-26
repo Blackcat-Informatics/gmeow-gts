@@ -195,6 +195,39 @@ ex:r rdf:reifies <<( ex:s ex:p ex:o)>> .
 }
 
 #[test]
+fn pn_local_esc_keeps_escaped_delimiters_in_local_name() {
+    // Turtle PN_LOCAL_ESC: backslash-escaped delimiters (`\(`, `\)`, `\,`, `\.`) are
+    // part of the prefixed name's local part, not statement/object delimiters. This
+    // is the exact shape that appears in real DBpedia IRIs
+    // (`dbr:Semantic_analysis_\(linguistics\)`), so an escaped `(` must NOT terminate
+    // the scan.
+    let trig = r#"@prefix ex: <https://ex/> .
+@prefix dbr: <http://dbpedia.org/resource/> .
+ex:s ex:p dbr:Semantic_analysis_\(linguistics\) , ex:o .
+ex:s ex:q dbr:a\,b\.c .
+"#;
+    let imported = from_trig(trig).expect("PN_LOCAL_ESC escapes parse");
+    let out = to_nquads(&read(&imported, true, None));
+    let lines = sorted_lines(&out);
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains("<http://dbpedia.org/resource/Semantic_analysis_(linguistics)>")),
+        "escaped parens resolve to literal `(`/`)` in the IRI: {lines:?}"
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains("<http://dbpedia.org/resource/a,b.c>")),
+        "escaped comma + dot resolve literally: {lines:?}"
+    );
+    assert!(
+        lines.iter().any(|l| l.contains("<https://ex/o>")),
+        "the object list continues past the escaped name: {lines:?}"
+    );
+}
+
+#[test]
 fn rejects_malformed_or_unsupported_trig() {
     let err = from_trig("@prefix ex: <https://ex/> .\nex:s ex:p ex:o\n")
         .expect_err("missing dot is malformed");

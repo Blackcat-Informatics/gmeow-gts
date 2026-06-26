@@ -14,6 +14,17 @@ bump the Rust crate independently. See
 The wire format is a working draft (`GTS-SPEC.md` document version `0.9-draft`)
 and MAY change before `1.0`.
 
+## [0.9.9]
+
+### Fixed
+
+- Native Turtle/TriG parser now resolves `PN_LOCAL_ESC` escapes in prefixed-name
+  local parts: a backslash-escaped delimiter (`\(`, `\)`, `\,`, `\.`, …) is part of
+  the local name, not a statement/object delimiter, and expands to the literal
+  character in the IRI (e.g. `dbr:Semantic_analysis_\(linguistics\)` →
+  `http://dbpedia.org/resource/Semantic_analysis_(linguistics)`). An escaped trailing
+  `\.` is kept rather than stripped as the statement terminator.
+
 ## [0.9.7]
 
 ### Added

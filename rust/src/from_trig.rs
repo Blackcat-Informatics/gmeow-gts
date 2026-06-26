@@ -894,7 +894,20 @@ impl<'a> Parser<'a> {
         // A `.` is NOT a delimiter here: Turtle's PN_LOCAL admits internal dots
         // (`repo:README.md`). A *trailing* dot is the statement terminator and is
         // stripped back below — PN_LOCAL may not end in `.`.
+        //
+        // A backslash starts a PN_LOCAL_ESC escape (`\(`, `\)`, `\,`, `\.`, …): the
+        // backslash and the escaped character are part of the local name, so an
+        // escaped delimiter does NOT terminate the scan (e.g.
+        // `dbr:Semantic_analysis_\(linguistics\)`).
         while let Some(ch) = self.peek_char() {
+            if ch == '\\' {
+                self.bump_char();
+                // Consume the escaped character verbatim (even if it is a delimiter).
+                if self.peek_char().is_some() {
+                    self.bump_char();
+                }
+                continue;
+            }
             if ch.is_whitespace()
                 || matches!(
                     ch,
@@ -905,8 +918,19 @@ impl<'a> Parser<'a> {
             }
             self.bump_char();
         }
-        // Strip any trailing dot(s): they terminate the statement, not the name.
+        // Strip any trailing UNESCAPED dot(s): they terminate the statement, not the
+        // name. An escaped `\.` is a literal dot in PN_LOCAL and is kept (an odd run
+        // of backslashes immediately before the dot means it is escaped).
         while self.pos > start && self.text.as_bytes()[self.pos - 1] == b'.' {
+            let mut backslashes = 0;
+            while self.pos - 1 - backslashes > start
+                && self.text.as_bytes()[self.pos - 2 - backslashes] == b'\\'
+            {
+                backslashes += 1;
+            }
+            if backslashes % 2 == 1 {
+                break;
+            }
             self.pos -= 1;
         }
         if self.pos == start {
@@ -924,7 +948,8 @@ impl<'a> Parser<'a> {
         let Some(base) = self.prefixes.get(prefix) else {
             return Err(TriGParseError::new(format!("unknown prefix {prefix:?}")));
         };
-        Ok(format!("{base}{local}"))
+        // Resolve PN_LOCAL_ESC: `\X` denotes the literal `X` in the expanded IRI.
+        Ok(format!("{base}{}", unescape_pn_local(local)))
     }
 
     fn blank_node_property_list(&mut self, graph: Option<&Node>) -> Result<Node, TriGParseError> {
@@ -1132,6 +1157,29 @@ impl<'a> Parser<'a> {
         line.push_str(" .");
         self.nquads.push(line);
     }
+}
+
+/// Resolve Turtle `PN_LOCAL_ESC` escapes in a prefixed name's local part: a
+/// backslash denotes the literal next character (`\(` → `(`, `\.` → `.`, `\,` → `,`,
+/// …), matching the Turtle grammar's
+/// `PN_LOCAL_ESC ::= '\' ('_' | '~' | '.' | '-' | '!' | '$' | '&' | "'" | '(' | ')'
+/// | '*' | '+' | ',' | ';' | '=' | '/' | '?' | '#' | '@' | '%')`.
+fn unescape_pn_local(local: &str) -> String {
+    if !local.contains('\\') {
+        return local.to_string();
+    }
+    let mut out = String::with_capacity(local.len());
+    let mut chars = local.chars();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            if let Some(escaped) = chars.next() {
+                out.push(escaped);
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+    out
 }
 
 /// Parse Turtle text into a canonical GTS file.
