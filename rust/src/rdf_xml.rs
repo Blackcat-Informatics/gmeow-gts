@@ -10,8 +10,9 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use quick_xml::events::{BytesStart, Event};
+use quick_xml::events::{BytesRef, BytesStart, Event};
 use quick_xml::Reader;
+use quick_xml::XmlVersion;
 
 use crate::model::Graph;
 use crate::rdf::{
@@ -307,7 +308,10 @@ impl XmlDomParser {
                     attach_element(&mut stack, &mut root, element)?;
                 }
                 Ok(Event::Text(text)) => {
-                    let text = text.unescape().map_err(xml_error)?.into_owned();
+                    let text = text
+                        .xml_content(XmlVersion::Implicit1_0)
+                        .map_err(xml_error)?
+                        .into_owned();
                     if let Some(parent) = stack.last_mut() {
                         parent.children.push(XmlNode::Text(text));
                     } else if !text.trim().is_empty() {
@@ -320,6 +324,16 @@ impl XmlDomParser {
                     let text = String::from_utf8_lossy(text.as_ref()).into_owned();
                     if let Some(parent) = stack.last_mut() {
                         parent.children.push(XmlNode::Text(text));
+                    }
+                }
+                Ok(Event::GeneralRef(reference)) => {
+                    let text = resolve_general_reference(&reference)?;
+                    if let Some(parent) = stack.last_mut() {
+                        parent.children.push(XmlNode::Text(text));
+                    } else {
+                        return Err(RdfCodecError::new(
+                            "RDF/XML parse error: entity reference appears outside the document element",
+                        ));
                     }
                 }
                 Ok(Event::End(_)) => {
@@ -345,6 +359,39 @@ impl XmlDomParser {
     }
 }
 
+fn resolve_general_reference(reference: &BytesRef<'_>) -> Result<String, RdfCodecError> {
+    let decoded = reference
+        .xml_content(XmlVersion::Implicit1_0)
+        .map_err(xml_error)?;
+    let resolved = if let Some(hex) = decoded.strip_prefix("#x") {
+        u32::from_str_radix(hex, 16)
+            .ok()
+            .and_then(char::from_u32)
+            .map(|ch| ch.to_string())
+    } else if let Some(decimal) = decoded.strip_prefix('#') {
+        decimal
+            .parse::<u32>()
+            .ok()
+            .and_then(char::from_u32)
+            .map(|ch| ch.to_string())
+    } else {
+        match decoded.as_ref() {
+            "amp" => Some("&".to_string()),
+            "lt" => Some("<".to_string()),
+            "gt" => Some(">".to_string()),
+            "apos" => Some("'".to_string()),
+            "quot" => Some("\"".to_string()),
+            _ => None,
+        }
+    };
+
+    resolved.ok_or_else(|| {
+        RdfCodecError::new(format!(
+            "RDF/XML parse error: unresolved entity reference &{decoded};"
+        ))
+    })
+}
+
 fn parse_start(
     start: &BytesStart<'_>,
     namespaces: &mut Vec<HashMap<String, String>>,
@@ -363,7 +410,7 @@ fn parse_start(
         let attr = attr.map_err(xml_error)?;
         let raw = raw_xml_name(attr.key.as_ref())?;
         let value = attr
-            .decode_and_unescape_value(reader.decoder())
+            .decoded_and_normalized_value(XmlVersion::Implicit1_0, reader.decoder())
             .map_err(xml_error)?
             .into_owned();
         if raw == "xmlns" {
