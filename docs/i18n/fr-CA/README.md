@@ -17,6 +17,10 @@ Cette page sert d'entrée locale pour le lot de traduction #364. Les termes suiv
 | Source anglaise | Page fr-CA |
 |---|---|
 | `docs/GTS-SPEC.md` | [Spécification GTS](docs/GTS-SPEC.md) |
+| `docs/GTS-CONFORMANCE.md` | [Conformité GTS](docs/GTS-CONFORMANCE.md) |
+| `docs/GTS-API-CLI-PARITY.md` | [Parité API/CLI](docs/GTS-API-CLI-PARITY.md) |
+| `docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md` | [Guide d'implémentation tierce](docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) |
+| `docs/gts-reference.md` | [Référence Python](docs/gts-reference.md) |
 | `README.md` | [Projet](README.md) |
 | `docs/positioning.md` | [Positionnement](docs/positioning.md) |
 | `rust/README.md` | [Rust](rust/README.md) |
@@ -38,4 +42,4 @@ Cette page sert d'entrée locale pour le lot de traduction #364. Les termes suiv
 
 ## Statut
 
-La spécification localisée est marquée `translated` et demeure informative par rapport au document anglais. Les autres pages sont marquées `draft` afin de séparer la traduction initiale de la revue finale prévue par #369. Les commandes, chemins, URLs, noms de paquets, identifiants d'API, valeurs JSON, codes de diagnostic et extraits de code doivent rester exactement comme dans les sources anglaises.
+La spécification, les pages de conformité et les références d'implémentation localisées sont marquées `translated` et demeurent informatives par rapport aux documents anglais. Les autres pages sont marquées `draft` afin de séparer la traduction initiale de la revue finale prévue par #369. Les commandes, chemins, URLs, noms de paquets, identifiants d'API, valeurs JSON, codes de diagnostic et extraits de code doivent rester exactement comme dans les sources anglaises.

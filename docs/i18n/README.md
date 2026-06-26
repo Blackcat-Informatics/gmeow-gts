@@ -28,6 +28,18 @@ source paths. For example:
 
 ## Current Coverage
 
+The #366 conformance/reference tranche adds paired `translated` counterparts
+for the compatibility, conformance, and implementer reference documents. These
+translations are informative; the English sources remain authoritative for
+conformance claims and API/CLI compatibility.
+
+| English source | `fr-CA` | `zh-Hans` |
+|---|---|---|
+| `docs/GTS-CONFORMANCE.md` | [`fr-CA/docs/GTS-CONFORMANCE.md`](./fr-CA/docs/GTS-CONFORMANCE.md) | [`zh-Hans/docs/GTS-CONFORMANCE.md`](./zh-Hans/docs/GTS-CONFORMANCE.md) |
+| `docs/GTS-API-CLI-PARITY.md` | [`fr-CA/docs/GTS-API-CLI-PARITY.md`](./fr-CA/docs/GTS-API-CLI-PARITY.md) | [`zh-Hans/docs/GTS-API-CLI-PARITY.md`](./zh-Hans/docs/GTS-API-CLI-PARITY.md) |
+| `docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md` | [`fr-CA/docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md`](./fr-CA/docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) | [`zh-Hans/docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md`](./zh-Hans/docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) |
+| `docs/gts-reference.md` | [`fr-CA/docs/gts-reference.md`](./fr-CA/docs/gts-reference.md) | [`zh-Hans/docs/gts-reference.md`](./zh-Hans/docs/gts-reference.md) |
+
 The #365 specification tranche adds paired `translated` counterparts for the
 authoritative GTS specification. These translations are informative; the
 English source remains normative for protocol requirements.
