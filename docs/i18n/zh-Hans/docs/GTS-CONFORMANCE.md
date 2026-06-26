@@ -196,7 +196,8 @@ python scripts/check_vector_manifest.py \
 可选向量字段包括 `expected.segment_heads`、`expected.exit_code`、
 `expected.stderr_contains`、`expected.signature_status`、`expected.profile_findings`、
 `compare.nquads`（`exact` 或 `bnode-isomorphism`），以及指向规范章节的 `links`。
-6. 诊断注册表
+
+## 6. 诊断注册表
 
 诊断代码是稳定的 API。实现可以 (MAY) 添加详细信息、帧索引、段 ID 或特定于配置文件的字段，但在声明拥有这些代码的层级时，不得 (MUST NOT) 重命名这些代码。
 

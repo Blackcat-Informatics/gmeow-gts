@@ -65,7 +65,7 @@ Le registre canonique des codes de diagnostic se trouve dans [`GTS-CONFORMANCE.m
 
 ## Matrice de parité CLI
 
-`yes` signifie que le verbe est implémenté par le binaire `gts` de ce moteur. `no` signifie que l'absence est une lacune publique intentionnelle jusqu'à ce qu'un ticket de parité soit résolu. La matrice est vérifiée par [`scripts/check_cli_parity.py`](../scripts/check_cli_parity.py), qui lit ce tableau et les surfaces de répartition réelles.
+`yes` signifie que le verbe est implémenté par le binaire `gts` de ce moteur. `no` signifie que l'absence est une lacune publique intentionnelle jusqu'à ce qu'un ticket de parité soit résolu. La matrice est vérifiée par [`scripts/check_cli_parity.py`](../../../../scripts/check_cli_parity.py), qui lit ce tableau et les surfaces de répartition réelles.
 
 <!-- cli-parity-matrix:start -->
 | verb | Python | Rust | Go | TypeScript | Smalltalk | Kotlin | status |
@@ -181,4 +181,4 @@ Les enveloppes actuelles sont C++, .NET, PHP, Lua, Swift, Ruby, R et Julia. Chaq
 - ``unpack`` recalcule le hachage des octets du blob intégré avant l'écriture. Un ``FileEntry`` non supprimé dont le blob intégré est absent est un refus ; les digests de blobs supprimés sont ignorés par défaut et extraits uniquement avec ``--include-suppressed``.
 - ``diff`` compare le manifeste de l'archive à un répertoire par ``files:digest`` et renvoie des lignes ``added:``, ``modified:`` et ``removed:`` triées. Le code de sortie ``0`` signifie qu'il n'y a aucune différence ; le code de sortie ``1`` signifie soit une différence, soit une entrée refusée.
 
-Le garde-fou inter-moteurs en direct est [``scripts/interop.sh``](../scripts/interop.sh) : chaque moteur empaquette la même fixture, chaque moteur replie (folds) et déballe chaque paquet, et chaque moteur compare (diffs) à la fois l'arborescence correspondante et une arborescence modifiée par rapport à chaque paquet.
+Le garde-fou inter-moteurs en direct est [`scripts/interop.sh`](../../../../scripts/interop.sh) : chaque moteur empaquette la même fixture, chaque moteur replie (folds) et déballe chaque paquet, et chaque moteur compare (diffs) à la fois l'arborescence correspondante et une arborescence modifiée par rapport à chaque paquet.
