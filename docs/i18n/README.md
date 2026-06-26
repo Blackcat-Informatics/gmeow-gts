@@ -28,6 +28,24 @@ source paths. For example:
 
 ## Current Coverage
 
+The #368 governance/security/release tranche adds paired `translated`
+counterparts for project policy, security, release, licensing, contribution,
+conduct, and changelog documents. These translations are informative; the
+English sources remain authoritative for legal, security, release,
+contribution, conduct, and disclosure meaning.
+
+| English source | `fr-CA` | `zh-Hans` |
+|---|---|---|
+| `docs/GTS-GOVERNANCE.md` | [`fr-CA/docs/GTS-GOVERNANCE.md`](./fr-CA/docs/GTS-GOVERNANCE.md) | [`zh-Hans/docs/GTS-GOVERNANCE.md`](./zh-Hans/docs/GTS-GOVERNANCE.md) |
+| `docs/GTS-SECURITY-POLICY.md` | [`fr-CA/docs/GTS-SECURITY-POLICY.md`](./fr-CA/docs/GTS-SECURITY-POLICY.md) | [`zh-Hans/docs/GTS-SECURITY-POLICY.md`](./zh-Hans/docs/GTS-SECURITY-POLICY.md) |
+| `docs/GTS-RELEASE-SLSA.md` | [`fr-CA/docs/GTS-RELEASE-SLSA.md`](./fr-CA/docs/GTS-RELEASE-SLSA.md) | [`zh-Hans/docs/GTS-RELEASE-SLSA.md`](./zh-Hans/docs/GTS-RELEASE-SLSA.md) |
+| `docs/GTS-V1-RC1-CHECKLIST.md` | [`fr-CA/docs/GTS-V1-RC1-CHECKLIST.md`](./fr-CA/docs/GTS-V1-RC1-CHECKLIST.md) | [`zh-Hans/docs/GTS-V1-RC1-CHECKLIST.md`](./zh-Hans/docs/GTS-V1-RC1-CHECKLIST.md) |
+| `CHANGELOG.md` | [`fr-CA/CHANGELOG.md`](./fr-CA/CHANGELOG.md) | [`zh-Hans/CHANGELOG.md`](./zh-Hans/CHANGELOG.md) |
+| `CONTRIBUTING.md` | [`fr-CA/CONTRIBUTING.md`](./fr-CA/CONTRIBUTING.md) | [`zh-Hans/CONTRIBUTING.md`](./zh-Hans/CONTRIBUTING.md) |
+| `SECURITY.md` | [`fr-CA/SECURITY.md`](./fr-CA/SECURITY.md) | [`zh-Hans/SECURITY.md`](./zh-Hans/SECURITY.md) |
+| `CODE_OF_CONDUCT.md` | [`fr-CA/CODE_OF_CONDUCT.md`](./fr-CA/CODE_OF_CONDUCT.md) | [`zh-Hans/CODE_OF_CONDUCT.md`](./zh-Hans/CODE_OF_CONDUCT.md) |
+| `LICENSING.md` | [`fr-CA/LICENSING.md`](./fr-CA/LICENSING.md) | [`zh-Hans/LICENSING.md`](./zh-Hans/LICENSING.md) |
+
 The #367 ecosystem/advanced tranche adds paired `translated` counterparts for
 ecosystem integrations, advanced primitives, OKF interoperability, dump
 directories, the paper draft, and the benchmark release report template. These

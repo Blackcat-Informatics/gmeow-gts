@@ -1,0 +1,98 @@
+<!-- SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca> -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<!-- i18n-source: CONTRIBUTING.md -->
+<!-- i18n-locale: fr-CA -->
+<!-- i18n-status: translated -->
+
+# Contribuer à GTS
+
+> Traduction informative de [`CONTRIBUTING.md`](../../../CONTRIBUTING.md). Le document anglais demeure la source faisant autorité pour la gouvernance, la sécurité, les versions, les licences, la contribution, les obligations de conduite, les processus de divulgation et les commandes exécutables. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md) et reste informative.
+
+Merci de votre intérêt pour Graph Transport Substrate (GTS). Ce document décrit comment contribuer aux moteurs principaux, à la spécification et aux outils de l'écosystème.
+
+## Façons de contribuer
+
+- **Report a bug or request a feature** — open an issue with a minimal reproduction
+  (ideally a `.gts` file or a failing conformance vector).
+- **Fix a bug or add a feature** — open a pull request against `main`.
+- **Improve the spec or docs** — corrections and clarifications to
+  [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) and the per-engine guides are very welcome.
+
+## Gouvernance de la spécification
+
+Core wire-format changes, baseline conformance changes, optional-standard profile promotion,
+and registry additions follow the lightweight governance policy in
+[`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md). In short:
+
+- changes to header/frame grammar, hash or signature preimages, transform resolution, segment
+  composition, or fold semantics require a GTS Improvement Proposal (GIP);
+- domain-specific profiles can be registered without changing core GTS, but they must not alter
+  core parse, verify, or fold semantics;
+- registry entries for codecs, frame types, diagnostics, transform targets, and profiles must
+  follow the registry change policy and reserved namespace rules.
+
+## Le corpus de conformité est le contrat
+
+The four parity engines are interchangeable only because they all fold the **same bytes** to the
+**same expectations**. The frozen corpus lives in [`vectors/`](../../../vectors); the Python
+reference implementation (`gts.vectors`) is its single source of truth.
+
+- A change to format behaviour MUST update the corpus and keep all four engines green.
+- Regenerate the committed corpus and prove it is reproducible byte-for-byte:
+
+  ```bash
+  cd python && uv run python scripts/gen_vectors.py
+  git diff --exit-code vectors        # no changes ⇒ reproducible
+  ```
+
+- If you change one engine's observable behaviour, change the others to match (or open an
+  issue first to discuss whether the spec itself should change).
+
+## Développement
+
+Each implementation builds and tests independently from its own directory:
+
+```bash
+cd rust   && cargo test                              # unit + CLI + conformance
+cd go     && go test ./...                            # unit + conformance
+cd ts     && npm ci && npm test                       # compiles, runs against vectors/
+cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
+docker build -t gmeow-gts-smalltalk smalltalk && \
+  docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
+  'sh /workspace/smalltalk/scripts/run-tests.sh'      # Pharo bootstrap tests
+```
+
+## Avant d’ouvrir une pull request
+
+- Run the relevant engine's test suite (above) and make sure it is green.
+- Run repo-wide hygiene: `pre-commit run --all-files` (formatting, SPDX headers,
+  YAML/Markdown/shell, secret scanning).
+- Per-language gates: `cargo fmt --check` + `cargo clippy`, `go vet` + `golangci-lint`,
+  `npm run lint`, `ruff check` + `mypy`.
+- Every source file must carry an SPDX `MIT OR Apache-2.0` license header.
+- Keep changes focused; describe **what** changed and **why** in the PR description.
+
+CI runs all four parity engines, the Smalltalk/Pharo bootstrap, and a lint lane on every pull
+request.
+
+## Licence des contributions
+
+Contributions to **gmeow-gts** are accepted under **Apache-2.0 OR MIT** and, under the
+project CLA, under terms that permit separate proprietary/commercial licensing.
+
+For context, contributions to **GMEOW tooling/code** elsewhere in the project (the
+[`gmeow-ontology`](https://github.com/Blackcat-Informatics/gmeow-ontology) repository) are
+accepted under **AGPL-3.0-only** and, under the project CLA, under terms that permit Blackcat
+Informatics® Inc. to relicense them under separate proprietary/commercial terms. gmeow-gts is
+the deliberately permissive, dependency-light engine layer, so it carries the permissive
+`Apache-2.0 OR MIT` terms rather than AGPL.
+
+By submitting a contribution you agree to license it under the terms above. For the
+dual-licensing reservation to extend to your contribution, you agree to license it to
+Blackcat Informatics® Inc. under terms that permit relicensing, including under proprietary
+terms. A Contributor License Agreement (CLA) may be required before substantial
+contributions are merged. See [`LICENSING.md`](./LICENSING.md) for the full licensing scheme.
+
+## Conduite
+
+Be respectful and constructive. Harassment and abuse are not tolerated.
