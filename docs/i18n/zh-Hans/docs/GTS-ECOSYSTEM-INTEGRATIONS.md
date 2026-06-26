@@ -8,8 +8,8 @@
 
 > [`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](../../../../docs/GTS-ECOSYSTEM-INTEGRATIONS.md) 的信息性中文翻译。英文文档仍然是集成、高级功能、可选 profile、基准数据、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md)，仅供参考。
 
-
 本文档是配合 RDF 库、数据帧 (data frames)、浏览器、服务和对象存储使用 GTS 的公共合约。核心有线格式 (wire format) 在 [GTS-SPEC.md](./GTS-SPEC.md) 中仍然是规范性的；本文档记录了当前引擎公开的内容、支持的示例以及明确推迟 (deferred) 的内容。
+
 ## 状态矩阵
 
 | 生态系统 | 当前集成路径 | 推迟 |
@@ -30,11 +30,13 @@
 | C ABI 包装器 | ``rust/capi/`` 为 C 兼容运行时构建了 ``libgts`` 和 ``rust/capi/include/gts.h``。C++、.NET、PHP、Lua、Swift、Ruby、R 和 Julia 包装器在将原生缓冲区复制到生态系统拥有的值时，会暴露 ABI 元数据、读取/验证 JSON 报告、注册表驱动的 RDF 文本转换、文件配置文件 (files-profile) 助手和结构化错误。 | 这些包装器委托给 Rust 引擎，并非独立的一致性引擎或新的 CLI 列。可安装的原生 ``libgts`` 归档通过 ``capi-v*`` GitHub Release 通道发布；包装器注册表发布自动化仍与当前的 Rust/Python/Go/TypeScript 引擎发布通道保持分离。 |
 | 兼容 Tar 的归档 | Rust ``gts from-tar``、``gts to-tar`` 和 ``gts tar -c/-x/-t/-d`` 在 ``--features tar`` 之后可用。它们将 ``.tar``、``.tar.gz`` 和 ``.tar.zst`` 流桥接到具有摘要寻址文件主体、等效于 tar 的元数据、未知 PAX 保留和显式提取选择加入的 `files-profile-v2` GTS 归档。 | Python/Go/TypeScript 的一致性被故意推迟 (deferred)。这些引擎在它们的 CLI 声明 ``from-tar``、``to-tar`` 或 ``tar`` 之前，应该 (SHOULD) 实现 `files-profile-v2` 导入/导出并通过 ``vectors/tar/``。 |
 | OKF 捆绑包 | Rust ``gts from-okf`` 和 ``gts to-okf`` 在 ``--features okf`` 之后可用。它们将带有 YAML 前置内容 (frontmatter) 的 Markdown OKF 捆绑包转换为 GTS 配置文件 ``okf`` 包，并将项目 `OKF-profile` 图转换回捆绑包目录。提交的一致性语料库 (conformance corpus) 包含 ``vectors/okf/bigquery-join/`` 下的一个 BigQuery 风格捆绑包，其中包括与 Google 签入的知识目录 (Knowledge Catalog) 样本相匹配的无前置内容导航 ``index.md`` 页面。 | Python/Go/TypeScript 的一致性被故意推迟 (deferred)。这些引擎在它们的 CLI 声明 ``from-okf`` 或 ``to-okf`` 之前，应该 (SHOULD) 实现相同的 ``gts-okf-v1`` 目录合约并通过 OKF 语料库 (corpus)。 |
+
 ## C ABI 包装器合约
 
 C ABI 兼容性策略位于 `rust/capi/README.md#compatibility-policy`(../rust/capi/README.md#compatibility-policy)。`GTS_ABI_VERSION` 规范了原生 `gts.h`/`libgts` 边界，并与软件包版本和 JSON 报告模式版本分离。包装器包必须 (MUST) 拒绝不受支持的 ABI 版本，并提供明确的包装器错误、异常或安装/配置失败，而不是在未知的原生合约下静默继续。
 
 文件配置文件 (Files-profile) 路径助手使用 ABI v1 以 NUL 结尾的 UTF-8 C-字符串路径合约。包装器文档不得 (MUST NOT) 将这些助手呈现为具有完整的 Windows 宽字符路径覆盖；未来的宽字符路径函数应该是兼容性策略下新的增量 C ABI 符号。
+
 ## Tar 兼容归档桥接
 
 Rust tar 桥接使得 GTS 能够作为已签名、仅追加、已去重的归档表面，供已经熟悉 tar 的用户使用。`gts from-tar` 将 tar 流导入到 files-profile-v2 GTS 归档中，`gts to-tar` 将这些归档导出回 tar，而 `gts tar -c/-x/-t/-d` 提供了熟悉的 create/extract/list/diff 命令形式。该桥接处理普通的 `.tar`、`.tar.gz` 和 `.tar.zst` 流，在配置文件 (profile) 可以表示的情况下保留等效于 tar 的元数据和未知的 PAX 记录。
@@ -44,6 +46,7 @@ Rust tar 桥接使得 GTS 能够作为已签名、仅追加、已去重的归档
 当验证至关重要时，规范产物应该是 `.gts` 文件：帧 (frame) ID、可选签名、仅追加修订、抑制和内容寻址 blob 对 GTS 读取器 (readers) 保持可见。传统的 `.tar`、`.tar.gz` 和 `.tar.zst` 输出是针对尚不支持 GTS 的工具链的有用兼容性投影，但当已签名的 GTS 链作为证据记录时，它们应该被视为派生导出。
 
 产物注册表和对象存储可以使用 `application/vnd.blackcat.gts+cbor-seq` 直接携带 GTS 归档。OCI 或发布资产发布者可以将 `.gts` 产物与生成的 tar 投影一起分发：注册表为感知 GTS 的消费者获取单个内容寻址归档，而现有的 tar 消费者保留熟悉的下载路径。同样的划分也适用于 OKF 捆绑包：可编辑的 OKF 目录仍然是人工创作表面，`gts from-okf` 创建语义化的 `okf` 配置文件 (profile) 包，而 files-profile-v2 tar 桥接可以在消费者需要普通归档工具时，将目录字节打包为可验证的 tarball 形状的分发产物。
+
 ## OKF：知识编目（Knowledge Catalog）与 BigQuery 捆绑包
 
 OKF 互操作具有两个有用的入口（gates）：
@@ -62,6 +65,7 @@ cargo run --features okf --bin gts -- to-okf bundle.gts --directory restored-okf
 `from-okf` 导入带有 YAML 前置内容的概念文档，并将不带前置内容的 `index.md` 文件视为导航页面。这些页面不是 GTS 配置文件 (profile) 中的概念，因此不会由 `to-okf` 发射；需要静态浏览页面的消费者可以从导出的概念集中重新生成它们。
 
 该桥梁将 OKF 定位为 GMEOW 知识的人工创作前端：人员和代理编辑 Markdown，而 GTS 提供仅追加 (append-only) 打包、内容寻址主体、签名、抑制以及用于审计和机器使用的图投影 (graph projections)。
+
 ## Python: rdflib 与数据帧 (Data Frames)
 
 Python 软件包拥有最丰富的生态系统桥接，因为它已经包含了针对 RDF 和数据库目标的可选扩展 (optional extras)：
@@ -111,6 +115,7 @@ gts to-parquet package.gts out-parquet/
 Python DuckDB 和 Parquet 导出需要 `pip install 'gmeow-gts[db]'`。Rust 默认使用 `sqlite3` 处理 SQLite。Rust DuckDB/Parquet 导出在构建时包含 `--features duckdb` 即可用；它们不增加 Rust crate 依赖，并在 `PATH` 上外部调用 `duckdb`。
 
 性能预期：这些导出使用整数 ID 折叠 (folded) 模型。`terms`、`quads`、`reifiers`、`annotations` 和 `blobs` 在导出期间进行批量加载而无需解析 IRI；使用者 (consumers) 通过 `terms` 表进行连接。Rust 路径将行增量写入 `sqlite3`/`duckdb`，因此它不会一次性保留所有 SQL 行或完整的加载脚本。`blobs` 表仍然保留有效载荷字节，因此转换后的内联 blob 有效载荷在发射其对应行时会被瞬时解码。SQLite 足以满足小型本地检查。DuckDB 和 Parquet 是 Pandas、Polars、DuckDB SQL 和 Arrow 式扫描的首选路径，因为它们保留了字典编码，并允许目标引擎选择投影/过滤顺序。
+
 ## Rust: RDF Crate
 
 目前的 Rust 互操作性保持了默认 crate 的显式和低依赖特性：
@@ -179,6 +184,7 @@ gts to-parquet package.gts out-parquet/
 
 Rust 二进制文件将这些保留为运行时工具集成，而非默认的 crate 依赖：`to-sqlite` 在默认构建中调用 `sqlite3`，而 `to-duckdb` 和 `to-parquet` 由无依赖的 `duckdb` Cargo 特性启用，并调用外部的 `duckdb` 二进制文件。Rust 加载器将行 SQL 流式传输到这些工具，并分阶段替换输出；它不会在内存中构建完整的行集或 SQL 脚本。
 跟踪的推迟 (Tracked deferral)：额外的原生 Rust RDF 适配器应该仅作为可选特性 (optional features) 添加。Rio 仍然被推迟 (deferred)，直到选定一个维护的 Rio 兼容 crate 或替代路径。任何未来的适配器必须 (MUST) 包含针对 IRIs、空节点 (blank nodes)、语言字面量 (language literals)、数据类型 (datatypes)、命名图 (named graphs) 和 RDF 1.2 reifier 限制的回环测试 (round-trip tests)，不得 (MUST NOT) 对嵌入式数据库添加默认依赖，并且当目标 crate 无法保留该行为时，必须 (MUST) 记录 quoted-triple 行为。
+
 ## TypeScript: 浏览器和范围获取 (Range Fetch)
 
 TypeScript 软件包为 Web Streams 暴露了一个浏览器专用的入口点：
@@ -217,6 +223,7 @@ const graph = await readStream(response.body!, {
 浏览器导出按帧 (frame) 顺序发出 term、quad、reifier、annotation、suppression、blob、opaque、signature、diagnostic、segment-head 和 streamable-layout 事件。`foldStreamToSink` 是 TypeScript 软件包的非实例化 `GTS Streaming Reader` 界面；`foldStream` 和 `readStream` 仍然是返回图形的便捷方法。根 Node `Read(bytes, allowSegments)` API 仍然是一个实例化读取器 (reader)，浏览器代码不得 (MUST NOT) 依赖仅限于 Node 的 CLI/文件系统助手。
 
 范围规则：调用者可以 (MAY) 仅针对从索引帧 (index frame) 或顺序 CBOR 边界扫描中得知的字节跨度使用 HTTP `Range`。切割 CBOR 项的范围属于撕裂追加 (torn append)，必须 (MUST) 被视为不完整的前缀。
+
 ## Go：服务和对象存储
 
 Go 调用者应在服务边界使用 `reader.ReadFrom`：
@@ -273,6 +280,7 @@ result, err := reader.ReadToSink(ctx, obj.Body, reader.Options{
 <!-- markdownlint-enable MD010 -->
 
 `result.Diagnostics`、`result.SegmentHeads` 和 `result.SegmentStreamable` 与相同输入和选项的全读取器（full reader）相匹配。
+
 ## 复制与服务边界
 
 对于当前服务：
@@ -282,6 +290,7 @@ result, err := reader.ReadToSink(ctx, obj.Body, reader.Options{
 - 从 HTTP 或对象存储提供字节范围服务时，请使用上述范围规则。
 - `gts missing` 和 `gts resume` 在每个引擎中提供稳定的字节范围恢复界面。
   更高层级的服务间协议仍是构建在 [GTS-ADVANCED-PRIMITIVES.md](./GTS-ADVANCED-PRIMITIVES.md) JSON 形状和边界规则之上的应用程序代码。
+
 ## 合约守卫
 
 `scripts/check_ecosystem_contract.py` 验证此文档是否保留了状态矩阵、各生态系统章节、推迟语言以及公开文档链接。它是集成承诺的偏移守卫，而非引擎测试的替代品。

@@ -8,7 +8,6 @@
 
 > Traduction informative de [`docs/GTS-OKF.md`](../../../../docs/GTS-OKF.md). Le document anglais demeure la source normative pour les intégrations, les fonctionnalités avancées, les profils optionnels, les données de référence, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md) et reste informative.
 
-
 La fonctionnalité Rust `okf` mappe un lot Markdown OKF vers un paquet GTS vérifiable
 et projette un graphe replié de profil OKF vers un répertoire de lot.
 
@@ -20,6 +19,7 @@ cargo run --features okf --bin gts -- to-okf bundle.gts --directory restored-okf
 Le profil de segment GTS est `okf`. Les métadonnées d'en-tête transportent un manifeste
 OKF avec le schéma `gts-okf-v1`, l'IRI de base utilisé pour les sujets créés,
 le nombre de documents et les chemins sources.
+
 ## Vocabulaire
 
 L'espace de noms du vocabulaire v1 est :
@@ -33,6 +33,7 @@ L'IRI de base par défaut du document est :
 ```text
 https://blackcatinformatics.ca/projects/gts/okf/doc/
 ```
+
 ## Correspondance
 
 | Construit OKF | Représentation GTS |
@@ -54,6 +55,7 @@ https://blackcatinformatics.ca/projects/gts/okf/doc/
 | `index.md` sans frontmatter | page de navigation, ignorée par l'importation et régénérée par les consommateurs au besoin |
 
 Le blob de corps fait autorité pour la resérialisation. Les triplets de lien sont des surfaces de requête dérivées du corps ; `to-okf` ne réécrit pas le Markdown à partir de ceux-ci.
+
 ## Exportation de répertoire
 
 `to-okf` refuse un répertoire de destination existant. En cas de succès, il écrit :
@@ -69,6 +71,7 @@ out/
 ```
 
 `_unmapped.nq` est présent uniquement lorsque le graphe contient des triplets en dehors du profil OKF, des graphes nommés ou un état de réificateur/annotation non-OKF. Ces triplets sont signalés sur stderr et conservés dans le sidecar au lieu d'être supprimés silencieusement.
+
 ## Manifeste
 
 `.gts-okf/manifest.json` utilise le schéma `gts-okf-v1` :
@@ -84,6 +87,7 @@ out/
 ```
 
 Les métadonnées d'en-tête GTS portent les mêmes nom de schéma, IRI de base, nombre de documents et liste de chemins sources pour une provenance vérifiable à l'intérieur du paquet.
+
 ## Interopérabilité Knowledge Catalog
 
 L'importateur Rust accepte la forme OKF v0.1 utilisée par les échantillons de preuve de concept de Knowledge Catalog de Google :
@@ -103,6 +107,7 @@ cargo run --features okf --bin gts -- to-okf /tmp/bq.gts --directory /tmp/bq-okf
 ```
 
 Lors de tests effectués par rapport à une extraction de <https://github.com/GoogleCloudPlatform/knowledge-catalog>, remplacez un lot tel que `okf/bundles/ga4/` par `vectors/okf/bigquery-join`.
+
 ## Démonstrateur OKF vérifiable
 
 OKF est « juste un répertoire » au niveau de la couche de création. Le profil GTS ajoute une couche de vérification en ajout uniquement sous ce répertoire :
@@ -114,6 +119,7 @@ OKF est « juste un répertoire » au niveau de la couche de création. Le profi
 5. `gts to-okf` projette le repli actuel du profil OKF vers le Markdown pour révision ou publication. L'historique supprimé reste dans le paquet GTS pour audit à moins qu'une politique de compactage ultérieure ne le scelle ou ne le réécrive délibérément.
 
 Cela fait d'OKF une surface de création GMEOW : les contributeurs peuvent travailler en Markdown et avec des outils de révision de dépôt ordinaires, tandis que les systèmes en aval peuvent consommer les mêmes connaissances sous forme d'état de graphe GTS signé, suppressible et interrogeable.
+
 ## Lois d'aller-retour
 
 Aller-retour OKF direct :
@@ -135,6 +141,7 @@ package.gts -> to-okf -> okf-dir -> from-okf -> package.gts'
 Pour les graphes de profil OKF, la projection de graphe repliée est égale après
 l'aller-retour. Les ID de contenu peuvent différer car l'importateur rédige un
 nouveau segment déterministe plutôt que de rejouer les octets sources.
+
 ## Rejets
 
 `from-okf` rejette :
@@ -154,6 +161,7 @@ nouveau segment déterministe plutôt que de rejouer les octets sources.
 - les documents OKF sans `okf:type` ;
 - les blobs de corps manquants ou impossibles à décoder ;
 - les littéraux `okf:body` en ligne, à moins que `--inline-body` ne soit passé.
+
 ## Relation avec d'autres surfaces de répertoire
 
 `gts dump --directory` écrit une arborescence d'inspection pour les archives GTS arbitraires.

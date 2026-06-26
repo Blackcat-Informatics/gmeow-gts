@@ -8,8 +8,8 @@
 
 > Traduction informative de [`docs/GTS-ADVANCED-PRIMITIVES.md`](../../../../docs/GTS-ADVANCED-PRIMITIVES.md). Le document anglais demeure la source normative pour les intégrations, les fonctionnalités avancées, les profils optionnels, les données de référence, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md) et reste informative.
 
-
 Ce document rassemble le parcours d'implémentation pour les puits de diffusion en continu, les index, les MMR/preuves, le range-fetch, la réplication et les repères de mémoire. Le format filaire central reste normatif dans [`GTS-SPEC.md`](./GTS-SPEC.md) ; ce contrat énonce ce que les paquets actuels prennent réellement en charge et ce qui est intentionnellement différé (deferred) de la surface v1.
+
 ## Soutien actuel de la V1
 
 | primitive | soutien actuel | limite de revendication |
@@ -32,6 +32,7 @@ PEUT (MAY) revendiquer la création de preuves MMR. Les quatre packages PEUVENT 
 jeu d'accessoires (fixture set) dans `vectors/proofs/` et les verbes d'inventaire de réplication partagés.
 Python NE DEVRAIT PAS (SHOULD NOT) revendiquer les niveaux de récepteur (sink) ou de création de preuves pour le moment ; Go et TypeScript NE DEVRAIENT PAS (SHOULD NOT) revendiquer la
 création de preuves pour le moment.
+
 ## Verbes CLI avancés différés
 
 Les rangées ci-dessous, lorsqu'elles sont présentes, constituent un vocabulaire planifié plutôt que des commandes publiques actuelles. Le script de garde [`scripts/check_advanced_contract.py`](../../../../scripts/check_advanced_contract.py) échoue si l'un de ces verbes apparaît dans une surface de répartition du moteur ou dans la matrice de parité CLI publique avant que ce tableau ne soit mis à jour. Le tableau peut être vide lorsque chaque verbe CLI avancé actuellement planifié a été promu.
@@ -54,6 +55,7 @@ Exigences minimales :
 - signaler le comportement de la mémoire avec `scripts/bench_reader_memory.py` ou un repère (benchmark) équivalent.
 
 Le sous-ensemble `streaming-property` existant demeure précieux, mais il s'agit d'une propriété de totalité par préfixe (prefix-totality). Il ne constitue pas en soi une revendication de collecteur de flux (streaming sink claim).
+
 ## Index, MMR et niveau de preuve
 
 La charge utile facultative `index` comporte actuellement cinq éléments implémentés :
@@ -75,6 +77,7 @@ Avant de promouvoir la création de preuves MMR au-delà de Rust, le dépôt né
 - des fixtures de création de preuves pour fichiers indexés, incluant les comportements positifs et négatifs ;
 - une implémentation de lecteur/rédacteur `index.mmr` en Python, Go et TypeScript par rapport aux préimages stables de `GTS-SPEC.md` ;
 - des tests de création de preuves qui démontrent que le JSON détaché généré se vérifie indépendamment de la disponibilité du fichier complet dans chaque moteur.
+
 ## Règles de récupération par plage
 
 La récupération par plage (range fetch) n'est précise à l'octet près qu'une fois que l'appelant dispose des limites de trames (frame boundaries).
@@ -95,6 +98,7 @@ index_frame_start                # for the last covered frame, after a boundary 
 La charge utile de l'index actuel ne stocke pas les longueurs de trame. Par conséquent, un client NE DOIT PAS (MUST NOT) déduire la plage d'octets exacte de la dernière trame couverte à partir de `off` seul ; il doit connaître le début de la trame d'index à partir d'un balayage, de métadonnées de conteneur ou d'une future extension d'index portant la longueur.
 
 Sans index, la récupération par plage est toujours possible, mais nécessite un balayage séquentiel des limites CBOR à partir du début du segment. Les requêtes HTTP `Range` ne sont alors sûres que pour les plages dont le début et la fin ont été dérivés des limites d'éléments balayés.
+
 ## Flux de travail de réplication
 
 Toutes les CLI du moteur implémentent les verbes de réplication :
@@ -120,6 +124,7 @@ Sémantique partagée :
 - `segments` signale la plage d'octets, le profil, la tête, le nombre de trames (frame count) et l'état de la disposition de chaque segment ;
 - `missing` compare la tête connue d'un pair par rapport à l'ascendance locale des segments/trames et renvoie des plages d'octets exactes ou un résultat explicite « unknown; scan required » ;
 - `resume` émet des octets seulement après avoir prouvé que l'identifiant de trame demandé existe et que la sortie commence à une limite d'élément CBOR.
+
 ## Repères de mémoire
 
 La suite de repères de version couvre la lecture, le repli, l'écriture/depuis-N-Quads, l'empaquetage/dépaquetage files-profile, et les preuves de mémoire en continu à travers les moteurs qui exposent chaque surface :

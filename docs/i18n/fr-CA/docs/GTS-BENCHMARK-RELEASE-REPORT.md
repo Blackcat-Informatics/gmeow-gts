@@ -8,7 +8,6 @@
 
 > Traduction informative de [`docs/GTS-BENCHMARK-RELEASE-REPORT.md`](../../../../docs/GTS-BENCHMARK-RELEASE-REPORT.md). Le document anglais demeure la source normative pour les intégrations, les fonctionnalités avancées, les profils optionnels, les données de référence, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md) et reste informative.
 
-
 Utilisez ce modèle pour les notes de version v1, la révision de la version candidate (release-candidate) et les preuves en annexe de l'article.
 Générez le rapport rempli avec :
 
@@ -35,6 +34,7 @@ L'exécuteur écrit :
 - les produits par moteur utilisés pour mesurer les chemins d'écriture, de pack et d'unpack.
 
 Par défaut, l'exécuteur écrit un rapport complet même lorsque les moteurs sélectionnés échouent ou sont indisponibles. Utilisez `--strict` pour le filtrage (gating) de version candidate une fois que les lignes ayant échoué doivent bloquer la candidate.
+
 ## Métadonnées de version obligatoires
 
 | Champ | Valeur |
@@ -50,6 +50,7 @@ Par défaut, l'exécuteur écrit un rapport complet même lorsque les moteurs s�
 | Plateforme | |
 | Processeur / mémoire | |
 | Versions du runner | |
+
 ## Entrées de repère
 
 | Type | Chemin | Octets | SHA-256 | Notes |
@@ -58,6 +59,7 @@ Par défaut, l'exécuteur écrit un rapport complet même lorsque les moteurs s�
 | Vecteur de conformité | | | | lecture/repli |
 | Fixture d'écriture | | | | entrée `from-nq` |
 | Fixture d'archive | | | | entrée `pack`/`unpack` |
+
 ## Sommaire des temps d'exécution CLI
 
 Utilisez les médianes pour les affirmations des notes de version. Conservez les lignes échouées ou ignorées dans le rapport afin que les moteurs indisponibles soient visibles plutôt qu'omis silencieusement.
@@ -89,6 +91,7 @@ Utilisez les médianes pour les affirmations des notes de version. Conservez les
 | Smalltalk | write-from-nq | | | | | | |
 | Smalltalk | pack | | | | | | |
 | Smalltalk | unpack | | | | | | |
+
 ## Résumé de la mémoire de diffusion en continu
 
 Les preuves de mémoire de diffusion en continu ne sont pas directement comparables au temps réel (wall time) de l'interface de ligne de commande (CLI). Citez-les séparément et nommez la méthode utilisée pour chaque moteur.
@@ -99,6 +102,7 @@ Les preuves de mémoire de diffusion en continu ne sont pas directement comparab
 | Rust | `read_to_sink_from_reader` streaming fold | | | | |
 | Go | `go test ./reader -bench ... -benchmem` | | | | |
 | TypeScript | browser `foldStreamToSink` harness | | | | |
+
 ## Extrait des notes de version
 
 Les repères pour `<release>` ont été exécutés sur `<platform>` au commit du dépôt `<repo_commit>`, au commit de la spécification `<spec_commit>` et au commit du corpus de conformité `<corpus_commit>`. Les temps médians de lecture/repli/écriture/empaquetage/dépaquetage sont répertoriés dans `<report path>`. Les preuves de mémoire diffusable en continu sont signalées séparément car l'assistant Rust signale le RSS de pointe du processus, le repère Go signale les métriques d'allocation d'exécution et la mémoire TypeScript du navigateur doit être capturée à partir du harnais de navigateur utilisé pour la version candidate.

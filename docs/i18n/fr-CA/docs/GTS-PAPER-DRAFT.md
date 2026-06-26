@@ -8,14 +8,15 @@
 
 > Traduction informative de [`docs/GTS-PAPER-DRAFT.md`](../../../../docs/GTS-PAPER-DRAFT.md). Le document anglais demeure la source normative pour les intégrations, les fonctionnalités avancées, les profils optionnels, les données de référence, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md) et reste informative.
 
-
 Récit de l'ébauche d'article pour le Graph Transport Substrate (GTS).
 
 Ce document est un matériel de recherche informatif. Il ne définit pas le comportement normatif de GTS.
 Les exigences normatives demeurent dans [`GTS-SPEC.md`](./GTS-SPEC.md), avec les règles de paliers et de vecteurs testables dans [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md), la politique de confiance/profil dans [`GTS-SECURITY-POLICY.md`](./GTS-SECURITY-POLICY.md), et le contrôle des changements dans [`GTS-GOVERNANCE.md`](./GTS-GOVERNANCE.md).
+
 ## Résumé
 
 Les jeux de données RDF sont couramment échangés par le biais de sérialisations textuelles, d'exportations de bases de données, d'archives ad hoc et de formats de paquets spécifiques aux applications. Ces mécanismes sont utiles, mais ils ne fournissent pas un petit substrat commun pour l'historique de graphes en ajout uniquement, les charges utiles binaires adressées par le contenu, la lisibilité partielle et la conformité multi-langage. GTS comble cette lacune en encodant l'état de graphe RDF 1.2 et les actifs binaires référencés sous la forme d'une CBOR Sequence de segments et de trames déterministes. Chaque segment est replié dans un état de graphe, les trames sont liées par des identifiants de contenu BLAKE3, et les charges utiles non prises en charge ou inaccessibles se dégradent en noeuds opaques plutôt que de disparaître. Le dépôt actuel héberge six moteurs de référence en Rust, Python, Go, TypeScript, Smalltalk/Pharo et Kotlin/JVM, ainsi qu'un manifeste de vecteurs et un corpus de conformité partagés utilisés pour comparer les résultats de repli et les diagnostics. GTS n'est pas une base de données, un raisonneur, une ontologie ou un protocole de consensus ; c'est une taille étroite pour le transport de graphes durable et vérifiable.
+
 ## 1. Introduction
 
 Les données de graphe traversent désormais les applications local-first, les flux de travail de provenance, les ensembles de preuves, les archives, les limites de service et les systèmes de mémoire d'IA. Un artefact de transport pour ces contextes doit déplacer plus que des triplets : il doit préserver les charges utiles binaires, ajouter l'historique sans réécrire les octets plus anciens, survivre aux codecs ou clés manquants et permettre à des implémentations indépendantes de s'accorder sur la signification des octets.
@@ -29,6 +30,9 @@ Les contributions prévues de ce travail sont :
 3. Une chaîne id/prev adressée par le contenu avec des signatures COSE facultatives, un chiffrement facultatif et un modèle d'opacité pour les capacités manquantes.
 4. Une composition multi-segment par concaténation d'octets plus une compaction de disposition diffusable en continu pour les artefacts axés sur la livraison.
 5. Un corpus de conformité multi-langues et des implémentations de référence en Rust, Python, Go, TypeScript, Smalltalk/Pharo et Kotlin/JVM.
+
+## 2. Aperçu de conception
+
 ```text
 Applications and profiles
 generic graphs | files | evidence | images | media packages | GMEOW | agent memory
@@ -50,6 +54,7 @@ filesystem | HTTP range | object storage | artifact registries | message buses
 Le format de base ne s'engage envers aucune ontologie, base de données, moteur de requête, modèle de transaction mutable ou cadre de confiance. Les profils de domaine ajoutent du vocabulaire et de la validation au-dessus de la taille (waist). Les déploiements choisissent le comportement de stockage et de service en dessous de celle-ci. Aucune des deux parties ne modifie la grammaire d'en-tête/trame (frame) de base, les préimages d'identifiant de contenu (content-id), les règles de limite de segment (segment) ou la sémantique de repli (fold).
 
 La famille de packages actuelle est nommée `gmeow-gts` ; le format est GTS. GMEOW est un consommateur en aval et un cas d'utilisation de distribution principal, mais la direction de la dépendance est unidirectionnelle : un lecteur (reader) GTS n'a pas besoin du vocabulaire GMEOW, du raisonnement OWL, des règles du domaine musical ou des conventions de mémoire d'agent pour analyser, vérifier, replier (fold) ou transporter un fichier GTS.
+
 ## 3. Format filaire
 
 Un fichier GTS est une CBOR Sequence d'un ou plusieurs segments. Un segment contient un en-tête CBOR déterministe suivi de trames CBOR déterministes. Le type de média provisoire enregistré utilisé par les artefacts publiés est `application/vnd.blackcat.gts+cbor-seq`, et l'extension de fichier est `.gts`.
@@ -73,6 +78,7 @@ L'identifiant de contenu de chaque trame est un condensé BLAKE3-256 sur des oct
 Les charges utiles utilisent un catalogue de transformations. La surface de base inclut le chemin structurel obligatoire nécessaire pour le lecteur central, tandis que les codecs optionnels et les transformations cryptographiques dépendent des capacités. Les codecs inconnus, les types de trames non pris en charge ou les clés non disponibles sont représentés sous forme de diagnostics et de nœuds opaques du graphe lorsque les octets environnants restent récupérables.
 
 La trame d'index facultative peut transporter des tables de décalage, des index de types de trames et une racine MMR. Le support actuel est intentionnellement limité : la vérification de preuve MMR détachée est inter-moteurs, Rust peut créer des preuves à partir de fichiers GTS indexés, et les surfaces de création de preuves/d'accès aléatoire plus larges restent suivies en tant que primitives avancées plutôt qu'en tant qu'exigences de base du lecteur.
+
 ## 4. Sémantique du repli
 
 Le repli (fold) est le rejeu déterministe des trames (frames) de segment en un état ayant la forme d'un dataset RDF.
@@ -96,6 +102,7 @@ fold(file) = value_union(fold(segment_0), ..., fold(segment_n))
 ```
 
 La grammaire exacte, le comportement face aux doublons, le comportement de suppression, les diagnostics et les attentes de conformité (conformance) demeurent du ressort des documents de spécification et de conformité.
+
 ## 5. Intégrité, Confidentialité Et Opacité
 
 GTS sépare quatre préoccupations :
@@ -110,6 +117,7 @@ Les deux premières sont des propriétés de format sans clé. Les deux dernièr
 Le modèle d'opacité fait également partie de la conception du transport. Un lecteur (reader) sans codec ou clé peut toujours préserver la position, le type de trame, l'enveloppe publique, les identifiants de destinataire, les signatures et les diagnostics. Le contenu peut être masqué, mais l'existence et la position dans la chaîne du contenu masqué restent observables. Cela rend les lectures dégradées explicites et testables au lieu de supprimer silencieusement des informations.
 
 L'état actuel de la cryptographie v1 devrait être décrit de manière étroite. COSE_Sign1 et COSE_Encrypt0 à destinataire unique sont des capacités de Lecteur Complet (Full Reader) facultatives (optional) implémentées. Les enveloppes COSE_Encrypt multi-destinataires et l'emballage de clé (key-wrap) ECDH sont différés (deferred) en dehors de la conformité v1 jusqu'à ce que des montages (fixtures) au niveau des octets, des tests d'interopérabilité et une politique de gestion des clés existent.
+
 ## 6. Statut de conformité et de mise en œuvre
 
 Le dépôt contient six moteurs :
@@ -133,6 +141,7 @@ Les paliers (tiers) pertinents pour le récit de l'article sont :
 - Writer and Validating Tool : sortie déterministe et vérifications d'outils/profils (profiles) plus strictes là où ces revendications sont faites.
 
 Le statut de mise en œuvre devrait être présenté comme un fait évolutif du dépôt, et non comme une revendication de norme. Au moment de cette ébauche, les six moteurs sont décrits comme étant validés par rapport au corpus partagé pour leurs surfaces publiques, tandis que plusieurs capacités restent délibérément en dehors de la base : les exportations vers des bases de données et Parquet ne sont pas présentes dans chaque moteur, la création de preuves non-Rust est différée (deferred), les assistants de récupération par plage (range-fetch) dépendent toujours de limites vérifiées, les modèles de service de stockage d'objets (object-store) sont des contrats d'intégration plutôt qu'un comportement de format de base, et le chiffrement multi-destinataire est épinglé uniquement sous forme de descripteurs de contrat différés (deferred).
+
 ## 7. Plan d'évaluation
 
 L'article devrait rapporter des mesures provenant uniquement d'artefacts de version reproductibles. Le dépôt actuel fournit un exécuteur de repère (benchmark) et un modèle de rapport dans [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md). Une exécution de preuves mesurées pour ce projet est conservée en tant que sortie générée dans [`dist/benchmarks/paper-evidence/release-benchmark-report.md`](../../../../dist/benchmarks/paper-evidence/release-benchmark-report.md) plutôt que d'écraser le modèle de repère (benchmark).
@@ -152,6 +161,7 @@ Tableaux suggérés pour une annexe de publication :
 - comparaisons de taille de fichier à travers les choix de codec et le compactage diffusable en continu (streamable compaction) ;
 - comportement de récupération sur entrée corrompue avec et sans index de décalage (offset) ;
 - économies d'octets par récupération de plage (range-fetch) pour les exemples de livraison progressive une fois les limites connues.
+
 ## 8. Applications
 
 Le GTS est conçu pour prendre en charge plusieurs familles d'applications sans faire de l'une d'entre elles l'identité centrale :
@@ -164,6 +174,7 @@ Le GTS est conçu pour prendre en charge plusieurs familles d'applications sans 
 - Paquets d'images et de médias : commencer par les métadonnées de catalogue et de petites manifestations, puis transporter plus tard des blobs plus volumineux et la provenance dans le même flux vérifiable.
 - Mémoire d'agent et révision des croyances : ajouter des observations, des suppressions et la provenance sous forme d'un profil au niveau applicatif plutôt que comme l'identité du format.
 - Échange de bases de données de graphes : projeter l'état de graphe replié vers N-Quads, SQLite, DuckDB, Parquet ou d'autres systèmes lorsque ces transformations sont disponibles.
+
 ## 9. Limites et travaux futurs
 
 Le GTS n'est pas un langage de requête, un raisonneur, une base de données muable, un protocole de consensus, un système de découverte de clés, un cadre de confiance ou une garantie de disponibilité de blobs externes. La résolution de conflits au niveau applicatif reste au-dessus du repli (fold) central, et les déploiements demeurent responsables des ancres de confiance, de l'autorisation des signataires, de la rotation des clés, de la révocation et des engagements de tête (head commitments) externes.
@@ -178,6 +189,7 @@ Les limites connues et les éléments différés (deferrals) actuels incluent :
 - La création de preuves multi-moteurs, les assistants de récupération de plage (range-fetch) plus profonds et les flux de travail (workflows) de magasin d'objets/services sont des surfaces avancées plutôt que des exigences de lecteur (reader) centrales.
 - Les profils (profiles) de normes optionnelles et spécifiques au domaine nécessitent une gouvernance, des vecteurs de test et des notes de compatibilité claires avant de pouvoir faire des affirmations fortes.
 - Les affirmations de version et de publication nécessitent des révisions de corpus estampillées plutôt que l'espace réservé (placeholder) du manifeste enregistré.
+
 ## 10. Travaux connexes
 
 GTS chevauche délibérément plusieurs domaines matures, mais il occupe un point différent dans l'espace de conception : un artefact de transport unique qui est à ajout uniquement, adressé par le contenu, de forme RDF après repli, conscient de la charge utile binaire, partiellement lisible et couvert par un corpus de conformité multi-moteurs.
@@ -238,6 +250,7 @@ continuité des octets, et non la vérité des affirmations ou l'autorité d'un 
 **Couches de sécurité de la charge utile.** GTS utilise COSE plutôt que d'inventer une enveloppe de signature ou de chiffrement : la [RFC 9052](https://www.rfc-editor.org/info/rfc9052) définit les structures de signature, de MAC et de chiffrement pour la sérialisation CBOR. Les écosystèmes JSON utilisent couramment [JWS](https://datatracker.ietf.org/doc/html/rfc7515) pour les charges utiles basées sur JSON protégées en intégrité. La distinction de GTS est l'invariant d'opacité : les charges utiles chiffrées ou non prises en charge peuvent rester visibles dans le graphe en tant que nœuds opaques avec des diagnostics, des enveloppes publiques et une position dans la chaîne plutôt que de provoquer un échec de lecture total ou de disparaître du repli.
 
 **Bases de données de graphes et cibles de projection.** SPARQL 1.1 définit le [langage de requête standard pour RDF](https://www.w3.org/TR/sparql11-query/), tandis que des systèmes tels que SQLite, DuckDB et Parquet fournissent des substrats tabulaires durables ou analytiques. SQLite documente un [format de base de données à fichier unique](https://www.sqlite.org/fileformat.html) stable ; DuckDB est une [base de données analytique intégrable](https://duckdb.org/pdf/SIGMOD2019-demo-duckdb.pdf) ; et Apache Parquet est un [format de fichier orienté colonne](https://parquet.apache.org/) pour l'analytique. GTS ne concurrence pas ces systèmes en tant que moteur de requête. Au lieu de cela, il définit un transport portable et vérifiable à partir duquel des N-Quads, SQLite, DuckDB, Parquet ou des magasins RDF natifs peuvent être régénérés.
+
 ## 11. Conclusion
 
 GTS explore une mince couche de transport pour les artefacts en forme de graphe : des octets CBOR déterministes,
@@ -245,6 +258,7 @@ des trames en ajout uniquement, un historique adressé par le contenu, une séma
 corpus de conformité interlangue. Sa valeur réside dans la frontière qu'il trace. L'artefact central est
 portable et vérifiable ; des bases de données plus riches, des profils, des systèmes de preuve, des magasins d'objets et des flux de travail
 de domaine peuvent s'y rattacher au-dessus ou en dessous sans changer la taille de guêpe du format.
+
 ## Ébauches d'annexes
 
 Les futures révisions du document peuvent ajouter :

@@ -8,8 +8,8 @@
 
 > [`docs/GTS-ADVANCED-PRIMITIVES.md`](../../../../docs/GTS-ADVANCED-PRIMITIVES.md) 的信息性中文翻译。英文文档仍然是集成、高级功能、可选 profile、基准数据、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md)，仅供参考。
 
-
 本文档汇总了流式接收器、索引、MMR/证明、范围获取、复制以及内存基准的实现路径。核心线缆格式在 [`GTS-SPEC.md`](./GTS-SPEC.md) 中保持规范性；本契约陈述了当前软件包实际支持的内容，以及从 v1 表面有意推迟 (deferred) 的内容。
+
 ## 当前 V1 支持情况
 
 | 原语 (primitive) | 当前支持 | 声明边界 (claim boundary) |
@@ -23,6 +23,7 @@
 | 内存基准助手 | `scripts/bench_reader_memory.py` 报告全读取器具体化、帧扫描基线、Rust `read_to_sink_from_reader` 和 TypeScript 浏览器 `foldStreamToSink` 行。Go 通过 `go test ./reader -bench 'Benchmark(ReadFull\|ReadToSink)CorpusVector' -benchmem` 报告其全读取器和非具体化流式接收器分配证据。 | 帧扫描不是流式读取器折叠 (Streaming Reader fold)；Rust、TypeScript 和 Go 行是其命名 API 的接收器内存证据。 |
 
 当前的 Go 包可以为 `reader.ReadToSink(ctx, io.Reader, reader.Options, sink)` 声称 `Streaming Reader` 层级。Rust 包可以为 `read_to_sink_from_reader(reader, ReadOptions, sink)` 声称该层级。TypeScript 浏览器包可以为 `foldStreamToSink(stream, options)` 声称该层级。Rust 的 `read_to_sink(&[u8], ...)` 和 TypeScript 的 `foldStream(stream, options)`/`readStream(stream, options)` 仍然是兼容性或图形返回助手，而不是命名的声明表面 (claim surfaces)。Rust 仍然是唯一可以声称 MMR 证明创建的包。所有四个包都可以声称对 `vectors/proofs/` 中的固定装置集 (fixture set) 和共享复制清单谓词 (verbs) 进行分离证明验证。Python 尚不应该 (SHOULD NOT) 声称接收器或证明创建层级；Go 和 TypeScript 尚不应该 (SHOULD NOT) 声称证明创建。
+
 ## 推迟 (Deferred) 的高级 CLI 谓词 (Verbs)
 
 下方的行（如果存在）是计划中的词汇，而非当前的公开命令。如果这些谓词 (verbs) 中的任何一个
@@ -48,6 +49,7 @@
 - 使用 `scripts/bench_reader_memory.py` 或等效基准 (benchmark) 报告内存行为。
 
 现有的 `streaming-property` 子集仍然具有价值，但它是一种前缀完整性属性。它本身并不是流式接收器 (streaming sink) 声明。
+
 ## 索引、MMR 和证明层级
 
 可选的 `index` 有效负载目前有五个已实现的组成部分：
@@ -69,6 +71,7 @@
 - 索引文件证明创建固定装置，包括正向和负向行为；
 - 针对 `GTS-SPEC.md` 中稳定原像的 Python、Go 和 TypeScript 中的 `index.mmr` 写入器/读取器 (writer/reader) 实现；
 - 证明创建测试，用以证明生成的独立 JSON 在每个引擎中可以独立于完整文件可用性进行验证。
+
 ## 范围获取 (Range-Fetch) 规则
 
 只有在调用者拥有帧 (frame) 边界后，范围获取才是字节精确的。
@@ -89,6 +92,7 @@ index_frame_start                # for the last covered frame, after a boundary 
 当前的索引负载不存储帧长度。因此，客户端不得 (MUST NOT) 仅根据 `off` 推断最后一个覆盖帧的精确字节范围；它必须通过扫描、容器元数据或未来的带长度信息的索引扩展来获知索引帧的起始位置。
 
 在没有索引的情况下，范围获取仍然可行，但需要从段 (segment) 起始位置开始进行顺序 CBOR 边界扫描。只有当请求范围的起始和结束位置是源自已扫描的项目边界时，HTTP `Range` 请求才是安全的。
+
 ## 复制工作流
 
 所有引擎 CLI 都实现了复制谓词：
@@ -114,6 +118,7 @@ gts-replication-missing-v1
 - `segments` 报告每个段的字节范围、配置文件、头、帧数和布局状态；
 - `missing` 将对等节点的已知头与本地段/帧谱系进行比较，并返回精确的字节范围或明确的“未知；需要扫描”结果；
 - `resume` 仅在证明请求的帧 ID 存在且输出起始于 CBOR 项边界后才发射字节。
+
 ## 内存基准
 
 发布基准套件涵盖了在暴露各表面的引擎上的读取、折叠 (fold)、写入/来自 N-Quads、文件配置文件打包/解包以及流式内存证据：

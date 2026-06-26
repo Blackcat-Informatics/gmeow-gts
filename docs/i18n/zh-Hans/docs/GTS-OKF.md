@@ -8,7 +8,6 @@
 
 > [`docs/GTS-OKF.md`](../../../../docs/GTS-OKF.md) 的信息性中文翻译。英文文档仍然是集成、高级功能、可选 profile、基准数据、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md)，仅供参考。
 
-
 Rust `okf` 特性将 OKF Markdown 捆绑包映射为一个可验证的 GTS 软件包，并将 OKF 配置文件折叠图回投影到捆绑包目录。
 
 ```bash
@@ -17,6 +16,7 @@ cargo run --features okf --bin gts -- to-okf bundle.gts --directory restored-okf
 ```
 
 GTS 段 (segment) 配置文件为 `okf`。头部元数据携带一个模式为 `gts-okf-v1` 的 OKF 清单 (manifest)、用于铸造主体的基本 IRI、文档计数以及源路径。
+
 ## 词汇表
 
 v1 词汇命名空间为：
@@ -30,6 +30,7 @@ https://blackcatinformatics.ca/projects/gts/okf#
 ```text
 https://blackcatinformatics.ca/projects/gts/okf/doc/
 ```
+
 ## 映射
 
 | OKF 结构 | GTS 表示 |
@@ -51,6 +52,7 @@ https://blackcatinformatics.ca/projects/gts/okf/doc/
 | 无前置内容的 `index.md` | 导航页，在导入时被忽略，并在需要时由消费者重新生成 |
 
 正文 Blob 对于重新序列化具有权威性。链接三元组是源自正文的查询表面；`to-okf` 不会根据它们重写 Markdown。
+
 ## 目录导出
 
 `to-okf` 拒绝现有的目标目录。成功时，它会写入：
@@ -79,6 +81,7 @@ out/
 ```
 
 GTS 报头元数据携带相同的架构名称、基础 IRI、文档数量和源路径列表，用于包内部的可验证溯源。
+
 ## Knowledge Catalog 互操作性
 
 Rust 导入器接受 Google Knowledge Catalog 概念验证示例中使用的 OKF v0.1 形式：
@@ -98,6 +101,7 @@ cargo run --features okf --bin gts -- to-okf /tmp/bq.gts --directory /tmp/bq-okf
 ```
 
 当针对 <https://github.com/GoogleCloudPlatform/knowledge-catalog> 的检出版本进行测试时，请使用诸如 `okf/bundles/ga4/` 之类的 bundle 替换 `vectors/okf/bigquery-join`。
+
 ## 可验证的 OKF 演示器
 
 在创作层，OKF “只是一个目录”。GTS 配置文件 (profile) 在该目录下方添加了一个仅追加 (append-only) 的验证层：
@@ -109,6 +113,7 @@ cargo run --features okf --bin gts -- to-okf /tmp/bq.gts --directory /tmp/bq-okf
 5. `gts to-okf` 将当前的 OKF 配置文件折叠 (fold) 投影回 Markdown，以供审核或发布。被抑制的历史记录将保留在 GTS 包中以供审计，除非稍后的压缩策略有意对其进行封存或重写。
 
 这使得 OKF 成为一个 GMEOW 创作界面：贡献者可以使用 Markdown 和普通的存储库审查工具进行工作，而下游系统可以将同样的知识作为已签名、可抑制、可查询的 GTS 图状态来消费。
+
 ## 往返定律
 
 前向 OKF 往返：
@@ -126,6 +131,7 @@ package.gts -> to-okf -> okf-dir -> from-okf -> package.gts'
 ```
 
 对于 OKF 配置文件 (profile) 图，其折叠图 (folded graph) 投影在往返后是相等的。Content ID 可能会有所不同，因为导入器 (importer) 会生成一个确定性的新段 (segment)，而不是回放源字节。
+
 ## 拒绝情况
 
 `from-okf` 拒绝：
@@ -145,6 +151,7 @@ package.gts -> to-okf -> okf-dir -> from-okf -> package.gts'
 - 缺少 `okf:type` 的 OKF 文档；
 - 缺失或无法解码的正文 blob (body blobs)；
 - 内联 `okf:body` 字面量，除非传递了 `--inline-body`。
+
 ## 与其他目录表面的关系
 
 `gts dump --directory` 为任意 GTS 存档写入检查树。
