@@ -27,6 +27,15 @@ GTS，即 `Graph Transport Substrate`，是一种 append-only 格式，用于传
 | `docs/GTS-DUMP-DIR.md` | [Dump 目录](docs/GTS-DUMP-DIR.md) |
 | `docs/GTS-PAPER-DRAFT.md` | [论文草稿](docs/GTS-PAPER-DRAFT.md) |
 | `docs/GTS-BENCHMARK-RELEASE-REPORT.md` | [基准发布报告](docs/GTS-BENCHMARK-RELEASE-REPORT.md) |
+| `docs/GTS-GOVERNANCE.md` | [治理](docs/GTS-GOVERNANCE.md) |
+| `docs/GTS-SECURITY-POLICY.md` | [安全与信任策略](docs/GTS-SECURITY-POLICY.md) |
+| `docs/GTS-RELEASE-SLSA.md` | [发布 SLSA 状态](docs/GTS-RELEASE-SLSA.md) |
+| `docs/GTS-V1-RC1-CHECKLIST.md` | [v1.0-rc1 检查清单](docs/GTS-V1-RC1-CHECKLIST.md) |
+| `CHANGELOG.md` | [变更日志](CHANGELOG.md) |
+| `CONTRIBUTING.md` | [贡献](CONTRIBUTING.md) |
+| `SECURITY.md` | [安全](SECURITY.md) |
+| `CODE_OF_CONDUCT.md` | [行为准则](CODE_OF_CONDUCT.md) |
+| `LICENSING.md` | [许可](LICENSING.md) |
 | `README.md` | [项目](README.md) |
 | `docs/positioning.md` | [定位](docs/positioning.md) |
 | `rust/README.md` | [Rust](rust/README.md) |

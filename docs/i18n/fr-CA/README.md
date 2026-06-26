@@ -27,6 +27,15 @@ Cette page sert d'entrée locale pour le lot de traduction #364. Les termes suiv
 | `docs/GTS-DUMP-DIR.md` | [Répertoire de dump](docs/GTS-DUMP-DIR.md) |
 | `docs/GTS-PAPER-DRAFT.md` | [Brouillon d'article](docs/GTS-PAPER-DRAFT.md) |
 | `docs/GTS-BENCHMARK-RELEASE-REPORT.md` | [Rapport de publication des benchmarks](docs/GTS-BENCHMARK-RELEASE-REPORT.md) |
+| `docs/GTS-GOVERNANCE.md` | [Gouvernance](docs/GTS-GOVERNANCE.md) |
+| `docs/GTS-SECURITY-POLICY.md` | [Politique de sécurité et de confiance](docs/GTS-SECURITY-POLICY.md) |
+| `docs/GTS-RELEASE-SLSA.md` | [Posture SLSA des versions](docs/GTS-RELEASE-SLSA.md) |
+| `docs/GTS-V1-RC1-CHECKLIST.md` | [Liste de contrôle v1.0-rc1](docs/GTS-V1-RC1-CHECKLIST.md) |
+| `CHANGELOG.md` | [Journal des changements](CHANGELOG.md) |
+| `CONTRIBUTING.md` | [Contribution](CONTRIBUTING.md) |
+| `SECURITY.md` | [Sécurité](SECURITY.md) |
+| `CODE_OF_CONDUCT.md` | [Code de conduite](CODE_OF_CONDUCT.md) |
+| `LICENSING.md` | [Licences](LICENSING.md) |
 | `README.md` | [Projet](README.md) |
 | `docs/positioning.md` | [Positionnement](docs/positioning.md) |
 | `rust/README.md` | [Rust](rust/README.md) |
