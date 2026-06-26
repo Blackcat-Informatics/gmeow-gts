@@ -22,7 +22,7 @@ INLINE_CODE_RE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
 URL_RE = re.compile(r"https?://[^\s)>\"']+")
 MARKDOWN_TARGET_RE = re.compile(r"!?\[[^\]]*]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 HTML_ATTR_RE = re.compile(r"\b(?:href|src)=\"([^\"]+)\"")
-INDEX_SOURCE_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|", re.MULTILINE)
+INDEX_SOURCE_RE = re.compile(r"^\s*\|\s*`([^`]+)`\s*\|", re.MULTILINE)
 
 
 def relative(path: Path) -> str:
@@ -92,7 +92,8 @@ def indexed_sources(errors: list[str]) -> set[str]:
     if not index_path.is_file():
         return set()
     sources: set[str] = set()
-    for source in INDEX_SOURCE_RE.findall(index_path.read_text(encoding="utf-8")):
+    for source_raw in INDEX_SOURCE_RE.findall(index_path.read_text(encoding="utf-8")):
+        source = source_raw.strip()
         if not source.endswith(".md"):
             continue
         source_path = Path(source)
@@ -121,7 +122,10 @@ def has_source_link(localized_path: Path, localized_text: str, source_path: Path
         target_without_anchor = target.split("#", 1)[0]
         if not target_without_anchor:
             continue
-        resolved = (localized_path.parent / target_without_anchor).resolve()
+        if target_without_anchor.startswith("/"):
+            resolved = (ROOT / target_without_anchor.lstrip("/")).resolve()
+        else:
+            resolved = (localized_path.parent / target_without_anchor).resolve()
         if resolved == source_resolved:
             return True
     return False
