@@ -6,7 +6,7 @@
 
 # GTS 第三方实现者指南
 
-> [`docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md`](../../../docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) 的信息性中文翻译。英文文档仍然是兼容性规则、一致性声明、对等矩阵、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md)，仅供参考。
+> [`docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md`](../../../../docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) 的信息性中文翻译。英文文档仍然是兼容性规则、一致性声明、对等矩阵、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md)，仅供参考。
 
 本指南适用于希望构建独立 GTS 读取器并提出可测试的基准读取器 (Baseline Reader) 一致性声明的实现者。本指南是非规范性的。传输格式仍由 [`GTS-SPEC.md`](./GTS-SPEC.md) 定义，一致性声明仍由 [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md) 定义。
 

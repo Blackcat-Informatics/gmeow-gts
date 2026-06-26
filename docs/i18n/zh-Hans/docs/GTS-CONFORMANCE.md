@@ -6,7 +6,7 @@
 
 # GTS 一致性
 
-> [`docs/GTS-CONFORMANCE.md`](../../../docs/GTS-CONFORMANCE.md) 的信息性中文翻译。英文文档仍然是兼容性规则、一致性声明、对等矩阵、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md)，仅供参考。
+> [`docs/GTS-CONFORMANCE.md`](../../../../docs/GTS-CONFORMANCE.md) 的信息性中文翻译。英文文档仍然是兼容性规则、一致性声明、对等矩阵、示例、标识符和机器可读值的规范来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md)，仅供参考。
 
 本文档定义了实现如何针对 Graph Transport Substrate (GTS) 提交可测试的一致性声明。它是 [`GTS-SPEC.md`](./GTS-SPEC.md) 的配套文档：规范定义了线缆格式和行为；而本文档则定义了用于比较实现的层级、向量子集、预期结果格式、诊断信息以及读取模式。
 

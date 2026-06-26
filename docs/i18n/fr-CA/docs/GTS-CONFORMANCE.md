@@ -6,7 +6,7 @@
 
 # Conformité GTS
 
-> Traduction informative de [`docs/GTS-CONFORMANCE.md`](../../../docs/GTS-CONFORMANCE.md). Le document anglais demeure la source normative pour les règles de compatibilité, les déclarations de conformité, les matrices de parité, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et reste informative.
+> Traduction informative de [`docs/GTS-CONFORMANCE.md`](../../../../docs/GTS-CONFORMANCE.md). Le document anglais demeure la source normative pour les règles de compatibilité, les déclarations de conformité, les matrices de parité, les exemples, les identifiants et les valeurs lisibles par machine. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md) et reste informative.
 
 Ce document définit comment une implémentation formule une déclaration de conformité testable pour le Graph Transport Substrate (GTS). Il accompagne le [`GTS-SPEC.md`](./GTS-SPEC.md) : la spécification définit le format filaire et le comportement ; ce document définit les niveaux (tiers), les sous-ensembles de vecteurs, les formats de résultats attendus, les diagnostics et les modes de lecture utilisés pour comparer les implémentations.
 
