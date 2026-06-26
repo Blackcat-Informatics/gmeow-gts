@@ -4,82 +4,76 @@
 <!-- i18n-locale: zh-Hans -->
 <!-- i18n-status: translated -->
 
-# GTS v1.0-rc1 检查清单与制品包
+# GTS v1.0-rc1 检查清单和产物包
 
 > [`docs/GTS-V1-RC1-CHECKLIST.md`](../../../../docs/GTS-V1-RC1-CHECKLIST.md) 的信息性中文翻译。英文文档仍然是治理、安全、发布、许可、贡献、行为义务、披露流程和可执行命令的权威来源。本翻译遵循 [`docs/i18n/GLOSSARY.md`](../../GLOSSARY.md)，仅供参考。
 
-此检查清单将 [`GTS-GOVERNANCE.md`](./GTS-GOVERNANCE.md) 中的 v1.0-rc1 发布路径转换为可运行的候选发布版本记录。请将未勾选的部分复制到发布议题中，或保留一份填写的副本作为发布制品。请勿通过编辑已提交的向量清单来标记发布修订版本；请生成下文所述的标记制品。
+本检查清单将 [`GTS-GOVERNANCE.md`](./GTS-GOVERNANCE.md) 中的 v1.0-rc1 发布路径转化为可执行的候选版本记录。请将未勾选的部分复制到发布 issue 中，或保留一份已填写的副本作为发布产物。不要为了标记发布修订而修改已验证的向量清单；请生成下文描述的带标记产物。
 
 ## 1. 候选记录
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| 发布 Issue | |
-| 发布 PR | |
-| 候选版本名称 | `v1.0-rc1` |
-| 发布包版本 | |
-| 规范提交 | |
-| 语料库修订版本 | |
-| 向量清单产物 | `dist/v1.0-rc1/vector-manifest.release.json` |
-| Rust 包/标签 | `gmeow-gts` / `rust-v<version>` |
-| Python 包/标签 | `gmeow-gts` / `py-v<version>` |
-| Go 模块/标签 | `go.blackcatinformatics.ca/gts` / `go/v<version>` |
-| npm 包/标签 | `@blackcatinformatics/gmeow-gts` / `npm-v<version>` |
-| Ruby 包/标签 | `gmeow-gts` / `ruby-v<version>` |
-| 发布说明提交 | |
-| 发布经理 | |
-| 日期 | |
+| Release issue | |
+| Release PR | |
+| Candidate name | `v1.0-rc1` |
+| Release package version | |
+| Spec commit | |
+| Corpus revision | |
+| Vector manifest artifact | `dist/v1.0-rc1/vector-manifest.release.json` |
+| Rust package/tag | `gmeow-gts` / `rust-v<version>` |
+| Python package/tag | `gmeow-gts` / `py-v<version>` |
+| Go module/tag | `go.blackcatinformatics.ca/gts` / `go/v<version>` |
+| npm package/tag | `@blackcatinformatics/gmeow-gts` / `npm-v<version>` |
+| Ruby package/tag | `gmeow-gts` / `ruby-v<version>` |
+| Release notes commit | |
+| Release manager | |
+| Date | |
 
-在选择 pre-release package version 之前，请验证该字符串是否被 Cargo、PyPI、npm 以及存储库 version guard 接受。如果同一个 release candidate 的生态系统语法存在差异，请在此记录确切的各生态系统版本，并在 tagging 之前更新 release guard。tag/manifest 不匹配是发布阻塞项 (release blocker)，因为 tag workflows 在发布前会验证 manifest 版本。
+Before choosing a pre-release package version, verify the string is accepted by
+Cargo, PyPI, npm, and the repository version guard. If ecosystem syntax differs
+for the same release candidate, record the exact per-ecosystem versions here and
+update the release guard before tagging. A tag/manifest mismatch is a release
+blocker because the tag workflows verify manifest versions before publishing.
 
-## 2. 阻碍因素分类
+## 2. 阻塞项分类
 
-根据 [`GTS-GOVERNANCE.md`](./GTS-GOVERNANCE.md#71-v10-rc1-blockers) 中的阻碍因素和非阻碍因素列表，对每一项发现进行分类。
+Classify every finding against the blocker and non-blocker lists in
+[`GTS-GOVERNANCE.md`](./GTS-GOVERNANCE.md#71-v10-rc1-blockers).
 
-### 2.1 v1.0-rc1 阻碍因素 (Blockers)
+### 2.1 v1.0-rc1 阻塞项
 
-| 阻碍因素类别 | 所需证据 | 状态 |
+| Blocker class | Required evidence | Status |
 |---|---|---|
-| 不再存在有意的线缆格式更改 | 已审查开放的 GIP/规范问题；没有已接受的更改会改动标头/帧语法、哈希原像、签名原像、段组合、转换解析或核心折叠语义。 | |
-| 基准向量已存在并冻结 | 向量清单验证通过；语料库 (corpus) 重新生成无差异；盖章的发布清单指明了语料库修订版本。 | |
-| 跨引擎基准行为通过 | Rust、Python、Go、TypeScript、Smalltalk/Pharo、Kotlin/JVM 和互操作性检查均针对同一语料库修订版本通过。 | |
-| C ABI 封装器冒烟覆盖通过 | `rust/capi` 以及 C++、.NET、PHP、Lua、Swift、Ruby、R 和 Julia 封装器冒烟测试均针对发布候选版本通过。 | |
-| 注册表策略已发布 | 帧类型、诊断、编解码器、配置文件 (profile)、转换目标和保留命名空间均包含在治理/规范/一致性文档中。 | |
-| 安全模型清晰 | 安全策略 (security policy) 和加密推迟 (crypto-deferral) 守卫通过；不再存在未解决的高危或严重解析器、加密、提取或发布流水线漏洞。 | |
-| 媒体类型和分发指南已具备 | `application/vnd.blackcat.gts+cbor-seq`、HTTP/range 行为、不可变发布和制品验证指南均已包含在规范/文档中。 | |
-| 兼容性表述清晰 | 线缆、语料库、包和配置文件 (profile) 兼容性规则已包含在治理文档中，并由发布说明引用。 | |
-| 实现者审查无阻碍性发现 | 审查问题/评论已关闭、被推迟 (deferred) 为非阻碍因素，或在下方记录所有者和理由。 | |
-| 质量预算支付已记录 | 发布 PR 减少了至少一个朝向 `target_lines` 的超标热点，或记录了包含所有者、理由和后续问题的特意异常；未经质量预算审查标签或架构审查注释，不接受任何基准增加。 | |
-| 阻断类别 | 所需证据 | 状态 |
-|---|---|---|
-| 无剩余的预期线路格式 (wire-format) 更改 | 开放的 GIP/规范问题已审查；没有任何已接受的更改会改动头部/帧 (frame) 语法、哈希原像、签名原像、段 (segment) 构成、转换解析或核心折叠 (fold) 语义。 | |
-| 基准向量已存在并冻结 | 向量清单验证通过；语料库重新生成无差异；加盖时间戳的发布清单指明了语料库修订版本。 | |
-| 跨引擎基准行为通过 | Rust、Python、Go、TypeScript、Smalltalk/Pharo、Kotlin/JVM 以及互操作性检查针对同一语料库修订版本均通过。 | |
-| C ABI 封装器冒烟测试覆盖通过 | `rust/capi` 以及 C++、.NET、PHP、Lua、Swift、Ruby、R 和 Julia 封装器冒烟测试针对候选发布版本均通过。 | |
-| 注册表策略已发布 | 帧 (Frame) 类型、诊断、编解码器、配置文件 (profiles)、转换目标和保留命名空间均已涵盖在治理/规范/一致性文档中。 | |
-| 安全模型清晰 | 安全策略 (Security policy) 和加密推迟防护通过；解析器、加密、提取或发布流水线中无剩余的开放高危或关键漏洞。 | |
-| 媒体类型和分发指南已具备 | `application/vnd.blackcat.gts+cbor-seq`、HTTP/range 行为、不可变发布以及制品验证指南已包含在规范/文档中。 | |
-| 兼容性描述清晰 | 线路、语料库、包和配置文件 (profile) 兼容性规则已包含在治理文档中，并由发布说明引用。 | |
-| 实现者审查无阻断性发现 | 审查问题/评论已关闭、作为非阻断项推迟，或在下方记录负责人和理由。 | |
-| 质量预算偿还已记录 | 发布 PR 至少减少了一个向 `target_lines` 迈进的超标热点，或者记录了一个包含负责人、理由和后续问题的特意例外；如果没有质量预算审查标签或架构审查注释，则不接受任何基准增加。 | |
+| No intentional wire-format changes remain | Open GIP/spec issues reviewed; no accepted change alters header/frame grammar, hash preimages, signature preimages, segment composition, transform resolution, or core fold semantics. | |
+| Baseline vectors are present and frozen | Vector manifest validates; corpus regeneration has no diff; stamped release manifest names the corpus revision. | |
+| Cross-engine baseline behavior passes | Rust, Python, Go, TypeScript, Smalltalk/Pharo, Kotlin/JVM, and interop checks pass against the same corpus revision. | |
+| C ABI wrapper smoke coverage passes | `rust/capi` plus C++, .NET, PHP, Lua, Swift, Ruby, R, and Julia wrapper smoke tests pass against the release candidate. | |
+| Registry policy is published | Frame types, diagnostics, codecs, profiles, transform targets, and reserved namespaces are covered in governance/spec/conformance docs. | |
+| Security model is clear | Security policy and crypto-deferral guards pass; no high or critical parser, crypto, extraction, or release-pipeline vulnerability remains open. | |
+| Media type and distribution guidance is present | `application/vnd.blackcat.gts+cbor-seq`, HTTP/range behavior, immutable publication, and artifact verification guidance are present in spec/docs. | |
+| Compatibility language is clear | Wire, corpus, package, and profile compatibility rules are present in governance and cited by release notes. | |
+| Implementer review has no blocking findings | Review issues/comments are closed, deferred as non-blockers, or recorded below with owner and rationale. | |
+| Quality-budget paydown is recorded | Release PR reduces at least one over-target hotspot toward `target_lines`, or records a deliberate exception with owner, rationale, and follow-up issue; no baseline increase is accepted without the quality-budget review label or architecture-review note. | |
 
-### 2.2 与发布相关的非阻塞项
+### 2.2 与发布相邻的非阻塞项
 
-这些项目对采用很有用，但当基准一致性 (baseline conformance) 就绪时，不会延迟 rc1，除非它们揭示了上述阻塞项之一。
+These items are useful for adoption, but do not delay rc1 when baseline
+conformance is ready unless they reveal one of the blockers above.
 
-| 交付物 | 跟踪议题 | 状态 | 发布说明 |
+| Deliverable | Tracking issue | Status | Release note |
 |---|---|---|---|
-| 第三方实现指南 | `#104` | | |
-| 基准测试套件和发布报告 | `#105` | `just bench-release` 和 [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md) | |
-| GTS 论文草案 | `#106` | [`GTS-PAPER-DRAFT.md`](./GTS-PAPER-DRAFT.md) | 资料性论文叙述；非规范性规范文本。 |
-| 可选标准配置文件完成 | | | |
-| 数据库、Parquet、浏览器、对象存储、范围获取、MMR、复制或高级证明工具 | | | |
-| 未来的密钥管理或多接收者加密信封 | | | |
-| 中立包别名或标准组织提交 | | | |
+| Third-party implementation guide | `#104` | | |
+| Benchmark suite and release report | `#105` | `just bench-release` and [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md) | |
+| GTS paper draft | `#106` | [`GTS-PAPER-DRAFT.md`](./GTS-PAPER-DRAFT.md) | Informative paper narrative; not normative spec text. |
+| Optional-standard profile completion | | | |
+| Database, Parquet, browser, object-store, range-fetch, MMR, replication, or advanced proof tooling | | | |
+| Future key-management or multi-recipient encryption envelopes | | | |
+| Neutral package aliases or standards-body submission | | | |
 
 ## 3. 本地环境快照
 
-记录用于该候选版本的工具链和仓库状态。
+Record the toolchain and repository state used for the candidate.
 
 ```bash
 git status --short --branch
@@ -96,7 +90,7 @@ npm --version
 
 ## 4. 产物包设置
 
-在运行候选检查之前，创建一个本地包目录。
+Create a local bundle directory before running candidate checks.
 
 ```bash
 export RC=v1.0-rc1
@@ -109,8 +103,8 @@ python scripts/check_vector_manifest.py \
   --release-manifest "${OUT}/vector-manifest.release.json"
 ```
 
-如果语料库修订版本是一个标签或明确的提交，而不是当前的
-`HEAD`，请显式标记它：
+If the corpus revision is a tag or an explicit commit rather than the current
+`HEAD`, stamp it explicitly:
 
 ```bash
 python scripts/check_vector_manifest.py \
@@ -118,19 +112,19 @@ python scripts/check_vector_manifest.py \
   --release-manifest "${OUT}/vector-manifest.release.json"
 ```
 
-该包应包含：
+The bundle should contain:
 
-- 带有包含发布规范 (release spec) 完整提交 (commit) 的 `spec-commit.txt`。
-- 带有语料库 (corpus) 提交 (commit) 或标签 (tag) 的 `corpus-revision.txt`。
-- 带有已盖章 `corpus_revision` 的 `vector-manifest.release.json`。
-- `reports/` 中的各引擎测试与一致性 (conformance) 日志。
-- `packages/` 中的软件包空运行 (Package dry-run) 输出。
-- 标签发布 (tag release) 后的工作流 SBOM 和证明 (attestation) 引用。
-- 发布说明 (Release notes) 或发布 PR 的链接。
+- `spec-commit.txt` with the full commit containing the release spec.
+- `corpus-revision.txt` with the corpus commit or tag.
+- `vector-manifest.release.json` with the stamped `corpus_revision`.
+- Per-engine test and conformance logs in `reports/`.
+- Package dry-run outputs in `packages/`.
+- Workflow SBOMs and attestation references after tag release.
+- Release notes or a link to the release PR.
 
-## 5. 守卫与偏移检查
+## 5. 防护与漂移检查
 
-请在仓库根目录下运行这些命令。
+Run these from the repository root.
 
 ```bash
 bash scripts/check-versions.sh
@@ -145,7 +139,7 @@ python scripts/check_vector_manifest.py
 python scripts/check_vector_manifest.py --self-test
 ```
 
-确认 rc1 策略锚点已存在：
+Confirm the rc1 policy anchors are present:
 
 ```bash
 rg -n "v1.0-rc1|v1.0-rc1 Blockers|v1.0-rc1 Non-Blockers" docs/GTS-GOVERNANCE.md
@@ -156,14 +150,14 @@ rg -n "corpus_revision|release manifest|conformance report" docs/GTS-CONFORMANCE
 
 ## 6. 语料库与一致性检查
 
-重新生成并比较已提交的语料库：
+Regenerate and compare the committed corpus:
 
 ```bash
 just check-vectors
 git diff --exit-code vectors
 ```
 
-运行完整的引擎套件并捕获日志：
+Run the full engine suites and capture logs:
 
 ```bash
 cargo test --manifest-path rust/Cargo.toml --locked 2>&1 \
@@ -186,11 +180,13 @@ cargo test --manifest-path rust/Cargo.toml --locked 2>&1 \
 bash scripts/interop.sh 2>&1 | tee "${OUT}/reports/interop.log"
 ```
 
-在上述引擎套件中通过 CLI 测试运行 validating-tool 和发布拒绝路径。发布说明应该 (SHOULD) 说明声称的一致性层级，并引用确切的一致性语料库 (conformance corpus) 修订版本。
+Run the validating-tool and publication refusal paths through the CLI tests in
+the engine suites above. The release notes should state which conformance tiers
+are claimed and cite the exact corpus revision.
 
-为每个实现使用此报告行：
+Use this report row for each implementation:
 
-| 实现 | 版本 | 操作系统/架构 | 层级声称 | 语料库修订版本 | 命令/日志 | 通过/失败/跳过 |
+| Implementation | Version | OS/arch | Tier claim | Corpus revision | Command/log | Pass/fail/skips |
 |---|---|---|---|---|---|---|
 | Rust | | | | | | |
 | Python | | | | | | |
@@ -199,14 +195,22 @@ bash scripts/interop.sh 2>&1 | tee "${OUT}/reports/interop.log"
 
 ## 7. 安全与供应链检查
 
-在工具可用时运行本地供应链和仓库卫生检查。`just audit` 运行 justfile 中定义的 OSV 依赖扫描；pre-commit 是一个独立的卫生、lint 和密钥扫描关卡。发布 (Release) SLSA 态势记录在 [`GTS-RELEASE-SLSA.md`](./GTS-RELEASE-SLSA.md) 中：当前 GitHub artifact 证明被视为 SLSA v1.0 Build Level 2 证据。除非发布通道已迁移到强化的可重用工作流，且代表性 artifact 针对预期的签名者工作流身份进行了验证，否则不得声称达到 SLSA v1.0 Build Level 3。
+Run local supply-chain and repository-hygiene checks when the tools are
+available. `just audit` runs the OSV dependency scan defined in the justfile;
+pre-commit is a separate hygiene, lint, and secret-scan gate.
+Release SLSA posture is recorded in
+[`GTS-RELEASE-SLSA.md`](./GTS-RELEASE-SLSA.md): current GitHub artifact
+attestations are treated as SLSA v1.0 Build Level 2 evidence. Do not claim SLSA
+v1.0 Build Level 3 unless the release lanes have moved to hardened reusable
+workflows and representative artifacts verify against the expected signer
+workflow identity.
 
 ```bash
 just audit
 pipx run pre-commit run --all-files
 ```
 
-检查候选提交的 GitHub security 工作流：
+Inspect the GitHub security workflows for the candidate commit:
 
 ```bash
 gh run list --workflow security.yml --branch main --limit 5
@@ -214,10 +218,13 @@ gh run list --workflow codeql.yml --branch main --limit 5
 gh run list --workflow fuzz.yml --branch main --limit 5
 ```
 
-除非明确不在基准 v1 一致性 (baseline v1 conformance) 范围内，否则请将任何漏洞、CodeQL、fuzz、发布流水线 (release-pipeline) 或签名发现项记录为阻碍项 (blocker)。
-如果发布有意采用可重用工作流 (reusable workflows) 以实现构建级别 3 (Build Level 3) 对齐，请在打标签之前在此记录签名者工作流策略和验证证据：
+Record any vulnerability, CodeQL, fuzz, release-pipeline, or signing finding as
+a blocker unless it is explicitly out of scope for baseline v1 conformance.
+If a release intentionally adopts reusable workflows for Build Level 3
+alignment, record the signer workflow policy and verification evidence here
+before tagging:
 
-| 发布通道 | 可重用工作流 | 签名者验证命令 | 状态 |
+| Release lane | Reusable workflow | Signer verification command | Status |
 |---|---|---|---|
 | Rust `gmeow-gts` | | | |
 | Rust `visual-hashing` | | | |
@@ -225,9 +232,10 @@ gh run list --workflow fuzz.yml --branch main --limit 5
 | Go | | | |
 | TypeScript | | | |
 
-## 8. 软件包试运行 (Package Dry-Runs)
+## 8. 软件包试运行
 
-在来自干净的发布 (release) 分支或发布 PR 合并提交的所有试运行 (dry-runs) 通过之前，请勿打标签 (tag)。
+Do not tag until all dry-runs pass from a clean release branch or release PR
+merge commit.
 
 ```bash
 cargo package --manifest-path rust/Cargo.toml --locked
@@ -253,9 +261,16 @@ GTS_PACKAGE_DRY_RUN_OUT="${OUT}/packages/wrappers" \
   bash scripts/package_dry_run_wrappers.sh
 ```
 
-wrapper 演练涵盖了 Rust C ABI 软件包列表、可安装 C ABI 归档验证、已安装 C++ 归档使用、Conan 和 vcpkg 软件包管理器消费者冒烟测试、.NET 本地 NuGet 打包、Composer 验证、PHP Packagist 软件包根生成以及本地路径仓库消费者冒烟测试、LuaRocks lint/make/pack 以及已安装 rock 的冒烟执行、Swift 根软件包 dump/run 验证、Ruby gem 构建/安装、R 构建/检查以及 Julia 软件包测试。
+The wrapper dry-run covers the Rust C ABI package list, installable C ABI
+archive verification, installed C++ archive consumption, Conan and vcpkg
+package-manager consumer smoke tests, .NET local NuGet packing, Composer
+validation, PHP Packagist package-root generation plus local path-repository
+consumer smoke testing, LuaRocks lint/make/pack plus installed-rock smoke
+execution, Swift root package dump/run validation, Ruby gem build/install, R
+build/check, and Julia package tests.
 
-为了实现 Go 发布一致性 (release parity)，还需对 `.github/workflows/release-go.yaml` 使用的交叉构建形状 (cross-build shape) 进行演练：
+For Go release parity, also dry-run the cross-build shape used by
+`.github/workflows/release-go.yaml`:
 
 ```bash
 VERSION="<version>"
@@ -283,39 +298,59 @@ sha256sum "${OUT}"/packages/go-cross/* > "${OUT}/packages/go-cross/checksums.txt
 
 ## 9. 发布说明
 
-发布 PR 必须 (MUST) 更新 `CHANGELOG.md`、`CITATION.cff`、包清单、锁定文件，以及当包版本发生变化时的 README/文档代码段。
+The release PR must update `CHANGELOG.md`, `CITATION.cff`, package manifests,
+lockfiles, and README/docs snippets when package versions change.
 
-发布说明必须 (MUST) 包括：
+Release notes must include:
 
-- 候选名称和包版本，或各生态系统的特定版本；
-- 规范 (spec) 提交；
-- 语料库 (corpus) 修订版和盖章清单 (manifest) 产物名称；
-- 各实现的一致性层级 (conformance tier) 声明；
-- 包注册表名称和发布标签；
-- 阻碍因素 (blocker) 评审摘要；
-- 质量预算 (quality-budget) 削减摘要，或带有所有者和后续议题链接的已记录异常；
-- 与发布相关的非阻碍因素和后续议题链接；
-- SBOM 和证明 (attestation) 验证说明；
-- 已知限制和推迟 (deferred) 的功能。
+- candidate name and package version or per-ecosystem versions;
+- spec commit;
+- corpus revision and stamped manifest artifact name;
+- conformance tier claims by implementation;
+- package registry names and release tags;
+- blocker review summary;
+- quality-budget reduction summary, or a documented exception with owner and follow-up issue;
+- release-adjacent non-blockers and follow-up issue links;
+- SBOM and attestation verification instructions;
+- known limitations and deferred capabilities.
 
-最低发布说明证据：
+Minimum release-note evidence:
 
 ```bash
 bash scripts/check-versions.sh
 rg -n "<version>|spec commit|corpus revision|conformance|SBOM|attestation" CHANGELOG.md README.md docs
 ```
 
-## 10. 打标签和发布序列
+## 10. 打标签与发布顺序
 
-在发布 PR 合并后，对准确的合并提交进行打标签。逐个推送发布标签，以便每个由标签触发的工作流都能接收到各自的事件。
+After the release PR is merged, tag the exact merge commit. Push release tags
+one at a time so each tag-triggered workflow receives its own event.
 
-在推送 Rust 标签之前，确认 `gmeow-gts` 的 crates.io Trusted Publisher 条目已激活，且所有者/仓库为 `Blackcat-Informatics/gmeow-gts`，工作流为 `release-cargo.yaml`，环境为 `(none)`。正常的 Rust 发布路径使用 GitHub Actions OIDC，不需要 `CARGO_REGISTRY_TOKEN`。
-在首次 `gmeow-gts-capi` 源码 crate 发布之前，确认 `CARGO_REGISTRY_TOKEN` 引导密钥对 `release-cargo-capi.yaml` 可用。此令牌仅用于初始 crate 引导。在第一个版本出现在 crates.io 上之后，为 `gmeow-gts-capi` 提交并完成后续的 Trusted Publishing 迁移，包括所有者/仓库 `Blackcat-Informatics/gmeow-gts`、工作流 `release-cargo-capi.yaml` 和环境 `(none)`，除非添加了受保护的发布环境。
+Before pushing Rust tags, confirm the crates.io Trusted Publisher entry for
+`gmeow-gts` is active with owner/repo `Blackcat-Informatics/gmeow-gts`,
+workflow `release-cargo.yaml`, and environment `(none)`. The normal Rust
+release path uses GitHub Actions OIDC and does not require
+`CARGO_REGISTRY_TOKEN`.
 
-如果 `gmeow-gts` Rust crate 依赖于较新版本的 `visual-hashing`，请先从其独立存储库发布该 crate。其 crates.io Trusted Publisher 条目必须 (MUST) 使用所有者/仓库 `Blackcat-Informatics/visual-hashing`、工作流 `release.yml` 和环境 `(none)`。
-在推送 RubyGems 标签之前，确认 `gmeow-gts` 的待处理 RubyGems 可信发布者 (Trusted Publisher) 使用了 owner/repo `Blackcat-Informatics/gmeow-gts`、workflow `release-rubygems.yaml` 以及 environment `(none)`，除非发布 (release) 明确添加了受保护环境。
+Before the first `gmeow-gts-capi` source-crate publish, confirm the
+`CARGO_REGISTRY_TOKEN` bootstrap secret is available to
+`release-cargo-capi.yaml`. This token is only for the initial crate bootstrap.
+After the first version appears on crates.io, file and complete the follow-on
+Trusted Publishing migration for `gmeow-gts-capi`, owner/repo
+`Blackcat-Informatics/gmeow-gts`, workflow `release-cargo-capi.yaml`, and
+environment `(none)` unless a protected release environment is added.
 
-在推送 Go 标签之前，确认已启用仓库级不可变发布 (immutable releases)：
+If the `gmeow-gts` Rust crate depends on a newer `visual-hashing` version,
+publish that crate first from its standalone repository. Its crates.io Trusted
+Publisher entry must use owner/repo `Blackcat-Informatics/visual-hashing`,
+workflow `release.yml`, and environment `(none)`.
+
+Before pushing RubyGems tags, confirm the RubyGems pending Trusted Publisher for
+`gmeow-gts` uses owner/repo `Blackcat-Informatics/gmeow-gts`, workflow
+`release-rubygems.yaml`, and environment `(none)` unless the release explicitly
+adds a protected environment.
+
+Before pushing Go tags, confirm repository-level immutable releases are enabled:
 
 ```bash
 gh api repos/Blackcat-Informatics/gmeow-gts/immutable-releases
@@ -340,7 +375,8 @@ git push origin "ruby-v${VERSION}"
 git push origin "${VERSION}"
 ```
 
-如果 `visual-hashing` 发生了变化，请在发布依赖于新 crate 版本的 `rust-v*` 标签之前发布它：
+If `visual-hashing` changed, publish it before `rust-v*` tags that depend on the
+new crate version:
 
 ```bash
 VISUAL_HASHING_VERSION="<visual-hashing-version>"
@@ -351,7 +387,7 @@ git push origin "v${VISUAL_HASHING_VERSION}"
 cd -
 ```
 
-监控发布工作流：
+Monitor the release workflows:
 
 ```bash
 gh run list --event push --limit 30
@@ -363,7 +399,9 @@ gh run list --workflow release-npm.yaml --branch "npm-v${VERSION}" --limit 5
 gh run list --workflow release-capi.yaml --branch "capi-v${VERSION}" --limit 5
 ```
 
-在纯 Swift 语义化版本标签存在后，验证根包并将带有协议和 `.git` 扩展名的仓库 URL 提交到 Swift Package Index：
+After the plain Swift semantic-version tag exists, validate the root package
+and submit the repository URL with protocol and `.git` extension to Swift
+Package Index:
 
 ```bash
 diff -u rust/capi/include/gts.h swift/Sources/CGts/include/gts.h
@@ -371,25 +409,26 @@ swift package dump-package --package-path .
 bash swift/scripts/smoke.sh
 ```
 
-提交：
+Submit:
 
 ```text
 https://github.com/Blackcat-Informatics/gmeow-gts.git
 ```
 
-如果 `visual-hashing` 已发布，请按标签监控其工作流：
+If `visual-hashing` was released, monitor its workflow by tag:
 
 ```bash
 gh run list --repo Blackcat-Informatics/visual-hashing --workflow release.yml --branch "v${VISUAL_HASHING_VERSION}" --limit 5
 ```
 
-如果标签被推送到错误的提交或版本有误，请在删除或重新创建该标签之前停止并提交发布事故记录。
+If a tag was pushed to the wrong commit or with the wrong version, stop and file
+a release incident note before deleting or recreating it.
 
-## 11. 已发布制品验证
+## 11. 已发布产物验证
 
-在工作流完成后，验证公共注册表和发布制品。
-维护者冒烟验证器仅从公共界面执行下载、哈希、注册表溯源、
-GitHub SLSA、SPDX SBOM 和不可变发布 (immutable-release) 检查：
+Verify the public registries and release artifacts after the workflows complete.
+The maintainer smoke verifier performs the download, hash, registry provenance,
+GitHub SLSA, SPDX SBOM, and immutable-release checks from public surfaces only:
 
 ```bash
 VISUAL_HASHING_VERSION="<visual-hashing-version>"
@@ -397,23 +436,27 @@ just verify-release-dry-run "${VERSION}" "${VISUAL_HASHING_VERSION}"
 just verify-release "${VERSION}" "${VISUAL_HASHING_VERSION}"
 ```
 
-在 C ABI 封装包发布后，运行封装感知验证器：
+After C ABI wrapper packages are published, run the wrapper-aware verifier:
 
 ```bash
 just verify-wrapper-release-dry-run "${VERSION}" "${VISUAL_HASHING_VERSION}"
 just verify-wrapper-release "${VERSION}" "${VISUAL_HASHING_VERSION}"
 ```
 
-相同的验证器可以通过手动 `Verify published release` 工作流从 GitHub Actions UI 运行。在凭据或注册表传播就绪之前启用 `dry_run`，并为封装器阶段启用 `include_wrapper_packages`。它会上传 `dist/release-verification/${VERSION}/release-verification-summary.md` 和匹配的 JSON 报告。该报告将通过/警告/失败严重程度与发布状态值（如 `published`、`pending`、`metadata-mismatch` 和 `missing`）分开，以便传播延迟不会与错误的元数据或缺失的制品混淆。`release-verification-summary.json` 作为工作流制品。不要为新发布传递 `--allow-legacy-release-gaps`；该覆盖仅用于审计早于 SBOM 和不可变发布硬化的发布。
+The same verifier can be run from the GitHub Actions UI with the manual
+`Verify published release` workflow. Enable `dry_run` before credentials or
+registry propagation are ready, and enable `include_wrapper_packages` for the
+wrapper pass. It uploads
+`dist/release-verification/${VERSION}/release-verification-summary.md` and
+the matching JSON report. The report keeps pass/warn/fail severity separate
+from release status values such as `published`, `pending`,
+`metadata-mismatch`, and `missing`, so propagation lag is not conflated with
+bad metadata or absent artifacts.
+`release-verification-summary.json` as workflow artifacts. Do not pass
+`--allow-legacy-release-gaps` for new releases; that override is only for
+auditing releases that predate the SBOM and immutable-release hardening.
 
-### 安全与加密就绪情况
-
-- [ ] [GTS-SEC-01] 安全策略已更新 RC-1 联系人。
-- [ ] [GTS-SEC-02] 漏洞披露流程已通过演练 (dry-run) 测试。
-- [ ] [GTS-SEC-03] BLAKE3 实现已针对官方测试向量进行验证。
-- [ ] [GTS-SEC-04] Ed25519 (COSE) 实现已针对官方测试向量进行验证。
-- [ ] [GTS-SEC-05] 随机数生成 (RNG) 使用平台最佳基元。
-- [ ] [GTS-SEC-06] 所有加密 MAC/签名均使用恒定时间 (constant-time) 比较。
+Record quick registry state before or after the smoke verifier:
 
 ```bash
 cargo search gmeow-gts --limit 1
@@ -434,7 +477,8 @@ gh release verify "go/v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
 gh release verify "capi-v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
 ```
 
-面向消费者的验证命令均由维护者冒烟验证器 (maintainer smoke verifier) 覆盖，如下：
+Consumer-facing verification commands, all of which are covered by the
+maintainer smoke verifier, are:
 
 ```bash
 pypi-attestations verify pypi \
@@ -453,34 +497,26 @@ gh release verify-asset "capi-v${VERSION}" <downloaded-capi-asset> \
   --repo Blackcat-Informatics/gmeow-gts
 ```
 
-### 发布证据持久性
+Release evidence durability:
 
-| ID | 领域 | 要求 | 优先级 | 状态 | 证据 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| REL-DUR-01 | SLSA | $1$ 认证 (attestations) $2$ 跨注册表迁移 | P0 | 待定 | $3$ |
-| REL-DUR-02 | Sigstore | $4$ 透明日志 $5$ 用于 $6$ | P0 | 待定 | $7$ |
-| REL-DUR-03 | 来源 (Provenance) | $8$ 不可伪造的构建源 $9$ 适用于所有 $10$ 制品 | P0 | 待定 | $11$ |
-| REL-DUR-04 | 身份 | $12$ 无密钥签名 $13$ 链接到 $14$ | P0 | 待定 | $15$ |
-| REL-DUR-05 | 发现 | $16$ 元数据发现 $17$ 通过 $18$ | P1 | 待定 | $19$ |
-
-| 发布界面 | 持久化产物 | 证明证据 |
+| Surface | Durable artifact | Attestation evidence |
 |---|---|---|
-| Go | 不可变的 GitHub Release 归档、`checksums.txt` 和 `sbom-go-gts.spdx.json` | 针对不可变发布的 GitHub release 证明；针对发布资产的 SLSA 来源证明；针对发布归档的 SPDX SBOM 证明 |
-| C ABI | 不可变的 GitHub Release 归档、`checksums.txt` 和 `sbom-gmeow-gts-capi.spdx.json` | 针对不可变发布的 GitHub release 证明；针对发布资产的 SLSA 来源证明；针对发布归档的 SPDX SBOM 证明 |
-| crates.io `gmeow-gts` | 注册表托管的 `.crate` 软件包 | GitHub 证明存储中的 SLSA 来源和 SPDX SBOM 证明 |
-| crates.io `gmeow-gts-capi` | 注册表托管的 `.crate` 软件包 | GitHub 证明存储中的 SLSA 来源和 SPDX SBOM 证明；引导令牌，直至 Trusted Publishing 后续工作落地 |
-| PyPI | 注册表托管的 wheel/sdist | PyPI 发布证明，以及 GitHub SLSA 来源和 SPDX SBOM 证明 |
-| npm | 注册表托管的 tarball | npm 来源证明，以及 GitHub SLSA 来源和 SPDX SBOM 证明 |
-| RubyGems | 注册表托管的 `.gem` 软件包 | GitHub 证明存储中的 SLSA 来源和 SPDX SBOM 证明 |
-| NuGet `Gmeow.Gts` | 注册表托管的 `.nupkg` 软件包 | 注册表元数据和软件包下载检查；仅源码包装器，需要宿主 `libgts` |
-| Packagist `blackcatinformatics/gmeow-gts` | 来自 Packagist 的 VCS 标签元数据 | 注册表元数据和源码引用检查；仅源码包装器，需要宿主 `libgts` |
-| LuaRocks `gmeow-gts` | 注册表托管的 rockspec/源码 rock | LuaRocks 根清单和 rockspec 下载检查；仅源码包装器，需要宿主 `libgts` |
-| Swift Package Index | 存储库语义化版本标签和 SPI 软件包 URL | Git 标签检查和规范 SPI URL 记录；仅源码包装器，需要宿主 `libgts` |
-| r-universe `gmeowgts` | 注册表托管的源码包 | PACKAGES 索引和源码 tarball 下载检查；需要宿主 `libgts` 的源码包 |
-| Julia General `GmeowGTS` | General 注册表软件包元数据 | 注册表身份和版本检查；仅源码包装器，需要宿主 `libgts` |
-| Conan/vcpkg `gmeow-gts` | 本地第一方试运行，直到提交至上游 | 在上游配方被接受前，暂无公开注册表证据 |
+| Go | Immutable GitHub Release archives, `checksums.txt`, and `sbom-go-gts.spdx.json` | GitHub release attestation for the immutable release; SLSA provenance attestations for release assets; SPDX SBOM attestations for release archives |
+| C ABI | Immutable GitHub Release archives, `checksums.txt`, and `sbom-gmeow-gts-capi.spdx.json` | GitHub release attestation for the immutable release; SLSA provenance attestations for release assets; SPDX SBOM attestations for release archives |
+| crates.io `gmeow-gts` | Registry-hosted `.crate` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store |
+| crates.io `gmeow-gts-capi` | Registry-hosted `.crate` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store; bootstrap token until Trusted Publishing follow-up lands |
+| PyPI | Registry-hosted wheel/sdist | PyPI publish attestations plus GitHub SLSA provenance and SPDX SBOM attestations |
+| npm | Registry-hosted tarball | npm provenance plus GitHub SLSA provenance and SPDX SBOM attestations |
+| RubyGems | Registry-hosted `.gem` package | SLSA provenance and SPDX SBOM attestations in GitHub's attestation store |
+| NuGet `Gmeow.Gts` | Registry-hosted `.nupkg` package | Registry metadata and package download check; source-only wrapper requiring host `libgts` |
+| Packagist `blackcatinformatics/gmeow-gts` | VCS tag metadata from Packagist | Registry metadata and source reference check; source-only wrapper requiring host `libgts` |
+| LuaRocks `gmeow-gts` | Registry-hosted rockspec/source rock | LuaRocks root manifest and rockspec download check; source-only wrapper requiring host `libgts` |
+| Swift Package Index | Repository semantic-version tag and SPI package URL | Git tag check and canonical SPI URL record; source-only wrapper requiring host `libgts` |
+| r-universe `gmeowgts` | Registry-hosted source package | PACKAGES index and source tarball download check; source package requiring host `libgts` |
+| Julia General `GmeowGTS` | General registry package metadata | Registry identity and version check; source-only wrapper requiring host `libgts` |
+| Conan/vcpkg `gmeow-gts` | Local first-party dry-runs until upstreamed | No public registry evidence until upstream recipes are accepted |
 
-下载代表性产物以进行验证：
+Download representative artifacts for verification:
 
 ```bash
 mkdir -p \
@@ -509,7 +545,8 @@ curl -L "https://blackcat-informatics.r-universe.dev/src/contrib/gmeowgts_${VERS
   -o "${OUT}/packages/wrappers/gmeowgts_${VERSION}.tar.gz"
 ```
 
-验证代表性制品和 Go 发布清单上的默认 SLSA provenance：
+Verify default SLSA provenance on representative artifacts and Go release
+manifests:
 
 ```bash
 for artifact in "${OUT}"/packages/go-release/gts_"${VERSION}"_*; do
@@ -529,8 +566,9 @@ gh attestation verify "${OUT}/packages/go-release/sbom-go-gts.spdx.json" \
   --repo Blackcat-Informatics/gmeow-gts
 ```
 
-这些命令验证当前的 Build Level 2 制品证明 (artifact-attestation) 态势。
-如果候选版本采用可重用工作流 (reusable workflows) 以实现更强的态势，请使用预期的签名者策略重复代表性制品检查，例如：
+These commands verify the current Build Level 2 artifact-attestation posture.
+If the candidate adopts reusable workflows for a stronger posture, repeat the
+representative artifact checks with the expected signer policy, for example:
 
 ```bash
 gh attestation verify <downloaded-artifact> \
@@ -538,7 +576,7 @@ gh attestation verify <downloaded-artifact> \
   --signer-workflow <owner>/<repo>/.github/workflows/<workflow>.yml@<ref>
 ```
 
-验证不可变的 Go 发布证明以及每个下载的发布资产：
+Verify the immutable Go release attestation and each downloaded release asset:
 
 ```bash
 gh release verify "go/v${VERSION}" --repo Blackcat-Informatics/gmeow-gts
@@ -548,7 +586,10 @@ for artifact in "${OUT}"/packages/go-release/*; do
 done
 ```
 
-验证每个发布通道的一个代表性产物的 SPDX SBOM 认证。当前的 SBOM 生成器生成 SPDX 2.3，因此谓词类型为 `https://spdx.dev/Document/v2.3`; if the emitted `spdxVersion` 发生变化，请更新谓词版本以进行匹配。
+Verify SPDX SBOM attestations for one representative artifact from each release
+lane. The current SBOM generator emits SPDX 2.3, so the predicate type is
+`https://spdx.dev/Document/v2.3`; if the emitted `spdxVersion` changes, update
+the predicate version to match.
 
 ```bash
 SBOM_PREDICATE="https://spdx.dev/Document/v2.3"
@@ -568,14 +609,14 @@ for artifact in \
 done
 ```
 
-记录最终注册表状态：
+Record final registry state:
 
-| 发布面 | 预期版本/标签 | 证据 | 状态 |
+| Surface | Expected version/tag | Evidence | Status |
 |---|---|---|---|
 | crates.io `gmeow-gts` | | | |
 | crates.io `gmeow-gts-capi` | | | |
 | PyPI `gmeow-gts` | | | |
-| Go 发布 `go.blackcatinformatics.ca/gts` | | | |
+| Go release `go.blackcatinformatics.ca/gts` | | | |
 | npm `@blackcatinformatics/gmeow-gts` | | | |
 | NuGet `Gmeow.Gts` | | | |
 | Packagist `blackcatinformatics/gmeow-gts` | | | |
@@ -584,17 +625,19 @@ done
 | RubyGems `gmeow-gts` | | | |
 | r-universe `gmeowgts` | | | |
 | Julia General `GmeowGTS` | | | |
-| Conan/vcpkg `gmeow-gts` 状态 | | | |
-| SBOM 证明 | | | |
-| Build-provenance 证明 | | | |
+| Conan/vcpkg `gmeow-gts` status | | | |
+| SBOM attestations | | | |
+| Build-provenance attestations | | | |
 
 ## 12. 最终决定
 
-只有满足以下条件时，release candidate 才准备就绪：
+The release candidate is ready only when:
 
-- 第 2.1 节中的每个 blocker 行均已解决或被明确否定；
-- 每个与发布 (release) 相关的非 blocker 项均已链接到 issue 或标记为已完成；
-- 一致性报告 (conformance reports) 命名了相同的已盖戳 corpus revision；
-- 发布说明 (release notes) 引用了 spec commit、corpus revision、package versions 以及已知的推迟 (deferred) 项；
-- package dry-runs 和 release workflows 通过；
-- 公共注册表 (public registries) 和 artifact verification 证明发布的 bits 与预期的 candidate 匹配。
+- every blocker row in Section 2.1 is resolved or explicitly disproven;
+- every release-adjacent non-blocker is linked to an issue or marked complete;
+- conformance reports name the same stamped corpus revision;
+- release notes cite the spec commit, corpus revision, package versions, and
+  known deferrals;
+- package dry-runs and release workflows pass;
+- public registries and artifact verification prove the released bits match the
+  intended candidate.
