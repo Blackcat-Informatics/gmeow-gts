@@ -28,6 +28,14 @@ source paths. For example:
 
 ## Current Coverage
 
+The #365 specification tranche adds paired `translated` counterparts for the
+authoritative GTS specification. These translations are informative; the
+English source remains normative for protocol requirements.
+
+| English source | `fr-CA` | `zh-Hans` |
+|---|---|---|
+| `docs/GTS-SPEC.md` | [`fr-CA/docs/GTS-SPEC.md`](./fr-CA/docs/GTS-SPEC.md) | [`zh-Hans/docs/GTS-SPEC.md`](./zh-Hans/docs/GTS-SPEC.md) |
+
 The #364 public-entrypoint tranche adds paired `draft` counterparts for these
 existing source documents:
 

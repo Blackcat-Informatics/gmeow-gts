@@ -16,6 +16,7 @@ GTS，即 `Graph Transport Substrate`，是一种 append-only 格式，用于传
 
 | 英文源文档 | zh-Hans 页面 |
 |---|---|
+| `docs/GTS-SPEC.md` | [GTS 规范](docs/GTS-SPEC.md) |
 | `README.md` | [项目](README.md) |
 | `docs/positioning.md` | [定位](docs/positioning.md) |
 | `rust/README.md` | [Rust](rust/README.md) |
@@ -37,4 +38,4 @@ GTS，即 `Graph Transport Substrate`，是一种 append-only 格式，用于传
 
 ## 状态
 
-这些页面标记为 `draft`，以便将初始翻译与 #369 的最终 QA 分开处理。命令、路径、URL、包名、API 标识符、JSON 值、诊断代码和代码片段必须与英文源文档保持完全一致。
+本地化规范标记为 `translated`，相对于英文文档仍然是信息性内容。其他页面标记为 `draft`，以便将初始翻译与 #369 的最终 QA 分开处理。命令、路径、URL、包名、API 标识符、JSON 值、诊断代码和代码片段必须与英文源文档保持完全一致。
