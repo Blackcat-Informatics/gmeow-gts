@@ -135,10 +135,23 @@ export interface BlobMetaEntry {
     meta: unknown;
 }
 
+function sameTriple(a: Triple, b: Triple): boolean {
+    return a.s === b.s && a.p === b.p && a.o === b.o;
+}
+
 /** Reifier-id → triple binding. */
 export interface ReifierEntry {
     rid: number;
     spo: Triple;
+    g?: number;
+}
+
+/** Annotation row. */
+export interface AnnotationEntry {
+    s: number;
+    p: number;
+    o: number;
+    g?: number;
 }
 
 /**
@@ -153,7 +166,7 @@ export class Graph {
     terms: Term[] = [];
     quads: Quad[] = [];
     reifiers: ReifierEntry[] = [];
-    annotations: Triple[] = [];
+    annotations: AnnotationEntry[] = [];
     blobs: BlobEntry[] = [];
     blobMeta: BlobMetaEntry[] = [];
     meta: MetaEntry[] = [];
@@ -177,15 +190,14 @@ export class Graph {
         return undefined;
     }
 
-    /** Bind a reifier, replacing in place (Python dict assignment). */
-    setReifier(rid: number, spo: Triple): void {
+    /** Record a reifier row unless the identical row is already present. */
+    setReifier(rid: number, spo: Triple, g?: number): void {
         for (const r of this.reifiers) {
-            if (r.rid === rid) {
-                r.spo = spo;
+            if (r.rid === rid && sameTriple(r.spo, spo) && r.g === g) {
                 return;
             }
         }
-        this.reifiers.push({ rid, spo });
+        this.reifiers.push({ rid, spo, ...(g !== undefined ? { g } : {}) });
     }
 
     /** Set a meta key, replacing in place. */

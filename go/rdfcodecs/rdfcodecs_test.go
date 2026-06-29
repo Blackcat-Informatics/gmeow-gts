@@ -51,7 +51,7 @@ func sampleGraph(t *testing.T, namedGraph bool) *model.Graph {
 	}
 	w.AddQuads([]model.Quad{{S: 0, P: 1, O: 2, G: graph}})
 	w.AddReifies([]model.ReifierEntry{{RID: 0, SPO: model.Triple3{S: 0, P: 1, O: 2}}})
-	w.AddAnnot([]model.Triple3{{S: 0, P: 4, O: 5}})
+	w.AddAnnot([]model.AnnotationEntry{{S: 0, P: 4, O: 5}})
 	return reader.Read(w.ToBytes(), true, nil)
 }
 

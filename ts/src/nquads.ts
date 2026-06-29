@@ -83,10 +83,20 @@ export function toNQuads(g: Graph): string {
     }
     for (const r of g.reifiers) {
         const quoted = `<<( ${render(g, r.spo.s)} ${render(g, r.spo.p)} ${render(g, r.spo.o)} )>>`;
-        lines.push(`${render(g, r.rid)} <${RDF_REIFIES}> ${quoted} .`);
+        const triple = `${render(g, r.rid)} <${RDF_REIFIES}> ${quoted}`;
+        if (r.g !== undefined) {
+            lines.push(`${triple} ${render(g, r.g)} .`);
+        } else {
+            lines.push(`${triple} .`);
+        }
     }
     for (const a of g.annotations) {
-        lines.push(`${render(g, a.s)} ${render(g, a.p)} ${render(g, a.o)} .`);
+        const triple = `${render(g, a.s)} ${render(g, a.p)} ${render(g, a.o)}`;
+        if (a.g !== undefined) {
+            lines.push(`${triple} ${render(g, a.g)} .`);
+        } else {
+            lines.push(`${triple} .`);
+        }
     }
     if (lines.length === 0) return "";
     return lines.join("\n") + "\n";

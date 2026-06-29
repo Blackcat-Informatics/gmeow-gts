@@ -133,13 +133,28 @@ func ToTriG(g *model.Graph) (string, error) {
 		}
 	}
 	closeGraph()
+	appendGraphAware := func(graph *int, triple string) {
+		if graph != nil {
+			graphName := renderGraphTerm(g, *graph)
+			if openGraph != graphName {
+				closeGraph()
+				lines = append(lines, graphName+" {")
+				openGraph = graphName
+			}
+			lines = append(lines, "  "+triple)
+			return
+		}
+		closeGraph()
+		lines = append(lines, triple)
+	}
 	for _, r := range g.Reifiers {
 		quoted := fmt.Sprintf("<<( %s %s %s )>>", renderGraphTerm(g, r.SPO.S), renderGraphTerm(g, r.SPO.P), renderGraphTerm(g, r.SPO.O))
-		lines = append(lines, fmt.Sprintf("%s rdf:reifies %s .", renderGraphTerm(g, r.RID), quoted))
+		appendGraphAware(r.G, fmt.Sprintf("%s rdf:reifies %s .", renderGraphTerm(g, r.RID), quoted))
 	}
 	for _, a := range g.Annotations {
-		lines = append(lines, fmt.Sprintf("%s %s %s .", renderGraphTerm(g, a.S), renderGraphTerm(g, a.P), renderGraphTerm(g, a.O)))
+		appendGraphAware(a.G, fmt.Sprintf("%s %s %s .", renderGraphTerm(g, a.S), renderGraphTerm(g, a.P), renderGraphTerm(g, a.O)))
 	}
+	closeGraph()
 	return strings.Join(lines, "\n") + "\n", nil
 }
 
@@ -150,6 +165,16 @@ func ensureDefaultGraph(g *model.Graph, format string) error {
 	for _, q := range g.Quads {
 		if q.G != nil {
 			return codecError("%s cannot serialize named graph %s", format, renderGraphTerm(g, *q.G))
+		}
+	}
+	for _, r := range g.Reifiers {
+		if r.G != nil {
+			return codecError("%s cannot serialize named graph %s", format, renderGraphTerm(g, *r.G))
+		}
+	}
+	for _, a := range g.Annotations {
+		if a.G != nil {
+			return codecError("%s cannot serialize named graph %s", format, renderGraphTerm(g, *a.G))
 		}
 	}
 	return nil

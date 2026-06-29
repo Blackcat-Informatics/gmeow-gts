@@ -16,7 +16,7 @@ use ciborium::value::Value as CborValue;
 use serde_json::Value as JsonValue;
 use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
 
-use crate::model::{Graph, Quad, Term, TermKind, Triple3};
+use crate::model::{AnnotationRow, Graph, Quad, ReifierRow, Term, TermKind, Triple3};
 use crate::okf::{
     DEFAULT_BASE_IRI, OKF_BODY, OKF_DESCRIPTION, OKF_JSON, OKF_LINKS, OKF_LINK_OCCURRENCE,
     OKF_LINK_TEXT, OKF_PATH, OKF_RESOURCE, OKF_TAG, OKF_TIMESTAMP, OKF_TITLE, OKF_TYPE,
@@ -84,8 +84,8 @@ struct GraphBuilder {
     ids: HashMap<TermKey, usize>,
     terms: Vec<Term>,
     quads: Vec<Quad>,
-    reifiers: Vec<(usize, Triple3)>,
-    annotations: Vec<Triple3>,
+    reifiers: Vec<ReifierRow>,
+    annotations: Vec<AnnotationRow>,
 }
 
 impl GraphBuilder {
@@ -377,16 +377,16 @@ fn import_links(
             let statement = (source, predicate, object);
             builder.quads.push((source, predicate, object, None));
             let reifier = builder.bnode(&format!("okf_link_{doc_index}_{occurrence}"));
-            builder.reifiers.push((reifier, statement));
+            builder.reifiers.push((reifier, statement, None));
             let text_predicate = builder.iri(OKF_LINK_TEXT);
             let text = builder.literal(&link.text, None);
-            builder.annotations.push((reifier, text_predicate, text));
+            builder.annotations.push((reifier, text_predicate, text, None));
             let occurrence_predicate = builder.iri(OKF_LINK_OCCURRENCE);
             let occurrence_literal =
                 builder.literal(&(occurrence + 1).to_string(), Some(XSD_INTEGER));
             builder
                 .annotations
-                .push((reifier, occurrence_predicate, occurrence_literal));
+                .push((reifier, occurrence_predicate, occurrence_literal, None));
         }
     }
     Ok(())

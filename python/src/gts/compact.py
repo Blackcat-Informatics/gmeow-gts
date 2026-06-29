@@ -259,13 +259,22 @@ def compact_streamable(
         )
     if g.reifiers:
         w.add_reifies(
-            {
-                r + base: (s + base, p + base, o + base)
-                for r, (s, p, o) in g.reifiers.items()
-            }
+            [
+                (
+                    r + base,
+                    (s + base, p + base, o + base),
+                    gr + base if gr is not None else None,
+                )
+                for r, (s, p, o), gr in g.reifiers
+            ]
         )
     if g.annotations:
-        w.add_annot([(r + base, p + base, v + base) for r, p, v in g.annotations])
+        w.add_annot(
+            [
+                (r + base, p + base, v + base, gr + base if gr is not None else None)
+                for r, p, v, gr in g.annotations
+            ]
+        )
     for sup in _shifted_suppressions(g, base):
         w.add_suppress(sup.targets, reason=sup.reason, by=sup.by)
     # Blobs in delivery order; declared metadata rides along.

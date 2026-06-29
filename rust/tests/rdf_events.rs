@@ -3,8 +3,9 @@
 
 use gmeow_gts::model::{Diagnostic, Graph, Term, TermKind};
 use gmeow_gts::rdf_events::{
-    visit_dataset, EventError, EventErrorKind, EventQuad, EventScopeId, EventTerm, EventTriple,
-    GraphRdfEventSource, RdfDatasetVisitor, RdfEventSink, RdfEventSource, ReaderRdfEventSource,
+    visit_dataset, EventAnnotation, EventError, EventErrorKind, EventQuad, EventReifier,
+    EventScopeId, EventTerm, GraphRdfEventSource, RdfDatasetVisitor, RdfEventSink,
+    RdfEventSource, ReaderRdfEventSource,
 };
 use gmeow_gts::writer::Writer;
 
@@ -46,18 +47,22 @@ impl RdfEventSink for RecordingSink {
         Ok(())
     }
 
-    fn reifier(&mut self, reifier: u64, triple: EventTriple) -> Result<(), EventError> {
+    fn reifier(&mut self, reifier: EventReifier) -> Result<(), EventError> {
         self.events.push(format!(
-            "reifier:{reifier}:{}:{}:{}",
-            triple.subject, triple.predicate, triple.object
+            "reifier:{}:{}:{}:{}:{:?}",
+            reifier.id,
+            reifier.subject,
+            reifier.predicate,
+            reifier.object,
+            reifier.graph_name
         ));
         Ok(())
     }
 
-    fn annotation(&mut self, annotation: EventTriple) -> Result<(), EventError> {
+    fn annotation(&mut self, annotation: EventAnnotation) -> Result<(), EventError> {
         self.events.push(format!(
-            "annotation:{}:{}:{}",
-            annotation.subject, annotation.predicate, annotation.object
+            "annotation:{}:{}:{}:{:?}",
+            annotation.reifier, annotation.predicate, annotation.object, annotation.graph_name
         ));
         Ok(())
     }
@@ -120,9 +125,9 @@ fn graph_with_forward_reifier() -> Graph {
         ],
         ..Default::default()
     };
-    graph.set_reifier(0, (2, 3, 4));
+    graph.set_reifier(0, (2, 3, 4), Some(5));
     graph.quads.push((1, 3, 4, Some(5)));
-    graph.annotations.push((0, 6, 7));
+    graph.annotations.push((0, 6, 7, Some(5)));
     graph.diagnostics.push(Diagnostic {
         code: "SyntheticDiagnostic".to_string(),
         detail: "test-only diagnostic".to_string(),
@@ -208,7 +213,7 @@ fn lenient_sink_accepts_forward_reifier_order() {
     let reifier = sink
         .events
         .iter()
-        .position(|event| event == "reifier:0:2:3:4")
+        .position(|event| event == "reifier:0:2:3:4:Some(5)")
         .unwrap();
     assert!(
         term_1 < reifier,
@@ -252,7 +257,7 @@ fn strict_sink_gets_declarations_before_references() {
     let reifier = sink
         .events
         .iter()
-        .position(|event| event == "reifier:0:2:3:4")
+        .position(|event| event == "reifier:0:2:3:4:Some(5)")
         .unwrap();
     let quad = sink
         .events
@@ -262,7 +267,7 @@ fn strict_sink_gets_declarations_before_references() {
     let annotation = sink
         .events
         .iter()
-        .position(|event| event == "annotation:0:6:7")
+        .position(|event| event == "annotation:0:6:7:Some(5)")
         .unwrap();
 
     assert!(term_0 < reifier);
@@ -312,11 +317,11 @@ impl RdfDatasetVisitor for VisitorCounts {
         self.quads += 1;
     }
 
-    fn reifier(&mut self, _reifier: usize, _triple: gmeow_gts::model::Triple3) {
+    fn reifier(&mut self, _reifier: gmeow_gts::model::ReifierRow) {
         self.reifiers += 1;
     }
 
-    fn annotation(&mut self, _annotation: gmeow_gts::model::Triple3) {
+    fn annotation(&mut self, _annotation: gmeow_gts::model::AnnotationRow) {
         self.annotations += 1;
     }
 

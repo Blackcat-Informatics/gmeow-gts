@@ -100,8 +100,8 @@ fn annotated_fixture() -> Vec<u8> {
         },
     ]);
     writer.add_quads(&[(0, 1, 2, None)]);
-    writer.add_reifies(&[(3, (0, 1, 2))]);
-    writer.add_annot(&[(3, 4, 5)]);
+    writer.add_reifies(&[(3, (0, 1, 2), None)]);
+    writer.add_annot(&[(3, 4, 5, None)]);
     writer.to_bytes()
 }
 

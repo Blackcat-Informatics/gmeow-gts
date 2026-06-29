@@ -98,7 +98,7 @@ fn gts_reifier_projection_uses_native_rdf12_triple_terms() -> Result<(), Box<dyn
             reifier: None,
         },
     ]);
-    writer.add_reifies(&[(0, (1, 2, 3))]);
+    writer.add_reifies(&[(0, (1, 2, 3), None)]);
     let folded = read(&writer.to_bytes(), true, None);
     let dataset = to_rdf_dataset(&folded)?;
 
@@ -182,7 +182,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
             },
         ],
         quads: vec![(0, 1, 2, None), (3, 1, 2, None)],
-        reifiers: vec![(3, (0, 1, 2))],
+        reifiers: vec![(3, (0, 1, 2), None)],
         ..Graph::default()
     };
 
@@ -234,7 +234,7 @@ fn strict_export_rejects_quoted_triple_graph_names() {
             },
         ],
         quads: vec![(0, 1, 2, Some(3))],
-        reifiers: vec![(3, (0, 1, 2))],
+        reifiers: vec![(3, (0, 1, 2), None)],
         ..Graph::default()
     };
 

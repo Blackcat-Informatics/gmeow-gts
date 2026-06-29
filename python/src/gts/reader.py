@@ -267,36 +267,73 @@ class _Folder:
                     self.described.add(obj.value)
 
     def _h_reifies(self, payload: object, _f: Mapping[str, object], index: int) -> None:
-        if not isinstance(payload, Mapping):
+        if not isinstance(payload, list):
+            self.g.diagnostics.append(
+                Diagnostic("DamagedFrame", "reifies payload must be a row array", index)
+            )
             return
-        for rid, spo in payload.items():
-            if not isinstance(rid, int) or not isinstance(spo, list) or len(spo) != 3:
-                continue
-            s, p, o = _as_int(spo[0]), _as_int(spo[1]), _as_int(spo[2])
-            if s is None or p is None or o is None or not self._in_bounds(rid, s, p, o):
+        for row in payload:
+            if not isinstance(row, list) or len(row) not in (4, 5):
                 self.g.diagnostics.append(
                     Diagnostic(
-                        "DamagedFrame", f"reifier {rid} has bad/out-of-range ids", index
+                        "DamagedFrame", "reifies row must have 4 or 5 term ids", index
+                    )
+                )
+                continue
+            rid, s, p, o = (
+                _as_int(row[0]),
+                _as_int(row[1]),
+                _as_int(row[2]),
+                _as_int(row[3]),
+            )
+            has_graph = len(row) == 5
+            g = _as_int(row[4]) if has_graph else None
+            if (
+                rid is None
+                or s is None
+                or p is None
+                or o is None
+                or (has_graph and g is None)
+                or not self._in_bounds(rid, s, p, o, *(g,) if g is not None else ())
+            ):
+                self.g.diagnostics.append(
+                    Diagnostic(
+                        "DamagedFrame", "reifies row has bad/out-of-range ids", index
                     )
                 )
                 continue
             triple: Triple = (s, p, o)
-            existing = self.g.reifiers.get(rid)
+            if not self._check_reifier_positions(s, p, o, g, index):
+                continue
+            existing = self.g.reifier(rid)
             if existing is not None and existing != triple:
                 self.g.diagnostics.append(
                     Diagnostic("ConflictingReifier", f"reifier {rid} rebound", index)
                 )
                 continue  # keep the first binding
-            self.g.reifiers[rid] = triple
+            self.g.add_reifier(rid, triple, g)
 
     def _h_annot(self, payload: object, _f: Mapping[str, object], index: int) -> None:
         if not isinstance(payload, list):
             return
         for row in payload:
-            if not isinstance(row, list) or len(row) != 3:
+            if not isinstance(row, list) or len(row) not in (3, 4):
+                self.g.diagnostics.append(
+                    Diagnostic(
+                        "DamagedFrame", "annot row must have 3 or 4 term ids", index
+                    )
+                )
                 continue
             r, p, v = _as_int(row[0]), _as_int(row[1]), _as_int(row[2])
-            if r is None or p is None or v is None or not self._in_bounds(r, p, v):
+            has_graph = len(row) == 4
+            g = _as_int(row[3]) if has_graph else None
+            if (
+                r is None
+                or p is None
+                or v is None
+                or (has_graph and g is None)
+                or not self._in_bounds(r, p, v, *(g,) if g is not None else ())
+            ):
                 self.g.diagnostics.append(
                     Diagnostic(
                         "DamagedFrame", "annot row has bad/out-of-range ids", index
@@ -310,7 +347,16 @@ class _Folder:
                     )
                 )
                 continue
-            self.g.annotations.append((r, p, v))
+            if g is not None and self._kind(g) in (TermKind.LITERAL, TermKind.TRIPLE):
+                self.g.diagnostics.append(
+                    Diagnostic(
+                        "PositionConstraint",
+                        f"annot graph name {g} is not an IRI or blank node",
+                        index,
+                    )
+                )
+                continue
+            self.g.annotations.append((r, p, v, g))
 
     def _h_blob_frame(self, frame: Mapping[str, object], index: int) -> None:
         """Fold a ``blob`` frame, deferring decompression until the bytes are read.
@@ -473,11 +519,21 @@ class _Folder:
 
         reifies = payload.get("reifies")
         if isinstance(reifies, Mapping):
-            shifted_reif: dict[object, object] = {
-                sh(rid): ([sh(x) for x in spo] if isinstance(spo, list) else spo)
-                for rid, spo in reifies.items()
-            }
-            self._h_reifies(shifted_reif, _f, index)
+            self.g.diagnostics.append(
+                Diagnostic(
+                    "DamagedFrame",
+                    "snapshot reifies payload must be a row array",
+                    index,
+                )
+            )
+        if isinstance(reifies, Mapping):
+            pass
+        elif isinstance(reifies, list):
+            self._h_reifies(
+                [[sh(x) for x in r] if isinstance(r, list) else r for r in reifies],
+                _f,
+                index,
+            )
 
         annot = payload.get("annot")
         if isinstance(annot, list):
@@ -561,6 +617,33 @@ class _Folder:
                 Diagnostic(
                     "PositionConstraint",
                     f"quad ({s},{p},{o},{g}) violates positions",
+                    index,
+                )
+            )
+        return ok
+
+    def _check_reifier_positions(
+        self, s: int, p: int, o: int, g: int | None, index: int
+    ) -> bool:
+        """Bounds-check, then enforce §7.4 positions for a reifier row."""
+        refs = (s, p, o) if g is None else (s, p, o, g)
+        if not self._in_bounds(*refs):
+            self.g.diagnostics.append(
+                Diagnostic(
+                    "PositionConstraint",
+                    f"reifier row ({s},{p},{o},{g}) has out-of-range term ids",
+                    index,
+                )
+            )
+            return False
+        ok = self._kind(p) is _IRI and self._kind(s) is not TermKind.LITERAL
+        if g is not None and self._kind(g) in (TermKind.LITERAL, TermKind.TRIPLE):
+            ok = False
+        if not ok:
+            self.g.diagnostics.append(
+                Diagnostic(
+                    "PositionConstraint",
+                    f"reifier row ({s},{p},{o},{g}) violates positions",
                     index,
                 )
             )
@@ -946,15 +1029,24 @@ def _union_segments(segments: list[Graph]) -> Graph:
             if q not in seen_quads:  # the folded graph is a set (§7.8)
                 seen_quads.add(q)
                 out.quads.append(q)
-        for rf, (s_, p_, o_) in seg.reifiers.items():
-            out.reifiers[_map(seg, seg_idx, rf)] = (
-                _map(seg, seg_idx, s_),
-                _map(seg, seg_idx, p_),
-                _map(seg, seg_idx, o_),
+        for rf, (s_, p_, o_), g_ in seg.reifiers:
+            out.add_reifier(
+                _map(seg, seg_idx, rf),
+                (
+                    _map(seg, seg_idx, s_),
+                    _map(seg, seg_idx, p_),
+                    _map(seg, seg_idx, o_),
+                ),
+                _map(seg, seg_idx, g_) if g_ is not None else None,
             )
-        for rf, p_, v_ in seg.annotations:
+        for rf, p_, v_, g_ in seg.annotations:
             out.annotations.append(
-                (_map(seg, seg_idx, rf), _map(seg, seg_idx, p_), _map(seg, seg_idx, v_))
+                (
+                    _map(seg, seg_idx, rf),
+                    _map(seg, seg_idx, p_),
+                    _map(seg, seg_idx, v_),
+                    _map(seg, seg_idx, g_) if g_ is not None else None,
+                )
             )
         out.blobs.update(seg.blobs)
         out.blob_meta.update(seg.blob_meta)

@@ -246,7 +246,7 @@ impl Memory {
 
         writer.add_terms(&terms);
         writer.add_quads(&[(0, 1, 2, None)]);
-        writer.add_reifies(&[(3, (0, 1, 2))]);
+        writer.add_reifies(&[(3, (0, 1, 2), None)]);
         writer.add_annot(&annotations);
         self.append(&writer.to_bytes())?;
 
@@ -269,7 +269,7 @@ impl Memory {
         if let Some(successor) = options.superseded_by {
             terms.push(iri(successor));
             terms.push(iri(WAS_DERIVED_FROM));
-            annotations.push((1, 2, 0));
+            annotations.push((1, 2, 0, None));
         }
         writer.add_terms(&terms);
         if !annotations.is_empty() {
@@ -444,7 +444,7 @@ impl Memory {
         let suppressed = suppressed_terms(&graph);
         let annotations = annotations_by_reifier(&graph);
         let mut out = Vec::new();
-        for &(rid, (s, p, o)) in &graph.reifiers {
+        for &(rid, (s, p, o), _) in &graph.reifiers {
             if term_value(&graph, p) != RDF_VALUE {
                 continue;
             }
@@ -606,14 +606,14 @@ fn push_term(terms: &mut Vec<Term>, term: Term) -> usize {
 
 fn push_annotation(
     terms: &mut Vec<Term>,
-    annotations: &mut Vec<(usize, usize, usize)>,
+    annotations: &mut Vec<(usize, usize, usize, Option<usize>)>,
     reifier: usize,
     predicate: &str,
     value: Term,
 ) {
     let pred = push_term(terms, iri(predicate));
     let val = push_term(terms, value);
-    annotations.push((reifier, pred, val));
+    annotations.push((reifier, pred, val, None));
 }
 
 fn inline_or_digest(payload: Option<&str>) -> Option<String> {
@@ -627,7 +627,7 @@ fn inline_or_digest(payload: Option<&str>) -> Option<String> {
 
 fn annotations_by_reifier(graph: &Graph) -> HashMap<usize, HashMap<String, String>> {
     let mut out: HashMap<usize, HashMap<String, String>> = HashMap::new();
-    for &(rid, p, v) in &graph.annotations {
+    for &(rid, p, v, _) in &graph.annotations {
         let pred = term_value(graph, p);
         let value = term_value(graph, v);
         if !pred.is_empty() && !value.is_empty() {

@@ -225,11 +225,11 @@ def test_vector_12_conflicting_reifier() -> None:
             Term(TermKind.IRI, "https://example.org/o2"),  # 4
         ]
     )
-    w.add_reifies({0: (1, 2, 3)})
-    w.add_reifies({0: (1, 2, 4)})  # conflict
+    w.add_reifies([(0, (1, 2, 3), None)])
+    w.add_reifies([(0, (1, 2, 4), None)])  # conflict
     g = read(w.to_bytes())
     assert "ConflictingReifier" in _diag_codes(g)
-    assert g.reifiers[0] == (1, 2, 3)  # first binding kept
+    assert g.reifier(0) == (1, 2, 3)  # first binding kept
 
 
 # -- Vector 13: position-constraint violation --------------------------------

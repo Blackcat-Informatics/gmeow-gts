@@ -62,8 +62,12 @@ def _render(g: Graph, tid: int, lang_map: Mapping[str, str] | None = None) -> st
             return f"{lit}^^{_render(g, t.datatype, lang_map)}"
         return lit  # plain literal == xsd:string (§7.1)
     # quoted triple (RDF 1.2 triple term), resolved through its reifier
-    if t.reifier is not None and t.reifier in g.reifiers:
-        s, p, o = g.reifiers[t.reifier]
+    if t.reifier is not None:
+        triple = g.reifier(t.reifier)
+    else:
+        triple = None
+    if triple is not None:
+        s, p, o = triple
         return (
             f"<<( {_render(g, s, lang_map)} {_render(g, p, lang_map)} "
             f"{_render(g, o, lang_map)} )>>"
@@ -98,15 +102,23 @@ def to_nquads(g: Graph, lang_map: Mapping[str, str] | None = None) -> str:
             lines.append(f"{triple} {_render(g, gname, lang_map)} .")
         else:
             lines.append(f"{triple} .")
-    for rid, spo in g.reifiers.items():
+    for rid, spo, graph_name in g.reifiers:
         quoted = (
             f"<<( {_render(g, spo[0], lang_map)} {_render(g, spo[1], lang_map)} "
             f"{_render(g, spo[2], lang_map)} )>>"
         )
-        lines.append(f"{_render(g, rid, lang_map)} <{_RDF_REIFIES}> {quoted} .")
-    for r, p, v in g.annotations:
-        lines.append(
+        triple = f"{_render(g, rid, lang_map)} <{_RDF_REIFIES}> {quoted}"
+        if graph_name is not None:
+            lines.append(f"{triple} {_render(g, graph_name, lang_map)} .")
+        else:
+            lines.append(f"{triple} .")
+    for r, p, v, graph_name in g.annotations:
+        triple = (
             f"{_render(g, r, lang_map)} {_render(g, p, lang_map)} "
-            f"{_render(g, v, lang_map)} ."
+            f"{_render(g, v, lang_map)}"
         )
+        if graph_name is not None:
+            lines.append(f"{triple} {_render(g, graph_name, lang_map)} .")
+        else:
+            lines.append(f"{triple} .")
     return "\n".join(lines) + ("\n" if lines else "")

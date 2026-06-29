@@ -8,10 +8,13 @@
 //! suppressions, and opaque frames are not expressible in N-Quads and are
 //! intentionally out of scope, matching the Python reference implementation.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
-use crate::model::{Quad, Term, TermKind, Triple3, RDF_DIR_LANG_STRING, RDF_LANG_STRING};
+use crate::model::{
+    AnnotationRow, Quad, ReifierRow, Term, TermKind, Triple3, RDF_DIR_LANG_STRING,
+    RDF_LANG_STRING,
+};
 use crate::writer::Writer;
 
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
@@ -455,7 +458,7 @@ impl Interner {
         id
     }
 
-    fn node(&mut self, node: &Node, reifiers: &mut Vec<(usize, Triple3)>) -> usize {
+    fn node(&mut self, node: &Node, reifiers: &mut Vec<ReifierRow>) -> usize {
         match node {
             Node::Atom(atom) => self.atom(atom),
             Node::Triple(triple) => {
@@ -481,7 +484,7 @@ impl Interner {
                 // is always a first bind — push directly rather than going through the
                 // conflict-checking `set_reifier` (which would force panic/error handling
                 // on a branch that can never conflict).
-                reifiers.push((id, (s, p, o)));
+                reifiers.push((id, (s, p, o), None));
                 id
             }
         }
@@ -489,11 +492,12 @@ impl Interner {
 }
 
 fn set_reifier(
-    reifiers: &mut Vec<(usize, Triple3)>,
+    reifiers: &mut Vec<ReifierRow>,
     rid: usize,
     spo: Triple3,
+    graph_name: Option<usize>,
 ) -> Result<(), NQuadsParseError> {
-    if let Some((_, existing)) = reifiers.iter().find(|(r, _)| *r == rid) {
+    if let Some((_, existing, _)) = reifiers.iter().find(|(r, _, _)| *r == rid) {
         // A reifier bound to a DIFFERENT triple is a hard conflict (CONSTITUTION P7:
         // never silently last-write-win). An identical rebind is idempotent.
         if *existing != spo {
@@ -501,9 +505,14 @@ fn set_reifier(
                 "conflicting rdf:reifies binding for reifier term {rid}"
             )));
         }
-    } else {
-        reifiers.push((rid, spo));
+        if reifiers
+            .iter()
+            .any(|&(r, existing, g)| r == rid && existing == spo && g == graph_name)
+        {
+            return Ok(());
+        }
     }
+    reifiers.push((rid, spo, graph_name));
     Ok(())
 }
 
@@ -663,8 +672,8 @@ fn parse_text(text: &str, options: ParseOptions) -> Result<Vec<Vec<Node>>, NQuad
 
 fn build_gts(statements: &[Vec<Node>]) -> Result<Vec<u8>, NQuadsParseError> {
     let mut interner = Interner::new();
-    let mut reifiers: Vec<(usize, Triple3)> = Vec::new();
-    let mut quads: Vec<Quad> = Vec::new();
+    let mut reifiers: Vec<ReifierRow> = Vec::new();
+    let mut pending_quads: Vec<Quad> = Vec::new();
 
     for nodes in statements {
         let s = &nodes[0];
@@ -672,15 +681,14 @@ fn build_gts(statements: &[Vec<Node>]) -> Result<Vec<u8>, NQuadsParseError> {
         let o = &nodes[2];
         let gname = nodes.get(3);
 
-        if let (Node::Atom(subject), Node::Atom(predicate), Node::Triple(object), None) =
-            (s, p, o, gname)
-        {
+        if let (Node::Atom(subject), Node::Atom(predicate), Node::Triple(object)) = (s, p, o) {
             if predicate.value == RDF_REIFIES {
                 let rid = interner.atom(subject);
                 let ss = interner.node(&object.s, &mut reifiers);
                 let pp = interner.node(&object.p, &mut reifiers);
                 let oo = interner.node(&object.o, &mut reifiers);
-                set_reifier(&mut reifiers, rid, (ss, pp, oo))?;
+                let gid = gname.map(|node| interner.node(node, &mut reifiers));
+                set_reifier(&mut reifiers, rid, (ss, pp, oo), gid)?;
                 continue;
             }
         }
@@ -689,7 +697,18 @@ fn build_gts(statements: &[Vec<Node>]) -> Result<Vec<u8>, NQuadsParseError> {
         let pid = interner.node(p, &mut reifiers);
         let oid = interner.node(o, &mut reifiers);
         let gid = gname.map(|node| interner.node(node, &mut reifiers));
-        quads.push((sid, pid, oid, gid));
+        pending_quads.push((sid, pid, oid, gid));
+    }
+
+    let reifier_ids: HashSet<usize> = reifiers.iter().map(|(rid, _, _)| *rid).collect();
+    let mut quads: Vec<Quad> = Vec::new();
+    let mut annotations: Vec<AnnotationRow> = Vec::new();
+    for (s, p, o, g) in pending_quads {
+        if reifier_ids.contains(&s) {
+            annotations.push((s, p, o, g));
+        } else {
+            quads.push((s, p, o, g));
+        }
     }
 
     let mut writer = Writer::new("dist");
@@ -701,6 +720,9 @@ fn build_gts(statements: &[Vec<Node>]) -> Result<Vec<u8>, NQuadsParseError> {
     }
     if !reifiers.is_empty() {
         writer.add_reifies(&reifiers);
+    }
+    if !annotations.is_empty() {
+        writer.add_annot(&annotations);
     }
     Ok(writer.to_bytes())
 }

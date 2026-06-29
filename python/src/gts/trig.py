@@ -58,6 +58,26 @@ def _close_graph(lines: list[str], open_graph: str | None) -> str | None:
     return None
 
 
+def _push_statement(
+    lines: list[str],
+    open_graph: str | None,
+    g: Graph,
+    graph_name: int | None,
+    statement: str,
+) -> str | None:
+    if graph_name is None:
+        open_graph = _close_graph(lines, open_graph)
+        lines.append(statement)
+        return open_graph
+    graph = _render(g, graph_name)
+    if open_graph != graph:
+        open_graph = _close_graph(lines, open_graph)
+        lines.append(f"{graph} {{")
+        open_graph = graph
+    lines.append(f"  {statement}")
+    return open_graph
+
+
 def to_trig(g: Graph) -> str:
     """Serialise a folded :class:`Graph` to TriG text."""
     if not g.quads and not g.reifiers and not g.annotations:
@@ -67,27 +87,29 @@ def to_trig(g: Graph) -> str:
     open_graph: str | None = None
     for s, p, o, graph_name in g.quads:
         triple = f"{_render(g, s)} {_render(g, p)} {_render(g, o)} ."
-        if graph_name is None:
-            open_graph = _close_graph(lines, open_graph)
-            lines.append(triple)
-            continue
-        graph = _render(g, graph_name)
-        if open_graph != graph:
-            open_graph = _close_graph(lines, open_graph)
-            lines.append(f"{graph} {{")
-            open_graph = graph
-        lines.append(f"  {triple}")
+        open_graph = _push_statement(lines, open_graph, g, graph_name, triple)
 
-    open_graph = _close_graph(lines, open_graph)
-    assert open_graph is None
-
-    for rid, spo in g.reifiers.items():
+    for rid, spo, graph_name in g.reifiers:
         quoted = (
             f"<<( {_render(g, spo[0])} {_render(g, spo[1])} {_render(g, spo[2])} )>>"
         )
-        lines.append(f"{_render(g, rid)} rdf:reifies {quoted} .")
-    for r, p, v in g.annotations:
-        lines.append(f"{_render(g, r)} {_render(g, p)} {_render(g, v)} .")
+        open_graph = _push_statement(
+            lines,
+            open_graph,
+            g,
+            graph_name,
+            f"{_render(g, rid)} rdf:reifies {quoted} .",
+        )
+    for r, p, v, graph_name in g.annotations:
+        open_graph = _push_statement(
+            lines,
+            open_graph,
+            g,
+            graph_name,
+            f"{_render(g, r)} {_render(g, p)} {_render(g, v)} .",
+        )
+    open_graph = _close_graph(lines, open_graph)
+    assert open_graph is None
     return "\n".join(lines) + "\n"
 
 

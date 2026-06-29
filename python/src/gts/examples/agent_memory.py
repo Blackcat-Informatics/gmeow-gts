@@ -150,12 +150,12 @@ class Memory:
             Term(TermKind.LITERAL, text),  # 2
             Term(TermKind.IRI, assertion),  # 3
         ]
-        annotations: list[tuple[int, int, int]] = []
+        annotations: list[tuple[int, int, int, int | None]] = []
 
         def annotate(predicate: str, value: Term) -> None:
             terms.append(Term(TermKind.IRI, predicate))
             terms.append(value)
-            annotations.append((3, len(terms) - 2, len(terms) - 1))
+            annotations.append((3, len(terms) - 2, len(terms) - 1, None))
 
         # dt indices are term-ids WITHIN this segment's append order.
         terms.append(Term(TermKind.IRI, _XSD_DATETIME))  # 4
@@ -175,7 +175,7 @@ class Memory:
 
         w.add_terms(terms)
         w.add_quads([(0, 1, 2, None)])
-        w.add_reifies({3: (0, 1, 2)})
+        w.add_reifies([(3, (0, 1, 2), None)])
         w.add_annot(annotations)
         self._append(w.to_bytes())
         return Claim(
@@ -211,7 +211,7 @@ class Memory:
             terms.append(Term(TermKind.IRI, _WAS_DERIVED_FROM))  # 2
         w.add_terms(terms)
         if new_id is not None:
-            w.add_annot([(1, 2, 0)])  # successor wasDerivedFrom predecessor
+            w.add_annot([(1, 2, 0, None)])  # successor wasDerivedFrom predecessor
         w.add_suppress([{"kind": "term", "id": 0}], reason=reason)
         self._append(w.to_bytes())
 
@@ -377,7 +377,7 @@ class Memory:
         suppressed = self._suppressed_terms(g)
         annotations = self._annotations_by_reifier(g)
         out: list[Claim] = []
-        for rid, (s, p, o) in g.reifiers.items():
+        for rid, (s, p, o), _graph_name in g.reifiers:
             if g.terms[p].value != _RDF_VALUE:
                 continue
             text = g.terms[o].value or ""
@@ -498,7 +498,7 @@ class Memory:
     @staticmethod
     def _annotations_by_reifier(g: Graph) -> dict[int, dict[str, str]]:
         out: dict[int, dict[str, str]] = {}
-        for rid, p, v in g.annotations:
+        for rid, p, v, _graph_name in g.annotations:
             pred = g.terms[p].value
             value = g.terms[v].value
             if pred is not None and value is not None:

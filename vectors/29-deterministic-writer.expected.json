@@ -9,8 +9,8 @@
  "mode": "default",
  "nquads": [
   "<https://example.org/Cat> <http://www.w3.org/2000/01/rdf-schema#label> \"Cat\"@en <https://example.org/graph> .",
-  "<https://example.org/stmt1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> <<( <https://example.org/Cat> <http://www.w3.org/2000/01/rdf-schema#label> \"Cat\"@en )>> .",
-  "<https://example.org/stmt1> <https://example.org/confidence> \"0.9\" ."
+  "<https://example.org/stmt1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> <<( <https://example.org/Cat> <http://www.w3.org/2000/01/rdf-schema#label> \"Cat\"@en )>> <https://example.org/graph> .",
+  "<https://example.org/stmt1> <https://example.org/confidence> \"0.9\" <https://example.org/graph> ."
  ],
  "opaque_reasons": [],
  "profiles": [
@@ -18,7 +18,7 @@
  ],
  "quads": 1,
  "segment_heads": [
-  "d37ff37dfa43cd4584d8ec860066da58e3de28c2500f0bb4b3aae1d9376f2005"
+  "afb4d5fdd7a202fb49df369d9b5729a7101b1f0b7e4fc02ad83f0399e21d1449"
  ],
  "segments": 1,
  "streamable": [

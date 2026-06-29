@@ -58,7 +58,7 @@ def test_rdflib_export_refuses_rdf12_quoted_triples_without_lossy_flag() -> None
             Term(TermKind.LITERAL, "object"),
         ]
     )
-    writer.add_reifies({0: (1, 2, 3)})
+    writer.add_reifies([(0, (1, 2, 3), None)])
     folded = read(writer.to_bytes())
 
     with pytest.raises(RDF12UnsupportedError):

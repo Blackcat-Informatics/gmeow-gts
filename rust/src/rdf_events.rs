@@ -12,7 +12,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 
-use crate::model::{Diagnostic, Graph, Quad, Term, TermKind, Triple3};
+use crate::model::{AnnotationRow, Diagnostic, Graph, Quad, ReifierRow, Term, TermKind, Triple3};
 use crate::reader::{read_with_options, ReadOptions};
 
 /// Scope-local term identifier used by RDF event sources.
@@ -62,6 +62,34 @@ pub struct EventQuad {
     /// Predicate term id.
     pub predicate: EventTermId,
     /// Object term id.
+    pub object: EventTermId,
+    /// Graph-name term id, or `None` for the default graph.
+    pub graph_name: Option<EventTermId>,
+}
+
+/// RDF 1.2 graph-scoped reifier binding carried by an event stream.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct EventReifier {
+    /// Reifier term id.
+    pub id: EventTermId,
+    /// Reified triple subject term id.
+    pub subject: EventTermId,
+    /// Reified triple predicate term id.
+    pub predicate: EventTermId,
+    /// Reified triple object term id.
+    pub object: EventTermId,
+    /// Graph-name term id, or `None` for the default graph.
+    pub graph_name: Option<EventTermId>,
+}
+
+/// RDF 1.2 graph-scoped annotation carried by an event stream.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct EventAnnotation {
+    /// Reifier term id being annotated.
+    pub reifier: EventTermId,
+    /// Annotation predicate term id.
+    pub predicate: EventTermId,
+    /// Annotation value term id.
     pub object: EventTermId,
     /// Graph-name term id, or `None` for the default graph.
     pub graph_name: Option<EventTermId>,
@@ -216,12 +244,12 @@ pub trait RdfEventSink {
     }
 
     /// Bind a reifier term to a triple.
-    fn reifier(&mut self, _reifier: EventTermId, _triple: EventTriple) -> Result<(), EventError> {
+    fn reifier(&mut self, _reifier: EventReifier) -> Result<(), EventError> {
         Ok(())
     }
 
-    /// Emit an annotation triple `(reifier, predicate, value)`.
-    fn annotation(&mut self, _annotation: EventTriple) -> Result<(), EventError> {
+    /// Emit an annotation row `(reifier, predicate, value, graph?)`.
+    fn annotation(&mut self, _annotation: EventAnnotation) -> Result<(), EventError> {
         Ok(())
     }
 
@@ -263,9 +291,9 @@ pub trait RdfDatasetVisitor {
     /// Visit one folded quad.
     fn quad(&mut self, _quad: Quad) {}
     /// Visit one folded reifier binding.
-    fn reifier(&mut self, _reifier: usize, _triple: Triple3) {}
+    fn reifier(&mut self, _reifier: ReifierRow) {}
     /// Visit one folded annotation.
-    fn annotation(&mut self, _annotation: Triple3) {}
+    fn annotation(&mut self, _annotation: AnnotationRow) {}
     /// Visit one reader diagnostic.
     fn diagnostic(&mut self, _diagnostic: &Diagnostic) {}
 }
@@ -278,8 +306,8 @@ pub fn visit_dataset(graph: &Graph, visitor: &mut impl RdfDatasetVisitor) {
     for &quad in &graph.quads {
         visitor.quad(quad);
     }
-    for &(reifier, triple) in &graph.reifiers {
-        visitor.reifier(reifier, triple);
+    for &reifier in &graph.reifiers {
+        visitor.reifier(reifier);
     }
     for &annotation in &graph.annotations {
         visitor.annotation(annotation);
@@ -390,18 +418,17 @@ fn emit_fold_order(graph: &Graph, sink: &mut dyn RdfEventSink) -> Result<(), Eve
     for (id, term) in graph.terms.iter().enumerate() {
         sink.term(event_term(graph, id, term)?)?;
     }
-    for &(reifier, triple) in &graph.reifiers {
-        validate_term_ref(graph, reifier, "reifier")?;
-        validate_triple_refs(graph, triple, "reifier")?;
-        sink.reifier(event_id(reifier)?, event_triple(triple)?)?;
+    for &reifier in &graph.reifiers {
+        validate_reifier_refs(graph, reifier)?;
+        sink.reifier(event_reifier(reifier)?)?;
     }
     for &quad in &graph.quads {
         validate_quad_refs(graph, quad)?;
         sink.quad(event_quad(quad)?)?;
     }
     for &annotation in &graph.annotations {
-        validate_triple_refs(graph, annotation, "annotation")?;
-        sink.annotation(event_triple(annotation)?)?;
+        validate_annotation_refs(graph, annotation)?;
+        sink.annotation(event_annotation(annotation)?)?;
     }
     Ok(())
 }
@@ -411,7 +438,7 @@ struct DeclarationOrderEmitter<'a, 's> {
     sink: &'s mut dyn RdfEventSink,
     emitted_terms: HashSet<usize>,
     visiting_terms: HashSet<usize>,
-    emitted_reifiers: HashSet<usize>,
+    emitted_reifiers: HashSet<ReifierRow>,
 }
 
 impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
@@ -429,7 +456,7 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
         for id in 0..self.graph.terms.len() {
             self.emit_term(id, 0)?;
         }
-        for &(reifier, triple) in &self.graph.reifiers {
+        for &(reifier, triple, graph_name) in &self.graph.reifiers {
             // A triple TERM keys its own components under its own id (a self-reference,
             // not a reifier relationship). Those components are declared via emit_term;
             // emitting this entry as a reifier would render a spurious
@@ -442,15 +469,15 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
             {
                 continue;
             }
-            self.emit_reifier(reifier, triple, 0)?;
+            self.emit_reifier((reifier, triple, graph_name), 0)?;
         }
         for &quad in &self.graph.quads {
             validate_quad_refs(self.graph, quad)?;
             self.sink.quad(event_quad(quad)?)?;
         }
         for &annotation in &self.graph.annotations {
-            validate_triple_refs(self.graph, annotation, "annotation")?;
-            self.sink.annotation(event_triple(annotation)?)?;
+            validate_annotation_refs(self.graph, annotation)?;
+            self.sink.annotation(event_annotation(annotation)?)?;
         }
         Ok(())
     }
@@ -491,7 +518,7 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
                             // for this same id and trip the cycle guard.
                             self.emit_triple_deps(triple, depth + 1)?;
                         } else {
-                            self.emit_reifier(reifier, triple, depth + 1)?;
+                            self.emit_reifier_rows(reifier, triple, depth + 1)?;
                         }
                     }
                 }
@@ -505,18 +532,45 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
         Ok(())
     }
 
-    fn emit_reifier(
+    fn emit_reifier_rows(
         &mut self,
         reifier: usize,
         triple: Triple3,
         depth: usize,
     ) -> Result<(), EventError> {
-        if !self.emitted_reifiers.insert(reifier) {
+        let rows = self.reifier_rows(reifier, triple);
+        if rows.is_empty() {
+            return Err(EventError::invalid_source(format!(
+                "reifier {reifier} does not have a matching binding row"
+            )));
+        }
+        for row in rows {
+            self.emit_reifier(row, depth)?;
+        }
+        Ok(())
+    }
+
+    fn reifier_rows(&self, reifier: usize, triple: Triple3) -> Vec<ReifierRow> {
+        self.graph
+            .reifiers
+            .iter()
+            .copied()
+            .filter(|(rid, spo, _)| *rid == reifier && *spo == triple)
+            .collect()
+    }
+
+    fn emit_reifier(&mut self, row: ReifierRow, depth: usize) -> Result<(), EventError> {
+        if !self.emitted_reifiers.insert(row) {
             return Ok(());
         }
+        let (reifier, triple, graph_name) = row;
+        validate_reifier_refs(self.graph, row)?;
         self.emit_term(reifier, depth)?;
         self.emit_triple_deps(triple, depth)?;
-        self.sink.reifier(event_id(reifier)?, event_triple(triple)?)
+        if let Some(graph_name) = graph_name {
+            self.emit_term(graph_name, depth)?;
+        }
+        self.sink.reifier(event_reifier(row)?)
     }
 
     fn emit_triple_deps(&mut self, triple: Triple3, depth: usize) -> Result<(), EventError> {
@@ -538,11 +592,37 @@ fn validate_term_ref(graph: &Graph, id: usize, context: &str) -> Result<(), Even
     }
 }
 
+fn validate_optional_term_ref(
+    graph: &Graph,
+    id: Option<usize>,
+    context: &str,
+) -> Result<(), EventError> {
+    match id {
+        Some(id) => validate_term_ref(graph, id, context),
+        None => Ok(()),
+    }
+}
+
 fn validate_triple_refs(graph: &Graph, triple: Triple3, context: &str) -> Result<(), EventError> {
     let (subject, predicate, object) = triple;
     validate_term_ref(graph, subject, context)?;
     validate_term_ref(graph, predicate, context)?;
     validate_term_ref(graph, object, context)
+}
+
+fn validate_reifier_refs(graph: &Graph, reifier: ReifierRow) -> Result<(), EventError> {
+    let (rid, triple, graph_name) = reifier;
+    validate_term_ref(graph, rid, "reifier")?;
+    validate_triple_refs(graph, triple, "reifier")?;
+    validate_optional_term_ref(graph, graph_name, "reifier graph")
+}
+
+fn validate_annotation_refs(graph: &Graph, annotation: AnnotationRow) -> Result<(), EventError> {
+    let (reifier, predicate, value, graph_name) = annotation;
+    validate_term_ref(graph, reifier, "annotation")?;
+    validate_term_ref(graph, predicate, "annotation")?;
+    validate_term_ref(graph, value, "annotation")?;
+    validate_optional_term_ref(graph, graph_name, "annotation graph")
 }
 
 fn validate_quad_refs(graph: &Graph, quad: Quad) -> Result<(), EventError> {
@@ -610,6 +690,27 @@ fn event_triple(triple: Triple3) -> Result<EventTriple, EventError> {
         subject: event_id(subject)?,
         predicate: event_id(predicate)?,
         object: event_id(object)?,
+    })
+}
+
+fn event_reifier(reifier: ReifierRow) -> Result<EventReifier, EventError> {
+    let (id, (subject, predicate, object), graph_name) = reifier;
+    Ok(EventReifier {
+        id: event_id(id)?,
+        subject: event_id(subject)?,
+        predicate: event_id(predicate)?,
+        object: event_id(object)?,
+        graph_name: graph_name.map(event_id).transpose()?,
+    })
+}
+
+fn event_annotation(annotation: AnnotationRow) -> Result<EventAnnotation, EventError> {
+    let (reifier, predicate, object, graph_name) = annotation;
+    Ok(EventAnnotation {
+        reifier: event_id(reifier)?,
+        predicate: event_id(predicate)?,
+        object: event_id(object)?,
+        graph_name: graph_name.map(event_id).transpose()?,
     })
 }
 

@@ -113,7 +113,7 @@ fn reader_rejects_direct_recursive_quoted_triple_reifier() {
         iri("https://example.org/predicate"),
         iri("https://example.org/object"),
     ]);
-    writer.add_reifies(&[(0, (0, 1, 2))]);
+    writer.add_reifies(&[(0, (0, 1, 2), None)]);
 
     let graph = read(&writer.to_bytes(), true, None);
 
@@ -131,11 +131,11 @@ fn reader_rejects_indirect_recursive_quoted_triple_reifier() {
         iri("https://example.org/predicate"),
         iri("https://example.org/object"),
     ]);
-    writer.add_reifies(&[(0, (1, 2, 3)), (1, (0, 2, 3))]);
+    writer.add_reifies(&[(0, (1, 2, 3), None), (1, (0, 2, 3), None)]);
 
     let graph = read(&writer.to_bytes(), true, None);
 
     assert!(has_recursive_reifier_diagnostic(&graph));
-    assert_eq!(graph.reifiers, vec![(0, (1, 2, 3))]);
+    assert_eq!(graph.reifiers, vec![(0, (1, 2, 3), None)]);
     let _ = to_nquads(&graph);
 }

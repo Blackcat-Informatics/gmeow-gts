@@ -221,13 +221,20 @@ export function unionSegments(segments: Graph[]): Graph {
                 p: u.mapTerm(seg, segIdx, r.spo.p),
                 o: u.mapTerm(seg, segIdx, r.spo.o),
             };
-            u.out.setReifier(newRf, spo);
+            u.out.setReifier(
+                newRf,
+                spo,
+                r.g !== undefined ? u.mapTerm(seg, segIdx, r.g) : undefined,
+            );
         }
         for (const a of seg.annotations) {
             u.out.annotations.push({
                 s: u.mapTerm(seg, segIdx, a.s),
                 p: u.mapTerm(seg, segIdx, a.p),
                 o: u.mapTerm(seg, segIdx, a.o),
+                ...(a.g !== undefined
+                    ? { g: u.mapTerm(seg, segIdx, a.g) }
+                    : {}),
             });
         }
         for (const b of seg.blobs) u.out.setBlob(b.digest, b.data);

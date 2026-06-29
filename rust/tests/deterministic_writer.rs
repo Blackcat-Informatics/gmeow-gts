@@ -156,8 +156,8 @@ fn deterministic_graphs() -> (Graph, Graph) {
             literal("0.9", None),
         ],
         quads: vec![(2, 0, 1, Some(3))],
-        reifiers: vec![(4, (2, 0, 1))],
-        annotations: vec![(4, 5, 6)],
+        reifiers: vec![(4, (2, 0, 1), Some(3))],
+        annotations: vec![(4, 5, 6, Some(3))],
         suppressions: vec![Suppression {
             targets: vec![term_target(6)],
             reason: Some("example suppression".to_string()),
@@ -180,8 +180,8 @@ fn deterministic_graphs() -> (Graph, Graph) {
             iri(LABEL),
         ],
         quads: vec![(4, 6, 5, Some(3))],
-        reifiers: vec![(2, (4, 6, 5))],
-        annotations: vec![(2, 1, 0)],
+        reifiers: vec![(2, (4, 6, 5), Some(3))],
+        annotations: vec![(2, 1, 0, Some(3))],
         suppressions: vec![Suppression {
             targets: vec![term_target(0)],
             reason: Some("example suppression".to_string()),

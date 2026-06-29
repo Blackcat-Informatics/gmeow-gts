@@ -710,15 +710,16 @@ fn write_quads(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result
 
 fn write_reifiers(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result<(), DumpError> {
     let mut out = create_writer(path)?;
-    for (r, (s, p, o)) in &graph.reifiers {
+    for (r, (s, p, o), g) in &graph.reifiers {
         writeln!(
             out,
-            "{{{}\"reifier\":{},\"s\":{},\"p\":{},\"o\":{}}}",
+            "{{{}\"reifier\":{},\"s\":{},\"p\":{},\"o\":{},\"g\":{}}}",
             frame_prefix(frame_index),
             r,
             s,
             p,
-            o
+            o,
+            json_optional_usize(*g)
         )?;
     }
     Ok(())
@@ -730,14 +731,15 @@ fn write_annotations(
     frame_index: Option<usize>,
 ) -> Result<(), DumpError> {
     let mut out = create_writer(path)?;
-    for (r, p, v) in &graph.annotations {
+    for (r, p, v, g) in &graph.annotations {
         writeln!(
             out,
-            "{{{}\"reifier\":{},\"predicate\":{},\"value\":{}}}",
+            "{{{}\"reifier\":{},\"predicate\":{},\"value\":{},\"g\":{}}}",
             frame_prefix(frame_index),
             r,
             p,
-            v
+            v,
+            json_optional_usize(*g)
         )?;
     }
     Ok(())

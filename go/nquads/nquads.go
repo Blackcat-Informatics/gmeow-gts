@@ -89,10 +89,20 @@ func ToNQuads(g *model.Graph) string {
 	}
 	for _, r := range g.Reifiers {
 		quoted := fmt.Sprintf("<<( %s %s %s )>>", render(g, r.SPO.S), render(g, r.SPO.P), render(g, r.SPO.O))
-		lines = append(lines, fmt.Sprintf("%s <%s> %s .", render(g, r.RID), rdfReifies, quoted))
+		triple := fmt.Sprintf("%s <%s> %s", render(g, r.RID), rdfReifies, quoted)
+		if r.G != nil {
+			lines = append(lines, fmt.Sprintf("%s %s .", triple, render(g, *r.G)))
+		} else {
+			lines = append(lines, fmt.Sprintf("%s .", triple))
+		}
 	}
 	for _, a := range g.Annotations {
-		lines = append(lines, fmt.Sprintf("%s %s %s .", render(g, a.S), render(g, a.P), render(g, a.O)))
+		triple := fmt.Sprintf("%s %s %s", render(g, a.S), render(g, a.P), render(g, a.O))
+		if a.G != nil {
+			lines = append(lines, fmt.Sprintf("%s %s .", triple, render(g, *a.G)))
+		} else {
+			lines = append(lines, fmt.Sprintf("%s .", triple))
+		}
 	}
 	if len(lines) == 0 {
 		return ""

@@ -25,8 +25,10 @@ _SCHEMA = [
     "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT,"
     " datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER)",
     "CREATE TABLE quads (s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
-    "CREATE TABLE reifiers (reifier INTEGER, s INTEGER, p INTEGER, o INTEGER)",
-    "CREATE TABLE annotations (reifier INTEGER, predicate INTEGER, value INTEGER)",
+    "CREATE TABLE reifiers "
+    "(reifier INTEGER, s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
+    "CREATE TABLE annotations "
+    "(reifier INTEGER, predicate INTEGER, value INTEGER, g INTEGER)",
     "CREATE TABLE blobs (digest TEXT PRIMARY KEY, bytes BLOB)",
 ]
 _INDEXES = [
@@ -40,8 +42,8 @@ _INDEXES = [
 _INSERTS = [
     ("terms", "INSERT INTO terms VALUES (?,?,?,?,?,?,?)"),
     ("quads", "INSERT INTO quads VALUES (?,?,?,?)"),
-    ("reifiers", "INSERT INTO reifiers VALUES (?,?,?,?)"),
-    ("annotations", "INSERT INTO annotations VALUES (?,?,?)"),
+    ("reifiers", "INSERT INTO reifiers VALUES (?,?,?,?,?)"),
+    ("annotations", "INSERT INTO annotations VALUES (?,?,?,?)"),
     ("blobs", "INSERT INTO blobs VALUES (?,?)"),
 ]
 
@@ -61,7 +63,7 @@ def _rows(graph: Graph) -> dict[str, list[tuple[object, ...]]]:
             for i, t in enumerate(graph.terms)
         ],
         "quads": [(s, p, o, g) for s, p, o, g in graph.quads],
-        "reifiers": [(r, s, p, o) for r, (s, p, o) in graph.reifiers.items()],
+        "reifiers": [(r, s, p, o, g) for r, (s, p, o), g in graph.reifiers],
         "annotations": list(graph.annotations),
         "blobs": list(graph.blobs.items()),
     }

@@ -147,10 +147,17 @@ type BlobMetaEntry struct {
 	Meta   interface{}
 }
 
-// ReifierEntry binds a reifier-id to a triple.
+// ReifierEntry binds a reifier-id to a triple, optionally scoped to a named graph.
 type ReifierEntry struct {
 	RID int
 	SPO Triple3
+	G   *int
+}
+
+// AnnotationEntry records a reifier annotation, optionally scoped to a named graph.
+type AnnotationEntry struct {
+	S, P, O int
+	G       *int
 }
 
 // Graph is the folded result of a GTS log.
@@ -163,7 +170,7 @@ type Graph struct {
 	Terms           []Term
 	Quads           []Quad
 	Reifiers        []ReifierEntry
-	Annotations     []Triple3
+	Annotations     []AnnotationEntry
 	Blobs           []BlobEntry
 	BlobMeta        []BlobMetaEntry
 	Meta            []MetaEntry
@@ -190,15 +197,29 @@ func (g *Graph) Reifier(rid int) (Triple3, bool) {
 	return Triple3{}, false
 }
 
-// SetReifier binds a reifier, replacing in place (Python dict assignment).
-func (g *Graph) SetReifier(rid int, spo Triple3) {
-	for i := range g.Reifiers {
-		if g.Reifiers[i].RID == rid {
-			g.Reifiers[i].SPO = spo
+// SetReifier records a reifier row unless the identical row is already present.
+func (g *Graph) SetReifier(rid int, spo Triple3, graph *int) {
+	for _, r := range g.Reifiers {
+		if r.RID == rid && r.SPO == spo && sameOptionalInt(r.G, graph) {
 			return
 		}
 	}
-	g.Reifiers = append(g.Reifiers, ReifierEntry{RID: rid, SPO: spo})
+	g.Reifiers = append(g.Reifiers, ReifierEntry{RID: rid, SPO: spo, G: copyOptionalInt(graph)})
+}
+
+func sameOptionalInt(a, b *int) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
+}
+
+func copyOptionalInt(value *int) *int {
+	if value == nil {
+		return nil
+	}
+	copied := *value
+	return &copied
 }
 
 // SetMeta sets a meta key, replacing in place.

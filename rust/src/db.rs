@@ -22,8 +22,8 @@ use crate::model::{Graph, TermKind};
 const SCHEMA: &[&str] = &[
     "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT, datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER)",
     "CREATE TABLE quads (s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
-    "CREATE TABLE reifiers (reifier INTEGER, s INTEGER, p INTEGER, o INTEGER)",
-    "CREATE TABLE annotations (reifier INTEGER, predicate INTEGER, value INTEGER)",
+    "CREATE TABLE reifiers (reifier INTEGER, s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
+    "CREATE TABLE annotations (reifier INTEGER, predicate INTEGER, value INTEGER, g INTEGER)",
     "CREATE TABLE blobs (digest TEXT PRIMARY KEY, bytes BLOB)",
 ];
 
@@ -176,17 +176,21 @@ fn write_insert_rows(
         write_sql_usize(writer, *g)?;
         write_sql(writer, b");\n")?;
     }
-    for (r, (s, p, o)) in &graph.reifiers {
+    for (r, (s, p, o), g) in &graph.reifiers {
         write_sql_fmt(
             writer,
-            format_args!("INSERT INTO reifiers VALUES ({r},{s},{p},{o});\n"),
+            format_args!("INSERT INTO reifiers VALUES ({r},{s},{p},{o},"),
         )?;
+        write_sql_usize(writer, *g)?;
+        write_sql(writer, b");\n")?;
     }
-    for (r, p, v) in &graph.annotations {
+    for (r, p, v, g) in &graph.annotations {
         write_sql_fmt(
             writer,
-            format_args!("INSERT INTO annotations VALUES ({r},{p},{v});\n"),
+            format_args!("INSERT INTO annotations VALUES ({r},{p},{v},"),
         )?;
+        write_sql_usize(writer, *g)?;
+        write_sql(writer, b");\n")?;
     }
     for (digest, entry) in &graph.blobs {
         let bytes = entry

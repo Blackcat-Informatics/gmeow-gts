@@ -350,7 +350,7 @@ func emptyGraph() *model.Graph {
 		Terms:             []model.Term{},
 		Quads:             []model.Quad{},
 		Reifiers:          []model.ReifierEntry{},
-		Annotations:       []model.Triple3{},
+		Annotations:       []model.AnnotationEntry{},
 		Blobs:             []model.BlobEntry{},
 		BlobMeta:          []model.BlobMetaEntry{},
 		Meta:              []model.MetaEntry{},

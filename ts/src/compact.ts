@@ -25,9 +25,9 @@ import {
     Quad,
     Term,
     TermKind,
+    type AnnotationEntry,
     type ReifierEntry,
     type Suppression,
-    type Triple,
 } from "./model.js";
 import { Read, ReadFileSegments } from "./reader.js";
 import { Writer } from "./writer.js";
@@ -363,6 +363,7 @@ export function compactStreamable(
                         p: r.spo.p + base,
                         o: r.spo.o + base,
                     },
+                    ...(r.g !== undefined ? { g: r.g + base } : {}),
                 }),
             ),
         );
@@ -370,10 +371,11 @@ export function compactStreamable(
     if (g.annotations.length > 0) {
         w.addAnnot(
             g.annotations.map(
-                (a): Triple => ({
+                (a): AnnotationEntry => ({
                     s: a.s + base,
                     p: a.p + base,
                     o: a.o + base,
+                    ...(a.g !== undefined ? { g: a.g + base } : {}),
                 }),
             ),
         );

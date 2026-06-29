@@ -369,18 +369,38 @@ func (i *interner) node(n node, reifiers *[]model.ReifierEntry) int {
 	rid := id
 	i.terms = append(i.terms, model.Term{Kind: model.Triple, Reifier: &rid})
 	i.ids[key] = id
-	setReifier(reifiers, id, model.Triple3{S: s, P: p, O: o})
+	_ = setReifier(reifiers, id, model.Triple3{S: s, P: p, O: o}, nil)
 	return id
 }
 
-func setReifier(reifiers *[]model.ReifierEntry, rid int, spo model.Triple3) {
+func setReifier(reifiers *[]model.ReifierEntry, rid int, spo model.Triple3, graph *int) error {
 	for idx := range *reifiers {
 		if (*reifiers)[idx].RID == rid {
-			(*reifiers)[idx].SPO = spo
-			return
+			if (*reifiers)[idx].SPO != spo {
+				return ParseError{fmt.Sprintf("conflicting rdf:reifies binding for reifier term %d", rid)}
+			}
+			if sameOptionalInt((*reifiers)[idx].G, graph) {
+				return nil
+			}
 		}
 	}
-	*reifiers = append(*reifiers, model.ReifierEntry{RID: rid, SPO: spo})
+	*reifiers = append(*reifiers, model.ReifierEntry{RID: rid, SPO: spo, G: copyOptionalInt(graph)})
+	return nil
+}
+
+func sameOptionalInt(a, b *int) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
+}
+
+func copyOptionalInt(value *int) *int {
+	if value == nil {
+		return nil
+	}
+	copied := *value
+	return &copied
 }
 
 func validateStatement(nodes []node, line string) error {
@@ -439,7 +459,7 @@ func FromNQuads(text string) ([]byte, error) {
 
 	interner := newInterner()
 	var reifiers []model.ReifierEntry
-	var quads []model.Quad
+	var pendingQuads []model.Quad
 
 	for _, nodes := range statements {
 		s, p, o := nodes[0], nodes[1], nodes[2]
@@ -448,13 +468,20 @@ func FromNQuads(text string) ([]byte, error) {
 			gname = &nodes[3]
 		}
 
-		if gname == nil && s.atom != nil && isAtom(p, model.Iri) && p.atom.value == rdfReifies && o.triple != nil {
+		if s.atom != nil && isAtom(p, model.Iri) && p.atom.value == rdfReifies && o.triple != nil {
 			rid := interner.atom(*s.atom)
-			setReifier(&reifiers, rid, model.Triple3{
+			var graph *int
+			if gname != nil {
+				gid := interner.node(*gname, &reifiers)
+				graph = &gid
+			}
+			if err := setReifier(&reifiers, rid, model.Triple3{
 				S: interner.node(o.triple.s, &reifiers),
 				P: interner.node(o.triple.p, &reifiers),
 				O: interner.node(o.triple.o, &reifiers),
-			})
+			}, graph); err != nil {
+				return nil, err
+			}
 			continue
 		}
 
@@ -466,6 +493,25 @@ func FromNQuads(text string) ([]byte, error) {
 		if gname != nil {
 			gid := interner.node(*gname, &reifiers)
 			q.G = &gid
+		}
+		pendingQuads = append(pendingQuads, q)
+	}
+
+	reifierIDs := make(map[int]struct{}, len(reifiers))
+	for _, r := range reifiers {
+		reifierIDs[r.RID] = struct{}{}
+	}
+	var quads []model.Quad
+	var annotations []model.AnnotationEntry
+	for _, q := range pendingQuads {
+		if _, ok := reifierIDs[q.S]; ok {
+			annotations = append(annotations, model.AnnotationEntry{
+				S: q.S,
+				P: q.P,
+				O: q.O,
+				G: copyOptionalInt(q.G),
+			})
+			continue
 		}
 		quads = append(quads, q)
 	}
@@ -479,6 +525,9 @@ func FromNQuads(text string) ([]byte, error) {
 	}
 	if len(reifiers) > 0 {
 		w.AddReifies(reifiers)
+	}
+	if len(annotations) > 0 {
+		w.AddAnnot(annotations)
 	}
 	if illTyped := xsd.IllTypedLiteralsInTerms(interner.terms); len(illTyped) > 0 {
 		w.AddMeta(map[interface{}]interface{}{

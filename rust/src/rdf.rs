@@ -11,7 +11,9 @@ use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt;
 
-use crate::model::{Graph, Quad, Term as GtsTerm, TermKind, Triple3, RDF_LANG_STRING, XSD_STRING};
+use crate::model::{
+    Graph, Quad, ReifierRow, Term as GtsTerm, TermKind, Triple3, RDF_LANG_STRING, XSD_STRING,
+};
 use crate::ulid::deterministic_label;
 use crate::writer::Writer;
 use crate::xsd::{
@@ -512,7 +514,7 @@ pub fn to_rdf_quads_with_options(
     }
 
     let rdf_reifies = Iri::new(RDF_REIFIES)?;
-    for &(rid, (s, p, o)) in &graph.reifiers {
+    for &(rid, (s, p, o), graph_name) in &graph.reifiers {
         if is_internal_triple_self_binding(graph, rid) {
             continue;
         }
@@ -525,16 +527,20 @@ pub fn to_rdf_quads_with_options(
         else {
             continue;
         };
+        let Some(graph_name) = graph_name_term(graph, &bnode_labels, graph_name, options)? else {
+            continue;
+        };
         quads.push(RdfQuad::new(
             subject,
             rdf_reifies.clone(),
             RdfTerm::Triple(Box::new(object)),
-            GraphName::DefaultGraph,
+            graph_name,
         ));
     }
 
-    for &(s, p, o) in &graph.annotations {
-        if let Some(quad) = graph_quad_to_rdf(graph, &bnode_labels, s, p, o, None, options)? {
+    for &(s, p, o, graph_name) in &graph.annotations {
+        if let Some(quad) = graph_quad_to_rdf(graph, &bnode_labels, s, p, o, graph_name, options)?
+        {
             quads.push(quad);
         }
     }
@@ -572,25 +578,30 @@ pub fn writer_from_rdf_dataset_with_profile(
 ) -> Result<Writer, RdfAdapterError> {
     let mut interner = Interner::new();
     let mut quads: Vec<Quad> = Vec::new();
-    let mut reifiers: BTreeMap<usize, Triple3> = BTreeMap::new();
+    let mut reifier_bindings: BTreeMap<usize, Triple3> = BTreeMap::new();
+    let mut reifiers: Vec<ReifierRow> = Vec::new();
 
     for quad in dataset {
-        if quad.graph_name.is_default_graph()
-            && quad.predicate.as_str() == RDF_REIFIES
+        if quad.predicate.as_str() == RDF_REIFIES
             && matches!(quad.object, RdfTerm::Triple(_))
         {
             let rid = interner.named_or_blank(&quad.subject);
             let RdfTerm::Triple(triple) = &quad.object else {
                 unreachable!("matched above")
             };
-            let binding = interner.triple(triple, &mut reifiers)?;
-            insert_reifier(&mut reifiers, rid, binding)?;
+            let binding = interner.triple(triple, &mut reifier_bindings, &mut reifiers)?;
+            insert_reifier(&mut reifier_bindings, rid, binding)?;
+            let graph_name = graph_name_id(&quad.graph_name, &mut interner);
+            let row = (rid, binding, graph_name);
+            if !reifiers.contains(&row) {
+                reifiers.push(row);
+            }
             continue;
         }
 
         let s = interner.named_or_blank(&quad.subject);
         let p = interner.iri(&quad.predicate);
-        let o = interner.term(&quad.object, &mut reifiers)?;
+        let o = interner.term(&quad.object, &mut reifier_bindings, &mut reifiers)?;
         let g = graph_name_id(&quad.graph_name, &mut interner);
         quads.push((s, p, o, g));
     }
@@ -602,7 +613,7 @@ pub fn writer_from_rdf_dataset_with_profile(
     if !quads.is_empty() {
         writer.add_quads(&quads);
     }
-    let reifiers: Vec<(usize, Triple3)> = reifiers.into_iter().collect();
+    reifiers.sort_by_key(|&(rid, (s, p, o), graph_name)| (graph_name, rid, s, p, o));
     if !reifiers.is_empty() {
         writer.add_reifies(&reifiers);
     }
@@ -1015,14 +1026,15 @@ impl Interner {
     fn term(
         &mut self,
         term: &RdfTerm,
-        reifiers: &mut BTreeMap<usize, Triple3>,
+        reifier_bindings: &mut BTreeMap<usize, Triple3>,
+        reifiers: &mut Vec<ReifierRow>,
     ) -> Result<usize, RdfAdapterError> {
         match term {
             RdfTerm::Iri(node) => Ok(self.iri(node)),
             RdfTerm::BlankNode(node) => Ok(self.blank_node(node)),
             RdfTerm::Literal(literal) => Ok(self.literal(literal)),
             RdfTerm::Triple(triple) => {
-                let (s, p, o) = self.triple(triple, reifiers)?;
+                let (s, p, o) = self.triple(triple, reifier_bindings, reifiers)?;
                 let key = TermKey::Triple(s, p, o);
                 if let Some(id) = self.ids.get(&key) {
                     return Ok(*id);
@@ -1037,7 +1049,11 @@ impl Interner {
                     reifier: Some(id),
                 });
                 self.ids.insert(key, id);
-                insert_reifier(reifiers, id, (s, p, o))?;
+                insert_reifier(reifier_bindings, id, (s, p, o))?;
+                let row = (id, (s, p, o), None);
+                if !reifiers.contains(&row) {
+                    reifiers.push(row);
+                }
                 Ok(id)
             }
         }
@@ -1046,12 +1062,13 @@ impl Interner {
     fn triple(
         &mut self,
         triple: &RdfTriple,
-        reifiers: &mut BTreeMap<usize, Triple3>,
+        reifier_bindings: &mut BTreeMap<usize, Triple3>,
+        reifiers: &mut Vec<ReifierRow>,
     ) -> Result<Triple3, RdfAdapterError> {
         Ok((
             self.named_or_blank(&triple.subject),
             self.iri(&triple.predicate),
-            self.term(&triple.object, reifiers)?,
+            self.term(&triple.object, reifier_bindings, reifiers)?,
         ))
     }
 

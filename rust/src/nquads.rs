@@ -84,7 +84,7 @@ pub fn to_nquads(g: &Graph) -> String {
             None => lines.push(format!("{triple} .")),
         }
     }
-    for &(rid, (s, p, o)) in &g.reifiers {
+    for &(rid, (s, p, o), gname) in &g.reifiers {
         if g.terms
             .get(rid)
             .is_some_and(|term| term.kind == TermKind::Triple && term.reifier == Some(rid))
@@ -97,18 +97,23 @@ pub fn to_nquads(g: &Graph) -> String {
             render_term(g, p),
             render_term(g, o)
         );
-        lines.push(format!(
-            "{} <{RDF_REIFIES}> {quoted} .",
-            render_term(g, rid)
-        ));
+        let triple = format!("{} <{RDF_REIFIES}> {quoted}", render_term(g, rid));
+        match gname {
+            Some(gv) => lines.push(format!("{triple} {} .", render_term(g, gv))),
+            None => lines.push(format!("{triple} .")),
+        }
     }
-    for &(r, p, v) in &g.annotations {
-        lines.push(format!(
-            "{} {} {} .",
+    for &(r, p, v, gname) in &g.annotations {
+        let triple = format!(
+            "{} {} {}",
             render_term(g, r),
             render_term(g, p),
             render_term(g, v)
-        ));
+        );
+        match gname {
+            Some(gv) => lines.push(format!("{triple} {} .", render_term(g, gv))),
+            None => lines.push(format!("{triple} .")),
+        }
     }
     if lines.is_empty() {
         String::new()

@@ -3,7 +3,13 @@
 
 import { Tagged } from "cbor";
 import * as wire from "./wire.js";
-import { Term, Quad, ReifierEntry, Triple, TermKind } from "./model.js";
+import {
+    AnnotationEntry,
+    Term,
+    Quad,
+    ReifierEntry,
+    TermKind,
+} from "./model.js";
 import { signId } from "./cose.js";
 
 interface CatalogEntry {
@@ -198,15 +204,20 @@ export class Writer {
     }
 
     addReifies(bindings: ReifierEntry[]): Uint8Array {
-        const m = new Map<unknown, unknown>();
-        for (const b of bindings) {
-            m.set(b.rid, [b.spo.s, b.spo.p, b.spo.o]);
-        }
-        return this.addFrame("reifies", m);
+        const rows = bindings.map((b) => {
+            const row: unknown[] = [b.rid, b.spo.s, b.spo.p, b.spo.o];
+            if (b.g !== undefined) row.push(b.g);
+            return row;
+        });
+        return this.addFrame("reifies", rows);
     }
 
-    addAnnot(rows: Triple[]): Uint8Array {
-        const arr = rows.map((r) => [r.s, r.p, r.o]);
+    addAnnot(rows: AnnotationEntry[]): Uint8Array {
+        const arr = rows.map((r) => {
+            const row: unknown[] = [r.s, r.p, r.o];
+            if (r.g !== undefined) row.push(r.g);
+            return row;
+        });
         return this.addFrame("annot", arr);
     }
 

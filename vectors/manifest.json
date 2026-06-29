@@ -328,9 +328,9 @@
         "diagnostics": [
           "ConflictingReifier"
         ],
-        "expected_head": "28782d81754c2fc91b320fe80cd274e1c42959891d76f89a80725714f733bf35",
+        "expected_head": "e1c08aefe8730ac0c8d68390d62d521feac1c57d4cf317fa8333c59712bcd15a",
         "segment_heads": [
-          "28782d81754c2fc91b320fe80cd274e1c42959891d76f89a80725714f733bf35"
+          "e1c08aefe8730ac0c8d68390d62d521feac1c57d4cf317fa8333c59712bcd15a"
         ],
         "opaque_reasons": []
       },
@@ -1292,9 +1292,9 @@
       "expected": {
         "graph": "vectors/29-deterministic-writer.expected.json",
         "diagnostics": [],
-        "expected_head": "d37ff37dfa43cd4584d8ec860066da58e3de28c2500f0bb4b3aae1d9376f2005",
+        "expected_head": "afb4d5fdd7a202fb49df369d9b5729a7101b1f0b7e4fc02ad83f0399e21d1449",
         "segment_heads": [
-          "d37ff37dfa43cd4584d8ec860066da58e3de28c2500f0bb4b3aae1d9376f2005"
+          "afb4d5fdd7a202fb49df369d9b5729a7101b1f0b7e4fc02ad83f0399e21d1449"
         ],
         "opaque_reasons": []
       },
