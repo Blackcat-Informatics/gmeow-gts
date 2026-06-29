@@ -20,8 +20,9 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 `gmeow-gts` is the Rust implementation of the **Graph Transport Substrate (GTS)** — a
 single-file, language-independent transport for an **RDF 1.2** graph (statements *and*
 statement-level metadata) together with any content-addressed binary the graph references.
-It is one of four interoperable engines (Python, Rust, Go, TypeScript) that gate against the
-same frozen, language-neutral conformance corpus.
+It is one of six interoperable full engines (Rust, Python, Go, TypeScript,
+Smalltalk/Pharo, Kotlin/JVM) in the GTS 1.0 release set, all gated against the same
+frozen, language-neutral conformance corpus.
 
 This crate provides a library and a command-line tool for reading, writing, verifying,
 composing, compacting, and projecting GTS files — with optional COSE signing and encryption.
@@ -63,11 +64,11 @@ Key properties:
 - **Content-addressed.** Frames and external binaries are referenced by BLAKE3 digests.
 - **Signable and verifiable.** Frames can carry detached COSE_Sign1 signatures, and segments
   carry provenance metadata.
-- **Language-independent.** The same file can be read and written by the Python, Rust, Go, and
-  TypeScript engines.
+- **Language-independent.** The same file can be read and written by the Rust, Python, Go,
+  TypeScript, Smalltalk/Pharo, and Kotlin/JVM engines.
 
 For the authoritative specification, see [`docs/GTS-SPEC.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md).
-For the reference-implementation guide, see [`docs/gts-reference.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md).
+For implementation guidance and vector-corpus notes, see [`docs/gts-reference.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md).
 
 GTS is ontology-independent. GTS is the primary distribution method for
 [GMEOW](https://github.com/Blackcat-Informatics/gmeow-ontology), but GTS does not depend on
@@ -109,8 +110,8 @@ a GTS file.
   crate's `emojihash` and `randomart` key fingerprints.
 - **`gts` binary** — a CLI for all of the above.
 
-The crate gates against the identical frozen conformance corpus used by the Python, Go, and
-TypeScript engines; every engine must fold identical bytes to identical expectations.
+The crate gates against the identical frozen conformance corpus used by the other five full
+engines; every engine must fold identical bytes to identical expectations.
 
 ---
 
@@ -130,7 +131,7 @@ Add to `Cargo.toml`:
 
 ```toml
 [dependencies]
-gmeow-gts = "0.9.11"
+gmeow-gts = "1.0"
 ```
 
 Verify a signed file with its embedded transport key:
@@ -433,7 +434,7 @@ Exit codes:
 - `1` — diagnostics or input refused
 - `2` — usage or IO error
 
-`verify --key` and `extract-key` are cross-engine: all four `gts` binaries parse the embedded
+`verify --key` and `extract-key` are cross-engine: all six `gts` binaries parse the embedded
 OpenPGP transport key to the same fingerprint and emojihash, and verify COSE signatures
 identically. Library callers can use `gmeow_gts::verify::verify_file` for the same embedded-key
 verification summary without duplicating CLI helper code. Rust also exposes the current
@@ -498,8 +499,8 @@ from_yaml_ld}` plus the matching CLI verbs. It is a Rust-only transform surface:
 it uses the GTS `Term` model to preserve RDF 1.2 language-tagged literal base
 direction (`@direction`) where present.
 The optional `tar` feature adds `gmeow_gts::from_tar` and `gmeow_gts::tar`
-plus the `from-tar`, `to-tar`, and `tar` CLI verbs. It is a Rust-first files-profile-v2 bridge surface;
-Python, Go, and TypeScript parity can implement the same contract later.
+plus the `from-tar`, `to-tar`, and `tar` CLI verbs. It is the Rust 1.0 files-profile-v2 tar bridge;
+the contract is documented for other engines that add the same optional surface later.
 The adapters and policy parsers are absent from ordinary default builds.
 
 `cat` output is raw byte concatenation: validation is added, transformation never. It
@@ -535,7 +536,7 @@ For full details, read [`docs/GTS-SPEC.md`](https://github.com/Blackcat-Informat
 ## Developer documentation
 
 - [GTS Specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) — the authoritative, normative wire-format specification.
-- [GTS Reference Guide](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md) — the Python reference-implementation guide.
+- [GTS Reference Guide](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md) — implementation notes, vector-corpus guidance, and release engineering details.
 - [GTS Ecosystem Integration Contract](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-ECOSYSTEM-INTEGRATIONS.md) — RDF crate adapter status and deferrals.
 - [`CONTRIBUTING.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/CONTRIBUTING.md) — development workflow.
 - [`CODE_OF_CONDUCT.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/CODE_OF_CONDUCT.md) — community standards.
@@ -566,6 +567,8 @@ Related packages and engines:
 - Python: [`python`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/python) (PyPI: `gmeow-gts`)
 - Go: [`go`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/go)
 - TypeScript/npm: [`ts`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/ts) (`@blackcatinformatics/gmeow-gts`)
+- Smalltalk/Pharo: [`smalltalk`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/smalltalk)
+- Kotlin/JVM: [`kotlin`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/kotlin)
 
 ---
 

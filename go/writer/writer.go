@@ -1,12 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-// Package writer implements a minimal deterministic GTS encoder.
+// Package writer implements the deterministic GTS writer for the Go 1.0 engine.
 //
 // The writer emits canonical CBOR and maintains the id/prev hash chain for
-// every appended frame. It is deliberately conservative: non-identity
-// transforms are left to the Python reference producer, while this package
-// covers deterministic authoring, signing, indexes, and streamable fixtures.
+// every appended frame. It covers deterministic graph authoring, files-profile
+// frames, COSE_Sign1 frame signatures, index frames, and streamable fixtures.
+// Transform encoding stays explicit: this package records identity payloads and
+// rejects non-identity transform names instead of guessing at compressed or
+// encrypted frame bytes.
 package writer
 
 import (
@@ -164,7 +166,7 @@ func (w *Writer) AddFrame(
 		}
 		for _, name := range transform {
 			if name != "identity" {
-				panic("non-identity transforms require the Python producer")
+				panic("non-identity transforms are not encoded by the Go writer")
 			}
 		}
 		var source []byte
