@@ -159,9 +159,13 @@ GtsCompact class >> writeGraph: graph shiftedBy: base on: writer [
 			quad collect: [ :termId | termId + base ] ]) ].
 	graph reifiers isEmpty ifFalse: [
 		writer addReifiers: (graph reifiers collect: [ :entry |
-			Dictionary newFromPairs: {
+			| shifted |
+			shifted := Dictionary newFromPairs: {
 				'rid'. (entry at: 'rid') + base.
-				'spo'. ((entry at: 'spo') collect: [ :termId | termId + base ]) } ]) ].
+				'spo'. ((entry at: 'spo') collect: [ :termId | termId + base ]) }.
+			(entry at: 'graph' ifAbsent: [ nil ]) ifNotNil: [ :graphId |
+				shifted at: 'graph' put: graphId + base ].
+			shifted ]) ].
 	graph annotations isEmpty ifFalse: [
 		writer addAnnotations: (graph annotations collect: [ :row |
 			row collect: [ :termId | termId + base ] ]) ].

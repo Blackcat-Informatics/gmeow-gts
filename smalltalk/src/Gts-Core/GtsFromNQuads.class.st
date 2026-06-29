@@ -105,16 +105,23 @@ GtsFromNQuads class >> parseStatements: text [
 ]
 
 { #category : #private }
-GtsFromNQuads class >> setReifier: reifierId spo: spo in: reifiers [
+GtsFromNQuads class >> setReifier: reifierId spo: spo graph: graphId in: reifiers [
+	| entry |
 	1 to: reifiers size do: [ :index |
-		((reifiers at: index) at: 'rid') = reifierId ifTrue: [
-			reifiers at: index put: (Dictionary newFromPairs: {
-				'rid'. reifierId.
-				'spo'. spo }).
-			^ self ] ].
-	reifiers add: (Dictionary newFromPairs: {
+		(((reifiers at: index) at: 'rid') = reifierId
+			and: [ ((reifiers at: index) at: 'spo') = spo
+			and: [ ((reifiers at: index) at: 'graph' ifAbsent: [ nil ]) = graphId ] ])
+			ifTrue: [ ^ self ] ].
+	entry := Dictionary newFromPairs: {
 		'rid'. reifierId.
-		'spo'. spo })
+		'spo'. spo }.
+	graphId ifNotNil: [ entry at: 'graph' put: graphId ].
+	reifiers add: entry
+]
+
+{ #category : #private }
+GtsFromNQuads class >> setReifier: reifierId spo: spo in: reifiers [
+	^ self setReifier: reifierId spo: spo graph: nil in: reifiers
 ]
 
 { #category : #converting }
@@ -130,11 +137,12 @@ GtsFromNQuads class >> fromString: text [
 		predicate := nodes at: 2.
 		object := nodes at: 3.
 		graphName := nodes size = 4 ifTrue: [ nodes at: 4 ] ifFalse: [ nil ].
-		(graphName isNil
-			and: [ (self isAtom: subject)
-			and: [ (self isAtom: predicate kind: #iri)
-			and: [ (predicate at: 'value') = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies'
-			and: [ self isTriple: object ] ] ] ])
+		((self isAtom: subject)
+			and: [
+				(self isAtom: predicate kind: #iri)
+					and: [
+						((predicate at: 'value') = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies')
+							and: [ self isTriple: object ] ] ])
 			ifTrue: [
 				self
 					setReifier: (self atom: subject in: interner)
@@ -142,6 +150,7 @@ GtsFromNQuads class >> fromString: text [
 						self node: (object at: 's') in: interner reifiers: reifiers.
 						self node: (object at: 'p') in: interner reifiers: reifiers.
 						self node: (object at: 'o') in: interner reifiers: reifiers }
+					graph: (graphName ifNotNil: [ self node: graphName in: interner reifiers: reifiers ])
 					in: reifiers ]
 			ifFalse: [
 				| quad |

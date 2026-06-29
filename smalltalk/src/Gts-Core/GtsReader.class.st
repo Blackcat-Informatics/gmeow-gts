@@ -61,6 +61,39 @@ GtsReader class >> checkPositionsForQuad: row in: graph index: frameIndex [
 	^ valid
 ]
 
+{ #category : #private }
+GtsReader class >> checkPositionsForReifier: row in: graph index: frameIndex [
+	| graphId object predicate subject termCount valid |
+	subject := row at: 2.
+	predicate := row at: 3.
+	object := row at: 4.
+	graphId := row size >= 5 ifTrue: [ row at: 5 ] ifFalse: [ nil ].
+	termCount := graph terms size.
+	valid := subject < termCount
+		and: [ predicate < termCount
+		and: [ object < termCount
+		and: [ graphId isNil or: [ graphId < termCount ] ] ] ].
+	valid ifFalse: [
+		graph addDiagnostic: (GtsDiagnostic
+			code: 'PositionConstraint'
+			detail: 'reifier row has out-of-range term ids'
+			frameIndex: frameIndex).
+		^ false ].
+	valid := (graph termAtId: predicate) kind = #iri.
+	(graph termAtId: subject) kind = #literal ifTrue: [ valid := false ].
+	graphId ifNotNil: [
+		| graphKind |
+		graphKind := (graph termAtId: graphId) kind.
+		((graphKind = #literal) or: [ graphKind = #triple ])
+			ifTrue: [ valid := false ] ].
+	valid ifFalse: [
+		graph addDiagnostic: (GtsDiagnostic
+			code: 'PositionConstraint'
+			detail: 'reifier row violates term positions'
+			frameIndex: frameIndex) ].
+	^ valid
+]
+
 { #category : #codecs }
 GtsReader class >> decodeChain: codecs data: encodedData [
 	| current |
@@ -94,35 +127,49 @@ GtsReader class >> decodeChain: codecs data: encodedData [
 
 { #category : #folding }
 GtsReader class >> foldAnnot: payload into: graph index: frameIndex [
-	payload isArray ifTrue: [
-		payload do: [ :row |
-			| badIds object predicate reifier termCount |
-			(row isArray and: [ row size = 3 ]) ifTrue: [
-				reifier := self asIndex: (row at: 1).
-				predicate := self asIndex: (row at: 2).
-				object := self asIndex: (row at: 3).
-				termCount := graph terms size.
-				badIds := reifier isNil
-					or: [ predicate isNil
-					or: [ object isNil
-					or: [ reifier >= termCount
+	payload isArray ifFalse: [ ^ self ].
+	payload do: [ :row |
+		| annotation badIds graphId graphKind object predicate reifier termCount |
+		(row isArray and: [ (row size = 3) or: [ (row size = 4) ] ]) ifTrue: [
+			reifier := self asIndex: (row at: 1).
+			predicate := self asIndex: (row at: 2).
+			object := self asIndex: (row at: 3).
+			graphId := (row size = 4) ifTrue: [ self asIndex: (row at: 4) ] ifFalse: [ nil ].
+			termCount := graph terms size.
+			badIds := reifier isNil or: [ predicate isNil or: [ object isNil ] ].
+			badIds ifFalse: [
+				badIds := reifier >= termCount
 					or: [ predicate >= termCount
-					or: [ object >= termCount ] ] ] ] ].
-				badIds
-					ifTrue: [
-						graph addDiagnostic: (GtsDiagnostic
-							code: 'DamagedFrame'
-							detail: 'annot row has bad/out-of-range ids'
-							frameIndex: frameIndex) ]
-					ifFalse: [
-						(graph termAtId: predicate) kind = #iri
-							ifFalse: [
-								graph addDiagnostic: (GtsDiagnostic
-									code: 'PositionConstraint'
-									detail: 'annot predicate is not an IRI'
-									frameIndex: frameIndex) ]
-							ifTrue: [ graph addAnnotation: { reifier. predicate. object } ] ] ] ] ]
-]
+					or: [ object >= termCount ] ] ].
+			((row size = 4) and: [ graphId isNil or: [ graphId >= termCount ] ])
+				ifTrue: [ badIds := true ].
+			badIds
+				ifTrue: [
+					graph addDiagnostic: (GtsDiagnostic
+						code: 'DamagedFrame'
+						detail: 'annot row has bad/out-of-range ids'
+						frameIndex: frameIndex) ]
+				ifFalse: [
+					(graph termAtId: predicate) kind = #iri
+						ifFalse: [
+							graph addDiagnostic: (GtsDiagnostic
+								code: 'PositionConstraint'
+								detail: 'annot predicate is not an IRI'
+								frameIndex: frameIndex) ]
+						ifTrue: [
+							graphKind := graphId ifNotNil: [ (graph termAtId: graphId) kind ].
+							(graphId notNil and: [ (graphKind = #literal) or: [ graphKind = #triple ] ])
+								ifTrue: [
+									graph addDiagnostic: (GtsDiagnostic
+										code: 'PositionConstraint'
+										detail: 'annot graph name is not an IRI or blank node'
+										frameIndex: frameIndex) ]
+								ifFalse: [
+									annotation := graphId
+										ifNil: [ { reifier. predicate. object } ]
+										ifNotNil: [ { reifier. predicate. object. graphId } ].
+									graph addAnnotation: annotation ] ] ] ] ]
+	]
 
 { #category : #folding }
 GtsReader class >> foldBlob: payload frame: frame into: graph index: frameIndex blobEvents: blobEvents described: described [
@@ -252,28 +299,37 @@ GtsReader class >> foldQuads: rows into: graph index: frameIndex described: desc
 
 { #category : #folding }
 GtsReader class >> foldReifies: payload into: graph index: frameIndex [
-	payload isDictionary ifFalse: [ ^ self ].
-	payload associationsDo: [ :association |
-		| existing object predicate reifier spo subject termCount |
-		reifier := self asIndex: association key.
-		spo := association value.
-		(spo isArray and: [ spo size = 3 ]) ifTrue: [
-			subject := self asIndex: (spo at: 1).
-			predicate := self asIndex: (spo at: 2).
-			object := self asIndex: (spo at: 3).
+	payload isArray ifFalse: [
+		graph addDiagnostic: (GtsDiagnostic
+			code: 'DamagedFrame'
+			detail: 'reifies payload must be a row array'
+			frameIndex: frameIndex).
+		^ self ].
+	payload do: [ :row |
+		| badIds existing graphId object predicate reifier subject termCount |
+		(row isArray and: [ (row size = 4) or: [ (row size = 5) ] ]) ifTrue: [
+			reifier := self asIndex: (row at: 1).
+			subject := self asIndex: (row at: 2).
+			predicate := self asIndex: (row at: 3).
+			object := self asIndex: (row at: 4).
+			graphId := (row size = 5) ifTrue: [ self asIndex: (row at: 5) ] ifFalse: [ nil ].
 			termCount := graph terms size.
-			(reifier isNil
+			badIds := reifier isNil
 				or: [ subject isNil
 				or: [ predicate isNil
-				or: [ object isNil
-				or: [ reifier >= termCount
-				or: [ subject >= termCount
-				or: [ predicate >= termCount
-				or: [ object >= termCount ] ] ] ] ] ] ])
+				or: [ object isNil ] ] ].
+			badIds ifFalse: [
+				badIds := reifier >= termCount
+					or: [ subject >= termCount
+					or: [ predicate >= termCount
+					or: [ object >= termCount ] ] ] ].
+			((row size = 5) and: [ graphId isNil or: [ graphId >= termCount ] ])
+				ifTrue: [ badIds := true ].
+			badIds
 				ifTrue: [
 					graph addDiagnostic: (GtsDiagnostic
 						code: 'DamagedFrame'
-						detail: 'reifier has bad/out-of-range ids'
+						detail: 'reifies row has bad/out-of-range ids'
 						frameIndex: frameIndex) ]
 				ifFalse: [
 					existing := graph reifierFor: reifier.
@@ -283,8 +339,14 @@ GtsReader class >> foldReifies: payload into: graph index: frameIndex [
 								code: 'ConflictingReifier'
 								detail: 'reifier rebound'
 								frameIndex: frameIndex) ]
-						ifFalse: [ graph setReifier: reifier to: { subject. predicate. object } ] ] ] ]
-]
+						ifFalse: [
+							(self checkPositionsForReifier: row in: graph index: frameIndex)
+								ifTrue: [
+									graph
+										setReifier: reifier
+										to: { subject. predicate. object }
+										graph: graphId ] ] ] ] ]
+	]
 
 { #category : #folding }
 GtsReader class >> foldSnapshot: payload into: graph index: frameIndex blobEvents: blobEvents described: described [
@@ -304,12 +366,14 @@ GtsReader class >> foldSnapshot: payload into: graph index: frameIndex blobEvent
 				described: described ] ].
 	(payload at: 'reifies' ifAbsent: [ nil ]) ifNotNil: [ :reifiesPayload |
 		reifiesPayload isDictionary ifTrue: [
-			| shifted |
-			shifted := Dictionary new.
-			reifiesPayload associationsDo: [ :association |
-				shifted at: (self shiftedValue: association key by: base)
-					put: (self shiftedRow: association value by: base) ].
-			self foldReifies: shifted into: graph index: frameIndex ] ].
+			graph addDiagnostic: (GtsDiagnostic
+				code: 'DamagedFrame'
+				detail: 'snapshot reifies payload must be a row array'
+				frameIndex: frameIndex) ].
+		reifiesPayload isArray ifTrue: [
+			self foldReifies: (reifiesPayload collect: [ :row | self shiftedRow: row by: base ])
+				into: graph
+				index: frameIndex ] ].
 	(payload at: 'annot' ifAbsent: [ nil ]) ifNotNil: [ :annotPayload |
 		annotPayload isArray ifTrue: [
 			self foldAnnot: (annotPayload collect: [ :row | self shiftedRow: row by: base ])
@@ -772,7 +836,9 @@ GtsReader class >> unionSegments: segments [
 			output
 				setReifier: (self mapTerm: (entry at: 'rid') from: segment segmentIndex: segmentIndex into: output intern: intern)
 				to: ((entry at: 'spo') collect: [ :termId |
-					self mapTerm: termId from: segment segmentIndex: segmentIndex into: output intern: intern ]) ].
+					self mapTerm: termId from: segment segmentIndex: segmentIndex into: output intern: intern ])
+				graph: ((entry at: 'graph' ifAbsent: [ nil ]) ifNotNil: [ :graphId |
+					self mapTerm: graphId from: segment segmentIndex: segmentIndex into: output intern: intern ]) ].
 		segment annotations do: [ :annotation |
 			output addAnnotation: (annotation collect: [ :termId |
 				self mapTerm: termId from: segment segmentIndex: segmentIndex into: output intern: intern ]) ].
