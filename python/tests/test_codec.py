@@ -8,7 +8,7 @@ import gzip
 
 import pytest
 
-from gts.codec import _MAX_ZSTD_DECODED_SIZE, Codec, decode_chain, encode_chain
+from gts.codec import Codec, decode_chain, encode_chain
 
 
 def _rdf_snapshot_payload(rows: int = 140_000) -> bytes:
@@ -112,15 +112,19 @@ def test_high_level_zstd_rsyncable_beats_gzip9_on_rdf_snapshot() -> None:
     zstd_rsyncable_19 = encode_chain(["zstd-rsyncable"], data, zstd_level=19)
 
     assert len(zstd_rsyncable_19) <= len(gzip9)
+    decoded = decode_chain([Codec("zstd-rsyncable", "compress")], zstd_rsyncable_19)
+    assert decoded == data
 
 
-def test_zstd_decode_rejects_outputs_over_safety_bound() -> None:
-    """The shared zstd decode path enforces the cross-engine 16 MiB limit."""
-    data = b"\0" * (_MAX_ZSTD_DECODED_SIZE + 1)
-    encoded = encode_chain(["zstd"], data)
+@pytest.mark.parametrize("codec_name", ["zstd", "zstd-rsyncable"])
+def test_zstd_decode_accepts_outputs_over_former_safety_bound(
+    codec_name: str,
+) -> None:
+    """The shared zstd decode path accepts payloads above the old 16 MiB cap."""
+    data = b"\0" * (16 * 1024 * 1024 + 1)
+    encoded = encode_chain([codec_name], data)
 
-    with pytest.raises(ValueError, match="decompressed size exceeds safety bound"):
-        decode_chain([Codec("zstd", "compress")], encoded)
+    assert decode_chain([Codec(codec_name, "compress")], encoded) == data
 
 
 def test_gzip_encoding_uses_zero_mtime() -> None:

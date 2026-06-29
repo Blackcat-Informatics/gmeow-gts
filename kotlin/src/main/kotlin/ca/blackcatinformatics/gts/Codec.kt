@@ -4,13 +4,15 @@
 package ca.blackcatinformatics.gts
 
 import com.github.luben.zstd.Zstd
+import com.github.luben.zstd.ZstdInputStream
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
-const val MAX_DECOMPRESSED_BYTES = 16 * 1024 * 1024
+private const val DEFAULT_ZSTD_STREAM_CAPACITY = 64 * 1024
+private const val MAX_ZSTD_PREALLOCATED_BYTES = 16 * 1024 * 1024
 
 data class Codec(val name: String, val cls: String)
 
@@ -65,9 +67,6 @@ private fun gunzip(data: ByteArray): ByteArray =
                 val n = input.read(buf)
                 if (n < 0) break
                 out.write(buf, 0, n)
-                if (out.size() > MAX_DECOMPRESSED_BYTES) {
-                    throw CodecException("decoded payload exceeds safety limit", "damaged", true)
-                }
             }
             out.toByteArray()
         }
@@ -75,21 +74,25 @@ private fun gunzip(data: ByteArray): ByteArray =
         throw CodecException("gzip decode failed: ${err.message}", "damaged", true, err)
     }
 
-private fun zstdDecompress(data: ByteArray): ByteArray {
-    val declared = Zstd.decompressedSize(data)
-    if (declared > MAX_DECOMPRESSED_BYTES) {
-        throw CodecException("decoded payload exceeds safety limit", "damaged", true)
-    }
-    if (declared > 0) {
-        val out = Zstd.decompress(data, declared.toInt())
-        if (Zstd.isError(out.size.toLong())) {
-            throw CodecException("zstd decode failed", "damaged", true)
+private fun zstdDecompress(data: ByteArray): ByteArray =
+    try {
+        ZstdInputStream(ByteArrayInputStream(data)).use { input ->
+            val declared = Zstd.getFrameContentSize(data)
+            val initialCapacity =
+                if (declared in 1..MAX_ZSTD_PREALLOCATED_BYTES.toLong()) {
+                    declared.toInt()
+                } else {
+                    DEFAULT_ZSTD_STREAM_CAPACITY
+                }
+            val out = ByteArrayOutputStream(initialCapacity)
+            val buf = ByteArray(8192)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                out.write(buf, 0, n)
+            }
+            out.toByteArray()
         }
-        return out
+    } catch (err: IOException) {
+        throw CodecException("zstd decode failed: ${err.message}", "damaged", true, err)
     }
-    val out = Zstd.decompress(data, MAX_DECOMPRESSED_BYTES)
-    if (Zstd.isError(out.size.toLong())) {
-        throw CodecException("zstd decode failed", "damaged", true)
-    }
-    return out
-}
