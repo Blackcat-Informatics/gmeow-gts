@@ -649,6 +649,16 @@ impl Writer {
                 "transform/encrypt requires a payload or raw source".to_string(),
             ));
         }
+        if options.zstd_level.is_some()
+            && !options
+                .transform
+                .iter()
+                .any(|name| matches!(name.as_str(), "zstd" | "zstd-rsyncable"))
+        {
+            return Err(WriterError::InvalidFrame(
+                "zstd_level requires a zstd or zstd-rsyncable transform".to_string(),
+            ));
+        }
         let mut frame: Vec<(Value, Value)> = vec![("t".into(), frame_type.into())];
 
         #[cfg(not(target_arch = "wasm32"))]

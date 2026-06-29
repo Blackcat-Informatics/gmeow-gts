@@ -119,6 +119,25 @@ fn writer_applies_zstd_level_per_frame() {
 }
 
 #[test]
+fn writer_rejects_zstd_level_without_zstd_transform() {
+    let mut writer = Writer::new("generic");
+    let err = writer
+        .add_frame_with_options(
+            "meta",
+            FrameOptions {
+                payload: Some(text_map("payload", "visible")),
+                zstd_level: Some(19),
+                ..FrameOptions::default()
+            },
+        )
+        .expect_err("zstd_level requires a zstd transform");
+
+    assert!(err
+        .to_string()
+        .contains("zstd_level requires a zstd or zstd-rsyncable transform"));
+}
+
+#[test]
 fn encrypted_writer_frame_is_opaque_without_key_and_clear_with_key() {
     let key = [7u8; 32];
     let mut writer = Writer::new("opaque");

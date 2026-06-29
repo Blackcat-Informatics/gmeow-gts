@@ -393,6 +393,8 @@ def test_writer_rejects_ambiguous_payload() -> None:
         w.add_frame("meta", payload={"a": 1}, raw=b"x")
     with pytest.raises(ValueError, match="requires a payload"):
         w.add_frame("meta", transform=["zstd"])
+    with pytest.raises(ValueError, match="zstd_level requires"):
+        w.add_frame("meta", payload={"a": 1}, zstd_level=19)
 
 
 def test_nquads_escapes_control_chars() -> None:
