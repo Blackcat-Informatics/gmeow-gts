@@ -46,7 +46,6 @@ impl fmt::Display for CodecError {
 
 impl std::error::Error for CodecError {}
 
-const MAX_ZSTD_DECODED_SIZE: usize = 16 * 1024 * 1024;
 const DEFAULT_ZSTD_LEVEL: CompressionLevel = CompressionLevel::Fastest;
 
 /// Encoder options for transform chains.
@@ -82,22 +81,22 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
         }
         "zstd" | "zstd-rsyncable" => {
             let mut decoder = FrameDecoder::new();
-            // Start with a generous expansion factor and allow bounded growth.
-            let mut capacity = data
-                .len()
-                .saturating_mul(4)
-                .clamp(4096, MAX_ZSTD_DECODED_SIZE);
+            // Start with a generous expansion factor and grow until the frame fits.
+            let mut capacity = data.len().saturating_mul(4).max(4096);
             loop {
-                let mut out = Vec::with_capacity(capacity);
+                let mut out = Vec::new();
+                out.try_reserve(capacity).map_err(|e| {
+                    CodecError::Failed(format!("zstd decode failed: output allocation failed: {e}"))
+                })?;
                 match decoder.decode_all_to_vec(data, &mut out) {
                     Ok(()) => return Ok(out),
                     Err(FrameDecoderError::TargetTooSmall) => {
-                        if capacity >= MAX_ZSTD_DECODED_SIZE {
-                            return Err(CodecError::Failed(
-                                "zstd decode failed: decompressed size exceeds safety bound".into(),
-                            ));
-                        }
-                        capacity = (capacity * 2).min(MAX_ZSTD_DECODED_SIZE);
+                        capacity = capacity.checked_mul(2).ok_or_else(|| {
+                            CodecError::Failed(
+                                "zstd decode failed: decoded output is too large for this platform"
+                                    .into(),
+                            )
+                        })?;
                         continue;
                     }
                     Err(e) => return Err(CodecError::Failed(format!("zstd decode failed: {e}"))),
@@ -306,8 +305,8 @@ mod tests {
     }
 
     #[test]
-    fn zstd_decode_grows_until_safety_bound() {
-        let payload = vec![b'x'; 2 * 1024 * 1024];
+    fn zstd_decode_accepts_payloads_over_former_safety_bound() {
+        let payload = vec![b'x'; 16 * 1024 * 1024 + 1];
         let encoded = encode_chain(&["zstd".to_string()], &payload).expect("zstd encodes");
         let decoded = decode_chain(
             &[Codec {
@@ -316,7 +315,7 @@ mod tests {
             }],
             &encoded,
         )
-        .expect("zstd decoder grows beyond the initial output capacity");
+        .expect("zstd decoder grows past the former fixed output cap");
 
         assert_eq!(decoded, payload);
     }

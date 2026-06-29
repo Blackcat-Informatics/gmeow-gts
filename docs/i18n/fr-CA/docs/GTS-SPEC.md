@@ -1790,7 +1790,7 @@ est noté comme une extension future possible, non requise pour la conformité v
 
 - La compaction par instantané (snapshot) (§10) détruit les signatures originales ; un artefact `evidence` NE DOIT PAS (MUST NOT) faire l'objet d'une compaction par instantané. La compaction diffusable en continu (§10.1) détache les signatures de trame plutôt que de les détruire, mais la chaîne réordonnée n'est attestée que par le compacteur ; un artefact `evidence` NE DOIT PAS (MUST NOT) faire l'objet d'une compaction diffusable en continu, sauf en scellant l'original textuellement (verbatim) (§10.1), et la confiance d'un consommateur dans l'**ordonnancement** d'un fichier compacté est une confiance envers le compacteur.
 
-- La décompression de trames fournies par un attaquant DOIT (MUST) être limitée (résistance aux bombes de décompression / zip-bomb) ; les lecteurs DEVRAIENT (SHOULD) plafonner les tailles décodées.
+- La décompression de trames fournies par un attaquant DOIT (MUST) être limitée par le streaming, la contre-pression, la politique de stockage ou l'échec d'allocation de la plateforme, mais les lecteurs NE DOIVENT PAS (MUST NOT) rejeter une trame uniquement parce que sa charge utile décodée dépasse un plafond fixe d'octets au niveau du codec.
 
 - Le GTS imbriqué (§12.1) DOIT (MUST) être limité : les lecteurs DOIVENT (MUST) appliquer une profondeur de récursion maximale et un budget de taille totale décodée pour tous les niveaux d'imbrication (résistance aux bombes matriochka).
 

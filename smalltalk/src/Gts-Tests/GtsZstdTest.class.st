@@ -12,13 +12,6 @@ GtsZstdTest >> testInvalidZstdBytesRaiseError [
 ]
 
 { #category : #tests }
-GtsZstdTest >> testRejectsOversizedExpectedDecompression [
-	self
-		should: [ GtsZstd decompress: #[1 2 3 4] expectedSize: GtsZstd maxDecompressedBytes + 1 ]
-		raise: Error
-]
-
-{ #category : #tests }
 GtsZstdTest >> testNativeVersionIsAvailable [
 	self assert: GtsZstd versionNumber > 0.
 	self
@@ -30,6 +23,16 @@ GtsZstdTest >> testNativeVersionIsAvailable [
 GtsZstdTest >> testRoundTripBytesThroughNativeZstd [
 	| compressed payload restored |
 	payload := 'Graph Transport Substrate zstd FFI smoke test' utf8Encoded.
+	compressed := GtsZstd compress: payload.
+	self assert: (GtsZstd frameContentSizeFor: compressed) equals: payload size.
+	restored := GtsZstd decompress: compressed.
+	self assert: restored equals: payload
+]
+
+{ #category : #tests }
+GtsZstdTest >> testRoundTripBytesAboveFormerSafetyBound [
+	| compressed payload restored |
+	payload := ByteArray new: (16 * 1024 * 1024 + 1).
 	compressed := GtsZstd compress: payload.
 	self assert: (GtsZstd frameContentSizeFor: compressed) equals: payload size.
 	restored := GtsZstd decompress: compressed.

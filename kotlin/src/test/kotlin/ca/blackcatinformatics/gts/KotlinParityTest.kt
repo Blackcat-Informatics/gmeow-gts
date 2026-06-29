@@ -18,6 +18,7 @@ import kotlin.io.path.readBytes
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -44,6 +45,16 @@ class KotlinParityTest {
         val nq = toNQuads(src)
         val roundTrip = toNQuads(read(fromNQuads(nq), false))
         assertEquals(nq.trim().lines().sorted(), roundTrip.trim().lines().sorted())
+    }
+
+    @Test
+    fun zstdDecodesPayloadAboveFormerSafetyBound() {
+        val payload = ByteArray(16 * 1024 * 1024 + 1)
+        val encoded = encodeChain(listOf(Codec("zstd", "compress")), payload)
+        val decoded = decodeChain(listOf(Codec("zstd", "compress")), encoded)
+
+        assertEquals(payload.size, decoded.size)
+        assertContentEquals(payload, decoded)
     }
 
     @Test

@@ -4,14 +4,14 @@
 package codec
 
 import (
-	"strings"
+	"bytes"
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
 )
 
-func TestZstdDecodeRejectsOutputsOverSafetyBound(t *testing.T) {
-	payload := make([]byte, maxZstdDecodedSize+1)
+func TestZstdDecodeAcceptsOutputsOverFormerSafetyBound(t *testing.T) {
+	payload := make([]byte, 16*1024*1024+1)
 	encoder, err := zstd.NewWriter(nil)
 	if err != nil {
 		t.Fatalf("zstd writer: %v", err)
@@ -21,11 +21,11 @@ func TestZstdDecodeRejectsOutputsOverSafetyBound(t *testing.T) {
 		t.Fatalf("close zstd writer: %v", err)
 	}
 
-	_, err = DecodeChain([]*Codec{{Name: "zstd", Cls: "compress"}}, encoded)
-	if err == nil {
-		t.Fatal("expected over-limit zstd decode to fail")
+	out, err := DecodeChain([]*Codec{{Name: "zstd", Cls: "compress"}}, encoded)
+	if err != nil {
+		t.Fatalf("expected over-former-limit zstd decode to succeed: %v", err)
 	}
-	if !strings.Contains(err.Error(), "decompressed size exceeds safety bound") {
-		t.Fatalf("unexpected error: %v", err)
+	if !bytes.Equal(out, payload) {
+		t.Fatalf("decoded payload mismatch: got %d bytes, want %d", len(out), len(payload))
 	}
 }

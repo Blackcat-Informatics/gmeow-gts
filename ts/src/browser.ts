@@ -75,8 +75,6 @@ export type {
     BrowserSigStatus,
 } from "./browser_crypto.js";
 
-const MAX_ZSTD_DECODED_SIZE = 16 * 1024 * 1024;
-
 type EventSink = (event: BrowserFoldEvent) => void | Promise<void>;
 
 /** Options for browser ReadableStream folding. */
@@ -1482,15 +1480,7 @@ async function decodeOne(
         case "zstd":
         case "zstd-rsyncable":
             try {
-                const decoded = zstdDecompress(data);
-                if (decoded.length > MAX_ZSTD_DECODED_SIZE) {
-                    throw new BrowserCodecError(
-                        "damaged",
-                        "zstd decode failed: decompressed size exceeds safety bound",
-                        true,
-                    );
-                }
-                return decoded;
+                return zstdDecompress(data);
             } catch (e) {
                 if (e instanceof BrowserCodecError) throw e;
                 throw new BrowserCodecError(

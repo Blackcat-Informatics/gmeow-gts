@@ -12,7 +12,7 @@ import { Writer, WriterError } from "../src/writer.js";
 import { Read } from "../src/reader.js";
 import { unionSegments } from "../src/reader_union.js";
 import { toNQuads } from "../src/nquads.js";
-import { decodeChain, gzip, identity, isCodecError } from "../src/codec.js";
+import { decodeChain, gzip, identity } from "../src/codec.js";
 import { ReplicationError, resumeAfter } from "../src/replication.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -85,7 +85,7 @@ test("codec zstd decodes the zstd corpus vector", () => {
     assert.ok(g.quads.length > 0);
 });
 
-test("codec zstd rejects outputs over the safety bound", () => {
+test("codec zstd accepts outputs over the former safety bound", () => {
     const encoded = Uint8Array.from(
         Buffer.from(
             "KLUv/YBYAQAAAVQAABAAAAEA+/85wAICABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAAAgAQAAIAEAACABAACQAAAA==",
@@ -93,13 +93,8 @@ test("codec zstd rejects outputs over the safety bound", () => {
         ),
     );
 
-    assert.throws(
-        () => decodeChain([{ name: "zstd", cls: "compress" }], encoded),
-        (err: unknown) =>
-            isCodecError(err) &&
-            err.failed &&
-            err.detail.includes("decompressed size exceeds safety bound"),
-    );
+    const decoded = decodeChain([{ name: "zstd", cls: "compress" }], encoded);
+    assert.equal(decoded.length, 16 * 1024 * 1024 + 1);
 });
 
 test("writer produces a readable GTS log", () => {

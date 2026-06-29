@@ -17,8 +17,6 @@ import (
 	"github.com/klauspost/compress/zstd"
 )
 
-const maxZstdDecodedSize = 16 * 1024 * 1024
-
 // Codec is a catalog entry (§5, §8.5).
 type Codec struct {
 	// Name is the canonical codec name looked up from the segment catalog.
@@ -73,12 +71,9 @@ func decodeOne(codec *Codec, data []byte) ([]byte, error) {
 			return nil, &Error{Failed: true, Detail: fmt.Sprintf("zstd decoder init failed: %v", err)}
 		}
 		defer r.Close()
-		out, err := io.ReadAll(io.LimitReader(r, int64(maxZstdDecodedSize+1)))
+		out, err := io.ReadAll(r)
 		if err != nil {
 			return nil, &Error{Failed: true, Detail: fmt.Sprintf("zstd decode failed: %v", err)}
-		}
-		if len(out) > maxZstdDecodedSize {
-			return nil, &Error{Failed: true, Detail: "zstd decode failed: decompressed size exceeds safety bound"}
 		}
 		return out, nil
 	default:

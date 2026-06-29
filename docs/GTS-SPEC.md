@@ -1936,8 +1936,9 @@ is noted as a possible future extension, not required for v0.2 conformance.
   destroying them, but the re-ordered chain is attested only by the compactor; an `evidence`
   artifact MUST NOT be streamable-compacted except by sealing the original verbatim (§10.1),
   and a consumer's trust in the *ordering* of a compacted file is trust in the compactor.
-- Decompression of attacker-supplied frames MUST be bounded (zip-bomb resistance); readers
-  SHOULD cap decoded sizes.
+- Decompression of attacker-supplied frames MUST be resource-bounded by streaming,
+  backpressure, storage policy, or platform allocation failure, but readers MUST NOT reject
+  a frame solely because its decoded payload exceeds a fixed codec-level byte ceiling.
 - Nested GTS (§12.1) MUST be bounded: readers MUST enforce a maximum recursion depth and a
   total decoded-size budget across all nesting levels (matryoshka-bomb resistance).
 - **Segments are independently authentic, not mutually vouched.** Concatenation implies no
