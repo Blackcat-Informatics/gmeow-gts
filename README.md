@@ -425,8 +425,9 @@ Path("cat.gts").write_bytes(w.to_bytes())
 
 ### Rust
 
-Add `gmeow-gts = "0.9.11"` to `Cargo.toml`. Optional feature builds use the standard Cargo
-shape `gmeow-gts = { version = "0.9.11", default-features = false, features = [...] }`.
+For the 1.0 release line, add `gmeow-gts = "1.0"` to `Cargo.toml`. Optional feature builds
+use the standard Cargo shape
+`gmeow-gts = { version = "1.0", default-features = false, features = [...] }`.
 
 ```rust
 use std::fs;
@@ -450,6 +451,10 @@ APIs, encryption/signing, proof generation, RDF/store adapters, and database exp
 in [`rust/README.md`](./rust/README.md).
 
 ### Go
+
+Install the 1.0 command-line tool with
+`go install go.blackcatinformatics.ca/gts/cmd/gts@v1.0.0`, or import the same module path
+from Go services.
 
 ```go
 package main
@@ -976,7 +981,7 @@ in GitHub's attestation store. Verify provenance with
 `gh attestation verify <file> --repo Blackcat-Informatics/gmeow-gts`; verify the
 SBOM predicate with `--predicate-type https://spdx.dev/Document/v2.3`.
 Swift Package Manager publication uses the repository root `Package.swift`, the
-plain semantic-version tag lane such as `0.9.4`, and manual Swift Package Index
+plain semantic-version tag lane such as `1.0.0`, and manual Swift Package Index
 submission of `https://github.com/Blackcat-Informatics/gmeow-gts.git` after the
 tag exists.
 RubyGems publication uses RubyGems Trusted Publishing through GitHub Actions
@@ -1092,7 +1097,7 @@ For historical releases that predate SBOM and immutable-release hardening, pass
   separation, nested-GTS budgets, and v1 crypto deferrals.
 - [`docs/positioning.md`](./docs/positioning.md) — the project framing, narrow-waist
   architecture, application families, and engine feature matrix.
-- [`docs/gts-reference.md`](./docs/gts-reference.md) — Python reference-implementation guide.
+- [`docs/gts-reference.md`](./docs/gts-reference.md) — implementation notes, vector-corpus guidance, and release engineering details.
 - Per-engine and wrapper READMEs live in [`rust/`](./rust/README.md),
   [`python/`](./python/README.md), [`go/`](./go/README.md), [`ts/`](./ts/README.md),
   [`smalltalk/`](./smalltalk/README.md), [`kotlin/`](./kotlin/README.md),

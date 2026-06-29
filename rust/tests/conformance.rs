@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! Gate this crate against the frozen language-neutral conformance corpus
-//! (GTS-SPEC §18): `vectors/*.gts` + `*.expected.json`, both
-//! committed and drift-gated on the Python side. The Python reference oracle
-//! and this crate must produce IDENTICAL summaries from the same bytes.
+//! (GTS-SPEC §19): `vectors/*.gts` + `*.expected.json`. The Rust engine and
+//! every other full engine in the 1.0 release set must produce IDENTICAL
+//! summaries from the same bytes.
 
 use std::fs;
 use std::path::Path;

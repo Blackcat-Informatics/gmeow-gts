@@ -10,8 +10,9 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 The Go implementation of the **Graph Transport Substrate (GTS)** — a single-file,
 content-addressed, append-only transport for RDF 1.2 graphs and the binaries they
-reference. This module ships the baseline reader, a files-profile writer, and the
-`gts` command-line tool.
+reference. This module ships the Go 1.0 engine: a total reader, streaming reader,
+deterministic writer, files-profile helpers, COSE/OpenPGP support, RDF text codecs,
+replication helpers, and the `gts` command-line tool.
 
 GTS encodes a graph as an **append-only log of CBOR frames**; the logical graph is the
 *fold* (replay) of the log. Concatenating two valid GTS files (`cat`) yields a valid
@@ -34,8 +35,9 @@ data item.
    is just bytes, so a payload MAY itself be a complete signed GTS.
 
 This is one of **six interoperable full engines** (Rust, Python, Go, TypeScript,
-Smalltalk/Pharo, Kotlin/JVM) that all gate against one frozen, byte-exact conformance corpus —
-every engine folds identical bytes to identical N-Quads. See the
+Smalltalk/Pharo, Kotlin/JVM) in the GTS 1.0 release set. All six gate against one
+frozen, byte-exact conformance corpus: every engine folds identical bytes to identical
+N-Quads. See the
 [project README](https://github.com/Blackcat-Informatics/gmeow-gts#readme) for the
 cross-engine picture.
 
@@ -46,11 +48,11 @@ repository and release workflows keep the distinctive `gmeow-gts` package family
 ## Install
 
 ```bash
-go install go.blackcatinformatics.ca/gts/cmd/gts@latest
+go install go.blackcatinformatics.ca/gts/cmd/gts@v1.0.0
 ```
 
 The module path is `go.blackcatinformatics.ca/gts`. Releases are tagged in the
-`gmeow-gts` repository with the module subdirectory prefix, e.g. `go/v0.9.4`.
+`gmeow-gts` repository with the module subdirectory prefix, e.g. `go/v1.0.0`.
 
 ## Library quick start
 
@@ -174,7 +176,7 @@ refuses dirty inputs, contributes-nothing segments, and compositions whose suppr
 hide every folded quad.
 
 > The `to-sqlite` / `to-duckdb` / `to-parquet` relational exports remain Python/Rust
-> extensions and are **not** provided by the Go binary.
+> extension surfaces and are outside the Go 1.0 CLI.
 
 ## Signing & encryption
 
@@ -194,8 +196,8 @@ handling:
 
 ## Binary releases
 
-Pre-built binaries for Linux, macOS, and Windows are published to GitHub Releases when a
-`go/v*` tag is pushed. See the
+Pre-built 1.0-line binaries for Linux, macOS, and Windows are published to GitHub Releases
+when a `go/v*` tag is pushed. See the
 [releases page](https://github.com/Blackcat-Informatics/gmeow-gts/releases).
 
 ## Build and test
@@ -211,7 +213,7 @@ go test ./...        # unit + conformance against ../vectors/
 ## Layout
 
 - `cmd/gts` — `gts` CLI
-- `reader` / `writer` — baseline GTS reader and files-profile writer
+- `reader` / `writer` — total and streaming GTS readers plus deterministic writer
 - `files` / `wire` / `compact` / `nquads` / `fromnquads` — format plumbing
 - `model` / `stream` / `codec` — core data types and codecs
 - `cose` / `openpgp` / `emojihash` — COSE_Sign1/Encrypt0 and transport-key handling
@@ -221,7 +223,7 @@ go test ./...        # unit + conformance against ../vectors/
 - [`docs/GTS-SPEC.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md)
   — the authoritative, normative wire-format specification.
 - [`docs/gts-reference.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md)
-  — reference-implementation guide.
+  — implementation notes, vector-corpus guidance, and release engineering details.
 - [`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-ECOSYSTEM-INTEGRATIONS.md)
   — Go service/object-store integration examples and deferrals.
 - API reference: [pkg.go.dev/go.blackcatinformatics.ca/gts](https://pkg.go.dev/go.blackcatinformatics.ca/gts).
