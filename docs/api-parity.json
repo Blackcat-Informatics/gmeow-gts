@@ -220,7 +220,7 @@
       },
       "claims": {
         "Python": {"status": "supported", "evidence": [{"kind": "contains", "path": "python/src/gts/codec.py", "text": "\"zstd-rsyncable\""}]},
-        "Rust": {"status": "supported", "evidence": [{"kind": "contains", "path": "rust/Cargo.toml", "text": "ruzstd = \"0.8\""}]},
+	"Rust": {"status": "supported", "evidence": [{"kind": "contains", "path": "rust/Cargo.toml", "text": "structured-zstd = \"0.0.40\""}]},
         "Go": {"status": "supported", "evidence": [{"kind": "contains", "path": "go/codec/codec.go", "text": "github.com/klauspost/compress/zstd"}]},
         "TypeScript": {"status": "supported", "evidence": [{"kind": "contains", "path": "ts/src/codec.ts", "text": "fzstd"}]},
         "Smalltalk": {"status": "supported", "evidence": [{"kind": "smalltalk_class", "class": "GtsZstd"}]},

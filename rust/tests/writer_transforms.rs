@@ -4,7 +4,7 @@
 //! Rust writer transform/encryption parity with Python `Writer.add_frame`.
 
 use ciborium::value::Value;
-use gmeow_gts::codec::Codec;
+use gmeow_gts::codec::{decode_chain, Codec};
 use gmeow_gts::reader::{read, read_with_options, ReadOptions};
 use gmeow_gts::wire::{iter_items, map_get, unwrap_header};
 use gmeow_gts::writer::{Encrypt0Options, FrameOptions, Writer, WriterOptions};
@@ -31,6 +31,22 @@ fn meta_bool(graph: &gmeow_gts::model::Graph, key: &str) -> Option<bool> {
     })
 }
 
+fn frame_payload_bytes(data: &[u8]) -> Vec<Vec<u8>> {
+    let (items, torn) = iter_items(data);
+    assert_eq!(torn, None);
+    items
+        .iter()
+        .skip(1)
+        .map(|(_, item)| match item {
+            Value::Map(entries) => match map_get(entries, "d") {
+                Some(Value::Bytes(data)) => data.clone(),
+                other => panic!("frame missing byte payload: {other:?}"),
+            },
+            other => panic!("frame is not a map: {other:?}"),
+        })
+        .collect()
+}
+
 #[test]
 fn writer_authors_compressed_frames_that_fold_cleanly() {
     for codec in ["gzip", "zstd", "zstd-rsyncable"] {
@@ -53,6 +69,52 @@ fn writer_authors_compressed_frames_that_fold_cleanly() {
             graph.diagnostics
         );
         assert_eq!(meta_text(&graph, "codec").as_deref(), Some(codec));
+    }
+}
+
+#[test]
+fn writer_applies_zstd_level_per_frame() {
+    let payload = b"<https://ex/s> <https://ex/p> \"repeat repeat repeat\" .\n".repeat(4096);
+
+    for codec in ["zstd", "zstd-rsyncable"] {
+        let mut fast = Writer::new("generic");
+        fast.add_frame_with_options(
+            "blob",
+            FrameOptions {
+                raw: Some(payload.clone()),
+                transform: vec![codec.to_string()],
+                zstd_level: Some(1),
+                ..FrameOptions::default()
+            },
+        )
+        .expect("level 1 frame writes");
+        let mut high = Writer::new("generic");
+        high.add_frame_with_options(
+            "blob",
+            FrameOptions {
+                raw: Some(payload.clone()),
+                transform: vec![codec.to_string()],
+                zstd_level: Some(19),
+                ..FrameOptions::default()
+            },
+        )
+        .expect("level 19 frame writes");
+
+        let fast_payload = frame_payload_bytes(&fast.to_bytes()).remove(0);
+        let high_payload = frame_payload_bytes(&high.to_bytes()).remove(0);
+        assert!(
+            high_payload.len() <= fast_payload.len(),
+            "{codec}: level 19 should be no larger than level 1"
+        );
+        let decoded = decode_chain(
+            &[Codec {
+                name: codec.to_string(),
+                cls: "compress".into(),
+            }],
+            &high_payload,
+        )
+        .expect("levelled payload decodes");
+        assert_eq!(decoded, payload);
     }
 }
 

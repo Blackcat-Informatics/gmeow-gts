@@ -4,9 +4,25 @@
 
 from __future__ import annotations
 
+import gzip
+
 import pytest
 
 from gts.codec import _MAX_ZSTD_DECODED_SIZE, Codec, decode_chain, encode_chain
+
+
+def _rdf_snapshot_payload(rows: int = 140_000) -> bytes:
+    out = bytearray()
+    for i in range(rows):
+        out.extend(
+            (
+                f"<https://example.org/s/{i % 5000}> "
+                f"<https://example.org/p/{i % 40}> "
+                f'"value {i % 1000:04d} repeated repeated repeated" '
+                f"<https://example.org/g/{i % 10}> .\n"
+            ).encode()
+        )
+    return bytes(out)
 
 
 @pytest.mark.parametrize("codec_name", ["identity", "gzip", "zstd", "zstd-rsyncable"])
@@ -73,6 +89,29 @@ def test_zstd_rsyncable_decodes_via_zstd_path() -> None:
     # The codec's decode path treats zstd-rsyncable as zstd-compatible.
     decoded = decode_chain([Codec("zstd-rsyncable", "compress")], encoded)
     assert decoded == data
+
+
+@pytest.mark.parametrize("codec_name", ["zstd", "zstd-rsyncable"])
+def test_zstd_level_is_per_chain(codec_name: str) -> None:
+    """A caller-selected zstd level applies to both zstd codec names."""
+    data = b'<https://ex/s> <https://ex/p> "repeat repeat repeat" .\n' * 4096
+
+    fast = encode_chain([codec_name], data, zstd_level=1)
+    high = encode_chain([codec_name], data, zstd_level=19)
+
+    assert len(high) <= len(fast)
+    assert decode_chain([Codec(codec_name, "compress")], high) == data
+
+
+def test_high_level_zstd_rsyncable_beats_gzip9_on_rdf_snapshot() -> None:
+    """Level 19 zstd-rsyncable stays at or below gzip -9 for a large RDF frame."""
+    data = _rdf_snapshot_payload()
+    assert 16 * 1024 * 1024 <= len(data) <= 18 * 1024 * 1024
+
+    gzip9 = gzip.compress(data, compresslevel=9, mtime=0)
+    zstd_rsyncable_19 = encode_chain(["zstd-rsyncable"], data, zstd_level=19)
+
+    assert len(zstd_rsyncable_19) <= len(gzip9)
 
 
 def test_zstd_decode_rejects_outputs_over_safety_bound() -> None:

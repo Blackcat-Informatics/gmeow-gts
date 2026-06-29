@@ -15,9 +15,9 @@ import cbor2
 import pytest
 
 from gts import Term, TermKind, Writer, read, to_nquads
-from gts.codec import Codec
+from gts.codec import Codec, decode_chain
 from gts.model import RDF_LANG_STRING, XSD_STRING
-from gts.wire import canonical, content_id, header_id
+from gts.wire import canonical, content_id, header_id, iter_items
 
 # The frozen conformance corpus lives at <repo root>/vectors. This test file is
 # at <repo root>/python/tests/, so the corpus is two parents up. Reproduce it
@@ -30,6 +30,12 @@ LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
 def _diag_codes(graph: object) -> list[str]:
     return [d.code for d in graph.diagnostics]  # type: ignore[attr-defined]
+
+
+def _frame_payload_bytes(data: bytes) -> list[bytes]:
+    items, torn = iter_items(data)
+    assert torn is None
+    return [frame["d"] for _, frame in items[1:]]
 
 
 # -- Vector 1: minimal valid file --------------------------------------------
@@ -75,6 +81,31 @@ def test_gzip_frame() -> None:
     g = read(w.to_bytes())
     assert _diag_codes(g) == []
     assert g.quads == [(0, 1, 2, None)]
+
+
+def test_writer_applies_zstd_level_per_frame() -> None:
+    payload = b'<https://ex/s> <https://ex/p> "repeat repeat repeat" .\n' * 4096
+
+    for codec_name in ["zstd", "zstd-rsyncable"]:
+        fast = Writer()
+        fast.add_frame(
+            "blob",
+            raw=payload,
+            transform=[codec_name],
+            zstd_level=1,
+        )
+        high = Writer()
+        high.add_frame(
+            "blob",
+            raw=payload,
+            transform=[codec_name],
+            zstd_level=19,
+        )
+
+        fast_payload = _frame_payload_bytes(fast.to_bytes())[0]
+        high_payload = _frame_payload_bytes(high.to_bytes())[0]
+        assert len(high_payload) <= len(fast_payload)
+        assert decode_chain([Codec(codec_name, "compress")], high_payload) == payload
 
 
 # -- Vector 3: unknown codec -> opaque ---------------------------------------

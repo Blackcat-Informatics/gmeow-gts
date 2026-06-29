@@ -444,7 +444,10 @@ mod tests {
     use crate::wire::{digest_str, hex};
 
     fn zstd_bytes(data: &[u8]) -> Vec<u8> {
-        ruzstd::encoding::compress_to_vec(data, ruzstd::encoding::CompressionLevel::Uncompressed)
+        structured_zstd::encoding::compress_to_vec(
+            data,
+            structured_zstd::encoding::CompressionLevel::Uncompressed,
+        )
     }
 
     fn zstd_codec() -> Vec<Codec> {

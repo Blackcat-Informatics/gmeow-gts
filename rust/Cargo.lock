@@ -412,11 +412,11 @@ dependencies = [
  "libc",
  "oxsdatatypes",
  "quick-xml",
- "ruzstd",
  "serde",
  "serde_json",
  "serde_yaml",
  "sha1",
+ "structured-zstd",
  "tar",
  "time",
  "visual-hashing",
@@ -609,15 +609,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ruzstd"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7c1c839d570d835527c9a5e4db7cb2198683a988cb9d7293fc8674e6bd58fc8"
-dependencies = [
- "twox-hash",
-]
-
-[[package]]
 name = "ryu"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -736,6 +727,15 @@ checksum = "d91ed6c858b01f942cd56b37a94b3e0a1798290327d1236e4d9cf4eaca44d29d"
 dependencies = [
  "base64ct",
  "der",
+]
+
+[[package]]
+name = "structured-zstd"
+version = "0.0.40"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af7b9352cd002e0abc4d70cbf06656c8edd93f74a7f00fdafdb36c5a3bcd67ce"
+dependencies = [
+ "twox-hash",
 ]
 
 [[package]]
