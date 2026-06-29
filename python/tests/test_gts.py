@@ -592,6 +592,44 @@ def test_deterministic_writer_reorders_equivalent_graphs() -> None:
     )
 
 
+def test_deterministic_writer_sorts_mixed_graph_reifier_rows() -> None:
+    """Optional graph slots sort without comparing None and int directly."""
+    from gts.model import Graph
+
+    graph = Graph(
+        terms=[
+            Term(TermKind.IRI, "https://example.org/stmt"),
+            Term(TermKind.IRI, "https://example.org/s"),
+            Term(TermKind.IRI, "https://example.org/p"),
+            Term(TermKind.IRI, "https://example.org/o"),
+            Term(TermKind.IRI, "https://example.org/graph"),
+            Term(TermKind.IRI, "https://example.org/confidence"),
+            Term(TermKind.LITERAL, "0.9"),
+        ],
+        reifiers=[
+            (0, (1, 2, 3), None),
+            (0, (1, 2, 3), 4),
+        ],
+        annotations=[
+            (0, 5, 6, None),
+            (0, 5, 6, 4),
+        ],
+    )
+
+    folded = read(Writer.deterministic(graph, profile="dist").to_bytes())
+    lines = to_nquads(folded).splitlines()
+
+    reifier_lines = [line for line in lines if "rdf-syntax-ns#reifies" in line]
+    assert len(reifier_lines) == 2
+    assert any(line.endswith("<https://example.org/graph> .") for line in reifier_lines)
+    assert any(line.endswith(")>> .") for line in reifier_lines)
+
+    annot_lines = [line for line in lines if "<https://example.org/confidence>" in line]
+    assert len(annot_lines) == 2
+    assert any(line.endswith("<https://example.org/graph> .") for line in annot_lines)
+    assert any(line.endswith('"0.9" .') for line in annot_lines)
+
+
 def test_corpus_matches_committed_expectations() -> None:
     """The frozen corpus (generated/gts-vectors/) is the cross-implementation
     truth: the oracle must reproduce every committed .expected.json exactly.

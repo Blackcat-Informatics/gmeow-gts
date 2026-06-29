@@ -790,15 +790,18 @@ impl Folder<'_, '_, '_> {
         if let Some(Value::Array(quads)) = map_get(entries, "quads") {
             self.h_quads(&Value::Array(quads.iter().map(sh_row).collect()), index);
         }
-        if let Some(Value::Map(_)) = map_get(entries, "reifies") {
-            self.diag(
-                "DamagedFrame",
-                "snapshot reifies payload must be a row array".to_string(),
-                Some(index),
-            );
-        }
-        if let Some(Value::Array(reifies)) = map_get(entries, "reifies") {
-            self.h_reifies(&Value::Array(reifies.iter().map(sh_row).collect()), index);
+        match map_get(entries, "reifies") {
+            Some(Value::Map(_)) => {
+                self.diag(
+                    "DamagedFrame",
+                    "snapshot reifies payload must be a row array".to_string(),
+                    Some(index),
+                );
+            }
+            Some(Value::Array(reifies)) => {
+                self.h_reifies(&Value::Array(reifies.iter().map(sh_row).collect()), index);
+            }
+            _ => {}
         }
         if let Some(Value::Array(annot)) = map_get(entries, "annot") {
             self.h_annot(&Value::Array(annot.iter().map(sh_row).collect()), index);

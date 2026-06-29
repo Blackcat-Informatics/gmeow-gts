@@ -188,6 +188,10 @@ def _quad_key(quad: Quad) -> bytes:
     return canonical(row)
 
 
+def _optional_id_key(term_id: int | None) -> tuple[bool, int]:
+    return (term_id is not None, -1 if term_id is None else term_id)
+
+
 class Writer:
     """Accumulates a GTS log as a CBOR Sequence.
 
@@ -274,7 +278,7 @@ class Writer:
         if quads:
             writer.add_quads(quads)
 
-        reifiers = sorted(
+        reifiers = [
             (
                 _remap_id(old_to_new, rid),
                 (
@@ -285,8 +289,16 @@ class Writer:
                 _remap_id(old_to_new, g) if g is not None else None,
             )
             for rid, (s, p, o), g in graph.reifiers
+        ]
+        reifiers.sort(
+            key=lambda row: (
+                *_optional_id_key(row[2]),
+                row[0],
+                row[1][0],
+                row[1][1],
+                row[1][2],
+            )
         )
-        reifiers.sort(key=lambda row: (row[2], row[0], row[1][0], row[1][1], row[1][2]))
         if reifiers:
             writer.add_reifies(reifiers)
 
@@ -300,7 +312,7 @@ class Writer:
                 )
                 for r, p, v, g in graph.annotations
             ),
-            key=lambda row: (row[3], row[0], row[1], row[2]),
+            key=lambda row: (*_optional_id_key(row[3]), row[0], row[1], row[2]),
         )
         if annotations:
             writer.add_annot(annotations)

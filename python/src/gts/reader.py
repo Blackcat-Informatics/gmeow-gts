@@ -526,8 +526,6 @@ class _Folder:
                     index,
                 )
             )
-        if isinstance(reifies, Mapping):
-            pass
         elif isinstance(reifies, list):
             self._h_reifies(
                 [[sh(x) for x in r] if isinstance(r, list) else r for r in reifies],

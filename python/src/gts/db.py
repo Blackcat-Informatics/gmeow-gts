@@ -22,13 +22,19 @@ if TYPE_CHECKING:
 
 # DDL shared by both engines (both speak this SQL subset).
 _SCHEMA = [
-    "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT,"
-    " datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER)",
+    (
+        "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT,"
+        + " datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER)"
+    ),
     "CREATE TABLE quads (s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
-    "CREATE TABLE reifiers "
-    "(reifier INTEGER, s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
-    "CREATE TABLE annotations "
-    "(reifier INTEGER, predicate INTEGER, value INTEGER, g INTEGER)",
+    (
+        "CREATE TABLE reifiers "
+        + "(reifier INTEGER, s INTEGER, p INTEGER, o INTEGER, g INTEGER)"
+    ),
+    (
+        "CREATE TABLE annotations "
+        + "(reifier INTEGER, predicate INTEGER, value INTEGER, g INTEGER)"
+    ),
     "CREATE TABLE blobs (digest TEXT PRIMARY KEY, bytes BLOB)",
 ]
 _INDEXES = [

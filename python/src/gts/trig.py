@@ -71,7 +71,7 @@ def _push_statement(
         return open_graph
     graph = _render(g, graph_name)
     if open_graph != graph:
-        open_graph = _close_graph(lines, open_graph)
+        _close_graph(lines, open_graph)
         lines.append(f"{graph} {{")
         open_graph = graph
     lines.append(f"  {statement}")
