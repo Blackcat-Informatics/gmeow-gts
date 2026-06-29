@@ -17,8 +17,15 @@ use crate::codec::{encode_chain, Codec, CodecError};
 use crate::model::{is_literal_direction, Graph, Quad, Suppression, Term, TermKind, Triple3};
 use crate::wire::{canonical, content_id, digest_str, header_id, SELF_DESCRIBE_TAG};
 
+/// Payloads larger than this select `zstd-rsyncable` over `zstd` in snapshot helpers.
+pub const DEFAULT_RSYNCABLE_THRESHOLD: usize = 65_536;
+
 fn iv(n: i64) -> Value {
     Value::Integer(ciborium::value::Integer::from(n))
+}
+
+fn uv(n: usize) -> Value {
+    Value::Integer(ciborium::value::Integer::from(n as u64))
 }
 
 /// Serialise a [`Term`] to its wire map (dropping absent fields).
@@ -102,6 +109,55 @@ pub struct FrameOptions {
     pub encrypt: Option<Encrypt0Options>,
 }
 
+/// A content-addressed blob row emitted before a snapshot frame.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BlobRow {
+    /// Decoded blob bytes.
+    pub data: Vec<u8>,
+    /// Declared media type (`pub.mt`).
+    pub media_type: String,
+    /// Content representation tag (`pub.rep`).
+    pub rep: String,
+}
+
+/// Signing inputs for snapshot bundle authorship.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SnapshotSigner {
+    /// 32-byte Ed25519 secret seed.
+    pub secret: [u8; 32],
+    /// COSE key id used in frame signatures and `gts:transportKey`.
+    pub kid: String,
+    /// ASCII-armored OpenPGP Ed25519 public-key certificate embedded as transport metadata.
+    pub public_key_armor: String,
+}
+
+/// Options for [`snapshot_from_graph`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SnapshotOptions {
+    /// Base transform chain for blob and snapshot payloads.
+    pub transform: Vec<String>,
+    /// Payloads above this size switch from `zstd` to `zstd-rsyncable`.
+    pub rsyncable_threshold: usize,
+    /// Documentation/content blobs emitted ahead of the snapshot frame.
+    pub doc_blobs: Vec<BlobRow>,
+    /// Report/evidence blobs emitted ahead of the snapshot frame.
+    pub report_blobs: Vec<BlobRow>,
+    /// Optional signing identity. When present, a signed `gts:transportKey` meta frame is emitted.
+    pub signer: Option<SnapshotSigner>,
+}
+
+impl Default for SnapshotOptions {
+    fn default() -> Self {
+        Self {
+            transform: vec!["zstd".to_string()],
+            rsyncable_threshold: DEFAULT_RSYNCABLE_THRESHOLD,
+            doc_blobs: Vec::new(),
+            report_blobs: Vec::new(),
+            signer: None,
+        }
+    }
+}
+
 /// Errors raised by advanced writer construction.
 #[derive(Debug)]
 pub enum WriterError {
@@ -131,6 +187,97 @@ impl From<CodecError> for WriterError {
     fn from(value: CodecError) -> Self {
         Self::Codec(value)
     }
+}
+
+/// Choose `zstd-rsyncable` for large payloads when the base chain is exactly `["zstd"]`.
+pub fn choose_snapshot_transform(
+    base_chain: &[String],
+    payload_len: usize,
+    threshold: usize,
+) -> Vec<String> {
+    if base_chain.len() == 1 && base_chain[0] == "zstd" && payload_len > threshold {
+        vec!["zstd-rsyncable".to_string()]
+    } else {
+        base_chain.to_vec()
+    }
+}
+
+/// Serialize a folded [`Graph`] as a single-frame snapshot bundle.
+///
+/// The writer emits, in order: optional signed transport-key metadata, sorted
+/// content-addressed blob frames, then the canonical single `snapshot` frame.
+pub fn snapshot_from_graph(
+    graph: &Graph,
+    profile: &str,
+    options: SnapshotOptions,
+) -> Result<Vec<u8>, WriterError> {
+    let mut writer = Writer::new(profile);
+    let SnapshotOptions {
+        transform,
+        rsyncable_threshold,
+        doc_blobs,
+        report_blobs,
+        signer,
+    } = options;
+
+    if let Some(signer) = signer {
+        writer.sign_with(
+            ed25519_dalek::SigningKey::from_bytes(&signer.secret),
+            &signer.kid,
+        );
+        writer.add_meta(Value::Map(vec![(
+            "gts:transportKey".into(),
+            Value::Map(vec![
+                ("kid".into(), Value::Text(signer.kid)),
+                ("gpg".into(), Value::Text(signer.public_key_armor)),
+            ]),
+        )]));
+    }
+
+    let mut blobs = doc_blobs;
+    blobs.extend(report_blobs);
+    blobs.sort_by(|a, b| {
+        a.rep
+            .cmp(&b.rep)
+            .then_with(|| a.data.cmp(&b.data))
+            .then_with(|| a.media_type.cmp(&b.media_type))
+    });
+    for blob in blobs {
+        let chain = choose_snapshot_transform(&transform, blob.data.len(), rsyncable_threshold);
+        let pub_meta = Value::Map(vec![
+            ("digest".into(), Value::Text(digest_str(&blob.data))),
+            ("mt".into(), Value::Text(blob.media_type)),
+            ("rep".into(), Value::Text(blob.rep)),
+        ]);
+        writer.add_frame_with_options(
+            "blob",
+            FrameOptions {
+                raw: Some(blob.data),
+                transform: chain,
+                pub_meta: Some(pub_meta),
+                ..FrameOptions::default()
+            },
+        )?;
+    }
+
+    let payload = graph.snapshot_payload();
+    let (payload, raw, chain) = if transform.len() == 1 && transform[0] == "zstd" {
+        let bytes = canonical(&payload);
+        let chain = choose_snapshot_transform(&transform, bytes.len(), rsyncable_threshold);
+        (None, Some(bytes), chain)
+    } else {
+        (Some(payload), None, transform)
+    };
+    writer.add_frame_with_options(
+        "snapshot",
+        FrameOptions {
+            payload,
+            raw,
+            transform: chain,
+            ..FrameOptions::default()
+        },
+    )?;
+    Ok(writer.to_bytes())
 }
 
 fn default_catalog() -> Vec<(i64, Codec)> {
@@ -712,12 +859,17 @@ impl Writer {
     }
 }
 
-struct TermRemap {
-    old_to_new: Vec<usize>,
-    old_by_new: Vec<usize>,
+/// Deterministic term-id remapping for canonical graph authorship.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TermRemap {
+    /// New term id for each old term id.
+    pub old_to_new: Vec<usize>,
+    /// Old term ids in new-id order.
+    pub old_by_new: Vec<usize>,
 }
 
-fn deterministic_term_remap(graph: &Graph) -> TermRemap {
+/// Return the deterministic term-id remapping used by canonical graph writers.
+pub fn deterministic_term_remap(graph: &Graph) -> TermRemap {
     let mut old_by_new: Vec<usize> = (0..graph.terms.len()).collect();
     let keys: Vec<Vec<u8>> = old_by_new
         .iter()
@@ -732,6 +884,109 @@ fn deterministic_term_remap(graph: &Graph) -> TermRemap {
         old_to_new,
         old_by_new,
     }
+}
+
+impl Graph {
+    /// Build the canonical payload for a single `snapshot` frame from this graph.
+    pub fn snapshot_payload(&self) -> Value {
+        snapshot_payload(self)
+    }
+}
+
+/// Build the canonical payload for a single `snapshot` frame from a folded graph.
+pub fn snapshot_payload(graph: &Graph) -> Value {
+    let remap = deterministic_term_remap(graph);
+    let terms: Vec<Value> = remap
+        .old_by_new
+        .iter()
+        .map(|&old| term_to_wire(&remap_term(&graph.terms[old], &remap.old_to_new)))
+        .collect();
+
+    let mut quads: Vec<Quad> = graph
+        .quads
+        .iter()
+        .map(|&(s, p, o, g)| {
+            (
+                remap_id(&remap.old_to_new, s),
+                remap_id(&remap.old_to_new, p),
+                remap_id(&remap.old_to_new, o),
+                g.map(|term| remap_id(&remap.old_to_new, term)),
+            )
+        })
+        .collect();
+    quads.sort_by_key(|quad| (quad.3, quad.0, quad.1, quad.2));
+
+    let mut entries: Vec<(Value, Value)> = vec![
+        ("terms".into(), Value::Array(terms)),
+        (
+            "quads".into(),
+            Value::Array(
+                quads
+                    .iter()
+                    .map(|&(s, p, o, g)| {
+                        let mut row = vec![uv(s), uv(p), uv(o)];
+                        if let Some(graph_name) = g {
+                            row.push(uv(graph_name));
+                        }
+                        Value::Array(row)
+                    })
+                    .collect(),
+            ),
+        ),
+    ];
+
+    let mut reifiers: Vec<(usize, Triple3)> = graph
+        .reifiers
+        .iter()
+        .map(|&(rid, (s, p, o))| {
+            (
+                remap_id(&remap.old_to_new, rid),
+                (
+                    remap_id(&remap.old_to_new, s),
+                    remap_id(&remap.old_to_new, p),
+                    remap_id(&remap.old_to_new, o),
+                ),
+            )
+        })
+        .collect();
+    reifiers.sort();
+    if !reifiers.is_empty() {
+        entries.push((
+            "reifies".into(),
+            Value::Map(
+                reifiers
+                    .iter()
+                    .map(|&(rid, (s, p, o))| (uv(rid), Value::Array(vec![uv(s), uv(p), uv(o)])))
+                    .collect(),
+            ),
+        ));
+    }
+
+    let mut annotations: Vec<Triple3> = graph
+        .annotations
+        .iter()
+        .map(|&(r, p, v)| {
+            (
+                remap_id(&remap.old_to_new, r),
+                remap_id(&remap.old_to_new, p),
+                remap_id(&remap.old_to_new, v),
+            )
+        })
+        .collect();
+    annotations.sort();
+    if !annotations.is_empty() {
+        entries.push((
+            "annot".into(),
+            Value::Array(
+                annotations
+                    .iter()
+                    .map(|&(r, p, v)| Value::Array(vec![uv(r), uv(p), uv(v)]))
+                    .collect(),
+            ),
+        ));
+    }
+
+    Value::Map(entries)
 }
 
 fn term_identity_value(graph: &Graph, tid: usize, stack: &mut Vec<usize>) -> Value {
