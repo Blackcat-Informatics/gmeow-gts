@@ -14,6 +14,31 @@ GTS 的所有显著变更都记录在此。本日志格式基于
 
 线路格式为工作草案（`GTS-SPEC.md` 文档版本 `0.9-draft`），在 `1.0` 之前可以 (MAY) 发生变更。
 
+## [0.9.10] — 2026-06-29
+
+### 新增
+
+- Rust can emit deterministic graph snapshots directly from folded graph state,
+  including terms, quads, reifiers, annotations, blobs, and snapshot-level zstd
+  options.
+- Python and Rust writers support per-frame zstd compression levels for both
+  `zstd` and `zstd-rsyncable` frames.
+
+### 已变更
+
+- Rust zstd handling now uses the pure-Rust `structured-zstd` backend for both
+  encoding and decoding.
+- Release metadata is aligned at `0.9.10` for the Python and Rust publication
+  lanes, with gated companion metadata kept in sync.
+
+### 已修复
+
+- Removed the fixed 16 MiB zstd decoded-size ceiling across Python, Rust, Go,
+  TypeScript, browser TypeScript, Kotlin, and Smalltalk. Implementations now
+  rely on streaming/backpressure, storage, platform allocation failure, and
+  corrupt-data failures instead of rejecting solely because decoded output
+  exceeds a codec-level byte cap.
+
 ## [0.9.9]
 
 ### 已修复
@@ -353,7 +378,9 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...HEAD
+[0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
+[0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
 [0.9.8]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.7...rust-v0.9.8
 [0.9.7]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.6...rust-v0.9.7
 [0.9.6]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...rust-v0.9.6
