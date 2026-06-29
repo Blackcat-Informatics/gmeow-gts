@@ -91,6 +91,27 @@ fn frame_transform_ids(data: &[u8]) -> Vec<Vec<i128>> {
         .collect()
 }
 
+fn blob_frame_media_types(data: &[u8]) -> Vec<String> {
+    let (items, torn) = iter_items(data);
+    assert_eq!(torn, None);
+    items
+        .iter()
+        .skip(1)
+        .filter_map(|(_, item)| match item {
+            Value::Map(entries) if matches!(map_get(entries, "t"), Some(Value::Text(t)) if t == "blob") => {
+                let Some(Value::Map(pub_meta)) = map_get(entries, "pub") else {
+                    panic!("blob frame missing pub metadata");
+                };
+                match map_get(pub_meta, "mt") {
+                    Some(Value::Text(media_type)) => Some(media_type.clone()),
+                    other => panic!("blob frame missing text media type: {other:?}"),
+                }
+            }
+            _ => None,
+        })
+        .collect()
+}
+
 fn blob_reps(graph: &Graph) -> Vec<String> {
     graph
         .blob_meta
@@ -101,6 +122,21 @@ fn blob_reps(graph: &Graph) -> Vec<String> {
                 _ => None,
             }),
             _ => None,
+        })
+        .collect()
+}
+
+fn snapshot_quad_rows(payload: &Value) -> Vec<Vec<Value>> {
+    let Value::Map(entries) = payload else {
+        panic!("snapshot payload is not a map");
+    };
+    let Some(Value::Array(rows)) = map_get(entries, "quads") else {
+        panic!("snapshot payload missing quads");
+    };
+    rows.iter()
+        .map(|row| match row {
+            Value::Array(items) => items.clone(),
+            other => panic!("quad row is not an array: {other:?}"),
         })
         .collect()
 }
@@ -235,6 +271,63 @@ fn snapshot_from_graph_emits_sorted_content_addressed_blobs_before_snapshot() {
     assert_eq!(
         blob_reps(&folded),
         vec!["a-report".to_string(), "z-doc".to_string()]
+    );
+}
+
+#[test]
+fn snapshot_blob_sort_uses_media_type_as_final_tie_breaker() {
+    let (graph, _) = deterministic_graphs();
+    let bytes = snapshot_from_graph(
+        &graph,
+        "dist",
+        SnapshotOptions {
+            transform: Vec::new(),
+            doc_blobs: vec![BlobRow {
+                data: b"same bytes".to_vec(),
+                media_type: "text/z".to_string(),
+                rep: "same-rep".to_string(),
+            }],
+            report_blobs: vec![BlobRow {
+                data: b"same bytes".to_vec(),
+                media_type: "application/a".to_string(),
+                rep: "same-rep".to_string(),
+            }],
+            ..SnapshotOptions::default()
+        },
+    )
+    .expect("snapshot graph writes");
+
+    assert_eq!(
+        blob_frame_media_types(&bytes),
+        vec!["application/a".to_string(), "text/z".to_string()]
+    );
+}
+
+#[test]
+fn graph_snapshot_payload_orders_quads_by_graph_then_spo() {
+    let graph = Graph {
+        terms: vec![
+            iri("https://example.org/a-named-subject"),
+            iri("https://example.org/z-default-subject"),
+            iri("https://example.org/p"),
+            iri("https://example.org/o"),
+            iri("https://example.org/g"),
+        ],
+        quads: vec![(0, 2, 3, Some(4)), (1, 2, 3, None)],
+        ..Graph::default()
+    };
+
+    let rows = snapshot_quad_rows(&graph.snapshot_payload());
+    assert_eq!(rows.len(), 2);
+    assert_eq!(
+        rows[0].len(),
+        3,
+        "default-graph rows sort before named-graph rows"
+    );
+    assert_eq!(
+        rows[1].len(),
+        4,
+        "named-graph rows retain the graph slot after default rows"
     );
 }
 

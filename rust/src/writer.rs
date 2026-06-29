@@ -236,7 +236,12 @@ pub fn snapshot_from_graph(
 
     let mut blobs = doc_blobs;
     blobs.extend(report_blobs);
-    blobs.sort_by(|a, b| a.rep.cmp(&b.rep).then_with(|| a.data.cmp(&b.data)));
+    blobs.sort_by(|a, b| {
+        a.rep
+            .cmp(&b.rep)
+            .then_with(|| a.data.cmp(&b.data))
+            .then_with(|| a.media_type.cmp(&b.media_type))
+    });
     for blob in blobs {
         let chain = choose_snapshot_transform(&transform, blob.data.len(), rsyncable_threshold);
         let pub_meta = Value::Map(vec![
@@ -256,12 +261,18 @@ pub fn snapshot_from_graph(
     }
 
     let payload = graph.snapshot_payload();
-    let snapshot_len = canonical(&payload).len();
-    let chain = choose_snapshot_transform(&transform, snapshot_len, rsyncable_threshold);
+    let (payload, raw, chain) = if transform.len() == 1 && transform[0] == "zstd" {
+        let bytes = canonical(&payload);
+        let chain = choose_snapshot_transform(&transform, bytes.len(), rsyncable_threshold);
+        (None, Some(bytes), chain)
+    } else {
+        (Some(payload), None, transform)
+    };
     writer.add_frame_with_options(
         "snapshot",
         FrameOptions {
-            payload: Some(payload),
+            payload,
+            raw,
             transform: chain,
             ..FrameOptions::default()
         },
