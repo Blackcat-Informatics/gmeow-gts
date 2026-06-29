@@ -226,20 +226,29 @@ func (w *Writer) AddQuads(quads []model.Quad) []byte {
 
 // AddReifies appends a reifies frame binding reifier-ids to triples.
 func (w *Writer) AddReifies(bindings []model.ReifierEntry) []byte {
-	m := make(map[interface{}]interface{}, len(bindings))
-	for _, b := range bindings {
-		m[int64(b.RID)] = []interface{}{
+	rows := make([]interface{}, len(bindings))
+	for i, b := range bindings {
+		row := []interface{}{
+			int64(b.RID),
 			int64(b.SPO.S), int64(b.SPO.P), int64(b.SPO.O),
 		}
+		if b.G != nil {
+			row = append(row, int64(*b.G))
+		}
+		rows[i] = row
 	}
-	return w.AddFrame("reifies", m, nil, nil, nil)
+	return w.AddFrame("reifies", rows, nil, nil, nil)
 }
 
 // AddAnnot appends an annot frame.
-func (w *Writer) AddAnnot(rows []model.Triple3) []byte {
+func (w *Writer) AddAnnot(rows []model.AnnotationEntry) []byte {
 	arr := make([]interface{}, len(rows))
 	for i, r := range rows {
-		arr[i] = []interface{}{int64(r.S), int64(r.P), int64(r.O)}
+		row := []interface{}{int64(r.S), int64(r.P), int64(r.O)}
+		if r.G != nil {
+			row = append(row, int64(*r.G))
+		}
+		arr[i] = row
 	}
 	return w.AddFrame("annot", arr, nil, nil, nil)
 }

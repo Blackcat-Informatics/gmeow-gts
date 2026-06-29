@@ -18,6 +18,18 @@ incrémenter la crate Rust indépendamment. Voir
 Le format de transfert est une ébauche de travail (document `GTS-SPEC.md` version `0.9-draft`)
 et PEUT (MAY) changer avant `1.0`.
 
+## [0.9.11] — 2026-06-29
+
+### Modifié
+
+- Les rangées `reifies` et `annot` portent désormais le même identifiant de terme
+  de graphe optionnel que les `quads`, ce qui rétablit le partitionnement par
+  graphe nommé de la réification et des annotations RDF 1.2. `reifies` est
+  maintenant une charge utile en tableau de rangées (`[rid, s, p, o, g?]`) plutôt
+  qu'une carte indexée par identifiant de réificateur.
+- Les métadonnées de version sont alignées sur `0.9.11` pour la mise à jour
+  coordonnée du schéma.
+
 ## [0.9.10] — 2026-06-29
 
 ### Ajouté
@@ -384,7 +396,8 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...HEAD
+[0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
 [0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
 [0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
 [0.9.8]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.7...rust-v0.9.8

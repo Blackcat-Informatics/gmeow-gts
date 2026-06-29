@@ -3,6 +3,7 @@
 
 import {
     TermKind,
+    type AnnotationEntry,
     type LiteralDirection,
     type Quad,
     type ReifierEntry,
@@ -315,14 +316,19 @@ function setReifier(
     reifiers: ReifierEntry[],
     rid: number,
     spo: { s: number; p: number; o: number },
+    g?: number,
 ): void {
     for (const r of reifiers) {
         if (r.rid === rid) {
-            r.spo = spo;
-            return;
+            if (r.spo.s !== spo.s || r.spo.p !== spo.p || r.spo.o !== spo.o) {
+                throw new NQuadsParseError(
+                    `conflicting rdf:reifies binding for reifier term ${rid}`,
+                );
+            }
+            if (r.g === g) return;
         }
     }
-    reifiers.push({ rid, spo });
+    reifiers.push({ rid, spo, ...(g !== undefined ? { g } : {}) });
 }
 
 function validateStatement(nodes: Node[], line: string): void {
@@ -376,23 +382,31 @@ export function fromNQuads(text: string): Uint8Array {
 
     const interner = new Interner();
     const reifiers: ReifierEntry[] = [];
-    const quads: Quad[] = [];
+    const pendingQuads: Quad[] = [];
 
     for (const nodes of statements) {
         const [s, p, o, gname] = nodes;
         if (
-            gname === undefined &&
             isAtom(s) &&
             isAtom(p, TermKind.Iri) &&
             p.atom.value === RDF_REIFIES &&
             isTriple(o)
         ) {
             const rid = interner.atom(s.atom);
-            setReifier(reifiers, rid, {
-                s: interner.node(o.triple.s, reifiers),
-                p: interner.node(o.triple.p, reifiers),
-                o: interner.node(o.triple.o, reifiers),
-            });
+            const gid =
+                gname !== undefined
+                    ? interner.node(gname, reifiers)
+                    : undefined;
+            setReifier(
+                reifiers,
+                rid,
+                {
+                    s: interner.node(o.triple.s, reifiers),
+                    p: interner.node(o.triple.p, reifiers),
+                    o: interner.node(o.triple.o, reifiers),
+                },
+                gid,
+            );
             continue;
         }
 
@@ -402,12 +416,24 @@ export function fromNQuads(text: string): Uint8Array {
             o: interner.node(o, reifiers),
         };
         if (gname !== undefined) q.g = interner.node(gname, reifiers);
-        quads.push(q);
+        pendingQuads.push(q);
+    }
+
+    const reifierIds = new Set(reifiers.map((r) => r.rid));
+    const quads: Quad[] = [];
+    const annotations: AnnotationEntry[] = [];
+    for (const q of pendingQuads) {
+        if (reifierIds.has(q.s)) {
+            annotations.push(q);
+        } else {
+            quads.push(q);
+        }
     }
 
     const w = new Writer("dist");
     if (interner.terms.length > 0) w.addTerms(interner.terms);
     if (quads.length > 0) w.addQuads(quads);
     if (reifiers.length > 0) w.addReifies(reifiers);
+    if (annotations.length > 0) w.addAnnot(annotations);
     return w.toBytes();
 }

@@ -253,26 +253,34 @@ fn write_okf(
     }
 
     let consumed_reifiers = consumed_link_reifiers(graph, &link_statements, &mut unmapped);
-    for &(reifier, (subject, predicate, object)) in &graph.reifiers {
+    for &(reifier, (subject, predicate, object), graph_name) in &graph.reifiers {
         if !consumed_reifiers.contains(&reifier) {
-            unmapped.push(format!(
-                "{} <{RDF_REIFIES}> <<( {} {} {} )>> .",
+            let triple = format!(
+                "{} <{RDF_REIFIES}> <<( {} {} {} )>>",
                 render_term(graph, reifier),
                 render_term(graph, subject),
                 render_term(graph, predicate),
                 render_term(graph, object)
-            ));
+            );
+            match graph_name {
+                Some(name) => unmapped.push(format!("{triple} {} .", render_term(graph, name))),
+                None => unmapped.push(format!("{triple} .")),
+            }
         }
     }
 
-    for &(reifier, predicate, value) in &graph.annotations {
+    for &(reifier, predicate, value, graph_name) in &graph.annotations {
         if !consumed_reifiers.contains(&reifier) {
-            unmapped.push(format!(
-                "{} {} {} .",
+            let triple = format!(
+                "{} {} {}",
                 render_term(graph, reifier),
                 render_term(graph, predicate),
                 render_term(graph, value)
-            ));
+            );
+            match graph_name {
+                Some(name) => unmapped.push(format!("{triple} {} .", render_term(graph, name))),
+                None => unmapped.push(format!("{triple} .")),
+            }
         }
     }
 
@@ -378,16 +386,16 @@ fn consumed_link_reifiers(
     unmapped: &mut Vec<String>,
 ) -> BTreeSet<usize> {
     let mut out = BTreeSet::new();
-    for &(reifier, statement) in &graph.reifiers {
+    for &(reifier, statement, _) in &graph.reifiers {
         if !link_statements.contains(&statement) {
             continue;
         }
         let annotations: Vec<_> = graph
             .annotations
             .iter()
-            .filter(|&&(candidate, _, _)| candidate == reifier)
+            .filter(|&&(candidate, _, _, _)| candidate == reifier)
             .collect();
-        let ok = annotations.iter().all(|&&(_, predicate, _)| {
+        let ok = annotations.iter().all(|&&(_, predicate, _, _)| {
             iri_value(graph, predicate)
                 .is_some_and(|iri| iri == OKF_LINK_TEXT || iri == OKF_LINK_OCCURRENCE)
         });

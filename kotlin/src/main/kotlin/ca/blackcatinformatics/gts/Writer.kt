@@ -104,11 +104,37 @@ class Writer(
     fun addReifies(bindings: List<ReifierEntry>): ByteArray =
         addFrame(
             "reifies",
-            CborMap(bindings.map { uint(it.rid) to cborArray(uint(it.spo.s), uint(it.spo.p), uint(it.spo.o)) }),
+            CborArray(
+                bindings.map {
+                    CborArray(
+                        buildList {
+                            add(uint(it.rid))
+                            add(uint(it.spo.s))
+                            add(uint(it.spo.p))
+                            add(uint(it.spo.o))
+                            it.g?.let { graph -> add(uint(graph)) }
+                        },
+                    )
+                },
+            ),
         )
 
-    fun addAnnot(rows: List<Triple>): ByteArray =
-        addFrame("annot", CborArray(rows.map { cborArray(uint(it.s), uint(it.p), uint(it.o)) }))
+    fun addAnnot(rows: List<AnnotationEntry>): ByteArray =
+        addFrame(
+            "annot",
+            CborArray(
+                rows.map {
+                    CborArray(
+                        buildList {
+                            add(uint(it.s))
+                            add(uint(it.p))
+                            add(uint(it.o))
+                            it.g?.let { graph -> add(uint(graph)) }
+                        },
+                    )
+                },
+            ),
+        )
 
     fun addBlob(data: ByteArray, mt: String? = null, rep: String? = null): ByteArray {
         val pub =

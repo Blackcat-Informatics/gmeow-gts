@@ -15,12 +15,13 @@ import cbor2
 from gts.codec import DEFAULT_CATALOG, Codec, encode_chain
 from gts.crypto import Signer, encrypt0, sign_id
 from gts.model import (
+    AnnotationRow,
     Graph,
     Quad,
+    ReifierRow,
     Suppression,
     Term,
     TermKind,
-    Triple,
     is_literal_direction,
 )
 from gts.wire import (
@@ -111,7 +112,7 @@ def _term_identity(graph: Graph, tid: int, stack: list[int]) -> list[object]:
             term.value if term.value else ["anonymous", tid],
         ]
     else:
-        triple = graph.reifiers.get(term.reifier) if term.reifier is not None else None
+        triple = graph.reifier(term.reifier) if term.reifier is not None else None
         if triple is None:
             out = ["triple", None, term.reifier]
         else:
@@ -185,6 +186,10 @@ def _quad_key(quad: Quad) -> bytes:
     if quad[3] is not None:
         row.append(quad[3])
     return canonical(row)
+
+
+def _optional_id_key(term_id: int | None) -> tuple[bool, int]:
+    return (term_id is not None, -1 if term_id is None else term_id)
 
 
 class Writer:
@@ -273,17 +278,25 @@ class Writer:
         if quads:
             writer.add_quads(quads)
 
-        reifiers = dict(
-            sorted(
+        reifiers = [
+            (
+                _remap_id(old_to_new, rid),
                 (
-                    _remap_id(old_to_new, rid),
-                    (
-                        _remap_id(old_to_new, s),
-                        _remap_id(old_to_new, p),
-                        _remap_id(old_to_new, o),
-                    ),
-                )
-                for rid, (s, p, o) in graph.reifiers.items()
+                    _remap_id(old_to_new, s),
+                    _remap_id(old_to_new, p),
+                    _remap_id(old_to_new, o),
+                ),
+                _remap_id(old_to_new, g) if g is not None else None,
+            )
+            for rid, (s, p, o), g in graph.reifiers
+        ]
+        reifiers.sort(
+            key=lambda row: (
+                *_optional_id_key(row[2]),
+                row[0],
+                row[1][0],
+                row[1][1],
+                row[1][2],
             )
         )
         if reifiers:
@@ -291,11 +304,15 @@ class Writer:
 
         annotations = sorted(
             (
-                _remap_id(old_to_new, r),
-                _remap_id(old_to_new, p),
-                _remap_id(old_to_new, v),
-            )
-            for r, p, v in graph.annotations
+                (
+                    _remap_id(old_to_new, r),
+                    _remap_id(old_to_new, p),
+                    _remap_id(old_to_new, v),
+                    _remap_id(old_to_new, g) if g is not None else None,
+                )
+                for r, p, v, g in graph.annotations
+            ),
+            key=lambda row: (*_optional_id_key(row[3]), row[0], row[1], row[2]),
         )
         if annotations:
             writer.add_annot(annotations)
@@ -459,14 +476,23 @@ class Writer:
             "quads", payload=rows, transform=transform, zstd_level=zstd_level
         )
 
-    def add_reifies(self, bindings: dict[int, Triple]) -> bytes:
-        """Append a ``reifies`` frame binding reifier-ids to triples."""
-        payload = {rid: list(spo) for rid, spo in bindings.items()}
+    def add_reifies(self, bindings: list[ReifierRow]) -> bytes:
+        """Append a ``reifies`` frame."""
+        payload = [
+            [rid, *spo, *([graph_name] if graph_name is not None else [])]
+            for rid, spo, graph_name in bindings
+        ]
         return self.add_frame("reifies", payload=payload)
 
-    def add_annot(self, rows: list[Triple]) -> bytes:
+    def add_annot(self, rows: list[AnnotationRow]) -> bytes:
         """Append an ``annot`` frame (reifier, predicate, value rows)."""
-        return self.add_frame("annot", payload=[list(r) for r in rows])
+        return self.add_frame(
+            "annot",
+            payload=[
+                [r, p, v, *([graph_name] if graph_name is not None else [])]
+                for r, p, v, graph_name in rows
+            ],
+        )
 
     def add_blob(
         self,

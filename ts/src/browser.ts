@@ -8,6 +8,7 @@ import {
     type MetaEntry,
     TermKind,
     termKindFromWire,
+    type AnnotationEntry,
     type Diagnostic,
     type LiteralDirection,
     type Quad,
@@ -150,12 +151,13 @@ export type BrowserFoldEvent =
           frameIndex: number;
           rid: number;
           spo: Triple;
+          g?: number;
       }
     | {
           kind: "annotation";
           segmentIndex: number;
           frameIndex: number;
-          annotation: Triple;
+          annotation: AnnotationEntry;
       }
     | {
           kind: "blob";
@@ -1055,33 +1057,52 @@ class Folder {
     }
 
     hReifies(payload: unknown, index: number): void {
-        const entries = payload instanceof Map ? payload : undefined;
-        if (!entries) return;
-        for (const [k, spo] of entries) {
-            const rid = asInt64(k);
-            if (rid === undefined) continue;
-            const items = Array.isArray(spo) ? spo : undefined;
-            if (!items || items.length !== 3) continue;
-            const s = asInt(items[0]);
-            const p = asInt(items[1]);
-            const o = asInt(items[2]);
-            const n = this.g.terms.length;
-            const ridOk = rid >= 0 && rid < n;
-            const spoOk =
-                s !== undefined &&
-                p !== undefined &&
-                o !== undefined &&
-                s < n &&
-                p < n &&
-                o < n;
-            if (!ridOk || !spoOk) {
+        const rows = Array.isArray(payload) ? payload : undefined;
+        if (!rows) {
+            this.diag(
+                "DamagedFrame",
+                "reifies payload must be a row array",
+                index,
+            );
+            return;
+        }
+        for (const row of rows) {
+            const items = Array.isArray(row) ? row : undefined;
+            if (!items || (items.length !== 4 && items.length !== 5)) {
                 this.diag(
                     "DamagedFrame",
-                    `reifier ${rid} has bad/out-of-range ids`,
+                    "reifies row must have 4 or 5 term ids",
                     index,
                 );
                 continue;
             }
+            const rid = asInt(items[0]);
+            const s = asInt(items[1]);
+            const p = asInt(items[2]);
+            const o = asInt(items[3]);
+            const hasGraph = items.length === 5;
+            const gslot = hasGraph ? asInt(items[4]) : undefined;
+            const n = this.g.terms.length;
+            const ok =
+                rid !== undefined &&
+                s !== undefined &&
+                p !== undefined &&
+                o !== undefined &&
+                (!hasGraph || gslot !== undefined) &&
+                rid < n &&
+                s < n &&
+                p < n &&
+                o < n &&
+                (gslot === undefined || gslot < n);
+            if (!ok) {
+                this.diag(
+                    "DamagedFrame",
+                    "reifies row has bad/out-of-range ids",
+                    index,
+                );
+                continue;
+            }
+            if (!this.checkReifierPositions(s, p, o, gslot, index)) continue;
             const irid = rid;
             const newSpo: Triple = { s, p, o };
             const existing = this.g.reifier(irid);
@@ -1093,13 +1114,14 @@ class Folder {
                 );
                 continue;
             }
-            this.g.setReifier(irid, newSpo);
+            this.g.setReifier(irid, newSpo, gslot);
             this.emit({
                 kind: "reifier",
                 segmentIndex: this.segmentIndex,
                 frameIndex: index,
                 rid: irid,
                 spo: newSpo,
+                ...(gslot !== undefined ? { g: gslot } : {}),
             });
         }
     }
@@ -1109,18 +1131,29 @@ class Folder {
         if (!rows) return;
         for (const row of rows) {
             const items = Array.isArray(row) ? row : undefined;
-            if (!items || items.length !== 3) continue;
+            if (!items || (items.length !== 3 && items.length !== 4)) {
+                this.diag(
+                    "DamagedFrame",
+                    "annot row must have 3 or 4 term ids",
+                    index,
+                );
+                continue;
+            }
             const r = asInt(items[0]);
             const p = asInt(items[1]);
             const v = asInt(items[2]);
+            const hasGraph = items.length === 4;
+            const gslot = hasGraph ? asInt(items[3]) : undefined;
             const n = this.g.terms.length;
             if (
                 r === undefined ||
                 p === undefined ||
                 v === undefined ||
+                (hasGraph && gslot === undefined) ||
                 r >= n ||
                 p >= n ||
-                v >= n
+                v >= n ||
+                (gslot !== undefined && gslot >= n)
             ) {
                 this.diag(
                     "DamagedFrame",
@@ -1137,7 +1170,23 @@ class Folder {
                 );
                 continue;
             }
-            const annotation: Triple = { s: r, p, o: v };
+            if (gslot !== undefined) {
+                const kind = this.g.terms[gslot].kind;
+                if (kind === TermKind.Literal || kind === TermKind.Triple) {
+                    this.diag(
+                        "PositionConstraint",
+                        `annot graph ${gslot} not a graph name`,
+                        index,
+                    );
+                    continue;
+                }
+            }
+            const annotation: AnnotationEntry = {
+                s: r,
+                p,
+                o: v,
+                ...(gslot !== undefined ? { g: gslot } : {}),
+            };
             this.emit({
                 kind: "annotation",
                 segmentIndex: this.segmentIndex,
@@ -1252,9 +1301,16 @@ class Folder {
             );
         const reifies = mapGet(entries, "reifies");
         if (reifies instanceof Map) {
-            const shifted = new Map<unknown, unknown>();
-            for (const [k, v] of reifies) shifted.set(shift(k), shiftRow(v));
-            this.hReifies(shifted, index);
+            this.diag(
+                "DamagedFrame",
+                "snapshot reifies payload must be a row array",
+                index,
+            );
+        } else if (Array.isArray(reifies)) {
+            this.hReifies(
+                reifies.map((row) => shiftRow(row)),
+                index,
+            );
         }
         const annot = mapGet(entries, "annot");
         if (Array.isArray(annot)) {
@@ -1342,6 +1398,40 @@ class Folder {
             this.diag(
                 "PositionConstraint",
                 `quad (${s},${p},${o},${g === undefined ? "None" : g}) violates positions`,
+                index,
+            );
+        }
+        return ok;
+    }
+
+    checkReifierPositions(
+        s: number,
+        p: number,
+        o: number,
+        g: number | undefined,
+        index: number,
+    ): boolean {
+        const n = this.g.terms.length;
+        const inBounds = s < n && p < n && o < n && (g === undefined || g < n);
+        if (!inBounds) {
+            this.diag(
+                "PositionConstraint",
+                `reifier row (${s},${p},${o},${g === undefined ? "None" : g}) has out-of-range term ids`,
+                index,
+            );
+            return false;
+        }
+        let ok = this.g.terms[p].kind === TermKind.Iri;
+        if (this.g.terms[s].kind === TermKind.Literal) ok = false;
+        if (g !== undefined) {
+            const kind = this.g.terms[g].kind;
+            if (kind === TermKind.Literal || kind === TermKind.Triple)
+                ok = false;
+        }
+        if (!ok) {
+            this.diag(
+                "PositionConstraint",
+                `reifier row (${s},${p},${o},${g === undefined ? "None" : g}) violates positions`,
                 index,
             );
         }

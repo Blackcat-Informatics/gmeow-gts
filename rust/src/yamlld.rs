@@ -13,6 +13,8 @@ use serde_json::{Map, Value};
 
 use crate::model::{Graph, TermKind, Triple3};
 
+type AnnotationGroups = BTreeMap<(usize, Option<usize>), Vec<(usize, usize)>>;
+
 pub(crate) const ANNOTATION: &str = "@annotation";
 pub(crate) const GTS_CONTEXT: &str = "https://blackcatinformatics.ca/projects/gts#";
 pub(crate) const GTS_GRAPH: &str = "gts:graph";
@@ -29,18 +31,18 @@ pub(crate) const XSD_INTEGER: &str = "http://www.w3.org/2001/XMLSchema#integer";
 pub fn to_json_ld(graph: &Graph) -> Value {
     let term_sort_keys = term_sort_keys(graph);
 
-    let mut annotations_by_reifier: BTreeMap<usize, Vec<(usize, usize)>> = BTreeMap::new();
-    for &(reifier, predicate, value) in &graph.annotations {
+    let mut annotations_by_reifier: AnnotationGroups = BTreeMap::new();
+    for &(reifier, predicate, value, graph_name) in &graph.annotations {
         annotations_by_reifier
-            .entry(reifier)
+            .entry((reifier, graph_name))
             .or_default()
             .push((predicate, value));
     }
 
-    let mut reifiers_by_statement: BTreeMap<Triple3, Vec<usize>> = BTreeMap::new();
-    for &(reifier, statement) in &graph.reifiers {
+    let mut reifiers_by_statement: BTreeMap<(Triple3, Option<usize>), Vec<usize>> = BTreeMap::new();
+    for &(reifier, statement, graph_name) in &graph.reifiers {
         reifiers_by_statement
-            .entry(statement)
+            .entry((statement, graph_name))
             .or_default()
             .push(reifier);
     }
@@ -68,8 +70,9 @@ pub fn to_json_ld(graph: &Graph) -> Value {
             .or_insert_with(|| node_object(graph, subject));
 
         let statement = (subject, predicate, object);
-        let annotations = if attached_statements.insert(statement) {
-            reifiers_by_statement.get(&statement)
+        let statement_key = (statement, graph_name);
+        let annotations = if attached_statements.insert(statement_key) {
+            reifiers_by_statement.get(&statement_key)
         } else {
             None
         };
@@ -92,14 +95,15 @@ pub fn to_json_ld(graph: &Graph) -> Value {
         Value::Array(nodes.into_values().map(Value::Object).collect()),
     );
 
-    let mut standalone_rows: Vec<(usize, Triple3)> = graph
+    let mut standalone_rows: Vec<(usize, Triple3, Option<usize>)> = graph
         .reifiers
         .iter()
-        .filter(|(reifier, _)| !attached_reifiers.contains(reifier))
+        .filter(|(reifier, _, graph_name)| !attached_reifiers.contains(&(*reifier, *graph_name)))
         .copied()
         .collect();
-    standalone_rows.sort_by_key(|&(reifier, (subject, predicate, object))| {
+    standalone_rows.sort_by_key(|&(reifier, (subject, predicate, object), graph_name)| {
         (
+            graph_name.map(|term| term_sort_keys[term].clone()),
             term_sort_keys[reifier].clone(),
             term_sort_keys[subject].clone(),
             predicate_key(graph, predicate),
@@ -108,11 +112,12 @@ pub fn to_json_ld(graph: &Graph) -> Value {
     });
     let standalone_reifiers: Vec<Value> = standalone_rows
         .into_iter()
-        .map(|(reifier, statement)| {
+        .map(|(reifier, statement, graph_name)| {
             standalone_reifier(
                 graph,
                 reifier,
                 statement,
+                graph_name,
                 &annotations_by_reifier,
                 &term_sort_keys,
             )
@@ -167,8 +172,8 @@ fn statement_value(
     object: usize,
     graph_name: Option<usize>,
     reifiers: Option<&Vec<usize>>,
-    annotations_by_reifier: &BTreeMap<usize, Vec<(usize, usize)>>,
-    attached_reifiers: &mut BTreeSet<usize>,
+    annotations_by_reifier: &AnnotationGroups,
+    attached_reifiers: &mut BTreeSet<(usize, Option<usize>)>,
     term_sort_keys: &[String],
 ) -> Value {
     let mut value = expect_object(term_value(graph, object));
@@ -178,11 +183,11 @@ fn statement_value(
     if let Some(reifiers) = reifiers {
         let mut blocks = Vec::new();
         for &reifier in reifiers {
-            attached_reifiers.insert(reifier);
+            attached_reifiers.insert((reifier, graph_name));
             blocks.push(annotation_block(
                 graph,
                 reifier,
-                annotations_by_reifier.get(&reifier),
+                annotations_by_reifier.get(&(reifier, graph_name)),
                 term_sort_keys,
             ));
         }
@@ -203,11 +208,15 @@ fn standalone_reifier(
     graph: &Graph,
     reifier: usize,
     (subject, predicate, object): Triple3,
-    annotations_by_reifier: &BTreeMap<usize, Vec<(usize, usize)>>,
+    graph_name: Option<usize>,
+    annotations_by_reifier: &AnnotationGroups,
     term_sort_keys: &[String],
 ) -> Value {
     let mut block = Map::new();
     block.insert("@id".to_string(), Value::String(term_id(graph, reifier)));
+    if let Some(graph_name) = graph_name {
+        block.insert(GTS_GRAPH.to_string(), term_value(graph, graph_name));
+    }
     block.insert(
         GTS_TRIPLE.to_string(),
         triple_value(graph, subject, predicate, object),
@@ -217,7 +226,7 @@ fn standalone_reifier(
         annotation_block(
             graph,
             reifier,
-            annotations_by_reifier.get(&reifier),
+            annotations_by_reifier.get(&(reifier, graph_name)),
             term_sort_keys,
         ),
     );

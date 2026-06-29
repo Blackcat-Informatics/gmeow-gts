@@ -13,7 +13,7 @@ use std::fmt;
 
 use serde_json::{Map, Number, Value};
 
-use crate::model::{Graph, Quad, Term, TermKind, Triple3};
+use crate::model::{AnnotationRow, Graph, Quad, ReifierRow, Term, TermKind, Triple3};
 use crate::ulid::deterministic_label;
 use crate::writer::Writer;
 use crate::yamlld::{
@@ -108,7 +108,7 @@ impl Interner {
         id
     }
 
-    fn triple(&mut self, statement: Triple3, reifiers: &mut Vec<(usize, Triple3)>) -> usize {
+    fn triple(&mut self, statement: Triple3, reifiers: &mut Vec<ReifierRow>) -> usize {
         let key = TermKey::Triple(statement.0, statement.1, statement.2);
         if let Some(id) = self.ids.get(&key) {
             return *id;
@@ -123,7 +123,7 @@ impl Interner {
             reifier: Some(id),
         });
         self.ids.insert(key, id);
-        set_reifier(reifiers, id, statement);
+        set_reifier(reifiers, id, statement, None);
         id
     }
 
@@ -234,8 +234,8 @@ fn from_json_ld_value(value: &Value) -> Result<Vec<u8>, YamlLdParseError> {
     let context = Context::from_document(value);
     let mut interner = Interner::new();
     let mut quads: Vec<Quad> = Vec::new();
-    let mut reifiers: Vec<(usize, Triple3)> = Vec::new();
-    let mut annotations: Vec<Triple3> = Vec::new();
+    let mut reifiers: Vec<ReifierRow> = Vec::new();
+    let mut annotations: Vec<AnnotationRow> = Vec::new();
 
     for node in graph_nodes(value)? {
         parse_node(
@@ -290,8 +290,8 @@ fn parse_node(
     context: &Context,
     interner: &mut Interner,
     quads: &mut Vec<Quad>,
-    reifiers: &mut Vec<(usize, Triple3)>,
-    annotations: &mut Vec<Triple3>,
+    reifiers: &mut Vec<ReifierRow>,
+    annotations: &mut Vec<AnnotationRow>,
 ) -> Result<(), YamlLdParseError> {
     let map = object(value, "graph node")?;
     let scoped_context = scoped_context(context, map);
@@ -344,8 +344,8 @@ fn parse_property_values(
     context: &Context,
     interner: &mut Interner,
     quads: &mut Vec<Quad>,
-    reifiers: &mut Vec<(usize, Triple3)>,
-    annotations: &mut Vec<Triple3>,
+    reifiers: &mut Vec<ReifierRow>,
+    annotations: &mut Vec<AnnotationRow>,
 ) -> Result<(), YamlLdParseError> {
     match value {
         Value::Array(items) => {
@@ -382,6 +382,7 @@ fn parse_property_values(
                     parse_annotation_blocks(
                         blocks,
                         (subject, predicate, object_id),
+                        graph_name,
                         &active_context,
                         interner,
                         reifiers,
@@ -398,8 +399,8 @@ fn parse_standalone_reifiers(
     value: &Value,
     context: &Context,
     interner: &mut Interner,
-    reifiers: &mut Vec<(usize, Triple3)>,
-    annotations: &mut Vec<Triple3>,
+    reifiers: &mut Vec<ReifierRow>,
+    annotations: &mut Vec<AnnotationRow>,
 ) -> Result<(), YamlLdParseError> {
     match value {
         Value::Array(items) => {
@@ -418,11 +419,16 @@ fn parse_standalone_reifiers(
                 .get(GTS_TRIPLE)
                 .ok_or_else(|| YamlLdParseError::new("gts:reifiers entry is missing gts:triple"))
                 .and_then(|value| parse_triple(value, &scoped_context, interner, reifiers))?;
-            set_reifier(reifiers, reifier, triple);
+            let graph_name = map
+                .get(GTS_GRAPH)
+                .map(|value| parse_term(value, false, &scoped_context, interner, reifiers))
+                .transpose()?;
+            set_reifier(reifiers, reifier, triple, graph_name);
             if let Some(block) = map.get(ANNOTATION) {
                 parse_annotation_properties(
                     object(block, "@annotation")?,
                     reifier,
+                    graph_name,
                     &scoped_context,
                     interner,
                     reifiers,
@@ -437,15 +443,24 @@ fn parse_standalone_reifiers(
 fn parse_annotation_blocks(
     value: &Value,
     statement: Triple3,
+    graph_name: Option<usize>,
     context: &Context,
     interner: &mut Interner,
-    reifiers: &mut Vec<(usize, Triple3)>,
-    annotations: &mut Vec<Triple3>,
+    reifiers: &mut Vec<ReifierRow>,
+    annotations: &mut Vec<AnnotationRow>,
 ) -> Result<(), YamlLdParseError> {
     match value {
         Value::Array(items) => {
             for item in items {
-                parse_annotation_blocks(item, statement, context, interner, reifiers, annotations)?;
+                parse_annotation_blocks(
+                    item,
+                    statement,
+                    graph_name,
+                    context,
+                    interner,
+                    reifiers,
+                    annotations,
+                )?;
             }
         }
         item => {
@@ -455,10 +470,11 @@ fn parse_annotation_blocks(
                 Some(id) => parse_id(id, &scoped_context, interner)?,
                 None => interner.generated_bnode("gts_annotation_"),
             };
-            set_reifier(reifiers, reifier, statement);
+            set_reifier(reifiers, reifier, statement, graph_name);
             parse_annotation_properties(
                 map,
                 reifier,
+                graph_name,
                 &scoped_context,
                 interner,
                 reifiers,
@@ -472,14 +488,15 @@ fn parse_annotation_blocks(
 fn parse_annotation_properties(
     map: &Map<String, Value>,
     reifier: usize,
+    graph_name: Option<usize>,
     context: &Context,
     interner: &mut Interner,
-    reifiers: &mut Vec<(usize, Triple3)>,
-    annotations: &mut Vec<Triple3>,
+    reifiers: &mut Vec<ReifierRow>,
+    annotations: &mut Vec<AnnotationRow>,
 ) -> Result<(), YamlLdParseError> {
     let scoped_context = scoped_context(context, map);
     for (key, value) in map {
-        if matches!(key.as_str(), "@context" | "@id") {
+        if matches!(key.as_str(), "@context" | "@id" | GTS_GRAPH) {
             continue;
         }
         let type_position = key == "@type";
@@ -494,12 +511,12 @@ fn parse_annotation_properties(
                 for item in items {
                     let object =
                         parse_term(item, type_position, &scoped_context, interner, reifiers)?;
-                    annotations.push((reifier, predicate, object));
+                    annotations.push((reifier, predicate, object, graph_name));
                 }
             }
             item => {
                 let object = parse_term(item, type_position, &scoped_context, interner, reifiers)?;
-                annotations.push((reifier, predicate, object));
+                annotations.push((reifier, predicate, object, graph_name));
             }
         }
     }
@@ -511,7 +528,7 @@ fn parse_term(
     type_position: bool,
     context: &Context,
     interner: &mut Interner,
-    reifiers: &mut Vec<(usize, Triple3)>,
+    reifiers: &mut Vec<ReifierRow>,
 ) -> Result<usize, YamlLdParseError> {
     match value {
         Value::String(text) if type_position => {
@@ -605,7 +622,7 @@ fn parse_triple(
     value: &Value,
     context: &Context,
     interner: &mut Interner,
-    reifiers: &mut Vec<(usize, Triple3)>,
+    reifiers: &mut Vec<ReifierRow>,
 ) -> Result<Triple3, YamlLdParseError> {
     let map = object(value, "gts:triple")?;
     let subject = map
@@ -697,10 +714,15 @@ fn scoped_context(parent: &Context, map: &Map<String, Value>) -> Context {
     context
 }
 
-fn set_reifier(reifiers: &mut Vec<(usize, Triple3)>, rid: usize, statement: Triple3) {
-    if let Some((_, existing)) = reifiers.iter_mut().find(|(candidate, _)| *candidate == rid) {
-        *existing = statement;
-    } else {
-        reifiers.push((rid, statement));
+fn set_reifier(
+    reifiers: &mut Vec<ReifierRow>,
+    rid: usize,
+    statement: Triple3,
+    graph_name: Option<usize>,
+) {
+    if !reifiers.iter().any(|&(candidate, existing, graph)| {
+        candidate == rid && existing == statement && graph == graph_name
+    }) {
+        reifiers.push((rid, statement, graph_name));
     }
 }

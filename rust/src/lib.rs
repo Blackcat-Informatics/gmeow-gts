@@ -56,6 +56,7 @@ pub mod rdf_events;
 mod rdf_xml;
 pub mod reader;
 mod reader_layout;
+mod reader_rows;
 mod reader_union;
 pub mod replication;
 pub mod stream;

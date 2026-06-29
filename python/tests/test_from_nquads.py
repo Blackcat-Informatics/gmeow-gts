@@ -53,8 +53,8 @@ def test_named_graph_reifier_and_annotation_roundtrip() -> None:
         ]
     )
     w.add_quads([(0, 1, 2, 3)])
-    w.add_reifies({0: (0, 1, 2)})
-    w.add_annot([(0, 4, 5)])
+    w.add_reifies([(0, (0, 1, 2), None)])
+    w.add_annot([(0, 4, 5, None)])
     assert _roundtrip(w.to_bytes())
 
 
@@ -127,10 +127,10 @@ def test_writer_allows_multiple_reifiers_for_the_same_statement() -> None:
         ]
     )
     writer.add_quads([(2, 3, 4, None)])
-    writer.add_reifies({0: (2, 3, 4), 1: (2, 3, 4)})
+    writer.add_reifies([(0, (2, 3, 4), None), (1, (2, 3, 4), None)])
 
     graph = read(writer.to_bytes())
-    assert graph.reifiers == {0: (2, 3, 4), 1: (2, 3, 4)}
+    assert graph.reifiers == [(0, (2, 3, 4), None), (1, (2, 3, 4), None)]
     out = to_nquads(graph)
     assert out.count(RDF_REIFIES) == 2
     assert "<https://ex/r1>" in out
@@ -146,7 +146,7 @@ def test_from_nquads_preserves_multiple_reifiers_for_the_same_statement() -> Non
     )
     graph = read(from_nquads(nq))
     assert len(graph.reifiers) == 2
-    assert len(set(graph.reifiers.values())) == 1
+    assert len({spo for _rid, spo, _graph_name in graph.reifiers}) == 1
     assert sorted(to_nquads(graph).splitlines()) == sorted(nq.strip().splitlines())
 
 

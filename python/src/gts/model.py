@@ -60,6 +60,8 @@ class Term:
 # A quad is a 4-tuple of term-ids; the graph slot is ``None`` for the default graph.
 Quad = tuple[int, int, int, int | None]
 Triple = tuple[int, int, int]
+ReifierRow = tuple[int, Triple, int | None]
+AnnotationRow = tuple[int, int, int, int | None]
 
 
 @dataclass
@@ -204,8 +206,8 @@ class Graph:
 
     terms: list[Term] = field(default_factory=list)
     quads: list[Quad] = field(default_factory=list)
-    reifiers: dict[int, Triple] = field(default_factory=dict)
-    annotations: list[Triple] = field(default_factory=list)
+    reifiers: list[ReifierRow] = field(default_factory=list)
+    annotations: list[AnnotationRow] = field(default_factory=list)
     blobs: _LazyBlobs = field(default_factory=_LazyBlobs)
     #: Declared blob metadata by digest — the blob frame's ``"pub"`` map
     #: (``mt``, ``rep``, …) retained through the fold so tooling can list
@@ -245,3 +247,18 @@ class Graph:
         if t.lang is not None and is_literal_direction(t.direction):
             return RDF_DIR_LANG_STRING
         return RDF_LANG_STRING if t.lang is not None else XSD_STRING
+
+    def reifier(self, rid: int) -> Triple | None:
+        """Return the first folded triple binding for *rid*, if present."""
+        for reifier, triple, _graph_name in self.reifiers:
+            if reifier == rid:
+                return triple
+        return None
+
+    def add_reifier(
+        self, rid: int, triple: Triple, graph_name: int | None = None
+    ) -> None:
+        """Append a reifier row unless the identical row is already present."""
+        row = (rid, triple, graph_name)
+        if row not in self.reifiers:
+            self.reifiers.append(row)

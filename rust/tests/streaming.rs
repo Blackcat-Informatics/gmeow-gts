@@ -7,7 +7,8 @@ use std::path::Path;
 
 use ciborium::value::Value;
 use gmeow_gts::model::{
-    Diagnostic, OpaqueNode, Quad, Signature, StreamableInfo, Suppression, Term, Triple3,
+    AnnotationRow, Diagnostic, OpaqueNode, Quad, ReifierRow, Signature, StreamableInfo,
+    Suppression, Term,
 };
 use gmeow_gts::reader::{
     read, read_file_segments, read_to_sink, read_to_sink_from_reader, ReadOptions, StreamingSink,
@@ -17,8 +18,8 @@ use gmeow_gts::reader::{
 struct RecordingSink {
     terms: Vec<(usize, usize, Term)>,
     quads: Vec<(usize, Quad)>,
-    reifiers: Vec<(usize, usize, Triple3)>,
-    annotations: Vec<(usize, Triple3)>,
+    reifiers: Vec<(usize, ReifierRow)>,
+    annotations: Vec<(usize, AnnotationRow)>,
     suppressions: Vec<(usize, Suppression)>,
     blobs: Vec<(usize, String, bool)>,
     opaque: Vec<(usize, String, String)>,
@@ -37,11 +38,11 @@ impl StreamingSink for RecordingSink {
         self.quads.push((segment_index, quad));
     }
 
-    fn reifier(&mut self, segment_index: usize, reifier: usize, triple: Triple3) {
-        self.reifiers.push((segment_index, reifier, triple));
+    fn reifier(&mut self, segment_index: usize, reifier: ReifierRow) {
+        self.reifiers.push((segment_index, reifier));
     }
 
-    fn annotation(&mut self, segment_index: usize, annotation: Triple3) {
+    fn annotation(&mut self, segment_index: usize, annotation: AnnotationRow) {
         self.annotations.push((segment_index, annotation));
     }
 

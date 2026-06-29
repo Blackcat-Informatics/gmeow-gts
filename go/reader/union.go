@@ -181,14 +181,24 @@ func unionSegments(segments []*model.Graph) *model.Graph {
 				P: u.mapTerm(seg, segIdx, r.SPO.P),
 				O: u.mapTerm(seg, segIdx, r.SPO.O),
 			}
-			u.out.SetReifier(newRf, spo)
+			var graph *int
+			if r.G != nil {
+				g := u.mapTerm(seg, segIdx, *r.G)
+				graph = &g
+			}
+			u.out.SetReifier(newRf, spo, graph)
 		}
 		for _, a := range seg.Annotations {
-			u.out.Annotations = append(u.out.Annotations, model.Triple3{
+			annotation := model.AnnotationEntry{
 				S: u.mapTerm(seg, segIdx, a.S),
 				P: u.mapTerm(seg, segIdx, a.P),
 				O: u.mapTerm(seg, segIdx, a.O),
-			})
+			}
+			if a.G != nil {
+				g := u.mapTerm(seg, segIdx, *a.G)
+				annotation.G = &g
+			}
+			u.out.Annotations = append(u.out.Annotations, annotation)
 		}
 		for _, b := range seg.Blobs {
 			u.out.SetBlob(b.Digest, b.Data)

@@ -136,7 +136,7 @@ let bytes = gmeow_gts::from_nquads::from_nquads(nquads.as_str())?;
 对于原生 Rust 数据模型互操作，启用可选的 `rdf` 特性：
 
 ```toml
-gmeow-gts = { version = "0.9.10", default-features = false, features = ["rdf"] }
+gmeow-gts = { version = "0.9.11", default-features = false, features = ["rdf"] }
 ```
 
 ```rust
@@ -150,7 +150,7 @@ let bytes = gmeow_gts::rdf::from_rdf_dataset(&dataset)?;
 对于原生内存中 RDF 存储互操作，启用可选的原生存储：
 
 ```toml
-gmeow-gts = { version = "0.9.10", default-features = false, features = ["native-store"] }
+gmeow-gts = { version = "0.9.11", default-features = false, features = ["native-store"] }
 ```
 
 ```rust

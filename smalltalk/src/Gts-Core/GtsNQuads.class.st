@@ -80,14 +80,21 @@ GtsNQuads class >> toNQuads: graph [
 			ifTrue: [ line := line, ' ', (self renderTermId: (row at: 4) in: graph) ].
 		lines add: line, ' .' ].
 	graph reifiers do: [ :entry |
-		lines add: (self renderTermId: (entry at: 'rid') in: graph),
+		| line |
+		line := (self renderTermId: (entry at: 'rid') in: graph),
 			' <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> ',
-			(self renderQuotedTriple: (entry at: 'spo') in: graph),
-			' .' ].
+			(self renderQuotedTriple: (entry at: 'spo') in: graph).
+		(entry at: 'graph' ifAbsent: [ nil ]) ifNotNil: [ :graphId |
+			line := line, ' ', (self renderTermId: graphId in: graph) ].
+		lines add: line, ' .' ].
 	graph annotations do: [ :row |
-		lines add: (self renderTermId: (row at: 1) in: graph), ' ',
+		| line |
+		line := (self renderTermId: (row at: 1) in: graph), ' ',
 			(self renderTermId: (row at: 2) in: graph), ' ',
-			(self renderTermId: (row at: 3) in: graph), ' .' ].
+			(self renderTermId: (row at: 3) in: graph).
+		row size >= 4
+			ifTrue: [ line := line, ' ', (self renderTermId: (row at: 4) in: graph) ].
+		lines add: line, ' .' ].
 	^ String streamContents: [ :stream |
 		lines asSortedCollection do: [ :line |
 			stream

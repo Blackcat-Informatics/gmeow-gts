@@ -112,8 +112,8 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
         },
     ]);
     w.add_quads(&[(0, 1, 2, Some(3))]);
-    w.add_reifies(&[(0, (0, 1, 2))]);
-    w.add_annot(&[(0, 4, 5)]);
+    w.add_reifies(&[(0, (0, 1, 2), None)]);
+    w.add_annot(&[(0, 4, 5, None)]);
 
     let folded = read(&w.to_bytes(), true, None);
     let trig = to_trig(&folded);

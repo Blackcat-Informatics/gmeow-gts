@@ -208,16 +208,22 @@ GtsGraph >> setMeta: key value: value [
 
 { #category : #setting }
 GtsGraph >> setReifier: reifierId to: spo [
-	1 to: reifiers size do: [ :index |
-		((reifiers at: index) at: 'rid') = reifierId
-			ifTrue: [
-				reifiers at: index put: (Dictionary newFromPairs: {
-					'rid'. reifierId.
-					'spo'. spo }).
-				^ self ] ].
-	reifiers add: (Dictionary newFromPairs: {
+	^ self setReifier: reifierId to: spo graph: nil
+]
+
+{ #category : #setting }
+GtsGraph >> setReifier: reifierId to: spo graph: graphId [
+	| entry |
+	reifiers do: [ :existing |
+		(((existing at: 'rid') = reifierId)
+			and: [ (existing at: 'spo') = spo
+			and: [ (existing at: 'graph' ifAbsent: [ nil ]) = graphId ] ])
+			ifTrue: [ ^ self ] ].
+	entry := Dictionary newFromPairs: {
 		'rid'. reifierId.
-		'spo'. spo })
+		'spo'. spo }.
+	graphId ifNotNil: [ entry at: 'graph' put: graphId ].
+	reifiers add: entry
 ]
 
 { #category : #accessing }

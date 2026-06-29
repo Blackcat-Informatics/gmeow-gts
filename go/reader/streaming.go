@@ -56,8 +56,10 @@ type StreamingEvent struct {
 	ReifierID int
 	// Triple is the decoded triple for reifier events.
 	Triple model.Triple3
-	// Annotation is the decoded annotation triple for StreamingEventAnnotation.
-	Annotation model.Triple3
+	// ReifierGraph is the optional named graph term id for reifier events.
+	ReifierGraph *int
+	// Annotation is the decoded annotation row for StreamingEventAnnotation.
+	Annotation model.AnnotationEntry
 	// Suppression is the decoded suppress directive for StreamingEventSuppression.
 	Suppression model.Suppression
 

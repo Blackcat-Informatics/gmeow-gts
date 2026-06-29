@@ -39,12 +39,20 @@ fun streamableCompact(data: ByteArray, timestamp: String, sealOriginal: Boolean)
     if (graph.reifiers.isNotEmpty()) {
         writer.addReifies(
             graph.reifiers.map {
-                ReifierEntry(it.rid + base, Triple(it.spo.s + base, it.spo.p + base, it.spo.o + base))
+                ReifierEntry(
+                    it.rid + base,
+                    Triple(it.spo.s + base, it.spo.p + base, it.spo.o + base),
+                    it.g?.let { graphId -> graphId + base },
+                )
             },
         )
     }
     if (graph.annotations.isNotEmpty()) {
-        writer.addAnnot(graph.annotations.map { Triple(it.s + base, it.p + base, it.o + base) })
+        writer.addAnnot(
+            graph.annotations.map {
+                AnnotationEntry(it.s + base, it.p + base, it.o + base, it.g?.let { graphId -> graphId + base })
+            },
+        )
     }
     for (suppression in shiftedSuppressions(graph, base)) writer.addSuppress(suppression.targets, suppression.reason, suppression.by)
     for (digest in blobOrder) {

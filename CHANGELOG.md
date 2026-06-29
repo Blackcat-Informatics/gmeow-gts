@@ -14,6 +14,16 @@ bump the Rust crate independently. See
 The wire format is a working draft (`GTS-SPEC.md` document version `0.9-draft`)
 and MAY change before `1.0`.
 
+## [0.9.11] — 2026-06-29
+
+### Changed
+
+- `reifies` and `annot` rows now carry the same optional graph term-id as
+  `quads`, restoring per-named-graph RDF 1.2 reification and annotation
+  partitioning. `reifies` is now a row-array payload
+  (`[rid, s, p, o, g?]`) rather than a reifier-id map.
+- Release metadata is aligned at `0.9.11` for the coordinated schema update.
+
 ## [0.9.10] — 2026-06-29
 
 ### Added
@@ -378,7 +388,8 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...HEAD
+[0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
 [0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
 [0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
 [0.9.8]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.7...rust-v0.9.8

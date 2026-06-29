@@ -40,7 +40,9 @@ GtsWriter >> addBlob: data mediaType: mediaType representation: representation [
 GtsWriter >> addAnnotations: annotations [
 	| rows |
 	rows := annotations collect: [ :annotation |
-		{ annotation at: 1. annotation at: 2. annotation at: 3 } ].
+		annotation size >= 4
+			ifTrue: [ { annotation at: 1. annotation at: 2. annotation at: 3. annotation at: 4 } ]
+			ifFalse: [ { annotation at: 1. annotation at: 2. annotation at: 3 } ] ].
 	^ self addFrameType: 'annot' payload: rows raw: nil transform: #() publicMetadata: nil
 ]
 
@@ -111,10 +113,15 @@ GtsWriter >> addQuads: quads [
 
 { #category : #adding }
 GtsWriter >> addReifiers: reifiers [
-	| payload |
-	payload := Dictionary new.
-	reifiers do: [ :entry | payload at: (entry at: 'rid') put: (entry at: 'spo') ].
-	^ self addFrameType: 'reifies' payload: payload raw: nil transform: #() publicMetadata: nil
+	| rows |
+	rows := reifiers collect: [ :entry |
+		| graphId spo |
+		spo := entry at: 'spo'.
+		graphId := entry at: 'graph' ifAbsent: [ nil ].
+		graphId
+			ifNil: [ { entry at: 'rid'. spo at: 1. spo at: 2. spo at: 3 } ]
+			ifNotNil: [ { entry at: 'rid'. spo at: 1. spo at: 2. spo at: 3. graphId } ] ].
+	^ self addFrameType: 'reifies' payload: rows raw: nil transform: #() publicMetadata: nil
 ]
 
 { #category : #adding }

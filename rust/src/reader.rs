@@ -18,10 +18,13 @@ use ciborium::value::Value;
 
 use crate::codec::{decode_chain, decode_chain_with_decrypt, Codec, CodecError};
 use crate::model::{
-    Diagnostic, Graph, OpaqueNode, Quad, Signature, StreamableInfo, Suppression, Term, TermKind,
-    Triple3,
+    AnnotationRow, Diagnostic, Graph, OpaqueNode, Quad, ReifierRow, Signature, StreamableInfo,
+    Suppression, Term, TermKind, Triple3,
 };
 use crate::reader_layout::{check_index_mmr, layout_check, IndexRecord};
+use crate::reader_rows::{
+    check_quad_positions, decode_annotation_row, decode_reifier_row, RowDecode,
+};
 use crate::reader_union::union_segments;
 use crate::stream::DIGEST as STREAM_DIGEST;
 use crate::wire::{
@@ -51,14 +54,6 @@ pub(crate) fn as_text(v: &Value) -> Option<&str> {
 
 pub(crate) fn text_or<'a>(v: Option<&'a Value>, default: &'a str) -> &'a str {
     v.and_then(as_text).unwrap_or(default)
-}
-
-/// Python-style rendering of an optional graph slot for diagnostic details.
-fn fmt_opt(g: Option<usize>) -> String {
-    match g {
-        Some(v) => v.to_string(),
-        None => "None".to_string(),
-    }
 }
 
 fn diag_code_for(reason: &str) -> &'static str {
@@ -199,10 +194,10 @@ pub trait StreamingSink {
     fn term(&mut self, _segment_index: usize, _term_id: usize, _term: &Term) {}
     /// Accepted quad row.
     fn quad(&mut self, _segment_index: usize, _quad: Quad) {}
-    /// Accepted reifier binding.
-    fn reifier(&mut self, _segment_index: usize, _reifier: usize, _triple: Triple3) {}
+    /// Accepted reifier row.
+    fn reifier(&mut self, _segment_index: usize, _reifier: ReifierRow) {}
     /// Accepted annotation row.
-    fn annotation(&mut self, _segment_index: usize, _annotation: Triple3) {}
+    fn annotation(&mut self, _segment_index: usize, _annotation: AnnotationRow) {}
     /// Accepted suppression directive.
     fn suppression(&mut self, _segment_index: usize, _suppression: &Suppression) {}
     /// Accepted inline blob digest and declared metadata.
@@ -517,7 +512,8 @@ impl Folder<'_, '_, '_> {
             let (Some(s), Some(p), Some(o)) = (s, p, o) else {
                 continue;
             };
-            if !self.check_positions(s, p, o, gslot, index) {
+            if let Err(detail) = check_quad_positions(self.g, s, p, o, gslot) {
+                self.diag("PositionConstraint", detail, Some(index));
                 continue;
             }
             let quad = (s, p, o, gslot);
@@ -536,31 +532,27 @@ impl Folder<'_, '_, '_> {
     }
 
     fn h_reifies(&mut self, payload: &Value, index: usize) {
-        let Value::Map(entries) = payload else { return };
-        for (k, spo) in entries {
-            let Some(rid) = as_i128(k) else { continue };
-            let Value::Array(items) = spo else { continue };
-            if items.len() != 3 {
-                continue;
-            }
-            let (s, p, o) = (as_idx(&items[0]), as_idx(&items[1]), as_idx(&items[2]));
-            let n = self.g.terms.len();
-            let rid_ok = rid >= 0 && (rid as usize) < n;
-            let spo_ok = matches!((s, p, o), (Some(s), Some(p), Some(o))
-                if s < n && p < n && o < n);
-            if !rid_ok || !spo_ok {
-                self.diag(
-                    "DamagedFrame",
-                    format!("reifier {rid} has bad/out-of-range ids"),
-                    Some(index),
-                );
-                continue;
-            }
-            let rid = rid as usize;
-            let (Some(s), Some(p), Some(o)) = (s, p, o) else {
-                continue;
+        let Value::Array(rows) = payload else {
+            self.diag(
+                "DamagedFrame",
+                "reifies payload must be a row array".to_string(),
+                Some(index),
+            );
+            return;
+        };
+        for row in rows {
+            let (rid, triple, gslot) = match decode_reifier_row(row, self.g) {
+                RowDecode::Skip => continue,
+                RowDecode::Row(row) => row,
+                RowDecode::Damaged(detail) => {
+                    self.diag("DamagedFrame", detail.to_string(), Some(index));
+                    continue;
+                }
+                RowDecode::Position(detail) => {
+                    self.diag("PositionConstraint", detail, Some(index));
+                    continue;
+                }
             };
-            let triple: Triple3 = (s, p, o);
             if let Some(existing) = self.g.reifier(rid) {
                 if existing != triple {
                     self.diag(
@@ -579,42 +571,26 @@ impl Folder<'_, '_, '_> {
                 );
                 continue;
             }
-            self.g.set_reifier(rid, triple);
-            self.with_sink(|segment_index, sink| sink.reifier(segment_index, rid, triple));
+            self.g.set_reifier(rid, triple, gslot);
+            self.with_sink(|segment_index, sink| sink.reifier(segment_index, (rid, triple, gslot)));
         }
     }
 
     fn h_annot(&mut self, payload: &Value, index: usize) {
         let Value::Array(rows) = payload else { return };
         for row in rows {
-            let Value::Array(items) = row else { continue };
-            if items.len() != 3 {
-                continue;
-            }
-            let (r, p, v) = (as_idx(&items[0]), as_idx(&items[1]), as_idx(&items[2]));
-            let n = self.g.terms.len();
-            let ok = matches!((r, p, v), (Some(r), Some(p), Some(v))
-                if r < n && p < n && v < n);
-            if !ok {
-                self.diag(
-                    "DamagedFrame",
-                    "annot row has bad/out-of-range ids".to_string(),
-                    Some(index),
-                );
-                continue;
-            }
-            let (Some(r), Some(p), Some(v)) = (r, p, v) else {
-                continue;
+            let annotation = match decode_annotation_row(row, self.g) {
+                RowDecode::Skip => continue,
+                RowDecode::Row(row) => row,
+                RowDecode::Damaged(detail) => {
+                    self.diag("DamagedFrame", detail.to_string(), Some(index));
+                    continue;
+                }
+                RowDecode::Position(detail) => {
+                    self.diag("PositionConstraint", detail, Some(index));
+                    continue;
+                }
             };
-            if self.g.terms[p].kind != TermKind::Iri {
-                self.diag(
-                    "PositionConstraint",
-                    format!("annot predicate {p} not an IRI"),
-                    Some(index),
-                );
-                continue;
-            }
-            let annotation = (r, p, v);
             self.with_sink(|segment_index, sink| sink.annotation(segment_index, annotation));
             if self.materialize {
                 self.g.annotations.push(annotation);
@@ -814,12 +790,18 @@ impl Folder<'_, '_, '_> {
         if let Some(Value::Array(quads)) = map_get(entries, "quads") {
             self.h_quads(&Value::Array(quads.iter().map(sh_row).collect()), index);
         }
-        if let Some(Value::Map(reifies)) = map_get(entries, "reifies") {
-            let shifted: Vec<(Value, Value)> = reifies
-                .iter()
-                .map(|(rid, spo)| (sh(rid), sh_row(spo)))
-                .collect();
-            self.h_reifies(&Value::Map(shifted), index);
+        match map_get(entries, "reifies") {
+            Some(Value::Map(_)) => {
+                self.diag(
+                    "DamagedFrame",
+                    "snapshot reifies payload must be a row array".to_string(),
+                    Some(index),
+                );
+            }
+            Some(Value::Array(reifies)) => {
+                self.h_reifies(&Value::Array(reifies.iter().map(sh_row).collect()), index);
+            }
+            _ => {}
         }
         if let Some(Value::Array(annot)) = map_get(entries, "annot") {
             self.h_annot(&Value::Array(annot.iter().map(sh_row).collect()), index);
@@ -886,47 +868,6 @@ impl Folder<'_, '_, '_> {
     }
 
     // -- helpers ---------------------------------------------------------------
-
-    /// Bounds-check, then enforce §7.4 positions; diagnose + reject on violation.
-    fn check_positions(
-        &mut self,
-        s: usize,
-        p: usize,
-        o: usize,
-        g: Option<usize>,
-        index: usize,
-    ) -> bool {
-        let n = self.g.terms.len();
-        let in_bounds = s < n && p < n && o < n && g.is_none_or(|gv| gv < n);
-        if !in_bounds {
-            self.diag(
-                "PositionConstraint",
-                format!(
-                    "quad ({s},{p},{o},{}) has out-of-range term ids",
-                    fmt_opt(g)
-                ),
-                Some(index),
-            );
-            return false;
-        }
-        let mut ok = self.g.terms[p].kind == TermKind::Iri;
-        if self.g.terms[s].kind == TermKind::Literal {
-            ok = false;
-        }
-        if let Some(gv) = g {
-            if matches!(self.g.terms[gv].kind, TermKind::Literal | TermKind::Triple) {
-                ok = false;
-            }
-        }
-        if !ok {
-            self.diag(
-                "PositionConstraint",
-                format!("quad ({s},{p},{o},{}) violates positions", fmt_opt(g)),
-                Some(index),
-            );
-        }
-        ok
-    }
 
     fn opaque(&mut self, frame: &[(Value, Value)], ftype: &str, reason: &str) {
         let id = match map_get(frame, "id") {

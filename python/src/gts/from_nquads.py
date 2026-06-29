@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from gts.model import Term, TermKind
+from gts.model import AnnotationRow, ReifierRow, Term, TermKind, Triple
 from gts.writer import Writer
 
 _RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
@@ -219,7 +219,7 @@ class _Interner:
         self._ids[key] = tid
         return tid
 
-    def node(self, n: _Node, reifiers: dict[int, tuple[int, int, int]]) -> int:
+    def node(self, n: _Node, reifiers: list[ReifierRow]) -> int:
         if isinstance(n, _Atom):
             return self.atom(n)
         # A bare quoted triple as a quad component: intern as a TRIPLE term with
@@ -233,8 +233,24 @@ class _Interner:
         rid = len(self.terms)
         self.terms.append(Term(TermKind.TRIPLE, reifier=rid))
         self._ids[key] = rid
-        reifiers[rid] = (s, p, o)
+        reifiers.append((rid, (s, p, o), None))
         return rid
+
+
+def _add_reifier(
+    reifiers: list[ReifierRow],
+    rid: int,
+    triple: Triple,
+    graph_name: int | None,
+) -> None:
+    for existing_rid, existing, _existing_graph in reifiers:
+        if existing_rid == rid and existing != triple:
+            raise NQuadsParseError(
+                f"conflicting rdf:reifies binding for reifier term {rid}"
+            )
+    row = (rid, triple, graph_name)
+    if row not in reifiers:
+        reifiers.append(row)
 
 
 def from_nquads(text: str) -> bytes:
@@ -254,8 +270,8 @@ def from_nquads(text: str) -> bytes:
         statements.append(nodes)
 
     interner = _Interner()
-    reifiers: dict[int, tuple[int, int, int]] = {}
-    quads: list[tuple[int, int, int, int | None]] = []
+    reifiers: list[ReifierRow] = []
+    pending_quads: list[tuple[int, int, int, int | None]] = []
 
     for nodes in statements:
         s, p, o = nodes[0], nodes[1], nodes[2]
@@ -270,24 +286,35 @@ def from_nquads(text: str) -> bytes:
             and p.value == _RDF_REIFIES
             and isinstance(o, _Triple)
             and isinstance(s, _Atom)
-            and gname is None
         ):
             rid = interner.atom(s)
-            reifiers[rid] = (
-                interner.node(o.s, reifiers),
-                interner.node(o.p, reifiers),
-                interner.node(o.o, reifiers),
+            gid = interner.node(gname, reifiers) if gname is not None else None
+            _add_reifier(
+                reifiers,
+                rid,
+                (
+                    interner.node(o.s, reifiers),
+                    interner.node(o.p, reifiers),
+                    interner.node(o.o, reifiers),
+                ),
+                gid,
             )
             continue
 
-        # Everything else is a quad. Annotations (reifier, predicate, value) and
-        # base quads project to identical N-Quads, so they need no distinction
-        # here — both round-trip through the quads frame.
         sid = interner.node(s, reifiers)
         pid = interner.node(p, reifiers)
         oid = interner.node(o, reifiers)
         gid = interner.node(gname, reifiers) if gname is not None else None
-        quads.append((sid, pid, oid, gid))
+        pending_quads.append((sid, pid, oid, gid))
+
+    reifier_ids = {rid for rid, _spo, _graph_name in reifiers}
+    quads: list[tuple[int, int, int, int | None]] = []
+    annotations: list[AnnotationRow] = []
+    for sid, pid, oid, gid in pending_quads:
+        if sid in reifier_ids:
+            annotations.append((sid, pid, oid, gid))
+        else:
+            quads.append((sid, pid, oid, gid))
 
     w = Writer(profile="dist")
     if interner.terms:
@@ -296,4 +323,6 @@ def from_nquads(text: str) -> bytes:
         w.add_quads(quads)
     if reifiers:
         w.add_reifies(reifiers)
+    if annotations:
+        w.add_annot(annotations)
     return w.to_bytes()

@@ -22,7 +22,7 @@ use std::borrow::Cow;
 
 use ciborium::value::Value;
 
-use crate::model::{Graph, Quad, Suppression, Term, TermKind};
+use crate::model::{Graph, Quad, ReifierRow, Suppression, Term, TermKind};
 use crate::reader::{read, read_file_segments};
 use crate::stream;
 use crate::wire::{digest_str, hex, map_get};
@@ -451,18 +451,24 @@ pub fn compact_streamable(
         w.add_quads(&shifted);
     }
     if !g.reifiers.is_empty() {
-        let shifted: Vec<(usize, (usize, usize, usize))> = g
+        let shifted: Vec<ReifierRow> = g
             .reifiers
             .iter()
-            .map(|&(r, (s, p, o))| (r + base, (s + base, p + base, o + base)))
+            .map(|&(r, (s, p, o), gr)| {
+                (
+                    r + base,
+                    (s + base, p + base, o + base),
+                    gr.map(|x| x + base),
+                )
+            })
             .collect();
         w.add_reifies(&shifted);
     }
     if !g.annotations.is_empty() {
-        let shifted: Vec<(usize, usize, usize)> = g
+        let shifted: Vec<(usize, usize, usize, Option<usize>)> = g
             .annotations
             .iter()
-            .map(|&(r, p, v)| (r + base, p + base, v + base))
+            .map(|&(r, p, v, gr)| (r + base, p + base, v + base, gr.map(|x| x + base)))
             .collect();
         w.add_annot(&shifted);
     }

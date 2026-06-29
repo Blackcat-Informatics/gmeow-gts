@@ -157,8 +157,8 @@ fn sample_graph(named_graph: bool) -> Graph {
         },
     ]);
     writer.add_quads(&[(0, 1, 2, named_graph.then_some(3))]);
-    writer.add_reifies(&[(0, (0, 1, 2))]);
-    writer.add_annot(&[(0, 4, 5)]);
+    writer.add_reifies(&[(0, (0, 1, 2), None)]);
+    writer.add_annot(&[(0, 4, 5, None)]);
     read(&writer.to_bytes(), true, None)
 }
 

@@ -7,7 +7,8 @@ use std::fs::File;
 use std::process::ExitCode;
 
 use gmeow_gts::model::{
-    Diagnostic, OpaqueNode, Quad, Signature, StreamableInfo, Suppression, Term, Triple3,
+    AnnotationRow, Diagnostic, OpaqueNode, Quad, ReifierRow, Signature, StreamableInfo,
+    Suppression, Term,
 };
 use gmeow_gts::reader::{read_to_sink_from_reader, ReadOptions, StreamingSink};
 
@@ -35,11 +36,11 @@ impl StreamingSink for CountingSink {
         self.quads += 1;
     }
 
-    fn reifier(&mut self, _segment_index: usize, _reifier: usize, _triple: Triple3) {
+    fn reifier(&mut self, _segment_index: usize, _reifier: ReifierRow) {
         self.reifiers += 1;
     }
 
-    fn annotation(&mut self, _segment_index: usize, _annotation: Triple3) {
+    fn annotation(&mut self, _segment_index: usize, _annotation: AnnotationRow) {
         self.annotations += 1;
     }
 

@@ -400,17 +400,27 @@ func Streamable(data []byte, timestamp string, sealOriginal bool) ([]byte, error
 	if len(g.Reifiers) > 0 {
 		shifted := make([]model.ReifierEntry, len(g.Reifiers))
 		for i, r := range g.Reifiers {
-			shifted[i] = model.ReifierEntry{
+			entry := model.ReifierEntry{
 				RID: r.RID + base,
 				SPO: model.Triple3{S: r.SPO.S + base, P: r.SPO.P + base, O: r.SPO.O + base},
 			}
+			if r.G != nil {
+				gr := *r.G + base
+				entry.G = &gr
+			}
+			shifted[i] = entry
 		}
 		w.AddReifies(shifted)
 	}
 	if len(g.Annotations) > 0 {
-		shifted := make([]model.Triple3, len(g.Annotations))
+		shifted := make([]model.AnnotationEntry, len(g.Annotations))
 		for i, a := range g.Annotations {
-			shifted[i] = model.Triple3{S: a.S + base, P: a.P + base, O: a.O + base}
+			entry := model.AnnotationEntry{S: a.S + base, P: a.P + base, O: a.O + base}
+			if a.G != nil {
+				gr := *a.G + base
+				entry.G = &gr
+			}
+			shifted[i] = entry
 		}
 		w.AddAnnot(shifted)
 	}

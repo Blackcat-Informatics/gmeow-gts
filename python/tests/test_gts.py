@@ -225,11 +225,11 @@ def test_vector_12_conflicting_reifier() -> None:
             Term(TermKind.IRI, "https://example.org/o2"),  # 4
         ]
     )
-    w.add_reifies({0: (1, 2, 3)})
-    w.add_reifies({0: (1, 2, 4)})  # conflict
+    w.add_reifies([(0, (1, 2, 3), None)])
+    w.add_reifies([(0, (1, 2, 4), None)])  # conflict
     g = read(w.to_bytes())
     assert "ConflictingReifier" in _diag_codes(g)
-    assert g.reifiers[0] == (1, 2, 3)  # first binding kept
+    assert g.reifier(0) == (1, 2, 3)  # first binding kept
 
 
 # -- Vector 13: position-constraint violation --------------------------------
@@ -590,6 +590,44 @@ def test_deterministic_writer_reorders_equivalent_graphs() -> None:
         Writer.deterministic(a, profile="dist").to_bytes()
         == Writer.deterministic(b, profile="dist").to_bytes()
     )
+
+
+def test_deterministic_writer_sorts_mixed_graph_reifier_rows() -> None:
+    """Optional graph slots sort without comparing None and int directly."""
+    from gts.model import Graph
+
+    graph = Graph(
+        terms=[
+            Term(TermKind.IRI, "https://example.org/stmt"),
+            Term(TermKind.IRI, "https://example.org/s"),
+            Term(TermKind.IRI, "https://example.org/p"),
+            Term(TermKind.IRI, "https://example.org/o"),
+            Term(TermKind.IRI, "https://example.org/graph"),
+            Term(TermKind.IRI, "https://example.org/confidence"),
+            Term(TermKind.LITERAL, "0.9"),
+        ],
+        reifiers=[
+            (0, (1, 2, 3), None),
+            (0, (1, 2, 3), 4),
+        ],
+        annotations=[
+            (0, 5, 6, None),
+            (0, 5, 6, 4),
+        ],
+    )
+
+    folded = read(Writer.deterministic(graph, profile="dist").to_bytes())
+    lines = to_nquads(folded).splitlines()
+
+    reifier_lines = [line for line in lines if "rdf-syntax-ns#reifies" in line]
+    assert len(reifier_lines) == 2
+    assert any(line.endswith("<https://example.org/graph> .") for line in reifier_lines)
+    assert any(line.endswith(")>> .") for line in reifier_lines)
+
+    annot_lines = [line for line in lines if "<https://example.org/confidence>" in line]
+    assert len(annot_lines) == 2
+    assert any(line.endswith("<https://example.org/graph> .") for line in annot_lines)
+    assert any(line.endswith('"0.9" .') for line in annot_lines)
 
 
 def test_corpus_matches_committed_expectations() -> None:

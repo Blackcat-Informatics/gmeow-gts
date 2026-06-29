@@ -191,20 +191,22 @@ pub(crate) fn union_segments(segments: &[Graph]) -> Graph {
                 u.out.quads.push(q);
             }
         }
-        for &(rf, (s, p, o)) in &seg.reifiers {
+        for &(rf, (s, p, o), gr) in &seg.reifiers {
             let new_rf = u.map_term(seg, seg_idx, rf);
             let spo = (
                 u.map_term(seg, seg_idx, s),
                 u.map_term(seg, seg_idx, p),
                 u.map_term(seg, seg_idx, o),
             );
-            u.out.set_reifier(new_rf, spo);
+            let graph_name = gr.map(|x| u.map_term(seg, seg_idx, x));
+            u.out.set_reifier(new_rf, spo, graph_name);
         }
-        for &(r, p, v) in &seg.annotations {
+        for &(r, p, v, gr) in &seg.annotations {
             let row = (
                 u.map_term(seg, seg_idx, r),
                 u.map_term(seg, seg_idx, p),
                 u.map_term(seg, seg_idx, v),
+                gr.map(|x| u.map_term(seg, seg_idx, x)),
             );
             u.out.annotations.push(row);
         }

@@ -11,12 +11,12 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use crate::model::{Diagnostic, Graph, Quad, Term, TermKind, Triple3};
+use crate::model::{Diagnostic, Graph, Quad, Term, TermKind};
 use crate::rdf::{to_rdf_quads, RdfAdapterError};
 use crate::rdf_events::{
-    EventDiagnostic, EventError, EventErrorKind, EventLiteralDirection, EventQuad, EventScopeId,
-    EventTerm, EventTermId, EventTermKind, EventTriple, GraphRdfEventSource, RdfEventSink,
-    RdfEventSource,
+    EventAnnotation, EventDiagnostic, EventError, EventErrorKind, EventLiteralDirection, EventQuad,
+    EventReifier, EventScopeId, EventTerm, EventTermId, EventTermKind, EventTriple,
+    GraphRdfEventSource, RdfEventSink, RdfEventSource,
 };
 use crate::reader::read;
 use crate::writer::Writer;
@@ -249,8 +249,8 @@ fn ensure_default_graph_projection(graph: &Graph, format: &str) -> Result<(), Rd
 pub struct EventGraphSink {
     terms: BTreeMap<EventTermId, EventTermKind>,
     quads: Vec<EventQuad>,
-    reifiers: BTreeMap<EventTermId, EventTriple>,
-    annotations: Vec<EventTriple>,
+    reifiers: Vec<EventReifier>,
+    annotations: Vec<EventAnnotation>,
     diagnostics: Vec<EventDiagnostic>,
     active_scope: Option<EventScopeId>,
     saw_scope: bool,
@@ -279,9 +279,36 @@ impl EventGraphSink {
             .map(|(index, id)| (*id, index))
             .collect();
 
+        let mut reifier_bindings = BTreeMap::new();
+        for row in &reifiers {
+            bind_reifier(&mut reifier_bindings, row.id, row_triple(*row))?;
+        }
+        let mut implied_reifiers = Vec::new();
+        for (id, kind) in &terms {
+            if let EventTermKind::Triple { triple, reifier } = kind {
+                let rid = reifier.unwrap_or(*id);
+                if let Some(previous) = reifier_bindings.get(&rid) {
+                    if *previous != *triple {
+                        return Err(EventError::invalid_source(format!(
+                            "triple term {id} conflicts with reifier term {rid}"
+                        )));
+                    }
+                    continue;
+                }
+                bind_reifier(&mut reifier_bindings, rid, *triple)?;
+                implied_reifiers.push(EventReifier {
+                    id: rid,
+                    subject: triple.subject,
+                    predicate: triple.predicate,
+                    object: triple.object,
+                    graph_name: None,
+                });
+            }
+        }
+
         let terms = terms
             .into_iter()
-            .map(|(id, kind)| event_term_to_model(id, kind, &id_map, &reifiers))
+            .map(|(id, kind)| event_term_to_model(id, kind, &id_map, &reifier_bindings))
             .collect::<Result<Vec<_>, _>>()?;
         let quads = quads
             .into_iter()
@@ -289,16 +316,12 @@ impl EventGraphSink {
             .collect::<Result<Vec<_>, _>>()?;
         let reifiers = reifiers
             .into_iter()
-            .map(|(reifier, triple)| {
-                Ok((
-                    map_event_id(&id_map, reifier, "reifier")?,
-                    event_triple_to_model(triple, &id_map)?,
-                ))
-            })
+            .chain(implied_reifiers)
+            .map(|reifier| event_reifier_to_model(reifier, &id_map))
             .collect::<Result<Vec<_>, EventError>>()?;
         let annotations = annotations
             .into_iter()
-            .map(|annotation| event_triple_to_model(annotation, &id_map))
+            .map(|annotation| event_annotation_to_model(annotation, &id_map))
             .collect::<Result<Vec<_>, _>>()?;
         let diagnostics = diagnostics
             .into_iter()
@@ -327,23 +350,31 @@ impl EventGraphSink {
             Ok(())
         }
     }
+}
 
-    fn bind_reifier(
-        &mut self,
-        reifier: EventTermId,
-        triple: EventTriple,
-    ) -> Result<(), EventError> {
-        if let Some(previous) = self.reifiers.get(&reifier) {
-            if *previous != triple {
-                return Err(EventError::invalid_source(format!(
-                    "reifier term {reifier} has conflicting triple bindings"
-                )));
-            }
-            return Ok(());
-        }
-        self.reifiers.insert(reifier, triple);
-        Ok(())
+fn row_triple(row: EventReifier) -> EventTriple {
+    EventTriple {
+        subject: row.subject,
+        predicate: row.predicate,
+        object: row.object,
     }
+}
+
+fn bind_reifier(
+    reifiers: &mut BTreeMap<EventTermId, EventTriple>,
+    reifier: EventTermId,
+    triple: EventTriple,
+) -> Result<(), EventError> {
+    if let Some(previous) = reifiers.get(&reifier) {
+        if *previous != triple {
+            return Err(EventError::invalid_source(format!(
+                "reifier term {reifier} has conflicting triple bindings"
+            )));
+        }
+        return Ok(());
+    }
+    reifiers.insert(reifier, triple);
+    Ok(())
 }
 
 impl RdfEventSink for EventGraphSink {
@@ -372,9 +403,6 @@ impl RdfEventSink for EventGraphSink {
                 format!("term id {id} declared more than once"),
             ));
         }
-        if let EventTermKind::Triple { triple, reifier } = &kind {
-            self.bind_reifier(reifier.unwrap_or(id), *triple)?;
-        }
         self.terms.insert(id, kind);
         Ok(())
     }
@@ -385,12 +413,13 @@ impl RdfEventSink for EventGraphSink {
         Ok(())
     }
 
-    fn reifier(&mut self, reifier: EventTermId, triple: EventTriple) -> Result<(), EventError> {
+    fn reifier(&mut self, reifier: EventReifier) -> Result<(), EventError> {
         self.ensure_not_finished("reifier")?;
-        self.bind_reifier(reifier, triple)
+        self.reifiers.push(reifier);
+        Ok(())
     }
 
-    fn annotation(&mut self, annotation: EventTriple) -> Result<(), EventError> {
+    fn annotation(&mut self, annotation: EventAnnotation) -> Result<(), EventError> {
         self.ensure_not_finished("annotation")?;
         self.annotations.push(annotation);
         Ok(())
@@ -502,14 +531,36 @@ fn event_quad_to_model(
     ))
 }
 
-fn event_triple_to_model(
-    triple: EventTriple,
+fn event_reifier_to_model(
+    reifier: EventReifier,
     id_map: &BTreeMap<EventTermId, usize>,
-) -> Result<Triple3, EventError> {
+) -> Result<crate::model::ReifierRow, EventError> {
     Ok((
-        map_event_id(id_map, triple.subject, "triple subject")?,
-        map_event_id(id_map, triple.predicate, "triple predicate")?,
-        map_event_id(id_map, triple.object, "triple object")?,
+        map_event_id(id_map, reifier.id, "reifier")?,
+        (
+            map_event_id(id_map, reifier.subject, "reifier subject")?,
+            map_event_id(id_map, reifier.predicate, "reifier predicate")?,
+            map_event_id(id_map, reifier.object, "reifier object")?,
+        ),
+        reifier
+            .graph_name
+            .map(|graph_name| map_event_id(id_map, graph_name, "reifier graph name"))
+            .transpose()?,
+    ))
+}
+
+fn event_annotation_to_model(
+    annotation: EventAnnotation,
+    id_map: &BTreeMap<EventTermId, usize>,
+) -> Result<crate::model::AnnotationRow, EventError> {
+    Ok((
+        map_event_id(id_map, annotation.reifier, "annotation reifier")?,
+        map_event_id(id_map, annotation.predicate, "annotation predicate")?,
+        map_event_id(id_map, annotation.object, "annotation object")?,
+        annotation
+            .graph_name
+            .map(|graph_name| map_event_id(id_map, graph_name, "annotation graph name"))
+            .transpose()?,
     ))
 }
 

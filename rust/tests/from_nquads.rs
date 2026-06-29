@@ -106,8 +106,8 @@ fn named_graph_reifier_and_annotation_roundtrip() {
         },
     ]);
     w.add_quads(&[(0, 1, 2, Some(3))]);
-    w.add_reifies(&[(0, (0, 1, 2))]);
-    w.add_annot(&[(0, 4, 5)]);
+    w.add_reifies(&[(0, (0, 1, 2), None)]);
+    w.add_annot(&[(0, 4, 5, None)]);
     assert!(roundtrip(&w.to_bytes()));
 }
 
@@ -214,7 +214,7 @@ fn writer_allows_multiple_reifiers_for_the_same_statement() {
         },
     ]);
     writer.add_quads(&[(2, 3, 4, None)]);
-    writer.add_reifies(&[(0, (2, 3, 4)), (1, (2, 3, 4))]);
+    writer.add_reifies(&[(0, (2, 3, 4), None), (1, (2, 3, 4), None)]);
 
     let graph = read(&writer.to_bytes(), true, None);
     assert_eq!(graph.reifiers.len(), 2);

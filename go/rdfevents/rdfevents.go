@@ -58,6 +58,23 @@ type Quad struct {
 	GraphName *TermID
 }
 
+// Reifier is a graph-scoped RDF 1.2 reifier binding using event term ids.
+type Reifier struct {
+	ID        TermID
+	Subject   TermID
+	Predicate TermID
+	Object    TermID
+	GraphName *TermID
+}
+
+// Annotation is a graph-scoped RDF 1.2 reifier annotation using event term ids.
+type Annotation struct {
+	Reifier   TermID
+	Predicate TermID
+	Object    TermID
+	GraphName *TermID
+}
+
 // LiteralDirection is an RDF 1.2 literal base direction.
 type LiteralDirection string
 
@@ -164,8 +181,8 @@ type Sink interface {
 	StartScope(ScopeID) error
 	Term(Term) error
 	Quad(Quad) error
-	Reifier(TermID, Triple) error
-	Annotation(Triple) error
+	Reifier(Reifier) error
+	Annotation(Annotation) error
 	Diagnostic(Diagnostic) error
 	EndScope(ScopeID) error
 	Finish() error
@@ -195,10 +212,10 @@ func (NopSink) Term(Term) error { return nil }
 func (NopSink) Quad(Quad) error { return nil }
 
 // Reifier implements Sink.
-func (NopSink) Reifier(TermID, Triple) error { return nil }
+func (NopSink) Reifier(Reifier) error { return nil }
 
 // Annotation implements Sink.
-func (NopSink) Annotation(Triple) error { return nil }
+func (NopSink) Annotation(Annotation) error { return nil }
 
 // Diagnostic implements Sink.
 func (NopSink) Diagnostic(Diagnostic) error { return nil }
@@ -367,17 +384,14 @@ func emitFoldOrder(graph *model.Graph, sink Sink) error {
 		}
 	}
 	for _, reifier := range graph.Reifiers {
-		if err := validateTermRef(graph, reifier.RID, "reifier"); err != nil {
+		if err := validateReifierRefs(graph, reifier); err != nil {
 			return err
 		}
-		if err := validateTripleRefs(graph, reifier.SPO, "reifier"); err != nil {
-			return err
-		}
-		triple, err := toEventTriple(reifier.SPO)
+		eventReifier, err := toEventReifier(reifier)
 		if err != nil {
 			return err
 		}
-		if err := sink.Reifier(TermID(reifier.RID), triple); err != nil {
+		if err := sink.Reifier(eventReifier); err != nil {
 			return sinkError(err)
 		}
 	}
@@ -394,10 +408,10 @@ func emitFoldOrder(graph *model.Graph, sink Sink) error {
 		}
 	}
 	for _, annotation := range graph.Annotations {
-		if err := validateTripleRefs(graph, annotation, "annotation"); err != nil {
+		if err := validateAnnotationRefs(graph, annotation); err != nil {
 			return err
 		}
-		eventAnnotation, err := toEventTriple(annotation)
+		eventAnnotation, err := toEventAnnotation(annotation)
 		if err != nil {
 			return err
 		}
@@ -414,7 +428,16 @@ type declarationOrderEmitter struct {
 	limit           int
 	emittedTerms    map[int]struct{}
 	visitingTerms   map[int]struct{}
-	emittedReifiers map[int]struct{}
+	emittedReifiers map[reifierKey]struct{}
+}
+
+type reifierKey struct {
+	RID      int
+	S        int
+	P        int
+	O        int
+	Graph    int
+	HasGraph bool
 }
 
 func newDeclarationOrderEmitter(graph *model.Graph, sink Sink) *declarationOrderEmitter {
@@ -424,7 +447,7 @@ func newDeclarationOrderEmitter(graph *model.Graph, sink Sink) *declarationOrder
 		limit:           sinkTripleTermNestingLimit(sink),
 		emittedTerms:    map[int]struct{}{},
 		visitingTerms:   map[int]struct{}{},
-		emittedReifiers: map[int]struct{}{},
+		emittedReifiers: map[reifierKey]struct{}{},
 	}
 }
 
@@ -435,7 +458,7 @@ func (e *declarationOrderEmitter) emitAll() error {
 		}
 	}
 	for _, reifier := range e.graph.Reifiers {
-		if err := e.emitReifier(reifier.RID, reifier.SPO, 0); err != nil {
+		if err := e.emitReifier(reifier, 0); err != nil {
 			return err
 		}
 	}
@@ -452,10 +475,10 @@ func (e *declarationOrderEmitter) emitAll() error {
 		}
 	}
 	for _, annotation := range e.graph.Annotations {
-		if err := validateTripleRefs(e.graph, annotation, "annotation"); err != nil {
+		if err := validateAnnotationRefs(e.graph, annotation); err != nil {
 			return err
 		}
-		eventAnnotation, err := toEventTriple(annotation)
+		eventAnnotation, err := toEventAnnotation(annotation)
 		if err != nil {
 			return err
 		}
@@ -486,7 +509,7 @@ func (e *declarationOrderEmitter) emitTerm(id int, depth int) error {
 	defer delete(e.visitingTerms, id)
 
 	term := e.graph.Terms[id]
-	var selfReifierTriple *model.Triple3
+	var selfReifierRows []model.ReifierEntry
 	switch term.Kind {
 	case model.Literal:
 		if term.Datatype != nil {
@@ -507,9 +530,9 @@ func (e *declarationOrderEmitter) emitTerm(id int, depth int) error {
 				if err := e.emitTripleDeps(triple, depth+1); err != nil {
 					return err
 				}
-				selfReifierTriple = &triple
+				selfReifierRows = e.reifierRows(*term.Reifier, triple)
 			} else {
-				if err := e.emitReifier(*term.Reifier, triple, depth+1); err != nil {
+				if err := e.emitReifierRows(*term.Reifier, triple, depth+1); err != nil {
 					return err
 				}
 			}
@@ -527,40 +550,71 @@ func (e *declarationOrderEmitter) emitTerm(id int, depth int) error {
 		return sinkError(err)
 	}
 	e.emittedTerms[id] = struct{}{}
-	if selfReifierTriple != nil {
-		if _, ok := e.emittedReifiers[id]; !ok {
-			e.emittedReifiers[id] = struct{}{}
-			eventTriple, err := toEventTriple(*selfReifierTriple)
-			if err != nil {
-				return err
-			}
-			if err := e.sink.Reifier(TermID(id), eventTriple); err != nil {
-				return sinkError(err)
-			}
+	for _, row := range selfReifierRows {
+		if err := e.emitReifier(row, depth+1); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (e *declarationOrderEmitter) emitReifier(reifier int, triple model.Triple3, depth int) error {
-	if _, ok := e.emittedReifiers[reifier]; ok {
+func (e *declarationOrderEmitter) emitReifierRows(reifier int, triple model.Triple3, depth int) error {
+	rows := e.reifierRows(reifier, triple)
+	if len(rows) == 0 {
+		return NewError(ErrorInvalidSource, fmt.Sprintf("reifier %d does not have a matching binding row", reifier))
+	}
+	for _, row := range rows {
+		if err := e.emitReifier(row, depth); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *declarationOrderEmitter) reifierRows(reifier int, triple model.Triple3) []model.ReifierEntry {
+	var rows []model.ReifierEntry
+	for _, row := range e.graph.Reifiers {
+		if row.RID == reifier && row.SPO == triple {
+			rows = append(rows, row)
+		}
+	}
+	return rows
+}
+
+func (e *declarationOrderEmitter) emitReifier(row model.ReifierEntry, depth int) error {
+	key := keyForReifier(row)
+	if _, ok := e.emittedReifiers[key]; ok {
 		return nil
 	}
-	e.emittedReifiers[reifier] = struct{}{}
-	if err := e.emitTerm(reifier, depth); err != nil {
+	e.emittedReifiers[key] = struct{}{}
+	if err := e.emitTerm(row.RID, depth); err != nil {
 		return err
 	}
-	if err := e.emitTripleDeps(triple, depth); err != nil {
+	if err := e.emitTripleDeps(row.SPO, depth); err != nil {
 		return err
 	}
-	eventTriple, err := toEventTriple(triple)
+	if row.G != nil {
+		if err := e.emitTerm(*row.G, depth); err != nil {
+			return err
+		}
+	}
+	eventReifier, err := toEventReifier(row)
 	if err != nil {
 		return err
 	}
-	if err := e.sink.Reifier(TermID(reifier), eventTriple); err != nil {
+	if err := e.sink.Reifier(eventReifier); err != nil {
 		return sinkError(err)
 	}
 	return nil
+}
+
+func keyForReifier(row model.ReifierEntry) reifierKey {
+	key := reifierKey{RID: row.RID, S: row.SPO.S, P: row.SPO.P, O: row.SPO.O}
+	if row.G != nil {
+		key.Graph = *row.G
+		key.HasGraph = true
+	}
+	return key
 }
 
 func (e *declarationOrderEmitter) emitTripleDeps(triple model.Triple3, depth int) error {
@@ -588,6 +642,35 @@ func validateTripleRefs(graph *model.Graph, triple model.Triple3, context string
 		return err
 	}
 	return validateTermRef(graph, triple.O, context)
+}
+
+func validateReifierRefs(graph *model.Graph, reifier model.ReifierEntry) error {
+	if err := validateTermRef(graph, reifier.RID, "reifier"); err != nil {
+		return err
+	}
+	if err := validateTripleRefs(graph, reifier.SPO, "reifier"); err != nil {
+		return err
+	}
+	if reifier.G != nil {
+		return validateTermRef(graph, *reifier.G, "reifier graph name")
+	}
+	return nil
+}
+
+func validateAnnotationRefs(graph *model.Graph, annotation model.AnnotationEntry) error {
+	if err := validateTermRef(graph, annotation.S, "annotation"); err != nil {
+		return err
+	}
+	if err := validateTermRef(graph, annotation.P, "annotation"); err != nil {
+		return err
+	}
+	if err := validateTermRef(graph, annotation.O, "annotation"); err != nil {
+		return err
+	}
+	if annotation.G != nil {
+		return validateTermRef(graph, *annotation.G, "annotation graph name")
+	}
+	return nil
 }
 
 func validateQuadRefs(graph *model.Graph, quad model.Quad) error {
@@ -691,6 +774,50 @@ func toEventTriple(triple model.Triple3) (Triple, error) {
 	return Triple{Subject: subject, Predicate: predicate, Object: object}, nil
 }
 
+func toEventReifier(reifier model.ReifierEntry) (Reifier, error) {
+	id, err := toEventID(reifier.RID)
+	if err != nil {
+		return Reifier{}, err
+	}
+	subject, err := toEventID(reifier.SPO.S)
+	if err != nil {
+		return Reifier{}, err
+	}
+	predicate, err := toEventID(reifier.SPO.P)
+	if err != nil {
+		return Reifier{}, err
+	}
+	object, err := toEventID(reifier.SPO.O)
+	if err != nil {
+		return Reifier{}, err
+	}
+	graphName, err := toEventIDPtr(reifier.G)
+	if err != nil {
+		return Reifier{}, err
+	}
+	return Reifier{ID: id, Subject: subject, Predicate: predicate, Object: object, GraphName: graphName}, nil
+}
+
+func toEventAnnotation(annotation model.AnnotationEntry) (Annotation, error) {
+	reifier, err := toEventID(annotation.S)
+	if err != nil {
+		return Annotation{}, err
+	}
+	predicate, err := toEventID(annotation.P)
+	if err != nil {
+		return Annotation{}, err
+	}
+	object, err := toEventID(annotation.O)
+	if err != nil {
+		return Annotation{}, err
+	}
+	graphName, err := toEventIDPtr(annotation.G)
+	if err != nil {
+		return Annotation{}, err
+	}
+	return Annotation{Reifier: reifier, Predicate: predicate, Object: object, GraphName: graphName}, nil
+}
+
 func toEventQuad(quad model.Quad) (Quad, error) {
 	subject, err := toEventID(quad.S)
 	if err != nil {
@@ -744,16 +871,11 @@ type GraphSink struct {
 	terms       map[TermID]Term
 	termOrder   []TermID
 	quads       []Quad
-	reifiers    []reifierEvent
-	annotations []Triple
+	reifiers    []Reifier
+	annotations []Annotation
 	diagnostics []Diagnostic
 
 	graph *model.Graph
-}
-
-type reifierEvent struct {
-	reifier TermID
-	triple  Triple
 }
 
 // NewGraphSink creates a materializing RDF event sink.
@@ -831,16 +953,16 @@ func (s *GraphSink) Quad(quad Quad) error {
 }
 
 // Reifier implements Sink.
-func (s *GraphSink) Reifier(reifier TermID, triple Triple) error {
+func (s *GraphSink) Reifier(reifier Reifier) error {
 	if err := s.ensureOpen(); err != nil {
 		return err
 	}
-	s.reifiers = append(s.reifiers, reifierEvent{reifier: reifier, triple: triple})
+	s.reifiers = append(s.reifiers, reifier)
 	return nil
 }
 
 // Annotation implements Sink.
-func (s *GraphSink) Annotation(annotation Triple) error {
+func (s *GraphSink) Annotation(annotation Annotation) error {
 	if err := s.ensureOpen(); err != nil {
 		return err
 	}
@@ -892,19 +1014,17 @@ func (s *GraphSink) Finish() error {
 
 	graph := &model.Graph{}
 	explicitReifiers := map[int]model.Triple3{}
+	var explicitReifierRows []model.ReifierEntry
 	for _, event := range s.reifiers {
-		rid, err := lookupTermID(idToIndex, event.reifier, "reifier")
+		row, err := s.modelReifier(idToIndex, event)
 		if err != nil {
 			return err
 		}
-		triple, err := s.modelTriple(idToIndex, event.triple, "reifier")
-		if err != nil {
-			return err
+		if existing, ok := explicitReifiers[row.RID]; ok && existing != row.SPO {
+			return NewError(ErrorInvalidSource, fmt.Sprintf("reifier %d rebound", event.ID))
 		}
-		if existing, ok := explicitReifiers[rid]; ok && existing != triple {
-			return NewError(ErrorInvalidSource, fmt.Sprintf("reifier %d rebound", event.reifier))
-		}
-		explicitReifiers[rid] = triple
+		explicitReifiers[row.RID] = row.SPO
+		explicitReifierRows = append(explicitReifierRows, row)
 	}
 
 	impliedReifiers := map[int]model.Triple3{}
@@ -936,12 +1056,11 @@ func (s *GraphSink) Finish() error {
 			impliedOrder = append(impliedOrder, implied.rid)
 		}
 	}
-	for _, event := range s.reifiers {
-		rid := idToIndex[event.reifier]
-		graph.SetReifier(rid, explicitReifiers[rid])
+	for _, row := range explicitReifierRows {
+		graph.SetReifier(row.RID, row.SPO, row.G)
 	}
 	for _, rid := range impliedOrder {
-		graph.SetReifier(rid, impliedReifiers[rid])
+		graph.SetReifier(rid, impliedReifiers[rid], nil)
 	}
 	for _, eventQuad := range s.quads {
 		quad, err := s.modelQuad(idToIndex, eventQuad)
@@ -951,7 +1070,7 @@ func (s *GraphSink) Finish() error {
 		graph.Quads = append(graph.Quads, quad)
 	}
 	for _, eventAnnotation := range s.annotations {
-		annotation, err := s.modelTriple(idToIndex, eventAnnotation, "annotation")
+		annotation, err := s.modelAnnotation(idToIndex, eventAnnotation)
 		if err != nil {
 			return err
 		}
@@ -1037,6 +1156,58 @@ func (s *GraphSink) modelTriple(idToIndex map[TermID]int, triple Triple, context
 		return model.Triple3{}, err
 	}
 	return model.Triple3{S: subject, P: predicate, O: object}, nil
+}
+
+func (s *GraphSink) modelReifier(idToIndex map[TermID]int, reifier Reifier) (model.ReifierEntry, error) {
+	id, err := lookupTermID(idToIndex, reifier.ID, "reifier")
+	if err != nil {
+		return model.ReifierEntry{}, err
+	}
+	subject, err := lookupTermID(idToIndex, reifier.Subject, "reifier")
+	if err != nil {
+		return model.ReifierEntry{}, err
+	}
+	predicate, err := lookupTermID(idToIndex, reifier.Predicate, "reifier")
+	if err != nil {
+		return model.ReifierEntry{}, err
+	}
+	object, err := lookupTermID(idToIndex, reifier.Object, "reifier")
+	if err != nil {
+		return model.ReifierEntry{}, err
+	}
+	out := model.ReifierEntry{RID: id, SPO: model.Triple3{S: subject, P: predicate, O: object}}
+	if reifier.GraphName != nil {
+		graphName, err := lookupTermID(idToIndex, *reifier.GraphName, "reifier graph name")
+		if err != nil {
+			return model.ReifierEntry{}, err
+		}
+		out.G = &graphName
+	}
+	return out, nil
+}
+
+func (s *GraphSink) modelAnnotation(idToIndex map[TermID]int, annotation Annotation) (model.AnnotationEntry, error) {
+	reifier, err := lookupTermID(idToIndex, annotation.Reifier, "annotation")
+	if err != nil {
+		return model.AnnotationEntry{}, err
+	}
+	predicate, err := lookupTermID(idToIndex, annotation.Predicate, "annotation")
+	if err != nil {
+		return model.AnnotationEntry{}, err
+	}
+	object, err := lookupTermID(idToIndex, annotation.Object, "annotation")
+	if err != nil {
+		return model.AnnotationEntry{}, err
+	}
+	out := model.AnnotationEntry{S: reifier, P: predicate, O: object}
+	if annotation.GraphName != nil {
+		graphName, err := lookupTermID(idToIndex, *annotation.GraphName, "annotation graph name")
+		if err != nil {
+			return model.AnnotationEntry{}, err
+		}
+		out.G = &graphName
+	}
+	return out, nil
 }
 
 func (s *GraphSink) modelQuad(idToIndex map[TermID]int, quad Quad) (model.Quad, error) {

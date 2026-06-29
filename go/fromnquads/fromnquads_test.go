@@ -71,8 +71,8 @@ func TestFromNQuadsPreservesNamedGraphsReifiersAndAnnotations(t *testing.T) {
 	})
 	gid := 3
 	w.AddQuads([]model.Quad{{S: 0, P: 1, O: 2, G: &gid}})
-	w.AddReifies([]model.ReifierEntry{{RID: 0, SPO: model.Triple3{S: 0, P: 1, O: 2}}})
-	w.AddAnnot([]model.Triple3{{S: 0, P: 4, O: 5}})
+	w.AddReifies([]model.ReifierEntry{{RID: 0, SPO: model.Triple3{S: 0, P: 1, O: 2}, G: &gid}})
+	w.AddAnnot([]model.AnnotationEntry{{S: 0, P: 4, O: 5, G: &gid}})
 	nq := nquads.ToNQuads(reader.Read(w.ToBytes(), false, nil))
 	if got, want := sortedLines(roundTrip(t, nq)), sortedLines(nq); strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("round-trip mismatch\ngot:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))

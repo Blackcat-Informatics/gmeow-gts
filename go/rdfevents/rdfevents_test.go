@@ -52,8 +52,8 @@ func eventTestGraph() *model.Graph {
 			{Kind: model.Triple, Reifier: &reifierID},
 		},
 		Quads:       []model.Quad{{S: 0, P: 1, O: 2, G: &graphID}},
-		Reifiers:    []model.ReifierEntry{{RID: 6, SPO: model.Triple3{S: 0, P: 1, O: 2}}},
-		Annotations: []model.Triple3{{S: 6, P: 4, O: 5}},
+		Reifiers:    []model.ReifierEntry{{RID: 6, SPO: model.Triple3{S: 0, P: 1, O: 2}, G: &graphID}},
+		Annotations: []model.AnnotationEntry{{S: 6, P: 4, O: 5, G: &graphID}},
 		Diagnostics: []model.Diagnostic{{
 			Code:       "TestDiagnostic",
 			Detail:     "diagnostic detail",
@@ -95,12 +95,12 @@ func (s *recordingSink) Quad(Quad) error {
 	return nil
 }
 
-func (s *recordingSink) Reifier(id TermID, triple Triple) error {
-	s.events = append(s.events, fmt.Sprintf("reifier:%d", id))
+func (s *recordingSink) Reifier(reifier Reifier) error {
+	s.events = append(s.events, fmt.Sprintf("reifier:%d", reifier.ID))
 	return nil
 }
 
-func (s *recordingSink) Annotation(Triple) error {
+func (s *recordingSink) Annotation(Annotation) error {
 	s.events = append(s.events, "annotation")
 	return nil
 }

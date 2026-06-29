@@ -1,6 +1,6 @@
 {
   "name": "gmeow-gts",
-  "version": "0.9.10",
+  "version": "0.9.11",
   "description": "Graph Transport Substrate C and C++ ABI package",
   "homepage": "https://blackcatinformatics.ca/projects/gts",
   "license": "MIT OR Apache-2.0",

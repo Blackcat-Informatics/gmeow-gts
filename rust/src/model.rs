@@ -71,6 +71,10 @@ pub struct Term {
 /// A quad of term-ids; the graph slot is `None` for the default graph.
 pub type Quad = (usize, usize, usize, Option<usize>);
 pub type Triple3 = (usize, usize, usize);
+/// A reifier row: `(reifier, (subject, predicate, object), graph?)`.
+pub type ReifierRow = (usize, Triple3, Option<usize>);
+/// An annotation row: `(reifier, predicate, value, graph?)`.
+pub type AnnotationRow = (usize, usize, usize, Option<usize>);
 
 /// A quad with term ids resolved to borrowed [`Term`] values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -258,10 +262,10 @@ pub struct Graph {
     pub terms: Vec<Term>,
     /// RDF quad rows using term ids; `None` graph slots mean default graph.
     pub quads: Vec<Quad>,
-    /// Reifier-id → triple bindings, insertion-ordered.
-    pub reifiers: Vec<(usize, Triple3)>,
-    /// Annotation triples `(reifier, predicate, value)`.
-    pub annotations: Vec<Triple3>,
+    /// Reifier rows, insertion-ordered; `None` graph slots mean default graph.
+    pub reifiers: Vec<ReifierRow>,
+    /// Annotation rows, insertion-ordered; `None` graph slots mean default graph.
+    pub annotations: Vec<AnnotationRow>,
     /// `blake3:<hex>` digest → inline bytes, insertion-ordered.
     pub blobs: Vec<(String, BlobEntry)>,
     /// Declared blob metadata by digest — the blob frame's `"pub"` map
@@ -316,16 +320,18 @@ impl Graph {
     pub fn reifier(&self, rid: usize) -> Option<Triple3> {
         self.reifiers
             .iter()
-            .find(|(r, _)| *r == rid)
-            .map(|(_, spo)| *spo)
+            .find(|(r, _, _)| *r == rid)
+            .map(|(_, spo, _)| *spo)
     }
 
-    /// Bind a reifier, replacing in place (Python dict assignment).
-    pub fn set_reifier(&mut self, rid: usize, spo: Triple3) {
-        if let Some(slot) = self.reifiers.iter_mut().find(|(r, _)| *r == rid) {
-            slot.1 = spo;
-        } else {
-            self.reifiers.push((rid, spo));
+    /// Record a reifier row unless the identical row is already present.
+    pub fn set_reifier(&mut self, rid: usize, spo: Triple3, graph_name: Option<usize>) {
+        if !self
+            .reifiers
+            .iter()
+            .any(|&(r, existing, g)| r == rid && existing == spo && g == graph_name)
+        {
+            self.reifiers.push((rid, spo, graph_name));
         }
     }
 

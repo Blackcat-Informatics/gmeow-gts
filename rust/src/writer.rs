@@ -14,7 +14,9 @@ use std::fmt;
 use ciborium::value::Value;
 
 use crate::codec::{encode_chain_with_options, Codec, CodecError, EncodeOptions};
-use crate::model::{is_literal_direction, Graph, Quad, Suppression, Term, TermKind, Triple3};
+use crate::model::{
+    is_literal_direction, AnnotationRow, Graph, Quad, ReifierRow, Suppression, Term, TermKind,
+};
 use crate::wire::{canonical, content_id, digest_str, header_id, SELF_DESCRIBE_TAG};
 
 /// Payloads larger than this select `zstd-rsyncable` over `zstd` in snapshot helpers.
@@ -389,10 +391,10 @@ impl Writer {
             writer.add_quads(&quads);
         }
 
-        let mut reifiers: Vec<(usize, Triple3)> = graph
+        let mut reifiers: Vec<ReifierRow> = graph
             .reifiers
             .iter()
-            .map(|&(rid, (s, p, o))| {
+            .map(|&(rid, (s, p, o), g)| {
                 (
                     remap_id(&remap.old_to_new, rid),
                     (
@@ -400,26 +402,28 @@ impl Writer {
                         remap_id(&remap.old_to_new, p),
                         remap_id(&remap.old_to_new, o),
                     ),
+                    g.map(|term| remap_id(&remap.old_to_new, term)),
                 )
             })
             .collect();
-        reifiers.sort();
+        reifiers.sort_by_key(reifier_key);
         if !reifiers.is_empty() {
             writer.add_reifies(&reifiers);
         }
 
-        let mut annotations: Vec<Triple3> = graph
+        let mut annotations: Vec<AnnotationRow> = graph
             .annotations
             .iter()
-            .map(|&(r, p, v)| {
+            .map(|&(r, p, v, g)| {
                 (
                     remap_id(&remap.old_to_new, r),
                     remap_id(&remap.old_to_new, p),
                     remap_id(&remap.old_to_new, v),
+                    g.map(|term| remap_id(&remap.old_to_new, term)),
                 )
             })
             .collect();
-        annotations.sort();
+        annotations.sort_by_key(annotation_key);
         if !annotations.is_empty() {
             writer.add_annot(&annotations);
         }
@@ -775,23 +779,32 @@ impl Writer {
         self.add_frame("quads", Some(Value::Array(rows)), None, None, None)
     }
 
-    /// Append a `reifies` frame binding reifier-ids to triples.
-    pub fn add_reifies(&mut self, bindings: &[(usize, Triple3)]) -> Vec<u8> {
-        let mut map: Vec<(Value, Value)> = Vec::new();
-        for (rid, (s, p, o)) in bindings {
-            map.push((
-                iv(*rid as i64),
-                Value::Array(vec![iv(*s as i64), iv(*p as i64), iv(*o as i64)]),
-            ));
-        }
-        self.add_frame("reifies", Some(Value::Map(map)), None, None, None)
+    /// Append a `reifies` frame.
+    pub fn add_reifies(&mut self, bindings: &[ReifierRow]) -> Vec<u8> {
+        let rows: Vec<Value> = bindings
+            .iter()
+            .map(|&(rid, (s, p, o), g)| {
+                let mut row = vec![iv(rid as i64), iv(s as i64), iv(p as i64), iv(o as i64)];
+                if let Some(gv) = g {
+                    row.push(iv(gv as i64));
+                }
+                Value::Array(row)
+            })
+            .collect();
+        self.add_frame("reifies", Some(Value::Array(rows)), None, None, None)
     }
 
     /// Append an `annot` frame.
-    pub fn add_annot(&mut self, rows: &[Triple3]) -> Vec<u8> {
+    pub fn add_annot(&mut self, rows: &[AnnotationRow]) -> Vec<u8> {
         let rows: Vec<Value> = rows
             .iter()
-            .map(|&(s, p, o)| Value::Array(vec![iv(s as i64), iv(p as i64), iv(o as i64)]))
+            .map(|&(s, p, o, g)| {
+                let mut row = vec![iv(s as i64), iv(p as i64), iv(o as i64)];
+                if let Some(gv) = g {
+                    row.push(iv(gv as i64));
+                }
+                Value::Array(row)
+            })
             .collect();
         self.add_frame("annot", Some(Value::Array(rows)), None, None, None)
     }
@@ -963,10 +976,10 @@ pub fn snapshot_payload(graph: &Graph) -> Value {
         ),
     ];
 
-    let mut reifiers: Vec<(usize, Triple3)> = graph
+    let mut reifiers: Vec<ReifierRow> = graph
         .reifiers
         .iter()
-        .map(|&(rid, (s, p, o))| {
+        .map(|&(rid, (s, p, o), g)| {
             (
                 remap_id(&remap.old_to_new, rid),
                 (
@@ -974,41 +987,55 @@ pub fn snapshot_payload(graph: &Graph) -> Value {
                     remap_id(&remap.old_to_new, p),
                     remap_id(&remap.old_to_new, o),
                 ),
+                g.map(|term| remap_id(&remap.old_to_new, term)),
             )
         })
         .collect();
-    reifiers.sort();
+    reifiers.sort_by_key(reifier_key);
     if !reifiers.is_empty() {
         entries.push((
             "reifies".into(),
-            Value::Map(
+            Value::Array(
                 reifiers
                     .iter()
-                    .map(|&(rid, (s, p, o))| (uv(rid), Value::Array(vec![uv(s), uv(p), uv(o)])))
+                    .map(|&(rid, (s, p, o), g)| {
+                        let mut row = vec![uv(rid), uv(s), uv(p), uv(o)];
+                        if let Some(graph_name) = g {
+                            row.push(uv(graph_name));
+                        }
+                        Value::Array(row)
+                    })
                     .collect(),
             ),
         ));
     }
 
-    let mut annotations: Vec<Triple3> = graph
+    let mut annotations: Vec<AnnotationRow> = graph
         .annotations
         .iter()
-        .map(|&(r, p, v)| {
+        .map(|&(r, p, v, g)| {
             (
                 remap_id(&remap.old_to_new, r),
                 remap_id(&remap.old_to_new, p),
                 remap_id(&remap.old_to_new, v),
+                g.map(|term| remap_id(&remap.old_to_new, term)),
             )
         })
         .collect();
-    annotations.sort();
+    annotations.sort_by_key(annotation_key);
     if !annotations.is_empty() {
         entries.push((
             "annot".into(),
             Value::Array(
                 annotations
                     .iter()
-                    .map(|&(r, p, v)| Value::Array(vec![uv(r), uv(p), uv(v)]))
+                    .map(|&(r, p, v, g)| {
+                        let mut row = vec![uv(r), uv(p), uv(v)];
+                        if let Some(graph_name) = g {
+                            row.push(uv(graph_name));
+                        }
+                        Value::Array(row)
+                    })
                     .collect(),
             ),
         ));
@@ -1086,6 +1113,16 @@ fn quad_key(quad: &Quad) -> Vec<u8> {
         row.push(iv(graph_name as i64));
     }
     canonical(&Value::Array(row))
+}
+
+fn reifier_key(row: &ReifierRow) -> (Option<usize>, usize, usize, usize, usize) {
+    let &(rid, (s, p, o), g) = row;
+    (g, rid, s, p, o)
+}
+
+fn annotation_key(row: &AnnotationRow) -> (Option<usize>, usize, usize, usize) {
+    let &(r, p, v, g) = row;
+    (g, r, p, v)
 }
 
 fn remap_suppression(suppression: &Suppression, old_to_new: &[usize]) -> Suppression {

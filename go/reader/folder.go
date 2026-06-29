@@ -140,30 +140,39 @@ func (f *folder) hQuads(payload interface{}, index int) {
 }
 
 func (f *folder) hReifies(payload interface{}, index int) {
-	entries, ok := payload.(map[interface{}]interface{})
+	rows, ok := payload.([]interface{})
 	if !ok {
+		f.diag("DamagedFrame", "reifies payload must be a row array", &index)
 		return
 	}
-	for k, spo := range entries {
-		rid, ok := asInt64(k)
-		if !ok {
+	for _, row := range rows {
+		items, ok := row.([]interface{})
+		if !ok || (len(items) != 4 && len(items) != 5) {
+			f.diag("DamagedFrame", "reifies row must have 4 or 5 term ids", &index)
 			continue
 		}
-		items, ok := spo.([]interface{})
-		if !ok || len(items) != 3 {
-			continue
+		rid, ridOk := asIdx(items[0])
+		s, sOk := asIdx(items[1])
+		p, pOk := asIdx(items[2])
+		o, oOk := asIdx(items[3])
+		var gslot *int
+		gOk := true
+		if len(items) == 5 {
+			g, ok := asIdx(items[4])
+			gOk = ok
+			if ok {
+				gslot = &g
+			}
 		}
-		s, sOk := asIdx(items[0])
-		p, pOk := asIdx(items[1])
-		o, oOk := asIdx(items[2])
 		n := len(f.g.Terms)
-		ridOk := rid >= 0 && rid < int64(n)
-		spoOk := sOk && pOk && oOk && s < n && p < n && o < n
-		if !ridOk || !spoOk {
-			f.diag("DamagedFrame", fmt.Sprintf("reifier %d has bad/out-of-range ids", rid), &index)
+		if !ridOk || !sOk || !pOk || !oOk || !gOk || rid >= n || s >= n || p >= n || o >= n || (gslot != nil && *gslot >= n) {
+			f.diag("DamagedFrame", "reifies row has bad/out-of-range ids", &index)
 			continue
 		}
-		irid := int(rid)
+		if !f.checkReifierPositions(s, p, o, gslot, index) {
+			continue
+		}
+		irid := rid
 		spo := model.Triple3{S: s, P: p, O: o}
 		if existing, ok := f.g.Reifier(irid); ok {
 			if existing != spo {
@@ -171,12 +180,13 @@ func (f *folder) hReifies(payload interface{}, index int) {
 				continue
 			}
 		}
-		f.g.SetReifier(irid, spo)
+		f.g.SetReifier(irid, spo, gslot)
 		f.emit(StreamingEvent{
-			Kind:       StreamingEventReifier,
-			FrameIndex: index,
-			ReifierID:  irid,
-			Triple:     spo,
+			Kind:         StreamingEventReifier,
+			FrameIndex:   index,
+			ReifierID:    irid,
+			Triple:       spo,
+			ReifierGraph: gslot,
 		})
 		if f.eventErr != nil {
 			return
@@ -191,14 +201,24 @@ func (f *folder) hAnnot(payload interface{}, index int) {
 	}
 	for _, row := range rows {
 		items, ok := row.([]interface{})
-		if !ok || len(items) != 3 {
+		if !ok || (len(items) != 3 && len(items) != 4) {
+			f.diag("DamagedFrame", "annot row must have 3 or 4 term ids", &index)
 			continue
 		}
 		r, rOk := asIdx(items[0])
 		p, pOk := asIdx(items[1])
 		v, vOk := asIdx(items[2])
+		var gslot *int
+		gOk := true
+		if len(items) == 4 {
+			g, ok := asIdx(items[3])
+			gOk = ok
+			if ok {
+				gslot = &g
+			}
+		}
 		n := len(f.g.Terms)
-		if !rOk || !pOk || !vOk || r >= n || p >= n || v >= n {
+		if !rOk || !pOk || !vOk || !gOk || r >= n || p >= n || v >= n || (gslot != nil && *gslot >= n) {
 			f.diag("DamagedFrame", "annot row has bad/out-of-range ids", &index)
 			continue
 		}
@@ -206,7 +226,14 @@ func (f *folder) hAnnot(payload interface{}, index int) {
 			f.diag("PositionConstraint", fmt.Sprintf("annot predicate %d not an IRI", p), &index)
 			continue
 		}
-		annotation := model.Triple3{S: r, P: p, O: v}
+		if gslot != nil {
+			kind := f.g.Terms[*gslot].Kind
+			if kind == model.Literal || kind == model.Triple {
+				f.diag("PositionConstraint", fmt.Sprintf("annot graph %d not a graph name", *gslot), &index)
+				continue
+			}
+		}
+		annotation := model.AnnotationEntry{S: r, P: p, O: v, G: gslot}
 		if f.materialize {
 			f.g.Annotations = append(f.g.Annotations, annotation)
 		}
@@ -360,9 +387,12 @@ func (f *folder) hSnapshot(payload interface{}, index int) {
 	}
 	if reifies, ok := wire.MapGet(entries, "reifies"); ok {
 		if r, ok := reifies.(map[interface{}]interface{}); ok {
-			shifted := make(map[interface{}]interface{})
-			for k, v := range r {
-				shifted[shift(k)] = shiftRow(v)
+			_ = r
+			f.diag("DamagedFrame", "snapshot reifies payload must be a row array", &index)
+		} else if rows, ok := reifies.([]interface{}); ok {
+			shifted := make([]interface{}, len(rows))
+			for i, row := range rows {
+				shifted[i] = shiftRow(row)
 			}
 			f.hReifies(shifted, index)
 		}
@@ -449,6 +479,29 @@ func (f *folder) checkPositions(s, p, o int, g *int, index int) bool {
 	}
 	if !ok {
 		f.diag("PositionConstraint", fmt.Sprintf("quad (%d,%d,%d,%s) violates positions", s, p, o, fmtOpt(g)), &index)
+	}
+	return ok
+}
+
+func (f *folder) checkReifierPositions(s, p, o int, g *int, index int) bool {
+	n := len(f.g.Terms)
+	inBounds := s < n && p < n && o < n && (g == nil || *g < n)
+	if !inBounds {
+		f.diag("PositionConstraint", fmt.Sprintf("reifier row (%d,%d,%d,%s) has out-of-range term ids", s, p, o, fmtOpt(g)), &index)
+		return false
+	}
+	ok := f.g.Terms[p].Kind == model.Iri
+	if f.g.Terms[s].Kind == model.Literal {
+		ok = false
+	}
+	if g != nil {
+		kind := f.g.Terms[*g].Kind
+		if kind == model.Literal || kind == model.Triple {
+			ok = false
+		}
+	}
+	if !ok {
+		f.diag("PositionConstraint", fmt.Sprintf("reifier row (%d,%d,%d,%s) violates positions", s, p, o, fmtOpt(g)), &index)
 	}
 	return ok
 }

@@ -103,7 +103,7 @@ def test_revision_audit_trail_links_successor(tmp_path: Path) -> None:
     derived = "https://blackcatinformatics.ca/gmeow/wasDerivedFrom"
     links = [
         (g.terms[r].value, g.terms[v].value)
-        for r, p, v in g.annotations
+        for r, p, v, _graph_name in g.annotations
         if g.terms[p].value == derived
     ]
     assert (new.id, old.id) in links

@@ -54,6 +54,27 @@ fn close_graph(out: &mut Vec<String>, open_graph: &mut Option<String>) {
     }
 }
 
+fn push_statement(
+    out: &mut Vec<String>,
+    open_graph: &mut Option<String>,
+    graph: &Graph,
+    graph_name: Option<usize>,
+    statement: String,
+) {
+    if let Some(gid) = graph_name {
+        let rendered_graph = render_trig_term(graph, gid);
+        if open_graph.as_deref() != Some(rendered_graph.as_str()) {
+            close_graph(out, open_graph);
+            out.push(format!("{rendered_graph} {{"));
+            *open_graph = Some(rendered_graph);
+        }
+        out.push(format!("  {statement}"));
+    } else {
+        close_graph(out, open_graph);
+        out.push(statement);
+    }
+}
+
 /// Serialise a folded [`Graph`] to TriG text.
 pub fn to_trig(g: &Graph) -> String {
     if g.quads.is_empty() && g.reifiers.is_empty() && g.annotations.is_empty() {
@@ -70,23 +91,10 @@ pub fn to_trig(g: &Graph) -> String {
             render_trig_term(g, p),
             render_trig_term(g, o)
         );
-        if let Some(gid) = gname {
-            let graph = render_trig_term(g, gid);
-            if open_graph.as_deref() != Some(graph.as_str()) {
-                close_graph(&mut lines, &mut open_graph);
-                lines.push(format!("{graph} {{"));
-                open_graph = Some(graph);
-            }
-            lines.push(format!("  {triple}"));
-        } else {
-            close_graph(&mut lines, &mut open_graph);
-            lines.push(triple);
-        }
+        push_statement(&mut lines, &mut open_graph, g, gname, triple);
     }
 
-    close_graph(&mut lines, &mut open_graph);
-
-    for &(rid, (s, p, o)) in &g.reifiers {
+    for &(rid, (s, p, o), gname) in &g.reifiers {
         // A triple TERM keys its own components under its own id (a self-reference,
         // not a reifier relationship); rendering it as `<<( … )>> rdf:reifies <<( … )>>`
         // would assert a triple term in subject position. Its components are already
@@ -103,19 +111,19 @@ pub fn to_trig(g: &Graph) -> String {
             render_trig_term(g, p),
             render_trig_term(g, o)
         );
-        lines.push(format!(
-            "{} rdf:reifies {quoted} .",
-            render_trig_term(g, rid)
-        ));
+        let statement = format!("{} rdf:reifies {quoted} .", render_trig_term(g, rid));
+        push_statement(&mut lines, &mut open_graph, g, gname, statement);
     }
-    for &(r, p, v) in &g.annotations {
-        lines.push(format!(
+    for &(r, p, v, gname) in &g.annotations {
+        let statement = format!(
             "{} {} {} .",
             render_trig_term(g, r),
             render_trig_term(g, p),
             render_trig_term(g, v)
-        ));
+        );
+        push_statement(&mut lines, &mut open_graph, g, gname, statement);
     }
 
+    close_graph(&mut lines, &mut open_graph);
     format!("{}\n", lines.join("\n"))
 }

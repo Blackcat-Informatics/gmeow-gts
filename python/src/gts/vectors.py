@@ -230,8 +230,8 @@ def _conflicting_reifier() -> bytes:
             Term(TermKind.LITERAL, "Chat", lang="fr"),
         ]
     )
-    w.add_reifies({3: (0, 1, 2)})
-    w.add_reifies({3: (0, 1, 4)})  # conflicting rebind — first binding kept
+    w.add_reifies([(3, (0, 1, 2), None)])
+    w.add_reifies([(3, (0, 1, 4), None)])  # conflicting rebind — first binding kept
     return bytes(w.to_bytes())
 
 
@@ -576,8 +576,8 @@ def _deterministic_writer_graphs() -> tuple[Graph, Graph]:
             Term(TermKind.LITERAL, "0.9"),
         ],
         quads=[(2, 0, 1, 3)],
-        reifiers={4: (2, 0, 1)},
-        annotations=[(4, 5, 6)],
+        reifiers=[(4, (2, 0, 1), 3)],
+        annotations=[(4, 5, 6, 3)],
         meta={"generator": "deterministic-writer"},
         suppressions=[
             Suppression(
@@ -601,8 +601,8 @@ def _deterministic_writer_graphs() -> tuple[Graph, Graph]:
             Term(TermKind.IRI, LABEL),
         ],
         quads=[(4, 6, 5, 3)],
-        reifiers={2: (4, 6, 5)},
-        annotations=[(2, 1, 0)],
+        reifiers=[(2, (4, 6, 5), 3)],
+        annotations=[(2, 1, 0, 3)],
         meta={"generator": "deterministic-writer"},
         suppressions=[
             Suppression(

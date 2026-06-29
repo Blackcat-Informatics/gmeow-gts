@@ -761,18 +761,20 @@ id domain: a **reifier** is an ordinary IRI/bnode term; a `reifies` frame binds 
 triple it quotes.
 
 ```cddl
-reifies-payload = { * term-id => [term-id, term-id, term-id] }  ; reifier => (s, p, o)
+reifies-payload = [+ [term-id, term-id, term-id, term-id, ? term-id]] ; reifier, s, p, o, (g)
 ```
 
 A quoted triple used as a node is a term with `"k": 3` and `"rf"` pointing at its reifier.
 
 **RDF dataset mapping (normative).** A folded GTS graph maps to an RDF 1.2 dataset as follows:
 each `quads` row `(S,P,O,G?)` asserts the RDF triple `(S,P,O)` in the default graph when `G`
-is absent, or in the named graph `G` when `G` is present. A `reifies` binding `R => (S,P,O)`
-asserts the triple `R rdf:reifies <<( S P O )>>` in the default graph. A `k:3` term denotes
-that triple term, reached through its reifier `R`. Each `annot` row `(R, P', V')` asserts the
-triple `R P' V'` in the default graph. Profiles MAY define additional graph-placement
-conventions for projection, but the core mapping above is the interoperable baseline.
+is absent, or in the named graph `G` when `G` is present. A `reifies` row
+`(R,S,P,O,G?)` asserts the triple `R rdf:reifies <<( S P O )>>` in the default graph when
+`G` is absent, or in the named graph `G` when `G` is present. A `k:3` term denotes that
+triple term, reached through its reifier `R`. Each `annot` row `(R, P', V', G?)` asserts the
+triple `R P' V'` in the default graph when `G` is absent, or in the named graph `G` when `G`
+is present. Profiles MAY define additional graph-placement conventions for projection, but
+the core mapping above is the interoperable baseline.
 
 **Quotation does not imply assertion (normative).** Referencing a triple term, either via a
 reifier or a `k:3` term, does NOT assert the base triple `(S P O)`. The base triple is asserted
@@ -789,22 +791,24 @@ projection as lossy whenever a triple term was present.
 
 ```cddl
 quads-payload = [+ [term-id, term-id, term-id, ? term-id]]  ; s, p, o, (g; default graph if absent)
-annot-payload = [+ [term-id, term-id, term-id]]             ; reifier, predicate, value
+annot-payload = [+ [term-id, term-id, term-id, ? term-id]]  ; reifier, predicate, value, (g)
 ```
 
 Statement-level metadata (confidence, validity interval, standpoint/vantage, modality, …) is
 expressed as `annot` rows on a reifier. **Contested claims coexist**: several `annot` rows on
 one reifier, or several reifiers over one (s,p,o), are all retained — none is privileged.
-Annotations are an ordered multiset in the folded GTS state: readers MUST preserve row order
-within each segment and concatenate segment annotation rows in file order. Exact duplicate
-annotation rows are retained in the GTS fold; an RDF dataset projection MAY collapse identical
-emitted RDF triples because RDF datasets are set-valued.
+Annotations are an ordered multiset in the folded GTS state, partitioned by the optional graph
+term exactly as `quads` are: readers MUST preserve row order within each segment and concatenate
+segment annotation rows in file order. Exact duplicate annotation rows are retained in the GTS
+fold; an RDF dataset projection MAY collapse identical emitted RDF triples because RDF datasets
+are set-valued.
 
 **Position constraints (normative).** In a `quads` row the predicate `p` MUST be an IRI (`k:0`);
 the subject `s` MUST be an IRI, blank node, or quoted triple (`k:0|2|3`); the object `o` MAY be
 any term; and the graph name `g`, when present, MUST be an IRI or blank node (`k:0|2`) — never a
 literal or quoted triple. A `reifies` triple `(S,P,O)` obeys the same subject/predicate/object
-constraints. In an `annot` row the predicate MUST be an IRI.
+constraints, and a `reifies` or `annot` graph name `g`, when present, obeys the same graph-name
+constraint as `quads`. In an `annot` row the predicate MUST be an IRI.
 
 ### 7.5 Fold algorithm (normative)
 
@@ -824,8 +828,8 @@ for segment in file order:                      # §3.1; single-segment files: o
       "terms"    : append each term (assign next id); each "dt"/"rf" MUST name an
                    already-introduced term-id (no forward references)
       "quads"    : add each (s,p,o,g) value tuple to graph
-      "reifies"  : bind reifier to (s,p,o), keeping the first non-conflicting binding (§7.8)
-      "annot"    : append (reifier, predicate, value)
+      "reifies"  : append each (reifier,s,p,o,g) row; a reifier keeps one non-conflicting (s,p,o) binding across graphs (§7.8)
+      "annot"    : append (reifier, predicate, value, graph)
       "blob"     : if "d" present -> blobs[BLAKE3(decoded "d")] := bytes (inline);
                    else -> register external blob by "pub".digest;
                    shallow-merge "pub" into blob_meta[digest]
@@ -908,8 +912,8 @@ policy:
 |---|---|
 | Duplicate terms | A writer SHOULD intern repeated terms, but each term entry still receives its own segment-local id. Non-blank values that compare equal by §7 are the same value in the file union. Anonymous blank nodes (`"v"` absent or empty) are fresh per term entry. |
 | Duplicate quads | The folded graph is a set: identical `(s,p,o,g)` value rows collapse to one without diagnostic. |
-| Reifier bindings | A reifier SHOULD have exactly one `reifies` binding. Repeated identical bindings are harmless. A conflicting binding is a data-quality error: the reader surfaces `ConflictingReifier`, keeps the first binding in file order, and ignores the conflicting binding for the reifier map. |
-| Annotations | Annotation rows are an ordered multiset (§7.4). Multiple rows on one reifier coexist; exact duplicate rows are retained in the GTS fold. RDF dataset projections may collapse identical emitted triples. |
+| Reifier rows | A reifier SHOULD bind to exactly one `(s,p,o)` triple identity. Repeated identical `(reifier,s,p,o,g)` rows are harmless. The same reifier MAY appear in multiple graphs only when `(s,p,o)` is unchanged. A conflicting `(s,p,o)` for the same reifier is a data-quality error: the reader surfaces `ConflictingReifier`, keeps the first triple identity in file order, and ignores conflicting reifier rows. |
+| Annotations | Annotation rows are an ordered multiset (§7.4). Multiple rows on one reifier coexist, including rows partitioned by graph; exact duplicate rows are retained in the GTS fold. RDF dataset projections may collapse identical emitted triples. |
 | Blob bytes | Blobs are addressed by digest. Repeating the same digest/bytes is idempotent; a content-addressed view stores one byte value per digest. Validating extraction re-hashes inline bytes against the requested digest (§14.1). |
 | Blob metadata | `blob_meta[digest]` is a shallow map built in file order. Later metadata keys for the same digest replace earlier keys in the file-level view; earlier declarations remain in the original frames. |
 | Suppressions | Suppression directives are additive. Repeating an equivalent directive has idempotent display effect but remains present in the ordered suppression list. There is no unsuppress frame (§11). |
@@ -2176,10 +2180,12 @@ term = {
 
 triple-row = [term-id, term-id, term-id]
 quad-row = [term-id, term-id, term-id] / [term-id, term-id, term-id, term-id]
+reifier-row = [term-id, term-id, term-id, term-id] / [term-id, term-id, term-id, term-id, term-id]
+annot-row = [term-id, term-id, term-id] / [term-id, term-id, term-id, term-id]
 
 quads-payload = [+ quad-row]
-reifies-payload = { * term-id => triple-row }
-annot-payload = [+ triple-row]
+reifies-payload = [+ reifier-row]
+annot-payload = [+ annot-row]
 
 blob-payload = bstr
 blob-pub = {
