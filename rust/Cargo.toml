@@ -59,8 +59,8 @@ visual-hashing = "0.1.3"
 blake3 = "1"
 ciborium = "0.2"
 flate2 = "1"
-# pure-Rust zstd decoder — no C toolchain, wasm-friendly
-ruzstd = "0.8"
+# pure-Rust zstd encoder/decoder — no C toolchain, wasm-friendly
+structured-zstd = "0.0.40"
 time = { version = "0.3", features = ["formatting", "parsing"] }
 filetime = "0.2"
 # pure-Rust Ed25519 (COSE_Sign1, §9.2) — deterministic per RFC 8032, wasm-friendly

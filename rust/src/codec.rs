@@ -11,6 +11,9 @@
 use std::fmt;
 use std::io::{Read, Write};
 
+use structured_zstd::decoding::{errors::FrameDecoderError, FrameDecoder};
+use structured_zstd::encoding::{compress_to_vec, CompressionLevel};
+
 /// A catalog entry (§5, §8.5).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Codec {
@@ -44,6 +47,22 @@ impl fmt::Display for CodecError {
 impl std::error::Error for CodecError {}
 
 const MAX_ZSTD_DECODED_SIZE: usize = 16 * 1024 * 1024;
+const DEFAULT_ZSTD_LEVEL: CompressionLevel = CompressionLevel::Fastest;
+
+/// Encoder options for transform chains.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct EncodeOptions {
+    /// Optional per-frame zstd compression level used by `zstd` and by each
+    /// independent `zstd-rsyncable` block. `None` preserves the previous Rust
+    /// writer default, roughly zstd level 1.
+    pub zstd_level: Option<i32>,
+}
+
+fn zstd_level(level: Option<i32>) -> CompressionLevel {
+    level
+        .map(CompressionLevel::Level)
+        .unwrap_or(DEFAULT_ZSTD_LEVEL)
+}
 
 fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
     if codec.cls == "encrypt" {
@@ -62,11 +81,7 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
             Ok(out)
         }
         "zstd" | "zstd-rsyncable" => {
-            // ruzstd's StreamingDecoder only handles a single zstd frame.
-            // zstd-rsyncable concatenates independent frames (one per block),
-            // so use FrameDecoder::decode_all_to_vec, which loops over frames
-            // while input remains (see ruzstd src/decoding/frame_decoder.rs).
-            let mut decoder = ruzstd::decoding::FrameDecoder::new();
+            let mut decoder = FrameDecoder::new();
             // Start with a generous expansion factor and allow bounded growth.
             let mut capacity = data
                 .len()
@@ -76,7 +91,7 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
                 let mut out = Vec::with_capacity(capacity);
                 match decoder.decode_all_to_vec(data, &mut out) {
                     Ok(()) => return Ok(out),
-                    Err(ruzstd::decoding::errors::FrameDecoderError::TargetTooSmall) => {
+                    Err(FrameDecoderError::TargetTooSmall) => {
                         if capacity >= MAX_ZSTD_DECODED_SIZE {
                             return Err(CodecError::Failed(
                                 "zstd decode failed: decompressed size exceeds safety bound".into(),
@@ -98,19 +113,19 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
 
 const RSYNCABLE_BLOCK_SIZE: usize = 65_536;
 
-fn encode_zstd(data: &[u8]) -> Vec<u8> {
-    ruzstd::encoding::compress_to_vec(data, ruzstd::encoding::CompressionLevel::Fastest)
+fn encode_zstd(data: &[u8], level: Option<i32>) -> Vec<u8> {
+    compress_to_vec(data, zstd_level(level))
 }
 
-fn encode_zstd_rsyncable(data: &[u8]) -> Vec<u8> {
+fn encode_zstd_rsyncable(data: &[u8], level: Option<i32>) -> Vec<u8> {
     let mut out = Vec::new();
     for block in data.chunks(RSYNCABLE_BLOCK_SIZE) {
-        out.extend(encode_zstd(block));
+        out.extend(encode_zstd(block, level));
     }
     out
 }
 
-fn encode_one(name: &str, data: &[u8]) -> Result<Vec<u8>, CodecError> {
+fn encode_one(name: &str, data: &[u8], options: EncodeOptions) -> Result<Vec<u8>, CodecError> {
     match name {
         "identity" => Ok(data.to_vec()),
         "gzip" => {
@@ -124,8 +139,8 @@ fn encode_one(name: &str, data: &[u8]) -> Result<Vec<u8>, CodecError> {
                 .finish()
                 .map_err(|e| CodecError::Failed(format!("gzip encode failed: {e}")))
         }
-        "zstd" => Ok(encode_zstd(data)),
-        "zstd-rsyncable" => Ok(encode_zstd_rsyncable(data)),
+        "zstd" => Ok(encode_zstd(data, options.zstd_level)),
+        "zstd-rsyncable" => Ok(encode_zstd_rsyncable(data, options.zstd_level)),
         other => Err(CodecError::Unavailable {
             reason: "unknown-codec",
             detail: format!("writer cannot encode with codec '{other}'"),
@@ -133,13 +148,31 @@ fn encode_one(name: &str, data: &[u8]) -> Result<Vec<u8>, CodecError> {
     }
 }
 
-/// Encode `data` through codec names in array order (§8.2).
-pub fn encode_chain(chain: &[String], data: &[u8]) -> Result<Vec<u8>, CodecError> {
+/// Encode `data` through codec names in array order with explicit options (§8.2).
+pub fn encode_chain_with_options(
+    chain: &[String],
+    data: &[u8],
+    options: EncodeOptions,
+) -> Result<Vec<u8>, CodecError> {
+    if options.zstd_level.is_some()
+        && !chain
+            .iter()
+            .any(|name| matches!(name.as_str(), "zstd" | "zstd-rsyncable"))
+    {
+        return Err(CodecError::Failed(
+            "zstd_level requires a zstd or zstd-rsyncable transform".into(),
+        ));
+    }
     let mut current = data.to_vec();
     for name in chain {
-        current = encode_one(name, &current)?;
+        current = encode_one(name, &current, options)?;
     }
     Ok(current)
+}
+
+/// Encode `data` through codec names in array order (§8.2).
+pub fn encode_chain(chain: &[String], data: &[u8]) -> Result<Vec<u8>, CodecError> {
+    encode_chain_with_options(chain, data, EncodeOptions::default())
 }
 
 /// Reverse a resolved codec chain, last to first (§6.1, §8.2).
@@ -217,14 +250,8 @@ mod tests {
         // Build a multi-frame zstd stream that mirrors zstd-rsyncable output.
         let block1 = b"first block of rsyncable data ";
         let block2 = b"second block of rsyncable data";
-        let mut encoded = ruzstd::encoding::compress_to_vec(
-            &block1[..],
-            ruzstd::encoding::CompressionLevel::Uncompressed,
-        );
-        encoded.extend(ruzstd::encoding::compress_to_vec(
-            &block2[..],
-            ruzstd::encoding::CompressionLevel::Uncompressed,
-        ));
+        let mut encoded = compress_to_vec(&block1[..], CompressionLevel::Uncompressed);
+        encoded.extend(compress_to_vec(&block2[..], CompressionLevel::Uncompressed));
 
         let decoded = decode_one(
             &Codec {
@@ -238,6 +265,44 @@ mod tests {
         let mut expected = block1.to_vec();
         expected.extend_from_slice(block2);
         assert_eq!(decoded, expected);
+    }
+
+    #[test]
+    fn zstd_level_is_per_encode_chain() {
+        let payload = b"<https://ex/s> <https://ex/p> \"repeat repeat repeat\" .\n".repeat(2048);
+
+        for codec in ["zstd", "zstd-rsyncable"] {
+            let fast = encode_chain_with_options(
+                &[codec.to_string()],
+                &payload,
+                EncodeOptions {
+                    zstd_level: Some(1),
+                },
+            )
+            .expect("fast zstd encodes");
+            let high = encode_chain_with_options(
+                &[codec.to_string()],
+                &payload,
+                EncodeOptions {
+                    zstd_level: Some(19),
+                },
+            )
+            .expect("high zstd encodes");
+
+            assert!(
+                high.len() <= fast.len(),
+                "{codec}: level 19 should be no larger than level 1"
+            );
+            let decoded = decode_chain(
+                &[Codec {
+                    name: codec.to_string(),
+                    cls: "compress".into(),
+                }],
+                &high,
+            )
+            .expect("levelled zstd decodes");
+            assert_eq!(decoded, payload);
+        }
     }
 
     #[test]

@@ -13,7 +13,7 @@ use std::fmt;
 
 use ciborium::value::Value;
 
-use crate::codec::{encode_chain, Codec, CodecError};
+use crate::codec::{encode_chain_with_options, Codec, CodecError, EncodeOptions};
 use crate::model::{is_literal_direction, Graph, Quad, Suppression, Term, TermKind, Triple3};
 use crate::wire::{canonical, content_id, digest_str, header_id, SELF_DESCRIBE_TAG};
 
@@ -99,6 +99,8 @@ pub struct FrameOptions {
     pub raw: Option<Vec<u8>>,
     /// Codec names applied in array order before optional encryption.
     pub transform: Vec<String>,
+    /// Optional per-frame zstd level for `zstd` and `zstd-rsyncable` transforms.
+    pub zstd_level: Option<i32>,
     /// Public frame metadata (`"pub"`).
     pub pub_meta: Option<Value>,
     /// Recipient metadata rows (`"to"`).
@@ -138,6 +140,10 @@ pub struct SnapshotOptions {
     pub transform: Vec<String>,
     /// Payloads above this size switch from `zstd` to `zstd-rsyncable`.
     pub rsyncable_threshold: usize,
+    /// Optional zstd level used for documentation/report blob frames.
+    pub blob_zstd_level: Option<i32>,
+    /// Optional zstd level used for the snapshot frame.
+    pub snapshot_zstd_level: Option<i32>,
     /// Documentation/content blobs emitted ahead of the snapshot frame.
     pub doc_blobs: Vec<BlobRow>,
     /// Report/evidence blobs emitted ahead of the snapshot frame.
@@ -151,6 +157,8 @@ impl Default for SnapshotOptions {
         Self {
             transform: vec!["zstd".to_string()],
             rsyncable_threshold: DEFAULT_RSYNCABLE_THRESHOLD,
+            blob_zstd_level: None,
+            snapshot_zstd_level: None,
             doc_blobs: Vec::new(),
             report_blobs: Vec::new(),
             signer: None,
@@ -215,6 +223,8 @@ pub fn snapshot_from_graph(
     let SnapshotOptions {
         transform,
         rsyncable_threshold,
+        blob_zstd_level,
+        snapshot_zstd_level,
         doc_blobs,
         report_blobs,
         signer,
@@ -254,6 +264,7 @@ pub fn snapshot_from_graph(
             FrameOptions {
                 raw: Some(blob.data),
                 transform: chain,
+                zstd_level: blob_zstd_level,
                 pub_meta: Some(pub_meta),
                 ..FrameOptions::default()
             },
@@ -274,6 +285,7 @@ pub fn snapshot_from_graph(
             payload,
             raw,
             transform: chain,
+            zstd_level: snapshot_zstd_level,
             ..FrameOptions::default()
         },
     )?;
@@ -637,6 +649,16 @@ impl Writer {
                 "transform/encrypt requires a payload or raw source".to_string(),
             ));
         }
+        if options.zstd_level.is_some()
+            && !options
+                .transform
+                .iter()
+                .any(|name| matches!(name.as_str(), "zstd" | "zstd-rsyncable"))
+        {
+            return Err(WriterError::InvalidFrame(
+                "zstd_level requires a zstd or zstd-rsyncable transform".to_string(),
+            ));
+        }
         let mut frame: Vec<(Value, Value)> = vec![("t".into(), frame_type.into())];
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -654,7 +676,13 @@ impl Writer {
             #[cfg(target_arch = "wasm32")]
             let x_ids: Vec<i64> = self.chain_ids(&options.transform)?;
             if !options.transform.is_empty() {
-                source = encode_chain(&options.transform, &source)?;
+                source = encode_chain_with_options(
+                    &options.transform,
+                    &source,
+                    EncodeOptions {
+                        zstd_level: options.zstd_level,
+                    },
+                )?;
             }
             if let Some(encrypt) = options.encrypt {
                 #[cfg(target_arch = "wasm32")]

@@ -345,6 +345,7 @@ class Writer:
         payload: object | None = None,
         raw: bytes | None = None,
         transform: list[str] | None = None,
+        zstd_level: int | None = None,
         pub: object | None = None,
         to: list[dict[str, object]] | None = None,
         sig: bytes | None = None,
@@ -356,6 +357,8 @@ class Writer:
         payload sources. ``transform`` compresses/encodes the payload; ``encrypt``
         ``(kid, key)`` then seals it as a ``COSE_Encrypt0`` (the outermost transform)
         and records the recipient in ``"to"`` (§9.3). ``"d"`` becomes a byte string.
+        ``zstd_level`` is a per-frame encoder option for ``zstd`` and
+        ``zstd-rsyncable`` transforms; ``None`` preserves the previous default.
 
         Raises:
             ValueError: if both ``payload`` and ``raw`` are given, or if ``transform``/
@@ -367,12 +370,17 @@ class Writer:
         if (transform or encrypt) and payload is None and raw is None:
             msg = "transform/encrypt requires a payload or raw source"
             raise ValueError(msg)
+        if zstd_level is not None and not any(
+            name in ("zstd", "zstd-rsyncable") for name in (transform or [])
+        ):
+            msg = "zstd_level requires a zstd or zstd-rsyncable transform"
+            raise ValueError(msg)
         frame: dict[str, object] = {"t": frame_type}
         if transform or encrypt is not None:
             data = raw if raw is not None else canonical(payload)
             x_ids: list[int] = []
             if transform:
-                data = encode_chain(transform, data)
+                data = encode_chain(transform, data, zstd_level=zstd_level)
                 x_ids += self._chain_ids(transform)
             if encrypt is not None:
                 encrypt_id = self._name_to_id.get("cose-encrypt0")
@@ -415,6 +423,7 @@ class Writer:
         terms: list[Term],
         *,
         transform: list[str] | None = None,
+        zstd_level: int | None = None,
         section: str = "canonical",
     ) -> bytes:
         """Append a ``terms`` frame.
@@ -422,23 +431,33 @@ class Writer:
         Args:
             terms: Terms to serialize into the frame.
             transform: Optional transform chain applied to the frame.
+            zstd_level: Optional per-frame zstd level for zstd transforms.
             section: ``"canonical"`` for graph payloads that may carry internal
                 private-use language tags; ``"projection"`` for docs/derived-view
                 sections that MUST use public BCP 47 tags only (§13.1).
         """
         _validate_term_language_tags(terms, section)
         return self.add_frame(
-            "terms", payload=[term_to_wire(t) for t in terms], transform=transform
+            "terms",
+            payload=[term_to_wire(t) for t in terms],
+            transform=transform,
+            zstd_level=zstd_level,
         )
 
     def add_quads(
-        self, quads: list[Quad], *, transform: list[str] | None = None
+        self,
+        quads: list[Quad],
+        *,
+        transform: list[str] | None = None,
+        zstd_level: int | None = None,
     ) -> bytes:
         """Append a ``quads`` frame (drops a ``None`` graph slot)."""
         rows = [
             [q[0], q[1], q[2], *([q[3]] if q[3] is not None else [])] for q in quads
         ]
-        return self.add_frame("quads", payload=rows, transform=transform)
+        return self.add_frame(
+            "quads", payload=rows, transform=transform, zstd_level=zstd_level
+        )
 
     def add_reifies(self, bindings: dict[int, Triple]) -> bytes:
         """Append a ``reifies`` frame binding reifier-ids to triples."""
@@ -456,6 +475,7 @@ class Writer:
         mt: str | None = None,
         rep: str | None = None,
         transform: list[str] | None = None,
+        zstd_level: int | None = None,
     ) -> bytes:
         """Append an inline ``blob`` frame; metadata goes in ``pub`` (§12).
 
@@ -467,7 +487,9 @@ class Writer:
             pub["mt"] = mt
         if rep is not None:
             pub["rep"] = rep
-        return self.add_frame("blob", raw=data, transform=transform, pub=pub)
+        return self.add_frame(
+            "blob", raw=data, transform=transform, zstd_level=zstd_level, pub=pub
+        )
 
     def add_meta(self, meta: dict[str, object]) -> bytes:
         """Append a ``meta`` frame."""

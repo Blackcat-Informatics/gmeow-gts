@@ -65,30 +65,38 @@ _RSYNCABLE_BLOCK_SIZE = 65536
 _MAX_ZSTD_DECODED_SIZE = 16 * 1024 * 1024
 
 
-def _encode_zstd_rsyncable(data: bytes) -> bytes:
+def _zstd_compressor(level: int | None = None) -> zstandard.ZstdCompressor:
+    """Return the default zstd compressor, or one using a caller-selected level."""
+    if level is None:
+        return _ZSTD_C
+    return zstandard.ZstdCompressor(level=level)
+
+
+def _encode_zstd_rsyncable(data: bytes, *, zstd_level: int | None = None) -> bytes:
     """Compress with periodic state resets for rsync/Git friendliness.
 
     Each block is compressed as an independent zstd frame and concatenated.
     A change inside one block therefore only affects that block's compressed
     bytes, keeping rsync/Git deltas small.
     """
+    compressor = _zstd_compressor(zstd_level)
     out = io.BytesIO()
     view = memoryview(data)
     for i in range(0, len(data), _RSYNCABLE_BLOCK_SIZE):
-        out.write(_ZSTD_C.compress(view[i : i + _RSYNCABLE_BLOCK_SIZE]))
+        out.write(compressor.compress(view[i : i + _RSYNCABLE_BLOCK_SIZE]))
     return out.getvalue()
 
 
-def _encode_one(name: str, data: bytes) -> bytes:
+def _encode_one(name: str, data: bytes, *, zstd_level: int | None = None) -> bytes:
     """Apply a single codec by canonical name (encode direction)."""
     if name == "identity":
         return data
     if name == "gzip":
         return gzip.compress(data, mtime=0)
     if name == "zstd":
-        return _ZSTD_C.compress(data)
+        return _zstd_compressor(zstd_level).compress(data)
     if name == "zstd-rsyncable":
-        return _encode_zstd_rsyncable(data)
+        return _encode_zstd_rsyncable(data, zstd_level=zstd_level)
     msg = f"writer cannot encode with codec {name!r}"
     raise CodecUnavailableError("unknown-codec", msg)
 
@@ -125,10 +133,28 @@ def _decode_one(codec: Codec, data: bytes) -> bytes:
     raise CodecUnavailableError("unknown-codec", f"unknown codec {codec.name!r}")
 
 
-def encode_chain(chain: list[str], data: bytes) -> bytes:
-    """Encode ``data`` through codec names in array order (§8.2)."""
+def encode_chain(
+    chain: list[str],
+    data: bytes,
+    *,
+    zstd_level: int | None = None,
+) -> bytes:
+    """Encode ``data`` through codec names in array order (§8.2).
+
+    Args:
+        chain: Codec names in the order applied by a writer.
+        data: Payload bytes to transform.
+        zstd_level: Optional per-frame zstd compression level used by ``zstd``
+            and by each independent ``zstd-rsyncable`` block. ``None`` preserves
+            the library default used before this option existed.
+    """
+    if zstd_level is not None and not any(
+        name in ("zstd", "zstd-rsyncable") for name in chain
+    ):
+        msg = "zstd_level requires a zstd or zstd-rsyncable transform"
+        raise ValueError(msg)
     for name in chain:
-        data = _encode_one(name, data)
+        data = _encode_one(name, data, zstd_level=zstd_level)
     return data
 
 

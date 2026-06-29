@@ -48,7 +48,10 @@ fn term_triple() -> ([Term; 3], [TestQuad; 1]) {
 }
 
 fn zstd_bytes(data: &[u8]) -> Vec<u8> {
-    ruzstd::encoding::compress_to_vec(data, ruzstd::encoding::CompressionLevel::Uncompressed)
+    structured_zstd::encoding::compress_to_vec(
+        data,
+        structured_zstd::encoding::CompressionLevel::Uncompressed,
+    )
 }
 
 fn blob_pub(digest: Option<&str>) -> Vec<(Value, Value)> {

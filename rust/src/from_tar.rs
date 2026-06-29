@@ -54,7 +54,7 @@ pub fn from_tar_to_writer<R: Read, W: Write>(
         None => read_tar_entries_spooled(reader, options)?,
         Some("gzip") => read_tar_entries_spooled(flate2::read::GzDecoder::new(reader), options)?,
         Some("zstd") => {
-            let decoder = ruzstd::decoding::StreamingDecoder::new(reader)
+            let decoder = structured_zstd::decoding::StreamingDecoder::new(reader)
                 .map_err(|err| TarError::new(format!("zstd decode tar input: {err}")))?;
             read_tar_entries_spooled(decoder, options)?
         }
