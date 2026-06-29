@@ -425,8 +425,8 @@ Path("cat.gts").write_bytes(w.to_bytes())
 
 ### Rust
 
-Add `gmeow-gts = "0.9.10"` to `Cargo.toml`. Optional feature builds use the standard Cargo
-shape `gmeow-gts = { version = "0.9.10", default-features = false, features = [...] }`.
+Add `gmeow-gts = "0.9.11"` to `Cargo.toml`. Optional feature builds use the standard Cargo
+shape `gmeow-gts = { version = "0.9.11", default-features = false, features = [...] }`.
 
 ```rust
 use std::fs;
