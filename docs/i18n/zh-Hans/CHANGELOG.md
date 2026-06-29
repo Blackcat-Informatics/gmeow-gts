@@ -14,6 +14,15 @@ GTS 的所有显著变更都记录在此。本日志格式基于
 
 线路格式为工作草案（`GTS-SPEC.md` 文档版本 `0.9-draft`），在 `1.0` 之前可以 (MAY) 发生变更。
 
+## [0.9.11] — 2026-06-29
+
+### 已变更
+
+- `reifies` 和 `annot` 行现在携带与 `quads` 相同的可选图 term-id，从而恢复
+  RDF 1.2 重述与注解的逐命名图分区。`reifies` 现在是行数组载荷
+  (`[rid, s, p, o, g?]`)，而不是以 reifier id 为键的映射。
+- 为这次协调的模式更新，发布元数据已对齐至 `0.9.11`。
+
 ## [0.9.10] — 2026-06-29
 
 ### 新增
@@ -374,7 +383,8 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...HEAD
+[0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
 [0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
 [0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
 [0.9.8]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.7...rust-v0.9.8

@@ -737,12 +737,12 @@ Les term-id sont des entiers non signés attribués **selon l'ordre d'ajout, par
 RDF 1.2 permet qu'un triplet soit le sujet ou l'objet d'un autre. GTS conserve les triplets cités dans le domaine id : un **réificateur** est un terme IRI/bnode ordinaire ; une trame `reifies` le lie au triplet qu'il cite.
 
 ```cddl
-reifies-payload = { * term-id => [term-id, term-id, term-id] }  ; reifier => (s, p, o)
+reifies-payload = [+ [term-id, term-id, term-id, term-id, ? term-id]] ; reifier, s, p, o, (g)
 ```
 
 Un triplet cité utilisé comme nœud est un terme avec `"k": 3` et `"rf"` pointant vers son réificateur.
 
-**Mappage d'ensemble de données RDF (normatif).** Un graphe GTS replié correspond à un ensemble de données RDF 1.2 comme suit : chaque rangée `quads` `(S,P,O,G?)` asserte le triplet RDF `(S,P,O)` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent. Une liaison `reifies` `R => (S,P,O)` asserte le triplet `R rdf:reifies <<( S P O )>>` dans le graphe par défaut. Un terme `k:3` dénote ce terme triplet, atteint via son réificateur `R`. Chaque rangée `annot` `(R, P', V')` asserte le triplet `R P' V'` dans le graphe par défaut. Les profils PEUVENT (MAY) définir des conventions de placement de graphe supplémentaires pour la projection, mais le mappage de base ci-dessus est la base d'interopérabilité.
+**Mappage d'ensemble de données RDF (normatif).** Un graphe GTS replié correspond à un ensemble de données RDF 1.2 comme suit : chaque rangée `quads` `(S,P,O,G?)` asserte le triplet RDF `(S,P,O)` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent. Une rangée `reifies` `(R,S,P,O,G?)` asserte le triplet `R rdf:reifies <<( S P O )>>` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent. Un terme `k:3` dénote ce terme triplet, atteint via son réificateur `R`. Chaque rangée `annot` `(R, P', V', G?)` asserte le triplet `R P' V'` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent. Les profils PEUVENT (MAY) définir des conventions de placement de graphe supplémentaires pour la projection, mais le mappage de base ci-dessus est la base d'interopérabilité.
 
 **La citation n'implique pas l'assertion (normatif).** Référencer un terme triplet, soit via un réificateur, soit via un terme `k:3`, N'asserte PAS le triplet de base `(S P O)`. Le triplet de base est asserté si et seulement si il apparaît également dans une trame `quads`.
 
@@ -754,12 +754,12 @@ Un triplet cité utilisé comme nœud est un terme avec `"k": 3` et `"rf"` point
 
 ```cddl
 quads-payload = [+ [term-id, term-id, term-id, ? term-id]]  ; s, p, o, (g; default graph if absent)
-annot-payload = [+ [term-id, term-id, term-id]]             ; reifier, predicate, value
+annot-payload = [+ [term-id, term-id, term-id, ? term-id]]  ; reifier, predicate, value, (g)
 ```
 
-Les métadonnées au niveau de l'énoncé (confiance, intervalle de validité, point de vue/perspective, modalité, …) sont exprimées sous forme de lignes `annot` sur un réificateur. **Les affirmations contestées coexistent** : plusieurs lignes `annot` sur un réificateur, ou plusieurs réificateurs sur un (s,p,o), sont tous conservés — aucun n'est privilégié. Les annotations sont un multiensemble ordonné dans l'état de repli GTS : les lecteurs DOIVENT (MUST) préserver l'ordre des lignes au sein de chaque segment et concaténer les lignes d'annotation des segments dans l'ordre du fichier. Les lignes d'annotation identiques exactes sont conservées dans le repli GTS ; une projection de jeu de données RDF PEUT (MAY) fusionner les triplets RDF émis identiques car les jeux de données RDF sont des ensembles.
+Les métadonnées au niveau de l'énoncé (confiance, intervalle de validité, point de vue/perspective, modalité, …) sont exprimées sous forme de lignes `annot` sur un réificateur. **Les affirmations contestées coexistent** : plusieurs lignes `annot` sur un réificateur, ou plusieurs réificateurs sur un (s,p,o), sont tous conservés — aucun n'est privilégié. Les annotations sont un multiensemble ordonné dans l'état de repli GTS, partitionné par le terme de graphe optionnel exactement comme les `quads` : les lecteurs DOIVENT (MUST) préserver l'ordre des lignes au sein de chaque segment et concaténer les lignes d'annotation des segments dans l'ordre du fichier. Les lignes d'annotation identiques exactes sont conservées dans le repli GTS ; une projection de jeu de données RDF PEUT (MAY) fusionner les triplets RDF émis identiques car les jeux de données RDF sont des ensembles.
 
-**Contraintes de position (normatif).** Dans une ligne `quads`, le prédicat `p` DOIT (MUST) être un IRI (`k:0`) ; le sujet `s` DOIT (MUST) être un IRI, un nœud vierge ou un triplet cité (`k:0|2|3`) ; l'objet `o` PEUT (MAY) être n'importe quel terme ; et le nom de graphe `g`, lorsqu'il est présent, DOIT (MUST) être un IRI ou un nœud vierge (`k:0|2`) — jamais un littéral ou un triplet cité. Un triplet `reifies` `(S,P,O)` obéit aux mêmes contraintes sujet/prédicat/objet. Dans une ligne `annot`, le prédicat DOIT (MUST) être un IRI.
+**Contraintes de position (normatif).** Dans une ligne `quads`, le prédicat `p` DOIT (MUST) être un IRI (`k:0`) ; le sujet `s` DOIT (MUST) être un IRI, un nœud vierge ou un triplet cité (`k:0|2|3`) ; l'objet `o` PEUT (MAY) être n'importe quel terme ; et le nom de graphe `g`, lorsqu'il est présent, DOIT (MUST) être un IRI ou un nœud vierge (`k:0|2`) — jamais un littéral ou un triplet cité. Un triplet `reifies` `(S,P,O)` obéit aux mêmes contraintes sujet/prédicat/objet, et le nom de graphe `g` d'une ligne `reifies` ou `annot`, lorsqu'il est présent, obéit à la même contrainte de nom de graphe que les `quads`. Dans une ligne `annot`, le prédicat DOIT (MUST) être un IRI.
 
 <a id="75-fold-algorithm-normative"></a>
 
@@ -781,8 +781,8 @@ for segment in file order:                      # §3.1; single-segment files: o
       "terms"    : append each term (assign next id); each "dt"/"rf" MUST name an
                    already-introduced term-id (no forward references)
       "quads"    : add each (s,p,o,g) value tuple to graph
-      "reifies"  : bind reifier to (s,p,o), keeping the first non-conflicting binding (§7.8)
-      "annot"    : append (reifier, predicate, value)
+      "reifies"  : append each (reifier,s,p,o,g) row; a reifier keeps one non-conflicting (s,p,o) binding across graphs (§7.8)
+      "annot"    : append (reifier, predicate, value, graph)
       "blob"     : if "d" present -> blobs[BLAKE3(decoded "d")] := bytes (inline);
                    else -> register external blob by "pub".digest;
                    shallow-merge "pub" into blob_meta[digest]
@@ -847,9 +847,9 @@ Tous les comportements relatifs aux doublons et aux conflits sont définis ici a
 
 | Quads en double | Le graphe replié est un ensemble : les rangées de valeurs `(s,p,o,g)` identiques fusionnent en une seule sans diagnostic. |
 
-| Liaisons de réificateur | Un réificateur DEVRAIT (SHOULD) avoir exactement une liaison `reifies`. Les liaisons identiques répétées sont sans conséquence. Une liaison conflictuelle est une erreur de qualité des données : le lecteur affiche `ConflictingReifier`, conserve la première liaison dans l'ordre du fichier et ignore la liaison conflictuelle pour la carte du réificateur. |
+| Rangées de réificateur | Un réificateur DEVRAIT (SHOULD) être lié à exactement une identité de triplet `(s,p,o)`. Les rangées `(reifier,s,p,o,g)` identiques répétées sont sans conséquence. Le même réificateur PEUT (MAY) apparaître dans plusieurs graphes seulement si `(s,p,o)` ne change pas. Un `(s,p,o)` conflictuel pour le même réificateur est une erreur de qualité des données : le lecteur affiche `ConflictingReifier`, conserve la première identité de triplet dans l'ordre du fichier et ignore les rangées de réificateur conflictuelles. |
 
-| Annotations | Les rangées d'annotations sont un multi-ensemble ordonné (§7.4). Plusieurs rangées sur un même réificateur coexistent ; les rangées exactement identiques sont conservées dans le repli GTS. Les projections de jeux de données RDF peuvent fusionner les triplets émis identiques. |
+| Annotations | Les rangées d'annotations sont un multi-ensemble ordonné (§7.4). Plusieurs rangées sur un même réificateur coexistent, y compris les rangées partitionnées par graphe ; les rangées exactement identiques sont conservées dans le repli GTS. Les projections de jeux de données RDF peuvent fusionner les triplets émis identiques. |
 
 | Octets de blob | Les blobs sont adressés par condensé. La répétition du même condensé/octets est idempotente ; une vue adressée par le contenu stocke une seule valeur d'octet par condensé. L'extraction de validation recalcule le hachage des octets intégrés par rapport au condensé demandé (§14.1). |
 
@@ -2014,10 +2014,12 @@ term = {
 
 triple-row = [term-id, term-id, term-id]
 quad-row = [term-id, term-id, term-id] / [term-id, term-id, term-id, term-id]
+reifier-row = [term-id, term-id, term-id, term-id] / [term-id, term-id, term-id, term-id, term-id]
+annot-row = [term-id, term-id, term-id] / [term-id, term-id, term-id, term-id]
 
 quads-payload = [+ quad-row]
-reifies-payload = { * term-id => triple-row }
-annot-payload = [+ triple-row]
+reifies-payload = [+ reifier-row]
+annot-payload = [+ annot-row]
 
 blob-payload = bstr
 blob-pub = {
