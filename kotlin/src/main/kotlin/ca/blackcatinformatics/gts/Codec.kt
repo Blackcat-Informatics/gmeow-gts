@@ -11,6 +11,9 @@ import java.io.IOException
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
+private const val DEFAULT_ZSTD_STREAM_CAPACITY = 64 * 1024
+private const val MAX_ZSTD_PREALLOCATED_BYTES = 16 * 1024 * 1024
+
 data class Codec(val name: String, val cls: String)
 
 class CodecException(
@@ -74,7 +77,14 @@ private fun gunzip(data: ByteArray): ByteArray =
 private fun zstdDecompress(data: ByteArray): ByteArray =
     try {
         ZstdInputStream(ByteArrayInputStream(data)).use { input ->
-            val out = ByteArrayOutputStream()
+            val declared = Zstd.getFrameContentSize(data)
+            val initialCapacity =
+                if (declared in 1..MAX_ZSTD_PREALLOCATED_BYTES.toLong()) {
+                    declared.toInt()
+                } else {
+                    DEFAULT_ZSTD_STREAM_CAPACITY
+                }
+            val out = ByteArrayOutputStream(initialCapacity)
             val buf = ByteArray(8192)
             while (true) {
                 val n = input.read(buf)
