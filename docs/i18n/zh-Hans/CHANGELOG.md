@@ -18,26 +18,22 @@ GTS 的所有显著变更都记录在此。本日志格式基于
 
 ### 新增
 
-- Rust can emit deterministic graph snapshots directly from folded graph state,
-  including terms, quads, reifiers, annotations, blobs, and snapshot-level zstd
-  options.
-- Python and Rust writers support per-frame zstd compression levels for both
-  `zstd` and `zstd-rsyncable` frames.
+- Rust 可以直接从折叠后的图状态生成确定性的图快照，包括 terms、quads、
+  reifiers、annotations、blobs 以及快照级 zstd 选项。
+- Python 和 Rust 写入器支持为 `zstd` 和 `zstd-rsyncable` 帧设置逐帧 zstd
+  压缩级别。
 
 ### 已变更
 
-- Rust zstd handling now uses the pure-Rust `structured-zstd` backend for both
-  encoding and decoding.
-- Release metadata is aligned at `0.9.10` for the Python and Rust publication
-  lanes, with gated companion metadata kept in sync.
+- Rust 的 zstd 处理现在在编码和解码时均使用纯 Rust 的 `structured-zstd`
+  后端。
+- Python 和 Rust 发布通道的发布元数据已对齐至 `0.9.10`，且门控的伴随元数据保持同步。
 
 ### 已修复
 
-- Removed the fixed 16 MiB zstd decoded-size ceiling across Python, Rust, Go,
-  TypeScript, browser TypeScript, Kotlin, and Smalltalk. Implementations now
-  rely on streaming/backpressure, storage, platform allocation failure, and
-  corrupt-data failures instead of rejecting solely because decoded output
-  exceeds a codec-level byte cap.
+- 移除了 Python、Rust、Go、TypeScript、浏览器 TypeScript、Kotlin 和 Smalltalk
+  中固定的 16 MiB zstd 解码大小上限。各实现现在依赖流/背压、存储、平台分配失败以及数据损坏错误，
+  而不是仅因解码输出超过编解码器级别的字节上限而拒绝。
 
 ## [0.9.9]
 

@@ -22,26 +22,28 @@ et PEUT (MAY) changer avant `1.0`.
 
 ### Ajouté
 
-- Rust can emit deterministic graph snapshots directly from folded graph state,
-  including terms, quads, reifiers, annotations, blobs, and snapshot-level zstd
-  options.
-- Python and Rust writers support per-frame zstd compression levels for both
-  `zstd` and `zstd-rsyncable` frames.
+- Rust peut émettre des instantanés de graphe déterministes directement à partir
+  de l'état de graphe replié, y compris les termes, les quads, les réificateurs,
+  les annotations, les blobs et les options zstd au niveau de l'instantané.
+- Les scripteurs Python et Rust prennent en charge les niveaux de compression
+  zstd par trame pour les trames `zstd` et `zstd-rsyncable`.
 
 ### Modifié
 
-- Rust zstd handling now uses the pure-Rust `structured-zstd` backend for both
-  encoding and decoding.
-- Release metadata is aligned at `0.9.10` for the Python and Rust publication
-  lanes, with gated companion metadata kept in sync.
+- La gestion de zstd en Rust utilise désormais le moteur pure-Rust
+  `structured-zstd` pour l'encodage et le décodage.
+- Les métadonnées de version sont alignées sur `0.9.10` pour les canaux de
+  publication Python et Rust, avec les métadonnées compagnons verrouillées
+  maintenues synchronisées.
 
 ### Corrigé
 
-- Removed the fixed 16 MiB zstd decoded-size ceiling across Python, Rust, Go,
-  TypeScript, browser TypeScript, Kotlin, and Smalltalk. Implementations now
-  rely on streaming/backpressure, storage, platform allocation failure, and
-  corrupt-data failures instead of rejecting solely because decoded output
-  exceeds a codec-level byte cap.
+- Suppression du plafond fixe de 16 Mio pour la taille décodée de zstd dans
+  Python, Rust, Go, TypeScript, le navigateur TypeScript, Kotlin et Smalltalk.
+  Les implémentations s'appuient désormais sur le streaming/la contre-pression,
+  le stockage, les échecs d'allocation de plateforme et les erreurs de données
+  corrompues au lieu de rejeter uniquement parce que la sortie décodée dépasse un
+  plafond d'octets au niveau du codec.
 
 ## [0.9.9]
 
