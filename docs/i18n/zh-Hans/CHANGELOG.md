@@ -14,6 +14,27 @@ GTS 的所有显著变更都记录在此。本日志格式基于
 
 线路格式为工作草案（`GTS-SPEC.md` 文档版本 `0.9-draft`），在 `1.0` 之前可以 (MAY) 发生变更。
 
+## [0.9.10] — 2026-06-29
+
+### 新增
+
+- Rust 可以直接从折叠后的图状态生成确定性的图快照，包括 terms、quads、
+  reifiers、annotations、blobs 以及快照级 zstd 选项。
+- Python 和 Rust 写入器支持为 `zstd` 和 `zstd-rsyncable` 帧设置逐帧 zstd
+  压缩级别。
+
+### 已变更
+
+- Rust 的 zstd 处理现在在编码和解码时均使用纯 Rust 的 `structured-zstd`
+  后端。
+- Python 和 Rust 发布通道的发布元数据已对齐至 `0.9.10`，且门控的伴随元数据保持同步。
+
+### 已修复
+
+- 移除了 Python、Rust、Go、TypeScript、浏览器 TypeScript、Kotlin 和 Smalltalk
+  中固定的 16 MiB zstd 解码大小上限。各实现现在依赖流/背压、存储、平台分配失败以及数据损坏错误，
+  而不是仅因解码输出超过编解码器级别的字节上限而拒绝。
+
 ## [0.9.9]
 
 ### 已修复
@@ -353,7 +374,9 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...HEAD
+[0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
+[0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
 [0.9.8]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.7...rust-v0.9.8
 [0.9.7]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.6...rust-v0.9.7
 [0.9.6]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...rust-v0.9.6

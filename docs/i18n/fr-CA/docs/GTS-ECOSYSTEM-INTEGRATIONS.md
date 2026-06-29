@@ -178,7 +178,7 @@ let bytes = gmeow_gts::from_nquads::from_nquads(nquads.as_str())?;
 Pour l'interopérabilité native du modèle de données Rust, activez la fonctionnalité optionnelle `rdf` :
 
 ```toml
-gmeow-gts = { version = "0.9.9", default-features = false, features = ["rdf"] }
+gmeow-gts = { version = "0.9.10", default-features = false, features = ["rdf"] }
 ```
 
 ```rust
@@ -192,7 +192,7 @@ La fonctionnalité `rdf` utilise les types de jeux de données RDF, quad, terme,
 Pour l'interopérabilité native du magasin RDF en mémoire, activez le magasin natif optionnel :
 
 ```toml
-gmeow-gts = { version = "0.9.9", default-features = false, features = ["native-store"] }
+gmeow-gts = { version = "0.9.10", default-features = false, features = ["native-store"] }
 ```
 
 ```rust

@@ -18,6 +18,33 @@ incrémenter la crate Rust indépendamment. Voir
 Le format de transfert est une ébauche de travail (document `GTS-SPEC.md` version `0.9-draft`)
 et PEUT (MAY) changer avant `1.0`.
 
+## [0.9.10] — 2026-06-29
+
+### Ajouté
+
+- Rust peut émettre des instantanés de graphe déterministes directement à partir
+  de l'état de graphe replié, y compris les termes, les quads, les réificateurs,
+  les annotations, les blobs et les options zstd au niveau de l'instantané.
+- Les scripteurs Python et Rust prennent en charge les niveaux de compression
+  zstd par trame pour les trames `zstd` et `zstd-rsyncable`.
+
+### Modifié
+
+- La gestion de zstd en Rust utilise désormais le moteur pure-Rust
+  `structured-zstd` pour l'encodage et le décodage.
+- Les métadonnées de version sont alignées sur `0.9.10` pour les canaux de
+  publication Python et Rust, avec les métadonnées compagnons verrouillées
+  maintenues synchronisées.
+
+### Corrigé
+
+- Suppression du plafond fixe de 16 Mio pour la taille décodée de zstd dans
+  Python, Rust, Go, TypeScript, le navigateur TypeScript, Kotlin et Smalltalk.
+  Les implémentations s'appuient désormais sur le streaming/la contre-pression,
+  le stockage, les échecs d'allocation de plateforme et les erreurs de données
+  corrompues au lieu de rejeter uniquement parce que la sortie décodée dépasse un
+  plafond d'octets au niveau du codec.
+
 ## [0.9.9]
 
 ### Corrigé
@@ -357,7 +384,9 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...HEAD
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...HEAD
+[0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
+[0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
 [0.9.8]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.7...rust-v0.9.8
 [0.9.7]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.6...rust-v0.9.7
 [0.9.6]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...rust-v0.9.6
