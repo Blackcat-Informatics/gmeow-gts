@@ -180,17 +180,35 @@ private class Folder(
     }
 
     private fun hReifies(payload: CborValue?, index: Int) {
-        val entries = (payload as? CborMap)?.value ?: return
-        for ((key, spoValue) in entries) {
-            val rid = key.asInt() ?: continue
-            val items = (spoValue as? CborArray)?.value ?: continue
-            if (items.size != 3) continue
-            val s = items[0].asInt()
-            val p = items[1].asInt()
-            val o = items[2].asInt()
+        val rows =
+            (payload as? CborArray)?.value
+                ?: run {
+                    diag("DamagedFrame", "reifies payload must be a row array", index)
+                    return
+                }
+        for (row in rows) {
+            val items = (row as? CborArray)?.value ?: continue
+            if (items.size != 4 && items.size != 5) continue
+            val rid = items[0].asInt()
+            val s = items[1].asInt()
+            val p = items[2].asInt()
+            val o = items[3].asInt()
+            val hasGraph = items.size == 5
+            val g = if (hasGraph) items[4].asInt() else null
             val n = graph.terms.size
-            if (s == null || p == null || o == null || rid !in 0 until n || s !in 0 until n || p !in 0 until n || o !in 0 until n) {
-                diag("DamagedFrame", "reifier $rid has bad/out-of-range ids", index)
+            if (
+                rid == null ||
+                s == null ||
+                p == null ||
+                o == null ||
+                (hasGraph && g == null) ||
+                rid !in 0 until n ||
+                s !in 0 until n ||
+                p !in 0 until n ||
+                o !in 0 until n ||
+                (g != null && g !in 0 until n)
+            ) {
+                diag("DamagedFrame", "reifies row has bad/out-of-range ids", index)
                 continue
             }
             val spo = Triple(s, p, o)
@@ -199,7 +217,8 @@ private class Folder(
                 diag("ConflictingReifier", "reifier $rid rebound", index)
                 continue
             }
-            graph.setReifier(rid, spo)
+            if (!checkReifierPositions(s, p, o, g, index)) continue
+            graph.setReifier(rid, spo, g)
         }
     }
 
@@ -207,12 +226,23 @@ private class Folder(
         val rows = (payload as? CborArray)?.value ?: return
         for (row in rows) {
             val items = (row as? CborArray)?.value ?: continue
-            if (items.size != 3) continue
+            if (items.size != 3 && items.size != 4) continue
             val r = items[0].asInt()
             val p = items[1].asInt()
             val v = items[2].asInt()
+            val hasGraph = items.size == 4
+            val g = if (hasGraph) items[3].asInt() else null
             val n = graph.terms.size
-            if (r == null || p == null || v == null || r !in 0 until n || p !in 0 until n || v !in 0 until n) {
+            if (
+                r == null ||
+                p == null ||
+                v == null ||
+                (hasGraph && g == null) ||
+                r !in 0 until n ||
+                p !in 0 until n ||
+                v !in 0 until n ||
+                (g != null && g !in 0 until n)
+            ) {
                 diag("DamagedFrame", "annot row has bad/out-of-range ids", index)
                 continue
             }
@@ -220,7 +250,14 @@ private class Folder(
                 diag("PositionConstraint", "annot predicate $p not an IRI", index)
                 continue
             }
-            graph.annotations += Triple(r, p, v)
+            if (g != null) {
+                val graphKind = graph.terms[g].kind
+                if (graphKind == TermKind.LITERAL || graphKind == TermKind.TRIPLE) {
+                    diag("PositionConstraint", "annot graph name is not an IRI or blank node", index)
+                    continue
+                }
+            }
+            graph.annotations += AnnotationEntry(r, p, v, g)
         }
     }
 
@@ -269,8 +306,12 @@ private class Folder(
             )
         }
         (entries.getTextKey("quads") as? CborArray)?.let { hQuads(CborArray(it.value.map(::shiftRow)), index) }
-        (entries.getTextKey("reifies") as? CborMap)?.let { reifies ->
-            hReifies(CborMap(reifies.value.map { (k, v) -> shift(k) to shiftRow(v) }), index)
+        val reifies = entries.getTextKey("reifies")
+        if (reifies is CborMap) {
+            diag("DamagedFrame", "snapshot reifies payload must be a row array", index)
+        }
+        if (reifies is CborArray) {
+            hReifies(CborArray(reifies.value.map(::shiftRow)), index)
         }
         (entries.getTextKey("annot") as? CborArray)?.let { hAnnot(CborArray(it.value.map(::shiftRow)), index) }
         (entries.getTextKey("blobs") as? CborMap)?.value?.forEach { (_, v) ->
@@ -314,6 +355,23 @@ private class Folder(
             if (kind == TermKind.LITERAL || kind == TermKind.TRIPLE) ok = false
         }
         if (!ok) diag("PositionConstraint", "quad ($s,$p,$o,${g ?: "None"}) violates positions", index)
+        return ok
+    }
+
+    private fun checkReifierPositions(s: Int, p: Int, o: Int, g: Int?, index: Int): Boolean {
+        val n = graph.terms.size
+        val inBounds = s in 0 until n && p in 0 until n && o in 0 until n && (g == null || g in 0 until n)
+        if (!inBounds) {
+            diag("PositionConstraint", "reifier row has out-of-range term ids", index)
+            return false
+        }
+        var ok = graph.terms[p].kind == TermKind.IRI
+        if (graph.terms[s].kind == TermKind.LITERAL) ok = false
+        if (g != null) {
+            val kind = graph.terms[g].kind
+            if (kind == TermKind.LITERAL || kind == TermKind.TRIPLE) ok = false
+        }
+        if (!ok) diag("PositionConstraint", "reifier row violates term positions", index)
         return ok
     }
 
@@ -614,14 +672,16 @@ private fun unionSegments(segments: List<Graph>): Graph {
                     unioner.mapTerm(segment, segmentIndex, reifier.spo.p),
                     unioner.mapTerm(segment, segmentIndex, reifier.spo.o),
                 ),
+                reifier.g?.let { unioner.mapTerm(segment, segmentIndex, it) },
             )
         }
         for (annotation in segment.annotations) {
             unioner.out.annotations +=
-                Triple(
+                AnnotationEntry(
                     unioner.mapTerm(segment, segmentIndex, annotation.s),
                     unioner.mapTerm(segment, segmentIndex, annotation.p),
                     unioner.mapTerm(segment, segmentIndex, annotation.o),
+                    annotation.g?.let { unioner.mapTerm(segment, segmentIndex, it) },
                 )
         }
         segment.blobs.forEach { unioner.out.setBlob(it.digest, it.data) }

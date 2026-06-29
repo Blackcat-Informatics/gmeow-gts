@@ -17,13 +17,14 @@ fun toNQuads(graph: Graph): String {
                 val quoted =
                     "<<( ${renderTerm(graph, reifier.spo.s)} ${renderTerm(graph, reifier.spo.p)} " +
                         "${renderTerm(graph, reifier.spo.o)} )>>"
-                add("${renderTerm(graph, reifier.rid)} <$RDF_REIFIES> $quoted .")
+                val parts = mutableListOf(renderTerm(graph, reifier.rid), "<$RDF_REIFIES>", quoted)
+                reifier.g?.let { parts += renderTerm(graph, it) }
+                add(parts.joinToString(" ") + " .")
             }
             graph.annotations.forEach { annotation ->
-                add(
-                    "${renderTerm(graph, annotation.s)} ${renderTerm(graph, annotation.p)} " +
-                        "${renderTerm(graph, annotation.o)} .",
-                )
+                val parts = mutableListOf(renderTerm(graph, annotation.s), renderTerm(graph, annotation.p), renderTerm(graph, annotation.o))
+                annotation.g?.let { parts += renderTerm(graph, it) }
+                add(parts.joinToString(" ") + " .")
             }
         }.sorted()
     return if (lines.isEmpty()) "" else lines.joinToString("\n") + "\n"

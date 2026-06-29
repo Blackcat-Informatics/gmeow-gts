@@ -140,13 +140,15 @@ data class BlobEntry(val digest: String, val data: ByteArray) {
 
 data class BlobMetaEntry(val digest: String, val meta: CborValue)
 
-data class ReifierEntry(val rid: Int, val spo: Triple)
+data class ReifierEntry(val rid: Int, val spo: Triple, val g: Int? = null)
+
+data class AnnotationEntry(val s: Int, val p: Int, val o: Int, val g: Int? = null)
 
 class Graph {
     val terms: MutableList<Term> = mutableListOf()
     val quads: MutableList<Quad> = mutableListOf()
     val reifiers: MutableList<ReifierEntry> = mutableListOf()
-    val annotations: MutableList<Triple> = mutableListOf()
+    val annotations: MutableList<AnnotationEntry> = mutableListOf()
     val blobs: MutableList<BlobEntry> = mutableListOf()
     val blobMeta: MutableList<BlobMetaEntry> = mutableListOf()
     val meta: MutableList<MetaEntry> = mutableListOf()
@@ -161,13 +163,9 @@ class Graph {
 
     fun reifier(rid: Int): Triple? = reifiers.firstOrNull { it.rid == rid }?.spo
 
-    fun setReifier(rid: Int, spo: Triple) {
-        val idx = reifiers.indexOfFirst { it.rid == rid }
-        if (idx >= 0) {
-            reifiers[idx] = ReifierEntry(rid, spo)
-        } else {
-            reifiers += ReifierEntry(rid, spo)
-        }
+    fun setReifier(rid: Int, spo: Triple, g: Int? = null) {
+        if (reifiers.any { it.rid == rid && it.spo == spo && it.g == g }) return
+        reifiers += ReifierEntry(rid, spo, g)
     }
 
     fun setMeta(key: String, value: CborValue) {

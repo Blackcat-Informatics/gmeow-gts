@@ -202,29 +202,52 @@ fun fromNQuads(input: String): ByteArray {
     }
     val interner = Interner()
     val reifiers = mutableListOf<ReifierEntry>()
-    val quads = mutableListOf<Quad>()
+    val pendingQuads = mutableListOf<Quad>()
     for (nodes in statements) {
         val s = nodes[0]
         val p = nodes[1]
         val o = nodes[2]
         val g = nodes.getOrNull(3)
-        if (g == null && s is AtomNode && p is AtomNode && p.atom.kind == TermKind.IRI && p.atom.value == RDF_REIFIES && o is TripleNode) {
+        if (s is AtomNode && p is AtomNode && p.atom.kind == TermKind.IRI && p.atom.value == RDF_REIFIES && o is TripleNode) {
             val rid = interner.atom(s.atom)
-            setReifier(reifiers, rid, Triple(interner.node(o.s, reifiers), interner.node(o.p, reifiers), interner.node(o.o, reifiers)))
+            setReifier(
+                reifiers,
+                rid,
+                Triple(interner.node(o.s, reifiers), interner.node(o.p, reifiers), interner.node(o.o, reifiers)),
+                g?.let { interner.node(it, reifiers) },
+            )
             continue
         }
-        quads += Quad(interner.node(s, reifiers), interner.node(p, reifiers), interner.node(o, reifiers), g?.let { interner.node(it, reifiers) })
+        pendingQuads += Quad(interner.node(s, reifiers), interner.node(p, reifiers), interner.node(o, reifiers), g?.let { interner.node(it, reifiers) })
+    }
+    val reifierIds = reifiers.map { it.rid }.toSet()
+    val quads = mutableListOf<Quad>()
+    val annotations = mutableListOf<AnnotationEntry>()
+    for (quad in pendingQuads) {
+        if (quad.s in reifierIds) {
+            annotations += AnnotationEntry(quad.s, quad.p, quad.o, quad.g)
+        } else {
+            quads += quad
+        }
     }
     val writer = Writer("dist")
     if (interner.terms.isNotEmpty()) writer.addTerms(interner.terms)
     if (quads.isNotEmpty()) writer.addQuads(quads)
     if (reifiers.isNotEmpty()) writer.addReifies(reifiers)
+    if (annotations.isNotEmpty()) writer.addAnnot(annotations)
     return writer.toBytes()
 }
 
-private fun setReifier(reifiers: MutableList<ReifierEntry>, rid: Int, spo: Triple) {
-    val idx = reifiers.indexOfFirst { it.rid == rid }
-    if (idx >= 0) reifiers[idx] = ReifierEntry(rid, spo) else reifiers += ReifierEntry(rid, spo)
+private fun setReifier(reifiers: MutableList<ReifierEntry>, rid: Int, spo: Triple, g: Int? = null) {
+    for (reifier in reifiers) {
+        if (reifier.rid == rid) {
+            if (reifier.spo != spo) {
+                throw NQuadsParseException("conflicting rdf:reifies binding for reifier term $rid")
+            }
+            if (reifier.g == g) return
+        }
+    }
+    reifiers += ReifierEntry(rid, spo, g)
 }
 
 private fun validateStatement(nodes: List<Node>, line: String) {
