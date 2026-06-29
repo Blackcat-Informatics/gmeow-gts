@@ -720,12 +720,9 @@ fn set_reifier(
     statement: Triple3,
     graph_name: Option<usize>,
 ) {
-    if !reifiers
-        .iter()
-        .any(|&(candidate, existing, graph)| {
-            candidate == rid && existing == statement && graph == graph_name
-        })
-    {
+    if !reifiers.iter().any(|&(candidate, existing, graph)| {
+        candidate == rid && existing == statement && graph == graph_name
+    }) {
         reifiers.push((rid, statement, graph_name));
     }
 }

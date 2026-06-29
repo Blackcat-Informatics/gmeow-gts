@@ -39,8 +39,7 @@ pub fn to_json_ld(graph: &Graph) -> Value {
             .push((predicate, value));
     }
 
-    let mut reifiers_by_statement: BTreeMap<(Triple3, Option<usize>), Vec<usize>> =
-        BTreeMap::new();
+    let mut reifiers_by_statement: BTreeMap<(Triple3, Option<usize>), Vec<usize>> = BTreeMap::new();
     for &(reifier, statement, graph_name) in &graph.reifiers {
         reifiers_by_statement
             .entry((statement, graph_name))

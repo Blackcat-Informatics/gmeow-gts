@@ -12,8 +12,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use crate::model::{
-    AnnotationRow, Quad, ReifierRow, Term, TermKind, Triple3, RDF_DIR_LANG_STRING,
-    RDF_LANG_STRING,
+    AnnotationRow, Quad, ReifierRow, Term, TermKind, Triple3, RDF_DIR_LANG_STRING, RDF_LANG_STRING,
 };
 use crate::writer::Writer;
 

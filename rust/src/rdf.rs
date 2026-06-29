@@ -539,8 +539,7 @@ pub fn to_rdf_quads_with_options(
     }
 
     for &(s, p, o, graph_name) in &graph.annotations {
-        if let Some(quad) = graph_quad_to_rdf(graph, &bnode_labels, s, p, o, graph_name, options)?
-        {
+        if let Some(quad) = graph_quad_to_rdf(graph, &bnode_labels, s, p, o, graph_name, options)? {
             quads.push(quad);
         }
     }
@@ -582,9 +581,7 @@ pub fn writer_from_rdf_dataset_with_profile(
     let mut reifiers: Vec<ReifierRow> = Vec::new();
 
     for quad in dataset {
-        if quad.predicate.as_str() == RDF_REIFIES
-            && matches!(quad.object, RdfTerm::Triple(_))
-        {
+        if quad.predicate.as_str() == RDF_REIFIES && matches!(quad.object, RdfTerm::Triple(_)) {
             let rid = interner.named_or_blank(&quad.subject);
             let RdfTerm::Triple(triple) = &quad.object else {
                 unreachable!("matched above")

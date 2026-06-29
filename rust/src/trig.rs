@@ -111,10 +111,7 @@ pub fn to_trig(g: &Graph) -> String {
             render_trig_term(g, p),
             render_trig_term(g, o)
         );
-        let statement = format!(
-            "{} rdf:reifies {quoted} .",
-            render_trig_term(g, rid)
-        );
+        let statement = format!("{} rdf:reifies {quoted} .", render_trig_term(g, rid));
         push_statement(&mut lines, &mut open_graph, g, gname, statement);
     }
     for &(r, p, v, gname) in &g.annotations {

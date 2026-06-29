@@ -4,8 +4,8 @@
 use gmeow_gts::model::{Diagnostic, Graph, Term, TermKind};
 use gmeow_gts::rdf_events::{
     visit_dataset, EventAnnotation, EventError, EventErrorKind, EventQuad, EventReifier,
-    EventScopeId, EventTerm, GraphRdfEventSource, RdfDatasetVisitor, RdfEventSink,
-    RdfEventSource, ReaderRdfEventSource,
+    EventScopeId, EventTerm, GraphRdfEventSource, RdfDatasetVisitor, RdfEventSink, RdfEventSource,
+    ReaderRdfEventSource,
 };
 use gmeow_gts::writer::Writer;
 
@@ -50,11 +50,7 @@ impl RdfEventSink for RecordingSink {
     fn reifier(&mut self, reifier: EventReifier) -> Result<(), EventError> {
         self.events.push(format!(
             "reifier:{}:{}:{}:{}:{:?}",
-            reifier.id,
-            reifier.subject,
-            reifier.predicate,
-            reifier.object,
-            reifier.graph_name
+            reifier.id, reifier.subject, reifier.predicate, reifier.object, reifier.graph_name
         ));
         Ok(())
     }
