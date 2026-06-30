@@ -71,7 +71,7 @@ sha1 = "0.11"
 # pure-Rust AES-256-GCM (COSE_Encrypt0, §9.3). getrandom is OFF so the wasm32
 # build stays clean; the random-IV nonce comes from `getrandom` below, which is
 # only pulled in on non-wasm targets (the deterministic seal/open paths need no RNG).
-aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
+aes-gcm = { version = "0.11", default-features = false, features = ["aes", "alloc"] }
 oxsdatatypes = { version = "0.2.2", optional = true }
 serde = { version = "1", default-features = false, features = ["derive", "std"], optional = true }
 serde_json = { version = "1", optional = true }
