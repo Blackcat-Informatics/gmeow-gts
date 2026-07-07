@@ -731,9 +731,9 @@ dependencies = [
 
 [[package]]
 name = "structured-zstd"
-version = "0.0.40"
+version = "0.0.48"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af7b9352cd002e0abc4d70cbf06656c8edd93f74a7f00fdafdb36c5a3bcd67ce"
+checksum = "c744bb12e451d61c0e22a4db2728551bc638441db85b417dafbaf91041deb398"
 dependencies = [
  "twox-hash",
 ]
