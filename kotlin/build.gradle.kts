@@ -20,8 +20,8 @@ application {
 
 dependencies {
     implementation("com.github.luben:zstd-jni:1.5.7-11")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.84")
-    implementation("org.bouncycastle:bcpg-jdk18on:1.84")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.85")
+    implementation("org.bouncycastle:bcpg-jdk18on:1.85")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     testImplementation(kotlin("test"))
