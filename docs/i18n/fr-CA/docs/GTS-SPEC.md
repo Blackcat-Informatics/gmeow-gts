@@ -66,6 +66,7 @@ Cette section consigne les modifications apportées à ce document de spécifica
 - Clarifie les portées de conformité, les classes de lecteurs (readers)/rédacteurs (writers), les limites de mémoire du lecteur en continu et les diagnostics du lecteur canonique.
 
 - Formalise le repli (fold) de graphe, l'union de valeurs multi-segments, la portée des nœuds vides (blank-node scoping), le triple-term RDF 1.2 et le mappage de `rdf:reifies`, les contraintes de position et le comportement en cas de doublons ou de conflits.
+- Rend les termes triplets auto-descriptifs (`"tt"`), rétablit la trame `reifies` comme la couche d'énoncés multivaluée qu'exige une propriété `rdf:reifies` non fonctionnelle, et restreint `ConflictingReifier` au cas d'un terme hérité sans `"tt"` au-dessus d'un réificateur sur-lié (§7.3).
 
 - Ajoute des règles de disposition diffusable en continu (streamable-layout), des pré-images de preuve d'index/MMR facultatives, la vérification de preuve, le comportement des clés d'extension inconnues, les contrats de type de média et de service HTTP, ainsi que des considérations de durabilité et de sécurité.
 
@@ -119,7 +120,7 @@ Cette section consigne les modifications apportées à ce document de spécifica
 
   - [7.2 Attribution d'identifiants de termes (normative)](#72-term-id-assignment-normative)
 
-  - [7.3 Triplets cités et réificateurs (trame `reifies`)](#73-quoted-triples-and-reifiers-reifies-frame)
+  - [7.3 Termes triplets et la couche d'énoncés `reifies`](#73-triple-terms-and-the-reifies-statement-layer)
 
   - [7.4 Quads et annotations](#74-quads-and-annotations)
 
@@ -356,7 +357,7 @@ Les lecteurs exposent des diagnostics observables par machine avec ces classes c
 
 | `KeyWrapFailed` | l'ouverture d'une clé multi-destinataire différée a échoué ; `reason:"missing-key"` opaque |
 
-| `ConflictingReifier` | un réificateur s'est lié à un triplet différent (§7.8) |
+| `ConflictingReifier` | un terme `k:3` hérité sans `"tt"` dont le réificateur lie plus d'un triplet (§7.3, §7.8) |
 
 | `PositionConstraint` | un terme apparaît dans une position illégale de sujet, prédicat, objet ou nom de graphe ; rejeter/diagnostiquer la ligne fautive (§7.4) |
 
@@ -440,7 +441,7 @@ Trois faits se composent, et les mises en œuvre conformes DOIVENT (MUST) prése
 
 - **Validité du repli de préfixe (normative).** Chaque préfixe d'octets d'un fichier GTS valide qui se termine sur une limite d'élément de données est lui-même un fichier GTS valide, et un lecteur DOIT (MUST) le replier exactement dans l'état qu'il atteindrait en repliant ces mêmes éléments à l'intérieur du fichier complet. Un flux en direct en cours de transmission est donc *indistinguable* d'un fichier avec un ajout tronqué (§3) : l'élément de fin partiel signifie « pas encore arrivé », et un consommateur PEUT (MAY) continuer la lecture à mesure que les octets arrivent (sémantique `tail -f`) — chaque repli intermédiaire est un état de graphe réel et utilisable, jamais un état d'erreur à moitié analysé.
 
-- **Raffinement monotone.** Les trames ajoutées ne font qu'*ajouter* de la connaissance : les quads s'accumulent (sémantique d'ensemble §7.8), une liaison de réificateur est « premier arrivant, premier servi » de sorte qu'un rendu établi ne change jamais sous celui-ci, et la suppression est une superposition d'affichage additive (§11) — l'arrivée d'une trame `suppress` affine la présentation sans invalider aucun repli antérieur. La vérification de la chaîne est également incrémentale : l'état O(1) (le `"prev"` attendu) vérifie chaque trame à mesure qu'elle arrive.
+- **Raffinement monotone.** Les trames ajoutées ne font qu'*ajouter* de la connaissance : les quads s'accumulent (sémantique d'ensemble §7.8), un terme triplet HÉRITÉ sans `"tt"` se résout « premier arrivant, premier servi » de sorte qu'un rendu établi ne change jamais sous celui-ci, les rangées `reifies` s'accumulent sans qu'aucune ne soit évincée (§7.3), et la suppression est une superposition d'affichage additive (§11) — l'arrivée d'une trame `suppress` affine la présentation sans invalider aucun repli antérieur. La vérification de la chaîne est également incrémentale : l'état O(1) (le `"prev"` attendu) vérifie chaque trame à mesure qu'elle arrive.
 
 - **Cadrage sécurisé par blocs.** Les éléments de séquence CBOR sont auto-délimitants, de sorte que les limites d'éléments sont des points de re-découpage sécurisés pour les relais et les mandataires (proxies), et la reprise est adressée par le contenu : un récepteur qui indique la dernière trame `"id"` qu'il a vérifiée peut reprendre à partir de l'octet suivant sans aucune négociation au-delà de ce hachage.
 
@@ -652,7 +653,7 @@ Un repli (fold) est la projection déterministe d'un journal de trames (frame lo
 
 - `quads` : un ensemble de quads RDF assertés sur des valeurs de termes.
 
-- `reifiers` : une correspondance partielle d'une valeur de terme réificateur vers exactement une valeur de triplet cité.
+- `reifiers` : un multiensemble ordonné de rangées `(reifier, triple, graph?)` sur des valeurs de termes — un réificateur peut porter plusieurs rangées car `rdf:reifies` n'est pas fonctionnelle (§7.3).
 
 - `annotations` : un multi-ensemble ordonné de rangées `(reifier, predicate, value)` sur des valeurs de termes.
 
@@ -716,9 +717,12 @@ term = {
   ? "dt": term-id,         ; literal datatype IRI (a term)
   ? "l" : tstr,            ; literal language tag (BCP 47)
   ? "dir": "ltr" / "rtl",  ; RDF 1.2 base direction for language-tagged literals
-  ? "rf": term-id,         ; quoted-triple: the reifier (§7.3) whose triple this term denotes
+  ? "tt": [term-id, term-id, term-id], ; quoted-triple: this term's OWN s, p, o (§7.3)
+  ? "rf": term-id,         ; quoted-triple: LEGACY reifier indirection (§7.3)
 }
 ```
+
+**Les termes triplets sont auto-descriptifs (normatif).** Un terme `k:3` (triplet cité) DEVRAIT (SHOULD) porter `"tt"`, c'est-à-dire les term-id de ses propres sujet, prédicat et objet. `"tt"` fait **autorité** : lorsqu'il est présent, le terme dénote exactement ce triplet, et `"rf"` — s'il est aussi présent — n'est qu'une provenance descriptive et NE DOIT PAS (MUST NOT) changer ce que le terme dénote. `"rf"` seul demeure un encodage hérité légal, résolu comme décrit au §7.3. `"tt"` NE DOIT PAS (MUST NOT) apparaître sur un terme dont `"k"` n'est pas `3` ; un lecteur DOIT (MUST) l'y ignorer.
 
 **Valeurs par défaut du type de données littéral (normatif).** Pour un terme `k:1` (littéral) : si `"l"` (étiquette de langue) et `"dir"` sont présents et que `"dt"` est absent, le type de données est `rdf:dirLangString` ; si `"l"` est présent, `"dir"` est absent et `"dt"` est absent, le type de données est `rdf:langString` ; si `"l"` et `"dt"` sont tous deux absents, le type de données est `xsd:string`. Une valeur `"dir"` DOIT ÊTRE (MUST) `"ltr"` ou `"rtl"` et n'a aucune signification sans `"l"`.
 
@@ -728,23 +732,44 @@ term = {
 
 ### 7.2 Attribution des term-id (normative)
 
-Les term-id sont des entiers non signés attribués **selon l'ordre d'ajout, par segment**, commençant à `0` à l'en-tête de chaque segment, et sont **figés au sein de leur segment** : un terme créé lors du repli de la trame *N* conserve son identifiant pour le reste de ce segment. Une trame `quads`, `annot` ou `reifies` à la position *N* DOIT (MUST) uniquement référencer des term-id introduits aux positions `0..N-1` **du même segment** (ces trames n'introduisent aucun terme qui leur est propre). Cela rend l'écriture en mode ajout pur, la lecture en une seule passe et la concaténation cohérentes : les term-id sont des **artefacts de compression, jamais d'identité** — l'identité inter-segment est uniquement la *valeur* du terme (§3.1), exactement comme le dictionnaire d'un `snapshot` redémarre déjà à `0` (§10). Une implémentation qui appliquerait des identifiants globaux au fichier à un fichier multi-segment effectuerait un repli incorrect de manière silencieuse ; la règle de délimitation (§3.1) et le vecteur 17 (§19) existent pour rendre cet échec manifeste à la place.
+Les term-id sont des entiers non signés attribués **selon l'ordre d'ajout, par segment**, commençant à `0` à l'en-tête de chaque segment, et sont **figés au sein de leur segment** : un terme créé lors du repli de la trame *N* conserve son identifiant pour le reste de ce segment. Les champs `"dt"` et `"rf"` d'un terme, ainsi que chaque composante de son `"tt"`, DOIVENT (MUST) nommer un term-id strictement inférieur à l'identifiant du terme lui-même. Une trame `quads`, `annot` ou `reifies` à la position *N* DOIT (MUST) uniquement référencer des term-id introduits aux positions `0..N-1` **du même segment** (ces trames n'introduisent aucun terme qui leur est propre). Cela rend l'écriture en mode ajout pur, la lecture en une seule passe et la concaténation cohérentes : les term-id sont des **artefacts de compression, jamais d'identité** — l'identité inter-segment est uniquement la *valeur* du terme (§3.1), exactement comme le dictionnaire d'un `snapshot` redémarre déjà à `0` (§10). Une implémentation qui appliquerait des identifiants globaux au fichier à un fichier multi-segment effectuerait un repli incorrect de manière silencieuse ; la règle de délimitation (§3.1) et le vecteur 17 (§19) existent pour rendre cet échec manifeste à la place.
 
 <a id="73-quoted-triples-and-reifiers-reifies-frame"></a>
 
-### 7.3 Triplets cités et réificateurs (trame `reifies`)
+<a id="73-triple-terms-and-the-reifies-statement-layer"></a>
 
-RDF 1.2 permet qu'un triplet soit le sujet ou l'objet d'un autre. GTS conserve les triplets cités dans le domaine id : un **réificateur** est un terme IRI/bnode ordinaire ; une trame `reifies` le lie au triplet qu'il cite.
+### 7.3 Termes triplets et la couche d'énoncés `reifies`
+
+RDF 1.2 permet qu'un triplet soit le sujet ou l'objet d'un autre. GTS transporte cela dans **deux couches indépendantes**, et les confondre est un défaut du format filaire :
+
+1. un **terme triplet** — une entrée `k:3` du dictionnaire `terms` — est une *valeur*. Il énonce ses propres sujet, prédicat et objet dans `"tt"` et n'a besoin de rien d'autre pour être compris ;
+2. la trame **`reifies`** est une *couche d'énoncés*. Chaque rangée asserte un énoncé `R rdf:reifies <<( S P O )>>` au sujet d'une ressource réificatrice `R`.
 
 ```cddl
 reifies-payload = [+ [term-id, term-id, term-id, term-id, ? term-id]] ; reifier, s, p, o, (g)
 ```
 
-Un triplet cité utilisé comme nœud est un terme avec `"k": 3` et `"rf"` pointant vers son réificateur.
+**`rdf:reifies` N'EST PAS fonctionnelle, et `reifies` est MULTIVALUÉE (normatif).** RDF 1.2 n'impose aucune contrainte de cardinalité sur `rdf:reifies` : `R rdf:reifies <<( S P O1 )>>` et `R rdf:reifies <<( S P O2 )>>` sont tous deux assertables, et un jeu de données RDF 1.2 contient les deux. Un lecteur GTS DOIT (MUST) donc conserver **toutes** les rangées `reifies` liées à un identifiant de réificateur, chacune gardant son propre emplacement de graphe, et NE DOIT PAS (MUST NOT) choisir parmi elles, les réordonner ni en abandonner aucune. Seule la répétition d'une rangée strictement identique fusionne, par sémantique d'ensemble ordinaire (§7.8). Un identifiant de réificateur n'est par conséquent **pas** un identifiant de triplet et NE DOIT PAS (MUST NOT) être utilisé comme tel.
 
-**Mappage d'ensemble de données RDF (normatif).** Un graphe GTS replié correspond à un ensemble de données RDF 1.2 comme suit : chaque rangée `quads` `(S,P,O,G?)` asserte le triplet RDF `(S,P,O)` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent. Une rangée `reifies` `(R,S,P,O,G?)` asserte le triplet `R rdf:reifies <<( S P O )>>` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent. Un terme `k:3` dénote ce terme triplet, atteint via son réificateur `R`. Chaque rangée `annot` `(R, P', V', G?)` asserte le triplet `R P' V'` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent. Les profils PEUVENT (MAY) définir des conventions de placement de graphe supplémentaires pour la projection, mais le mappage de base ci-dessus est la base d'interopérabilité.
+**Résolution d'un terme triplet (normatif).** Le triplet que dénote un terme `k:3` est déterminé dans cet ordre :
+
+1. si le terme porte `"tt"`, il dénote exactement `(tt[0], tt[1], tt[2])`. Cela fait autorité et est terminal — aucune rangée `reifies` ne peut le changer ;
+2. sinon, si le terme porte `"rf"`, il dénote le triplet de la **première** rangée `reifies` liée à cet identifiant de réificateur dans l'ordre du fichier. Ce chemin hérité existe pour que les fichiers écrits avant `"tt"` se lisent exactement comme auparavant ;
+3. sinon, le terme n'énonce aucun triplet. Un lecteur DOIT (MUST) le conserver comme terme distinct et NE DOIT PAS (MUST NOT) en inventer un ; une projection le rend comme un nœud vierge frais (§14).
+
+Parce qu'un terme triplet porte ses propres composantes, deux termes triplets DISTINCTS PEUVENT (MAY) nommer le même identifiant de réificateur, et un terme triplet **non réifié** — portant `"tt"` et aucun `"rf"` — est pleinement exprimable et effectue un aller-retour tel quel. Un rédacteur NE DOIT PAS (MUST NOT) créer un réificateur pour exprimer un terme triplet, ni émettre un terme `k:3` dont la seule description est un réificateur pour lequel il n'émet aucune rangée `reifies`.
+
+**Contraintes de position sur `"tt"` (normatif).** Un `"tt"` énonce un triplet, donc ses composantes obéissent aux mêmes contraintes qu'un triplet `reifies` (§7.4) : `tt[1]` DOIT (MUST) être un IRI (`k:0`), `tt[0]` DOIT (MUST) être un IRI, un nœud vierge ou un triplet cité (`k:0|2|3`), et `tt[2]` PEUT (MAY) être n'importe quel terme. Un `"tt"` qui viole cela est diagnostiqué `PositionConstraint` et abandonné ; le terme est alors résolu par l'étape 2 ou 3 ci-dessus.
+
+**Mappage d'ensemble de données RDF (normatif).** Un graphe GTS replié correspond à un ensemble de données RDF 1.2 comme suit : chaque rangée `quads` `(S,P,O,G?)` asserte le triplet RDF `(S,P,O)` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent. **Chaque** rangée `reifies` `(R,S,P,O,G?)` asserte le triplet `R rdf:reifies <<( S P O )>>` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent — *N* rangées sur un réificateur se projettent en *N* énoncés, non en un seul. Un terme `k:3` dénote le terme triplet résolu comme ci-dessus. Chaque rangée `annot` `(R, P', V', G?)` asserte le triplet `R P' V'` dans le graphe par défaut lorsque `G` est absent, ou dans le graphe nommé `G` lorsque `G` est présent. Les profils PEUVENT (MAY) définir des conventions de placement de graphe supplémentaires pour la projection, mais le mappage de base ci-dessus est la base d'interopérabilité.
 
 **La citation n'implique pas l'assertion (normatif).** Référencer un terme triplet, soit via un réificateur, soit via un terme `k:3`, N'asserte PAS le triplet de base `(S P O)`. Le triplet de base est asserté si et seulement si il apparaît également dans une trame `quads`.
+
+**Union multi-segment (normatif).** Les term-id sont à portée de segment (§7.2), donc une union multi-segment réintercale par valeur de terme. L'identité d'union d'un terme `k:3` est son `(s, p, o)` **résolu**, interné récursivement — exactement l'égalité des termes triplets du §7.8. Il n'existe aucun espace d'identité distinct pour la forme héritée : un terme `"tt"` et un terme sans `"tt"` qui se résolvent au même triplet sont le MÊME terme et DOIVENT (MUST) s'interner ensemble, tandis que deux termes triplets qui partagent un identifiant de réificateur mais se résolvent à des triplets différents DOIVENT (MUST) rester distincts. Un terme qui ne se résout à aucun triplet conserve l'identité qu'il avait avant cette règle (une seule identité de terme triplet non résoluble par portée).
+
+**La résolution DOIT se terminer (normatif).** Une rangée `reifies` PEUT (MAY) nommer le terme même qui se résout à travers elle — la rangée `(R, T, P, O)` aux côtés d'un terme `T` de type `k:3` portant `"rf": R` est constructible sur le fil. Un lecteur NE DOIT PAS (MUST NOT) récurser indéfiniment sur une telle forme. Cela lie TOUTE opération qui parcourt les composantes résolues d'un terme triplet, et pas une seule : l'union multi-segment ci-dessus, ainsi que chaque projection ou passe de ré-écriture (§14, §14.1). Soit le lecteur rejette la rangée auto-atteignante comme structurellement endommagée au moment du repli (`DamagedFrame`), de sorte que la forme n'entre jamais dans le repli, soit il traite un terme qui s'atteint lui-même comme n'énonçant aucun triplet *pour ce parcours* : le terme conserve une identité distincte qui lui est propre lors de l'internement, et se rend comme le même nœud vierge frais qu'un terme triplet non lié produit déjà lors de la projection. `"tt"` ne peut pas participer à un tel cycle, car chaque composante `"tt"` nomme un term-id strictement inférieur (§7.2).
+
+**Déterminisme (normatif).** Un rédacteur déterministe (§14.1) DOIT (MUST) trier les rangées `reifies` selon leur clé de contenu complète `(g, reifier, s, p, o)`, afin que plusieurs liaisons sur un même identifiant de réificateur soient sérialisées dans un ordre de contenu stable plutôt que fusionnées. Il DOIT (MUST) attribuer les identifiants de termes **par profondeur d'imbrication d'abord** — un terme triplet se trie strictement après tout terme atteignable par son `"tt"` — puis par contenu du terme, puis par identifiant d'origine. L'ordre de contenu seul ne garantit pas que les composantes d'un triplet imbriqué le précèdent, ce qui émettrait un `"tt"` en référence avant (§7.2).
 
 **Dégradation RDF 1.1 (informatif).** RDF 1.1 n'a pas de terme de triplet cité. Une projection RDF 1.1 avec perte PEUT (MAY) remplacer un terme de triplet cité par sa ressource réificatrice et émettre des triplets ordinaires de style réification tels que `R rdf:subject S`, `R rdf:predicate P` et `R rdf:object O`, ou transporter `R rdf:reifies` comme un prédicat d'extension compris par le consommateur. Une telle projection NE DOIT PAS (MUST NOT) asserter `(S P O)` simplement parce que le fichier GTS l'a cité, et l'outillage DEVRAIT (SHOULD) étiqueter la projection comme étant avec perte chaque fois qu'un terme triplet était présent.
 
@@ -759,7 +784,7 @@ annot-payload = [+ [term-id, term-id, term-id, ? term-id]]  ; reifier, predicate
 
 Les métadonnées au niveau de l'énoncé (confiance, intervalle de validité, point de vue/perspective, modalité, …) sont exprimées sous forme de lignes `annot` sur un réificateur. **Les affirmations contestées coexistent** : plusieurs lignes `annot` sur un réificateur, ou plusieurs réificateurs sur un (s,p,o), sont tous conservés — aucun n'est privilégié. Les annotations sont un multiensemble ordonné dans l'état de repli GTS, partitionné par le terme de graphe optionnel exactement comme les `quads` : les lecteurs DOIVENT (MUST) préserver l'ordre des lignes au sein de chaque segment et concaténer les lignes d'annotation des segments dans l'ordre du fichier. Les lignes d'annotation identiques exactes sont conservées dans le repli GTS ; une projection de jeu de données RDF PEUT (MAY) fusionner les triplets RDF émis identiques car les jeux de données RDF sont des ensembles.
 
-**Contraintes de position (normatif).** Dans une ligne `quads`, le prédicat `p` DOIT (MUST) être un IRI (`k:0`) ; le sujet `s` DOIT (MUST) être un IRI, un nœud vierge ou un triplet cité (`k:0|2|3`) ; l'objet `o` PEUT (MAY) être n'importe quel terme ; et le nom de graphe `g`, lorsqu'il est présent, DOIT (MUST) être un IRI ou un nœud vierge (`k:0|2`) — jamais un littéral ou un triplet cité. Un triplet `reifies` `(S,P,O)` obéit aux mêmes contraintes sujet/prédicat/objet, et le nom de graphe `g` d'une ligne `reifies` ou `annot`, lorsqu'il est présent, obéit à la même contrainte de nom de graphe que les `quads`. Dans une ligne `annot`, le prédicat DOIT (MUST) être un IRI.
+**Contraintes de position (normatif).** Dans une ligne `quads`, le prédicat `p` DOIT (MUST) être un IRI (`k:0`) ; le sujet `s` DOIT (MUST) être un IRI, un nœud vierge ou un triplet cité (`k:0|2|3`) ; l'objet `o` PEUT (MAY) être n'importe quel terme ; et le nom de graphe `g`, lorsqu'il est présent, DOIT (MUST) être un IRI ou un nœud vierge (`k:0|2`) — jamais un littéral ou un triplet cité. Un triplet `reifies` `(S,P,O)` obéit aux mêmes contraintes sujet/prédicat/objet, et le nom de graphe `g` d'une ligne `reifies` ou `annot`, lorsqu'il est présent, obéit à la même contrainte de nom de graphe que les `quads`. Le `"tt"` d'un terme triplet obéit aux mêmes contraintes sujet/prédicat/objet qu'un triplet `reifies` (§7.3). Dans une ligne `annot`, le prédicat DOIT (MUST) être un IRI.
 
 <a id="75-fold-algorithm-normative"></a>
 
@@ -778,10 +803,12 @@ for segment in file order:                      # §3.1; single-segment files: o
   for frame in segment log order:
     P := resolve payload (§6.1); if undecodable -> add opaque node (§7.6); continue
     switch frame.t:
-      "terms"    : append each term (assign next id); each "dt"/"rf" MUST name an
-                   already-introduced term-id (no forward references)
+      "terms"    : append each term (assign next id); each "dt"/"rf" and every
+                   "tt" component MUST name an already-introduced term-id
+                   (no forward references)
       "quads"    : add each (s,p,o,g) value tuple to graph
-      "reifies"  : append each (reifier,s,p,o,g) row; a reifier keeps one non-conflicting (s,p,o) binding across graphs (§7.8)
+      "reifies"  : append EVERY (reifier,s,p,o,g) row; rdf:reifies is not functional,
+                   so one reifier may bind many triples and each row keeps its graph (§7.3)
       "annot"    : append (reifier, predicate, value, graph)
       "blob"     : if "d" present -> blobs[BLAKE3(decoded "d")] := bytes (inline);
                    else -> register external blob by "pub".digest;
@@ -847,7 +874,7 @@ Tous les comportements relatifs aux doublons et aux conflits sont définis ici a
 
 | Quads en double | Le graphe replié est un ensemble : les rangées de valeurs `(s,p,o,g)` identiques fusionnent en une seule sans diagnostic. |
 
-| Rangées de réificateur | Un réificateur DEVRAIT (SHOULD) être lié à exactement une identité de triplet `(s,p,o)`. Les rangées `(reifier,s,p,o,g)` identiques répétées sont sans conséquence. Le même réificateur PEUT (MAY) apparaître dans plusieurs graphes seulement si `(s,p,o)` ne change pas. Un `(s,p,o)` conflictuel pour le même réificateur est une erreur de qualité des données : le lecteur affiche `ConflictingReifier`, conserve la première identité de triplet dans l'ordre du fichier et ignore les rangées de réificateur conflictuelles. |
+| Rangées de réificateur | `rdf:reifies` n'est pas fonctionnelle (§7.3), donc un réificateur PEUT (MAY) lier un nombre quelconque de triplets `(s,p,o)` distincts, dans un nombre quelconque de graphes. Chaque rangée est conservée, dans l'ordre du fichier, chacune gardant son propre emplacement de graphe ; seule une rangée `(reifier,s,p,o,g)` identique répétée fusionne par sémantique d'ensemble. Ce n'est PAS un conflit et cela ne lève aucun diagnostic. La seule incohérence subsistante est un terme `k:3` sans `"tt"` au-dessus d'un tel réificateur — un terme qui demande deux significations : le lecteur affiche `ConflictingReifier`, N'ABANDONNE AUCUNE RANGÉE et résout ce terme vers la première liaison dans l'ordre du fichier. |
 
 | Annotations | Les rangées d'annotations sont un multi-ensemble ordonné (§7.4). Plusieurs rangées sur un même réificateur coexistent, y compris les rangées partitionnées par graphe ; les rangées exactement identiques sont conservées dans le repli GTS. Les projections de jeux de données RDF peuvent fusionner les triplets émis identiques. |
 
@@ -1526,7 +1553,7 @@ Le `cat` brut fonctionne toujours (§3.1) ; un compositeur de validation conform
 
 - **`gts compact --streamable <in> -o <out>` est la réécriture de disposition** (§10.1). Elle DOIT (MUST) refuser une entrée qui ne se vérifie pas proprement, une entrée portant des suppressions adressées par trame, et une entrée `evidence` sans l'option de scellement de l'original (`--seal-original`, §10.1) ; elle DOIT (MUST) émettre un seul segment revendiqué dans la forme diffusable en continu normative (§3.3) avec provenance de compactage et signatures détachées (§13.3), et sa sortie DOIT (MUST) être déterministe au niveau des octets pour la même entrée et les mêmes paramètres (blobs ordonnés par taille décodée croissante, les égalités étant rompues par condensat (« digest ») croissant ; l'horodatage de réécriture est un paramètre, pas l'heure ambiante).
 
-- **Mode de création de graphe déterministe** : il s'agit de la surface de rédacteur de construction reproductible pour un graphe replié. Il émet un segment ordinaire et DOIT (MUST) remapper les identifiants de termes locaux avant l'écriture : les termes sont triés par valeur sémantique (chaîne IRI ; forme lexicale littérale plus IRI de type de données effectif plus étiquette de langue ; étiquette de nœud vierge, les nœuds vierges anonymes utilisant leur occurrence d'entrée comme critère de départage ; triple cité résolu en sa valeur sujet/prédicat/objet). Il émet ensuite des trames créables dans cet ordre fixe : `terms`, `quads`, `reifies`, `annot`, `blob`, `meta`, `suppress`. Les quads, les liaisons de réificateur, les annotations, les blobs, les clés de métadonnées et les trames de suppression sont triés par la représentation CBOR déterministe remappée. Le mode ne rejoue pas les observations du lecteur (`opaque`, signatures, diagnostics ou registres de segments) ; les outils de publication qui doivent préserver ces observations doivent utiliser une réécriture spécifique au profil telle que le compactage diffusable en continu ou sceller les octets originaux comme preuve.
+- **Mode de création de graphe déterministe** : il s'agit de la surface de rédacteur de construction reproductible pour un graphe replié. Il émet un segment ordinaire et DOIT (MUST) remapper les identifiants de termes locaux avant l'écriture : les termes sont triés d'abord par **profondeur d'imbrication** (§7.3 — de sorte que les composantes du `"tt"` d'un terme triplet le précèdent toujours), puis par valeur sémantique (chaîne IRI ; forme lexicale littérale plus IRI de type de données effectif plus étiquette de langue ; étiquette de nœud vierge, les nœuds vierges anonymes utilisant leur occurrence d'entrée comme critère de départage ; triple cité résolu en sa valeur sujet/prédicat/objet), puis par identifiant d'entrée. Les rangées `reifies` sont triées selon leur clé de contenu complète `(g, reifier, s, p, o)`. Il émet ensuite des trames créables dans cet ordre fixe : `terms`, `quads`, `reifies`, `annot`, `blob`, `meta`, `suppress`. Les quads, les liaisons de réificateur, les annotations, les blobs, les clés de métadonnées et les trames de suppression sont triés par la représentation CBOR déterministe remappée. Le mode ne rejoue pas les observations du lecteur (`opaque`, signatures, diagnostics ou registres de segments) ; les outils de publication qui doivent préserver ces observations doivent utiliser une réécriture spécifique au profil telle que le compactage diffusable en continu ou sceller les octets originaux comme preuve.
 
 - **L'extraction de blob est une vérification, jamais une conversion** (`gts ls`, `gts extract`) : les blobs sont adressés par condensat de contenu (les indices de trame sont des accidents physiques qui se déplacent sous `cat`) ; l'extraction recalcule le hachage des octets par rapport au condensat demandé ; un blob supprimé par condensat (§11) est refusé par défaut (la suppression est un contrat d'affichage et l'extraction est de l'affichage) avec une dérogation explicite ; un indicateur de type de média est une **assertion** par rapport au `pub.mt` déclaré du blob — un outil de publication de validation refuse une non-correspondance plutôt que de procéder à un transcodage.
 
@@ -1828,7 +1855,7 @@ Le document d'accompagnement [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md) défin
 
 11. Définition par défaut du type de données de littéral (§7.1) : un littéral avec `"l"` + `"dir"` et sans `"dt"` → `rdf:dirLangString` ; avec `"l"` et sans `"dt"` → `rdf:langString` ; avec aucun des deux → `xsd:string`.
 
-12. Un réificateur relié à un triplet différent → `ConflictingReifier`, premier lien conservé (§7.8).
+12. Deux liaisons `rdf:reifies` sur un même réificateur → les DEUX conservées, aucun diagnostic (§7.3).
 
 13. Une violation de contrainte de position, par ex. un littéral en position de prédicat → rejeté/diagnostiqué (§7.4).
 
@@ -2008,7 +2035,8 @@ term = {
   ? "dt": term-id,
   ? "l": tstr,
   ? "dir": "ltr" / "rtl",          ; RDF 1.2 base direction for language-tagged literals
-  ? "rf": term-id,
+  ? "tt": [term-id, term-id, term-id],  ; triple term's own s, p, o — authoritative (§7.3)
+  ? "rf": term-id,                      ; legacy reifier indirection (§7.3)
   * extension-key => any,
 }
 

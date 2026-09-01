@@ -308,7 +308,7 @@
         "media_type": "application/vnd.blackcat.gts+cbor-seq"
       },
       "mode": "permissive-read",
-      "negative": true,
+      "negative": false,
       "required_capabilities": [
         "cbor",
         "blake3",
@@ -317,17 +317,17 @@
       "subsets": [
         "corpus-generator-determinism",
         "graph-fold",
-        "streaming-property"
+        "streaming-property",
+        "writer-determinism"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader"
+        "streaming-reader",
+        "writer"
       ],
       "expected": {
         "graph": "vectors/12-conflicting-reifier.expected.json",
-        "diagnostics": [
-          "ConflictingReifier"
-        ],
+        "diagnostics": [],
         "expected_head": "e1c08aefe8730ac0c8d68390d62d521feac1c57d4cf317fa8333c59712bcd15a",
         "segment_heads": [
           "e1c08aefe8730ac0c8d68390d62d521feac1c57d4cf317fa8333c59712bcd15a"

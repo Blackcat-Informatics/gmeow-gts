@@ -48,6 +48,9 @@ def term_to_wire(t: Term) -> dict[str, object]:
         out["dir"] = t.direction
     if t.reifier is not None:
         out["rf"] = t.reifier
+    if t.triple is not None:
+        # §7.3: a triple term states its OWN (s, p, o). Authoritative on read.
+        out["tt"] = list(t.triple)
     return out
 
 
@@ -76,11 +79,52 @@ def _validate_term_language_tags(terms: list[Term], section: str) -> None:
             raise ValueError(msg)
 
 
+def _nesting_depth(graph: Graph, tid: int, stack: list[int]) -> int:
+    """Return a term's triple-nesting depth (0 for anything that is not nested).
+
+    A triple term's components MUST be introduced before it (§7.5 forward-
+    reference rule), so authoring order has to visit by depth first: content
+    order alone does not guarantee that a nested triple's components precede
+    it, which would emit a forward-referencing ``"tt"``. Cycles (only
+    constructible by hand) are clamped rather than recursed.
+    """
+    if tid in stack:
+        return 0
+    try:
+        term = graph.terms[tid]
+    except IndexError:
+        return 0
+    parts: tuple[int, ...]
+    if term.triple is not None:
+        parts = term.triple
+    elif term.kind is TermKind.TRIPLE and term.reifier is not None:
+        triple = graph.reifier(term.reifier)
+        parts = triple if triple is not None else ()
+    else:
+        parts = ()
+    if not parts:
+        return 0
+    stack.append(tid)
+    depth = 1 + max(_nesting_depth(graph, part, stack) for part in parts)
+    stack.pop()
+    return depth
+
+
 def _deterministic_term_remap(graph: Graph) -> tuple[dict[int, int], list[int]]:
-    """Return ``old -> new`` ids and ``new -> old`` term order for a graph."""
+    """Return ``old -> new`` ids and ``new -> old`` term order for a graph.
+
+    Ordered by NESTING DEPTH first, then by semantic content, then by the
+    original id. Depth is what makes the result *emittable*: every component of
+    a triple term sorts strictly before it, so the ``"tt"`` written into the
+    ``terms`` frame never forward-references.
+    """
     old_by_new = sorted(
         range(len(graph.terms)),
-        key=lambda tid: (canonical(_term_identity(graph, tid, [])), tid),
+        key=lambda tid: (
+            _nesting_depth(graph, tid, []),
+            canonical(_term_identity(graph, tid, [])),
+            tid,
+        ),
     )
     old_to_new = {old: new for new, old in enumerate(old_by_new)}
     return old_to_new, old_by_new
@@ -112,7 +156,9 @@ def _term_identity(graph: Graph, tid: int, stack: list[int]) -> list[object]:
             term.value if term.value else ["anonymous", tid],
         ]
     else:
-        triple = graph.reifier(term.reifier) if term.reifier is not None else None
+        # §7.3: the term's own "tt" is authoritative; the reifier indirection is
+        # only the legacy fallback.
+        triple = graph.triple_of(tid) if tid < len(graph.terms) else None
         if triple is None:
             out = ["triple", None, term.reifier]
         else:
@@ -142,6 +188,13 @@ def _remap_term(term: Term, old_to_new: dict[int, int]) -> Term:
         direction=term.direction,
         reifier=_remap_id(old_to_new, term.reifier)
         if term.reifier is not None
+        else None,
+        triple=(
+            _remap_id(old_to_new, term.triple[0]),
+            _remap_id(old_to_new, term.triple[1]),
+            _remap_id(old_to_new, term.triple[2]),
+        )
+        if term.triple is not None
         else None,
     )
 

@@ -50,16 +50,17 @@ impl Unioner {
                 let anon_tid = label.is_none().then_some(tid);
                 InternKey::Bnode(seg_idx, label, anon_tid)
             }
-            // Quoted triple: identity is the interned SPO binding. Self-bound
-            // triple terms use `rf == tid`; do not recursively map the reifier.
-            TermKind::Triple => InternKey::Qt(t.reifier.and_then(|rf| {
-                seg.reifier(rf).map(|(s, p, o)| {
-                    (
-                        self.map_term(seg, seg_idx, s),
-                        self.map_term(seg, seg_idx, p),
-                        self.map_term(seg, seg_idx, o),
-                    )
-                })
+            // Quoted triple: identity is the RESOLVED (s, p, o) — the term's
+            // own `"tt"` when it has one, else the first binding of its legacy
+            // reifier (§7.3, §7.8). Keying on the resolution rather than on the
+            // reifier id is what keeps two DISTINCT triple terms that share one
+            // reifier id distinct through the union.
+            TermKind::Triple => InternKey::Qt(seg.triple_of(tid).map(|(s, p, o)| {
+                (
+                    self.map_term(seg, seg_idx, s),
+                    self.map_term(seg, seg_idx, p),
+                    self.map_term(seg, seg_idx, o),
+                )
             })),
         }
     }
@@ -71,6 +72,13 @@ impl Unioner {
         }
         let t = seg.terms[tid].clone();
         let datatype = t.datatype.map(|d| self.map_term(seg, seg_idx, d));
+        let triple = t.triple.map(|(s, p, o)| {
+            (
+                self.map_term(seg, seg_idx, s),
+                self.map_term(seg, seg_idx, p),
+                self.map_term(seg, seg_idx, o),
+            )
+        });
         let self_bound = t.kind == TermKind::Triple && t.reifier == Some(tid);
         let mapped_reifier = if self_bound {
             None
@@ -108,6 +116,7 @@ impl Unioner {
             lang: t.lang,
             direction: t.direction,
             reifier,
+            triple,
         });
         self.intern.insert(key, new_id);
         new_id

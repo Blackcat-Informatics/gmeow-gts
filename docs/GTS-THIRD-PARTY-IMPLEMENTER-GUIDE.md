@@ -224,6 +224,13 @@ Baseline Reader diagnostics include malformed or hostile input behavior such as
 `ConflictingReifier`, `PositionConstraint`, `ForwardReference`,
 and `SegmentBoundary`.
 
+`ConflictingReifier` is narrow. `rdf:reifies` is not functional, so a reifier
+bound to several triples is ordinary RDF 1.2 and MUST fold to several `reifies`
+rows with no diagnostic. The code is raised only for a `"tt"`-less (legacy
+indirect) `k:3` term whose reifier binds more than one distinct triple — one
+term asking for two meanings — and even then NO row may be dropped
+(GTS-SPEC §7.3).
+
 Opaque-node behavior is what keeps the reader total:
 
 - Unknown codec: preserve the frame as an opaque node with

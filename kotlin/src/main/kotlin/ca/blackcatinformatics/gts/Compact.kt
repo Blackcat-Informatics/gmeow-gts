@@ -178,6 +178,8 @@ private fun shiftTerm(term: Term, base: Int): Term =
         term.lang,
         term.reifier?.let { it + base },
         term.direction,
+        // "tt" components shift wherever "dt"/"rf" shift (§7.3).
+        term.triple?.let { Triple(it.s + base, it.p + base, it.o + base) },
     )
 
 private fun shiftedSuppressions(graph: Graph, base: Int): List<Suppression> =

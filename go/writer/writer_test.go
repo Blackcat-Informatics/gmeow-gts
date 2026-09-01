@@ -56,3 +56,31 @@ func TestBlobDedupInWriter(t *testing.T) {
 		t.Fatalf("expected one blob after dedup in writer, got %d", len(g.Blobs))
 	}
 }
+
+// §7.3: a triple term serialises its OWN (s, p, o) under the "tt" key, and a
+// legacy reifier indirection still serialises under "rf".
+func TestTermToWireCarriesSelfDescribingTripleTerm(t *testing.T) {
+	reifier := 0
+	term := model.Term{
+		Kind:    model.Triple,
+		Reifier: &reifier,
+		Triple:  &model.Triple3{S: 1, P: 2, O: 3},
+	}
+	entries := termToWire(&term)
+	got, ok := entries["tt"].([]interface{})
+	if !ok {
+		t.Fatalf("wire entry \"tt\" = %#v, want a three-element id array", entries["tt"])
+	}
+	if len(got) != 3 || got[0] != int64(1) || got[1] != int64(2) || got[2] != int64(3) {
+		t.Fatalf("wire entry \"tt\" = %#v, want [1 2 3]", got)
+	}
+	if entries["rf"] != int64(0) {
+		t.Fatalf("wire entry \"rf\" = %#v, want the legacy indirection preserved", entries["rf"])
+	}
+
+	// An unreified triple term writes "tt" and nothing else.
+	plain := model.Term{Kind: model.Triple, Triple: &model.Triple3{S: 1, P: 2, O: 3}}
+	if _, ok := termToWire(&plain)["rf"]; ok {
+		t.Fatal("an unreified triple term must not mint a reifier on the wire")
+	}
+}

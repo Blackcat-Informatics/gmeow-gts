@@ -90,6 +90,7 @@ fn term(kind: TermKind, value: &str) -> Term {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 
@@ -104,6 +105,7 @@ fn graph_with_forward_reifier() -> Graph {
                 lang: None,
                 direction: None,
                 reifier: Some(0),
+                triple: None,
             },
             term(TermKind::Iri, "https://ex/s"),
             term(TermKind::Iri, "https://ex/p"),
@@ -117,6 +119,7 @@ fn graph_with_forward_reifier() -> Graph {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
         ],
         ..Default::default()

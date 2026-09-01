@@ -9,6 +9,15 @@ import {
     type Triple,
 } from "./model.js";
 
+// Multi-segment union (§3.1, §7.5): term-ids are segment-scoped compression
+// artifacts; the union re-interns BY TERM VALUE. Blank nodes carry a segment
+// discriminator (labels are segment-local and never merge); a quoted-triple
+// term interns on its RESOLVED (s, p, o) — its own `"tt"` when it has one, else
+// the first binding of its legacy reifier (§7.3). §7.8 defines triple-term
+// equality as equality of the resolved components, so there is ONE key space:
+// a `"tt"` term and a legacy `"tt"`-less term that resolve to the same triple
+// are the same term and intern together, while two terms sharing a reifier id
+// but resolving differently stay distinct.
 interface InternKey {
     typ: number; // 0=iri, 1=lit, 2=bnode, 3=qt
     a: string;
@@ -16,7 +25,11 @@ interface InternKey {
     c: string;
     d?: string;
     seg?: number;
-    rf?: number;
+    // The resolved triple, or absent for a triple term that states none.
+    tt?: [number, number, number];
+    // Set only on the sentinel identity minted for a triple term that resolves
+    // through itself, which keeps such a term distinct from every other (§7.3).
+    cycleTid?: number;
     bnodeTid?: number;
     bnodeLabeled?: boolean;
 }
@@ -52,6 +65,14 @@ function textOr(value: unknown, def: string): string {
 class SegmentUnioner {
     out = new Graph();
     intern = new Map<string, number>();
+    // Terms whose identity is currently being computed. A `reifies` row may
+    // name the very term that resolves through it — `(0, (2, 1, 1))` alongside
+    // term `2 = k:3 rf=0` is constructible on the wire — so resolving a triple
+    // term's identity can reach the term itself. Interning MUST terminate
+    // (§7.3): a self-reaching term gets its own per-term sentinel identity
+    // instead of recursing. This cannot change the result for any input that
+    // terminates without it, because the sentinel is only reached on a cycle.
+    resolving = new Set<string>();
 
     keyString(k: InternKey): string {
         return JSON.stringify(k);
@@ -95,11 +116,42 @@ class SegmentUnioner {
                     bnodeTid: tid,
                 };
             case TermKind.Triple: {
-                let rf: number | undefined;
-                if (t.reifier !== undefined) {
-                    rf = this.mapTerm(seg, segIdx, t.reifier);
+                // Identity is the RESOLVED (s, p, o) (§7.8): the term's own
+                // "tt" when it has one, else the first binding of its legacy
+                // reifier. Keying on the resolution rather than on the reifier
+                // id is what keeps two DISTINCT triple terms that share one
+                // reifier id distinct through the union.
+                const self = `${segIdx}:${tid}`;
+                if (this.resolving.has(self)) {
+                    return {
+                        typ: 3,
+                        a: "",
+                        b: "",
+                        c: "",
+                        seg: segIdx,
+                        cycleTid: tid,
+                    };
                 }
-                return { typ: 3, a: "", b: "", c: "", rf };
+                const resolved = seg.tripleOf(tid);
+                if (resolved === undefined) {
+                    return { typ: 3, a: "", b: "", c: "" };
+                }
+                this.resolving.add(self);
+                try {
+                    return {
+                        typ: 3,
+                        a: "",
+                        b: "",
+                        c: "",
+                        tt: [
+                            this.mapTerm(seg, segIdx, resolved.s),
+                            this.mapTerm(seg, segIdx, resolved.p),
+                            this.mapTerm(seg, segIdx, resolved.o),
+                        ],
+                    };
+                } finally {
+                    this.resolving.delete(self);
+                }
             }
         }
     }
@@ -117,6 +169,14 @@ class SegmentUnioner {
         if (t.reifier !== undefined) {
             reifier = this.mapTerm(seg, segIdx, t.reifier);
         }
+        let triple: Triple | undefined;
+        if (t.triple !== undefined) {
+            triple = {
+                s: this.mapTerm(seg, segIdx, t.triple.s),
+                p: this.mapTerm(seg, segIdx, t.triple.p),
+                o: this.mapTerm(seg, segIdx, t.triple.o),
+            };
+        }
         let value = t.value;
         if (t.kind === TermKind.Bnode) {
             if (value !== "") {
@@ -132,6 +192,7 @@ class SegmentUnioner {
             lang: t.lang,
             direction: t.direction,
             reifier,
+            triple,
         });
         const newId = this.out.terms.length - 1;
         this.intern.set(ks, newId);

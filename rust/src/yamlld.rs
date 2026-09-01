@@ -290,9 +290,9 @@ fn term_value(graph: &Graph, term: usize) -> Value {
             }
         }
         TermKind::Triple => {
-            let triple = t
-                .reifier
-                .and_then(|reifier| graph.reifier(reifier))
+            // §7.3: own "tt" first, legacy reifier indirection as fallback.
+            let triple = graph
+                .triple_of(term)
                 .map(|(subject, predicate, object)| triple_value(graph, subject, predicate, object))
                 .unwrap_or_else(|| {
                     let mut degraded = Map::new();

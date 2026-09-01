@@ -59,6 +59,9 @@ version.
   canonical reader diagnostics.
 - Formalises the graph fold, multi-segment value union, blank-node scoping, RDF 1.2 triple-term
   and `rdf:reifies` mapping, position constraints, and duplicate/conflict behavior.
+- Makes triple terms self-describing (`"tt"`), restores the `reifies` frame to the
+  multi-valued statement layer a non-functional `rdf:reifies` requires, and narrows
+  `ConflictingReifier` to a legacy `"tt"`-less term over an over-bound reifier (§7.3).
 - Adds streamable-layout rules, optional index/MMR proof preimages, proof verification, unknown
   extension-key behavior, media type and HTTP serving contracts, and durability/security
   considerations.
@@ -97,7 +100,7 @@ version.
 - [7. Graph data model and fold](#7-graph-data-model-and-fold)
   - [7.1 Terms (`terms` frame)](#71-terms-terms-frame)
   - [7.2 Term-id assignment (normative)](#72-term-id-assignment-normative)
-  - [7.3 Quoted triples and reifiers (`reifies` frame)](#73-quoted-triples-and-reifiers-reifies-frame)
+  - [7.3 Triple terms and the `reifies` statement layer](#73-triple-terms-and-the-reifies-statement-layer)
   - [7.4 Quads and annotations](#74-quads-and-annotations)
   - [7.5 Fold algorithm (normative)](#75-fold-algorithm-normative)
   - [7.6 Opaque nodes](#76-opaque-nodes)
@@ -283,7 +286,7 @@ MAY map them to error returns or structured warnings):
 | `UnknownCodec` | a transform names a codec the reader lacks; opaque `reason:"unknown-codec"` |
 | `MissingKey` | an `encrypt` codec the reader cannot decrypt; opaque `reason:"missing-key"` |
 | `KeyWrapFailed` | a deferred multi-recipient key unwrap failed; opaque `reason:"missing-key"` |
-| `ConflictingReifier` | a reifier rebound to a different triple (§7.8) |
+| `ConflictingReifier` | a `"tt"`-less (legacy) `k:3` term whose reifier binds more than one triple (§7.3, §7.8) |
 | `PositionConstraint` | a term appears in an illegal subject, predicate, object, or graph-name position; reject/diagnose the offending row (§7.4) |
 | `ForwardReference` | a term-id reference names a term not introduced by an earlier frame in the same segment (§7.2, §7.5) |
 | `SegmentBoundary` | a compatibility reader reaches a later segment header where file-global term ids would misfold; stop with a fatal diagnostic (§3.1, §19) |
@@ -362,8 +365,9 @@ Three facts compose, and conformant implementations MUST preserve all three:
   (`tail -f` semantics) — every intermediate fold is a real, usable graph state, never a
   half-parsed error state.
 - **Monotone refinement.** Appended frames only ever *add* knowledge: quads accumulate
-  (§7.8 set semantics), a reifier binding is first-wins so an established rendering never
-  changes under it, and suppression is an additive display overlay (§11) — arrival of a
+  (§7.8 set semantics), a LEGACY `"tt"`-less triple term resolves first-wins so an
+  established rendering never changes under it, `reifies` rows accumulate without any
+  of them being displaced (§7.3), and suppression is an additive display overlay (§11) — arrival of a
   `suppress` frame refines presentation without invalidating any prior fold. The chain check
   is likewise incremental: O(1) state (the expected `"prev"`) verifies each frame as it
   arrives.
@@ -661,7 +665,8 @@ file graph is defined by the value-union rules below.
 
 - `terms`: an ordered vector of segment-local term values.
 - `quads`: a set of asserted RDF quads over term values.
-- `reifiers`: a partial map from a reifier term value to exactly one quoted triple value.
+- `reifiers`: an ordered multiset of `(reifier, triple, graph?)` rows over term values — one
+  reifier may carry several rows because `rdf:reifies` is not functional (§7.3).
 - `annotations`: an ordered multiset of `(reifier, predicate, value)` rows over term values.
 - `blobs`: a content-addressed map from BLAKE3 digest to inline bytes or an external
   content reference.
@@ -723,9 +728,17 @@ term = {
   ? "dt": term-id,         ; literal datatype IRI (a term)
   ? "l" : tstr,            ; literal language tag (BCP 47)
   ? "dir": "ltr" / "rtl",  ; RDF 1.2 base direction for language-tagged literals
-  ? "rf": term-id,         ; quoted-triple: the reifier (§7.3) whose triple this term denotes
+  ? "tt": [term-id, term-id, term-id], ; quoted-triple: this term's OWN s, p, o (§7.3)
+  ? "rf": term-id,         ; quoted-triple: LEGACY reifier indirection (§7.3)
 }
 ```
+
+**Triple terms are self-describing (normative).** A `k:3` (quoted-triple) term SHOULD carry
+`"tt"`, the term's own subject, predicate, and object term-ids. `"tt"` is **authoritative**:
+when it is present the term denotes exactly that triple, and `"rf"` — if also present — is
+descriptive provenance only and MUST NOT change what the term denotes. `"rf"` alone remains a
+legal legacy encoding and is resolved as described in §7.3. `"tt"` MUST NOT appear on a term
+whose `"k"` is not `3`; a reader MUST ignore it there.
 
 **Literal datatype defaulting (normative).** For a `k:1` (literal) term: if `"l"` (language
 tag) and `"dir"` are present and `"dt"` is absent, the datatype is `rdf:dirLangString`; if
@@ -745,7 +758,9 @@ preserving blank-node isomorphism and scope separation.
 
 Term ids are unsigned integers assigned **in append order, per segment**, starting at `0` at
 each segment's header, and are **frozen within their segment**: a term minted while folding
-frame *N* keeps its id for the rest of that segment. A `quads`, `annot`, or `reifies` frame at
+frame *N* keeps its id for the rest of that segment. A term's `"dt"`, `"rf"`, and every
+component of its `"tt"` MUST name a term-id strictly less than the term's own id. A `quads`,
+`annot`, or `reifies` frame at
 position *N* MUST only reference term-ids introduced at positions `0..N-1` **of the same
 segment** (such frames introduce no terms of their own). This makes writing pure-append,
 reading single-pass, and concatenation sound: term-ids are **compression artifacts, never
@@ -754,31 +769,92 @@ dictionary already restarts at `0` (§10). An implementation that applied file-g
 multi-segment file would misfold silently; the boundary rule (§3.1) and vector 17 (§19) exist
 to make that failure loud instead.
 
-### 7.3 Quoted triples and reifiers (`reifies` frame)
+<a id="73-quoted-triples-and-reifiers-reifies-frame"></a>
 
-RDF 1.2 lets a triple be the subject or object of another. GTS keeps quoted triples in the
-id domain: a **reifier** is an ordinary IRI/bnode term; a `reifies` frame binds it to the
-triple it quotes.
+### 7.3 Triple terms and the `reifies` statement layer
+
+RDF 1.2 lets a triple be the subject or object of another. GTS carries this in **two
+independent layers**, and conflating them is a wire-format defect:
+
+1. a **triple term** — a `k:3` entry in the `terms` dictionary — is a *value*. It states its
+   own subject, predicate, and object in `"tt"` and needs nothing else to be understood;
+2. the **`reifies` frame** is a *statement layer*. Each row asserts one
+   `R rdf:reifies <<( S P O )>>` statement about some reifier resource `R`.
 
 ```cddl
 reifies-payload = [+ [term-id, term-id, term-id, term-id, ? term-id]] ; reifier, s, p, o, (g)
 ```
 
-A quoted triple used as a node is a term with `"k": 3` and `"rf"` pointing at its reifier.
+**`rdf:reifies` is NOT functional, and `reifies` is MULTI-VALUED (normative).** RDF 1.2 places
+no cardinality constraint on `rdf:reifies`: `R rdf:reifies <<( S P O1 )>>` and
+`R rdf:reifies <<( S P O2 )>>` are both assertable, and an RDF 1.2 dataset holds both. A GTS
+reader MUST therefore retain **every** `reifies` row bound to a reifier id, each keeping its
+own graph slot, and MUST NOT choose among them, reorder them, or drop any of them. Only a
+byte-identical repeat of a row collapses, by ordinary set semantics (§7.8). A reifier id is
+consequently **not** an identifier for a triple, and MUST NOT be used as one.
+
+**Resolving a triple term (normative).** The triple a `k:3` term denotes is determined in this
+order:
+
+1. if the term carries `"tt"`, it denotes exactly `(tt[0], tt[1], tt[2])`. This is
+   authoritative and terminal — no `reifies` row can change it;
+2. otherwise, if the term carries `"rf"`, it denotes the triple of the **first** `reifies` row
+   bound to that reifier id in file order. This legacy path exists so that files written
+   before `"tt"` read exactly as they always did;
+3. otherwise the term states no triple. A reader MUST keep it as a distinct term and MUST NOT
+   invent one; a projection renders it as a fresh blank node (§14).
+
+Because a triple term carries its own components, two DISTINCT triple terms MAY name the same
+reifier id, and an **unreified** triple term — one with `"tt"` and no `"rf"` at all — is fully
+expressible and round-trips as itself. A writer MUST NOT mint a reifier in order to express a
+triple term, and MUST NOT emit a `k:3` term whose only description is a reifier for which it
+emits no `reifies` row.
+
+**Position constraints on `"tt"` (normative).** A `"tt"` states a triple, so its components
+obey the same constraints as a `reifies` triple (§7.4): `tt[1]` MUST be an IRI (`k:0`),
+`tt[0]` MUST be an IRI, blank node, or quoted triple (`k:0|2|3`), and `tt[2]` MAY be any term.
+A `"tt"` violating this is diagnosed `PositionConstraint` and dropped; the term then resolves
+by step 2 or 3 above.
 
 **RDF dataset mapping (normative).** A folded GTS graph maps to an RDF 1.2 dataset as follows:
 each `quads` row `(S,P,O,G?)` asserts the RDF triple `(S,P,O)` in the default graph when `G`
-is absent, or in the named graph `G` when `G` is present. A `reifies` row
-`(R,S,P,O,G?)` asserts the triple `R rdf:reifies <<( S P O )>>` in the default graph when
-`G` is absent, or in the named graph `G` when `G` is present. A `k:3` term denotes that
-triple term, reached through its reifier `R`. Each `annot` row `(R, P', V', G?)` asserts the
-triple `R P' V'` in the default graph when `G` is absent, or in the named graph `G` when `G`
-is present. Profiles MAY define additional graph-placement conventions for projection, but
-the core mapping above is the interoperable baseline.
+is absent, or in the named graph `G` when `G` is present. **Every** `reifies` row `(R,S,P,O,G?)`
+asserts the triple `R rdf:reifies <<( S P O )>>` in the default graph when `G` is absent, or in
+the named graph `G` when `G` is present — *N* rows on one reifier project to *N* statements, not
+one. A `k:3` term denotes the triple term resolved as above. Each `annot` row `(R, P', V', G?)`
+asserts the triple `R P' V'` in the default graph when `G` is absent, or in the named graph `G`
+when `G` is present. Profiles MAY define additional graph-placement conventions for projection,
+but the core mapping above is the interoperable baseline.
 
 **Quotation does not imply assertion (normative).** Referencing a triple term, either via a
 reifier or a `k:3` term, does NOT assert the base triple `(S P O)`. The base triple is asserted
 iff it also appears in a `quads` frame.
+
+**Multi-segment union (normative).** Term-ids are segment-scoped (§7.2), so a multi-segment
+union re-interns by term value. A `k:3` term's union identity is its **resolved** `(s, p, o)`,
+interned recursively — exactly the triple-term equality of §7.8. There is no separate identity
+space for the legacy form: a `"tt"` term and a `"tt"`-less term that resolve to the same triple
+are the SAME term and MUST intern together, while two triple terms that share a reifier id but
+resolve to different triples MUST stay distinct. A term that resolves to no triple keeps the
+identity it had before this rule (one unresolvable-triple-term identity per scope).
+
+**Resolution MUST terminate (normative).** A `reifies` row MAY name the very term that
+resolves through it — the row `(R, T, P, O)` alongside a term `T` that is `k:3` with `"rf": R`
+is constructible on the wire. A reader MUST NOT recurse indefinitely on such a shape. This binds
+EVERY operation that walks a triple term's resolved components, not just one: the multi-segment
+union above, and every projection or re-authoring pass (§14, §14.1). Either the reader rejects
+the self-reaching row as structurally damaged at fold time (`DamagedFrame`), so the shape never
+enters the fold, or it treats a term that reaches itself as stating no triple *for that walk*:
+the term keeps a distinct identity of its own when interning, and renders as the same fresh
+blank node an unbound triple term already produces when projecting. `"tt"` cannot participate in
+such a cycle, because every `"tt"` component names a strictly smaller term-id (§7.2).
+
+**Determinism (normative).** A deterministic writer (§14.1) MUST sort `reifies` rows by their
+full content key `(g, reifier, s, p, o)`, so that several bindings on one reifier id serialize
+in stable content order rather than collapsing. It MUST assign term ids by **nesting depth
+first** — a triple term sorts strictly after every term reachable through its `"tt"` — then by
+term content, then by original id. Content order alone does not guarantee that a nested
+triple's components precede it, which would emit a forward-referencing `"tt"` (§7.2).
 
 **RDF 1.1 degradation (informative).** RDF 1.1 has no quoted triple term. A lossy RDF 1.1
 projection MAY replace a quoted triple term with its reifier resource and emit ordinary
@@ -808,7 +884,8 @@ the subject `s` MUST be an IRI, blank node, or quoted triple (`k:0|2|3`); the ob
 any term; and the graph name `g`, when present, MUST be an IRI or blank node (`k:0|2`) — never a
 literal or quoted triple. A `reifies` triple `(S,P,O)` obeys the same subject/predicate/object
 constraints, and a `reifies` or `annot` graph name `g`, when present, obeys the same graph-name
-constraint as `quads`. In an `annot` row the predicate MUST be an IRI.
+constraint as `quads`. A triple term's `"tt"` obeys the same subject/predicate/object
+constraints as a `reifies` triple (§7.3). In an `annot` row the predicate MUST be an IRI.
 
 ### 7.5 Fold algorithm (normative)
 
@@ -825,10 +902,12 @@ for segment in file order:                      # §3.1; single-segment files: o
   for frame in segment log order:
     P := resolve payload (§6.1); if undecodable -> add opaque node (§7.6); continue
     switch frame.t:
-      "terms"    : append each term (assign next id); each "dt"/"rf" MUST name an
-                   already-introduced term-id (no forward references)
+      "terms"    : append each term (assign next id); each "dt"/"rf" and every
+                   "tt" component MUST name an already-introduced term-id
+                   (no forward references)
       "quads"    : add each (s,p,o,g) value tuple to graph
-      "reifies"  : append each (reifier,s,p,o,g) row; a reifier keeps one non-conflicting (s,p,o) binding across graphs (§7.8)
+      "reifies"  : append EVERY (reifier,s,p,o,g) row; rdf:reifies is not functional,
+                   so one reifier may bind many triples and each row keeps its graph (§7.3)
       "annot"    : append (reifier, predicate, value, graph)
       "blob"     : if "d" present -> blobs[BLAKE3(decoded "d")] := bytes (inline);
                    else -> register external blob by "pub".digest;
@@ -912,7 +991,7 @@ policy:
 |---|---|
 | Duplicate terms | A writer SHOULD intern repeated terms, but each term entry still receives its own segment-local id. Non-blank values that compare equal by §7 are the same value in the file union. Anonymous blank nodes (`"v"` absent or empty) are fresh per term entry. |
 | Duplicate quads | The folded graph is a set: identical `(s,p,o,g)` value rows collapse to one without diagnostic. |
-| Reifier rows | A reifier SHOULD bind to exactly one `(s,p,o)` triple identity. Repeated identical `(reifier,s,p,o,g)` rows are harmless. The same reifier MAY appear in multiple graphs only when `(s,p,o)` is unchanged. A conflicting `(s,p,o)` for the same reifier is a data-quality error: the reader surfaces `ConflictingReifier`, keeps the first triple identity in file order, and ignores conflicting reifier rows. |
+| Reifier rows | `rdf:reifies` is not functional (§7.3), so a reifier MAY bind any number of distinct `(s,p,o)` triples, in any number of graphs. Every row is retained, in file order, each keeping its own graph slot; only a repeated identical `(reifier,s,p,o,g)` row collapses under set semantics. This is NOT a conflict and raises no diagnostic. The one surviving incoherence is a `"tt"`-less `k:3` term over such a reifier — one term asking for two meanings: the reader surfaces `ConflictingReifier`, DROPS NO ROW, and resolves that term to the first binding in file order. |
 | Annotations | Annotation rows are an ordered multiset (§7.4). Multiple rows on one reifier coexist, including rows partitioned by graph; exact duplicate rows are retained in the GTS fold. RDF dataset projections may collapse identical emitted triples. |
 | Blob bytes | Blobs are addressed by digest. Repeating the same digest/bytes is idempotent; a content-addressed view stores one byte value per digest. Validating extraction re-hashes inline bytes against the requested digest (§14.1). |
 | Blob metadata | `blob_meta[digest]` is a shallow map built in file order. Later metadata keys for the same digest replace earlier keys in the file-level view; earlier declarations remain in the original frames. |
@@ -1640,9 +1719,11 @@ Raw `cat` always works (§3.1); a conformant **validating composer** (`gts cat`)
   ascending digest; the rewrite timestamp is a parameter, not ambient time).
 - **Deterministic graph authoring mode** is the reproducible-build writer surface for a folded
   graph. It emits one ordinary segment and MUST remap local term ids before writing: terms are
-  sorted by semantic value (IRI string; literal lexical form plus effective datatype IRI plus
+  sorted by **nesting depth first** (§7.3 — so a triple term's `"tt"` components always precede
+  it), then by semantic value (IRI string; literal lexical form plus effective datatype IRI plus
   language tag; blank-node label, with anonymous blank nodes using their input occurrence as a
-  tiebreaker; quoted triple resolved to its subject/predicate/object value). It then emits
+  tiebreaker; quoted triple resolved to its subject/predicate/object value), then by input id.
+  `reifies` rows are sorted by their full content key `(g, reifier, s, p, o)`. It then emits
   authorable frames in this fixed order: `terms`, `quads`, `reifies`, `annot`, `blob`, `meta`,
   `suppress`. Quads, reifier bindings, annotations, blobs, metadata keys, and suppression
   frames are sorted by the remapped deterministic-CBOR representation. The mode does not replay
@@ -1979,7 +2060,7 @@ claims.
 11. Literal datatype defaulting (§7.1): a literal with `"l"` + `"dir"` and no `"dt"` →
     `rdf:dirLangString`; with `"l"` and no `"dt"` → `rdf:langString`; with neither →
     `xsd:string`.
-12. A reifier rebound to a different triple → `ConflictingReifier`, first binding kept (§7.8).
+12. Two `rdf:reifies` bindings on one reifier → BOTH retained, no diagnostic (§7.3).
 13. A position-constraint violation, e.g. a literal in predicate position → rejected/diagnosed
     (§7.4).
 14. Blank-node label locality (§7.1, §12.1): identical bnode labels in an outer and a nested GTS
@@ -2174,7 +2255,8 @@ term = {
   ? "dt": term-id,
   ? "l": tstr,
   ? "dir": "ltr" / "rtl",          ; RDF 1.2 base direction for language-tagged literals
-  ? "rf": term-id,
+  ? "tt": [term-id, term-id, term-id],  ; triple term's own s, p, o — authoritative (§7.3)
+  ? "rf": term-id,                      ; legacy reifier indirection (§7.3)
   * extension-key => any,
 }
 

@@ -664,14 +664,14 @@ fn event_term(graph: &Graph, id: usize, term: &Term) -> Result<EventTerm, EventE
             direction: term.direction.as_deref().and_then(event_direction),
         },
         TermKind::Triple => {
-            let triple = term
-                .reifier
-                .and_then(|reifier| graph.reifier(reifier))
-                .ok_or_else(|| {
-                    EventError::invalid_source(format!(
-                        "triple term {id} does not have a resolvable reifier binding"
-                    ))
-                })?;
+            // §7.3: the term's own `"tt"` is authoritative; the legacy reifier
+            // indirection is only the fallback.
+            let triple = graph.triple_of(id).ok_or_else(|| {
+                EventError::invalid_source(format!(
+                    "triple term {id} states no triple: it has neither 'tt' nor a \
+                     resolvable reifier binding"
+                ))
+            })?;
             EventTermKind::Triple {
                 triple: event_triple(triple)?,
                 reifier: term.reifier.map(event_id).transpose()?,

@@ -65,7 +65,17 @@ pub struct Term {
     /// RDF 1.2 literal base direction (`"ltr"` or `"rtl"`) for language-tagged strings.
     pub direction: Option<String>,
     /// Term-id of the reifier of a quoted triple (`kind == Triple`).
+    ///
+    /// LEGACY indirection (wire `"rf"`), retained so files written before the
+    /// self-describing form read identically; superseded by [`Term::triple`]
+    /// when both are present (§7.3).
     pub reifier: Option<usize>,
+    /// The quoted triple's OWN `(s, p, o)` term-ids (wire `"tt"`).
+    ///
+    /// AUTHORITATIVE when present. `rdf:reifies` is not functional (§7.3), so a
+    /// reifier id cannot identify a triple; a triple term therefore carries its
+    /// own components.
+    pub triple: Option<Triple3>,
 }
 
 /// A quad of term-ids; the graph slot is `None` for the default graph.
@@ -316,7 +326,12 @@ impl Graph {
         }
     }
 
-    /// Look up a reifier binding.
+    /// The FIRST folded triple binding for `rid`, if any.
+    ///
+    /// `rdf:reifies` is not functional (§7.3), so a reifier may bind several
+    /// triples. This accessor is the legacy single-valued view used only to
+    /// resolve a `"tt"`-less triple term; see [`Graph::reifier_triples`] for
+    /// the full multi-valued statement layer.
     pub fn reifier(&self, rid: usize) -> Option<Triple3> {
         self.reifiers
             .iter()
@@ -324,7 +339,35 @@ impl Graph {
             .map(|(_, spo, _)| *spo)
     }
 
+    /// Every DISTINCT triple bound to `rid`, in file order (§7.3).
+    pub fn reifier_triples(&self, rid: usize) -> Vec<Triple3> {
+        let mut out: Vec<Triple3> = Vec::new();
+        for &(r, spo, _) in &self.reifiers {
+            if r == rid && !out.contains(&spo) {
+                out.push(spo);
+            }
+        }
+        out
+    }
+
+    /// Resolve the `(s, p, o)` a quoted-triple term denotes (§7.3).
+    ///
+    /// The term's own `triple` (wire `"tt"`) is authoritative. A legacy
+    /// `"tt"`-less term falls back to the FIRST binding of its reifier so
+    /// pre-`"tt"` files keep reading exactly as they did.
+    pub fn triple_of(&self, term_id: usize) -> Option<Triple3> {
+        let term = self.terms.get(term_id)?;
+        if let Some(spo) = term.triple {
+            return Some(spo);
+        }
+        term.reifier.and_then(|rid| self.reifier(rid))
+    }
+
     /// Record a reifier row unless the identical row is already present.
+    ///
+    /// The `reifies` frame is a MULTI-VALUED statement layer: distinct triples
+    /// on one reifier id all survive, each keeping its own graph slot. Only
+    /// byte-identical rows collapse (§7.8 set semantics).
     pub fn set_reifier(&mut self, rid: usize, spo: Triple3, graph_name: Option<usize>) {
         if !self
             .reifiers

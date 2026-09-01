@@ -40,12 +40,25 @@ def _escape(lex: str) -> str:
     return "".join(out)
 
 
-def _render(g: Graph, tid: int, lang_map: Mapping[str, str] | None = None) -> str:
+def _render(
+    g: Graph,
+    tid: int,
+    lang_map: Mapping[str, str] | None = None,
+    stack: frozenset[int] = frozenset(),
+) -> str:
     """Render a term-id as an N-Triples token.
 
     ``lang_map`` remaps literal language tags on output (tags absent from the
     map pass through unchanged); the stored graph is never modified.
+
+    ``stack`` carries the triple terms currently being rendered. A ``reifies``
+    row may name the very term that resolves through it — ``(0, (2, 1, 1))``
+    alongside term ``2 = k:3 rf=0`` is constructible on the wire — so a
+    projection MUST NOT recurse blindly (§7.3). A self-reaching term degrades to
+    the same blank node an unbound triple term already produces.
     """
+    if tid in stack:
+        return f"_:unbound_triple_{tid}"
     t: Term = g.terms[tid]
     if t.kind is TermKind.IRI:
         return f"<{t.value or ''}>"
@@ -59,20 +72,20 @@ def _render(g: Graph, tid: int, lang_map: Mapping[str, str] | None = None) -> st
                 return f"{lit}@{lang}--{t.direction}"
             return f"{lit}@{lang}"
         if t.datatype is not None:
-            return f"{lit}^^{_render(g, t.datatype, lang_map)}"
+            return f"{lit}^^{_render(g, t.datatype, lang_map, stack)}"
         return lit  # plain literal == xsd:string (§7.1)
-    # quoted triple (RDF 1.2 triple term), resolved through its reifier
-    if t.reifier is not None:
-        triple = g.reifier(t.reifier)
-    else:
-        triple = None
+    # Quoted triple (RDF 1.2 triple term): its own "tt" is authoritative; a
+    # legacy "tt"-less term still resolves through its reifier (§7.3).
+    triple = g.triple_of(tid)
     if triple is not None:
         s, p, o = triple
+        inner = stack | {tid}
         return (
-            f"<<( {_render(g, s, lang_map)} {_render(g, p, lang_map)} "
-            f"{_render(g, o, lang_map)} )>>"
+            f"<<( {_render(g, s, lang_map, inner)} {_render(g, p, lang_map, inner)} "
+            f"{_render(g, o, lang_map, inner)} )>>"
         )
-    # degraded but syntactically valid: an unbound reifier becomes a blank node
+    # Degraded but syntactically valid: a triple term that states no triple
+    # (no "tt", and no bound reifier) becomes a blank node.
     return f"_:unbound_triple_{tid}"
 
 
@@ -80,8 +93,9 @@ def term_token(g: Graph, tid: int, lang_map: Mapping[str, str] | None = None) ->
     """Render the canonical N-Triples token for a term-id (public API).
 
     IRIs in angle brackets, escaped literals with language or datatype,
-    quoted triples through their reifier — the stable sort key and display
-    form that tooling builds on. ``lang_map`` optionally remaps language tags
+    quoted triples through their own ``"tt"`` components (falling back to the
+    legacy reifier indirection) — the stable sort key and display form that
+    tooling builds on. ``lang_map`` optionally remaps language tags
     on output (a rendering option; the graph is untouched).
     """
     return _render(g, tid, lang_map)

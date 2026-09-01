@@ -162,12 +162,15 @@ def _streaming_index(
 
 def _shift_term(t: Term, base: int) -> Term:
     """Shift a term's id references into the output id space."""
-    if t.datatype is None and t.reifier is None:
+    if t.datatype is None and t.reifier is None and t.triple is None:
         return t
     return replace(
         t,
         datatype=t.datatype + base if t.datatype is not None else None,
         reifier=t.reifier + base if t.reifier is not None else None,
+        triple=(t.triple[0] + base, t.triple[1] + base, t.triple[2] + base)
+        if t.triple is not None
+        else None,
     )
 
 

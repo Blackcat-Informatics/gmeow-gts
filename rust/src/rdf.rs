@@ -8,7 +8,7 @@
 //! rows without inheriting an external RDF toolkit or graph store.
 
 use std::borrow::Cow;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt;
 
 use crate::model::{
@@ -514,6 +514,10 @@ pub fn to_rdf_quads_with_options(
     }
 
     let rdf_reifies = Iri::new(RDF_REIFIES)?;
+    // Every `reifies` row projects to its own `rdf:reifies` statement — the
+    // frame is a multi-valued statement layer (§7.3). A legacy self-bound
+    // triple term (`rf == its own id`) is a term, not a statement, so its row
+    // is not projected.
     for &(rid, (s, p, o), graph_name) in &graph.reifiers {
         if is_internal_triple_self_binding(graph, rid) {
             continue;
@@ -577,7 +581,6 @@ pub fn writer_from_rdf_dataset_with_profile(
 ) -> Result<Writer, RdfAdapterError> {
     let mut interner = Interner::new();
     let mut quads: Vec<Quad> = Vec::new();
-    let mut reifier_bindings: BTreeMap<usize, Triple3> = BTreeMap::new();
     let mut reifiers: Vec<ReifierRow> = Vec::new();
 
     for quad in dataset {
@@ -586,8 +589,10 @@ pub fn writer_from_rdf_dataset_with_profile(
             let RdfTerm::Triple(triple) = &quad.object else {
                 unreachable!("matched above")
             };
-            let binding = interner.triple(triple, &mut reifier_bindings, &mut reifiers)?;
-            insert_reifier(&mut reifier_bindings, rid, binding)?;
+            let binding = interner.triple(triple)?;
+            // §7.3: `rdf:reifies` is NOT functional — several bindings on one
+            // reifier are all assertable and all survive; only a byte-identical
+            // repeat collapses.
             let graph_name = graph_name_id(&quad.graph_name, &mut interner);
             let row = (rid, binding, graph_name);
             if !reifiers.contains(&row) {
@@ -598,7 +603,7 @@ pub fn writer_from_rdf_dataset_with_profile(
 
         let s = interner.named_or_blank(&quad.subject);
         let p = interner.iri(&quad.predicate);
-        let o = interner.term(&quad.object, &mut reifier_bindings, &mut reifiers)?;
+        let o = interner.term(&quad.object)?;
         let g = graph_name_id(&quad.graph_name, &mut interner);
         quads.push((s, p, o, g));
     }
@@ -726,7 +731,8 @@ fn rdf_term(
         }
         TermKind::Literal => Ok(Some(literal_term(graph, term, id, role)?.into())),
         TermKind::Triple => {
-            let Some((s, p, o)) = term.reifier.and_then(|rid| graph.reifier(rid)) else {
+            // §7.3: own "tt" first, legacy reifier indirection as fallback.
+            let Some((s, p, o)) = graph.triple_of(id) else {
                 if options.allow_rdf12_lossy {
                     return Ok(None);
                 }
@@ -957,6 +963,7 @@ impl Interner {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         })
     }
 
@@ -968,6 +975,7 @@ impl Interner {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         })
     }
 
@@ -998,6 +1006,7 @@ impl Interner {
                     lang: None,
                     direction: None,
                     reifier: None,
+                    triple: None,
                 }))
             }
         };
@@ -1017,55 +1026,45 @@ impl Interner {
             lang: literal.language.clone(),
             direction,
             reifier: None,
+            triple: None,
         })
     }
 
-    fn term(
-        &mut self,
-        term: &RdfTerm,
-        reifier_bindings: &mut BTreeMap<usize, Triple3>,
-        reifiers: &mut Vec<ReifierRow>,
-    ) -> Result<usize, RdfAdapterError> {
+    fn term(&mut self, term: &RdfTerm) -> Result<usize, RdfAdapterError> {
         match term {
             RdfTerm::Iri(node) => Ok(self.iri(node)),
             RdfTerm::BlankNode(node) => Ok(self.blank_node(node)),
             RdfTerm::Literal(literal) => Ok(self.literal(literal)),
             RdfTerm::Triple(triple) => {
-                let (s, p, o) = self.triple(triple, reifier_bindings, reifiers)?;
+                let (s, p, o) = self.triple(triple)?;
                 let key = TermKey::Triple(s, p, o);
                 if let Some(id) = self.ids.get(&key) {
                     return Ok(*id);
                 }
                 let id = self.terms.len();
+                // §7.3: a quoted triple used as a value is SELF-DESCRIBING —
+                // it states its own (s, p, o), mints no reifier, and emits no
+                // `reifies` row, so it round-trips as itself.
                 self.terms.push(GtsTerm {
                     kind: TermKind::Triple,
                     value: None,
                     datatype: None,
                     lang: None,
                     direction: None,
-                    reifier: Some(id),
+                    reifier: None,
+                    triple: Some((s, p, o)),
                 });
                 self.ids.insert(key, id);
-                insert_reifier(reifier_bindings, id, (s, p, o))?;
-                let row = (id, (s, p, o), None);
-                if !reifiers.contains(&row) {
-                    reifiers.push(row);
-                }
                 Ok(id)
             }
         }
     }
 
-    fn triple(
-        &mut self,
-        triple: &RdfTriple,
-        reifier_bindings: &mut BTreeMap<usize, Triple3>,
-        reifiers: &mut Vec<ReifierRow>,
-    ) -> Result<Triple3, RdfAdapterError> {
+    fn triple(&mut self, triple: &RdfTriple) -> Result<Triple3, RdfAdapterError> {
         Ok((
             self.named_or_blank(&triple.subject),
             self.iri(&triple.predicate),
-            self.term(&triple.object, reifier_bindings, reifiers)?,
+            self.term(&triple.object)?,
         ))
     }
 
@@ -1078,21 +1077,4 @@ impl Interner {
         self.ids.insert(key, id);
         id
     }
-}
-
-fn insert_reifier(
-    reifiers: &mut BTreeMap<usize, Triple3>,
-    rid: usize,
-    spo: Triple3,
-) -> Result<(), RdfAdapterError> {
-    if let Some(existing) = reifiers.get(&rid) {
-        if *existing != spo {
-            return Err(RdfAdapterError::new(format!(
-                "conflicting rdf:reifies binding for term id {rid}: existing {existing:?}, new {spo:?}"
-            )));
-        }
-        return Ok(());
-    }
-    reifiers.insert(rid, spo);
-    Ok(())
 }

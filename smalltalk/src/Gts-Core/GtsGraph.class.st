@@ -176,8 +176,42 @@ GtsGraph >> quads [
 
 { #category : #accessing }
 GtsGraph >> reifierFor: reifierId [
+	"The FIRST folded triple bound to reifierId, if any.
+
+	rdf:reifies is not functional (§7.3), so this single-valued view exists only to
+	resolve a 'tt'-less (legacy) triple term; use #reifierTriplesFor: for the full
+	multi-valued statement layer."
 	reifiers do: [ :entry |
 		(entry at: 'rid') = reifierId ifTrue: [ ^ entry at: 'spo' ] ].
+	^ nil
+]
+
+{ #category : #accessing }
+GtsGraph >> reifierTriplesFor: reifierId [
+	"Every DISTINCT triple bound to reifierId, in file order (§7.3)."
+	| out |
+	out := OrderedCollection new.
+	reifiers do: [ :entry |
+		| spo |
+		(entry at: 'rid') = reifierId ifTrue: [
+			spo := entry at: 'spo'.
+			(out includes: spo) ifFalse: [ out add: spo ] ] ].
+	^ out asArray
+]
+
+{ #category : #accessing }
+GtsGraph >> tripleForTermId: termId [
+	"The (s p o) a quoted-triple term denotes (§7.3).
+
+	The term's own 'tt' is authoritative; a legacy 'tt'-less term falls back to the
+	FIRST binding of its reifier so pre-'tt' files keep reading exactly as they did."
+	| term |
+	((termId isInteger) and: [ termId >= 0 and: [ termId < terms size ] ])
+		ifFalse: [ ^ nil ].
+	term := self termAtId: termId.
+	term kind = #triple ifFalse: [ ^ nil ].
+	term triple ifNotNil: [ :spo | ^ spo ].
+	term reifier ifNotNil: [ :reifierId | ^ self reifierFor: reifierId ].
 	^ nil
 ]
 
@@ -213,6 +247,11 @@ GtsGraph >> setReifier: reifierId to: spo [
 
 { #category : #setting }
 GtsGraph >> setReifier: reifierId to: spo graph: graphId [
+	"Append a reifier row unless the identical row is already present.
+
+	The reifies frame is a MULTI-VALUED statement layer: distinct triples on one
+	reifier id all survive, each keeping its own graph slot. Only a byte-identical
+	repeat collapses (§7.8 set semantics)."
 	| entry |
 	reifiers do: [ :existing |
 		(((existing at: 'rid') = reifierId)

@@ -93,6 +93,15 @@ pub(crate) fn check_quad_positions(
     check_statement_positions(graph, (s, p, o), graph_slot, "quad")
 }
 
+/// Enforce the §7.4 positions on a self-describing triple term's `"tt"`.
+///
+/// A triple term states a triple, so its components obey the same
+/// subject/predicate constraints as any other triple. Returns the detail of a
+/// `PositionConstraint` diagnostic when the `"tt"` must be dropped.
+pub(crate) fn check_triple_term_positions(graph: &Graph, triple: Triple3) -> Result<(), String> {
+    check_statement_positions(graph, triple, None, "triple term")
+}
+
 fn check_statement_positions(
     graph: &Graph,
     (s, p, o): Triple3,

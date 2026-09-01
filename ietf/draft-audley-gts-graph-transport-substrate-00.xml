@@ -471,6 +471,7 @@ term = {
   ? "dt": term-id,
   ? "l" : tstr,
   ? "dir": "ltr" / "rtl",
+  ? "tt": [term-id, term-id, term-id],
   ? "rf": term-id,
 }
 </sourcecode>
@@ -481,30 +482,59 @@ present, and <tt>xsd:string</tt> otherwise.  Language tags use BCP 47 syntax
         <t indent="0" pn="section-6.1-4">The term kind <tt>"k"</tt> identifies the row form: <tt>0</tt> is an IRI whose <tt>"v"</tt> is
 the IRI string, <tt>1</tt> is a blank node whose <tt>"v"</tt> is the segment-local
 blank-node label, <tt>2</tt> is a literal whose <tt>"v"</tt> is the lexical form, and
-<tt>3</tt> is a quoted triple term.  A quoted triple term uses <tt>"rf"</tt> to name
-the reifier term id whose binding appears in a <tt>reifies</tt> payload.  The
-<tt>"dt"</tt>, <tt>"l"</tt>, and <tt>"dir"</tt> fields apply only to literals.</t>
+<tt>3</tt> is a quoted triple term.  A quoted triple term <bcp14>SHOULD</bcp14> carry <tt>"tt"</tt>,
+its own subject, predicate, and object term ids.  <tt>"tt"</tt> is
+authoritative: when present, the term denotes exactly that triple.  A
+term <bcp14>MAY</bcp14> instead carry only <tt>"rf"</tt>, naming a reifier term id whose
+binding appears in a <tt>reifies</tt> payload; this legacy encoding is resolved
+to the first such binding in file order.  Every <tt>"tt"</tt> component, like
+<tt>"dt"</tt> and <tt>"rf"</tt>, <bcp14>MUST</bcp14> name a term id strictly less than the term's own
+id.  The <tt>"dt"</tt>, <tt>"l"</tt>, and <tt>"dir"</tt> fields apply only to literals.</t>
       </section>
       <section anchor="reifiers-quads-and-annotations" numbered="true" removeInRFC="false" toc="include" pn="section-6.2">
         <name slugifiedName="name-reifiers-quads-and-annotati">Reifiers, Quads, and Annotations</name>
         <t indent="0" pn="section-6.2-1">RDF 1.2 permits a triple to be the subject or object of another triple.
-GTS represents a quoted triple through a reifier term and a <tt>reifies</tt>
-frame:</t>
+GTS carries this in two independent layers: a quoted triple TERM is a
+value that states its own components (<tt>"tt"</tt>), and the <tt>reifies</tt> frame
+is a statement layer whose rows assert <tt>rdf:reifies</tt> statements about
+reifier resources.</t>
         <sourcecode type="cddl" markers="false" pn="section-6.2-2">
-reifies-payload = { * term-id =&gt; [term-id, term-id, term-id] }
+reifies-payload = [+ [term-id, term-id, term-id, term-id, ? term-id]]
 quads-payload = [+ [term-id, term-id, term-id, ? term-id]]
-annot-payload = [+ [term-id, term-id, term-id]]
+annot-payload = [+ [term-id, term-id, term-id, ? term-id]]
 </sourcecode>
         <t indent="0" pn="section-6.2-3">A <tt>quads</tt> row asserts a triple in the default graph or the named graph
-identified by the fourth term id.  A <tt>reifies</tt> binding asserts
-<tt>R rdf:reifies &lt;&lt;( S P O )&gt;&gt;</tt> in the default graph.  An <tt>annot</tt> row
-asserts metadata about a reifier; its positions are <tt>[reifier,
-predicate, object]</tt>.  Referencing a quoted triple does not assert the
-base triple; the base triple is asserted only if it appears in a
-<tt>quads</tt> frame.</t>
-        <t indent="0" pn="section-6.2-4">Predicates in <tt>quads</tt>, <tt>reifies</tt>, and <tt>annot</tt> rows <bcp14>MUST</bcp14> be IRIs.  A quad
-subject <bcp14>MUST</bcp14> be an IRI, blank node, or quoted triple.  A graph name, when
-present, <bcp14>MUST</bcp14> be an IRI or blank node.</t>
+identified by the fourth term id.  A <tt>reifies</tt> row
+<tt>(R, S, P, O, G?)</tt> asserts <tt>R rdf:reifies &lt;&lt;( S P O )&gt;&gt;</tt> in the default
+graph, or in the named graph <tt>G</tt> when present.  An <tt>annot</tt> row asserts
+metadata about a reifier; its positions are <tt>[reifier, predicate,
+object, graph?]</tt>.  Referencing a quoted triple does not assert the base
+triple; the base triple is asserted only if it appears in a <tt>quads</tt>
+frame.</t>
+        <t indent="0" pn="section-6.2-4"><tt>rdf:reifies</tt> is not a functional property in RDF 1.2
+<xref target="RDF12" format="default" sectionFormat="of" derivedContent="RDF12"/>:
+<tt>R rdf:reifies &lt;&lt;( S P O1 )&gt;&gt;</tt> and <tt>R rdf:reifies &lt;&lt;( S P O2 )&gt;&gt;</tt> are
+both assertable and an RDF 1.2 dataset holds both.  The <tt>reifies</tt> frame
+is therefore multi-valued.  A reader <bcp14>MUST</bcp14> retain every row bound to a
+reifier id, each keeping its own graph slot, and <bcp14>MUST NOT</bcp14> choose among
+them or drop any of them; only a byte-identical repeat collapses under
+set semantics.  A reifier id is consequently not an identifier for a
+triple and <bcp14>MUST NOT</bcp14> be used as one.</t>
+        <t indent="0" pn="section-6.2-4a">A <tt>reifies</tt> row <bcp14>MAY</bcp14> name the very term that resolves through it: the row
+<tt>(R, T, P, O)</tt> alongside a term <tt>T</tt> that is <tt>k:3</tt> with <tt>"rf": R</tt> is
+constructible on the wire.  Resolution <bcp14>MUST</bcp14> terminate.  This binds every
+operation that walks a triple term's resolved components, including the
+multi-segment value union and every projection.  A reader either rejects
+the self-reaching row as damaged at fold time, so the shape never enters
+the fold, or treats a term that reaches itself as stating no triple for
+that walk: the term keeps a distinct identity when interning and renders
+as the fresh blank node an unbound triple term already produces.  A
+<tt>"tt"</tt> cannot participate in such a cycle because every <tt>"tt"</tt> component
+names a strictly smaller term id.</t>
+        <t indent="0" pn="section-6.2-5">Predicates in <tt>quads</tt>, <tt>reifies</tt>, and <tt>annot</tt> rows <bcp14>MUST</bcp14> be IRIs, and the
+same constraint applies to <tt>"tt"[1]</tt>.  A quad subject, a <tt>reifies</tt>
+subject, and <tt>"tt"[0]</tt> <bcp14>MUST</bcp14> be an IRI, blank node, or quoted triple.  A
+graph name, when present, <bcp14>MUST</bcp14> be an IRI or blank node.</t>
       </section>
       <section anchor="fold-algorithm" numbered="true" removeInRFC="false" toc="include" pn="section-6.3">
         <name slugifiedName="name-fold-algorithm">Fold Algorithm</name>
@@ -521,7 +551,7 @@ for segment in file order:
     switch frame.t:
       "terms"    : append terms and assign segment-local ids
       "quads"    : add each resolved quad value tuple
-      "reifies"  : bind each reifier, keeping the first non-conflict
+      "reifies"  : append every (reifier, s, p, o, graph?) row
       "annot"    : append annotation rows
       "blob"     : store inline bytes or register external digest
       "suppress" : append suppression directives
@@ -531,8 +561,12 @@ for segment in file order:
   union the segment fold into result by value, not raw term id
 </sourcecode>
         <t indent="0" pn="section-6.3-3">Duplicate quads collapse as set entries.  Annotation rows remain an
-ordered multiset.  Conflicting reifier bindings produce a
-<tt>ConflictingReifier</tt> diagnostic and keep the first binding.  Unknown
+ordered multiset.  Several <tt>rdf:reifies</tt> bindings on one reifier are
+ordinary RDF 1.2 and produce no diagnostic.  The <tt>ConflictingReifier</tt>
+diagnostic is raised only for a <tt>"tt"</tt>-less quoted triple term whose
+reifier binds more than one distinct triple — one term asking for two
+meanings — and even then no <tt>reifies</tt> row is dropped and the term
+resolves to the first binding in file order.  Unknown
 structural frame types preserve chain verification and are surfaced as
 opaque nodes or diagnostics until a profile-aware reader handles them.</t>
         <t indent="0" pn="section-6.3-4">Suppressions are additive tombstones.  They never remove bytes from the
@@ -1124,6 +1158,7 @@ term = {
   ? "dt": term-id,
   ? "l": tstr,
   ? "dir": "ltr" / "rtl",
+  ? "tt": triple-row,
   ? "rf": term-id,
   * extension-key =&gt; any,
 }
@@ -1132,9 +1167,14 @@ triple-row = [term-id, term-id, term-id]
 quad-row = [term-id, term-id, term-id] /
            [term-id, term-id, term-id, term-id]
 
+reifier-row = [term-id, term-id, term-id, term-id] /
+              [term-id, term-id, term-id, term-id, term-id]
+annot-row = [term-id, term-id, term-id] /
+            [term-id, term-id, term-id, term-id]
+
 quads-payload = [+ quad-row]
-reifies-payload = { * term-id =&gt; triple-row }
-annot-payload = [+ triple-row]
+reifies-payload = [+ reifier-row]
+annot-payload = [+ annot-row]
 
 blob-payload = bstr
 blob-pub = {

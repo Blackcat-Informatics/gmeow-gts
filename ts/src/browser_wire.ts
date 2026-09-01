@@ -140,17 +140,6 @@ export function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
     return true;
 }
 
-export function tripleEqual(
-    a: { s: number; p: number; o: number },
-    b: {
-        s: number;
-        p: number;
-        o: number;
-    },
-): boolean {
-    return a.s === b.s && a.p === b.p && a.o === b.o;
-}
-
 export function copyBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
     return bytes.slice();
 }

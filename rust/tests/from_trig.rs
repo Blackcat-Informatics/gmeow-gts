@@ -69,6 +69,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -77,6 +78,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -85,6 +87,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -93,6 +96,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -101,6 +105,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -109,6 +114,7 @@ fn to_trig_groups_named_graphs_and_keeps_reifiers() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(0, 1, 2, Some(3))]);

@@ -149,10 +149,19 @@ private class Folder(
             }
             val datatype = sanitize(entries.getTextKey("dt"))
             val reifier = sanitize(entries.getTextKey("rf"))
-            if (outOfRange(entries.getTextKey("dt")) || outOfRange(entries.getTextKey("rf"))) {
+            // §7.3/§7.5: "tt" carries the triple term's OWN components and, like "dt"/"rf", every
+            // component MUST name an already-introduced term. A forward/out-of-range component
+            // drops the whole "tt" (the term degrades to its "rf" fallback, else stays unbound).
+            val rawTriple = tripleFromWire(entries.getTextKey("tt"))
+            var triple = rawTriple?.takeIf { it.s in 0 until termId && it.p in 0 until termId && it.o in 0 until termId }
+            if (outOfRange(entries.getTextKey("dt")) ||
+                outOfRange(entries.getTextKey("rf")) ||
+                (rawTriple != null && triple == null)
+            ) {
                 diag("ForwardReference", "term $termId has an out-of-range ref", index)
             }
-            graph.terms += Term(kind, value, datatype, lang, reifier, direction)
+            if (triple != null && !checkTripleTermPositions(triple, termId, index)) triple = null
+            graph.terms += Term(kind, value, datatype, lang, reifier, direction, triple)
         }
     }
 
@@ -211,14 +220,11 @@ private class Folder(
                 diag("DamagedFrame", "reifies row has bad/out-of-range ids", index)
                 continue
             }
-            val spo = Triple(s, p, o)
-            val existing = graph.reifier(rid)
-            if (existing != null && existing != spo) {
-                diag("ConflictingReifier", "reifier $rid rebound", index)
-                continue
-            }
             if (!checkReifierPositions(s, p, o, g, index)) continue
-            graph.setReifier(rid, spo, g)
+            // §7.3: rdf:reifies is NOT functional. Several triples may be bound to one reifier id
+            // and each row keeps its own graph slot; only byte-identical rows collapse (§7.8). No
+            // row is ever dropped or reordered here.
+            graph.setReifier(rid, Triple(s, p, o), g)
         }
     }
 
@@ -296,8 +302,14 @@ private class Folder(
                         val m = raw as? CborMap ?: return@map raw
                         CborMap(
                             m.value.map { (k, v) ->
-                                val key = k.asText()
-                                k to if (key == "dt" || key == "rf") shift(v) else v
+                                // A snapshot's local ids are shifted into the enclosing segment's
+                                // id space; each "tt" component shifts too (§7.3).
+                                k to
+                                    when (k.asText()) {
+                                        "dt", "rf" -> shift(v)
+                                        "tt" -> shiftRow(v)
+                                        else -> v
+                                    }
                             },
                         )
                     },
@@ -358,6 +370,25 @@ private class Folder(
         return ok
     }
 
+    /**
+     * Enforce §7.4 positions on a self-describing triple term's `"tt"`.
+     *
+     * A triple term states a triple, so its components obey the same subject/predicate constraints
+     * as any other triple: the predicate MUST be an IRI, the subject MUST NOT be a literal, and the
+     * object may be anything. A violating `"tt"` is diagnosed and dropped.
+     */
+    private fun checkTripleTermPositions(triple: Triple, termId: Int, index: Int): Boolean {
+        val ok = graph.terms[triple.p].kind == TermKind.IRI && graph.terms[triple.s].kind != TermKind.LITERAL
+        if (!ok) {
+            diag(
+                "PositionConstraint",
+                "triple term $termId 'tt' (${triple.s},${triple.p},${triple.o}) violates positions",
+                index,
+            )
+        }
+        return ok
+    }
+
     private fun checkReifierPositions(s: Int, p: Int, o: Int, g: Int?, index: Int): Boolean {
         val n = graph.terms.size
         val inBounds = s in 0 until n && p in 0 until n && o in 0 until n && (g == null || g in 0 until n)
@@ -389,6 +420,44 @@ private class Folder(
     }
 }
 
+/** Parse a wire `"tt"` value into a [Triple]; anything that is not three integers is absent. */
+private fun tripleFromWire(value: CborValue?): Triple? {
+    val items = (value as? CborArray)?.value ?: return null
+    if (items.size != 3) return null
+    val s = items[0].asInt() ?: return null
+    val p = items[1].asInt() ?: return null
+    val o = items[2].asInt() ?: return null
+    return Triple(s, p, o)
+}
+
+/**
+ * Diagnose the one incoherent shape that survives §7.3, in place.
+ *
+ * `rdf:reifies` is not functional, so a reifier id bound to several triples is ordinary RDF 1.2 and
+ * is NOT a conflict. The single remaining incoherence is a `"tt"`-less (legacy indirect)
+ * quoted-triple TERM whose reifier id binds MORE THAN ONE distinct triple: the file is asking for
+ * one term with two meanings. `ConflictingReifier` is reported once per offending term; NO reifier
+ * row is dropped, and the term keeps resolving to the first binding in file order.
+ *
+ * Runs on a fold that is about to be handed to a consumer (a whole read, or one segment of a
+ * per-segment read), never twice over the same terms.
+ */
+fun checkConflictingReifiers(graph: Graph) {
+    for ((termId, term) in graph.terms.withIndex()) {
+        if (term.kind != TermKind.TRIPLE || term.triple != null) continue
+        val rid = term.reifier ?: continue
+        val bindings = graph.reifierTriples(rid)
+        if (bindings.size > 1) {
+            graph.diagnostics +=
+                Diagnostic(
+                    "ConflictingReifier",
+                    "legacy triple term $termId resolves through reifier $rid, which binds " +
+                        "${bindings.size} distinct triples; state the triple with 'tt' (§7.3)",
+                )
+        }
+    }
+}
+
 fun read(data: ByteArray, allowSegments: Boolean = true, expectedHead: ByteArray? = null): Graph {
     val (items, torn) = iterItems(data)
     if (items.isEmpty()) {
@@ -400,6 +469,7 @@ fun read(data: ByteArray, allowSegments: Boolean = true, expectedHead: ByteArray
     }
     if (bounds.size > 1 && !allowSegments) {
         return readSegment(items.subList(0, bounds[1]), 0).also {
+            checkConflictingReifiers(it)
             it.diagnostics +=
                 Diagnostic(
                     "SegmentBoundary",
@@ -415,6 +485,10 @@ fun read(data: ByteArray, allowSegments: Boolean = true, expectedHead: ByteArray
             readSegment(items.subList(a, b), a)
         }
     val out = if (folded.size == 1) folded.single() else unionSegments(folded)
+    // §7.3: a reifier binding many triples is legal, so the surviving conflict shape is only
+    // decidable once the whole fold (union included) is complete — a legacy triple term may
+    // precede, or live in another segment from, the `reifies` rows that over-bind its reifier.
+    checkConflictingReifiers(out)
     if (expectedHead != null) {
         val lastHead = out.segmentHeads.lastOrNull() ?: ByteArray(0)
         if (!lastHead.contentEquals(expectedHead)) {
@@ -434,14 +508,16 @@ fun readFileSegments(data: ByteArray): FileSegments {
     if (bounds.isEmpty() || bounds.first() != 0) {
         return FileSegments(emptyList(), torn, Diagnostic("DamagedFrame", "first item is not a header", 0))
     }
-    return FileSegments(
+    val folded =
         bounds.indices.map { i ->
             val a = bounds[i]
             val b = if (i + 1 < bounds.size) bounds[i + 1] else items.size
             readSegment(items.subList(a, b), a)
-        },
-        torn,
-    )
+        }
+    // Per-segment view (§14.1): each segment is handed to the consumer on its own, so the §7.3
+    // conflict check runs once per segment rather than once on a union.
+    folded.forEach(::checkConflictingReifiers)
+    return FileSegments(folded, torn)
 }
 
 private fun readSegment(items: List<CborItem>, indexOffset: Int): Graph {
@@ -577,11 +653,37 @@ private data class InternKey(
     val reifier: Int? = null,
     val bnodeTid: Int? = null,
     val bnodeLabeled: Boolean? = null,
+    val triple: Triple? = null,
+    /**
+     * Set only on the sentinel identity minted for a triple term that resolves through itself,
+     * which keeps such a term distinct from every other (§7.3).
+     */
+    val cycleTid: Int? = null,
 )
+
+/**
+ * Intern-key tag for a quoted-triple term.
+ *
+ * ONE tag for both wire forms: §7.8 defines triple-term equality as equality of the RESOLVED
+ * subject, predicate and object, so a `"tt"` term and a legacy `"tt"`-less term that resolve to the
+ * same triple are the same term. A key with a null [InternKey.triple] is the unresolvable term.
+ */
+private const val KEY_TRIPLE = 3
 
 private class Unioner {
     val out = Graph()
     private val intern = mutableMapOf<InternKey, Int>()
+
+    /**
+     * Terms whose identity is currently being computed.
+     *
+     * A `reifies` row may name the very term that resolves through it — `(0, (2, 1, 1))` alongside
+     * term `2 = k:3 rf=0` is constructible on the wire — so resolving a triple term's identity can
+     * reach the term itself. Interning MUST terminate (§7.3): a self-reaching term gets its own
+     * per-term sentinel identity instead of recursing. This cannot change the result for any input
+     * that terminates without it, because the sentinel is only ever reached on a cycle.
+     */
+    private val resolving = mutableSetOf<Pair<Int, Int>>()
 
     fun mapTerm(segment: Graph, segmentIndex: Int, termId: Int): Int {
         val key = keyFor(segment, segmentIndex, termId)
@@ -589,17 +691,26 @@ private class Unioner {
         val term = segment.terms[termId]
         val datatype = term.datatype?.let { mapTerm(segment, segmentIndex, it) }
         val reifier = term.reifier?.let { mapTerm(segment, segmentIndex, it) }
+        val triple = term.triple?.let { mapTriple(segment, segmentIndex, it) }
+        // Computed after dt/rf/tt mapping so out.terms.size IS this term's id.
         val value =
             if (term.kind == TermKind.BNODE) {
                 if (term.value.isNotEmpty()) "s$segmentIndex.${term.value}" else "s$segmentIndex._anon${out.terms.size}"
             } else {
                 term.value
             }
-        out.terms += Term(term.kind, value, datatype, term.lang, reifier, term.direction)
+        out.terms += Term(term.kind, value, datatype, term.lang, reifier, term.direction, triple)
         val newId = out.terms.lastIndex
         intern[key] = newId
         return newId
     }
+
+    private fun mapTriple(segment: Graph, segmentIndex: Int, triple: Triple): Triple =
+        Triple(
+            mapTerm(segment, segmentIndex, triple.s),
+            mapTerm(segment, segmentIndex, triple.p),
+            mapTerm(segment, segmentIndex, triple.o),
+        )
 
     private fun keyFor(segment: Graph, segmentIndex: Int, termId: Int): InternKey {
         val term = segment.terms[termId]
@@ -612,7 +723,23 @@ private class Unioner {
                 } else {
                     InternKey(2, segment = segmentIndex, bnodeTid = termId)
                 }
-            TermKind.TRIPLE -> InternKey(3, reifier = term.reifier?.let { mapTerm(segment, segmentIndex, it) })
+            // §7.3/§7.8: identity is the RESOLVED (s, p, o) — the term's own "tt" when it has
+            // one, else the first binding of its legacy reifier. Keying on the resolution
+            // rather than on the reifier id is what keeps two DISTINCT triple terms that share
+            // one reifier id distinct through the union.
+            TermKind.TRIPLE -> tripleKeyFor(segment, segmentIndex, termId)
+        }
+    }
+
+    private fun tripleKeyFor(segment: Graph, segmentIndex: Int, termId: Int): InternKey {
+        val self = segmentIndex to termId
+        if (self in resolving) return InternKey(KEY_TRIPLE, segment = segmentIndex, cycleTid = termId)
+        val resolved = segment.tripleOf(termId) ?: return InternKey(KEY_TRIPLE)
+        resolving += self
+        try {
+            return InternKey(KEY_TRIPLE, triple = mapTriple(segment, segmentIndex, resolved))
+        } finally {
+            resolving -= self
         }
     }
 

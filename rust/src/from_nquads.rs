@@ -452,67 +452,60 @@ impl Interner {
             lang: atom.lang.clone(),
             direction: atom.direction.clone(),
             reifier: None,
+            triple: None,
         });
         self.ids.insert(key, id);
         id
     }
 
-    fn node(&mut self, node: &Node, reifiers: &mut Vec<ReifierRow>) -> usize {
+    fn node(&mut self, node: &Node) -> usize {
         match node {
             Node::Atom(atom) => self.atom(atom),
             Node::Triple(triple) => {
-                let s = self.node(&triple.s, reifiers);
-                let p = self.node(&triple.p, reifiers);
-                let o = self.node(&triple.o, reifiers);
+                let s = self.node(&triple.s);
+                let p = self.node(&triple.p);
+                let o = self.node(&triple.o);
                 let key = TermKey::Triple(s, p, o);
                 if let Some(id) = self.ids.get(&key) {
                     return *id;
                 }
                 let id = self.terms.len();
+                // §7.3: a bare quoted triple is a SELF-DESCRIBING value. It
+                // states its own (s, p, o) in `"tt"`, mints no reifier and
+                // emits no `reifies` row, so it round-trips as itself.
                 self.terms.push(Term {
                     kind: TermKind::Triple,
                     value: None,
                     datatype: None,
                     lang: None,
                     direction: None,
-                    reifier: Some(id),
+                    reifier: None,
+                    triple: Some((s, p, o)),
                 });
                 self.ids.insert(key, id);
-                // A triple TERM stores its own components under its freshly-minted id
-                // (the key dedup above guarantees this id is bound exactly once), so this
-                // is always a first bind — push directly rather than going through the
-                // conflict-checking `set_reifier` (which would force panic/error handling
-                // on a branch that can never conflict).
-                reifiers.push((id, (s, p, o), None));
                 id
             }
         }
     }
 }
 
+/// Record one `r rdf:reifies <<( s p o )>>` statement.
+///
+/// `rdf:reifies` is NOT functional (RDF 1.2 / §7.3): `r rdf:reifies
+/// <<( s p o1 )>>` and `r rdf:reifies <<( s p o2 )>>` are both assertable and
+/// both survive. Only a byte-identical repeat collapses (§7.8).
 fn set_reifier(
     reifiers: &mut Vec<ReifierRow>,
     rid: usize,
     spo: Triple3,
     graph_name: Option<usize>,
-) -> Result<(), NQuadsParseError> {
-    if let Some((_, existing, _)) = reifiers.iter().find(|(r, _, _)| *r == rid) {
-        // A reifier bound to a DIFFERENT triple is a hard conflict (CONSTITUTION P7:
-        // never silently last-write-win). An identical rebind is idempotent.
-        if *existing != spo {
-            return Err(NQuadsParseError::new(format!(
-                "conflicting rdf:reifies binding for reifier term {rid}"
-            )));
-        }
-        if reifiers
-            .iter()
-            .any(|&(r, existing, g)| r == rid && existing == spo && g == graph_name)
-        {
-            return Ok(());
-        }
+) {
+    if !reifiers
+        .iter()
+        .any(|&(r, existing, g)| r == rid && existing == spo && g == graph_name)
+    {
+        reifiers.push((rid, spo, graph_name));
     }
-    reifiers.push((rid, spo, graph_name));
-    Ok(())
 }
 
 fn validate_subject(
@@ -683,19 +676,19 @@ fn build_gts(statements: &[Vec<Node>]) -> Result<Vec<u8>, NQuadsParseError> {
         if let (Node::Atom(subject), Node::Atom(predicate), Node::Triple(object)) = (s, p, o) {
             if predicate.value == RDF_REIFIES {
                 let rid = interner.atom(subject);
-                let ss = interner.node(&object.s, &mut reifiers);
-                let pp = interner.node(&object.p, &mut reifiers);
-                let oo = interner.node(&object.o, &mut reifiers);
-                let gid = gname.map(|node| interner.node(node, &mut reifiers));
-                set_reifier(&mut reifiers, rid, (ss, pp, oo), gid)?;
+                let ss = interner.node(&object.s);
+                let pp = interner.node(&object.p);
+                let oo = interner.node(&object.o);
+                let gid = gname.map(|node| interner.node(node));
+                set_reifier(&mut reifiers, rid, (ss, pp, oo), gid);
                 continue;
             }
         }
 
-        let sid = interner.node(s, &mut reifiers);
-        let pid = interner.node(p, &mut reifiers);
-        let oid = interner.node(o, &mut reifiers);
-        let gid = gname.map(|node| interner.node(node, &mut reifiers));
+        let sid = interner.node(s);
+        let pid = interner.node(p);
+        let oid = interner.node(o);
+        let gid = gname.map(|node| interner.node(node));
         pending_quads.push((sid, pid, oid, gid));
     }
 

@@ -234,11 +234,25 @@ function streamingIndex(
 
 /** Shift a term's id references into the output id space. */
 function shiftTerm(t: Term, base: number): Term {
-    if (t.datatype === undefined && t.reifier === undefined) return t;
+    if (
+        t.datatype === undefined &&
+        t.reifier === undefined &&
+        t.triple === undefined
+    ) {
+        return t;
+    }
     return {
         ...t,
         datatype: t.datatype !== undefined ? t.datatype + base : undefined,
         reifier: t.reifier !== undefined ? t.reifier + base : undefined,
+        triple:
+            t.triple !== undefined
+                ? {
+                      s: t.triple.s + base,
+                      p: t.triple.p + base,
+                      o: t.triple.o + base,
+                  }
+                : undefined,
     };
 }
 

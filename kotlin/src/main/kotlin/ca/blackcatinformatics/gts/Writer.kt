@@ -201,5 +201,7 @@ private fun termToWire(term: Term): CborMap =
             term.lang?.takeIf { it.isNotEmpty() }?.let { add(text("l") to text(it)) }
             term.direction?.takeIf { isLiteralDirection(it) }?.let { add(text("dir") to text(it)) }
             term.reifier?.let { add(text("rf") to uint(it)) }
+            // §7.3: a triple term states its OWN (s, p, o). Authoritative on read.
+            term.triple?.let { add(text("tt") to cborArray(uint(it.s), uint(it.p), uint(it.o))) }
         },
     )

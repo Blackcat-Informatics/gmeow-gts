@@ -222,19 +222,20 @@ class _Interner:
     def node(self, n: _Node, reifiers: list[ReifierRow]) -> int:
         if isinstance(n, _Atom):
             return self.atom(n)
-        # A bare quoted triple as a quad component: intern as a TRIPLE term with
-        # its own anonymous reifier binding.
+        # A bare quoted triple as a quad component: intern as a SELF-DESCRIBING
+        # TRIPLE term carrying its own (s, p, o) (§7.3). An unreified triple
+        # term is a value, not a statement — it mints no reifier and emits no
+        # `reifies` row, so it round-trips as itself.
         s = self.node(n.s, reifiers)
         p = self.node(n.p, reifiers)
         o = self.node(n.o, reifiers)
         key = ("triple", s, p, o)
         if key in self._ids:
             return self._ids[key]
-        rid = len(self.terms)
-        self.terms.append(Term(TermKind.TRIPLE, reifier=rid))
-        self._ids[key] = rid
-        reifiers.append((rid, (s, p, o), None))
-        return rid
+        tid = len(self.terms)
+        self.terms.append(Term(TermKind.TRIPLE, triple=(s, p, o)))
+        self._ids[key] = tid
+        return tid
 
 
 def _add_reifier(
@@ -243,11 +244,12 @@ def _add_reifier(
     triple: Triple,
     graph_name: int | None,
 ) -> None:
-    for existing_rid, existing, _existing_graph in reifiers:
-        if existing_rid == rid and existing != triple:
-            raise NQuadsParseError(
-                f"conflicting rdf:reifies binding for reifier term {rid}"
-            )
+    """Record one ``r rdf:reifies <<( s p o )>>`` statement.
+
+    ``rdf:reifies`` is NOT functional (RDF 1.2 / §7.3): ``r rdf:reifies
+    <<( s p o1 )>>`` and ``r rdf:reifies <<( s p o2 )>>`` are both assertable
+    and both survive. Only a byte-identical repeat collapses (§7.8).
+    """
     row = (rid, triple, graph_name)
     if row not in reifiers:
         reifiers.append(row)
@@ -277,10 +279,10 @@ def from_nquads(text: str) -> bytes:
         s, p, o = nodes[0], nodes[1], nodes[2]
         gname = nodes[3] if len(nodes) == 4 else None
 
-        # Reifier binding: <r> rdf:reifies <<( s p o )>> . Bind the reifier to the
-        # subject term so the projection re-emits exactly this line (rather than
-        # interning the quoted triple as a self-referential TRIPLE term, which
-        # would also be emitted by the reifies loop).
+        # Reifier binding: <r> rdf:reifies <<( s p o )>> . Bind the reifier to
+        # the subject term so the projection re-emits exactly this line. Several
+        # such lines may share one reifier — rdf:reifies is not functional — and
+        # each becomes its own `reifies` row (§7.3).
         if (
             isinstance(p, _Atom)
             and p.value == _RDF_REIFIES

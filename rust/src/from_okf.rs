@@ -120,6 +120,7 @@ impl GraphBuilder {
             lang,
             direction: None,
             reifier: None,
+            triple: None,
         });
         self.ids.insert(key, id);
         id

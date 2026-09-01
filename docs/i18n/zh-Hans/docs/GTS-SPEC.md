@@ -66,6 +66,7 @@ GTS 是本体无关的。GMEOW 是 GTS 的主要下游消费者和分发用例�
 - 阐明了一致性范围、读取器 (reader)/写入器 (writer) 类别、流式读取器内存边界以及规范读取器诊断。
 
 - 正式确定了图折叠 (graph fold)、多段 (multi-segment) 值并集、空白节点作用域、RDF 1.2 三元组项与 `rdf:reifies` 映射、位置约束以及重复/冲突行为。
+- 使三元组项变为自描述的 (`"tt"`)，将 `reifies` 帧恢复为非函数性 `rdf:reifies` 所要求的多值语句层，并将 `ConflictingReifier` 收窄为「不带 `"tt"` 的遗留项位于一个被过度绑定的转意项之上」这一种情形 (§7.3)。
 
 - 增加了可流式处理布局 (streamable-layout) 规则、可选索引/MMR 证明原像、证明验证、未知扩展键行为、媒体类型与 HTTP 服务契约，以及持久性/安全性考量。
 
@@ -119,7 +120,7 @@ GTS 是本体无关的。GMEOW 是 GTS 的主要下游消费者和分发用例�
 
   - [7.2 术语 ID 分配（规范性）](#72-term-id-assignment-normative)
 
-  - [7.3 引用三元组与重申者（`reifies` 帧）](#73-quoted-triples-and-reifiers-reifies-frame)
+  - [7.3 三元组项与 `reifies` 陈述层](#73-triple-terms-and-the-reifies-statement-layer)
 
   - [7.4 四元组与注释](#74-quads-and-annotations)
 
@@ -343,7 +344,7 @@ Graph.to_nquads(out)        # §14
 
 | `KeyWrapFailed` | 延迟的多接收者密钥解封失败；不透明 `reason:"missing-key"` |
 
-| `ConflictingReifier` | 具体化器 (reifier) 重新绑定到不同的三元组 (§7.8) |
+| `ConflictingReifier` | 一个不带 `"tt"` 的遗留 `k:3` 项，其转意项绑定了多于一个三元组 (§7.3, §7.8) |
 
 | `PositionConstraint` | 术语出现在非法的主体、谓词、对象或图名称位置；拒绝/诊断违规行 (§7.4) |
 
@@ -407,7 +408,7 @@ cat music.gts >> core.gts        # core.gts is now a valid two-segment GTS
 
 - **前缀折叠有效性（规范性）。** 任何在数据项边界结束的有效 GTS 文件的字节前缀，其本身也是一个有效的 GTS 文件，且读取器 (reader) 必须 (MUST) 将其折叠 (fold) 到与在完整文件中折叠这些相同项时完全一致的状态。传输中的实时流因此与带有断裂追加的文件（§3）*不可区分*：部分结尾项意味着“尚未到达”，且消费者可以 (MAY) 在字节落地时继续读取（`tail -f` 语义）——每一个中间折叠都是一个真实、可用的图状态，绝非解析一半的错误状态。
 
-- **单调精化。** 追加的帧 (frame) 只会*增加*知识：quads 累加（§7.8 集合语义），具体化器绑定采用首胜制，因此已建立的渲染在其下永远不会改变，而抑制是一种加性显示覆盖（§11）——`suppress` 帧的到达会精化展示效果，而不会使之前的任何折叠失效。链校验同样是增量的：O(1) 状态（预期的 `"prev"`）在每帧到达时对其进行验证。
+- **单调精化。** 追加的帧 (frame) 只会*增加*知识：quads 累加（§7.8 集合语义），不带 `"tt"` 的**遗留**三元组项采用首胜制解析，因此已建立的渲染在其下永远不会改变，`reifies` 行只增不挤 (§7.3)，而抑制是一种加性显示覆盖（§11）——`suppress` 帧的到达会精化展示效果，而不会使之前的任何折叠失效。链校验同样是增量的：O(1) 状态（预期的 `"prev"`）在每帧到达时对其进行验证。
 
 - **分块安全帧。** CBOR Sequence 项是自定界的，因此项边界对于中继和代理而言是安全的分块重组点，且恢复是基于内容寻址的：声明其已验证的最后一帧 `"id"` 的接收者可以从下一个字节开始恢复，除了该哈希值之外无需任何协商。
 
@@ -619,7 +620,7 @@ root(count, peaks) =
 
 - `quads`：项值上的一组断言 RDF 四元组（quad）。
 
-- `reifiers`：从具体化（reifier）项值到恰好一个引用三元组（quoted triple）值的部分映射。
+- `reifiers`：基于词项值的 `(reifier, triple, graph?)` 行的有序多重集 —— 由于 `rdf:reifies` 不是函数性的 (§7.3)，一个转意项可以携带多行。
 
 - `annotations`：项值上 `(reifier, predicate, value)` 行的有序多重集。
 
@@ -683,9 +684,12 @@ term = {
   ? "dt": term-id,         ; literal datatype IRI (a term)
   ? "l" : tstr,            ; literal language tag (BCP 47)
   ? "dir": "ltr" / "rtl",  ; RDF 1.2 base direction for language-tagged literals
-  ? "rf": term-id,         ; quoted-triple: the reifier (§7.3) whose triple this term denotes
+  ? "tt": [term-id, term-id, term-id], ; quoted-triple: this term's OWN s, p, o (§7.3)
+  ? "rf": term-id,         ; quoted-triple: LEGACY reifier indirection (§7.3)
 }
 ```
+
+**三元组项是自描述的（规范性）。** 一个 `k:3`（引用三元组）项应该 (SHOULD) 携带 `"tt"`，即该项自身的主词、谓词和受词 term-id。`"tt"` 具有**权威性**：当它存在时，该项恰好表示那个三元组；此时即使 `"rf"` 也存在，它也仅是描述性的来源信息，不得 (MUST NOT) 改变该项所表示的内容。仅有 `"rf"` 仍是合法的遗留编码，按 §7.3 的方式解析。`"tt"` 不得 (MUST NOT) 出现在 `"k"` 不为 `3` 的项上；读取器必须 (MUST) 在那里忽略它。
 
 **字面量数据类型默认值（规范性）。** 对于 `k:1`（字面量）项：如果 `"l"`（语言标签）和 `"dir"` 存在且 `"dt"` 缺失，则数据类型为 `rdf:dirLangString`；如果 `"l"` 存在、`"dir"` 缺失且 `"dt"` 缺失，则数据类型为 `rdf:langString`；如果 `"l"` 和 `"dt"` 均缺失，则数据类型为 `xsd:string`。`"dir"` 的值必须 (MUST) 为 `"ltr"` 或 `"rtl"`，且若没有 `"l"` 则没有意义。
 
@@ -695,23 +699,44 @@ term = {
 
 ### 7.2 Term-id 分配（规范性）
 
-Term-id 是无符号整数，按**追加顺序、分段 (per segment)** 分配，从每个段标头的 `0` 开始，并在其所属段内**被冻结**：在折叠 (folding) 帧 *N* 时生成的词项 (term) 在该段的剩余部分中保留其 ID。位于位置 *N* 的 `quads`、`annot` 或 `reifies` 帧必须 (MUST) 仅引用在**同一段**的位置 `0..N-1` 处引入的 term-id（此类帧本身不引入词项）。这使得纯追加写入、单次遍历读取和拼接变得稳健：term-id 是**压缩产物，而非标识** —— 跨段标识仅取决于词项值 (§3.1)，正如 `snapshot` 的字典已经在 `0` 处重启一样 (§10)。将文件全局 ID 应用于多段文件的实现会导致静默的折叠错误 (misfold)；边界规则 (§3.1) 和向量 17 (§19) 的存在正是为了使此类故障能够显式地暴露。
+Term-id 是无符号整数，按**追加顺序、分段 (per segment)** 分配，从每个段标头的 `0` 开始，并在其所属段内**被冻结**：在折叠 (folding) 帧 *N* 时生成的词项 (term) 在该段的剩余部分中保留其 ID。一个词项的 `"dt"`、`"rf"` 以及其 `"tt"` 的每一个分量都必须 (MUST) 命名一个严格小于该词项自身 ID 的 term-id。位于位置 *N* 的 `quads`、`annot` 或 `reifies` 帧必须 (MUST) 仅引用在**同一段**的位置 `0..N-1` 处引入的 term-id（此类帧本身不引入词项）。这使得纯追加写入、单次遍历读取和拼接变得稳健：term-id 是**压缩产物，而非标识** —— 跨段标识仅取决于词项值 (§3.1)，正如 `snapshot` 的字典已经在 `0` 处重启一样 (§10)。将文件全局 ID 应用于多段文件的实现会导致静默的折叠错误 (misfold)；边界规则 (§3.1) 和向量 17 (§19) 的存在正是为了使此类故障能够显式地暴露。
 
 <a id="73-quoted-triples-and-reifiers-reifies-frame"></a>
 
-### 7.3 引用三元组与转意项 (reifiers) (`reifies` 帧)
+<a id="73-triple-terms-and-the-reifies-statement-layer"></a>
 
-RDF 1.2 允许一个三元组作为另一个三元组的主语或宾语。GTS 将引用三元组保留在 id 域中：一个**转意项 (reifier)** 是一个普通的 IRI/bnode 项；一个 `reifies` 帧将其与其引用的三元组绑定。
+### 7.3 三元组项与 `reifies` 陈述层
+
+RDF 1.2 允许一个三元组作为另一个三元组的主语或宾语。GTS 用**两个互相独立的层**承载这一点，把它们混为一谈就是线格式缺陷：
+
+1. **三元组项** —— `terms` 字典中的一个 `k:3` 条目 —— 是一个*值*。它在 `"tt"` 中陈述自己的主词、谓词和受词，无需任何其他信息即可被理解；
+2. **`reifies` 帧**是一个*语句层*。每一行主张一条关于某个转意项资源 `R` 的 `R rdf:reifies <<( S P O )>>` 语句。
 
 ```cddl
 reifies-payload = [+ [term-id, term-id, term-id, term-id, ? term-id]] ; reifier, s, p, o, (g)
 ```
 
-被用作节点的引用三元组是一个带有指向其转意项的 `"k": 3` 和 `"rf"` 的项。
+**`rdf:reifies` 不是函数性的，`reifies` 是多值的（规范性）。** RDF 1.2 对 `rdf:reifies` 没有施加任何基数约束：`R rdf:reifies <<( S P O1 )>>` 和 `R rdf:reifies <<( S P O2 )>>` 都是可主张的，且一个 RDF 1.2 数据集会同时持有两者。因此 GTS 读取器必须 (MUST) 保留绑定到某个转意项 ID 的**每一个** `reifies` 行，每行保留自己的图槽位，并且不得 (MUST NOT) 在它们之间做选择、重新排序或丢弃其中任何一行。只有逐字节完全相同的重复行才会按普通集合语义合并 (§7.8)。因此，转意项 ID **不是**三元组的标识符，也不得 (MUST NOT) 被当作标识符使用。
 
-**RDF 数据集映射（规范性）。** 一个折叠 (folded) 的 GTS 图按如下方式映射到 RDF 1.2 数据集：当 `G` 缺失时，每个 `quads` 行 `(S,P,O,G?)` 在默认图中主张 (assert) RDF 三元组 `(S,P,O)`；当 `G` 存在时，则在命名图 `G` 中主张。一个 `reifies` 行 `(R,S,P,O,G?)` 在 `G` 缺失时于默认图中主张三元组 `R rdf:reifies <<( S P O )>>`，在 `G` 存在时于命名图 `G` 中主张该三元组。一个 `k:3` 项表示该三元组项，通过其转意项 `R` 到达。每个 `annot` 行 `(R, P', V', G?)` 在 `G` 缺失时于默认图中主张三元组 `R P' V'`，在 `G` 存在时于命名图 `G` 中主张该三元组。配置文件 (Profiles) 可以 (MAY) 为投影定义额外的图放置约定，但上述核心映射是互操作性的基准。
+**解析一个三元组项（规范性）。** 一个 `k:3` 项所表示的三元组按以下顺序确定：
+
+1. 如果该项携带 `"tt"`，它恰好表示 `(tt[0], tt[1], tt[2])`。这具有权威性且是终局的 —— 任何 `reifies` 行都无法改变它；
+2. 否则，如果该项携带 `"rf"`，它表示按文件顺序绑定到该转意项 ID 的**第一个** `reifies` 行的三元组。此遗留路径的存在是为了让 `"tt"` 之前写入的文件读起来与以往完全一致；
+3. 否则，该项不陈述任何三元组。读取器必须 (MUST) 将其保留为一个独立的项，且不得 (MUST NOT) 凭空虚构一个；投影会将其渲染为一个新的空白节点 (§14)。
+
+由于三元组项携带自己的分量，两个**不同的**三元组项可以 (MAY) 命名同一个转意项 ID；而一个**未转意的**三元组项 —— 只有 `"tt"` 而完全没有 `"rf"` —— 是完全可表达的，并且能原样往返。写入器不得 (MUST NOT) 为了表达一个三元组项而生成转意项，也不得 (MUST NOT) 发出这样的 `k:3` 项：其唯一描述是一个它并未为之发出任何 `reifies` 行的转意项。
+
+**`"tt"` 上的位置约束（规范性）。** `"tt"` 陈述一个三元组，因此其分量遵守与 `reifies` 三元组相同的约束 (§7.4)：`tt[1]` 必须 (MUST) 是一个 IRI (`k:0`)，`tt[0]` 必须 (MUST) 是一个 IRI、空白节点或引用三元组 (`k:0|2|3`)，而 `tt[2]` 可以 (MAY) 是任何项。违反此约束的 `"tt"` 会被诊断为 `PositionConstraint` 并被丢弃；该项随后按上面的第 2 步或第 3 步解析。
+
+**RDF 数据集映射（规范性）。** 一个折叠 (folded) 的 GTS 图按如下方式映射到 RDF 1.2 数据集：当 `G` 缺失时，每个 `quads` 行 `(S,P,O,G?)` 在默认图中主张 (assert) RDF 三元组 `(S,P,O)`；当 `G` 存在时，则在命名图 `G` 中主张。**每一个** `reifies` 行 `(R,S,P,O,G?)` 在 `G` 缺失时于默认图中主张三元组 `R rdf:reifies <<( S P O )>>`，在 `G` 存在时于命名图 `G` 中主张该三元组 —— 同一转意项上的 *N* 行投影为 *N* 条语句，而非一条。一个 `k:3` 项表示按上述方式解析出的三元组项。每个 `annot` 行 `(R, P', V', G?)` 在 `G` 缺失时于默认图中主张三元组 `R P' V'`，在 `G` 存在时于命名图 `G` 中主张该三元组。配置文件 (Profiles) 可以 (MAY) 为投影定义额外的图放置约定，但上述核心映射是互操作性的基准。
 
 **引用不意味着主张（规范性）。** 引用一个三元组项（无论是通过转意项还是 `k:3` 项）并不 (NOT) 主张基础三元组 `(S P O)`。基础三元组仅当它也出现在 `quads` 帧中时才被主张。
+
+**多段并集（规范性）。** term-id 是分段作用域的 (§7.2)，因此多段并集按词项值重新内联。一个 `k:3` 项的并集标识是它**解析后**的 `(s, p, o)`，递归内联 —— 这正是 §7.8 的三元组项相等性。遗留形式没有独立的标识空间：一个带 `"tt"` 的项与一个不带 `"tt"` 的项若解析到同一个三元组，它们就是**同一个**项，必须 (MUST) 内联到一起；而两个共享同一转意项 ID 但解析到不同三元组的三元组项必须 (MUST) 保持相互独立。解析不出三元组的项保留它在此规则之前所具有的标识（每个作用域一个"不可解析三元组项"标识）。
+
+**解析必须终止（规范性）。** 一个 `reifies` 行可以 (MAY) 命名那个正通过它解析的词项本身 —— 行 `(R, T, P, O)` 与一个带 `"rf": R` 的 `k:3` 词项 `T` 并存，这在线格式上是可构造的。读取器不得 (MUST NOT) 对这种形态无限递归。这约束**每一个**遍历三元组项已解析分量的操作，而不只是其中之一：上述多段并集，以及每一次投影或重新写出过程 (§14、§14.1)。要么读取器在折叠时将自指行判为结构性损坏 (`DamagedFrame`)，使该形态永不进入折叠；要么它把自指词项视为*在本次遍历中*不陈述任何三元组：该词项在内联时保留自己独立的标识，在投影时渲染为未绑定三元组项本就产生的那个新空白节点。`"tt"` 不可能参与这种环，因为每个 `"tt"` 分量都命名一个严格更小的 term-id (§7.2)。
+
+**确定性（规范性）。** 确定性写入器 (§14.1) 必须 (MUST) 按完整内容键 `(g, reifier, s, p, o)` 对 `reifies` 行排序，使同一转意项 ID 上的多个绑定以稳定的内容顺序序列化，而不是被合并。它必须 (MUST) **先按嵌套深度**分配词项 ID —— 一个三元组项严格排在其 `"tt"` 可达的每一个词项之后 —— 然后按词项内容，再按原始 ID。仅靠内容顺序无法保证嵌套三元组的分量排在它之前，那会发出一个前向引用的 `"tt"` (§7.2)。
 
 **RDF 1.1 降级（资料性）。** RDF 1.1 没有引用三元组项。一个有损的 RDF 1.1 投影可以 (MAY) 将引用三元组项替换为其转意项资源，并发出普通转意风格 (reification-style) 的三元组，如 `R rdf:subject S`、`R rdf:predicate P` 和 `R rdf:object O`，或者携带 `R rdf:reifies` 作为消费者可理解的扩展谓词。此类投影不得 (MUST NOT) 仅仅因为 GTS 文件引用了 `(S P O)` 就对其进行主张，且只要存在三元组项，工具就应该 (SHOULD) 将投影标记为有损。
 
@@ -728,7 +753,7 @@ annot-payload = [+ [term-id, term-id, term-id, ? term-id]]  ; reifier, predicate
 注解在折叠的 GTS 状态中是一个有序多重集：读取器 (readers) 必须 (MUST) 保留每个段 (segment) 内的行顺序，并按文件顺序连接段注解行。完全重复的注解行保留在 GTS 折叠 (fold) 中；RDF 数据集投影可以 (MAY) 合并生成的相同 RDF 三元组，因为 RDF 数据集是集合值的。
 注解与 `quads` 一样由可选图项分区。
 
-**位置约束（规范性）。** 在 `quads` 行中，谓词 `p` 必须 (MUST) 是一个 IRI (`k:0`)；主词 `s` 必须 (MUST) 是一个 IRI、空白节点或引用三元组 (`k:0|2|3`)；受词 `o` 可以 (MAY) 是任何项；而图名称 `g`（如果存在）必须 (MUST) 是一个 IRI 或空白节点 (`k:0|2`) —— 绝不能是字面量或引用三元组。`reifies` 三元组 `(S,P,O)` 遵守相同的主词/谓词/受词约束；`reifies` 或 `annot` 行中的图名称 `g`（如果存在）遵守与 `quads` 相同的图名称约束。在 `annot` 行中，谓词必须 (MUST) 是一个 IRI。
+**位置约束（规范性）。** 在 `quads` 行中，谓词 `p` 必须 (MUST) 是一个 IRI (`k:0`)；主词 `s` 必须 (MUST) 是一个 IRI、空白节点或引用三元组 (`k:0|2|3`)；受词 `o` 可以 (MAY) 是任何项；而图名称 `g`（如果存在）必须 (MUST) 是一个 IRI 或空白节点 (`k:0|2`) —— 绝不能是字面量或引用三元组。`reifies` 三元组 `(S,P,O)` 遵守相同的主词/谓词/受词约束；`reifies` 或 `annot` 行中的图名称 `g`（如果存在）遵守与 `quads` 相同的图名称约束。三元组项的 `"tt"` 遵守与 `reifies` 三元组相同的主词/谓词/受词约束 (§7.3)。在 `annot` 行中，谓词必须 (MUST) 是一个 IRI。
 
 <a id="75-fold-algorithm-normative"></a>
 
@@ -747,10 +772,12 @@ for segment in file order:                      # §3.1; single-segment files: o
   for frame in segment log order:
     P := resolve payload (§6.1); if undecodable -> add opaque node (§7.6); continue
     switch frame.t:
-      "terms"    : append each term (assign next id); each "dt"/"rf" MUST name an
-                   already-introduced term-id (no forward references)
+      "terms"    : append each term (assign next id); each "dt"/"rf" and every
+                   "tt" component MUST name an already-introduced term-id
+                   (no forward references)
       "quads"    : add each (s,p,o,g) value tuple to graph
-      "reifies"  : append each (reifier,s,p,o,g) row; a reifier keeps one non-conflicting (s,p,o) binding across graphs (§7.8)
+      "reifies"  : append EVERY (reifier,s,p,o,g) row; rdf:reifies is not functional,
+                   so one reifier may bind many triples and each row keeps its graph (§7.3)
       "annot"    : append (reifier, predicate, value, graph)
       "blob"     : if "d" present -> blobs[BLAKE3(decoded "d")] := bytes (inline);
                    else -> register external blob by "pub".digest;
@@ -816,7 +843,7 @@ opaque-node = {
 
 | 重复四元组 | 折叠后的图是一个集合：完全相同的 `(s,p,o,g)` 值行将合并为一个，且不产生诊断。 |
 
-| 转意项行 | 一个转意项 (reifier) 应该 (SHOULD) 只绑定到一个 `(s,p,o)` 三元组标识。重复的相同 `(reifier,s,p,o,g)` 行是无害的。只有当 `(s,p,o)` 不变时，同一个转意项才可以 (MAY) 出现在多个图中。同一转意项的冲突 `(s,p,o)` 是数据质量错误：读取器会显现 `ConflictingReifier`，保留文件顺序中的第一个三元组标识，并忽略冲突的转意项行。 |
+| 转意项行 | `rdf:reifies` 不是函数性的 (§7.3)，因此一个转意项可以 (MAY) 在任意多个图中绑定任意多个不同的 `(s,p,o)` 三元组。每一行都按文件顺序保留，各自保留自己的图槽位；只有重复出现的完全相同的 `(reifier,s,p,o,g)` 行才按集合语义合并。这**不是**冲突，也不会引发任何诊断。唯一残留的不自洽情形是一个位于这样的转意项之上、且不带 `"tt"` 的 `k:3` 项 —— 一个项要求两种含义：读取器会显现 `ConflictingReifier`，**不丢弃任何行**，并将该项解析到文件顺序中的第一个绑定。 |
 
 | 注解 | 注解行是一个有序多重集 (§7.4)。同一转意项 (reifier) 上的多行可以并存，包括按图分区的行；完全重复的行在 GTS 折叠中会被保留。RDF 数据集投影可能会合并生成的相同三元组。 |
 
@@ -1461,7 +1488,7 @@ music-package 配置文件验证器可以要求每个投影都随附声明损失
 
 - **`gts compact --streamable <in> -o <out>` 是布局重写** (§10.1)。它 必须 (MUST) 拒绝无法通过验证的输入、带有按帧寻址抑制的输入，以及在没有密封原始选项 (`--seal-original`，§10.1) 的情况下输入的 `evidence`；它 必须 (MUST) 发出处于规范可流式处理形状 (§3.3) 的单个已声明段，并带有压缩溯源和分离签名 (§13.3)，且对于相同的输入和参数，其输出 必须 (MUST) 是字节确定性的 (数据块按解码大小升序排列，大小相同时按摘要升序排列；重写时间戳是一个参数，而非当前系统时间)。
 
-- **确定性图创作模式** 是折叠图 (folded graph) 的可重现构建写入器界面。它发出一个普通段，且在写入前 必须 (MUST) 重新映射本地术语 ID：术语按语义值排序 (IRI 字符串；字面量词法形式加有效数据类型 IRI 加语言标签；空白节点标签，匿名空白节点使用其输入出现顺序作为平局决胜因素；解析为其主体/谓词/对象值的引用三元组)。然后它按固定顺序发出可创作帧：`terms`、`quads`、`reifies`、`annot`、`blob`、`meta`、`suppress`。三元组 (Quads)、具体化绑定、注释、数据块 (blobs)、元数据键和抑制帧按重新映射后的确定性 CBOR 表示形式排序。该模式不重放读取器 (reader) 观察结果 (`opaque`、签名、诊断或段账本)；需要保留这些观察结果的发布工具必须使用特定于配置文件的重写 (例如可流式处理压缩) 或将原始字节作为证据密封。
+- **确定性图创作模式** 是折叠图 (folded graph) 的可重现构建写入器界面。它发出一个普通段，且在写入前 必须 (MUST) 重新映射本地术语 ID：术语**先按嵌套深度**排序 (§7.3 —— 使三元组项 `"tt"` 的分量始终排在它之前)，再按语义值排序 (IRI 字符串；字面量词法形式加有效数据类型 IRI 加语言标签；空白节点标签，匿名空白节点使用其输入出现顺序作为平局决胜因素；解析为其主体/谓词/对象值的引用三元组)，最后按输入 ID 排序。`reifies` 行按其完整内容键 `(g, reifier, s, p, o)` 排序。然后它按固定顺序发出可创作帧：`terms`、`quads`、`reifies`、`annot`、`blob`、`meta`、`suppress`。三元组 (Quads)、具体化绑定、注释、数据块 (blobs)、元数据键和抑制帧按重新映射后的确定性 CBOR 表示形式排序。该模式不重放读取器 (reader) 观察结果 (`opaque`、签名、诊断或段账本)；需要保留这些观察结果的发布工具必须使用特定于配置文件的重写 (例如可流式处理压缩) 或将原始字节作为证据密封。
 
 - **数据块提取是验证，而非转换** (`gts ls`, `gts extract`)：数据块 (blobs) 按内容摘要寻址 (帧索引是物理偶然性，在 `cat` 下会发生偏移)；提取过程会根据请求的摘要对字节重新哈希；默认情况下拒绝按摘要抑制 (§11) 的数据块 (抑制是显示合同，而提取即显示)，除非有明确的覆盖选项；媒体类型标志是针对数据块声明的 `pub.mt` 的 **断言 (assertion)** —— 验证性发布工具拒绝不匹配的内容，而不是进行转码。
 
@@ -1757,7 +1784,7 @@ v0.2 中的配置文件 (profile) 选择仍保持为 URL 形式：每个包一�
     `rdf:dirLangString`；带有 `"l"` 且没有 `"dt"` 的字面量 → `rdf:langString`；两者都没有 →
     `xsd:string`。
 
-12. reifier 重新绑定到不同的三元组 → `ConflictingReifier`，保留第一个绑定 (§7.8)。
+12. 同一转意项上的两个 `rdf:reifies` 绑定 → **两者都**保留，无诊断 (§7.3)。
 
 13. 位置约束违反，例如谓词位置的字面量 → 拒绝/诊断
     (§7.4)。
@@ -1935,7 +1962,8 @@ term = {
   ? "dt": term-id,
   ? "l": tstr,
   ? "dir": "ltr" / "rtl",          ; RDF 1.2 base direction for language-tagged literals
-  ? "rf": term-id,
+  ? "tt": [term-id, term-id, term-id],  ; triple term's own s, p, o — authoritative (§7.3)
+  ? "rf": term-id,                      ; legacy reifier indirection (§7.3)
   * extension-key => any,
 }
 

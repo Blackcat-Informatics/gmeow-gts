@@ -76,6 +76,9 @@ GtsReplication class >> inventoryFor: data [
 		items := (itemRecords copyFrom: startItem + 1 to: endItem)
 			collect: [ :record | record at: 'item' ].
 		graph := GtsReader readSegment: items indexOffset: startItem.
+		"Per-segment view (§14.1): each segment is reported on its own, so the §7.3
+		conflict check runs once per segment rather than once on a union."
+		GtsReader checkConflictingReifiersIn: graph.
 		segments add: (Dictionary newFromPairs: {
 			'index'. index - 1.
 			'item_start'. startItem.

@@ -135,6 +135,7 @@ impl GraphBuilder {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         });
         self.terms.len() - 1
     }
@@ -147,6 +148,7 @@ impl GraphBuilder {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         });
         self.terms.len() - 1
     }
@@ -321,6 +323,7 @@ fn shift_term(t: &Term, base: usize) -> Term {
         lang: t.lang.clone(),
         direction: t.direction.clone(),
         reifier: t.reifier.map(|r| r + base),
+        triple: t.triple.map(|(s, p, o)| (s + base, p + base, o + base)),
     }
 }
 

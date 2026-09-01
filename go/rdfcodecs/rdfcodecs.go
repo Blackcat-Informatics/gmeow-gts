@@ -271,8 +271,17 @@ func escapeLiteral(lex string) string {
 }
 
 func renderGraphTerm(g *model.Graph, tid int) string {
+	return renderGraphTermNested(g, tid, nil)
+}
+
+// renderGraphTermNested renders tid with the triple terms it is nested inside
+// carried in open, so a self-reaching reifier binding terminates (§7.3).
+func renderGraphTermNested(g *model.Graph, tid int, open []int) string {
 	if g == nil || tid < 0 || tid >= len(g.Terms) {
 		return fmt.Sprintf("_:out_of_range_%d", tid)
+	}
+	if model.TermIsOpen(open, tid) {
+		return fmt.Sprintf("_:unbound_triple_%d", tid)
 	}
 	t := &g.Terms[tid]
 	switch t.Kind {
@@ -295,16 +304,18 @@ func renderGraphTerm(g *model.Graph, tid int) string {
 			return fmt.Sprintf("%s@%s", lit, t.Lang)
 		}
 		if t.Datatype != nil {
-			return fmt.Sprintf("%s^^%s", lit, renderGraphTerm(g, *t.Datatype))
+			return fmt.Sprintf("%s^^%s", lit, renderGraphTermNested(g, *t.Datatype, open))
 		}
 		return lit
 	case model.Triple:
-		rid := tid
-		if t.Reifier != nil {
-			rid = *t.Reifier
-		}
-		if spo, ok := g.Reifier(rid); ok {
-			return fmt.Sprintf("<<( %s %s %s )>>", renderGraphTerm(g, spo.S), renderGraphTerm(g, spo.P), renderGraphTerm(g, spo.O))
+		// §7.3 resolution order: the term's own "tt", else the first binding of
+		// its legacy reifier, else it states no triple.
+		if spo, ok := g.TripleOf(tid); ok {
+			inner := model.OpenTerm(open, tid)
+			return fmt.Sprintf("<<( %s %s %s )>>",
+				renderGraphTermNested(g, spo.S, inner),
+				renderGraphTermNested(g, spo.P, inner),
+				renderGraphTermNested(g, spo.O, inner))
 		}
 		return fmt.Sprintf("_:unbound_triple_%d", tid)
 	default:
@@ -313,8 +324,17 @@ func renderGraphTerm(g *model.Graph, tid int) string {
 }
 
 func graphTermNode(g *model.Graph, tid int) (rdfNode, error) {
+	return graphTermNodeNested(g, tid, nil)
+}
+
+// graphTermNodeNested builds tid's RDF node with the triple terms it is nested
+// inside carried in open, so a self-reaching reifier binding terminates (§7.3).
+func graphTermNodeNested(g *model.Graph, tid int, open []int) (rdfNode, error) {
 	if g == nil || tid < 0 || tid >= len(g.Terms) {
 		return rdfNode{}, codecError("term id %d is out of range", tid)
+	}
+	if model.TermIsOpen(open, tid) {
+		return rdfNode{}, codecError("triple term %d resolves through itself", tid)
 	}
 	t := &g.Terms[tid]
 	switch t.Kind {
@@ -329,7 +349,7 @@ func graphTermNode(g *model.Graph, tid int) (rdfNode, error) {
 	case model.Literal:
 		datatype := ""
 		if t.Datatype != nil {
-			dt, err := graphTermNode(g, *t.Datatype)
+			dt, err := graphTermNodeNested(g, *t.Datatype, open)
 			if err != nil {
 				return rdfNode{}, err
 			}
@@ -340,23 +360,22 @@ func graphTermNode(g *model.Graph, tid int) (rdfNode, error) {
 		}
 		return literalNode(t.Value, t.Lang, t.Direction, datatype), nil
 	case model.Triple:
-		rid := tid
-		if t.Reifier != nil {
-			rid = *t.Reifier
-		}
-		spo, ok := g.Reifier(rid)
+		// §7.3 resolution order: the term's own "tt", else the first binding of
+		// its legacy reifier.
+		spo, ok := g.TripleOf(tid)
 		if !ok {
-			return rdfNode{}, codecError("triple term %d has no reifier binding", tid)
+			return rdfNode{}, codecError("triple term %d states no triple", tid)
 		}
-		s, err := graphTermNode(g, spo.S)
+		inner := model.OpenTerm(open, tid)
+		s, err := graphTermNodeNested(g, spo.S, inner)
 		if err != nil {
 			return rdfNode{}, err
 		}
-		p, err := graphTermNode(g, spo.P)
+		p, err := graphTermNodeNested(g, spo.P, inner)
 		if err != nil {
 			return rdfNode{}, err
 		}
-		o, err := graphTermNode(g, spo.O)
+		o, err := graphTermNodeNested(g, spo.O, inner)
 		if err != nil {
 			return rdfNode{}, err
 		}

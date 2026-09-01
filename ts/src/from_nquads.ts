@@ -298,20 +298,35 @@ class Interner {
 
     node(n: Node, reifiers: ReifierEntry[]): number {
         if (isAtom(n)) return this.atom(n.atom);
+        // A bare quoted triple as a quad component: intern as a SELF-DESCRIBING
+        // TRIPLE term carrying its own (s, p, o) (§7.3). An unreified triple
+        // term is a value, not a statement — it mints no reifier and emits no
+        // `reifies` row, so it round-trips as itself. Interning the components
+        // first also keeps every "tt" component id below the term's own id
+        // (§7.2 forward-reference rule).
         const s = this.node(n.triple.s, reifiers);
         const p = this.node(n.triple.p, reifiers);
         const o = this.node(n.triple.o, reifiers);
         const key = JSON.stringify(["triple", s, p, o]);
         const existing = this.ids.get(key);
         if (existing !== undefined) return existing;
-        const rid = this.terms.length;
-        this.terms.push({ kind: TermKind.Triple, value: "", reifier: rid });
-        this.ids.set(key, rid);
-        setReifier(reifiers, rid, { s, p, o });
-        return rid;
+        const tid = this.terms.length;
+        this.terms.push({
+            kind: TermKind.Triple,
+            value: "",
+            triple: { s, p, o },
+        });
+        this.ids.set(key, tid);
+        return tid;
     }
 }
 
+/** Record one `r rdf:reifies <<( s p o )>>` statement.
+ *
+ * `rdf:reifies` is NOT functional (RDF 1.2 / §7.3): `r rdf:reifies
+ * <<( s p o1 )>>` and `r rdf:reifies <<( s p o2 )>>` are both assertable and
+ * both survive. Only a byte-identical repeat collapses (§7.8).
+ */
 function setReifier(
     reifiers: ReifierEntry[],
     rid: number,
@@ -319,13 +334,14 @@ function setReifier(
     g?: number,
 ): void {
     for (const r of reifiers) {
-        if (r.rid === rid) {
-            if (r.spo.s !== spo.s || r.spo.p !== spo.p || r.spo.o !== spo.o) {
-                throw new NQuadsParseError(
-                    `conflicting rdf:reifies binding for reifier term ${rid}`,
-                );
-            }
-            if (r.g === g) return;
+        if (
+            r.rid === rid &&
+            r.spo.s === spo.s &&
+            r.spo.p === spo.p &&
+            r.spo.o === spo.o &&
+            r.g === g
+        ) {
+            return;
         }
     }
     reifiers.push({ rid, spo, ...(g !== undefined ? { g } : {}) });

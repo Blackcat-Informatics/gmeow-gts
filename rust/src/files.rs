@@ -188,6 +188,7 @@ impl TermBuilder {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         });
         self.ids.insert(key, id);
         id
@@ -224,6 +225,7 @@ fn iri_term(value: &str) -> crate::model::Term {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 
@@ -235,6 +237,7 @@ fn literal_term(value: &str, datatype: Option<usize>) -> crate::model::Term {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 
@@ -246,6 +249,7 @@ fn bnode_term(label: &str) -> crate::model::Term {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 

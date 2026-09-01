@@ -62,6 +62,22 @@ GtsReader class >> checkPositionsForQuad: row in: graph index: frameIndex [
 ]
 
 { #category : #private }
+GtsReader class >> checkPositionsForTripleTerm: spo in: graph index: frameIndex [
+	"§7.4 positions for a self-describing triple term's 'tt': the predicate MUST be an
+	IRI, the subject MUST NOT be a literal, and the object may be anything. A violating
+	'tt' is diagnosed and dropped."
+	| valid |
+	valid := ((graph termAtId: (spo at: 2)) kind = #iri)
+		and: [ (graph termAtId: (spo at: 1)) kind ~= #literal ].
+	valid ifFalse: [
+		graph addDiagnostic: (GtsDiagnostic
+			code: 'PositionConstraint'
+			detail: 'triple term tt violates term positions'
+			frameIndex: frameIndex) ].
+	^ valid
+]
+
+{ #category : #private }
 GtsReader class >> checkPositionsForReifier: row in: graph index: frameIndex [
 	| graphId object predicate subject termCount valid |
 	subject := row at: 2.
@@ -306,7 +322,7 @@ GtsReader class >> foldReifies: payload into: graph index: frameIndex [
 			frameIndex: frameIndex).
 		^ self ].
 	payload do: [ :row |
-		| badIds existing graphId object predicate reifier subject termCount |
+		| badIds graphId object predicate reifier subject termCount |
 		(row isArray and: [ (row size = 4) or: [ (row size = 5) ] ]) ifTrue: [
 			reifier := self asIndex: (row at: 1).
 			subject := self asIndex: (row at: 2).
@@ -332,20 +348,44 @@ GtsReader class >> foldReifies: payload into: graph index: frameIndex [
 						detail: 'reifies row has bad/out-of-range ids'
 						frameIndex: frameIndex) ]
 				ifFalse: [
-					existing := graph reifierFor: reifier.
-					(existing notNil and: [ existing ~= { subject. predicate. object } ])
+					"§7.3: rdf:reifies is NOT functional. Several triples may be bound to one
+					reifier id and each row keeps its own graph slot; only byte-identical rows
+					collapse (§7.8). No row is ever dropped or reordered here."
+					(self checkPositionsForReifier: row in: graph index: frameIndex)
 						ifTrue: [
-							graph addDiagnostic: (GtsDiagnostic
-								code: 'ConflictingReifier'
-								detail: 'reifier rebound'
-								frameIndex: frameIndex) ]
-						ifFalse: [
-							(self checkPositionsForReifier: row in: graph index: frameIndex)
-								ifTrue: [
-									graph
-										setReifier: reifier
-										to: { subject. predicate. object }
-										graph: graphId ] ] ] ] ]
+							graph
+								setReifier: reifier
+								to: { subject. predicate. object }
+								graph: graphId ] ] ] ]
+	]
+
+{ #category : #folding }
+GtsReader class >> checkConflictingReifiersIn: graph [
+	"Diagnose the one incoherent shape that survives §7.3, in place.
+
+	rdf:reifies is not functional, so a reifier id bound to several triples is ordinary
+	RDF 1.2 and is NOT a conflict. The single remaining incoherence is a 'tt'-less
+	(legacy indirect) quoted-triple TERM whose reifier id binds MORE THAN ONE distinct
+	triple: the file is asking for one term with two meanings. ConflictingReifier is
+	reported once per offending term; NO reifier row is dropped, and the term keeps
+	resolving to the first binding in file order.
+
+	Runs on a fold that is about to be handed to a consumer (a whole read, or one
+	segment of a per-segment read), never twice over the same terms."
+	graph terms withIndexDo: [ :term :oneBasedIndex |
+		| bindings |
+		(term kind = #triple
+			and: [ term triple isNil
+			and: [ term reifier notNil ] ]) ifTrue: [
+				bindings := graph reifierTriplesFor: term reifier.
+				bindings size > 1 ifTrue: [
+					graph addDiagnostic: (GtsDiagnostic
+						code: 'ConflictingReifier'
+						detail: 'legacy triple term ', (oneBasedIndex - 1) asString,
+							' resolves through reifier ', term reifier asString,
+							', which binds ', bindings size asString,
+							' distinct triples; state the triple with tt (§7.3)'
+						frameIndex: nil) ] ] ]
 	]
 
 { #category : #folding }
@@ -402,7 +442,7 @@ GtsReader class >> foldSuppress: payload into: graph [
 
 { #category : #folding }
 GtsReader class >> foldTerm: termMap into: graph index: frameIndex [
-	| datatype datatypeRaw direction kind language reifier reifierRaw termId value |
+	| datatype datatypeRaw direction kind language reifier reifierRaw termId triple value |
 	termMap isDictionary ifFalse: [ ^ self ].
 	kind := termMap at: 'k' ifAbsent: [ 0 ].
 	value := termMap at: 'v' ifAbsent: [ '' ].
@@ -420,7 +460,17 @@ GtsReader class >> foldTerm: termMap into: graph index: frameIndex [
 	kind = 2 ifTrue: [
 		^ graph addTerm: (GtsTerm blankNode: value) ].
 	kind = 3 ifTrue: [
-		^ graph addTerm: (GtsTerm tripleReifier: reifier) ].
+		"§7.3: 'tt' states the triple term's OWN components and is authoritative;
+		'rf' survives as the legacy fallback."
+		triple := self
+			sanitizeTripleComponents: (termMap at: 'tt' ifAbsent: [ nil ])
+			before: termId
+			index: frameIndex
+			graph: graph.
+		triple ifNotNil: [
+			(self checkPositionsForTripleTerm: triple in: graph index: frameIndex)
+				ifFalse: [ triple := nil ] ].
+		^ graph addTerm: (GtsTerm tripleComponents: triple reifier: reifier) ].
 	graph addTerm: (GtsTerm iri: value)
 ]
 
@@ -496,8 +546,21 @@ GtsReader class >> layoutCheckHeader: header graph: graph indexRecords: indexRec
 
 { #category : #union }
 GtsReader class >> mapTerm: termId from: segment segmentIndex: segmentIndex into: output intern: intern [
-	| datatype key mapped reifier term value |
-	key := self termKeyFor: termId in: segment segmentIndex: segmentIndex output: output intern: intern.
+	"Map one segment-local term id into the union, starting a fresh resolution chain."
+	^ self
+		mapTerm: termId
+		from: segment
+		segmentIndex: segmentIndex
+		into: output
+		intern: intern
+		resolving: Set new
+]
+
+{ #category : #union }
+GtsReader class >> mapTerm: termId from: segment segmentIndex: segmentIndex into: output intern: intern resolving: resolving [
+	"`resolving` holds the terms whose identity is currently being computed (§7.3)."
+	| datatype key mapped reifier term triple value |
+	key := self termKeyFor: termId in: segment segmentIndex: segmentIndex output: output intern: intern resolving: resolving.
 	(intern includesKey: key) ifTrue: [ ^ intern at: key ].
 	term := segment termAtId: termId.
 	datatype := term datatype ifNotNil: [
@@ -506,14 +569,26 @@ GtsReader class >> mapTerm: termId from: segment segmentIndex: segmentIndex into
 			from: segment
 			segmentIndex: segmentIndex
 			into: output
-			intern: intern ].
+			intern: intern
+			resolving: resolving ].
 	reifier := term reifier ifNotNil: [
 		self
 			mapTerm: term reifier
 			from: segment
 			segmentIndex: segmentIndex
 			into: output
-			intern: intern ].
+			intern: intern
+			resolving: resolving ].
+	triple := term triple ifNotNil: [ :spo |
+		spo collect: [ :componentId |
+			self
+				mapTerm: componentId
+				from: segment
+				segmentIndex: segmentIndex
+				into: output
+				intern: intern
+				resolving: resolving ] ].
+	"Computed after dt/rf/tt mapping so `output terms size` IS this term's id."
 	value := term value.
 	term kind = #blankNode ifTrue: [
 		(value notNil and: [ value isEmpty not ])
@@ -526,7 +601,7 @@ GtsReader class >> mapTerm: termId from: segment segmentIndex: segmentIndex into
 				ifTrue: [ output addTerm: (GtsTerm blankNode: value) ]
 				ifFalse: [
 					term kind = #triple
-						ifTrue: [ output addTerm: (GtsTerm tripleReifier: reifier) ]
+						ifTrue: [ output addTerm: (GtsTerm tripleComponents: triple reifier: reifier) ]
 						ifFalse: [ output addTerm: (GtsTerm iri: value) ] ] ].
 	mapped := output terms size - 1.
 	intern at: key put: mapped.
@@ -606,12 +681,18 @@ GtsReader class >> read: aByteArray allowSegments: allowSegments [
 	((bounds size > 1) and: [ allowSegments not ]) ifTrue: [
 		firstBoundary := bounds second.
 		graph := self readSegment: (items copyFrom: 1 to: firstBoundary - 1) indexOffset: 0.
+		self checkConflictingReifiersIn: graph.
 		graph addDiagnostic: (GtsDiagnostic
 			code: 'SegmentBoundary'
 			detail: 'segment boundary but reader is in pre-segment mode'
 			frameIndex: firstBoundary - 1).
 		^ graph ].
 	graph := self readSegments: items bounds: bounds.
+	"§7.3: a reifier binding many triples is legal, so the surviving conflict shape is
+	only decidable once the whole fold (union included) is complete — a legacy triple
+	term may precede, or live in another segment from, the reifies rows that over-bind
+	its reifier."
+	self checkConflictingReifiersIn: graph.
 	torn ifTrue: [
 		graph addDiagnostic: (GtsDiagnostic code: 'TornAppendError' detail: 'torn append' frameIndex: nil) ].
 	^ graph
@@ -768,6 +849,26 @@ GtsReader class >> sanitizeTermReference: value before: termId index: frameIndex
 ]
 
 { #category : #folding }
+GtsReader class >> sanitizeTripleComponents: value before: termId index: frameIndex graph: graph [
+	"Each 'tt' component MUST name an already-introduced term, exactly like 'dt'/'rf'
+	(§7.5). A forward or out-of-range component drops the WHOLE 'tt', so the term
+	degrades to its 'rf' fallback, or stays unbound."
+	| inRange |
+	value ifNil: [ ^ nil ].
+	((value isArray or: [ value isCollection and: [ value isString not ] ])
+		and: [ value size = 3
+		and: [ value allSatisfy: [ :each | each isInteger ] ] ])
+		ifFalse: [ ^ nil ].
+	inRange := value allSatisfy: [ :each | each >= 0 and: [ each < termId ] ].
+	inRange ifTrue: [ ^ value asArray ].
+	graph addDiagnostic: (GtsDiagnostic
+		code: 'ForwardReference'
+		detail: 'triple term tt has an out-of-range ref'
+		frameIndex: frameIndex).
+	^ nil
+]
+
+{ #category : #folding }
 GtsReader class >> shiftedRow: row by: base [
 	row isArray ifFalse: [ ^ row ].
 	^ row collect: [ :each | self shiftedValue: each by: base ]
@@ -775,13 +876,18 @@ GtsReader class >> shiftedRow: row by: base [
 
 { #category : #folding }
 GtsReader class >> shiftedTermMap: termMap by: base [
+	"A snapshot's local term ids are shifted into the enclosing segment's id space;
+	each 'tt' component shifts alongside 'dt'/'rf' (§7.3)."
 	| shifted |
 	termMap isDictionary ifFalse: [ ^ termMap ].
 	shifted := Dictionary new.
 	termMap associationsDo: [ :association |
-		((association key = 'dt') or: [ association key = 'rf' ])
-			ifTrue: [ shifted at: association key put: (self shiftedValue: association value by: base) ]
-			ifFalse: [ shifted at: association key put: association value ] ].
+		association key = 'tt'
+			ifTrue: [ shifted at: 'tt' put: (self shiftedRow: association value by: base) ]
+			ifFalse: [
+				((association key = 'dt') or: [ association key = 'rf' ])
+					ifTrue: [ shifted at: association key put: (self shiftedValue: association value by: base) ]
+					ifFalse: [ shifted at: association key put: association value ] ] ].
 	^ shifted
 ]
 
@@ -792,8 +898,8 @@ GtsReader class >> shiftedValue: value by: base [
 ]
 
 { #category : #union }
-GtsReader class >> termKeyFor: termId in: segment segmentIndex: segmentIndex output: output intern: intern [
-	| datatype term |
+GtsReader class >> termKeyFor: termId in: segment segmentIndex: segmentIndex output: output intern: intern resolving: resolving [
+	| datatype mapped resolved self0 term |
 	term := segment termAtId: termId.
 	term kind = #iri ifTrue: [ ^ 'iri|', term value ].
 	term kind = #literal ifTrue: [
@@ -804,10 +910,33 @@ GtsReader class >> termKeyFor: termId in: segment segmentIndex: segmentIndex out
 			ifTrue: [ ^ 'bnode|', segmentIndex asString, '|', term value ].
 		^ 'bnode-anon|', segmentIndex asString, '|', termId asString ].
 	term kind = #triple ifTrue: [
-		^ 'triple|', (term reifier
-			ifNil: [ -1 ]
-			ifNotNil: [ :reifier |
-				self mapTerm: reifier from: segment segmentIndex: segmentIndex into: output intern: intern ]) asString ].
+		"§7.3/§7.8: identity is the RESOLVED (s p o) — the term's own 'tt' when it has
+		one, else the first binding of its legacy reifier — under ONE key tag. Triple-term
+		equality IS equality of the resolved subject, predicate and object, so a 'tt' term
+		and a legacy 'tt'-less term resolving to the same triple are the same term. Keying
+		on the resolution rather than on the reifier id is what keeps two DISTINCT triple
+		terms that share one reifier id distinct through the union.
+
+		A `reifies` row may name the very term that resolves through it — `(0, (2 1 1))`
+		alongside term `2 = k:3 rf=0` is constructible on the wire — so resolving an
+		identity can reach the term itself. Interning MUST terminate (§7.3): a
+		self-reaching term gets its own per-term sentinel identity instead of recursing,
+		which cannot change the result for any input that terminates without it."
+		self0 := segmentIndex asString, '|', termId asString.
+		(resolving includes: self0) ifTrue: [ ^ 'triple-self-reaching|', self0 ].
+		resolved := segment tripleForTermId: termId.
+		resolved ifNil: [ ^ 'triple|unresolvable' ].
+		resolving add: self0.
+		mapped := [ resolved collect: [ :componentId |
+			self
+				mapTerm: componentId
+				from: segment
+				segmentIndex: segmentIndex
+				into: output
+				intern: intern
+				resolving: resolving ] ]
+			ensure: [ resolving remove: self0 ifAbsent: [ nil ] ].
+		^ 'triple|', (mapped at: 1) asString, '|', (mapped at: 2) asString, '|', (mapped at: 3) asString ].
 	^ 'unknown|', termId asString
 ]
 

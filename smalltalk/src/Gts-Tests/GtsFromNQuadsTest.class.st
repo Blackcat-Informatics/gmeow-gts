@@ -90,6 +90,31 @@ GtsFromNQuadsTest >> testFromNQuadsQuotedTripleReifierRoundTrip [
 ]
 
 { #category : #tests }
+GtsFromNQuadsTest >> testUnreifiedTripleTermRoundTripsAsItself [
+	| graph nquads quoted |
+	nquads := '<https://ex/s> <https://ex/p> <<( <https://ex/a> <https://ex/b> <https://ex/c> )>> .', String lf.
+	graph := GtsReader read: (GtsFromNQuads fromString: nquads).
+	self assert: graph diagnostics isEmpty.
+	self assert: graph reifiers isEmpty.
+	quoted := graph terms detect: [ :term | term kind = #triple ].
+	self assert: quoted reifier isNil.
+	self assert: quoted triple notNil.
+	self assert: (GtsNQuads toNQuads: graph) equals: nquads
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testFromNQuadsKeepsBothBindingsOfOneReifier [
+	| graph nquads rdfReifies |
+	rdfReifies := 'http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies'.
+	nquads := '<https://ex/r> <', rdfReifies, '> <<( <https://ex/s> <https://ex/p> "Cat"@en )>> .', String lf,
+		'<https://ex/r> <', rdfReifies, '> <<( <https://ex/s> <https://ex/p> "Chat"@fr )>> .', String lf.
+	graph := GtsReader read: (GtsFromNQuads fromString: nquads).
+	self assert: graph diagnostics isEmpty.
+	self assert: graph reifiers size equals: 2.
+	self assert: (self sortedLines: (GtsNQuads toNQuads: graph)) equals: (self sortedLines: nquads)
+]
+
+{ #category : #tests }
 GtsFromNQuadsTest >> testFromNQuadsRejectsMalformedStatements [
 	self
 		should: [ GtsFromNQuads fromString: '<https://ex/s> <https://ex/p> .', String lf ]

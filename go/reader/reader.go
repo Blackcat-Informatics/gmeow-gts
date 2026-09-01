@@ -14,42 +14,6 @@ import (
 	"go.blackcatinformatics.ca/gts/wire"
 )
 
-// asInt64 coerces a decoded CBOR value to int64.
-func asInt64(v interface{}) (int64, bool) {
-	return wire.AsInt64(v)
-}
-
-// asIdx coerces a decoded CBOR value to a non-negative int (term index).
-func asIdx(v interface{}) (int, bool) {
-	return wire.AsInt(v)
-}
-
-// asText coerces a decoded CBOR value to a string.
-func asText(v interface{}) (string, bool) {
-	return wire.AsText(v)
-}
-
-// textOr returns a text value or a default.
-func textOr(v interface{}, def string) string {
-	return wire.TextOr(v, def)
-}
-
-// fmtOpt formats an optional graph slot for diagnostics.
-func fmtOpt(g *int) string {
-	if g == nil {
-		return "None"
-	}
-	return fmt.Sprintf("%d", *g)
-}
-
-// diagCodeFor maps a codec failure reason to a diagnostic code.
-func diagCodeFor(reason string) string {
-	if reason == "missing-key" {
-		return "MissingKey"
-	}
-	return "UnknownCodec"
-}
-
 type payloadError struct {
 	unavailable bool
 	reason      string
@@ -300,6 +264,7 @@ func Read(data []byte, allowSegments bool, expectedHead []byte) *model.Graph {
 
 	if len(bounds) > 1 && !allowSegments {
 		g = readSegment(items[:bounds[1]], 0)
+		checkConflictingReifiers(g)
 		idx := bounds[1]
 		g.Diagnostics = append(g.Diagnostics, model.Diagnostic{
 			Code:       "SegmentBoundary",
@@ -323,6 +288,11 @@ func Read(data []byte, allowSegments bool, expectedHead []byte) *model.Graph {
 	} else {
 		g = unionSegments(folded)
 	}
+	// §7.3: a reifier binding many triples is legal, so the surviving conflict
+	// shape is only decidable once the whole fold (union included) is complete —
+	// a legacy triple term may precede, or live in another segment from, the
+	// reifies rows that over-bind its reifier.
+	checkConflictingReifiers(g)
 
 	if expectedHead != nil {
 		var lastHead []byte
@@ -401,7 +371,12 @@ func ReadFileSegments(data []byte) *FileSegments {
 		if i+1 < len(bounds) {
 			b = bounds[i+1]
 		}
-		segments = append(segments, readSegment(items[a:b], a))
+		seg := readSegment(items[a:b], a)
+		// A per-segment read hands each segment to the consumer on its own, so
+		// the §7.3 conflict check runs once per segment (never on a union that
+		// this entry point does not build).
+		checkConflictingReifiers(seg)
+		segments = append(segments, seg)
 	}
 	return &FileSegments{Segments: segments, Torn: torn}
 }

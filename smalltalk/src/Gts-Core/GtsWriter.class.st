@@ -210,6 +210,8 @@ GtsWriter >> wireTermFor: term [
 				ifTrue: [ fields at: 'dir' put: term direction ]
 				ifFalse: [ self error: 'literal direction must be ltr or rtl' ] ].
 	term reifier ifNotNil: [ fields at: 'rf' put: term reifier ].
+	"§7.3: a triple term states its OWN (s p o). Authoritative on read."
+	term triple ifNotNil: [ :spo | fields at: 'tt' put: spo asArray ].
 	^ fields
 ]
 

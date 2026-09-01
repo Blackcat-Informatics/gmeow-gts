@@ -103,27 +103,30 @@ impl Interner {
             lang,
             direction,
             reifier: None,
+            triple: None,
         });
         self.ids.insert(key, id);
         id
     }
 
-    fn triple(&mut self, statement: Triple3, reifiers: &mut Vec<ReifierRow>) -> usize {
+    fn triple(&mut self, statement: Triple3) -> usize {
         let key = TermKey::Triple(statement.0, statement.1, statement.2);
         if let Some(id) = self.ids.get(&key) {
             return *id;
         }
         let id = self.terms.len();
+        // §7.3: a triple TERM is a self-describing value — it states its own
+        // (s, p, o) and mints no reifier and no `reifies` row.
         self.terms.push(Term {
             kind: TermKind::Triple,
             value: None,
             datatype: None,
             lang: None,
             direction: None,
-            reifier: Some(id),
+            reifier: None,
+            triple: Some(statement),
         });
         self.ids.insert(key, id);
-        set_reifier(reifiers, id, statement, None);
         id
     }
 
@@ -553,7 +556,7 @@ fn parse_term(
             }
             if let Some(triple) = map.get(GTS_TRIPLE) {
                 let statement = parse_triple(triple, &scoped_context, interner, reifiers)?;
-                return Ok(interner.triple(statement, reifiers));
+                return Ok(interner.triple(statement));
             }
             Err(YamlLdParseError::new(
                 "term object must contain @id, @value, or gts:triple",

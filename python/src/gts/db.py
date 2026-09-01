@@ -24,7 +24,8 @@ if TYPE_CHECKING:
 _SCHEMA = [
     (
         "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT,"
-        + " datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER)"
+        + " datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER,"
+        + " tt_s INTEGER, tt_p INTEGER, tt_o INTEGER)"
     ),
     "CREATE TABLE quads (s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
     (
@@ -46,7 +47,7 @@ _INDEXES = [
 
 # (table, INSERT statement) in dependency-free order.
 _INSERTS = [
-    ("terms", "INSERT INTO terms VALUES (?,?,?,?,?,?,?)"),
+    ("terms", "INSERT INTO terms VALUES (?,?,?,?,?,?,?,?,?,?)"),
     ("quads", "INSERT INTO quads VALUES (?,?,?,?)"),
     ("reifiers", "INSERT INTO reifiers VALUES (?,?,?,?,?)"),
     ("annotations", "INSERT INTO annotations VALUES (?,?,?,?)"),
@@ -64,8 +65,19 @@ class _Conn(Protocol):
 def _rows(graph: Graph) -> dict[str, list[tuple[object, ...]]]:
     """Project the folded graph into per-table id-valued rows."""
     return {
+        # `tt_s`/`tt_p`/`tt_o` carry a triple term's OWN components (wire
+        # `"tt"`, §7.3); `reifier` stays for legacy `"tt"`-less terms.
         "terms": [
-            (i, int(t.kind), t.value, t.datatype, t.lang, t.direction, t.reifier)
+            (
+                i,
+                int(t.kind),
+                t.value,
+                t.datatype,
+                t.lang,
+                t.direction,
+                t.reifier,
+                *(t.triple if t.triple is not None else (None, None, None)),
+            )
             for i, t in enumerate(graph.terms)
         ],
         "quads": [(s, p, o, g) for s, p, o, g in graph.quads],

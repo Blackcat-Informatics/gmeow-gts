@@ -678,7 +678,7 @@ fn write_terms(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result
     for (id, term) in graph.terms.iter().enumerate() {
         writeln!(
             out,
-            "{{{}\"id\":{},\"kind\":{},\"value\":{},\"datatype\":{},\"lang\":{},\"direction\":{},\"reifier\":{}}}",
+            "{{{}\"id\":{},\"kind\":{},\"value\":{},\"datatype\":{},\"lang\":{},\"direction\":{},\"reifier\":{},\"tt\":{}}}",
             frame_prefix(frame_index),
             id,
             json_string(term_kind_name(term.kind)),
@@ -686,7 +686,13 @@ fn write_terms(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Result
             json_optional_usize(term.datatype),
             json_optional_string(term.lang.as_deref()),
             json_optional_string(term.direction.as_deref()),
-            json_optional_usize(term.reifier)
+            json_optional_usize(term.reifier),
+            // The triple term's OWN (s, p, o) (wire "tt", §7.3), authoritative
+            // over the legacy `reifier` indirection beside it.
+            term.triple.map_or_else(
+                || "null".to_string(),
+                |(s, p, o)| format!("[{s},{p},{o}]"),
+            )
         )?;
     }
     Ok(())

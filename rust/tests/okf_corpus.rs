@@ -159,6 +159,7 @@ fn okf_corpus_unmapped_sidecar_is_pinned() {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     });
     let object = graph.terms.len();
     graph.terms.push(Term {
@@ -168,6 +169,7 @@ fn okf_corpus_unmapped_sidecar_is_pinned() {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     });
     graph.quads.push((subject, predicate, object, None));
 

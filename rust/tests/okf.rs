@@ -322,6 +322,7 @@ fn to_okf_writes_unmapped_sidecar_instead_of_dropping_rdf() {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     });
     let object = graph.terms.len();
     graph.terms.push(Term {
@@ -331,6 +332,7 @@ fn to_okf_writes_unmapped_sidecar_instead_of_dropping_rdf() {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     });
     graph.quads.push((subject, predicate, object, None));
 

@@ -44,8 +44,20 @@ export interface Term {
     lang?: string;
     /** RDF 1.2 initial text direction for language-tagged literals. */
     direction?: LiteralDirection;
-    /** Term-id of the reifier of a quoted triple (kind == Triple). */
+    /** Term-id of the reifier of a quoted triple (kind == Triple).
+     *
+     * LEGACY indirection (wire `"rf"`), retained for files written before the
+     * self-describing form; superseded by `triple` when both are present
+     * (§7.3).
+     */
     reifier?: number;
+    /** The quoted triple's OWN (s, p, o) term-ids (wire `"tt"`).
+     *
+     * AUTHORITATIVE when present. Because `rdf:reifies` is not functional
+     * (§7.3), a reifier id cannot identify a triple; a triple term therefore
+     * carries its own components.
+     */
+    triple?: Triple;
 }
 
 /** A tuple of term-ids; the graph slot is undefined for the default graph. */
@@ -182,7 +194,13 @@ export class Graph {
      *  accretive tail. */
     segmentStreamable: StreamableInfo[] = [];
 
-    /** Look up a reifier binding. */
+    /** Return the FIRST folded triple binding for `rid`, if present.
+     *
+     * `rdf:reifies` is not functional (§7.3), so a reifier may bind several
+     * triples. This accessor is the legacy single-valued view used only to
+     * resolve a `"tt"`-less triple term; use `reifierTriples` for the full
+     * multi-valued statement layer.
+     */
     reifier(rid: number): Triple | undefined {
         for (const r of this.reifiers) {
             if (r.rid === rid) return r.spo;
@@ -190,7 +208,37 @@ export class Graph {
         return undefined;
     }
 
-    /** Record a reifier row unless the identical row is already present. */
+    /** Return every DISTINCT triple bound to `rid`, in file order (§7.3). */
+    reifierTriples(rid: number): Triple[] {
+        const out: Triple[] = [];
+        for (const r of this.reifiers) {
+            if (r.rid !== rid) continue;
+            if (out.some((seen) => sameTriple(seen, r.spo))) continue;
+            out.push(r.spo);
+        }
+        return out;
+    }
+
+    /** Resolve the (s, p, o) a quoted-triple term denotes (§7.3).
+     *
+     * The term's own `triple` (wire `"tt"`) is authoritative. A legacy
+     * `"tt"`-less term falls back to the FIRST binding of its reifier so
+     * pre-`"tt"` files keep reading exactly as they did.
+     */
+    tripleOf(termId: number): Triple | undefined {
+        const t = this.terms[termId];
+        if (!t) return undefined;
+        if (t.triple !== undefined) return t.triple;
+        if (t.reifier !== undefined) return this.reifier(t.reifier);
+        return undefined;
+    }
+
+    /** Append a reifier row unless the identical row is already present.
+     *
+     * The `reifies` frame is a MULTI-VALUED statement layer: distinct triples
+     * on one reifier id all survive, each keeping its own graph slot. Only
+     * byte-identical rows collapse (§7.8 set semantics).
+     */
     setReifier(rid: number, spo: Triple, g?: number): void {
         for (const r of this.reifiers) {
             if (r.rid === rid && sameTriple(r.spo, spo) && r.g === g) {
@@ -247,4 +295,45 @@ export class Graph {
         }
         return XSD_STRING;
     }
+}
+
+/** Diagnose the one incoherent shape that survives §7.3, in place.
+ *
+ * `rdf:reifies` is not functional, so a reifier id bound to several triples is
+ * ordinary RDF 1.2 and is NOT a conflict. The single remaining incoherence is a
+ * `"tt"`-less (legacy indirect) quoted-triple TERM whose reifier id binds MORE
+ * THAN ONE distinct triple: the file is asking for one term with two meanings.
+ * `ConflictingReifier` is reported once per offending term; NO reifier row is
+ * dropped, and the term keeps resolving to the first binding in file order so
+ * the rendering of legacy files never changes.
+ *
+ * Runs on a fold that is about to be handed to a consumer (a whole read, or one
+ * segment of a per-segment read), never twice over the same terms. The
+ * diagnostic carries no frame index: the shape is a property of the completed
+ * fold, not of any one frame.
+ *
+ * Returns the diagnostics it appended, so a progressive reader can republish
+ * them to its event sink.
+ */
+export function checkConflictingReifiers(g: Graph): Diagnostic[] {
+    const added: Diagnostic[] = [];
+    for (let tid = 0; tid < g.terms.length; tid++) {
+        const term = g.terms[tid];
+        if (term.kind !== TermKind.Triple || term.triple !== undefined) {
+            continue;
+        }
+        if (term.reifier === undefined) continue;
+        const bindings = g.reifierTriples(term.reifier);
+        if (bindings.length <= 1) continue;
+        const diagnostic: Diagnostic = {
+            code: "ConflictingReifier",
+            detail:
+                `legacy triple term ${tid} resolves through reifier ` +
+                `${term.reifier}, which binds ${bindings.length} distinct ` +
+                "triples; state the triple with 'tt' (§7.3)",
+        };
+        g.diagnostics.push(diagnostic);
+        added.push(diagnostic);
+    }
+    return added;
 }

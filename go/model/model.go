@@ -31,7 +31,9 @@ const (
 	Literal
 	// Bnode is a scope-local blank node label.
 	Bnode
-	// Triple is a quoted triple (RDF 1.2 triple term) carried by reifier id.
+	// Triple is a quoted triple (RDF 1.2 triple term). It states its own
+	// (s, p, o) in Term.Triple (wire "tt"); Term.Reifier (wire "rf") is the
+	// legacy indirection kept only so pre-"tt" files read unchanged (§7.3).
 	Triple
 )
 
@@ -62,7 +64,16 @@ type Term struct {
 	// RDF 1.2 initial text direction for language-tagged literals.
 	Direction string
 	// Term-id of the reifier of a quoted triple (kind == Triple).
+	//
+	// LEGACY indirection (wire "rf"), retained for files written before the
+	// self-describing form; superseded by Triple when both are present (§7.3).
 	Reifier *int
+	// The quoted triple's OWN (s, p, o) term-ids (wire "tt").
+	//
+	// AUTHORITATIVE when present. Because rdf:reifies is not functional
+	// (§7.3), a reifier id cannot identify a triple; a triple term therefore
+	// carries its own components.
+	Triple *Triple3
 }
 
 // Quad is a tuple of term-ids; the graph slot is nil for the default graph.
@@ -187,7 +198,12 @@ type Graph struct {
 	SegmentStreamable []StreamableInfo
 }
 
-// Reifier looks up a reifier binding.
+// Reifier returns the FIRST folded triple binding for rid, if present.
+//
+// rdf:reifies is not functional (§7.3), so a reifier may bind several triples.
+// This accessor is the legacy single-valued view used only to resolve a
+// "tt"-less triple term; use ReifierTriples for the full multi-valued
+// statement layer.
 func (g *Graph) Reifier(rid int) (Triple3, bool) {
 	for _, r := range g.Reifiers {
 		if r.RID == rid {
@@ -197,7 +213,77 @@ func (g *Graph) Reifier(rid int) (Triple3, bool) {
 	return Triple3{}, false
 }
 
+// ReifierTriples returns every DISTINCT triple bound to rid, in file order (§7.3).
+func (g *Graph) ReifierTriples(rid int) []Triple3 {
+	out := []Triple3{}
+	for _, r := range g.Reifiers {
+		if r.RID != rid {
+			continue
+		}
+		seen := false
+		for _, existing := range out {
+			if existing == r.SPO {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			out = append(out, r.SPO)
+		}
+	}
+	return out
+}
+
+// TripleOf resolves the (s, p, o) a quoted-triple term denotes (§7.3).
+//
+// The term's own Triple (wire "tt") is authoritative. A legacy "tt"-less term
+// falls back to the FIRST binding of its reifier so pre-"tt" files keep
+// reading exactly as they did.
+func (g *Graph) TripleOf(termID int) (Triple3, bool) {
+	if termID < 0 || termID >= len(g.Terms) {
+		return Triple3{}, false
+	}
+	t := &g.Terms[termID]
+	if t.Triple != nil {
+		return *t.Triple, true
+	}
+	if t.Reifier != nil {
+		return g.Reifier(*t.Reifier)
+	}
+	return Triple3{}, false
+}
+
+// TermIsOpen reports whether termID is already being resolved in open.
+//
+// A reifies row MAY name the very term that resolves through it — the row
+// (R, T, P, O) alongside a term T that is k:3 with "rf": R is constructible on
+// the wire — so anything that walks a triple term's components MUST carry the
+// terms it has entered and MUST NOT re-enter one (§7.3, "resolution MUST
+// terminate"). A self-reaching term is then treated as stating no triple.
+func TermIsOpen(open []int, termID int) bool {
+	for _, entered := range open {
+		if entered == termID {
+			return true
+		}
+	}
+	return false
+}
+
+// OpenTerm returns open extended with termID, without aliasing open.
+//
+// Sibling components must not observe each other's descent, so the slice is
+// copied rather than appended in place.
+func OpenTerm(open []int, termID int) []int {
+	inner := make([]int, len(open), len(open)+1)
+	copy(inner, open)
+	return append(inner, termID)
+}
+
 // SetReifier records a reifier row unless the identical row is already present.
+//
+// The reifies frame is a MULTI-VALUED statement layer: distinct triples on one
+// reifier id all survive, each keeping its own graph slot. Only byte-identical
+// rows collapse (§7.8 set semantics).
 func (g *Graph) SetReifier(rid int, spo Triple3, graph *int) {
 	for _, r := range g.Reifiers {
 		if r.RID == rid && r.SPO == spo && sameOptionalInt(r.G, graph) {

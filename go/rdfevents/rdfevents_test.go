@@ -314,7 +314,9 @@ func TestGraphSinkRejectsEventsAfterEndScope(t *testing.T) {
 	}
 }
 
-func TestGraphSinkMaterializesImplicitTripleTermReifier(t *testing.T) {
+// A triple term event without a reifier materializes as a SELF-DESCRIBING
+// term (§7.3): it carries its own (s, p, o) and mints no reifier row.
+func TestGraphSinkMaterializesUnreifiedTripleTermAsSelfDescribing(t *testing.T) {
 	sink := NewGraphSink()
 	if err := sink.StartScope(0); err != nil {
 		t.Fatal(err)
@@ -339,8 +341,14 @@ func TestGraphSinkMaterializesImplicitTripleTermReifier(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if triple, ok := graph.Reifier(3); !ok || triple != (model.Triple3{S: 0, P: 1, O: 2}) {
-		t.Fatalf("implicit reifier = %#v, %v", triple, ok)
+	if len(graph.Reifiers) != 0 {
+		t.Fatalf("reifier rows = %#v, want none minted for an unreified triple term", graph.Reifiers)
+	}
+	if got := graph.Terms[3].Reifier; got != nil {
+		t.Fatalf("term reifier = %v, want nil", *got)
+	}
+	if triple, ok := graph.TripleOf(3); !ok || triple != (model.Triple3{S: 0, P: 1, O: 2}) {
+		t.Fatalf("TripleOf(3) = %#v, %v", triple, ok)
 	}
 }
 
@@ -354,5 +362,96 @@ func TestEventSourceRejectsUnresolvableTripleTerm(t *testing.T) {
 	err := NewGraphSource(graph).Drive(NopSink{})
 	if !IsKind(err, ErrorInvalidSource) {
 		t.Fatalf("error = %v, want %s", err, ErrorInvalidSource)
+	}
+}
+
+// A self-describing triple term (§7.3) survives the event round trip intact:
+// it keeps its own (s, p, o), grows no reifier, and the projection is stable.
+func TestEventRoundTripPreservesSelfDescribingTripleTerm(t *testing.T) {
+	graph := &model.Graph{
+		Terms: []model.Term{
+			{Kind: model.Iri, Value: "https://ex/s"},
+			{Kind: model.Iri, Value: "https://ex/p"},
+			{Kind: model.Literal, Value: "Cat", Lang: "en"},
+			{Kind: model.Iri, Value: "https://ex/says"},
+			{Kind: model.Triple, Triple: &model.Triple3{S: 0, P: 1, O: 2}},
+		},
+		Quads: []model.Quad{{S: 0, P: 3, O: 4}},
+	}
+
+	sink := NewGraphSink()
+	if err := NewGraphSource(graph).Drive(sink); err != nil {
+		t.Fatal(err)
+	}
+	got, err := sink.Graph()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Reifiers) != 0 {
+		t.Fatalf("reifier rows = %#v, want none minted", got.Reifiers)
+	}
+	if got.Terms[4].Triple == nil || *got.Terms[4].Triple != (model.Triple3{S: 0, P: 1, O: 2}) {
+		t.Fatalf("triple term 'tt' = %#v, want (0,1,2)", got.Terms[4].Triple)
+	}
+	if want := sortedNQuads(nquads.ToNQuads(graph)); sortedNQuads(nquads.ToNQuads(got)) != want {
+		t.Fatalf("projection changed\ngot:\n%s\nwant:\n%s", sortedNQuads(nquads.ToNQuads(got)), want)
+	}
+}
+
+// §7.3: rdf:reifies is not functional, so several Reifier events on one id are
+// legal and every row survives the event round trip.
+func TestEventRoundTripKeepsMultiValuedReifier(t *testing.T) {
+	graph := &model.Graph{
+		Terms: []model.Term{
+			{Kind: model.Iri, Value: "https://ex/r1"},
+			{Kind: model.Iri, Value: "https://ex/s"},
+			{Kind: model.Iri, Value: "https://ex/p"},
+			{Kind: model.Literal, Value: "Cat", Lang: "en"},
+			{Kind: model.Literal, Value: "Chat", Lang: "fr"},
+		},
+		Reifiers: []model.ReifierEntry{
+			{RID: 0, SPO: model.Triple3{S: 1, P: 2, O: 3}},
+			{RID: 0, SPO: model.Triple3{S: 1, P: 2, O: 4}},
+		},
+	}
+
+	sink := NewGraphSink()
+	if err := NewGraphSource(graph).Drive(sink); err != nil {
+		t.Fatal(err)
+	}
+	got, err := sink.Graph()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Reifiers) != 2 {
+		t.Fatalf("reifier rows = %#v, want both retained", got.Reifiers)
+	}
+	if want := sortedNQuads(nquads.ToNQuads(graph)); sortedNQuads(nquads.ToNQuads(got)) != want {
+		t.Fatalf("projection changed\ngot:\n%s\nwant:\n%s", sortedNQuads(nquads.ToNQuads(got)), want)
+	}
+}
+
+// A self-describing triple term's dependencies are its OWN components, so a
+// declarations-before-references sink sees them first (§7.3).
+func TestDeclarationOrderEmitterSelfDescribingTripleTerm(t *testing.T) {
+	graph := &model.Graph{
+		Terms: []model.Term{
+			{Kind: model.Triple, Triple: &model.Triple3{S: 1, P: 2, O: 3}},
+			{Kind: model.Iri, Value: "https://ex/s"},
+			{Kind: model.Iri, Value: "https://ex/p"},
+			{Kind: model.Iri, Value: "https://ex/o"},
+		},
+	}
+	sink := &recordingSink{beforeReferences: true}
+	if err := NewGraphSource(graph).Drive(sink); err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(sink.events, ",")
+	wantPrefix := "start,term:1,term:2,term:3,term:0"
+	if !strings.HasPrefix(joined, wantPrefix) {
+		t.Fatalf("declaration order = %s, want prefix %s", joined, wantPrefix)
+	}
+	if strings.Contains(joined, "reifier:") {
+		t.Fatalf("declaration order = %s, want no reifier event for an unreified triple term", joined)
 	}
 }

@@ -136,6 +136,7 @@ fn term(kind: TermKind, value: &str) -> Term {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 
@@ -154,6 +155,7 @@ fn sample_graph(named_graph: bool) -> Graph {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     writer.add_quads(&[(0, 1, 2, named_graph.then_some(3))]);
@@ -371,6 +373,7 @@ fn event_graph_materialization_surfaces_ill_typed_xsd_diagnostics() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Iri,
@@ -379,6 +382,7 @@ fn event_graph_materialization_surfaces_ill_typed_xsd_diagnostics() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Iri,
@@ -387,6 +391,7 @@ fn event_graph_materialization_surfaces_ill_typed_xsd_diagnostics() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Literal,
@@ -395,6 +400,7 @@ fn event_graph_materialization_surfaces_ill_typed_xsd_diagnostics() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
         ],
         quads: vec![(0, 1, 3, None)],
@@ -1104,6 +1110,7 @@ fn rdf_xml_serialization_roundtrips_unicode_predicate_local_names() {
             lang: Some("fr".to_string()),
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     writer.add_quads(&[(0, 1, 2, None)]);

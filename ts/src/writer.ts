@@ -53,6 +53,10 @@ function termToWire(t: Term): Map<unknown, unknown> {
     if (t.direction === "ltr" || t.direction === "rtl")
         entries.set("dir", t.direction);
     if (t.reifier !== undefined) entries.set("rf", t.reifier);
+    if (t.triple !== undefined) {
+        // §7.3: a triple term states its OWN (s, p, o). Authoritative on read.
+        entries.set("tt", [t.triple.s, t.triple.p, t.triple.o]);
+    }
     return entries;
 }
 

@@ -63,6 +63,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -71,6 +72,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -79,6 +81,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -87,6 +90,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -95,6 +99,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -103,6 +108,7 @@ fn named_graph_reifier_and_annotation_roundtrip() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(0, 1, 2, Some(3))]);
@@ -179,6 +185,7 @@ fn writer_allows_multiple_reifiers_for_the_same_statement() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -187,6 +194,7 @@ fn writer_allows_multiple_reifiers_for_the_same_statement() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -195,6 +203,7 @@ fn writer_allows_multiple_reifiers_for_the_same_statement() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -203,6 +212,7 @@ fn writer_allows_multiple_reifiers_for_the_same_statement() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -211,6 +221,7 @@ fn writer_allows_multiple_reifiers_for_the_same_statement() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     writer.add_quads(&[(2, 3, 4, None)]);

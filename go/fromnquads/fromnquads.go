@@ -358,6 +358,10 @@ func (i *interner) node(n node, reifiers *[]model.ReifierEntry) int {
 	if n.atom != nil {
 		return i.atom(*n.atom)
 	}
+	// A bare quoted triple as a quad component: intern as a SELF-DESCRIBING
+	// TRIPLE term carrying its own (s, p, o) (§7.3). An unreified triple term
+	// is a value, not a statement — it mints no reifier and emits no reifies
+	// row, so it round-trips as itself.
 	s := i.node(n.triple.s, reifiers)
 	p := i.node(n.triple.p, reifiers)
 	o := i.node(n.triple.o, reifiers)
@@ -366,26 +370,28 @@ func (i *interner) node(n node, reifiers *[]model.ReifierEntry) int {
 		return id
 	}
 	id := len(i.terms)
-	rid := id
-	i.terms = append(i.terms, model.Term{Kind: model.Triple, Reifier: &rid})
+	i.terms = append(i.terms, model.Term{
+		Kind:   model.Triple,
+		Triple: &model.Triple3{S: s, P: p, O: o},
+	})
 	i.ids[key] = id
-	_ = setReifier(reifiers, id, model.Triple3{S: s, P: p, O: o}, nil)
 	return id
 }
 
-func setReifier(reifiers *[]model.ReifierEntry, rid int, spo model.Triple3, graph *int) error {
+// setReifier records one `r rdf:reifies <<( s p o )>>` statement.
+//
+// rdf:reifies is NOT functional (RDF 1.2 / §7.3): `r rdf:reifies <<( s p o1 )>>`
+// and `r rdf:reifies <<( s p o2 )>>` are both assertable and both survive. Only
+// a byte-identical repeat collapses (§7.8).
+func setReifier(reifiers *[]model.ReifierEntry, rid int, spo model.Triple3, graph *int) {
 	for idx := range *reifiers {
-		if (*reifiers)[idx].RID == rid {
-			if (*reifiers)[idx].SPO != spo {
-				return ParseError{fmt.Sprintf("conflicting rdf:reifies binding for reifier term %d", rid)}
-			}
-			if sameOptionalInt((*reifiers)[idx].G, graph) {
-				return nil
-			}
+		if (*reifiers)[idx].RID == rid &&
+			(*reifiers)[idx].SPO == spo &&
+			sameOptionalInt((*reifiers)[idx].G, graph) {
+			return
 		}
 	}
 	*reifiers = append(*reifiers, model.ReifierEntry{RID: rid, SPO: spo, G: copyOptionalInt(graph)})
-	return nil
 }
 
 func sameOptionalInt(a, b *int) bool {
@@ -468,6 +474,10 @@ func FromNQuads(text string) ([]byte, error) {
 			gname = &nodes[3]
 		}
 
+		// Reifier binding: <r> rdf:reifies <<( s p o )>> . Bind the reifier to
+		// the subject term so the projection re-emits exactly this line. Several
+		// such lines may share one reifier — rdf:reifies is not functional — and
+		// each becomes its own reifies row (§7.3).
 		if s.atom != nil && isAtom(p, model.Iri) && p.atom.value == rdfReifies && o.triple != nil {
 			rid := interner.atom(*s.atom)
 			var graph *int
@@ -475,13 +485,11 @@ func FromNQuads(text string) ([]byte, error) {
 				gid := interner.node(*gname, &reifiers)
 				graph = &gid
 			}
-			if err := setReifier(&reifiers, rid, model.Triple3{
+			setReifier(&reifiers, rid, model.Triple3{
 				S: interner.node(o.triple.s, &reifiers),
 				P: interner.node(o.triple.p, &reifiers),
 				O: interner.node(o.triple.o, &reifiers),
-			}, graph); err != nil {
-				return nil, err
-			}
+			}, graph)
 			continue
 		}
 
