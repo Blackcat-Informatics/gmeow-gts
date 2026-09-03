@@ -396,7 +396,7 @@ fn is_signed_digits(value: &str) -> bool {
 }
 
 fn validate_hex_binary(lexical: &str) -> XsdLexicalStatus {
-    if !lexical.as_bytes().chunks_exact(2).remainder().is_empty() {
+    if !lexical.as_bytes().as_chunks::<2>().1.is_empty() {
         return invalid("xsd:hexBinary lexical form has an odd number of digits".to_string());
     }
     if !lexical.bytes().all(|byte| byte.is_ascii_hexdigit()) {
