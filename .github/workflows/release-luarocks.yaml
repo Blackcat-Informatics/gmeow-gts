@@ -98,5 +98,10 @@ jobs:
           # command. Failed loading 'cjson', 'dkjson', and 'json'." Nothing else
           # in this lane needs one -- lint, make and pack are all local -- so it
           # is installed here rather than in the base setup.
-          luarocks install dkjson
+          # Install into the system tree so the `luarocks` binary itself can
+          # load it; a --local install lands in ~/.luarocks, which luarocks does
+          # not consult for its own command implementations. Without sudo this
+          # fails with "/usr/local/lib/luarocks/rocks-5.1 does not exist and
+          # your user does not have write permissions in /usr/local/lib".
+          sudo luarocks install dkjson
           luarocks upload "$GTS_LUAROCKS_ROCKSPEC" --api-key="$LUAROCKS_API_KEY"
