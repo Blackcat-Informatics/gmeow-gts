@@ -305,7 +305,7 @@ wheels = [
 
 [[package]]
 name = "gmeow-gts"
-version = "0.9.11"
+version = "1.0.0rc1"
 source = { editable = "." }
 dependencies = [
     { name = "blake3" },

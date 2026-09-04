@@ -11,8 +11,10 @@ kept aligned for cross-engine releases, while narrow Rust-first releases may
 bump the Rust crate independently. See
 [`scripts/check-versions.sh`](./scripts/check-versions.sh).
 
-The wire format is a working draft (`GTS-SPEC.md` document version `0.9-draft`)
-and MAY change before `1.0`.
+The wire format is FROZEN for the version 1 line (`GTS-SPEC.md` document
+version `1.0-rc1`). A file that is valid GTS wire-format major version 1 will
+remain parseable and safely foldable by future major-version-1 readers; a
+breaking wire change requires a new wire-format major version.
 
 ## [Unreleased]
 

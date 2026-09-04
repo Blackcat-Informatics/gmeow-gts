@@ -15,8 +15,11 @@ maintenues alignées pour les versions multi-moteurs, tandis que les versions re
 incrémenter la crate Rust indépendamment. Voir
 [`scripts/check-versions.sh`](../../../scripts/check-versions.sh).
 
-Le format de transfert est une ébauche de travail (document `GTS-SPEC.md` version `0.9-draft`)
-et PEUT (MAY) changer avant `1.0`.
+Le format de transfert est GELÉ pour la ligne de version 1 (document `GTS-SPEC.md`
+version `1.0-rc1`). Un fichier valide en version majeure 1 du format de transfert GTS
+restera analysable et pliable en toute sécurité par les futurs lecteurs de version
+majeure 1 ; un changement de transfert incompatible exige une nouvelle version majeure
+de format de transfert.
 
 ## [Non publié]
 

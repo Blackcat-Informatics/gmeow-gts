@@ -12,7 +12,8 @@ GTS 的所有显著变更都记录在此。本日志格式基于
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)。主要引擎通过本仓库中针对各生态系统的发布标签进行发布；跨引擎发布的版本通常保持一致，而仅针对 Rust 的先行发布可能会独立提升 Rust crate 的版本。参见
 [`scripts/check-versions.sh`](../../../scripts/check-versions.sh)。
 
-线路格式为工作草案（`GTS-SPEC.md` 文档版本 `0.9-draft`），在 `1.0` 之前可以 (MAY) 发生变更。
+线路格式已为版本 1 系列冻结（`GTS-SPEC.md` 文档版本 `1.0-rc1`）。任何有效的 GTS 线路格式主版本 1 文件，未来的主版本 1 读取器都仍可解析并安全折叠；
+破坏性的线路变更需要新的线路格式主版本。
 
 ## [未发布]
 
