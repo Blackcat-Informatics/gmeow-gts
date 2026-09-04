@@ -15,10 +15,13 @@ maintenues alignées pour les versions multi-moteurs, tandis que les versions re
 incrémenter la crate Rust indépendamment. Voir
 [`scripts/check-versions.sh`](../../../scripts/check-versions.sh).
 
-Le format de transfert est une ébauche de travail (document `GTS-SPEC.md` version `0.9-draft`)
-et PEUT (MAY) changer avant `1.0`.
+Le format de transfert est GELÉ pour la ligne de version 1 (document `GTS-SPEC.md`
+version `1.0-rc1`). Un fichier valide en version majeure 1 du format de transfert GTS
+restera analysable et pliable en toute sécurité par les futurs lecteurs de version
+majeure 1 ; un changement de transfert incompatible exige une nouvelle version majeure
+de format de transfert.
 
-## [Non publié]
+## [1.0.0-rc.1] — 2026-09-04
 
 ### Modifié
 
@@ -440,7 +443,7 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Non publié]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...HEAD
+[1.0.0-rc.1]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...rust-v1.0.0-rc.1
 [0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
 [0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
 [0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9

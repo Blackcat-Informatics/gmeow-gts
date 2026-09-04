@@ -7,7 +7,7 @@ require "thread"
 
 module Gmeow
   module Gts
-    VERSION = "0.9.11"
+    VERSION = "1.0.0-rc.1"
     ABI_VERSION = 1
     UINT32_MAX = 0xffff_ffff
 

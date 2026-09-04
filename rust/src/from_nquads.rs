@@ -6,7 +6,7 @@
 //! This parser accepts the N-Quads(-star) text emitted by [`crate::nquads`]
 //! and builds a canonical GTS segment with the shared writer semantics. Blobs,
 //! suppressions, and opaque frames are not expressible in N-Quads and are
-//! intentionally out of scope, matching the Python reference implementation.
+//! intentionally out of scope for the shared 1.0 inverse-fold transform.
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;

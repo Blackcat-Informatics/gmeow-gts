@@ -3,7 +3,7 @@
 
 # GTS — Graph Transport Substrate — Specification
 
-**Document version:** 0.9-draft &nbsp;·&nbsp; **Wire-format major version:** 1 &nbsp;·&nbsp;
+**Document version:** 1.0-rc1 &nbsp;·&nbsp; **Wire-format major version:** 1 &nbsp;·&nbsp;
 **Date:** 2026-06-18 &nbsp;·&nbsp; **Editor:** Patrick Audley, Blackcat Informatics® Inc. &nbsp;·&nbsp;
 **This version:** <https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md> &nbsp;·&nbsp;
 **DOI:** <https://doi.org/10.67342/6pta6imnmw/v1>
@@ -22,8 +22,8 @@ signatures and encryption, and cross-language conformance through a shared vecto
 
 | Field | Value |
 |---|---|
-| Status | Working draft |
-| Document version | 0.9-draft |
+| Status | Release candidate |
+| Document version | 1.0-rc1 |
 | Wire-format major version | 1, encoded in the segment header `"v"` field |
 | Date | 2026-06-18 |
 | Document DOI | <https://doi.org/10.67342/6pta6imnmw/v1> |

@@ -8,6 +8,6 @@ includedir=${prefix}/include
 
 Name: gts
 Description: Graph Transport Substrate Rust C ABI
-Version: 0.9.11
+Version: 1.0.0-rc.1
 Libs: -L${libdir} -lgts
 Cflags: -I${includedir}

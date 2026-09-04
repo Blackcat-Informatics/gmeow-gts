@@ -50,11 +50,20 @@ mod i18n;
 
 use i18n::{unknown_command_message, USAGE};
 
+/// Print usage and exit 2 — the CLI's uniform "bad invocation" response.
+///
+/// Every subcommand rejects a malformed argument list the same way, so the
+/// pair of statements lived in 29 places. Naming it once keeps that contract
+/// in one spot and makes each call site read as the single decision it is.
+fn usage_error() -> ExitCode {
+    eprintln!("{USAGE}");
+    ExitCode::from(2)
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(cmd) = args.first() else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     match cmd.as_str() {
         "info" => cmd_info(&args[1..]),
@@ -177,8 +186,7 @@ fn load(path: &str) -> Result<Vec<u8>, ExitCode> {
 
 fn cmd_prove(args: &[String]) -> ExitCode {
     let [path, frame_id] = args else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let target = match parse_hex_32(frame_id) {
         Ok(id) => id,
@@ -205,8 +213,7 @@ fn cmd_prove(args: &[String]) -> ExitCode {
 
 fn cmd_verify_proof(args: &[String]) -> ExitCode {
     let [path] = args else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let text = match std::fs::read_to_string(path) {
         Ok(text) => text,
@@ -240,8 +247,7 @@ fn cmd_verify_proof(args: &[String]) -> ExitCode {
 
 fn cmd_heads(args: &[String]) -> ExitCode {
     let [path] = args else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(data) => data,
@@ -258,8 +264,7 @@ fn cmd_heads(args: &[String]) -> ExitCode {
 
 fn cmd_segments(args: &[String]) -> ExitCode {
     let [path] = args else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(data) => data,
@@ -276,8 +281,7 @@ fn cmd_segments(args: &[String]) -> ExitCode {
 
 fn cmd_missing(args: &[String]) -> ExitCode {
     if args.len() != 3 || args[0] != "--from-head" {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     }
     let from_head = &args[1];
     let path = &args[2];
@@ -304,8 +308,7 @@ fn cmd_missing(args: &[String]) -> ExitCode {
 
 fn cmd_resume(args: &[String]) -> ExitCode {
     if args.len() != 3 || args[0] != "--after" {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     }
     let frame_id = &args[1];
     let path = &args[2];
@@ -526,8 +529,7 @@ fn stream_vocab_check(seg: &Graph) -> Vec<String> {
 
 fn cmd_info(paths: &[String]) -> ExitCode {
     if paths.is_empty() {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     }
     for path in paths {
         let data = match load(path) {
@@ -541,8 +543,7 @@ fn cmd_info(paths: &[String]) -> ExitCode {
 
 fn cmd_fold(paths: &[String]) -> ExitCode {
     let [path] = paths else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(d) => d,
@@ -564,8 +565,7 @@ fn cmd_fold(paths: &[String]) -> ExitCode {
 
 fn cmd_to_trig(paths: &[String]) -> ExitCode {
     let [path] = paths else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(d) => d,
@@ -601,8 +601,7 @@ fn cmd_to_trig(paths: &[String]) -> ExitCode {
 #[cfg(feature = "rdf-codecs")]
 fn cmd_to_nt(paths: &[String]) -> ExitCode {
     let [path] = paths else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(d) => d,
@@ -628,8 +627,7 @@ fn cmd_to_nt(paths: &[String]) -> ExitCode {
 #[cfg(feature = "rdf-codecs")]
 fn cmd_to_turtle(paths: &[String]) -> ExitCode {
     let [path] = paths else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(d) => d,
@@ -655,8 +653,7 @@ fn cmd_to_turtle(paths: &[String]) -> ExitCode {
 #[cfg(feature = "rdf-codecs")]
 fn cmd_to_rdfxml(paths: &[String]) -> ExitCode {
     let [path] = paths else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(d) => d,
@@ -696,8 +693,7 @@ fn cmd_from_nq(args: &[String]) -> ExitCode {
         }
     }
     let [path] = inputs[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
 
     let text = if path == "-" {
@@ -761,8 +757,7 @@ fn cmd_from_trig(args: &[String]) -> ExitCode {
         }
     }
     let [path] = inputs[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
 
     let text = if path == "-" {
@@ -842,8 +837,7 @@ fn cmd_from_nt(args: &[String]) -> ExitCode {
         }
     }
     let [path] = inputs[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
 
     let text = if path == "-" {
@@ -908,8 +902,7 @@ fn cmd_from_turtle(args: &[String]) -> ExitCode {
         }
     }
     let [path] = inputs[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
 
     let text = if path == "-" {
@@ -974,8 +967,7 @@ fn cmd_from_rdfxml(args: &[String]) -> ExitCode {
         }
     }
     let [path] = inputs[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
 
     let text = if path == "-" {
@@ -1025,8 +1017,7 @@ fn cmd_from_rdfxml(args: &[String]) -> ExitCode {
 #[cfg(feature = "yaml-ld")]
 fn cmd_to_yaml_ld(args: &[String]) -> ExitCode {
     let [path] = args else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let graph = match export_graph(path) {
         Ok(graph) => graph,
@@ -1062,8 +1053,7 @@ fn cmd_from_yaml_ld(args: &[String]) -> ExitCode {
         }
     }
     let [path] = inputs[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
 
     let text = if path == "-" {
@@ -1135,14 +1125,12 @@ fn cmd_to_okf(args: &[String]) -> ExitCode {
             },
             other if input.is_none() => input = Some(other),
             _ => {
-                eprintln!("{USAGE}");
-                return ExitCode::from(2);
+                return usage_error();
             }
         }
     }
     let (Some(input), Some(directory)) = (input, directory) else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let graph = match export_graph(input) {
         Ok(graph) => graph,
@@ -1196,14 +1184,12 @@ fn cmd_from_okf(args: &[String]) -> ExitCode {
             },
             other if input.is_none() => input = Some(other),
             _ => {
-                eprintln!("{USAGE}");
-                return ExitCode::from(2);
+                return usage_error();
             }
         }
     }
     let Some(input) = input else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let bytes = match from_okf_with_options(std::path::Path::new(input), &options) {
         Ok(bytes) => bytes,
@@ -1245,8 +1231,7 @@ fn export_graph(path: &str) -> Result<Graph, ExitCode> {
 
 fn cmd_to_sqlite(args: &[String]) -> ExitCode {
     let [path, out] = args else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let graph = match export_graph(path) {
         Ok(graph) => graph,
@@ -1264,8 +1249,7 @@ fn cmd_to_sqlite(args: &[String]) -> ExitCode {
 #[cfg(feature = "duckdb")]
 fn cmd_to_duckdb(args: &[String]) -> ExitCode {
     let [path, out] = args else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let graph = match export_graph(path) {
         Ok(graph) => graph,
@@ -1283,8 +1267,7 @@ fn cmd_to_duckdb(args: &[String]) -> ExitCode {
 #[cfg(feature = "duckdb")]
 fn cmd_to_parquet(args: &[String]) -> ExitCode {
     let [path, out_dir] = args else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let graph = match export_graph(path) {
         Ok(graph) => graph,
@@ -1344,8 +1327,7 @@ fn cmd_verify(args: &[String]) -> ExitCode {
             "--key" => {
                 i += 1;
                 let Some(spec) = args.get(i) else {
-                    eprintln!("{USAGE}");
-                    return ExitCode::from(2);
+                    return usage_error();
                 };
                 match parse_key(spec) {
                     Some((kid, key)) => {
@@ -1360,8 +1342,7 @@ fn cmd_verify(args: &[String]) -> ExitCode {
             "--policy" => {
                 i += 1;
                 let Some(path) = args.get(i) else {
-                    eprintln!("{USAGE}");
-                    return ExitCode::from(2);
+                    return usage_error();
                 };
                 match load_policy(path) {
                     Ok(loaded) => policy = Some(loaded),
@@ -1373,8 +1354,7 @@ fn cmd_verify(args: &[String]) -> ExitCode {
         i += 1;
     }
     if paths.is_empty() {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     }
     let mut problems = false;
     for path in &paths {
@@ -1443,8 +1423,7 @@ fn cmd_verify(args: &[String]) -> ExitCode {
 /// `extract-key`: print the embedded transport (verification) key (§9.2).
 fn cmd_extract_key(args: &[String]) -> ExitCode {
     let Some(path) = args.first() else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(d) => d,
@@ -1489,8 +1468,7 @@ fn blob_mt(g: &Graph, digest: &str) -> Option<String> {
 /// List inline blobs: digest, size, declared media type (tar's `t`).
 fn cmd_ls(paths: &[String]) -> ExitCode {
     let [path] = paths else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(d) => d,
@@ -1581,8 +1559,7 @@ fn cmd_extract(args: &[String]) -> ExitCode {
         }
     }
     let [path, digest] = positional[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(d) => d,
@@ -1769,8 +1746,7 @@ fn cmd_compact(args: &[String]) -> ExitCode {
         }
     }
     let [path] = positional[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let Some(out_path) = out_path else {
         eprintln!("gts: compact requires -o\n{USAGE}");
@@ -1822,8 +1798,7 @@ fn cmd_pack(args: &[String]) -> ExitCode {
         }
     }
     if sources.is_empty() {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     }
     let out_path = match out_path {
         Some(p) => p,
@@ -1873,8 +1848,7 @@ fn cmd_unpack(args: &[String]) -> ExitCode {
         }
     }
     let [path] = positional[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(path) {
         Ok(d) => d,
@@ -1901,8 +1875,7 @@ fn cmd_unpack(args: &[String]) -> ExitCode {
 /// Compare an archive to a directory by content digest (tar's `d`).
 fn cmd_diff(args: &[String]) -> ExitCode {
     let [archive, directory] = args else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let data = match load(archive) {
         Ok(d) => d,
@@ -1959,8 +1932,7 @@ fn cmd_dump(args: &[String]) -> ExitCode {
         }
     }
     let [archive] = positional[..] else {
-        eprintln!("{USAGE}");
-        return ExitCode::from(2);
+        return usage_error();
     };
     let Some(directory) = directory else {
         eprintln!("gts dump: --directory is required\n{USAGE}");
