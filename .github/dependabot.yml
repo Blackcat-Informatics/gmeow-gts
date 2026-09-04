@@ -4,6 +4,16 @@
 # Dependabot version updates. Security updates are enabled separately in the
 # repository security settings. One ecosystem per engine directory, plus the
 # shared GitHub Actions used across the workflows.
+#
+# Each ecosystem rolls its version updates into a single grouped PR. Ungrouped,
+# every bump opened its own PR and they collided on the shared lockfiles —
+# six competing updates to python/uv.lock alone — so merging any one of them
+# invalidated its siblings and re-ran the full matrix. Grouping keeps one
+# lockfile resolution per ecosystem per week.
+#
+# Note `groups` applies to version updates only: Dependabot still raises
+# security advisories as their own individual PRs, which is what we want, since
+# those need to land on their own without waiting for a routine bump batch.
 version: 2
 updates:
   - package-ecosystem: "cargo"
@@ -14,6 +24,31 @@ updates:
       - "dependencies"
       - "rust"
     open-pull-requests-limit: 5
+    groups:
+      rust:
+        patterns:
+          - "*"
+
+  # The C ABI wrapper is a standalone package with its OWN Cargo.lock, which it
+  # ships (rust/capi/Cargo.toml `include`). Without this entry that lockfile
+  # goes stale on every /rust bump and `cargo package` then refuses the crate as
+  # dirty, which is why the wrapper-package-dry-runs job failed on every cargo
+  # update PR. `gmeow-gts` itself is release-managed and kept lockstep with the
+  # core crate by scripts/check-versions.sh, so dependabot must not touch it.
+  - package-ecosystem: "cargo"
+    directory: "/rust/capi"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "rust"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "gmeow-gts"
+    groups:
+      rust-capi:
+        patterns:
+          - "*"
 
   - package-ecosystem: "uv"
     directory: "/python"
@@ -23,6 +58,10 @@ updates:
       - "dependencies"
       - "python"
     open-pull-requests-limit: 5
+    groups:
+      python:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/go"
@@ -32,6 +71,10 @@ updates:
       - "dependencies"
       - "go"
     open-pull-requests-limit: 5
+    groups:
+      go:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/ts"
@@ -41,6 +84,10 @@ updates:
       - "dependencies"
       - "javascript"
     open-pull-requests-limit: 5
+    groups:
+      javascript:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gradle"
     directory: "/kotlin"
@@ -50,6 +97,10 @@ updates:
       - "dependencies"
       - "kotlin"
     open-pull-requests-limit: 5
+    groups:
+      kotlin:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -59,3 +110,7 @@ updates:
       - "dependencies"
       - "github-actions"
     open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
