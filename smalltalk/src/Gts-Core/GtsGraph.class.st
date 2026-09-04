@@ -204,15 +204,50 @@ GtsGraph >> tripleForTermId: termId [
 	"The (s p o) a quoted-triple term denotes (§7.3).
 
 	The term's own 'tt' is authoritative; a legacy 'tt'-less term falls back to the
-	FIRST binding of its reifier so pre-'tt' files keep reading exactly as they did."
-	| term |
+	FIRST binding of its reifier so pre-'tt' files keep reading exactly as they did.
+
+	Resolution MUST terminate. A reifies row may name the very term that resolves
+	through it, so a term that reaches itself states NO triple for this walk and
+	answers nil -- the same answer an unbound triple term gives, which every
+	projection renders as a fresh blank node. Guarding here rather than inside each
+	walk keeps the degradation at the RIGHT LEVEL: the self-reaching term itself
+	becomes the blank node, instead of resolving one step and degrading a nested
+	occurrence, which renders a different graph. A 'tt' cannot cycle, since its
+	components name strictly smaller term-ids (§7.2)."
+	| term spo seen |
 	((termId isInteger) and: [ termId >= 0 and: [ termId < terms size ] ])
 		ifFalse: [ ^ nil ].
 	term := self termAtId: termId.
 	term kind = #triple ifFalse: [ ^ nil ].
-	term triple ifNotNil: [ :spo | ^ spo ].
-	term reifier ifNotNil: [ :reifierId | ^ self reifierFor: reifierId ].
-	^ nil
+	term triple ifNotNil: [ :own | ^ own ].
+	term reifier ifNil: [ ^ nil ].
+	spo := self reifierFor: term reifier.
+	spo ifNil: [ ^ nil ].
+	seen := Set new.
+	spo do: [ :component |
+		(self resolutionFrom: component reaches: termId seen: seen)
+			ifTrue: [ ^ nil ] ].
+	^ spo
+]
+
+{ #category : #private }
+GtsGraph >> resolutionFrom: from reaches: anchor seen: seen [
+	"Does resolving `from` walk back to `anchor`? (§7.3 termination.)"
+	| term spo |
+	from = anchor ifTrue: [ ^ true ].
+	(seen includes: from) ifTrue: [ ^ false ].
+	seen add: from.
+	((from isInteger) and: [ from >= 0 and: [ from < terms size ] ])
+		ifFalse: [ ^ false ].
+	term := self termAtId: from.
+	term kind = #triple ifFalse: [ ^ false ].
+	spo := term triple.
+	spo ifNil: [ term reifier ifNotNil: [ :rid | spo := self reifierFor: rid ] ].
+	spo ifNil: [ ^ false ].
+	spo do: [ :component |
+		(self resolutionFrom: component reaches: anchor seen: seen)
+			ifTrue: [ ^ true ] ].
+	^ false
 ]
 
 { #category : #accessing }

@@ -187,10 +187,34 @@ class Graph {
      * The term's own `"tt"` is authoritative; a legacy `"tt"`-less term falls back to the FIRST
      * binding of its reifier so pre-`"tt"` files keep reading exactly as they did.
      */
+    /**
+     * Resolve the `(s, p, o)` a quoted-triple term denotes (§7.3).
+     *
+     * Resolution MUST terminate. A `reifies` row may name the very term that resolves through it,
+     * so a term that reaches itself states NO triple for this walk and resolves to `null` — the
+     * same answer an unbound triple term gives, which every projection renders as a fresh blank
+     * node. Guarding here rather than inside each walk keeps the degradation at the RIGHT LEVEL:
+     * the self-reaching term itself becomes the blank node, instead of resolving one step and
+     * degrading a nested occurrence, which renders a different graph. A `"tt"` cannot cycle, since
+     * its components name strictly smaller term-ids (§7.2).
+     */
     fun tripleOf(termId: Int): Triple? {
         val term = terms.getOrNull(termId) ?: return null
         term.triple?.let { return it }
-        return term.reifier?.let { reifier(it) }
+        val spo = term.reifier?.let { reifier(it) } ?: return null
+        val seen = mutableSetOf<Int>()
+        if (listOf(spo.s, spo.p, spo.o).any { resolutionReaches(it, termId, seen) }) return null
+        return spo
+    }
+
+    /** Does resolving [from] walk back to [anchor]? */
+    private fun resolutionReaches(from: Int, anchor: Int, seen: MutableSet<Int>): Boolean {
+        if (from == anchor) return true
+        if (!seen.add(from)) return false
+        val term = terms.getOrNull(from) ?: return false
+        if (term.kind != TermKind.TRIPLE) return false
+        val spo = term.triple ?: term.reifier?.let { reifier(it) } ?: return false
+        return listOf(spo.s, spo.p, spo.o).any { resolutionReaches(it, anchor, seen) }
     }
 
     /**
