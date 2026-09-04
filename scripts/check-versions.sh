@@ -52,6 +52,25 @@ if [ "$capi_v" != "$rust_v" ]; then
   errors=1
 fi
 
+# Both Cargo LOCKFILES must already name the new version. The release workflows
+# build with --locked, so a lockfile left behind by a version bump does not fail
+# here or in CI -- it fails at PUBLISH time, after the tag is pushed, which
+# docs/GTS-V1-RC1-CHECKLIST.md:425 makes a release incident rather than
+# something you can quietly redo. That is exactly how capi-v1.0.0-rc.1 failed:
+#
+#   error: cannot update the lock file .../rust/capi/Cargo.lock
+#   because --locked was passed to prevent this
+#
+# rust/capi is the easy one to miss, being a second standalone lockfile.
+for lock_dir in rust rust/capi; do
+  lock="$ROOT/$lock_dir/Cargo.lock"
+  if [ "$lock_dir" = "rust" ]; then crate="gmeow-gts"; else crate="gmeow-gts-capi"; fi
+  if ! grep -A1 "^name = \"$crate\"$" "$lock" | grep -Fq "version = \"$rust_v\""; then
+    echo "ERROR: $lock_dir/Cargo.lock does not name $crate $rust_v; regenerate it (cargo update -p $crate)." >&2
+    errors=1
+  fi
+done
+
 # Wrapper lanes. These were unchecked until now, which is exactly why Kotlin,
 # Lua, Ruby, R and Julia all silently drifted to 0.9.4 and stayed there through
 # seven releases: nothing in CI ever compared them. They publish through their

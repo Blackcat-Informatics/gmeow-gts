@@ -378,7 +378,7 @@ dependencies = [
 
 [[package]]
 name = "gmeow-gts"
-version = "0.9.11"
+version = "1.0.0-rc.1"
 dependencies = [
  "aes-gcm",
  "blake3",
@@ -401,7 +401,7 @@ dependencies = [
 
 [[package]]
 name = "gmeow-gts-capi"
-version = "0.9.11"
+version = "1.0.0-rc.1"
 dependencies = [
  "gmeow-gts",
  "serde_json",

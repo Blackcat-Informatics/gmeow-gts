@@ -63,6 +63,11 @@ r/src/Makevars.win
 .cache/
 .worktrees/
 dist/benchmarks/
+# Release-candidate artifact bundles (docs/GTS-V1-RC1-CHECKLIST.md §4): test
+# logs, package dry-run output and the stamped vector manifest. They are release
+# EVIDENCE, uploaded as workflow artifacts, not repository content -- and they
+# carry no SPDX headers, so committing them fails `reuse lint`.
+dist/v*/
 .agents
 .codex
 .claude
