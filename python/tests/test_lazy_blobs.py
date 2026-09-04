@@ -16,14 +16,17 @@ from gts.writer import Writer
 BLOB_MT = "text/plain"
 
 
-def _term_triple() -> tuple[list[Term], list[tuple[int, int, int, None]]]:
+def _term_triple() -> tuple[list[Term], list[tuple[int, int, int, int | None]]]:
     """A tiny term/quad payload so read() has ontology work to do."""
     terms = [
         Term(TermKind.IRI, "https://example.org/s"),
         Term(TermKind.IRI, "https://example.org/p"),
         Term(TermKind.IRI, "https://example.org/o"),
     ]
-    quads = [(0, 1, 2, None)]
+    # The graph slot is widened to `int | None` because `list` is invariant:
+    # Writer.add_quads takes `list[tuple[int, int, int, int | None]]`, and a
+    # `list[tuple[int, int, int, None]]` is not assignable to it.
+    quads: list[tuple[int, int, int, int | None]] = [(0, 1, 2, None)]
     return terms, quads
 
 
@@ -66,7 +69,7 @@ def test_blob_deferred_until_access() -> None:
         assert len(g.quads) == 1
         assert counter[0] == 0
     finally:
-        _LazyBlobs.__getitem__ = original
+        _LazyBlobs.__getitem__ = original  # type: ignore[method-assign]
 
 
 def test_blob_access_decompresses() -> None:
@@ -186,7 +189,7 @@ def test_lazy_blob_multi_segment_union() -> None:
         assert len(g.blobs) == 2
         assert counter[0] == 0
     finally:
-        _LazyBlobs.__getitem__ = original
+        _LazyBlobs.__getitem__ = original  # type: ignore[method-assign]
 
 
 def test_lazy_blob_external_records_layout_iou() -> None:

@@ -8,7 +8,7 @@ import gzip
 
 import pytest
 
-from gts.codec import Codec, decode_chain, encode_chain
+from gts.codec import Codec, CodecClass, decode_chain, encode_chain
 
 
 def _rdf_snapshot_payload(rows: int = 140_000) -> bytes:
@@ -30,7 +30,7 @@ def test_round_trip(codec_name: str) -> None:
     """Every baseline codec round-trips arbitrary bytes."""
     data = b"Hello world " * 1000 + bytes(range(256))
     encoded = encode_chain([codec_name], data)
-    cls = "encode" if codec_name == "identity" else "compress"
+    cls: CodecClass = "encode" if codec_name == "identity" else "compress"
     decoded = decode_chain([Codec(codec_name, cls)], encoded)
     assert decoded == data
 
