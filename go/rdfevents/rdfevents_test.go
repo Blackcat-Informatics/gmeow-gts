@@ -398,6 +398,42 @@ func TestEventRoundTripPreservesSelfDescribingTripleTerm(t *testing.T) {
 	}
 }
 
+// §7.3: "tt" is AUTHORITATIVE when present; "rf" is the legacy indirection and
+// is superseded. A term carrying BOTH must keep its own (s, p, o) across an
+// event round trip.
+func TestEventRoundTripKeepsAuthoritativeTTWhenReifierAlsoPresent(t *testing.T) {
+	reifier := 0
+	graph := &model.Graph{
+		Terms: []model.Term{
+			{Kind: model.Iri, Value: "https://ex/r"},
+			{Kind: model.Iri, Value: "https://ex/p"},
+			{Kind: model.Literal, Value: "Cat", Lang: "en"},
+			{Kind: model.Iri, Value: "https://ex/says"},
+			{Kind: model.Triple, Triple: &model.Triple3{S: 0, P: 1, O: 2}, Reifier: &reifier},
+		},
+		Reifiers: []model.ReifierEntry{{RID: 0, SPO: model.Triple3{S: 0, P: 1, O: 2}}},
+		Quads:    []model.Quad{{S: 0, P: 3, O: 4}},
+	}
+
+	sink := NewGraphSink()
+	if err := NewGraphSource(graph).Drive(sink); err != nil {
+		t.Fatal(err)
+	}
+	got, err := sink.Graph()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Terms[4].Triple == nil {
+		t.Fatalf("authoritative 'tt' was DROPPED: term = %#v", got.Terms[4])
+	}
+	if *got.Terms[4].Triple != (model.Triple3{S: 0, P: 1, O: 2}) {
+		t.Fatalf("'tt' = %#v, want (0,1,2)", got.Terms[4].Triple)
+	}
+	if want := sortedNQuads(nquads.ToNQuads(graph)); sortedNQuads(nquads.ToNQuads(got)) != want {
+		t.Fatalf("projection changed\ngot:\n%s\nwant:\n%s", sortedNQuads(nquads.ToNQuads(got)), want)
+	}
+}
+
 // §7.3: rdf:reifies is not functional, so several Reifier events on one id are
 // legal and every row survives the event round trip.
 func TestEventRoundTripKeepsMultiValuedReifier(t *testing.T) {

@@ -408,7 +408,8 @@ class Folder {
                 );
                 continue;
             }
-            if (!this.checkReifierPositions(s, p, o, gslot, index)) continue;
+            if (!this.checkReifierPositions(rid, s, p, o, gslot, index))
+                continue;
             // §7.3: rdf:reifies is NOT functional. Several triples may be bound
             // to one reifier id and each row keeps its own graph slot; only
             // byte-identical rows collapse (§7.8). No row is ever dropped here.
@@ -708,6 +709,7 @@ class Folder {
     }
 
     checkReifierPositions(
+        rid: number,
         s: number,
         p: number,
         o: number,
@@ -715,11 +717,26 @@ class Folder {
         index: number,
     ): boolean {
         const n = this.g.terms.length;
-        const inBounds = s < n && p < n && o < n && (g === undefined || g < n);
+        const inBounds =
+            rid < n && s < n && p < n && o < n && (g === undefined || g < n);
         if (!inBounds) {
             this.diag(
                 "PositionConstraint",
                 `reifier row (${s},${p},${o},${g === undefined ? "None" : g}) has out-of-range term ids`,
+                index,
+            );
+            return false;
+        }
+        // §7.3: every reifies row asserts `R rdf:reifies <<( S P O )>>`, so R
+        // lands in SUBJECT position, where RDF 1.2 admits only an IRI or blank
+        // node -- the same reason the graph slot below excludes those kinds.
+        const ridKind = this.g.terms[rid].kind;
+        if (ridKind === TermKind.Literal || ridKind === TermKind.Triple) {
+            this.diag(
+                "PositionConstraint",
+                `reifier row reifier ${rid} must be an IRI or blank node, not a ${
+                    ridKind === TermKind.Literal ? "literal" : "quoted triple"
+                } term`,
                 index,
             );
             return false;

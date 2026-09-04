@@ -206,7 +206,7 @@ func (f *folder) hReifies(payload interface{}, index int) {
 			f.diag("DamagedFrame", "reifies row has bad/out-of-range ids", &index)
 			continue
 		}
-		if !f.checkReifierPositions(s, p, o, gslot, index) {
+		if !f.checkReifierPositions(rid, s, p, o, gslot, index) {
 			continue
 		}
 		irid := rid
@@ -546,11 +546,26 @@ func (f *folder) checkTripleTermPositions(triple model.Triple3, tid, index int) 
 	return false
 }
 
-func (f *folder) checkReifierPositions(s, p, o int, g *int, index int) bool {
+func (f *folder) checkReifierPositions(rid, s, p, o int, g *int, index int) bool {
 	n := len(f.g.Terms)
-	inBounds := s < n && p < n && o < n && (g == nil || *g < n)
+	inBounds := rid < n && s < n && p < n && o < n && (g == nil || *g < n)
 	if !inBounds {
 		f.diag("PositionConstraint", fmt.Sprintf("reifier row (%d,%d,%d,%s) has out-of-range term ids", s, p, o, fmtOpt(g)), &index)
+		return false
+	}
+	// §7.3: every `reifies` row asserts `R rdf:reifies <<( S P O )>>`, so `R`
+	// lands in SUBJECT position, where RDF 1.2 admits only an IRI or blank node
+	// — the same reason the graph-name slot below excludes those two kinds.
+	// Without this the row folded and each projection improvised: this engine
+	// emitted `<<( … )>> rdf:reifies <<( … )>>` with a triple term as subject,
+	// which is not valid RDF 1.2, while Rust errored on one path and silently
+	// dropped the row on two others.
+	if kind := f.g.Terms[rid].Kind; kind == model.Literal || kind == model.Triple {
+		noun := "quoted triple"
+		if kind == model.Literal {
+			noun = "literal"
+		}
+		f.diag("PositionConstraint", fmt.Sprintf("reifier row reifier %d must be an IRI or blank node, not a %s term", rid, noun), &index)
 		return false
 	}
 	ok := f.g.Terms[p].Kind == model.Iri

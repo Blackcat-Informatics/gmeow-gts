@@ -248,6 +248,32 @@ def _position_constraint() -> bytes:
     return bytes(w.to_bytes())
 
 
+def _reifier_position_constraint() -> bytes:
+    """A `reifies` row whose REIFIER is a quoted triple (§7.3, §7.4).
+
+    Every row asserts ``R rdf:reifies <<( S P O )>>``, so ``R`` lands in subject
+    position, where RDF 1.2 admits only an IRI or blank node. A ``k:3`` reifier
+    therefore states something no conforming RDF 1.2 surface can represent.
+    Before this was constrained the row folded and each engine improvised: Go
+    emitted a triple term as subject (invalid RDF 1.2), while Rust errored on
+    the RDF adapter path and silently dropped the row from N-Quads and TriG.
+    The row is now diagnosed ``PositionConstraint`` and dropped; term 3 keeps
+    whatever meaning it has elsewhere, so the quad still projects.
+    """
+    w = Writer()
+    w.add_terms(
+        [
+            Term(TermKind.IRI, CAT),
+            Term(TermKind.IRI, LABEL),
+            Term(TermKind.LITERAL, "Cat", lang="en"),
+            Term(TermKind.TRIPLE, triple=(0, 1, 2)),
+        ]
+    )
+    w.add_reifies([(3, (0, 1, 2), None)])  # quoted triple in reifier position
+    w.add_quads([(0, 1, 3, None)])
+    return bytes(w.to_bytes())
+
+
 def _bnode_label() -> bytes:
     w = Writer()
     w.add_terms(
@@ -638,6 +664,7 @@ def corpus() -> list[VectorCase]:
         VectorCase("11-datatype-defaulting", _datatype_defaulting()),
         VectorCase("12-conflicting-reifier", _conflicting_reifier()),
         VectorCase("13-position-constraint", _position_constraint()),
+        VectorCase("13b-reifier-position-constraint", _reifier_position_constraint()),
         VectorCase("14-bnode-label", _bnode_label()),
         VectorCase("15-two-segment-union", _two_segment_union()),
         VectorCase("15b-anon-bnode-union", _anon_bnode_union()),

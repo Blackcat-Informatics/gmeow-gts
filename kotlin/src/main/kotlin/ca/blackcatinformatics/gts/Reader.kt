@@ -220,6 +220,7 @@ private class Folder(
                 diag("DamagedFrame", "reifies row has bad/out-of-range ids", index)
                 continue
             }
+            if (!checkReifierIsNode(rid, index)) continue
             if (!checkReifierPositions(s, p, o, g, index)) continue
             // §7.3: rdf:reifies is NOT functional. Several triples may be bound to one reifier id
             // and each row keeps its own graph slot; only byte-identical rows collapse (§7.8). No
@@ -387,6 +388,21 @@ private class Folder(
             )
         }
         return ok
+    }
+
+    /**
+     * §7.3: every reifies row asserts `R rdf:reifies <<( S P O )>>`, so R lands in SUBJECT
+     * position, where RDF 1.2 admits only an IRI or blank node — the same reason the graph
+     * slot excludes those kinds. Kept separate from [checkReifierPositions] so that one stays
+     * inside detekt's parameter budget.
+     */
+    private fun checkReifierIsNode(rid: Int, index: Int): Boolean {
+        if (rid !in 0 until graph.terms.size) return true
+        val ridKind = graph.terms[rid].kind
+        if (ridKind != TermKind.LITERAL && ridKind != TermKind.TRIPLE) return true
+        val noun = if (ridKind == TermKind.LITERAL) "literal" else "quoted triple"
+        diag("PositionConstraint", "reifier row reifier $rid must be an IRI or blank node, not a $noun term", index)
+        return false
     }
 
     private fun checkReifierPositions(s: Int, p: Int, o: Int, g: Int?, index: Int): Boolean {

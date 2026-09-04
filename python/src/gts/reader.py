@@ -322,7 +322,7 @@ class _Folder:
                 )
                 continue
             triple: Triple = (s, p, o)
-            if not self._check_reifier_positions(s, p, o, g, index):
+            if not self._check_reifier_positions(rid, s, p, o, g, index):
                 continue
             # §7.3: rdf:reifies is NOT functional. Several triples may be bound
             # to one reifier id and each row keeps its own graph slot; only
@@ -663,15 +663,30 @@ class _Folder:
         return False
 
     def _check_reifier_positions(
-        self, s: int, p: int, o: int, g: int | None, index: int
+        self, rid: int, s: int, p: int, o: int, g: int | None, index: int
     ) -> bool:
         """Bounds-check, then enforce §7.4 positions for a reifier row."""
-        refs = (s, p, o) if g is None else (s, p, o, g)
+        refs = (rid, s, p, o) if g is None else (rid, s, p, o, g)
         if not self._in_bounds(*refs):
             self.g.diagnostics.append(
                 Diagnostic(
                     "PositionConstraint",
                     f"reifier row ({s},{p},{o},{g}) has out-of-range term ids",
+                    index,
+                )
+            )
+            return False
+        # §7.3: every reifies row asserts ``R rdf:reifies <<( S P O )>>``, so R
+        # lands in SUBJECT position, where RDF 1.2 admits only an IRI or blank
+        # node -- the same reason the graph slot below excludes those kinds.
+        rid_kind = self._kind(rid)
+        if rid_kind in (TermKind.LITERAL, TermKind.TRIPLE):
+            noun = "literal" if rid_kind is TermKind.LITERAL else "quoted triple"
+            self.g.diagnostics.append(
+                Diagnostic(
+                    "PositionConstraint",
+                    f"reifier row reifier {rid} must be an IRI or blank node, "
+                    f"not a {noun} term",
                     index,
                 )
             )

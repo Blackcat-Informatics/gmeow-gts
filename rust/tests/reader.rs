@@ -108,15 +108,21 @@ fn public_reader_reports_malformed_input_diagnostics_without_panicking() {
     );
 }
 
+// The reifier id sits in SUBJECT position of the projected `rdf:reifies`
+// statement, so it must be an IRI or blank node (§7.3). These two cases keep
+// the reifier an IRI on purpose: the recursion guard is what must reject them,
+// not the position check, which would otherwise mask it.
 #[test]
 fn reader_rejects_direct_recursive_quoted_triple_reifier() {
     let mut writer = Writer::new("dist");
     writer.add_terms(&[
-        triple(0),
+        iri("https://example.org/reifier"),
         iri("https://example.org/predicate"),
         iri("https://example.org/object"),
+        triple(0), // 3: legacy k:3 resolving through reifier 0
     ]);
-    writer.add_reifies(&[(0, (0, 1, 2), None)]);
+    // The row names term 3, which is the very term resolving through reifier 0.
+    writer.add_reifies(&[(0, (3, 1, 2), None)]);
 
     let graph = read(&writer.to_bytes(), true, None);
 
@@ -129,17 +135,51 @@ fn reader_rejects_direct_recursive_quoted_triple_reifier() {
 fn reader_rejects_indirect_recursive_quoted_triple_reifier() {
     let mut writer = Writer::new("dist");
     writer.add_terms(&[
-        triple(0),
-        triple(1),
+        iri("https://example.org/reifier-a"),
+        iri("https://example.org/reifier-b"),
         iri("https://example.org/predicate"),
         iri("https://example.org/object"),
+        triple(0), // 4: resolves through reifier 0
+        triple(1), // 5: resolves through reifier 1
     ]);
-    writer.add_reifies(&[(0, (1, 2, 3), None), (1, (0, 2, 3), None)]);
+    // 4 -> (5, …) -> (4, …) is a two-step cycle through two IRI reifiers.
+    writer.add_reifies(&[(0, (5, 2, 3), None), (1, (4, 2, 3), None)]);
 
     let graph = read(&writer.to_bytes(), true, None);
 
     assert!(has_recursive_reifier_diagnostic(&graph));
-    assert_eq!(graph.reifiers, vec![(0, (1, 2, 3), None)]);
+    assert_eq!(graph.reifiers, vec![(0, (5, 2, 3), None)]);
+    let _ = to_nquads(&graph);
+}
+
+/// §7.3: the reifier id lands in subject position, where RDF 1.2 admits only an
+/// IRI or blank node. A `k:3` reifier folded fine and then each projection
+/// improvised — the RDF adapter errored, N-Quads and TriG silently dropped the
+/// row, and Go emitted a triple term as subject. Reject it once, at fold time.
+#[test]
+fn reader_rejects_quoted_triple_in_reifier_position() {
+    let mut writer = Writer::new("dist");
+    writer.add_terms(&[
+        iri("https://example.org/subject"),
+        iri("https://example.org/predicate"),
+        iri("https://example.org/object"),
+        triple(0), // 3: a k:3 term used as the REIFIER below
+    ]);
+    writer.add_reifies(&[(3, (0, 1, 2), None)]);
+
+    let graph = read(&writer.to_bytes(), true, None);
+
+    assert!(
+        graph
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "PositionConstraint"
+                && d.detail.contains("must be an IRI or blank node")),
+        "diagnostics = {:?}",
+        graph.diagnostics
+    );
+    assert!(graph.reifiers.is_empty(), "the row must not fold");
+    // Whatever survives must project without improvising.
     let _ = to_nquads(&graph);
 }
 

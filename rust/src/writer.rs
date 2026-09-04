@@ -48,12 +48,17 @@ pub fn term_to_wire(t: &Term) -> Value {
     if let Some(rf) = t.reifier {
         entries.push(("rf".into(), iv(rf as i64)));
     }
-    if let Some((s, p, o)) = t.triple {
-        // §7.3: a triple term states its OWN (s, p, o). Authoritative on read.
-        entries.push((
-            "tt".into(),
-            Value::Array(vec![iv(s as i64), iv(p as i64), iv(o as i64)]),
-        ));
+    // §7.3: a triple term states its OWN (s, p, o). Authoritative on read.
+    // Gated on `k:3` because `"tt"` is only defined for a triple term: emitting
+    // it on any other kind writes a field a conforming reader ignores, so the
+    // bytes would silently read back as something other than what was authored.
+    if t.kind == TermKind::Triple {
+        if let Some((s, p, o)) = t.triple {
+            entries.push((
+                "tt".into(),
+                Value::Array(vec![iv(s as i64), iv(p as i64), iv(o as i64)]),
+            ));
+        }
     }
     Value::Map(entries)
 }

@@ -887,6 +887,14 @@ constraints, and a `reifies` or `annot` graph name `g`, when present, obeys the 
 constraint as `quads`. A triple term's `"tt"` obeys the same subject/predicate/object
 constraints as a `reifies` triple (§7.3). In an `annot` row the predicate MUST be an IRI.
 
+In a `reifies` row the reifier `R` MUST be an IRI or blank node (`k:0|2`) — never a literal or
+quoted triple. `R` is the SUBJECT of the `R rdf:reifies <<( S P O )>>` statement every row
+asserts (§7.3), and RDF 1.2 admits only an IRI or blank node there, so a `k:3` reifier states a
+triple that no conforming RDF 1.2 surface can represent. A row violating this is diagnosed
+`PositionConstraint` and dropped; it is the row that is rejected, not the reifier term, which
+keeps whatever meaning it has elsewhere in the fold. Note this is a constraint on `R` alone —
+a quoted triple remains legal as a `quads` subject and as any `reifies` or `annot` object.
+
 ### 7.5 Fold algorithm (normative)
 
 ```text

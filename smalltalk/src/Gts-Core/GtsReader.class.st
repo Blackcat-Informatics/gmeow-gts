@@ -79,20 +79,35 @@ GtsReader class >> checkPositionsForTripleTerm: spo in: graph index: frameIndex 
 
 { #category : #private }
 GtsReader class >> checkPositionsForReifier: row in: graph index: frameIndex [
-	| graphId object predicate subject termCount valid |
+	| graphId object predicate reifier reifierKind subject termCount valid |
+	reifier := row at: 1.
 	subject := row at: 2.
 	predicate := row at: 3.
 	object := row at: 4.
 	graphId := row size >= 5 ifTrue: [ row at: 5 ] ifFalse: [ nil ].
 	termCount := graph terms size.
-	valid := subject < termCount
+	valid := reifier < termCount
+		and: [ subject < termCount
 		and: [ predicate < termCount
 		and: [ object < termCount
-		and: [ graphId isNil or: [ graphId < termCount ] ] ] ].
+		and: [ graphId isNil or: [ graphId < termCount ] ] ] ] ].
 	valid ifFalse: [
 		graph addDiagnostic: (GtsDiagnostic
 			code: 'PositionConstraint'
 			detail: 'reifier row has out-of-range term ids'
+			frameIndex: frameIndex).
+		^ false ].
+	"§7.3: every reifies row asserts `R rdf:reifies <<( S P O )>>`, so R lands in
+	SUBJECT position, where RDF 1.2 admits only an IRI or blank node — the same
+	reason the graph slot below excludes those kinds."
+	reifierKind := (graph termAtId: reifier) kind.
+	((reifierKind = #literal) or: [ reifierKind = #triple ]) ifTrue: [
+		graph addDiagnostic: (GtsDiagnostic
+			code: 'PositionConstraint'
+			detail: 'reifier row reifier ', reifier printString,
+				' must be an IRI or blank node, not a ',
+				(reifierKind = #literal ifTrue: [ 'literal' ] ifFalse: [ 'quoted triple' ]),
+				' term'
 			frameIndex: frameIndex).
 		^ false ].
 	valid := (graph termAtId: predicate) kind = #iri.

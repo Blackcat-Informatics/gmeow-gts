@@ -767,9 +767,22 @@ func toEventTerm(graph *model.Graph, id int, term model.Term) (Term, error) {
 		}
 		out.Kind = TermTriple
 		out.Triple = &eventTriple
-		out.Reifier, err = toEventIDPtr(term.Reifier)
-		if err != nil {
-			return Term{}, err
+		// `out.Triple` carries the RESOLVED (s, p, o) either way, so `out.Reifier`
+		// is the only thing distinguishing a self-describing term from a legacy
+		// indirect one downstream: GraphSink.modelTerm treats a non-nil reifier as
+		// "this term is DEFINED by its reifier" and rebuilds it that way. A term
+		// carrying BOTH "tt" and "rf" is self-describing — §7.3 makes "tt"
+		// authoritative and the "rf" superseded — so emitting the superseded
+		// pointer here made the sink demote it, dropping model.Term.Triple and
+		// minting a `reifies` row the source never had. Report the reifier only
+		// when it actually defines the term. The binding rows themselves are
+		// unaffected: they travel as their own Reifier events and every row
+		// survives (§7.3, §7.8).
+		if term.Triple == nil {
+			out.Reifier, err = toEventIDPtr(term.Reifier)
+			if err != nil {
+				return Term{}, err
+			}
 		}
 	default:
 		return Term{}, NewError(ErrorInvalidSource, fmt.Sprintf("term %d has unknown kind %d", id, term.Kind))
