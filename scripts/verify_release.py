@@ -994,6 +994,19 @@ def verify_luarocks(
     return artifacts
 
 
+def rubygems_version_for(version: str) -> str:
+    """Spell `version` the way RubyGems requires.
+
+    A gem version is dotted segments; the semver dash is not valid there and
+    `gem build` rejects it outright with Gem::InvalidSpecificationException. Any
+    segment containing a letter already marks a prerelease that sorts before the
+    final release, so the dash becomes a dot: 1.0.0-rc.1 -> 1.0.0.rc.1. Looking
+    for the semver spelling on the registry reports a correctly published gem as
+    absent. A final release has no pre-release part and is unchanged.
+    """
+    return version.replace("-", ".")
+
+
 def verify_rubygems(
     args: argparse.Namespace, recorder: Recorder, out_dir: Path
 ) -> list[Path]:
@@ -1010,16 +1023,25 @@ def verify_rubygems(
         record_registry_fetch_error(recorder, surface, "registry metadata", exc)
         return artifacts
 
+    gem_version = rubygems_version_for(args.version)
     if version_present(
         (entry.get("number") for entry in versions if isinstance(entry, dict)),
-        args.version,
+        gem_version,
     ):
-        recorder.published(surface, "package version", args.version)
+        recorder.published(surface, "package version", gem_version)
     else:
-        recorder.pending(surface, "package version", f"{args.version} not present")
+        recorder.pending(surface, "package version", f"{gem_version} not present")
         return artifacts
 
-    metadata_url = f"https://rubygems.org/api/v2/rubygems/{args.rubygems_package}.json"
+    # The v2 gem endpoint requires a version segment; the bare
+    # /api/v2/rubygems/<name>.json is not a route and 404s for every gem, not
+    # just this one. Asking for the exact version under release is also the
+    # stricter check: it verifies the metadata of the artifact being shipped
+    # rather than whatever the registry currently considers latest.
+    metadata_url = (
+        f"https://rubygems.org/api/v2/rubygems/{args.rubygems_package}"
+        f"/versions/{gem_version}.json"
+    )
     try:
         gem_metadata = fetch_json(metadata_url)
         if not isinstance(gem_metadata, dict):
@@ -1038,9 +1060,9 @@ def verify_rubygems(
         recorder.missing(surface, "repository/homepage metadata", str(exc))
 
     gem_url = (
-        f"https://rubygems.org/downloads/{args.rubygems_package}-{args.version}.gem"
+        f"https://rubygems.org/downloads/{args.rubygems_package}-{gem_version}.gem"
     )
-    destination = ruby_dir / f"{args.rubygems_package}-{args.version}.gem"
+    destination = ruby_dir / f"{args.rubygems_package}-{gem_version}.gem"
     try:
         download(gem_url, destination)
         artifacts.append(destination)
