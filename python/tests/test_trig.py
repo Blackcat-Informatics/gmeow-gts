@@ -146,7 +146,9 @@ def test_cli_from_trig_inverts_to_trig(tmp_path: Path) -> None:
     )
 
 
-def test_cli_from_trig_rejects_invalid_utf8(tmp_path: Path, capsys: object) -> None:
+def test_cli_from_trig_rejects_invalid_utf8(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     bad = tmp_path / "bad.trig"
     bad.write_bytes(b"\xff")
     assert main(["from-trig", str(bad)]) == 1

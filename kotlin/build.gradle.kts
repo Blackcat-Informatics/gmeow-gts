@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 plugins {
-    kotlin("jvm") version "2.4.0"
+    kotlin("jvm") version "2.4.10"
     application
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
@@ -19,9 +19,9 @@ application {
 }
 
 dependencies {
-    implementation("com.github.luben:zstd-jni:1.5.7-11")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.84")
-    implementation("org.bouncycastle:bcpg-jdk18on:1.84")
+    implementation("com.github.luben:zstd-jni:1.5.7-15")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.85.2")
+    implementation("org.bouncycastle:bcpg-jdk18on:1.85")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     testImplementation(kotlin("test"))

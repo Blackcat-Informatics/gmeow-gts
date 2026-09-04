@@ -63,11 +63,13 @@ print(gts.to_trig(graph))
 
 # Write a minimal graph.
 w = gts.Writer(profile="dist")
-w.add_terms([
-    gts.Term(gts.TermKind.IRI, "https://example.org/Cat"),
-    gts.Term(gts.TermKind.IRI, "http://www.w3.org/2000/01/rdf-schema#label"),
-    gts.Term(gts.TermKind.LITERAL, "Cat", lang="en"),
-])
+w.add_terms(
+    [
+        gts.Term(gts.TermKind.IRI, "https://example.org/Cat"),
+        gts.Term(gts.TermKind.IRI, "http://www.w3.org/2000/01/rdf-schema#label"),
+        gts.Term(gts.TermKind.LITERAL, "Cat", lang="en"),
+    ]
+)
 w.add_quads([(0, 1, 2, None)])
 Path("cat.gts").write_bytes(w.to_bytes())
 ```

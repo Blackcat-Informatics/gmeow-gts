@@ -10,6 +10,7 @@ frames) and asserts the folded :class:`Graph`, its diagnostics, and the
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import cbor2
 import pytest
@@ -35,7 +36,9 @@ def _diag_codes(graph: object) -> list[str]:
 def _frame_payload_bytes(data: bytes) -> list[bytes]:
     items, torn = iter_items(data)
     assert torn is None
-    return [frame["d"] for _, frame in items[1:]]
+    # iter_items yields raw CBOR values as `object`; every item after the
+    # header is a frame map carrying its payload under "d".
+    return [cast("dict[str, bytes]", frame)["d"] for _, frame in items[1:]]
 
 
 # -- Vector 1: minimal valid file --------------------------------------------
