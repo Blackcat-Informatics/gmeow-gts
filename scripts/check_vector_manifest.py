@@ -112,6 +112,8 @@ TOP_LEVEL_SUBSETS = {
     "12-conflicting-reifier": ("graph-fold",),
     "13-position-constraint": ("graph-fold",),
     "13b-reifier-position-constraint": ("graph-fold",),
+    "13c-self-describing-triple-term": ("graph-fold",),
+    "13e-literal-base-direction": ("graph-fold",),
     "14-bnode-label": ("graph-fold",),
     "15-two-segment-union": ("graph-fold",),
     "15b-anon-bnode-union": ("graph-fold",),

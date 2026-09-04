@@ -18,6 +18,58 @@ incrémenter la crate Rust indépendamment. Voir
 Le format de transfert est une ébauche de travail (document `GTS-SPEC.md` version `0.9-draft`)
 et PEUT (MAY) changer avant `1.0`.
 
+## [Non publié]
+
+### Modifié
+
+- **RUPTURE (contrat de lecteur).** Un TERME de triplet cité est désormais
+  auto-descriptif : une rangée `terms` peut porter `"tt": [s, p, o]`, qui FAIT
+  AUTORITÉ lorsqu'il est présent. `"rf"` reste un encodage hérité valide et se
+  résout vers la première liaison de son réificateur, de sorte que les octets
+  existants se lisent inchangés — mais tout lecteur tiers antérieur devient non
+  conforme, car `rdf:reifies` n'est PAS fonctionnel en RDF 1.2 et la trame
+  `reifies` est une couche d'énoncés MULTIVALUÉE. Chaque rangée survit avec son
+  propre emplacement de graphe ; un lecteur ne peut ni choisir parmi elles, ni
+  les réordonner, ni en supprimer aucune. Seules les rangées identiques octet
+  pour octet fusionnent (§7.8).
+- `ConflictingReifier` est restreint à la seule forme véritablement incohérente :
+  un terme sans `"tt"` dont le réificateur lie plus d'un triplet distinct. Il est
+  signalé une fois par terme fautif, ne supprime aucune rangée, et ce terme
+  continue de se résoudre vers la première liaison dans l'ordre du fichier. Le
+  vecteur de conformité 12 passe d'un cas négatif à un cas positif.
+- **RUPTURE (projection relationnelle §14).** La table `terms` de l'export
+  `gts → {sqlite,duckdb,parquet}` passe de 7 à 10 colonnes, en ajoutant `tt_s`,
+  `tt_p`, `tt_o`. Les index positionnels 0-6 existants sont inchangés, mais un
+  identifiant de réificateur n'identifie plus un triplet : tout consommateur qui
+  effectue une clé ou une jointure sur `reifier` en attendant un seul triplet
+  perdra silencieusement des rangées.
+
+### Ajouté
+
+- Contrainte de position normative : dans une rangée `reifies`, le réificateur
+  DOIT (MUST) être un IRI ou un nœud vide (`k:0|2`), jamais un littéral ni un
+  triplet cité. Il est le SUJET de l'énoncé `R rdf:reifies <<( S P O )>>` que
+  chaque rangée affirme, et RDF 1.2 n'admet que ces genres à cette position. Les
+  violations sont signalées `PositionConstraint` et la rangée est supprimée.
+- Vecteurs de conformité `13b-reifier-position-constraint`,
+  `13c-self-describing-triple-term` et `13e-literal-base-direction`. Le dernier
+  couvre la direction de base des littéraux RDF 1.2, entièrement implémentée
+  dans les six moteurs mais sans aucune couverture figée.
+
+### Corrigé
+
+- La résolution d'un terme de triplet se termine désormais sur chaque parcours.
+  Une rangée `reifies` peut nommer le terme même qui se résout à travers elle,
+  ce qui est constructible avec l'écrivain ordinaire et ne nécessite aucun
+  `"tt"`. Auparavant, le pliage d'un tel fichier interrompait Go avec
+  `fatal error: stack overflow` — irrécupérable, et une violation du contrat
+  sans panique du lecteur que `FuzzRead` défend — et levait `RecursionError` en
+  Python. Les deux constituent un déni de service d'analyseur.
+- Go ne rejette plus un `"tt"` faisant autorité lorsqu'un `"rf"` hérité est
+  également présent. Un aller-retour `Graph → events → Graph` rétrogradait un
+  tel terme.
+- L'écrivain Rust n'émet `"tt"` que pour les termes `k:3`.
+
 ## [0.9.11] — 2026-06-29
 
 ### Modifié
@@ -388,6 +440,7 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
+[Non publié]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...HEAD
 [0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
 [0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
 [0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9

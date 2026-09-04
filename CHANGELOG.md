@@ -14,6 +14,59 @@ bump the Rust crate independently. See
 The wire format is a working draft (`GTS-SPEC.md` document version `0.9-draft`)
 and MAY change before `1.0`.
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING (reader contract).** A quoted triple TERM is now self-describing: a
+  `terms` row may carry `"tt": [s, p, o]`, which is AUTHORITATIVE when present.
+  `"rf"` remains a legal legacy encoding and resolves to the first binding of
+  its reifier, so existing bytes read unchanged — but a pre-existing
+  third-party reader is now non-conformant, because `rdf:reifies` is NOT
+  functional in RDF 1.2 and the `reifies` frame is a MULTI-VALUED statement
+  layer. Every row survives with its own graph slot; a reader may not choose
+  among them, reorder them, or drop any. Only byte-identical rows collapse
+  (§7.8).
+- `ConflictingReifier` is narrowed to the one genuinely incoherent shape: a
+  `"tt"`-less term whose reifier binds more than one distinct triple. It is
+  reported once per offending term, drops no row, and that term still resolves
+  to the first binding in file order. Conformance vector 12 changes from a
+  negative to a positive case.
+- **BREAKING (§14 relational projection).** The `terms` table of the
+  `gts → {sqlite,duckdb,parquet}` export grows from 7 columns to 10, appending
+  `tt_s`, `tt_p`, `tt_o`. Existing positional indices 0-6 are unchanged, but a
+  reifier id no longer identifies a triple, so any consumer keying or joining
+  on `reifier` and expecting one triple will silently drop rows.
+
+### Added
+
+- Normative position constraint: in a `reifies` row the reifier MUST be an IRI
+  or blank node (`k:0|2`), never a literal or quoted triple. It is the SUBJECT
+  of the `R rdf:reifies <<( S P O )>>` statement every row asserts, and RDF 1.2
+  admits only those kinds there. Violations are diagnosed `PositionConstraint`
+  and the row is dropped. This closes a gap where the shape folded and each
+  engine improvised a different, sometimes invalid, projection.
+- Conformance vectors `13b-reifier-position-constraint`,
+  `13c-self-describing-triple-term` and `13e-literal-base-direction`. The last
+  covers RDF 1.2 literal base direction, which was fully implemented across six
+  engines but had no frozen coverage at all — base direction belongs to a
+  literal's identity, so an implementation could carry it on one write path and
+  silently conflate on another while passing every vector.
+
+### Fixed
+
+- Resolution of a triple term now terminates on every walk. A `reifies` row may
+  name the very term that resolves through it, which is constructible with the
+  ordinary writer and needs no `"tt"`. Before this, folding such a file aborted
+  Go with `fatal error: stack overflow` — unrecoverable, and a violation of the
+  reader no-panic contract `FuzzRead` defends — and raised `RecursionError` in
+  Python. Both are parser denial-of-service.
+- Go no longer discards an authoritative `"tt"` when a legacy `"rf"` is also
+  present. A `Graph → events → Graph` round trip demoted such a term, losing
+  its own components and minting a `reifies` row the source never had.
+- The Rust writer emits `"tt"` only for `k:3` terms, so authored bytes cannot
+  read back as something other than what was written.
+
 ## [0.9.11] — 2026-06-29
 
 ### Changed
@@ -380,6 +433,7 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
+[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...HEAD
 [0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
 [0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
 [0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
