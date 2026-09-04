@@ -93,4 +93,10 @@ jobs:
             echo "LUAROCKS_API_KEY is required to publish to LuaRocks"
             exit 1
           fi
+          # `luarocks upload` talks to the LuaRocks API over JSON and refuses to
+          # run without a JSON library: "A JSON library is required for this
+          # command. Failed loading 'cjson', 'dkjson', and 'json'." Nothing else
+          # in this lane needs one -- lint, make and pack are all local -- so it
+          # is installed here rather than in the base setup.
+          luarocks install dkjson
           luarocks upload "$GTS_LUAROCKS_ROCKSPEC" --api-key="$LUAROCKS_API_KEY"
