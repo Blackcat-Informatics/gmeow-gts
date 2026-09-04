@@ -55,6 +55,16 @@ GTS 的所有显著变更都记录在此。本日志格式基于
   `http://dbpedia.org/resource/Semantic_analysis_(linguistics)`). An escaped trailing
   `\.` is kept rather than stripped as the statement terminator.
 
+## [0.9.8]
+
+### 已修复
+
+- Turtle/TriG prefixed names admit internal dots (`repo:README.md`): a `.` is no longer
+  a name delimiter; only a trailing dot terminates the statement.
+- The N-Triples/N-Quads statement-layer fold HARD-FAILS on a conflicting `rdf:reifies`
+  rebind (same reifier subject, different triple term) instead of silently
+  last-write-winning (CONSTITUTION P7); an identical rebind stays idempotent.
+
 ## [0.9.7]
 
 ### 新增
@@ -71,20 +81,16 @@ GTS 的所有显著变更都记录在此。本日志格式基于
   (a triple term keying its own components in the reifiers map) no longer trips the
   event source's `cycle while declaring term N` guard.
 
-## [0.9.8]
-
-### 已修复
-
-- Turtle/TriG prefixed names admit internal dots (`repo:README.md`): a `.` is no longer
-  a name delimiter; only a trailing dot terminates the statement.
-- The N-Triples/N-Quads statement-layer fold HARD-FAILS on a conflicting `rdf:reifies`
-  rebind (same reifier subject, different triple term) instead of silently
-  last-write-winning (CONSTITUTION P7); an identical rebind stays idempotent.
-
-## [Unreleased]
+## [0.9.6]
 
 ### 新增
 
+- Native Turtle/TriG parsing of bare numeric (`xsd:integer`/`decimal`/`double`),
+  boolean (`xsd:boolean`), and single- and triple-quoted string literals, with
+  lexical forms preserved verbatim (`0.70`, `1.0E0` survive unchanged). This
+  closes the gaps that previously forced an oxttl-backed codec fallback, so the
+  hand-rolled native codecs fully replace `oxttl`/`oxrdfxml`/`oxrdfio` with no
+  text-codec dependency on the Oxigraph family.
 - Installable C ABI archive packaging for `libgts`, including pkg-config,
   CMake, checksum, SBOM, provenance, and immutable GitHub Release publication
   through the `capi-v*` tag lane.
@@ -95,6 +101,11 @@ GTS 的所有显著变更都记录在此。本日志格式基于
 
 ### 已变更
 
+- N-Quads/N-Triples language-tag validation now accepts long BCP-47 private-use
+  subtags (e.g. `x-gmeow-norwegiannynorsk`): once the `x` singleton appears the
+  8-char per-subtag cap is dropped for the remainder. This is the native
+  equivalent of the prior oxttl `.lenient()` mode and lets GMEOW's long
+  private-use language tags round-trip through every native text codec.
 - Corrected the Go module release tag shape to `go/v<version>` so
   `go.blackcatinformatics.ca/gts` versions in the `go/` subdirectory are
   discoverable by the Go proxy and pkg.go.dev.
@@ -106,25 +117,6 @@ GTS 的所有显著变更都记录在此。本日志格式基于
   dataset, text-codec, RDF/XML, ULID, and in-memory store implementations; CI
   now locks the `wasm32-unknown-unknown --all-features` library build and audits
   that dependency tree to keep the removed toolkit blockers out.
-
-## [0.9.6]
-
-### 新增
-
-- Native Turtle/TriG parsing of bare numeric (`xsd:integer`/`decimal`/`double`),
-  boolean (`xsd:boolean`), and single- and triple-quoted string literals, with
-  lexical forms preserved verbatim (`0.70`, `1.0E0` survive unchanged). This
-  closes the gaps that previously forced an oxttl-backed codec fallback, so the
-  hand-rolled native codecs fully replace `oxttl`/`oxrdfxml`/`oxrdfio` with no
-  text-codec dependency on the Oxigraph family.
-
-### 已变更
-
-- N-Quads/N-Triples language-tag validation now accepts long BCP-47 private-use
-  subtags (e.g. `x-gmeow-norwegiannynorsk`): once the `x` singleton appears the
-  8-char per-subtag cap is dropped for the remainder. This is the native
-  equivalent of the prior oxttl `.lenient()` mode and lets GMEOW's long
-  private-use language tags round-trip through every native text codec.
 
 ## [0.9.5] — 2026-06-22
 
@@ -383,7 +375,6 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[Unreleased]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...HEAD
 [0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
 [0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
 [0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
