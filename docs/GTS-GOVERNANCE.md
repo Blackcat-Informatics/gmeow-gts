@@ -149,6 +149,39 @@ affects.
 | Package compatibility | Rust, Python, Go, and TypeScript packages are release artifacts. They SHOULD keep user-facing APIs stable within their normal ecosystem semver rules. Package versions may differ from the document version and corpus version, but release notes MUST state the spec/corpus commit they implement. |
 | Profile compatibility | Profiles own their vocabulary and validation compatibility. Domain-specific profiles may version independently, but a profile revision MUST preserve core GTS parse, verify, and fold semantics for baseline readers. Optional-standard profiles need compatibility notes in the registry. |
 
+### 5.1 Deprecation policy
+
+§5 says packages SHOULD keep user-facing APIs stable within normal ecosystem semver rules, but did
+not say how an API is retired. A stability promise without a removal procedure is not actionable:
+implementers cannot tell whether something is merely undocumented or genuinely going away.
+
+A public API surface — an exported function, type, CLI verb, frame type, diagnostic code, profile
+key, or wire field — is removed in three steps, never fewer:
+
+1. **Announce.** The release that deprecates it names it in `CHANGELOG.md` under `### Deprecated`,
+   states the replacement (or that there is none), and gives the earliest release that MAY remove
+   it. Deprecating and removing in the same release is not permitted.
+2. **Warn where it costs nothing.** Ecosystem-native deprecation markers SHOULD be applied —
+   `#[deprecated]`, `DeprecationWarning`, `@deprecated`, `Deprecated:` — so consumers learn at
+   build time rather than at upgrade time. A deprecated item keeps working unchanged.
+3. **Remove.** Removal happens only in a release whose version signals it under that ecosystem's
+   rules, and no earlier than the release named in step 1.
+
+The minimum notice is **one minor release AND 90 days**, whichever is longer. Removing a public
+API is a MAJOR change for the affected package.
+
+Two carve-outs, both narrow:
+
+- A **security fix** MAY shorten or skip the notice period when leaving the surface in place would
+  keep users exploitable. The release notes MUST say so explicitly and cite the advisory.
+- An API that has never appeared in a released package MAY be removed freely; the promise attaches
+  to what was published, not to what was merged.
+
+This policy governs PACKAGE APIs. Wire-format compatibility is stricter and is governed by §5's
+wire layer: after v1.0 a breaking wire change requires a new wire-format major version, and no
+deprecation window makes one permissible within major version 1. A `reifies` row, frame type or
+diagnostic that a v1 reader accepts today must still be accepted by every future v1 reader.
+
 Compatibility claims SHOULD identify:
 
 - implementation name and package version;
