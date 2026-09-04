@@ -96,4 +96,18 @@ jobs:
         # No NODE_AUTH_TOKEN: npm authenticates via the GitHub OIDC token and the
         # configured Trusted Publisher; npm's own sigstore provenance is generated
         # automatically (in addition to the GitHub attestation above).
-        run: npm publish --access public
+        # A prerelease MUST carry an explicit dist-tag: npm refuses
+        # `npm publish` outright for one ("You must specify a tag using --tag
+        # when publishing a prerelease version"), because the default would be
+        # `latest` and every plain `npm install` would silently pick up a
+        # release candidate. Publish prereleases under `next` and let only a
+        # final release take `latest`.
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          case "$version" in
+            *-*) echo "prerelease $version -> dist-tag next"
+                 npm publish --access public --tag next ;;
+            *)   echo "release $version -> dist-tag latest"
+                 npm publish --access public ;;
+          esac
