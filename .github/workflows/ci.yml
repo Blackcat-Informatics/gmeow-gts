@@ -176,43 +176,15 @@ jobs:
           cargo build --manifest-path rust/Cargo.toml --lib --target wasm32-unknown-unknown
           cargo build --locked --manifest-path rust/Cargo.toml --lib --target wasm32-unknown-unknown --all-features
 
-  # Downstream Rust API contract: ontology validator compiles against this crate.
-  downstream-gmeow-ontology:
-    name: downstream gmeow-ontology Rust API
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout gmeow-gts
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          path: gmeow-gts
-          persist-credentials: false
-
-      - name: Checkout gmeow-ontology
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          repository: Blackcat-Informatics/gmeow-ontology
-          path: gmeow-ontology
-          persist-credentials: false
-
-      - name: Install Rust (stable)
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-
-      - name: Cache Cargo dependencies
-        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-        with:
-          workspaces: |
-            gmeow-gts/rust
-            gmeow-ontology
-
-      - name: Patch downstream dependency to this checkout
-        working-directory: gmeow-ontology
-        run: |
-          set -euo pipefail
-          printf '\n[patch.crates-io]\ngmeow-gts = { path = "../gmeow-gts/rust" }\n' >> Cargo.toml
-
-      - name: Check gmeow-validate against current gmeow-gts
-        working-directory: gmeow-ontology
-        run: cargo check -p gmeow-validate
+  # NOTE: the `downstream-gmeow-ontology` job was removed here. It appended a
+  # `[patch.crates-io] gmeow-gts` entry to gmeow-ontology and ran
+  # `cargo check -p gmeow-validate`, but gmeow-ontology no longer declares a
+  # gmeow-gts dependency, so the patch never applied and the job compiled a
+  # crate that does not use this one. Cargo said so in every run:
+  # `warning: patch gmeow-gts v0.9.11 (...) was not used in the crate graph`.
+  # It passed on every PR while testing nothing. Restore downstream coverage
+  # only against a consumer that actually depends on the published crate, and
+  # fail the job if that patch-unused warning ever appears again.
 
   # Credential-free package dry-runs for the C ABI wrapper family.
   wrapper-package-dry-runs:
