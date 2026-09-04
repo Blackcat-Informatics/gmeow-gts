@@ -68,7 +68,14 @@ jobs:
           rm -f gmeow-gts-*.rock
           luarocks --tree "$luarocks_tree" pack gmeow-gts "$GTS_LUAROCKS_VERSION"
           eval "$(luarocks --tree "$luarocks_tree" path --bin)"
-          luajit lua/tests/smoke.lua vectors/01-minimal.gts
+          # smoke.lua takes THREE fixtures: clean, damaged and empty. It has
+          # required all three since the structured-error assertions were added
+          # ("missing damaged fixture path"), and the wrapper dry run has always
+          # passed all three -- only this lane still passed one.
+          luajit lua/tests/smoke.lua \
+            vectors/01-minimal.gts \
+            vectors/04-damaged-frame.gts \
+            vectors/28-empty-file.gts
 
       - name: Upload LuaRocks artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
