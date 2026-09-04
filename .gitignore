@@ -68,6 +68,10 @@ dist/benchmarks/
 # EVIDENCE, uploaded as workflow artifacts, not repository content -- and they
 # carry no SPDX headers, so committing them fails `reuse lint`.
 dist/v*/
+# `just verify-release` output: downloaded registry artifacts plus the
+# pass/fail summary. Release evidence uploaded as a workflow artifact, not
+# repository content.
+dist/release-verification/
 .agents
 .codex
 .claude

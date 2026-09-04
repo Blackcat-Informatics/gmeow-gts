@@ -28,6 +28,10 @@ DEFAULT_PYPI_PROJECT = "gmeow-gts"
 DEFAULT_NPM_PACKAGE = "@blackcatinformatics/gmeow-gts"
 DEFAULT_RUST_CRATE = "gmeow-gts"
 DEFAULT_VISUAL_HASHING_CRATE = "visual-hashing"
+# visual-hashing moved out of this monorepo (CHANGELOG 0.9.6) and now publishes
+# from its own repository with its own crates.io Trusted Publisher, so its
+# attestations live in that repository's store rather than this one's.
+DEFAULT_VISUAL_HASHING_REPO = "Blackcat-Informatics/visual-hashing"
 DEFAULT_CAPI_CRATE = "gmeow-gts-capi"
 DEFAULT_NUGET_PACKAGE = "Gmeow.Gts"
 DEFAULT_PACKAGIST_PACKAGE = "blackcatinformatics/gmeow-gts"
@@ -146,12 +150,24 @@ def normalize_url(value: str) -> str:
     return text.casefold()
 
 
-def expected_repo_urls(args: argparse.Namespace) -> set[str]:
-    repo_url = args.repository_url or f"https://github.com/{args.repo}"
+def expected_repo_urls(args: argparse.Namespace, repo: str | None = None) -> set[str]:
+    """Repository URLs a published artifact may legitimately point at.
+
+    Defaults to this repository. Pass `repo` for an artifact published from a
+    DIFFERENT repository -- visual-hashing moved out of this monorepo
+    (CHANGELOG 0.9.6) and correctly advertises its own source URL on crates.io,
+    which this check otherwise reports as a metadata mismatch.
+    """
+    target = repo or args.repo
+    repo_url = (
+        args.repository_url
+        if repo is None and args.repository_url
+        else f"https://github.com/{target}"
+    )
     return {
         normalize_url(repo_url),
-        normalize_url(f"https://github.com/{args.repo}"),
-        normalize_url(f"https://github.com/{args.repo}.git"),
+        normalize_url(f"https://github.com/{target}"),
+        normalize_url(f"https://github.com/{target}.git"),
     }
 
 
@@ -733,6 +749,7 @@ def verify_crate(
     out_dir: Path,
     crate: str,
     version: str,
+    source_repo: str | None = None,
 ) -> list[Path]:
     surface = f"crates.io {crate}"
     crate_dir = out_dir / "rust"
@@ -759,7 +776,7 @@ def verify_crate(
             surface,
             "repository metadata",
             crate_info.get("repository"),
-            expected_repo_urls(args),
+            expected_repo_urls(args, source_repo),
         )
     except RuntimeError as exc:
         record_registry_fetch_error(recorder, surface, "repository metadata", exc)
@@ -1541,16 +1558,25 @@ def verify_capi(
 def verify_github_attestations(
     args: argparse.Namespace,
     recorder: Recorder,
-    artifacts: Iterable[tuple[str, Path, bool]],
+    artifacts: Iterable[tuple[str, Path, bool, str]],
 ) -> None:
+    """Verify SLSA provenance and SPDX SBOM attestations for each artifact.
+
+    Each plan entry carries the repository whose attestation store to query.
+    Most artifacts are attested by this repository, but `visual-hashing`
+    publishes from its own standalone repository (see CHANGELOG 0.9.6 and
+    docs/GTS-V1-RC1-CHECKLIST.md:344-347), so its attestations live there.
+    Querying this repository for them returns a bare HTTP 404, which reads like
+    a missing attestation rather than a lookup pointed at the wrong store.
+    """
     if not require_tool("gh", recorder, "GitHub attestations"):
         return
-    for surface, artifact, expect_sbom in artifacts:
+    for surface, artifact, expect_sbom, repo in artifacts:
         run_command(
             recorder,
             surface,
             f"SLSA provenance {artifact.name}",
-            ["gh", "attestation", "verify", str(artifact), "--repo", args.repo],
+            ["gh", "attestation", "verify", str(artifact), "--repo", repo],
             allow_legacy_gap=args.allow_legacy_release_gaps,
         )
         if expect_sbom:
@@ -1564,7 +1590,7 @@ def verify_github_attestations(
                     "verify",
                     str(artifact),
                     "--repo",
-                    args.repo,
+                    repo,
                     "--predicate-type",
                     SPDX_PREDICATE,
                 ],
@@ -1575,30 +1601,36 @@ def verify_github_attestations(
 def artifact_attestation_plan(
     pypi_artifacts: list[Path],
     npm_artifacts: list[Path],
-    crate_artifacts: list[Path],
+    crate_artifacts: list[tuple[Path, str]],
     go_artifacts: list[Path],
     capi_artifacts: list[Path],
     wrapper_attested_artifacts: list[Path],
-) -> list[tuple[str, Path, bool]]:
-    plan: list[tuple[str, Path, bool]] = []
-    plan.extend(("PyPI", artifact, True) for artifact in pypi_artifacts)
-    plan.extend(("npm", artifact, True) for artifact in npm_artifacts)
-    plan.extend(("crates.io", artifact, True) for artifact in crate_artifacts)
+    repo: str,
+) -> list[tuple[str, Path, bool, str]]:
+    plan: list[tuple[str, Path, bool, str]] = []
+    plan.extend(("PyPI", artifact, True, repo) for artifact in pypi_artifacts)
+    plan.extend(("npm", artifact, True, repo) for artifact in npm_artifacts)
+    # crates carry their own attesting repository: visual-hashing is published
+    # from a different repository than this one.
+    plan.extend(
+        ("crates.io", artifact, True, crate_repo)
+        for artifact, crate_repo in crate_artifacts
+    )
     for artifact in go_artifacts:
         if artifact.name == "checksums.txt" or artifact.name == "sbom-go-gts.spdx.json":
-            plan.append(("Go release", artifact, False))
+            plan.append(("Go release", artifact, False, repo))
         elif artifact.suffix == ".zip" or artifact.name.endswith(".tar.gz"):
-            plan.append(("Go release", artifact, True))
+            plan.append(("Go release", artifact, True, repo))
     for artifact in capi_artifacts:
         if (
             artifact.name == "checksums.txt"
             or artifact.name == "sbom-gmeow-gts-capi.spdx.json"
         ):
-            plan.append(("C ABI release", artifact, False))
+            plan.append(("C ABI release", artifact, False, repo))
         elif artifact.name.endswith(".tar.gz"):
-            plan.append(("C ABI release", artifact, True))
+            plan.append(("C ABI release", artifact, True, repo))
     for artifact in wrapper_attested_artifacts:
-        plan.append(("Wrapper package", artifact, True))
+        plan.append(("Wrapper package", artifact, True, repo))
     return plan
 
 
@@ -1854,6 +1886,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--npm-package", default=DEFAULT_NPM_PACKAGE)
     parser.add_argument("--rust-crate", default=DEFAULT_RUST_CRATE)
     parser.add_argument("--visual-hashing-crate", default=DEFAULT_VISUAL_HASHING_CRATE)
+    parser.add_argument(
+        "--visual-hashing-repo",
+        default=DEFAULT_VISUAL_HASHING_REPO,
+        help=(
+            "repository whose attestation store holds visual-hashing provenance; "
+            "it publishes from its own repository, not this one."
+        ),
+    )
     parser.add_argument("--capi-crate", default=DEFAULT_CAPI_CRATE)
     parser.add_argument("--nuget-package", default=DEFAULT_NUGET_PACKAGE)
     parser.add_argument("--packagist-package", default=DEFAULT_PACKAGIST_PACKAGE)
@@ -1932,16 +1972,24 @@ def main(argv: list[str]) -> int:
 
     pypi_artifacts = verify_pypi(args, recorder, out_dir)
     npm_artifacts = verify_npm(args, recorder, out_dir)
-    crate_artifacts = verify_crate(
-        args, recorder, out_dir, args.rust_crate, args.version
-    )
+    # Pair each crate with the repository holding its attestations. Everything
+    # here is attested by this repository EXCEPT visual-hashing, which publishes
+    # from Blackcat-Informatics/visual-hashing.
+    crate_artifacts = [
+        (artifact, args.repo)
+        for artifact in verify_crate(
+            args, recorder, out_dir, args.rust_crate, args.version
+        )
+    ]
     crate_artifacts.extend(
-        verify_crate(
+        (artifact, args.visual_hashing_repo)
+        for artifact in verify_crate(
             args,
             recorder,
             out_dir,
             args.visual_hashing_crate,
             args.visual_hashing_version,
+            source_repo=args.visual_hashing_repo,
         )
     )
     go_artifacts = verify_go(args, recorder, out_dir)
@@ -1963,6 +2011,7 @@ def main(argv: list[str]) -> int:
                 for artifact in wrapper_artifacts
                 if artifact.suffix == ".gem" or artifact.name.endswith(".crate")
             ],
+            args.repo,
         ),
     )
     write_summary(args, recorder, out_dir)
