@@ -91,6 +91,26 @@ Blackcat Informatics® Inc. under terms that permit relicensing, including under
 terms. A Contributor License Agreement (CLA) may be required before substantial
 contributions are merged. See [`LICENSING.md`](./LICENSING.md) for the full licensing scheme.
 
+## Releases
+
+Contributors do not cut releases, but two things about the release process affect
+ordinary changes and are easy to trip over:
+
+- **Versions are checked, not assumed.** `scripts/check-versions.sh` compares every
+  language lane against the Rust crate, and also asserts specific version strings
+  inside `README.md`, `rust/README.md`, `docs/GTS-ECOSYSTEM-INTEGRATIONS.md`,
+  `rust/capi/gts.pc.in`, the vcpkg port and both `Cargo.lock` files. A change that
+  edits a version snippet in prose will fail CI unless the manifests agree.
+- **The conformance corpus is generated.** Never hand-edit `vectors/`. Change
+  `python/src/gts/vectors.py` and run `just check-vectors`, which regenerates the
+  corpus and fails if the committed bytes differ.
+
+The release procedure itself lives in
+[`docs/GTS-V1-RC1-CHECKLIST.md`](./docs/GTS-V1-RC1-CHECKLIST.md) for a release
+candidate and [`docs/GTS-V1-CHECKLIST.md`](./docs/GTS-V1-CHECKLIST.md) for a final
+release; the policy behind both is [`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md),
+including the deprecation policy in §5.1 if your change retires a public API.
+
 ## Conduct
 
 Be respectful and constructive. Harassment and abuse are not tolerated.

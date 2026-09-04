@@ -93,6 +93,23 @@ Blackcat Informatics® Inc. under terms that permit relicensing, including under
 terms. A Contributor License Agreement (CLA) may be required before substantial
 contributions are merged. See [`LICENSING.md`](./LICENSING.md) for the full licensing scheme.
 
+## 发布
+
+贡献者不负责发布，但发布流程中有两点会影响日常改动：
+
+- **版本是被检查的，而非假定的。** `scripts/check-versions.sh` 将每个语言通道与 Rust crate 比对，
+  并断言 `README.md`、`rust/README.md`、`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`、
+  `rust/capi/gts.pc.in`、vcpkg port 以及两个 `Cargo.lock` 中的具体版本字符串。若改动了正文中的
+  版本片段而清单未同步，CI 会失败。
+- **一致性语料是生成的。** 切勿手工编辑 `vectors/`。请修改 `python/src/gts/vectors.py` 并运行
+  `just check-vectors`，它会重新生成语料，若提交的字节不同则失败。
+
+发布流程本身：候选版见
+[`docs/GTS-V1-RC1-CHECKLIST.md`](./docs/GTS-V1-RC1-CHECKLIST.md)，正式版见
+[`docs/GTS-V1-CHECKLIST.md`](./docs/GTS-V1-CHECKLIST.md)；其背后的策略见
+[`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md)，若你的改动要移除公开 API，
+另见 §5.1 的弃用策略。
+
 ## 行为准则
 
 Be respectful and constructive. Harassment and abuse are not tolerated.

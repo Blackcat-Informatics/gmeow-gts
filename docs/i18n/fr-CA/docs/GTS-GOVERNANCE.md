@@ -129,7 +129,40 @@ La compatibilité GTS est divisée en quatre couches. Une version ou une proposi
 | Compatibilité des paquets | Les paquets Rust, Python, Go et TypeScript sont des artefacts de version. Ils DEVRAIENT (SHOULD) maintenir les API destinées aux utilisateurs stables selon les règles semver normales de leur écosystème. Les versions des paquets peuvent différer de la version du document et de la version du corpus, mais les notes de version DOIVENT (MUST) indiquer le commit de la spécification/du corpus qu'ils implémentent. |
 | Compatibilité des profils | Les profils (profiles) sont propriétaires de leur vocabulaire et de leur compatibilité de validation. Les profils spécifiques à un domaine peuvent avoir des versions indépendantes, mais une révision de profil DOIT (MUST) préserver la sémantique de base de GTS pour l'analyse, la vérification et le repli (fold) pour les lecteurs (readers) de référence. Les profils de normes optionnelles nécessitent des notes de compatibilité dans le registre. |
 
-Les revendications de compatibilité DEVRAIENT (SHOULD) identifier :
+### 5.1 Politique de dépréciation
+
+Le §5 indique que les paquets DEVRAIENT (SHOULD) garder les API publiques stables selon les règles
+semver de leur écosystème, sans dire comment une API est retirée. Une promesse de stabilité sans
+procédure de retrait n'est pas actionnable.
+
+Une surface d'API publique — fonction exportée, type, verbe CLI, type de trame, code de
+diagnostic, clé de profil ou champ de transfert — est retirée en trois étapes, jamais moins :
+
+1. **Annoncer.** La version qui déprécie la nomme dans `CHANGELOG.md` sous `### Deprecated`,
+   indique le remplacement (ou son absence) et donne la première version qui PEUT (MAY) la
+   retirer. Déprécier et retirer dans la même version n'est pas permis.
+2. **Avertir.** Les marqueurs natifs de l'écosystème DEVRAIENT être appliqués — `#[deprecated]`,
+   `DeprecationWarning`, `@deprecated`, `Deprecated:` — pour que les consommateurs l'apprennent à
+   la compilation. L'élément déprécié continue de fonctionner sans changement.
+3. **Retirer.** Le retrait n'a lieu que dans une version qui le signale selon les règles de
+   l'écosystème, et pas avant la version nommée à l'étape 1.
+
+Le préavis minimal est d'**une version mineure ET 90 jours**, selon la plus longue. Retirer une API
+publique est un changement MAJEUR pour le paquet concerné.
+
+Deux exceptions, toutes deux étroites :
+
+- Un **correctif de sécurité** PEUT raccourcir ou omettre le préavis si laisser la surface en place
+  maintiendrait les utilisateurs exploitables. Les notes de version DOIVENT le dire explicitement.
+- Une API qui n'est jamais apparue dans un paquet publié PEUT être retirée librement.
+
+Cette politique régit les API de PAQUET. La compatibilité du format de transfert est plus stricte :
+après v1.0, un changement de transfert incompatible exige une nouvelle version majeure de format,
+et aucune fenêtre de dépréciation ne le rend admissible au sein de la version majeure 1. Une rangée
+`reifies`, un type de trame ou un diagnostic qu'un lecteur v1 accepte aujourd'hui doit rester
+accepté par tout futur lecteur v1.
+
+Les déclarations de compatibilité DEVRAIENT identifier :
 
 - le nom de l'implémentation et la version du paquet ;
 - la version majeure du format filaire (wire-format) ;
