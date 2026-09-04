@@ -8,77 +8,16 @@
 //! chooses among them. Two incoherent shapes remain, and both are decided here
 //! rather than inside the frame loop:
 //!
-//! * a `reifies` row that makes a quoted-triple term resolve THROUGH ITSELF is
-//!   structurally damaged — RDF 1.2 triple terms are well founded — and is
-//!   rejected at fold time so no downstream projection can chase the cycle;
-//! * a legacy `"tt"`-less term over a reifier that binds more than one triple is
-//!   one term asking for two meanings, which is `ConflictingReifier`.
+//! The one incoherent shape decided here is a legacy `"tt"`-less term over a
+//! reifier that binds more than one triple: one term asking for two meanings,
+//! which is `ConflictingReifier`.
+//!
+//! A `reifies` row that makes a term resolve THROUGH ITSELF is deliberately not
+//! rejected here. Every row projects (§7.3), so dropping it would lose a
+//! statement; termination is handled in `Graph::triple_of`, which reports a
+//! self-reaching term as stating no triple for the walk.
 
-use std::collections::HashSet;
-
-use crate::model::{Diagnostic, Graph, TermKind, Triple3};
-
-/// Can `term_id`'s resolution reach `anchor`, with `pending` not yet recorded?
-fn term_depends_on_anchor(
-    graph: &Graph,
-    term_id: usize,
-    anchor: usize,
-    pending: (usize, Triple3),
-    seen: &mut HashSet<usize>,
-) -> bool {
-    if term_id == anchor {
-        return true;
-    }
-    if !seen.insert(term_id) {
-        return false;
-    }
-    let Some(term) = graph.terms.get(term_id) else {
-        return false;
-    };
-    if term.kind != TermKind::Triple {
-        return false;
-    }
-    // A "tt" term is self-describing and its components are id-ordered, so it
-    // cannot participate in a reifier cycle; only the legacy indirect form can.
-    let binding = if let Some(spo) = term.triple {
-        Some(spo)
-    } else {
-        let Some(reifier) = term.reifier else {
-            return false;
-        };
-        if reifier == pending.0 {
-            Some(pending.1)
-        } else {
-            graph.reifier(reifier)
-        }
-    };
-    let Some((s, p, o)) = binding else {
-        return false;
-    };
-    [s, p, o]
-        .into_iter()
-        .any(|component| term_depends_on_anchor(graph, component, anchor, pending, seen))
-}
-
-/// Would recording `(rid, triple)` make some term resolve through itself?
-///
-/// Anchors are the LEGACY `"tt"`-less terms bound to `rid`: those are the only
-/// terms whose meaning this row can change (§7.3 step 2).
-pub(crate) fn reifier_binding_is_recursive(graph: &Graph, rid: usize, triple: Triple3) -> bool {
-    graph
-        .terms
-        .iter()
-        .enumerate()
-        .filter(|(_, term)| {
-            term.kind == TermKind::Triple && term.triple.is_none() && term.reifier == Some(rid)
-        })
-        .any(|(anchor, _)| {
-            [triple.0, triple.1, triple.2].into_iter().any(|component| {
-                let mut seen = HashSet::new();
-                term_depends_on_anchor(graph, component, anchor, (rid, triple), &mut seen)
-            })
-        })
-}
+use crate::model::{Diagnostic, Graph, TermKind};
 
 /// Diagnose the one incoherent shape that survives §7.3, in place.
 ///

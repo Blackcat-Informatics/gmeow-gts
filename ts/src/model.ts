@@ -225,12 +225,50 @@ export class Graph {
      * `"tt"`-less term falls back to the FIRST binding of its reifier so
      * pre-`"tt"` files keep reading exactly as they did.
      */
+    /** Resolve the `(s, p, o)` a quoted-triple term denotes (§7.3).
+     *
+     * Resolution MUST terminate. A `reifies` row may name the very term that
+     * resolves through it, so a term that reaches itself states NO triple for
+     * this walk and resolves to `undefined` — the same answer an unbound triple
+     * term gives, which every projection renders as a fresh blank node.
+     * Guarding here rather than inside each walk keeps the degradation at the
+     * RIGHT LEVEL: the self-reaching term itself becomes the blank node,
+     * instead of resolving one step and degrading a nested occurrence, which
+     * renders a different graph. A `"tt"` cannot cycle, since its components
+     * name strictly smaller term-ids (§7.2).
+     */
     tripleOf(termId: number): Triple | undefined {
         const t = this.terms[termId];
         if (!t) return undefined;
         if (t.triple !== undefined) return t.triple;
-        if (t.reifier !== undefined) return this.reifier(t.reifier);
-        return undefined;
+        if (t.reifier === undefined) return undefined;
+        const spo = this.reifier(t.reifier);
+        if (spo === undefined) return undefined;
+        const seen = new Set<number>();
+        for (const c of [spo.s, spo.p, spo.o]) {
+            if (this.resolutionReaches(c, termId, seen)) return undefined;
+        }
+        return spo;
+    }
+
+    /** Does resolving `from` walk back to `anchor`? */
+    private resolutionReaches(
+        from: number,
+        anchor: number,
+        seen: Set<number>,
+    ): boolean {
+        if (from === anchor) return true;
+        if (seen.has(from)) return false;
+        seen.add(from);
+        const t = this.terms[from];
+        if (!t || t.kind !== TermKind.Triple) return false;
+        const spo =
+            t.triple ??
+            (t.reifier !== undefined ? this.reifier(t.reifier) : undefined);
+        if (spo === undefined) return false;
+        return [spo.s, spo.p, spo.o].some((c) =>
+            this.resolutionReaches(c, anchor, seen),
+        );
     }
 
     /** Append a reifier row unless the identical row is already present.

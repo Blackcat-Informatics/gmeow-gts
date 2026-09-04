@@ -355,12 +355,64 @@ impl Graph {
     /// The term's own `triple` (wire `"tt"`) is authoritative. A legacy
     /// `"tt"`-less term falls back to the FIRST binding of its reifier so
     /// pre-`"tt"` files keep reading exactly as they did.
+    ///
+    /// Resolution MUST terminate (§7.3). A `reifies` row may name the very term
+    /// that resolves through it, which is constructible with the ordinary
+    /// writer, so a term that reaches itself states NO triple for this walk and
+    /// resolves to `None` — the same answer an unbound triple term already
+    /// gives, which every caller renders as a fresh blank node. Guarding here
+    /// rather than at each of the seven call sites (N-Quads, TriG, RDF adapter,
+    /// RDF events, the union interner, YAML-LD and the writer) means no walk can
+    /// forget it: this exact shape aborted Go with `fatal error: stack overflow`
+    /// and raised `RecursionError` in Python before it was guarded.
+    ///
+    /// A `"tt"` can never participate in a cycle, because every `"tt"`
+    /// component names a strictly smaller term-id (§7.2), so only the legacy
+    /// reifier indirection needs the check.
     pub fn triple_of(&self, term_id: usize) -> Option<Triple3> {
         let term = self.terms.get(term_id)?;
         if let Some(spo) = term.triple {
             return Some(spo);
         }
-        term.reifier.and_then(|rid| self.reifier(rid))
+        let spo = term.reifier.and_then(|rid| self.reifier(rid))?;
+        let mut seen = std::collections::HashSet::new();
+        let reaches_self = [spo.0, spo.1, spo.2]
+            .into_iter()
+            .any(|component| self.resolution_reaches(component, term_id, &mut seen));
+        if reaches_self {
+            return None;
+        }
+        Some(spo)
+    }
+
+    /// Does resolving `from` walk back to `anchor`?
+    fn resolution_reaches(
+        &self,
+        from: usize,
+        anchor: usize,
+        seen: &mut std::collections::HashSet<usize>,
+    ) -> bool {
+        if from == anchor {
+            return true;
+        }
+        if !seen.insert(from) {
+            return false;
+        }
+        let Some(term) = self.terms.get(from) else {
+            return false;
+        };
+        if term.kind != TermKind::Triple {
+            return false;
+        }
+        let Some(spo) = term
+            .triple
+            .or_else(|| term.reifier.and_then(|rid| self.reifier(rid)))
+        else {
+            return false;
+        };
+        [spo.0, spo.1, spo.2]
+            .into_iter()
+            .any(|component| self.resolution_reaches(component, anchor, seen))
     }
 
     /// Record a reifier row unless the identical row is already present.

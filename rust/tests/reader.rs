@@ -42,12 +42,6 @@ fn triple(reifier: usize) -> Term {
     }
 }
 
-fn has_recursive_reifier_diagnostic(graph: &gmeow_gts::model::Graph) -> bool {
-    graph.diagnostics.iter().any(|diagnostic| {
-        diagnostic.code == "DamagedFrame" && diagnostic.detail.contains("recursive quoted-triple")
-    })
-}
-
 fn read_without_panic(data: &[u8]) -> Graph {
     std::panic::catch_unwind(|| read(data, true, None)).expect("public reader must not panic")
 }
@@ -108,12 +102,13 @@ fn public_reader_reports_malformed_input_diagnostics_without_panicking() {
     );
 }
 
-// The reifier id sits in SUBJECT position of the projected `rdf:reifies`
-// statement, so it must be an IRI or blank node (§7.3). These two cases keep
-// the reifier an IRI on purpose: the recursion guard is what must reject them,
-// not the position check, which would otherwise mask it.
+// §7.3 resolution MUST terminate, and the normative strategy is degradation:
+// a term that reaches itself states NO triple for that walk. The row is NOT
+// dropped — every `reifies` row projects — so these assert retention plus a
+// terminating projection. The reifier is an IRI on purpose so the separate
+// reifier-position rule cannot mask the termination guard.
 #[test]
-fn reader_rejects_direct_recursive_quoted_triple_reifier() {
+fn self_reaching_quoted_triple_reifier_degrades_and_keeps_its_row() {
     let mut writer = Writer::new("dist");
     writer.add_terms(&[
         iri("https://example.org/reifier"),
@@ -126,13 +121,19 @@ fn reader_rejects_direct_recursive_quoted_triple_reifier() {
 
     let graph = read(&writer.to_bytes(), true, None);
 
-    assert!(has_recursive_reifier_diagnostic(&graph));
-    assert!(graph.reifiers.is_empty());
-    assert_eq!(to_nquads(&graph), "");
+    assert_eq!(diagnostic_codes(&graph), Vec::<&str>::new());
+    assert_eq!(
+        graph.reifiers,
+        vec![(0, (3, 1, 2), None)],
+        "every reifies row projects; none is dropped"
+    );
+    assert_eq!(graph.triple_of(3), None, "term 3 reaches itself");
+    // Terminates, and the unresolvable term renders as a fresh blank node.
+    assert!(to_nquads(&graph).contains("_:unbound_triple_3"));
 }
 
 #[test]
-fn reader_rejects_indirect_recursive_quoted_triple_reifier() {
+fn indirect_self_reaching_quoted_triple_reifier_degrades() {
     let mut writer = Writer::new("dist");
     writer.add_terms(&[
         iri("https://example.org/reifier-a"),
@@ -147,9 +148,11 @@ fn reader_rejects_indirect_recursive_quoted_triple_reifier() {
 
     let graph = read(&writer.to_bytes(), true, None);
 
-    assert!(has_recursive_reifier_diagnostic(&graph));
-    assert_eq!(graph.reifiers, vec![(0, (5, 2, 3), None)]);
-    let _ = to_nquads(&graph);
+    assert_eq!(diagnostic_codes(&graph), Vec::<&str>::new());
+    assert_eq!(graph.reifiers.len(), 2, "both rows are retained");
+    assert_eq!(graph.triple_of(4), None);
+    assert_eq!(graph.triple_of(5), None);
+    let _ = to_nquads(&graph); // must terminate
 }
 
 /// §7.3: the reifier id lands in subject position, where RDF 1.2 admits only an
@@ -361,12 +364,13 @@ fn wire_constructed_self_reaching_reifier_stays_total() {
     let data = w.to_bytes();
 
     let single = read(&data, true, None);
-    assert_eq!(diagnostic_codes(&single), vec!["DamagedFrame"]);
-    assert!(
-        single.reifiers.is_empty(),
-        "self-reaching row is not folded"
+    assert_eq!(diagnostic_codes(&single), Vec::<&str>::new());
+    assert_eq!(
+        single.reifiers,
+        vec![(0, (2, 1, 1), None)],
+        "the row is folded and projects; only the TERM degrades"
     );
-    assert_eq!(single.triple_of(2), None);
+    assert_eq!(single.triple_of(2), None, "term 2 reaches itself");
     let _ = to_nquads(&single);
 
     // The union interns a triple term on its RESOLVED (s, p, o) (§7.3), so a

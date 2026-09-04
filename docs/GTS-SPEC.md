@@ -842,12 +842,25 @@ identity it had before this rule (one unresolvable-triple-term identity per scop
 resolves through it — the row `(R, T, P, O)` alongside a term `T` that is `k:3` with `"rf": R`
 is constructible on the wire. A reader MUST NOT recurse indefinitely on such a shape. This binds
 EVERY operation that walks a triple term's resolved components, not just one: the multi-segment
-union above, and every projection or re-authoring pass (§14, §14.1). Either the reader rejects
-the self-reaching row as structurally damaged at fold time (`DamagedFrame`), so the shape never
-enters the fold, or it treats a term that reaches itself as stating no triple *for that walk*:
-the term keeps a distinct identity of its own when interning, and renders as the same fresh
-blank node an unbound triple term already produces when projecting. `"tt"` cannot participate in
-such a cycle, because every `"tt"` component names a strictly smaller term-id (§7.2).
+union above, and every projection or re-authoring pass (§14, §14.1).
+
+A reader MUST treat a term that reaches itself as stating no triple, resolving it by step 3
+above: the term keeps a distinct identity of its own when interning, and renders as the same
+fresh blank node an unbound triple term already produces when projecting. The row itself is
+retained and still projects — it is the TERM that degrades, not the statement. `"tt"` cannot
+participate in such a cycle, because every `"tt"` component names a strictly smaller term-id
+(§7.2).
+
+Degradation MUST be applied to the self-reaching term ITSELF, not to a nested occurrence of it.
+A reader that resolves the term one step and only then degrades what it finds inside renders a
+different graph from one that degrades immediately, so the choice is not free. Equivalently:
+`resolve(T)` is undefined the moment `T` is reachable from its own components, and every walk
+observes that same answer.
+
+Rejecting the row as `DamagedFrame` at fold time is NOT conforming. An earlier draft of this
+section permitted it as an alternative, but the two strategies produce different graphs from
+identical bytes — the rejecting reader drops a statement §7.3 requires every reader to project —
+which left the corpus unable to state a single expected result for a constructible input.
 
 **Determinism (normative).** A deterministic writer (§14.1) MUST sort `reifies` rows by their
 full content key `(g, reifier, s, p, o)`, so that several bindings on one reifier id serialize

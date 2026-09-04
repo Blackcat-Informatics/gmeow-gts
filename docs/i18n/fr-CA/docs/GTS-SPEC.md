@@ -2241,3 +2241,12 @@ Puisque les clés d'extension participent aux préimages, les auteurs d'extensio
 ---
 
 *GTS est intentionnellement un format de transport, pas une ontologie ou un magasin de graphes. Une mise en œuvre conforme préserve le repli à ajout uniquement et adressé par le contenu afin que des projections indépendantes puissent être régénérées à partir des mêmes octets.*
+
+Un lecteur DOIT (MUST) traiter un terme qui s'atteint lui-même comme n'énonçant aucun triplet,
+en le résolvant par l'étape 3 ci-dessus. La rangée elle-même est conservée et se projette
+toujours — c'est le TERME qui se dégrade, pas l'énoncé.
+
+La dégradation DOIT s'appliquer au terme auto-atteignant LUI-MÊME, et non à une occurrence
+imbriquée : `resolve(T)` est indéfini dès que `T` est atteignable depuis ses propres composants.
+
+Rejeter la rangée comme `DamagedFrame` au moment du pliage n'est PAS conforme.

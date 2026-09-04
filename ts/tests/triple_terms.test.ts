@@ -556,32 +556,30 @@ function selfReachingSegment(): Uint8Array {
 test("a wire-constructed self-reaching triple term folds and projects", () => {
     const g = Read(selfReachingSegment(), true);
     assert.deepEqual(codes(g), []);
-    // The term resolves to a triple naming itself, so the projection degrades
-    // it to the blank node an unbound triple term already produces.
+    // The SELF-REACHING TERM ITSELF is the blank node (§7.3: it "renders as the
+    // same fresh blank node an unbound triple term already produces"). Resolving
+    // one step first and degrading a nested occurrence renders a different graph.
     assert.deepEqual(sortedLines(toNQuads(g)), [
-        "<<( _:unbound_triple_2 <https://example.org/p> " +
-            "<https://example.org/p> )>> <https://example.org/p> " +
-            "<https://example.org/p> .",
         `<https://example.org/r1> <${RDF_REIFIES}> ` +
-            "<<( <<( _:unbound_triple_2 <https://example.org/p> " +
-            "<https://example.org/p> )>> <https://example.org/p> " +
+            "<<( _:unbound_triple_2 <https://example.org/p> " +
             "<https://example.org/p> )>> .",
+        "_:unbound_triple_2 <https://example.org/p> <https://example.org/p> .",
     ]);
 });
 
 test("the union terminates on a self-reaching triple term", () => {
     const one = selfReachingSegment();
     const g = Read(concat([one, one]), true);
-    // A self-reaching term has no resolved value to compare, so it gets a
-    // sentinel identity of its own rather than being merged with anything it
-    // cannot be proven equal to: each segment keeps its own quad.
-    assert.equal(g.quads.length, 2);
+    // Both copies state no triple, so they intern to ONE term rather than two
+    // distinct terms sharing a reifier id; byte-identical rows then collapse
+    // under §7.8 set semantics. The reifier is not over-bound, so there is no
+    // ConflictingReifier either.
+    assert.equal(g.quads.length, 1);
     for (const q of g.quads) {
         assert.equal(g.terms[q.s].kind, TermKind.Triple);
     }
-    // Every legacy term now sees an over-bound reifier, which IS a conflict.
-    assert.ok(codes(g).every((c) => c === "ConflictingReifier"));
-    assert.equal(sortedLines(toNQuads(g)).length, 4);
+    assert.deepEqual(codes(g), []);
+    assert.equal(sortedLines(toNQuads(g)).length, 2);
 });
 
 test("per-segment reads terminate on a self-reaching triple term", () => {

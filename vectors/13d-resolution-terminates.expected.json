@@ -1,0 +1,27 @@
+{
+ "blobs": {},
+ "diagnostics": [],
+ "mode": "default",
+ "nquads": [
+  "<https://example.org/Cat> <http://www.w3.org/2000/01/rdf-schema#label> _:unbound_triple_3 .",
+  "<https://example.org/r1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> <<( _:unbound_triple_3 <http://www.w3.org/2000/01/rdf-schema#label> <https://example.org/Cat> )>> ."
+ ],
+ "opaque_reasons": [],
+ "profiles": [
+  "generic"
+ ],
+ "quads": 1,
+ "segment_heads": [
+  "fcfa85e71904fac0c03061a7950a1921fdd04b0d5f56a4a2fab0090f6c501055"
+ ],
+ "segments": 1,
+ "streamable": [
+  {
+   "claimed": false,
+   "covered": 0,
+   "tail": 0
+  }
+ ],
+ "suppressions": 0,
+ "terms": 4
+}

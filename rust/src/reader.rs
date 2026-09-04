@@ -22,7 +22,7 @@ use crate::model::{
     Suppression, Term, TermKind, Triple3,
 };
 use crate::reader_layout::{check_index_mmr, layout_check, IndexRecord};
-use crate::reader_reifiers::{check_conflicting_reifiers, reifier_binding_is_recursive};
+use crate::reader_reifiers::check_conflicting_reifiers;
 use crate::reader_rows::{
     check_quad_positions, check_triple_term_positions, decode_annotation_row, decode_reifier_row,
     RowDecode,
@@ -538,15 +538,13 @@ impl Folder<'_, '_, '_> {
             };
             // §7.3: rdf:reifies is NOT functional. Several triples may bind to
             // one reifier id, each row keeping its own graph slot; only
-            // byte-identical rows collapse (§7.8). No row is dropped here.
-            if reifier_binding_is_recursive(self.g, rid, triple) {
-                self.diag(
-                    "DamagedFrame",
-                    format!("reifier {rid} creates a recursive quoted-triple binding"),
-                    Some(index),
-                );
-                continue;
-            }
+            // byte-identical rows collapse (§7.8). No row is dropped here —
+            // including a row that makes some term resolve through itself. That
+            // shape is handled where it actually matters, in Graph::triple_of,
+            // which reports a self-reaching term as stating no triple for the
+            // walk. Rejecting the row here instead would drop a statement §7.3
+            // requires every reader to project, and would make this engine
+            // disagree with the other five on the same bytes.
             self.g.set_reifier(rid, triple, gslot);
             self.with_sink(|segment_index, sink| sink.reifier(segment_index, (rid, triple, gslot)));
         }

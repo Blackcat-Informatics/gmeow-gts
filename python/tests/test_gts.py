@@ -302,15 +302,15 @@ def test_self_reaching_triple_term_folds_and_projects() -> None:
     """The projection degrades a self-reaching term to a blank node."""
     g = read(_self_reaching_segment(), allow_segments=True)
     assert _diag_codes(g) == []
+    # The SELF-REACHING TERM ITSELF is the blank node (§7.3: it "renders as the
+    # same fresh blank node an unbound triple term already produces"). Resolving
+    # one step first and degrading a nested occurrence renders a different graph.
     assert sorted(to_nquads(g).strip().splitlines()) == [
-        "<<( _:unbound_triple_2 <https://example.org/p> "
-        "<https://example.org/p> )>> <https://example.org/p> "
-        "<https://example.org/p> .",
         "<https://example.org/r1> "
         "<http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> "
-        "<<( <<( _:unbound_triple_2 <https://example.org/p> "
-        "<https://example.org/p> )>> <https://example.org/p> "
+        "<<( _:unbound_triple_2 <https://example.org/p> "
         "<https://example.org/p> )>> .",
+        "_:unbound_triple_2 <https://example.org/p> <https://example.org/p> .",
     ]
 
 
@@ -318,14 +318,15 @@ def test_self_reaching_triple_term_union_terminates() -> None:
     """A self-reaching term gets a sentinel identity, one per segment."""
     one = _self_reaching_segment()
     g = read(one + one, allow_segments=True)
-    # Each segment keeps its own quad: a self-reaching term has no resolved
-    # value to compare, so it is never merged with anything it cannot be
-    # proven equal to.
-    assert len(g.quads) == 2
+    # Both segments' copies resolve to the same "states no triple" answer and
+    # intern together; byte-identical rows collapse under §7.8 set semantics.
+    assert len(g.quads) == 1
     assert all(g.terms[s].kind is TermKind.TRIPLE for s, _, _, _ in g.quads)
-    # Every legacy term now sees an over-bound reifier, which IS a conflict.
-    assert set(_diag_codes(g)) == {"ConflictingReifier"}
-    assert len(to_nquads(g).strip().splitlines()) == 4
+    # No ConflictingReifier: both copies state no triple, so they intern to ONE
+    # term rather than two distinct terms sharing a reifier id. The reifier is
+    # not over-bound, so nothing is incoherent.
+    assert _diag_codes(g) == []
+    assert len(to_nquads(g).strip().splitlines()) == 2
 
 
 def test_unreified_triple_term_survives_a_round_trip() -> None:

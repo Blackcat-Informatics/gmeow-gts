@@ -55,12 +55,16 @@ and MAY change before `1.0`.
 
 ### Fixed
 
-- Resolution of a triple term now terminates on every walk. A `reifies` row may
-  name the very term that resolves through it, which is constructible with the
-  ordinary writer and needs no `"tt"`. Before this, folding such a file aborted
-  Go with `fatal error: stack overflow` — unrecoverable, and a violation of the
-  reader no-panic contract `FuzzRead` defends — and raised `RecursionError` in
-  Python. Both are parser denial-of-service.
+- Resolution of a triple term now terminates on every walk, with ONE normative
+  strategy rather than a choice. A `reifies` row may name the very term that
+  resolves through it, which is constructible with the ordinary writer and needs
+  no `"tt"`. Before this, folding such a file aborted Go with
+  `fatal error: stack overflow` — unrecoverable, and a violation of the reader
+  no-panic contract `FuzzRead` defends — and raised `RecursionError` in Python.
+  Both are parser denial-of-service. A self-reaching term now states no triple
+  and renders as a fresh blank node; the row is retained and still projects. The
+  degradation applies to the term ITSELF, not to a nested occurrence — the two
+  render different graphs, so the level is normative too.
 - Go no longer discards an authoritative `"tt"` when a legacy `"rf"` is also
   present. A `Graph → events → Graph` round trip demoted such a term, losing
   its own components and minting a `reifies` row the source never had.

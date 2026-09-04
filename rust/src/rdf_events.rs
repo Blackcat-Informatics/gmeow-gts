@@ -508,7 +508,13 @@ impl<'a, 's> DeclarationOrderEmitter<'a, 's> {
                 }
             }
             TermKind::Triple => {
-                if let Some(reifier) = term.reifier {
+                // A term that states no triple (§7.3 step 3, including one that
+                // reaches itself) emits as a blank node and therefore has no
+                // components to declare. Following its reifier chain anyway is
+                // what used to walk straight into the cycle guard.
+                if self.graph.triple_of(id).is_none() {
+                    // nothing to declare
+                } else if let Some(reifier) = term.reifier {
                     if let Some(triple) = self.graph.reifier(reifier) {
                         if reifier == id {
                             // A triple TERM stores its own components under its own id in
@@ -666,15 +672,21 @@ fn event_term(graph: &Graph, id: usize, term: &Term) -> Result<EventTerm, EventE
         TermKind::Triple => {
             // §7.3: the term's own `"tt"` is authoritative; the legacy reifier
             // indirection is only the fallback.
-            let triple = graph.triple_of(id).ok_or_else(|| {
-                EventError::invalid_source(format!(
-                    "triple term {id} states no triple: it has neither 'tt' nor a \
-                     resolvable reifier binding"
-                ))
-            })?;
-            EventTermKind::Triple {
-                triple: event_triple(triple)?,
-                reifier: term.reifier.map(event_id).transpose()?,
+            match graph.triple_of(id) {
+                Some(triple) => EventTermKind::Triple {
+                    triple: event_triple(triple)?,
+                    reifier: term.reifier.map(event_id).transpose()?,
+                },
+                // §7.3 step 3: a term that states no triple — because it has
+                // neither `"tt"` nor a resolvable reifier binding, or because it
+                // reaches itself — keeps a distinct identity and "renders as a
+                // fresh blank node". Erroring here instead made this engine
+                // refuse files the other five project, and left the RDF event
+                // path disagreeing with our own N-Quads writer, which has always
+                // emitted `_:unbound_triple_<id>` for the same shape.
+                None => EventTermKind::BlankNode {
+                    label: format!("unbound_triple_{id}"),
+                },
             }
         }
     };

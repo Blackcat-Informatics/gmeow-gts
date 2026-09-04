@@ -247,10 +247,64 @@ func (g *Graph) TripleOf(termID int) (Triple3, bool) {
 	if t.Triple != nil {
 		return *t.Triple, true
 	}
-	if t.Reifier != nil {
-		return g.Reifier(*t.Reifier)
+	if t.Reifier == nil {
+		return Triple3{}, false
 	}
-	return Triple3{}, false
+	spo, ok := g.Reifier(*t.Reifier)
+	if !ok {
+		return Triple3{}, false
+	}
+	// Resolution MUST terminate (§7.3). A reifies row may name the very term
+	// that resolves through it, so a term that reaches itself states NO triple
+	// for this walk — the same answer an unbound triple term gives, which every
+	// projection renders as a fresh blank node. Guarding here rather than inside
+	// each walk keeps the degradation at the RIGHT LEVEL: the self-reaching term
+	// itself becomes the blank node, instead of resolving one step and degrading
+	// a nested occurrence, which renders a different graph. A "tt" cannot cycle,
+	// since its components name strictly smaller term-ids (§7.2).
+	seen := make(map[int]struct{})
+	for _, c := range [3]int{spo.S, spo.P, spo.O} {
+		if g.resolutionReaches(c, termID, seen) {
+			return Triple3{}, false
+		}
+	}
+	return spo, true
+}
+
+// resolutionReaches reports whether resolving from walks back to anchor.
+func (g *Graph) resolutionReaches(from, anchor int, seen map[int]struct{}) bool {
+	if from == anchor {
+		return true
+	}
+	if _, dup := seen[from]; dup {
+		return false
+	}
+	seen[from] = struct{}{}
+	if from < 0 || from >= len(g.Terms) {
+		return false
+	}
+	t := &g.Terms[from]
+	if t.Kind != Triple {
+		return false
+	}
+	var spo Triple3
+	switch {
+	case t.Triple != nil:
+		spo = *t.Triple
+	case t.Reifier != nil:
+		var ok bool
+		if spo, ok = g.Reifier(*t.Reifier); !ok {
+			return false
+		}
+	default:
+		return false
+	}
+	for _, c := range [3]int{spo.S, spo.P, spo.O} {
+		if g.resolutionReaches(c, anchor, seen) {
+			return true
+		}
+	}
+	return false
 }
 
 // TermIsOpen reports whether termID is already being resolved in open.

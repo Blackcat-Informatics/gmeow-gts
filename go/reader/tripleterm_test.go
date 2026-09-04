@@ -335,12 +335,13 @@ func TestProjectionSurvivesSelfReachingTripleTerm(t *testing.T) {
 		t.Fatalf("unexpected diagnostics: %#v", g.Diagnostics)
 	}
 	got := sortedLines(nquads.ToNQuads(g))
+	// The SELF-REACHING TERM ITSELF is the blank node. Resolving it one step
+	// first and degrading a nested occurrence would render a different graph,
+	// and is what made this engine disagree with Rust on identical bytes.
 	want := []string{
-		"<<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> " +
-			"<https://example.org/p> <https://example.org/p> .",
 		"<https://example.org/r1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> " +
-			"<<( <<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> " +
-			"<https://example.org/p> <https://example.org/p> )>> .",
+			"<<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> .",
+		"_:unbound_triple_2 <https://example.org/p> <https://example.org/p> .",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("projection = %#v, want %#v", got, want)
@@ -354,11 +355,11 @@ func TestUnionSurvivesSelfReachingTripleTerm(t *testing.T) {
 	if len(g.Terms) == 0 {
 		t.Fatal("union dropped every term")
 	}
-	// A self-reaching term has no resolved value to compare, so it gets a
-	// sentinel identity of its own rather than being merged with anything it
-	// cannot be proven equal to: each segment keeps its own quad.
-	if len(g.Quads) != 2 {
-		t.Fatalf("union produced %d quads, want one per segment: %#v", len(g.Quads), g.Quads)
+	// A self-reaching term states no triple, so both segments' copies resolve
+	// to the same "no triple" answer and intern together — byte-identical rows
+	// collapse under §7.8 set semantics, leaving one quad.
+	if len(g.Quads) != 1 {
+		t.Fatalf("union produced %d quads, want 1: %#v", len(g.Quads), g.Quads)
 	}
 	for _, q := range g.Quads {
 		if g.Terms[q.S].Kind != model.Triple {

@@ -277,6 +277,32 @@ def _self_describing_triple_term() -> bytes:
     return bytes(w.to_bytes())
 
 
+def _resolution_terminates() -> bytes:
+    """A `reifies` row naming the very term that resolves through it (§7.3).
+
+    Term 3 is a legacy ``"tt"``-less ``k:3`` with ``"rf": 0``, and the row bound
+    to reifier 0 names term 3 among its components, so resolving term 3 reaches
+    term 3. "Resolution MUST terminate" is normative and binds every walk. The
+    term itself degrades to the blank node an unbound triple term produces, and
+    the row is NOT dropped — every ``reifies`` row projects. Before this was
+    settled the shape aborted Go with `fatal error: stack overflow` and raised
+    ``RecursionError`` in Python. The reifier is an IRI on purpose so the
+    reifier-position rule cannot mask the termination guard.
+    """
+    w = Writer()
+    w.add_terms(
+        [
+            Term(TermKind.IRI, "https://example.org/r1"),  # 0: reifier
+            Term(TermKind.IRI, LABEL),  # 1
+            Term(TermKind.IRI, CAT),  # 2
+            Term(TermKind.TRIPLE, reifier=0),  # 3: legacy k:3 via reifier 0
+        ]
+    )
+    w.add_reifies([(0, (3, 1, 2), None)])  # names term 3: self-reaching
+    w.add_quads([(2, 1, 3, None)])
+    return bytes(w.to_bytes())
+
+
 def _literal_base_direction() -> bytes:
     """Two literals differing ONLY in base direction (§7.1).
 
@@ -720,6 +746,7 @@ def corpus() -> list[VectorCase]:
         VectorCase("13-position-constraint", _position_constraint()),
         VectorCase("13b-reifier-position-constraint", _reifier_position_constraint()),
         VectorCase("13c-self-describing-triple-term", _self_describing_triple_term()),
+        VectorCase("13d-resolution-terminates", _resolution_terminates()),
         VectorCase("13e-literal-base-direction", _literal_base_direction()),
         VectorCase("14-bnode-label", _bnode_label()),
         VectorCase("15-two-segment-union", _two_segment_union()),

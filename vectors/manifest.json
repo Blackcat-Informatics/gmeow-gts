@@ -445,6 +445,42 @@
       "notes": "Top-level GTS conformance vector for graph-fold."
     },
     {
+      "id": "13d-resolution-terminates",
+      "title": "resolution terminates",
+      "input": {
+        "path": "vectors/13d-resolution-terminates.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "graph-fold",
+        "streaming-property",
+        "writer-determinism"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader",
+        "writer"
+      ],
+      "expected": {
+        "graph": "vectors/13d-resolution-terminates.expected.json",
+        "diagnostics": [],
+        "expected_head": "fcfa85e71904fac0c03061a7950a1921fdd04b0d5f56a4a2fab0090f6c501055",
+        "segment_heads": [
+          "fcfa85e71904fac0c03061a7950a1921fdd04b0d5f56a4a2fab0090f6c501055"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for graph-fold."
+    },
+    {
       "id": "13e-literal-base-direction",
       "title": "literal base direction",
       "input": {
