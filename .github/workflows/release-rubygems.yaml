@@ -69,7 +69,14 @@ jobs:
           set -euo pipefail
           mkdir -p ruby/pkg
           rm -f ruby/pkg/*.gem
-          gem build ruby/gmeow-gts.gemspec --output "ruby/pkg/gmeow-gts-${GTS_RUBY_VERSION}.gem"
+          # Build from inside ruby/. The gemspec computes spec.files with
+          # Dir.chdir(root) so they are relative to ruby/, but `gem build`
+          # resolves them against the CURRENT directory -- running it from the
+          # repository root made RubyGems look for ./lib/gmeow/gts.rb and fail
+          # validation with `["lib/gmeow/gts.rb"] are not files`. The wrapper
+          # dry run has always cd'd into ruby/ first, which is why it passed
+          # while this lane could not build at all.
+          ( cd ruby && gem build gmeow-gts.gemspec --output "pkg/gmeow-gts-${GTS_RUBY_VERSION}.gem" )
 
       - name: Attest build provenance for the gem
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
