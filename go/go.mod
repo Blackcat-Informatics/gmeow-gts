@@ -3,8 +3,8 @@ module go.blackcatinformatics.ca/gts
 go 1.26.4
 
 require (
-	github.com/fxamacker/cbor/v2 v2.9.2
-	github.com/klauspost/compress v1.18.6
+	github.com/fxamacker/cbor/v2 v2.9.3
+	github.com/klauspost/compress v1.19.2
 	github.com/zeebo/blake3 v0.2.4
 )
 
