@@ -100,7 +100,15 @@ printf 'kotlin   %s\nruby     %s\nr        %s\njulia    %s\n' \
   "$kotlin_v" "$ruby_v" "$r_v" "$julia_v"
 
 check_lane "Kotlin" "$kotlin_v" "kotlin/build.gradle.kts"
-check_lane "Ruby" "$ruby_v" "ruby/lib/gmeow/gts.rb"
+# RubyGems rejects a semver pre-release outright: `gem build` on version
+# 1.0.0-rc.1 raises Gem::InvalidSpecificationException. A gem version is dotted
+# segments, and any segment containing a letter makes it a prerelease that sorts
+# BEFORE the final release -- so the dash simply becomes a dot.
+ruby_expected="$(printf '%s' "$rust_v" | tr '-' '.')"
+if [ "$ruby_v" != "$ruby_expected" ]; then
+  echo "ERROR: Ruby version ($ruby_v) must be $ruby_expected for family version $rust_v; see ruby/lib/gmeow/gts.rb." >&2
+  errors=1
+fi
 # R is the one lane that cannot carry a semver pre-release. R's DESCRIPTION
 # grammar admits only integers separated by "." or "-", so `1.0.0-rc.1` is
 # rejected outright with "Malformed package version" and the package will not
