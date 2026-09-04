@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! GTS (Graph Transport Substrate) format engine — `docs/GTS-SPEC.md` Draft v0.3.
+//! GTS (Graph Transport Substrate) 1.0 release-line format engine.
 //!
 //! A GTS file is a CBOR Sequence of one or more segments (#3.1), each an
 //! append-only log: a Header followed by frames chained by BLAKE3 content-id
@@ -9,10 +9,10 @@
 //! the log into a [`model::Graph`] (§7.5), degrading undecodable frames to
 //! opaque nodes (§7.6) instead of aborting — the reader is total.
 //!
-//! This crate is the Rust counterpart of the Python reference oracle
-//! (`src/gmeow_tools/gts/`); both are gated against the same frozen
-//! language-neutral conformance corpus in `vectors/` (§18).
-//! The Python side keeps the producer; this crate owns the format engine.
+//! This crate is one of the six full engines in the GTS 1.0 release set
+//! (Rust, Python, Go, TypeScript, Smalltalk/Pharo, and Kotlin/JVM). All six
+//! engines gate against the same frozen language-neutral conformance corpus in
+//! `vectors/` (§19) and must fold identical bytes to identical expectations.
 
 pub mod codec;
 pub mod compact;
