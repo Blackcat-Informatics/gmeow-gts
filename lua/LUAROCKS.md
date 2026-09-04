@@ -12,10 +12,10 @@ loader.
 
 The first stable upload uses:
 
-- rockspec: `lua/gmeow-gts-0.9.4-1.rockspec`
+- rockspec: `lua/gmeow-gts-0.9.11-1.rockspec`
 - LuaRocks package: `gmeow-gts`
-- LuaRocks version: `0.9.4-1`
-- source tag: `lua-v0.9.4`
+- LuaRocks version: `0.9.11-1`
+- source tag: `lua-v0.9.11`
 
 Live availability checked on 2026-06-22:
 
@@ -44,9 +44,9 @@ cargo build --manifest-path rust/capi/Cargo.toml
 export GTS_LIBGTS="$PWD/rust/capi/target/debug/libgts.so"
 export LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 rm -rf /tmp/gts-luarocks
-luarocks lint lua/gmeow-gts-0.9.4-1.rockspec
-luarocks make lua/gmeow-gts-0.9.4-1.rockspec --tree /tmp/gts-luarocks
-luarocks --tree /tmp/gts-luarocks pack gmeow-gts 0.9.4-1
+luarocks lint lua/gmeow-gts-0.9.11-1.rockspec
+luarocks make lua/gmeow-gts-0.9.11-1.rockspec --tree /tmp/gts-luarocks
+luarocks --tree /tmp/gts-luarocks pack gmeow-gts 0.9.11-1
 eval "$(luarocks --tree /tmp/gts-luarocks path --bin)"
 luajit lua/tests/smoke.lua \
   vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
@@ -64,19 +64,19 @@ installed-rock smoke test before upload.
 First stable upload:
 
 ```sh
-git tag -s lua-v0.9.4
-git push origin lua-v0.9.4
+git tag -s lua-v0.9.11
+git push origin lua-v0.9.11
 ```
 
 The repository secret `LUAROCKS_API_KEY` must be configured before the tag is
 pushed. The workflow publishes with:
 
 ```sh
-luarocks upload lua/gmeow-gts-0.9.4-1.rockspec --api-key="$LUAROCKS_API_KEY"
+luarocks upload lua/gmeow-gts-0.9.11-1.rockspec --api-key="$LUAROCKS_API_KEY"
 ```
 
 Manual upload fallback after validation:
 
 ```sh
-luarocks upload lua/gmeow-gts-0.9.4-1.rockspec --api-key="$LUAROCKS_API_KEY"
+luarocks upload lua/gmeow-gts-0.9.11-1.rockspec --api-key="$LUAROCKS_API_KEY"
 ```

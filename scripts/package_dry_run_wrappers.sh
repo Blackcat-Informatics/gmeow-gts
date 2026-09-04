@@ -486,14 +486,20 @@ cd "${GTS_WORKSPACE}/lua"
 luarocks lint gmeow-gts-dev-1.rockspec
 luarocks make gmeow-gts-dev-1.rockspec --tree "${lua_tree_dev}"
 cd "${GTS_WORKSPACE}"
-luarocks lint lua/gmeow-gts-0.9.4-1.rockspec
-luarocks make lua/gmeow-gts-0.9.4-1.rockspec --tree "${lua_tree}"
-rm -f gmeow-gts-0.9.4-1.all.rock
-luarocks --tree "${lua_tree}" pack gmeow-gts 0.9.4-1
+# Discover the versioned rockspec instead of hardcoding it: LuaRocks carries the
+# version in the FILENAME, so pinning it here means every release bump breaks
+# this dry run until someone remembers to edit this script too. It went stale at
+# 0.9.4 exactly that way.
+rockspec="$(ls lua/gmeow-gts-[0-9]*-[0-9]*.rockspec | head -1)"
+rock_version="$(basename "${rockspec}" .rockspec | sed "s/^gmeow-gts-//")"
+luarocks lint "${rockspec}"
+luarocks make "${rockspec}" --tree "${lua_tree}"
+rm -f "gmeow-gts-${rock_version}.all.rock"
+luarocks --tree "${lua_tree}" pack gmeow-gts "${rock_version}"
 cp ./*.rock "${GTS_PACKAGE_DRY_RUN_OUT}/lua/"
 eval "$(luarocks --tree "${lua_tree}" path --bin)"
 luajit lua/tests/smoke.lua "${GTS_WRAPPER_CLEAN_VECTOR}" "${GTS_WRAPPER_DAMAGED_VECTOR}" "${GTS_WRAPPER_EMPTY_VECTOR}"
-rm -f gmeow-gts-0.9.4-1.all.rock
+rm -f "gmeow-gts-${rock_version}.all.rock"
 rm -rf "${lua_tree}" "${lua_tree_dev}"'
 
 log "Swift package dump and smoke executable"

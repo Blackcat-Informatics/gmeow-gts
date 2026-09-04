@@ -11,7 +11,7 @@ the package source-only: users provide `libgts` through `GTS_LIBGTS`,
 
 - Name: `GmeowGTS`
 - UUID: `2d7fe44c-1957-4481-aa09-d6d0150c36ae`
-- Version: `0.9.4`
+- Version: `0.9.11`
 - Repository: `https://github.com/Blackcat-Informatics/gmeow-gts`
 - Subdirectory: `julia`
 - License: MIT OR Apache-2.0, with copied license files in this subdirectory
@@ -46,7 +46,7 @@ General pull request and respond to registry feedback there.
 4. Trigger `@JuliaRegistrator register subdir=julia` with release notes.
 5. Let TagBot create the Git tag and GitHub release after the General registry
    PR is merged. The configured tag prefix produces tags such as
-   `julia-v0.9.4`.
+   `julia-v0.9.11`.
 
 Do not introduce a `GTS_jll` or bundled native binary in the Julia package
 without a separate BinaryBuilder/JLL design issue.

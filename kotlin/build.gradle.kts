@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "ca.blackcatinformatics"
-version = "0.9.4"
+version = "0.9.11"
 
 kotlin {
     jvmToolchain(21)
