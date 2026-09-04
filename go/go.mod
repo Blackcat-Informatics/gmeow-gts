@@ -1,6 +1,6 @@
 module go.blackcatinformatics.ca/gts
 
-go 1.26.4
+go 1.26.6
 
 require (
 	github.com/fxamacker/cbor/v2 v2.9.2

@@ -522,7 +522,7 @@ cd kotlin && gradle test detekt installDist
 ./build/install/gmeow-gts-kotlin/bin/gmeow-gts-kotlin fold ../vectors/01-minimal.gts
 ```
 
-Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.4 are intentional
+Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.6 are intentional
 manifest floors. Older runtimes are unsupported so the engines can share one current CI and
 release matrix and use current standard-library/toolchain behavior without compatibility shims.
 
