@@ -1,7 +1,7 @@
 Package: gmeowgts
 Type: Package
 Title: R Wrapper for the GTS C ABI
-Version: 1.0.0-rc.1
+Version: 0.9.11.9001
 Depends: R (>= 4.3)
 Authors@R: c(
     person("Blackcat Informatics", role = c("aut", "cre"), email = "paudley@blackcatinformatics.ca")

@@ -82,7 +82,24 @@ printf 'kotlin   %s\nruby     %s\nr        %s\njulia    %s\n' \
 
 check_lane "Kotlin" "$kotlin_v" "kotlin/build.gradle.kts"
 check_lane "Ruby" "$ruby_v" "ruby/lib/gmeow/gts.rb"
-check_lane "R" "$r_v" "r/DESCRIPTION"
+# R is the one lane that cannot carry a semver pre-release. R's DESCRIPTION
+# grammar admits only integers separated by "." or "-", so `1.0.0-rc.1` is
+# rejected outright with "Malformed package version" and the package will not
+# install. For a pre-release the R lane therefore uses R's own development-version
+# convention (`<last-release>.9000+`, which sorts BEFORE the coming release) and
+# is checked for validity rather than for equality. It returns to lockstep at the
+# final release, where the family version is plain semver and R accepts it.
+case "$rust_v" in
+  *-*)
+    if ! printf '%s' "$r_v" | grep -Eq '^[0-9]+(\.[0-9]+){2,3}$'; then
+      echo "ERROR: R version ($r_v) is not a valid R package version (integers separated by '.'); see r/DESCRIPTION." >&2
+      errors=1
+    fi
+    ;;
+  *)
+    check_lane "R" "$r_v" "r/DESCRIPTION"
+    ;;
+esac
 check_lane "Julia" "$julia_v" "julia/Project.toml"
 check_lane "Julia source" "$julia_src_v" "julia/src/GmeowGTS.jl"
 
