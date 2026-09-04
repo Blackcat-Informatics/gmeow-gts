@@ -192,6 +192,65 @@ func TestFromNQuadsPreservesMultipleReifiersForSameStatement(t *testing.T) {
 	}
 }
 
+// §7.3: a bare quoted triple used as a quad component interns as a
+// SELF-DESCRIBING triple term — no reifier is minted and no `reifies` row is
+// emitted, so it round-trips as itself.
+func TestFromNQuadsInternsBareQuotedTripleAsSelfDescribing(t *testing.T) {
+	nq := "<https://ex/s> <https://ex/says> <<( <https://ex/a> <https://ex/p> <https://ex/b> )>> .\n"
+	graph := reader.Read(mustFromNQuads(t, nq), false, nil)
+	if len(graph.Diagnostics) != 0 {
+		t.Fatalf("diagnostics = %#v, want none", graph.Diagnostics)
+	}
+	if len(graph.Reifiers) != 0 {
+		t.Fatalf("reifier rows = %#v, want none minted", graph.Reifiers)
+	}
+	found := false
+	for id, term := range graph.Terms {
+		if term.Kind != model.Triple {
+			continue
+		}
+		found = true
+		if term.Reifier != nil {
+			t.Fatalf("triple term %d carries reifier %d, want none", id, *term.Reifier)
+		}
+		if term.Triple == nil {
+			t.Fatalf("triple term %d has no 'tt'", id)
+		}
+	}
+	if !found {
+		t.Fatalf("no triple term interned from %q", nq)
+	}
+	if got := nquads.ToNQuads(graph); got != nq {
+		t.Fatalf("round-trip mismatch\ngot:\n%s\nwant:\n%s", got, nq)
+	}
+}
+
+// §7.3: rdf:reifies is not functional, so two bindings on ONE reifier are legal
+// input and both must be kept.
+func TestFromNQuadsKeepsBothBindingsOnOneReifier(t *testing.T) {
+	nq := "<https://ex/r1> <" + rdfReifies + "> <<( <https://ex/s> <https://ex/p> \"Cat\"@en )>> .\n" +
+		"<https://ex/r1> <" + rdfReifies + "> <<( <https://ex/s> <https://ex/p> \"Chat\"@fr )>> .\n"
+	graph := reader.Read(mustFromNQuads(t, nq), false, nil)
+	if len(graph.Diagnostics) != 0 {
+		t.Fatalf("diagnostics = %#v, want none", graph.Diagnostics)
+	}
+	if len(graph.Reifiers) != 2 {
+		t.Fatalf("reifier rows = %#v, want both bindings kept", graph.Reifiers)
+	}
+	if got, want := sortedLines(nquads.ToNQuads(graph)), sortedLines(nq); strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("round-trip mismatch\ngot:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// A byte-identical repeat of a binding still collapses under set semantics.
+func TestFromNQuadsCollapsesIdenticalReifiesRows(t *testing.T) {
+	line := "<https://ex/r1> <" + rdfReifies + "> <<( <https://ex/s> <https://ex/p> \"Cat\"@en )>> .\n"
+	graph := reader.Read(mustFromNQuads(t, line+line), false, nil)
+	if len(graph.Reifiers) != 1 {
+		t.Fatalf("reifier rows = %#v, want the identical repeat collapsed", graph.Reifiers)
+	}
+}
+
 func TestFromNQuadsCompactBlankNodeAndLanguageTagDelimiters(t *testing.T) {
 	nq := "<https://ex/s> <https://ex/p> _:b0.\n" +
 		"<https://ex/s> <https://ex/label> \"Cat\"@en.\n"

@@ -7,6 +7,7 @@ import {
     Graph,
     type MetaEntry,
     TermKind,
+    checkConflictingReifiers,
     termKindFromWire,
     type AnnotationEntry,
     type Diagnostic,
@@ -44,7 +45,6 @@ import {
     mapGet,
     textOr,
     toBufferSource,
-    tripleEqual,
     unwrapHeader,
 } from "./browser_wire.js";
 import { unionSegments } from "./reader_union.js";
@@ -394,6 +394,17 @@ class BrowserStreamProcessor {
                 this.segments.length === 1
                     ? this.segments[0]
                     : unionSegments(this.segments);
+            // §7.3: a reifier binding many triples is legal, so the surviving
+            // conflict shape is only decidable once the whole fold (union
+            // included) is complete. Checked on the graph handed to the
+            // consumer, exactly once over these terms.
+            for (const diagnostic of checkConflictingReifiers(graph)) {
+                this.emitEvent({
+                    kind: "diagnostic",
+                    segmentIndex: this.segments.length,
+                    diagnostic,
+                });
+            }
         }
 
         const expectedHead = this.options.expectedHead;
@@ -487,6 +498,15 @@ class BrowserStreamProcessor {
             });
         } else {
             for (const segment of this.segments) {
+                // Sink mode reports per segment, so each segment gets the §7.3
+                // conflict check over its own id space — and only once.
+                for (const diagnostic of checkConflictingReifiers(segment)) {
+                    this.emitEvent({
+                        kind: "diagnostic",
+                        segmentIndex: segmentHeads.length,
+                        diagnostic,
+                    });
+                }
                 diagnostics.push(...segment.diagnostics);
                 segmentHeads.push(...segment.segmentHeads);
                 segmentProfiles.push(...segment.segmentProfiles);
@@ -973,7 +993,11 @@ class Folder {
             }
             const dtRaw = mapGet(entries, "dt");
             const rfRaw = mapGet(entries, "rf");
+            const ttRaw = mapGet(entries, "tt");
             const tid = this.g.terms.length;
+            // Sanitise refs: dt/rf/tt MUST name already-introduced terms
+            // (§7.2). A forward/out-of-bounds ref is diagnosed and dropped, so
+            // resolution and serialisation can never read past the term table.
             const sanitize = (r: unknown): number | undefined => {
                 if (r === undefined || r === null) return undefined;
                 const n = asInt64(r);
@@ -986,12 +1010,32 @@ class Folder {
             };
             const datatype = sanitize(dtRaw);
             const reifier = sanitize(rfRaw);
-            if (outOfRange(dtRaw) || outOfRange(rfRaw)) {
+            const rawTriple = tripleFromWire(ttRaw);
+            let triple: Triple | undefined;
+            if (rawTriple) {
+                const s = sanitize(rawTriple[0]);
+                const p = sanitize(rawTriple[1]);
+                const o = sanitize(rawTriple[2]);
+                if (s !== undefined && p !== undefined && o !== undefined) {
+                    triple = { s, p, o };
+                }
+            }
+            if (
+                outOfRange(dtRaw) ||
+                outOfRange(rfRaw) ||
+                (rawTriple !== undefined && triple === undefined)
+            ) {
                 this.diag(
                     "ForwardReference",
                     `term ${tid} has an out-of-range ref`,
                     index,
                 );
+            }
+            if (
+                triple !== undefined &&
+                !this.checkTripleTermPositions(triple, tid, index)
+            ) {
+                triple = undefined;
             }
             const term: Term = {
                 kind: resolvedKind,
@@ -1000,6 +1044,7 @@ class Folder {
                 lang,
                 direction,
                 reifier,
+                triple,
             };
             this.g.terms.push(term);
             this.emit({
@@ -1102,24 +1147,18 @@ class Folder {
                 );
                 continue;
             }
-            if (!this.checkReifierPositions(s, p, o, gslot, index)) continue;
-            const irid = rid;
-            const newSpo: Triple = { s, p, o };
-            const existing = this.g.reifier(irid);
-            if (existing && !tripleEqual(existing, newSpo)) {
-                this.diag(
-                    "ConflictingReifier",
-                    `reifier ${irid} rebound`,
-                    index,
-                );
+            if (!this.checkReifierPositions(rid, s, p, o, gslot, index))
                 continue;
-            }
-            this.g.setReifier(irid, newSpo, gslot);
+            // §7.3: rdf:reifies is NOT functional. Several triples may be bound
+            // to one reifier id and each row keeps its own graph slot; only
+            // byte-identical rows collapse (§7.8). No row is ever dropped here.
+            const newSpo: Triple = { s, p, o };
+            this.g.setReifier(rid, newSpo, gslot);
             this.emit({
                 kind: "reifier",
                 segmentIndex: this.segmentIndex,
                 frameIndex: index,
-                rid: irid,
+                rid,
                 spo: newSpo,
                 ...(gslot !== undefined ? { g: gslot } : {}),
             });
@@ -1287,6 +1326,11 @@ class Folder {
                     let nv = v;
                     const sk = asText(k);
                     if (sk === "dt" || sk === "rf") nv = shift(v);
+                    // A snapshot's local ids are shifted into the enclosing
+                    // segment's id space; each "tt" component too (§7.3).
+                    if (sk === "tt" && Array.isArray(v)) {
+                        nv = v.map((it) => shift(it));
+                    }
                     newEntries.set(k, nv);
                 }
                 return newEntries;
@@ -1404,7 +1448,34 @@ class Folder {
         return ok;
     }
 
+    /** Enforce §7.4 positions on a self-describing triple term's `"tt"`.
+     *
+     * A triple term states a triple, so its components obey the same
+     * subject/predicate constraints as any other triple. A violating `"tt"` is
+     * diagnosed and dropped (the term then degrades to its `"rf"` fallback, or
+     * to an unbound triple term).
+     */
+    checkTripleTermPositions(
+        triple: Triple,
+        tid: number,
+        index: number,
+    ): boolean {
+        // Any term kind is legal in object position.
+        const ok =
+            this.g.terms[triple.p].kind === TermKind.Iri &&
+            this.g.terms[triple.s].kind !== TermKind.Literal;
+        if (!ok) {
+            this.diag(
+                "PositionConstraint",
+                `triple term ${tid} 'tt' (${triple.s},${triple.p},${triple.o}) violates positions`,
+                index,
+            );
+        }
+        return ok;
+    }
+
     checkReifierPositions(
+        rid: number,
         s: number,
         p: number,
         o: number,
@@ -1412,11 +1483,26 @@ class Folder {
         index: number,
     ): boolean {
         const n = this.g.terms.length;
-        const inBounds = s < n && p < n && o < n && (g === undefined || g < n);
+        const inBounds =
+            rid < n && s < n && p < n && o < n && (g === undefined || g < n);
         if (!inBounds) {
             this.diag(
                 "PositionConstraint",
                 `reifier row (${s},${p},${o},${g === undefined ? "None" : g}) has out-of-range term ids`,
+                index,
+            );
+            return false;
+        }
+        // §7.3: every reifies row asserts `R rdf:reifies <<( S P O )>>`, so R
+        // lands in SUBJECT position, where RDF 1.2 admits only an IRI or blank
+        // node -- the same reason the graph slot below excludes those kinds.
+        const ridKind = this.g.terms[rid].kind;
+        if (ridKind === TermKind.Literal || ridKind === TermKind.Triple) {
+            this.diag(
+                "PositionConstraint",
+                `reifier row reifier ${rid} must be an IRI or blank node, not a ${
+                    ridKind === TermKind.Literal ? "literal" : "quoted triple"
+                } term`,
                 index,
             );
             return false;
@@ -1627,6 +1713,12 @@ async function readAll(
 function diagCodeFor(reason: string): string {
     if (reason === "missing-key") return "MissingKey";
     return "UnknownCodec";
+}
+
+/** Shape-check a wire `"tt"` value: exactly three components, or nothing. */
+function tripleFromWire(raw: unknown): [unknown, unknown, unknown] | undefined {
+    if (!Array.isArray(raw) || raw.length !== 3) return undefined;
+    return [raw[0], raw[1], raw[2]];
 }
 
 function catalogFrom(header: Map<unknown, unknown>): Map<number, Codec> {

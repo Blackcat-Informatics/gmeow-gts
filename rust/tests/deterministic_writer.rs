@@ -27,6 +27,7 @@ fn iri(value: &str) -> Term {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 
@@ -38,6 +39,7 @@ fn literal(value: &str, lang: Option<&str>) -> Term {
         lang: lang.map(str::to_string),
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 
@@ -403,4 +405,64 @@ fn snapshot_from_graph_signs_transport_key_and_snapshot_frame() {
         (candidate == kid).then_some(verifying_key)
     });
     assert!(folded.signatures.iter().all(|sig| sig.status == "valid"));
+}
+
+// -- §7.3: nesting-depth-first term ordering --------------------------------
+
+fn triple_term(spo: (usize, usize, usize)) -> Term {
+    Term {
+        kind: TermKind::Triple,
+        value: None,
+        datatype: None,
+        lang: None,
+        direction: None,
+        reifier: None,
+        triple: Some(spo),
+    }
+}
+
+/// A deterministic write of NESTED triple terms must remap by depth first: a
+/// triple term's `"tt"` components have to land on strictly smaller ids or the
+/// emitted `terms` frame forward-references and the reader drops the `"tt"`.
+#[test]
+fn deterministic_writer_orders_nested_triple_terms_by_depth() {
+    // `zzz` sorts last by content, `aaa` first — content order alone would put
+    // the OUTER triple term (which quotes the inner one) before its component.
+    let graph = Graph {
+        terms: vec![
+            iri("https://example.org/zzz"),   // 0 subject
+            iri("https://example.org/aaa"),   // 1 predicate
+            iri("https://example.org/mmm"),   // 2 object
+            triple_term((0, 1, 2)),           // 3 inner  <<( zzz aaa mmm )>>
+            triple_term((3, 1, 2)),           // 4 outer  <<( inner aaa mmm )>>
+            iri("https://example.org/says"),  // 5
+            iri("https://example.org/agent"), // 6
+        ],
+        quads: vec![(6, 5, 4, None)],
+        ..Default::default()
+    };
+
+    let bytes = Writer::deterministic(&graph, "dist")
+        .expect("deterministic writer")
+        .to_bytes();
+    let folded = gmeow_gts::reader::read(&bytes, true, None);
+
+    assert!(folded.diagnostics.is_empty(), "{:?}", folded.diagnostics);
+    // Every triple term's components precede it, and both survive.
+    for (tid, term) in folded.terms.iter().enumerate() {
+        if term.kind == TermKind::Triple {
+            let (s, p, o) = term.triple.expect("triple term kept its 'tt'");
+            assert!(
+                s < tid && p < tid && o < tid,
+                "term {tid} forward-references"
+            );
+        }
+    }
+    assert_eq!(
+        to_nquads(&folded).trim(),
+        "<https://example.org/agent> <https://example.org/says> \
+         <<( <<( <https://example.org/zzz> <https://example.org/aaa> \
+         <https://example.org/mmm> )>> <https://example.org/aaa> \
+         <https://example.org/mmm> )>> ."
+    );
 }

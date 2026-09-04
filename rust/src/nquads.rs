@@ -52,8 +52,9 @@ pub(crate) fn render_term(g: &Graph, tid: usize) -> String {
                 lit // plain literal == xsd:string (§7.1)
             }
         }
-        // quoted triple (RDF 1.2 triple term), resolved through its reifier
-        TermKind::Triple => match t.reifier.and_then(|rf| g.reifier(rf)) {
+        // Quoted triple (RDF 1.2 triple term): its own "tt" is authoritative;
+        // a legacy "tt"-less term still resolves through its reifier (§7.3).
+        TermKind::Triple => match g.triple_of(tid) {
             Some((s, p, o)) => {
                 format!(
                     "<<( {} {} {} )>>",

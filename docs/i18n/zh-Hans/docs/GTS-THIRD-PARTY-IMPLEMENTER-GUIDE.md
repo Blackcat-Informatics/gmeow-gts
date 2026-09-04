@@ -188,6 +188,8 @@ python scripts/check_vector_manifest.py \
 
 基准读取器 (Baseline Reader) 诊断包括格式错误或恶意输入行为，例如 `EmptyFile`、`DamagedFrame`、`BrokenChain`、`TornAppendError`、`UnknownCodec`、`ConflictingReifier`、`PositionConstraint`、`ForwardReference` 以及 `SegmentBoundary`。
 
+`ConflictingReifier` 的适用范围很窄。`rdf:reifies` 不是函数性属性，因此一个具体化者绑定多个三元组属于普通的 RDF 1.2，必须折叠为多条 `reifies` 行且不产生任何诊断。该代码仅针对一个没有 `"tt"` 的（旧式间接）`k:3` 项报告，其具体化者绑定了多于一个不同的三元组——一个项要求两种含义——即便如此也不得丢弃任何行（GTS-SPEC §7.3）。
+
 不透明节点 (Opaque-node) 行为是保持读取器 (reader) 完备性 (total) 的关键：
 
 - 未知编解码器 (codec)：使用 `reason:"unknown-codec"` 将帧 (frame) 保留为不透明节点。

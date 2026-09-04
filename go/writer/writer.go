@@ -38,6 +38,12 @@ func termToWire(t *model.Term) map[interface{}]interface{} {
 	if t.Reifier != nil {
 		entries["rf"] = int64(*t.Reifier)
 	}
+	if t.Triple != nil {
+		// §7.3: a triple term states its OWN (s, p, o). Authoritative on read.
+		entries["tt"] = []interface{}{
+			int64(t.Triple.S), int64(t.Triple.P), int64(t.Triple.O),
+		}
+	}
 	return entries
 }
 

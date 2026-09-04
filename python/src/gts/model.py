@@ -47,6 +47,13 @@ class Term:
         lang: Literal language tag (BCP 47).
         direction: RDF 1.2 literal base direction (``"ltr"`` or ``"rtl"``).
         reifier: Term-id of the reifier of a quoted triple (``kind == TRIPLE``).
+            LEGACY indirection (wire ``"rf"``), retained for files written before
+            the self-describing form; superseded by ``triple`` when both are
+            present (§7.3).
+        triple: The quoted triple's OWN ``(s, p, o)`` term-ids (wire ``"tt"``).
+            AUTHORITATIVE when present. Because ``rdf:reifies`` is not functional
+            (§7.3), a reifier id cannot identify a triple; a triple term therefore
+            carries its own components.
     """
 
     kind: TermKind
@@ -55,6 +62,7 @@ class Term:
     lang: str | None = None
     direction: str | None = None
     reifier: int | None = None
+    triple: Triple | None = None
 
 
 # A quad is a 4-tuple of term-ids; the graph slot is ``None`` for the default graph.
@@ -249,16 +257,86 @@ class Graph:
         return RDF_LANG_STRING if t.lang is not None else XSD_STRING
 
     def reifier(self, rid: int) -> Triple | None:
-        """Return the first folded triple binding for *rid*, if present."""
+        """Return the FIRST folded triple binding for *rid*, if present.
+
+        ``rdf:reifies`` is not functional (§7.3), so a reifier may bind several
+        triples. This accessor is the legacy single-valued view used only to
+        resolve a ``"tt"``-less triple term; use :meth:`reifier_triples` for the
+        full multi-valued statement layer.
+        """
         for reifier, triple, _graph_name in self.reifiers:
             if reifier == rid:
                 return triple
         return None
 
+    def reifier_triples(self, rid: int) -> list[Triple]:
+        """Return every DISTINCT triple bound to *rid*, in file order (§7.3)."""
+        out: list[Triple] = []
+        for reifier, triple, _graph_name in self.reifiers:
+            if reifier == rid and triple not in out:
+                out.append(triple)
+        return out
+
+    def triple_of(self, term_id: int) -> Triple | None:
+        """Resolve the ``(s, p, o)`` a quoted-triple term denotes (§7.3).
+
+        The term's own ``triple`` (wire ``"tt"``) is authoritative. A legacy
+        ``"tt"``-less term falls back to the FIRST binding of its reifier so
+        pre-``"tt"`` files keep reading exactly as they did.
+
+        Resolution MUST terminate (§7.3). A ``reifies`` row may name the very
+        term that resolves through it, so a term that reaches itself states NO
+        triple for this walk and resolves to ``None`` — the same answer an
+        unbound triple term gives, which every projection renders as a fresh
+        blank node. Guarding here rather than inside each walk keeps the
+        degradation at the RIGHT LEVEL: the self-reaching term itself becomes
+        the blank node, instead of resolving one step and degrading a nested
+        occurrence, which would render a different graph.
+
+        A ``"tt"`` can never cycle, because its components name strictly
+        smaller term-ids (§7.2), so only the legacy indirection needs checking.
+        """
+        t = self.terms[term_id]
+        if t.triple is not None:
+            return t.triple
+        if t.reifier is None:
+            return None
+        spo = self.reifier(t.reifier)
+        if spo is None:
+            return None
+        seen: set[int] = set()
+        if any(self._resolution_reaches(c, term_id, seen) for c in spo):
+            return None
+        return spo
+
+    def _resolution_reaches(self, frm: int, anchor: int, seen: set[int]) -> bool:
+        """Does resolving ``frm`` walk back to ``anchor``?"""
+        if frm == anchor:
+            return True
+        if frm in seen:
+            return False
+        seen.add(frm)
+        if not 0 <= frm < len(self.terms):
+            return False
+        t = self.terms[frm]
+        if t.kind is not TermKind.TRIPLE:
+            return False
+        spo = t.triple
+        if spo is None and t.reifier is not None:
+            spo = self.reifier(t.reifier)
+        if spo is None:
+            return False
+        return any(self._resolution_reaches(c, anchor, seen) for c in spo)
+
     def add_reifier(
         self, rid: int, triple: Triple, graph_name: int | None = None
     ) -> None:
-        """Append a reifier row unless the identical row is already present."""
+        """Append a reifier row unless the identical row is already present.
+
+        The ``reifies`` frame is a MULTI-VALUED statement layer: distinct
+        triples on one reifier id all survive, each keeping its own graph slot.
+        Only byte-identical rows collapse (§7.8 set semantics).
+        """
         row = (rid, triple, graph_name)
         if row not in self.reifiers:
             self.reifiers.append(row)

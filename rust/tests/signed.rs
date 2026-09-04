@@ -30,6 +30,7 @@ fn iri(v: &str) -> Term {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 
@@ -41,6 +42,7 @@ fn lit_lang(v: &str, lang: &str) -> Term {
         lang: Some(lang.to_string()),
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 

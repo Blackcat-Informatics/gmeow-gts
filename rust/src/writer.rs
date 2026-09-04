@@ -48,6 +48,18 @@ pub fn term_to_wire(t: &Term) -> Value {
     if let Some(rf) = t.reifier {
         entries.push(("rf".into(), iv(rf as i64)));
     }
+    // §7.3: a triple term states its OWN (s, p, o). Authoritative on read.
+    // Gated on `k:3` because `"tt"` is only defined for a triple term: emitting
+    // it on any other kind writes a field a conforming reader ignores, so the
+    // bytes would silently read back as something other than what was authored.
+    if t.kind == TermKind::Triple {
+        if let Some((s, p, o)) = t.triple {
+            entries.push((
+                "tt".into(),
+                Value::Array(vec![iv(s as i64), iv(p as i64), iv(o as i64)]),
+            ));
+        }
+    }
     Value::Map(entries)
 }
 
@@ -909,12 +921,52 @@ pub struct TermRemap {
     pub old_by_new: Vec<usize>,
 }
 
+/// A term's triple-nesting depth (0 for anything that is not nested).
+///
+/// A triple term's components MUST be introduced before it (§7.2 forward-
+/// reference rule), so authoring order has to visit by depth first: content
+/// order alone does not guarantee that a nested triple's components precede it,
+/// which would emit a forward-referencing `"tt"`. Cycles (only constructible by
+/// hand) are clamped rather than recursed.
+fn nesting_depth(graph: &Graph, tid: usize, stack: &mut Vec<usize>) -> usize {
+    if stack.contains(&tid) {
+        return 0;
+    }
+    let Some(term) = graph.terms.get(tid) else {
+        return 0;
+    };
+    let parts = match term.triple {
+        Some(spo) => Some(spo),
+        None if term.kind == TermKind::Triple => term.reifier.and_then(|rid| graph.reifier(rid)),
+        None => None,
+    };
+    let Some((s, p, o)) = parts else { return 0 };
+    stack.push(tid);
+    let depth = 1 + [s, p, o]
+        .into_iter()
+        .map(|part| nesting_depth(graph, part, stack))
+        .max()
+        .unwrap_or(0);
+    stack.pop();
+    depth
+}
+
 /// Return the deterministic term-id remapping used by canonical graph writers.
+///
+/// Ordered by NESTING DEPTH first, then by semantic content, then by the
+/// original id (§7.3). Depth is what makes the result *emittable*: every
+/// component of a triple term sorts strictly before it, so the `"tt"` written
+/// into the `terms` frame never forward-references.
 pub fn deterministic_term_remap(graph: &Graph) -> TermRemap {
     let mut old_by_new: Vec<usize> = (0..graph.terms.len()).collect();
-    let keys: Vec<Vec<u8>> = old_by_new
+    let keys: Vec<(usize, Vec<u8>)> = old_by_new
         .iter()
-        .map(|&tid| canonical(&term_identity_value(graph, tid, &mut Vec::new())))
+        .map(|&tid| {
+            (
+                nesting_depth(graph, tid, &mut Vec::new()),
+                canonical(&term_identity_value(graph, tid, &mut Vec::new())),
+            )
+        })
         .collect();
     old_by_new.sort_by(|a, b| keys[*a].cmp(&keys[*b]).then_with(|| a.cmp(b)));
     let mut old_to_new = vec![0; graph.terms.len()];
@@ -1068,7 +1120,9 @@ fn term_identity_value(graph: &Graph, tid: usize, stack: &mut Vec<usize>) -> Val
                 _ => Value::Array(vec!["anonymous".into(), Value::from(tid as u64)]),
             },
         ]),
-        TermKind::Triple => match term.reifier.and_then(|rid| graph.reifier(rid)) {
+        // §7.3: the term's own "tt" is authoritative; the reifier indirection
+        // is only the legacy fallback.
+        TermKind::Triple => match graph.triple_of(tid) {
             Some((s, p, o)) => Value::Array(vec![
                 "triple".into(),
                 term_identity_value(graph, s, stack),
@@ -1104,6 +1158,13 @@ fn remap_term(term: &Term, old_to_new: &[usize]) -> Term {
         lang: term.lang.clone(),
         direction: term.direction.clone(),
         reifier: term.reifier.map(|tid| remap_id(old_to_new, tid)),
+        triple: term.triple.map(|(s, p, o)| {
+            (
+                remap_id(old_to_new, s),
+                remap_id(old_to_new, p),
+                remap_id(old_to_new, o),
+            )
+        }),
     }
 }
 

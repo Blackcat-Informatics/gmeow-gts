@@ -25,6 +25,7 @@ fn term_triple() -> ([Term; 3], [TestQuad; 1]) {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Iri,
@@ -33,6 +34,7 @@ fn term_triple() -> ([Term; 3], [TestQuad; 1]) {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Iri,
@@ -41,6 +43,7 @@ fn term_triple() -> ([Term; 3], [TestQuad; 1]) {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
         ],
         [(0, 1, 2, None)],

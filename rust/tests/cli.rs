@@ -167,6 +167,7 @@ fn verify_policy_file_trusts_did_style_signer() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -175,6 +176,7 @@ fn verify_policy_file_trusts_did_style_signer() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -183,6 +185,7 @@ fn verify_policy_file_trusts_did_style_signer() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     writer.add_quads(&[(0, 1, 2, None)]);
@@ -348,6 +351,7 @@ fn prove_and_verify_proof_round_trip() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -356,6 +360,7 @@ fn prove_and_verify_proof_round_trip() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -364,6 +369,7 @@ fn prove_and_verify_proof_round_trip() {
             lang: Some("en".to_string()),
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(0, 1, 2, None)]);
@@ -608,6 +614,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Iri,
@@ -616,6 +623,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Iri,
@@ -624,6 +632,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Iri,
@@ -632,6 +641,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Bnode,
@@ -640,6 +650,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Literal,
@@ -648,6 +659,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Literal,
@@ -656,6 +668,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(4, 3, 0, None), (4, 1, 5, None), (4, 2, 6, None)]);
@@ -1057,6 +1070,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Iri,
@@ -1065,6 +1079,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Iri,
@@ -1073,6 +1088,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Iri,
@@ -1081,6 +1097,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Bnode,
@@ -1089,6 +1106,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Literal,
@@ -1097,6 +1115,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Literal,
@@ -1105,6 +1124,7 @@ fn suppressed_file_archive() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(4, 3, 0, None), (4, 1, 5, None), (4, 2, 6, None)]);
@@ -1192,6 +1212,7 @@ fn accretive_file(path: &Path) {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -1200,6 +1221,7 @@ fn accretive_file(path: &Path) {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -1208,6 +1230,7 @@ fn accretive_file(path: &Path) {
             lang: Some("en".to_string()),
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(0, 1, 2, None)]);
@@ -1338,6 +1361,7 @@ fn verify_warns_on_stream_vocab_without_claim() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -1346,6 +1370,7 @@ fn verify_warns_on_stream_vocab_without_claim() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -1354,6 +1379,7 @@ fn verify_warns_on_stream_vocab_without_claim() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(0, 1, 2, None)]);
@@ -1384,6 +1410,7 @@ fn compact_refuses_evidence_without_seal_then_seals() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -1392,6 +1419,7 @@ fn compact_refuses_evidence_without_seal_then_seals() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -1400,6 +1428,7 @@ fn compact_refuses_evidence_without_seal_then_seals() {
             lang: Some("en".to_string()),
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(0, 1, 2, None)]);
@@ -1462,6 +1491,7 @@ fn verify_flags_undeclared_files_profile() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -1470,6 +1500,7 @@ fn verify_flags_undeclared_files_profile() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -1478,6 +1509,7 @@ fn verify_flags_undeclared_files_profile() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(0, 1, 2, None)]);
@@ -1507,6 +1539,7 @@ fn verify_flags_undeclared_files_profile_object_only() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -1515,6 +1548,7 @@ fn verify_flags_undeclared_files_profile_object_only() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -1523,6 +1557,7 @@ fn verify_flags_undeclared_files_profile_object_only() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(0, 1, 2, None)]);
@@ -1552,6 +1587,7 @@ fn verify_declared_files_profile_object_only_is_not_unused() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -1560,6 +1596,7 @@ fn verify_declared_files_profile_object_only_is_not_unused() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -1568,6 +1605,7 @@ fn verify_declared_files_profile_object_only_is_not_unused() {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     w.add_quads(&[(0, 1, 2, None)]);

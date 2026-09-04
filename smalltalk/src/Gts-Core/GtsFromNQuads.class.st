@@ -69,7 +69,11 @@ GtsFromNQuads class >> isTriple: node [
 
 { #category : #private }
 GtsFromNQuads class >> node: node in: interner reifiers: reifiers [
-	| ids key object predicate reifierId subject terms |
+	"A bare quoted triple used as a quad component interns as a SELF-DESCRIBING triple
+	term carrying its own (s p o) (§7.3). An unreified triple term is a value, not a
+	statement — it mints NO reifier and emits NO reifies row, so it round-trips as
+	itself."
+	| ids key object predicate subject termId terms |
 	(self isAtom: node) ifTrue: [ ^ self atom: node in: interner ].
 	subject := self node: (node at: 's') in: interner reifiers: reifiers.
 	predicate := self node: (node at: 'p') in: interner reifiers: reifiers.
@@ -78,11 +82,10 @@ GtsFromNQuads class >> node: node in: interner reifiers: reifiers [
 	terms := interner at: 'terms'.
 	key := { 'triple'. subject. predicate. object }.
 	ids at: key ifPresent: [ :existing | ^ existing ].
-	reifierId := terms size.
-	terms add: (GtsTerm tripleReifier: reifierId).
-	ids at: key put: reifierId.
-	self setReifier: reifierId spo: { subject. predicate. object } in: reifiers.
-	^ reifierId
+	termId := terms size.
+	terms add: (GtsTerm tripleComponents: { subject. predicate. object }).
+	ids at: key put: termId.
+	^ termId
 ]
 
 { #category : #parsing }
@@ -106,6 +109,10 @@ GtsFromNQuads class >> parseStatements: text [
 
 { #category : #private }
 GtsFromNQuads class >> setReifier: reifierId spo: spo graph: graphId in: reifiers [
+	"Record one `r rdf:reifies <<( s p o )>>` statement.
+
+	rdf:reifies is NOT functional (RDF 1.2 / §7.3): two bindings on one reifier are
+	legal input and BOTH are kept. Only a byte-identical repeat of a row collapses."
 	| entry |
 	1 to: reifiers size do: [ :index |
 		(((reifiers at: index) at: 'rid') = reifierId

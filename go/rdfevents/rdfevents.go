@@ -518,7 +518,20 @@ func (e *declarationOrderEmitter) emitTerm(id int, depth int) error {
 			}
 		}
 	case model.Triple:
-		if term.Reifier != nil {
+		switch {
+		case term.Triple != nil:
+			// Self-describing (§7.3): the term's own components are its only
+			// dependencies. A reifier, if also named, is descriptive
+			// provenance and its rows are emitted by the top-level pass.
+			if err := e.emitTripleDeps(*term.Triple, depth+1); err != nil {
+				return err
+			}
+			if term.Reifier != nil && *term.Reifier != id {
+				if err := e.emitTerm(*term.Reifier, depth+1); err != nil {
+					return err
+				}
+			}
+		case term.Reifier != nil:
 			triple, ok := e.graph.Reifier(*term.Reifier)
 			if !ok {
 				return NewError(
@@ -536,6 +549,11 @@ func (e *declarationOrderEmitter) emitTerm(id int, depth int) error {
 					return err
 				}
 			}
+		default:
+			return NewError(
+				ErrorInvalidSource,
+				fmt.Sprintf("triple term %d states no triple", id),
+			)
 		}
 	case model.Iri, model.Bnode:
 	default:
@@ -729,18 +747,19 @@ func toEventTerm(graph *model.Graph, id int, term model.Term) (Term, error) {
 			return Term{}, err
 		}
 	case model.Triple:
-		if term.Reifier == nil {
-			return Term{}, NewError(
-				ErrorInvalidSource,
-				fmt.Sprintf("triple term %d does not have a reifier id", id),
-			)
-		}
-		triple, ok := graph.Reifier(*term.Reifier)
+		// §7.3 resolution order: the term's own "tt" is authoritative; a legacy
+		// "tt"-less term resolves through the first binding of its reifier.
+		triple, ok := graph.TripleOf(id)
 		if !ok {
 			return Term{}, NewError(
 				ErrorInvalidSource,
-				fmt.Sprintf("triple term %d does not have a resolvable reifier binding", id),
+				fmt.Sprintf("triple term %d states no triple", id),
 			)
+		}
+		if term.Triple != nil {
+			if err := validateTripleRefs(graph, triple, "triple term"); err != nil {
+				return Term{}, err
+			}
 		}
 		eventTriple, err := toEventTriple(triple)
 		if err != nil {
@@ -748,9 +767,22 @@ func toEventTerm(graph *model.Graph, id int, term model.Term) (Term, error) {
 		}
 		out.Kind = TermTriple
 		out.Triple = &eventTriple
-		out.Reifier, err = toEventIDPtr(term.Reifier)
-		if err != nil {
-			return Term{}, err
+		// `out.Triple` carries the RESOLVED (s, p, o) either way, so `out.Reifier`
+		// is the only thing distinguishing a self-describing term from a legacy
+		// indirect one downstream: GraphSink.modelTerm treats a non-nil reifier as
+		// "this term is DEFINED by its reifier" and rebuilds it that way. A term
+		// carrying BOTH "tt" and "rf" is self-describing — §7.3 makes "tt"
+		// authoritative and the "rf" superseded — so emitting the superseded
+		// pointer here made the sink demote it, dropping model.Term.Triple and
+		// minting a `reifies` row the source never had. Report the reifier only
+		// when it actually defines the term. The binding rows themselves are
+		// unaffected: they travel as their own Reifier events and every row
+		// survives (§7.3, §7.8).
+		if term.Triple == nil {
+			out.Reifier, err = toEventIDPtr(term.Reifier)
+			if err != nil {
+				return Term{}, err
+			}
 		}
 	default:
 		return Term{}, NewError(ErrorInvalidSource, fmt.Sprintf("term %d has unknown kind %d", id, term.Kind))
@@ -1013,22 +1045,20 @@ func (s *GraphSink) Finish() error {
 	}
 
 	graph := &model.Graph{}
-	explicitReifiers := map[int]model.Triple3{}
+	// §7.3: rdf:reifies is not functional, so several Reifier events MAY bind
+	// one reifier id to different triples. Every row is kept, in event order.
+	explicitBindings := map[int][]model.Triple3{}
 	var explicitReifierRows []model.ReifierEntry
 	for _, event := range s.reifiers {
 		row, err := s.modelReifier(idToIndex, event)
 		if err != nil {
 			return err
 		}
-		if existing, ok := explicitReifiers[row.RID]; ok && existing != row.SPO {
-			return NewError(ErrorInvalidSource, fmt.Sprintf("reifier %d rebound", event.ID))
-		}
-		explicitReifiers[row.RID] = row.SPO
+		explicitBindings[row.RID] = append(explicitBindings[row.RID], row.SPO)
 		explicitReifierRows = append(explicitReifierRows, row)
 	}
 
-	impliedReifiers := map[int]model.Triple3{}
-	var impliedOrder []int
+	var impliedRows []impliedReifier
 	for _, id := range s.termOrder {
 		eventTerm := s.terms[id]
 		term, implied, err := s.modelTerm(idToIndex, id, eventTerm)
@@ -1036,31 +1066,22 @@ func (s *GraphSink) Finish() error {
 			return err
 		}
 		graph.Terms = append(graph.Terms, term)
-		if implied != nil {
-			if explicit, ok := explicitReifiers[implied.rid]; ok {
-				if explicit != implied.triple {
-					return NewError(
-						ErrorInvalidSource,
-						fmt.Sprintf("triple term reifier %d conflicts with explicit reifier event", implied.rid),
-					)
-				}
-				continue
-			}
-			if existing, ok := impliedReifiers[implied.rid]; ok {
-				if existing != implied.triple {
-					return NewError(ErrorInvalidSource, fmt.Sprintf("triple term reifier %d rebound", implied.rid))
-				}
-				continue
-			}
-			impliedReifiers[implied.rid] = implied.triple
-			impliedOrder = append(impliedOrder, implied.rid)
+		if implied == nil {
+			continue
 		}
+		// A legacy indirect term implies the row it resolves through. When an
+		// explicit Reifier event already states that binding the row is
+		// already present (possibly graph-scoped), so do not restate it.
+		if containsTriple(explicitBindings[implied.rid], implied.triple) {
+			continue
+		}
+		impliedRows = append(impliedRows, *implied)
 	}
 	for _, row := range explicitReifierRows {
 		graph.SetReifier(row.RID, row.SPO, row.G)
 	}
-	for _, rid := range impliedOrder {
-		graph.SetReifier(rid, impliedReifiers[rid], nil)
+	for _, row := range impliedRows {
+		graph.SetReifier(row.rid, row.triple, nil)
 	}
 	for _, eventQuad := range s.quads {
 		quad, err := s.modelQuad(idToIndex, eventQuad)
@@ -1093,6 +1114,16 @@ type impliedReifier struct {
 	triple model.Triple3
 }
 
+// containsTriple reports whether triple is already among bindings.
+func containsTriple(bindings []model.Triple3, triple model.Triple3) bool {
+	for _, binding := range bindings {
+		if binding == triple {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *GraphSink) modelTerm(idToIndex map[TermID]int, id TermID, event Term) (model.Term, *impliedReifier, error) {
 	switch event.Kind {
 	case TermIRI:
@@ -1123,17 +1154,17 @@ func (s *GraphSink) modelTerm(idToIndex map[TermID]int, id TermID, event Term) (
 		if err != nil {
 			return model.Term{}, nil, err
 		}
-		var reifier int
-		if event.Reifier != nil {
-			reifier, err = lookupTermID(idToIndex, *event.Reifier, "triple term reifier")
-			if err != nil {
-				return model.Term{}, nil, err
-			}
-		} else {
-			reifier, err = lookupTermID(idToIndex, id, "triple term self reifier")
-			if err != nil {
-				return model.Term{}, nil, err
-			}
+		if event.Reifier == nil {
+			// Self-describing (§7.3): the term states its own (s, p, o) and
+			// mints NO reifier, so an unreified triple term round-trips as
+			// itself instead of growing a fabricated `reifies` row.
+			return model.Term{Kind: model.Triple, Triple: &triple}, nil, nil
+		}
+		// Legacy indirect form: the term is described by its reifier, and the
+		// binding row it resolves through is implied.
+		reifier, err := lookupTermID(idToIndex, *event.Reifier, "triple term reifier")
+		if err != nil {
+			return model.Term{}, nil, err
 		}
 		term := model.Term{Kind: model.Triple, Reifier: &reifier}
 		return term, &impliedReifier{rid: reifier, triple: triple}, nil

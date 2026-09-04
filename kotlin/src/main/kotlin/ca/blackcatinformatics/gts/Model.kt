@@ -24,6 +24,14 @@ fun termKindFromWire(k: Int): TermKind =
         else -> TermKind.IRI
     }
 
+/**
+ * An RDF term carried by append-order id (§7.1).
+ *
+ * [reifier] is the LEGACY reifier indirection (wire `"rf"`): it is retained so files written
+ * before the self-describing form keep reading identically. [triple] is the quoted triple's OWN
+ * `(s, p, o)` term-ids (wire `"tt"`) and is AUTHORITATIVE when present — `rdf:reifies` is not
+ * functional in RDF 1.2, so a reifier id cannot identify a triple (§7.3).
+ */
 data class Term(
     val kind: TermKind,
     val value: String,
@@ -31,6 +39,7 @@ data class Term(
     val lang: String? = null,
     val reifier: Int? = null,
     val direction: String? = null,
+    val triple: Triple? = null,
 )
 
 data class Quad(
@@ -161,8 +170,59 @@ class Graph {
     val segmentMeta: MutableList<List<MetaEntry>> = mutableListOf()
     val segmentStreamable: MutableList<StreamableInfo> = mutableListOf()
 
+    /**
+     * The FIRST folded triple bound to [rid], if any.
+     *
+     * `rdf:reifies` is not functional (§7.3), so this single-valued view exists only to resolve a
+     * `"tt"`-less (legacy) triple term. Use [reifierTriples] for the full statement layer.
+     */
     fun reifier(rid: Int): Triple? = reifiers.firstOrNull { it.rid == rid }?.spo
 
+    /** Every DISTINCT triple bound to [rid], in file order (§7.3). */
+    fun reifierTriples(rid: Int): List<Triple> = reifiers.filter { it.rid == rid }.map { it.spo }.distinct()
+
+    /**
+     * The `(s, p, o)` a quoted-triple term denotes (§7.3).
+     *
+     * The term's own `"tt"` is authoritative; a legacy `"tt"`-less term falls back to the FIRST
+     * binding of its reifier so pre-`"tt"` files keep reading exactly as they did.
+     */
+    /**
+     * Resolve the `(s, p, o)` a quoted-triple term denotes (§7.3).
+     *
+     * Resolution MUST terminate. A `reifies` row may name the very term that resolves through it,
+     * so a term that reaches itself states NO triple for this walk and resolves to `null` — the
+     * same answer an unbound triple term gives, which every projection renders as a fresh blank
+     * node. Guarding here rather than inside each walk keeps the degradation at the RIGHT LEVEL:
+     * the self-reaching term itself becomes the blank node, instead of resolving one step and
+     * degrading a nested occurrence, which renders a different graph. A `"tt"` cannot cycle, since
+     * its components name strictly smaller term-ids (§7.2).
+     */
+    fun tripleOf(termId: Int): Triple? {
+        val term = terms.getOrNull(termId) ?: return null
+        term.triple?.let { return it }
+        val spo = term.reifier?.let { reifier(it) } ?: return null
+        val seen = mutableSetOf<Int>()
+        if (listOf(spo.s, spo.p, spo.o).any { resolutionReaches(it, termId, seen) }) return null
+        return spo
+    }
+
+    /** Does resolving [from] walk back to [anchor]? */
+    private fun resolutionReaches(from: Int, anchor: Int, seen: MutableSet<Int>): Boolean {
+        if (from == anchor) return true
+        if (!seen.add(from)) return false
+        val term = terms.getOrNull(from) ?: return false
+        if (term.kind != TermKind.TRIPLE) return false
+        val spo = term.triple ?: term.reifier?.let { reifier(it) } ?: return false
+        return listOf(spo.s, spo.p, spo.o).any { resolutionReaches(it, anchor, seen) }
+    }
+
+    /**
+     * Append a reifier row unless the identical row is already present.
+     *
+     * `reifies` is a MULTI-VALUED statement layer: distinct triples on one reifier id all survive,
+     * each keeping its own graph slot. Only a byte-identical repeat collapses (§7.8 set semantics).
+     */
     fun setReifier(rid: Int, spo: Triple, g: Int? = null) {
         if (reifiers.any { it.rid == rid && it.spo == spo && it.g == g }) return
         reifiers += ReifierEntry(rid, spo, g)

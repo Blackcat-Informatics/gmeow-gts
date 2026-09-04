@@ -14,6 +14,42 @@ GTS 的所有显著变更都记录在此。本日志格式基于
 
 线路格式为工作草案（`GTS-SPEC.md` 文档版本 `0.9-draft`），在 `1.0` 之前可以 (MAY) 发生变更。
 
+## [未发布]
+
+### 已变更
+
+- **破坏性变更（读取器契约）。** 引用三元组的 TERM 现在是自描述的：`terms` 行可以携带
+  `"tt": [s, p, o]`，存在时具有权威性。`"rf"` 仍是合法的旧式编码，解析为其具体化器的第一个
+  绑定，因此现有字节的读取结果不变——但任何既有的第三方读取器现在都不再符合规范，因为
+  `rdf:reifies` 在 RDF 1.2 中并非函数性的，且 `reifies` 帧是一个多值语句层。每一行都以其
+  自身的图槽保留；读取器不得在它们之间进行选择、重新排序或丢弃任何一行。只有逐字节相同的行
+  才会合并（§7.8）。
+- `ConflictingReifier` 现在收窄为唯一真正不一致的形态：一个没有 `"tt"` 的项，其具体化器绑定了
+  多于一个不同的三元组。每个有问题的项只报告一次，不丢弃任何行，且该项仍按文件顺序解析为第一个
+  绑定。一致性向量 12 从负例变为正例。
+- **破坏性变更（§14 关系投影）。** `gts → {sqlite,duckdb,parquet}` 导出的 `terms` 表从 7 列
+  增加到 10 列，追加了 `tt_s`、`tt_p`、`tt_o`。现有的位置索引 0-6 保持不变，但具体化器 id 不再
+  标识一个三元组，因此任何以 `reifier` 作为键或连接并期望只有一个三元组的使用方都会静默丢行。
+
+### 新增
+
+- 规范性位置约束：在 `reifies` 行中，具体化器必须 (MUST) 是 IRI 或空白节点（`k:0|2`），绝不能是
+  字面量或引用三元组。它是每一行所断言的 `R rdf:reifies <<( S P O )>>` 语句的主语，而 RDF 1.2
+  在该位置只接受这些类别。违规会被诊断为 `PositionConstraint` 并丢弃该行。
+- 一致性向量 `13b-reifier-position-constraint`、`13c-self-describing-triple-term` 和
+  `13e-literal-base-direction`。最后一个覆盖 RDF 1.2 字面量基础方向，它已在六个引擎中完整实现，
+  却完全没有冻结覆盖。
+
+### 已修复
+
+- 三元组项的解析现在在每一次遍历中都会终止。`reifies` 行可以命名恰好通过它解析的那个项，这可以用
+  普通写入器构造，且不需要任何 `"tt"`。此前，折叠这样的文件会使 Go 以
+  `fatal error: stack overflow` 中止——不可恢复，并违反 `FuzzRead` 所捍卫的读取器无 panic 契约
+  ——并在 Python 中引发 `RecursionError`。两者都是解析器拒绝服务。
+- 当权威的 `"tt"` 与旧式 `"rf"` 同时存在时，Go 不再丢弃前者。`Graph → events → Graph` 往返
+  曾会降级这样的项。
+- Rust 写入器仅为 `k:3` 项发出 `"tt"`。
+
 ## [0.9.11] — 2026-06-29
 
 ### 已变更
@@ -375,6 +411,7 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
+[未发布]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...HEAD
 [0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
 [0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
 [0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9

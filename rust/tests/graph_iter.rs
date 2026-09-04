@@ -13,6 +13,7 @@ fn iri(value: &str) -> Term {
         lang: None,
         direction: None,
         reifier: None,
+        triple: None,
     }
 }
 

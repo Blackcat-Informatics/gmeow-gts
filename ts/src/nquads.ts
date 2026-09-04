@@ -37,9 +37,15 @@ function escape(lex: string): string {
     return out;
 }
 
-function render(g: Graph, tid: number): string {
+function render(g: Graph, tid: number, open: readonly number[] = []): string {
     if (tid < 0 || tid >= g.terms.length) {
         return `_:out_of_range_${tid}`;
+    }
+    // A `reifies` row may name the very term that resolves through it (§7.3),
+    // so a projection MUST NOT recurse blindly: a self-reaching term degrades
+    // to the same blank node an unbound triple term already produces.
+    if (open.includes(tid)) {
+        return `_:unbound_triple_${tid}`;
     }
     const t = g.terms[tid];
     switch (t.kind) {
@@ -56,17 +62,22 @@ function render(g: Graph, tid: number): string {
                     lit += `--${t.direction}`;
                 }
             } else if (t.datatype !== undefined)
-                lit += `^^${render(g, t.datatype)}`;
+                lit += `^^${render(g, t.datatype, open)}`;
             return lit;
         }
-        case TermKind.Triple:
-            if (t.reifier !== undefined) {
-                const spo = g.reifier(t.reifier);
-                if (spo) {
-                    return `<<( ${render(g, spo.s)} ${render(g, spo.p)} ${render(g, spo.o)} )>>`;
-                }
+        case TermKind.Triple: {
+            // Quoted triple (RDF 1.2 triple term): its own "tt" is
+            // authoritative; a legacy "tt"-less term still resolves through its
+            // reifier (§7.3).
+            const spo = g.tripleOf(tid);
+            if (spo) {
+                const inner = [...open, tid];
+                return `<<( ${render(g, spo.s, inner)} ${render(g, spo.p, inner)} ${render(g, spo.o, inner)} )>>`;
             }
+            // Degraded but syntactically valid: a triple term that states no
+            // triple (no "tt", and no bound reifier) becomes a blank node.
             return `_:unbound_triple_${tid}`;
+        }
     }
 }
 

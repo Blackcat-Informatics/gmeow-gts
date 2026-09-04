@@ -85,6 +85,14 @@ def term_from_wire(d: Mapping[str, object]) -> Term:
     lang = d.get("l")
     direction = d.get("dir")
     reifier = d.get("rf")
+    raw_triple = d.get("tt")
+    triple: Triple | None = None
+    if (
+        isinstance(raw_triple, list)
+        and len(raw_triple) == 3
+        and all(isinstance(x, int) and not isinstance(x, bool) for x in raw_triple)
+    ):
+        triple = (int(raw_triple[0]), int(raw_triple[1]), int(raw_triple[2]))
     return Term(
         kind=kind,
         value=value if isinstance(value, str) else None,
@@ -92,6 +100,7 @@ def term_from_wire(d: Mapping[str, object]) -> Term:
         lang=lang if isinstance(lang, str) else None,
         direction=direction if direction in ("ltr", "rtl") else None,
         reifier=reifier if isinstance(reifier, int) else None,
+        triple=triple,
     )
 
 
@@ -211,7 +220,7 @@ class _Folder:
                 continue
             term = term_from_wire(raw)
             tid = len(self.g.terms)
-            # Sanitise refs: dt/rf MUST name an already-introduced term (§7.5). A
+            # Sanitise refs: dt/rf/tt MUST name already-introduced terms (§7.5). A
             # forward/out-of-bounds ref is diagnosed and dropped, so resolution and
             # serialisation can never IndexError.
             dt = (
@@ -224,14 +233,23 @@ class _Folder:
                 if term.reifier is not None and term.reifier < tid
                 else None
             )
-            if (term.datatype is not None and dt is None) or (
-                term.reifier is not None and rf is None
+            tt = (
+                term.triple
+                if term.triple is not None and all(c < tid for c in term.triple)
+                else None
+            )
+            if (
+                (term.datatype is not None and dt is None)
+                or (term.reifier is not None and rf is None)
+                or (term.triple is not None and tt is None)
             ):
                 self.g.diagnostics.append(
                     Diagnostic(
                         "ForwardReference", f"term {tid} has an out-of-range ref", index
                     )
                 )
+            if tt is not None and not self._check_triple_term_positions(tt, tid, index):
+                tt = None
             self.g.terms.append(
                 Term(
                     kind=term.kind,
@@ -240,6 +258,7 @@ class _Folder:
                     lang=term.lang,
                     direction=term.direction,
                     reifier=rf,
+                    triple=tt,
                 )
             )
 
@@ -303,14 +322,11 @@ class _Folder:
                 )
                 continue
             triple: Triple = (s, p, o)
-            if not self._check_reifier_positions(s, p, o, g, index):
+            if not self._check_reifier_positions(rid, s, p, o, g, index):
                 continue
-            existing = self.g.reifier(rid)
-            if existing is not None and existing != triple:
-                self.g.diagnostics.append(
-                    Diagnostic("ConflictingReifier", f"reifier {rid} rebound", index)
-                )
-                continue  # keep the first binding
+            # §7.3: rdf:reifies is NOT functional. Several triples may be bound
+            # to one reifier id and each row keeps its own graph slot; only
+            # byte-identical rows collapse (§7.8). No row is ever dropped here.
             self.g.add_reifier(rid, triple, g)
 
     def _h_annot(self, payload: object, _f: Mapping[str, object], index: int) -> None:
@@ -504,6 +520,9 @@ class _Folder:
                         term["dt"] = sh(term["dt"])
                     if "rf" in term:
                         term["rf"] = sh(term["rf"])
+                    raw_tt = term.get("tt")
+                    if isinstance(raw_tt, list):
+                        term["tt"] = [sh(x) for x in raw_tt]
                     shifted_terms.append(term)
                 else:
                     shifted_terms.append(raw)
@@ -620,16 +639,54 @@ class _Folder:
             )
         return ok
 
+    def _check_triple_term_positions(
+        self, triple: Triple, tid: int, index: int
+    ) -> bool:
+        """Enforce §7.4 positions on a self-describing triple term's ``"tt"``.
+
+        A triple term states a triple, so its components obey the same
+        subject/predicate constraints as any other triple. A violating ``"tt"``
+        is diagnosed and dropped (the term then degrades to its ``"rf"``
+        fallback, or to an unbound triple term).
+        """
+        s, p, o = triple
+        del o  # any term kind is legal in object position
+        if self._kind(p) is _IRI and self._kind(s) is not TermKind.LITERAL:
+            return True
+        self.g.diagnostics.append(
+            Diagnostic(
+                "PositionConstraint",
+                f"triple term {tid} 'tt' {triple} violates positions",
+                index,
+            )
+        )
+        return False
+
     def _check_reifier_positions(
-        self, s: int, p: int, o: int, g: int | None, index: int
+        self, rid: int, s: int, p: int, o: int, g: int | None, index: int
     ) -> bool:
         """Bounds-check, then enforce §7.4 positions for a reifier row."""
-        refs = (s, p, o) if g is None else (s, p, o, g)
+        refs = (rid, s, p, o) if g is None else (rid, s, p, o, g)
         if not self._in_bounds(*refs):
             self.g.diagnostics.append(
                 Diagnostic(
                     "PositionConstraint",
                     f"reifier row ({s},{p},{o},{g}) has out-of-range term ids",
+                    index,
+                )
+            )
+            return False
+        # §7.3: every reifies row asserts ``R rdf:reifies <<( S P O )>>``, so R
+        # lands in SUBJECT position, where RDF 1.2 admits only an IRI or blank
+        # node -- the same reason the graph slot below excludes those kinds.
+        rid_kind = self._kind(rid)
+        if rid_kind in (TermKind.LITERAL, TermKind.TRIPLE):
+            noun = "literal" if rid_kind is TermKind.LITERAL else "quoted triple"
+            self.g.diagnostics.append(
+                Diagnostic(
+                    "PositionConstraint",
+                    f"reifier row reifier {rid} must be an IRI or blank node, "
+                    f"not a {noun} term",
                     index,
                 )
             )
@@ -680,6 +737,38 @@ _HANDLERS = {
 }
 
 _REASON_DIAG = {"unknown-codec": "UnknownCodec", "missing-key": "MissingKey"}
+
+
+def check_conflicting_reifiers(g: Graph) -> None:
+    """Diagnose the one incoherent shape that survives §7.3, in place.
+
+    ``rdf:reifies`` is not functional, so a reifier id bound to several triples
+    is ordinary RDF 1.2 and is NOT a conflict. The single remaining incoherence
+    is a ``"tt"``-less (legacy indirect) quoted-triple TERM whose reifier id
+    binds MORE THAN ONE distinct triple: the file is asking for one term with
+    two meanings. ``ConflictingReifier`` is reported once per offending term;
+    NO reifier row is dropped, and the term keeps resolving to the first
+    binding in file order so the rendering of legacy files never changes.
+
+    Runs on a fold that is about to be handed to a consumer (a whole read, or
+    one segment of a per-segment read), never twice over the same terms.
+    """
+    for tid, term in enumerate(g.terms):
+        if term.kind is not TermKind.TRIPLE or term.triple is not None:
+            continue
+        if term.reifier is None:
+            continue
+        bindings = g.reifier_triples(term.reifier)
+        if len(bindings) > 1:
+            g.diagnostics.append(
+                Diagnostic(
+                    "ConflictingReifier",
+                    f"legacy triple term {tid} resolves through reifier "
+                    f"{term.reifier}, which binds {len(bindings)} distinct "
+                    "triples; state the triple with 'tt' (§7.3)",
+                    None,
+                )
+            )
 
 
 def _is_header_item(item: object) -> bool:
@@ -736,6 +825,7 @@ def read(
         return g
     if len(bounds) > 1 and not allow_segments:
         g = _read_segment(items[: bounds[1]], keys=keys, index_offset=0)
+        check_conflicting_reifiers(g)
         g.diagnostics.append(
             Diagnostic(
                 "SegmentBoundary",
@@ -757,6 +847,11 @@ def read(
     ]
 
     g = folded[0] if len(folded) == 1 else _union_segments(folded)
+    # §7.3: a reifier binding many triples is legal, so the surviving conflict
+    # shape is only decidable once the whole fold (union included) is complete —
+    # a legacy triple term may precede, or live in another segment from, the
+    # `reifies` rows that over-bind its reifier.
+    check_conflicting_reifiers(g)
 
     last_head = g.segment_heads[-1] if g.segment_heads else b""
     if expected_head is not None and last_head != expected_head:
@@ -800,6 +895,8 @@ def read_segments(
         _read_segment(seg, keys=keys, index_offset=a)
         for a, seg in zip(bounds, segment_slices, strict=False)
     ]
+    for seg_graph in folded:
+        check_conflicting_reifiers(seg_graph)
     return folded, torn, None
 
 
@@ -955,10 +1052,15 @@ def blake3_256_header(header: Mapping[str, object]) -> bytes:
 # --------------------------------------------------------------------------- #
 # Multi-segment union (§3.1, §7.5): term-ids are segment-scoped compression
 # artifacts; the union re-interns BY TERM VALUE. Blank nodes carry a segment
-# discriminator (labels are segment-local and never merge); quoted-triple
-# terms intern recursively through their reifier's interned identity. Because
-# the union is value-interned, "apply suppression value-wise" (§11) reduces to
-# applying it by result-id.
+# discriminator (labels are segment-local and never merge); a quoted-triple
+# term interns on its RESOLVED (s, p, o) — its own `"tt"` when it has one, else
+# the first binding of its legacy reifier (§7.3) — under ONE key tag, because
+# §7.8 defines triple-term equality as equality of the resolved subject,
+# predicate and object. A `"tt"` term and a legacy `"tt"`-less term that
+# resolve to the same triple are therefore the same term; two terms sharing a
+# reifier id but resolving differently stay distinct. Because the union is
+# value-interned, "apply suppression value-wise" (§11) reduces to applying it
+# by result-id.
 # --------------------------------------------------------------------------- #
 
 
@@ -966,6 +1068,14 @@ def _union_segments(segments: list[Graph]) -> Graph:
     """Union per-segment folds into one value-interned :class:`Graph`."""
     out = Graph()
     intern: dict[tuple[object, ...], int] = {}
+    # Terms whose identity is currently being computed. A `reifies` row may name
+    # the very term that resolves through it — `(0, (2, 1, 1))` alongside term
+    # `2 = k:3 rf=0` is constructible on the wire — so resolving a triple term's
+    # identity can reach the term itself. Interning MUST terminate (§7.3): a
+    # self-reaching term gets its own per-term sentinel identity instead of
+    # recursing. This cannot change the result for any input that terminates
+    # without it, because the sentinel is only ever reached on a cycle.
+    resolving: set[int] = set()
 
     def _key(seg: Graph, seg_idx: int, tid: int) -> tuple[object, ...]:
         t = seg.terms[tid]
@@ -977,9 +1087,27 @@ def _union_segments(segments: list[Graph]) -> Graph:
             if t.value:
                 return ("bnode", seg_idx, t.value)  # labelled: segment-local
             return ("bnode", seg_idx, tid)  # anonymous: fresh per term entry
-        # Quoted triple: identity is the reifier's interned identity.
-        rf = t.reifier
-        return ("qt", _map(seg, seg_idx, rf) if rf is not None else None)
+        # Quoted triple: identity is the RESOLVED (s, p, o) — the term's own
+        # "tt" when it has one, else the first binding of its legacy reifier
+        # (§7.3, §7.8). Keying on the resolution rather than on the reifier id
+        # is what keeps two DISTINCT triple terms that share one reifier id
+        # distinct through the union.
+        if tid in resolving:
+            return ("qt-self-reaching", seg_idx, tid)
+        resolved = seg.triple_of(tid)
+        if resolved is None:
+            return ("qt", None)
+        s_, p_, o_ = resolved
+        resolving.add(tid)
+        try:
+            return (
+                "qt",
+                _map(seg, seg_idx, s_),
+                _map(seg, seg_idx, p_),
+                _map(seg, seg_idx, o_),
+            )
+        finally:
+            resolving.discard(tid)
 
     def _map(seg: Graph, seg_idx: int, tid: int) -> int:
         key = _key(seg, seg_idx, tid)
@@ -989,6 +1117,15 @@ def _union_segments(segments: list[Graph]) -> Graph:
         t = seg.terms[tid]
         datatype = _map(seg, seg_idx, t.datatype) if t.datatype is not None else None
         reifier = _map(seg, seg_idx, t.reifier) if t.reifier is not None else None
+        triple = (
+            (
+                _map(seg, seg_idx, t.triple[0]),
+                _map(seg, seg_idx, t.triple[1]),
+                _map(seg, seg_idx, t.triple[2]),
+            )
+            if t.triple is not None
+            else None
+        )
         # Blank nodes are relabelled with a segment prefix (§7.1 permits
         # isomorphism-preserving relabeling): within a segment, byte-identical
         # entries already intern to one union term (§7.8); ACROSS segments the
@@ -1009,6 +1146,7 @@ def _union_segments(segments: list[Graph]) -> Graph:
             lang=t.lang,
             direction=t.direction,
             reifier=reifier,
+            triple=triple,
         )
         out.terms.append(new)
         new_id = len(out.terms) - 1

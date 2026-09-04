@@ -308,7 +308,7 @@
         "media_type": "application/vnd.blackcat.gts+cbor-seq"
       },
       "mode": "permissive-read",
-      "negative": true,
+      "negative": false,
       "required_capabilities": [
         "cbor",
         "blake3",
@@ -317,17 +317,17 @@
       "subsets": [
         "corpus-generator-determinism",
         "graph-fold",
-        "streaming-property"
+        "streaming-property",
+        "writer-determinism"
       ],
       "tiers": [
         "baseline-reader",
-        "streaming-reader"
+        "streaming-reader",
+        "writer"
       ],
       "expected": {
         "graph": "vectors/12-conflicting-reifier.expected.json",
-        "diagnostics": [
-          "ConflictingReifier"
-        ],
+        "diagnostics": [],
         "expected_head": "e1c08aefe8730ac0c8d68390d62d521feac1c57d4cf317fa8333c59712bcd15a",
         "segment_heads": [
           "e1c08aefe8730ac0c8d68390d62d521feac1c57d4cf317fa8333c59712bcd15a"
@@ -367,6 +367,150 @@
         "expected_head": "67886a25e8aa57ccf93ce15385779f5d5a712d1b70c543eb4e43e55089512299",
         "segment_heads": [
           "67886a25e8aa57ccf93ce15385779f5d5a712d1b70c543eb4e43e55089512299"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for graph-fold."
+    },
+    {
+      "id": "13b-reifier-position-constraint",
+      "title": "reifier position constraint",
+      "input": {
+        "path": "vectors/13b-reifier-position-constraint.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "graph-fold",
+        "streaming-property"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/13b-reifier-position-constraint.expected.json",
+        "diagnostics": [
+          "PositionConstraint"
+        ],
+        "expected_head": "83dccb247122cdc60f0c32f8977df9f6396345679ff2d2c839d8dc67f2427b35",
+        "segment_heads": [
+          "83dccb247122cdc60f0c32f8977df9f6396345679ff2d2c839d8dc67f2427b35"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for graph-fold."
+    },
+    {
+      "id": "13c-self-describing-triple-term",
+      "title": "self describing triple term",
+      "input": {
+        "path": "vectors/13c-self-describing-triple-term.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "graph-fold",
+        "streaming-property",
+        "writer-determinism"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader",
+        "writer"
+      ],
+      "expected": {
+        "graph": "vectors/13c-self-describing-triple-term.expected.json",
+        "diagnostics": [],
+        "expected_head": "e73c4a417b127d542521cfd34e1c959acf1a9e3714c124c19ef80bff0ed8a058",
+        "segment_heads": [
+          "e73c4a417b127d542521cfd34e1c959acf1a9e3714c124c19ef80bff0ed8a058"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for graph-fold."
+    },
+    {
+      "id": "13d-resolution-terminates",
+      "title": "resolution terminates",
+      "input": {
+        "path": "vectors/13d-resolution-terminates.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "graph-fold",
+        "streaming-property",
+        "writer-determinism"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader",
+        "writer"
+      ],
+      "expected": {
+        "graph": "vectors/13d-resolution-terminates.expected.json",
+        "diagnostics": [],
+        "expected_head": "fcfa85e71904fac0c03061a7950a1921fdd04b0d5f56a4a2fab0090f6c501055",
+        "segment_heads": [
+          "fcfa85e71904fac0c03061a7950a1921fdd04b0d5f56a4a2fab0090f6c501055"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for graph-fold."
+    },
+    {
+      "id": "13e-literal-base-direction",
+      "title": "literal base direction",
+      "input": {
+        "path": "vectors/13e-literal-base-direction.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": false,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "graph-fold",
+        "streaming-property",
+        "writer-determinism"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader",
+        "writer"
+      ],
+      "expected": {
+        "graph": "vectors/13e-literal-base-direction.expected.json",
+        "diagnostics": [],
+        "expected_head": "7d7b7cadff0db62afabdc7acdc7079c4ad01dd1c0dbf8d813e1fb115d7e807a6",
+        "segment_heads": [
+          "7d7b7cadff0db62afabdc7acdc7079c4ad01dd1c0dbf8d813e1fb115d7e807a6"
         ],
         "opaque_reasons": []
       },

@@ -101,6 +101,198 @@ class KotlinParityTest {
         assertEquals(nq.trim().lines().sorted(), toNQuads(graph).trim().lines().sorted())
     }
 
+    /** Terms 0..4 shared by the §7.3 statement-layer tests: r, s, p, "Cat"@en, "Chat"@fr. */
+    private fun statementLayerTerms(): List<Term> =
+        listOf(
+            Term(TermKind.IRI, "https://ex/r"),
+            Term(TermKind.IRI, "https://ex/s"),
+            Term(TermKind.IRI, "https://ex/p"),
+            Term(TermKind.LITERAL, "Cat", lang = "en"),
+            Term(TermKind.LITERAL, "Chat", lang = "fr"),
+        )
+
+    @Test
+    fun multiValuedReifiesKeepsEveryRowWithoutDiagnostic() {
+        val writer = Writer("generic")
+        writer.addTerms(statementLayerTerms())
+        writer.addReifies(listOf(ReifierEntry(0, Triple(1, 2, 3)), ReifierEntry(0, Triple(1, 2, 4))))
+
+        val graph = read(writer.toBytes(), true)
+        assertEquals(emptyList(), graph.diagnostics.map { it.code })
+        assertEquals(2, graph.reifiers.size)
+        assertEquals(listOf(Triple(1, 2, 3), Triple(1, 2, 4)), graph.reifierTriples(0))
+        assertEquals(2, sortedNQuads(graph).size)
+    }
+
+    @Test
+    fun byteIdenticalReifiesRowsStillCollapse() {
+        val writer = Writer("generic")
+        writer.addTerms(statementLayerTerms())
+        writer.addReifies(listOf(ReifierEntry(0, Triple(1, 2, 3)), ReifierEntry(0, Triple(1, 2, 3))))
+
+        val graph = read(writer.toBytes(), true)
+        assertEquals(emptyList(), graph.diagnostics.map { it.code })
+        assertEquals(1, graph.reifiers.size)
+        assertEquals(listOf(Triple(1, 2, 3)), graph.reifierTriples(0))
+    }
+
+    @Test
+    fun conflictingReifierFlagsOnlyTheLegacyTripleTermAndDropsNoRow() {
+        val writer = Writer("generic")
+        writer.addTerms(statementLayerTerms() + Term(TermKind.TRIPLE, "", reifier = 0))
+        writer.addReifies(listOf(ReifierEntry(0, Triple(1, 2, 3)), ReifierEntry(0, Triple(1, 2, 4))))
+        writer.addQuads(listOf(Quad(5, 2, 1)))
+
+        val graph = read(writer.toBytes(), true)
+        assertEquals(listOf("ConflictingReifier"), graph.diagnostics.map { it.code })
+        assertEquals(null, graph.diagnostics.single().frameIndex)
+        assertEquals(2, graph.reifiers.size)
+        assertEquals(Triple(1, 2, 3), graph.tripleOf(5))
+    }
+
+    @Test
+    fun selfDescribingTripleTermsNeverRaiseConflictingReifier() {
+        val writer = Writer("generic")
+        writer.addTerms(statementLayerTerms() + Term(TermKind.TRIPLE, "", reifier = 0, triple = Triple(1, 2, 3)))
+        writer.addReifies(listOf(ReifierEntry(0, Triple(1, 2, 3)), ReifierEntry(0, Triple(1, 2, 4))))
+        writer.addQuads(listOf(Quad(5, 2, 1)))
+
+        val graph = read(writer.toBytes(), true)
+        assertEquals(emptyList(), graph.diagnostics.map { it.code })
+        assertEquals(2, graph.reifiers.size)
+        assertEquals(Triple(1, 2, 3), graph.tripleOf(5))
+    }
+
+    @Test
+    fun distinctTripleTermsSharingAReifierIdStayDistinct() {
+        val writer = Writer("generic")
+        writer.addTerms(
+            statementLayerTerms() +
+                listOf(
+                    Term(TermKind.TRIPLE, "", reifier = 0, triple = Triple(1, 2, 3)),
+                    Term(TermKind.TRIPLE, "", reifier = 0, triple = Triple(1, 2, 4)),
+                ),
+        )
+        writer.addReifies(listOf(ReifierEntry(0, Triple(1, 2, 3)), ReifierEntry(0, Triple(1, 2, 4))))
+        writer.addQuads(listOf(Quad(5, 2, 1), Quad(6, 2, 1)))
+
+        val single = read(writer.toBytes(), true)
+        assertEquals(emptyList(), single.diagnostics.map { it.code })
+        assertEquals(Triple(1, 2, 3), single.tripleOf(5))
+        assertEquals(Triple(1, 2, 4), single.tripleOf(6))
+
+        val union = read(writer.toBytes() + writer.toBytes(), true)
+        assertEquals(emptyList(), union.diagnostics.map { it.code })
+        assertEquals(2, union.segmentHeads.size)
+        val quoted = union.terms.indices.filter { union.terms[it].kind == TermKind.TRIPLE }
+        assertEquals(2, quoted.size)
+        assertEquals(2, quoted.mapNotNull { union.tripleOf(it) }.distinct().size)
+    }
+
+    /**
+     * One segment: `<reifierIri>` reifies `(s p objectIri)`, quoted by a LEGACY `"tt"`-less triple
+     * term (id 4) that the segment's only quad uses as its subject.
+     */
+    private fun legacyReifierSegment(reifierIri: String, objectIri: String): ByteArray {
+        val writer = Writer("generic")
+        writer.addTerms(
+            listOf(
+                Term(TermKind.IRI, reifierIri),
+                Term(TermKind.IRI, "https://ex/s"),
+                Term(TermKind.IRI, "https://ex/p"),
+                Term(TermKind.IRI, objectIri),
+                Term(TermKind.TRIPLE, "", reifier = 0),
+            ),
+        )
+        writer.addReifies(listOf(ReifierEntry(0, Triple(1, 2, 3))))
+        writer.addQuads(listOf(Quad(4, 2, 3)))
+        return writer.toBytes()
+    }
+
+    @Test
+    fun unionMergesTripleTermsWithTheSameResolvedTriple() {
+        // §7.8: triple-term equality IS equality of the RESOLVED (s, p, o), so two legacy terms
+        // that hang off DIFFERENT reifier ids but resolve to the SAME triple are one term.
+        val union =
+            read(
+                legacyReifierSegment("https://ex/r1", "https://ex/o") +
+                    legacyReifierSegment("https://ex/r2", "https://ex/o"),
+                true,
+            )
+
+        assertEquals(emptyList(), union.diagnostics.map { it.code })
+        assertEquals(2, union.segmentHeads.size)
+        assertEquals(1, union.terms.count { it.kind == TermKind.TRIPLE })
+        assertEquals(1, union.quads.size)
+    }
+
+    @Test
+    fun unionSeparatesLegacyTripleTermsWithDifferentResolvedTriples() {
+        val union =
+            read(
+                legacyReifierSegment("https://ex/r", "https://ex/o1") +
+                    legacyReifierSegment("https://ex/r", "https://ex/o2"),
+                true,
+            )
+
+        // Both segments bind one reifier to different triples: legal RDF 1.2, so both rows and
+        // both terms survive — and the over-bound LEGACY terms are what §7.3 still flags, once
+        // each, on the union (the extra binding arrives from the other segment).
+        assertEquals(listOf("ConflictingReifier", "ConflictingReifier"), union.diagnostics.map { it.code })
+        assertEquals(2, union.reifiers.size)
+        assertEquals(2, union.terms.count { it.kind == TermKind.TRIPLE })
+        assertEquals(2, union.quads.size)
+    }
+
+    @Test
+    fun unreifiedTripleTermRoundTripsAsItself() {
+        val nq = "<https://ex/s> <https://ex/p> <<( <https://ex/a> <https://ex/b> <https://ex/c> )>> .\n"
+        val graph = read(fromNQuads(nq), false)
+
+        assertEquals(emptyList(), graph.diagnostics.map { it.code })
+        assertTrue(graph.reifiers.isEmpty(), "an unreified triple term mints no reifies row")
+        val quoted = graph.terms.single { it.kind == TermKind.TRIPLE }
+        assertEquals(null, quoted.reifier)
+        assertNotNull(quoted.triple)
+        assertEquals(nq, toNQuads(graph))
+    }
+
+    @Test
+    fun forwardReferencingTripleTermComponentsAreDroppedWithDiagnostic() {
+        val writer = Writer("generic")
+        writer.addFrame(
+            "terms",
+            cborArray(
+                cborMap(text("k") to uint(TermKind.IRI.wire), text("v") to text("https://ex/s")),
+                cborMap(
+                    text("k") to uint(TermKind.TRIPLE.wire),
+                    text("tt") to cborArray(uint(0), uint(7), uint(0)),
+                ),
+            ),
+        )
+
+        val graph = read(writer.toBytes(), true)
+        assertEquals(listOf("ForwardReference"), graph.diagnostics.map { it.code })
+        assertEquals(null, graph.terms[1].triple)
+        assertEquals(null, graph.tripleOf(1))
+    }
+
+    @Test
+    fun tripleTermPositionViolationsDropTtAndFallBackToTheReifier() {
+        val writer = Writer("generic")
+        writer.addTerms(
+            statementLayerTerms() +
+                // "tt" names a LITERAL predicate (term 3), which §7.4 forbids.
+                Term(TermKind.TRIPLE, "", reifier = 0, triple = Triple(1, 3, 4)),
+        )
+        writer.addReifies(listOf(ReifierEntry(0, Triple(1, 2, 3))))
+
+        val graph = read(writer.toBytes(), true)
+        assertEquals(listOf("PositionConstraint"), graph.diagnostics.map { it.code })
+        assertEquals(null, graph.terms[5].triple)
+        assertEquals(Triple(1, 2, 3), graph.tripleOf(5))
+    }
+
     @Test
     fun cborMapsUseRfc8949LexicographicKeyOrder() {
         val got = encode(cborMap(text("") to uint(1), uint(1000) to uint(2)))
@@ -401,6 +593,57 @@ class KotlinParityTest {
                     "mt" to metaByDigest[blob.digest]?.getTextKey("mt").asText(),
                 )
         }
+    }
+
+    /**
+     * A `reifies` row that names the very TERM resolving through it.
+     *
+     * Built through the real writer, not hand-forged: the row `(0, (2, 1, 1))` sits alongside
+     * term `2 = k:3 rf=0`. Resolution MUST terminate (§7.3) — the union interns a triple term on
+     * its RESOLVED components and the N-Quads projection walks them, so both would recurse
+     * forever without a guard.
+     */
+    private fun selfReachingSegment(): ByteArray {
+        val writer = Writer("generic")
+        writer.addTerms(
+            listOf(
+                Term(TermKind.IRI, "https://example.org/r1"),
+                Term(TermKind.IRI, "https://example.org/p"),
+                Term(TermKind.TRIPLE, "", reifier = 0),
+            ),
+        )
+        writer.addReifies(listOf(ReifierEntry(0, Triple(2, 1, 1))))
+        writer.addQuads(listOf(Quad(2, 1, 1)))
+        return writer.toBytes()
+    }
+
+    @Test
+    fun selfReachingTripleTermFoldsAndProjects() {
+        val graph = read(selfReachingSegment(), true)
+        assertEquals(emptyList(), graph.diagnostics.map { it.code })
+        // The SELF-REACHING TERM ITSELF is the blank node (§7.3). Resolving one step
+        // first and degrading a nested occurrence renders a different graph.
+        assertEquals(
+            listOf(
+                "<https://example.org/r1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> " +
+                    "<<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> .",
+                "_:unbound_triple_2 <https://example.org/p> <https://example.org/p> .",
+            ),
+            sortedNQuads(graph),
+        )
+    }
+
+    @Test
+    fun selfReachingTripleTermUnionTerminates() {
+        val one = selfReachingSegment()
+        val graph = read(one + one, true)
+        // Both copies state no triple, so they intern to ONE term rather than two
+        // distinct terms sharing a reifier id; byte-identical rows then collapse
+        // under §7.8. The reifier is not over-bound, so there is no conflict either.
+        assertEquals(1, graph.quads.size)
+        assertTrue(graph.quads.all { graph.terms[it.s].kind == TermKind.TRIPLE })
+        assertEquals(emptyList(), graph.diagnostics.map { it.code })
+        assertEquals(2, sortedNQuads(graph).size)
     }
 
     private fun sortedNQuads(graph: Graph): List<String> {

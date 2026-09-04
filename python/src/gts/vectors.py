@@ -248,6 +248,112 @@ def _position_constraint() -> bytes:
     return bytes(w.to_bytes())
 
 
+def _self_describing_triple_term() -> bytes:
+    """A triple term carrying its own ``"tt"``, plus a `tt`+`rf` term (§7.3).
+
+    Term 3 is UNREIFIED: it states its own (s, p, o) and names no reifier, so it
+    must round-trip as itself without a reifier being minted for it. Term 4
+    carries BOTH ``"tt"`` and a legacy ``"rf"``; ``"tt"`` is authoritative and
+    the ``"rf"`` is superseded, so term 4 must denote (0, 1, 2) and NOT whatever
+    reifier 5 happens to bind. Nothing else in the corpus exercises ``"tt"``,
+    which left the headline feature of the self-describing-triple-terms change
+    with no frozen expectation for a third-party implementer to test against.
+    """
+    w = Writer()
+    w.add_terms(
+        [
+            Term(TermKind.IRI, CAT),  # 0
+            Term(TermKind.IRI, LABEL),  # 1
+            Term(TermKind.LITERAL, "Cat", lang="en"),  # 2
+            Term(TermKind.TRIPLE, triple=(0, 1, 2)),  # 3: unreified "tt"
+            Term(TermKind.IRI, "https://example.org/r1"),  # 4: reifier resource
+            Term(TermKind.TRIPLE, triple=(0, 1, 2), reifier=4),  # 5: tt + rf
+        ]
+    )
+    # Reifier 4 binds a DIFFERENT triple, so a reader that lets "rf" win over
+    # "tt" for term 5 produces a visibly different graph.
+    w.add_reifies([(4, (0, 1, 0), None)])
+    w.add_quads([(0, 1, 3, None), (0, 1, 5, None)])
+    return bytes(w.to_bytes())
+
+
+def _resolution_terminates() -> bytes:
+    """A `reifies` row naming the very term that resolves through it (§7.3).
+
+    Term 3 is a legacy ``"tt"``-less ``k:3`` with ``"rf": 0``, and the row bound
+    to reifier 0 names term 3 among its components, so resolving term 3 reaches
+    term 3. "Resolution MUST terminate" is normative and binds every walk. The
+    term itself degrades to the blank node an unbound triple term produces, and
+    the row is NOT dropped — every ``reifies`` row projects. Before this was
+    settled the shape aborted Go with `fatal error: stack overflow` and raised
+    ``RecursionError`` in Python. The reifier is an IRI on purpose so the
+    reifier-position rule cannot mask the termination guard.
+    """
+    w = Writer()
+    w.add_terms(
+        [
+            Term(TermKind.IRI, "https://example.org/r1"),  # 0: reifier
+            Term(TermKind.IRI, LABEL),  # 1
+            Term(TermKind.IRI, CAT),  # 2
+            Term(TermKind.TRIPLE, reifier=0),  # 3: legacy k:3 via reifier 0
+        ]
+    )
+    w.add_reifies([(0, (3, 1, 2), None)])  # names term 3: self-reaching
+    w.add_quads([(2, 1, 3, None)])
+    return bytes(w.to_bytes())
+
+
+def _literal_base_direction() -> bytes:
+    """Two literals differing ONLY in base direction (§7.1).
+
+    RDF 1.2 base direction is part of a literal's IDENTITY, not merely a field
+    that rides along. Two literals alike in value, language and datatype but
+    differing in direction are DISTINCT terms and must not intern together.
+    Nothing in the corpus covered direction at all, so an implementation could
+    carry `dir` faithfully on one write path and silently conflate on another —
+    a real defect found in an independent GTS implementation — while passing
+    every frozen vector.
+    """
+    w = Writer()
+    w.add_terms(
+        [
+            Term(TermKind.IRI, CAT),  # 0
+            Term(TermKind.IRI, LABEL),  # 1
+            Term(TermKind.LITERAL, "Cat", lang="en", direction="ltr"),  # 2
+            Term(TermKind.LITERAL, "Cat", lang="en", direction="rtl"),  # 3
+            Term(TermKind.LITERAL, "Cat", lang="en"),  # 4: no direction
+        ]
+    )
+    w.add_quads([(0, 1, 2, None), (0, 1, 3, None), (0, 1, 4, None)])
+    return bytes(w.to_bytes())
+
+
+def _reifier_position_constraint() -> bytes:
+    """A `reifies` row whose REIFIER is a quoted triple (§7.3, §7.4).
+
+    Every row asserts ``R rdf:reifies <<( S P O )>>``, so ``R`` lands in subject
+    position, where RDF 1.2 admits only an IRI or blank node. A ``k:3`` reifier
+    therefore states something no conforming RDF 1.2 surface can represent.
+    Before this was constrained the row folded and each engine improvised: Go
+    emitted a triple term as subject (invalid RDF 1.2), while Rust errored on
+    the RDF adapter path and silently dropped the row from N-Quads and TriG.
+    The row is now diagnosed ``PositionConstraint`` and dropped; term 3 keeps
+    whatever meaning it has elsewhere, so the quad still projects.
+    """
+    w = Writer()
+    w.add_terms(
+        [
+            Term(TermKind.IRI, CAT),
+            Term(TermKind.IRI, LABEL),
+            Term(TermKind.LITERAL, "Cat", lang="en"),
+            Term(TermKind.TRIPLE, triple=(0, 1, 2)),
+        ]
+    )
+    w.add_reifies([(3, (0, 1, 2), None)])  # quoted triple in reifier position
+    w.add_quads([(0, 1, 3, None)])
+    return bytes(w.to_bytes())
+
+
 def _bnode_label() -> bytes:
     w = Writer()
     w.add_terms(
@@ -638,6 +744,10 @@ def corpus() -> list[VectorCase]:
         VectorCase("11-datatype-defaulting", _datatype_defaulting()),
         VectorCase("12-conflicting-reifier", _conflicting_reifier()),
         VectorCase("13-position-constraint", _position_constraint()),
+        VectorCase("13b-reifier-position-constraint", _reifier_position_constraint()),
+        VectorCase("13c-self-describing-triple-term", _self_describing_triple_term()),
+        VectorCase("13d-resolution-terminates", _resolution_terminates()),
+        VectorCase("13e-literal-base-direction", _literal_base_direction()),
         VectorCase("14-bnode-label", _bnode_label()),
         VectorCase("15-two-segment-union", _two_segment_union()),
         VectorCase("15b-anon-bnode-union", _anon_bnode_union()),

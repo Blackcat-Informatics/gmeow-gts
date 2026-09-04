@@ -29,18 +29,33 @@ GtsNQuads class >> fourHexDigits: value [
 
 { #category : #private }
 GtsNQuads class >> renderQuotedTriple: spo in: graph [
+	^ self renderQuotedTriple: spo in: graph open: #()
+]
+
+{ #category : #private }
+GtsNQuads class >> renderQuotedTriple: spo in: graph open: open [
 	^ '<<( ',
-		(self renderTermId: (spo at: 1) in: graph), ' ',
-		(self renderTermId: (spo at: 2) in: graph), ' ',
-		(self renderTermId: (spo at: 3) in: graph),
+		(self renderTermId: (spo at: 1) in: graph open: open), ' ',
+		(self renderTermId: (spo at: 2) in: graph open: open), ' ',
+		(self renderTermId: (spo at: 3) in: graph open: open),
 		' )>>'
 ]
 
 { #category : #private }
 GtsNQuads class >> renderTermId: termId in: graph [
-	| reifier spo term |
+	^ self renderTermId: termId in: graph open: #()
+]
+
+{ #category : #private }
+GtsNQuads class >> renderTermId: termId in: graph open: open [
+	"`open` carries the triple terms whose rendering is still in progress. A `reifies`
+	row may name the very term that resolves through it (§7.3), so a projection MUST NOT
+	recurse blindly: a self-reaching term degrades to the same blank node an unbound
+	triple term already produces."
+	| spo term |
 	((termId isInteger not) or: [ termId < 0 or: [ termId >= graph terms size ] ])
 		ifTrue: [ ^ '_:out_of_range_', termId asString ].
+	(open includes: termId) ifTrue: [ ^ '_:unbound_triple_', termId asString ].
 	term := graph termAtId: termId.
 	term kind = #iri ifTrue: [ ^ '<', term value, '>' ].
 	term kind = #blankNode ifTrue: [
@@ -56,13 +71,15 @@ GtsNQuads class >> renderTermId: termId in: graph [
 					ifTrue: [ ^ literal, '@', term language, '--', term direction ].
 				^ literal, '@', term language ].
 		term datatype ifNotNil: [
-			^ literal, '^^', (self renderTermId: term datatype in: graph) ].
+			^ literal, '^^', (self renderTermId: term datatype in: graph open: open) ].
 		^ literal ].
 	term kind = #triple ifTrue: [
-		reifier := term reifier.
-		reifier ifNotNil: [
-			spo := graph reifierFor: reifier.
-			spo ifNotNil: [ ^ self renderQuotedTriple: spo in: graph ] ].
+		"Quoted triple (RDF 1.2 triple term): its own 'tt' is authoritative; a legacy
+		'tt'-less term still resolves through its reifier (§7.3). A term that states no
+		triple at all degrades to a syntactically valid blank node."
+		spo := graph tripleForTermId: termId.
+		spo ifNotNil: [
+			^ self renderQuotedTriple: spo in: graph open: (open copyWith: termId) ].
 		^ '_:unbound_triple_', termId asString ].
 	^ ''
 ]

@@ -262,6 +262,14 @@ func shiftTerm(t model.Term, base int) model.Term {
 		rf := *t.Reifier + base
 		t.Reifier = &rf
 	}
+	if t.Triple != nil {
+		// §7.3: a triple term's own components are term ids too.
+		t.Triple = &model.Triple3{
+			S: t.Triple.S + base,
+			P: t.Triple.P + base,
+			O: t.Triple.O + base,
+		}
+	}
 	return t
 }
 

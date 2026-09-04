@@ -22,8 +22,10 @@ use crate::model::{
     Suppression, Term, TermKind, Triple3,
 };
 use crate::reader_layout::{check_index_mmr, layout_check, IndexRecord};
+use crate::reader_reifiers::check_conflicting_reifiers;
 use crate::reader_rows::{
-    check_quad_positions, decode_annotation_row, decode_reifier_row, RowDecode,
+    check_quad_positions, check_triple_term_positions, decode_annotation_row, decode_reifier_row,
+    RowDecode,
 };
 use crate::reader_union::union_segments;
 use crate::stream::DIGEST as STREAM_DIGEST;
@@ -42,6 +44,15 @@ pub(crate) fn as_i128(v: &Value) -> Option<i128> {
 /// Coerce a value to a non-negative index, else `None` (Python `_as_int`).
 pub(crate) fn as_idx(v: &Value) -> Option<usize> {
     as_i128(v).and_then(|n| usize::try_from(n).ok())
+}
+
+/// Decode a wire `"tt"` value: exactly three integer term-ids (§7.3).
+fn as_triple_components(v: &Value) -> Option<[i128; 3]> {
+    let Value::Array(items) = v else { return None };
+    let [a, b, c] = items.as_slice() else {
+        return None;
+    };
+    Some([as_i128(a)?, as_i128(b)?, as_i128(c)?])
 }
 
 pub(crate) fn as_text(v: &Value) -> Option<&str> {
@@ -73,55 +84,6 @@ fn pub_digest(value: &Value) -> Option<String> {
         Some(Value::Bytes(bytes)) if bytes.len() == 32 => Some(format!("blake3:{}", hex(bytes))),
         _ => None,
     }
-}
-
-fn term_depends_on_anchor(
-    graph: &Graph,
-    term_id: usize,
-    anchor: usize,
-    pending: (usize, Triple3),
-    seen: &mut HashSet<usize>,
-) -> bool {
-    if term_id == anchor {
-        return true;
-    }
-    if !seen.insert(term_id) {
-        return false;
-    }
-    let Some(term) = graph.terms.get(term_id) else {
-        return false;
-    };
-    if term.kind != TermKind::Triple {
-        return false;
-    }
-    let Some(reifier) = term.reifier else {
-        return false;
-    };
-    let binding = if reifier == pending.0 {
-        Some(pending.1)
-    } else {
-        graph.reifier(reifier)
-    };
-    let Some((s, p, o)) = binding else {
-        return false;
-    };
-    [s, p, o]
-        .into_iter()
-        .any(|component| term_depends_on_anchor(graph, component, anchor, pending, seen))
-}
-
-fn reifier_binding_is_recursive(graph: &Graph, rid: usize, triple: Triple3) -> bool {
-    graph
-        .terms
-        .iter()
-        .enumerate()
-        .filter(|(_, term)| term.kind == TermKind::Triple && term.reifier == Some(rid))
-        .any(|(anchor, _)| {
-            [triple.0, triple.1, triple.2].into_iter().any(|component| {
-                let mut seen = HashSet::new();
-                term_depends_on_anchor(graph, component, anchor, (rid, triple), &mut seen)
-            })
-        })
 }
 
 enum PayloadError {
@@ -450,6 +412,7 @@ impl Folder<'_, '_, '_> {
                 .map(str::to_string);
             let dt_raw = map_get(entries, "dt").and_then(as_i128);
             let rf_raw = map_get(entries, "rf").and_then(as_i128);
+            let tt_raw = map_get(entries, "tt").and_then(as_triple_components);
             let tid = self.g.terms.len() as i128;
             let term_id = self.g.terms.len();
             // Sanitise refs: dt MUST name an already-introduced term, and rf
@@ -467,16 +430,35 @@ impl Folder<'_, '_, '_> {
                 Some(d) if kind == TermKind::Triple && d == tid => Some(d as usize),
                 _ => None,
             };
+            // §7.3: a triple term states its OWN (s, p, o) in "tt"; every
+            // component obeys the same forward-reference rule as dt/rf.
+            let tt = tt_raw.filter(|parts| parts.iter().all(|&c| (0..tid).contains(&c)));
             let dt_out_of_range = matches!(dt_raw, Some(d) if d >= tid);
             let rf_out_of_range =
                 matches!(rf_raw, Some(d) if d >= tid && !(kind == TermKind::Triple && d == tid));
-            if dt_out_of_range || rf_out_of_range {
+            let tt_out_of_range = tt_raw.is_some() && tt.is_none();
+            if dt_out_of_range || rf_out_of_range || tt_out_of_range {
                 self.diag(
                     "ForwardReference",
                     format!("term {tid} has an out-of-range ref"),
                     Some(index),
                 );
             }
+            let triple = tt.and_then(|parts| {
+                #[expect(clippy::cast_sign_loss, reason = "range-checked against 0..tid above")]
+                let spo: Triple3 = (parts[0] as usize, parts[1] as usize, parts[2] as usize);
+                match check_triple_term_positions(self.g, spo) {
+                    Ok(()) => Some(spo),
+                    Err(detail) => {
+                        self.diag(
+                            "PositionConstraint",
+                            format!("triple term {tid} 'tt' rejected: {detail}"),
+                            Some(index),
+                        );
+                        None
+                    }
+                }
+            });
             self.g.terms.push(Term {
                 kind,
                 value,
@@ -484,6 +466,7 @@ impl Folder<'_, '_, '_> {
                 lang,
                 direction,
                 reifier: rf,
+                triple,
             });
             if let Some(sink) = self.sink.as_deref_mut() {
                 sink.term(self.segment_index, term_id, &self.g.terms[term_id]);
@@ -553,24 +536,15 @@ impl Folder<'_, '_, '_> {
                     continue;
                 }
             };
-            if let Some(existing) = self.g.reifier(rid) {
-                if existing != triple {
-                    self.diag(
-                        "ConflictingReifier",
-                        format!("reifier {rid} rebound"),
-                        Some(index),
-                    );
-                    continue; // keep the first binding
-                }
-            }
-            if reifier_binding_is_recursive(self.g, rid, triple) {
-                self.diag(
-                    "DamagedFrame",
-                    format!("reifier {rid} creates a recursive quoted-triple binding"),
-                    Some(index),
-                );
-                continue;
-            }
+            // §7.3: rdf:reifies is NOT functional. Several triples may bind to
+            // one reifier id, each row keeping its own graph slot; only
+            // byte-identical rows collapse (§7.8). No row is dropped here —
+            // including a row that makes some term resolve through itself. That
+            // shape is handled where it actually matters, in Graph::triple_of,
+            // which reports a self-reaching term as stating no triple for the
+            // walk. Rejecting the row here instead would drop a statement §7.3
+            // requires every reader to project, and would make this engine
+            // disagree with the other five on the same bytes.
             self.g.set_reifier(rid, triple, gslot);
             self.with_sink(|segment_index, sink| sink.reifier(segment_index, (rid, triple, gslot)));
         }
@@ -774,10 +748,11 @@ impl Folder<'_, '_, '_> {
                         term_entries
                             .iter()
                             .map(|(k, v)| {
-                                if matches!(as_text(k), Some("dt") | Some("rf")) {
-                                    (k.clone(), sh(v))
-                                } else {
-                                    (k.clone(), v.clone())
+                                match as_text(k) {
+                                    Some("dt" | "rf") => (k.clone(), sh(v)),
+                                    // "tt" is a three-id row; shift each part.
+                                    Some("tt") => (k.clone(), sh_row(v)),
+                                    _ => (k.clone(), v.clone()),
                                 }
                             })
                             .collect(),
@@ -978,6 +953,7 @@ pub fn read_with_options(data: &[u8], options: ReadOptions<'_>) -> Graph {
     }
     if bounds.len() > 1 && !options.allow_segments {
         let mut g = read_segment_with_sink(&items[..bounds[1]], 0, 0, None, options.content_key);
+        check_conflicting_reifiers(&mut g);
         g.diagnostics.push(Diagnostic {
             code: "SegmentBoundary".to_string(),
             detail: format!(
@@ -1006,6 +982,11 @@ pub fn read_with_options(data: &[u8], options: ReadOptions<'_>) -> Graph {
     } else {
         union_segments(&folded)
     };
+    // §7.3: a reifier binding many triples is legal, so the surviving conflict
+    // shape is only decidable once the whole fold (union included) is complete
+    // — a legacy triple term may precede, or live in another segment from, the
+    // `reifies` rows that over-bind its reifier.
+    check_conflicting_reifiers(&mut g);
 
     if let Some(expected) = options.expected_head {
         let last_head = g.segment_heads.last().cloned().unwrap_or_default();
@@ -1480,11 +1461,14 @@ pub fn read_file_segments(data: &[u8]) -> FileSegments {
         };
     }
     let ends = bounds.iter().skip(1).copied().chain([items.len()]);
-    let segments: Vec<Graph> = bounds
+    let mut segments: Vec<Graph> = bounds
         .iter()
         .zip(ends)
         .map(|(&a, b)| read_segment(&items[a..b], a))
         .collect();
+    for segment in &mut segments {
+        check_conflicting_reifiers(segment);
+    }
     FileSegments {
         segments,
         torn,

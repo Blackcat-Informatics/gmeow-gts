@@ -170,17 +170,20 @@ private class Interner {
     fun node(node: Node, reifiers: MutableList<ReifierEntry>): Int =
         when (node) {
             is AtomNode -> atom(node.atom)
+            // A bare quoted triple as a quad component interns as a SELF-DESCRIBING triple term
+            // carrying its own (s, p, o) (§7.3). An unreified triple term is a value, not a
+            // statement — it mints no reifier and emits no `reifies` row, so it round-trips as
+            // itself.
             is TripleNode -> {
                 val s = node(node.s, reifiers)
                 val p = node(node.p, reifiers)
                 val o = node(node.o, reifiers)
                 val key = listOf("triple", s, p, o)
                 ids[key]?.let { return it }
-                val rid = terms.size
-                terms += Term(TermKind.TRIPLE, "", reifier = rid)
-                ids[key] = rid
-                setReifier(reifiers, rid, Triple(s, p, o))
-                rid
+                val id = terms.size
+                terms += Term(TermKind.TRIPLE, "", triple = Triple(s, p, o))
+                ids[key] = id
+                id
             }
         }
 }
@@ -238,16 +241,16 @@ fun fromNQuads(input: String): ByteArray {
     return writer.toBytes()
 }
 
+/**
+ * Record one `r rdf:reifies <<( s p o )>>` statement.
+ *
+ * `rdf:reifies` is NOT functional (RDF 1.2 / §7.3): `r rdf:reifies <<( s p o1 )>>` and
+ * `r rdf:reifies <<( s p o2 )>>` are both assertable and both are kept. Only a byte-identical
+ * repeat of a row collapses.
+ */
 private fun setReifier(reifiers: MutableList<ReifierEntry>, rid: Int, spo: Triple, g: Int? = null) {
-    for (reifier in reifiers) {
-        if (reifier.rid == rid) {
-            if (reifier.spo != spo) {
-                throw NQuadsParseException("conflicting rdf:reifies binding for reifier term $rid")
-            }
-            if (reifier.g == g) return
-        }
-    }
-    reifiers += ReifierEntry(rid, spo, g)
+    val row = ReifierEntry(rid, spo, g)
+    if (reifiers.none { it == row }) reifiers += row
 }
 
 private fun validateStatement(nodes: List<Node>, line: String) {

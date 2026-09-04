@@ -72,6 +72,7 @@ fn gts_reifier_projection_uses_native_rdf12_triple_terms() -> Result<(), Box<dyn
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -80,6 +81,7 @@ fn gts_reifier_projection_uses_native_rdf12_triple_terms() -> Result<(), Box<dyn
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -88,6 +90,7 @@ fn gts_reifier_projection_uses_native_rdf12_triple_terms() -> Result<(), Box<dyn
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -96,6 +99,7 @@ fn gts_reifier_projection_uses_native_rdf12_triple_terms() -> Result<(), Box<dyn
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     writer.add_reifies(&[(0, (1, 2, 3), None)]);
@@ -155,6 +159,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Iri,
@@ -163,6 +168,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Literal,
@@ -171,6 +177,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Triple,
@@ -179,6 +186,7 @@ fn strict_export_refuses_unrepresentable_quoted_triple_positions() {
                 lang: None,
                 direction: None,
                 reifier: Some(3),
+                triple: None,
             },
         ],
         quads: vec![(0, 1, 2, None), (3, 1, 2, None)],
@@ -207,6 +215,7 @@ fn strict_export_rejects_quoted_triple_graph_names() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Iri,
@@ -215,6 +224,7 @@ fn strict_export_rejects_quoted_triple_graph_names() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Literal,
@@ -223,6 +233,7 @@ fn strict_export_rejects_quoted_triple_graph_names() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Triple,
@@ -231,6 +242,7 @@ fn strict_export_rejects_quoted_triple_graph_names() {
                 lang: None,
                 direction: None,
                 reifier: Some(3),
+                triple: None,
             },
         ],
         quads: vec![(0, 1, 2, Some(3))],
@@ -254,6 +266,7 @@ fn native_rdf_dataset_roundtrips_directional_literals() -> Result<(), Box<dyn Er
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Iri,
@@ -262,6 +275,7 @@ fn native_rdf_dataset_roundtrips_directional_literals() -> Result<(), Box<dyn Er
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Literal,
@@ -270,6 +284,7 @@ fn native_rdf_dataset_roundtrips_directional_literals() -> Result<(), Box<dyn Er
                 lang: Some("en".to_string()),
                 direction: Some("ltr".to_string()),
                 reifier: None,
+                triple: None,
             },
         ],
         quads: vec![(0, 1, 2, None)],
@@ -311,6 +326,7 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Bnode,
@@ -319,6 +335,7 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Iri,
@@ -327,6 +344,7 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
             Term {
                 kind: TermKind::Iri,
@@ -335,6 +353,7 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
                 lang: None,
                 direction: None,
                 reifier: None,
+                triple: None,
             },
         ],
         quads: vec![(0, 2, 3, None), (1, 2, 3, None)],
@@ -352,8 +371,11 @@ fn generated_blank_node_labels_do_not_collide_with_explicit_labels() {
     assert!(subjects.contains("_:gts_00000000000000000000000001"));
 }
 
+/// §7.3: `rdf:reifies` is NOT functional, so two bindings on one reifier are
+/// both assertable RDF 1.2 and both must survive the import — no error, no
+/// silently discarded row.
 #[test]
-fn native_rdf_import_rejects_conflicting_reifier_bindings() -> Result<(), Box<dyn Error>> {
+fn native_rdf_import_keeps_every_reifier_binding() -> Result<(), Box<dyn Error>> {
     let mut dataset = Dataset::new();
     let claim = Iri::new("https://example.org/claim")?;
     let rdf_reifies = Iri::new(RDF_REIFIES)?;
@@ -377,8 +399,11 @@ fn native_rdf_import_rejects_conflicting_reifier_bindings() -> Result<(), Box<dy
         GraphName::DefaultGraph,
     ));
 
-    let err = from_rdf_dataset(&dataset).expect_err("conflicting reifier binding is rejected");
-    assert!(err.detail().contains("conflicting rdf:reifies"));
+    let bytes = from_rdf_dataset(&dataset)?;
+    let graph = read(&bytes, true, None);
+    assert!(graph.diagnostics.is_empty(), "{:?}", graph.diagnostics);
+    let rid = graph.reifiers[0].0;
+    assert_eq!(graph.reifier_triples(rid).len(), 2);
     Ok(())
 }
 

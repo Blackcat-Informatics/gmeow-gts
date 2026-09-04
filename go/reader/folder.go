@@ -26,6 +26,34 @@ func termRef(raw interface{}, limit int) (*int, bool) {
 	return &i, false
 }
 
+// tripleRef decodes a term's "tt" (§7.3): the triple term's OWN [s, p, o].
+//
+// The second result is true when the row is a well-formed triple of ids but at
+// least one component names a term this one cannot see yet (a forward or
+// out-of-range reference); the "tt" is then dropped entirely. A payload that is
+// not a three-element id array is not a "tt" at all and is simply ignored.
+func tripleRef(raw interface{}, limit int) (*model.Triple3, bool) {
+	if raw == nil {
+		return nil, false
+	}
+	items, ok := raw.([]interface{})
+	if !ok || len(items) != 3 {
+		return nil, false
+	}
+	var parts [3]int
+	for i, item := range items {
+		n, ok := asInt64(item)
+		if !ok || n < 0 {
+			return nil, false
+		}
+		if n >= int64(limit) {
+			return nil, true
+		}
+		parts[i] = int(n)
+	}
+	return &model.Triple3{S: parts[0], P: parts[1], O: parts[2]}, false
+}
+
 func (f *folder) hTerms(payload interface{}, index int) {
 	rows, ok := payload.([]interface{})
 	if !ok {
@@ -64,11 +92,19 @@ func (f *folder) hTerms(payload interface{}, index int) {
 		}
 		dtRaw, hasDt := wire.MapGet(entries, "dt")
 		rfRaw, hasRf := wire.MapGet(entries, "rf")
+		ttRaw, hasTt := wire.MapGet(entries, "tt")
 		tid := len(f.g.Terms)
 		dt, dtOutOfRange := termRef(dtRaw, tid)
 		rf, rfOutOfRange := termRef(rfRaw, tid)
-		if (hasDt && dtOutOfRange) || (hasRf && rfOutOfRange) {
+		// §7.5: "dt"/"rf" and every "tt" component MUST name an
+		// already-introduced term. A forward/out-of-bounds ref is diagnosed and
+		// dropped, so resolution and serialisation can never index out of range.
+		tt, ttOutOfRange := tripleRef(ttRaw, tid)
+		if (hasDt && dtOutOfRange) || (hasRf && rfOutOfRange) || (hasTt && ttOutOfRange) {
 			f.diag("ForwardReference", fmt.Sprintf("term %d has an out-of-range ref", tid), &index)
+		}
+		if tt != nil && !f.checkTripleTermPositions(*tt, tid, index) {
+			tt = nil
 		}
 		f.g.Terms = append(f.g.Terms, model.Term{
 			Kind:      kind,
@@ -77,6 +113,7 @@ func (f *folder) hTerms(payload interface{}, index int) {
 			Lang:      lang,
 			Direction: direction,
 			Reifier:   rf,
+			Triple:    tt,
 		})
 		f.emit(StreamingEvent{
 			Kind:       StreamingEventTerm,
@@ -169,17 +206,14 @@ func (f *folder) hReifies(payload interface{}, index int) {
 			f.diag("DamagedFrame", "reifies row has bad/out-of-range ids", &index)
 			continue
 		}
-		if !f.checkReifierPositions(s, p, o, gslot, index) {
+		if !f.checkReifierPositions(rid, s, p, o, gslot, index) {
 			continue
 		}
 		irid := rid
 		spo := model.Triple3{S: s, P: p, O: o}
-		if existing, ok := f.g.Reifier(irid); ok {
-			if existing != spo {
-				f.diag("ConflictingReifier", fmt.Sprintf("reifier %d rebound", irid), &index)
-				continue
-			}
-		}
+		// §7.3: rdf:reifies is NOT functional. Several triples may be bound to
+		// one reifier id and each row keeps its own graph slot; only
+		// byte-identical rows collapse (§7.8). No row is ever dropped here.
 		f.g.SetReifier(irid, spo, gslot)
 		f.emit(StreamingEvent{
 			Kind:         StreamingEventReifier,
@@ -364,8 +398,17 @@ func (f *folder) hSnapshot(payload interface{}, index int) {
 					newEntries := make(map[interface{}]interface{})
 					for k, v := range termMap {
 						newEntries[k] = v
-						if s, ok := asText(k); ok && (s == "dt" || s == "rf") {
+						s, isText := asText(k)
+						if !isText {
+							continue
+						}
+						if s == "dt" || s == "rf" {
 							newEntries[k] = shift(v)
+						}
+						// §7.3: a snapshot's "tt" components are local term ids
+						// too — shift each into the enclosing id space.
+						if s == "tt" {
+							newEntries[k] = shiftRow(v)
 						}
 					}
 					shifted[i] = newEntries
@@ -483,11 +526,46 @@ func (f *folder) checkPositions(s, p, o int, g *int, index int) bool {
 	return ok
 }
 
-func (f *folder) checkReifierPositions(s, p, o int, g *int, index int) bool {
+// checkTripleTermPositions enforces §7.4 positions on a self-describing triple
+// term's "tt".
+//
+// A triple term states a triple, so its components obey the same
+// subject/predicate constraints as any other triple: tt[1] MUST be an IRI,
+// tt[0] MUST NOT be a literal, and tt[2] may be any term. A violating "tt" is
+// diagnosed and dropped (the term then degrades to its "rf" fallback, or to an
+// unbound triple term).
+func (f *folder) checkTripleTermPositions(triple model.Triple3, tid, index int) bool {
+	if f.g.Terms[triple.P].Kind == model.Iri && f.g.Terms[triple.S].Kind != model.Literal {
+		return true
+	}
+	f.diag(
+		"PositionConstraint",
+		fmt.Sprintf("triple term %d 'tt' (%d,%d,%d) violates positions", tid, triple.S, triple.P, triple.O),
+		&index,
+	)
+	return false
+}
+
+func (f *folder) checkReifierPositions(rid, s, p, o int, g *int, index int) bool {
 	n := len(f.g.Terms)
-	inBounds := s < n && p < n && o < n && (g == nil || *g < n)
+	inBounds := rid < n && s < n && p < n && o < n && (g == nil || *g < n)
 	if !inBounds {
 		f.diag("PositionConstraint", fmt.Sprintf("reifier row (%d,%d,%d,%s) has out-of-range term ids", s, p, o, fmtOpt(g)), &index)
+		return false
+	}
+	// §7.3: every `reifies` row asserts `R rdf:reifies <<( S P O )>>`, so `R`
+	// lands in SUBJECT position, where RDF 1.2 admits only an IRI or blank node
+	// — the same reason the graph-name slot below excludes those two kinds.
+	// Without this the row folded and each projection improvised: this engine
+	// emitted `<<( … )>> rdf:reifies <<( … )>>` with a triple term as subject,
+	// which is not valid RDF 1.2, while Rust errored on one path and silently
+	// dropped the row on two others.
+	if kind := f.g.Terms[rid].Kind; kind == model.Literal || kind == model.Triple {
+		noun := "quoted triple"
+		if kind == model.Literal {
+			noun = "literal"
+		}
+		f.diag("PositionConstraint", fmt.Sprintf("reifier row reifier %d must be an IRI or blank node, not a %s term", rid, noun), &index)
 		return false
 	}
 	ok := f.g.Terms[p].Kind == model.Iri
@@ -504,6 +582,46 @@ func (f *folder) checkReifierPositions(s, p, o int, g *int, index int) bool {
 		f.diag("PositionConstraint", fmt.Sprintf("reifier row (%d,%d,%d,%s) violates positions", s, p, o, fmtOpt(g)), &index)
 	}
 	return ok
+}
+
+// conflictingReifierDiags reports the one incoherent shape that survives §7.3.
+//
+// rdf:reifies is not functional, so a reifier id bound to several triples is
+// ordinary RDF 1.2 and is NOT a conflict. The single remaining incoherence is a
+// "tt"-less (legacy indirect) quoted-triple TERM whose reifier id binds MORE
+// THAN ONE distinct triple: the file is asking for one term with two meanings.
+// ConflictingReifier is reported once per offending term; NO reifier row is
+// dropped, and the term keeps resolving to the first binding in file order so
+// the rendering of legacy files never changes.
+//
+// Runs on a fold that is about to be handed to a consumer (a whole read, or one
+// segment of a per-segment read), never twice over the same terms.
+func conflictingReifierDiags(g *model.Graph) []model.Diagnostic {
+	var out []model.Diagnostic
+	for tid := range g.Terms {
+		term := &g.Terms[tid]
+		if term.Kind != model.Triple || term.Triple != nil || term.Reifier == nil {
+			continue
+		}
+		bindings := g.ReifierTriples(*term.Reifier)
+		if len(bindings) <= 1 {
+			continue
+		}
+		out = append(out, model.Diagnostic{
+			Code: "ConflictingReifier",
+			Detail: fmt.Sprintf(
+				"legacy triple term %d resolves through reifier %d, which binds %d distinct triples; "+
+					"state the triple with 'tt' (§7.3)",
+				tid, *term.Reifier, len(bindings),
+			),
+		})
+	}
+	return out
+}
+
+// checkConflictingReifiers appends the §7.3 conflict diagnostics to g in place.
+func checkConflictingReifiers(g *model.Graph) {
+	g.Diagnostics = append(g.Diagnostics, conflictingReifierDiags(g)...)
 }
 
 func (f *folder) opaque(frame map[interface{}]interface{}, ftype, reason string, index int) {

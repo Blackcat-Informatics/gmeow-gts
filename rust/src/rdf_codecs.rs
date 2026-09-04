@@ -15,8 +15,8 @@ use crate::model::{Diagnostic, Graph, Quad, Term, TermKind};
 use crate::rdf::{to_rdf_quads, RdfAdapterError};
 use crate::rdf_events::{
     EventAnnotation, EventDiagnostic, EventError, EventErrorKind, EventLiteralDirection, EventQuad,
-    EventReifier, EventScopeId, EventTerm, EventTermId, EventTermKind, EventTriple,
-    GraphRdfEventSource, RdfEventSink, RdfEventSource,
+    EventReifier, EventScopeId, EventTerm, EventTermId, EventTermKind, GraphRdfEventSource,
+    RdfEventSink, RdfEventSource,
 };
 use crate::reader::read;
 use crate::writer::Writer;
@@ -279,36 +279,13 @@ impl EventGraphSink {
             .map(|(index, id)| (*id, index))
             .collect();
 
-        let mut reifier_bindings = BTreeMap::new();
-        for row in &reifiers {
-            bind_reifier(&mut reifier_bindings, row.id, row_triple(*row))?;
-        }
-        let mut implied_reifiers = Vec::new();
-        for (id, kind) in &terms {
-            if let EventTermKind::Triple { triple, reifier } = kind {
-                let rid = reifier.unwrap_or(*id);
-                if let Some(previous) = reifier_bindings.get(&rid) {
-                    if *previous != *triple {
-                        return Err(EventError::invalid_source(format!(
-                            "triple term {id} conflicts with reifier term {rid}"
-                        )));
-                    }
-                    continue;
-                }
-                bind_reifier(&mut reifier_bindings, rid, *triple)?;
-                implied_reifiers.push(EventReifier {
-                    id: rid,
-                    subject: triple.subject,
-                    predicate: triple.predicate,
-                    object: triple.object,
-                    graph_name: None,
-                });
-            }
-        }
-
+        // §7.3: a triple term is SELF-DESCRIBING. It states its own (s, p, o)
+        // and mints NO reifier row, so there is nothing here to reconcile —
+        // and `rdf:reifies` being non-functional means several reifier rows on
+        // one id are legal input, never a conflict.
         let terms = terms
             .into_iter()
-            .map(|(id, kind)| event_term_to_model(id, kind, &id_map, &reifier_bindings))
+            .map(|(id, kind)| event_term_to_model(id, kind, &id_map))
             .collect::<Result<Vec<_>, _>>()?;
         let quads = quads
             .into_iter()
@@ -316,7 +293,6 @@ impl EventGraphSink {
             .collect::<Result<Vec<_>, _>>()?;
         let reifiers = reifiers
             .into_iter()
-            .chain(implied_reifiers)
             .map(|reifier| event_reifier_to_model(reifier, &id_map))
             .collect::<Result<Vec<_>, EventError>>()?;
         let annotations = annotations
@@ -350,31 +326,6 @@ impl EventGraphSink {
             Ok(())
         }
     }
-}
-
-fn row_triple(row: EventReifier) -> EventTriple {
-    EventTriple {
-        subject: row.subject,
-        predicate: row.predicate,
-        object: row.object,
-    }
-}
-
-fn bind_reifier(
-    reifiers: &mut BTreeMap<EventTermId, EventTriple>,
-    reifier: EventTermId,
-    triple: EventTriple,
-) -> Result<(), EventError> {
-    if let Some(previous) = reifiers.get(&reifier) {
-        if *previous != triple {
-            return Err(EventError::invalid_source(format!(
-                "reifier term {reifier} has conflicting triple bindings"
-            )));
-        }
-        return Ok(());
-    }
-    reifiers.insert(reifier, triple);
-    Ok(())
 }
 
 impl RdfEventSink for EventGraphSink {
@@ -459,7 +410,6 @@ fn event_term_to_model(
     id: EventTermId,
     kind: EventTermKind,
     id_map: &BTreeMap<EventTermId, usize>,
-    reifiers: &BTreeMap<EventTermId, EventTriple>,
 ) -> Result<Term, EventError> {
     let term = match kind {
         EventTermKind::Iri { value } => Term {
@@ -469,6 +419,7 @@ fn event_term_to_model(
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         EventTermKind::BlankNode { label } => Term {
             kind: TermKind::Bnode,
@@ -477,6 +428,7 @@ fn event_term_to_model(
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         EventTermKind::Literal {
             lexical,
@@ -495,22 +447,27 @@ fn event_term_to_model(
                 EventLiteralDirection::Rtl => "rtl".to_string(),
             }),
             reifier: None,
+            triple: None,
         },
-        EventTermKind::Triple { reifier, .. } => {
-            let reifier = reifier.unwrap_or(id);
-            if !reifiers.contains_key(&reifier) {
-                return Err(EventError::new(
-                    EventErrorKind::UnresolvedReference,
-                    format!("triple term {id} references unbound reifier term {reifier}"),
-                ));
-            }
+        EventTermKind::Triple { triple, reifier } => {
+            // §7.3: carry the term's OWN components as `"tt"`. A reifier, when
+            // the source records one, rides along as descriptive provenance and
+            // does NOT determine what the term denotes.
+            let _ = id;
             Term {
                 kind: TermKind::Triple,
                 value: None,
                 datatype: None,
                 lang: None,
                 direction: None,
-                reifier: Some(map_event_id(id_map, reifier, "triple term reifier")?),
+                reifier: reifier
+                    .map(|rid| map_event_id(id_map, rid, "triple term reifier"))
+                    .transpose()?,
+                triple: Some((
+                    map_event_id(id_map, triple.subject, "triple term subject")?,
+                    map_event_id(id_map, triple.predicate, "triple term predicate")?,
+                    map_event_id(id_map, triple.object, "triple term object")?,
+                )),
             }
         }
     };

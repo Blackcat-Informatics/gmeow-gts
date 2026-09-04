@@ -40,6 +40,23 @@ pub(crate) fn decode_reifier_row(row: &Value, graph: &Graph) -> RowDecode<Reifie
         return RowDecode::Skip;
     };
     let triple = (s, p, o);
+    // §7.3: every `reifies` row asserts `R rdf:reifies <<( S P O )>>`, so `R`
+    // lands in SUBJECT position. A literal or quoted triple there is not
+    // representable on the RDF 1.2 dataset surface, which is why the graph-name
+    // slot excludes the same two kinds (§7.4). Without this the shape folds and
+    // then each projection improvises: the Rust RDF adapter errors, N-Quads and
+    // TriG silently drop the row, and Go emits `<<( … )>> rdf:reifies <<( … )>>`
+    // with a triple term as subject, which is not valid RDF 1.2. Reject the row
+    // once, here, so every row that survives the fold really does project.
+    if matches!(graph.terms[rid].kind, TermKind::Literal | TermKind::Triple) {
+        return RowDecode::Position(format!(
+            "reifier row reifier {rid} must be an IRI or blank node, not a {} term",
+            match graph.terms[rid].kind {
+                TermKind::Literal => "literal",
+                _ => "quoted triple",
+            }
+        ));
+    }
     if let Err(detail) = check_statement_positions(graph, triple, graph_slot, "reifier row") {
         return RowDecode::Position(detail);
     }
@@ -91,6 +108,15 @@ pub(crate) fn check_quad_positions(
     graph_slot: Option<usize>,
 ) -> Result<(), String> {
     check_statement_positions(graph, (s, p, o), graph_slot, "quad")
+}
+
+/// Enforce the §7.4 positions on a self-describing triple term's `"tt"`.
+///
+/// A triple term states a triple, so its components obey the same
+/// subject/predicate constraints as any other triple. Returns the detail of a
+/// `PositionConstraint` diagnostic when the `"tt"` must be dropped.
+pub(crate) fn check_triple_term_positions(graph: &Graph, triple: Triple3) -> Result<(), String> {
+    check_statement_positions(graph, triple, None, "triple term")
 }
 
 fn check_statement_positions(

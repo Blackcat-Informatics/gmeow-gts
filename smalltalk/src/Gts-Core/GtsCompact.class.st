@@ -110,7 +110,10 @@ GtsCompact class >> shiftTerm: term by: base [
 			datatype: (term datatype ifNotNil: [ term datatype + base ]) ].
 	term kind = #blankNode ifTrue: [ ^ GtsTerm blankNode: term value ].
 	term kind = #triple ifTrue: [
-		^ GtsTerm tripleReifier: (term reifier ifNotNil: [ term reifier + base ]) ].
+		"'tt' components shift wherever 'dt'/'rf' shift (§7.3)."
+		^ GtsTerm
+			tripleComponents: (term triple ifNotNil: [ :spo | spo collect: [ :each | each + base ] ])
+			reifier: (term reifier ifNotNil: [ term reifier + base ]) ].
 	^ GtsTerm iri: term value
 ]
 

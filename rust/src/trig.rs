@@ -36,7 +36,8 @@ fn render_trig_term(g: &Graph, tid: usize) -> String {
                 lit
             }
         }
-        TermKind::Triple => match t.reifier.and_then(|rf| g.reifier(rf)) {
+        // §7.3: own "tt" first, legacy reifier indirection as fallback.
+        TermKind::Triple => match g.triple_of(tid) {
             Some((s, p, o)) => format!(
                 "<<( {} {} {} )>>",
                 render_trig_term(g, s),

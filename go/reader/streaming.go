@@ -270,6 +270,13 @@ func (s *streamingSegment) finish() *model.Graph {
 		return s.g
 	}
 	s.finished = true
+	// The segment fold is complete and about to be handed to the consumer, so
+	// this is the point where the §7.3 conflict shape becomes decidable. The
+	// streaming reader never builds a cross-segment union, so the check is
+	// per-segment here (§7.3); callers needing the union check use Read.
+	for _, diag := range conflictingReifierDiags(s.g) {
+		s.fld.diag(diag.Code, diag.Detail, diag.FrameIndex)
+	}
 	head := append([]byte(nil), s.expectedPrev...)
 	s.g.SegmentHeads = append(s.g.SegmentHeads, head)
 	segMeta := make([]model.MetaEntry, len(s.g.Meta))

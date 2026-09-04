@@ -57,6 +57,7 @@ fn annotated_fixture() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -65,6 +66,7 @@ fn annotated_fixture() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -73,6 +75,7 @@ fn annotated_fixture() -> Vec<u8> {
             lang: Some("en".to_string()),
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Bnode,
@@ -81,6 +84,7 @@ fn annotated_fixture() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Iri,
@@ -89,6 +93,7 @@ fn annotated_fixture() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
         Term {
             kind: TermKind::Literal,
@@ -97,6 +102,7 @@ fn annotated_fixture() -> Vec<u8> {
             lang: None,
             direction: None,
             reifier: None,
+            triple: None,
         },
     ]);
     writer.add_quads(&[(0, 1, 2, None)]);

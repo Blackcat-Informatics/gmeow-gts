@@ -20,7 +20,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::model::{Graph, TermKind};
 
 const SCHEMA: &[&str] = &[
-    "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT, datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER)",
+    "CREATE TABLE terms (id INTEGER PRIMARY KEY, kind INTEGER, lex TEXT, datatype INTEGER, lang TEXT, direction TEXT, reifier INTEGER, tt_s INTEGER, tt_p INTEGER, tt_o INTEGER)",
     "CREATE TABLE quads (s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
     "CREATE TABLE reifiers (reifier INTEGER, s INTEGER, p INTEGER, o INTEGER, g INTEGER)",
     "CREATE TABLE annotations (reifier INTEGER, predicate INTEGER, value INTEGER, g INTEGER)",
@@ -166,6 +166,16 @@ fn write_insert_rows(
         write_sql_text(writer, term.direction.as_deref())?;
         write_sql(writer, b",")?;
         write_sql_usize(writer, term.reifier)?;
+        // `tt_s`/`tt_p`/`tt_o` carry a triple term's OWN components (wire
+        // `"tt"`, §7.3); `reifier` stays for legacy `"tt"`-less terms.
+        for component in [
+            term.triple.map(|(s, _, _)| s),
+            term.triple.map(|(_, p, _)| p),
+            term.triple.map(|(_, _, o)| o),
+        ] {
+            write_sql(writer, b",")?;
+            write_sql_usize(writer, component)?;
+        }
         write_sql(writer, b");\n")?;
     }
     for (s, p, o, g) in &graph.quads {

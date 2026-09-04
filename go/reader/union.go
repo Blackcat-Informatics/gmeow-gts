@@ -10,6 +10,7 @@ import (
 	"go.blackcatinformatics.ca/gts/wire"
 )
 
+// internKey is a term's cross-segment value identity (§7.5).
 type internKey struct {
 	typ          byte // 0=iri, 1=lit, 2=bnode, 3=qt
 	a            string
@@ -17,21 +18,36 @@ type internKey struct {
 	c            string
 	d            string
 	seg          int
-	rf           int
-	hasRF        bool
+	hasTriple    bool
+	tts          int
+	ttp          int
+	tto          int
 	bnodeTID     int // anonymous bnode source term id (typ==2, value empty)
 	bnodeLabeled bool
+	// cyclic marks the sentinel key minted for a triple term that resolves
+	// through itself; cycleTID keeps such a term distinct from every other.
+	cyclic   bool
+	cycleTID int
+}
+
+type segTerm struct {
+	seg int
+	tid int
 }
 
 type unioner struct {
 	out    *model.Graph
 	intern map[internKey]int
+	// resolving guards the recursive triple-term resolution below against a
+	// term that reaches itself.
+	resolving map[segTerm]struct{}
 }
 
 func newUnioner() *unioner {
 	return &unioner{
-		out:    emptyGraph(),
-		intern: make(map[internKey]int),
+		out:       emptyGraph(),
+		intern:    make(map[internKey]int),
+		resolving: make(map[segTerm]struct{}),
 	}
 }
 
@@ -48,14 +64,45 @@ func (u *unioner) keyFor(seg *model.Graph, segIdx, tid int) internKey {
 		}
 		return internKey{typ: 2, seg: segIdx, bnodeTID: tid}
 	case model.Triple:
-		key := internKey{typ: 3}
-		if t.Reifier != nil {
-			key.rf = u.mapTerm(seg, segIdx, *t.Reifier)
-			key.hasRF = true
-		}
-		return key
+		return u.tripleKey(seg, segIdx, tid)
 	}
 	return internKey{}
+}
+
+// tripleKey is a quoted triple term's value identity (§7.8): equality of the
+// RESOLVED subject, predicate, and object term values.
+//
+// Resolution is §7.3's order — the term's own "tt" when it has one, else the
+// first binding of its legacy reifier. Keying on the resolution rather than on
+// the reifier id is what keeps two DISTINCT triple terms that share one
+// reifier id distinct through the union, while a self-describing term and a
+// legacy "tt"-less term that resolve to the SAME triple correctly intern
+// together — there is no separate legacy key space.
+func (u *unioner) tripleKey(seg *model.Graph, segIdx, tid int) internKey {
+	// A "tt" cannot reach its own term (§7.2 forbids the forward reference),
+	// but a `reifies` row can name the very term that resolves through it. That
+	// is legal wire content, so guard the recursion rather than trusting it: a
+	// self-reaching term gets a sentinel identity of its own.
+	self := segTerm{seg: segIdx, tid: tid}
+	if _, ok := u.resolving[self]; ok {
+		return internKey{typ: 3, cyclic: true, seg: segIdx, cycleTID: tid}
+	}
+	resolved, ok := seg.TripleOf(tid)
+	if !ok {
+		// States no triple: a single identity shared by every such term, which
+		// is the behaviour an unbound quoted triple has always had.
+		return internKey{typ: 3}
+	}
+	u.resolving[self] = struct{}{}
+	key := internKey{
+		typ:       3,
+		hasTriple: true,
+		tts:       u.mapTerm(seg, segIdx, resolved.S),
+		ttp:       u.mapTerm(seg, segIdx, resolved.P),
+		tto:       u.mapTerm(seg, segIdx, resolved.O),
+	}
+	delete(u.resolving, self)
+	return key
 }
 
 func (u *unioner) mapTerm(seg *model.Graph, segIdx, tid int) int {
@@ -74,6 +121,14 @@ func (u *unioner) mapTerm(seg *model.Graph, segIdx, tid int) int {
 		r := u.mapTerm(seg, segIdx, *t.Reifier)
 		reifier = &r
 	}
+	var triple *model.Triple3
+	if t.Triple != nil {
+		triple = &model.Triple3{
+			S: u.mapTerm(seg, segIdx, t.Triple.S),
+			P: u.mapTerm(seg, segIdx, t.Triple.P),
+			O: u.mapTerm(seg, segIdx, t.Triple.O),
+		}
+	}
 	value := t.Value
 	if t.Kind == model.Bnode {
 		if value != "" {
@@ -89,6 +144,7 @@ func (u *unioner) mapTerm(seg *model.Graph, segIdx, tid int) int {
 		Lang:      t.Lang,
 		Direction: t.Direction,
 		Reifier:   reifier,
+		Triple:    triple,
 	})
 	newID := len(u.out.Terms) - 1
 	u.intern[key] = newID

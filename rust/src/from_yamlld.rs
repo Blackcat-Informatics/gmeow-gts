@@ -103,13 +103,26 @@ impl Interner {
             lang,
             direction,
             reifier: None,
+            triple: None,
         });
         self.ids.insert(key, id);
         id
     }
 
-    fn triple(&mut self, statement: Triple3, reifiers: &mut Vec<ReifierRow>) -> usize {
-        let key = TermKey::Triple(statement.0, statement.1, statement.2);
+    /// A triple term that states no triple (§7.3 step 3).
+    ///
+    /// Interned on the exported `_:unbound_triple_<id>` label so that the SAME
+    /// degraded term referenced from several places round-trips back to one
+    /// term. Keying on the label rather than on "unbound" in general is what
+    /// keeps two genuinely different unbound terms distinct.
+    fn unbound_triple(&mut self, label: String) -> usize {
+        let key = TermKey::Atom {
+            kind: TermKind::Triple,
+            value: label,
+            lang: None,
+            direction: None,
+            datatype: None,
+        };
         if let Some(id) = self.ids.get(&key) {
             return *id;
         }
@@ -120,10 +133,31 @@ impl Interner {
             datatype: None,
             lang: None,
             direction: None,
-            reifier: Some(id),
+            reifier: None,
+            triple: None,
         });
         self.ids.insert(key, id);
-        set_reifier(reifiers, id, statement, None);
+        id
+    }
+
+    fn triple(&mut self, statement: Triple3) -> usize {
+        let key = TermKey::Triple(statement.0, statement.1, statement.2);
+        if let Some(id) = self.ids.get(&key) {
+            return *id;
+        }
+        let id = self.terms.len();
+        // §7.3: a triple TERM is a self-describing value — it states its own
+        // (s, p, o) and mints no reifier and no `reifies` row.
+        self.terms.push(Term {
+            kind: TermKind::Triple,
+            value: None,
+            datatype: None,
+            lang: None,
+            direction: None,
+            reifier: None,
+            triple: Some(statement),
+        });
+        self.ids.insert(key, id);
         id
     }
 
@@ -552,8 +586,23 @@ fn parse_term(
                 return parse_literal_object(value, map, &scoped_context, interner);
             }
             if let Some(triple) = map.get(GTS_TRIPLE) {
+                // §7.3 step 3: a term that states no triple exports as the
+                // degraded `_:unbound_triple_<id>` node the projection uses.
+                // Read it back as an unbound triple TERM rather than failing —
+                // a reader "MUST keep it as a distinct term and MUST NOT invent
+                // one", so round-tripping it as a plain blank node would lose
+                // its kind, and erroring would make a file we ourselves wrote
+                // unreadable.
+                if let Some(label) = triple
+                    .as_object()
+                    .and_then(|m| m.get("@id"))
+                    .and_then(Value::as_str)
+                    .filter(|s| s.starts_with("_:unbound_triple_"))
+                {
+                    return Ok(interner.unbound_triple(label.to_string()));
+                }
                 let statement = parse_triple(triple, &scoped_context, interner, reifiers)?;
-                return Ok(interner.triple(statement, reifiers));
+                return Ok(interner.triple(statement));
             }
             Err(YamlLdParseError::new(
                 "term object must contain @id, @value, or gts:triple",

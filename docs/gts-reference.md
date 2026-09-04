@@ -89,6 +89,6 @@ in [`GTS-ADVANCED-PRIMITIVES.md`](./GTS-ADVANCED-PRIMITIVES.md).
 `python/tests/test_gts.py` implements the non-COSE subset of the conformance corpus
 defined in [`GTS-CONFORMANCE.md`](./GTS-CONFORMANCE.md) (minimal file, `zstd`/`gzip`
 frames, unknown-codec → opaque, damaged frame, torn append, header hash, suppression,
-datatype defaulting, conflicting reifier, position constraints, blank-node locality, inline
+datatype defaulting, the multi-valued `reifies` layer, position constraints, blank-node locality, inline
 blob, snapshot fold). A conformant reader of the baseline profile is intentionally small —
 the point of the format.

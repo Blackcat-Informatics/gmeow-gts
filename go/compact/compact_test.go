@@ -124,3 +124,46 @@ func TestCompactRefusesFrameSuppression(t *testing.T) {
 		t.Fatalf("expected *RefusedError, got %T", err)
 	}
 }
+
+// Streamable compaction shifts every term id into the output id space; a triple
+// term's own "tt" components are term ids too (§7.3), so they must shift with
+// the rest or the compacted term would denote a different triple.
+func TestCompactShiftsTripleTermComponents(t *testing.T) {
+	w := writer.New("generic")
+	w.AddTerms([]model.Term{
+		{Kind: model.Iri, Value: "https://example.org/Cat"},
+		{Kind: model.Iri, Value: "http://www.w3.org/2000/01/rdf-schema#label"},
+		{Kind: model.Literal, Value: "Cat", Lang: "en"},
+		{Kind: model.Iri, Value: "https://example.org/says"},
+		{Kind: model.Triple, Triple: &model.Triple3{S: 0, P: 1, O: 2}},
+	})
+	w.AddQuads([]model.Quad{{S: 0, P: 3, O: 4}})
+
+	got, err := Streamable(w.ToBytes(), "2026-01-01T00:00:00Z", false)
+	if err != nil {
+		t.Fatalf("compact refused: %v", err)
+	}
+	g := reader.Read(got, true, nil)
+	if len(g.Diagnostics) > 0 {
+		t.Fatalf("compacted output has diagnostics: %v", g.Diagnostics)
+	}
+	found := false
+	for id, term := range g.Terms {
+		if term.Kind != model.Triple {
+			continue
+		}
+		found = true
+		spo, ok := g.TripleOf(id)
+		if !ok {
+			t.Fatalf("triple term %d states no triple after compaction", id)
+		}
+		if g.Terms[spo.S].Value != "https://example.org/Cat" ||
+			g.Terms[spo.P].Value != "http://www.w3.org/2000/01/rdf-schema#label" ||
+			g.Terms[spo.O].Value != "Cat" {
+			t.Fatalf("shifted 'tt' resolves to the wrong terms: %#v", spo)
+		}
+	}
+	if !found {
+		t.Fatal("compaction dropped the triple term")
+	}
+}

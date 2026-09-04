@@ -188,6 +188,8 @@ Les diagnostics font partie du comportement public d'une revendication de confor
 
 Les diagnostics du Baseline Reader incluent les comportements liés à des entrées malformées ou hostiles tels que `EmptyFile`, `DamagedFrame`, `BrokenChain`, `TornAppendError`, `UnknownCodec`, `ConflictingReifier`, `PositionConstraint`, `ForwardReference` et `SegmentBoundary`.
 
+`ConflictingReifier` est étroit. `rdf:reifies` n'est pas fonctionnelle : un réificateur lié à plusieurs triplets relève du RDF 1.2 ordinaire et DOIT se replier en plusieurs lignes `reifies` sans aucun diagnostic. Le code n'est émis que pour un terme `k:3` sans `"tt"` (indirection héritée) dont le réificateur lie plus d'un triplet distinct — un terme qui réclame deux sens — et même alors AUCUNE ligne ne peut être écartée (GTS-SPEC §7.3).
+
 Le comportement des nœuds opaques est ce qui permet au lecteur de rester total :
 
 - Codec inconnu : préservez la trame en tant que nœud opaque avec `reason:"unknown-codec"`.

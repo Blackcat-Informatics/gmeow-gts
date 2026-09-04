@@ -217,7 +217,7 @@ python scripts/check_vector_manifest.py \
 | `UnknownCodec` | warning | 转换能力 | 将该帧保留为不透明并继续折叠已知内容。 | yes | `unknown-codec` | 基准读取器 |
 | `MissingKey` | warning | 加密转换 | 将该帧保留为不透明并继续折叠已知内容。 | yes | `missing-key` | 当声称支持解密时的完整读取器 |
 | `KeyWrapFailed` | warning | 延迟的多接收者加密转换 | 当 ECDH 接收者元数据或 AES-KW 解封失败时，将该帧保留为不透明。 | yes | `missing-key` | 当声称支持 `cose-encrypt`/ECDH 时的未来完整读取器 |
-| `ConflictingReifier` | error | 图折叠 | 按文件顺序保留第一个绑定，并忽略冲突的绑定。 | yes | none | 基准读取器 |
+| `ConflictingReifier` | error | 图折叠 | 仅当一个没有 `"tt"` 的（旧式间接）`k:3` 项，其具体化者绑定了多于一个不同的三元组时才报告（GTS-SPEC §7.3）。每个违规项报告一次，不得丢弃任何 `reifies` 行，该项按文件顺序解析到第一个绑定。同一具体化者上的多个 `rdf:reifies` 绑定不是冲突——`rdf:reifies` 不是函数性属性。 | yes | none | 基准读取器 |
 | `PositionConstraint` | error | 图折叠 | 拒绝违规行并继续折叠其他行/帧。 | yes | none | 基准读取器 |
 | `ForwardReference` | error | 术语字典 | 丢弃或忽略无效的前向引用，并继续安全地折叠。 | yes | none | 基准读取器 |
 | `SegmentBoundary` | fatal | 前段兼容模式 | 在将后续段错误地折叠为文件全局 ID 之前停止。 | 在该模式下为 no | none | 基准读取器兼容性测试 |

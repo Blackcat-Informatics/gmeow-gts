@@ -214,10 +214,11 @@ def test_vector_11_datatype_defaulting() -> None:
     assert g.datatype_iri(g.term(3)) == "http://www.w3.org/2001/XMLSchema#integer"
 
 
-# -- Vector 12: conflicting reifier ------------------------------------------
+# -- Vector 12: the multi-valued reifies frame --------------------------------
 
 
-def test_vector_12_conflicting_reifier() -> None:
+def _two_bindings_on_one_reifier() -> Writer:
+    """`r rdf:reifies <<(s p o)>>` and `r rdf:reifies <<(s p o2)>>`, both asserted."""
     w = Writer()
     w.add_terms(
         [
@@ -229,10 +230,128 @@ def test_vector_12_conflicting_reifier() -> None:
         ]
     )
     w.add_reifies([(0, (1, 2, 3), None)])
-    w.add_reifies([(0, (1, 2, 4), None)])  # conflict
+    w.add_reifies([(0, (1, 2, 4), None)])
+    return w
+
+
+def test_vector_12_reifies_is_multi_valued() -> None:
+    """§7.3: rdf:reifies is NOT functional — both bindings survive, no diagnostic."""
+    g = read(_two_bindings_on_one_reifier().to_bytes())
+    assert _diag_codes(g) == []
+    assert g.reifier_triples(0) == [(1, 2, 3), (1, 2, 4)]
+    assert [row[1] for row in g.reifiers] == [(1, 2, 3), (1, 2, 4)]
+
+
+def test_vector_12_identical_rows_still_collapse() -> None:
+    """§7.8 set semantics: a byte-identical repeat is not a second binding."""
+    w = _two_bindings_on_one_reifier()
+    w.add_reifies([(0, (1, 2, 3), None)])
     g = read(w.to_bytes())
-    assert "ConflictingReifier" in _diag_codes(g)
-    assert g.reifier(0) == (1, 2, 3)  # first binding kept
+    assert _diag_codes(g) == []
+    assert len(g.reifiers) == 2
+
+
+def test_conflicting_reifier_is_only_the_legacy_indirect_term() -> None:
+    """The surviving ConflictingReifier shape: a `tt`-less term over 2 bindings."""
+    w = _two_bindings_on_one_reifier()
+    w.add_terms([Term(TermKind.TRIPLE, reifier=0)])  # 5: legacy indirect term
+    g = read(w.to_bytes())
+    assert _diag_codes(g) == ["ConflictingReifier"]
+    # NO row is dropped, and the term still resolves to the first binding.
+    assert len(g.reifiers) == 2
+    assert g.triple_of(5) == (1, 2, 3)
+
+
+def test_self_describing_triple_term_never_conflicts() -> None:
+    """Two DISTINCT triple terms may share a reifier id and stay distinct."""
+    w = _two_bindings_on_one_reifier()
+    w.add_terms(
+        [
+            Term(TermKind.TRIPLE, reifier=0, triple=(1, 2, 3)),  # 5
+            Term(TermKind.TRIPLE, reifier=0, triple=(1, 2, 4)),  # 6
+        ]
+    )
+    g = read(w.to_bytes())
+    assert _diag_codes(g) == []
+    assert g.triple_of(5) == (1, 2, 3)
+    assert g.triple_of(6) == (1, 2, 4)
+
+
+def _self_reaching_segment() -> bytes:
+    """A `reifies` row that names the very TERM resolving through it.
+
+    Built through the real writer, not hand-forged: the row ``(0, (2, 1, 1))``
+    sits alongside term ``2 = k:3 rf=0``. Resolution MUST terminate (§7.3) —
+    the union interns a triple term on its RESOLVED components and the N-Quads
+    projection walks them, so both would recurse forever without a guard.
+    """
+    w = Writer()
+    w.add_terms(
+        [
+            Term(TermKind.IRI, "https://example.org/r1"),  # 0
+            Term(TermKind.IRI, "https://example.org/p"),  # 1
+            Term(TermKind.TRIPLE, reifier=0),  # 2: legacy k:3 rf=0
+        ]
+    )
+    w.add_reifies([(0, (2, 1, 1), None)])
+    w.add_quads([(2, 1, 1, None)])
+    return w.to_bytes()
+
+
+def test_self_reaching_triple_term_folds_and_projects() -> None:
+    """The projection degrades a self-reaching term to a blank node."""
+    g = read(_self_reaching_segment(), allow_segments=True)
+    assert _diag_codes(g) == []
+    # The SELF-REACHING TERM ITSELF is the blank node (§7.3: it "renders as the
+    # same fresh blank node an unbound triple term already produces"). Resolving
+    # one step first and degrading a nested occurrence renders a different graph.
+    assert sorted(to_nquads(g).strip().splitlines()) == [
+        "<https://example.org/r1> "
+        "<http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> "
+        "<<( _:unbound_triple_2 <https://example.org/p> "
+        "<https://example.org/p> )>> .",
+        "_:unbound_triple_2 <https://example.org/p> <https://example.org/p> .",
+    ]
+
+
+def test_self_reaching_triple_term_union_terminates() -> None:
+    """A self-reaching term gets a sentinel identity, one per segment."""
+    one = _self_reaching_segment()
+    g = read(one + one, allow_segments=True)
+    # Both segments' copies resolve to the same "states no triple" answer and
+    # intern together; byte-identical rows collapse under §7.8 set semantics.
+    assert len(g.quads) == 1
+    assert all(g.terms[s].kind is TermKind.TRIPLE for s, _, _, _ in g.quads)
+    # No ConflictingReifier: both copies state no triple, so they intern to ONE
+    # term rather than two distinct terms sharing a reifier id. The reifier is
+    # not over-bound, so nothing is incoherent.
+    assert _diag_codes(g) == []
+    assert len(to_nquads(g).strip().splitlines()) == 2
+
+
+def test_unreified_triple_term_survives_a_round_trip() -> None:
+    """A `tt` term with no reifier at all is a value and needs no `reifies` row."""
+    from gts.nquads import to_nquads
+
+    w = Writer()
+    w.add_terms(
+        [
+            Term(TermKind.IRI, "https://example.org/s"),  # 0
+            Term(TermKind.IRI, "https://example.org/p"),  # 1
+            Term(TermKind.IRI, "https://example.org/o"),  # 2
+            Term(TermKind.TRIPLE, triple=(0, 1, 2)),  # 3
+            Term(TermKind.IRI, "https://example.org/says"),  # 4
+        ]
+    )
+    w.add_quads([(0, 4, 3, None)])
+    g = read(w.to_bytes())
+    assert _diag_codes(g) == []
+    assert g.reifiers == []
+    assert to_nquads(g).strip() == (
+        "<https://example.org/s> <https://example.org/says> "
+        "<<( <https://example.org/s> <https://example.org/p> "
+        "<https://example.org/o> )>> ."
+    )
 
 
 # -- Vector 13: position-constraint violation --------------------------------

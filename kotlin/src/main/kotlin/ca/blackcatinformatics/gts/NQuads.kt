@@ -30,16 +30,29 @@ fun toNQuads(graph: Graph): String {
     return if (lines.isEmpty()) "" else lines.joinToString("\n") + "\n"
 }
 
-private fun renderTerm(graph: Graph, termId: Int): String {
+/**
+ * Render a term as its N-Quads surface form.
+ *
+ * [open] carries the triple terms whose rendering is still in progress. A `reifies` row may name
+ * the very term that resolves through it (§7.3), so a projection MUST NOT recurse blindly: a
+ * self-reaching term degrades to the same blank node an unbound triple term already produces.
+ */
+private fun renderTerm(graph: Graph, termId: Int, open: List<Int> = emptyList()): String {
+    if (termId in open) return "_:unbound_triple_$termId"
     val term = graph.terms[termId]
     return when (term.kind) {
         TermKind.IRI -> "<${escapeIri(term.value)}>"
         TermKind.BNODE -> "_:${term.value.ifEmpty { "b$termId" }}"
         TermKind.LITERAL -> renderLiteral(graph, term)
+        // Quoted triple (RDF 1.2 triple term): its own "tt" is authoritative; a legacy "tt"-less
+        // term still resolves through its reifier (§7.3). A term that states no triple at all
+        // degrades to a syntactically valid blank node.
         TermKind.TRIPLE -> {
-            val rf = term.reifier?.let { graph.reifier(it) }
-            if (rf != null) {
-                "<<( ${renderTerm(graph, rf.s)} ${renderTerm(graph, rf.p)} ${renderTerm(graph, rf.o)} )>>"
+            val spo = graph.tripleOf(termId)
+            if (spo != null) {
+                val inner = open + termId
+                "<<( ${renderTerm(graph, spo.s, inner)} ${renderTerm(graph, spo.p, inner)} " +
+                    "${renderTerm(graph, spo.o, inner)} )>>"
             } else {
                 "_:unbound_triple_$termId"
             }
