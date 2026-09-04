@@ -10,6 +10,7 @@ import base64
 import hashlib
 import http.client
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -921,13 +922,27 @@ def verify_packagist(args: argparse.Namespace, recorder: Recorder) -> None:
     )
 
 
+def luarocks_version_for(version: str) -> str:
+    """Spell `version` the way LuaRocks requires.
+
+    A rockspec version is parsed as `[%w.]+-[%d]+`, so the part before the
+    revision admits only alphanumerics and dots -- a semver pre-release like
+    `1.0.0-rc.1` is rejected outright ("Type mismatch on field version"). The
+    published rock therefore carries `1.0.0rc1`, and looking for the semver
+    spelling on the registry silently reports a published rock as missing.
+    A final release has no pre-release part and is returned unchanged.
+    """
+    collapsed = version.replace("-", "")
+    return re.sub(r"([A-Za-z])\.(\d+)$", r"\1\2", collapsed)
+
+
 def verify_luarocks(
     args: argparse.Namespace, recorder: Recorder, out_dir: Path
 ) -> list[Path]:
     surface = f"LuaRocks {args.luarocks_package}"
     luarocks_dir = out_dir / "luarocks"
     artifacts: list[Path] = []
-    rock_version = args.luarocks_version or f"{args.version}-1"
+    rock_version = args.luarocks_version or f"{luarocks_version_for(args.version)}-1"
     manifest_url = "https://luarocks.org/manifest.json"
     try:
         manifest = fetch_json(manifest_url)
