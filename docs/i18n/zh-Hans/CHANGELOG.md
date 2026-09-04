@@ -15,7 +15,7 @@ GTS 的所有显著变更都记录在此。本日志格式基于
 线路格式已为版本 1 系列冻结（`GTS-SPEC.md` 文档版本 `1.0-rc1`）。任何有效的 GTS 线路格式主版本 1 文件，未来的主版本 1 读取器都仍可解析并安全折叠；
 破坏性的线路变更需要新的线路格式主版本。
 
-## [未发布]
+## [1.0.0-rc.1] — 2026-09-04
 
 ### 已变更
 
@@ -412,7 +412,7 @@ at `0.9.4`.
   specification, and the frozen conformance corpus.
 - Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
 
-[未发布]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...HEAD
+[1.0.0-rc.1]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...rust-v1.0.0-rc.1
 [0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
 [0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
 [0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
