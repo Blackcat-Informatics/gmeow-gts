@@ -150,12 +150,14 @@ GtsReaderTest >> testSelfReachingTripleTermFoldsAndProjects [
 	self assert: graph diagnostics isEmpty.
 	lines := (GtsNQuads toNQuads: graph) lines.
 	self assert: lines size equals: 2.
+	"The SELF-REACHING TERM ITSELF is the blank node (§7.3). Resolving one step first
+	and degrading a nested occurrence renders a different graph."
 	self
 		assert: (lines at: 1)
-		equals: '<<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> <https://example.org/p> <https://example.org/p> .'.
+		equals: '<https://example.org/r1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> <<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> .'.
 	self
 		assert: (lines at: 2)
-		equals: '<https://example.org/r1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> <<( <<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> <https://example.org/p> <https://example.org/p> )>> .'
+		equals: '_:unbound_triple_2 <https://example.org/p> <https://example.org/p> .'
 ]
 
 { #category : #tests }
@@ -163,13 +165,14 @@ GtsReaderTest >> testSelfReachingTripleTermUnionTerminates [
 	| bytes graph |
 	bytes := self selfReachingSegmentBytes.
 	graph := GtsReader read: bytes, bytes.
-	"Each segment keeps its own quad: a self-reaching term has no resolved value to
-	compare, so it is never merged with anything it cannot be proven equal to."
-	self assert: graph quads size equals: 2.
+	"Both copies state no triple, so they intern to ONE term rather than two distinct
+	terms sharing a reifier id; byte-identical rows then collapse under §7.8. The
+	reifier is not over-bound, so there is no conflict either."
+	self assert: graph quads size equals: 1.
 	graph quads do: [ :quad |
 		self assert: (graph termAtId: (quad at: 1)) kind equals: #triple ].
-	self assert: (self codesOf: graph) asSet asArray equals: #('ConflictingReifier').
-	self assert: (GtsNQuads toNQuads: graph) lines size equals: 4
+	self assert: (self codesOf: graph) isEmpty.
+	self assert: (GtsNQuads toNQuads: graph) lines size equals: 2
 ]
 
 { #category : #tests }

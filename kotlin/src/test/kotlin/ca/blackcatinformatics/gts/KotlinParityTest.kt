@@ -621,13 +621,13 @@ class KotlinParityTest {
     fun selfReachingTripleTermFoldsAndProjects() {
         val graph = read(selfReachingSegment(), true)
         assertEquals(emptyList(), graph.diagnostics.map { it.code })
+        // The SELF-REACHING TERM ITSELF is the blank node (§7.3). Resolving one step
+        // first and degrading a nested occurrence renders a different graph.
         assertEquals(
             listOf(
-                "<<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> " +
-                    "<https://example.org/p> <https://example.org/p> .",
                 "<https://example.org/r1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> " +
-                    "<<( <<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> " +
-                    "<https://example.org/p> <https://example.org/p> )>> .",
+                    "<<( _:unbound_triple_2 <https://example.org/p> <https://example.org/p> )>> .",
+                "_:unbound_triple_2 <https://example.org/p> <https://example.org/p> .",
             ),
             sortedNQuads(graph),
         )
@@ -637,12 +637,13 @@ class KotlinParityTest {
     fun selfReachingTripleTermUnionTerminates() {
         val one = selfReachingSegment()
         val graph = read(one + one, true)
-        // Each segment keeps its own quad: a self-reaching term has no resolved value to
-        // compare, so it is never merged with anything it cannot be proven equal to.
-        assertEquals(2, graph.quads.size)
+        // Both copies state no triple, so they intern to ONE term rather than two
+        // distinct terms sharing a reifier id; byte-identical rows then collapse
+        // under §7.8. The reifier is not over-bound, so there is no conflict either.
+        assertEquals(1, graph.quads.size)
         assertTrue(graph.quads.all { graph.terms[it.s].kind == TermKind.TRIPLE })
-        assertEquals(setOf("ConflictingReifier"), graph.diagnostics.map { it.code }.toSet())
-        assertEquals(4, sortedNQuads(graph).size)
+        assertEquals(emptyList(), graph.diagnostics.map { it.code })
+        assertEquals(2, sortedNQuads(graph).size)
     }
 
     private fun sortedNQuads(graph: Graph): List<String> {
