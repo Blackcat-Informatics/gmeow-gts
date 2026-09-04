@@ -26,7 +26,7 @@ export ABI_VERSION,
 C ABI version expected by this wrapper.
 """
 const ABI_VERSION = UInt32(1)
-const VERSION = v"0.9.4"
+const VERSION = v"0.9.11"
 
 """
 C ABI status code constants.

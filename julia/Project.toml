@@ -1,6 +1,6 @@
 name = "GmeowGTS"
 uuid = "2d7fe44c-1957-4481-aa09-d6d0150c36ae"
-version = "0.9.4"
+version = "0.9.11"
 authors = ["Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>"]
 
 [deps]

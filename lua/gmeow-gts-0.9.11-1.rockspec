@@ -2,11 +2,11 @@
 -- SPDX-License-Identifier: MIT OR Apache-2.0
 
 package = "gmeow-gts"
-version = "0.9.4-1"
+version = "0.9.11-1"
 
 source = {
   url = "git+https://github.com/Blackcat-Informatics/gmeow-gts.git",
-  tag = "lua-v0.9.4"
+  tag = "lua-v0.9.11"
 }
 
 description = {

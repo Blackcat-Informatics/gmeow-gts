@@ -52,6 +52,52 @@ if [ "$capi_v" != "$rust_v" ]; then
   errors=1
 fi
 
+# Wrapper lanes. These were unchecked until now, which is exactly why Kotlin,
+# Lua, Ruby, R and Julia all silently drifted to 0.9.4 and stayed there through
+# seven releases: nothing in CI ever compared them. They publish through their
+# own manual runbooks rather than a tag workflow, so a guard here is the only
+# thing that keeps them honest. Compared against the Rust crate, which is the
+# release family's anchor (the C ABI they wrap is versioned lockstep with it).
+check_lane() {
+  local label="$1"
+  local actual="$2"
+  local file="$3"
+  if [ -z "$actual" ]; then
+    echo "ERROR: could not read $label version from $file." >&2
+    errors=1
+  elif [ "$actual" != "$rust_v" ]; then
+    echo "ERROR: $label version ($actual) must match the Rust crate version ($rust_v); see $file." >&2
+    errors=1
+  fi
+}
+
+kotlin_v=$(grep -m1 '^version = ' "$ROOT/kotlin/build.gradle.kts" | sed -E 's/.*"([^"]+)".*/\1/')
+ruby_v=$(grep -m1 'VERSION = ' "$ROOT/ruby/lib/gmeow/gts.rb" | sed -E 's/.*"([^"]+)".*/\1/')
+r_v=$(grep -m1 '^Version:' "$ROOT/r/DESCRIPTION" | awk '{print $2}')
+julia_v=$(grep -m1 '^version = ' "$ROOT/julia/Project.toml" | sed -E 's/.*"([^"]+)".*/\1/')
+julia_src_v=$(grep -m1 'const VERSION = v"' "$ROOT/julia/src/GmeowGTS.jl" | sed -E 's/.*v"([^"]+)".*/\1/')
+
+printf 'kotlin   %s\nruby     %s\nr        %s\njulia    %s\n' \
+  "$kotlin_v" "$ruby_v" "$r_v" "$julia_v"
+
+check_lane "Kotlin" "$kotlin_v" "kotlin/build.gradle.kts"
+check_lane "Ruby" "$ruby_v" "ruby/lib/gmeow/gts.rb"
+check_lane "R" "$r_v" "r/DESCRIPTION"
+check_lane "Julia" "$julia_v" "julia/Project.toml"
+check_lane "Julia source" "$julia_src_v" "julia/src/GmeowGTS.jl"
+
+# LuaRocks encodes the version in the rockspec FILENAME as well as in its
+# `version` and `source.tag` fields, and release-luarocks.yaml greps all three
+# with an exact match, so a bump that misses one fails only at publish time.
+lua_rockspec="$ROOT/lua/gmeow-gts-${rust_v}-1.rockspec"
+if [ ! -f "$lua_rockspec" ]; then
+  echo "ERROR: expected LuaRocks rockspec lua/gmeow-gts-${rust_v}-1.rockspec (rename it on bump)." >&2
+  errors=1
+else
+  check_contains "lua/gmeow-gts-${rust_v}-1.rockspec" "version = \"${rust_v}-1\"" "rockspec version"
+  check_contains "lua/gmeow-gts-${rust_v}-1.rockspec" "tag = \"lua-v${rust_v}\"" "rockspec source tag"
+fi
+
 check_contains "README.md" "gmeow-gts = \"$rust_v\"" "README Rust dependency snippet"
 check_contains "README.md" "gmeow-gts = { version = \"$rust_v\"" "README Rust feature snippet"
 check_contains "rust/README.md" "gmeow-gts = \"$rust_v\"" "Rust README dependency snippet"
