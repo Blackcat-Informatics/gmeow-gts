@@ -41,8 +41,8 @@
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
-    "@noble/ed25519": "^2.3.0",
-    "@noble/hashes": "^1.8.0",
+    "@noble/ed25519": "^3.2.0",
+    "@noble/hashes": "^2.4.0",
     "blake3": "^2.1.7",
     "cbor": "^10.0.3",
     "fzstd": "^0.1.1"
@@ -54,7 +54,7 @@
     "eslint": "^10.5.0",
     "fast-check": "^4.8.0",
     "prettier": "^3.5.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "license": "MIT OR Apache-2.0",
   "homepage": "https://blackcatinformatics.ca/projects/gts",
