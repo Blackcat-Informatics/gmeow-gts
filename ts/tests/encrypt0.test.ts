@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 //
 // COSE_Encrypt0 conformance (§9.3): the TypeScript engine reproduces the frozen
 // fixed-IV AES-256-GCM seal (vectors/encrypt0/basic.json) byte-for-byte, opens

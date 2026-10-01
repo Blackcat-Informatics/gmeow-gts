@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 # Pre-commit linter suite — repo hygiene, run locally (`pre-commit install`)
 # and in CI (`pre-commit run --all-files`). Python lint/type-check (ruff + mypy)
 # and per-language gates (cargo fmt, golangci, eslint) run in their CI jobs;
@@ -9,6 +9,14 @@ default_language_version:
   python: python3.13
 
 repos:
+  - repo: local
+    hooks:
+      - id: license-coherence
+        name: First-party license and recipient text coherence
+        entry: python3 scripts/check_licenses.py
+        language: system
+        pass_filenames: false
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

@@ -18,8 +18,6 @@ path = [
   "ts/tsconfig.test.json",
   "ts/.gitignore",
   "php/composer.json",
-  "docs/api-parity.json",
-  "docs/documentation-roster.json",
   "packaging/vcpkg/ports/gmeow-gts/vcpkg.json",
   "r/DESCRIPTION",
   "r/LICENSE",
@@ -35,14 +33,14 @@ path = [
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
-SPDX-License-Identifier = "MIT OR Apache-2.0"
+SPDX-License-Identifier = "MIT OR Apache-2.0 OR MulanPSL-2.0"
 
 # The frozen conformance corpus (canonical bytes + oracle expectations).
 [[annotations]]
 path = "vectors/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
-SPDX-License-Identifier = "MIT OR Apache-2.0"
+SPDX-License-Identifier = "MIT OR Apache-2.0 OR MulanPSL-2.0"
 
 # Go fuzzing corpus / regression seeds (strict `go test fuzz v1` format — no
 # inline header possible).
@@ -50,14 +48,14 @@ SPDX-License-Identifier = "MIT OR Apache-2.0"
 path = "go/reader/testdata/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
-SPDX-License-Identifier = "MIT OR Apache-2.0"
+SPDX-License-Identifier = "MIT OR Apache-2.0 OR MulanPSL-2.0"
 
 # Test fixtures (a throwaway OpenPGP test keypair and its fingerprint).
 [[annotations]]
 path = "python/tests/fixtures/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
-SPDX-License-Identifier = "MIT OR Apache-2.0"
+SPDX-License-Identifier = "MIT OR Apache-2.0 OR MulanPSL-2.0"
 
 # Rendered raster assets (no inline header possible).
 [[annotations]]
@@ -70,7 +68,7 @@ SPDX-License-Identifier = "MIT OR Apache-2.0"
 # REUSE 5 can miss them on some non-Latin Markdown files; keep an aggregate
 # subtree annotation so the licensing gate remains deterministic.
 [[annotations]]
-path = "docs/i18n/zh-Hans/**"
+path = ["docs/i18n/zh-Hans/CHANGELOG.md", "docs/i18n/zh-Hans/CODE_OF_CONDUCT.md", "docs/i18n/zh-Hans/CONTRIBUTING.md", "docs/i18n/zh-Hans/LICENSING.md", "docs/i18n/zh-Hans/README.md", "docs/i18n/zh-Hans/SECURITY.md", "docs/i18n/zh-Hans/cpp/README.md", "docs/i18n/zh-Hans/docs/GTS-ADVANCED-PRIMITIVES.md", "docs/i18n/zh-Hans/docs/GTS-API-CLI-PARITY.md", "docs/i18n/zh-Hans/docs/GTS-BENCHMARK-RELEASE-REPORT.md", "docs/i18n/zh-Hans/docs/GTS-CONFORMANCE.md", "docs/i18n/zh-Hans/docs/GTS-DUMP-DIR.md", "docs/i18n/zh-Hans/docs/GTS-ECOSYSTEM-INTEGRATIONS.md", "docs/i18n/zh-Hans/docs/GTS-GOVERNANCE.md", "docs/i18n/zh-Hans/docs/GTS-OKF.md", "docs/i18n/zh-Hans/docs/GTS-PAPER-DRAFT.md", "docs/i18n/zh-Hans/docs/GTS-RELEASE-SLSA.md", "docs/i18n/zh-Hans/docs/GTS-SECURITY-POLICY.md", "docs/i18n/zh-Hans/docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md", "docs/i18n/zh-Hans/docs/GTS-V1-RC1-CHECKLIST.md", "docs/i18n/zh-Hans/docs/gts-reference.md", "docs/i18n/zh-Hans/docs/positioning.md", "docs/i18n/zh-Hans/dotnet/README.md", "docs/i18n/zh-Hans/go/README.md", "docs/i18n/zh-Hans/julia/README.md", "docs/i18n/zh-Hans/kotlin/README.md", "docs/i18n/zh-Hans/lua/README.md", "docs/i18n/zh-Hans/php/README.md", "docs/i18n/zh-Hans/python/README.md", "docs/i18n/zh-Hans/python/examples/README.md", "docs/i18n/zh-Hans/r/README.md", "docs/i18n/zh-Hans/ruby/README.md", "docs/i18n/zh-Hans/rust/README.md", "docs/i18n/zh-Hans/rust/capi/README.md", "docs/i18n/zh-Hans/smalltalk/README.md", "docs/i18n/zh-Hans/swift/README.md", "docs/i18n/zh-Hans/ts/README.md"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
@@ -84,7 +82,7 @@ path = [
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>"
-SPDX-License-Identifier = "MIT OR Apache-2.0"
+SPDX-License-Identifier = "MIT OR Apache-2.0 OR MulanPSL-2.0"
 
 # Generated benchmark evidence reports (JSON cannot carry an inline header; the
 # Markdown report is regenerated from the same payload).
@@ -101,6 +99,13 @@ path = [
   "ietf/draft-audley-gts-graph-transport-substrate.md",
   "ietf/draft-audley-gts-graph-transport-substrate-00.xml",
 ]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+# Other documentation and generated evidence retain their existing grants.
+[[annotations]]
+path = ["docs/api-parity.json", "docs/documentation-roster.json"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
 SPDX-License-Identifier = "MIT OR Apache-2.0"

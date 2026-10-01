@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Regenerate the cross-engine OpenPGP key-parsing vectors (for `extract-key`).
 
 Each engine must parse a GPG-armored Ed25519 public key the same way: extract the

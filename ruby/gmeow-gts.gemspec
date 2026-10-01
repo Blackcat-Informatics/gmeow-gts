@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 root = File.expand_path(__dir__)
 lib = File.join(root, "lib")
@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.summary = "Ruby FFI wrapper for the source-only GTS C ABI."
   spec.description = "A source-only Ruby FFI wrapper over the Rust-backed libgts C ABI. The gem expects libgts to be provided by the host at runtime."
   spec.homepage = "https://blackcatinformatics.ca/projects/gts"
-  spec.licenses = ["MIT", "Apache-2.0"]
+  spec.licenses = ["MIT", "Apache-2.0", "MulanPSL-2.0"]
   spec.required_ruby_version = ">= 3.1"
 
   spec.metadata = {
@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   }
 
   spec.files = Dir.chdir(root) do
-    Dir["README.md", "lib/**/*.rb"]
+    Dir["README.md", "lib/**/*.rb", "LICENSE-MIT", "LICENSE-APACHE", "LICENSE-MULAN"]
   end
   spec.require_paths = ["lib"]
 

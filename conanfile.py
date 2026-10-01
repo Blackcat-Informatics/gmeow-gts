@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 import json
 import os
@@ -14,7 +14,7 @@ from conan.tools.files import copy, save
 class GmeowGtsConan(ConanFile):
     name = "gmeow-gts"
     description = "Graph Transport Substrate C and C++ ABI package"
-    license = "MIT OR Apache-2.0"
+    license = "MIT OR Apache-2.0 OR MulanPSL-2.0"
     homepage = "https://blackcatinformatics.ca/projects/gts"
     url = "https://github.com/Blackcat-Informatics/gmeow-gts"
     package_type = "library"
@@ -26,6 +26,7 @@ class GmeowGtsConan(ConanFile):
         "cpp/include/**",
         "LICENSE-APACHE",
         "LICENSE-MIT",
+        "LICENSE-MULAN",
         "LICENSES/**",
         "LICENSING.md",
         "README.md",
@@ -35,6 +36,7 @@ class GmeowGtsConan(ConanFile):
         "rust/capi/Cargo.toml",
         "rust/capi/LICENSE-APACHE",
         "rust/capi/LICENSE-MIT",
+        "rust/capi/LICENSE-MULAN",
         "rust/capi/README.md",
         "rust/capi/cmake/**",
         "rust/capi/examples/**",
@@ -61,6 +63,7 @@ class GmeowGtsConan(ConanFile):
         copy(self, "gts.hpp", src=str(source / "cpp/include/gts"), dst=str(package / "include/gts"), keep_path=False)
         copy(self, "GtsConfig.cmake", src=str(source / "rust/capi/cmake"), dst=str(package / "lib/cmake/Gts"), keep_path=False)
         copy(self, "README.md", src=str(source / "rust/capi"), dst=str(package), keep_path=False)
+        copy(self, "LICENSE-MULAN", src=str(source), dst=str(package / "licenses"), keep_path=False)
         copy(self, "LICENSE-MIT", src=str(source), dst=str(package / "licenses"), keep_path=False)
         copy(self, "LICENSE-APACHE", src=str(source), dst=str(package / "licenses"), keep_path=False)
         copy(self, "LICENSING.md", src=str(source), dst=str(package / "licenses"), keep_path=False)

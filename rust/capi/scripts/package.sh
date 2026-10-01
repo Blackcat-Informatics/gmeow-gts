@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -71,7 +71,7 @@ cp "${CAPI}/include/gts.h" "${stage}/include/gts.h"
 cp "${ROOT}/cpp/include/gts/gts.hpp" "${stage}/include/gts/gts.hpp"
 cp "${CAPI}/cmake/GtsConfig.cmake" "${stage}/lib/cmake/Gts/GtsConfig.cmake"
 cp "${CAPI}/README.md" "${stage}/README.md"
-cp "${ROOT}/LICENSE-MIT" "${ROOT}/LICENSE-APACHE" "${ROOT}/LICENSING.md" "${stage}/licenses/"
+cp "${ROOT}/LICENSE-MIT" "${ROOT}/LICENSE-APACHE" "${ROOT}/LICENSE-MULAN" "${ROOT}/LICENSING.md" "${stage}/licenses/"
 cp -R "${ROOT}/LICENSES" "${stage}/licenses/LICENSES"
 
 cat > "${stage}/lib/pkgconfig/gts.pc" <<EOF

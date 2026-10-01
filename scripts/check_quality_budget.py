@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Check production-code quality budgets against a checked-in baseline."""
 
 from __future__ import annotations
@@ -782,7 +782,7 @@ def self_test() -> int:
         root = Path(tmp)
         write_text(
             root / "rust/src/lib.rs",
-            "# SPDX-License-Identifier: MIT OR Apache-2.0\n"
+            "# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0\n"
             "pub fn ok() -> u8 { 1 }\n"
             "#[cfg(test)]\n"
             "mod tests\n"
@@ -839,7 +839,7 @@ def self_test() -> int:
 
         write_text(
             root / "rust/src/lib.rs",
-            "# SPDX-License-Identifier: MIT OR Apache-2.0\n"
+            "# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0\n"
             "#[cfg(test)]\n"
             "mod tests;\n"
             "pub fn new_panic() { panic!(\"new unchecked panic\"); }\n",
@@ -854,7 +854,7 @@ def self_test() -> int:
 
         write_text(
             root / "rust/src/lib.rs",
-            "# SPDX-License-Identifier: MIT OR Apache-2.0\npub fn ok() -> u8 { 1 }\n",
+            "# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0\npub fn ok() -> u8 { 1 }\n",
         )
         write_text(
             root / "ts/src/reader.ts",

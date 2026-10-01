@@ -13,7 +13,7 @@ Description: Provides R bindings to the GTS C ABI backed by the Rust
     validation, RDF/N-Quads conversion, and files-profile helpers while
     requiring an externally installed libgts shared library at build and
     runtime.
-License: MIT + file LICENSE | Apache License (>= 2)
+License: MIT + file LICENSE | Apache License (>= 2) | file LICENSE-MULAN
 Encoding: UTF-8
 NeedsCompilation: yes
 SystemRequirements: libgts shared library from the gmeow-gts C ABI; set

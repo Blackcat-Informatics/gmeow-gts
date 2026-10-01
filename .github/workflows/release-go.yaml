@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 name: Release Go GTS
 
 # On a go/v* tag, cross-build the gts CLI, attest provenance and SBOM evidence,
@@ -41,6 +41,7 @@ jobs:
           rm -rf dist
           mkdir -p dist
           cd go
+          cp ../LICENSE-MIT ../LICENSE-APACHE ../LICENSE-MULAN .
           for os in linux darwin windows; do
             for arch in amd64 arm64; do
               ext=""
@@ -49,9 +50,9 @@ jobs:
                 go build -trimpath -ldflags "-s -w" -o "gts$ext" ./cmd/gts
               base="gts_${VERSION}_${os}_${arch}"
               if [ "$os" = windows ]; then
-                zip -qj "../dist/${base}.zip" "gts$ext"
+                zip -qj "../dist/${base}.zip" "gts$ext" LICENSE-MIT LICENSE-APACHE LICENSE-MULAN
               else
-                tar czf "../dist/${base}.tar.gz" "gts$ext"
+                tar czf "../dist/${base}.tar.gz" "gts$ext" LICENSE-MIT LICENSE-APACHE LICENSE-MULAN
               fi
               rm -f "gts$ext"
             done

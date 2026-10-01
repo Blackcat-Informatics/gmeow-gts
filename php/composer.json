@@ -13,7 +13,8 @@
   "homepage": "https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/php",
   "license": [
     "MIT",
-    "Apache-2.0"
+    "Apache-2.0",
+    "MulanPSL-2.0"
   ],
   "authors": [
     {

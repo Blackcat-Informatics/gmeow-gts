@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Regenerate the cross-engine emojihash conformance vectors.
 
 emojihash is a deterministic BLAKE3-XOF → 6-bit → 64-emoji mapping, so every

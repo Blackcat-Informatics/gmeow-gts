@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 //! File-level signing conformance (§9.2): the Rust engine reproduces the frozen
 //! signed GTS (`vectors/signed/basic.json`) when signing, and verifies it.
 

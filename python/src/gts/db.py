@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """The ``gts → {sqlite,duckdb,parquet}`` relational transforms (§14).
 
 Loads a folded :class:`~gts.model.Graph` into a relational store using the

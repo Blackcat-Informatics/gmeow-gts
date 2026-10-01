@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Cross-engine OpenPGP `extract-key` vectors (§9.2): the Python oracle gates
 against the same frozen ``vectors/openpgp/*.json`` that the Rust/Go/TS engines
 do, and proves the committed corpus is reproducible byte-for-byte."""

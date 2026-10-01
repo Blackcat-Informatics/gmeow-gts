@@ -6,41 +6,44 @@
 
 # Licence
 
-> Traduction informative de [`LICENSING.md`](../../../LICENSING.md). Le document anglais demeure la source faisant autorité pour la gouvernance, la sécurité, les versions, les licences, la contribution, les obligations de conduite, les processus de divulgation et les commandes exécutables. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md) et reste informative.
+> Traduction informative de [`LICENSING.md`](../../../LICENSING.md). Le texte anglais fait autorité pour cette explication. En cas de divergence entre les textes chinois et anglais de MulanPSL-2.0, le texte chinois prévaut selon son article 6.
 
-GTS (`gmeow-gts`) est distribué sous **triple licence**. Blackcat Informatics® Inc. est l'unique titulaire du droit d'auteur (© 2026) et met l'œuvre à disposition selon les modalités open source ci-dessous **et** se réserve le droit d'accorder des licences commerciales/propriétaires distinctes.
+Blackcat Informatics® Inc. offre le code des implémentations GTS, l'outillage de construction et de distribution, la spécification GTS et les vecteurs de conformité figés de première partie sous **MIT OR Apache-2.0 OR MulanPSL-2.0**, au choix du destinataire. Le titulaire peut accorder séparément des licences commerciales ou propriétaires. Une licence commerciale n'est pas une quatrième licence open source.
 
 ## Modalités open source
-
-L'ensemble du dépôt — les quatre implémentations (Rust, Python, Go, TypeScript), la spécification GTS, la documentation, le corpus de conformité et l'outillage de construction — est offert, à votre choix, sous l'une des licences suivantes :
 
 | Licence | Texte |
 |---|---|
 | **MIT** | [`LICENSE-MIT`](./LICENSE-MIT) |
 | **Apache License 2.0** | [`LICENSE-APACHE`](./LICENSE-APACHE) |
+| **Mulan Permissive Software License, Version 2** | [`LICENSE-MULAN`](./LICENSE-MULAN) |
 
-Vous pouvez utiliser le logiciel selon les modalités de **MIT _ou_ Apache-2.0, à votre choix**. Cela est exprimé dans chaque fichier source et manifeste de paquet par l'identifiant SPDX :
+Le choix s'exprime ainsi :
 
 ```text
-SPDX-License-Identifier: MIT OR Apache-2.0
+SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 ```
 
-Sauf indication contraire explicite de votre part, toute contribution soumise intentionnellement pour inclusion dans l'œuvre sera sous double licence comme ci-dessus (MIT OR Apache-2.0), sans modalités ni conditions supplémentaires.
+Cette offre couvre les éléments admissibles de première partie de toutes les implémentations et interfaces. Les autres documents et rapports générés conservent la licence de leur en-tête SPDX ou des annotations `REUSE.toml`. Les dépendances tierces, les références consultées et les mentions réglementaires IETF gardent leurs modalités originales. Cette offre ne leur accorde aucune nouvelle licence. Conservez leurs mentions de droits d'auteur et d'autorisation lors de leur distribution.
 
-## Licence propriétaire / commerciale
+Les métadonnées de distribution Python déclarent le choix de trois licences du code et le choix MIT ou Apache conservé pour le README intégré. Cette expression décrit l'archive sans changer la licence existante de la documentation.
 
-Les licences ouvertes ci-dessus sont offertes **en plus de — et non à la place de** — le droit de Blackcat Informatics®, en tant que titulaire du droit d'auteur, de concéder le logiciel sous des modalités commerciales ou propriétaires distinctes. L'octroi des licences ouvertes ne révoque ni ne limite cette réserve.
+MulanPSL-2.0 est bilingue. **Le texte chinois prévaut en cas de divergence avec l'anglais (article 6).** La licence de brevet du contributeur prend fin si vous engagez une procédure en contrefaçon de brevet visant le logiciel (article 2). Aucun droit de marque n'est accordé (article 3). La licence et les mentions de droits d'auteur, de brevets, de marques et d'exclusion de garantie doivent être conservées (article 4). Le texte bilingue est figé par SHA-256 `eb7a1d713eb919b146787629e22e4c975cb701f529a65d4d7e0fcd417558bf1c`.
 
-Pour obtenir une licence propriétaire, contactez **licensing@blackcatinformatics.ca**.
+Sauf indication contraire, les contributions intentionnellement soumises au code, à l'outillage, aux spécifications et aux vecteurs admissibles sont offertes sous MIT OR Apache-2.0 OR MulanPSL-2.0, sans modalités supplémentaires. Les contributions aux autres documents conservent la licence déclarée du document.
 
-## Marques de commerce
+## Licence propriétaire ou commerciale
 
-« Blackcat Informatics® » est une marque déposée de Blackcat Informatics® Inc. Aucune licence ouverte n'accorde le droit d'utiliser ce nom, ses logos ou ses marques — voir **Apache License 2.0 §6**. Les références nominatives (par exemple, « compatible avec GTS ») sont permises ; les usages laissant entendre une approbation ou une origine ne le sont pas.
+Le titulaire conserve le droit d'offrir séparément des licences commerciales ou propriétaires pour ses propres éléments. Contact : **licensing@blackcatinformatics.ca**.
+
+## Marques
+
+« Blackcat Informatics® » est une marque déposée de Blackcat Informatics® Inc. Les licences n'accordent aucun droit de marque : Apache License 2.0, article 6, et MulanPSL-2.0, article 3. Les références nominatives comme « compatible avec GTS » sont permises; elles ne doivent pas suggérer une approbation ou une origine.
 
 ## Contributions
 
-Les contributions à gmeow-gts sont acceptées sous **Apache-2.0 OR MIT** et, en vertu du CLA du projet, selon des modalités qui permettent une licence propriétaire/commerciale distincte. Pour que la réserve de double licence ci-dessus s'étende au matériel contribué, les contributeurs acceptent de concéder leurs contributions à Blackcat Informatics® Inc. selon des modalités qui permettent une nouvelle concession de licence, y compris selon des modalités propriétaires. Un Contributor License Agreement peut être requis avant la fusion de contributions substantielles. Consultez [`CONTRIBUTING.md`](./CONTRIBUTING.md) pour plus de détails.
+Les contributions sont acceptées sous la licence applicable ci-dessus et, selon la CLA, sous des modalités permettant une licence commerciale ou propriétaire distincte. Une entente peut être exigée avant l'intégration de contributions importantes. Voir [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Avis de droit d'auteur
 
-> Copyright © 2026 Blackcat Informatics® Inc. Tous droits réservés, sauf dans la mesure expressément accordée par les licences ci-dessus.
+Copyright © 2026 Blackcat Informatics® Inc. Tous droits réservés sauf ceux expressément accordés par la licence applicable. Cette harmonisation des licences de première partie ne change ni les versions des paquets, ni la version du format, ni les octets des vecteurs de conformité.

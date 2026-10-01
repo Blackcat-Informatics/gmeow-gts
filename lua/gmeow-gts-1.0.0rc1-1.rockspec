@@ -1,5 +1,5 @@
 -- SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
--- SPDX-License-Identifier: MIT OR Apache-2.0
+-- SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 package = "gmeow-gts"
 version = "1.0.0rc1-1"
@@ -19,7 +19,7 @@ description = {
     provided through GTS_LIBGTS or the platform dynamic loader.
   ]],
   homepage = "https://blackcatinformatics.ca/projects/gts",
-  license = "MIT OR Apache-2.0"
+  license = "MIT OR Apache-2.0 OR MulanPSL-2.0"
 }
 
 dependencies = {
@@ -28,6 +28,7 @@ dependencies = {
 
 build = {
   type = "builtin",
+  copy_directories = { "licenses" },
   modules = {
     ["gmeow.gts"] = "lua/gmeow/gts.lua"
   },

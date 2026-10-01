@@ -69,7 +69,7 @@ docker build -t gmeow-gts-smalltalk smalltalk && \
   YAML/Markdown/shell, secret scanning).
 - Per-language gates: `cargo fmt --check` + `cargo clippy`, `go vet` + `golangci-lint`,
   `npm run lint`, `ruff check` + `mypy`.
-- Every source file must carry an SPDX `MIT OR Apache-2.0` license header.
+- Every source file must carry an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
 - Keep changes focused; describe **what** changed and **why** in the PR description.
 
 CI runs all four parity engines, the Smalltalk/Pharo bootstrap, and a lint lane on every pull
@@ -77,7 +77,7 @@ request.
 
 ## Licence des contributions
 
-Contributions to **gmeow-gts** are accepted under **Apache-2.0 OR MIT** and, under the
+Contributions to **gmeow-gts** are accepted under **MIT OR Apache-2.0 OR MulanPSL-2.0** and, under the
 project CLA, under terms that permit separate proprietary/commercial licensing.
 
 For context, contributions to **GMEOW tooling/code** elsewhere in the project (the
@@ -85,7 +85,7 @@ For context, contributions to **GMEOW tooling/code** elsewhere in the project (t
 accepted under **AGPL-3.0-only** and, under the project CLA, under terms that permit Blackcat
 Informatics® Inc. to relicense them under separate proprietary/commercial terms. gmeow-gts is
 the deliberately permissive, dependency-light engine layer, so it carries the permissive
-`Apache-2.0 OR MIT` terms rather than AGPL.
+`MIT OR Apache-2.0 OR MulanPSL-2.0` terms rather than AGPL.
 
 By submitting a contribution you agree to license it under the terms above. For the
 dual-licensing reservation to extend to your contribution, you agree to license it to
