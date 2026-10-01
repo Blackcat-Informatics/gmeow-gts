@@ -69,7 +69,7 @@ docker build -t gmeow-gts-smalltalk smalltalk && \
   YAML/Markdown/shell, secret scanning).
 - Per-language gates: `cargo fmt --check` + `cargo clippy`, `go vet` + `golangci-lint`,
   `npm run lint`, `ruff check` + `mypy`.
-- Every source file must carry an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
+- Every eligible first-party source file must carry an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
 - Keep changes focused; describe **what** changed and **why** in the PR description.
 
 CI runs all four parity engines, the Smalltalk/Pharo bootstrap, and a lint lane on every pull
@@ -77,8 +77,9 @@ request.
 
 ## 贡献许可
 
-Contributions to **gmeow-gts** are accepted under **MIT OR Apache-2.0 OR MulanPSL-2.0** and, under the
-project CLA, under terms that permit separate proprietary/commercial licensing.
+有意提交以纳入本项目的、符合适用范围的第一方实现代码、构建与打包工具、GTS 规范和
+冻结的一致性测试向量，采用 **MIT OR Apache-2.0 OR MulanPSL-2.0** 接收。其他文档的贡献
+保留该文档声明的许可，除非另有明确规定。项目 CLA 单独规定专有或商业再许可的授权。
 
 For context, contributions to **GMEOW tooling/code** elsewhere in the project (the
 [`gmeow-ontology`](https://github.com/Blackcat-Informatics/gmeow-ontology) repository) are
@@ -87,11 +88,10 @@ Informatics® Inc. to relicense them under separate proprietary/commercial terms
 the deliberately permissive, dependency-light engine layer, so it carries the permissive
 `MIT OR Apache-2.0 OR MulanPSL-2.0` terms rather than AGPL.
 
-By submitting a contribution you agree to license it under the terms above. For the
-dual-licensing reservation to extend to your contribution, you agree to license it to
-Blackcat Informatics® Inc. under terms that permit relicensing, including under proprietary
-terms. A Contributor License Agreement (CLA) may be required before substantial
-contributions are merged. See [`LICENSING.md`](./LICENSING.md) for the full licensing scheme.
+提交贡献即表示您同意上述适用于该贡献的许可。若要将双重许可保留权扩展至您的贡献，
+您还须按允许再许可（包括专有许可）的条款向 Blackcat Informatics® Inc. 提供许可。
+在合并重大贡献之前，可能需要签署贡献者许可协议（CLA）。完整许可方案见
+[`LICENSING.md`](./LICENSING.md)。
 
 ## 发布
 

@@ -14,7 +14,7 @@ rules below:
    must update the corpus and keep every engine green.
 3. If you change one engine's observable behaviour, change the others to match; diverging from
    the spec or the other engines is a bug.
-4. Every source file must carry an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
+4. Every eligible first-party source file must carry an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
 5. Match each engine's existing conventions and toolchain: `cargo fmt`/`clippy` (Rust),
    `gofmt`/`go vet`/`golangci-lint` (Go), ESLint/Prettier (TypeScript), `ruff`/`mypy`
    with `uv` (Python), and Gradle `test`/`detekt` (Kotlin). Keep the public API names

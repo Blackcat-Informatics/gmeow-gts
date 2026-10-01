@@ -501,6 +501,9 @@ eval "$(luarocks --tree "${lua_tree}" path --bin)"
 luajit lua/tests/smoke.lua "${GTS_WRAPPER_CLEAN_VECTOR}" "${GTS_WRAPPER_DAMAGED_VECTOR}" "${GTS_WRAPPER_EMPTY_VECTOR}"
 rm -f "gmeow-gts-${rock_version}.all.rock"
 rm -rf "${lua_tree}" "${lua_tree_dev}"'
+for archive in "${OUT}/lua/"*.rock; do
+  python3 "${ROOT}/scripts/check_licenses.py" --recipient-archive "${archive}"
+done
 
 log "Swift package dump and smoke executable"
 # shellcheck disable=SC2016 # expanded inside the local/container shell.

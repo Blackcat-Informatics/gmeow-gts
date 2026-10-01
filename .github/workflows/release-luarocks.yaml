@@ -67,6 +67,7 @@ jobs:
           luarocks make "$GTS_LUAROCKS_ROCKSPEC" --tree "$luarocks_tree"
           rm -f gmeow-gts-*.rock
           luarocks --tree "$luarocks_tree" pack gmeow-gts "$GTS_LUAROCKS_VERSION"
+          python3 scripts/check_licenses.py --recipient-archive "gmeow-gts-${GTS_LUAROCKS_VERSION}.all.rock"
           eval "$(luarocks --tree "$luarocks_tree" path --bin)"
           # smoke.lua takes THREE fixtures: clean, damaged and empty. It has
           # required all three since the structured-error assertions were added

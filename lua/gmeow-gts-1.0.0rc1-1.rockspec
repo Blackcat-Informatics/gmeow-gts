@@ -28,9 +28,8 @@ dependencies = {
 
 build = {
   type = "builtin",
-  copy_directories = { "licenses" },
+  copy_directories = { "lua/licenses" },
   modules = {
     ["gmeow.gts"] = "lua/gmeow/gts.lua"
-  },
-  copy_directories = {}
+  }
 }
