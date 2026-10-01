@@ -14,9 +14,9 @@ Blackcat Informatics® Inc. offre le code des implémentations GTS, l'outillage 
 
 | Licence | Texte |
 |---|---|
-| **MIT** | [`LICENSE-MIT`](./LICENSE-MIT) |
-| **Apache License 2.0** | [`LICENSE-APACHE`](./LICENSE-APACHE) |
-| **Mulan Permissive Software License, Version 2** | [`LICENSE-MULAN`](./LICENSE-MULAN) |
+| **MIT** | [`LICENSE-MIT`](../../../LICENSE-MIT) |
+| **Apache License 2.0** | [`LICENSE-APACHE`](../../../LICENSE-APACHE) |
+| **Mulan Permissive Software License, Version 2** | [`LICENSE-MULAN`](../../../LICENSE-MULAN) |
 
 Le choix s'exprime ainsi :
 
@@ -28,9 +28,9 @@ Cette offre couvre les éléments admissibles de première partie de toutes les 
 
 Les métadonnées de distribution Python déclarent le choix de trois licences du code et le choix MIT ou Apache conservé pour le README intégré. Cette expression décrit l'archive sans changer la licence existante de la documentation.
 
-MulanPSL-2.0 est bilingue. **Le texte chinois prévaut en cas de divergence avec l'anglais (article 6).** La licence de brevet du contributeur prend fin si vous engagez une procédure en contrefaçon de brevet visant le logiciel (article 2). Aucun droit de marque n'est accordé (article 3). La licence et les mentions de droits d'auteur, de brevets, de marques et d'exclusion de garantie doivent être conservées (article 4). Le texte bilingue est figé par SHA-256 `eb7a1d713eb919b146787629e22e4c975cb701f529a65d4d7e0fcd417558bf1c`.
+MulanPSL-2.0 est bilingue. **Le texte chinois prévaut en cas de divergence avec l'anglais (article 6).** Chaque contributeur vous accorde une licence de brevet dans les limites de l'article 2. Cette licence relative au logiciel prend fin si vous ou vos entités affiliées engagez, directement ou indirectement, une procédure en contrefaçon de brevet (y compris une demande reconventionnelle ou incidente), ou une autre action visant à faire respecter un brevet, en alléguant que le logiciel ou une contribution porte atteinte à un brevet. L'article 3 n'accorde aucune licence de marque, sauf l'usage nécessaire aux mentions exigées par l'article 4. Ce dernier exige de fournir aux destinataires une copie de la licence et de conserver les mentions de droits d'auteur, de brevets, de marques et d'exclusion de garantie. Le texte intégral régit ces conditions. Le texte bilingue est figé par SHA-256 `eb7a1d713eb919b146787629e22e4c975cb701f529a65d4d7e0fcd417558bf1c`.
 
-Sauf indication contraire, les contributions intentionnellement soumises au code, à l'outillage, aux spécifications et aux vecteurs admissibles sont offertes sous MIT OR Apache-2.0 OR MulanPSL-2.0, sans modalités supplémentaires. Les contributions aux autres documents conservent la licence déclarée du document.
+Sauf indication contraire, les contributions intentionnellement soumises au code, à l'outillage, aux spécifications et aux vecteurs admissibles sont offertes sous MIT OR Apache-2.0 OR MulanPSL-2.0, sans ajouter de modalités à cette autorisation open source. Les procédures de contribution et l'autorisation distincte de nouvelle concession commerciale sont décrites ci-dessous. Les contributions aux autres documents conservent la licence déclarée du document.
 
 ## Licence propriétaire ou commerciale
 
@@ -42,7 +42,7 @@ Le titulaire conserve le droit d'offrir séparément des licences commerciales o
 
 ## Contributions
 
-Les contributions sont acceptées sous la licence applicable ci-dessus et, selon la CLA, sous des modalités permettant une licence commerciale ou propriétaire distincte. Une entente peut être exigée avant l'intégration de contributions importantes. Voir [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+Les contributions sont acceptées sous la licence applicable ci-dessus et, selon la CLA, sous des modalités permettant une licence commerciale ou propriétaire distincte. Une entente peut être exigée avant l'intégration de contributions importantes. Voir [`CONTRIBUTING.md`](../../../CONTRIBUTING.md).
 
 ## Avis de droit d'auteur
 

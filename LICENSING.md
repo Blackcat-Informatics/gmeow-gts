@@ -32,16 +32,23 @@ choice and the retained MIT-or-Apache choice for its embedded README. That
 archive expression preserves the documentation's existing grant.
 
 MulanPSL-2.0 is bilingual. **Its Chinese text controls if the Chinese and English
-texts differ (§6).** It grants a contributor patent license that terminates if
-you initiate patent litigation over the software (§2), grants no trademark
-rights (§3), and requires retention of the license, copyright, patent, trademark
-and disclaimer notices (§4). The committed bilingual text is byte-pinned by
+texts differ (§6).** Each contributor grants you a patent license within the
+scope of §2. That software patent license terminates if you or your affiliates
+directly or indirectly bring patent-infringement litigation (including a cross
+claim or counterclaim), or another patent-enforcement action, alleging that the
+software or a contribution infringes a patent. Section 3 grants no trademark
+license except use required for §4 notices. Section 4 requires providing
+recipients a license copy and retaining copyright, patent, trademark and
+disclaimer notices. The complete text controls these conditions. The committed
+bilingual text is byte-pinned by
 SHA-256 `eb7a1d713eb919b146787629e22e4c975cb701f529a65d4d7e0fcd417558bf1c`.
 
 Unless stated otherwise, contributions intentionally submitted for inclusion in
 eligible first-party code, tooling, specifications and vectors are offered under
-MIT OR Apache-2.0 OR MulanPSL-2.0, without additional terms. Contributions to
-other documentation retain that document's declared grant.
+MIT OR Apache-2.0 OR MulanPSL-2.0, without added terms on that open-source grant.
+Contribution procedures and the independent commercial relicensing permission
+are described below. Contributions to other documentation retain that
+document's declared grant.
 
 ## Proprietary / commercial licensing
 
