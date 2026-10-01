@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
-// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 plugins {
     kotlin("jvm") version "2.4.10"
@@ -35,4 +35,12 @@ detekt {
     buildUponDefaultConfig = true
     config.setFrom(files("config/detekt.yml"))
     allRules = false
+}
+
+// Every generated JAR/distribution preserves the complete first-party offer.
+tasks.processResources {
+    from(rootProject.projectDir.parentFile) {
+        include("LICENSE-MIT", "LICENSE-APACHE", "LICENSE-MULAN")
+        into("META-INF/licenses/gmeow-gts")
+    }
 }

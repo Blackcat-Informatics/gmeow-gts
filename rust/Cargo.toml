@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 [package]
 name = "gmeow-gts"
 description = "GTS (Graph Transport Substrate) format engine: CBOR-sequence append-only RDF 1.2 log reader, folder, and verifier"
 version = "1.0.0-rc.1"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "(MIT OR Apache-2.0 OR MulanPSL-2.0) AND (MIT OR Apache-2.0)"
 homepage = "https://blackcatinformatics.ca/projects/gts"
 repository = "https://github.com/Blackcat-Informatics/gmeow-gts"
 readme = "README.md"

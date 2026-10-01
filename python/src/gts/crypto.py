@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """COSE signing & encryption for GTS (§9.2/§9.3, issue #272).
 
 A focused, dependency-light RFC 9052 subset built on ``cryptography`` + ``cbor2``:

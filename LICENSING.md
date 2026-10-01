@@ -1,58 +1,77 @@
 # Licensing
 
-GTS (`gmeow-gts`) is **triple-licensed**. Blackcat Informatics® Inc. is the sole
-copyright holder (© 2026) and makes the work available under the open-source terms
-below **and** reserves the right to grant separate commercial/proprietary licenses.
+Blackcat Informatics® Inc. offers first-party GTS implementation code, build
+and packaging tooling, the GTS specification, and the frozen conformance vectors
+under **MIT OR Apache-2.0 OR MulanPSL-2.0**, at the recipient's option.
+Separately, the copyright holder may grant commercial or proprietary licenses.
+A commercial grant is not a fourth open-source license.
 
 ## Open-source terms
-
-The entire repository — all four implementations (Rust, Python, Go, TypeScript), the
-GTS specification, documentation, the conformance corpus, and build tooling — is
-offered under your choice of either:
 
 | License | Text |
 |---|---|
 | **MIT** | [`LICENSE-MIT`](./LICENSE-MIT) |
 | **Apache License 2.0** | [`LICENSE-APACHE`](./LICENSE-APACHE) |
+| **Mulan Permissive Software License, Version 2** | [`LICENSE-MULAN`](./LICENSE-MULAN) |
 
-You may use the software under the terms of **MIT _or_ Apache-2.0, at your option**.
-This is expressed in every source file and package manifest with the SPDX identifier:
+The choice is expressed as:
 
 ```text
-SPDX-License-Identifier: MIT OR Apache-2.0
+SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 ```
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for
-inclusion in the work shall be dual-licensed as above (MIT OR Apache-2.0), without any
-additional terms or conditions.
+The grant covers eligible first-party material across every implementation and
+wrapper. Other documentation and generated reports retain the licenses in their
+existing SPDX headers or `REUSE.toml` annotations. Third-party dependencies,
+consulted reference material, and IETF boilerplate retain their original terms;
+they are not relicensed by this offer. Retain their copyright and permission
+notices when distributing them.
+
+Python distribution metadata declares both the implementation's three-license
+choice and the retained MIT-or-Apache choice for its embedded README. That
+archive expression preserves the documentation's existing grant.
+
+MulanPSL-2.0 is bilingual. **Its Chinese text controls if the Chinese and English
+texts differ (§6).** Each contributor grants you a patent license within the
+scope of §2. That software patent license terminates if you or your affiliates
+directly or indirectly bring patent-infringement litigation (including a cross
+claim or counterclaim), or another patent-enforcement action, alleging that the
+software or a contribution infringes a patent. Section 3 grants no trademark
+license except use required for §4 notices. Section 4 requires providing
+recipients a license copy and retaining copyright, patent, trademark and
+disclaimer notices. The complete text controls these conditions. The committed
+bilingual text is byte-pinned by
+SHA-256 `eb7a1d713eb919b146787629e22e4c975cb701f529a65d4d7e0fcd417558bf1c`.
+
+Unless stated otherwise, contributions intentionally submitted for inclusion in
+eligible first-party code, tooling, specifications and vectors are offered under
+MIT OR Apache-2.0 OR MulanPSL-2.0, without added terms on that open-source grant.
+Contribution procedures and the independent commercial relicensing permission
+are described below. Contributions to other documentation retain that
+document's declared grant.
 
 ## Proprietary / commercial licensing
 
-The open licenses above are offered **in addition to — not in place of** — Blackcat
-Informatics®' right, as copyright holder, to license the software under separate
-commercial or proprietary terms. Granting the open licenses does not revoke or limit
-this reservation.
-
-To obtain a proprietary license, contact **licensing@blackcatinformatics.ca**.
+The open licenses are offered in addition to the copyright holder's right to
+license its own material under separate commercial or proprietary terms.
+Contact **licensing@blackcatinformatics.ca** for a commercial license.
 
 ## Trademarks
 
-"Blackcat Informatics®" is a registered trademark of Blackcat Informatics® Inc. Neither
-open license grants any right to use this name, its logos, or marks — see **Apache
-License 2.0 §6**. Nominative references (e.g. "compatible with GTS") are permitted; uses
-implying endorsement or origin are not.
+“Blackcat Informatics®” is a registered trademark of Blackcat Informatics® Inc.
+The open licenses grant no trademark rights: see Apache License 2.0 §6 and
+MulanPSL-2.0 §3. Nominative references such as “compatible with GTS” are permitted;
+uses implying endorsement or origin are not.
 
 ## Contributions
 
-Contributions to gmeow-gts are accepted under **Apache-2.0 OR MIT** and, under the project
-CLA, under terms that permit separate proprietary/commercial licensing. For the
-dual-licensing reservation above to extend to contributed material, contributors agree to
-license their contributions to Blackcat Informatics® Inc. under terms that permit
-relicensing, including under proprietary terms. A Contributor License Agreement may be
-required before substantial contributions are merged. See
-[`CONTRIBUTING.md`](./CONTRIBUTING.md) for details.
+Contributions are accepted under the applicable open-source grant above and,
+under the project CLA, terms permitting separate commercial or proprietary
+licensing. A Contributor License Agreement may be required before substantial
+contributions are merged. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Copyright notice
 
-> Copyright © 2026 Blackcat Informatics® Inc. All rights reserved, except as expressly
-> granted under the licenses above.
+Copyright © 2026 Blackcat Informatics® Inc. All rights reserved except as
+expressly granted by the applicable licenses. This first-party grant alignment
+changes no package version, wire-format version or conformance-vector bytes.

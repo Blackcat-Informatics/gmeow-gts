@@ -69,7 +69,7 @@ docker build -t gmeow-gts-smalltalk smalltalk && \
   YAML/Markdown/shell, secret scanning).
 - Per-language gates: `cargo fmt --check` + `cargo clippy`, `go vet` + `golangci-lint`,
   `npm run lint`, `ruff check` + `mypy`.
-- Every source file must carry an SPDX `MIT OR Apache-2.0` license header.
+- Every eligible first-party source file must carry an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
 - Keep changes focused; describe **what** changed and **why** in the PR description.
 
 CI runs all four parity engines, the Smalltalk/Pharo bootstrap, and a lint lane on every pull
@@ -77,21 +77,26 @@ request.
 
 ## Licence des contributions
 
-Contributions to **gmeow-gts** are accepted under **Apache-2.0 OR MIT** and, under the
-project CLA, under terms that permit separate proprietary/commercial licensing.
+Les contributions soumises intentionnellement pour inclusion dans le code d'implémentation
+de première partie admissible, les outils de construction et d'empaquetage, les spécifications
+GTS et les vecteurs de conformité figés sont acceptées sous **MIT OR Apache-2.0 OR MulanPSL-2.0**.
+Les contributions aux autres documents conservent la licence déclarée du document, sauf
+indication contraire explicite. Le CLA du projet régit séparément l'autorisation de
+relicencier sous des conditions propriétaires ou commerciales.
 
 For context, contributions to **GMEOW tooling/code** elsewhere in the project (the
 [`gmeow-ontology`](https://github.com/Blackcat-Informatics/gmeow-ontology) repository) are
 accepted under **AGPL-3.0-only** and, under the project CLA, under terms that permit Blackcat
 Informatics® Inc. to relicense them under separate proprietary/commercial terms. gmeow-gts is
 the deliberately permissive, dependency-light engine layer, so it carries the permissive
-`Apache-2.0 OR MIT` terms rather than AGPL.
+`MIT OR Apache-2.0 OR MulanPSL-2.0` terms rather than AGPL.
 
-By submitting a contribution you agree to license it under the terms above. For the
-dual-licensing reservation to extend to your contribution, you agree to license it to
-Blackcat Informatics® Inc. under terms that permit relicensing, including under proprietary
-terms. A Contributor License Agreement (CLA) may be required before substantial
-contributions are merged. See [`LICENSING.md`](./LICENSING.md) for the full licensing scheme.
+En soumettant une contribution, vous acceptez la licence applicable décrite ci-dessus.
+Pour que la réserve de double licence s'étende à votre contribution, vous acceptez aussi
+d'accorder à Blackcat Informatics® Inc. une licence permettant la redistribution sous
+d'autres licences, y compris sous des conditions propriétaires. Un accord de licence de
+contributeur (CLA) peut être exigé avant la fusion de contributions importantes.
+Voir [`LICENSING.md`](./LICENSING.md) pour le régime de licence complet.
 
 ## Versions
 

@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """The ``nquads → gts`` transform: the inverse of the §14 fold projection.
 
 Parses N-Quads(-star) text — the output of :func:`gts.nquads.to_nquads` — back

@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 #
 # Developer shortcuts across the six engines. Run `just` to list recipes.
 # Requires the per-engine toolchains: cargo, go, node/npm, uv, Gradle/JDK, and Docker.

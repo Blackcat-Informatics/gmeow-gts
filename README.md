@@ -24,7 +24,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
   <a href="https://pypi.org/project/gmeow-gts/"><img src="https://img.shields.io/pypi/v/gmeow-gts.svg?label=PyPI" alt="PyPI"></a>
   <a href="https://www.npmjs.com/package/@blackcatinformatics/gmeow-gts"><img src="https://img.shields.io/npm/v/@blackcatinformatics/gmeow-gts.svg?label=npm" alt="npm"></a>
   <a href="https://doi.org/10.67342/umcdg7675h/v1"><img src="https://img.shields.io/badge/DOI-10.67342%2Fumcdg7675h%2Fv1-blue" alt="DOI: 10.67342/umcdg7675h/v1"></a>
-  <a href="./LICENSING.md"><img src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg" alt="License: MIT OR Apache-2.0"></a>
+  <a href="./LICENSING.md"><img src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0%20OR%20MulanPSL--2.0-blue.svg" alt="License: MIT OR Apache-2.0 OR MulanPSL-2.0"></a>
 </p>
 
 <p align="center">
@@ -1117,15 +1117,15 @@ workflow; before opening a PR, run the relevant engine's tests and `pre-commit r
 Please also read the [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md). To report a vulnerability,
 follow [`SECURITY.md`](./SECURITY.md) (do not open a public issue).
 
-Contributions are accepted under the project's open licenses (Apache-2.0 OR MIT); see
+Contributions are accepted under the project's open licenses (MIT OR Apache-2.0 OR MulanPSL-2.0); see
 [`LICENSING.md`](./LICENSING.md) and [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the terms.
 
 ## License
 
-Triple-licensed: **MIT OR Apache-2.0 OR proprietary**. Use this software under the terms of
-[MIT](./LICENSE-MIT) **or** [Apache-2.0](./LICENSE-APACHE), at your option. A separate
+Three open-source options: **MIT OR Apache-2.0 OR MulanPSL-2.0**. Use this software under the terms of
+[MIT](./LICENSE-MIT), [Apache-2.0](./LICENSE-APACHE), **or** [MulanPSL-2.0](./LICENSE-MULAN), at your option. A separate
 commercial/proprietary license is also available — see [`LICENSING.md`](./LICENSING.md).
 
-Every source file carries an SPDX `MIT OR Apache-2.0` license header.
+Every source file carries an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
 
 > Copyright © 2026 Blackcat Informatics® Inc.

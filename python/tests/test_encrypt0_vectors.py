@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Cross-engine COSE_Encrypt0 vector (§9.3): the Python oracle gates against the
 same frozen ``vectors/encrypt0/basic.json`` that the Rust/Go/TS engines do.
 

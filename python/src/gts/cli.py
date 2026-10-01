@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """The ``gts`` command-line tool: inspect, fold, verify, and compose GTS files.
 
 ``cat`` and ``verify`` implement the §14.1 composition-tooling contract: raw

@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """The GTS reader: parse a CBOR Sequence, verify the id/prev chain, fold the log.
 
 Implements the Baseline Reader contract (§2.1): chain verification (§9.1), the

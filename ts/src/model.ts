@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 /** Well-known datatype IRIs used by the literal-defaulting rule (§7.1). */
 export const XSD_STRING = "http://www.w3.org/2001/XMLSchema#string";

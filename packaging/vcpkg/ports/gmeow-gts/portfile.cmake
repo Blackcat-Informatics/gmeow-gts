@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 if(NOT DEFINED ENV{GMEOW_GTS_SOURCE_PATH})
   message(FATAL_ERROR "Set GMEOW_GTS_SOURCE_PATH to a gmeow-gts source checkout for the local overlay port.")
@@ -113,8 +113,9 @@ vcpkg_fixup_pkgconfig()
 
 file(READ "${SOURCE_PATH}/LICENSE-MIT" _license_mit)
 file(READ "${SOURCE_PATH}/LICENSE-APACHE" _license_apache)
+file(READ "${SOURCE_PATH}/LICENSE-MULAN" _license_mulan)
 file(WRITE "${CURRENT_PACKAGES_DIR}/share/${PORT}/copyright"
-"gmeow-gts is dual licensed under MIT OR Apache-2.0.
+"gmeow-gts offers MIT OR Apache-2.0 OR MulanPSL-2.0, at your option.
 
 MIT license:
 
@@ -123,4 +124,8 @@ ${_license_mit}
 Apache-2.0 license:
 
 ${_license_apache}
+
+MulanPSL-2.0 license:
+
+${_license_mulan}
 ")

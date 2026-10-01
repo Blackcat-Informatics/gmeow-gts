@@ -1,5 +1,5 @@
 <!-- SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca> -->
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0 -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -9,11 +9,14 @@
     <PackageId>Gmeow.Gts</PackageId>
     <Title>Gmeow GTS .NET C ABI Wrapper</Title>
     <Description>Thin .NET P/Invoke wrapper over the Rust-backed libgts C ABI.</Description>
-    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT OR Apache-2.0 OR MulanPSL-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Blackcat-Informatics/gmeow-gts</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../../LICENSE-MIT" Pack="true" PackagePath="licenses/" />
+    <None Include="../../LICENSE-APACHE" Pack="true" PackagePath="licenses/" />
+    <None Include="../../LICENSE-MULAN" Pack="true" PackagePath="licenses/" />
     <None Include="../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

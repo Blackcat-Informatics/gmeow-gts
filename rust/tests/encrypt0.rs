@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 //! Cross-engine COSE_Encrypt0 conformance (§9.3): the Rust engine reproduces the
 //! frozen `vectors/encrypt0/basic.json` (a fixed-IV AES-256-GCM seal) byte-for-byte
 //! and opens it, plus a random-IV round-trip.

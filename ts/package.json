@@ -27,7 +27,10 @@
     "gts": "./dist/bin/gts.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+    "LICENSE-MULAN"
   ],
   "scripts": {
     "build": "tsc",
@@ -56,7 +59,7 @@
     "prettier": "^3.5.0",
     "typescript": "^6.0.3"
   },
-  "license": "MIT OR Apache-2.0",
+  "license": "MIT OR Apache-2.0 OR MulanPSL-2.0",
   "homepage": "https://blackcatinformatics.ca/projects/gts",
   "repository": {
     "type": "git",

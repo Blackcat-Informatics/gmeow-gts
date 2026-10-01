@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Regenerate the cross-engine signed-GTS conformance vector (§9.2).
 
 A small GTS file signed with a deterministic Ed25519 key: every frame carries a
