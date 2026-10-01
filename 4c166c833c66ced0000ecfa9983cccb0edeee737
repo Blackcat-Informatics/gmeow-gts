@@ -1,0 +1,17 @@
+ghprsq PR head backlink metadata
+
+parent_hashes: 4c166c833c66ced0000ecfa9983cccb0edeee737
+
+GhpRsq-Schema: 1
+GhpRsq-Merge-Style: structured-squash-head-backlink
+GhpRsq-GitHub-Repo: Blackcat-Informatics/gmeow-gts
+GhpRsq-GitHub-Pull-Request: 476
+GhpRsq-GitHub-PR-URL: https://github.com/Blackcat-Informatics/gmeow-gts/pull/476
+GhpRsq-Base-Ref: main
+GhpRsq-Base-OID: c5dc60ade4af3473eea95fbfe5c82ed434d23190
+GhpRsq-Head-Ref: paudley/license-mulan-alignment
+GhpRsq-Head-OID: 4c166c833c66ced0000ecfa9983cccb0edeee737
+GhpRsq-Result-Tree: b84d106bd84454de67aa267b26b3c038d29bcfe0
+GhpRsq-Result-Commit: 29b5f9bd6abb9d05166ddbeb7b420c6ab11a0fd4
+GhpRsq-Parent-Hashes: 4c166c833c66ced0000ecfa9983cccb0edeee737
+GhpRsq-Squash-Notes-SHA256: 2c9604d409a47c9f1e8a71f80ec77cdd3b34c052ccf34a3469e2664f0d60e6e0
