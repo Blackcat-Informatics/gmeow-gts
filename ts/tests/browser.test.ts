@@ -237,7 +237,7 @@ test("browser stream fold honours the declared COSE algorithm (§9.2)", async ()
     const names = readdirSync(dir).filter(
         (n) => n.startsWith("sigalg-") && n.endsWith(".json"),
     );
-    assert.ok(names.length === 53, `expected the sigalg vectors, found ${names.length}`);
+    assert.ok(names.length === 68, `expected the sigalg vectors, found ${names.length}`);
     for (const name of names) {
         const vector = JSON.parse(readFileSync(join(dir, name), "utf-8"));
         const bytes = unhex(vector.gts);

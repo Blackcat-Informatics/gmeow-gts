@@ -2443,6 +2443,78 @@
       "notes": "Pins signed GTS writer output and signature verification."
     },
     {
+      "id": "signed-sigalg-alg-array",
+      "title": "signed GTS fixture: sigalg-alg-array",
+      "input": {
+        "path": "vectors/signed/sigalg-alg-array.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-alg-bstr",
+      "title": "signed GTS fixture: sigalg-alg-bstr",
+      "input": {
+        "path": "vectors/signed/sigalg-alg-bstr.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
       "id": "signed-sigalg-alg-float",
       "title": "signed GTS fixture: sigalg-alg-float",
       "input": {
@@ -2479,10 +2551,82 @@
       "notes": "Pins signed GTS writer output and signature verification."
     },
     {
+      "id": "signed-sigalg-alg-map",
+      "title": "signed GTS fixture: sigalg-alg-map",
+      "input": {
+        "path": "vectors/signed/sigalg-alg-map.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
       "id": "signed-sigalg-alg-nonminimal-8byte",
       "title": "signed GTS fixture: sigalg-alg-nonminimal-8byte",
       "input": {
         "path": "vectors/signed/sigalg-alg-nonminimal-8byte.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-alg-null",
+      "title": "signed GTS fixture: sigalg-alg-null",
+      "input": {
+        "path": "vectors/signed/sigalg-alg-null.json",
         "media_type": "application/json"
       },
       "mode": "strict-verify",
@@ -4000,6 +4144,42 @@
       "notes": "Pins signed GTS writer output and signature verification."
     },
     {
+      "id": "signed-sigalg-map-count-nonminimal",
+      "title": "signed GTS fixture: sigalg-map-count-nonminimal",
+      "input": {
+        "path": "vectors/signed/sigalg-map-count-nonminimal.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
       "id": "signed-sigalg-missing-alg",
       "title": "signed GTS fixture: sigalg-missing-alg",
       "input": {
@@ -4180,6 +4360,78 @@
       "notes": "Pins signed GTS writer output and signature verification."
     },
     {
+      "id": "signed-sigalg-text-above-max",
+      "title": "signed GTS fixture: sigalg-text-above-max",
+      "input": {
+        "path": "vectors/signed/sigalg-text-above-max.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-text-f5-lead",
+      "title": "signed GTS fixture: sigalg-text-f5-lead",
+      "input": {
+        "path": "vectors/signed/sigalg-text-f5-lead.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
       "id": "signed-sigalg-text-invalid-utf8",
       "title": "signed GTS fixture: sigalg-text-invalid-utf8",
       "input": {
@@ -4207,6 +4459,295 @@
           "gts",
           "kid",
           "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-text-key-surrogate",
+      "title": "signed GTS fixture: sigalg-text-key-surrogate",
+      "input": {
+        "path": "vectors/signed/sigalg-text-key-surrogate.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-text-length-nonminimal",
+      "title": "signed GTS fixture: sigalg-text-length-nonminimal",
+      "input": {
+        "path": "vectors/signed/sigalg-text-length-nonminimal.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-text-overlong-2",
+      "title": "signed GTS fixture: sigalg-text-overlong-2",
+      "input": {
+        "path": "vectors/signed/sigalg-text-overlong-2.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-text-overlong-3",
+      "title": "signed GTS fixture: sigalg-text-overlong-3",
+      "input": {
+        "path": "vectors/signed/sigalg-text-overlong-3.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-text-stray-continuation",
+      "title": "signed GTS fixture: sigalg-text-stray-continuation",
+      "input": {
+        "path": "vectors/signed/sigalg-text-stray-continuation.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-text-surrogate",
+      "title": "signed GTS fixture: sigalg-text-surrogate",
+      "input": {
+        "path": "vectors/signed/sigalg-text-surrogate.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-text-truncated",
+      "title": "signed GTS fixture: sigalg-text-truncated",
+      "input": {
+        "path": "vectors/signed/sigalg-text-truncated.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "seed",
+          "status_with_key",
+          "status_without_key"
+        ],
+        "encoded": "gts"
+      },
+      "notes": "Pins signed GTS writer output and signature verification."
+    },
+    {
+      "id": "signed-sigalg-text-valid-multibyte",
+      "title": "signed GTS fixture: sigalg-text-valid-multibyte",
+      "input": {
+        "path": "vectors/signed/sigalg-text-valid-multibyte.json",
+        "media_type": "application/json"
+      },
+      "mode": "strict-verify",
+      "negative": false,
+      "required_capabilities": [
+        "cose-sign1",
+        "ed25519"
+      ],
+      "subsets": [
+        "crypto-cose"
+      ],
+      "tiers": [
+        "full-reader"
+      ],
+      "expected": {
+        "graph": null,
+        "diagnostics": [],
+        "expected_head": null,
+        "fields": [
+          "description",
+          "gts",
+          "kid",
+          "pub",
+          "reported_kid",
           "seed",
           "status_with_key",
           "status_without_key"

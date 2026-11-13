@@ -77,7 +77,7 @@ SIGALG_VECTORS = sorted(p.name for p in SIGNED_DIR.glob("sigalg-*.json"))
 
 def test_signature_algorithm_dispatch_vector_count() -> None:
     """An empty or partial glob must fail rather than silently skip."""
-    assert len(SIGALG_VECTORS) == 53
+    assert len(SIGALG_VECTORS) == 68
 
 
 @pytest.mark.parametrize("vector", SIGALG_VECTORS)
