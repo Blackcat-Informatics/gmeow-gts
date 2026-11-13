@@ -91,20 +91,50 @@ func mustEncMode(opts cbor.EncOptions) cbor.EncMode {
 	return mode
 }
 
-// declaredAlgorithm returns the alg (label 1) of a protected header. The
-// header's bytes are signed, so they must be deterministically encoded CBOR
-// (RFC 8949 section 4.2, GTS-SPEC section 4) holding exactly one map: the bytes
-// must equal the deterministic re-encoding of what they decode to (definite
-// lengths, shortest-form integers, bytewise-sorted keys, no duplicate keys, no
-// trailing bytes). The integer key 1 must map to an integer (int64 or uint64) or
-// a text string. ok=false if the header is malformed or declares no algorithm.
+// plainHeaderValue reports whether v holds only integers, byte strings, text
+// strings, arrays, maps, nil, true and false at any depth: no float, tag, bignum
+// or other simple value.
+func plainHeaderValue(v interface{}) bool {
+	switch x := v.(type) {
+	case nil, bool, int64, uint64, string, []byte, cbor.ByteString:
+		return true
+	case []interface{}:
+		for _, item := range x {
+			if !plainHeaderValue(item) {
+				return false
+			}
+		}
+		return true
+	case map[interface{}]interface{}:
+		for k, item := range x {
+			if !plainHeaderValue(k) || !plainHeaderValue(item) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// declaredAlgorithm returns the alg (label 1) of a protected header.
+//
+// Header rule (identical in every engine): the protected header must be
+// deterministically encoded CBOR (RFC 8949 section 4.2, GTS-SPEC section 4)
+// holding exactly one map, containing only integers, byte strings, text strings,
+// arrays, maps, null, true and false (no float, tag or other simple value at any
+// depth), and its integer key 1 must map to an integer or text string.
+//
+// Here: the strict decode mode rejects indefinite lengths and duplicate keys, the
+// value must be plain (above), and the bytes must equal the core deterministic
+// re-encoding of what they decode to (shortest-form integers, bytewise-sorted
+// keys, no trailing bytes). ok=false if malformed or no algorithm is declared.
 func declaredAlgorithm(protected []byte) (algorithm interface{}, ok bool) {
 	var header interface{}
 	if err := protectedDecMode.Unmarshal(protected, &header); err != nil {
 		return nil, false
 	}
 	m, isMap := header.(map[interface{}]interface{})
-	if !isMap {
+	if !isMap || !plainHeaderValue(header) {
 		return nil, false
 	}
 	again, err := protectedEncMode.Marshal(header)

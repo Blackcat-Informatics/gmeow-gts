@@ -202,5 +202,5 @@ fn signature_algorithm_dispatch_vectors() {
         }
         count += 1;
     }
-    assert_eq!(count, 22, "expected the sigalg vectors");
+    assert_eq!(count, 37, "expected the sigalg vectors");
 }

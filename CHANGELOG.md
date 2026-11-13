@@ -33,11 +33,12 @@ breaking wire change requires a new wire-format major version.
   maps to an integer or text `alg` is now `invalid` in every engine; a boolean
   or float key, or a float `alg` such as -8.0, no longer stands in. An EdDSA
   signature that is not 64 bytes long is `invalid` once its key resolves.
-  Because the header's bytes are signed, they must be
-  deterministically encoded CBOR (§4: definite lengths, shortest-form integers at
-  every width, bytewise-sorted unique keys, no trailing bytes); anything else
-  is `invalid`. Signing output is unchanged. New vectors `vectors/signed/sigalg-*.json` pin
-  the behaviour with the private-use algorithm identifier -65537.
+  The protected header must be deterministically encoded CBOR (RFC 8949 §4.2,
+  GTS-SPEC §4) holding exactly one map, containing only integers, byte strings,
+  text strings, arrays, maps, null, true and false (no float, tag or other simple
+  value at any depth), and its integer key 1 must map to an integer or text
+  `alg`; anything else is `invalid` in every engine. Signing output is
+  unchanged. New vectors `vectors/signed/sigalg-*.json` pin the behaviour with the private-use algorithm identifier -65537.
 - Other behaviour changes: Rust no longer reports a malformed COSE_Sign1 as
   `unverified`; Smalltalk now reports a missing `kid` as `invalid` where it
   reported `unverified`; the Python reader no longer raises on undecodable

@@ -106,18 +106,31 @@ fun parseSign1(cose: ByteArray): Sign1Parts? {
 }
 
 /**
- * The `alg` (label 1) of a protected header (RFC 9052 section 3.1). The header's bytes are signed, so they
- * must be deterministically encoded CBOR (RFC 8949 section 4.2, GTS-SPEC section 4) holding exactly one map:
- * the decoder rejects indefinite lengths, trailing bytes and floats, and the bytes must equal [encode] of what
- * they decode to (shortest-form integers, bytewise-sorted keys) with no repeated key. The integer key 1 must
- * map to an integer or text string. Null if the header is malformed or declares no algorithm.
+ * The `alg` (label 1) of a protected header (RFC 9052 section 3.1).
+ *
+ * Header rule (identical in every engine): the protected header must be deterministically encoded CBOR
+ * (RFC 8949 section 4.2, GTS-SPEC section 4) holding exactly one map, containing only integers, byte strings,
+ * text strings, arrays, maps, null, true and false (no float, tag or other simple value at any depth), and its
+ * integer key 1 must map to an integer or text string.
+ *
+ * Here: the decoder rejects indefinite lengths, trailing bytes, floats and unassigned simple values; tags and
+ * `undefined` are rejected by [hasForbiddenValue]; and the bytes must equal [encode] of what they decode to
+ * (shortest-form integers, bytewise-sorted keys) with no repeated key. Null if malformed or no algorithm.
  */
 private fun declaredAlgorithm(protected: ByteArray): CborValue? {
     val header = decodeOrNull(protected) as? CborMap ?: return null
-    if (hasDuplicateKeys(header) || !encode(header).contentEquals(protected)) return null
+    if (hasForbiddenValue(header) || hasDuplicateKeys(header) || !encode(header).contentEquals(protected)) return null
     val algorithm = header.getIntKey(COSE_ALG_LABEL) ?: return null
     return if (algorithm is CborUInt || algorithm is CborNInt || algorithm is CborText) algorithm else null
 }
+
+private fun hasForbiddenValue(value: CborValue): Boolean =
+    when (value) {
+        is CborTag, CborUndefined -> true
+        is CborMap -> value.value.any { (key, entry) -> hasForbiddenValue(key) || hasForbiddenValue(entry) }
+        is CborArray -> value.value.any { hasForbiddenValue(it) }
+        else -> false
+    }
 
 private fun hasDuplicateKeys(value: CborValue): Boolean =
     when (value) {

@@ -133,22 +133,47 @@ def sign_id(frame_id: bytes, signer: Signer) -> bytes:
     return cbor2.dumps(cose, canonical=True)
 
 
+def _plain_header_value(value: object) -> bool:
+    """Whether ``value`` holds only integers (64-bit range), byte and text strings,
+    arrays, maps, null, true and false at any depth: no float, tag, bignum,
+    ``undefined`` or other simple value."""
+    if value is None or isinstance(value, bool | bytes | str):
+        return True
+    if isinstance(value, int):
+        return -(2**64) <= value < 2**64
+    if isinstance(value, list | tuple):
+        return all(_plain_header_value(item) for item in value)
+    if isinstance(value, Mapping):
+        return all(
+            _plain_header_value(k) and _plain_header_value(v) for k, v in value.items()
+        )
+    return False
+
+
 def _declared_alg(protected: bytes) -> int | str | None:
     """Return the ``alg`` declared in a protected header, or ``None`` if malformed.
 
-    The header's bytes are signed, so they must be deterministically encoded
-    (RFC 8949 §4.2, GTS-SPEC §4) CBOR holding exactly one map: the bytes must
-    equal :func:`gts.wire.canonical` of what they decode to (definite lengths,
-    shortest-form integers, bytewise-sorted keys, no trailing bytes). A decoder
-    that collapses duplicate keys makes the re-encoding shorter, so duplicates
-    fail the same comparison. ``alg`` (label 1, an integer key, not a bool or
-    float) must be an integer or a text string (RFC 9052 §3.1). Anything else is
-    malformed (§9.2: readers MUST honour the declared algorithm, so a signature
-    that declares none cannot be dispatched).
+    Header rule (identical in every engine): the protected header must be
+    deterministically encoded CBOR (RFC 8949 §4.2, GTS-SPEC §4) holding exactly
+    one map, containing only integers, byte strings, text strings, arrays, maps,
+    null, true and false (no float, tag or other simple value at any depth), and
+    its integer key 1 must map to an integer or text string.
+
+    Here: the bytes must equal :func:`gts.wire.canonical` of what they decode to
+    (definite lengths, shortest-form integers, bytewise-sorted keys, no trailing
+    bytes); a decoder that collapses duplicate keys makes the re-encoding
+    shorter, so duplicates fail the same comparison. ``alg`` must be exactly an
+    ``int`` or ``str`` under an exactly-``int`` label (not a bool or float).
+    Malformed input is ``None`` (§9.2: readers MUST honour the declared
+    algorithm, so a signature that declares none cannot be dispatched).
     """
     try:
         header = cbor2.loads(protected)
-        if not isinstance(header, Mapping) or canonical(header) != protected:
+        if (
+            not isinstance(header, Mapping)
+            or not _plain_header_value(header)
+            or canonical(header) != protected
+        ):
             return None
     except (cbor2.CBORDecodeError, ValueError, TypeError, RecursionError):
         return None

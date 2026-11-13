@@ -37,10 +37,12 @@ de format de transfert.
   d'octets contenant exactement une table (sans octets superflus) où la clé entière 1
   désigne un `alg` entier ou textuel est maintenant `invalid` dans tous les moteurs ; une
   clé booléenne ou flottante, ou un `alg` flottant comme -8.0, ne la remplace plus. Une
-  signature EdDSA qui ne fait pas 64 octets est `invalid` dès que sa clé est résolue. Comme les octets de l'en-tête sont signés, ils doivent
-  être du CBOR à encodage déterministe (§4 : longueurs définies, entiers de forme
-  la plus courte à toute largeur, clés uniques triées octet par octet, aucun octet
-  superflu) ; tout autre cas est `invalid`. La sortie de signature est inchangée. Les nouveaux vecteurs `vectors/signed/sigalg-*.json`
+  signature EdDSA qui ne fait pas 64 octets est `invalid` dès que sa clé est résolue. L'en-tête protégé doit être du CBOR à encodage déterministe (RFC 8949 §4.2,
+  GTS-SPEC §4) contenant exactement une table, composée uniquement d'entiers, de
+  chaînes d'octets, de chaînes de texte, de tableaux, de tables, de null, de true et
+  de false (aucun flottant, aucune étiquette ni autre valeur simple, à aucune
+  profondeur), et sa clé entière 1 doit désigner un `alg` entier ou textuel ; tout
+  autre cas est `invalid` dans tous les moteurs. La sortie de signature est inchangée. Les nouveaux vecteurs `vectors/signed/sigalg-*.json`
   fixent ce comportement avec l'identifiant d'algorithme à usage privé -65537.
 - Autres changements de comportement : Rust ne rapporte plus un COSE_Sign1 mal formé comme
   `unverified` ; Smalltalk rapporte maintenant un `kid` absent comme `invalid` au lieu de

@@ -189,6 +189,137 @@ _ALG_CASES: dict[str, tuple[str, _CoseBuilder, str, str, bool]] = {
         "invalid",
         False,
     ),
+    "sigalg-header-float16": (
+        "Header rule: a half-precision float value under an unrelated key: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a2012705f93c00"), kid, fid
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-float64": (
+        "Header rule: a double-precision float value under an "
+        "unrelated key: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a2012705fb3ff0000000000000"), kid, fid
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-tag": (
+        "Header rule: a tagged value under an unrelated key: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a2012705c100"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-bignum": (
+        "Header rule: a bignum under an unrelated key: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a2012705c249010000000000000000"), kid, fid
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-undefined": (
+        "Header rule: the simple value undefined under an unrelated key: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a2012705f7"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-simple-16": (
+        "Header rule: an unassigned simple value (16) under an "
+        "unrelated key: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a2012705f0"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-simple-32": (
+        "Header rule: an unassigned one-byte simple value (32) under "
+        "an unrelated key: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a2012705f820"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-nested-unsorted": (
+        "Header rule: a nested map with unsorted keys: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a2012705a202000100"), kid, fid
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-nested-duplicate": (
+        "Header rule: a nested map with a repeated key: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a2012705a201000101"), kid, fid
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-nested-indefinite-array": (
+        "Header rule: a nested indefinite-length array: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a20127059f00ff"), kid, fid
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-keys-lengthfirst-order": (
+        "Header rule: keys in length-first order (-1 before 24), not "
+        "bytewise: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a301272000181800"), kid, fid
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-null-bool-values": (
+        "Header rule: null, true and false under unrelated keys are "
+        "acceptable: accepted.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a4012705f606f507f4"), kid, fid
+        ),
+        "valid",
+        "unverified",
+        True,
+    ),
+    "sigalg-header-bstr-key": (
+        "Header rule: a byte-string key beside label 1 is acceptable: accepted.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a20127417800"), kid, fid),
+        "valid",
+        "unverified",
+        True,
+    ),
+    "sigalg-keys-bytewise-order": (
+        "Header rule: keys in bytewise order (24 before -1) are acceptable: accepted.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a301271818002000"), kid, fid
+        ),
+        "valid",
+        "unverified",
+        True,
+    ),
+    "sigalg-empty-protected-alg-unprotected": (
+        "Empty protected byte string with alg only in the unprotected "
+        "header: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, b"", kid, fid, {_ALG: _ALG_EDDSA, _KID: kid.encode()}
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
     "sigalg-protected-not-map": (
         "Protected header is a bstr holding a CBOR integer, not a map: malformed.",
         lambda sk, kid, fid: _ed25519_cose(sk, cbor2.dumps(1), kid, fid),

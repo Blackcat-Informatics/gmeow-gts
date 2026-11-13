@@ -91,36 +91,40 @@ struct Sign1 {
     signature: Vec<u8>,
 }
 
-/// Whether any map in `value` repeats a key (RFC 9052 §3 requires unique labels).
-fn has_duplicate_keys(value: &Value) -> bool {
+/// Whether `value` holds a float or tag, or a map that repeats a key, at any depth.
+fn is_forbidden_in_header(value: &Value) -> bool {
     match value {
+        Value::Float(_) | Value::Tag(..) => true,
         Value::Map(entries) => {
             let mut keys: Vec<Vec<u8>> = entries.iter().map(|(k, _)| wire::encode(k)).collect();
             keys.sort();
             keys.windows(2).any(|pair| pair[0] == pair[1])
                 || entries
                     .iter()
-                    .any(|(k, v)| has_duplicate_keys(k) || has_duplicate_keys(v))
+                    .any(|(k, v)| is_forbidden_in_header(k) || is_forbidden_in_header(v))
         }
-        Value::Array(items) => items.iter().any(has_duplicate_keys),
-        Value::Tag(_, inner) => has_duplicate_keys(inner),
+        Value::Array(items) => items.iter().any(is_forbidden_in_header),
         _ => false,
     }
 }
 
 /// The `alg` (label 1) of a protected header (RFC 9052 §3.1).
 ///
-/// The header's bytes are signed, so they must be deterministically encoded
-/// (RFC 8949 §4.2, GTS-SPEC §4) CBOR holding exactly one map: the bytes must equal
-/// the engine's own deterministic encoding of what they decode to (definite
+/// Header rule (identical in every engine): the protected header must be
+/// deterministically encoded CBOR (RFC 8949 §4.2, GTS-SPEC §4) holding exactly one
+/// map, containing only integers, byte strings, text strings, arrays, maps, null,
+/// true and false (no float, tag or other simple value at any depth), and its
+/// integer key 1 must map to an integer or text string.
+///
+/// Here: the bytes must equal `wire::canonical` of what they decode to (definite
 /// lengths, shortest-form integers, bytewise-sorted keys, no trailing bytes), and
-/// no map may repeat a key. The integer key 1 must map to an integer or text
-/// string. `None` if malformed or absent, since a signature that declares no
-/// algorithm cannot be dispatched.
+/// no float, tag or repeated map key may appear. `None` if malformed or absent.
 fn declared_algorithm(protected: &[u8]) -> Option<Algorithm> {
     let mut remaining = protected;
     let header: Value = ciborium::de::from_reader(&mut remaining).ok()?;
-    if !remaining.is_empty() || has_duplicate_keys(&header) || wire::canonical(&header) != protected
+    if !remaining.is_empty()
+        || is_forbidden_in_header(&header)
+        || wire::canonical(&header) != protected
     {
         return None;
     }

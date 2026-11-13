@@ -65,14 +65,37 @@ GtsCose class >> parseEncrypt0: coseBytes [
 ]
 
 { #category : #private }
+GtsCose class >> isPlainHeaderValue: anObject [
+	"True if anObject holds only integers, byte strings, text strings, arrays,
+	maps, nil, true and false at any depth: no tag or other value."
+
+	anObject isNil ifTrue: [ ^ true ].
+	(anObject == true or: [ anObject == false ]) ifTrue: [ ^ true ].
+	anObject isInteger ifTrue: [ ^ true ].
+	(anObject isKindOf: ByteArray) ifTrue: [ ^ true ].
+	anObject isString ifTrue: [ ^ true ].
+	anObject isArray ifTrue: [ ^ anObject allSatisfy: [ :each | self isPlainHeaderValue: each ] ].
+	anObject isDictionary ifTrue: [
+		^ anObject associations allSatisfy: [ :each |
+			(self isPlainHeaderValue: each key) and: [ self isPlainHeaderValue: each value ] ] ].
+	^ false
+]
+
+{ #category : #private }
 GtsCose class >> declaredAlgorithm: protected [
-	"The alg (label 1) of a protected header: a bstr holding a CBOR map whose
-	alg is an integer or a text string (RFC 9052 section 3.1). The header is
-	exactly one CBOR map, deterministically encoded (RFC 8949 section 4.2,
-	GTS-SPEC section 4): the bytes must equal the writer's encoding of what they
-	decode to, so indefinite lengths, non-shortest integers, unsorted keys and
-	duplicate keys (a Dictionary collapses them) are malformed. Signals
-	GtsCryptoError if the header is malformed or declares no algorithm."
+	"The alg (label 1) of a protected header (RFC 9052 section 3.1).
+
+	Header rule (identical in every engine): the protected header must be
+	deterministically encoded CBOR (RFC 8949 section 4.2, GTS-SPEC section 4)
+	holding exactly one map, containing only integers, byte strings, text strings,
+	arrays, maps, null, true and false (no float, tag or other simple value at any
+	depth), and its integer key 1 must map to an integer or text string.
+
+	Here: the reader signals on indefinite lengths and floats; the bytes must equal
+	the writer's encoding of what they decode to (non-shortest integers, unsorted
+	keys and duplicate keys, which a Dictionary collapses, all differ); and
+	isPlainHeaderValue: rejects tags and other values. Signals GtsCryptoError if
+	the header is malformed or declares no algorithm."
 
 	| algorithm header |
 	(protected isKindOf: ByteArray)
@@ -81,6 +104,8 @@ GtsCose class >> declaredAlgorithm: protected [
 		reader := GtsCborReader on: protected.
 		item := reader readItem.
 		reader atEnd ifFalse: [ Error signal: 'trailing CBOR bytes' ].
+		(self isPlainHeaderValue: item)
+			ifFalse: [ Error signal: 'protected header holds a tag or other value' ].
 		(GtsCborWriter encode: item) = protected
 			ifFalse: [ Error signal: 'protected header is not deterministically encoded' ].
 		item ]

@@ -565,7 +565,7 @@ class KotlinParityTest {
                 if (name.startsWith("sigalg-") && name.endsWith(".json")) names.add(name)
             }
         }
-        assertTrue(names.size == 22, "expected the sigalg vectors, found ${names.size}")
+        assertTrue(names.size == 37, "expected the sigalg vectors, found ${names.size}")
         for (name in names) {
             val case = Json.parseToJsonElement(vectors.resolve("signed").resolve(name).readText()).jsonObject
             val data = parseHex(case["gts"]!!.jsonPrimitive.content)
