@@ -1202,6 +1202,14 @@ def _remap_suppression(
     union graph is value-interned.
     """
     new_targets: list[Mapping[str, object]] = []
+    known = len(seg.terms)
+
+    def resolves(x: object) -> bool:
+        # A term id the segment never introduced (its `terms` frame was damaged or
+        # dropped) names nothing: the reference is kept as received, as Rust, Go and
+        # TypeScript do, and the damage is already diagnosed where it happened.
+        return isinstance(x, int) and 0 <= x < known
+
     for target in sup.targets:
         kind = target.get("kind")
         if kind in ("frame", "blob"):
@@ -1210,16 +1218,17 @@ def _remap_suppression(
         t = dict(target)
         tid = t.get("id")
         if kind in ("term", "reifier") and isinstance(tid, int):
-            t["id"] = map_fn(seg, seg_idx, tid)
+            if resolves(tid):
+                t["id"] = map_fn(seg, seg_idx, tid)
         elif kind == "quad":
             raw_q = t.get("q")
             if isinstance(raw_q, list):
-                t["q"] = [
-                    map_fn(seg, seg_idx, x) if isinstance(x, int) else x for x in raw_q
-                ]
+                t["q"] = [map_fn(seg, seg_idx, x) if resolves(x) else x for x in raw_q]
         new_targets.append(t)
     return Suppression(
         targets=new_targets,
         reason=sup.reason,
-        by=map_fn(seg, seg_idx, sup.by) if sup.by is not None else None,
+        by=map_fn(seg, seg_idx, sup.by)
+        if sup.by is not None and resolves(sup.by)
+        else None,
     )

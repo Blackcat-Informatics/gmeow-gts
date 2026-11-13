@@ -32,7 +32,7 @@ from gts.crypto import (
     sign_id,
     verify_sig,
 )
-from gts.wire import canonical, decoder, iter_items, loads
+from gts.wire import blake3_256, canonical, decoder, iter_items, loads
 
 VECTORS = Path(__file__).resolve().parents[2] / "vectors"
 
@@ -64,6 +64,11 @@ _PAYLOADS = [
 _TAGS = [*range(65536), 2**32 - 1, 2**32, 2**63, 2**64 - 1]
 
 
+# Tags 2 and 3 are integers beyond 64 bits, not meaning GTS invents: a frame is hashed
+# over the integer, as every other engine does, so they are decoded to it (R3 below).
+_BIGNUM_TAGS = (2, 3)
+
+
 def _plain(value: object) -> object:
     """Tuples and frozen maps, as the library returns tag content, as plain ones."""
     if isinstance(value, list | tuple):
@@ -76,12 +81,40 @@ def _plain(value: object) -> object:
 def test_loads_leaves_every_tag_uninterpreted() -> None:
     """Tag space scan: a newer ``cbor2`` that interprets one more tag fails here."""
     for tag in _TAGS:
+        if tag in _BIGNUM_TAGS:
+            continue
         head = _tag_head(tag)
         for payload, value in _PAYLOADS:
             got = loads(head + payload)
             assert isinstance(got, cbor2.CBORTag), (tag, payload.hex(), got)
             assert got.tag == tag, (tag, payload.hex(), got)
             assert _plain(got.value) == value, (tag, payload.hex(), got)
+
+
+def test_bignum_tags_decode_to_the_integer_and_other_content_stays_tagged() -> None:
+    assert loads(bytes.fromhex("c24105")) == 5
+    assert loads(bytes.fromhex("c349010000000000000000")) == -(2**64) - 1
+    assert loads(bytes.fromhex("c2626162")) == cbor2.CBORTag(2, "ab")
+    assert loads(bytes.fromhex("c38101")) == cbor2.CBORTag(3, [1])
+
+
+def test_frame_with_a_non_preferred_bignum_is_a_self_hash_mismatch() -> None:
+    """The id covers bytes as received; a bignum that is not preferred form is damage.
+
+    Rust, Go, TypeScript and Python before this change report the frame damaged,
+    because they re-encode the integer 5 as one byte, not as ``c2 41 05``.
+    """
+    data = (VECTORS / "01-minimal.gts").read_bytes()
+    prev = iter_items(data)[0][-1][1]["id"]
+    body = bytes.fromhex("a36174627a7a6178c2410564707265765820") + prev
+    ident = blake3_256(body)
+    frame = bytes.fromhex("a46174627a7a6178c241056269645820")
+    frame += ident + bytes.fromhex("64707265765820") + prev
+    g = read(data + frame)
+    assert [(d.code, d.detail) for d in g.diagnostics] == [
+        ("DamagedFrame", "frame self-hash mismatch")
+    ]
+    assert [o.reason for o in g.opaque] == ["damaged"]
 
 
 def test_decoder_leaves_tags_uninterpreted_in_a_sequence() -> None:
@@ -143,16 +176,23 @@ def test_stray_tagged_item_is_a_damaged_frame_and_the_fold_goes_on(
     assert len(items) == 4
 
 
-def test_stray_tagged_item_does_not_open_a_segment() -> None:
-    """Only tag 55799 may wrap a Header (§3); under another tag it is a stray item."""
+def test_header_under_a_foreign_tag_still_opens_a_segment() -> None:
+    """A tagged Header starts a new segment and is rejected, never folded into the last.
+
+    The second segment's frames must not fold into the first segment's term table:
+    applying file-global term ids across a boundary is the one forbidden outcome (§17).
+    Rust, Go and TypeScript read the same file the same way.
+    """
     data = (VECTORS / "01-minimal.gts").read_bytes()
-    header = data[3 : iter_items(data)[0][1][0]]  # the Header without tag 55799
-    other_tag = _tag_head(6000) + header
-    g = read(data + other_tag)
+    items, _ = iter_items(data)
+    header = data[3 : items[1][0]]  # the Header without tag 55799
+    frames = data[items[1][0] :]
+    g = read(data + _tag_head(6000) + header + frames)
     assert [(d.code, d.detail) for d in g.diagnostics] == [
-        ("DamagedFrame", "frame is not a map")
+        ("DamagedFrame", "invalid header: unexpected CBOR tag 6000 on the header item")
     ]
-    assert len(g.segment_heads) == 1
+    assert len(g.terms) == 3
+    assert len(g.quads) == 1
 
 
 _SIGNER = Signer.generate("k")
@@ -165,25 +205,25 @@ def _retag(cose: bytes, tag: int) -> bytes:
     return _tag_head(tag) + cose[1:]
 
 
-def test_cose_sign1_under_another_tag_has_one_deterministic_outcome() -> None:
-    """The tag number is not signed content; every call, in any process, agrees.
+def test_cose_sign1_under_another_tag_is_read_as_the_message_inside() -> None:
+    """The outer tag number is not signed content and is ignored, as Rust and Go do.
 
     With a library that builds a Python set for tag 258, unpacking the message
-    depended on set order and a call could return a different status from the next.
+    depended on set order and the outcome could differ between calls and processes.
     """
     keys = InMemoryKeys(verifiers={"k": _SIGNER.key.public_key()})
     frame_id = bytes(32)
     cose = sign_id(frame_id, _SIGNER)
-    results = {verify_sig(_retag(cose, 258), frame_id, keys) for _ in range(20)}
-    assert len(results) == 1
+    for tag in (258, 6000, 4):
+        assert verify_sig(_retag(cose, tag), frame_id, keys) == ("valid", "k")
 
 
-def test_cose_encrypt0_under_another_tag_has_one_deterministic_outcome() -> None:
+def test_cose_encrypt0_under_another_tag_is_read_as_the_message_inside() -> None:
     keys = InMemoryKeys(content={"k": _SEALED_KEY})
     blob = encrypt0(b"payload", "k", _SEALED_KEY)
-    outcomes = {decrypt0(_retag(blob, 258), keys) for _ in range(20)}
-    assert len(outcomes) == 1
-    assert recipient_kid(_retag(blob, 258)) == "k"
+    for tag in (258, 6000, 4):
+        assert decrypt0(_retag(blob, tag), keys) == b"payload"
+        assert recipient_kid(_retag(blob, tag)) == "k"
 
 
 @pytest.mark.parametrize(
@@ -211,3 +251,19 @@ def test_malformed_cose_is_reported_never_raised(blob: bytes) -> None:
     assert recipient_kid(blob) is None
     with pytest.raises(CodecUnavailableError):
         decrypt0(blob, keys)
+
+
+def test_suppression_naming_ids_of_a_damaged_terms_frame_does_not_raise() -> None:
+    """One flipped bit in a later segment's ``terms`` frame left its ids unresolved.
+
+    ``read`` raised ``IndexError`` while re-interning the suppression's term ids.
+    The id is now kept as received, as Rust, Go and TypeScript do, and the damage
+    is the one diagnostic.
+    """
+    data = (VECTORS / "18-cross-segment-suppression.gts").read_bytes()
+    items, _ = iter_items(data)
+    flipped = bytearray(data)
+    flipped[items[4][0] + 30] ^= 0x01
+    g = read(bytes(flipped))
+    assert [d.code for d in g.diagnostics] == ["DamagedFrame"]
+    assert len(g.suppressions) == 1

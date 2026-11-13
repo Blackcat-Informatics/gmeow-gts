@@ -32,6 +32,7 @@ GtsCborWriter class >> write: anObject on: stream [
 	anObject isInteger ifTrue: [ ^ self writeInteger: anObject on: stream ].
 	(anObject isKindOf: ByteArray) ifTrue: [ ^ self writeByteString: anObject on: stream ].
 	(anObject isKindOf: GtsCborTag) ifTrue: [ ^ self writeTag: anObject on: stream ].
+	(anObject isKindOf: GtsCborSimple) ifTrue: [ ^ self writeSimple: anObject on: stream ].
 	anObject isSymbol ifTrue: [ ^ self writeTextString: anObject asString on: stream ].
 	anObject isString ifTrue: [ ^ self writeTextString: anObject on: stream ].
 	(anObject isKindOf: Association) ifTrue: [
@@ -112,6 +113,22 @@ GtsCborWriter class >> writeSelfDescribeTagOn: stream [
 		nextPut: 16rD9;
 		nextPut: 16rD9;
 		nextPut: 16rF7
+]
+
+{ #category : #private }
+GtsCborWriter class >> writeSimple: simple on: stream [
+	| width |
+	stream nextPut: (7 * 32) + simple additional.
+	width := simple additional = 24
+		ifTrue: [ 1 ]
+		ifFalse: [
+			simple additional = 25
+				ifTrue: [ 2 ]
+				ifFalse: [
+					simple additional = 26
+						ifTrue: [ 4 ]
+						ifFalse: [ simple additional = 27 ifTrue: [ 8 ] ifFalse: [ 0 ] ] ] ].
+	width > 0 ifTrue: [ self writeBigEndian: simple argument width: width on: stream ]
 ]
 
 { #category : #private }

@@ -68,10 +68,13 @@ breaking wire change requires a new wire-format major version.
   with the next item. Before this, with `cbor2` 6.2.1, a tag `258` item over
   something other than an array, or a tag `4` or `5` item with a part that is not an
   integer, made the reader report a torn append (`TornAppendError`) and stop
-  folding, although the item is complete CBOR and §3 reserves a torn append for an
-  incomplete trailing item. With 6.1.5 the same bytes were reported as a damaged
-  frame and the later frames still folded. A tag other than `55799` around a Header
-  is now a stray item and does not start a segment, as in Rust, Go and TypeScript.
+  folding, although the item is complete CBOR. With 6.1.5 the same bytes were
+  reported as a damaged frame and the later frames still folded. Any other decode
+  failure, such as nesting deeper than 400 levels or invalid UTF-8, is still
+  reported as a torn append by every engine; this change does not alter that.
+  Tags `2` and `3` stay integers (a byte string content becomes the integer it
+  carries), so a frame is hashed over the integer, as in every other engine, and a
+  bignum written in a non-preferred form is a self-hash mismatch there and here.
 - `decrypt0` and `recipient_kid` report undecodable bytes and arrays of the wrong
   length as a malformed `COSE_Encrypt0` (`missing-key`, or no `kid`) instead of
   raising `CBORDecodeError` or `IndexError`, and a COSE structure under a tag such
@@ -83,7 +86,19 @@ breaking wire change requires a new wire-format major version.
   `28m-stray-self-reference-in-set` and `28n-stray-self-reference-as-key` pin the
   outcome for a stray tagged item between frames and as the last item: a
   `DamagedFrame`, no `TornAppendError`, and the quad after the item still folds.
+  `28o-suppression-over-damaged-terms` pins a suppression in a later segment that
+  names the ids of a damaged `terms` frame, and `28p-tagged-value-in-frame-field`
+  pins a tagged value inside a frame field.
   Written bytes are unchanged: every vector that existed before is byte-identical.
+- `read` no longer raises `IndexError` when a suppression in a later segment names a
+  term id that the damaged `terms` frame of its segment never defined; the id is
+  kept as received and the damage is the only diagnostic, as in Rust, Go and
+  TypeScript.
+- The Kotlin and Smalltalk decoders now delimit floating-point items and other
+  well-formed simple values and keep them uninterpreted. Before this, a complete item
+  holding one, such as a tag `4` item with a half-precision float part, was reported
+  as a torn append and the fold stopped; it is now a damaged frame and the fold goes
+  on, as the specification requires.
 
 ### Changed
 

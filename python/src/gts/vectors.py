@@ -170,6 +170,31 @@ def _stray_self_reference_as_key() -> bytes:
     return _with_stray_item(_STRAY_SELF_REFERENCE_AS_KEY, last=True)
 
 
+def _suppression_over_damaged_terms() -> bytes:
+    """A later segment's suppression names term ids whose ``terms`` frame is damaged.
+
+    The ``terms`` frame of the second segment of vector 18 has one bit flipped, so
+    its ids resolve to nothing. The suppression keeps the id as received, the damage
+    is reported once, and the union goes on (§7.5, §11).
+    """
+    data = bytearray(_cross_segment_suppression())
+    items, _ = iter_items(bytes(data))
+    data[items[4][0] + 30] ^= 0x01
+    return bytes(data)
+
+
+def _tagged_value_in_frame_field() -> bytes:
+    """An extension frame whose field holds a tagged value GTS gives no meaning."""
+    w = Writer()
+    frame: dict[str, object] = {
+        "t": "not-a-core-frame",
+        "d": {"note": cbor2.CBORTag(6000, "tagged text")},
+        "prev": w.head,
+    }
+    frame["id"] = content_id(frame)
+    return bytes(w.to_bytes()) + canonical(frame)
+
+
 def _unsupported_version() -> bytes:
     """A self-consistent header using an unsupported wire major version."""
     header: dict[str, object] = {
@@ -832,6 +857,10 @@ def corpus() -> list[VectorCase]:
         VectorCase("28l-stray-decimal-last-item", _stray_decimal_last()),
         VectorCase("28m-stray-self-reference-in-set", _stray_self_reference_in_set()),
         VectorCase("28n-stray-self-reference-as-key", _stray_self_reference_as_key()),
+        VectorCase(
+            "28o-suppression-over-damaged-terms", _suppression_over_damaged_terms()
+        ),
+        VectorCase("28p-tagged-value-in-frame-field", _tagged_value_in_frame_field()),
         VectorCase("29-deterministic-writer", _deterministic_writer()),
     ]
 

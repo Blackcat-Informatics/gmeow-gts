@@ -71,7 +71,42 @@ def _keep_tag(tag: int) -> Callable[[object, bool], object]:
     return keep
 
 
-_TAG_PRESERVING = {tag: _keep_tag(tag) for tag in _LIBRARY_TAGS}
+def _bignum(tag: int) -> Callable[[object, bool], object]:
+    """Return a semantic decoder for tag 2 or 3 (RFC 8949 §3.4.3).
+
+    A byte string becomes the integer it carries, as in Rust, Go and TypeScript, so
+    a frame is re-encoded in preferred form and a non-preferred bignum is a self-hash
+    mismatch there and here. Any other content stays an uninterpreted tag.
+    """
+
+    def decode(value: object, _immutable: bool) -> object:
+        if not isinstance(value, bytes):
+            return cbor2.CBORTag(tag, value)
+        n = int.from_bytes(value, "big")
+        return n if tag == 2 else -1 - n
+
+    return decode
+
+
+# Tags 2 and 3 are how CBOR carries integers beyond 64 bits; GTS hashes frames over the
+# integer, so they are decoded to it (see :func:`_bignum`). Every other tag is kept.
+_TAG_PRESERVING = {
+    **{tag: _keep_tag(tag) for tag in _LIBRARY_TAGS if tag not in (2, 3)},
+    2: _bignum(2),
+    3: _bignum(3),
+}
+
+
+# Decoder limits, stated rather than inherited from the library. They equal the
+# defaults of both ``cbor2`` 6.1.5 and 6.2.1, so no corpus file folds differently:
+# nesting beyond 400 levels is refused (a decode failure, reported as a torn
+# append), indefinite lengths are accepted (every engine reads them), and a map
+# with a repeated key keeps its last value, as the fold has always seen it.
+_OPTIONS: dict[str, Any] = {
+    "max_depth": 400,
+    "allow_indefinite": True,
+    "allow_duplicate_keys": True,
+}
 
 
 def decoder(fp: IO[bytes]) -> cbor2.CBORDecoder:
@@ -80,12 +115,12 @@ def decoder(fp: IO[bytes]) -> cbor2.CBORDecoder:
     A tagged item surfaces as :class:`cbor2.CBORTag` whatever the tag number, so the
     reader treats a tag the same way under every ``cbor2`` release.
     """
-    return cbor2.CBORDecoder(fp, semantic_decoders=_TAG_PRESERVING)
+    return cbor2.CBORDecoder(fp, semantic_decoders=_TAG_PRESERVING, **_OPTIONS)
 
 
 def loads(data: bytes) -> Any:
     """Decode one CBOR item from ``data`` with every tag left uninterpreted."""
-    return cbor2.loads(data, semantic_decoders=_TAG_PRESERVING)
+    return cbor2.loads(data, semantic_decoders=_TAG_PRESERVING, **_OPTIONS)
 
 
 def _deterministic(obj: object) -> object:
@@ -175,12 +210,11 @@ def iter_items(data: bytes) -> tuple[list[tuple[int, object]], int | None]:
 def is_header_item(item: object) -> bool:
     """§3.1 boundary rule: a map carrying ``"gts"`` and lacking ``"t"``.
 
-    Only the self-describe tag (55799) may wrap the Header (§3); an item under any
-    other tag is not a Header and is judged as a frame.
+    A tag around the map does not change the test, so an item under a foreign tag
+    still starts a new segment; :func:`unwrap_header` then rejects the tag and
+    reports an invalid header, as every other engine does.
     """
     if isinstance(item, cbor2.CBORTag):
-        if item.tag != SELF_DESCRIBE_TAG:
-            return False
         item = item.value
     return isinstance(item, Mapping) and "gts" in item and "t" not in item
 

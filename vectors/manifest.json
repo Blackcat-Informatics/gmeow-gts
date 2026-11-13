@@ -1633,6 +1633,85 @@
       "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
+      "id": "28o-suppression-over-damaged-terms",
+      "title": "suppression over damaged terms",
+      "input": {
+        "path": "vectors/28o-suppression-over-damaged-terms.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28o-suppression-over-damaged-terms.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "0b3fec5018c1f23ceb58d425399a3cb7ca42947e032e16a74bbc2760c29f4581",
+        "segment_heads": [
+          "b0ac8f878a40292b5dd97917c29b60502b3a7c94110cd8edcfd2296e862b7b2a",
+          "0b3fec5018c1f23ceb58d425399a3cb7ca42947e032e16a74bbc2760c29f4581"
+        ],
+        "opaque_reasons": [
+          "damaged"
+        ]
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
+      "id": "28p-tagged-value-in-frame-field",
+      "title": "tagged value in frame field",
+      "input": {
+        "path": "vectors/28p-tagged-value-in-frame-field.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28p-tagged-value-in-frame-field.expected.json",
+        "diagnostics": [
+          "UnknownFrameType"
+        ],
+        "expected_head": "b832a37e7a24b77531446082f9c51aabea71eb4503adfa9cb9370afde35bf724",
+        "segment_heads": [
+          "b832a37e7a24b77531446082f9c51aabea71eb4503adfa9cb9370afde35bf724"
+        ],
+        "opaque_reasons": [
+          "unknown-frame-type"
+        ]
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
       "id": "29-deterministic-writer",
       "title": "deterministic writer",
       "input": {

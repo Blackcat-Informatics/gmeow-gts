@@ -111,6 +111,14 @@ GtsCborReader >> readSimple: additional argument: argument [
 	additional = 20 ifTrue: [ ^ false ].
 	additional = 21 ifTrue: [ ^ true ].
 	additional = 22 ifTrue: [ ^ nil ].
+	"A well-formed simple value or float that GTS gives no meaning is delimited and
+	kept as received, so a stray item holding one is a complete non-frame item."
+	"Two-byte simple values below 32 are not well-formed and stay refused."
+	((additional between: 0 and: 19)
+		or: [ additional = 23
+		or: [ (additional = 24 and: [ argument >= 32 ])
+		or: [ additional between: 25 and: 27 ] ] ])
+		ifTrue: [ ^ GtsCborSimple additional: additional argument: argument ].
 	self error: 'unsupported CBOR simple value'
 ]
 

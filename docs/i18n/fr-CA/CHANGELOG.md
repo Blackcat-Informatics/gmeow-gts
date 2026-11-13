@@ -77,11 +77,14 @@ de format de transfert.
   continue avec l'élément suivant. Auparavant, avec `cbor2` 6.2.1, un élément d'étiquette
   `258` portant autre chose qu'un tableau, ou d'étiquette `4` ou `5` dont une partie n'est
   pas un entier, faisait rapporter un ajout tronqué (`TornAppendError`) au lecteur, qui
-  cessait de replier, alors que l'élément est du CBOR complet et que le §3 réserve l'ajout
-  tronqué à un dernier élément incomplet. Avec 6.1.5, les mêmes octets étaient rapportés
-  comme une trame endommagée et les trames suivantes étaient quand même repliées. Une
-  étiquette autre que `55799` autour d'un en-tête est maintenant un élément isolé et ne
-  commence pas de segment, comme dans Rust, Go et TypeScript.
+  cessait de replier, alors que l'élément est du CBOR complet. Avec 6.1.5, les mêmes octets
+  étaient rapportés comme une trame endommagée et les trames suivantes étaient quand même
+  repliées. Tout autre échec de décodage, comme une imbrication de plus de 400 niveaux ou
+  de l'UTF-8 invalide, est toujours rapporté comme un ajout tronqué par tous les moteurs;
+  ce changement n'y touche pas. Les étiquettes `2` et `3` restent des entiers (un contenu en
+  chaîne d'octets devient l'entier qu'il porte), de sorte qu'une trame est condensée sur
+  l'entier, comme dans tous les autres moteurs, et qu'un grand entier écrit sous une forme
+  non préférée est une discordance d'auto-condensé ici comme ailleurs.
 - `decrypt0` et `recipient_kid` rapportent des octets indécodables et des tableaux de
   mauvaise longueur comme un `COSE_Encrypt0` malformé (`missing-key`, ou aucun `kid`) au
   lieu de lever `CBORDecodeError` ou `IndexError`, et une structure COSE sous une étiquette
@@ -93,7 +96,21 @@ de format de transfert.
   `28m-stray-self-reference-in-set` et `28n-stray-self-reference-as-key` figent le résultat
   pour un élément étiqueté isolé entre des trames et en dernier : un `DamagedFrame`, aucun
   `TornAppendError`, et le quad qui suit l'élément est quand même replié. Les octets écrits
-  sont inchangés : chaque vecteur existant auparavant est identique octet pour octet.
+  `28o-suppression-over-damaged-terms` fige une suppression d'un segment ultérieur qui
+  nomme les identifiants d'une trame `terms` endommagée, et `28p-tagged-value-in-frame-field`
+  fige une valeur étiquetée dans un champ de trame.
+  Les octets écrits sont inchangés : chaque vecteur existant auparavant est identique octet
+  pour octet.
+- `read` ne lève plus `IndexError` lorsqu'une suppression d'un segment ultérieur nomme un
+  identifiant de terme que la trame `terms` endommagée de son segment n'a jamais défini;
+  l'identifiant est conservé tel que reçu et le dommage est le seul diagnostic, comme dans
+  Rust, Go et TypeScript.
+- Les décodeurs Kotlin et Smalltalk délimitent désormais les éléments à virgule flottante
+  et les autres valeurs simples bien formées, et les gardent non interprétés. Auparavant,
+  un élément complet qui en contenait une, comme un élément d'étiquette `4` dont une partie
+  est un flottant en demi-précision, était rapporté comme un ajout tronqué et le repli
+  s'arrêtait; il est maintenant une trame endommagée et le repli continue, comme l'exige la
+  spécification.
 
 ### Modifié
 
