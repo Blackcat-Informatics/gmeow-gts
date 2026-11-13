@@ -6,6 +6,8 @@
 //! `id`, the protected header is `{1: -8}` (EdDSA), and the unprotected header
 //! carries the `kid` (label 4). Ed25519 is deterministic (RFC 8032), so the same
 //! key + id always yields the same signature — gated by `vectors/cose/*.json`.
+//! Verification dispatches on the `alg` declared in the protected header: EdDSA
+//! is checked as Ed25519, any other algorithm is left `unverified` (§9.2).
 
 use aes_gcm::aead::{Aead, KeyInit, Payload};
 use aes_gcm::{Aes256Gcm, Nonce};
@@ -30,7 +32,8 @@ pub enum SigStatus {
     Valid,
     /// Present but malformed or failed verification.
     Invalid,
-    /// Well-formed, but no key was resolved to check it.
+    /// Well-formed, but not checked: no key was resolved, or the declared
+    /// algorithm is not supported by this engine.
     Unverified,
 }
 
@@ -70,8 +73,51 @@ pub fn sign_id(frame_id: &[u8], signing_key: &SigningKey, kid: &str) -> Vec<u8> 
     wire::encode(&cose)
 }
 
-/// Parse a COSE_Sign1 into `(kid, protected, signature)`, or `None` if malformed.
-pub fn parse(sig: &[u8]) -> Option<(String, Vec<u8>, [u8; 64])> {
+/// The signing algorithm a COSE_Sign1 declares in its protected header.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Algorithm {
+    /// EdDSA (COSE `-8`), verified as Ed25519.
+    EdDsa,
+    /// Any other declared algorithm: its integer or text identifier. This
+    /// engine cannot check it, so the signature stays `unverified` (§9.2).
+    Other(String),
+}
+
+/// A structurally well-formed COSE_Sign1.
+struct Sign1 {
+    kid: String,
+    algorithm: Algorithm,
+    protected: Vec<u8>,
+    signature: Vec<u8>,
+}
+
+/// The `alg` (label 1) of a protected header: a bstr holding exactly one CBOR map
+/// whose `alg` is an integer or text string (RFC 9052 §3.1). `None` if malformed or
+/// absent, since a signature that declares no algorithm cannot be dispatched.
+fn declared_algorithm(protected: &[u8]) -> Option<Algorithm> {
+    // The header is exactly one CBOR item: trailing bytes are malformed.
+    let mut remaining = protected;
+    let header: Value = ciborium::de::from_reader(&mut remaining).ok()?;
+    if !remaining.is_empty() {
+        return None;
+    }
+    let alg_label = Integer::from(ALG);
+    let alg = header.as_map()?.iter().find_map(|(k, v)| match k {
+        Value::Integer(i) if *i == alg_label => Some(v),
+        _ => None,
+    })?;
+    match alg {
+        Value::Integer(i) if *i == Integer::from(ALG_EDDSA) => Some(Algorithm::EdDsa),
+        Value::Integer(i) => Some(Algorithm::Other(i128::from(*i).to_string())),
+        Value::Text(t) => Some(Algorithm::Other(t.clone())),
+        _ => None,
+    }
+}
+
+/// Parse a COSE_Sign1, or `None` if malformed: not a four-element array, a
+/// protected header that is not a bstr holding a map declaring an `alg`, a
+/// non-bstr signature, or no `kid` in the unprotected header.
+fn parse(sig: &[u8]) -> Option<Sign1> {
     let value: Value = ciborium::de::from_reader(sig).ok()?;
     let body = match value {
         Value::Tag(_, inner) => *inner,
@@ -82,8 +128,9 @@ pub fn parse(sig: &[u8]) -> Option<(String, Vec<u8>, [u8; 64])> {
         return None;
     }
     let protected = array[0].as_bytes()?.clone();
+    let algorithm = declared_algorithm(&protected)?;
     let unprotected = array[1].as_map()?;
-    let signature: [u8; 64] = array[3].as_bytes()?.as_slice().try_into().ok()?;
+    let signature = array[3].as_bytes()?.clone();
     let kid_target = Integer::from(KID);
     let kid = unprotected.iter().find_map(|(k, v)| match (k, v) {
         (Value::Integer(i), Value::Bytes(b)) if *i == kid_target => {
@@ -91,45 +138,81 @@ pub fn parse(sig: &[u8]) -> Option<(String, Vec<u8>, [u8; 64])> {
         }
         _ => None,
     })?;
-    Some((kid, protected, signature))
+    Some(Sign1 {
+        kid,
+        algorithm,
+        protected,
+        signature,
+    })
 }
 
 /// The `kid` of a COSE_Sign1 (for key lookup), or `None` if malformed.
 pub fn signature_kid(sig: &[u8]) -> Option<String> {
-    parse(sig).map(|(kid, _, _)| kid)
+    parse(sig).map(|parts| parts.kid)
 }
 
-/// Verify a detached COSE_Sign1 over `frame_id` against `public`.
-pub fn verify_sig(sig: &[u8], frame_id: &[u8], public: &VerifyingKey) -> SigStatus {
-    let Some((_kid, protected, signature)) = parse(sig) else {
+/// The declared algorithm identifier of a well-formed COSE_Sign1 whose
+/// algorithm this engine cannot verify (anything but EdDSA), for diagnostics.
+pub fn unsupported_algorithm(sig: &[u8]) -> Option<String> {
+    match parse(sig)?.algorithm {
+        Algorithm::EdDsa => None,
+        Algorithm::Other(id) => Some(id),
+    }
+}
+
+/// Verify a parsed COSE_Sign1 over `frame_id`, dispatching on its declared algorithm.
+fn verify_parsed(parts: &Sign1, frame_id: &[u8], public: &VerifyingKey) -> SigStatus {
+    if parts.algorithm != Algorithm::EdDsa {
+        return SigStatus::Unverified;
+    }
+    let Ok(signature) = <[u8; 64]>::try_from(parts.signature.as_slice()) else {
         return SigStatus::Invalid;
     };
     let signature = Signature::from_bytes(&signature);
-    match public.verify(&sig_structure(&protected, frame_id), &signature) {
+    match public.verify(&sig_structure(&parts.protected, frame_id), &signature) {
         Ok(()) => SigStatus::Valid,
         Err(_) => SigStatus::Invalid,
     }
 }
 
+/// Verify a detached COSE_Sign1 over `frame_id` against `public`.
+///
+/// Dispatches on the algorithm declared in the protected header (§9.2): EdDSA
+/// is verified as Ed25519; any other algorithm is [`SigStatus::Unverified`].
+/// A malformed COSE_Sign1 is [`SigStatus::Invalid`].
+pub fn verify_sig(sig: &[u8], frame_id: &[u8], public: &VerifyingKey) -> SigStatus {
+    match parse(sig) {
+        Some(parts) => verify_parsed(&parts, frame_id, public),
+        None => SigStatus::Invalid,
+    }
+}
+
 /// Verify the COSE signatures recorded in a folded graph against keys resolved
 /// by `kid`. Updates each signature's `kid` and `status` in place: `"valid"` /
-/// `"invalid"` when a key resolves, `"unverified"` when none does (§9.2).
+/// `"invalid"` when an EdDSA signature's key resolves, `"unverified"` when no
+/// key resolves or the declared algorithm is not supported, and `"invalid"`
+/// for a malformed COSE_Sign1 (§9.2).
 pub fn verify_signatures(
     signatures: &mut [model::Signature],
     resolve: impl Fn(&str) -> Option<VerifyingKey>,
 ) {
     for sig in signatures.iter_mut() {
-        let Some(cose) = sig.cose.clone() else {
+        let Some(cose) = sig.cose.as_deref() else {
             continue;
         };
-        let kid = signature_kid(&cose);
-        sig.kid.clone_from(&kid);
-        sig.status = match kid.as_deref().and_then(&resolve) {
-            Some(key) => match verify_sig(&cose, &sig.frame_id, &key) {
-                SigStatus::Valid => "valid",
-                _ => "invalid",
+        let parsed = parse(cose);
+        let status = match &parsed {
+            None => SigStatus::Invalid,
+            Some(parts) => match resolve(&parts.kid) {
+                Some(key) => verify_parsed(parts, &sig.frame_id, &key),
+                None => SigStatus::Unverified,
             },
-            None => "unverified",
+        };
+        sig.kid = parsed.map(|parts| parts.kid);
+        sig.status = match status {
+            SigStatus::Valid => "valid",
+            SigStatus::Invalid => "invalid",
+            SigStatus::Unverified => "unverified",
         }
         .to_string();
     }

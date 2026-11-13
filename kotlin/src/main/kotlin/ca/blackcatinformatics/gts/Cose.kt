@@ -30,15 +30,26 @@ data class CoseSigner(val kid: String, val seed: ByteArray) {
     override fun hashCode(): Int = 31 * kid.hashCode() + seed.contentHashCode()
 }
 
-data class Sign1Parts(val kid: String, val protected: ByteArray, val signature: ByteArray) {
+/**
+ * A well-formed COSE_Sign1. [algorithm] is the `alg` declared in the protected
+ * header: an integer ([CborUInt] or [CborNInt]) or a text string ([CborText]).
+ */
+data class Sign1Parts(
+    val kid: String,
+    val algorithm: CborValue,
+    val protected: ByteArray,
+    val signature: ByteArray,
+) {
     override fun equals(other: Any?): Boolean =
         other is Sign1Parts &&
             kid == other.kid &&
+            algorithm == other.algorithm &&
             protected.contentEquals(other.protected) &&
             signature.contentEquals(other.signature)
 
     override fun hashCode(): Int {
         var result = kid.hashCode()
+        result = 31 * result + algorithm.hashCode()
         result = 31 * result + protected.contentHashCode()
         result = 31 * result + signature.contentHashCode()
         return result
@@ -87,16 +98,32 @@ fun parseSign1(cose: ByteArray): Sign1Parts? {
     val body = tag.value as? CborArray ?: return null
     if (body.value.size != 4) return null
     val protected = body.value[0].asBytes() ?: return null
+    val algorithm = declaredAlgorithm(protected) ?: return null
     val unprotected = body.value[1] as? CborMap ?: return null
     val signature = body.value[3].asBytes() ?: return null
     val kid = unprotected.getIntKey(COSE_KID_LABEL)?.asBytes()?.decodeToString() ?: return null
-    return Sign1Parts(kid, protected, signature)
+    return Sign1Parts(kid, algorithm, protected, signature)
+}
+
+/**
+ * The `alg` (label 1) of a protected header: a bstr holding a CBOR map whose `alg` is an integer or a
+ * text string (RFC 9052 section 3.1). Null if the header is malformed or declares no algorithm.
+ */
+private fun declaredAlgorithm(protected: ByteArray): CborValue? {
+    val header = decodeOrNull(protected) as? CborMap ?: return null
+    val algorithm = header.getIntKey(COSE_ALG_LABEL) ?: return null
+    return if (algorithm is CborUInt || algorithm is CborNInt || algorithm is CborText) algorithm else null
 }
 
 fun signatureKid(cose: ByteArray): String? = parseSign1(cose)?.kid
 
+/**
+ * Verify a detached COSE_Sign1, dispatching on the algorithm declared in the protected header (GTS-SPEC 9.2):
+ * EdDSA is verified as Ed25519, any other algorithm is UNVERIFIED, and a malformed COSE_Sign1 is INVALID.
+ */
 fun verifySig(cose: ByteArray, frameId: ByteArray, publicKey: ByteArray): SignatureStatus {
     val parts = parseSign1(cose) ?: return SignatureStatus.INVALID
+    if (parts.algorithm != CborNInt(COSE_ALG_EDDSA)) return SignatureStatus.UNVERIFIED
     if (parts.signature.size != 64 || publicKey.size != 32) return SignatureStatus.INVALID
     val payload = sigStructure(parts.protected, frameId)
     val verify = Ed25519Signer()

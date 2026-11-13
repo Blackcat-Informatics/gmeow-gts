@@ -40,7 +40,7 @@
 | `streaming-property` | 每个顶级 `vectors/*.gts`，在每个 CBOR 项目边界进行测试 | 针对流式读取器的前缀折叠完整性和单调折叠增长。 |
 | `corpus-generator-determinism` | 每个顶级 `vectors/*.gts` | 已冻结语料库的参考生成器可重现性，包括故意损坏、不完整、被篡改和畸形的测试固定装置。这证明了语料库构建的可重复性，而非公开写入器的一致性。 |
 | `writer-determinism` | 有效的顶级写入器输出，包括作为可流式处理紧凑化字节预测器的 `25b-streamable-compacted` 和作为图创作字节预测器的 `29-deterministic-writer` | 公开写入器输出的可重现性，确定性哈希，确定性图创作，以及固定参数下的确定性紧凑化。负向语料库测试固定装置不得 (MUST NOT) 使用此子集。 |
-| `crypto-cose` | `vectors/cose/*.json`, `vectors/signed/basic.json` | COSE Sign1 序列化，逐帧签名，以及签名验证行为。 |
+| `crypto-cose` | `vectors/cose/*.json`, `vectors/signed/basic.json`, `vectors/signed/sigalg-*.json` | COSE Sign1 序列化，逐帧签名，以及签名验证行为。 |
 | `crypto-encrypt` | `vectors/encrypt0/basic.json` | 实现加密的引擎的 COSE Encrypt0 密封/开启行为。 |
 | `crypto-deferred` | `vectors/crypto-deferred/*.json` | 推迟的多接收者 `COSE_Encrypt` 和 ECDH-ES+A256KW 合约描述符。这些向量防止过早的支持声明；在字节级测试固定装置和互操作测试工具替换这些占位符之前，它们不是 v1 实现向量。 |
 | `openpgp-transport-key` | `vectors/openpgp/*.json` | 嵌入式 OpenPGP 传输密钥提取以及跨引擎指纹/emojihash 一致性。 |

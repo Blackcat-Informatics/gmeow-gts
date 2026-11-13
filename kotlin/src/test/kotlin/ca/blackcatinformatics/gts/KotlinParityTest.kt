@@ -553,6 +553,43 @@ class KotlinParityTest {
         assertEquals("valid", graph.signatures.single().status)
     }
 
+    @Test
+    fun signatureAlgorithmDispatchVectors() {
+        // GTS-SPEC 9.2: readers honour the declared algorithm. An unsupported one is unverified with the kid
+        // kept, a malformed COSE_Sign1 is invalid, and EdDSA with a short signature is invalid only once a
+        // key resolves.
+        val names = mutableListOf<String>()
+        Files.list(vectors.resolve("signed")).use { paths ->
+            paths.forEach { path ->
+                val name = path.fileName.toString()
+                if (name.startsWith("sigalg-") && name.endsWith(".json")) names.add(name)
+            }
+        }
+        assertTrue(names.size == 14, "expected the sigalg vectors, found ${names.size}")
+        for (name in names) {
+            val case = Json.parseToJsonElement(vectors.resolve("signed").resolve(name).readText()).jsonObject
+            val data = parseHex(case["gts"]!!.jsonPrimitive.content)
+            val publicKey = parseHex(case["pub"]!!.jsonPrimitive.content)
+            val kid = case["kid"]!!.jsonPrimitive.content
+            val reportedKid = case["reported_kid"]?.jsonPrimitive?.content
+
+            val keyed = read(data, true)
+            assertEquals(2, keyed.signatures.size, name)
+            verifySignatures(keyed.signatures) { probe -> if (probe == kid) publicKey else null }
+            for (signature in keyed.signatures) {
+                assertEquals(case["status_with_key"]!!.jsonPrimitive.content, signature.status, name)
+                if (reportedKid != null) assertEquals(reportedKid, signature.kid, name)
+            }
+
+            val unkeyed = read(data, true)
+            verifySignatures(unkeyed.signatures) { null }
+            for (signature in unkeyed.signatures) {
+                assertEquals(case["status_without_key"]!!.jsonPrimitive.content, signature.status, name)
+                if (reportedKid != null) assertEquals(reportedKid, signature.kid, name)
+            }
+        }
+    }
+
     private fun expectedStrings(expected: kotlinx.serialization.json.JsonObject, key: String): List<String> =
         expected[key]!!.jsonArray.map { it.jsonPrimitive.content }
 

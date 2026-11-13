@@ -64,8 +64,42 @@ GtsCose class >> parseEncrypt0: coseBytes [
 		'ciphertext'. (arr at: 3) }
 ]
 
+{ #category : #private }
+GtsCose class >> declaredAlgorithm: protected [
+	"The alg (label 1) of a protected header: a bstr holding a CBOR map whose
+	alg is an integer or a text string (RFC 9052 section 3.1). The header is
+	exactly one CBOR item: trailing bytes are malformed. Signals
+	GtsCryptoError if the header is malformed or declares no algorithm."
+
+	| algorithm header |
+	(protected isKindOf: ByteArray)
+		ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
+	header := [ | item reader |
+		reader := GtsCborReader on: protected.
+		item := reader readItem.
+		reader atEnd ifFalse: [ Error signal: 'trailing CBOR bytes' ].
+		item ]
+		on: Error
+		do: [ :error | GtsCryptoError signal: 'malformed COSE_Sign1' ].
+	header isDictionary ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
+	algorithm := header at: 1 ifAbsent: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
+	(algorithm isInteger or: [ algorithm isString ])
+		ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
+	^ algorithm
+]
+
+{ #category : #sign1 }
+GtsCose class >> eddsaAlgorithm [
+	"The COSE algorithm identifier for EdDSA, the only signing algorithm this engine verifies."
+
+	^ -8
+]
+
 { #category : #sign1 }
 GtsCose class >> parseSign1: coseBytes [
+	"Answer kid, alg, protected and signature. alg is the declared COSE algorithm
+	identifier (an integer or a string). Signals GtsCryptoError if malformed."
+
 	| arr kid tag unprotected |
 	tag := GtsCborReader decode: coseBytes.
 	((tag isKindOf: GtsCborTag) and: [ tag tag = 18 ])
@@ -74,11 +108,13 @@ GtsCose class >> parseSign1: coseBytes [
 	(arr isArray and: [ arr size = 4 ])
 		ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
 	(arr at: 3) isNil ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
+	((arr at: 4) isKindOf: ByteArray) ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
 	unprotected := arr at: 2.
 	unprotected isDictionary ifFalse: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
 	kid := unprotected at: 4 ifAbsent: [ GtsCryptoError signal: 'malformed COSE_Sign1' ].
 	^ Dictionary newFromPairs: {
 		'kid'. kid utf8Decoded.
+		'alg'. (self declaredAlgorithm: (arr at: 1)).
 		'protected'. (arr at: 1).
 		'signature'. (arr at: 4) }
 ]
@@ -109,8 +145,13 @@ GtsCose class >> sigStructureProtected: protected frameId: frameId [
 
 { #category : #sign1 }
 GtsCose class >> verifySign1: coseBytes frameId: frameId publicKey: publicKey [
+	"Answer whether the EdDSA signature is valid. A COSE_Sign1 that declares any
+	other algorithm is never valid here; GtsCLI verifySignature:keys: reports it
+	as unverified (GTS-SPEC section 9.2)."
+
 	| parsed |
 	parsed := self parseSign1: coseBytes.
+	(parsed at: 'alg') = self eddsaAlgorithm ifFalse: [ ^ false ].
 	^ GtsSodium
 		verify: (parsed at: 'signature')
 		message: (self sigStructureProtected: (parsed at: 'protected') frameId: frameId)

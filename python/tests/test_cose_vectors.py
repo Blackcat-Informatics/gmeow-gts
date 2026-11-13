@@ -12,8 +12,10 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from gts.crypto import InMemoryKeys, Signer, sign_id, verify_sig
+from gts.reader import read
 
 COSE_DIR = Path(__file__).resolve().parents[2] / "vectors" / "cose"
+SIGNED_DIR = Path(__file__).resolve().parents[2] / "vectors" / "signed"
 
 
 @pytest.mark.parametrize("vector", sorted(p.name for p in COSE_DIR.glob("*.json")))
@@ -68,3 +70,34 @@ def test_cli_verify_key(tmp_path, capsys) -> None:
     # A wrong key -> invalid -> exit 1.
     wrong = "0" * 64
     assert main(["verify", "--key", f"{c['kid']}:{wrong}", str(f)]) == 1
+
+
+SIGALG_VECTORS = sorted(p.name for p in SIGNED_DIR.glob("sigalg-*.json"))
+
+
+def test_signature_algorithm_dispatch_vector_count() -> None:
+    """An empty or partial glob must fail rather than silently skip."""
+    assert len(SIGALG_VECTORS) == 14
+
+
+@pytest.mark.parametrize("vector", SIGALG_VECTORS)
+def test_signature_algorithm_dispatch_vectors(vector: str) -> None:
+    """§9.2: readers honour the declared ``alg``; unsupported is ``unverified``."""
+    case = json.loads((SIGNED_DIR / vector).read_text(encoding="utf-8"))
+    data = bytes.fromhex(case["gts"])
+    public = Ed25519PrivateKey.from_private_bytes(
+        bytes.fromhex(case["seed"])
+    ).public_key()
+
+    keyed = read(data, keys=InMemoryKeys(verifiers={case["kid"]: public}))
+    assert len(keyed.signatures) == 2
+    for sig in keyed.signatures:
+        assert sig.status == case["status_with_key"]
+        if "reported_kid" in case:
+            assert sig.kid == case["reported_kid"]
+
+    unkeyed = read(data, keys=InMemoryKeys())
+    for sig in unkeyed.signatures:
+        assert sig.status == case["status_without_key"]
+        if "reported_kid" in case:
+            assert sig.kid == case["reported_kid"]

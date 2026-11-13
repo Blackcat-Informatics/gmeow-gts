@@ -18,6 +18,7 @@ that the key is trusted (§9.2).
 
 from __future__ import annotations
 
+import io
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -40,6 +41,7 @@ from gts.openpgp import public_key_fingerprint as _gpg_fingerprint
 _ALG, _KID, _IV = 1, 4, 5
 _ALG_EDDSA, _ALG_A256GCM = -8, 3
 _TAG_SIGN1, _TAG_ENCRYPT0 = 18, 16
+_ED25519_SIGNATURE_BYTES = 64
 
 SigStatus = str  # "none" | "valid" | "invalid" | "unverified"
 
@@ -131,25 +133,61 @@ def sign_id(frame_id: bytes, signer: Signer) -> bytes:
     return cbor2.dumps(cose, canonical=True)
 
 
+def _declared_alg(protected: bytes) -> int | str | None:
+    """Return the ``alg`` declared in a protected header, or ``None`` if malformed.
+
+    RFC 9052 §3.1: the protected header is a bstr holding exactly one CBOR map,
+    and ``alg`` (label 1, an integer key) is an integer or a text string. Trailing
+    bytes, a boolean or float standing in for the label, a float or boolean
+    ``alg``, or no ``alg`` at all is malformed (§9.2: readers MUST honour the
+    declared algorithm, so a signature that declares none cannot be dispatched).
+    """
+    stream = io.BytesIO(protected)
+    try:
+        header = cbor2.CBORDecoder(stream).decode()
+    except (cbor2.CBORDecodeError, ValueError, TypeError):
+        return None
+    if stream.tell() != len(protected) or not isinstance(header, Mapping):
+        return None
+    for label, alg in header.items():
+        if type(label) is int and label == _ALG:
+            if type(alg) is int or type(alg) is str:
+                return alg
+            return None
+    return None
+
+
 def verify_sig(
     sig: bytes, frame_id: bytes, provider: KeyProvider
 ) -> tuple[SigStatus, str | None]:
-    """Verify a detached ``COSE_Sign1`` over ``frame_id``; return (status, kid)."""
+    """Verify a detached ``COSE_Sign1`` over ``frame_id``; return (status, kid).
+
+    Dispatches on the ``alg`` declared in the protected header (§9.2). EdDSA
+    is verified as Ed25519; any other declared algorithm is ``unverified``
+    (the engine cannot check it), never ``invalid`` and never ``valid``.
+    """
     try:
         msg = cbor2.loads(sig)
         body = msg.value if isinstance(msg, cbor2.CBORTag) else msg
         protected, unprotected, _payload, signature = body
         kid_raw = unprotected.get(_KID) if isinstance(unprotected, Mapping) else None
         kid = kid_raw.decode() if isinstance(kid_raw, bytes) else None
-    except (ValueError, TypeError, KeyError):
+    except (cbor2.CBORDecodeError, ValueError, TypeError, KeyError):
         return ("invalid", None)
     if kid is None:
         return ("invalid", None)
     if not isinstance(protected, bytes) or not isinstance(signature, bytes):
-        return ("invalid", kid)  # RFC 9052 §3: both are bstr — reject malformed
+        return ("invalid", None)  # RFC 9052 §3: both are bstr — reject malformed
+    alg = _declared_alg(protected)
+    if alg is None:
+        return ("invalid", None)  # protected header malformed or declares no alg
+    if alg != _ALG_EDDSA:
+        return ("unverified", kid)  # declared algorithm not supported by this engine
     public = provider.verification_key(kid)
     if public is None:
         return ("unverified", kid)  # no key resolved — present but not checked
+    if len(signature) != _ED25519_SIGNATURE_BYTES:
+        return ("invalid", kid)
     sig_structure = cbor2.dumps(
         ["Signature1", protected, b"", frame_id], canonical=True
     )

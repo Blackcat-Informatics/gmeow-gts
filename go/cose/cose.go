@@ -5,6 +5,8 @@
 // EdDSA/Ed25519) over a frame id — GTS-SPEC §9.2. It is byte-compatible with the
 // Python reference and gated by vectors/cose/*.json. Ed25519 is deterministic
 // (RFC 8032), so the same key + id always yields the same signature.
+// Verification dispatches on the algorithm declared in the protected header:
+// EdDSA is checked as Ed25519, any other algorithm is left unverified.
 package cose
 
 import (
@@ -31,7 +33,8 @@ const (
 	Invalid SigStatus = iota
 	// Valid means the signature is cryptographically valid under the resolved key.
 	Valid
-	// Unverified means the signature is well-formed, but no key was resolved to check it.
+	// Unverified means the signature is well-formed, but was not checked: no key
+	// was resolved, or the declared algorithm is not supported by this engine.
 	Unverified
 )
 
@@ -60,27 +63,59 @@ func SignID(frameID []byte, priv ed25519.PrivateKey, kid string) []byte {
 	return wire.MustEncode(c)
 }
 
-// Parse extracts (kid, protected, signature) from a COSE_Sign1, ok=false if malformed.
-func Parse(sig []byte) (kid string, protected, signature []byte, ok bool) {
+// declaredAlgorithm returns the alg (label 1) of a protected header: a bstr
+// holding a CBOR map whose alg is an integer (int64 or uint64) or a text
+// string. ok=false if the header is malformed or declares no algorithm.
+func declaredAlgorithm(protected []byte) (algorithm interface{}, ok bool) {
+	var header interface{}
+	if err := cbor.Unmarshal(protected, &header); err != nil {
+		return nil, false
+	}
+	m, isMap := header.(map[interface{}]interface{})
+	if !isMap {
+		return nil, false
+	}
+	for k, v := range m {
+		if k != uint64(algLabel) && k != int64(algLabel) {
+			continue
+		}
+		switch v.(type) {
+		case int64, uint64, string:
+			return v, true
+		}
+		return nil, false
+	}
+	return nil, false
+}
+
+// Parse extracts (kid, algorithm, protected, signature) from a COSE_Sign1,
+// ok=false if malformed: not a four-element array, a protected header that is
+// not a bstr holding a map that declares an alg, a non-bstr signature, or no
+// kid. algorithm is the declared COSE algorithm identifier, an int64 or a string.
+func Parse(sig []byte) (kid string, algorithm interface{}, protected, signature []byte, ok bool) {
 	var tag cbor.Tag
 	if err := cbor.Unmarshal(sig, &tag); err != nil {
-		return "", nil, nil, false
+		return "", nil, nil, nil, false
 	}
 	arr, isArr := tag.Content.([]interface{})
 	if !isArr || len(arr) != 4 {
-		return "", nil, nil, false
+		return "", nil, nil, nil, false
 	}
 	protected, ok = arr[0].([]byte)
 	if !ok {
-		return "", nil, nil, false
+		return "", nil, nil, nil, false
+	}
+	algorithm, ok = declaredAlgorithm(protected)
+	if !ok {
+		return "", nil, nil, nil, false
 	}
 	signature, ok = arr[3].([]byte)
 	if !ok {
-		return "", nil, nil, false
+		return "", nil, nil, nil, false
 	}
 	unprotected, ok := arr[1].(map[interface{}]interface{})
 	if !ok {
-		return "", nil, nil, false
+		return "", nil, nil, nil, false
 	}
 	// CBOR integer map keys decode as uint64/int64/int depending on the codec;
 	// match the kid label (4) numerically.
@@ -98,23 +133,32 @@ func Parse(sig []byte) (kid string, protected, signature []byte, ok bool) {
 		}
 		if key == kidLabel {
 			if b, isBytes := v.([]byte); isBytes {
-				return string(b), protected, signature, true
+				return string(b), algorithm, protected, signature, true
 			}
 		}
 	}
-	return "", nil, nil, false
+	return "", nil, nil, nil, false
 }
 
 // SignatureKID returns the kid of a COSE_Sign1 (for key lookup).
 func SignatureKID(sig []byte) (string, bool) {
-	kid, _, _, ok := Parse(sig)
+	kid, _, _, _, ok := Parse(sig)
 	return kid, ok
 }
 
-// VerifySig verifies a detached COSE_Sign1 over frameID against pub.
+// VerifySig verifies a detached COSE_Sign1 over frameID against pub,
+// dispatching on the algorithm declared in the protected header (§9.2): EdDSA is
+// verified as Ed25519, any other algorithm is Unverified, and a malformed
+// COSE_Sign1 is Invalid.
 func VerifySig(sig, frameID []byte, pub ed25519.PublicKey) SigStatus {
-	_, protected, signature, ok := Parse(sig)
-	if !ok || len(signature) != ed25519.SignatureSize {
+	_, algorithm, protected, signature, ok := Parse(sig)
+	if !ok {
+		return Invalid
+	}
+	if algorithm != interface{}(int64(algEdDSA)) {
+		return Unverified
+	}
+	if len(signature) != ed25519.SignatureSize {
 		return Invalid
 	}
 	if ed25519.Verify(pub, sigStructure(protected, frameID), signature) {
@@ -125,7 +169,9 @@ func VerifySig(sig, frameID []byte, pub ed25519.PublicKey) SigStatus {
 
 // VerifySignatures verifies the COSE signatures recorded in a folded graph
 // against keys resolved by kid. It updates each signature's Kid and Status in
-// place: "valid"/"invalid" when a key resolves, "unverified" otherwise (§9.2).
+// place: "valid"/"invalid" when an EdDSA signature's key resolves, "unverified"
+// when no key resolves or the declared algorithm is not supported, and "invalid"
+// for a malformed COSE_Sign1 (§9.2).
 func VerifySignatures(sigs []model.Signature, resolve func(kid string) (ed25519.PublicKey, bool)) {
 	for i := range sigs {
 		if sigs[i].Cose == nil {
@@ -142,9 +188,12 @@ func VerifySignatures(sigs []model.Signature, resolve func(kid string) (ed25519.
 			sigs[i].Status = "unverified"
 			continue
 		}
-		if VerifySig(sigs[i].Cose, sigs[i].FrameID, pub) == Valid {
+		switch VerifySig(sigs[i].Cose, sigs[i].FrameID, pub) {
+		case Valid:
 			sigs[i].Status = "valid"
-		} else {
+		case Unverified:
+			sigs[i].Status = "unverified"
+		default:
 			sigs[i].Status = "invalid"
 		}
 	}

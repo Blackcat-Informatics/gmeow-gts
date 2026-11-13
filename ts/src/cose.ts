@@ -4,7 +4,8 @@
 // COSE_Sign1 (detached payload, EdDSA/Ed25519) over a frame id — GTS-SPEC §9.2.
 // Byte-compatible with the Python reference; gated by vectors/cose/*.json.
 // Ed25519 is deterministic (RFC 8032), so the same key + id yields the same
-// signature.
+// signature. Verification dispatches on the `alg` declared in the protected
+// header: EdDSA is checked as Ed25519, any other algorithm is left unverified.
 
 import { Tagged } from "cbor";
 import * as ed from "@noble/ed25519";
@@ -12,6 +13,7 @@ import { sha512 } from "@noble/hashes/sha512.js";
 import { gcm } from "@noble/ciphers/aes.js";
 
 import { encode, decodeFirst } from "./wire.js";
+import { declaredAlgorithm } from "./cose_header.js";
 import type { Signature } from "./model.js";
 
 // Enable @noble's synchronous sign/verify (it needs a sync SHA-512).
@@ -58,10 +60,17 @@ function asBytes(v: unknown): Uint8Array | null {
     return null;
 }
 
-/** Parse a COSE_Sign1 into `{ kid, protected, signature }`, or null if malformed. */
-export function parse(
-    sig: Uint8Array,
-): { kid: string; protected: Uint8Array; signature: Uint8Array } | null {
+/**
+ * Parse a COSE_Sign1 into `{ kid, algorithm, protected, signature }`, or null
+ * if malformed: not a four-element array, a protected header that is not a
+ * bstr holding a map that declares an `alg`, a non-bstr signature, or no kid.
+ */
+export function parse(sig: Uint8Array): {
+    kid: string;
+    algorithm: number | bigint | string;
+    protected: Uint8Array;
+    signature: Uint8Array;
+} | null {
     try {
         let body = decodeFirst(sig);
         if (body instanceof Tagged) body = body.value;
@@ -70,9 +79,16 @@ export function parse(
         const signature = asBytes(body[3]);
         const unprotected = body[1];
         if (!prot || !signature || !(unprotected instanceof Map)) return null;
+        const algorithm = declaredAlgorithm(prot);
+        if (algorithm === null) return null;
         const kidVal = asBytes(unprotected.get(KID));
         if (!kidVal) return null;
-        return { kid: new TextDecoder().decode(kidVal), protected: prot, signature };
+        return {
+            kid: new TextDecoder().decode(kidVal),
+            algorithm,
+            protected: prot,
+            signature,
+        };
     } catch {
         return null;
     }
@@ -83,14 +99,22 @@ export function signatureKid(sig: Uint8Array): string | null {
     return parse(sig)?.kid ?? null;
 }
 
-/** Verify a detached COSE_Sign1 over `frameId` against `publicKey`. */
+/**
+ * Verify a detached COSE_Sign1 over `frameId` against `publicKey`.
+ *
+ * Dispatches on the algorithm declared in the protected header (§9.2): EdDSA
+ * is verified as Ed25519, any other algorithm is "unverified", and a malformed
+ * COSE_Sign1 is "invalid".
+ */
 export function verifySig(
     sig: Uint8Array,
     frameId: Uint8Array,
     publicKey: Uint8Array,
 ): SigStatus {
     const parsed = parse(sig);
-    if (!parsed || parsed.signature.length !== 64) return "invalid";
+    if (!parsed) return "invalid";
+    if (parsed.algorithm !== ALG_EDDSA) return "unverified";
+    if (parsed.signature.length !== 64) return "invalid";
     try {
         return ed.verify(
             parsed.signature,
@@ -106,8 +130,10 @@ export function verifySig(
 
 /**
  * Verify the COSE signatures recorded in a folded graph against keys resolved
- * by kid. Mutates each signature's `kid` and `status`: "valid"/"invalid" when a
- * key resolves, "unverified" when none does (§9.2).
+ * by kid. Mutates each signature's `kid` and `status`: "valid"/"invalid" when an
+ * EdDSA signature's key resolves, "unverified" when no key resolves or the
+ * declared algorithm is not supported, and "invalid" for a malformed
+ * COSE_Sign1 (§9.2).
  */
 export function verifySignatures(
     signatures: Signature[],
@@ -126,8 +152,7 @@ export function verifySignatures(
             sig.status = "unverified";
             continue;
         }
-        sig.status =
-            verifySig(sig.cose, sig.frameId, pub) === "valid" ? "valid" : "invalid";
+        sig.status = verifySig(sig.cose, sig.frameId, pub);
     }
 }
 

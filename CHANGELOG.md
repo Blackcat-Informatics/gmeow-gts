@@ -16,6 +16,37 @@ version `1.0-rc1`). A file that is valid GTS wire-format major version 1 will
 remain parseable and safely foldable by future major-version-1 readers; a
 breaking wire change requires a new wire-format major version.
 
+## [Unreleased]
+
+### Fixed
+
+- Frame signatures now honour the signing algorithm declared in the COSE
+  protected header (§9.2: readers MUST honour the declared algorithm). Rust,
+  Python, Go, TypeScript (including the browser WebCrypto path), Kotlin and
+  Smalltalk dispatch on `alg`: EdDSA is verified as Ed25519, and any other
+  declared algorithm is reported `unverified` with its `kid` kept, never
+  `invalid` and never `valid`. Before this, every engine ran Ed25519
+  unconditionally, so a signature over another algorithm was reported `invalid`
+  (or, with a protected header declaring another algorithm over a genuine
+  Ed25519 signature, `valid`). A COSE_Sign1 whose protected header is not a byte
+  string holding exactly one map (no trailing bytes) in which the integer key 1
+  maps to an integer or text `alg` is now `invalid` in every engine; a boolean
+  or float key, or a float `alg` such as -8.0, no longer stands in. An EdDSA
+  signature that is not 64 bytes long is `invalid` once its key resolves.
+  Signing output is unchanged. New vectors `vectors/signed/sigalg-*.json` pin
+  the behaviour with the private-use algorithm identifier -65537.
+- Other behaviour changes: Rust no longer reports a malformed COSE_Sign1 as
+  `unverified`; Smalltalk now reports a missing `kid` as `invalid` where it
+  reported `unverified`; the Python reader no longer raises on undecodable
+  signature bytes, and Python no longer reports a `kid` for a malformed
+  COSE_Sign1, as in every other engine; Rust's `cose::parse` is no longer
+  public.
+- Consequence for scripts: the command-line `verify` of every engine, when
+  given a key, treats only `invalid` as a failure. A signature with an
+  unsupported algorithm and a resolvable `kid` is now `unverified` and exits 0
+  where it exited 1 before, as an unresolved `kid` already did. Callers that
+  must reject unverified signatures should check for `unverified` explicitly.
+
 ## [1.0.0-rc.1] — 2026-09-04
 
 ### Changed

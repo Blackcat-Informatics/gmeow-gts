@@ -21,6 +21,37 @@ restera analysable et pliable en toute sécurité par les futurs lecteurs de ver
 majeure 1 ; un changement de transfert incompatible exige une nouvelle version majeure
 de format de transfert.
 
+## [Unreleased]
+
+### Corrigé
+
+- Les signatures de trame respectent désormais l'algorithme de signature déclaré dans
+  l'en-tête protégé COSE (§9.2 : les lecteurs DOIVENT respecter l'algorithme déclaré).
+  Rust, Python, Go, TypeScript (y compris le chemin WebCrypto du navigateur), Kotlin et
+  Smalltalk aiguillent selon `alg` : EdDSA est vérifié comme Ed25519, et tout autre
+  algorithme déclaré est rapporté `unverified`, avec son `kid` conservé, jamais
+  `invalid` et jamais `valid`. Auparavant, chaque moteur exécutait Ed25519
+  inconditionnellement : une signature d'un autre algorithme était rapportée `invalid`
+  (ou, avec un en-tête protégé déclarant un autre algorithme sur une véritable
+  signature Ed25519, `valid`). Un COSE_Sign1 dont l'en-tête protégé n'est pas une chaîne
+  d'octets contenant exactement une table (sans octets superflus) où la clé entière 1
+  désigne un `alg` entier ou textuel est maintenant `invalid` dans tous les moteurs ; une
+  clé booléenne ou flottante, ou un `alg` flottant comme -8.0, ne la remplace plus. Une
+  signature EdDSA qui ne fait pas 64 octets est `invalid` dès que sa clé est résolue. La
+  sortie de signature est inchangée. Les nouveaux vecteurs `vectors/signed/sigalg-*.json`
+  fixent ce comportement avec l'identifiant d'algorithme à usage privé -65537.
+- Autres changements de comportement : Rust ne rapporte plus un COSE_Sign1 mal formé comme
+  `unverified` ; Smalltalk rapporte maintenant un `kid` absent comme `invalid` au lieu de
+  `unverified` ; le lecteur Python ne lève plus d'exception sur des octets de signature
+  indécodables et ne rapporte plus de `kid` pour un COSE_Sign1 mal formé, comme tous les
+  autres moteurs ; `cose::parse` de Rust n'est plus public.
+- Conséquence pour les scripts : la commande `verify` de chaque moteur, lorsqu'une clé est
+  fournie, ne traite que `invalid` comme un échec. Une signature d'algorithme non pris en
+  charge dont le `kid` est résolu est maintenant `unverified` et se termine avec le code 0
+  alors qu'elle se terminait avec 1 auparavant, comme un `kid` non résolu le faisait déjà.
+  Les appelants qui doivent rejeter les signatures `unverified` doivent le vérifier
+  explicitement.
+
 ## [1.0.0-rc.1] — 2026-09-04
 
 ### Modifié
