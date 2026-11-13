@@ -4,7 +4,7 @@
 // File-level signing conformance (§9.2): the TypeScript engine reproduces the
 // frozen signed GTS (vectors/signed/basic.json) when signing, and verifies it.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
@@ -61,4 +61,37 @@ test("signed file vector: writer signing + reader verification (§9.2)", () => {
     g = Read(expected, false);
     verifySignatures(g.signatures, () => wrong);
     assert.ok(g.signatures.every((s) => s.status === "invalid"));
+});
+
+test("signature algorithm dispatch vectors (§9.2)", () => {
+    // Readers honour the declared algorithm: an unsupported one is
+    // "unverified" (never valid/invalid) with the kid kept, a malformed
+    // COSE_Sign1 is "invalid", and EdDSA with a short signature is "invalid"
+    // only once a key resolves.
+    const dir = join(repoRoot, "vectors", "signed");
+    const names = readdirSync(dir).filter(
+        (n) => n.startsWith("sigalg-") && n.endsWith(".json"),
+    );
+    assert.ok(names.length === 68, `expected the sigalg vectors, found ${names.length}`);
+    for (const name of names) {
+        const c = JSON.parse(readFileSync(join(dir, name), "utf-8"));
+        const data = unhex(c.gts);
+        const pub = unhex(c.pub);
+        const check = (
+            resolve: (kid: string) => Uint8Array | null,
+            want: string,
+        ): void => {
+            const g = Read(data, false);
+            assert.equal(g.signatures.length, 2, name);
+            verifySignatures(g.signatures, resolve);
+            for (const s of g.signatures) {
+                assert.equal(s.status, want, name);
+                if (c.reported_kid !== undefined) {
+                    assert.equal(s.kid, c.reported_kid, name);
+                }
+            }
+        };
+        check((kid) => (kid === c.kid ? pub : null), c.status_with_key);
+        check(() => null, c.status_without_key);
+    }
 });

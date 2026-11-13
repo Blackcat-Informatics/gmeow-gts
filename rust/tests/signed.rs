@@ -137,3 +137,70 @@ fn writer_signs_with_openpgp_secret_key_override_kid() {
         .iter()
         .all(|s| s.kid.as_deref() == Some(override_kid)));
 }
+
+/// §9.2: readers honour the declared algorithm. An unsupported algorithm is
+/// `unverified` (never `valid`/`invalid`) with the `kid` kept, a malformed
+/// COSE_Sign1 is `invalid`, and EdDSA with a short signature is `invalid` only
+/// once a key resolves.
+#[test]
+fn signature_algorithm_dispatch_vectors() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../vectors/signed");
+    let mut count = 0;
+    for entry in std::fs::read_dir(&dir).expect("vectors/signed must exist") {
+        let path = entry.unwrap().path();
+        let name = path.file_name().unwrap().to_string_lossy().into_owned();
+        if !name.starts_with("sigalg-") || !name.ends_with(".json") {
+            continue;
+        }
+        let json: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        let pub32: [u8; 32] = unhex(json["pub"].as_str().unwrap()).try_into().unwrap();
+        let kid = json["kid"].as_str().unwrap();
+        let data = unhex(json["gts"].as_str().unwrap());
+        let vk = VerifyingKey::from_bytes(&pub32).unwrap();
+        let reported = json["reported_kid"].as_str();
+
+        let mut g = read(&data, false, None);
+        assert_eq!(g.signatures.len(), 2, "{name}");
+        // The CLI note names the declared algorithm of unsupported-algorithm vectors only.
+        let declared = g.signatures[0]
+            .cose
+            .as_deref()
+            .and_then(gmeow_gts::cose::unsupported_algorithm);
+        match name.as_str() {
+            "sigalg-unsupported-text-alg.json" => {
+                assert_eq!(declared.as_deref(), Some("X-GTS-unsupported"));
+            }
+            n if n.starts_with("sigalg-unsupported-") => {
+                assert_eq!(declared.as_deref(), Some("-65537"), "{name}");
+            }
+            _ => assert_eq!(declared, None, "{name}"),
+        }
+        verify_signatures(&mut g.signatures, |k| (k == kid).then_some(vk));
+        for sig in &g.signatures {
+            assert_eq!(
+                sig.status,
+                json["status_with_key"].as_str().unwrap(),
+                "{name}"
+            );
+            if reported.is_some() {
+                assert_eq!(sig.kid.as_deref(), reported, "{name}");
+            }
+        }
+
+        let mut g = read(&data, false, None);
+        verify_signatures(&mut g.signatures, |_| None);
+        for sig in &g.signatures {
+            assert_eq!(
+                sig.status,
+                json["status_without_key"].as_str().unwrap(),
+                "{name}"
+            );
+            if reported.is_some() {
+                assert_eq!(sig.kid.as_deref(), reported, "{name}");
+            }
+        }
+        count += 1;
+    }
+    assert_eq!(count, 68, "expected the sigalg vectors");
+}

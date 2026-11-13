@@ -183,7 +183,12 @@ def test_verify_sig_rejects_non_bytes_signature() -> None:
     )
     status, kid = verify_sig(malformed, _ID, InMemoryKeys())
     assert status == "invalid"
-    assert kid == "k"  # recipient still surfaced (opacity invariant)
+    assert kid is None  # a malformed COSE_Sign1 reports no kid, as in every engine
+
+
+def test_verify_sig_rejects_undecodable_bytes() -> None:
+    """Undecodable CBOR in a signature is invalid, not an exception (§9.2)."""
+    assert verify_sig(b"\xff", _ID, InMemoryKeys()) == ("invalid", None)
 
 
 def test_decrypt0_rejects_malformed_fields() -> None:

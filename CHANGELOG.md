@@ -18,6 +18,46 @@ breaking wire change requires a new wire-format major version.
 
 ## [Unreleased]
 
+### Fixed
+
+- Frame signatures now honour the signing algorithm declared in the COSE
+  protected header (§9.2: readers MUST honour the declared algorithm). Rust,
+  Python, Go, TypeScript (including the browser WebCrypto path), Kotlin and
+  Smalltalk dispatch on `alg`: EdDSA is verified as Ed25519, and any other
+  declared algorithm is reported `unverified` with its `kid` kept, never
+  `invalid` and never `valid`. Before this, every engine ran Ed25519
+  unconditionally, so a signature over another algorithm was reported `invalid`
+  (or, with a protected header declaring another algorithm over a genuine
+  Ed25519 signature, `valid`). A COSE_Sign1 whose protected header does not meet the following grammar is
+  malformed, and its signature is `invalid`; so is an EdDSA signature that is not
+  64 bytes long once its key resolves:
+
+  > The protected header is a byte string whose content is deterministically
+  > encoded CBOR (definite lengths, shortest-form integers and lengths, map keys
+  > in bytewise order of their encodings, no duplicate keys, no trailing bytes)
+  > consisting of exactly one map. Every map key, at any depth, is an integer or a
+  > text string. Every value, at any depth, is an integer, a byte string, a text
+  > string, an array, a map, null, true or false. Every integer, key or value,
+  > lies in the range -2^63 to 2^63-1 inclusive. Text strings are valid UTF-8.
+  > Nesting is at most 8 levels deep, counting the header map itself as level 1.
+  > The map contains the integer key 1, whose value is an integer or a text
+  > string. A header that does not meet all of this is malformed and the signature
+  > is `invalid`.
+
+  Written bytes are unchanged: signing output and every vector that existed
+  before this change are byte-identical. New vectors `vectors/signed/sigalg-*.json` pin the behaviour, including the grammar's boundaries (integer range, key types, UTF-8, nesting depth), with the private-use algorithm identifier -65537; each engine's tests check every one of them against its stated status.
+- Other behaviour changes: Rust no longer reports a malformed COSE_Sign1 as
+  `unverified`; Smalltalk now reports a missing `kid` as `invalid` where it
+  reported `unverified`; the Python reader no longer raises on undecodable
+  signature bytes, and Python no longer reports a `kid` for a malformed
+  COSE_Sign1, as in every other engine; Rust's `cose::parse` is no longer
+  public.
+- Consequence for scripts: the command-line `verify` of every engine, when
+  given a key, treats only `invalid` as a failure. A signature with an
+  unsupported algorithm and a resolvable `kid` is now `unverified` and exits 0
+  where it exited 1 before, as an unresolved `kid` already did. Callers that
+  must reject unverified signatures should check for `unverified` explicitly.
+
 ### Changed
 
 - The Rust engine's zstd implementation was updated (`structured-zstd` 0.0.48 to 0.3.0) and now produces different compressed bytes for some inputs, all of which decode identically.
