@@ -64,12 +64,16 @@ breaking wire change requires a new wire-format major version.
 - Because a frame id covers the stored, compressed payload, a head written through the Rust library with a zstd codec changes with the compressor version, so such a head must not be pinned or compared between versions; compare content instead.
 - The updates to `getrandom`, `aes-gcm`, `quick-xml`, `ed25519-dalek` and `visual-hashing` have no effect on written bytes.
 - The TypeScript engine now uses `@noble/ed25519` 3.2.0 and `@noble/hashes` 2.4.0
-  (both major updates). The code was adapted to the new module layout (`sha2.js`
-  and `legacy.js` replace `sha512.js` and `sha1.js`) and to the new way of
-  supplying the synchronous SHA-512 to the Ed25519 library. Signatures, digests,
-  fingerprints and every other byte the engine writes are unchanged, shown by a
-  before-and-after comparison of the command-line output and of the library
-  signing, hashing and fingerprint paths.
+  (both major updates), and its imports follow the new module layout (`sha2.js` and
+  `legacy.js` replace `sha512.js` and `sha1.js`). Written and signed bytes are
+  unchanged: signatures, digests and OpenPGP fingerprints are identical, shown by a
+  before-and-after comparison. Signature verification changes for degenerate
+  signatures that only a holder of the signing key can produce; honest signatures are
+  unaffected. The old library accepted one signature built on the identity point for
+  every message under a key, and the new library rejects it. The new library verifies
+  over the `R` bytes of the signature as received (ZIP-215), so a signature with a
+  non-canonical `R` that verified before no longer does, and the converse. The
+  verification policy itself is unchanged and remains a format-wide decision.
 
 ## [1.0.0-rc.1] — 2026-09-04
 

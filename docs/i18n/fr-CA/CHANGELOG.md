@@ -72,12 +72,17 @@ de format de transfert.
 - Comme l'identifiant d'une trame couvre la charge utile compressée stockée, une tête écrite par la bibliothèque Rust avec un codec zstd change avec la version du compresseur; une telle tête ne doit donc pas être figée ni comparée entre versions, et il faut comparer le contenu.
 - Les mises à jour de `getrandom`, `aes-gcm`, `quick-xml`, `ed25519-dalek` et `visual-hashing` n'ont aucun effet sur les octets écrits.
 - Le moteur TypeScript utilise désormais `@noble/ed25519` 3.2.0 et `@noble/hashes` 2.4.0
-  (deux mises à jour majeures). Le code a été adapté à la nouvelle organisation des modules
-  (`sha2.js` et `legacy.js` remplacent `sha512.js` et `sha1.js`) et à la nouvelle façon de
-  fournir le SHA-512 synchrone à la bibliothèque Ed25519. Les signatures, les condensés, les
-  empreintes et tous les autres octets écrits par le moteur sont inchangés, comme le montre
-  une comparaison avant-après de la sortie de la ligne de commande et des chemins de
-  signature, de hachage et d'empreinte de la bibliothèque.
+  (deux mises à jour majeures), et ses importations suivent la nouvelle organisation des
+  modules (`sha2.js` et `legacy.js` remplacent `sha512.js` et `sha1.js`). Les octets écrits
+  et signés sont inchangés : les signatures, les condensés et les empreintes OpenPGP sont
+  identiques, comme le montre une comparaison avant-après. La vérification des signatures
+  change pour les signatures dégénérées que seul le détenteur de la clé de signature peut
+  produire; les signatures honnêtes ne sont pas touchées. L'ancienne bibliothèque acceptait
+  une signature construite sur le point neutre pour tout message sous une clé, et la
+  nouvelle la rejette. La nouvelle bibliothèque vérifie sur les octets de `R` de la
+  signature tels que reçus (ZIP-215) : une signature dont le `R` n'est pas canonique et qui
+  était valide auparavant ne l'est plus, et inversement. La politique de vérification
+  elle-même est inchangée et reste une décision à prendre pour tout le format.
 
 ## [1.0.0-rc.1] — 2026-09-04
 
