@@ -62,6 +62,7 @@ r/src/Makevars.win
 .venv/
 .cache/
 .worktrees/
+.stage/
 dist/benchmarks/
 # Release-candidate artifact bundles (docs/GTS-V1-RC1-CHECKLIST.md §4): test
 # logs, package dry-run output and the stamped vector manifest. They are release
