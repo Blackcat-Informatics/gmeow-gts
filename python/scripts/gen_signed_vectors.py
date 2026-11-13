@@ -122,6 +122,73 @@ _ALG_CASES: dict[str, tuple[str, _CoseBuilder, str, str, bool]] = {
         "invalid",
         False,
     ),
+    "sigalg-header-indefinite-map": (
+        "Non-deterministic header: A header map of indefinite "
+        "length (bf .. ff): malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("bf0127ff"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-header-indefinite-text-alg": (
+        "Non-deterministic header: An indefinite-length text-string alg: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a1017f6145ff"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-label-nonminimal-1byte": (
+        "Non-deterministic header: Label 1 encoded with a one-byte "
+        "argument (18 01): malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a1180127"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-label-nonminimal-8byte": (
+        "Non-deterministic header: Label 1 encoded with an "
+        "eight-byte argument: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a11b000000000000000127"), kid, fid
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-alg-nonminimal-8byte": (
+        "Non-deterministic header: Alg -8 encoded with an "
+        "eight-byte argument: malformed.",
+        lambda sk, kid, fid: _ed25519_cose(
+            sk, bytes.fromhex("a1013b0000000000000007"), kid, fid
+        ),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-label-duplicate-eddsa-first": (
+        "Non-deterministic header: Label 1 repeated, EdDSA first "
+        "({1: -8, 1: -7}): malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a201270126"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-label-duplicate-eddsa-second": (
+        "Non-deterministic header: Label 1 repeated, EdDSA second "
+        "({1: -7, 1: -8}): malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a201260127"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
+    "sigalg-keys-unsorted": (
+        "Non-deterministic header: Map keys out of bytewise order "
+        "(label 4 before label 1): malformed.",
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a20441780127"), kid, fid),
+        "invalid",
+        "invalid",
+        False,
+    ),
     "sigalg-protected-not-map": (
         "Protected header is a bstr holding a CBOR integer, not a map: malformed.",
         lambda sk, kid, fid: _ed25519_cose(sk, cbor2.dumps(1), kid, fid),

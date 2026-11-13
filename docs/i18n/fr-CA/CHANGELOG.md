@@ -37,14 +37,18 @@ de format de transfert.
   d'octets contenant exactement une table (sans octets superflus) où la clé entière 1
   désigne un `alg` entier ou textuel est maintenant `invalid` dans tous les moteurs ; une
   clé booléenne ou flottante, ou un `alg` flottant comme -8.0, ne la remplace plus. Une
-  signature EdDSA qui ne fait pas 64 octets est `invalid` dès que sa clé est résolue. La
-  sortie de signature est inchangée. Les nouveaux vecteurs `vectors/signed/sigalg-*.json`
+  signature EdDSA qui ne fait pas 64 octets est `invalid` dès que sa clé est résolue. Comme les octets de l'en-tête sont signés, ils doivent
+  être du CBOR à encodage déterministe (§4 : longueurs définies, entiers de forme
+  la plus courte à toute largeur, clés uniques triées octet par octet, aucun octet
+  superflu) ; tout autre cas est `invalid`. La sortie de signature est inchangée. Les nouveaux vecteurs `vectors/signed/sigalg-*.json`
   fixent ce comportement avec l'identifiant d'algorithme à usage privé -65537.
 - Autres changements de comportement : Rust ne rapporte plus un COSE_Sign1 mal formé comme
   `unverified` ; Smalltalk rapporte maintenant un `kid` absent comme `invalid` au lieu de
   `unverified` ; le lecteur Python ne lève plus d'exception sur des octets de signature
   indécodables et ne rapporte plus de `kid` pour un COSE_Sign1 mal formé, comme tous les
-  autres moteurs ; `cose::parse` de Rust n'est plus public.
+  autres moteurs ; `cose::parse` de Rust n'est plus public ; l'encodeur déterministe TypeScript
+  trie maintenant les clés octet par octet (RFC 8949 §4.2) plutôt que par longueur
+  d'abord, ce qui ne change aucune sortie existante.
 - Conséquence pour les scripts : la commande `verify` de chaque moteur, lorsqu'une clé est
   fournie, ne traite que `invalid` comme un échec. Une signature d'algorithme non pris en
   charge dont le `kid` est résolu est maintenant `unverified` et se termine avec le code 0

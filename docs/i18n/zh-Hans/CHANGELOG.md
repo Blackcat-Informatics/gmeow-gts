@@ -27,12 +27,12 @@ GTS 的所有显著变更都记录在此。本日志格式基于
   实为真正的 Ed25519 签名时，被报告为 `valid`）。受保护头不是恰好包含一个映射（无多余字节）、
   且整数键 1 对应整数或文本 `alg` 的字节串的 COSE_Sign1，现在在所有引擎中均为 `invalid`；
   布尔或浮点键，以及 -8.0 之类的浮点 `alg`，不再能替代。长度不是 64 字节的 EdDSA 签名，
-  在其密钥解析后为 `invalid`。签名输出不变。新的向量 `vectors/signed/sigalg-*.json`
+  在其密钥解析后为 `invalid`。由于头部的字节会被签名，它们必须是确定性编码的 CBOR（§4：定长项、各宽度下的最短形式整数、按字节排序的唯一键、无多余字节）；否则为 `invalid`。签名输出不变。新的向量 `vectors/signed/sigalg-*.json`
   使用私有用途算法标识符 -65537 固定这一行为。
 - 其他行为变更：Rust 不再把格式错误的 COSE_Sign1 报告为 `unverified`；Smalltalk 现在把缺失的
   `kid` 报告为 `invalid`，此前为 `unverified`；Python 读取器不再因无法解码的签名字节而抛出
   异常，也不再为格式错误的 COSE_Sign1 报告 `kid`，与其他引擎一致；Rust 的 `cose::parse`
-  不再公开。
+  不再公开；TypeScript 的确定性编码器现在按字节（RFC 8949 §4.2）而非先按长度排序映射键，不改变任何现有输出。
 - 对脚本的影响：每个引擎的命令行 `verify` 在提供密钥时，只把 `invalid` 视为失败。算法不受支持
   且 `kid` 可解析的签名现在为 `unverified`，退出码为 0，而此前为 1，这与未解析的 `kid` 原有的
   行为一致。必须拒绝 `unverified` 签名的调用方应显式检查。

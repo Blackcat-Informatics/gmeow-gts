@@ -18,7 +18,6 @@ that the key is trusted (§9.2).
 
 from __future__ import annotations
 
-import io
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -36,6 +35,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from gts.codec import CodecUnavailableError
 from gts.openpgp import load_secret_key as _load_gpg_secret_key
 from gts.openpgp import public_key_fingerprint as _gpg_fingerprint
+from gts.wire import canonical
 
 # COSE header labels / algorithm ids (RFC 9052 §3.1, IANA COSE registries).
 _ALG, _KID, _IV = 1, 4, 5
@@ -136,18 +136,21 @@ def sign_id(frame_id: bytes, signer: Signer) -> bytes:
 def _declared_alg(protected: bytes) -> int | str | None:
     """Return the ``alg`` declared in a protected header, or ``None`` if malformed.
 
-    RFC 9052 §3.1: the protected header is a bstr holding exactly one CBOR map,
-    and ``alg`` (label 1, an integer key) is an integer or a text string. Trailing
-    bytes, a boolean or float standing in for the label, a float or boolean
-    ``alg``, or no ``alg`` at all is malformed (§9.2: readers MUST honour the
-    declared algorithm, so a signature that declares none cannot be dispatched).
+    The header's bytes are signed, so they must be deterministically encoded
+    (RFC 8949 §4.2, GTS-SPEC §4) CBOR holding exactly one map: the bytes must
+    equal :func:`gts.wire.canonical` of what they decode to (definite lengths,
+    shortest-form integers, bytewise-sorted keys, no trailing bytes). A decoder
+    that collapses duplicate keys makes the re-encoding shorter, so duplicates
+    fail the same comparison. ``alg`` (label 1, an integer key, not a bool or
+    float) must be an integer or a text string (RFC 9052 §3.1). Anything else is
+    malformed (§9.2: readers MUST honour the declared algorithm, so a signature
+    that declares none cannot be dispatched).
     """
-    stream = io.BytesIO(protected)
     try:
-        header = cbor2.CBORDecoder(stream).decode()
-    except (cbor2.CBORDecodeError, ValueError, TypeError):
-        return None
-    if stream.tell() != len(protected) or not isinstance(header, Mapping):
+        header = cbor2.loads(protected)
+        if not isinstance(header, Mapping) or canonical(header) != protected:
+            return None
+    except (cbor2.CBORDecodeError, ValueError, TypeError, RecursionError):
         return None
     for label, alg in header.items():
         if type(label) is int and label == _ALG:

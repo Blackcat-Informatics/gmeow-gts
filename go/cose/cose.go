@@ -10,6 +10,7 @@
 package cose
 
 import (
+	"bytes"
 	"crypto/ed25519"
 
 	"github.com/fxamacker/cbor/v2"
@@ -63,16 +64,51 @@ func SignID(frameID []byte, priv ed25519.PrivateKey, kid string) []byte {
 	return wire.MustEncode(c)
 }
 
-// declaredAlgorithm returns the alg (label 1) of a protected header: a bstr
-// holding a CBOR map whose alg is an integer (int64 or uint64) or a text
-// string. ok=false if the header is malformed or declares no algorithm.
+// protectedDecMode decodes a protected header strictly: indefinite-length items
+// and duplicate map keys are errors.
+var protectedDecMode = mustDecMode(cbor.DecOptions{
+	DupMapKey:   cbor.DupMapKeyEnforcedAPF,
+	IndefLength: cbor.IndefLengthForbidden,
+})
+
+// protectedEncMode is RFC 8949 section 4.2 core deterministic encoding:
+// shortest-form integers and lengths, bytewise-sorted map keys.
+var protectedEncMode = mustEncMode(cbor.CoreDetEncOptions())
+
+func mustDecMode(opts cbor.DecOptions) cbor.DecMode {
+	mode, err := opts.DecMode()
+	if err != nil {
+		panic(err)
+	}
+	return mode
+}
+
+func mustEncMode(opts cbor.EncOptions) cbor.EncMode {
+	mode, err := opts.EncMode()
+	if err != nil {
+		panic(err)
+	}
+	return mode
+}
+
+// declaredAlgorithm returns the alg (label 1) of a protected header. The
+// header's bytes are signed, so they must be deterministically encoded CBOR
+// (RFC 8949 section 4.2, GTS-SPEC section 4) holding exactly one map: the bytes
+// must equal the deterministic re-encoding of what they decode to (definite
+// lengths, shortest-form integers, bytewise-sorted keys, no duplicate keys, no
+// trailing bytes). The integer key 1 must map to an integer (int64 or uint64) or
+// a text string. ok=false if the header is malformed or declares no algorithm.
 func declaredAlgorithm(protected []byte) (algorithm interface{}, ok bool) {
 	var header interface{}
-	if err := cbor.Unmarshal(protected, &header); err != nil {
+	if err := protectedDecMode.Unmarshal(protected, &header); err != nil {
 		return nil, false
 	}
 	m, isMap := header.(map[interface{}]interface{})
 	if !isMap {
+		return nil, false
+	}
+	again, err := protectedEncMode.Marshal(header)
+	if err != nil || !bytes.Equal(again, protected) {
 		return nil, false
 	}
 	for k, v := range m {

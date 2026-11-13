@@ -106,14 +106,28 @@ fun parseSign1(cose: ByteArray): Sign1Parts? {
 }
 
 /**
- * The `alg` (label 1) of a protected header: a bstr holding a CBOR map whose `alg` is an integer or a
- * text string (RFC 9052 section 3.1). Null if the header is malformed or declares no algorithm.
+ * The `alg` (label 1) of a protected header (RFC 9052 section 3.1). The header's bytes are signed, so they
+ * must be deterministically encoded CBOR (RFC 8949 section 4.2, GTS-SPEC section 4) holding exactly one map:
+ * the decoder rejects indefinite lengths, trailing bytes and floats, and the bytes must equal [encode] of what
+ * they decode to (shortest-form integers, bytewise-sorted keys) with no repeated key. The integer key 1 must
+ * map to an integer or text string. Null if the header is malformed or declares no algorithm.
  */
 private fun declaredAlgorithm(protected: ByteArray): CborValue? {
     val header = decodeOrNull(protected) as? CborMap ?: return null
+    if (hasDuplicateKeys(header) || !encode(header).contentEquals(protected)) return null
     val algorithm = header.getIntKey(COSE_ALG_LABEL) ?: return null
     return if (algorithm is CborUInt || algorithm is CborNInt || algorithm is CborText) algorithm else null
 }
+
+private fun hasDuplicateKeys(value: CborValue): Boolean =
+    when (value) {
+        is CborMap ->
+            value.value.map { it.first }.let { it.size != it.toSet().size } ||
+                value.value.any { (key, entry) -> hasDuplicateKeys(key) || hasDuplicateKeys(entry) }
+        is CborArray -> value.value.any { hasDuplicateKeys(it) }
+        is CborTag -> hasDuplicateKeys(value.value)
+        else -> false
+    }
 
 fun signatureKid(cose: ByteArray): String? = parseSign1(cose)?.kid
 

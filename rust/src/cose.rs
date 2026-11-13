@@ -91,14 +91,37 @@ struct Sign1 {
     signature: Vec<u8>,
 }
 
-/// The `alg` (label 1) of a protected header: a bstr holding exactly one CBOR map
-/// whose `alg` is an integer or text string (RFC 9052 §3.1). `None` if malformed or
-/// absent, since a signature that declares no algorithm cannot be dispatched.
+/// Whether any map in `value` repeats a key (RFC 9052 §3 requires unique labels).
+fn has_duplicate_keys(value: &Value) -> bool {
+    match value {
+        Value::Map(entries) => {
+            let mut keys: Vec<Vec<u8>> = entries.iter().map(|(k, _)| wire::encode(k)).collect();
+            keys.sort();
+            keys.windows(2).any(|pair| pair[0] == pair[1])
+                || entries
+                    .iter()
+                    .any(|(k, v)| has_duplicate_keys(k) || has_duplicate_keys(v))
+        }
+        Value::Array(items) => items.iter().any(has_duplicate_keys),
+        Value::Tag(_, inner) => has_duplicate_keys(inner),
+        _ => false,
+    }
+}
+
+/// The `alg` (label 1) of a protected header (RFC 9052 §3.1).
+///
+/// The header's bytes are signed, so they must be deterministically encoded
+/// (RFC 8949 §4.2, GTS-SPEC §4) CBOR holding exactly one map: the bytes must equal
+/// the engine's own deterministic encoding of what they decode to (definite
+/// lengths, shortest-form integers, bytewise-sorted keys, no trailing bytes), and
+/// no map may repeat a key. The integer key 1 must map to an integer or text
+/// string. `None` if malformed or absent, since a signature that declares no
+/// algorithm cannot be dispatched.
 fn declared_algorithm(protected: &[u8]) -> Option<Algorithm> {
-    // The header is exactly one CBOR item: trailing bytes are malformed.
     let mut remaining = protected;
     let header: Value = ciborium::de::from_reader(&mut remaining).ok()?;
-    if !remaining.is_empty() {
+    if !remaining.is_empty() || has_duplicate_keys(&header) || wire::canonical(&header) != protected
+    {
         return None;
     }
     let alg_label = Integer::from(ALG);

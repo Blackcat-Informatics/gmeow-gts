@@ -72,7 +72,7 @@ test("signature algorithm dispatch vectors (§9.2)", () => {
     const names = readdirSync(dir).filter(
         (n) => n.startsWith("sigalg-") && n.endsWith(".json"),
     );
-    assert.ok(names.length === 14, `expected the sigalg vectors, found ${names.length}`);
+    assert.ok(names.length === 22, `expected the sigalg vectors, found ${names.length}`);
     for (const name of names) {
         const c = JSON.parse(readFileSync(join(dir, name), "utf-8"));
         const data = unhex(c.gts);

@@ -68,7 +68,10 @@ GtsCose class >> parseEncrypt0: coseBytes [
 GtsCose class >> declaredAlgorithm: protected [
 	"The alg (label 1) of a protected header: a bstr holding a CBOR map whose
 	alg is an integer or a text string (RFC 9052 section 3.1). The header is
-	exactly one CBOR item: trailing bytes are malformed. Signals
+	exactly one CBOR map, deterministically encoded (RFC 8949 section 4.2,
+	GTS-SPEC section 4): the bytes must equal the writer's encoding of what they
+	decode to, so indefinite lengths, non-shortest integers, unsorted keys and
+	duplicate keys (a Dictionary collapses them) are malformed. Signals
 	GtsCryptoError if the header is malformed or declares no algorithm."
 
 	| algorithm header |
@@ -78,6 +81,8 @@ GtsCose class >> declaredAlgorithm: protected [
 		reader := GtsCborReader on: protected.
 		item := reader readItem.
 		reader atEnd ifFalse: [ Error signal: 'trailing CBOR bytes' ].
+		(GtsCborWriter encode: item) = protected
+			ifFalse: [ Error signal: 'protected header is not deterministically encoded' ].
 		item ]
 		on: Error
 		do: [ :error | GtsCryptoError signal: 'malformed COSE_Sign1' ].

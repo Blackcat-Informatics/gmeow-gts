@@ -45,7 +45,7 @@ GtsVerifyTest >> testSignatureAlgorithmDispatchVectors [
 	| vectors |
 	vectors := '/workspace/vectors/signed' asFileReference children select: [ :each |
 		(each basename beginsWith: 'sigalg-') and: [ each basename endsWith: '.json' ] ].
-	self assert: vectors size equals: 14.
+	self assert: vectors size equals: 22.
 	vectors do: [ :file |
 		| keyed vector unkeyed |
 		vector := self jsonVectorAt: file fullName.
