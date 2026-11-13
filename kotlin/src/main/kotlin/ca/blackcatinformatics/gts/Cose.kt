@@ -145,7 +145,7 @@ private fun validUtf8(buf: ByteArray, from: Int, to: Int): Boolean =
             .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
             .decode(java.nio.ByteBuffer.wrap(buf, from, to - from))
         true
-    } catch (e: java.nio.charset.CharacterCodingException) {
+    } catch (_: java.nio.charset.CharacterCodingException) {
         false
     }
 
@@ -212,7 +212,7 @@ private fun scanItem(buf: ByteArray, pos: Int, depth: Int, isKey: Boolean): Int 
 private fun declaredAlgorithm(protected: ByteArray): CborValue? =
     try {
         scanDeclaredAlgorithm(protected)
-    } catch (e: RuntimeException) {
+    } catch (_: RuntimeException) {
         null
     }
 
