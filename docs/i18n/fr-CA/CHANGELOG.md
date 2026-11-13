@@ -71,6 +71,13 @@ de format de transfert.
 - L'implémentation zstd du moteur Rust a été mise à jour (`structured-zstd` 0.0.48 vers 0.3.0) et produit désormais des octets compressés différents pour certaines entrées, qui se décodent toutes de façon identique.
 - Comme l'identifiant d'une trame couvre la charge utile compressée stockée, une tête écrite par la bibliothèque Rust avec un codec zstd change avec la version du compresseur; une telle tête ne doit donc pas être figée ni comparée entre versions, et il faut comparer le contenu.
 - Les mises à jour de `getrandom`, `aes-gcm`, `quick-xml`, `ed25519-dalek` et `visual-hashing` n'ont aucun effet sur les octets écrits.
+- Le moteur TypeScript utilise désormais `@noble/ed25519` 3.2.0 et `@noble/hashes` 2.4.0
+  (deux mises à jour majeures). Le code a été adapté à la nouvelle organisation des modules
+  (`sha2.js` et `legacy.js` remplacent `sha512.js` et `sha1.js`) et à la nouvelle façon de
+  fournir le SHA-512 synchrone à la bibliothèque Ed25519. Les signatures, les condensés, les
+  empreintes et tous les autres octets écrits par le moteur sont inchangés, comme le montre
+  une comparaison avant-après de la sortie de la ligne de commande et des chemins de
+  signature, de hachage et d'empreinte de la bibliothèque.
 
 ## [1.0.0-rc.1] — 2026-09-04
 

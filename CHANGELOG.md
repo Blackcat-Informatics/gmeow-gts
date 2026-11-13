@@ -63,6 +63,13 @@ breaking wire change requires a new wire-format major version.
 - The Rust engine's zstd implementation was updated (`structured-zstd` 0.0.48 to 0.3.0) and now produces different compressed bytes for some inputs, all of which decode identically.
 - Because a frame id covers the stored, compressed payload, a head written through the Rust library with a zstd codec changes with the compressor version, so such a head must not be pinned or compared between versions; compare content instead.
 - The updates to `getrandom`, `aes-gcm`, `quick-xml`, `ed25519-dalek` and `visual-hashing` have no effect on written bytes.
+- The TypeScript engine now uses `@noble/ed25519` 3.2.0 and `@noble/hashes` 2.4.0
+  (both major updates). The code was adapted to the new module layout (`sha2.js`
+  and `legacy.js` replace `sha512.js` and `sha1.js`) and to the new way of
+  supplying the synchronous SHA-512 to the Ed25519 library. Signatures, digests,
+  fingerprints and every other byte the engine writes are unchanged, shown by a
+  before-and-after comparison of the command-line output and of the library
+  signing, hashing and fingerprint paths.
 
 ## [1.0.0-rc.1] — 2026-09-04
 
