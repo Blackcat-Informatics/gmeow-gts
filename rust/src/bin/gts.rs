@@ -14,7 +14,7 @@ use std::process::ExitCode;
 
 use ciborium::value::Value;
 use ed25519_dalek::VerifyingKey;
-use gmeow_gts::cose::verify_signatures;
+use gmeow_gts::cose::{unsupported_algorithm, verify_signatures};
 use gmeow_gts::emojihash::emojihash;
 use gmeow_gts::files::UnpackOptions;
 use gmeow_gts::from_nquads::from_nquads;
@@ -1402,8 +1402,14 @@ fn cmd_verify(args: &[String]) -> ExitCode {
             let mut g = read(&data, true, None);
             verify_signatures(&mut g.signatures, |k| keys.get(k).copied());
             for sig in &g.signatures {
+                let note = sig
+                    .cose
+                    .as_deref()
+                    .and_then(unsupported_algorithm)
+                    .map(|alg| format!(" (unsupported algorithm {alg})"))
+                    .unwrap_or_default();
                 println!(
-                    "  signature {}: {}",
+                    "  signature {}: {}{note}",
                     sig.kid.as_deref().unwrap_or("?"),
                     sig.status
                 );

@@ -19,7 +19,7 @@ application {
 }
 
 dependencies {
-    implementation("com.github.luben:zstd-jni:1.5.7-24")
+    implementation("com.github.luben:zstd-jni:1.5.7-26")
     implementation("org.bouncycastle:bcprov-jdk18on:1.86")
     implementation("org.bouncycastle:bcpg-jdk18on:1.86")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")

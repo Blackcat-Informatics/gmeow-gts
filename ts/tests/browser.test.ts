@@ -232,6 +232,42 @@ test("browser stream fold verifies COSE_Sign1 with WebCrypto keys", async () => 
     assert.equal(signatureEvents.length, 2);
 });
 
+test("browser stream fold honours the declared COSE algorithm (§9.2)", async () => {
+    const dir = join(repoRoot, "vectors", "signed");
+    const names = readdirSync(dir).filter(
+        (n) => n.startsWith("sigalg-") && n.endsWith(".json"),
+    );
+    assert.ok(names.length === 68, `expected the sigalg vectors, found ${names.length}`);
+    for (const name of names) {
+        const vector = JSON.parse(readFileSync(join(dir, name), "utf-8"));
+        const bytes = unhex(vector.gts);
+        const pub = unhex(vector.pub);
+        const keyed = await readStream(chunkedStream(bytes, 13), {
+            allowSegments: false,
+            keys: {
+                verificationKey: (kid) => (kid === vector.kid ? pub : null),
+            },
+        });
+        assert.equal(keyed.signatures.length, 2, name);
+        for (const sig of keyed.signatures) {
+            assert.equal(sig.status, vector.status_with_key, name);
+            if (vector.reported_kid !== undefined) {
+                assert.equal(sig.kid, vector.reported_kid, name);
+            }
+        }
+        const unkeyed = await readStream(chunkedStream(bytes, 13), {
+            allowSegments: false,
+            keys: { verificationKey: () => null },
+        });
+        for (const sig of unkeyed.signatures) {
+            assert.equal(sig.status, vector.status_without_key, name);
+            if (vector.reported_kid !== undefined) {
+                assert.equal(sig.kid, vector.reported_kid, name);
+            }
+        }
+    }
+});
+
 test("browser COSE_Encrypt0 helper opens AES-GCM vector with WebCrypto", async () => {
     const vector = JSON.parse(
         readFileSync(
