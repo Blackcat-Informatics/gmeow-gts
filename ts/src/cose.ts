@@ -9,7 +9,7 @@
 
 import { Tagged } from "cbor";
 import * as ed from "@noble/ed25519";
-import { sha512 } from "@noble/hashes/sha512.js";
+import { sha512 } from "@noble/hashes/sha2.js";
 import { gcm } from "@noble/ciphers/aes.js";
 
 import { encode, decodeFirst } from "./wire.js";
@@ -17,7 +17,7 @@ import { declaredAlgorithm } from "./cose_header.js";
 import type { Signature } from "./model.js";
 
 // Enable @noble's synchronous sign/verify (it needs a sync SHA-512).
-ed.etc.sha512Sync = (...m: Uint8Array[]) => sha512(ed.etc.concatBytes(...m));
+ed.hashes.sha512 = sha512;
 
 const ALG = 1;
 const KID = 4;
