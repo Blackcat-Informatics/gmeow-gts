@@ -1,0 +1,18 @@
+ghprsq structured squash audit metadata
+
+parent_hashes: f5518077eb838ebd421006fb0457e11660948e5f
+
+GhpRsq-Schema: 1
+GhpRsq-Merge-Style: structured-squash
+GhpRsq-GitHub-Repo: Blackcat-Informatics/gmeow-gts
+GhpRsq-GitHub-Pull-Request: 493
+GhpRsq-GitHub-PR-URL: https://github.com/Blackcat-Informatics/gmeow-gts/pull/493
+GhpRsq-Base-Ref: main
+GhpRsq-Base-OID: a8643e08cd70a959b89595fbd9a827b369eb3326
+GhpRsq-Head-Ref: dependabot/gradle/kotlin/kotlin-835190e6ca
+GhpRsq-Head-OID: f5518077eb838ebd421006fb0457e11660948e5f
+GhpRsq-Result-Tree: 2301ba53b951a4f8fc599819f66e5e659b9ae3a9
+GhpRsq-Result-Commit: c9ad6acffe792e5be78f5bb01addb8d16a54c5cf
+GhpRsq-Parent-Hashes: f5518077eb838ebd421006fb0457e11660948e5f
+GhpRsq-Squash-Notes-SHA256: b65f3ff3b7d3424e9eba1d25fe7962439637b745ff7f3fa6cf584c81563aa01e
+GhpRsq-Stage-Evidence: none
