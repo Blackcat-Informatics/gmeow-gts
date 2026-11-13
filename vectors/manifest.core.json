@@ -1117,6 +1117,309 @@
       "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
+      "id": "28i-stray-set-between-frames",
+      "title": "stray set between frames",
+      "input": {
+        "path": "vectors/28i-stray-set-between-frames.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28i-stray-set-between-frames.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9",
+        "segment_heads": [
+          "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
+      "id": "28j-stray-set-last-item",
+      "title": "stray set last item",
+      "input": {
+        "path": "vectors/28j-stray-set-last-item.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28j-stray-set-last-item.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9",
+        "segment_heads": [
+          "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
+      "id": "28k-stray-decimal-between-frames",
+      "title": "stray decimal between frames",
+      "input": {
+        "path": "vectors/28k-stray-decimal-between-frames.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28k-stray-decimal-between-frames.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9",
+        "segment_heads": [
+          "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
+      "id": "28l-stray-decimal-last-item",
+      "title": "stray decimal last item",
+      "input": {
+        "path": "vectors/28l-stray-decimal-last-item.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28l-stray-decimal-last-item.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9",
+        "segment_heads": [
+          "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
+      "id": "28m-stray-self-reference-in-set",
+      "title": "stray self reference in set",
+      "input": {
+        "path": "vectors/28m-stray-self-reference-in-set.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28m-stray-self-reference-in-set.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9",
+        "segment_heads": [
+          "ec5a15cbe3b79c333712d64ed83a70e69a2d1be8c1316835727e5d5219823cd9"
+        ],
+        "opaque_reasons": []
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
+      "id": "28n-stray-self-reference-as-key",
+      "title": "stray self reference as key",
+      "input": {
+        "path": "vectors/28n-stray-self-reference-as-key.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28n-stray-self-reference-as-key.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "0c5e309bd0e850ef4dd529789b4278e5989e857afc36f21b8df65794cd62cc54",
+        "segment_heads": [
+          "0c5e309bd0e850ef4dd529789b4278e5989e857afc36f21b8df65794cd62cc54"
+        ],
+        "opaque_reasons": [
+          "damaged"
+        ]
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
+      "id": "28o-suppression-over-damaged-terms",
+      "title": "suppression over damaged terms",
+      "input": {
+        "path": "vectors/28o-suppression-over-damaged-terms.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28o-suppression-over-damaged-terms.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "0b3fec5018c1f23ceb58d425399a3cb7ca42947e032e16a74bbc2760c29f4581",
+        "segment_heads": [
+          "b0ac8f878a40292b5dd97917c29b60502b3a7c94110cd8edcfd2296e862b7b2a",
+          "0b3fec5018c1f23ceb58d425399a3cb7ca42947e032e16a74bbc2760c29f4581"
+        ],
+        "opaque_reasons": [
+          "damaged"
+        ]
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
+      "id": "28p-tagged-value-in-frame-field",
+      "title": "tagged value in frame field",
+      "input": {
+        "path": "vectors/28p-tagged-value-in-frame-field.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28p-tagged-value-in-frame-field.expected.json",
+        "diagnostics": [
+          "UnknownFrameType"
+        ],
+        "expected_head": "b832a37e7a24b77531446082f9c51aabea71eb4503adfa9cb9370afde35bf724",
+        "segment_heads": [
+          "b832a37e7a24b77531446082f9c51aabea71eb4503adfa9cb9370afde35bf724"
+        ],
+        "opaque_reasons": [
+          "unknown-frame-type"
+        ]
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
       "id": "29-deterministic-writer",
       "title": "deterministic writer",
       "input": {

@@ -65,6 +65,52 @@ de format de transfert.
   alors qu'elle se terminait avec 1 auparavant, comme un `kid` non résolu le faisait déjà.
   Les appelants qui doivent rejeter les signatures `unverified` doivent le vérifier
   explicitement.
+- Le lecteur Python ne laisse plus sa bibliothèque CBOR interpréter les étiquettes. GTS ne
+  donne de sens à aucune étiquette, sauf `55799` autour d'un en-tête (§3), mais la
+  bibliothèque construisait des ensembles, des décimaux, des dates et des valeurs semblables
+  à partir d'autres étiquettes; ce que le lecteur acceptait dépendait donc de la version de
+  la bibliothèque. Toute étiquette est désormais décodée en un `CBORTag` non interprété,
+  pour les éléments du fichier, pour les charges utiles transformées et pour les structures
+  COSE, de façon identique avec `cbor2` 6.1.5 et 6.2.1. Un élément CBOR complet qui n'est
+  pas une trame, avec ou sans étiquette, est rapporté comme `DamagedFrame` (une trame qui
+  n'est pas une table, ou une discordance d'auto-condensé pour une table) et le repli
+  continue avec l'élément suivant. Auparavant, avec `cbor2` 6.2.1, un élément d'étiquette
+  `258` portant autre chose qu'un tableau, ou d'étiquette `4` ou `5` dont une partie n'est
+  pas un entier, faisait rapporter un ajout tronqué (`TornAppendError`) au lecteur, qui
+  cessait de replier, alors que l'élément est du CBOR complet. Avec 6.1.5, les mêmes octets
+  étaient rapportés comme une trame endommagée et les trames suivantes étaient quand même
+  repliées. Ce changement concerne les éléments bien formés, étiquetés ou isolés. Les autres
+  échecs de décodage, comme une imbrication excessive ou de l'UTF-8 invalide, ne sont pas
+  modifiés par lui et ne sont pas encore rapportés de la même façon par tous les moteurs. Les étiquettes `2` et `3` restent des entiers (un contenu en
+  chaîne d'octets devient l'entier qu'il porte), de sorte qu'une trame est condensée sur
+  l'entier, comme dans les moteurs Rust, Go et TypeScript, et qu'un grand entier écrit sous une forme
+  non préférée est une discordance d'auto-condensé ici comme ailleurs.
+- `decrypt0` et `recipient_kid` rapportent des octets indécodables et des tableaux de
+  mauvaise longueur comme un `COSE_Encrypt0` malformé (`missing-key`, ou aucun `kid`) au
+  lieu de lever `CBORDecodeError` ou `IndexError`, et une structure COSE sous une étiquette
+  telle que `258` n'est plus dépaquetée comme un ensemble Python dont l'ordre décidait du
+  résultat. L'acceptation d'une structure COSE sous une étiquette autre que `18` ou `16`
+  diffère selon les moteurs et n'est pas encore figée par un vecteur.
+- Les nouveaux vecteurs `28i-stray-set-between-frames`, `28j-stray-set-last-item`,
+  `28k-stray-decimal-between-frames`, `28l-stray-decimal-last-item`,
+  `28m-stray-self-reference-in-set` et `28n-stray-self-reference-as-key` figent le résultat
+  pour un élément étiqueté isolé entre des trames et en dernier : un `DamagedFrame`, aucun
+  `TornAppendError`, et le quad qui suit l'élément est quand même replié. Les octets écrits
+  `28o-suppression-over-damaged-terms` fige une suppression d'un segment ultérieur qui
+  nomme les identifiants d'une trame `terms` endommagée, et `28p-tagged-value-in-frame-field`
+  fige une valeur étiquetée dans un champ de trame.
+  Les octets écrits sont inchangés : chaque vecteur existant auparavant est identique octet
+  pour octet.
+- `read` ne lève plus `IndexError` lorsqu'une suppression d'un segment ultérieur nomme un
+  identifiant de terme que la trame `terms` endommagée de son segment n'a jamais défini;
+  l'identifiant est conservé tel que reçu et le dommage est le seul diagnostic, comme dans
+  Rust, Go et TypeScript.
+- Les décodeurs Kotlin et Smalltalk délimitent désormais les éléments à virgule flottante
+  et les autres valeurs simples bien formées, et les gardent non interprétés. Auparavant,
+  un élément complet qui en contenait une, comme un élément d'étiquette `4` dont une partie
+  est un flottant en demi-précision, était rapporté comme un ajout tronqué et le repli
+  s'arrêtait; il est maintenant une trame endommagée et le repli continue, comme l'exige la
+  spécification.
 
 ### Modifié
 
@@ -83,6 +129,13 @@ de format de transfert.
   signature tels que reçus (ZIP-215) : une signature dont le `R` n'est pas canonique et qui
   était valide auparavant ne l'est plus, et inversement. La politique de vérification
   elle-même est inchangée et reste une décision à prendre pour tout le format.
+- Les dépendances Python ont été mises à jour, dont `cbor2` 6.1.5 vers 6.2.1. Les octets
+  écrits sont inchangés : le corpus se régénère à l'identique avec les deux versions. La
+  mise à jour supprime un plantage : `cbor2` 6.1.5 terminait le processus par une faute de
+  segmentation sur une étiquette autoréférentielle utilisée comme clé de table ou élément
+  d'ensemble, et 6.2.1 lève une erreur qui peut être interceptée. Le lecteur ne confie plus
+  les étiquettes à la bibliothèque pour interprétation (voir Corrigé); aucune des deux
+  versions ne peut donc planter sur une telle entrée, et les deux la replient de la même façon.
 
 ## [1.0.0-rc.1] — 2026-09-04
 

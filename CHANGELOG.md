@@ -57,6 +57,49 @@ breaking wire change requires a new wire-format major version.
   unsupported algorithm and a resolvable `kid` is now `unverified` and exits 0
   where it exited 1 before, as an unresolved `kid` already did. Callers that
   must reject unverified signatures should check for `unverified` explicitly.
+- The Python reader no longer lets its CBOR library interpret tags. GTS gives no
+  tag a meaning except `55799` around a Header (§3), but the library built sets,
+  decimals, dates and similar values from other tags, so what the reader accepted
+  depended on the library release. Every tag now decodes to an uninterpreted
+  `CBORTag`, for items in the file, for transformed payloads and for COSE
+  structures, identically under `cbor2` 6.1.5 and 6.2.1. A complete CBOR item that
+  is not a frame, with or without a tag, is reported as a `DamagedFrame` (a
+  frame that is not a map, or a self-hash mismatch for a map) and the fold goes on
+  with the next item. Before this, with `cbor2` 6.2.1, a tag `258` item over
+  something other than an array, or a tag `4` or `5` item with a part that is not an
+  integer, made the reader report a torn append (`TornAppendError`) and stop
+  folding, although the item is complete CBOR. With 6.1.5 the same bytes were
+  reported as a damaged frame and the later frames still folded. This change
+  concerns well-formed tagged or stray items. Other decode failures, such as
+  excessive nesting or invalid UTF-8, are unchanged by it and are not yet reported
+  alike by all engines.
+  Tags `2` and `3` stay integers (a byte string content becomes the integer it
+  carries), so a frame is hashed over the integer, as in the Rust, Go and TypeScript engines, and a
+  bignum written in a non-preferred form is a self-hash mismatch there and here.
+- `decrypt0` and `recipient_kid` report undecodable bytes and arrays of the wrong
+  length as a malformed `COSE_Encrypt0` (`missing-key`, or no `kid`) instead of
+  raising `CBORDecodeError` or `IndexError`, and a COSE structure under a tag such
+  as `258` is no longer unpacked as a Python set whose order decided the outcome.
+  Whether an engine accepts a COSE structure under a tag other than `18` or `16`
+  differs between engines and is not yet pinned by a vector.
+- New vectors `28i-stray-set-between-frames`, `28j-stray-set-last-item`,
+  `28k-stray-decimal-between-frames`, `28l-stray-decimal-last-item`,
+  `28m-stray-self-reference-in-set` and `28n-stray-self-reference-as-key` pin the
+  outcome for a stray tagged item between frames and as the last item: a
+  `DamagedFrame`, no `TornAppendError`, and the quad after the item still folds.
+  `28o-suppression-over-damaged-terms` pins a suppression in a later segment that
+  names the ids of a damaged `terms` frame, and `28p-tagged-value-in-frame-field`
+  pins a tagged value inside a frame field.
+  Written bytes are unchanged: every vector that existed before is byte-identical.
+- `read` no longer raises `IndexError` when a suppression in a later segment names a
+  term id that the damaged `terms` frame of its segment never defined; the id is
+  kept as received and the damage is the only diagnostic, as in Rust, Go and
+  TypeScript.
+- The Kotlin and Smalltalk decoders now delimit floating-point items and other
+  well-formed simple values and keep them uninterpreted. Before this, a complete item
+  holding one, such as a tag `4` item with a half-precision float part, was reported
+  as a torn append and the fold stopped; it is now a damaged frame and the fold goes
+  on, as the specification requires.
 
 ### Changed
 
@@ -74,6 +117,13 @@ breaking wire change requires a new wire-format major version.
   over the `R` bytes of the signature as received (ZIP-215), so a signature with a
   non-canonical `R` that verified before no longer does, and the converse. The
   verification policy itself is unchanged and remains a format-wide decision.
+- The Python dependencies were updated, among them `cbor2` 6.1.5 to 6.2.1. Written bytes
+  are unchanged: the corpus regenerates byte-identically under both releases. The
+  update removes a crash: `cbor2` 6.1.5 ended the process with a segmentation fault
+  on a self-referential tag used as a map key or set element, and 6.2.1 raises an
+  error that can be caught. The reader no longer hands tags to the library to
+  interpret (see Fixed), so neither release can crash on such input and both fold
+  it the same way.
 
 ## [1.0.0-rc.1] — 2026-09-04
 

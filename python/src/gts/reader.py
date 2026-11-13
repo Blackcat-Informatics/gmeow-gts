@@ -13,8 +13,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-import cbor2
-
 from gts.codec import Codec, CodecClass, CodecUnavailableError, decode_chain
 from gts.crypto import KeyProvider, decrypt0, verify_sig
 from gts.model import (
@@ -37,7 +35,9 @@ from gts.wire import (
     content_id,
     digest_str,
     header_id,
+    is_header_item,
     iter_items,
+    loads,
     unwrap_header,
 )
 
@@ -156,7 +156,7 @@ class _Folder:
                 msg = "transformed frame 'd' must be a byte string"
                 raise ValueError(msg)
             decoded = decode_chain(self._resolve_codecs(x), d, decrypt=self._decryptor)
-            return decoded if blob else cbor2.loads(decoded)
+            return decoded if blob else loads(decoded)
         return d
 
     def fold_frame(self, frame: Mapping[str, object], index: int) -> None:
@@ -771,18 +771,6 @@ def check_conflicting_reifiers(g: Graph) -> None:
             )
 
 
-def _is_header_item(item: object) -> bool:
-    """§3.1 boundary rule: a map carrying ``"gts"`` and lacking ``"t"``.
-
-    The optional self-describe tag is unwrapped by :func:`unwrap_header`-style
-    handling in :func:`iter_items` consumers; here a tagged item's value is
-    inspected.
-    """
-    if isinstance(item, cbor2.CBORTag):
-        item = item.value
-    return isinstance(item, Mapping) and "gts" in item and "t" not in item
-
-
 def read(
     data: bytes,
     *,
@@ -816,7 +804,7 @@ def read(
         return g
 
     # Split into segments at header-shaped items (§3.1).
-    bounds = [i for i, (_, item) in enumerate(items) if _is_header_item(item)]
+    bounds = [i for i, (_, item) in enumerate(items) if is_header_item(item)]
     if not bounds or bounds[0] != 0:
         g = Graph()
         g.diagnostics.append(
@@ -885,7 +873,7 @@ def read_segments(
     items, torn = iter_items(data)
     if not items:
         return [], torn, Diagnostic("EmptyFile", "no CBOR items", None)
-    bounds = [i for i, (_, item) in enumerate(items) if _is_header_item(item)]
+    bounds = [i for i, (_, item) in enumerate(items) if is_header_item(item)]
     if not bounds or bounds[0] != 0:
         return [], torn, Diagnostic("DamagedFrame", "first item is not a header", 0)
     segment_slices = [
@@ -1214,6 +1202,14 @@ def _remap_suppression(
     union graph is value-interned.
     """
     new_targets: list[Mapping[str, object]] = []
+    known = len(seg.terms)
+
+    def resolves(x: object) -> bool:
+        # A term id the segment never introduced (its `terms` frame was damaged or
+        # dropped) names nothing: the reference is kept as received, as Rust, Go and
+        # TypeScript do, and the damage is already diagnosed where it happened.
+        return isinstance(x, int) and 0 <= x < known
+
     for target in sup.targets:
         kind = target.get("kind")
         if kind in ("frame", "blob"):
@@ -1222,16 +1218,17 @@ def _remap_suppression(
         t = dict(target)
         tid = t.get("id")
         if kind in ("term", "reifier") and isinstance(tid, int):
-            t["id"] = map_fn(seg, seg_idx, tid)
+            if resolves(tid):
+                t["id"] = map_fn(seg, seg_idx, tid)
         elif kind == "quad":
             raw_q = t.get("q")
             if isinstance(raw_q, list):
-                t["q"] = [
-                    map_fn(seg, seg_idx, x) if isinstance(x, int) else x for x in raw_q
-                ]
+                t["q"] = [map_fn(seg, seg_idx, x) if resolves(x) else x for x in raw_q]
         new_targets.append(t)
     return Suppression(
         targets=new_targets,
         reason=sup.reason,
-        by=map_fn(seg, seg_idx, sup.by) if sup.by is not None else None,
+        by=map_fn(seg, seg_idx, sup.by)
+        if sup.by is not None and resolves(sup.by)
+        else None,
     )

@@ -41,6 +41,13 @@ data object CborNull : CborValue
 
 data object CborUndefined : CborValue
 
+/**
+ * A well-formed simple value or floating-point item that GTS gives no meaning: kept as received so the item
+ * is delimited, never interpreted. [info] is the additional information (0 to 19, 24 to 27) and [argument]
+ * the raw argument bits (the simple value for 24, the float bits for 25 to 27).
+ */
+data class CborSimple(val info: Int, val argument: Long) : CborValue
+
 data class CborItem(val offset: Int, val item: CborValue)
 
 class CborDecodeException(message: String) : RuntimeException(message)
@@ -133,6 +140,18 @@ private fun encodeInto(out: ByteArrayOutputStream, value: CborValue) {
         is CborBool -> out.write(if (value.value) 0xf5 else 0xf4)
         CborNull -> out.write(0xf6)
         CborUndefined -> out.write(0xf7)
+        is CborSimple -> {
+            out.write((7 shl 5) or value.info)
+            val width =
+                when (value.info) {
+                    24 -> 1
+                    25 -> 2
+                    26 -> 4
+                    27 -> 8
+                    else -> 0
+                }
+            for (i in width - 1 downTo 0) out.write(((value.argument ushr (8 * i)) and 0xff).toInt())
+        }
     }
 }
 
@@ -243,6 +262,13 @@ private class CborDecoder(
             21 -> CborBool(true)
             22 -> CborNull
             23 -> CborUndefined
+            in 0..19 -> CborSimple(info, info.toLong())
+            24 -> {
+                val simple = readArgument(info)
+                if (simple < 32) throw CborDecodeException("simple value $simple needs the one-byte form")
+                CborSimple(info, simple)
+            }
+            25, 26, 27 -> CborSimple(info, readArgument(info))
             else -> throw CborDecodeException("unsupported CBOR simple value $info")
         }
 
