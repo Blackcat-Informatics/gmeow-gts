@@ -79,11 +79,11 @@ de format de transfert.
   pas un entier, faisait rapporter un ajout tronqué (`TornAppendError`) au lecteur, qui
   cessait de replier, alors que l'élément est du CBOR complet. Avec 6.1.5, les mêmes octets
   étaient rapportés comme une trame endommagée et les trames suivantes étaient quand même
-  repliées. Tout autre échec de décodage, comme une imbrication de plus de 400 niveaux ou
-  de l'UTF-8 invalide, est toujours rapporté comme un ajout tronqué par tous les moteurs;
-  ce changement n'y touche pas. Les étiquettes `2` et `3` restent des entiers (un contenu en
+  repliées. Ce changement concerne les éléments bien formés, étiquetés ou isolés. Les autres
+  échecs de décodage, comme une imbrication excessive ou de l'UTF-8 invalide, ne sont pas
+  modifiés par lui et ne sont pas encore rapportés de la même façon par tous les moteurs. Les étiquettes `2` et `3` restent des entiers (un contenu en
   chaîne d'octets devient l'entier qu'il porte), de sorte qu'une trame est condensée sur
-  l'entier, comme dans tous les autres moteurs, et qu'un grand entier écrit sous une forme
+  l'entier, comme dans les moteurs Rust, Go et TypeScript, et qu'un grand entier écrit sous une forme
   non préférée est une discordance d'auto-condensé ici comme ailleurs.
 - `decrypt0` et `recipient_kid` rapportent des octets indécodables et des tableaux de
   mauvaise longueur comme un `COSE_Encrypt0` malformé (`missing-key`, ou aucun `kid`) au

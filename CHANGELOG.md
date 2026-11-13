@@ -69,11 +69,12 @@ breaking wire change requires a new wire-format major version.
   something other than an array, or a tag `4` or `5` item with a part that is not an
   integer, made the reader report a torn append (`TornAppendError`) and stop
   folding, although the item is complete CBOR. With 6.1.5 the same bytes were
-  reported as a damaged frame and the later frames still folded. Any other decode
-  failure, such as nesting deeper than 400 levels or invalid UTF-8, is still
-  reported as a torn append by every engine; this change does not alter that.
+  reported as a damaged frame and the later frames still folded. This change
+  concerns well-formed tagged or stray items. Other decode failures, such as
+  excessive nesting or invalid UTF-8, are unchanged by it and are not yet reported
+  alike by all engines.
   Tags `2` and `3` stay integers (a byte string content becomes the integer it
-  carries), so a frame is hashed over the integer, as in every other engine, and a
+  carries), so a frame is hashed over the integer, as in the Rust, Go and TypeScript engines, and a
   bignum written in a non-preferred form is a self-hash mismatch there and here.
 - `decrypt0` and `recipient_kid` report undecodable bytes and arrays of the wrong
   length as a malformed `COSE_Encrypt0` (`missing-key`, or no `kid`) instead of
