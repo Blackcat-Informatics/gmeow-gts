@@ -93,3 +93,56 @@ func TestSignedFileVector(t *testing.T) {
 		}
 	}
 }
+
+// TestSignatureAlgorithmDispatchVectors pins GTS-SPEC §9.2: readers honour the
+// declared algorithm. An unsupported algorithm is unverified (never valid or
+// invalid) with the kid kept, a malformed COSE_Sign1 is invalid, and EdDSA with
+// a short signature is invalid only once a key resolves.
+func TestSignatureAlgorithmDispatchVectors(t *testing.T) {
+	paths, err := filepath.Glob(filepath.Join("..", "..", "vectors", "signed", "sigalg-*.json"))
+	if err != nil || len(paths) != 68 {
+		t.Fatalf("expected the sigalg vectors, found %d (%v)", len(paths), err)
+	}
+	for _, path := range paths {
+		raw, err := os.ReadFile(path) // #nosec G304 -- repository test vector
+		if err != nil {
+			t.Fatal(err)
+		}
+		var c struct {
+			Pub              string `json:"pub"`
+			Kid              string `json:"kid"`
+			Gts              string `json:"gts"`
+			ReportedKid      string `json:"reported_kid"`
+			StatusWithKey    string `json:"status_with_key"`
+			StatusWithoutKey string `json:"status_without_key"`
+		}
+		if err := json.Unmarshal(raw, &c); err != nil {
+			t.Fatal(err)
+		}
+		pub, _ := hex.DecodeString(c.Pub)
+		data, _ := hex.DecodeString(c.Gts)
+
+		check := func(resolve func(string) (ed25519.PublicKey, bool), want string) {
+			g := reader.Read(data, false, nil)
+			if len(g.Signatures) != 2 {
+				t.Fatalf("%s: expected 2 signatures, got %d", path, len(g.Signatures))
+			}
+			cose.VerifySignatures(g.Signatures, resolve)
+			for _, s := range g.Signatures {
+				if s.Status != want {
+					t.Errorf("%s: expected %s, got %s", path, want, s.Status)
+				}
+				if c.ReportedKid != "" && s.Kid != c.ReportedKid {
+					t.Errorf("%s: expected kid %s, got %q", path, c.ReportedKid, s.Kid)
+				}
+			}
+		}
+		check(func(kid string) (ed25519.PublicKey, bool) {
+			if kid == c.Kid {
+				return ed25519.PublicKey(pub), true
+			}
+			return nil, false
+		}, c.StatusWithKey)
+		check(func(string) (ed25519.PublicKey, bool) { return nil, false }, c.StatusWithoutKey)
+	}
+}

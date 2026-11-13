@@ -298,20 +298,17 @@ impl XmlDomParser {
         loop {
             match reader.read_event() {
                 Ok(Event::Start(start)) => {
-                    let element = parse_start(&start, &mut namespaces, &mut ns_order, &reader)?;
+                    let element = parse_start(&start, &mut namespaces, &mut ns_order)?;
                     stack.push(element);
                 }
                 Ok(Event::Empty(start)) => {
-                    let element = parse_start(&start, &mut namespaces, &mut ns_order, &reader)?;
+                    let element = parse_start(&start, &mut namespaces, &mut ns_order)?;
                     namespaces.pop();
                     ns_order.pop();
                     attach_element(&mut stack, &mut root, element)?;
                 }
                 Ok(Event::Text(text)) => {
-                    let text = text
-                        .xml_content(XmlVersion::Implicit1_0)
-                        .map_err(xml_error)?
-                        .into_owned();
+                    let text = text.xml_content(XmlVersion::Implicit1_0).into_owned();
                     if let Some(parent) = stack.last_mut() {
                         parent.children.push(XmlNode::Text(text));
                     } else if !text.trim().is_empty() {
@@ -321,7 +318,7 @@ impl XmlDomParser {
                     }
                 }
                 Ok(Event::CData(text)) => {
-                    let text = String::from_utf8_lossy(text.as_ref()).into_owned();
+                    let text = text.as_ref().to_owned();
                     if let Some(parent) = stack.last_mut() {
                         parent.children.push(XmlNode::Text(text));
                     }
@@ -360,9 +357,7 @@ impl XmlDomParser {
 }
 
 fn resolve_general_reference(reference: &BytesRef<'_>) -> Result<String, RdfCodecError> {
-    let decoded = reference
-        .xml_content(XmlVersion::Implicit1_0)
-        .map_err(xml_error)?;
+    let decoded = reference.xml_content(XmlVersion::Implicit1_0);
     let resolved = if let Some(hex) = decoded.strip_prefix("#x") {
         u32::from_str_radix(hex, 16)
             .ok()
@@ -396,9 +391,8 @@ fn parse_start(
     start: &BytesStart<'_>,
     namespaces: &mut Vec<HashMap<String, String>>,
     ns_order: &mut Vec<Vec<(String, String)>>,
-    reader: &Reader<&[u8]>,
 ) -> Result<Element, RdfCodecError> {
-    let raw_name = raw_xml_name(start.name().as_ref())?;
+    let raw_name = start.name().as_ref().to_owned();
     let mut scope = namespaces
         .last()
         .cloned()
@@ -408,9 +402,9 @@ fn parse_start(
     let mut raw_attrs = Vec::new();
     for attr in start.attributes() {
         let attr = attr.map_err(xml_error)?;
-        let raw = raw_xml_name(attr.key.as_ref())?;
+        let raw = attr.key.as_ref().to_owned();
         let value = attr
-            .decoded_and_normalized_value(XmlVersion::Implicit1_0, reader.decoder())
+            .normalized_value(XmlVersion::Implicit1_0)
             .map_err(xml_error)?
             .into_owned();
         if raw == "xmlns" {
@@ -463,12 +457,6 @@ fn initial_namespaces() -> HashMap<String, String> {
         ("xml".to_string(), XML_NS.to_string()),
         ("rdf".to_string(), RDF_NS.to_string()),
     ])
-}
-
-fn raw_xml_name(bytes: &[u8]) -> Result<String, RdfCodecError> {
-    std::str::from_utf8(bytes)
-        .map(str::to_string)
-        .map_err(|error| RdfCodecError::new(format!("RDF/XML parse error: {error}")))
 }
 
 fn expand_name(

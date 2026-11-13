@@ -3,6 +3,7 @@
 
 import { Tagged } from "cbor";
 
+import { declaredAlgorithm } from "./cose_header.js";
 import {
     asBytes,
     copyBytes,
@@ -13,6 +14,7 @@ import {
 
 const KID = 4;
 const IV = 5;
+const ALG_EDDSA = -8;
 const TAG_SIGN1 = 18;
 const TAG_ENCRYPT0 = 16;
 
@@ -59,11 +61,16 @@ export async function verifySign1WithWebCrypto(
     keys: BrowserKeyProvider,
 ): Promise<{ kid: string; status: BrowserSigStatus }> {
     const parsed = parseSign1(cose);
-    if (!parsed || parsed.signature.length !== 64) {
-        return { kid: "", status: "invalid" };
+    if (!parsed) return { kid: "", status: "invalid" };
+    // §9.2: honour the declared algorithm; only EdDSA is checked here.
+    if (parsed.algorithm !== ALG_EDDSA) {
+        return { kid: parsed.kid, status: "unverified" };
     }
     const key = await keys.verificationKey?.(parsed.kid);
     if (!key) return { kid: parsed.kid, status: "unverified" };
+    if (parsed.signature.length !== 64) {
+        return { kid: parsed.kid, status: "invalid" };
+    }
     try {
         const cryptoKey = await ed25519VerificationKey(key);
         const ok = await subtleCrypto().verify(
@@ -126,6 +133,7 @@ export async function decrypt0WithWebCrypto(
 
 interface ParsedSign1 {
     kid: string;
+    algorithm: number | bigint | string;
     protected: Uint8Array;
     signature: Uint8Array;
 }
@@ -142,10 +150,13 @@ function parseSign1(cose: Uint8Array): ParsedSign1 | null {
         const signature = asBytes(body[3]);
         const unprotected = body[1];
         if (!prot || !signature || !(unprotected instanceof Map)) return null;
+        const algorithm = declaredAlgorithm(prot);
+        if (algorithm === null) return null;
         const kidVal = asBytes(unprotected.get(KID));
         if (!kidVal) return null;
         return {
             kid: new TextDecoder().decode(kidVal),
+            algorithm,
             protected: prot,
             signature,
         };

@@ -21,6 +21,57 @@ restera analysable et pliable en toute sécurité par les futurs lecteurs de ver
 majeure 1 ; un changement de transfert incompatible exige une nouvelle version majeure
 de format de transfert.
 
+## [Non publié]
+
+### Corrigé
+
+- Les signatures de trame respectent désormais l'algorithme de signature déclaré dans
+  l'en-tête protégé COSE (§9.2 : les lecteurs DOIVENT respecter l'algorithme déclaré).
+  Rust, Python, Go, TypeScript (y compris le chemin WebCrypto du navigateur), Kotlin et
+  Smalltalk aiguillent selon `alg` : EdDSA est vérifié comme Ed25519, et tout autre
+  algorithme déclaré est rapporté `unverified`, avec son `kid` conservé, jamais
+  `invalid` et jamais `valid`. Auparavant, chaque moteur exécutait Ed25519
+  inconditionnellement : une signature d'un autre algorithme était rapportée `invalid`
+  (ou, avec un en-tête protégé déclarant un autre algorithme sur une véritable
+  signature Ed25519, `valid`). Un COSE_Sign1 dont l'en-tête protégé ne respecte pas la grammaire suivante
+  est mal formé, et sa signature est `invalid` ; il en va de même d'une signature
+  EdDSA qui ne fait pas 64 octets dès que sa clé est résolue :
+
+  > L'en-tête protégé est une chaîne d'octets dont le contenu est du CBOR à
+  > encodage déterministe (longueurs définies, entiers et longueurs sous la forme
+  > la plus courte, clés de table dans l'ordre octet par octet de leurs
+  > encodages, aucune clé en double, aucun octet superflu) formant exactement une
+  > table. Toute clé de table, à toute profondeur, est un entier ou une chaîne de
+  > texte. Toute valeur, à toute profondeur, est un entier, une chaîne d'octets,
+  > une chaîne de texte, un tableau, une table, null, true ou false. Tout entier,
+  > clé ou valeur, se situe dans l'intervalle de -2^63 à 2^63-1 inclusivement. Les
+  > chaînes de texte sont de l'UTF-8 valide. L'imbrication compte au plus 8
+  > niveaux, la table d'en-tête elle-même étant le niveau 1. La table contient la
+  > clé entière 1, dont la valeur est un entier ou une chaîne de texte. Un
+  > en-tête qui ne respecte pas tout ceci est mal formé et la signature est
+  > `invalid`.
+
+  Les octets écrits sont inchangés : la sortie de signature et chaque vecteur
+  antérieur à ce changement sont identiques octet pour octet. Les nouveaux vecteurs `vectors/signed/sigalg-*.json`
+  fixent ce comportement, y compris les limites de la grammaire (intervalle des entiers, types de clés, UTF-8, profondeur d'imbrication), avec l'identifiant d'algorithme à usage privé -65537 ; les tests de chaque moteur vérifient chacun de ces vecteurs selon son état indiqué.
+- Autres changements de comportement : Rust ne rapporte plus un COSE_Sign1 mal formé comme
+  `unverified` ; Smalltalk rapporte maintenant un `kid` absent comme `invalid` au lieu de
+  `unverified` ; le lecteur Python ne lève plus d'exception sur des octets de signature
+  indécodables et ne rapporte plus de `kid` pour un COSE_Sign1 mal formé, comme tous les
+  autres moteurs ; `cose::parse` de Rust n'est plus public .
+- Conséquence pour les scripts : la commande `verify` de chaque moteur, lorsqu'une clé est
+  fournie, ne traite que `invalid` comme un échec. Une signature d'algorithme non pris en
+  charge dont le `kid` est résolu est maintenant `unverified` et se termine avec le code 0
+  alors qu'elle se terminait avec 1 auparavant, comme un `kid` non résolu le faisait déjà.
+  Les appelants qui doivent rejeter les signatures `unverified` doivent le vérifier
+  explicitement.
+
+### Modifié
+
+- L'implémentation zstd du moteur Rust a été mise à jour (`structured-zstd` 0.0.48 vers 0.3.0) et produit désormais des octets compressés différents pour certaines entrées, qui se décodent toutes de façon identique.
+- Comme l'identifiant d'une trame couvre la charge utile compressée stockée, une tête écrite par la bibliothèque Rust avec un codec zstd change avec la version du compresseur; une telle tête ne doit donc pas être figée ni comparée entre versions, et il faut comparer le contenu.
+- Les mises à jour de `getrandom`, `aes-gcm`, `quick-xml`, `ed25519-dalek` et `visual-hashing` n'ont aucun effet sur les octets écrits.
+
 ## [1.0.0-rc.1] — 2026-09-04
 
 ### Modifié

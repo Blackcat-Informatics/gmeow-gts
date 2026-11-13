@@ -506,10 +506,18 @@ GtsCLI class >> runVerifyProof: args [
 
 { #category : #private }
 GtsCLI class >> verifySignature: signature keys: keys [
-	| kid publicKey |
-	kid := signature at: 'kid' ifAbsent: [ nil ].
-	kid ifNil: [ ^ 'unverified' ].
-	publicKey := keys at: kid ifAbsent: [ ^ 'unverified' ].
+	"Dispatch on the algorithm declared in the protected header (GTS-SPEC section
+	9.2): a malformed COSE_Sign1 is invalid, an unsupported algorithm or an
+	unresolved key is unverified, and EdDSA is verified as Ed25519."
+
+	| parsed publicKey |
+	parsed := [ GtsCose parseSign1: (signature at: 'cose') ]
+		on: Error
+		do: [ :error | ^ 'invalid' ].
+	(parsed at: 'alg') = GtsCose eddsaAlgorithm ifFalse: [ ^ 'unverified' ].
+	publicKey := keys at: (parsed at: 'kid') ifAbsent: [ ^ 'unverified' ].
+	(parsed at: 'signature') size = GtsSodium ed25519SignatureBytes
+		ifFalse: [ ^ 'invalid' ].
 	[
 		^ (GtsCose
 			verifySign1: (signature at: 'cose')

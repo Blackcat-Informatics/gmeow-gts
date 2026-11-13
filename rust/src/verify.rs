@@ -259,7 +259,7 @@ pub fn verify_file_with_options(data: &[u8], options: &VerifyOptions) -> Verific
     }
     if unverified > 0 {
         errors.push(format!(
-            "{unverified} signature(s) unverified (no key resolved)"
+            "{unverified} signature(s) unverified (no key resolved or algorithm unsupported)"
         ));
     }
     if options.require_signatures && signed == 0 {

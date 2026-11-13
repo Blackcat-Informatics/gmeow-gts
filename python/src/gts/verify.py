@@ -178,7 +178,10 @@ def verify_file(
     if invalid:
         errors.append(f"{invalid} signature(s) invalid")
     if unverified:
-        errors.append(f"{unverified} signature(s) unverified (no key resolved)")
+        errors.append(
+            f"{unverified} signature(s) unverified "
+            "(no key resolved or algorithm unsupported)"
+        )
     if require_signatures and signed == 0:
         errors.append("no signed frames found")
 
