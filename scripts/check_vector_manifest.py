@@ -97,6 +97,12 @@ RESILIENCE_NEGATIVE_TOP_LEVEL = frozenset(
         "28f-malformed-transform-shape",
         "28g-damaged-compressed-payload",
         "28h-malformed-security-metadata",
+        "28i-stray-set-between-frames",
+        "28j-stray-set-last-item",
+        "28k-stray-decimal-between-frames",
+        "28l-stray-decimal-last-item",
+        "28m-stray-self-reference-in-set",
+        "28n-stray-self-reference-as-key",
     }
 )
 
@@ -139,6 +145,12 @@ TOP_LEVEL_SUBSETS = {
     "28f-malformed-transform-shape": ("total-reader", "resilience-negative"),
     "28g-damaged-compressed-payload": ("total-reader", "resilience-negative"),
     "28h-malformed-security-metadata": ("total-reader", "resilience-negative"),
+    "28i-stray-set-between-frames": ("total-reader", "resilience-negative"),
+    "28j-stray-set-last-item": ("total-reader", "resilience-negative"),
+    "28k-stray-decimal-between-frames": ("total-reader", "resilience-negative"),
+    "28l-stray-decimal-last-item": ("total-reader", "resilience-negative"),
+    "28m-stray-self-reference-in-set": ("total-reader", "resilience-negative"),
+    "28n-stray-self-reference-as-key": ("total-reader", "resilience-negative"),
     "29-deterministic-writer": ("writer-determinism",),
 }
 

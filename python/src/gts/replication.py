@@ -15,8 +15,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal, cast
 
-import cbor2
-
 from gts.model import Diagnostic, StreamableInfo
 from gts.reader import read_segments
 from gts.wire import (
@@ -24,6 +22,7 @@ from gts.wire import (
     canonical,
     content_id,
     header_id,
+    is_header_item,
     iter_items,
     unwrap_header,
 )
@@ -119,12 +118,6 @@ class Inventory:
 
 def _as_text(value: object) -> str | None:
     return value if isinstance(value, str) else None
-
-
-def _is_header_item(item: object) -> bool:
-    if isinstance(item, cbor2.CBORTag):
-        item = item.value
-    return isinstance(item, Mapping) and "gts" in item and "t" not in item
 
 
 def _item_end(
@@ -233,7 +226,7 @@ def inventory(data: bytes) -> Inventory:
             item_count=len(items),
         )
 
-    bounds = [index for index, (_, item) in enumerate(items) if _is_header_item(item)]
+    bounds = [index for index, (_, item) in enumerate(items) if is_header_item(item)]
     if not bounds or bounds[0] != 0:
         return Inventory(
             segments=[],

@@ -10,7 +10,8 @@ the first frame's ``"prev"`` is the Header's ``"id"``.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from typing import IO, Any
 
 import cbor2
 from blake3 import blake3
@@ -24,6 +25,68 @@ VERSION = 1
 # Frame map keys excluded from the self-hash preimage.
 _ID_EXCLUDED = ("id", "sig")
 
+# CBOR tags that ``cbor2`` gives a meaning to when it decodes (date and time, big
+# numbers, decimal fractions and big floats, shared and string references,
+# rationals, regular expressions, MIME messages, UUIDs, IP addresses, sets, complex
+# numbers and the self-describe tag). GTS gives none of them a meaning, so every one
+# is decoded to an uninterpreted :class:`cbor2.CBORTag`. Without this the set of
+# accepted inputs, and what a decoded value looks like, would depend on the library
+# and its version: tag 258 over a text string became a set under one release and a
+# decode error under the next, which the reader treats as a torn append. A new
+# ``cbor2`` release that interprets another tag is caught by
+# ``tests/test_wire_tags.py``, which scans the tag space.
+_LIBRARY_TAGS = (
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    25,
+    28,
+    29,
+    30,
+    35,
+    36,
+    37,
+    52,
+    54,
+    100,
+    256,
+    258,
+    260,
+    261,
+    1004,
+    43000,
+    SELF_DESCRIBE_TAG,
+)
+
+
+def _keep_tag(tag: int) -> Callable[[object, bool], object]:
+    """Return a ``cbor2`` semantic decoder that keeps ``tag`` and its content as is."""
+
+    def keep(value: object, _immutable: bool) -> object:
+        return cbor2.CBORTag(tag, value)
+
+    return keep
+
+
+_TAG_PRESERVING = {tag: _keep_tag(tag) for tag in _LIBRARY_TAGS}
+
+
+def decoder(fp: IO[bytes]) -> cbor2.CBORDecoder:
+    """Return a CBOR decoder over ``fp`` that leaves every tag uninterpreted.
+
+    A tagged item surfaces as :class:`cbor2.CBORTag` whatever the tag number, so the
+    reader treats a tag the same way under every ``cbor2`` release.
+    """
+    return cbor2.CBORDecoder(fp, semantic_decoders=_TAG_PRESERVING)
+
+
+def loads(data: bytes) -> Any:
+    """Decode one CBOR item from ``data`` with every tag left uninterpreted."""
+    return cbor2.loads(data, semantic_decoders=_TAG_PRESERVING)
+
 
 def _deterministic(obj: object) -> object:
     """Recursively order map keys per RFC 8949 §4.2 (bytewise on encoded keys).
@@ -32,7 +95,8 @@ def _deterministic(obj: object) -> object:
     (length-first), which DIVERGES from RFC 8949 on keys like ``"x"`` vs
     ``"id"``. The spec mandates 8949, so maps are re-built here in 8949 order
     and encoded with the default (insertion-order, definite-length,
-    shortest-int) encoder. Tags recurse into their value.
+    shortest-int) encoder. Tags recurse into their value, and the library hands some
+    tag content back as tuples, which are arrays like lists.
     """
     if isinstance(obj, cbor2.CBORTag):
         return cbor2.CBORTag(obj.tag, _deterministic(obj.value))
@@ -40,7 +104,7 @@ def _deterministic(obj: object) -> object:
         entries = [(cbor2.dumps(k), k, _deterministic(v)) for k, v in obj.items()]
         entries.sort(key=lambda e: e[0])
         return {k: v for _, k, v in entries}
-    if isinstance(obj, list):
+    if isinstance(obj, list | tuple):
         return [_deterministic(v) for v in obj]
     return obj
 
@@ -91,7 +155,7 @@ def iter_items(data: bytes) -> tuple[list[tuple[int, object]], int | None]:
     import io
 
     buf = io.BytesIO(data)
-    dec = cbor2.CBORDecoder(buf)
+    dec = decoder(buf)
     out: list[tuple[int, object]] = []
     length = len(data)
     torn: int | None = None
@@ -108,12 +172,21 @@ def iter_items(data: bytes) -> tuple[list[tuple[int, object]], int | None]:
     return out, torn
 
 
-def unwrap_header(item: object) -> Mapping[str, object]:
-    """Return the Header map, unwrapping the optional self-describe tag (§3).
+def is_header_item(item: object) -> bool:
+    """§3.1 boundary rule: a map carrying ``"gts"`` and lacking ``"t"``.
 
-    Most CBOR libraries auto-process tag 55799 (self-describe) and return the inner
-    value directly; this also handles a library that surfaces the raw tag.
+    Only the self-describe tag (55799) may wrap the Header (§3); an item under any
+    other tag is not a Header and is judged as a frame.
     """
+    if isinstance(item, cbor2.CBORTag):
+        if item.tag != SELF_DESCRIBE_TAG:
+            return False
+        item = item.value
+    return isinstance(item, Mapping) and "gts" in item and "t" not in item
+
+
+def unwrap_header(item: object) -> Mapping[str, object]:
+    """Return the Header map, unwrapping the optional self-describe tag (§3)."""
     if isinstance(item, cbor2.CBORTag):
         if item.tag != SELF_DESCRIBE_TAG:
             msg = f"unexpected CBOR tag {item.tag} on the header item"

@@ -23,7 +23,7 @@ from gts.codec import Codec
 from gts.crypto import Signer
 from gts.files import pack
 from gts.model import Graph, Suppression, Term, TermKind
-from gts.wire import canonical, content_id, digest_str, header_id
+from gts.wire import canonical, content_id, digest_str, header_id, iter_items
 from gts.writer import Writer
 
 CAT = "https://example.org/Cat"
@@ -116,6 +116,58 @@ def _empty_file() -> bytes:
 def _non_header_item() -> bytes:
     """A complete first CBOR item that is not a segment header."""
     return canonical({"not": "a-gts-header"})
+
+
+def _with_stray_item(stray: bytes, *, last: bool) -> bytes:
+    """The minimal file with one well-formed, non-frame CBOR item added.
+
+    ``last`` appends it after the final frame; otherwise it sits between the
+    ``terms`` frame and the ``quads`` frame, so a reader that stops there loses the
+    quad. A well-formed item is never a torn append (§3), so a conforming reader
+    reports the item as a damaged frame and keeps folding.
+    """
+    data = _minimal()
+    if last:
+        return data + stray
+    items, _ = iter_items(data)
+    quads_offset = items[2][0]
+    return data[:quads_offset] + stray + data[quads_offset:]
+
+
+# Strays built from raw bytes: the library the reference reader uses must not
+# decide what they mean, and some are items it once refused or crashed on.
+_STRAY_SET_OVER_TEXT = bytes.fromhex("d90102626162")  # tag 258 over "ab"
+_STRAY_DECIMAL_FLOAT_PART = bytes.fromhex("c48221f93e00")  # tag 4 [-2, 1.5]
+_STRAY_SELF_REFERENCE_IN_SET = bytes.fromhex(
+    "d9010281d81cd99999d81d00"  # tag 258 over [tag 28 over tag 39321 over tag 29 ref 0]
+)
+_STRAY_SELF_REFERENCE_AS_KEY = bytes.fromhex(
+    "a1d81cd99999d81d0000"  # {tag 28 over tag 39321 over tag 29 ref 0: 0}
+)
+
+
+def _stray_set_between_frames() -> bytes:
+    return _with_stray_item(_STRAY_SET_OVER_TEXT, last=False)
+
+
+def _stray_set_last() -> bytes:
+    return _with_stray_item(_STRAY_SET_OVER_TEXT, last=True)
+
+
+def _stray_decimal_between_frames() -> bytes:
+    return _with_stray_item(_STRAY_DECIMAL_FLOAT_PART, last=False)
+
+
+def _stray_decimal_last() -> bytes:
+    return _with_stray_item(_STRAY_DECIMAL_FLOAT_PART, last=True)
+
+
+def _stray_self_reference_in_set() -> bytes:
+    return _with_stray_item(_STRAY_SELF_REFERENCE_IN_SET, last=True)
+
+
+def _stray_self_reference_as_key() -> bytes:
+    return _with_stray_item(_STRAY_SELF_REFERENCE_AS_KEY, last=True)
 
 
 def _unsupported_version() -> bytes:
@@ -774,6 +826,12 @@ def corpus() -> list[VectorCase]:
         VectorCase("28f-malformed-transform-shape", _malformed_transform_shape()),
         VectorCase("28g-damaged-compressed-payload", _damaged_compressed_payload()),
         VectorCase("28h-malformed-security-metadata", _malformed_security_metadata()),
+        VectorCase("28i-stray-set-between-frames", _stray_set_between_frames()),
+        VectorCase("28j-stray-set-last-item", _stray_set_last()),
+        VectorCase("28k-stray-decimal-between-frames", _stray_decimal_between_frames()),
+        VectorCase("28l-stray-decimal-last-item", _stray_decimal_last()),
+        VectorCase("28m-stray-self-reference-in-set", _stray_self_reference_in_set()),
+        VectorCase("28n-stray-self-reference-as-key", _stray_self_reference_as_key()),
         VectorCase("29-deterministic-writer", _deterministic_writer()),
     ]
 

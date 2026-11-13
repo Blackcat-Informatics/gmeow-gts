@@ -35,6 +35,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from gts.codec import CodecUnavailableError
 from gts.openpgp import load_secret_key as _load_gpg_secret_key
 from gts.openpgp import public_key_fingerprint as _gpg_fingerprint
+from gts.wire import loads as _loads
 
 # COSE header labels / algorithm ids (RFC 9052 §3.1, IANA COSE registries).
 _ALG, _KID, _IV = 1, 4, 5
@@ -269,7 +270,7 @@ def verify_sig(
     (the engine cannot check it), never ``invalid`` and never ``valid``.
     """
     try:
-        msg = cbor2.loads(sig)
+        msg = _loads(sig)
         body = msg.value if isinstance(msg, cbor2.CBORTag) else msg
         protected, unprotected, _payload, signature = body
         kid_raw = unprotected.get(_KID) if isinstance(unprotected, Mapping) else None
@@ -332,12 +333,19 @@ def decrypt0(blob: bytes, provider: KeyProvider) -> bytes:
             or if the ciphertext fails authentication.
     """
     try:
-        msg = cbor2.loads(blob)
+        msg = _loads(blob)
         body = msg.value if isinstance(msg, cbor2.CBORTag) else msg
         protected, unprotected, ciphertext = body
         iv = unprotected[_IV]
         kid = unprotected[_KID].decode()
-    except (ValueError, TypeError, KeyError, AttributeError) as exc:
+    except (
+        cbor2.CBORDecodeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        IndexError,
+        AttributeError,
+    ) as exc:
         raise CodecUnavailableError("missing-key", "malformed COSE_Encrypt0") from exc
     key = provider.content_key(kid)
     if key is None:
@@ -361,9 +369,9 @@ def decrypt0(blob: bytes, provider: KeyProvider) -> bytes:
 def recipient_kid(blob: bytes) -> str | None:
     """Best-effort recipient ``kid`` from a ``COSE_Encrypt0`` (cleartext)."""
     try:
-        msg = cbor2.loads(blob)
+        msg = _loads(blob)
         body = msg.value if isinstance(msg, cbor2.CBORTag) else msg
         kid = body[1][_KID]
         return kid.decode() if isinstance(kid, bytes) else None
-    except (ValueError, TypeError, KeyError, IndexError):
+    except (cbor2.CBORDecodeError, ValueError, TypeError, KeyError, IndexError):
         return None
