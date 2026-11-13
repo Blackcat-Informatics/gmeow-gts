@@ -299,7 +299,7 @@ pub fn encrypt0_with_iv(plaintext: &[u8], kid: &str, key: &[u8; 32], iv: &[u8; 1
     let cipher = Aes256Gcm::new(key.into());
     let ciphertext = cipher
         .encrypt(
-            Nonce::from_slice(iv),
+            &Nonce::from(*iv),
             Payload {
                 msg: plaintext,
                 aad: &aad,
@@ -331,7 +331,7 @@ pub fn encrypt0_with_iv(plaintext: &[u8], kid: &str, key: &[u8; 32], iv: &[u8; 1
 #[cfg(not(target_arch = "wasm32"))]
 pub fn encrypt0(plaintext: &[u8], kid: &str, key: &[u8; 32]) -> Vec<u8> {
     let mut iv = [0u8; 12];
-    getrandom::getrandom(&mut iv).expect("OS CSPRNG is available");
+    getrandom::fill(&mut iv).expect("OS CSPRNG is available");
     encrypt0_with_iv(plaintext, kid, key, &iv)
 }
 
@@ -389,14 +389,16 @@ pub fn decrypt0(
 ) -> Result<Vec<u8>, Encrypt0Error> {
     let parts = parse_encrypt0(blob).ok_or(Encrypt0Error::Malformed)?;
     let key = resolve(&parts.kid).ok_or(Encrypt0Error::MissingKey)?;
-    if parts.iv.len() != 12 {
-        return Err(Encrypt0Error::Malformed);
-    }
+    let iv: [u8; 12] = parts
+        .iv
+        .as_slice()
+        .try_into()
+        .map_err(|_| Encrypt0Error::Malformed)?;
     let aad = enc_structure(&parts.protected);
     let cipher = Aes256Gcm::new((&key).into());
     cipher
         .decrypt(
-            Nonce::from_slice(&parts.iv),
+            &Nonce::from(iv),
             Payload {
                 msg: &parts.ciphertext,
                 aad: &aad,

@@ -52,6 +52,12 @@ breaking wire change requires a new wire-format major version.
   where it exited 1 before, as an unresolved `kid` already did. Callers that
   must reject unverified signatures should check for `unverified` explicitly.
 
+### Changed
+
+- The Rust engine's zstd implementation was updated (`structured-zstd` 0.0.48 to 0.3.0) and now produces different compressed bytes for some inputs, all of which decode identically.
+- Because a frame id covers the stored, compressed payload, a head written through the Rust library with a zstd codec changes with the compressor version, so such a head must not be pinned or compared between versions; compare content instead.
+- The updates to `getrandom`, `aes-gcm`, `quick-xml`, `ed25519-dalek` and `visual-hashing` have no effect on written bytes.
+
 ## [1.0.0-rc.1] — 2026-09-04
 
 ### Changed
