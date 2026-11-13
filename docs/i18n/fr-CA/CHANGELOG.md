@@ -21,6 +21,14 @@ restera analysable et pliable en toute sécurité par les futurs lecteurs de ver
 majeure 1 ; un changement de transfert incompatible exige une nouvelle version majeure
 de format de transfert.
 
+## [Non publié]
+
+### Modifié
+
+- L'implémentation zstd du moteur Rust a été mise à jour (`structured-zstd` 0.0.48 vers 0.3.0) et produit désormais des octets compressés différents pour certaines entrées, qui se décodent toutes de façon identique.
+- Comme l'identifiant d'une trame couvre la charge utile compressée stockée, une tête écrite par la bibliothèque Rust avec un codec zstd change avec la version du compresseur; une telle tête ne doit donc pas être figée ni comparée entre versions, et il faut comparer le contenu.
+- Les mises à jour de `getrandom`, `aes-gcm`, `quick-xml`, `ed25519-dalek` et `visual-hashing` n'ont aucun effet sur les octets écrits.
+
 ## [1.0.0-rc.1] — 2026-09-04
 
 ### Modifié
