@@ -100,7 +100,7 @@ func TestSignedFileVector(t *testing.T) {
 // a short signature is invalid only once a key resolves.
 func TestSignatureAlgorithmDispatchVectors(t *testing.T) {
 	paths, err := filepath.Glob(filepath.Join("..", "..", "vectors", "signed", "sigalg-*.json"))
-	if err != nil || len(paths) != 37 {
+	if err != nil || len(paths) != 53 {
 		t.Fatalf("expected the sigalg vectors, found %d (%v)", len(paths), err)
 	}
 	for _, path := range paths {

@@ -33,24 +33,32 @@ de format de transfert.
   `invalid` et jamais `valid`. Auparavant, chaque moteur exécutait Ed25519
   inconditionnellement : une signature d'un autre algorithme était rapportée `invalid`
   (ou, avec un en-tête protégé déclarant un autre algorithme sur une véritable
-  signature Ed25519, `valid`). Un COSE_Sign1 dont l'en-tête protégé n'est pas une chaîne
-  d'octets contenant exactement une table (sans octets superflus) où la clé entière 1
-  désigne un `alg` entier ou textuel est maintenant `invalid` dans tous les moteurs ; une
-  clé booléenne ou flottante, ou un `alg` flottant comme -8.0, ne la remplace plus. Une
-  signature EdDSA qui ne fait pas 64 octets est `invalid` dès que sa clé est résolue. L'en-tête protégé doit être du CBOR à encodage déterministe (RFC 8949 §4.2,
-  GTS-SPEC §4) contenant exactement une table, composée uniquement d'entiers, de
-  chaînes d'octets, de chaînes de texte, de tableaux, de tables, de null, de true et
-  de false (aucun flottant, aucune étiquette ni autre valeur simple, à aucune
-  profondeur), et sa clé entière 1 doit désigner un `alg` entier ou textuel ; tout
-  autre cas est `invalid` dans tous les moteurs. La sortie de signature est inchangée. Les nouveaux vecteurs `vectors/signed/sigalg-*.json`
-  fixent ce comportement avec l'identifiant d'algorithme à usage privé -65537.
+  signature Ed25519, `valid`). Un COSE_Sign1 dont l'en-tête protégé ne respecte pas la grammaire suivante
+  est mal formé, et sa signature est `invalid` ; il en va de même d'une signature
+  EdDSA qui ne fait pas 64 octets dès que sa clé est résolue :
+
+  > L'en-tête protégé est une chaîne d'octets dont le contenu est du CBOR à
+  > encodage déterministe (longueurs définies, entiers et longueurs sous la forme
+  > la plus courte, clés de table dans l'ordre octet par octet de leurs
+  > encodages, aucune clé en double, aucun octet superflu) formant exactement une
+  > table. Toute clé de table, à toute profondeur, est un entier ou une chaîne de
+  > texte. Toute valeur, à toute profondeur, est un entier, une chaîne d'octets,
+  > une chaîne de texte, un tableau, une table, null, true ou false. Tout entier,
+  > clé ou valeur, se situe dans l'intervalle de -2^63 à 2^63-1 inclusivement. Les
+  > chaînes de texte sont de l'UTF-8 valide. L'imbrication compte au plus 8
+  > niveaux, la table d'en-tête elle-même étant le niveau 1. La table contient la
+  > clé entière 1, dont la valeur est un entier ou une chaîne de texte. Un
+  > en-tête qui ne respecte pas tout ceci est mal formé et la signature est
+  > `invalid`.
+
+  Les octets écrits sont inchangés : la sortie de signature et chaque vecteur
+  antérieur à ce changement sont identiques octet pour octet. Les nouveaux vecteurs `vectors/signed/sigalg-*.json`
+  fixent ce comportement, y compris les limites de la grammaire (intervalle des entiers, types de clés, UTF-8, profondeur d'imbrication), avec l'identifiant d'algorithme à usage privé -65537 ; les tests de chaque moteur vérifient chacun de ces vecteurs selon son état indiqué.
 - Autres changements de comportement : Rust ne rapporte plus un COSE_Sign1 mal formé comme
   `unverified` ; Smalltalk rapporte maintenant un `kid` absent comme `invalid` au lieu de
   `unverified` ; le lecteur Python ne lève plus d'exception sur des octets de signature
   indécodables et ne rapporte plus de `kid` pour un COSE_Sign1 mal formé, comme tous les
-  autres moteurs ; `cose::parse` de Rust n'est plus public ; l'encodeur déterministe TypeScript
-  trie maintenant les clés octet par octet (RFC 8949 §4.2) plutôt que par longueur
-  d'abord, ce qui ne change aucune sortie existante.
+  autres moteurs ; `cose::parse` de Rust n'est plus public .
 - Conséquence pour les scripts : la commande `verify` de chaque moteur, lorsqu'une clé est
   fournie, ne traite que `invalid` comme un échec. Une signature d'algorithme non pris en
   charge dont le `kid` est résolu est maintenant `unverified` et se termine avec le code 0

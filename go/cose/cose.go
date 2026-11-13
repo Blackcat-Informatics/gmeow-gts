@@ -12,6 +12,8 @@ package cose
 import (
 	"bytes"
 	"crypto/ed25519"
+	"math"
+	"unicode/utf8"
 
 	"github.com/fxamacker/cbor/v2"
 
@@ -64,92 +66,143 @@ func SignID(frameID []byte, priv ed25519.PrivateKey, kid string) []byte {
 	return wire.MustEncode(c)
 }
 
-// protectedDecMode decodes a protected header strictly: indefinite-length items
-// and duplicate map keys are errors.
-var protectedDecMode = mustDecMode(cbor.DecOptions{
-	DupMapKey:   cbor.DupMapKeyEnforcedAPF,
-	IndefLength: cbor.IndefLengthForbidden,
-})
+// maxHeaderDepth is the deepest nesting a protected header may have; the header
+// map is level 1.
+const maxHeaderDepth = 8
 
-// protectedEncMode is RFC 8949 section 4.2 core deterministic encoding:
-// shortest-form integers and lengths, bytewise-sorted map keys.
-var protectedEncMode = mustEncMode(cbor.CoreDetEncOptions())
-
-func mustDecMode(opts cbor.DecOptions) cbor.DecMode {
-	mode, err := opts.DecMode()
-	if err != nil {
-		panic(err)
+// scanHead reads one item head at pos: major type, additional info, argument and
+// the next position. ok=false for an indefinite length, a reserved additional
+// info, a truncated head, or an argument that is not in shortest form.
+func scanHead(buf []byte, pos int) (major, info byte, arg uint64, next int, ok bool) {
+	if pos >= len(buf) {
+		return 0, 0, 0, 0, false
 	}
-	return mode
+	major, info = buf[pos]>>5, buf[pos]&0x1f
+	width := 0
+	switch {
+	case info < 24:
+		return major, info, uint64(info), pos + 1, true
+	case info == 24:
+		width = 1
+	case info == 25:
+		width = 2
+	case info == 26:
+		width = 4
+	case info == 27:
+		width = 8
+	default:
+		return 0, 0, 0, 0, false
+	}
+	if len(buf)-pos-1 < width {
+		return 0, 0, 0, 0, false
+	}
+	for _, b := range buf[pos+1 : pos+1+width] {
+		arg = arg<<8 | uint64(b)
+	}
+	minimum := [...]uint64{24, 1 << 8, 1 << 16, 1 << 32}[info-24]
+	if arg < minimum {
+		return 0, 0, 0, 0, false
+	}
+	return major, info, arg, pos + 1 + width, true
 }
 
-func mustEncMode(opts cbor.EncOptions) cbor.EncMode {
-	mode, err := opts.EncMode()
-	if err != nil {
-		panic(err)
+// scanHeaderItem checks one item of a protected header against the grammar and
+// returns the position after it. depth is the level of this item if it is a
+// container.
+func scanHeaderItem(buf []byte, pos, depth int, isKey bool) (end int, ok bool) {
+	major, info, arg, next, ok := scanHead(buf, pos)
+	if !ok || (isKey && major != 0 && major != 1 && major != 3) {
+		return 0, false
 	}
-	return mode
-}
-
-// plainHeaderValue reports whether v holds only integers, byte strings, text
-// strings, arrays, maps, nil, true and false at any depth: no float, tag, bignum
-// or other simple value.
-func plainHeaderValue(v interface{}) bool {
-	switch x := v.(type) {
-	case nil, bool, int64, uint64, string, []byte, cbor.ByteString:
-		return true
-	case []interface{}:
-		for _, item := range x {
-			if !plainHeaderValue(item) {
-				return false
+	switch major {
+	case 0, 1:
+		// Integers lie in -2^63 .. 2^63-1.
+		return next, arg <= math.MaxInt64
+	case 2, 3:
+		if arg > uint64(len(buf)-next) {
+			return 0, false
+		}
+		end = next + int(arg) // #nosec G115 -- bounded by len(buf)
+		if major == 3 && !utf8.Valid(buf[next:end]) {
+			return 0, false
+		}
+		return end, true
+	case 4, 5:
+		if depth > maxHeaderDepth {
+			return 0, false
+		}
+		at := next
+		var previous []byte
+		for i := uint64(0); i < arg; i++ {
+			if major == 4 {
+				if at, ok = scanHeaderItem(buf, at, depth+1, false); !ok {
+					return 0, false
+				}
+				continue
+			}
+			keyEnd, keyOK := scanHeaderItem(buf, at, depth+1, true)
+			if !keyOK {
+				return 0, false
+			}
+			key := buf[at:keyEnd]
+			// Strictly ascending bytewise: sorted, and no duplicate key.
+			if previous != nil && bytes.Compare(previous, key) >= 0 {
+				return 0, false
+			}
+			previous = key
+			if at, ok = scanHeaderItem(buf, keyEnd, depth+1, false); !ok {
+				return 0, false
 			}
 		}
-		return true
-	case map[interface{}]interface{}:
-		for k, item := range x {
-			if !plainHeaderValue(k) || !plainHeaderValue(item) {
-				return false
-			}
-		}
-		return true
+		return at, true
+	case 7:
+		// null, true and false only.
+		return next, info >= 20 && info <= 22
 	}
-	return false
+	return 0, false
 }
 
 // declaredAlgorithm returns the alg (label 1) of a protected header.
 //
-// Header rule (identical in every engine): the protected header must be
-// deterministically encoded CBOR (RFC 8949 section 4.2, GTS-SPEC section 4)
-// holding exactly one map, containing only integers, byte strings, text strings,
-// arrays, maps, null, true and false (no float, tag or other simple value at any
-// depth), and its integer key 1 must map to an integer or text string.
+// The protected header is a byte string whose content is deterministically
+// encoded CBOR (definite lengths, shortest-form integers and lengths, map keys in
+// bytewise order of their encodings, no duplicate keys, no trailing bytes)
+// consisting of exactly one map. Every map key, at any depth, is an integer or a
+// text string. Every value, at any depth, is an integer, a byte string, a text
+// string, an array, a map, null, true or false. Every integer, key or value, lies
+// in the range -2^63 to 2^63-1 inclusive. Text strings are valid UTF-8. Nesting
+// is at most 8 levels deep, counting the header map itself as level 1. The map
+// contains the integer key 1, whose value is an integer or a text string. A
+// header that does not meet all of this is malformed and the signature is
+// invalid.
 //
-// Here: the strict decode mode rejects indefinite lengths and duplicate keys, the
-// value must be plain (above), and the bytes must equal the core deterministic
-// re-encoding of what they decode to (shortest-form integers, bytewise-sorted
-// keys, no trailing bytes). ok=false if malformed or no algorithm is declared.
+// Enforced by scanning the raw bytes (scanHeaderItem), so no decoder behaviour
+// (float, tag, bignum, depth or width limit) is involved. The algorithm is an
+// int64 or a string; ok=false if malformed or no algorithm is declared.
 func declaredAlgorithm(protected []byte) (algorithm interface{}, ok bool) {
-	var header interface{}
-	if err := protectedDecMode.Unmarshal(protected, &header); err != nil {
+	if len(protected) == 0 || protected[0]>>5 != 5 {
 		return nil, false
 	}
-	m, isMap := header.(map[interface{}]interface{})
-	if !isMap || !plainHeaderValue(header) {
+	if end, valid := scanHeaderItem(protected, 0, 1, false); !valid || end != len(protected) {
 		return nil, false
 	}
-	again, err := protectedEncMode.Marshal(header)
-	if err != nil || !bytes.Equal(again, protected) {
-		return nil, false
-	}
-	for k, v := range m {
-		if k != uint64(algLabel) && k != int64(algLabel) {
-			continue
+	_, _, count, at, _ := scanHead(protected, 0)
+	for i := uint64(0); i < count; i++ {
+		keyEnd, _ := scanHeaderItem(protected, at, 2, true)
+		valueEnd, _ := scanHeaderItem(protected, keyEnd, 2, false)
+		if bytes.Equal(protected[at:keyEnd], []byte{0x01}) {
+			major, _, arg, next, _ := scanHead(protected, keyEnd)
+			switch major {
+			case 0:
+				return int64(arg), true // #nosec G115 -- scanned: arg <= MaxInt64
+			case 1:
+				return -1 - int64(arg), true // #nosec G115 -- scanned: arg <= MaxInt64
+			case 3:
+				return string(protected[next:valueEnd]), true
+			}
+			return nil, false
 		}
-		switch v.(type) {
-		case int64, uint64, string:
-			return v, true
-		}
-		return nil, false
+		at = valueEnd
 	}
 	return nil, false
 }

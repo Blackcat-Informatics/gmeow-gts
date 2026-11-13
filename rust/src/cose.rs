@@ -91,54 +91,135 @@ struct Sign1 {
     signature: Vec<u8>,
 }
 
-/// Whether `value` holds a float or tag, or a map that repeats a key, at any depth.
-fn is_forbidden_in_header(value: &Value) -> bool {
-    match value {
-        Value::Float(_) | Value::Tag(..) => true,
-        Value::Map(entries) => {
-            let mut keys: Vec<Vec<u8>> = entries.iter().map(|(k, _)| wire::encode(k)).collect();
-            keys.sort();
-            keys.windows(2).any(|pair| pair[0] == pair[1])
-                || entries
-                    .iter()
-                    .any(|(k, v)| is_forbidden_in_header(k) || is_forbidden_in_header(v))
+/// The deepest nesting a protected header may have; the header map is level 1.
+const MAX_HEADER_DEPTH: usize = 8;
+
+/// Read one item head at `pos`: `(major type, additional info, argument, next
+/// position)`. `None` for an indefinite length, a reserved additional info, a
+/// truncated head, or an argument that is not in shortest form.
+fn scan_head(buf: &[u8], pos: usize) -> Option<(u8, u8, u64, usize)> {
+    let initial = *buf.get(pos)?;
+    let (major, info) = (initial >> 5, initial & 0x1f);
+    let width = match info {
+        0..=23 => 0,
+        24 => 1,
+        25 => 2,
+        26 => 4,
+        27 => 8,
+        _ => return None,
+    };
+    let bytes = buf.get(pos + 1..pos + 1 + width)?;
+    let arg = if width == 0 {
+        u64::from(info)
+    } else {
+        bytes.iter().fold(0u64, |acc, b| (acc << 8) | u64::from(*b))
+    };
+    let shortest = match width {
+        1 => arg >= 24,
+        2 => arg >= 1 << 8,
+        4 => arg >= 1 << 16,
+        8 => arg >= 1 << 32,
+        _ => true,
+    };
+    shortest.then_some((major, info, arg, pos + 1 + width))
+}
+
+/// Check one item of a protected header against the grammar and return the
+/// position after it. `depth` is the level of this item if it is a container.
+fn scan_header_item(buf: &[u8], pos: usize, depth: usize, is_key: bool) -> Option<usize> {
+    let (major, info, arg, next) = scan_head(buf, pos)?;
+    if is_key && !matches!(major, 0 | 1 | 3) {
+        return None;
+    }
+    match major {
+        // Integers lie in -2^63 ..= 2^63-1.
+        0 | 1 => i64::try_from(arg).ok().map(|_| next),
+        2 | 3 => {
+            let end = next.checked_add(usize::try_from(arg).ok()?)?;
+            let body = buf.get(next..end)?;
+            if major == 3 && std::str::from_utf8(body).is_err() {
+                return None;
+            }
+            Some(end)
         }
-        Value::Array(items) => items.iter().any(is_forbidden_in_header),
-        _ => false,
+        4 | 5 if depth > MAX_HEADER_DEPTH => None,
+        4 => {
+            let mut at = next;
+            for _ in 0..arg {
+                at = scan_header_item(buf, at, depth + 1, false)?;
+            }
+            Some(at)
+        }
+        5 => {
+            let mut at = next;
+            let mut previous: Option<&[u8]> = None;
+            for _ in 0..arg {
+                let key_end = scan_header_item(buf, at, depth + 1, true)?;
+                let key = &buf[at..key_end];
+                // Strictly ascending bytewise: sorted, and no duplicate key.
+                if previous.is_some_and(|prev| prev >= key) {
+                    return None;
+                }
+                previous = Some(key);
+                at = scan_header_item(buf, key_end, depth + 1, false)?;
+            }
+            Some(at)
+        }
+        // null, true and false only.
+        7 if info < 24 && (20..=22).contains(&arg) => Some(next),
+        _ => None,
     }
 }
 
 /// The `alg` (label 1) of a protected header (RFC 9052 §3.1).
 ///
-/// Header rule (identical in every engine): the protected header must be
-/// deterministically encoded CBOR (RFC 8949 §4.2, GTS-SPEC §4) holding exactly one
-/// map, containing only integers, byte strings, text strings, arrays, maps, null,
-/// true and false (no float, tag or other simple value at any depth), and its
-/// integer key 1 must map to an integer or text string.
+/// The protected header is a byte string whose content is deterministically
+/// encoded CBOR (definite lengths, shortest-form integers and lengths, map keys
+/// in bytewise order of their encodings, no duplicate keys, no trailing bytes)
+/// consisting of exactly one map. Every map key, at any depth, is an integer or a
+/// text string. Every value, at any depth, is an integer, a byte string, a text
+/// string, an array, a map, null, true or false. Every integer, key or value,
+/// lies in the range -2^63 to 2^63-1 inclusive. Text strings are valid UTF-8.
+/// Nesting is at most 8 levels deep, counting the header map itself as level 1.
+/// The map contains the integer key 1, whose value is an integer or a text
+/// string. A header that does not meet all of this is malformed and the signature
+/// is `invalid`.
 ///
-/// Here: the bytes must equal `wire::canonical` of what they decode to (definite
-/// lengths, shortest-form integers, bytewise-sorted keys, no trailing bytes), and
-/// no float, tag or repeated map key may appear. `None` if malformed or absent.
+/// Enforced by scanning the raw bytes (`scan_header_item`), so no decoder
+/// behaviour (float, tag, bignum, boolean-key merging, depth limit) is involved.
 fn declared_algorithm(protected: &[u8]) -> Option<Algorithm> {
-    let mut remaining = protected;
-    let header: Value = ciborium::de::from_reader(&mut remaining).ok()?;
-    if !remaining.is_empty()
-        || is_forbidden_in_header(&header)
-        || wire::canonical(&header) != protected
+    if protected.first()? >> 5 != 5 || scan_header_item(protected, 0, 1, false)? != protected.len()
     {
         return None;
     }
-    let alg_label = Integer::from(ALG);
-    let alg = header.as_map()?.iter().find_map(|(k, v)| match k {
-        Value::Integer(i) if *i == alg_label => Some(v),
-        _ => None,
-    })?;
-    match alg {
-        Value::Integer(i) if *i == Integer::from(ALG_EDDSA) => Some(Algorithm::EdDsa),
-        Value::Integer(i) => Some(Algorithm::Other(i128::from(*i).to_string())),
-        Value::Text(t) => Some(Algorithm::Other(t.clone())),
-        _ => None,
+    // Valid by construction: find the entry whose key is the integer 1.
+    let (_, _, count, mut at) = scan_head(protected, 0)?;
+    for _ in 0..count {
+        let key_end = scan_header_item(protected, at, 2, true)?;
+        let value_end = scan_header_item(protected, key_end, 2, false)?;
+        if protected[at..key_end] == [0x01] {
+            let (major, _, arg, next) = scan_head(protected, key_end)?;
+            return match major {
+                0 => Some(Algorithm::Other(arg.to_string())),
+                1 => {
+                    let value = -1 - i128::from(arg);
+                    Some(if value == i128::from(ALG_EDDSA) {
+                        Algorithm::EdDsa
+                    } else {
+                        Algorithm::Other(value.to_string())
+                    })
+                }
+                3 => Some(Algorithm::Other(
+                    std::str::from_utf8(protected.get(next..value_end)?)
+                        .ok()?
+                        .to_string(),
+                )),
+                _ => None,
+            };
+        }
+        at = value_end;
     }
+    None
 }
 
 /// Parse a COSE_Sign1, or `None` if malformed: not a four-element array, a

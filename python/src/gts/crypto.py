@@ -35,7 +35,6 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from gts.codec import CodecUnavailableError
 from gts.openpgp import load_secret_key as _load_gpg_secret_key
 from gts.openpgp import public_key_fingerprint as _gpg_fingerprint
-from gts.wire import canonical
 
 # COSE header labels / algorithm ids (RFC 9052 §3.1, IANA COSE registries).
 _ALG, _KID, _IV = 1, 4, 5
@@ -133,55 +132,130 @@ def sign_id(frame_id: bytes, signer: Signer) -> bytes:
     return cbor2.dumps(cose, canonical=True)
 
 
-def _plain_header_value(value: object) -> bool:
-    """Whether ``value`` holds only integers (64-bit range), byte and text strings,
-    arrays, maps, null, true and false at any depth: no float, tag, bignum,
-    ``undefined`` or other simple value."""
-    if value is None or isinstance(value, bool | bytes | str):
-        return True
-    if isinstance(value, int):
-        return -(2**64) <= value < 2**64
-    if isinstance(value, list | tuple):
-        return all(_plain_header_value(item) for item in value)
-    if isinstance(value, Mapping):
-        return all(
-            _plain_header_value(k) and _plain_header_value(v) for k, v in value.items()
-        )
-    return False
+_MAX_HEADER_DEPTH = 8
+
+
+def _scan_head(buf: bytes, pos: int) -> tuple[int, int, int, int] | None:
+    """Read one item head: ``(major, info, argument, next position)``.
+
+    ``None`` for an indefinite length, a reserved additional info, a truncated
+    head, or an argument that is not in shortest form.
+    """
+    if pos >= len(buf):
+        return None
+    major, info = buf[pos] >> 5, buf[pos] & 0x1F
+    if info < 24:
+        return major, info, info, pos + 1
+    if info > 27:
+        return None
+    width = 1 << (info - 24)
+    raw = buf[pos + 1 : pos + 1 + width]
+    if len(raw) != width:
+        return None
+    arg = int.from_bytes(raw, "big")
+    if arg < (24, 1 << 8, 1 << 16, 1 << 32)[info - 24]:
+        return None
+    return major, info, arg, pos + 1 + width
+
+
+def _scan_header_item(buf: bytes, pos: int, depth: int, is_key: bool) -> int | None:
+    """Check one item of a protected header; return the position after it.
+
+    ``depth`` is the level of this item if it is a container.
+    """
+    head = _scan_head(buf, pos)
+    if head is None:
+        return None
+    major, info, arg, nxt = head
+    if is_key and major not in (0, 1, 3):
+        return None
+    if major in (0, 1):
+        return nxt if arg < 1 << 63 else None  # integers lie in -2^63 .. 2^63-1
+    if major in (2, 3):
+        end = nxt + arg
+        if end > len(buf):
+            return None
+        if major == 3:
+            try:
+                buf[nxt:end].decode("utf-8")
+            except UnicodeDecodeError:
+                return None
+        return end
+    if major in (4, 5):
+        if depth > _MAX_HEADER_DEPTH:
+            return None
+        at = nxt
+        previous: bytes | None = None
+        for _ in range(arg):
+            if major == 4:
+                item_end = _scan_header_item(buf, at, depth + 1, False)
+                if item_end is None:
+                    return None
+                at = item_end
+                continue
+            key_end = _scan_header_item(buf, at, depth + 1, True)
+            if key_end is None:
+                return None
+            key = buf[at:key_end]
+            # Strictly ascending bytewise: sorted, and no duplicate key.
+            if previous is not None and previous >= key:
+                return None
+            previous = key
+            value_end = _scan_header_item(buf, key_end, depth + 1, False)
+            if value_end is None:
+                return None
+            at = value_end
+        return at
+    # null, true and false only.
+    return nxt if major == 7 and info in (20, 21, 22) else None
 
 
 def _declared_alg(protected: bytes) -> int | str | None:
     """Return the ``alg`` declared in a protected header, or ``None`` if malformed.
 
-    Header rule (identical in every engine): the protected header must be
-    deterministically encoded CBOR (RFC 8949 §4.2, GTS-SPEC §4) holding exactly
-    one map, containing only integers, byte strings, text strings, arrays, maps,
-    null, true and false (no float, tag or other simple value at any depth), and
-    its integer key 1 must map to an integer or text string.
+    The protected header is a byte string whose content is deterministically
+    encoded CBOR (definite lengths, shortest-form integers and lengths, map keys
+    in bytewise order of their encodings, no duplicate keys, no trailing bytes)
+    consisting of exactly one map. Every map key, at any depth, is an integer or
+    a text string. Every value, at any depth, is an integer, a byte string, a
+    text string, an array, a map, null, true or false. Every integer, key or
+    value, lies in the range -2^63 to 2^63-1 inclusive. Text strings are valid
+    UTF-8. Nesting is at most 8 levels deep, counting the header map itself as
+    level 1. The map contains the integer key 1, whose value is an integer or a
+    text string. A header that does not meet all of this is malformed and the
+    signature is ``invalid``.
 
-    Here: the bytes must equal :func:`gts.wire.canonical` of what they decode to
-    (definite lengths, shortest-form integers, bytewise-sorted keys, no trailing
-    bytes); a decoder that collapses duplicate keys makes the re-encoding
-    shorter, so duplicates fail the same comparison. ``alg`` must be exactly an
-    ``int`` or ``str`` under an exactly-``int`` label (not a bool or float).
-    Malformed input is ``None`` (§9.2: readers MUST honour the declared
-    algorithm, so a signature that declares none cannot be dispatched).
+    Enforced by scanning the raw bytes (:func:`_scan_header_item`), so no decoder
+    behaviour (float, tag, bignum, bool-key merging, depth limit) is involved.
     """
-    try:
-        header = cbor2.loads(protected)
-        if (
-            not isinstance(header, Mapping)
-            or not _plain_header_value(header)
-            or canonical(header) != protected
-        ):
-            return None
-    except (cbor2.CBORDecodeError, ValueError, TypeError, RecursionError):
+    if not protected or protected[0] >> 5 != 5:
         return None
-    for label, alg in header.items():
-        if type(label) is int and label == _ALG:
-            if type(alg) is int or type(alg) is str:
-                return alg
+    if _scan_header_item(protected, 0, 1, False) != len(protected):
+        return None
+    head = _scan_head(protected, 0)
+    if head is None:  # unreachable: the scan above accepted this head
+        return None
+    _, _, count, at = head
+    for _ in range(count):
+        key_end = _scan_header_item(protected, at, 2, True)
+        if key_end is None:
             return None
+        value_end = _scan_header_item(protected, key_end, 2, False)
+        if value_end is None:
+            return None
+        if protected[at:key_end] == b"\x01":
+            value = _scan_head(protected, key_end)
+            if value is None:
+                return None
+            major, _, arg, nxt = value
+            if major == 0:
+                return arg
+            if major == 1:
+                return -1 - arg
+            if major == 3:
+                return protected[nxt:value_end].decode("utf-8")
+            return None
+        at = value_end
     return None
 
 

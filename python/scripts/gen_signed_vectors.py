@@ -294,13 +294,6 @@ _ALG_CASES: dict[str, tuple[str, _CoseBuilder, str, str, bool]] = {
         "unverified",
         True,
     ),
-    "sigalg-header-bstr-key": (
-        "Header rule: a byte-string key beside label 1 is acceptable: accepted.",
-        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex("a20127417800"), kid, fid),
-        "valid",
-        "unverified",
-        True,
-    ),
     "sigalg-keys-bytewise-order": (
         "Header rule: keys in bytewise order (24 before -1) are acceptable: accepted.",
         lambda sk, kid, fid: _ed25519_cose(
@@ -412,6 +405,78 @@ _ALG_CASES: dict[str, tuple[str, _CoseBuilder, str, str, bool]] = {
         False,
     ),
 }
+
+
+def _nested(levels: int, kinds: str) -> str:
+    """Hex of a value nested ``levels`` deep, from level 2 of the header.
+
+    ``kinds`` is ``"a"`` for arrays only or ``"m"`` to alternate arrays and
+    maps; the innermost container is empty.
+    """
+    out = ""
+    for level in range(2, levels + 1):
+        is_array = kinds == "a" or level % 2 == 0
+        last = level == levels
+        if is_array:
+            out += "80" if last else "81"
+        else:
+            out += "a0" if last else "a100"
+    return out
+
+
+def _header_case(
+    description: str, header_hex: str, valid: bool
+) -> tuple[str, _CoseBuilder, str, str, bool]:
+    return (
+        description,
+        lambda sk, kid, fid: _ed25519_cose(sk, bytes.fromhex(header_hex), kid, fid),
+        "valid" if valid else "invalid",
+        "unverified" if valid else "invalid",
+        valid,
+    )
+
+
+# Header grammar boundary cases (identical grammar in every engine): integer
+# range, key types, UTF-8 and nesting depth. Every header is otherwise
+# deterministic and declares EdDSA, so only the boundary decides the status.
+_I64_MAX = "1b7fffffffffffffff"
+_I64_OVER = "1b8000000000000000"
+_I64_MIN = "3b7fffffffffffffff"
+_I64_UNDER = "3b8000000000000000"
+for _name, _text, _hex, _ok in (
+    ("int-max-value", "integer value 2^63-1", "a2012705" + _I64_MAX, True),
+    ("int-over-max-value", "integer value 2^63", "a2012705" + _I64_OVER, False),
+    ("int-min-value", "integer value -2^63", "a2012705" + _I64_MIN, True),
+    ("int-under-min-value", "integer value -2^63-1", "a2012705" + _I64_UNDER, False),
+    ("int-max-key", "integer key 2^63-1", "a20127" + _I64_MAX + "00", True),
+    ("int-over-max-key", "integer key 2^63", "a20127" + _I64_OVER + "00", False),
+    ("int-min-key", "integer key -2^63", "a20127" + _I64_MIN + "00", True),
+    ("int-under-min-key", "integer key -2^63-1", "a20127" + _I64_UNDER + "00", False),
+    ("key-bool", "boolean key", "a20127f500", False),
+    ("key-array", "array key", "a2012780" + "00", False),
+    ("key-map", "map key", "a20127a0" + "00", False),
+    ("key-bstr", "byte-string key", "a20127417800", False),
+    ("key-text", "text-string key", "a20127617800", True),
+    (
+        "text-invalid-utf8",
+        "text value that is not valid UTF-8",
+        "a20127" + "0561ff",
+        False,
+    ),
+    ("depth-8", "nesting of exactly 8 levels", "a2012705" + _nested(8, "m"), True),
+    ("depth-9", "nesting of 9 levels", "a2012705" + _nested(9, "m"), False),
+    (
+        "depth-9-arrays",
+        "nesting of 9 levels, arrays only",
+        "a2012705" + _nested(9, "a"),
+        False,
+    ),
+):
+    _ALG_CASES["sigalg-" + _name] = _header_case(
+        "Header grammar: " + _text + (": accepted." if _ok else ": malformed."),
+        _hex,
+        _ok,
+    )
 
 
 def _alg_file(sk: Ed25519PrivateKey, kid: str, build: _CoseBuilder) -> bytes:

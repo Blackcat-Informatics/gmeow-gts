@@ -258,13 +258,12 @@ function encodeMajor(major: number, value: bigint): Uint8Array {
     throw new BrowserWireError("CBOR integer exceeds uint64 range");
 }
 
-/** Bytewise order on the encoded keys (RFC 8949 §4.2, not RFC 7049 length-first). */
 function compareCborKeys(a: Uint8Array, b: Uint8Array): number {
-    const common = Math.min(a.length, b.length);
-    for (let i = 0; i < common; i++) {
+    if (a.length !== b.length) return a.length - b.length;
+    for (let i = 0; i < a.length; i++) {
         if (a[i] !== b[i]) return a[i] - b[i];
     }
-    return a.length - b.length;
+    return 0;
 }
 
 function readLength(
