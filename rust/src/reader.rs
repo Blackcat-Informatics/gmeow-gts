@@ -16,7 +16,9 @@ use std::io::Read;
 
 use ciborium::value::Value;
 
-use crate::codec::{decode_chain, decode_chain_with_decrypt, Codec, CodecError};
+use crate::codec::{
+    check_payload_structure, decode_chain, decode_chain_with_decrypt, Codec, CodecError,
+};
 use crate::model::{
     AnnotationRow, Diagnostic, Graph, OpaqueNode, Quad, ReifierRow, Signature, StreamableInfo,
     Suppression, Term, TermKind, Triple3,
@@ -634,6 +636,19 @@ impl Folder<'_, '_, '_> {
         }
 
         if let Some(digest) = pub_meta.as_ref().and_then(pub_digest) {
+            // Decoding stays deferred, but the payload's structure is checked now so a
+            // payload this reader cannot decode makes this one frame an opaque node.
+            if let Some(Value::Bytes(raw)) = d {
+                if let Err(CodecError::Failed(detail)) = check_payload_structure(&chain, raw) {
+                    self.opaque(frame, "blob", "damaged");
+                    self.diag(
+                        "DamagedFrame",
+                        format!("payload decode failed: {detail}"),
+                        Some(index),
+                    );
+                    return;
+                }
+            }
             if let Some(meta) = pub_meta {
                 self.g.set_blob_meta(digest.clone(), meta);
             }

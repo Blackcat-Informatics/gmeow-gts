@@ -13,7 +13,14 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 
-from gts.codec import Codec, CodecClass, CodecUnavailableError, decode_chain
+from gts.codec import (
+    Codec,
+    CodecClass,
+    CodecUnavailableError,
+    PayloadDecodeError,
+    check_zstd_frames,
+    decode_chain,
+)
 from gts.crypto import KeyProvider, decrypt0, verify_sig
 from gts.model import (
     Diagnostic,
@@ -436,7 +443,29 @@ class _Folder:
             digest = declared_digest
             if isinstance(d, bytes):
                 if chain:
-                    self.g.blobs[digest] = _LazyBlobEntry(raw=d, chain=chain)
+                    # Decompression stays deferred, but the zstd frame structure is
+                    # checked now so a payload this reader cannot decode makes this
+                    # one frame an opaque node (§6.1, §7.6) instead of failing later.
+                    walked = chain[-1].cls != "encrypt" and chain[-1].name in (
+                        "zstd",
+                        "zstd-rsyncable",
+                    )
+                    if walked:
+                        try:
+                            check_zstd_frames(d)
+                        except PayloadDecodeError as exc:
+                            self._opaque(frame, "blob", "damaged")
+                            self.g.diagnostics.append(
+                                Diagnostic(
+                                    "DamagedFrame",
+                                    f"payload decode failed: {exc}",
+                                    index,
+                                )
+                            )
+                            return
+                    self.g.blobs[digest] = _LazyBlobEntry(
+                        raw=d, chain=chain, checked=walked
+                    )
                 else:
                     self.g.blobs[digest] = d
         else:

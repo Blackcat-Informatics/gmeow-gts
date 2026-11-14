@@ -13,7 +13,8 @@ import {
     type Diagnostic,
 } from "./model.js";
 import * as wire from "./wire.js";
-import { decodeChain, isCodecError, type Codec } from "./codec.js";
+import { declaredBlobDigest } from "./blob_digest.js";
+import { codecError, decodeChain, isCodecError, type Codec } from "./codec.js";
 import { unionSegments } from "./reader_union.js";
 import { DIGEST as STREAM_DIGEST } from "./stream.js";
 
@@ -489,6 +490,17 @@ class Folder {
         if (!payload) return;
         const digest = wire.digestStr(payload);
         const pub = wire.mapGet(frame, "pub");
+        const declared = declaredBlobDigest(
+            pub instanceof Map ? wire.mapGet(pub, "digest") : undefined,
+        );
+        if (declared !== undefined && declared !== digest) {
+            // §12: a blob is addressed by the hash of its decoded bytes.
+            throw codecError({
+                reason: "damaged",
+                detail: `blob bytes hash to ${digest}, not the declared ${declared}`,
+                failed: true,
+            });
+        }
         if (pub instanceof Map) {
             this.g.setBlobMeta(digest, pub);
         }

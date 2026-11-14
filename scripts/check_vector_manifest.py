@@ -105,6 +105,9 @@ RESILIENCE_NEGATIVE_TOP_LEVEL = frozenset(
         "28n-stray-self-reference-as-key",
         "28o-suppression-over-damaged-terms",
         "28p-tagged-value-in-frame-field",
+        "28q-blob-payload-not-zstd",
+        "28r-blob-payload-truncated",
+        "28s-blob-payload-names-dictionary",
     }
 )
 
@@ -133,6 +136,8 @@ TOP_LEVEL_SUBSETS = {
     "20-language-tag-discipline": ("profile-layout",),
     "21-degenerate-composition": ("profile-layout", "resilience-negative"),
     "22-inline-blob": ("graph-fold",),
+    "22b-zstd-rsyncable-multi-frame": ("graph-fold",),
+    "22c-zstd-declared-window-2-27": ("graph-fold",),
     "23-files-profile-tree": ("profile-layout",),
     "24-files-profile-dedup": ("profile-layout",),
     "25-streamable-source": ("profile-layout",),
@@ -155,12 +160,29 @@ TOP_LEVEL_SUBSETS = {
     "28n-stray-self-reference-as-key": ("total-reader", "resilience-negative"),
     "28o-suppression-over-damaged-terms": ("total-reader", "resilience-negative"),
     "28p-tagged-value-in-frame-field": ("total-reader", "resilience-negative"),
+    "28q-blob-payload-not-zstd": ("total-reader", "resilience-negative"),
+    "28r-blob-payload-truncated": ("total-reader", "resilience-negative"),
+    "28s-blob-payload-names-dictionary": ("total-reader", "resilience-negative"),
     "29-deterministic-writer": ("writer-determinism",),
 }
 
 TOP_LEVEL_CAPABILITIES = {
     "02-zstd-frame": ("cbor", "blake3", "identity", "zstd"),
     "22-inline-blob": ("cbor", "blake3", "identity", "inline-blob"),
+    "22b-zstd-rsyncable-multi-frame": (
+        "cbor",
+        "blake3",
+        "identity",
+        "zstd",
+        "inline-blob",
+    ),
+    "22c-zstd-declared-window-2-27": (
+        "cbor",
+        "blake3",
+        "identity",
+        "zstd",
+        "inline-blob",
+    ),
     "23-files-profile-tree": ("cbor", "blake3", "identity", "files-profile"),
     "24-files-profile-dedup": ("cbor", "blake3", "identity", "files-profile"),
     "25-streamable-source": ("cbor", "blake3", "identity", "cose-sign1"),
@@ -174,6 +196,27 @@ TOP_LEVEL_CAPABILITIES = {
     "26-streamable-lie": ("cbor", "blake3", "identity", "streamable-index"),
     "27-streamable-tail": ("cbor", "blake3", "identity", "streamable-index"),
     "28g-damaged-compressed-payload": ("cbor", "blake3", "identity", "zstd"),
+    "28q-blob-payload-not-zstd": (
+        "cbor",
+        "blake3",
+        "identity",
+        "zstd",
+        "inline-blob",
+    ),
+    "28r-blob-payload-truncated": (
+        "cbor",
+        "blake3",
+        "identity",
+        "zstd",
+        "inline-blob",
+    ),
+    "28s-blob-payload-names-dictionary": (
+        "cbor",
+        "blake3",
+        "identity",
+        "zstd",
+        "inline-blob",
+    ),
     "28h-malformed-security-metadata": (
         "cbor",
         "blake3",

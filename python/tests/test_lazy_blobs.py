@@ -5,10 +5,9 @@
 from __future__ import annotations
 
 import pytest
-import zstandard
 
 from gts import read
-from gts.codec import Codec, decode_chain
+from gts.codec import Codec, PayloadDecodeError, decode_chain
 from gts.model import Term, TermKind, _LazyBlobEntry, _LazyBlobs
 from gts.wire import digest_str
 from gts.writer import Writer
@@ -234,5 +233,5 @@ def test_lazy_blobs_decode_failure_raises() -> None:
     """A corrupt lazy entry raises on access (it was valid-looking at fold time)."""
     lb = _LazyBlobs()
     lb["a"] = _LazyBlobEntry(raw=b"not zstd", chain=[Codec("zstd", "compress")])
-    with pytest.raises(zstandard.ZstdError):
+    with pytest.raises(PayloadDecodeError):
         lb["a"]

@@ -3,6 +3,9 @@
 
 import { gunzipSync, gzipSync } from "node:zlib";
 import { decompress as zstdDecompress } from "fzstd";
+import { MAX_ZSTD_WINDOW_LOG, zstdFrameProblem } from "./zstd_frames.js";
+
+export { MAX_ZSTD_WINDOW_LOG };
 
 /** A catalog entry (§5, §8.5). */
 export interface Codec {
@@ -41,6 +44,21 @@ export function isCodecError(err: unknown): err is Error & CodecError {
     );
 }
 
+/**
+ * Throw a codec error unless `data` is whole zstd frames this reader can decode.
+ * See {@link zstdFrameProblem}.
+ */
+export function assertZstdDecodable(data: Uint8Array): void {
+    const problem = zstdFrameProblem(data);
+    if (problem !== null) {
+        throw codecError({
+            reason: "damaged",
+            detail: `zstd decode failed: ${problem}`,
+            failed: true,
+        });
+    }
+}
+
 function toUint8Array(buf: Buffer): Uint8Array {
     return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
 }
@@ -70,6 +88,7 @@ function decodeOne(codec: Codec, data: Uint8Array): Uint8Array {
         case "zstd":
         case "zstd-rsyncable": {
             try {
+                assertZstdDecodable(data);
                 return zstdDecompress(data);
             } catch (e) {
                 if (isCodecError(e)) throw e;
@@ -128,6 +147,7 @@ export const zstd = {
         });
     },
     decode: (data: Uint8Array): Uint8Array => {
+        assertZstdDecodable(data);
         return zstdDecompress(data);
     },
 };

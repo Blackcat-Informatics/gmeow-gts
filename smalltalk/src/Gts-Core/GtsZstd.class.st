@@ -58,10 +58,11 @@ GtsZstd class >> frameContentSizeError [
 
 { #category : #accessing }
 GtsZstd class >> frameContentSizeFor: aByteArray [
+	"The decompressed size of the whole payload: the sum over every concatenated frame, as a zstd-rsyncable payload is made of one frame per unit."
 	| inputBytes size |
 	inputBytes := aByteArray asByteArray.
 	size := GtsZstdLibrary uniqueInstance
-		frameContentSizeOf: inputBytes
+		decompressedSizeOf: inputBytes
 		length: inputBytes size.
 	((size = self frameContentSizeUnknown) or: [ size = self frameContentSizeError ])
 		ifTrue: [ self error: 'zstd frame content size is unavailable' ].

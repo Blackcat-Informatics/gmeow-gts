@@ -143,6 +143,8 @@ class _LazyBlobEntry:
 
     raw: bytes
     chain: list[Codec]
+    #: The reader already walked ``raw`` as zstd frames, so decoding skips the walk.
+    checked: bool = False
 
 
 class _LazyBlobs(MutableMapping[str, bytes]):
@@ -163,7 +165,7 @@ class _LazyBlobs(MutableMapping[str, bytes]):
         entry = self._entries[digest]
         if isinstance(entry, bytes):
             return entry
-        decoded = decode_chain(entry.chain, entry.raw)
+        decoded = decode_chain(entry.chain, entry.raw, checked=entry.checked)
         self._entries[digest] = decoded
         return decoded
 

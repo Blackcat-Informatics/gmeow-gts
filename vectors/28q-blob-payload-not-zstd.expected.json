@@ -1,0 +1,31 @@
+{
+ "blobs": {},
+ "diagnostics": [
+  "DamagedFrame"
+ ],
+ "mode": "default",
+ "nquads": [
+  "<https://example.org/Cat> <http://www.w3.org/2000/01/rdf-schema#label> \"Cat\"@en .",
+  "<https://example.org/Dog> <http://www.w3.org/2000/01/rdf-schema#label> \"Cat\"@en ."
+ ],
+ "opaque_reasons": [
+  "damaged"
+ ],
+ "profiles": [
+  "generic"
+ ],
+ "quads": 2,
+ "segment_heads": [
+  "78b23d307c2bbfd847bd7f36e427ad149c35d9c64873356dedf5cde16c8401dc"
+ ],
+ "segments": 1,
+ "streamable": [
+  {
+   "claimed": false,
+   "covered": 0,
+   "tail": 0
+  }
+ ],
+ "suppressions": 0,
+ "terms": 4
+}

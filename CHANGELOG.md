@@ -100,6 +100,66 @@ breaking wire change requires a new wire-format major version.
   holding one, such as a tag `4` item with a half-precision float part, was reported
   as a torn append and the fold stopped; it is now a damaged frame and the fold goes
   on, as the specification requires.
+- A `zstd` or `zstd-rsyncable` payload whose frame or block structure is invalid (not
+  zstd, cut short, a bad block header), that names a dictionary, or that declares a
+  window the reader will not decode, now makes that one frame an opaque node (reason
+  `damaged`, diagnostic `DamagedFrame`) and the fold goes on past it, in Python, Rust and
+  TypeScript (its Node and browser builds). Go already did; Kotlin and Smalltalk are
+  expected to, by reading only, since they were not run. Reporting an intact frame that
+  a reader merely cannot decode as `damaged` is a gap in the specification's opaque
+  reasons (§7.6 names only `unknown-codec`, `missing-key` and `damaged`), not a rule.
+  Before this, Python and Rust registered a blob frame under its declared digest without
+  looking at its payload: Python then raised the zstd library's error, with a traceback,
+  from `gts ls` and `gts extract`, and returned fewer bytes without any error for a
+  payload cut short; Rust reported a clean error on read but folded no opaque node. Both
+  now walk the zstd frame and block headers when they fold the blob frame (a few bytes
+  per 128 KiB block, no decompression, and not repeated when the blob is read). Damage
+  inside a block still surfaces on first read; Python's command line reports it as
+  `gts: cannot decode blob` with status 1 instead of a traceback, and library callers
+  that caught `zstandard.ZstdError` from `g.blobs[...]` now get `PayloadDecodeError`
+  (a `ValueError`). The command-line tools of Go and TypeScript exit with status 1 when
+  any `DamagedFrame` is reported, as before.
+- TypeScript no longer decodes a zstd frame that declares a window above 2**27 bytes
+  (128 MiB), in either build. Its zstd library returns wrong bytes, with no error, once
+  a match reaches back about 256 MiB, which a window of 2**29 or more allows; 2**27 is
+  the largest window every reference reader was measured to decode correctly. The limit
+  is one named constant (`MAX_ZSTD_WINDOW_LOG`) in a module both builds share, and any
+  structure the walk does not accept is refused by the walk itself, not left to the
+  library, which accepts more than the format does. As a backstop for every other way
+  that library can return wrong bytes (a dictionary without a stored id, a single-segment
+  frame declaring a content size it does not have), a blob whose decoded bytes do not
+  hash to its declared `pub.digest` is now a damaged frame in both builds, whether the
+  digest is written as text or as the raw 32 bytes; before it was listed under the hash of
+  the wrong bytes with no diagnostic. The declared text is compared as Python and Rust
+  compare it: bare hex gets the `blake3:` prefix and is accepted, but upper-case hex is
+  not the lowercase form the specification requires and now makes the blob damaged.
+- This changes what the Python reader accepts. It now refuses any frame that declares a
+  window above 2**27, whether or not its library would decode it: the library skips its
+  own limit when the whole content fits the caller's buffer, so what it accepted depended
+  on a buffer size and not on the frame. Hand-built frames that declare a larger window
+  over a small known content size were decoded before and are now opaque; no real
+  encoder is known to write them. Rust's walk now also refuses a window above 2**31, the
+  most its decoder accepts, at fold instead of at first read; no other engine's limit
+  changed.
+- Not settled here, and not decided by the format: the engines still disagree on frames
+  the format permits. A frame declaring a window of 2**28 is decoded by Rust, Go and
+  Smalltalk and refused by Python, TypeScript and (by reading) Kotlin; 2**29 by Rust and
+  Go only; 2**30 by Rust and Smalltalk only. A frame that names a dictionary id is
+  refused at fold by Python, Rust, TypeScript and Go, and fails at decode in Kotlin and
+  Smalltalk (by reading); a frame compressed with a dictionary that stores no id (a
+  raw-content dictionary) carries id 0, so no header walk sees it: Python and Rust fold it
+  and fail on first read, TypeScript catches it only through the blob digest, and Go marks
+  it damaged at fold. Smalltalk fails any frame that carries no content size. Whether the
+  specification should name one window limit and a dictionary parameter is open.
+- The Smalltalk decoder now decodes a payload of concatenated zstd frames to its end.
+  It sized its output from the first frame only, so every `zstd-rsyncable` payload over
+  one unit, which the reference writers make of one frame per unit, was reported as a
+  damaged frame.
+- New vectors `22b-zstd-rsyncable-multi-frame` (a payload of three concatenated frames,
+  decoded, blob digest matching), `22c-zstd-declared-window-2-27`, `28q-blob-payload-not-zstd`,
+  `28r-blob-payload-truncated` and `28s-blob-payload-names-dictionary` (one opaque node
+  each, with frames before and after it folded). Every vector that existed before is
+  byte-identical.
 
 ### Changed
 

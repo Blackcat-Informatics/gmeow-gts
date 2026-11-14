@@ -38,3 +38,23 @@ GtsZstdTest >> testRoundTripBytesAboveFormerSafetyBound [
 	restored := GtsZstd decompress: compressed.
 	self assert: restored equals: payload
 ]
+
+{ #category : #tests }
+GtsZstdTest >> testConcatenatedFramesDecodeToTheEndOfThePayload [
+	| first second third compressed |
+	first := GtsZstd compress: 'alpha ' utf8Encoded.
+	second := GtsZstd compress: 'beta ' utf8Encoded.
+	third := GtsZstd compress: 'gamma' utf8Encoded.
+	compressed := first , second , third.
+	self assert: (GtsZstd frameContentSizeFor: compressed) equals: 16.
+	self assert: (GtsZstd decompress: compressed) equals: 'alpha beta gamma' utf8Encoded
+]
+
+{ #category : #tests }
+GtsZstdTest >> testConcatenatedFramesAboveOneUnit [
+	| unit compressed restored |
+	unit := ByteArray new: 65536 withAll: 7.
+	compressed := (GtsZstd compress: unit) , (GtsZstd compress: unit) , (GtsZstd compress: unit).
+	restored := GtsZstd decompress: compressed.
+	self assert: restored size equals: unit size * 3
+]

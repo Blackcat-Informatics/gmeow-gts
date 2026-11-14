@@ -110,8 +110,8 @@ fn zstd_blob_file(blob: &[u8]) -> Vec<u8> {
 #[test]
 fn blob_deferred_until_access() {
     let (terms, quads) = term_triple();
-    let blob = b"this raw payload is intentionally not zstd";
-    let digest = digest_str(b"declared decoded bytes");
+    let blob = b"hello world ".repeat(1024);
+    let digest = digest_str(&blob);
 
     let mut writer = Writer::new("generic");
     writer.add_terms(&terms);
@@ -119,19 +119,66 @@ fn blob_deferred_until_access() {
     let mut data = writer.to_bytes();
     data.extend(blob_frame(
         writer.head(),
-        Some(blob.to_vec()),
+        Some(zstd_bytes(&blob)),
         &[2],
         blob_pub(Some(&digest)),
     ));
 
-    let mut graph = read(&data, true, None);
+    let graph = read(&data, true, None);
     assert_eq!(graph.terms.len(), 3);
     assert_eq!(graph.quads.len(), 1);
     assert!(graph.diagnostics.is_empty());
     assert!(graph
         .blob_entry(&digest)
         .is_some_and(|entry| entry.is_lazy()));
-    assert!(graph.blob_bytes(&digest).is_err());
+}
+
+/// A file with a term and a quad frame, then one zstd blob frame whose raw bytes are `payload`.
+fn file_with_zstd_payload(payload: Vec<u8>, declared: &[u8]) -> Vec<u8> {
+    let (terms, quads) = term_triple();
+    let mut writer = Writer::new("generic");
+    writer.add_terms(&terms);
+    writer.add_quads(&quads);
+    let mut data = writer.to_bytes();
+    data.extend(blob_frame(
+        writer.head(),
+        Some(payload),
+        &[2],
+        blob_pub(Some(&digest_str(declared))),
+    ));
+    data
+}
+
+#[test]
+fn blob_payload_that_is_not_whole_zstd_frames_is_one_opaque_node() {
+    let content = b"the bytes it should have held ".repeat(30);
+    let whole = zstd_bytes(&content);
+    let cases = [
+        ("not zstd", b"not zstd frame data".to_vec()),
+        ("truncated", whole[..whole.len() / 2].to_vec()),
+        ("missing last byte", whole[..whole.len() - 1].to_vec()),
+    ];
+    for (name, payload) in cases {
+        let graph = read(&file_with_zstd_payload(payload, &content), true, None);
+        let reasons: Vec<&str> = graph.opaque.iter().map(|o| o.reason.as_str()).collect();
+        assert_eq!(reasons, ["damaged"], "{name}");
+        let codes: Vec<&str> = graph.diagnostics.iter().map(|d| d.code.as_str()).collect();
+        assert_eq!(codes, ["DamagedFrame"], "{name}");
+        assert!(graph.blobs.is_empty(), "{name}");
+        assert!(graph.blob_meta.is_empty(), "{name}");
+        assert_eq!(graph.quads.len(), 1, "{name}: earlier frames still fold");
+    }
+}
+
+#[test]
+fn blob_payload_of_concatenated_zstd_frames_decodes_to_the_end() {
+    let units: [&[u8]; 3] = [b"alpha ", b"beta ", b"gamma"];
+    let content = units.concat();
+    let payload: Vec<u8> = units.iter().flat_map(|unit| zstd_bytes(unit)).collect();
+    let digest = digest_str(&content);
+    let mut graph = read(&file_with_zstd_payload(payload, &content), true, None);
+    assert!(graph.opaque.is_empty());
+    assert_eq!(graph.blob_bytes(&digest).unwrap(), Some(content.as_slice()));
 }
 
 #[test]
@@ -322,4 +369,66 @@ fn lazy_blob_decode_failure_raises_on_access() {
     assert!(graph.blob_entry("a").is_some_and(|entry| entry.is_lazy()));
     assert!(graph.blob_bytes("a").is_err());
     assert!(graph.blob_entry("a").is_some_and(|entry| entry.is_lazy()));
+}
+
+#[test]
+fn damage_inside_a_block_with_valid_structure_fails_cleanly_on_first_read() {
+    // One compressed block of three bytes that are not a valid block: the frame walk
+    // passes, so the blob folds lazily, and the first read reports the failure.
+    let content = b"declared";
+    let payload = vec![
+        0x28,
+        0xb5,
+        0x2f,
+        0xfd,
+        0x00,
+        0x00,
+        0x05 | (3 << 3),
+        0x00,
+        0x00,
+        0xff,
+        0xff,
+        0xff,
+    ];
+    let digest = digest_str(content);
+    let mut graph = read(&file_with_zstd_payload(payload, content), true, None);
+    assert!(graph.opaque.is_empty());
+    assert!(graph.diagnostics.is_empty());
+    assert!(graph
+        .blob_entry(&digest)
+        .is_some_and(|entry| entry.is_lazy()));
+    assert!(graph.blob_bytes(&digest).is_err());
+}
+
+#[test]
+fn zstd_frame_declaring_a_window_the_decoder_refuses_is_one_opaque_node() {
+    let content = b"declared window";
+    let frame = |window_log: u32| {
+        let block = 1 | ((content.len() as u32) << 3);
+        let mut out = vec![0x28, 0xb5, 0x2f, 0xfd, 0x00, ((window_log - 10) << 3) as u8];
+        out.extend(&block.to_le_bytes()[..3]);
+        out.extend(content);
+        out
+    };
+    let ok = read(&file_with_zstd_payload(frame(31), content), true, None);
+    assert!(ok.opaque.is_empty());
+    for window_log in [32, 35, 41] {
+        let graph = read(
+            &file_with_zstd_payload(frame(window_log), content),
+            true,
+            None,
+        );
+        let reasons: Vec<&str> = graph.opaque.iter().map(|o| o.reason.as_str()).collect();
+        assert_eq!(reasons, ["damaged"], "window 2**{window_log}");
+    }
+}
+
+#[test]
+fn zstd_frame_naming_a_dictionary_is_one_opaque_node() {
+    let mut payload = vec![0x28, 0xb5, 0x2f, 0xfd, 0x01, 0x00, 0x05];
+    payload.extend([1 | (5 << 3), 0, 0]);
+    payload.extend(b"hello");
+    let graph = read(&file_with_zstd_payload(payload, b"hello"), true, None);
+    let reasons: Vec<&str> = graph.opaque.iter().map(|o| o.reason.as_str()).collect();
+    assert_eq!(reasons, ["damaged"]);
 }
