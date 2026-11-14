@@ -100,6 +100,38 @@ breaking wire change requires a new wire-format major version.
   holding one, such as a tag `4` item with a half-precision float part, was reported
   as a torn append and the fold stopped; it is now a damaged frame and the fold goes
   on, as the specification requires.
+- A `zstd` or `zstd-rsyncable` payload that a reader cannot decode now makes that one
+  frame an opaque node (reason `damaged`, diagnostic `DamagedFrame`) in every reference
+  engine, and the fold goes on past it. Before this, Python and Rust registered a blob
+  frame under its declared digest without looking at its payload: Python then raised the
+  zstd library's error, with a traceback, from `gts ls` and `gts extract`, and returned
+  fewer bytes without any error for a payload cut short; Rust reported a clean error on
+  read but folded no opaque node. Both now walk the zstd frame and block headers when
+  they fold the blob frame (a few bytes per 128 KiB block, no decompression), so a
+  payload that is not zstd, or ends inside a frame, is found there; damage inside a
+  block still surfaces on first read, and Python's command line now reports it as
+  `gts: cannot decode blob` with status 1 instead of a traceback. Go, TypeScript, Kotlin
+  and Smalltalk already decoded blob frames when folding them. The command-line tools of
+  Go and TypeScript exit with status 1 when any `DamagedFrame` is reported, as before.
+- The TypeScript reader no longer decodes a zstd frame that declares a window above
+  2**27 bytes (128 MiB): the frame becomes an opaque node as above. Its zstd library
+  returns wrong bytes, with no error, once a match reaches back about 256 MiB, which a
+  window of 2**29 or more allows; 2**27 is the largest window every reference reader was
+  measured to decode correctly. The limit is one named constant (`MAX_ZSTD_WINDOW_LOG`).
+  Python keeps the 2**27 limit of its zstd library, now stated in code and checked when
+  the frame is folded. No engine's limit was raised or lowered otherwise: Rust still
+  decodes windows up to 2**31, Go up to 2**29. The format itself sets no window limit,
+  so a file whose frame declares 2**28 is read by some engines and degraded by others;
+  whether the specification should name one limit is not decided here.
+- The Smalltalk decoder now decodes a payload of concatenated zstd frames to its end.
+  It sized its output from the first frame only, so every `zstd-rsyncable` payload over
+  one unit, which the reference writers make of one frame per unit, was reported as a
+  damaged frame.
+- New vectors `22b-zstd-rsyncable-multi-frame` (a payload of three concatenated frames,
+  decoded, blob digest matching), `22c-zstd-declared-window-2-27` (a frame declaring
+  the largest window every reader decodes), `28q-blob-payload-not-zstd` and
+  `28r-blob-payload-truncated` (one opaque node each, with frames before and after it
+  folded). Every vector that existed before is byte-identical.
 
 ### Changed
 

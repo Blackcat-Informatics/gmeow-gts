@@ -110,6 +110,91 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
     }
 }
 
+const ZSTD_MAGIC: u32 = 0xFD2F_B528;
+const ZSTD_SKIPPABLE_MAGIC: std::ops::RangeInclusive<u32> = 0x184D_2A50..=0x184D_2A5F;
+const ZSTD_MAX_BLOCK: u32 = 128 * 1024;
+
+/// Walk the frame and block headers of a zstd payload without decoding it.
+fn walk_zstd_frames(data: &[u8]) -> Result<(), &'static str> {
+    const TRUNCATED: &str = "zstd frame is truncated";
+    // The end of the `len` bytes at `pos`, when they all lie inside `data`.
+    let take = |pos: usize, len: usize| -> Result<usize, &'static str> {
+        pos.checked_add(len)
+            .filter(|end| *end <= data.len())
+            .ok_or(TRUNCATED)
+    };
+    let le_u32 = |pos: usize| -> u32 {
+        u32::from_le_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]])
+    };
+    let mut pos = 0;
+    while pos < data.len() {
+        let end = take(pos, 4)?;
+        let magic = le_u32(pos);
+        pos = end;
+        if ZSTD_SKIPPABLE_MAGIC.contains(&magic) {
+            let end = take(pos, 4)?;
+            let size = le_u32(pos) as usize;
+            pos = take(end, size)?;
+            continue;
+        }
+        if magic != ZSTD_MAGIC {
+            return Err("payload is not a zstd frame (unknown magic number)");
+        }
+        let end = take(pos, 1)?;
+        let flags = data[pos];
+        pos = end;
+        if flags & 0x08 != 0 {
+            return Err("zstd frame header sets a reserved bit");
+        }
+        let single_segment = flags & 0x20 != 0;
+        let window_bytes = usize::from(!single_segment);
+        let dict_id_bytes = [0, 1, 2, 4][usize::from(flags & 3)];
+        let content_size_bytes = [usize::from(single_segment), 2, 4, 8][usize::from(flags >> 6)];
+        pos = take(pos, window_bytes + dict_id_bytes + content_size_bytes)?;
+        loop {
+            let end = take(pos, 3)?;
+            let header = u32::from(data[pos])
+                | (u32::from(data[pos + 1]) << 8)
+                | (u32::from(data[pos + 2]) << 16);
+            let block_type = (header >> 1) & 3;
+            let size = header >> 3;
+            if block_type == 3 || size > ZSTD_MAX_BLOCK {
+                return Err("zstd block header is invalid");
+            }
+            // An RLE block stores one byte whatever size it regenerates.
+            pos = take(end, if block_type == 1 { 1 } else { size as usize })?;
+            if header & 1 != 0 {
+                break;
+            }
+        }
+        if flags & 0x04 != 0 {
+            pos = take(pos, 4)?;
+        }
+    }
+    Ok(())
+}
+
+/// Check that the payload a transform chain starts from can be decoded, without
+/// decoding it.
+///
+/// A reader that defers decoding a blob (see [`crate::model::BlobEntry`]) calls this
+/// when it folds the frame, so a payload that is not whole zstd frames makes that one
+/// frame an opaque node (§6.1, §7.6) instead of failing when the bytes are first read.
+/// Only the codec applied last on encode sees the stored bytes; for any other chain
+/// there is nothing to check. Damage inside a block is not found here.
+pub fn check_payload_structure(chain: &[Codec], data: &[u8]) -> Result<(), CodecError> {
+    match chain.last() {
+        Some(codec)
+            if codec.cls != "encrypt"
+                && matches!(codec.name.as_str(), "zstd" | "zstd-rsyncable") =>
+        {
+            walk_zstd_frames(data)
+                .map_err(|e| CodecError::Failed(format!("zstd decode failed: {e}")))
+        }
+        _ => Ok(()),
+    }
+}
+
 const RSYNCABLE_BLOCK_SIZE: usize = 65_536;
 
 fn encode_zstd(data: &[u8], level: Option<i32>) -> Vec<u8> {

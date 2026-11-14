@@ -7,8 +7,16 @@ from __future__ import annotations
 import gzip
 
 import pytest
+import zstandard
 
-from gts.codec import Codec, CodecClass, decode_chain, encode_chain
+from gts.codec import (
+    Codec,
+    CodecClass,
+    PayloadDecodeError,
+    check_zstd_frames,
+    decode_chain,
+    encode_chain,
+)
 
 
 def _rdf_snapshot_payload(rows: int = 140_000) -> bytes:
@@ -133,3 +141,58 @@ def test_gzip_encoding_uses_zero_mtime() -> None:
 
     assert encoded[4:8] == b"\x00\x00\x00\x00"
     assert encode_chain(["gzip"], b"stable gzip payload" * 100) == encoded
+
+
+def _window_frame(window_log: int, content: bytes) -> bytes:
+    """A zstd frame declaring a ``2**window_log`` window over one raw block."""
+    block = (1 | (len(content) << 3)).to_bytes(3, "little")
+    return b"\x28\xb5\x2f\xfd\x00" + bytes([(window_log - 10) << 3]) + block + content
+
+
+def test_zstd_frame_walk_accepts_every_frame_shape_the_library_writes() -> None:
+    """Frames with or without content size or checksum, empty, skippable: all pass."""
+    plain = b"abc" * 70000
+    frames = [
+        zstandard.ZstdCompressor().compress(plain),
+        zstandard.ZstdCompressor(write_content_size=False).compress(plain),
+        zstandard.ZstdCompressor(write_checksum=True, level=19).compress(plain),
+        zstandard.ZstdCompressor().compress(b""),
+        b"\x50\x2a\x4d\x18\x03\x00\x00\x00abc",
+    ]
+    for frame in frames:
+        check_zstd_frames(frame)
+    payload = b"".join(frames)
+    check_zstd_frames(payload)
+    assert decode_chain([Codec("zstd", "compress")], payload) == plain * 3
+
+
+@pytest.mark.parametrize("cut", [1, 3, 9, 20, -1])
+def test_zstd_frame_walk_refuses_a_payload_that_ends_inside_a_frame(cut: int) -> None:
+    """A payload cut short is an error; the streaming reader gave short bytes."""
+    frame = zstandard.ZstdCompressor().compress(b"y" * 5000 + bytes(range(256)) * 40)
+    cut_frame = frame[:cut]
+    with pytest.raises(PayloadDecodeError):
+        check_zstd_frames(cut_frame)
+    with pytest.raises(PayloadDecodeError):
+        decode_chain([Codec("zstd", "compress")], cut_frame)
+
+
+def test_zstd_frame_walk_refuses_bytes_that_are_not_zstd() -> None:
+    """A payload that does not start with a zstd or skippable magic is refused."""
+    with pytest.raises(PayloadDecodeError, match="not a zstd frame"):
+        check_zstd_frames(b"not zstd frame data")
+
+
+@pytest.mark.parametrize(
+    ("window_log", "accepted"), [(27, True), (28, False), (31, False)]
+)
+def test_zstd_window_above_two_to_the_27_is_refused_before_decoding(
+    window_log: int, accepted: bool
+) -> None:
+    """A header declaring over 2**27 is refused whatever the content; 2**27 decodes."""
+    frame = _window_frame(window_log, b"declared window")
+    if accepted:
+        assert decode_chain([Codec("zstd", "compress")], frame) == b"declared window"
+        return
+    with pytest.raises(PayloadDecodeError, match="window"):
+        check_zstd_frames(frame)

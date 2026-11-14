@@ -110,8 +110,8 @@ fn zstd_blob_file(blob: &[u8]) -> Vec<u8> {
 #[test]
 fn blob_deferred_until_access() {
     let (terms, quads) = term_triple();
-    let blob = b"this raw payload is intentionally not zstd";
-    let digest = digest_str(b"declared decoded bytes");
+    let blob = b"hello world ".repeat(1024);
+    let digest = digest_str(&blob);
 
     let mut writer = Writer::new("generic");
     writer.add_terms(&terms);
@@ -119,19 +119,66 @@ fn blob_deferred_until_access() {
     let mut data = writer.to_bytes();
     data.extend(blob_frame(
         writer.head(),
-        Some(blob.to_vec()),
+        Some(zstd_bytes(&blob)),
         &[2],
         blob_pub(Some(&digest)),
     ));
 
-    let mut graph = read(&data, true, None);
+    let graph = read(&data, true, None);
     assert_eq!(graph.terms.len(), 3);
     assert_eq!(graph.quads.len(), 1);
     assert!(graph.diagnostics.is_empty());
     assert!(graph
         .blob_entry(&digest)
         .is_some_and(|entry| entry.is_lazy()));
-    assert!(graph.blob_bytes(&digest).is_err());
+}
+
+/// A file with a term and a quad frame, then one zstd blob frame whose raw bytes are `payload`.
+fn file_with_zstd_payload(payload: Vec<u8>, declared: &[u8]) -> Vec<u8> {
+    let (terms, quads) = term_triple();
+    let mut writer = Writer::new("generic");
+    writer.add_terms(&terms);
+    writer.add_quads(&quads);
+    let mut data = writer.to_bytes();
+    data.extend(blob_frame(
+        writer.head(),
+        Some(payload),
+        &[2],
+        blob_pub(Some(&digest_str(declared))),
+    ));
+    data
+}
+
+#[test]
+fn blob_payload_that_is_not_whole_zstd_frames_is_one_opaque_node() {
+    let content = b"the bytes it should have held ".repeat(30);
+    let whole = zstd_bytes(&content);
+    let cases = [
+        ("not zstd", b"not zstd frame data".to_vec()),
+        ("truncated", whole[..whole.len() / 2].to_vec()),
+        ("missing last byte", whole[..whole.len() - 1].to_vec()),
+    ];
+    for (name, payload) in cases {
+        let graph = read(&file_with_zstd_payload(payload, &content), true, None);
+        let reasons: Vec<&str> = graph.opaque.iter().map(|o| o.reason.as_str()).collect();
+        assert_eq!(reasons, ["damaged"], "{name}");
+        let codes: Vec<&str> = graph.diagnostics.iter().map(|d| d.code.as_str()).collect();
+        assert_eq!(codes, ["DamagedFrame"], "{name}");
+        assert!(graph.blobs.is_empty(), "{name}");
+        assert!(graph.blob_meta.is_empty(), "{name}");
+        assert_eq!(graph.quads.len(), 1, "{name}: earlier frames still fold");
+    }
+}
+
+#[test]
+fn blob_payload_of_concatenated_zstd_frames_decodes_to_the_end() {
+    let units: [&[u8]; 3] = [b"alpha ", b"beta ", b"gamma"];
+    let content = units.concat();
+    let payload: Vec<u8> = units.iter().flat_map(|unit| zstd_bytes(unit)).collect();
+    let digest = digest_str(&content);
+    let mut graph = read(&file_with_zstd_payload(payload, &content), true, None);
+    assert!(graph.opaque.is_empty());
+    assert_eq!(graph.blob_bytes(&digest).unwrap(), Some(content.as_slice()));
 }
 
 #[test]

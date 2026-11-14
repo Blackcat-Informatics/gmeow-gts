@@ -20,8 +20,9 @@ GtsZstdLibrary >> decompressInto: outputBytes capacity: outputCapacity from: inp
 ]
 
 { #category : #ffi }
-GtsZstdLibrary >> frameContentSizeOf: inputBytes length: inputLength [
-	^ self ffiCall: #(#ulonglong #ZSTD_getFrameContentSize #(#const #void #* #inputBytes #, #size_t #inputLength))
+GtsZstdLibrary >> decompressedSizeOf: inputBytes length: inputLength [
+	"The decompressed size of every frame in the input, which ZSTD_getFrameContentSize gives for the first frame only."
+	^ self ffiCall: #(#ulonglong #ZSTD_findDecompressedSize #(#const #void #* #inputBytes #, #size_t #inputLength))
 ]
 
 { #category : #ffi }

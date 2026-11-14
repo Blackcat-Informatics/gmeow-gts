@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import cbor2
+import zstandard
 
 from gts.codec import Codec
 from gts.crypto import Signer
@@ -255,6 +256,100 @@ def _damaged_compressed_payload() -> bytes:
     }
     frame["id"] = content_id(frame)
     return bytes(w.to_bytes()) + canonical(frame)
+
+
+def append_frame(w: Writer, frame: dict[str, object]) -> None:
+    """Append a hand-built frame, linking it to the writer's head like any other."""
+    frame["prev"] = w.head
+    fid = content_id(frame)
+    frame["id"] = fid
+    w._offsets.append(len(w._buf))
+    w._types.append(str(frame["t"]))
+    w._buf += canonical(frame)
+    w._prev = fid
+
+
+def blob_around(codec: str, payload: bytes, content: bytes) -> bytes:
+    """A file whose middle frame is a blob with ``payload`` as its raw ``"d"`` bytes.
+
+    ``content`` is what the payload is meant to decode to; its digest is declared in
+    ``pub``. A ``terms`` frame and a ``quads`` frame come before the blob and another
+    pair after it, so the vector shows that folding goes on past the blob.
+    """
+    w = Writer()
+    w.add_terms(
+        [
+            Term(TermKind.IRI, CAT),
+            Term(TermKind.IRI, LABEL),
+            Term(TermKind.LITERAL, "Cat", lang="en"),
+        ]
+    )
+    w.add_quads([(0, 1, 2, None)])
+    codec_id = next(i for i, c in w.catalog.items() if c.name == codec)
+    append_frame(
+        w,
+        {
+            "t": "blob",
+            "x": [codec_id],
+            "d": payload,
+            "pub": {"digest": digest_str(content), "mt": "text/plain"},
+        },
+    )
+    w.add_terms([Term(TermKind.IRI, DOG)])
+    w.add_quads([(3, 1, 2, None)])
+    return bytes(w.to_bytes())
+
+
+def _rsyncable_content() -> list[bytes]:
+    """Three units of text, each compressed as its own zstd frame."""
+    return [
+        (f"unit {i}: " + "the cat sat on the mat. " * 40).encode() for i in range(3)
+    ]
+
+
+def _zstd_rsyncable_multi_frame() -> bytes:
+    """A ``zstd-rsyncable`` blob made of three concatenated zstd frames.
+
+    A writer emits one frame per unit, so any payload longer than one unit looks like
+    this. The reader decodes to the end of the payload and the content digest matches.
+    """
+    units = _rsyncable_content()
+    compressor = zstandard.ZstdCompressor()
+    payload = b"".join(compressor.compress(u) for u in units)
+    return blob_around("zstd-rsyncable", payload, b"".join(units))
+
+
+def zstd_window_frame(window_log: int, content: bytes) -> bytes:
+    """Build a zstd frame by hand that declares a ``2**window_log`` byte window.
+
+    The header carries a window descriptor (single-segment flag clear) and a four byte
+    content size; there is no checksum and the content is one raw block, so the frame
+    is a few bytes long whatever window it declares. A decoder that honours the
+    declaration allocates the window; one that refuses it says so before reading the
+    block.
+    """
+    descriptor = (window_log - 10) << 3
+    size = len(content).to_bytes(4, "little")
+    block = (1 | (len(content) << 3)).to_bytes(3, "little")
+    return b"\x28\xb5\x2f\xfd\x80" + bytes([descriptor]) + size + block + content
+
+
+def _zstd_declared_window_2_27() -> bytes:
+    """A zstd blob whose frame declares the largest window every reader decodes."""
+    content = b"a frame that declares a window of 2**27 bytes"
+    return blob_around("zstd", zstd_window_frame(27, content), content)
+
+
+def _blob_payload_not_zstd() -> bytes:
+    """A ``zstd`` blob whose payload is not zstd data: one opaque node."""
+    return blob_around("zstd", b"not zstd frame data", b"the bytes it should have held")
+
+
+def _blob_payload_truncated() -> bytes:
+    """A ``zstd`` blob whose payload stops inside its frame: one opaque node."""
+    content = b"the bytes it should have held " * 30
+    payload = zstandard.ZstdCompressor().compress(content)
+    return blob_around("zstd", payload[: len(payload) // 2], content)
 
 
 def _malformed_security_metadata() -> bytes:
@@ -837,6 +932,8 @@ def corpus() -> list[VectorCase]:
         VectorCase("20-language-tag-discipline", _language_tag_discipline()),
         VectorCase("21-degenerate-composition", _degenerate_composition()),
         VectorCase("22-inline-blob", _inline_blob()),
+        VectorCase("22b-zstd-rsyncable-multi-frame", _zstd_rsyncable_multi_frame()),
+        VectorCase("22c-zstd-declared-window-2-27", _zstd_declared_window_2_27()),
         VectorCase("23-files-profile-tree", _files_profile_tree()),
         VectorCase("24-files-profile-dedup", _files_profile_dedup()),
         VectorCase("25-streamable-source", _streamable_source()),
@@ -861,6 +958,8 @@ def corpus() -> list[VectorCase]:
             "28o-suppression-over-damaged-terms", _suppression_over_damaged_terms()
         ),
         VectorCase("28p-tagged-value-in-frame-field", _tagged_value_in_frame_field()),
+        VectorCase("28q-blob-payload-not-zstd", _blob_payload_not_zstd()),
+        VectorCase("28r-blob-payload-truncated", _blob_payload_truncated()),
         VectorCase("29-deterministic-writer", _deterministic_writer()),
     ]
 

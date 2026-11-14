@@ -111,6 +111,43 @@ de format de transfert.
   est un flottant en demi-précision, était rapporté comme un ajout tronqué et le repli
   s'arrêtait; il est maintenant une trame endommagée et le repli continue, comme l'exige la
   spécification.
+- Une charge utile `zstd` ou `zstd-rsyncable` qu'un lecteur ne peut pas décoder fait
+  désormais de cette seule trame un nœud opaque (raison `damaged`, diagnostic
+  `DamagedFrame`) dans chaque moteur de référence, et le repli continue au-delà. Auparavant,
+  Python et Rust enregistraient une trame de blob sous son condensat déclaré sans examiner
+  sa charge utile : Python levait alors l'erreur de la bibliothèque zstd, avec une trace
+  d'appels, depuis `gts ls` et `gts extract`, et renvoyait moins d'octets sans aucune erreur
+  pour une charge utile coupée ; Rust signalait une erreur propre à la lecture mais ne
+  repliait aucun nœud opaque. Les deux parcourent maintenant les en-têtes de trame et de
+  bloc zstd lorsqu'ils replient la trame de blob (quelques octets par bloc de 128 Kio, sans
+  décompression) : une charge utile qui n'est pas du zstd, ou qui se termine au milieu d'une
+  trame, y est détectée ; un dommage à l'intérieur d'un bloc apparaît toujours à la première
+  lecture, et la ligne de commande de Python le signale maintenant par
+  `gts: cannot decode blob` et le code 1 au lieu d'une trace d'appels. Go, TypeScript,
+  Kotlin et Smalltalk décodaient déjà les trames de blob en les repliant. Les outils en ligne
+  de commande de Go et de TypeScript sortent avec le code 1 dès qu'un `DamagedFrame` est
+  signalé, comme avant.
+- Le lecteur TypeScript ne décode plus une trame zstd qui déclare une fenêtre supérieure à
+  2**27 octets (128 Mio) : la trame devient un nœud opaque comme ci-dessus. Sa bibliothèque
+  zstd renvoie des octets erronés, sans erreur, dès qu'une correspondance remonte d'environ
+  256 Mio, ce que permet une fenêtre de 2**29 ou plus ; 2**27 est la plus grande fenêtre que
+  tous les lecteurs de référence ont été mesurés décoder correctement. La limite est une
+  constante nommée (`MAX_ZSTD_WINDOW_LOG`). Python garde la limite de 2**27 de sa
+  bibliothèque zstd, désormais énoncée dans le code et vérifiée au repli de la trame. Aucune
+  autre limite de moteur n'a été relevée ni abaissée : Rust décode toujours les fenêtres
+  jusqu'à 2**31, Go jusqu'à 2**29. Le format lui-même ne fixe aucune limite de fenêtre :
+  un fichier dont une trame déclare 2**28 est lu par certains moteurs et dégradé par
+  d'autres ; savoir si la spécification doit nommer une limite unique n'est pas tranché ici.
+- Le décodeur Smalltalk décode maintenant une charge utile de trames zstd concaténées
+  jusqu'à sa fin. Il dimensionnait sa sortie d'après la première trame seulement : toute
+  charge utile `zstd-rsyncable` de plus d'une unité, que les écrivains de référence
+  composent d'une trame par unité, était donc signalée comme trame endommagée.
+- Nouveaux vecteurs `22b-zstd-rsyncable-multi-frame` (une charge utile de trois trames
+  concaténées, décodée, condensat du blob concordant), `22c-zstd-declared-window-2-27`
+  (une trame déclarant la plus grande fenêtre que tous les lecteurs décodent),
+  `28q-blob-payload-not-zstd` et `28r-blob-payload-truncated` (un nœud opaque chacun, les
+  trames qui précèdent et suivent étant repliées). Chaque vecteur antérieur est identique
+  à l'octet près.
 
 ### Modifié
 

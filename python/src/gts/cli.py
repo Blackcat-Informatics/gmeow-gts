@@ -37,6 +37,7 @@ from gts.cli_files import (
     _cmd_unpack,
 )
 from gts.cli_verify import _cmd_extract_key, _cmd_verify, _cmd_verify_proof
+from gts.codec import PayloadDecodeError
 from gts.mmr import parse_hex_32
 from gts.nquads import to_nquads
 from gts.reader import read, read_segments
@@ -276,6 +277,17 @@ def _cmd_resume(after: str, path: str) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     """Entry point for the ``gts`` console script."""
+    try:
+        return _run(argv)
+    except PayloadDecodeError as exc:
+        # Blob bytes are decoded when first read, so a payload this reader cannot
+        # decode surfaces here as a message and a status, never as a traceback.
+        print(f"gts: cannot decode blob: {exc}", file=sys.stderr)
+        return 1
+
+
+def _run(argv: list[str] | None) -> int:
+    """Parse ``argv`` and run the selected command."""
     raw_args = list(sys.argv[1:] if argv is None else argv)
     locale = _cli_locale()
     if not raw_args:
