@@ -128,8 +128,11 @@ breaking wire change requires a new wire-format major version.
   library, which accepts more than the format does. As a backstop for every other way
   that library can return wrong bytes (a dictionary without a stored id, a single-segment
   frame declaring a content size it does not have), a blob whose decoded bytes do not
-  hash to its declared `pub.digest` is now a damaged frame in both builds; before it was
-  listed under the hash of the wrong bytes with no diagnostic.
+  hash to its declared `pub.digest` is now a damaged frame in both builds, whether the
+  digest is written as text or as the raw 32 bytes; before it was listed under the hash of
+  the wrong bytes with no diagnostic. The declared text is compared as Python and Rust
+  compare it: bare hex gets the `blake3:` prefix and is accepted, but upper-case hex is
+  not the lowercase form the specification requires and now makes the blob damaged.
 - This changes what the Python reader accepts. It now refuses any frame that declares a
   window above 2**27, whether or not its library would decode it: the library skips its
   own limit when the whole content fits the caller's buffer, so what it accepted depended
@@ -141,9 +144,12 @@ breaking wire change requires a new wire-format major version.
 - Not settled here, and not decided by the format: the engines still disagree on frames
   the format permits. A frame declaring a window of 2**28 is decoded by Rust, Go and
   Smalltalk and refused by Python, TypeScript and (by reading) Kotlin; 2**29 by Rust and
-  Go only; 2**30 by Rust and Smalltalk only. A dictionary frame is refused at fold by
-  Python, Rust, TypeScript and Go, and fails at decode in Kotlin and Smalltalk (by
-  reading). Smalltalk fails any frame that carries no content size. Whether the
+  Go only; 2**30 by Rust and Smalltalk only. A frame that names a dictionary id is
+  refused at fold by Python, Rust, TypeScript and Go, and fails at decode in Kotlin and
+  Smalltalk (by reading); a frame compressed with a dictionary that stores no id (a
+  raw-content dictionary) carries id 0, so no header walk sees it: Python and Rust fold it
+  and fail on first read, TypeScript catches it only through the blob digest, and Go marks
+  it damaged at fold. Smalltalk fails any frame that carries no content size. Whether the
   specification should name one window limit and a dictionary parameter is open.
 - The Smalltalk decoder now decodes a payload of concatenated zstd frames to its end.
   It sized its output from the first frame only, so every `zstd-rsyncable` payload over

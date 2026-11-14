@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 import { decompress as zstdDecompress } from "fzstd";
+import { declaredBlobDigest } from "./blob_digest.js";
 import { zstdFrameProblem } from "./zstd_frames.js";
 
 import {
@@ -1245,8 +1246,10 @@ class Folder {
         if (!payload) return;
         const digest = digestStr(payload);
         const pub = mapGet(frame, "pub");
-        const declared = pub instanceof Map ? mapGet(pub, "digest") : undefined;
-        if (typeof declared === "string" && declared !== digest) {
+        const declared = declaredBlobDigest(
+            pub instanceof Map ? mapGet(pub, "digest") : undefined,
+        );
+        if (declared !== undefined && declared !== digest) {
             throw new BrowserCodecError(
                 "damaged",
                 `blob bytes hash to ${digest}, not the declared ${declared}`,

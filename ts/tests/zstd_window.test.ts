@@ -57,6 +57,7 @@ function fileWithBlob(
     payload: Uint8Array,
     declared: Uint8Array,
     x: number[] | undefined = [2],
+    asBytes = false,
 ): Uint8Array {
     const w = new Writer("generic");
     const header = w.toBytes();
@@ -65,7 +66,11 @@ function fileWithBlob(
     if (x) frame.set("x", x);
     frame.set("d", payload);
     const pub = new Map<unknown, unknown>();
-    pub.set("digest", wire.digestStr(declared));
+    const text = wire.digestStr(declared);
+    pub.set(
+        "digest",
+        asBytes ? Uint8Array.from(Buffer.from(text.slice(7), "hex")) : text,
+    );
     frame.set("pub", pub);
     frame.set("prev", w.head());
     frame.set("id", wire.contentId(frame));
@@ -150,3 +155,22 @@ test("a blob whose bytes do not hash to its declared digest is damaged", async (
     assertOneOpaqueBlob(Read(data, true));
     assertOneOpaqueBlob(await readStream(stream(data)));
 });
+
+/** A single-segment frame declaring 300 bytes of content but holding 14. */
+function contentSizeLie(real: Uint8Array): Uint8Array {
+    const block = 1 | (real.length << 3);
+    return concat(
+        new Uint8Array([0x28, 0xb5, 0x2f, 0xfd, 0x60, 0x2c, 0x00]),
+        new Uint8Array([block & 0xff, (block >> 8) & 0xff, (block >> 16) & 0xff]),
+        real,
+    );
+}
+
+for (const asBytes of [false, true]) {
+    test(`a content size the frame does not have is damaged, digest as ${asBytes ? "32 bytes" : "text"}`, async () => {
+        const real = new TextEncoder().encode("the real bytes");
+        const data = fileWithBlob(contentSizeLie(real), real, [2], asBytes);
+        assertOneOpaqueBlob(Read(data, true));
+        assertOneOpaqueBlob(await readStream(stream(data)));
+    });
+}

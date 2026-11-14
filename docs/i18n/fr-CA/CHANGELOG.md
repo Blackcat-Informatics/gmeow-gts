@@ -143,8 +143,11 @@ de format de transfert.
   cette bibliothèque peut renvoyer des octets erronés (un dictionnaire sans identifiant
   stocké, une trame à segment unique déclarant une taille de contenu qu'elle n'a pas), un
   blob dont les octets décodés n'ont pas pour condensat son `pub.digest` déclaré est
-  désormais une trame endommagée dans les deux versions ; auparavant il était listé sous le
-  condensat des mauvais octets, sans diagnostic.
+  désormais une trame endommagée dans les deux versions, que le condensat soit écrit en texte
+  ou en 32 octets bruts ; auparavant il était listé sous le condensat des mauvais octets,
+  sans diagnostic. Le texte déclaré est comparé comme le font Python et Rust : l'hexadécimal
+  nu reçoit le préfixe `blake3:` et est accepté, mais l'hexadécimal en majuscules n'est pas la
+  forme minuscule exigée par la spécification et rend maintenant le blob endommagé.
 - Cela change ce que le lecteur Python accepte. Il refuse désormais toute trame qui déclare
   une fenêtre supérieure à 2**27, que sa bibliothèque la décode ou non : la bibliothèque
   ignore sa propre limite quand tout le contenu tient dans le tampon de l'appelant, de sorte
@@ -157,9 +160,13 @@ de format de transfert.
 - Non réglé ici, et non tranché par le format : les moteurs divergent encore sur des trames
   que le format permet. Une trame déclarant une fenêtre de 2**28 est décodée par Rust, Go et
   Smalltalk et refusée par Python, TypeScript et (d'après la lecture) Kotlin ; 2**29 par Rust
-  et Go seulement ; 2**30 par Rust et Smalltalk seulement. Une trame à dictionnaire est
-  refusée au repli par Python, Rust, TypeScript et Go, et échoue au décodage dans Kotlin et
-  Smalltalk (d'après la lecture). Smalltalk échoue sur toute trame sans taille de contenu.
+  et Go seulement ; 2**30 par Rust et Smalltalk seulement. Une trame qui nomme un identifiant de
+  dictionnaire est refusée au repli par Python, Rust, TypeScript et Go, et échoue au
+  décodage dans Kotlin et Smalltalk (d'après la lecture) ; une trame compressée avec un
+  dictionnaire qui ne stocke pas d'identifiant (un dictionnaire de contenu brut) porte
+  l'identifiant 0, qu'aucun parcours d'en-tête ne voit : Python et Rust la replient et
+  échouent à la première lecture, TypeScript ne l'attrape que par le condensat du blob, et
+  Go la marque endommagée au repli. Smalltalk échoue sur toute trame sans taille de contenu.
   Savoir si la spécification doit nommer une limite de fenêtre unique et un paramètre de
   dictionnaire reste ouvert.
 - Le décodeur Smalltalk décode maintenant une charge utile de trames zstd concaténées
