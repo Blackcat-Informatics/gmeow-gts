@@ -345,6 +345,17 @@ def _blob_payload_not_zstd() -> bytes:
     return blob_around("zstd", b"not zstd frame data", b"the bytes it should have held")
 
 
+def _blob_payload_names_dictionary() -> bytes:
+    """A ``zstd`` blob whose frame header names dictionary id 5, which no reader has."""
+    content = b"hello"
+    frame = (
+        b"\x28\xb5\x2f\xfd\x01\x00\x05"
+        + (1 | (len(content) << 3)).to_bytes(3, "little")
+        + content
+    )
+    return blob_around("zstd", frame, content)
+
+
 def _blob_payload_truncated() -> bytes:
     """A ``zstd`` blob whose payload stops inside its frame: one opaque node."""
     content = b"the bytes it should have held " * 30
@@ -960,6 +971,9 @@ def corpus() -> list[VectorCase]:
         VectorCase("28p-tagged-value-in-frame-field", _tagged_value_in_frame_field()),
         VectorCase("28q-blob-payload-not-zstd", _blob_payload_not_zstd()),
         VectorCase("28r-blob-payload-truncated", _blob_payload_truncated()),
+        VectorCase(
+            "28s-blob-payload-names-dictionary", _blob_payload_names_dictionary()
+        ),
         VectorCase("29-deterministic-writer", _deterministic_writer()),
     ]
 

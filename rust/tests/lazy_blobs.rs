@@ -370,3 +370,65 @@ fn lazy_blob_decode_failure_raises_on_access() {
     assert!(graph.blob_bytes("a").is_err());
     assert!(graph.blob_entry("a").is_some_and(|entry| entry.is_lazy()));
 }
+
+#[test]
+fn damage_inside_a_block_with_valid_structure_fails_cleanly_on_first_read() {
+    // One compressed block of three bytes that are not a valid block: the frame walk
+    // passes, so the blob folds lazily, and the first read reports the failure.
+    let content = b"declared";
+    let payload = vec![
+        0x28,
+        0xb5,
+        0x2f,
+        0xfd,
+        0x00,
+        0x00,
+        0x05 | (3 << 3),
+        0x00,
+        0x00,
+        0xff,
+        0xff,
+        0xff,
+    ];
+    let digest = digest_str(content);
+    let mut graph = read(&file_with_zstd_payload(payload, content), true, None);
+    assert!(graph.opaque.is_empty());
+    assert!(graph.diagnostics.is_empty());
+    assert!(graph
+        .blob_entry(&digest)
+        .is_some_and(|entry| entry.is_lazy()));
+    assert!(graph.blob_bytes(&digest).is_err());
+}
+
+#[test]
+fn zstd_frame_declaring_a_window_the_decoder_refuses_is_one_opaque_node() {
+    let content = b"declared window";
+    let frame = |window_log: u32| {
+        let block = 1 | ((content.len() as u32) << 3);
+        let mut out = vec![0x28, 0xb5, 0x2f, 0xfd, 0x00, ((window_log - 10) << 3) as u8];
+        out.extend(&block.to_le_bytes()[..3]);
+        out.extend(content);
+        out
+    };
+    let ok = read(&file_with_zstd_payload(frame(31), content), true, None);
+    assert!(ok.opaque.is_empty());
+    for window_log in [32, 35, 41] {
+        let graph = read(
+            &file_with_zstd_payload(frame(window_log), content),
+            true,
+            None,
+        );
+        let reasons: Vec<&str> = graph.opaque.iter().map(|o| o.reason.as_str()).collect();
+        assert_eq!(reasons, ["damaged"], "window 2**{window_log}");
+    }
+}
+
+#[test]
+fn zstd_frame_naming_a_dictionary_is_one_opaque_node() {
+    let mut payload = vec![0x28, 0xb5, 0x2f, 0xfd, 0x01, 0x00, 0x05];
+    payload.extend([1 | (5 << 3), 0, 0]);
+    payload.extend(b"hello");
+    let graph = read(&file_with_zstd_payload(payload, b"hello"), true, None);
+    let reasons: Vec<&str> = graph.opaque.iter().map(|o| o.reason.as_str()).collect();
+    assert_eq!(reasons, ["damaged"]);
+}

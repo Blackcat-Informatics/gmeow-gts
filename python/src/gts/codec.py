@@ -65,10 +65,12 @@ DEFAULT_CATALOG: dict[int, Codec] = {
     7: Codec("cose-encrypt0", "encrypt"),
 }
 
-#: Largest zstd window, as a power of two, that this reader decodes. It is the
-#: default limit of libzstd's streaming decoder (128 MiB); it is passed to the
-#: decompressor explicitly so the frame-header check below and the library agree
-#: on what is refused.
+#: Largest zstd window, as a power of two, that this reader decodes (128 MiB), the
+#: default limit of libzstd's streaming decoder. The frame-header check below refuses
+#: every frame that DECLARES a larger window, so what is accepted depends on the frame
+#: and not on the size of the caller's buffer: the library skips its own limit when the
+#: whole content fits that buffer, and so decoded a few hand-built frames that declare a
+#: large window over a small known content size. Those frames are now refused.
 ZSTD_MAX_WINDOW_LOG = 27
 
 _ZSTD_C = zstandard.ZstdCompressor()
@@ -175,7 +177,14 @@ def check_zstd_frames(data: bytes) -> None:
                 raise PayloadDecodeError(msg)
             window_byte = data[pos]
             pos += 1
-        pos += _ZSTD_DICT_ID_BYTES[flags & 3]
+        dict_bytes = _ZSTD_DICT_ID_BYTES[flags & 3]
+        if pos + dict_bytes > n:
+            msg = "zstd frame is truncated"
+            raise PayloadDecodeError(msg)
+        if any(data[pos : pos + dict_bytes]):
+            msg = "zstd frame names a dictionary, which this reader does not implement"
+            raise PayloadDecodeError(msg)
+        pos += dict_bytes
         size_bytes = _ZSTD_CONTENT_SIZE_BYTES[flags >> 6] or (
             1 if single_segment else 0
         )
@@ -217,14 +226,17 @@ def check_zstd_frames(data: bytes) -> None:
                 raise PayloadDecodeError(msg)
 
 
-def _decode_zstd(data: bytes) -> bytes:
+def _decode_zstd(data: bytes, *, checked: bool = False) -> bytes:
     """Decompress zstd bytes, including rsyncable streams with flush blocks.
+
+    ``checked`` says the caller already ran :func:`check_zstd_frames` on ``data``.
 
     Raises:
         PayloadDecodeError: the payload is damaged, truncated or beyond this reader's
             window limit.
     """
-    check_zstd_frames(data)
+    if not checked:
+        check_zstd_frames(data)
     out = io.BytesIO()
     try:
         with _ZSTD_D.stream_reader(io.BytesIO(data), read_across_frames=True) as reader:
@@ -239,7 +251,7 @@ def _decode_zstd(data: bytes) -> bytes:
     return out.getvalue()
 
 
-def _decode_one(codec: Codec, data: bytes) -> bytes:
+def _decode_one(codec: Codec, data: bytes, *, checked: bool = False) -> bytes:
     """Reverse a single codec, or raise :class:`CodecUnavailableError` (§8.3)."""
     if codec.cls == "encrypt":
         raise CodecUnavailableError(
@@ -250,7 +262,7 @@ def _decode_one(codec: Codec, data: bytes) -> bytes:
     if codec.name == "gzip":
         return gzip.decompress(data)
     if codec.name in ("zstd", "zstd-rsyncable"):
-        return _decode_zstd(data)
+        return _decode_zstd(data, checked=checked)
     raise CodecUnavailableError("unknown-codec", f"unknown codec {codec.name!r}")
 
 
@@ -284,18 +296,22 @@ def decode_chain(
     data: bytes,
     *,
     decrypt: Decryptor | None = None,
+    checked: bool = False,
 ) -> bytes:
     """Reverse a resolved codec chain, last to first (§6.1, §8.2).
+
+    ``checked`` says ``data`` already passed :func:`check_zstd_frames`, so a zstd codec
+    applied last on encode is not walked again.
 
     ``encrypt``-class codecs are handed to ``decrypt`` (a key-bound callback the
     reader supplies); if none is given, the frame degrades to ``missing-key`` —
     keeping this module free of any crypto dependency.
     """
-    for codec in reversed(chain):
+    for step, codec in enumerate(reversed(chain)):
         if codec.cls == "encrypt":
             if decrypt is None:
                 raise CodecUnavailableError("missing-key", f"no key for {codec.name!r}")
             data = decrypt(data)
         else:
-            data = _decode_one(codec, data)
+            data = _decode_one(codec, data, checked=checked and step == 0)
     return data

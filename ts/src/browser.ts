@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 import { decompress as zstdDecompress } from "fzstd";
+import { zstdFrameProblem } from "./zstd_frames.js";
 
 import {
     Graph,
@@ -1244,6 +1245,14 @@ class Folder {
         if (!payload) return;
         const digest = digestStr(payload);
         const pub = mapGet(frame, "pub");
+        const declared = pub instanceof Map ? mapGet(pub, "digest") : undefined;
+        if (typeof declared === "string" && declared !== digest) {
+            throw new BrowserCodecError(
+                "damaged",
+                `blob bytes hash to ${digest}, not the declared ${declared}`,
+                true,
+            );
+        }
         if (pub instanceof Map) this.g.setBlobMeta(digest, pub);
         const described = this.described.has(digest);
         if (this.materialize) this.g.setBlob(digest, payload);
@@ -1656,6 +1665,14 @@ async function decodeOne(
         case "zstd":
         case "zstd-rsyncable":
             try {
+                const problem = zstdFrameProblem(data);
+                if (problem !== null) {
+                    throw new BrowserCodecError(
+                        "damaged",
+                        `zstd decode failed: ${problem}`,
+                        true,
+                    );
+                }
                 return zstdDecompress(data);
             } catch (e) {
                 if (e instanceof BrowserCodecError) throw e;

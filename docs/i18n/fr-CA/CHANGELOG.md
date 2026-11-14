@@ -111,43 +111,66 @@ de format de transfert.
   est un flottant en demi-précision, était rapporté comme un ajout tronqué et le repli
   s'arrêtait; il est maintenant une trame endommagée et le repli continue, comme l'exige la
   spécification.
-- Une charge utile `zstd` ou `zstd-rsyncable` qu'un lecteur ne peut pas décoder fait
-  désormais de cette seule trame un nœud opaque (raison `damaged`, diagnostic
-  `DamagedFrame`) dans chaque moteur de référence, et le repli continue au-delà. Auparavant,
-  Python et Rust enregistraient une trame de blob sous son condensat déclaré sans examiner
-  sa charge utile : Python levait alors l'erreur de la bibliothèque zstd, avec une trace
-  d'appels, depuis `gts ls` et `gts extract`, et renvoyait moins d'octets sans aucune erreur
-  pour une charge utile coupée ; Rust signalait une erreur propre à la lecture mais ne
-  repliait aucun nœud opaque. Les deux parcourent maintenant les en-têtes de trame et de
-  bloc zstd lorsqu'ils replient la trame de blob (quelques octets par bloc de 128 Kio, sans
-  décompression) : une charge utile qui n'est pas du zstd, ou qui se termine au milieu d'une
-  trame, y est détectée ; un dommage à l'intérieur d'un bloc apparaît toujours à la première
-  lecture, et la ligne de commande de Python le signale maintenant par
-  `gts: cannot decode blob` et le code 1 au lieu d'une trace d'appels. Go, TypeScript,
-  Kotlin et Smalltalk décodaient déjà les trames de blob en les repliant. Les outils en ligne
-  de commande de Go et de TypeScript sortent avec le code 1 dès qu'un `DamagedFrame` est
-  signalé, comme avant.
-- Le lecteur TypeScript ne décode plus une trame zstd qui déclare une fenêtre supérieure à
-  2**27 octets (128 Mio) : la trame devient un nœud opaque comme ci-dessus. Sa bibliothèque
-  zstd renvoie des octets erronés, sans erreur, dès qu'une correspondance remonte d'environ
-  256 Mio, ce que permet une fenêtre de 2**29 ou plus ; 2**27 est la plus grande fenêtre que
-  tous les lecteurs de référence ont été mesurés décoder correctement. La limite est une
-  constante nommée (`MAX_ZSTD_WINDOW_LOG`). Python garde la limite de 2**27 de sa
-  bibliothèque zstd, désormais énoncée dans le code et vérifiée au repli de la trame. Aucune
-  autre limite de moteur n'a été relevée ni abaissée : Rust décode toujours les fenêtres
-  jusqu'à 2**31, Go jusqu'à 2**29. Le format lui-même ne fixe aucune limite de fenêtre :
-  un fichier dont une trame déclare 2**28 est lu par certains moteurs et dégradé par
-  d'autres ; savoir si la spécification doit nommer une limite unique n'est pas tranché ici.
+- Une charge utile `zstd` ou `zstd-rsyncable` dont la structure de trame ou de bloc est
+  invalide (pas du zstd, coupée, en-tête de bloc erroné), qui nomme un dictionnaire ou qui
+  déclare une fenêtre que le lecteur ne décodera pas, fait désormais de cette seule trame
+  un nœud opaque (raison `damaged`, diagnostic `DamagedFrame`), et le repli continue, en
+  Python, Rust et TypeScript (ses versions Node et navigateur). Go le faisait déjà ;
+  Kotlin et Smalltalk devraient le faire, d'après la lecture seule, car ils n'ont pas été
+  exécutés. Rapporter `damaged` pour une trame intacte qu'un lecteur ne fait que ne pas
+  pouvoir décoder est une lacune des raisons opaques de la spécification (§7.6 ne nomme que
+  `unknown-codec`, `missing-key` et `damaged`), non une règle. Auparavant, Python et Rust
+  enregistraient une trame de blob sous son condensat déclaré sans examiner sa charge
+  utile : Python levait alors l'erreur de la bibliothèque zstd, avec une trace d'appels,
+  depuis `gts ls` et `gts extract`, et renvoyait moins d'octets sans erreur pour une charge
+  utile coupée ; Rust signalait une erreur propre à la lecture mais ne repliait aucun nœud
+  opaque. Les deux parcourent maintenant les en-têtes de trame et de bloc zstd au repli de
+  la trame de blob (quelques octets par bloc de 128 Kio, sans décompression, et sans
+  répétition à la lecture du blob). Un dommage à l'intérieur d'un bloc apparaît toujours à
+  la première lecture ; la ligne de commande de Python le signale par
+  `gts: cannot decode blob` et le code 1 au lieu d'une trace d'appels, et les appelants de
+  la bibliothèque qui interceptaient `zstandard.ZstdError` depuis `g.blobs[...]` reçoivent
+  maintenant `PayloadDecodeError` (une `ValueError`). Les outils en ligne de commande de Go
+  et de TypeScript sortent avec le code 1 dès qu'un `DamagedFrame` est signalé, comme avant.
+- TypeScript ne décode plus une trame zstd qui déclare une fenêtre supérieure à 2**27
+  octets (128 Mio), dans ses deux versions. Sa bibliothèque zstd renvoie des octets
+  erronés, sans erreur, dès qu'une correspondance remonte d'environ 256 Mio, ce que permet
+  une fenêtre de 2**29 ou plus ; 2**27 est la plus grande fenêtre que tous les lecteurs de
+  référence ont été mesurés décoder correctement. La limite est une constante nommée
+  (`MAX_ZSTD_WINDOW_LOG`) dans un module commun aux deux versions, et toute structure que le
+  parcours n'accepte pas est refusée par le parcours lui-même, non laissée à la
+  bibliothèque, qui accepte plus que le format. Comme filet pour toute autre façon dont
+  cette bibliothèque peut renvoyer des octets erronés (un dictionnaire sans identifiant
+  stocké, une trame à segment unique déclarant une taille de contenu qu'elle n'a pas), un
+  blob dont les octets décodés n'ont pas pour condensat son `pub.digest` déclaré est
+  désormais une trame endommagée dans les deux versions ; auparavant il était listé sous le
+  condensat des mauvais octets, sans diagnostic.
+- Cela change ce que le lecteur Python accepte. Il refuse désormais toute trame qui déclare
+  une fenêtre supérieure à 2**27, que sa bibliothèque la décode ou non : la bibliothèque
+  ignore sa propre limite quand tout le contenu tient dans le tampon de l'appelant, de sorte
+  que ce qu'elle acceptait dépendait d'une taille de tampon et non de la trame. Les trames
+  construites à la main qui déclarent une fenêtre plus grande pour un petit contenu de taille
+  connue étaient décodées auparavant et sont maintenant opaques ; aucun encodeur réel n'est
+  connu pour en écrire. Le parcours de Rust refuse aussi une fenêtre supérieure à 2**31, le
+  maximum de son décodeur, au repli plutôt qu'à la première lecture ; aucune autre limite de
+  moteur n'a changé.
+- Non réglé ici, et non tranché par le format : les moteurs divergent encore sur des trames
+  que le format permet. Une trame déclarant une fenêtre de 2**28 est décodée par Rust, Go et
+  Smalltalk et refusée par Python, TypeScript et (d'après la lecture) Kotlin ; 2**29 par Rust
+  et Go seulement ; 2**30 par Rust et Smalltalk seulement. Une trame à dictionnaire est
+  refusée au repli par Python, Rust, TypeScript et Go, et échoue au décodage dans Kotlin et
+  Smalltalk (d'après la lecture). Smalltalk échoue sur toute trame sans taille de contenu.
+  Savoir si la spécification doit nommer une limite de fenêtre unique et un paramètre de
+  dictionnaire reste ouvert.
 - Le décodeur Smalltalk décode maintenant une charge utile de trames zstd concaténées
   jusqu'à sa fin. Il dimensionnait sa sortie d'après la première trame seulement : toute
   charge utile `zstd-rsyncable` de plus d'une unité, que les écrivains de référence
   composent d'une trame par unité, était donc signalée comme trame endommagée.
 - Nouveaux vecteurs `22b-zstd-rsyncable-multi-frame` (une charge utile de trois trames
-  concaténées, décodée, condensat du blob concordant), `22c-zstd-declared-window-2-27`
-  (une trame déclarant la plus grande fenêtre que tous les lecteurs décodent),
-  `28q-blob-payload-not-zstd` et `28r-blob-payload-truncated` (un nœud opaque chacun, les
-  trames qui précèdent et suivent étant repliées). Chaque vecteur antérieur est identique
-  à l'octet près.
+  concaténées, décodée, condensat du blob concordant), `22c-zstd-declared-window-2-27`,
+  `28q-blob-payload-not-zstd`, `28r-blob-payload-truncated` et
+  `28s-blob-payload-names-dictionary` (un nœud opaque chacun, les trames qui précèdent et
+  suivent étant repliées). Chaque vecteur antérieur est identique à l'octet près.
 
 ### Modifié
 

@@ -113,15 +113,18 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
 const ZSTD_MAGIC: u32 = 0xFD2F_B528;
 const ZSTD_SKIPPABLE_MAGIC: std::ops::RangeInclusive<u32> = 0x184D_2A50..=0x184D_2A5F;
 const ZSTD_MAX_BLOCK: u32 = 128 * 1024;
+/// The largest window the zstd decoder used here accepts (2**31); a frame that declares
+/// more is refused when it is folded, not when its bytes are first read.
+const ZSTD_MAX_WINDOW: u64 = 1 << 31;
 
 /// Walk the frame and block headers of a zstd payload without decoding it.
-fn walk_zstd_frames(data: &[u8]) -> Result<(), &'static str> {
+fn walk_zstd_frames(data: &[u8]) -> Result<(), String> {
     const TRUNCATED: &str = "zstd frame is truncated";
     // The end of the `len` bytes at `pos`, when they all lie inside `data`.
-    let take = |pos: usize, len: usize| -> Result<usize, &'static str> {
+    let take = |pos: usize, len: usize| -> Result<usize, String> {
         pos.checked_add(len)
             .filter(|end| *end <= data.len())
-            .ok_or(TRUNCATED)
+            .ok_or_else(|| TRUNCATED.to_string())
     };
     let le_u32 = |pos: usize| -> u32 {
         u32::from_le_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]])
@@ -138,19 +141,50 @@ fn walk_zstd_frames(data: &[u8]) -> Result<(), &'static str> {
             continue;
         }
         if magic != ZSTD_MAGIC {
-            return Err("payload is not a zstd frame (unknown magic number)");
+            return Err("payload is not a zstd frame (unknown magic number)".into());
         }
         let end = take(pos, 1)?;
         let flags = data[pos];
         pos = end;
         if flags & 0x08 != 0 {
-            return Err("zstd frame header sets a reserved bit");
+            return Err("zstd frame header sets a reserved bit".into());
         }
         let single_segment = flags & 0x20 != 0;
         let window_bytes = usize::from(!single_segment);
         let dict_id_bytes = [0, 1, 2, 4][usize::from(flags & 3)];
         let content_size_bytes = [usize::from(single_segment), 2, 4, 8][usize::from(flags >> 6)];
-        pos = take(pos, window_bytes + dict_id_bytes + content_size_bytes)?;
+        let header_end = take(pos, window_bytes + dict_id_bytes + content_size_bytes)?;
+        let mut window: u64 = 0;
+        if !single_segment {
+            let descriptor = u64::from(data[pos]);
+            let base = 1u64 << (10 + (descriptor >> 3));
+            window = base + (base >> 3) * (descriptor & 7);
+        }
+        let id_start = pos + window_bytes;
+        if data[id_start..id_start + dict_id_bytes]
+            .iter()
+            .any(|b| *b != 0)
+        {
+            return Err(
+                "zstd frame names a dictionary, which this reader does not implement".into(),
+            );
+        }
+        if single_segment {
+            let size_start = id_start + dict_id_bytes;
+            window = data[size_start..header_end]
+                .iter()
+                .rev()
+                .fold(0u64, |acc, b| (acc << 8) | u64::from(*b));
+            if flags >> 6 == 1 {
+                window += 256;
+            }
+        }
+        if window > ZSTD_MAX_WINDOW {
+            return Err(format!(
+                "zstd frame declares a window of {window} bytes, above the 2**31 this reader decodes"
+            ));
+        }
+        pos = header_end;
         loop {
             let end = take(pos, 3)?;
             let header = u32::from(data[pos])
@@ -159,7 +193,7 @@ fn walk_zstd_frames(data: &[u8]) -> Result<(), &'static str> {
             let block_type = (header >> 1) & 3;
             let size = header >> 3;
             if block_type == 3 || size > ZSTD_MAX_BLOCK {
-                return Err("zstd block header is invalid");
+                return Err("zstd block header is invalid".into());
             }
             // An RLE block stores one byte whatever size it regenerates.
             pos = take(end, if block_type == 1 { 1 } else { size as usize })?;

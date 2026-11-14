@@ -107,6 +107,7 @@ RESILIENCE_NEGATIVE_TOP_LEVEL = frozenset(
         "28p-tagged-value-in-frame-field",
         "28q-blob-payload-not-zstd",
         "28r-blob-payload-truncated",
+        "28s-blob-payload-names-dictionary",
     }
 )
 
@@ -161,6 +162,7 @@ TOP_LEVEL_SUBSETS = {
     "28p-tagged-value-in-frame-field": ("total-reader", "resilience-negative"),
     "28q-blob-payload-not-zstd": ("total-reader", "resilience-negative"),
     "28r-blob-payload-truncated": ("total-reader", "resilience-negative"),
+    "28s-blob-payload-names-dictionary": ("total-reader", "resilience-negative"),
     "29-deterministic-writer": ("writer-determinism",),
 }
 
@@ -202,6 +204,13 @@ TOP_LEVEL_CAPABILITIES = {
         "inline-blob",
     ),
     "28r-blob-payload-truncated": (
+        "cbor",
+        "blake3",
+        "identity",
+        "zstd",
+        "inline-blob",
+    ),
+    "28s-blob-payload-names-dictionary": (
         "cbor",
         "blake3",
         "identity",

@@ -1870,6 +1870,47 @@
       "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
     },
     {
+      "id": "28s-blob-payload-names-dictionary",
+      "title": "blob payload names dictionary",
+      "input": {
+        "path": "vectors/28s-blob-payload-names-dictionary.gts",
+        "media_type": "application/vnd.blackcat.gts+cbor-seq"
+      },
+      "mode": "permissive-read",
+      "negative": true,
+      "required_capabilities": [
+        "cbor",
+        "blake3",
+        "identity",
+        "zstd",
+        "inline-blob"
+      ],
+      "subsets": [
+        "corpus-generator-determinism",
+        "resilience-negative",
+        "streaming-property",
+        "total-reader"
+      ],
+      "tiers": [
+        "baseline-reader",
+        "streaming-reader"
+      ],
+      "expected": {
+        "graph": "vectors/28s-blob-payload-names-dictionary.expected.json",
+        "diagnostics": [
+          "DamagedFrame"
+        ],
+        "expected_head": "28c0587a2e2304fb6d077f4185010b6b92f25a21fe0c4c57c7ce210c521f3fe4",
+        "segment_heads": [
+          "28c0587a2e2304fb6d077f4185010b6b92f25a21fe0c4c57c7ce210c521f3fe4"
+        ],
+        "opaque_reasons": [
+          "damaged"
+        ]
+      },
+      "notes": "Top-level GTS conformance vector for total-reader, resilience-negative."
+    },
+    {
       "id": "29-deterministic-writer",
       "title": "deterministic writer",
       "input": {

@@ -446,10 +446,11 @@ class _Folder:
                     # Decompression stays deferred, but the zstd frame structure is
                     # checked now so a payload this reader cannot decode makes this
                     # one frame an opaque node (§6.1, §7.6) instead of failing later.
-                    if chain[-1].cls != "encrypt" and chain[-1].name in (
+                    walked = chain[-1].cls != "encrypt" and chain[-1].name in (
                         "zstd",
                         "zstd-rsyncable",
-                    ):
+                    )
+                    if walked:
                         try:
                             check_zstd_frames(d)
                         except PayloadDecodeError as exc:
@@ -462,7 +463,9 @@ class _Folder:
                                 )
                             )
                             return
-                    self.g.blobs[digest] = _LazyBlobEntry(raw=d, chain=chain)
+                    self.g.blobs[digest] = _LazyBlobEntry(
+                        raw=d, chain=chain, checked=walked
+                    )
                 else:
                     self.g.blobs[digest] = d
         else:

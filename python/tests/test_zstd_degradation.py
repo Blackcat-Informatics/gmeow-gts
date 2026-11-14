@@ -45,7 +45,11 @@ def test_undecodable_blob_is_one_opaque_node_and_folding_continues(name: str) ->
 
 
 def test_blob_over_the_window_limit_is_opaque_not_a_failure_on_access() -> None:
-    """A blob declaring a 2**28 window used to fail on first read."""
+    """A frame declaring a 2**28 window is refused whatever its content size is.
+
+    The library decoded this exact hand-built frame, since its content is small and
+    known; the reader now decides from the declaration alone (a deliberate change).
+    """
     content = b"too much window"
     g = read(blob_around("zstd", zstd_window_frame(28, content), content))
     assert [o.reason for o in g.opaque] == ["damaged"]
@@ -53,8 +57,19 @@ def test_blob_over_the_window_limit_is_opaque_not_a_failure_on_access() -> None:
     assert len(g.quads) == 2
 
 
+def test_blob_naming_a_dictionary_is_opaque() -> None:
+    """No dictionary is implemented, so a frame that names one is refused at fold."""
+    # flags: dictionary id of one byte; window descriptor; id 5; one raw block.
+    frame = (
+        bytes([0x28, 0xB5, 0x2F, 0xFD, 0x01, 0x00, 0x05, 0x29, 0x00, 0x00]) + b"hello"
+    )
+    g = read(blob_around("zstd", frame, b"hello"))
+    assert [o.reason for o in g.opaque] == ["damaged"]
+    assert len(g.blobs) == 0
+
+
 def test_blob_at_the_window_limit_still_decodes() -> None:
-    """The limit is where the library's own default always was: 2**27 is read."""
+    """A frame declaring exactly 2**27 is still read."""
     g = read(VECTORS["22c-zstd-declared-window-2-27"])
     assert g.opaque == []
     assert list(g.blobs.values()) == [b"a frame that declares a window of 2**27 bytes"]
