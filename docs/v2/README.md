@@ -7,7 +7,7 @@ This directory holds a DRAFT of the specification of format generation `2`. It i
 is `docs/GTS-SPEC.md`, and the engines and the corpus of this repository implement the first generation only. Adoption of this
 generation follows the proposal process of `docs/GTS-GOVERNANCE.md`.
 
-The draft is a set of seventeen documents.
+The draft is a set of sixteen documents.
 
 | document | title |
 |---|---|
@@ -26,7 +26,6 @@ The draft is a set of seventeen documents.
 | `PF-bundle.md` | Profile `bundle` |
 | `PF-files.md` | Profile `files` |
 | `PF-container.md` | Profile `container` |
-| `A1.md` | Record of measurements; states no requirement |
 | `L1.md` | Canonical labelling of blank nodes, cited by `P3` |
 
 No implementation of this generation and no conformance corpus for it exist in this repository.
