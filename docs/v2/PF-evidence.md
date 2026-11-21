@@ -14,19 +14,21 @@ adds no value to any enumeration of the core and uses no frame type of its own.
 
 It depends on these parts, cited by part and section title:
 
-- `P1` (Model and wire): "The header" (lineage), "The frame envelope", "The predecessor and transparent frames";
+- `P1` (Model and wire): "Growing a file", "The header" (lineage), "The frame envelope", "The predecessor and transparent frames";
 - `P2` (Registry): "Identity, labelling, geometry, severity and profile enumerations" (the profile table), "The finding table"
   and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`);
 - `P3` (RDF content): "Suppression hides";
-- `P5` (Durability): "The checks of a commit", "The committed prefix";
-- `P6` (Signatures): "The typed inputs of a verifier", "Verification: the procedure and its typed outcomes", "Coverage and
+- `P5` (Durability): "The checks of a commit", "The committed prefix", "What a commit does not show";
+- `P6` (Signatures): "The signature record", "The typed inputs of a verifier", "Verification: the procedure and its typed
+  outcomes", "Coverage and
   authentication", "Co-signing and pinning";
 - `P8` (Sealing): "The inner frame";
 - `P7` (Canonical form and reading): "The typed result of reading", "The reader procedure", "The fold of the whole file", "The
-  closing phase of a segment, and visibility", "The canonical form".
+  closing phase of a segment, and visibility", "The canonical form", "Where each finding stands, and in what order".
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
-encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. A requirement
+encoding of `x` (`P1`, "The typed model and its one serialization"). A byte string is written in hexadecimal, two digits a byte, a
+space between bytes. A requirement
 has an identifier `PF-evidence-n` .
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
@@ -66,16 +68,8 @@ and a later revision of this document appends a check with the next number.
 
 ## 2. Constants
 
-- COMMIT CADENCE `Ne`; value: `1024` ordinary frames; reason: a design bound. A commit frame with no signature is `116` bytes for
-  a `count` from `256` to `65535` (the `114` bytes of `P7`, "A minimal valid file: one header and one commit", and two more bytes
-  of `count`), and one composite signature record adds `3412` bytes (a value of `3373` bytes, a key identifier of `32` bytes, the
-  algorithm and the heads), so a signed commit is about `3530` bytes. `1024` keeps the cost of the signed commits small beside
-  the frames they cover and bounds the frames that an interruption leaves unsigned.
-- PINNED ALGORITHM; value: `mldsa65_ed25519` (code `2` of `signature_algorithm`); reason: custody evidence is kept for longer
-  than a classical scheme can be assumed to hold, and the composite holds while either of its halves holds (`P2`, "The mandatory
-  algorithm set"). The cost of its size is bounded by the cadence above.
-
-Both constants rest on stated design reasons and are bounds a writer has to meet.
+- COMMIT CADENCE `Ne`; value: `1024` ordinary frames.
+- PINNED ALGORITHM; value: `mldsa65_ed25519` (code `2` of `signature_algorithm`).
 
 A different cadence or algorithm is a different profile, with a value of its own in the profile table, never a parameter.
 
@@ -163,14 +157,7 @@ The conditions, one for each check:
    (`P6`, "Coverage and authentication"), and an inner `suppress` frame opened from a sealed frame (`P8`, "The inner frame")
    exactly when the sealed frame that carries it is an authenticated frame. It is a check over the whole file: it runs once, in
    the last segment of the file whose header outcome is `readable` and whose header `profile` is `present(evidence)`, and gives
-   one finding there, with `position` absent and `count` the number of such frames. The reason: a suppression entry hides
-   content of every segment (`P3`, "Suppression hides"), and what an entry hides does not depend on the segment that holds it, and
-   depends on
-   the order of frames and of segments only through the holder of a frame, which decides the node that a pair names
-   (`P3`, "Naming a blank node in a binding or an entry"), and the values that serve a term (`P3`, "`literal_ref`: a lexical form
-   held by a `value` frame"), so an entry in any segment, whatever
-   that segment declares, that no trusted signer authenticated could hide authenticated content of the chain from the visible
-   dataset, which defeats a custody chain.
+   one finding there, with `position` absent and `count` the number of such frames.
 
 8. `evidence_no_commit`: the segment holds no valid commit. A segment of a header alone, or of a header and frames that no
    valid commit closes, fails it: the other checks judge commits that exist and frames that stand after them, and none of
@@ -218,15 +205,7 @@ or `links_unavailable`. A commit whose pinned signature is `invalid` or `unverif
 not valid: its signature does not authenticate (`P6`, "Coverage and authentication"), so it gives
 `evidence_commit_unauthenticated`, and the commit interval it would have ended continues.
 
-What the profile proves, stated with its assumption. When no check fails, the segment holds a valid commit, every frame of type
-`commit` of the segment carries a
-composite signature that authenticates under a key of `trusted_keys`, and the segment ends at a valid commit; by `P6` "Coverage
-and authentication" every ordinary frame other than an `index` frame whose link holds is then an authenticated frame, and every
-folded `suppress` frame of
-the file, in whatever segment it stands, clear or opened from a sealed frame, is authenticated (a clear one as a frame of its
-segment, an inner one through the sealed frame that carries it), so every entry that hides something in the visible dataset
-stands in a frame that a key of `trusted_keys` authenticates. The claim holds while the composite signature is unforgeable for
-the keys the reader trusts, which needs one of its two halves to hold (`P2`, "The mandatory algorithm set"). Rollback to an
+ Rollback to an
 earlier valid commit and loss of a later suffix cannot be detected from the file alone (`P5`, "What a commit does not show").
 
 ## 6. Worked example
@@ -239,7 +218,7 @@ check `5` `evidence_commit_unauthenticated`; position `7`. A segment whose first
 `[profile_violation, absent, present([4, 2, present(2)]), present(1025), absent, absent, present(1030)]`. Their bytes, from the
 finding record and the subject form `[4, profile, check: option(uint)]` of `P2`:
 `87 18 2e 81 01 82 02 83 04 02 82 02 05 82 02 07 81 01 81 01 81 01` (22 bytes) and
-`87 18 2e 81 01 82 02 83 04 02 82 02 02 82 02 19 04 01 81 01 81 01 82 02 19 04 06` (27 bytes). Check, once by fields: `87`
+`87 18 2e 81 01 82 02 83 04 02 82 02 02 82 02 19 04 01 81 01 81 01 82 02 19 04 06` (27 bytes). The fields: `87`
 (array of seven), code `46` as `18 2e`, `reason` absent `81 01`, subject `82 02` then `83 04`, the profile, `82 02` and the
-check (eight bytes for a profile and a check below `24`), then `position`, `offset` `81 01`, `length` `81 01` and `count`, each
-`81 01` when absent or `82 02` and the value; once by counting the bytes listed.
+check (eight bytes for a profile and a check below `24`), then `position`, `offset`, `length` and `count`, each `81 01` when
+absent or `82 02` and the value.

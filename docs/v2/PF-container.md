@@ -16,14 +16,18 @@ frame type of its own.
 
 It depends on these parts, cited by part and section title:
 
+- `P1` (Model and wire): "Scope, dependencies and notation", "The typed model and its one serialization", "The header";
 - `P2` (Registry): "Identity, labelling, geometry, severity and profile enumerations" (the profile table), "The finding table"
-  and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`);
-- `P3` (RDF content): "The term model", "Typed lines", "The fold", "Typed references: the `bindings` frame", "Graph states",
+  and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`), "Allocation, the
+  record, withdrawal and retirement";
+- `P3` (RDF content): "The term model", "Typed lines", "Typed values", "The fold", "Typed references: the `bindings` frame",
+  "Graph states",
   "Suppression hides", "The visible dataset and visibility", "Metadata is RDF";
-- `P4` (Blobs): "The blob set";
+- `P4` (Blobs): "The blob set", "Rebuilding a blob or a value";
 - `P5` (Durability): "The checks of a commit", "The committed prefix";
 - `P7` (Canonical form and reading): "The typed result of reading", "The reader procedure", "The fold of the whole file", "The
-  closing phase of a segment, and visibility", "The canonical form".
+  closing phase of a segment, and visibility", "The canonical form", "Where each finding stands, and in what order";
+- `P8` (Sealing): "The inner frame".
 
 External documents cited, by identifier, title and date:
 
@@ -35,7 +39,8 @@ External documents cited, by identifier, title and date:
 - RFC 2119 and RFC 8174 (BCP 14), March 1997 and May 2017.
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
-encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes; `<S>` stands for the
+encoding of `x` (`P1`, "The typed model and its one serialization"). A byte string is written in hexadecimal, two digits a byte, a
+space between bytes; `<S>` stands for the
 `32` bytes of a digest that the example does not state. `rdf:` stands for `http://www.w3.org/1999/02/22-rdf-syntax-ns#`, `xsd:`
 for
 `http://www.w3.org/2001/XMLSchema#` and `c:` for `https://w3id.org/gts/pf/container#` in this text only; no rule reads a prefix,
@@ -113,7 +118,7 @@ tree. It is never rewritten and never suppressed; the observations are the histo
 THE CONTENT OF AN OBSERVATION `O` of an export `X` (a term `O` with the visible statement `(O, c:export, X)`) is, in the visible
 dataset of the file:
 
-- (a) its STATEMENTS: every `quad` line of the default graph whose subject is `O`; every `reifier_binding` line of the default
+- (a) its LINES: every `quad` line of the default graph whose subject is `O`; every `reifier_binding` line of the default
   graph whose `triple` has the subject `O`; and every `annotation` line of the default graph whose reifier is the reifier of such
   a `reifier_binding` line;
 - (b) its GRAPH, when `(O, c:graph, G)` is a statement: every line, of any kind, that carries the name `G` (`P3`, "Typed lines"),
@@ -136,15 +141,16 @@ The CURRENT OBSERVATION of `R` is then the observation of `R` whose export has t
 when the kind of that observation is not `c:Absent`. When check `3`, `4`, `5` or `6` fails, no resource has a current observation
 and checks `11` to `13` are not judged.
 
-THE LISTING ORDER. Wherever a reader or a tool lists them, the observations of one export stand in ascending bytewise order of
-their `c:resource` IRI (`P1`, Notation), two observations of one resource (a file that fails check `6`) in ascending order of
+THE LISTING ORDER. In every listing, the observations of one export stand in ascending bytewise order of
+their `c:resource` IRI (`P1`, "Scope, dependencies and notation"), two observations of one resource (a file that fails check `6`)
+in ascending order of
 the place of the observation terms (`P7`, THE PLACE OF A TERM); the objects of `c:contains` and of `c:managedPredicate` of one
 observation stand in ascending bytewise order of the IRI; the exports stand in chain order.
 
 REMOVAL AND CHANGE. A resource that disappears gets an observation of kind `c:Absent` (a tombstone) and no content. A resource
 that changes gets a new observation whose `c:graph` names a NEW graph (an RDF resource) or whose binding names the new blob (a
 non-RDF resource); the earlier graph and blob stay as history. A resource that comes back gets a new observation and a new
-graph. Nothing is suppressed: suppression is monotone and would not let a resource deleted at one IRI come back at it.
+graph. Nothing is suppressed.
 
 ## 3. The vocabulary
 
@@ -243,7 +249,9 @@ An observation has no binding other than the one blob binding that its kind allo
 **PF-container-3.** A writer MUST write the observations of an export, the named graphs they name and the blob declarations and
 bindings they hold, each with all of its content (section 2), before the `commit` frame that closes the export and in the segment
 of that commit or in a segment of its run, and MUST write the export node and its one `state` binding after that commit, and then
-a second `commit`. The sequence is: the observations in the listing order of section 2, each followed by its named graph and its
+a second `commit`, and MUST NOT write after the commit that closes an export a declaration that changes a field of the blob set
+entry of a blob that an observation of that export binds. A writer MUST write them in this sequence: the observations in the
+listing order of section 2, each followed by its named graph and its
 blob declaration and binding; the commit that closes the export; the statements of the export node and its one `state` binding;
 the second commit.
 
@@ -253,7 +261,7 @@ opened by
 a header; a segment opened by a resync item is never joined, so a writer that restarts by a resync item writes the content of an
 export again in full in the new scope.
 
-**PF-container-14.** A reader or tool that lists the exports, the observations of an export, or the objects of `c:contains` or
+**PF-container-14.** An implementation that lists the exports, the observations of an export, or the objects of `c:contains` or
 `c:managedPredicate` of an observation MUST list them in the listing order of section 2.
 
 **PF-container-4.** A writer MUST write every observation with the properties of 3.4 in the numbers 3.4 states and the content
@@ -269,22 +277,22 @@ MUST NOT let a blank node that occurs in a line of a resource graph occur anywhe
 blank node that is the NAME of a resource graph occurs, beside the lines of that graph, as the object of the one default-graph
 line `(O, c:graph, b)` that names it.
 
-**PF-container-6.** A writer MUST NOT write a `suppress` frame in a file any segment of which declares this profile; it records
-removal by an observation
+**PF-container-6.** A writer MUST NOT write a `suppress` frame in a file any segment of which declares this profile, and MUST
+record removal by an observation
 of kind `c:Absent` and change by a new observation.
 
-**PF-container-7.** A writer that appends an export MUST name the latest export of the file as its `c:previousExport`.
+**PF-container-7.** A writer MUST add an export to a file only by appending it, MUST NOT rewrite anything of an earlier export,
+and MUST name the latest export of the file as the `c:previousExport` of the export it appends.
 
-APPEND-ONLY. An archive is kept append-only: every export appends to the file, and nothing of an earlier export is rewritten. A
-graph state is a property of the append history: compaction writes a new file whose commits are new, so the `state` referent of
-every earlier export is unresolved in the canonical file of the fold (`missing_dependency` with `state`). A compacted copy is
+APPEND-ONLY. A graph state is a property of the append history: compaction writes a new file whose commits are new, so the `state`
+referent of every export is unresolved in the canonical file of the fold (`missing_dependency` with `state`). A compacted copy is
 therefore not an archive of this profile, and a segment that declares the profile makes no canonical claim (check `14`). The
 canonical file of a fold otherwise has the same frames in the same order whatever profile its header declares (`P7`, "The
 canonical form").
 
 **PF-container-8.** A writer MUST NOT write `canonical` `present` in the header of a segment that declares this profile.
 
-What a tool does is not this document's matter: restoring into a server, the access semantics of auxiliary resources and the
+Restoring into a server, the access semantics of auxiliary resources and the
 writing of managed predicates are the tool's behaviour and outside the specification.
 
 ## 5. What the profile adds, and what it never changes
@@ -296,7 +304,7 @@ and the registry and the meaning of any of its values. No rule of the core reads
 
 **PF-container-9.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it
 depends on give, with the findings of this document added and nothing else changed; every rule of this
-document is a check of section 6 or a numbered requirement on a writer or a reader.
+document is a check of section 6 or a numbered requirement on a writer, a reader or an implementation that lists.
 
 ## 6. Checks
 
@@ -328,9 +336,11 @@ The conditions:
    included), or with an object outside its range, or a property of 3.3 or 3.4 on a term that is not of its class. Counts
    subjects.
 6. `container_observation_duplicate`: two observations with equal `c:resource` and equal `c:export`. Counts observations.
-7. `container_kind_content`: an observation with a valid kind whose `graph`, bindings, `status`, `contains`, `mediaType`,
+7. `container_kind_content`: an observation with exactly one `c:kind` statement, its object one of the five kind IRIs, whose
+   `graph`, bindings, `status`, `contains`, `mediaType`,
    `entityTag` or `lastModified` differ from the row of its kind in 3.5. Counts observations.
-8. `container_graph_shared`: a graph name that is the `c:graph` object of more than one observation. Counts observations.
+8. `container_graph_shared`: an observation whose `c:graph` object is the `c:graph` object of another observation. Counts
+   observations.
 9. `container_graph_orphan`: a named graph of the visible dataset (`P3`, "The visible dataset and visibility") that is the
    `c:graph` of no observation. Counts graphs.
 10. `container_blank_shared`: a blank node `b` that occurs in a line of a graph `G` named by an observation (in any slot, at any
@@ -352,8 +362,8 @@ The conditions:
 14. `container_canonical_claim`: a segment whose header declares this profile has `canonical` `present`. One finding for each
     such segment, in the findings of that segment, with `position`, `offset`, `length` and `count` absent; it is the one check
     not run in the reporting segment alone.
-15. `container_observation_late`: an export `X` whose `state` referent resolves, and an observation `O` of `X` with a statement
-    (section 2, (a)) that is not a line of the fold of `S(X)`. The statements `(O, rdf:type, c:Observation)` and
+15. `container_observation_late`: an export `X` whose `state` referent resolves, and an observation `O` of `X` with a line of
+    section 2, (a), that is not a line of the fold of `S(X)`. The statements `(O, rdf:type, c:Observation)` and
     `(O, c:export, X)` are among them. Counts observations.
 16. `container_graph_late`: an export `X` whose `state` referent resolves, and an observation `O` of `X` with a statement
     `(O, c:graph, G)` such that a line that carries the name `G`, or the `empty_graph` line of `G`, is in the visible dataset and
@@ -363,18 +373,18 @@ The conditions:
     of the fold of `S(X)` holds no entry of the name `N`; or the entry of `N` in the fold of `S(X)` differs in any field from the
     entry of `N` in the fold of the file; or that entry is `present` and the blob `N` is INCOMPLETE in the fold of `S(X)` (`P4`,
     "Rebuilding a blob or a value": no declaration of it is verified from the units of the state and none is refused). A blob
-    that is UNCHECKED there (none verified and one refused by the total rebuilt length of the read) is not judged by this
-    condition: the reader did not finish the rebuild, and its finding `exceeds_capacity` with `total_rebuilt` says so. A blob
+    that is UNCHECKED there (none verified and one refused by the total rebuilt length of the read or not run) is not judged by
+    this
+    condition. A blob
     whose entry is `external` is judged by its declaration alone: its bytes are not in the file and are not needed. Counts
     observations.
 
-Checks 11 to 13 need the current state, so they are not judged when check `3`, `5` or `6` fails (section 2, THE CURRENT STATE);
+Checks 11 to 13 need the current state, so they are not judged when check `3`, `4`, `5` or `6` fails (section 2, THE CURRENT
+STATE);
 checks 15 to 17 judge an
 export only when its `state` referent resolves, and an export whose `state` referent does not resolve gives the core's
 `missing_dependency` and none of them: with `state` when no commit of the file has that identifier, and with
-`state_unavailable` when every commit that has it names no state to this reader. Checks 15 to 17 are then not judged, which is
-not a pass: the reason `state_unavailable` says that the state was not available to this reader, and the fold states of the
-frames before the commit say why (an opaque frame, a sealed frame not opened, a capacity).
+`state_unavailable` when every commit that has it names no state to this reader.
 In checks 15 to 17, "a line of the fold of `S(X)`" means any line of that fold, hidden or visible: hidden content is content,
 and these checks do not use the visible dataset of the state.
 
@@ -393,7 +403,8 @@ MUST judge the forms of 3.2 by the pairs of VALUES of the fold and the whole equ
 value by a test of its bytes, and MUST NOT parse a media
 type, an entity tag, a link relation type, a status code, an IRI or any lexical form.
 
-Overlaps. A failure of check `3`, `5` or `6` withholds checks `11` to `13`. Each check reports its own finding. A `suppress` frame
+Overlaps. A failure of check `3`, `4`, `5` or `6` withholds checks `11` to `13`. Each check reports its own finding. A `suppress`
+frame
 gives `container_suppress_frame`, and its unmatched entries
 give `suppression_unmatched` from the core. An export bound to a commit that the file does not hold gives `missing_dependency`
 with `state` from the core, one bound to a commit that names no state to the reader gives it with `state_unavailable`, and
@@ -454,7 +465,7 @@ tombstone; `d` is not live, and its graph `_:g1` stays as history. If instead th
 resource would be dangling, and the finding is the typed value
 `[profile_violation, absent, present([4, 6, present(11)]), absent, absent, absent, present(1)]` (check `11`
 `container_dangling_auxiliary`). Its bytes, from the finding record and the subject form `[4, profile, check: option(uint)]` of
-`P2`: `87 18 2e 81 01 82 02 83 04 06 82 02 0b 81 01 81 01 81 01 82 02 01` (22 bytes). Check, once by fields: `87` (array of
+`P2`: `87 18 2e 81 01 82 02 83 04 06 82 02 0b 81 01 81 01 81 01 82 02 01` (22 bytes). The fields: `87` (array of
 seven), code `46` as `18 2e`, `reason` absent `81 01`, subject `82 02` then `83 04`, the profile, `82 02` and the check (eight
-bytes for a profile and a check below `24`), then `position`, `offset` `81 01`, `length` `81 01` and `count`, each `81 01` when
-absent or `82 02` and the value; once by counting the bytes listed.
+bytes for a profile and a check below `24`), then `position`, `offset`, `length` and `count`, each `81 01` when absent or `82 02`
+and the value.

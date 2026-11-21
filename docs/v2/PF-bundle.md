@@ -16,15 +16,24 @@ It depends on these parts, cited by part and section title:
 
 - `P1` (Model and wire): "The header", "The generation";
 - `P2` (Registry): "Identity, labelling, geometry, severity and profile enumerations" (the profile table), "The finding table"
-  and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`);
+  and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`), "Allocation, the
+  record, withdrawal and retirement";
 - `P3` (RDF content): "Typed lines", "Typed references: the `bindings` frame", "The visible dataset and visibility", "Metadata
   is RDF";
 - `P4` (Blobs): "The blob set", "Rebuilding a blob or a value";
-- `P7` (Canonical form and reading): "The typed result of reading", "The reader procedure", "The fold of the whole file", "The
+- `P7` (Canonical form and reading): "The typed result of reading", "Where each finding stands, and in what order", "Capacity",
+  "The reader procedure", "The fold of the whole file", "The
   closing phase of a segment, and visibility", "The canonical form".
 
+External documents cited, by identifier, title and date:
+
+- RDF 1.2 Concepts and Abstract Data Model (W3C Candidate Recommendation Draft, 15 November 2026), for the subjects of a
+  statement;
+- RFC 2119 and RFC 8174 (BCP 14), March 1997 and May 2017.
+
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
-encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes; `<D>` stands for the
+encoding of `x` (`P1`, "The typed model and its one serialization"). A byte string is written in hexadecimal, two digits a byte, a
+space between bytes; `<D>` stands for the
 `32` bytes of a digest that the example does not state. `rdf:type` is the IRI `http://www.w3.org/1999/02/22-rdf-syntax-ns#type`. A
 requirement has an identifier `PF-bundle-n` .
 
@@ -72,11 +81,8 @@ THE BLOB. The bytes of a nested file are a blob of the core, reached by a BINDIN
 frame"): the visible dataset holds exactly one binding whose term value is `T`, and its referent is a `blob` referent
 `[1, name]`. The blob named `name` is the NESTED FILE of `T`.
 
-Why this form. The declaration is RDF content and a binding, both of which the core already defines: it is in the fold, in the
-labelled set and so in the content digest, it is hidden by suppression like any statement, and the canonical file of the fold
-keeps it. No media type is compared and no blob byte is inspected to find a nested file: the class statement says it. A new
-referent kind would change the grammar of the `bindings` frame and the fold, which no profile can change; a profile frame would
-stand outside the fold, so the canonical file of the fold could not keep it. Other statements about `T` (a name, a role, a media
+ No media type is compared and no blob byte is inspected to find a nested file: the class statement says it.  Other statements
+ about `T` (a name, a role, a media
 type of the consumer's vocabulary) are the consumer's and are not read by this profile.
 
 **PF-bundle-3.** A writer that declares a blob to be a nested file MUST write the statement `(T, rdf:type, NestedFile)` in the
@@ -87,14 +93,8 @@ default graph and exactly one binding of `T` to a `blob` referent naming that bl
 
 ## 3. Constants
 
-- DEPTH `Dmax`; value: `4`; reason: a stated design bound that a writer has to meet. Every recipe can name
-  a unit many times, so a small nested file can declare a large nested file of its own (`P4`, "Rebuilding a blob or a value");
-  the depth bound with the size bound below makes the work of the checks a function of the outer file and the two constants. The
-  uses this set names need at most two levels (a bundle of custody chains that each carry a compacted source); `4` leaves two
-  levels beyond them.
-- SIZE `Smax`; value: `4294967296` bytes (`2^32`); reason: a stated design bound that a writer has to meet.
-  It bounds the input of one nested read. The work of all the nested reads of one outer read together is bounded by the
-  shared allowance of section 4.
+- DEPTH `Dmax`; value: `4`.
+- SIZE `Smax`; value: `4294967296` bytes (`2^32`).
 
 A different depth or size is a different profile, with a value of its own in the profile table, never a parameter.
 
@@ -116,7 +116,8 @@ or when a segment of `G` declares `bundle` and the nested read of `G` judges it 
 (bytes unavailable or above `Smax`), and one whose nested read fails the condition of check `4`, has no nested files: no nested
 read is made for it and it adds no depth. A blob bound at several depths has the smallest of
 them, and is read once, at that depth; that one read judges checks `4` and `5` for every nested-file term bound to the blob,
-wherever the term stands.
+wherever the term stands. The TREE BELOW a file `G` holds the nested files of `G` and the tree below each of them, at whatever
+depth each is read.
 
 THE ORDER OF THE NESTED READS. Depths are assigned in ascending order: the nested files of depth `d + 1` are found by the reads
 of depth `d`, and all the reads of one depth are made before any read of the next. Within one depth the nested files are read in
@@ -139,10 +140,10 @@ of a nested file are not charged again: they are the output of a rebuild that th
 a `blob` frame or member, which a total already counts.
 
 A CAPACITY-LIMITED nested read is one whose result holds a finding `exceeds_capacity` of any reason. A term whose bound blob has
-no verified declaration and some declaration with the rebuild state `refused` is judged by checks `1` and `2` only; a term whose
+no verified declaration and some declaration with the rebuild state `refused` or `not_run` is judged by checks `1` and `2` only; a
+term whose
 nested read, or a nested read in the tree below it, is capacity-limited is judged by checks `1` to `3` only. Neither counts for a
-later check: the reader did not finish the work the check needs, and the findings `exceeds_capacity` of the outer result or of the
-nested result say why.
+later check.
 
 THE BOUND ON THE WORK. The outer read and all its nested reads together delimit at most `items_per_read` items, decode at most
 `decoded_bytes_per_read` bytes, rebuild at most `rebuilt_bytes_per_read` bytes, form at most `formed_bytes_per_read` bytes of
@@ -208,10 +209,9 @@ file whose header outcome is `readable` and whose header `profile` is `present(b
 reporting segment, in the order of `P7` "Where each finding stands, and in what order". A reader that does not implement the
 profile reports `profile_not_checked` instead (section 1).
 
-The checks take the nested-file terms `T` of the outer fold in ascending order of their place (`P7`, THE PLACE OF A TERM), and
-judge each term by the checks below in the order of the checks; the first that fails is the one finding for `T`, and the
-later ones do not judge it. Each term is judged alone and a finding counts terms, so the order decides no finding and no count:
-the result is the same whether the reading delivered in the labelled order or in the order after a refusal. The checks:
+Each nested-file term `T` of the outer fold is judged by the checks below in the order of the checks; the first that fails is the
+one finding for `T`, and the
+later ones do not judge it. Each term is judged alone and a finding counts terms. The checks:
 
 1. `bundle_binding`: the visible dataset does not hold exactly one binding of `T`, or that binding's referent is not a `blob`
    referent.
@@ -237,8 +237,7 @@ unless
 its binding names a blob that has a depth of at most `Dmax` by the smallest-depth rule of section 4: the reader counts the term
 and reads nothing for it.
 
-**PF-bundle-11.** A reader MUST take the nested-file terms of the outer fold in ascending order of their place (`P7`, THE PLACE OF
-A TERM), whichever order it delivered in, and judge each by the checks in the order of the checks.
+**PF-bundle-11.** A reader MUST judge each nested-file term of the outer fold by the checks in the order of the checks.
 
 **PF-bundle-13.** A reader MUST run the checks of this profile once for a file, after the closing phase of every segment, and
 report each failing check as a finding of the step `PROFILE CHECKS` in the findings of the last segment of the file whose header
@@ -271,7 +270,7 @@ The blob `D` is present and holds a bundle file of depth `1` that declares a nes
 down to a nested file of depth `5`. The outer reader reads to depth `4`, finds a nested-file term at depth `4`, and reports one
 finding, the typed value `[profile_violation, absent, present([4, 4, present(5)]), absent, absent, absent, present(1)]` (check
 `5` `bundle_depth`). Its bytes, from the finding record and the subject form `[4, profile, check: option(uint)]` of `P2`:
-`87 18 2e 81 01 82 02 83 04 04 82 02 05 81 01 81 01 81 01 82 02 01` (22 bytes). Check, once by fields: `87` (array of seven),
+`87 18 2e 81 01 82 02 83 04 04 82 02 05 81 01 81 01 81 01 82 02 01` (22 bytes). The fields: `87` (array of seven),
 code `46` as `18 2e`, `reason` absent `81 01`, subject `82 02` then `83 04`, the profile, `82 02` and the check (eight bytes for
-a profile and a check below `24`), then `position`, `offset` `81 01`, `length` `81 01` and `count`, each `81 01` when absent or
-`82 02` and the value; once by counting the bytes listed.
+a profile and a check below `24`), then `position`, `offset`, `length` and `count`, each `81 01` when absent or `82 02` and the
+value.

@@ -18,12 +18,15 @@ It depends on these parts, cited by part and section title:
 - `P2` (Registry): "Identity, labelling, geometry, severity and profile enumerations" (the profile table), "The finding table"
   and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`);
 - `P5` (Durability): "The checks of a commit", "The committed prefix", "Parity: one geometry" ("The stream and the spans",
-  "Checking a parity frame", "The unprotected tail"), "The one recovery procedure";
+  "Shards, stripes and parity shards", "Checking a parity frame", "The unprotected tail", "What parity guarantees, and what it
+  does not"), "The one recovery procedure";
 - `P7` (Canonical form and reading): "The typed result of reading", "The reader procedure", "The fold of the whole file", "The
-  closing phase of a segment, and visibility", "The canonical form".
+  closing phase of a segment, and visibility", "Reading as a stream", "The canonical form", "Where each finding stands, and in
+  what order".
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
-encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. A requirement
+encoding of `x` (`P1`, "The typed model and its one serialization"). A byte string is written in hexadecimal, two digits a byte, a
+space between bytes. A requirement
 has an identifier `PF-stream-n` .
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
@@ -100,17 +103,6 @@ a further ordinary frame.
 "The stream and the spans" places it, and, when it closes a segment with an `index` frame, the parity frame of the final span
 after that frame.
 
-How a live writer meets the rules. It counts the ordinary frames since its last commit and writes a commit before the count
-would pass `Ns`; it holds the bytes of the open span, at most `4194304` bytes,
-since the open span can be the final span, whose depth and shard length are known only when the closing index is written (`P5`,
-"Cost"), and writes the
-span's parity frame as soon as an item reaches the span's end, before it writes the next ordinary frame. A span that ends before
-the closing index holds
-`4194304` bytes, so every parity frame of a live segment before its closing `index` frame is the frame of a span of shards of
-`4096` bytes; the parity frame of the final span, written after the closing index from the bytes held, takes the shard length that
-`P5`,
-"Shards, stripes and parity shards", gives its length.
-
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). A
 canonical file has one commit, so the canonical file of a fold of more than `Ns` ordinary frames before that commit fails
@@ -142,8 +134,9 @@ The conditions, one for each check:
 `offset` and `length` are absent in both findings (`P2`, "The fields of a finding that are present"). Each stands in the list that
 its `position` gives it (`P7`, "Where each finding stands, and in what order").
 
-**PF-stream-7.** A reader that implements this profile MUST run the two checks on every segment of section 5 and MUST report
-each failure as `profile_violation` with `reason` `absent`, `subject` `[4, 3, present(c)]`, and the `position` and `count` that
+**PF-stream-7.** A reader that implements this profile MUST run the two checks on every segment of section 5 and MUST report, once
+for each commit interval that fails check `1` and once for each item that check `2` names, one `profile_violation` with `reason`
+`absent`, `subject` `[4, 3, present(c)]`, and the `position` and `count` that
 the condition states.
 
 **PF-stream-8.** A reader MUST NOT judge a span whose reaching item is the last ordinary frame of the segment, and MUST NOT
@@ -162,17 +155,8 @@ the file that is the prefix up to it, so the claim above holds for the stream re
 boundary: both checks run on the frames that have arrived, a due span being judged when the ordinary frame after its reaching
 item has arrived.
 
-A writer that keeps the rules and writes undamaged bytes meets the premise at every item boundary: each commit it writes has an
-intact identifier, so its link holds without a later frame, and its `count` and `root` agree. A reader that reads such a file
-live,
-at any item boundary, reports no finding of this profile. For a prefix that holds a commit that is not valid in it, the claim
-says nothing: a later item can make such a commit valid in a longer prefix without changing any earlier byte, so the findings
-of that prefix, `stream_commit_interval` and `uncommitted_tail` among them, are the findings of that prefix read as a file and
-not the outcome of the segment.
-
-**PF-stream-10.** A statement that a stream conforms, drawn from the reading of a prefix, MUST be made only for a prefix in which
-every `commit` frame is valid in the prefix; for another prefix the findings of this profile are the findings of that prefix as
-a file, and a reader or a tool MUST NOT take them as the outcome of the complete segment.
+**PF-stream-10.** A consumer of the result of reading a prefix of a segment MUST NOT take the findings of this profile in it, or
+their absence, as the outcome of the complete segment when a `commit` frame of the prefix is not valid in the prefix.
 
 What is not judged. The bytes after the largest `end` of a used parity frame are the unprotected tail of `P5`, "The unprotected
 tail", which that section reports for a segment that holds a parity frame; the final span is protected when the writer closes the
@@ -190,7 +174,7 @@ A segment of this profile whose item at position `40` reaches the end of the sec
 no parity frame for that span between them. The finding is the typed value
 `[profile_violation, absent, present([4, 3, present(2)]), present(40), absent, absent, present(1)]`: subject profile `stream`,
 check `2` `stream_parity_missing`. Its bytes, from the finding record and the subject form `[4, profile, check: option(uint)]`
-of `P2`: `87 18 2e 81 01 82 02 83 04 03 82 02 02 82 02 18 28 81 01 81 01 82 02 01` (24 bytes). Check, once by fields: `87`
+of `P2`: `87 18 2e 81 01 82 02 83 04 03 82 02 02 82 02 18 28 81 01 81 01 82 02 01` (24 bytes). The fields: `87`
 (array of seven), code `46` as `18 2e`, `reason` absent `81 01`, subject `82 02` then `83 04`, the profile, `82 02` and the
-check (eight bytes for a profile and a check below `24`), then `position`, `offset` `81 01`, `length` `81 01` and `count`, each
-`81 01` when absent or `82 02` and the value; once by counting the bytes listed.
+check (eight bytes for a profile and a check below `24`), then `position`, `offset`, `length` and `count`, each `81 01` when
+absent or `82 02` and the value.

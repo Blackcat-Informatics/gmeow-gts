@@ -15,17 +15,19 @@ type of its own.
 
 It depends on these parts, cited by part and section title:
 
-- `P1` (Model and wire): "The header", "The frame envelope";
+- `P1` (Model and wire): "The header", "The locator", "The frame envelope";
 - `P2` (Registry): "Identity, labelling, geometry, severity and profile enumerations" (the profile table), "The finding table"
   and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`);
 - `P5` (Durability): "The committed prefix";
+- `P6` (Signatures): "Coverage and authentication";
 - `P7` (Canonical form and reading): "The typed result of reading", "Capacity", "The reader procedure", "The fold of the whole
   file", "The closing phase of a segment, and visibility", "The canonical form", "The canonical check", "The canonical frames
-  that can exceed the minimum capacity";
+  that can exceed the minimum capacity", "Compaction", "The profile mechanism", "Where each finding stands, and in what order";
 - `P8` (Sealing): "The values of registry version `2`", for the frame types `keys` and `sealed`.
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
-encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. A requirement
+encoding of `x` (`P1`, "The typed model and its one serialization"). A byte string is written in hexadecimal, two digits a byte, a
+space between bytes. A requirement
 has an identifier `PF-dist-n` .
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
@@ -63,17 +65,9 @@ later revision of this document appends a check with the next number.
 ## 2. Constants
 
 - DECODED CEILING `Cd`; value: `67108864` bytes (`2^26`); reason: the minimum `decoded_bytes_per_frame` of a conforming reader
-  (`P7` "Capacity"). With every `decoded_length` at most `Cd`, no conforming reader reports
-  `exceeds_capacity` with `decoded_size` for a frame of a distribution file, so every conforming reader checks and folds every
-  frame of a distribution file whose total decoded length is at most `2^36` bytes, whose items are at most `2^26`, whose total
-  rebuilt length is at most `2^37` bytes and whose total formed length is at most `2^37` bytes (`P7-34`, `P7-35`, `P7-45`,
-  `P7-47`). The ceilings bound each frame and not these totals, nor the size of the fold (`P7-33`), its total labelled
-  weight (`P7-48`) or the work of the labelling (`P7`, "Capacity"); a read that meets one of those limits does not
-  verify the file (section 6).
+  (`P7` "Capacity").
 - STORED CEILING `Cs`; value: `67108864` bytes (`2^26`); reason: the minimum `stored_bytes_per_frame` of a conforming reader
-  (`P7` "Capacity"), by the same argument for `stored_size`.
-
-Both ceilings rest on a stated design reason, the minimum capacity of a reader, and are bounds a writer has to meet.
+  (`P7` "Capacity").
 
 A different ceiling is a different profile, with a value of its own in the profile table, never a parameter.
 
@@ -96,10 +90,6 @@ is a check of section 5 or a numbered requirement on a writer, a reader or a con
 
 ## 4. Writer rules
 
-A writer of a distribution file writes the canonical file of the fold it distributes (`P7`, "The canonical form") with the
-header field `profile` `present(dist)` and the `registry_version` that `P7`, "The constants", gives it, as one
-segment and the whole of the file.
-
 **PF-dist-4.** A writer MUST write a distribution file as exactly one segment that is the canonical file of its fold under
 `canonical_form_v1`, with `canonical` `present(canonical_form_v1)`.
 
@@ -107,11 +97,7 @@ segment and the whole of the file.
 or a `payload` longer than `Cs`: the fold has no distribution file, and the writer MUST NOT hand the canonical file that
 compaction returns for it (`P7`, "Compaction") to its caller as one.
 
-**PF-dist-6.** A writer MUST NOT write a frame of type `keys` or `sealed` in a distribution file. The value stated: a
-distribution is read in full by every reader, with no key. A reader of registry version `1` meets a sealed frame as a critical
-frame of an unknown type, and the fold of its segment stops there (`P7`, "A reader of an older registry version"); a reader of
-registry version `2` that does not hold the key continues the fold, the sealed frame opaque and `visible` `incomplete` with the
-count of sealed frames not opened (`P8`). Neither reads the whole content.
+**PF-dist-6.** A writer MUST NOT write a frame of type `keys` or `sealed` in a distribution file.
 
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form").
@@ -159,7 +145,7 @@ MUST report each failure as `profile_violation` with `reason` `absent`, `subject
 **PF-dist-9.** A reader MUST report `dist_decoded_size`, `dist_stored_size` and `dist_sealed_frame` once for each frame that
 fails, and `dist_not_canonical` and `dist_not_alone` at most once for the segment.
 
-Overlaps. Each check reports its own finding (`P2`, "The finding table"). A frame above `Cd` read by a reader whose
+Overlaps. Each check reports its own finding (`P7`, "The profile mechanism"). A frame above `Cd` read by a reader whose
 `decoded_bytes_per_frame` is `Cd` gives `exceeds_capacity` with `decoded_size` and `dist_decoded_size`; the same holds for `Cs`
 and `stored_size`. A file of two distribution files gives `dist_not_alone` in each segment and `lineage_begins` in the second:
 `dist_not_alone` is a check of the segment, not a check over the content of the file, so every segment that declares the profile
@@ -237,7 +223,7 @@ The item at position `5` of the segment is a `pack` frame whose `decoded_length`
 is the typed value `[profile_violation, absent, present([4, 1, present(3)]), present(5), absent, absent, present(67108865)]`: no
 reason, subject `[4, 1, present(3)]` (profile `dist`, check `3` `dist_decoded_size`), position `5`, count the decoded length.
 Its bytes, from the finding record and the subject form `[4, profile, check: option(uint)]` of `P2`:
-`87 18 2e 81 01 82 02 83 04 01 82 02 03 82 02 05 81 01 81 01 82 02 1a 04 00 00 01` (27 bytes). Check, once by fields: `87`
+`87 18 2e 81 01 82 02 83 04 01 82 02 03 82 02 05 81 01 81 01 82 02 1a 04 00 00 01` (27 bytes). The fields: `87`
 (array of seven), code `46` as `18 2e`, `reason` absent `81 01`, subject `82 02` then `83 04`, the profile, `82 02` and the
-check (eight bytes for a profile and a check below `24`), then `position`, `offset` `81 01`, `length` `81 01` and `count`, each
-`81 01` when absent or `82 02` and the value; once by counting the bytes listed.
+check (eight bytes for a profile and a check below `24`), then `position`, `offset`, `length` and `count`, each `81 01` when
+absent or `82 02` and the value.

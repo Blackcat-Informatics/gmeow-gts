@@ -16,13 +16,16 @@ frame type of its own.
 
 It depends on these parts, cited by part and section title:
 
+- `P1` (Model and wire): "The typed model and its one serialization";
 - `P2` (Registry): "Identity, labelling, geometry, severity and profile enumerations" (the profile table), "The finding table"
-  and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`);
-- `P3` (RDF content): "The term model", "Typed lines", "Typed references: the `bindings` frame", "The visible dataset and
+  and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`), "Allocation, the
+  record, withdrawal and retirement";
+- `P3` (RDF content): "The term model", "Typed lines", "Typed values", "The fold", "Typed references: the `bindings` frame",
+  "Suppression hides", "The hiding rule", "The visible dataset and
   visibility", "Metadata is RDF";
 - `P4` (Blobs): "The blob set";
 - `P7` (Canonical form and reading): "The typed result of reading", "The reader procedure", "The fold of the whole file", "The
-  closing phase of a segment, and visibility", "The canonical form".
+  closing phase of a segment, and visibility", "The canonical form", "Where each finding stands, and in what order".
 
 External documents cited, by identifier, title and date:
 
@@ -35,7 +38,8 @@ External documents cited, by identifier, title and date:
 - RFC 2119 and RFC 8174 (BCP 14), March 1997 and May 2017.
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
-encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. `rdf:` stands for
+encoding of `x` (`P1`, "The typed model and its one serialization"). A byte string is written in hexadecimal, two digits a byte, a
+space between bytes. `rdf:` stands for
 `http://www.w3.org/1999/02/22-rdf-syntax-ns#` and `xsd:` for `http://www.w3.org/2001/XMLSchema#` in this text only; no rule
 reads a prefix, and every IRI is compared whole. `f:` stands for `https://w3id.org/gts/pf/files#` in the same way. A requirement
 has an identifier `PF-files-n`
@@ -158,14 +162,15 @@ string that is a prefix of a longer one first; a path that is a proper prefix of
 precedes what it holds. Entries with equal paths (check `3` reports them) are ordered among themselves by the place of the entry
 term (`P7`, THE PLACE OF A TERM), ascending. An entry without a valid path has no
 place in this order and is not listed. The order is a function of the paths and of the terms; no field or statement stores an
-order, so no check judges one, and every listing of entries, of a tool or of a result, is in this order (PF-files-12).
+order, so no check judges one, and every listing of entries is in this order (PF-files-12).
 
 THE ORDER OF THE SETS OF AN ENTRY. A listing that gives the parts of an entry that the vocabulary holds as sets gives them in
 one order each. The permissions of an entry are listed in the order in which 2.1 lists them (`OwnerRead` first, `Sticky` last).
 The attribute records are listed in ascending bytewise order of the octets of their `f:attributeName`, and the archive records
 in ascending bytewise order of the UTF-8 of their `f:recordKey`, the bytes as unsigned integers from the first byte, a shorter
 string that is a prefix of a longer one first; two records of one entry with equal names or keys (check `11` reports them) are
-ordered by the place of the record term (`P7`, THE PLACE OF A TERM), ascending. A record that has no name or key
+ordered by the place of the record term (`P7`, THE PLACE OF A TERM), ascending. A record that has no name that is an octets
+literal, or no key that is a text literal,
 stands before every record that has one, and a record with several is ordered by the smallest of them;
 ties are broken by the place of the record term.
 
@@ -213,8 +218,7 @@ THE BYTES OF A REGULAR FILE. An entry of kind `RegularFile` has exactly one visi
 Its length and its media types are those of the blob set (`P4`, "The blob set"); the vocabulary states neither. An entry of any
 other kind has no binding. No literal spells a digest.
 
-What the vocabulary does not carry, and why. A size and a media type statement would repeat the blob declaration (`P4`); a
-digest literal would name bytes by a spelling (a binding names them); an access control list is carried, where a source has one,
+An access control list is carried, where a source has one,
 as the extended attribute or the archive record that holds it.
 
 ## 3. Writer rules
@@ -237,8 +241,8 @@ exactly one binding with a `blob` referent.
 **PF-files-7.** A writer MUST write the properties of 2.4 only on the subjects, with the objects and in the numbers that 2.4
 states.
 
-**PF-files-12.** An implementation that lists the entries of a fold under this profile, a reader in a result or a tool that
-lists or extracts a tree, MUST list the entries that have a valid path in the entry order of 2.3, and MUST NOT list an entry
+**PF-files-12.** An implementation that lists the entries of a fold under this profile MUST list the entries that have a valid
+path in the entry order of 2.3, and MUST NOT list an entry
 without one.
 
 **PF-files-13.** An implementation that lists the permissions, the attribute records or the archive records of an entry MUST
@@ -262,7 +266,7 @@ its header declares; the `profile` value changes the header and what is computed
 header's
 `profile` `present(files)`: the profile changes no step of its construction.
 
-What a tool does is not this document's matter. Whether a tool that extracts a tree follows a symbolic link, creates a device,
+Whether a tool that extracts a tree follows a symbolic link, creates a device,
 sets an owner or writes outside a destination is the tool's behaviour and outside the specification; this document defines the
 archive, the checks on it and the order of every listing of it (PF-files-12, PF-files-13).
 
@@ -295,7 +299,8 @@ section 1), `position`, `offset` and `length` absent, and `count` the number of 
 of the reporting segment, in the order of `P7` "Where each finding stands, and in what order". A reader that does not implement
 the profile reports `profile_not_checked` instead (section 1).
 
-The conditions. Each names the subjects it counts. A check that needs a valid path or a valid kind does not judge an entry that
+The conditions. Each names the subjects it counts. An entry has a VALID KIND when it passes check `5`. A check that needs a valid
+path or a valid kind does not judge an entry that
 lacks one; that entry is counted by `files_entry_path`, `files_component` or `files_kind`.
 
 1. `files_entry_path`: an entry that has not exactly one `f:path` statement, or whose path object is not the head of a
@@ -315,8 +320,8 @@ lacks one; that entry is counted by `files_entry_path`, `files_component` or `fi
    an archive record that lacks its name or key or its value. Counts subjects.
 8. `files_property_domain`: a statement whose predicate is a property of 2.4 and whose subject is not of the property's domain:
    an entry property on a term that is not an entry; `deviceMajor`, `deviceMinor`, `linkTarget` or `hardLinkOf` on an entry that
-   has no valid kind or another kind; a record property on a term that is not a record of its kind; or a record that is the
-   object of more than one record statement. Counts subjects.
+   has no valid kind or another kind; a record property on a term that is not a record of its kind; or a term that is the object
+   of more than one `f:extendedAttribute` statement or of more than one `f:archiveRecord` statement. Counts subjects.
 9. `files_value`: a statement whose predicate is a property of 2.4 and whose object is not of its range: a term of another kind,
    a literal of another datatype or form (2.2), an empty value where 2.4 forbids one, or an IRI outside the set the property
    names. For `f:path` the check judges the kind of the object alone, a
@@ -369,10 +374,10 @@ is the bytes `61 2e 74 78 74` with `612E747874`. The entry order puts `_:d` (pat
 If the directory entry `_:d` is removed, `_:a` fails check `4` `files_missing_parent`, and the finding is the typed value
 `[profile_violation, absent, present([4, 5, present(4)]), absent, absent, absent, present(1)]`. Its bytes, from the finding
 record and the subject form `[4, profile, check: option(uint)]` of `P2`:
-`87 18 2e 81 01 82 02 83 04 05 82 02 04 81 01 81 01 81 01 82 02 01` (22 bytes). Check, once by fields: `87` (array of seven),
+`87 18 2e 81 01 82 02 83 04 05 82 02 04 81 01 81 01 81 01 82 02 01` (22 bytes). The fields: `87` (array of seven),
 code `46` as `18 2e`, `reason` absent `81 01`, subject `82 02` then `83 04`, the profile, `82 02` and the check (eight bytes for
-a profile and a check below `24`), then `position`, `offset` `81 01`, `length` `81 01` and `count`, each `81 01` when absent or
-`82 02` and the value; once by counting the bytes listed.
+a profile and a check below `24`), then `position`, `offset`, `length` and `count`, each `81 01` when absent or `82 02` and the
+value.
 
 A file name of the two bytes `ff 41` is the component written as the typed value `[5, h'ff 41']`, whose generated literal is
 `"FF41"^^xsd:hexBinary`; the name `A1` is the component `[5, h'41 31']`, whose generated literal is `"4131"^^xsd:hexBinary`. Both
