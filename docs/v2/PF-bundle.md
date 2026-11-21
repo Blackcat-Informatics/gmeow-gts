@@ -25,7 +25,7 @@ It depends on these parts, cited by part and section title:
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
 encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes; `<D>` stands for the
-`32` bytes of a digest that the vectors give. `rdf:type` is the IRI `http://www.w3.org/1999/02/22-rdf-syntax-ns#type`. A
+`32` bytes of a digest that the example does not state. `rdf:type` is the IRI `http://www.w3.org/1999/02/22-rdf-syntax-ns#type`. A
 requirement has an identifier `PF-bundle-n` and states one thing.
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
@@ -264,63 +264,3 @@ finding, the typed value `[profile_violation, absent, present([4, 4, present(5)]
 code `46` as `18 2e`, `reason` absent `81 01`, subject `82 02` then `83 04`, the profile, `82 02` and the check (eight bytes for
 a profile and a check below `24`), then `position`, `offset` `81 01`, `length` `81 01` and `count`, each `81 01` when absent or
 `82 02` and the value; once by counting the bytes listed.
-
-## 8. Vectors
-
-Every vector is a file read by a reader of registry version `1` that implements this profile, with the minimum capacity (`P7`
-"Capacity") unless the vector states another, and empty inputs; the expected result is the outer `read_result` (`P7`), and,
-where the vector says so, the results of the nested reads. Files are built by the reference engine.
-
-- `bundle-pass`; holds: a bundle with two nested-file terms bound to two present blobs, each a small file of generation `2`;
-  expected: no `profile_violation`.
-- `bundle-pass-shared`; holds: two nested-file terms bound to one blob; expected: no `profile_violation`; one nested read.
-- `bundle-binding-none`; holds: a nested-file term with no binding; expected: `bundle_binding`, `count` `1`.
-- `bundle-binding-frame`; holds: a nested-file term bound to a `frame` referent; expected: `bundle_binding`, `count` `1`.
-- `bundle-binding-two`; holds: a nested-file term bound to two blobs; expected: `bundle_binding`, `count` `1`.
-- `bundle-external`; holds: the bound blob declared by an `external` frame only; expected: `bundle_bytes_unavailable`.
-- `bundle-missing-chunk`; holds: the bound blob's recipe names a unit the file does not hold; expected: `missing_dependency`
-  with `chunk` and `bundle_bytes_unavailable`.
-- `bundle-size`; holds: a bound blob declared by an `external` frame of length `4294967297` only; expected: `bundle_size` (it
-  precedes `bundle_bytes_unavailable`).
-- `bundle-size-boundary`; holds: the same with length `4294967296`; expected: `bundle_bytes_unavailable` and no `bundle_size`.
-- `bundle-not-a-file`; holds: a nested-file term bound to a blob of the bytes `61 62 63`; expected: `bundle_not_a_file`.
-- `bundle-not-a-file-torn`; holds: a bound blob that is a file of generation `2` cut inside its last item; expected:
-  `bundle_not_a_file`.
-- `bundle-depth-pass`; holds: a chain of nested bundle files to depth `4`; expected: no `profile_violation`.
-- `bundle-depth`; holds: the same chain to depth `5`; expected: `bundle_depth`, `count` `1`.
-- `bundle-depth-shared-smaller`; holds: the chain to depth `5` whose nested-file term at depth `4` is bound to a blob that the
-  outer file also binds at depth `1`; expected: no `bundle_depth` for it (the blob has depth `1`, PF-bundle-10).
-- `bundle-read-order`; holds: three nested files of depth `1` bound in the order of their terms opposite to the ascending order of
-  `E(name)`, one of them bound again at depth `2`; expected: the nested reads made in ascending `E(name)` of the depth `1` files,
-  the file bound again read once at depth `1` (PF-bundle-6, PF-bundle-12).
-- `bundle-two-segments`; holds: a file of three segments, the first and the third declaring `bundle`, the second unreadable, with
-  a failing check; expected: one `profile_violation` for the check, in the findings of the third segment (PF-bundle-13).
-- `bundle-depth-other-profile`; holds: a chain to depth `5` whose file of depth `2` declares no profile; expected: no
-  `profile_violation` (the files below it are not judged under this profile).
-- `bundle-hidden`; holds: `bundle-binding-none` with the class statement hidden by a `quad` suppression entry; expected: no
-  `profile_violation`.
-- `bundle-named-graph`; holds: the class statement in a named graph and no binding; expected: no `profile_violation`.
-- `bundle-rebuild-refused`; holds: a nested-file term bound to a blob whose only declaration is a `recipe`, read with
-  `rebuilt_bytes_per_read` one below its charge; expected: `exceeds_capacity` with `total_rebuilt` at the recipe, no
-  `bundle_bytes_unavailable`, no nested read (PF-bundle-15).
-- `bundle-shared-allowance`; holds: two nested files of depth `1`, each holding one `recipe` of charge `T`, the outer file's own
-  recipes of charge `R`, read with `rebuilt_bytes_per_read` `R + T`; expected: the first nested read in the order of the nested
-  reads made with `rebuilt_bytes_per_read` `T` and its recipe admitted; the second made with `0`, its recipe refused, so it is
-  capacity-limited; no `bundle_not_a_file` and no `bundle_depth` for its term; each nested result states its capacity
-  (PF-bundle-14).
-- `bundle-shared-items`; holds: a nested file whose items exceed what the outer read leaves of `items_per_read`; expected: its
-  result holds `exceeds_capacity` with `item_count`; no `bundle_not_a_file` for its term (PF-bundle-15).
-- `bundle-shared-formed`; holds: two nested files of depth `1`, each holding one `terms` frame of charge `T`, the outer file's
-  own `terms` frames of charge `R`, read with `formed_bytes_per_read` `R + T`; expected: the first nested read in the order of
-  the nested reads made with `formed_bytes_per_read` `T` and its frame admitted; the second made with `0`, its frame refused
-  with `total_formed`, so it is capacity-limited; each nested result states its capacity (PF-bundle-14, PF-bundle-15).
-- `bundle-shared-labelled`; holds: two nested files of depth `1`, each of one segment whose fold weighs `W` (a total labelled
-  weight of `2W` when its own fold and its file's fold are labelled), the outer file with a total labelled weight `V`, read with
-  `labelled_bytes_per_read` `V + 2W`; expected: the first nested read made with `labelled_bytes_per_read` `2W` and both of its
-  folds labelled; the second made with `0`, its own fold and its file's fold refused with `refusal_weight`; each nested result
-  states its capacity (PF-bundle-14).
-- `bundle-refused-order`; holds: `bundle-pass` with two blank nested-file terms, read with `labelled_lines` below the size;
-  expected: the same `profile_violation` findings (none) and counts as `bundle-pass`, plus `labelling_refused` in the file's
-  findings; nested reads in ascending `E(name)` of the blob names, unchanged.
-- `bundle-refused-violations`; holds: three blank nested-file terms failing checks `1`, `3` and `4`, labelling refused; expected:
-  the findings and counts equal those of the same file read with enough capacity (the order decides no count).
