@@ -30,8 +30,8 @@ requirement has an identifier `PF-bundle-n` and states one thing.
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
 "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
-[RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST,
-MUST NOT and MAY, and no other.
+[RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST and
+MUST NOT, and no other.
 
 ## 1. The profile value and its checks
 
@@ -101,7 +101,8 @@ A different depth or size is a different profile, with a value of its own in the
 ## 4. What a reader reports about nested content
 
 THE NESTED READ. For a nested file whose bytes the reader can rebuild, the reader reads those bytes by the procedure of `P7`
-"The reader procedure", with its own registry version, capacity and inputs, and with the DEPTH of that file in the tree of the
+"The reader procedure", with the registry version, the `inputs`, the `marks` and the sealing input of the outer read, the access
+`whole`, the capacity of THE SHARED ALLOWANCE (below), and with the DEPTH of that file in the tree of the
 outer read (below). The depth is carried through every nested read: a nested read of a file at depth `d` runs the checks of this
 profile on that file with depth `d`, reads its own nested files at depth `d + 1`, reads no nested file when `d` is `Dmax`, and
 reads no blob that has already been read in the ORDER OF THE NESTED READS (below). That read is separate: its result is not part
@@ -111,8 +112,9 @@ blob and nothing else. A nested file's frames are never frames of the outer segm
 fold.
 
 THE TREE. The outer file has depth `0`. A nested file of a file `G` of depth `d` has depth `d + 1` when `G` is the outer file,
-or when a segment of `G` declares `bundle` and the nested read of `G` judges it under this profile. A nested file that is not
-read (bytes unavailable, above `Smax`, or not a file) has no nested files. A blob bound at several depths has the smallest of
+or when a segment of `G` declares `bundle` and the nested read of `G` judges it under this profile. A nested file that is not read
+(bytes unavailable or above `Smax`), and one whose nested read fails the condition of check `4`, has no nested files: no nested
+read is made for it and it adds no depth. A blob bound at several depths has the smallest of
 them, and is read once, at that depth; that one read judges checks `4` and `5` for every nested-file term bound to the blob,
 wherever the term stands.
 
@@ -146,7 +148,7 @@ THE BOUND ON THE WORK. The outer read and all its nested reads together delimit 
 `decoded_bytes_per_read` bytes, rebuild at most `rebuilt_bytes_per_read` bytes, form at most `formed_bytes_per_read` bytes of
 front-coded text and weigh at most `labelled_bytes_per_read` bytes of labelled lines, within the reader's capacity. In
 addition, each
-nested read takes at most `Smax` bytes of input, each distinct blob is read once, and no read is made below depth `Dmax`. Let
+nested read takes at most `Smax` bytes of input, each distinct blob is read once, and no file of a depth above `Dmax` is read. Let
 `E_1` be the number of distinct nested files of the outer file, and `E_(d+1)` the number of distinct nested files of the files
 read at depth `d`; the nested reads of one outer read take at most `Smax * (E_1 + ... + E_Dmax)` bytes of input. The bound is a
 function of the reader's capacity, the outer file and the two constants.
@@ -222,14 +224,16 @@ the result is the same whether the reading delivered in the labelled order or in
    no segment, or one whose file findings hold `torn_tail`, `undelimitable_input` or `read_failed`, or one with a segment whose
    `header_identifier` is `absent`. The check is not judged for a term for which no nested read is made, a nested-file term in
    a file of depth `Dmax` whose blob has no depth of at most `Dmax`: check 5 judges that term (PF-bundle-10).
-5. `bundle_depth`: the tree below the nested file of `T` holds a nested file of depth above `Dmax`.
+5. `bundle_depth`: the nested file of `T` has a depth above `Dmax`, or the tree below it holds a nested file that has.
 
-**PF-bundle-9.** A reader that implements this profile MUST run the five checks on every nested-file term of the outer fold, in
+**PF-bundle-9.** A reader that implements this profile MUST run the checks `1` to the number it states in `profiles` (`P2`,
+"Allocation, the record, withdrawal and retirement") on every nested-file term of the outer fold, in
 the order of section 6, and MUST report each check that fails for at least one term as one `profile_violation` with `subject`
 `[4, 4, present(c)]` and `count` the number of terms for which it is the first failing check.
 
 **PF-bundle-10.** A reader MUST decide `bundle_depth` by reading nested files to depth `Dmax` and no further: a nested-file term
-in a file of depth `Dmax` that is judged under this profile is a nested file of depth `Dmax + 1`, whatever its binding, unless
+in a file of depth `Dmax` that is judged under this profile is, when it passes check `1`, a nested file of depth `Dmax + 1`,
+unless
 its binding names a blob that has a depth of at most `Dmax` by the smallest-depth rule of section 4: the reader counts the term
 and reads nothing for it.
 
@@ -241,7 +245,8 @@ report each failing check as a finding of the step `PROFILE CHECKS` in the findi
 outcome is `readable` and whose header `profile` is `present(bundle)`, the findings of that list standing in the order of `P7`
 "Where each finding stands, and in what order".
 
-Overlaps. Each check reports its own finding. A bound blob that no declaration names gives `missing_dependency` with `blob` and
+Overlaps. Each check reports its own finding for the terms for which it is the first to fail. A bound blob that no declaration
+names gives `missing_dependency` with `blob` and
 `bundle_bytes_unavailable`; a missing unit gives `missing_dependency` with `chunk` and `bundle_bytes_unavailable`; a binding of
 `T` to a `frame` or `state` referent gives `bundle_binding`, and `missing_dependency` when that referent does not resolve.
 

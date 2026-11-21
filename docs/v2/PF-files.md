@@ -28,7 +28,7 @@ External documents cited, by identifier, title and date:
 
 - W3C XML Schema Definition Language (XSD) 1.1 Part 2: Datatypes; W3C Recommendation, 5 April 2012; for the names of the
   datatypes `string`, `hexBinary`, `nonNegativeInteger` and `dateTime`; no lexical space of them is judged;
-- RDF 1.2 Schema (W3C Working Draft, 12 November 2026), section 4 "RDF Collections", for the collection vocabulary `rdf:first`,
+- RDF 1.2 Schema (W3C Working Draft, 12 November 2026), "RDF Collections", for the collection vocabulary `rdf:first`,
   `rdf:rest`, `rdf:nil`;
 - RDF 1.2 Concepts and Abstract Data Model (W3C Candidate Recommendation Draft, 15 November 2026), for the names of the term
   kinds that the ranges of section 2.4 name; it defines no rule of this profile;
@@ -43,8 +43,8 @@ and states one thing.
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
 "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
-[RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST,
-MUST NOT and MAY, and no other.
+[RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST and
+MUST NOT, and no other.
 
 ## 1. The profile value and its checks
 
@@ -249,9 +249,11 @@ suppression entry of the core (`P3`, "Suppression hides"), and one that changes 
 one; the history stays content. Hiding a term hides every line in which it occurs (`P3`, "The hiding rule"): the entry's own
 statements, its binding, and every statement that names it as an object, the `f:hardLinkOf` statement of a hard link to it
 included. The statements of its attribute and archive records and of its path list name the record and list nodes, not the
-entry, and stay visible unless those nodes are hidden too. A writer that removes or changes an entry therefore also hides its
-record nodes, and hides or rewrites every hard link that names it; a hard link does not survive the hiding of its target,
-because a hard link without a visible target is exactly what `files_property_cardinality` exists to report.
+entry, and stay visible unless those nodes are hidden too. A hard link does not survive the hiding of its target: a hard link
+without a visible target fails `files_property_cardinality`.
+
+**PF-files-15.** A writer that removes or changes an entry MUST also hide its record nodes, MUST hide or rewrite every hard link
+that names it, and MUST give an entry that replaces a hidden one a term that no suppression entry of the file hides.
 
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form").
@@ -280,7 +282,7 @@ do.
 
 **PF-files-9.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it depends
 on give, with the findings of this document added and nothing else changed; every rule of this
-document is a check of section 5 or a requirement on a writer.
+document is a check of section 5 or a numbered requirement on a writer, a reader or an implementation that lists.
 
 ## 5. Checks
 
@@ -325,14 +327,16 @@ lacks one; that entry is counted by `files_entry_path`, `files_component` or `fi
 11. `files_record`: an entry two of whose attribute records have equal `f:attributeName` objects, or two of whose archive
     records have equal `f:recordKey` objects. Counts entries.
 
-**PF-files-10.** A reader that implements this profile MUST run the eleven checks on the visible dataset of the fold of the
-file, and MUST report each check that fails for at least one subject as one `profile_violation` with `subject`
+**PF-files-10.** A reader that implements this profile MUST run the checks `1` to the number it states in `profiles` (`P2`,
+"Allocation, the record, withdrawal and retirement") on the visible dataset of the fold of the file, and MUST report each check
+that fails for at least one subject as one `profile_violation` with `subject`
 `[4, 5, present(c)]` and the `count` its condition names, in the reporting segment, once for the file, after the closing phase of
 every segment.
 
 **PF-files-11.** A reader MUST judge a component, a path and every value by the typed value of its term (`P3`, "The term model")
 and by the forms of 2.2, that is by the pairs of VALUES of the fold and the whole equality of a datatype, and MUST NOT read,
-split, trim, normalise or resolve the lexical form of any literal.
+split, trim, normalise or resolve the lexical form of any literal, but for the length and the whole bytewise comparison of the
+lexical form of a text literal.
 
 Overlaps. Each check reports its own finding. An entry whose only path is a literal gives `files_entry_path` and `files_value`
 (the range of `f:path`). An entry bound to a blob that the file does not declare gives `missing_dependency` with `blob` from the

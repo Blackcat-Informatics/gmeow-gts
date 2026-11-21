@@ -44,8 +44,8 @@ requirement has an identifier `PF-container-n` and states one thing.
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
 "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
-[RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST,
-MUST NOT and MAY, and no other.
+[RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST and
+MUST NOT, and no other.
 
 ## 1. The profile value and its checks
 
@@ -130,10 +130,10 @@ while the commits that name the states of earlier exports do not survive in a ca
 
 THE CURRENT STATE. When check `3` holds, the exports stand in CHAIN ORDER: the first export at place `0`, and each other export
 one place after the export it names. The OBSERVATIONS OF `R`, for a resource IRI `R`, are the observations whose `c:resource` is
-`R`. The current observation is DEFINED only when checks `3`, `5` and `6` all hold; then every observation has exactly one
+`R`. The current observation is DEFINED only when checks `3`, `4`, `5` and `6` all hold; then every observation has exactly one
 `c:export`, an export of the chain, and exactly one `c:resource`, and no two observations of one resource stand in one export.
 The CURRENT OBSERVATION of `R` is then the observation of `R` whose export has the greatest place in chain order, and `R` is LIVE
-when the kind of that observation is not `c:Absent`. When check `3`, `5` or `6` fails, no resource has a current observation
+when the kind of that observation is not `c:Absent`. When check `3`, `4`, `5` or `6` fails, no resource has a current observation
 and checks `11` to `13` are not judged.
 
 THE LISTING ORDER. Wherever a reader or a tool lists them, the observations of one export stand in ascending bytewise order of
@@ -269,7 +269,8 @@ MUST NOT let a blank node that occurs in a line of a resource graph occur anywhe
 blank node that is the NAME of a resource graph occurs, beside the lines of that graph, as the object of the one default-graph
 line `(O, c:graph, b)` that names it.
 
-**PF-container-6.** A writer MUST NOT write a `suppress` frame in a file of this profile; it records removal by an observation
+**PF-container-6.** A writer MUST NOT write a `suppress` frame in a file any segment of which declares this profile; it records
+removal by an observation
 of kind `c:Absent` and change by a new observation.
 
 **PF-container-7.** A writer that appends an export MUST name the latest export of the file as its `c:previousExport`.
@@ -295,7 +296,7 @@ and the registry and the meaning of any of its values. No rule of the core reads
 
 **PF-container-9.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it
 depends on give, with the findings of this document added and nothing else changed; every rule of this
-document is a check of section 6 or a requirement on a writer.
+document is a check of section 6 or a numbered requirement on a writer or a reader.
 
 ## 6. Checks
 
@@ -377,14 +378,15 @@ frames before the commit say why (an opaque frame, a sealed frame not opened, a 
 In checks 15 to 17, "a line of the fold of `S(X)`" means any line of that fold, hidden or visible: hidden content is content,
 and these checks do not use the visible dataset of the state.
 
-**PF-container-10.** A reader that implements this profile MUST run checks `1` to `13` and `15` to `17` once for the file, after
+**PF-container-10.** A reader that implements this profile MUST run those of the checks `1` to `13` and `15` to `17` that are at
+or below the number it states in `profiles` (`P2`, "Allocation, the record, withdrawal and retirement") once for the file, after
 the closing phase of every segment, and MUST report each of them that fails as one `profile_violation` with `subject`
-`[4, 6, present(c)]` and the `count` its condition names, in the findings of the reporting segment; and MUST run check `14` for
-every segment that declares the profile and report each failure in the findings of that segment.
+`[4, 6, present(c)]` and the `count` its condition names, in the findings of the reporting segment; and MUST run check `14`, when
+that number reaches it, for every segment that declares the profile and report each failure in the findings of that segment.
 
 **PF-container-13.** A reader MUST judge checks `15`, `16` and `17` for an export only when its `state` referent resolves, and
 MUST judge them against the fold of the state that the referent names, comparing lines and bindings as typed values with the
-blank nodes of the state taken as the nodes of the same ordinals in the fold of the file.
+blank nodes of the state taken as the nodes of the same pair of segment ordinal and label in the fold of the file.
 
 **PF-container-11.** A reader MUST compare every IRI and literal of the vocabulary as a typed value (`P3`, "The term model"),
 MUST judge the forms of 3.2 by the pairs of VALUES of the fold and the whole equality of a datatype, MUST NOT choose a form of a
