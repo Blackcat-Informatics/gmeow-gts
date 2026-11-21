@@ -155,14 +155,7 @@ place is the position of the item that reaches the span, plus one, plus the numb
 
 CLAIM (a prefix in which every commit is valid conforms). Let a segment pass both checks, and let `F'` be a prefix of the file
 that ends at an item boundary inside the segment and in which every `commit` frame of the segment that `F'` holds is valid in
-`F'` (`P5`, "The checks of a commit", read on `F'` as a file). Then `F'` reports no finding of this profile. Proof. A commit that
-is valid in `F'` is valid in the file: its link state is decided from the frames up to the frame after it, which `F'` holds, and
-its `count` and `root` from the frames before it, and these are the same in the file. So the valid commits of `F'` are the commit
-frames that `F'` holds, and no commit that stands in `F'` is valid in the file and not in `F'`. Every commit interval of `F'` is
-therefore a prefix of a commit interval of the file, so it holds at most `Ns` frames. A span due in `F'` is reached by an item
-followed in `F'` by an ordinary frame, so it is due in the file and has a parity frame, which stands immediately after the
-reaching item and its other parity frames (`P5`, "The stream and the spans") and therefore before that ordinary frame, inside
-`F'`. End of proof.
+`F'` (`P5`, "The checks of a commit", read on `F'` as a file). Then `F'` reports no finding of this profile.
 
 A READ AS A STREAM. A reader with the access `forward` (`P7`, "Reading as a stream") reads the segment at each item boundary as
 the file that is the prefix up to it, so the claim above holds for the stream read of a conforming writer at every item
