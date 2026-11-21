@@ -65,21 +65,16 @@ and a later revision of this document appends a check with the next number.
 
 ## 2. Constants
 
-- COMMIT CADENCE `Ne`; value: `1024` ordinary frames; reason: a design bound, computed from the figures of measurement `FE4-12`
-  (experiment 5, the event stream of frames of about `956` bytes for each event of two frames) and the sizes of `P2` "The
-  mandatory algorithm set". A commit frame with no signature is `116` bytes for a `count` from `256` to `65535` (the `114` bytes
-  of `P7`, "A minimal valid file: one header and one commit", and two more bytes of `count`), and one composite signature record
-  adds `3412` bytes (a value of `3373` bytes, a key identifier of `32` bytes, the algorithm and the heads), so a signed commit
-  is about `3530` bytes (`3528` measured at a `count` of `1024`). After every `1024` frames of that stream (about `489600`
-  bytes) it costs about `0.72` per cent; after every `200` frames it would cost about `3.7` per cent. `1024` keeps the
-  signed commit below one per cent of the measured stream and bounds the frames that an interruption leaves unsigned.
+- COMMIT CADENCE `Ne`; value: `1024` ordinary frames; reason: a design bound. A commit frame with no signature is `116` bytes for
+  a `count` from `256` to `65535` (the `114` bytes of `P7`, "A minimal valid file: one header and one commit", and two more bytes
+  of `count`), and one composite signature record adds `3412` bytes (a value of `3373` bytes, a key identifier of `32` bytes, the
+  algorithm and the heads), so a signed commit is about `3530` bytes. `1024` keeps the cost of the signed commits small beside
+  the frames they cover and bounds the frames that an interruption leaves unsigned.
 - PINNED ALGORITHM; value: `mldsa65_ed25519` (code `2` of `signature_algorithm`); reason: custody evidence is kept for longer
   than a classical scheme can be assumed to hold, and the composite holds while either of its halves holds (`P2`, "The mandatory
   algorithm set"). The cost of its size is bounded by the cadence above.
 
-Both constants rest on stated design reasons and are bounds a writer has to meet, not measured optima; the cadence uses the
-figures of `FE4-12` and of `P2` for its arithmetic; that measurement wrote one signed commit, for its size, and no stream of
-signed commits.
+Both constants rest on stated design reasons and are bounds a writer has to meet.
 
 A different cadence or algorithm is a different profile, with a value of its own in the profile table, never a parameter.
 

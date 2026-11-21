@@ -56,17 +56,12 @@ a later revision of this document appends a check with the next number.
 
 ## 2. Constants
 
-- COMMIT CADENCE `Ns`; value: `200` ordinary frames; reason: measurement `FE4-12`, experiment 5. On a stream of events of two
-  frames each (one `terms`, one `quads` frame of `50` quads), a commit after every `100` events, that is every `200` frames,
-  costs `0.1` per cent of the file, and a commit after every event costs `12.1` per cent; commits every `100` events with parity
-  are a non-dominated configuration of that measurement. The cadence also bounds what a reader that stops at the last valid
-  commit leaves unread to `200` frames.
+- COMMIT CADENCE `Ns`; value: `200` ordinary frames; reason: a design bound. The cadence bounds what a reader that stops at
+  the last valid commit leaves unread to `200` frames, at a small cost in commit frames.
 - PARITY GEOMETRY; value: `geometry_1` of `P5` (`k` `64`, `m` `4`, shards of `4096` bytes for a span of `262144` bytes or more,
-  spans of `4194304` bytes); reason: measurement `FE4-12`, experiment 5, which measures spans of shards of `4096` bytes; a span
-  of fewer than `262144` bytes restores at most `4 * z` bytes (`P5`, "What parity guarantees, and what it does not"). Without parity, `4096` damaged bytes in the middle of a file of small frames lost `49950`
-  to `50300` of `100000` quads in every one of `9` files, because the fold stops at the damage; with this geometry recovery
-  restored every byte after `4096` and after `65536` bytes overwritten with zero bytes, with `ff` bytes and with pseudo-random
-  bytes, at a cost of `6.9` to `7.4` per cent of the file (`P5`, "Cost").
+  spans of `4194304` bytes); reason: without parity the fold of a segment stops at damaged bytes; with this geometry
+  recovery restores what `P5`, "What parity guarantees, and what it does not", states, and a span of fewer than `262144` bytes
+  restores at most `4 * z` bytes.
 - SPAN LENGTH; value: `4194304` bytes, the span length of `geometry_1` (`P5`, "The stream and the spans"); the profile adds no
   second value.
 

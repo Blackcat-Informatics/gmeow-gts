@@ -86,13 +86,13 @@ default graph and exactly one binding of `T` to a `blob` referent naming that bl
 
 ## 3. Constants
 
-- DEPTH `Dmax`; value: `4`; reason: a stated design bound that a writer has to meet, not a measured optimum. Every recipe can name
+- DEPTH `Dmax`; value: `4`; reason: a stated design bound that a writer has to meet. Every recipe can name
   a unit many times, so a small nested file can declare a large nested file of its own (`P4`, "Rebuilding a blob or a value");
   the depth bound with the size bound below makes the work of the checks a function of the outer file and the two constants. The
   uses this set names need at most two levels (a bundle of custody chains that each carry a compacted source); `4` leaves two
   levels beyond them.
-- SIZE `Smax`; value: `4294967296` bytes (`2^32`); reason: a stated design bound that a writer has to meet, not a measured
-  optimum. It bounds the input of one nested read. The work of all the nested reads of one outer read together is bounded by the
+- SIZE `Smax`; value: `4294967296` bytes (`2^32`); reason: a stated design bound that a writer has to meet.
+  It bounds the input of one nested read. The work of all the nested reads of one outer read together is bounded by the
   shared allowance of section 4.
 
 A different depth or size is a different profile, with a value of its own in the profile table, never a parameter.

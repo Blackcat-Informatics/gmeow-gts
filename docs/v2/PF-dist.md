@@ -62,7 +62,7 @@ later revision of this document appends a check with the next number.
 ## 2. Constants
 
 - DECODED CEILING `Cd`; value: `67108864` bytes (`2^26`); reason: the minimum `decoded_bytes_per_frame` of a conforming reader
-  (`P7` "Capacity", measurement `U-C`). With every `decoded_length` at most `Cd`, no conforming reader reports
+  (`P7` "Capacity"). With every `decoded_length` at most `Cd`, no conforming reader reports
   `exceeds_capacity` with `decoded_size` for a frame of a distribution file, so every conforming reader checks and folds every
   frame of a distribution file whose total decoded length is at most `2^36` bytes, whose items are at most `2^26`, whose total
   rebuilt length is at most `2^37` bytes and whose total formed length is at most `2^37` bytes (`P7-34`, `P7-35`, `P7-45`,
@@ -70,10 +70,9 @@ later revision of this document appends a check with the next number.
   weight (`P7-48`) or the work of the labelling (`P7`, "Capacity"); a read that meets one of those limits does not
   verify the file (section 6).
 - STORED CEILING `Cs`; value: `67108864` bytes (`2^26`); reason: the minimum `stored_bytes_per_frame` of a conforming reader
-  (`P7` "Capacity", `U-C`), by the same argument for `stored_size`.
+  (`P7` "Capacity"), by the same argument for `stored_size`.
 
-Both ceilings rest on a stated design reason, the minimum capacity of a reader, and are bounds a writer has to meet, not measured
-optima.
+Both ceilings rest on a stated design reason, the minimum capacity of a reader, and are bounds a writer has to meet.
 
 A different ceiling is a different profile, with a value of its own in the profile table, never a parameter.
 
