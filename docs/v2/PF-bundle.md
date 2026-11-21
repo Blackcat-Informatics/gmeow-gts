@@ -215,7 +215,8 @@ the result is the same whether the reading delivered in the labelled order or in
    stays: hiding the declaration of the bound blob does not fail it.
 4. `bundle_not_a_file`: the nested read of its bytes gives a `file_result` that is not of tag `second_generation`, or one with
    no segment, or one whose file findings hold `torn_tail`, `undelimitable_input` or `read_failed`, or one with a segment whose
-   `header_identifier` is `absent`.
+   `header_identifier` is `absent`. The check is not judged for a term for which no nested read is made, a nested-file term in
+   a file of depth `Dmax` whose blob has no depth of at most `Dmax`: check 5 judges that term (PF-bundle-10).
 5. `bundle_depth`: the tree below the nested file of `T` holds a nested file of depth above `Dmax`.
 
 **PF-bundle-9.** A reader that implements this profile MUST run the five checks on every nested-file term of the outer fold, in

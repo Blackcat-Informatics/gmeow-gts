@@ -310,7 +310,8 @@ lacks one; that entry is counted by `files_entry_path`, `files_component` or `fi
    object of more than one record statement. Counts subjects.
 9. `files_value`: a statement whose predicate is a property of 2.4 and whose object is not of its range: a term of another kind,
    a literal of another datatype or form (2.2), an empty value where 2.4 forbids one, or an IRI outside the set the property names. For `f:path` the check judges the kind of the object alone, a
-   blank node; whether the list is well formed is check `1`. Counts subjects.
+   blank node; whether the list is well formed is check `1`. For `f:hardLinkOf` it judges the kind of the object alone, an IRI
+   or a blank node; whether that term is an entry of kind `RegularFile` is check `10`. Counts subjects.
 10. `files_hard_link`: an entry of kind `HardLink` whose `f:hardLinkOf` object is not an entry of kind `RegularFile`. Counts
     entries.
 11. `files_record`: an entry two of whose attribute records have equal `f:attributeName` objects, or two of whose archive

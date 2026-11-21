@@ -307,8 +307,8 @@ reports `profile_not_checked` instead (section 1).
 
 The conditions:
 
-1. `container_suppress_frame`: the file holds an item that passes the envelope test with `frame_type` `suppress`. Counts such
-   items.
+1. `container_suppress_frame`: the file holds an item that passes the envelope test with `frame_type` `suppress`, or an inner
+   frame of that type opened from a sealed frame (`P8`, "The inner frame"). Counts such items and inner frames.
 2. `container_export_state`: an export that has not exactly one visible binding, or whose binding is not a `state` referent.
    Counts exports.
 3. `container_export_chain`: the exports do not form one chain: no export or more than one export lacks `c:previousExport`, an
@@ -338,7 +338,8 @@ The conditions:
     kind: a member whose current observation is a tombstone (`c:Absent`) or `c:Unreadable` has an observation and is not
     dangling; whether a member is live is judged by check `11` only for `c:auxiliaryFor`. Counts observations.
 13. `container_outside_root`: a current observation of a live resource that is not REACHABLE. The REACHABLE resources are the
-    smallest set of resource IRIs that holds the `c:root` of the latest export and is closed under this rule: a live resource is
+    smallest set of resource IRIs that holds the object of every `c:root` statement of the latest export (none, when it has
+    none) and is closed under this rule: a live resource is
     in the set when the current observation of a resource of the set lists it with `c:contains`, or its own current observation
     names a resource of the set with `c:parent` or with `c:auxiliaryFor`. So two resources that name each other, and are named
     by no resource of the set, are not reachable. Counts observations.
