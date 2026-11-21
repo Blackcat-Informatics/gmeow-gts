@@ -96,6 +96,7 @@ def load(docs: Path) -> dict[str, Document]:
             raise SystemExit(f"missing document: {path}")
         doc = Document(name, path.read_text(encoding="utf-8").split("\n"))
         in_fence = False
+        in_language = False
         current: str | None = None
         heading = ""
         for line in doc.lines:
@@ -112,8 +113,13 @@ def load(docs: Path) -> dict[str, Document]:
                 kind = "table"
             elif stripped.startswith("<!--"):
                 kind = "comment"
+            elif stripped.startswith("REQUIREMENT LANGUAGE.") or (in_language and stripped):
+                kind = "language"
+                in_language = True
             else:
                 kind = "prose"
+            if not stripped:
+                in_language = False
             if not stripped or kind == "heading":
                 current = None
             else:
@@ -277,13 +283,10 @@ def check_key_words(docs: dict[str, Document]) -> Iterator[Finding]:
             yield Finding(doc.name, 1, "the RFC 8174 paragraph is absent or not verbatim")
         for number, line in doc.prose():
             kind = doc.kind[number - 1]
-            if kind in ("heading", "comment"):
+            if kind in ("heading", "comment", "language"):
                 continue
-            quoted = BOILERPLATE[:40] in line or '"MUST"' in line
             for match in KEY_WORDS_UPPER.finditer(line):
                 word = match.group(1)
-                if quoted:
-                    continue
                 if word not in LEVELS_IN_USE:
                     yield Finding(doc.name, number, f"key word {word} is not one of the levels in use")
                 elif doc.requirement[number - 1] is None and kind == "prose":

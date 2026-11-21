@@ -38,8 +38,13 @@ Notation. Enumeration values are written by label; codes are those of `P2` and o
 encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes; `<S>` stands for the
 `32` bytes of a digest that the vectors give. `rdf:` stands for `http://www.w3.org/1999/02/22-rdf-syntax-ns#`, `xsd:` for
 `http://www.w3.org/2001/XMLSchema#` and `c:` for `https://w3id.org/gts/pf/container#` in this text only; no rule reads a prefix,
-and every IRI is compared whole. The words MUST, MUST NOT and MAY have their meaning in BCP 14 and carry it only in capitals. A
+and every IRI is compared whole. A
 requirement has an identifier `PF-container-n` and states one thing.
+
+REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
+"RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
+[RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST,
+MUST NOT and MAY, and no other.
 
 ## 1. The profile value and its checks
 

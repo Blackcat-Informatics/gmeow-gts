@@ -37,9 +37,13 @@ External documents cited, by identifier, title and date:
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
 encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. `rdf:` stands for
 `http://www.w3.org/1999/02/22-rdf-syntax-ns#` and `xsd:` for `http://www.w3.org/2001/XMLSchema#` in this text only; no rule
-reads a prefix, and every IRI is compared whole. `f:` stands for `https://w3id.org/gts/pf/files#` in the same way. The words
-MUST, MUST NOT and MAY have their meaning in BCP 14 and carry it only in capitals. A requirement has an identifier `PF-files-n`
+reads a prefix, and every IRI is compared whole. `f:` stands for `https://w3id.org/gts/pf/files#` in the same way. A requirement has an identifier `PF-files-n`
 and states one thing.
+
+REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
+"RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
+[RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST,
+MUST NOT and MAY, and no other.
 
 ## 1. The profile value and its checks
 

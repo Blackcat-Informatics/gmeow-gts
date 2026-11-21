@@ -25,9 +25,13 @@ It depends on these parts, cited by part and section title:
 - `P8` (Sealing): "The values of registry version `2`", for the frame types `keys` and `sealed`.
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
-encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. The words MUST, MUST
-NOT and MAY have their meaning in BCP 14 (RFC 2119, March 1997; RFC 8174, May 2017) and carry it only in capitals. A requirement
+encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. A requirement
 has an identifier `PF-dist-n` and states one thing.
+
+REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
+"RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
+[RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST,
+MUST NOT and MAY, and no other.
 
 ## 1. The profile value and its checks
 
