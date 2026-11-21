@@ -359,7 +359,7 @@ The conditions:
     "Rebuilding a blob or a value": no declaration of it is verified from the units of the state and none is refused). A blob
     that is UNCHECKED there (none verified and one refused by the total rebuilt length of the read) is not judged by this
     condition: the reader did not finish the rebuild, and its finding `exceeds_capacity` with `total_rebuilt` says so. A blob
-    whose entry is `external` is judged by its declaration alone: its bytes are not in the file and are not required. Counts
+    whose entry is `external` is judged by its declaration alone: its bytes are not in the file and are not needed. Counts
     observations.
 
 Checks 11 to 13 need the current state, so they are not judged when check `3`, `5` or `6` fails (section 2, THE CURRENT STATE);
