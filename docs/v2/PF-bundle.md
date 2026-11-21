@@ -26,7 +26,7 @@ It depends on these parts, cited by part and section title:
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
 encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes; `<D>` stands for the
 `32` bytes of a digest that the example does not state. `rdf:type` is the IRI `http://www.w3.org/1999/02/22-rdf-syntax-ns#type`. A
-requirement has an identifier `PF-bundle-n` and states one thing.
+requirement has an identifier `PF-bundle-n` .
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
 "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14

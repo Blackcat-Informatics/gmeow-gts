@@ -40,7 +40,7 @@ encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a by
 for
 `http://www.w3.org/2001/XMLSchema#` and `c:` for `https://w3id.org/gts/pf/container#` in this text only; no rule reads a prefix,
 and every IRI is compared whole. A
-requirement has an identifier `PF-container-n` and states one thing.
+requirement has an identifier `PF-container-n` .
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
 "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
