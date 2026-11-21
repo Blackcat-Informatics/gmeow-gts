@@ -26,12 +26,12 @@ It depends on these parts, cited by part and section title:
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
 encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. A requirement
-has an identifier `PF-dist-n` and states one thing.
+has an identifier `PF-dist-n` .
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
 "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
 [RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST,
-MUST NOT and MAY, and no other.
+MUST NOT, and no other.
 
 ## 1. The profile value and its checks
 
@@ -54,7 +54,8 @@ The checks of this profile, numbered by this document from `1`:
 A failed check is the finding `profile_violation` with `reason` `absent` and `subject` `[4, 1, present(c)]`, `c` the number of
 the check. The profile adds no value to `reason` or to any other enumeration of the core.
 
-**PF-dist-1.** The checks of this profile MUST be the numbers and labels of the table above; a check is never renumbered, and a
+**PF-dist-1.** A reader MUST report the checks of this profile by the numbers and labels of the table above; a check is never
+renumbered, and a
 later revision of this document appends a check with the next number.
 
 **PF-dist-2.** A writer MUST NOT raise the `registry_version` of a header because the segment declares this profile.
@@ -89,20 +90,22 @@ It changes none of these: the header grammar, the frame envelope and every conte
 signature preimage, the codec rules, the fold, the labelled set, the content digest, the canonical form and its constants, and
 the registry and the meaning of any of its values.
 
-**PF-dist-3.** An implementation of this profile MUST NOT change any rule of the parts it depends on; every rule of this
-document is a check of section 5 or a requirement on a writer.
+**PF-dist-3.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it depends on
+give, with the findings of this document added and nothing else changed; every rule of this document
+is a check of section 5 or a numbered requirement on a writer, a reader or a consumer of a result.
 
 ## 4. Writer rules
 
 A writer of a distribution file writes the canonical file of the fold it distributes (`P7`, "The canonical form") with the
-header field `profile` `present(dist)` and `registry_version` `1` (or `2` were it sealed, which `PF-dist-6` forbids), as one
+header field `profile` `present(dist)` and the `registry_version` that `P7`, "The constants", gives it, as one
 segment and the whole of the file.
 
 **PF-dist-4.** A writer MUST write a distribution file as exactly one segment that is the canonical file of its fold under
 `canonical_form_v1`, with `canonical` `present(canonical_form_v1)`.
 
 **PF-dist-5.** A writer MUST NOT write a distribution file whose canonical file holds a frame with `decoded_length` above `Cd`
-or a `payload` longer than `Cs`; it reports to its caller that the fold has no distribution file.
+or a `payload` longer than `Cs`: the fold has no distribution file, and the writer MUST NOT hand the canonical file that
+compaction returns for it (`P7`, "Compaction") to its caller as one.
 
 **PF-dist-6.** A writer MUST NOT write a frame of type `keys` or `sealed` in a distribution file. The value stated: a
 distribution is read in full by every reader, with no key. A reader of registry version `1` meets a sealed frame as a critical
@@ -113,7 +116,8 @@ count of sealed frames not opened (`P8`). Neither reads the whole content.
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form").
 
-**PF-dist-7.** The canonical file of a fold under this profile MUST be the canonical file of the fold with the header's
+**PF-dist-7.** A writer of the canonical file of a fold under this profile MUST write the canonical file of the fold with the
+header's
 `profile` `present(dist)`: the profile changes no step of its construction.
 
 ## 5. Checks
@@ -126,11 +130,11 @@ whose header `profile` is `present(dist)`. Each failing check is the finding `pr
 
 | check | condition (the segment fails when) | `position` | `count` | one finding for |
 |---|---|---|---|---|
-| `dist_not_canonical` | the header's `canonical` is `absent`, or the canonical check gives its structure or its labelling level the state `failed` | absent | absent | the segment |
+| `dist_not_canonical` | the canonical result of the segment has `claimed` `false` (`P7`, "The canonical check"), or the canonical check gives its structure or its labelling level the state `failed` | absent | absent | the segment |
 | `dist_not_alone` | the file holds a segment other than this one | absent | the number of segments of the file | the segment |
 | `dist_decoded_size` | a frame has `decoded_length` above `Cd` | the frame | the `decoded_length` | each such frame |
 | `dist_stored_size` | a frame has a `payload` of more than `Cs` bytes | the frame | the length of `payload` | each such frame |
-| `dist_sealed_frame` | a frame has `frame_type` `keys` or `sealed` | the frame | absent | each such frame |
+| `dist_sealed_frame` | a frame has as its `frame_type` the `uint` `17` or `18` (`keys`, `sealed`), compared as read whatever the reader's registry version | the frame | absent | each such frame |
 
 `offset` and `length` are absent in every finding of this profile (`P2`, "The fields of a finding that are present"). A finding
 with a `position` stands in the findings of that frame, every other in the findings of the segment (`P7`, "Where each finding
@@ -140,7 +144,8 @@ Check `1` judges the HEAD claim and nothing else: the header's `canonical` field
 can violate it, structure and labelling (`P7`, "The canonical check"). The storage level only reports and never enters the
 check, so a canonical file whose stored bytes are another encoder's passes it; a level that is `unchecked` (for example with
 `exceeds_capacity`) is not `failed` and does not enter it either. A check that does not fail verifies nothing: the absence of
-`profile_violation` is not acceptance, and section 6 states what is. Checks `2` to `5` read the fields of the envelope,
+`profile_violation` is not acceptance, and section 6 states what is. Check `2` reads the segments of the file, and checks `3` to
+`5` read the fields of the envelope,
 so they are decided without decoding a payload: `decoded_length`, the length of `payload` and `frame_type` of each item that
 passes the envelope test (`P1`, "The frame envelope"). The checks read the frame type of an item by `P1`, "The locator", A FRAME
 ITEM HAS A TYPE ONLY BY A VALUE: an item of no frame type is of no type and gives none of these checks, and its
@@ -188,13 +193,13 @@ canonical level `failed`, a `profile_violation`) is not a fact of the file.
 Every other result that is not a verified distribution is REFUTED when it shows that the bytes read are not a distribution file:
 a `file` that is not of the tag `second_generation` or that has no segment; a first segment whose `header_identifier` is `present`
 and
-whose `profile` is `absent` or is not `1`; a finding `profile_violation` with the subject profile `1`; a canonical level
-`failed`; `integrity` `damaged`; or a file finding `torn_tail` or `undelimitable_input`. It is INCONCLUSIVE otherwise: the
+whose `profile` is `absent` or is not `1`; in any segment, a finding `profile_violation` with the subject profile `1`, a canonical
+level `failed` or `integrity` `damaged`; or a file finding `torn_tail` or `undelimitable_input`. It is INCONCLUSIVE otherwise: the
 reader did not finish the verification, because a limit of its capacity was met (a level or a payload `unchecked` with
 `exceeds_capacity`, a finding
 `exceeds_capacity`, a rebuild `refused`, a `labelling_refused` by a limit of the reader), because its labelling is refused by
 `refusal_width`, which no capacity changes, or by `refusal_term_node`, the refusal of a fold in which two different nested terms
-have one digest, which no capacity changes either, because it does not implement this profile
+have one digest, which no capacity changes either, because it does not implement this profile or its access is `forward`
 (`profile_not_checked`) or the registry version, a codec or the hash algorithm of the segment, or because its fold is not
 complete for a reason that is not damage. Such a result that shows both a refuting fact and an unfinished verification is
 REFUTED. The three outcomes are

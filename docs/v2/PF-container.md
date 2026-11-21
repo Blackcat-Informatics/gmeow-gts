@@ -80,7 +80,8 @@ The checks of this profile, numbered by this document from `1`:
 A failed check is the finding `profile_violation` with `reason` `absent` and `subject` `[4, 6, present(c)]`, `c` the number of
 the check. The profile adds no value to `reason` or to any other enumeration of the core.
 
-**PF-container-1.** The checks of this profile MUST be the numbers and labels of the table above; a check is never renumbered,
+**PF-container-1.** A reader MUST report the checks of this profile by the numbers and labels of the table above; a check is never
+renumbered,
 and a later revision of this document appends a check with the next number.
 
 **PF-container-2.** A writer MUST NOT raise the `registry_version` of a header because the segment declares this profile.
@@ -292,7 +293,8 @@ these: the header grammar, the frame envelope and every content record, framing,
 the codec rules, the fold, the labelled set, the content digest, graph states and their names, suppression, the canonical form,
 and the registry and the meaning of any of its values. No rule of the core reads the vocabulary (`P3` "Metadata is RDF").
 
-**PF-container-9.** An implementation of this profile MUST NOT change any rule of the parts it depends on; every rule of this
+**PF-container-9.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it
+depends on give, with the findings of this document added and nothing else changed; every rule of this
 document is a check of section 6 or a requirement on a writer.
 
 ## 6. Checks

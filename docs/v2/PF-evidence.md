@@ -27,12 +27,12 @@ It depends on these parts, cited by part and section title:
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
 encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. A requirement
-has an identifier `PF-evidence-n` and states one thing.
+has an identifier `PF-evidence-n` .
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
 "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
 [RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST,
-MUST NOT and MAY, and no other.
+MUST NOT, and no other.
 
 ## 1. The profile value and its checks
 
@@ -58,7 +58,8 @@ The checks of this profile, numbered by this document from `1`:
 A failed check is the finding `profile_violation` with `reason` `absent` and `subject` `[4, 2, present(c)]`, `c` the number of
 the check. The profile adds no value to `reason` or to any other enumeration of the core.
 
-**PF-evidence-1.** The checks of this profile MUST be the numbers and labels of the table above; a check is never renumbered,
+**PF-evidence-1.** A reader MUST report the checks of this profile by the numbers and labels of the table above; a check is never
+renumbered,
 and a later revision of this document appends a check with the next number.
 
 **PF-evidence-2.** A writer MUST NOT raise the `registry_version` of a header because the segment declares this profile.
@@ -90,27 +91,30 @@ canonical form, the meaning of `authenticated` and `authenticity` (`P6` "Coverag
 meaning of any of its values. No file names a trusted key: trust is the input `trusted_keys` of the reader (`P6`, "The typed
 inputs of a verifier").
 
-**PF-evidence-3.** An implementation of this profile MUST NOT change any rule of the parts it depends on; every rule of this
-document is a check of section 5 or a requirement on a writer.
+**PF-evidence-3.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it
+depends on give, with the findings of this document added and nothing else changed; every rule of this
+document is a check of section 5 or a numbered requirement on a writer, a reader or a consumer of a result.
 
 ## 4. Writer rules
 
 DEFINITIONS. A VALID COMMIT is a `commit` frame that `P5` "The checks of a commit" calls valid. A COMMIT
 INTERVAL of a segment is a maximal sequence of consecutive ordinary frames of the segment, in item order, none of which is a valid
 commit; transparent and ordinary frames are those of `P1` "The predecessor and transparent frames"; transparent frames neither
-belong to a commit interval nor end one. The
+belong to a commit interval nor end one, an item that is not a frame neither belongs to one nor ends one, and a frame with no
+effective identifier, which is no ordinary frame for a count (`P1`, "The predecessor and transparent frames"), is not counted. The
 UNCOMMITTED TAIL is that of `P5` "The committed prefix".
 
 **PF-evidence-4.** A writer MUST write a valid commit after at most `Ne` consecutive ordinary frames that are not valid commits.
 
 **PF-evidence-5.** A writer MUST end every segment with a valid commit, followed by no ordinary frame other than an `index`
 frame (transparent frames, such as the `parity` frames that follow an index, are not counted), and by nothing else but the
-`offsets` item and the locator, before it hands the file over.
+`offsets` item and the locator, before it stops writing the segment (`P1`, "Growing a file", CLOSING A SEGMENT).
 
-**PF-evidence-6.** A writer MUST sign every `commit` frame it writes with at least one signature of `mldsa65_ed25519` under a
-key that the intended verifiers trust, and MUST NOT write a signature of any other algorithm in a segment of this profile.
+**PF-evidence-6.** A writer MUST sign every `commit` frame it writes with at least one signature of `mldsa65_ed25519` and MUST NOT
+write a signature of any other algorithm in a segment of this profile.
 
-**PF-evidence-7.** A writer that appends a segment to a file MUST write its `lineage` `present`, naming the previous segment's
+**PF-evidence-7.** A writer that appends a segment to a file whose last segment has an opener that is `readable` for it MUST write
+its `lineage` `present`, naming the previous segment's
 head and, as `ordinal`, `1` when that segment has no lineage and that segment's `ordinal` plus `1` when it has one (`P1`,
 "The header").
 
@@ -123,10 +127,10 @@ judges it, since a reader cannot tell a filler that no mark names.
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). A
 canonical file has one commit, so the canonical file of a fold of more than `Ne` ordinary frames before that commit fails
-`evidence_commit_interval` and is no custody chain; a writer
-of evidence keeps the rounds it appended.
+`evidence_commit_interval` and is no custody chain.
 
-**PF-evidence-8.** The canonical file of a fold under this profile MUST be the canonical file of the fold with the header's
+**PF-evidence-8.** A writer of the canonical file of a fold under this profile MUST write the canonical file of the fold with the
+header's
 `profile` `present(evidence)`: the profile changes no step of its construction.
 
 ## 5. Checks
@@ -172,9 +176,8 @@ The conditions, one for each check:
    valid commit closes, fails it: the other checks judge commits that exist and frames that stand after them, and none of
    them requires a commit to exist. One finding for the segment.
 
-A frame of type `commit` is an item that passes the envelope test with `frame_type` `commit` and whose `signatures` field is in
-its grammar (`P6`, "The signature record"); one whose `signatures` field is malformed has `malformed_value` and no signature
-result, and checks 4 and 5 do not judge it.
+A frame of type `commit` whose `signatures` field is malformed (`P6`, "The signature record") has `malformed_value` and no
+signature result, and checks 4 and 5 do not judge it.
 
 The present fields. `offset` and `length` are absent in every finding of this profile (`P2`, "The fields of a finding that are
 present").
@@ -199,7 +202,8 @@ exactly the `position` and
 reader's inputs, and MUST NOT verify any signature a second time or by another rule.
 
 **PF-evidence-11.** A reader MUST report `evidence_lineage` and `evidence_uncommitted_tail` at most once for a segment, and
-`evidence_suppress_unauthenticated` at most once for the file, in the last segment that declares the profile.
+`evidence_suppress_unauthenticated` at most once for the file, in the last segment that declares the profile; it MUST report
+`evidence_no_commit` at most once for a segment, and each other check once for each commit interval or frame that fails it.
 
 **PF-evidence-12.** A writer MUST write every `suppress` frame of a segment of this profile before a `commit` frame that it
 signs as `PF-evidence-6` requires, so that the frame is authenticated wherever its signer is trusted.
@@ -217,7 +221,8 @@ not valid: its signature does not authenticate (`P6`, "Coverage and authenticati
 What the profile proves, stated with its assumption. When no check fails, the segment holds a valid commit, every frame of type
 `commit` of the segment carries a
 composite signature that authenticates under a key of `trusted_keys`, and the segment ends at a valid commit; by `P6` "Coverage
-and authentication" every ordinary frame whose link holds is then an authenticated frame, and every folded `suppress` frame of
+and authentication" every ordinary frame other than an `index` frame whose link holds is then an authenticated frame, and every
+folded `suppress` frame of
 the file, in whatever segment it stands, clear or opened from a sealed frame, is authenticated (a clear one as a frame of its
 segment, an inner one through the sealed frame that carries it), so every entry that hides something in the visible dataset
 stands in a frame that a key of `trusted_keys` authenticates. The claim holds while the composite signature is unforgeable for

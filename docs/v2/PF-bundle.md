@@ -54,7 +54,8 @@ The checks of this profile, numbered by this document from `1`:
 A failed check is the finding `profile_violation` with `reason` `absent` and `subject` `[4, 4, present(c)]`, `c` the number of
 the check. The profile adds no value to `reason` or to any other enumeration of the core.
 
-**PF-bundle-1.** The checks of this profile MUST be the numbers and labels of the table above; a check is never renumbered, and
+**PF-bundle-1.** A reader MUST report the checks of this profile by the numbers and labels of the table above; a check is never
+renumbered, and
 a later revision of this document appends a check with the next number.
 
 **PF-bundle-2.** A writer MUST NOT raise the `registry_version` of a header because the segment declares this profile.
@@ -182,14 +183,16 @@ It changes none of these: the header grammar, the frame envelope and every conte
 and its referent kinds, framing, identifiers, every hash and signature preimage, the codec rules, the fold, the labelled set,
 the content digest, the canonical form, and the registry and the meaning of any of its values.
 
-**PF-bundle-7.** An implementation of this profile MUST NOT change any rule of the parts it depends on; every rule of this
+**PF-bundle-7.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it depends
+on give, with the findings of this document added and nothing else changed; every rule of this
 document is a check of section 6 or a requirement on a writer or a reader.
 
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). The
 canonical status of a nested file is its own.
 
-**PF-bundle-8.** The canonical file of a fold under this profile MUST be the canonical file of the fold with the header's
+**PF-bundle-8.** A writer of the canonical file of a fold under this profile MUST write the canonical file of the fold with the
+header's
 `profile` `present(bundle)`: the profile changes no step of its construction.
 
 ## 6. Checks

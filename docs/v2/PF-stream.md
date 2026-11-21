@@ -24,12 +24,12 @@ It depends on these parts, cited by part and section title:
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
 encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. A requirement
-has an identifier `PF-stream-n` and states one thing.
+has an identifier `PF-stream-n` .
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
 "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in BCP 14
 [RFC2119] [RFC8174] when, and only when, they appear in all capitals, as shown here. This document uses the key words MUST,
-MUST NOT and MAY, and no other.
+MUST NOT, and no other.
 
 ## 1. The profile value and its checks
 
@@ -49,7 +49,8 @@ The checks of this profile, numbered by this document from `1`:
 A failed check is the finding `profile_violation` with `reason` `absent` and `subject` `[4, 3, present(c)]`, `c` the number of
 the check. The profile adds no value to `reason` or to any other enumeration of the core.
 
-**PF-stream-1.** The checks of this profile MUST be the numbers and labels of the table above; a check is never renumbered, and
+**PF-stream-1.** A reader MUST report the checks of this profile by the numbers and labels of the table above; a check is never
+renumbered, and
 a later revision of this document appends a check with the next number.
 
 **PF-stream-2.** A writer MUST NOT raise the `registry_version` of a header because the segment declares this profile.
@@ -61,7 +62,7 @@ a later revision of this document appends a check with the next number.
 - PARITY GEOMETRY; value: `geometry_1` of `P5` (`k` `64`, `m` `4`, shards of `4096` bytes for a span of `262144` bytes or more,
   spans of `4194304` bytes); reason: without parity the fold of a segment stops at damaged bytes; with this geometry
   recovery restores what `P5`, "What parity guarantees, and what it does not", states, and a span of fewer than `262144` bytes
-  restores at most `4 * z` bytes.
+  restores at most `4 * z` bytes, `z` the shard length of `P5`, "Shards, stripes and parity shards".
 - SPAN LENGTH; value: `4194304` bytes, the span length of `geometry_1` (`P5`, "The stream and the spans"); the profile adds no
   second value.
 
@@ -76,8 +77,9 @@ It changes none of these: the header grammar, the frame envelope and every conte
 signature preimage, the codec rules, the fold, the labelled set, the content digest, the parity geometry, its placement rule and
 its checks, the recovery procedure, the canonical form, and the registry and the meaning of any of its values.
 
-**PF-stream-3.** An implementation of this profile MUST NOT change any rule of the parts it depends on; every rule of this
-document is a check of section 5 or a requirement on a writer.
+**PF-stream-3.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it depends
+on give, with the findings of this document added and nothing else changed; every rule of this
+document is a check of section 5 or a numbered requirement on a writer, a reader or a consumer of a result.
 
 ## 4. Writer rules
 
@@ -85,10 +87,12 @@ DEFINITIONS. A VALID COMMIT is a `commit` frame that `P5` "The checks of a commi
 a maximal
 sequence of consecutive ordinary frames of the segment, in item order, none of which is a valid commit; transparent and ordinary
 frames are those of `P1` "The predecessor and transparent frames", and transparent frames neither belong to a commit interval nor
-end one.
-`S`, a SPAN and its `first` and `end` are those of `P5` "The stream and the spans"; a span is FULL when its `end` is at most the
-length of `S`. The item that REACHES a span is the first non-transparent item whose end in `S` is at least the span's `end`. A
-full span is DUE when the item that reaches it is followed, in the segment, by a further ordinary frame.
+end one, an item that is not a frame neither belongs to one nor ends one, and a frame with no effective identifier, which is no
+ordinary frame for a count (`P1`, "The predecessor and transparent frames"), is not counted.
+`S`, a SPAN and its `first` and `end` are those of `P5` "The stream and the spans"; a span is FULL as that section defines it, and
+a full span is REACHED when its `end` is at most the length of `S`. The item that REACHES a span is the first non-transparent item
+whose end in `S` is at least the span's `end`. A reached span is DUE when the item that reaches it is followed, in the segment, by
+a further ordinary frame.
 
 **PF-stream-4.** A writer MUST write a valid commit after at most `Ns` consecutive ordinary frames that are not valid commits.
 
@@ -113,7 +117,8 @@ canonical file has one commit, so the canonical file of a fold of more than `Ns`
 `stream_commit_interval`; the snapshot of a long stream is
 distributed without this profile.
 
-**PF-stream-6.** The canonical file of a fold under this profile MUST be the canonical file of the fold with the header's
+**PF-stream-6.** A writer of the canonical file of a fold under this profile MUST write the canonical file of the fold with the
+header's
 `profile` `present(stream)`: the profile changes no step of its construction.
 
 ## 5. Checks
@@ -130,13 +135,12 @@ The conditions, one for each check:
    interval, at the frame of
    the commit interval that is `Ns + 1`-th in it, with `count` the number of frames of the commit interval.
 2. `stream_parity_missing`: a due span has no parity frame in the segment whose `first` and `end` are those of the span, which
-   stands at the place that `P5` "The stream and the spans" gives it (immediately after the item that reaches the span and after
-   the parity frames of the spans that the same item reaches before it, in the order of the spans), and which `P5` "Checking a
+   stands at the place that `P5` "The stream and the spans" gives it (PF-stream-9), and which `P5` "Checking a
    parity frame" does not report `parity_damaged`. One finding for each item that reaches at least one such span, at that item,
    with `count` the number of such spans it reaches.
 
-`offset` and `length` are absent in both findings (`P2`, "The fields of a finding that are present"). Both stand in the findings
-of the frame they name (`P7`, "Where each finding stands, and in what order").
+`offset` and `length` are absent in both findings (`P2`, "The fields of a finding that are present"). Each stands in the list that
+its `position` gives it (`P7`, "Where each finding stands, and in what order").
 
 **PF-stream-7.** A reader that implements this profile MUST run the two checks on every segment of section 5 and MUST report
 each failure as `profile_violation` with `reason` `absent`, `subject` `[4, 3, present(c)]`, and the `position` and `count` that
@@ -177,9 +181,9 @@ not the outcome of the segment.
 every `commit` frame is valid in the prefix; for another prefix the findings of this profile are the findings of that prefix as
 a file, and a reader or a tool MUST NOT take them as the outcome of the complete segment.
 
-What is not judged. The bytes after the end of the last due span are protected only when the writer closes the segment and
-writes the final span's parity (`PF-stream-5`); until then they are the unprotected tail of `P5`, reported as `unprotected_tail`
-(information).
+What is not judged. The bytes after the largest `end` of a used parity frame are the unprotected tail of `P5`, "The unprotected
+tail", which that section reports for a segment that holds a parity frame; the final span is protected when the writer closes the
+segment and writes its parity (`PF-stream-5`).
 
 Overlaps. Each check reports its own finding. A damaged parity frame gives `parity_damaged` and, for a due span, also
 `stream_parity_missing`. A commit that fails its count or root is not valid and gives `commit_count_mismatch` or

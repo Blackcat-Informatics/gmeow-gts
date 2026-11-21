@@ -73,7 +73,8 @@ The checks of this profile, numbered by this document from `1`:
 A failed check is the finding `profile_violation` with `reason` `absent` and `subject` `[4, 5, present(c)]`, `c` the number of
 the check. The profile adds no value to `reason` or to any other enumeration of the core.
 
-**PF-files-1.** The checks of this profile MUST be the numbers and labels of the table above; a check is never renumbered, and a
+**PF-files-1.** A reader MUST report the checks of this profile by the numbers and labels of the table above; a check is never
+renumbered, and a
 later revision of this document appends a check with the next number.
 
 **PF-files-2.** A writer MUST NOT raise the `registry_version` of a header because the segment declares this profile.
@@ -255,7 +256,8 @@ because a hard link without a visible target is exactly what `files_property_car
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form").
 
-**PF-files-8.** The canonical file of a fold under this profile MUST be the canonical file of the fold with the header's
+**PF-files-8.** A writer of the canonical file of a fold under this profile MUST write the canonical file of the fold with the
+header's
 `profile` `present(files)`: the profile changes no step of its construction.
 
 What a tool does is not this document's matter. Whether a tool that extracts a tree follows a symbolic link, creates a device,
@@ -276,7 +278,8 @@ the codec rules, the fold, the labelled set, the content digest, suppression, th
 meaning of any of its values. No rule of the core reads the vocabulary (`P3` "Metadata is RDF"); only the checks of this profile
 do.
 
-**PF-files-9.** An implementation of this profile MUST NOT change any rule of the parts it depends on; every rule of this
+**PF-files-9.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it depends
+on give, with the findings of this document added and nothing else changed; every rule of this
 document is a check of section 5 or a requirement on a writer.
 
 ## 5. Checks
