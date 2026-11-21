@@ -142,7 +142,7 @@ least one member. Each member is a COMPONENT: the name of one directory level, o
 A component is VALID when it is an octets literal whose octets are not empty, are not `2e` (one dot) and are not `2e 2e` (two
 dots). These are the names that name the directory itself or its parent, or nothing. Nothing else of a name is judged: the format
 does not judge the inside of a name, which is one value compared whole and bytewise, a name is never split, and no separator exists
-in a path. Which bytes a name may hold on a system that extracts the tree is that system's matter.
+in a path. Which bytes a name can hold on a system that extracts the tree is that system's matter.
 
 Two paths are EQUAL when they have the same number of members and their members are equal terms in order (`P3`, "The term
 model"); since the text of an octets literal is generated from its octets, this is equality of the octets. A path `p` is a PROPER PREFIX of a path `q` when
@@ -258,7 +258,7 @@ What a tool does is not this document's matter. Whether a tool that extracts a t
 sets an owner or writes outside a destination is the tool's behaviour and outside the specification; this document defines the
 archive, the checks on it and the order of every listing of it (PF-files-12, PF-files-13).
 
-A COMPONENT IS A NAME, NOT A PATH. A file that passes every check of this profile may hold a component whose octets hold the
+A COMPONENT IS A NAME, NOT A PATH. A file that passes every check of this profile can hold a component whose octets hold the
 byte `2f`, the byte `00`, or the bytes `2e 2e 2f`: the profile judges a component whole (2.3) and refuses only the empty name,
 `2e` and `2e 2e`. A tool that writes a component into a path of its system by joining bytes therefore can name a place that the
 tree does not hold, outside its destination included. The tree itself is unambiguous: its structure is the list of `f:path`, and

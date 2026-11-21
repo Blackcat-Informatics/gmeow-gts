@@ -21,7 +21,7 @@ It depends on these parts, cited by part and section title:
 - `P5` (Durability): "The committed prefix";
 - `P7` (Canonical form and reading): "The typed result of reading", "Capacity", "The reader procedure", "The fold of the whole
   file", "The closing phase of a segment, and visibility", "The canonical form", "The canonical check", "The canonical frames
-  that may exceed the minimum capacity";
+  that can exceed the minimum capacity";
 - `P8` (Sealing): "The values of registry version `2`", for the frame types `keys` and `sealed`.
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
@@ -72,13 +72,13 @@ later revision of this document appends a check with the next number.
 - STORED CEILING `Cs`; value: `67108864` bytes (`2^26`); reason: the minimum `stored_bytes_per_frame` of a conforming reader
   (`P7` "Capacity", `U-C`), by the same argument for `stored_size`.
 
-Both ceilings rest on a stated design reason, the minimum capacity of a reader, and are bounds a writer must meet, not measured
+Both ceilings rest on a stated design reason, the minimum capacity of a reader, and are bounds a writer has to meet, not measured
 optima.
 
 A different ceiling is a different profile, with a value of its own in the profile table, never a parameter.
 
-What follows from the ceilings. The part on canonical form and reading lists, once, every frame of a canonical file that may
-exceed `2^26` bytes and so the minimum capacity (`P7`, "The canonical frames that may exceed the minimum capacity"). A fold
+What follows from the ceilings. The part on canonical form and reading lists, once, every frame of a canonical file that can
+exceed `2^26` bytes and so the minimum capacity (`P7`, "The canonical frames that can exceed the minimum capacity"). A fold
 whose canonical file holds a frame of that list above a ceiling has no distribution file.
 
 ## 3. What the profile adds, and what it never changes
@@ -197,7 +197,7 @@ have one digest, which no capacity changes either, because it does not implement
 complete for a reason that is not damage. Such a result that shows both a refuting fact and an unfinished verification is
 REFUTED. The three outcomes are
 disjoint and every result has one. An inconclusive result is accepted neither as verified nor as refuted; a reader of a larger
-capacity or a fuller implementation may verify the same file.
+capacity or a fuller implementation can verify the same file.
 
 The predicate says nothing about who wrote the file: `authenticity` is a separate field, and a consumer that needs it applies its
 own rule to it (`P6`, "Coverage and authentication").
@@ -252,7 +252,7 @@ vector names it, its outcome under section 6. Files are built by the reference e
 - `dist-not-alone`; holds: `dist-pass` twice, concatenated; expected: `profile_violation`, `dist_not_alone`, `count` `2`, in
   each segment; `lineage_begins` in the second.
 - `dist-decoded-size`; holds: the canonical file of a fold whose dictionary holds one IRI longer than the budget `Bt`, so that
-  its `terms` frame holding that one term (a frame of the list that `P7` "The canonical frames that may exceed the minimum
+  its `terms` frame holding that one term (a frame of the list that `P7` "The canonical frames that can exceed the minimum
   capacity" gives) has decoded length `67108865`, with `profile` `present(dist)`; read at the minimum capacity; expected:
   `dist_decoded_size` at that frame with `count` `67108865`, `exceeds_capacity` with `decoded_size`, the structure and labelling
   levels of the canonical check `unchecked` with `exceeds_capacity`, and no `canonical_violated`.

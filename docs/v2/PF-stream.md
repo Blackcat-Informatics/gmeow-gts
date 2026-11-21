@@ -101,7 +101,7 @@ after that frame.
 
 How a live writer meets the rules. It counts the ordinary frames since its last commit and writes a commit before the count
 would pass `Ns`; it holds the bytes of the open span, at most `4194304` bytes,
-since the open span may be the final span, whose depth and shard length are known only when the closing index is written (`P5`,
+since the open span can be the final span, whose depth and shard length are known only when the closing index is written (`P5`,
 "Cost"), and writes the
 span's parity frame as soon as an item reaches the span's end, before it writes the next ordinary frame. A span that ends before the closing index holds
 `4194304` bytes, so every parity frame of a live segment before its closing `index` frame is the frame of a span of shards of
@@ -181,7 +181,7 @@ writes the final span's parity (`PF-stream-5`); until then they are the unprotec
 
 Overlaps. Each check reports its own finding. A damaged parity frame gives `parity_damaged` and, for a due span, also
 `stream_parity_missing`. A commit that fails its count or root is not valid and gives `commit_count_mismatch` or
-`commit_root_mismatch`; the commit interval it would have ended continues and may give `stream_commit_interval`. A long commit interval at the end of
+`commit_root_mismatch`; the commit interval it would have ended continues and can give `stream_commit_interval`. A long commit interval at the end of
 the segment gives `uncommitted_tail` and `stream_commit_interval`.
 
 ## 6. Worked example

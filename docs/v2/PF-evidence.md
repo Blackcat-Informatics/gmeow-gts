@@ -77,7 +77,7 @@ and a later revision of this document appends a check with the next number.
   than a classical scheme can be assumed to hold, and the composite holds while either of its halves holds (`P2`, "The mandatory
   algorithm set"). The cost of its size is bounded by the cadence above.
 
-Both constants rest on stated design reasons and are bounds a writer must meet, not measured optima; the cadence uses the
+Both constants rest on stated design reasons and are bounds a writer has to meet, not measured optima; the cadence uses the
 figures of `FE4-12` and of `P2` for its arithmetic; that measurement wrote one signed commit, for its size, and no stream of
 signed commits.
 

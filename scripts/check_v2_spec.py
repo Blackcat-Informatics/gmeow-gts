@@ -291,7 +291,7 @@ def check_key_words(docs: dict[str, Document]) -> Iterator[Finding]:
                     yield Finding(doc.name, number, f"key word {word} is not one of the levels in use")
                 elif doc.requirement[number - 1] is None and kind == "prose":
                     yield Finding(doc.name, number, f"key word {word} outside a numbered requirement")
-            for match in KEY_WORDS_LOWER.finditer(line):
+            for match in KEY_WORDS_LOWER.finditer(re.sub(r"`[^`]*`", "", line)):
                 yield Finding(doc.name, number, f"lower-case key word '{match.group(1)}'")
 
 

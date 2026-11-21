@@ -74,7 +74,7 @@ frame"): the visible dataset holds exactly one binding whose term value is `T`, 
 Why this form. The declaration is RDF content and a binding, both of which the core already defines: it is in the fold, in the
 labelled set and so in the content digest, it is hidden by suppression like any statement, and the canonical file of the fold
 keeps it. No media type is compared and no blob byte is inspected to find a nested file: the class statement says it. A new
-referent kind would change the grammar of the `bindings` frame and the fold, which no profile may change; a profile frame would
+referent kind would change the grammar of the `bindings` frame and the fold, which no profile can change; a profile frame would
 stand outside the fold, so the canonical file of the fold could not keep it. Other statements about `T` (a name, a role, a media
 type of the consumer's vocabulary) are the consumer's and are not read by this profile.
 
@@ -86,12 +86,12 @@ default graph and exactly one binding of `T` to a `blob` referent naming that bl
 
 ## 3. Constants
 
-- DEPTH `Dmax`; value: `4`; reason: a stated design bound that a writer must meet, not a measured optimum. Every recipe may name
+- DEPTH `Dmax`; value: `4`; reason: a stated design bound that a writer has to meet, not a measured optimum. Every recipe can name
   a unit many times, so a small nested file can declare a large nested file of its own (`P4`, "Rebuilding a blob or a value");
   the depth bound with the size bound below makes the work of the checks a function of the outer file and the two constants. The
   uses this set names need at most two levels (a bundle of custody chains that each carry a compacted source); `4` leaves two
   levels beyond them.
-- SIZE `Smax`; value: `4294967296` bytes (`2^32`); reason: a stated design bound that a writer must meet, not a measured
+- SIZE `Smax`; value: `4294967296` bytes (`2^32`); reason: a stated design bound that a writer has to meet, not a measured
   optimum. It bounds the input of one nested read. The work of all the nested reads of one outer read together is bounded by the
   shared allowance of section 4.
 
@@ -129,7 +129,7 @@ READS, is made with the reader's capacity except those five fields, each of whic
 read and every nested read before it in that order have used: the items they delimited, the sums of their total decoded
 lengths, of their total rebuilt lengths, of their total formed lengths and of their total labelled weights. The `capacity` of
 the result of a nested read states the values it was made
-with, so every refusal in it is explained by its own result (`P7`, "Capacity"). These values may lie below the minimum capacity
+with, so every refusal in it is explained by its own result (`P7`, "Capacity"). These values can lie below the minimum capacity
 of a conforming reader: the minimums of `P7` bind the reader's own capacity, and a nested read uses what remains of it. The bytes
 of a nested file are not charged again: they are the output of a rebuild that the outer read admitted, or the decoded payload of
 a `blob` frame or member, which a total already counts.
