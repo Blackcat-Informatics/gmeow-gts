@@ -175,7 +175,8 @@ A `read_result` is a VERIFIED DISTRIBUTION exactly when all five of these hold.
    code `profile_violation` with the subject profile `1`.
 3. CONTENT DIGEST. The file's `content_digest` is `present` and equal to the segment's `content_digest`.
 4. WHOLE INPUT READ. The file's findings hold none of `torn_tail`, `undelimitable_input`, `read_failed` and `exceeds_capacity`;
-   the segment's `offset` is `0`; its `integrity` is `intact` (every payload verified, no rebuild and no `terms` frame refused, no damage); and no
+   the segment's `offset` is `0`; its `integrity` is `intact` (every payload verified, no rebuild and no `terms` frame refused, no
+   damage); and no
    finding of the segment or of its frames has the code `exceeds_capacity`.
 5. VISIBILITY COMPLETE. `visible` has the tag `complete`.
 
@@ -185,10 +186,12 @@ nothing of the bytes that were not read, and what the items read show of a segme
 canonical level `failed`, a `profile_violation`) is not a fact of the file.
 
 Every other result that is not a verified distribution is REFUTED when it shows that the bytes read are not a distribution file:
-a `file` that is not of the tag `second_generation` or that has no segment; a first segment whose `header_identifier` is `present` and
+a `file` that is not of the tag `second_generation` or that has no segment; a first segment whose `header_identifier` is `present`
+and
 whose `profile` is `absent` or is not `1`; a finding `profile_violation` with the subject profile `1`; a canonical level
 `failed`; `integrity` `damaged`; or a file finding `torn_tail` or `undelimitable_input`. It is INCONCLUSIVE otherwise: the
-reader did not finish the verification, because a limit of its capacity was met (a level or a payload `unchecked` with `exceeds_capacity`, a finding
+reader did not finish the verification, because a limit of its capacity was met (a level or a payload `unchecked` with
+`exceeds_capacity`, a finding
 `exceeds_capacity`, a rebuild `refused`, a `labelling_refused` by a limit of the reader), because its labelling is refused by
 `refusal_width`, which no capacity changes, or by `refusal_term_node`, the refusal of a fold in which two different nested terms
 have one digest, which no capacity changes either, because it does not implement this profile

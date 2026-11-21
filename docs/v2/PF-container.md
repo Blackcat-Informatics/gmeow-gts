@@ -36,7 +36,8 @@ External documents cited, by identifier, title and date:
 
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
 encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes; `<S>` stands for the
-`32` bytes of a digest that the example does not state. `rdf:` stands for `http://www.w3.org/1999/02/22-rdf-syntax-ns#`, `xsd:` for
+`32` bytes of a digest that the example does not state. `rdf:` stands for `http://www.w3.org/1999/02/22-rdf-syntax-ns#`, `xsd:`
+for
 `http://www.w3.org/2001/XMLSchema#` and `c:` for `https://w3id.org/gts/pf/container#` in this text only; no rule reads a prefix,
 and every IRI is compared whole. A
 requirement has an identifier `PF-container-n` and states one thing.
@@ -212,7 +213,8 @@ hexadecimal and is not the value the server sent.
   15); at most one.
 - `https://w3id.org/gts/pf/container#auxiliaryFor`; object: an IRI, the subject resource of which this resource is an auxiliary
   resource; at most one.
-- `https://w3id.org/gts/pf/container#relationType`; object: an octets literal whose octets are not empty, one link relation type, as the exporter
+- `https://w3id.org/gts/pf/container#relationType`; object: an octets literal whose octets are not empty, one link relation type,
+  as the exporter
   states it; the format does not judge the inside of the value, which is compared whole and bytewise; exactly one when
   `auxiliaryFor` is present, none otherwise.
 - `https://w3id.org/gts/pf/container#contains`; object: an IRI, a member the container listed; any number.
@@ -301,7 +303,8 @@ they run once for a file, after the closing phase of every segment of the file, 
 of the last segment whose header outcome is `readable` and whose header `profile` is `present(container)`. Each failing check is
 ONE finding `profile_violation` with `reason` `absent`, `subject`
 `[4, 6, present(c)]` (`c` the number of the check, section 1), `position`, `offset` and `length` absent, and `count` the number
-of items its condition names; it stands in the findings of the reporting segment, in the order of `P7` ("Where each finding stands, and in what order"). A
+of items its condition names; it stands in the findings of the reporting segment, in the order of `P7` ("Where each finding
+stands, and in what order"). A
 reader that does not implement the profile
 reports `profile_not_checked` instead (section 1).
 
@@ -386,7 +389,8 @@ MUST judge the forms of 3.2 by the pairs of VALUES of the fold and the whole equ
 value by a test of its bytes, and MUST NOT parse a media
 type, an entity tag, a link relation type, a status code, an IRI or any lexical form.
 
-Overlaps. A failure of check `3`, `5` or `6` withholds checks `11` to `13`. Each check reports its own finding. A `suppress` frame gives `container_suppress_frame`, and its unmatched entries
+Overlaps. A failure of check `3`, `5` or `6` withholds checks `11` to `13`. Each check reports its own finding. A `suppress` frame
+gives `container_suppress_frame`, and its unmatched entries
 give `suppression_unmatched` from the core. An export bound to a commit that the file does not hold gives `missing_dependency`
 with `state` from the core, one bound to a commit that names no state to the reader gives it with `state_unavailable`, and
 neither gives `container_export_state`. An observation with two kinds gives

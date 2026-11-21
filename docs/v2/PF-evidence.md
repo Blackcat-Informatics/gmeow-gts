@@ -115,13 +115,15 @@ head and, as `ordinal`, `1` when that segment has no lineage and that segment's 
 "The header").
 
 **PF-evidence-13.** A writer that appends a filler (`P1`, "Growing a file", THE FILLER) and whose resync item states the profile
-`evidence` in its `profile` field MUST write, in that resync item, the `observed_defect` mark of the torn item (finding `torn_tail`, `count` `1`, the byte target of the torn
+`evidence` in its `profile` field MUST write, in that resync item, the `observed_defect` mark of the torn item (finding
+`torn_tail`, `count` `1`, the byte target of the torn
 item's bytes) and the `filler` mark naming exactly the filler's bytes. This is a requirement of a writer; no check of a reader
 judges it, since a reader cannot tell a filler that no mark names.
 
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). A
-canonical file has one commit, so the canonical file of a fold of more than `Ne` ordinary frames before that commit fails `evidence_commit_interval` and is no custody chain; a writer
+canonical file has one commit, so the canonical file of a fold of more than `Ne` ordinary frames before that commit fails
+`evidence_commit_interval` and is no custody chain; a writer
 of evidence keeps the rounds it appended.
 
 **PF-evidence-8.** The canonical file of a fold under this profile MUST be the canonical file of the fold with the header's
@@ -158,7 +160,8 @@ The conditions, one for each check:
    exactly when the sealed frame that carries it is an authenticated frame. It is a check over the whole file: it runs once, in
    the last segment of the file whose header outcome is `readable` and whose header `profile` is `present(evidence)`, and gives
    one finding there, with `position` absent and `count` the number of such frames. The reason: a suppression entry hides
-   content of every segment (`P3`, "Suppression hides"), and what an entry hides does not depend on the segment that holds it, and depends on
+   content of every segment (`P3`, "Suppression hides"), and what an entry hides does not depend on the segment that holds it, and
+   depends on
    the order of frames and of segments only through the holder of a frame, which decides the node that a pair names
    (`P3`, "Naming a blank node in a binding or an entry"), and the values that serve a term (`P3`, "`literal_ref`: a lexical form
    held by a `value` frame"), so an entry in any segment, whatever
@@ -188,7 +191,8 @@ present").
 | `evidence_no_commit` | absent | absent |
 
 **PF-evidence-9.** A reader that implements this profile MUST run checks 1 to 6 and 8 on every segment of section 5 and check 7
-once for the file, and MUST report each failure as `profile_violation` with `reason` `absent`, `subject` `[4, 2, present(c)]`, and exactly the `position` and
+once for the file, and MUST report each failure as `profile_violation` with `reason` `absent`, `subject` `[4, 2, present(c)]`, and
+exactly the `position` and
 `count` of the table.
 
 **PF-evidence-10.** A reader MUST judge checks 4, 5 and 6 from the `signature_result` records of `P6` alone, computed with the
@@ -203,13 +207,15 @@ signs as `PF-evidence-6` requires, so that the frame is authenticated wherever i
 Overlaps. Each check reports its own finding. A `suppress` frame in the uncommitted tail of an evidence segment gives
 `evidence_suppress_unauthenticated` and `evidence_uncommitted_tail`. `evidence_uncommitted_tail` stands beside the core's
 `uncommitted_tail`, and beside `evidence_commit_interval` when the tail holds more than `Ne` frames. `evidence_lineage` stands
-beside `lineage_begins` or `lineage_mismatch`, and stands alone for a segment whose previous segment has a header outcome `unreadable`
+beside `lineage_begins` or `lineage_mismatch`, and stands alone for a segment whose previous segment has a header outcome
+`unreadable`
 or `links_unavailable`. A commit whose pinned signature is `invalid` or `unverified` gives
 `signature_invalid` or `signature_unverified` and `evidence_commit_unauthenticated`. A commit that fails its count or root is
 not valid: its signature does not authenticate (`P6`, "Coverage and authentication"), so it gives
 `evidence_commit_unauthenticated`, and the commit interval it would have ended continues.
 
-What the profile proves, stated with its assumption. When no check fails, the segment holds a valid commit, every frame of type `commit` of the segment carries a
+What the profile proves, stated with its assumption. When no check fails, the segment holds a valid commit, every frame of type
+`commit` of the segment carries a
 composite signature that authenticates under a key of `trusted_keys`, and the segment ends at a valid commit; by `P6` "Coverage
 and authentication" every ordinary frame whose link holds is then an authenticated frame, and every folded `suppress` frame of
 the file, in whatever segment it stands, clear or opened from a sealed frame, is authenticated (a clear one as a frame of its

@@ -81,9 +81,11 @@ document is a check of section 5 or a requirement on a writer.
 
 ## 4. Writer rules
 
-DEFINITIONS. A VALID COMMIT is a `commit` frame that `P5` "The checks of a commit" calls valid. A COMMIT INTERVAL of a segment is a maximal
+DEFINITIONS. A VALID COMMIT is a `commit` frame that `P5` "The checks of a commit" calls valid. A COMMIT INTERVAL of a segment is
+a maximal
 sequence of consecutive ordinary frames of the segment, in item order, none of which is a valid commit; transparent and ordinary
-frames are those of `P1` "The predecessor and transparent frames", and transparent frames neither belong to a commit interval nor end one.
+frames are those of `P1` "The predecessor and transparent frames", and transparent frames neither belong to a commit interval nor
+end one.
 `S`, a SPAN and its `first` and `end` are those of `P5` "The stream and the spans"; a span is FULL when its `end` is at most the
 length of `S`. The item that REACHES a span is the first non-transparent item whose end in `S` is at least the span's `end`. A
 full span is DUE when the item that reaches it is followed, in the segment, by a further ordinary frame.
@@ -98,14 +100,17 @@ How a live writer meets the rules. It counts the ordinary frames since its last 
 would pass `Ns`; it holds the bytes of the open span, at most `4194304` bytes,
 since the open span can be the final span, whose depth and shard length are known only when the closing index is written (`P5`,
 "Cost"), and writes the
-span's parity frame as soon as an item reaches the span's end, before it writes the next ordinary frame. A span that ends before the closing index holds
+span's parity frame as soon as an item reaches the span's end, before it writes the next ordinary frame. A span that ends before
+the closing index holds
 `4194304` bytes, so every parity frame of a live segment before its closing `index` frame is the frame of a span of shards of
-`4096` bytes; the parity frame of the final span, written after the closing index from the bytes held, takes the shard length that `P5`,
+`4096` bytes; the parity frame of the final span, written after the closing index from the bytes held, takes the shard length that
+`P5`,
 "Shards, stripes and parity shards", gives its length.
 
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). A
-canonical file has one commit, so the canonical file of a fold of more than `Ns` ordinary frames before that commit fails `stream_commit_interval`; the snapshot of a long stream is
+canonical file has one commit, so the canonical file of a fold of more than `Ns` ordinary frames before that commit fails
+`stream_commit_interval`; the snapshot of a long stream is
 distributed without this profile.
 
 **PF-stream-6.** The canonical file of a fold under this profile MUST be the canonical file of the fold with the header's
@@ -121,7 +126,8 @@ whose header `profile` is `present(stream)`. Each failing check is the finding `
 
 The conditions, one for each check:
 
-1. `stream_commit_interval`: a commit interval of the segment holds more than `Ns` frames. One finding for each such commit interval, at the frame of
+1. `stream_commit_interval`: a commit interval of the segment holds more than `Ns` frames. One finding for each such commit
+   interval, at the frame of
    the commit interval that is `Ns + 1`-th in it, with `count` the number of frames of the commit interval.
 2. `stream_parity_missing`: a due span has no parity frame in the segment whose `first` and `end` are those of the span, which
    stands at the place that `P5` "The stream and the spans" gives it (immediately after the item that reaches the span and after
@@ -160,7 +166,8 @@ boundary: both checks run on the frames that have arrived, a due span being judg
 item has arrived.
 
 A writer that keeps the rules and writes undamaged bytes meets the premise at every item boundary: each commit it writes has an
-intact identifier, so its link holds without a later frame, and its `count` and `root` agree. A reader that reads such a file live,
+intact identifier, so its link holds without a later frame, and its `count` and `root` agree. A reader that reads such a file
+live,
 at any item boundary, reports no finding of this profile. For a prefix that holds a commit that is not valid in it, the claim
 says nothing: a later item can make such a commit valid in a longer prefix without changing any earlier byte, so the findings
 of that prefix, `stream_commit_interval` and `uncommitted_tail` among them, are the findings of that prefix read as a file and
@@ -176,7 +183,8 @@ writes the final span's parity (`PF-stream-5`); until then they are the unprotec
 
 Overlaps. Each check reports its own finding. A damaged parity frame gives `parity_damaged` and, for a due span, also
 `stream_parity_missing`. A commit that fails its count or root is not valid and gives `commit_count_mismatch` or
-`commit_root_mismatch`; the commit interval it would have ended continues and can give `stream_commit_interval`. A long commit interval at the end of
+`commit_root_mismatch`; the commit interval it would have ended continues and can give `stream_commit_interval`. A long commit
+interval at the end of
 the segment gives `uncommitted_tail` and `stream_commit_interval`.
 
 ## 6. Worked example

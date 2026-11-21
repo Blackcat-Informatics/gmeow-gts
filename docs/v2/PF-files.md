@@ -37,7 +37,8 @@ External documents cited, by identifier, title and date:
 Notation. Enumeration values are written by label; codes are those of `P2` and of section 1. `E(x)` is the deterministic CBOR
 encoding of `x` (`P1`). A byte string is written in hexadecimal, two digits a byte, a space between bytes. `rdf:` stands for
 `http://www.w3.org/1999/02/22-rdf-syntax-ns#` and `xsd:` for `http://www.w3.org/2001/XMLSchema#` in this text only; no rule
-reads a prefix, and every IRI is compared whole. `f:` stands for `https://w3id.org/gts/pf/files#` in the same way. A requirement has an identifier `PF-files-n`
+reads a prefix, and every IRI is compared whole. `f:` stands for `https://w3id.org/gts/pf/files#` in the same way. A requirement
+has an identifier `PF-files-n`
 and states one thing.
 
 REQUIREMENT LANGUAGE. The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
@@ -141,11 +142,13 @@ least one member. Each member is a COMPONENT: the name of one directory level, o
 
 A component is VALID when it is an octets literal whose octets are not empty, are not `2e` (one dot) and are not `2e 2e` (two
 dots). These are the names that name the directory itself or its parent, or nothing. Nothing else of a name is judged: the format
-does not judge the inside of a name, which is one value compared whole and bytewise, a name is never split, and no separator exists
+does not judge the inside of a name, which is one value compared whole and bytewise, a name is never split, and no separator
+exists
 in a path. Which bytes a name can hold on a system that extracts the tree is that system's matter.
 
 Two paths are EQUAL when they have the same number of members and their members are equal terms in order (`P3`, "The term
-model"); since the text of an octets literal is generated from its octets, this is equality of the octets. A path `p` is a PROPER PREFIX of a path `q` when
+model"); since the text of an octets literal is generated from its octets, this is equality of the octets. A path `p` is a PROPER
+PREFIX of a path `q` when
 `p` has fewer members than `q` and they are equal member by member.
 
 THE ENTRY ORDER. The entries that have a VALID PATH (a well-formed list, every component valid) are ordered by their paths:
@@ -167,7 +170,8 @@ ties are broken by the place of the record term.
 
 ### 2.4 Properties
 
-For each property: its full IRI, its subject (the domain), its object (the range, with the term kinds of the term model that it allows), and
+For each property: its full IRI, its subject (the domain), its object (the range, with the term kinds of the term model that it
+allows), and
 how many statements of it one subject has. "Functional" means at most one.
 
 - `https://w3id.org/gts/pf/files#path`; subject: an entry; object: a blank node, the head of a well-formed list; exactly one.
@@ -309,7 +313,8 @@ lacks one; that entry is counted by `files_entry_path`, `files_component` or `fi
    has no valid kind or another kind; a record property on a term that is not a record of its kind; or a record that is the
    object of more than one record statement. Counts subjects.
 9. `files_value`: a statement whose predicate is a property of 2.4 and whose object is not of its range: a term of another kind,
-   a literal of another datatype or form (2.2), an empty value where 2.4 forbids one, or an IRI outside the set the property names. For `f:path` the check judges the kind of the object alone, a
+   a literal of another datatype or form (2.2), an empty value where 2.4 forbids one, or an IRI outside the set the property
+   names. For `f:path` the check judges the kind of the object alone, a
    blank node; whether the list is well formed is check `1`. For `f:hardLinkOf` it judges the kind of the object alone, an IRI
    or a blank node; whether that term is an entry of kind `RegularFile` is check `10`. Counts subjects.
 10. `files_hard_link`: an entry of kind `HardLink` whose `f:hardLinkOf` object is not an entry of kind `RegularFile`. Counts
@@ -351,7 +356,8 @@ with one binding of `_:a` to the blob `[blake3_256, D]` that holds the file's by
 literal of `f:modified` is written as the typed value `[4, 1781121600, 0]`, which VALUES of the fold holds; its lexical form
 `2026-06-10T20:00:00Z` is generated. Every component is an octets literal, a typed value
 of kind `octets` (`[5, h'...']` above): `docs` is the bytes `64 6f 63 73` with the generated lexical form `646F6373`, and `a.txt`
-is the bytes `61 2e 74 78 74` with `612E747874`. The entry order puts `_:d` (path `["docs"]`) before `_:a` (path `["docs", "a.txt"]`).
+is the bytes `61 2e 74 78 74` with `612E747874`. The entry order puts `_:d` (path `["docs"]`) before `_:a` (path `["docs",
+"a.txt"]`).
 
 If the directory entry `_:d` is removed, `_:a` fails check `4` `files_missing_parent`, and the finding is the typed value
 `[profile_violation, absent, present([4, 5, present(4)]), absent, absent, absent, present(1)]`. Its bytes, from the finding

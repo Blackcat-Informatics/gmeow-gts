@@ -103,7 +103,8 @@ THE NESTED READ. For a nested file whose bytes the reader can rebuild, the reade
 "The reader procedure", with its own registry version, capacity and inputs, and with the DEPTH of that file in the tree of the
 outer read (below). The depth is carried through every nested read: a nested read of a file at depth `d` runs the checks of this
 profile on that file with depth `d`, reads its own nested files at depth `d + 1`, reads no nested file when `d` is `Dmax`, and
-reads no blob that has already been read in the ORDER OF THE NESTED READS (below). That read is separate: its result is not part of the outer `read_result`,
+reads no blob that has already been read in the ORDER OF THE NESTED READS (below). That read is separate: its result is not part
+of the outer `read_result`,
 and the outer fold, the outer labelled set, the outer content digest, `integrity` and `authenticity` hold the nested file as a
 blob and nothing else. A nested file's frames are never frames of the outer segment and its lines are never lines of the outer
 fold.
@@ -185,7 +186,8 @@ the content digest, the canonical form, and the registry and the meaning of any 
 document is a check of section 6 or a requirement on a writer or a reader.
 
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
-its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). The canonical status of a nested file is its own.
+its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). The
+canonical status of a nested file is its own.
 
 **PF-bundle-8.** The canonical file of a fold under this profile MUST be the canonical file of the fold with the header's
 `profile` `present(bundle)`: the profile changes no step of its construction.
