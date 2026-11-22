@@ -1,0 +1,109 @@
+{
+ "name": "deltas-value-dependency",
+ "section": "P3 2.6",
+ "status": "built and matches",
+ "note": "a segment that declares a value and a segment whose term names it, in both orders and the second alone: the value serves only what stands after it, and the segment's own fold never holds it",
+ "cases": [
+  {
+   "label": "value-then-term",
+   "input_file": "deltas-value-dependency.value-then-term.bin",
+   "length": 813,
+   "sha256": "d386b75c4295e9677e76b66f955180c083140a1fd05c7e8daf68860bf9bb2126",
+   "inputs": [
+    [],
+    []
+   ],
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "profiles": [],
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000019018b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b1874820208018101810180810180808b02187f189a82020b0181018101808101818281018101808b03190119187282020e0181018101808102808080920119018b1901a28101820258200c6f72607efd0f8352a1d017f5b21dc887975c981408c3dce74870d0de1c8934820201820201810101030303008085f482020582020582020581018101838b011901ba18a2820201018101810180810180808b0219025c185f820202018101810180810180808b031902bb187282020e0181018101808102808080808202582032eaa574d4ae4e3e6ac525138ba9413b07a0dffb9f03be55fb84d00196b223dd8201000200",
+   "result": {
+    "lines": [
+     "quad(s, p, literal_ref abc)"
+    ],
+    "findings": []
+   }
+  },
+  {
+   "label": "term-then-value",
+   "input_file": "deltas-value-dependency.term-then-value.bin",
+   "length": 813,
+   "sha256": "21e72738ea561ac873a44b16057073fdf3819e98f1516e8365190906d47d3023",
+   "inputs": [
+    [],
+    []
+   ],
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "profiles": [],
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000019017e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b18a28202010181018101808101808187138202181a81018202018101810181018b0218ad185f82020201810181018081018081871819810181018202028101810181018b0319010c187282020e0181018101808102808080920119017e1901af8101820258201b3b8b442a10957be4678d168f1c726e5e895fa0d0d6312f5bd3c33a021f2374820201820201810101030303008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b011901ad1874820208018101810180810180808b02190221189a82020b0181018101808101818281018101808b031902bb187282020e01810181018081028080808081018201000200",
+   "result": {
+    "lines": [],
+    "held": [
+     "quad(s, p, literal_ref)"
+    ],
+    "findings": [
+     "missing_dependency/value at the terms frame of segment 0",
+     "opaque_term at its quads frame"
+    ]
+   }
+  },
+  {
+   "label": "term-alone",
+   "input_file": "deltas-value-dependency.term-alone.bin",
+   "length": 382,
+   "sha256": "3b40fef837163178bd2b844f1ae07aea5853a80a644b79fc943163b0ba7d4d40",
+   "inputs": [
+    [],
+    []
+   ],
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "profiles": [],
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019017e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b18a28202010181018101808101808187138202181a81018202018101810181018b0218ad185f82020201810181018081018081871819810181018202028101810181018b0319010c187282020e01810181018081028080808081018201000200",
+   "result": {
+    "lines": [],
+    "held": [
+     "quad(s, p, literal_ref)"
+    ],
+    "findings": [
+     "missing_dependency/value at the terms frame",
+     "opaque_term at its quads frame"
+    ]
+   }
+  }
+ ]
+}

@@ -25,8 +25,8 @@ profile whose rule gives the result. An entry has these lines:
 
 THE DEFAULT READ. Unless an entry says otherwise, the read has the access `whole`, every field of `capacity` that has a
 minimum value at that value, `marks` `absent`, an empty `profiles`, the registry version that the file needs, and empty
-`trusted_keys`, `held_keys` and `sealing_input`. Where an entry puts a key in
-`trusted_keys`, or calls a signer trusted, both `trusted_keys` and `held_keys` hold that key, unless the entry says otherwise.
+`trusted_keys`, `held_keys` and `sealing_input`. Where an entry puts a key in `trusted_keys`, or calls a signer trusted,
+`trusted_keys` holds that key, and `held_keys` holds the key of every signature of the file, unless the entry says otherwise.
 
 WORDS. KEYLESS is a read with an empty `sealing_input`. A POSITION is the position of an item in its segment, the header at
 `0`. An ORDINARY POSITION counts the ordinary frames of a segment from `0`. A STORAGE REWRITE changes `storage`, a stored payload
@@ -57,14 +57,18 @@ profiles of the read.
   parity frames added at their places, with the `offsets` item and the locator written again.
 - Built: `B1` and `B2` are storage rewrites of `A`. `B3` adds transparent frames, each with an identifier of its own, and changes
   no identifier of `A`.
-- Read: `trusted_keys` holds the first signer; a second read of `B1` trusts the added key alone.
+- Read: `trusted_keys` holds the first signer and `held_keys` holds both signers; a second read of `A` and of `B1` trusts the
+  added key alone, with the same `held_keys`.
 - Result: in all four files every frame of `A` has the same identifier, the head and the root of the commit are equal, and the
-  content digests are equal. A file proof from `A` to each of them gives `proof_holds`. The bytes and their whole-byte digests
-  differ. `B1` has one more `signature_result`, and its `authenticity` differs from that of `A` when only the added key is
-  trusted.
+  content digests are equal. A file proof from `A` to each of them gives `proof_holds`; the `proof` of its entry is `absent`, and
+  the proof holds by the comparison of the head. The bytes and their whole-byte digests
+  differ. `B1` has one more `signature_result`, and when only the added key is trusted `A` is `unauthenticated` and `B1` is
+  `authenticated`.
 - Application: a synchronization that compares heads reports the four as equal. A synchronization of exact replicas compares
   whole bytes and reports three differences.
 - Rule: `P1`, "What the identifier commits to"; `P5`, "What a proof proves, and what it does not".
+- Corpus: `P1/equal-heads-different-bytes` is the four files and their reads; `P6/signature-added-other-key-trusted` is the reads
+  of `A` and of `B1` with the added key alone trusted; `P5/proof-file-equal-heads` is the three file proofs.
 
 ### FX-003 A cursor in a file that holds one segment twice
 
@@ -76,6 +80,7 @@ profiles of the read.
   cursor of the identifier alone is refused as ambiguous.
 - Rule: `P1`, "Every preimage, typed" (an identifier is a function of the fields of the frame and of its predecessor, and of
   no offset); `P7`, "The records" (`segment_result.ordinal`).
+- Corpus: `P3/state-repeated-segment` is the file and its read. No entry records a cursor.
 
 ## 3. `P3`: content, the fold, suppression and the projection
 
@@ -87,6 +92,7 @@ profiles of the read.
   from that of `S`. The content digest of each of its segments equals that of `S`.
 - Application: a synchronization layer drops the replay by the identity of the operation before it composes.
 - Rule: `P3`, "The fold", "Definition" (item 1); `P1`, "Growing a file", CONCATENATION.
+- Corpus: `P3/replayed-segment-annotation` is the case.
 
 ### FX-005 A replayed segment with a blank node
 
@@ -96,18 +102,21 @@ profiles of the read.
   holds one line, and its content digest equals that of `S`.
 - Application: as FX-004. An entity that two replicas speak of is named by an IRI.
 - Rule: `P3`, "The term model" and "Resolution"; `P3`, "What the order of frames and the order of segments decide".
+- Corpus: `P3/replayed-segment-blank-node` is the case.
 
 ### FX-006 Two deltas of which one depends on the other
 
 - Input: `F`, a segment with the units and the `value` declaration of a value of the digest `d`. `G`, a segment whose `terms`
   frame holds a `literal_ref` term that names `d` and whose `quads` frame uses it; `G` holds no declaration of the value.
   Files: `F` then `G`; `G` then `F`; `G` alone.
-- Result: in `F` then `G` the term is readable and the row is a line. In `G` then `F`, and in `G` alone, the term is
+- Result: in `F` then `G` the term is readable and the row is a line; the content digest of the file is `present`, and that of the
+  segment `G`, in whose own fold the value does not stand, is `absent`. In `G` then `F`, and in `G` alone, the term is
   unreadable with `missing_dependency` and the reason `value`, the row is held with `opaque_term`, and the content digest of
   the file is `absent`.
 - Application: the synchronization layer orders `F` before `G`.
 - Rule: `P3`, "`literal_ref`: a lexical form held by a `value` frame", A VALUE SERVES ONLY WHAT STANDS AFTER IT; `P3`,
   "Unreadable terms" and "Held".
+- Corpus: `P3/deltas-value-dependency` is the case, in its cases `value-then-term`, `term-then-value` and `term-alone`.
 
 ### FX-007 Every order of three independent ground segments
 
@@ -115,9 +124,12 @@ profiles of the read.
   the six files of their orders. A counter-case: `A` holds the line `empty_graph(g)` and `B` holds a `quad` line in the graph
   `g`.
 - Result: the six files have equal folds and equal content digests of the file, and `rdf(F, whole)` is the union of the three
-  projections. In the counter-case `A` alone holds the `empty_graph` line; the joined file, in either order, does not.
+  projections. Every segment after the first has the information finding `lineage_begins`. In the counter-case `A` alone holds the
+  `empty_graph` line; the joined file, in either order, does not.
 - Rule: `P3`, "What the order of frames and the order of segments decide"; "What the digest is a function of"; "The fold",
   "Definition" (an `empty_graph` line whose name another line carries is not in the fold).
+- Corpus: `P3/segment-orders-three-independent` is the case: the six orders, and the three files of the counter-case. It records
+  no projection.
 
 ### FX-008 A suppression before its content, and a repeated suppression
 
@@ -127,6 +139,7 @@ profiles of the read.
   hidden, and no `suppression_unmatched` is reported. The suppression record holds one entry, also where `X` stands twice.
   `unauthenticated_suppress` is the number of folded `suppress` frames: `1`, and `2` in the last file.
 - Rule: `P3`, "Suppression hides"; "The hiding rule"; "The record"; "The visible dataset and visibility".
+- Corpus: `P3/suppress-before-content-repeated` is the case.
 
 ### FX-009 A revised belief, its audit link and a reaffirmation
 
@@ -136,10 +149,12 @@ profiles of the read.
   o>>)` with a later claimed time. In a further variant the lines of `a1` are written again unchanged.
 - Result: T hides the binding and the annotations of `a1`, and also the line `(a2, wasDerivedFrom, a1)`, in which `a1` occurs
   as the object; the visible dataset holds no link from `a2` to its predecessor. R hides the lines whose reifier is `a1` and
-  leaves that link visible. In both, the lines of `a3` are visible, and the lines of `a1` written again stay hidden. The lines
+  leaves that link visible. In both, the lines of `a3` are visible, and the lines of `a1` written again stay hidden; the
+  annotations written again add to their counts, so the content digest differs from that of the file without them. The lines
   are delivered in the order of the canonical file, in which `a3` need not be last.
 - Application: recall orders by the annotation of the claimed time, with a stated rule for ties, and returns `a3` as current.
 - Rule: `P3`, "The hiding rule" (`term`, `reifier`); "Suppression hides"; "The fold", THE ORDER OF DELIVERY.
+- Corpus: `P3/revised-belief-audit-link` is the case. It records no order of delivery.
 
 ### FX-010 A suppression by a party that no reader trusts
 
@@ -148,11 +163,12 @@ profiles of the read.
   frame of segment `1` covered by no signature; and covered by a signature of a key that is not trusted.
 - Read: `trusted_keys` holds the signer of segment `0`; `held_keys` holds both keys.
 - Result: the line is in the fold and is hidden. The visible dataset is empty. `visible` is `[1, 1]`: complete, with
-  `unauthenticated_suppress` `1`. Segment `0` is `authenticated`, segment `1` `unauthenticated`. No finding is an error. The
-  two variants differ only in the `signature_result` of the second.
+  `unauthenticated_suppress` `1`. Segment `0` is `authenticated`, segment `1` `unauthenticated`. No finding is an error. The two
+  variants differ only in the `signature_result` of the second and in the lengths that the signature adds.
 - Application: a contract that requires `unauthenticated_suppress` `0`, or that the suppressing frame be authenticated by a
   key entitled to revise, rejects the revision and reads the claim from the fold. It never reports the claim as absent.
 - Rule: `P3`, "The hiding rule" and "The visible dataset and visibility"; `P7`, "How each state value is decided".
+- Corpus: `P3/suppress-by-untrusted-party` is the case, in its cases `unsigned` and `untrusted-key`.
 
 ### FX-011 Three assertions of one proposition and a decision
 
@@ -161,7 +177,7 @@ profiles of the read.
   same triple `(s, p, o)`: a `reifier_binding` line with a reifier of its own (`a1`, `a2`, `a3`) and annotations for the actor
   and for the evidence, the evidence differing. Segment `3` holds the decision occurrence `d`, with annotations that name
   `a1`, `a2`, `a3`, the outcome and the scope, and no `suppress` frame.
-- Read: once with `trusted_keys` holding the four keys, once holding `h` alone.
+- Read: once with `trusted_keys` holding the four keys, once holding `h` alone; `held_keys` holds the four keys in both reads.
 - Result: the fold holds three `reifier_binding` lines (three reifiers, one triple term), every annotation with the count `1`,
   and `d`. `visible` is `[1, 0]`. With four trusted keys each segment is `authenticated`. With `h` alone, segments `0` to `2`
   are `unauthenticated`, and nothing of the fold changes.
@@ -169,6 +185,7 @@ profiles of the read.
   decide, for the scope that its annotations state.
 - Rule: `P3`, "The fold", "Definition" (lines are a set by value); `P6`, "Authentication"; `P7`, "How each state value is
   decided".
+- Corpus: `P3/assertions-and-decision-keys` is the case.
 
 ### FX-012 A package with two releases
 
@@ -178,15 +195,18 @@ profiles of the read.
 - Application: for the release `:r2`, accepted with the module `N2`. For a request that names no release, refused: two terms
   have the role of the module.
 - Rule: `P3`, "The fold", "Definition", and "The frame, the referents and what a reader does with a binding".
+- Corpus: `P3/package-two-releases` is the case.
 
 ### FX-013 Two licence statements for one image
 
 - Input: segment `0` binds `:master` to the blob `N` and states `:lic1` for it, signed by the curator. An appended segment
   states `:lic2` for the same term, and that `:lic2` replaces `:lic1`, signed by the curator. A release `:rel2` names `:lic2`.
+- Read: `trusted_keys` holds the key of the curator.
 - Result: both statements are in the fold and visible. No finding.
 - Application: for `:rel2`, the licence is `:lic2`. A request for "the licence of the image" with no release is refused as
   ambiguous.
 - Rule: `P3`, "The fold", "Definition": a later line withdraws no earlier line.
+- Corpus: `P3/two-licence-statements` is the case.
 
 ### FX-014 An artwork with two revisions of its licence and catalogue record, and restricted notes
 
@@ -195,13 +215,15 @@ profiles of the read.
   name `l1` and `c1` as superseded, and `reifier` suppression entries for `l1` and `c1`, signed by the museum. Segment `2`, of
   registry version `2`: conservation notes in sealed frames under a key of the conservators, over a dictionary of its own.
 - Read: keyless; `trusted_keys` holds the key of the museum.
-- Result: one binding of the artwork to one blob, rebuilt and verified. The visible licence statements are those of `l2`, with
+- Result: one binding of the artwork to one blob, declared by a verified `blob` frame, so the state of the blob is complete and
+  the frame has no `rebuild_result`. The visible licence statements are those of `l2`, with
   its visible link to `l1`. `l1` and `c1` are in the fold and hidden. `visible` is `incomplete`, with `unopened_sealed` the
   number of sealed frames of segment `2`.
 - Application: the public contract selects the state of the last commit of segment `1`, whose run holds no sealed frame, and
   accepts it with no sealing key. The image and the licence in force are one each. A contract that asked for `visible`
   `complete` of the whole file would refuse every public reader, which is why the state is named.
 - Rule: `P3`, "The hiding rule" (`reifier`); `P3`, "Graph states"; `P4`, "Rebuilding a blob or a value".
+- Corpus: `P3/artwork-revisions-sealed-notes` is the case.
 
 ### FX-015 A state selector, before and after compaction
 
@@ -645,23 +667,27 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 
 ### FX-054 Joined requests, read-ahead and a read-ahead that fails
 
-- Input: one canonical file and one graph query.
+- Input: one file of five `terms` frames in the order `arrival`, one `quads` frame, a commit and an index, whose header makes no
+  canonical claim, and one graph query.
 - Read: three readers of equal capacity, with the access `sparse`. One asks for each range of the procedure alone. One asks
   for the last 64 KiB of the file in one request and joins adjacent ranges. One also holds the covered `terms` frames from an
   earlier answer over the same bytes. Variants: `decoded_bytes_per_read` set so that the procedure is refused at the third
-  `terms` frame; a store that fails every request beyond an offset that the procedure does not reach; a store that fails at an
+  `terms` frame; a store that fails every request that overlaps a byte the procedure does not reach; a store that fails at an
   offset that it does reach.
 - Result: the three answers are equal in every field. With the lowered capacity each is `unknown` with the reason `capacity`,
   at the same range. With the first failing store each is `answered`. With the second each is `unknown` with the reason
   `read`.
 - Rule: `P7`, "Reading by range", CHARGES and THE PROCEDURE (a range is read when the procedure takes its bytes at its step).
+- Corpus: `P7/idx-joined-readahead` is the case. It records the answer of the reader that asks for each range alone, and the
+  variants; the three readers differ only in their requests.
 
 ## 10. `P7`: the canonical form, compaction and the profile mechanism
 
 ### FX-055 The compaction of a source that was read with every key
 
-- Input: (a) the fold of the read of the file `X'` in FX-067 (section 11), then `compact` with `profile` `absent`. (b) The
-  file of FX-073 with a `suppress` frame that hides one private row, read with both keys, so that `visible` is `complete`;
+- Input: (a) the fold of the read of the file `X'` in FX-067 (section 11), then `compact` with `profile` `absent`. (b) A file
+  built as that of FX-073, but with the sealed frames of each audience holding a `terms` frame and a `quads` frame, an unsigned
+  commit, and a clear `suppress` frame that hides one private row, read with both keys, so that `visible` is `complete`;
   then `compact` with `profile` `absent`.
 - Result: `[1, file]` in both. The file is one clear segment with `canonical` `present`. It holds no `keys` and no `sealed`
   frame, and its commit has an empty `signatures` list. In (a) it holds the lines of all four segments, the row `q`, and a
@@ -672,6 +698,7 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   alone, signed after compaction. The workflow does not sign a canonical file made from a read that opened sealed frames
   outside the scope, and it reports the scope of the source and the scope of the output apart.
 - Rule: `P7`, "The construction, from a fold to the item sequence" and "Compaction"; `P8`, "The inner frame".
+- Corpus: `P7/canonical/compaction/keyed-source` is (b). No entry is (a).
 
 ### FX-056 The compaction of a read that refused a `terms` frame
 
@@ -686,11 +713,12 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 ### FX-057 One-pass extraction from two layouts (benchmark)
 
 - Input: one file tree as a canonical file, and as a file that is not canonical, with the entries and the bindings before the
-  packs.
+  `blob` frames.
 - Result: what the rules give without measuring: in the canonical file no path is known before the last pack is read.
 - Measured: the time to the first extracted file, the peak memory and the peak temporary storage. This entry is the input of
   the measurement of one-pass extraction in `GUIDE-adoption.md`.
 - Rule: `P7`, "The construction, from a fold to the item sequence".
+- Corpus: `PF-files/files-two-layouts` is the case; its case `canonical` is the input of `PF-files/files-pass`.
 
 ### FX-058 Content of one profile in a segment that declares another, and two profiles in one file
 
@@ -703,6 +731,7 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Application: a contract that wants the path rules in (a), or the ceilings in (c), runs them as its own checks and reports
   them under its own name.
 - Rule: `P7`, "The profile mechanism"; `PF-dist`, "Checks" and "Verified distribution".
+- Corpus: `PF-dist/dist-other-profile-content` is (a) and (b); `PF-dist/dist-refuted-not-declared` is (c).
 
 ### FX-059 A profile value outside the profile table
 
@@ -710,6 +739,7 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Result: the segment is read in full. No profile check runs. The one finding is `profile_not_checked`, of the severity
   `information`, with the subject `[4, profile, absent]`.
 - Rule: `P7`, "The profile mechanism" (item 3).
+- Corpus: `P7/profile/value-outside-table` is the case.
 
 ## 11. `P8`: sealing
 
@@ -724,6 +754,7 @@ are computed again. The read holds the segment key.
   with `malformed`, and its payload state is `verified`. It is not folded, it is counted in `unopened_sealed`, and no failed
   opening is counted.
 - Rule: `P8`, "The procedure" (step 10) and "Mutations of that frame".
+- Corpus: `P8/p8-inner-count` is the case.
 
 ### FX-061 Two faults: the count and the digest
 
@@ -731,6 +762,7 @@ are computed again. The read holds the segment key.
 - Result: `damaged_frame` with `payload_digest` at step 9. The frame is opaque with `damaged`, and its payload state is
   `damaged`. The count is not judged, and the frame has no `malformed_value`.
 - Rule: `P8`, "The procedure" (steps 9 and 10) and "Mutations of that frame".
+- Corpus: `P8/p8-inner-count-and-digest` is the case.
 
 ### FX-062 Two faults: the count and a compressed payload that does not decode
 
@@ -741,6 +773,7 @@ are computed again. The read holds the segment key.
 - Result: `damaged_frame` with `decode_failed` at step 9. The frame is opaque with `damaged`, and its payload state is
   `damaged`. It has no `malformed_value`. A clear `pack` frame with the same two faults has the same finding and reason.
 - Rule: `P8`, "The procedure" (steps 9 and 10); `P1`, "The payload check".
+- Corpus: `P8/p8-inner-count-and-decode` is the case, in its cases `sealed` and `clear`.
 
 ### FX-063 A field rule of the inner type decides before the payload
 
@@ -748,6 +781,7 @@ are computed again. The read holds the segment key.
 - Result: `malformed_value` with `out_of_range` at step 8. The frame is opaque with `malformed`. Step 9 is not run, so the
   frame has no `damaged_frame`.
 - Rule: `P8`, "The procedure" (step 8); `P4`, "The frames" (the `decoded_length` of an `external` frame).
+- Corpus: `P8/p8-inner-external-length` is the case.
 
 ### FX-064 An unknown value and a failing payload, in a segment of a later registry version
 
@@ -757,6 +791,8 @@ are computed again. The read holds the segment key.
   `unsupported_critical` with the subject `[2, 18]`; the fold of the segment stops, every later frame is `stopped`, and the
   sealed frame counts in `unopened_sealed`.
 - Rule: `P8`, "The sealed inner record" and "The procedure" (steps 9 and 10).
+- Corpus: `P8/sealed-inner-newer-value-terms` is the case; `P8/sealed-inner-newer-value` is the same stop with an inner `quads`
+  frame.
 
 THE FILES `X` AND `X'`. FX-065 to FX-069 read these files. `P`, `A`, `B` and `H` are the signing keys of a publisher, of two
 model services and of a human reviewer; `rA`, `rB` and `rH` are their recipient keys. No transparent frame is written.
@@ -788,6 +824,7 @@ at the position `5`.
   is incomplete.
 - Rule: `P8`, "The procedure" (step 3) and "Resolving the segment key of a key entry"; `P3`, "Graph states" and "The visible
   dataset and visibility"; `P6`, "Coverage and authentication".
+- Corpus: `P8/p8-audiences` is the case, in its case `public`.
 
 ### FX-066 One private audience alone
 
@@ -799,6 +836,7 @@ at the position `5`.
 - Application: the scopes "the public state" and "analysis A, the state of the commit of segment `1`, signed by A" are
   accepted. "The file" is incomplete.
 - Rule: as FX-065; `P3`, "The content record and the ids"; `P3`, "Graph states", THE RUN.
+- Corpus: `P8/p8-audiences` is the case, in its cases `audience-a` and `audience-b`.
 
 ### FX-067 The reader with every key
 
@@ -808,6 +846,7 @@ at the position `5`.
   `visible` is `[1, 0]`. Every segment is `authenticated`.
 - Application: the scope "the file" is accepted when the four roles are those required.
 - Rule: `P8`, "The procedure" and "The inner frame".
+- Corpus: `P8/p8-audiences` is the case, in its case `every-key`.
 
 ### FX-068 A keyless mirror
 
@@ -819,6 +858,7 @@ at the position `5`.
 - Application: "the history of the ciphertext is intact and signed by these four keys" is accepted. No scope of plaintext is
   accepted or refused.
 - Rule: `P8`, "What it can do" and "The procedure"; `P6`, "The typed inputs of a verifier" and "Coverage and authentication".
+- Corpus: `P8/p8-audiences` is the case, in its case `mirror`.
 
 ### FX-069 A private suppression that the public cannot open
 
@@ -830,25 +870,30 @@ at the position `5`.
   the current public view is refused, because `visible` is `incomplete`.
 - Rule: `P3`, "Suppression hides" (an entry acts whatever segment holds it) and "The visible dataset and visibility"; `P8`,
   "The inner frame".
+- Corpus: `P8/p8-audiences-suppress` is the case.
 
 ### FX-070 A private dictionary before public terms
 
 - Input: (a) one segment of `registry_version` `2`: `keys` (position `1`); `sealed` (`2`), inner `terms` of three terms with
-  `id_base` `0`; a clear `terms` (`3`) of three terms with `id_base` `3`; a clear `quads` (`4`) with one row that names the
-  ids `3`, `4` and `5`. (b) The same content in another order: the clear `terms` frame first, with `id_base` `0`, and the
+  `id_base` `0`; a clear `terms` (`3`) of three terms with `id_base` `3`; a clear `quads` (`4`) with one row that names the ids
+  `3`, `4` and `5`; and a variant of (a) whose `quads` frame holds a second row that names the ids `0`, `1` and `2`. (b) The same
+  content in another order: the clear `terms` frame first, with `id_base` `0`, and the
   clear rows; then the `keys` frame; then the sealed inner `terms` frame with `id_base` `3`; then sealed rows.
 - Read: each input with the key and keyless.
 - Result: (a) with the key: the expected base of the clear `terms` frame is `3`; every frame is folded, and one line is
   delivered. (a) keyless: frame `2` is opaque with `missing_key`. Frame `3` has the expected base `0`: it is `malformed_value`
   with `inconsistent_counts`, opaque with `malformed` and not folded, and the three ids `0` to `2` that it reserves are
   unreadable terms. The row of frame `4` names ids that are not defined at its frame and is dropped with `forward_reference`.
-  No line is delivered, and `visible` is `incomplete`. A row that names an id which the refused frame reserves is held with
-  `opaque_term`. (b) keyless: the clear `terms` frame is folded, every row that names only its ids is a line, and the sealed
+  No line is delivered, and `visible` is `incomplete`. In the variant, read keyless, the second row names ids that the refused
+  frame reserves and is held with `opaque_term`, and the content digest is `absent`; read with the key, both rows are lines. (b)
+  keyless: the clear `terms` frame is folded, every row that names only its ids is a line, and the sealed
   frames are not opened. (b) with the key: all rows are lines.
 - Application: the contract prescribes layout (b), or a clear dictionary shared by all audiences, or a segment for each
   audience. It refuses layout (a) at writing.
 - Rule: `P3`, "The content record and the ids", "Unreadable terms" and "What happens to a row"; `P8`, "The inner frame"; `P8`,
   "What is not claimed" (the item on term ids after an unopened inner `terms` frame).
+- Corpus: `P8/p8-private-dictionary` is the case: `first-key` and `first-keyless` are (a), `first-held-key` and
+  `first-held-keyless` its variant, `last-keyless` and `last-key` are (b).
 
 ### FX-071 A rotated audience
 
@@ -861,6 +906,7 @@ at the position `5`.
   `1`. `r3` has the reverse, at frame `3`. In the variant the added entry is `malformed_value` with `unordered_or_repeated`
   and is not tried; the rest of the frame is applied; `r3` still does not open frame `3`.
 - Rule: `P8`, "The key table of a segment" and "Rules of recipient entries".
+- Corpus: `P8/p8-rotated-audience` is the case.
 
 ### FX-072 Two recipient entries that wrap different keys
 
@@ -871,6 +917,7 @@ at the position `5`.
   `r1` alone: the frame opens. With `r2` alone: `seal_failed` with `aead`; the frame is opaque with `damaged`, its payload
   state is `damaged`, and one failed opening is counted.
 - Rule: `P8`, "Resolving the segment key of a key entry"; "The procedure" (step 6); "Commitment".
+- Corpus: `P8/p8-recipient-conflict` is the case.
 
 ### FX-073 Public content and two audiences that do not read each other
 
@@ -878,7 +925,7 @@ at the position `5`.
   the key entry of the audience `A`, immediately before the first sealed frame under it; sealed frames of rows under that key;
   a `keys` frame with the key entry of the audience `B`, immediately before the first sealed frame under it; sealed frames of
   rows under that key; a signed commit. The sealed rows name only terms of the clear dictionary.
-- Read: four times: keyless, with the key of `A`, with the key of `B`, with both.
+- Read: four times: keyless, with the segment key of `A`, with the segment key of `B`, with both segment keys.
 - Result: keyless: the fold holds the public rows, both groups of sealed frames are not opened, and `visible` is `incomplete`,
   with `unopened_sealed` the number of sealed frames. With the key of `A`: the fold holds the public rows and those of `A`,
   and `visible` is `incomplete` with the count of the frames of `B`. With both keys: `visible` is `complete`. The commit after
@@ -887,6 +934,7 @@ at the position `5`.
   complete view while `unopened_sealed` is above `0`.
 - Rule: `P3`, "The visible dataset and visibility" and "Graph states"; `P8`, "The key table of a segment" and "Opening a
   sealed frame"; `P8`, "What is not claimed" (AGREEMENT BETWEEN RECIPIENTS).
+- Corpus: `P8/p8-two-audiences` is the case.
 
 ### FX-074 Key grouping (benchmark)
 

@@ -101,5 +101,6 @@
 | `proof-consistency-signed-roots` | built and matches | a consistency proof between the roots of two commits that one trusted key signed, with one hash replaced: among the peaks of old_count proof_failed with consistency_old_root, among the later entries consistency_new_root; neither is consistency_diverged |
 | `proof-file-source-broken` | derived from the text | a file proof whose values are read from a source with a broken frame: proof_failed with consistency_old_root, although the later file holds the head of the source at its ordinary position |
 | `proof-file-detached-frame` | derived from the text | a file proof of a file of two blob frames against a later file in which the second frame follows a parity resumption whose anchor is not the identifier before the damaged region: consistency_diverged |
+| `proof-file-equal-heads` | built and matches | a file proof from a file of one segment to each of three rewrites of it with equal identifiers: the entry is absent and the head is found at the ordinary position of the later file, so the proof holds |
 
-Totals: built and matches: 92; derived from the text: 7 (99 entries).
+Totals: built and matches: 93; derived from the text: 7 (100 entries).

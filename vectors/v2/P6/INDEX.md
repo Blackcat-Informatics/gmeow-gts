@@ -155,5 +155,6 @@
 | `sig-resumed-frame-anchor-true` | built and matches | a valid signature on the frame after a parity frame at which reading resumes, the anchor being the identifier of the frame before the damaged region: no frame is detached, the coverage is [0, 2), both frames are authenticated and anchored_frames is 2 |
 | `sig-commit-after-detached-frame` | derived from the text | a signed valid commit after a detached frame, its root over the frames present: the three frames are authenticated through the root, the coverage of the signature is [1, 3) and anchored_frames is 1 |
 | `sig-two-after-detached-frame` | derived from the text | a signature on a detached frame and one on the frame after it: the coverages [1, 2) and [1, 3) begin at the detached frame, the frame before it is not authenticated and anchored_frames is 1 |
+| `signature-added-other-key-trusted` | built and matches | a commit with one signature and the same commit with a second signature, read with the key of the added signature alone trusted: both signatures are valid, only the added key authenticates, and the file without it is unauthenticated |
 
-Totals: built and matches: 150; derived from the text: 3 (153 entries).
+Totals: built and matches: 151; derived from the text: 3 (154 entries).

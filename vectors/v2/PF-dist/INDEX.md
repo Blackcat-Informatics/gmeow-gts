@@ -28,5 +28,6 @@
 | `dist-inconclusive-not-implemented-decoded-size` | built and matches | dist-decoded-size read at the minimum capacity by a reader that does not implement the profile: exceeds_capacity with decoded_size at the terms frame, one profile_not_checked and no profile_violation; INCONCLUSIVE |
 | `dist-verified-external-blob` | built and matches | a distribution file whose fold declares one blob by an external frame, with its length and media type, and binds a term of the manifest to it: the bytes of the blob are not in the file, the binding resolves with no missing_dependency, integrity is intact; a VERIFIED DISTRIBUTION |
 | `dist-verified-capsule-manifests` | built and matches | a distribution file with two versions of a module, a schema and a permission document as six blobs: with two manifests, one of which binds the module of version 2, the schema of version 1 and the permissions of version 2, and with one manifest whose three parts agree, each read gives no finding and is a VERIFIED DISTRIBUTION; the profile reads no manifest |
+| `dist-other-profile-content` | built and matches | a canonical segment that declares dist and whose fold holds two file entries of equal paths gives no profile finding, since the checks of files do not run in it; a dist segment followed by an evidence segment gives dist_not_alone in the first segment and, in the second, lineage_begins with evidence_lineage |
 
-Totals: built and matches: 26 (26 entries).
+Totals: built and matches: 27 (27 entries).

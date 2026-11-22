@@ -262,6 +262,7 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `append-torn-payload-segment` |  | built and matches | H T with H2 T Q appended |
 | `append-torn-payload` |  | built and matches | H T then the bytes of Q up to and including the first byte of the content of its payload |
 | `append-two-writers` | 2.1a | built and matches | a segment of three frames whose second and third are both computed with the first as predecessor: the second is linked, the third is broken with chain_break and integrity is damaged; a writer appends no frame to a segment that it did not write in one continuous use of the file (P1-86) |
+| `equal-heads-different-bytes` | 4.3 | built and matches | one segment and three rewrites of it, with a second signature on the commit, a payload stored compressed, and a parity frame with the offsets item and the locator written again: every identifier, the head, the commit root and the content digest are equal and the bytes differ |
 | `concat-append-built` |  | built and matches | two files each built by appending a second segment with lineage to its first, concatenated |
 | `concat-concat` |  | built and matches | (A0 A1 B0 B1) then C0 C1, and A0 A1 then (B0 B1 C0 C1): equal bytes and equal results |
 | `concat-continuation` |  | built and matches | a file and a file that continues it, whose first segment names its head and its ordinal |
@@ -472,4 +473,4 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `resync-total-refused-no-occurrence-tested` |  | built and matches | a header, a frame whose `decoded_length` 698 the total of 600 refuses and which fails the framing test, holding an occurrence with a true offset at 700, then an incomplete item whose run covers the occurrence again: once the total is refused no occurrence is tested and none gives a finding, in the run of the frame or in the next; the one `exceeds_capacity` is the frame's, `count` 698 (P1 6.7 part 4, P1-104) |
 | `undelimitable-chunk-wrong-major-type-cut` |  | built and matches | an indefinite-length byte string whose chunk head is of another major type and whose argument bytes pass the end of the input is `undelimitable_input`, not `torn_tail` (P1 6.1, 6.3 item 4) |
 
-Totals: 10.1: 34; 10.2: 51; 10.3: 16; 10.4: 41; 10.5: 9; 10.6: 37; 10.7: 22; 10.8: 19; 10.9: 14; 2.1a: 1 (244 entries).
+Totals: built and matches: 467; could not be built: 1 (468 entries).

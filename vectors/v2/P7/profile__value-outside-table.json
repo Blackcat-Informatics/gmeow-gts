@@ -1,0 +1,58 @@
+{
+ "name": "profile/value-outside-table",
+ "status": "built and matches",
+ "note": "a canonical segment whose header declares the profile 99, a value that the profile table does not hold, read by a reader that implements every profile: the segment is read in full, no profile check runs and the one finding is profile_not_checked with the subject [4, 99, absent]",
+ "section": "P7",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "profile__value-outside-table.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [
+     [
+      1,
+      5
+     ],
+     [
+      2,
+      8
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      5,
+      11
+     ],
+     [
+      6,
+      17
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "8701018682010582020882030282040582050b8206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001906bf810182025820c0a78f63e8b48e764ea024273a389fe5a5cf659a366c89c139339c35a8bc044b820201820201820218630103060500810785f58101810181018101820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb8878b010e188c82020d018101810180810180808b02189a18b5820201018101810180810180808b0319014f186d820202018101810180810180808b041901bc187d820206018101810180810180808b05190239187282020e018101810180810280808b061902ab19011082020f018101810180810280808b071903bb1902e5820210018101810180810280808187183081018202830418638101810181018101810180820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb88201000200"
+  }
+ ]
+}

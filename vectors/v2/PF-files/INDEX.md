@@ -43,5 +43,6 @@
 | `files-set-order` | built and matches | PF-files-13: an entry with permissions written Sticky, OtherRead, OwnerRead, GroupWrite, two attribute records and two archive records written in the opposite order: listed in the order of 2.1 and of the names and keys |
 | `files-entry-order-refused` | built and matches | files-entry-order with the two entries of equal paths written as the blank nodes \_:y then \_:x of one segment, read with labelled_lines below the size of the fold: labelling_refused in the file's findings; the equal pair listed with \_:x first, the other entries as in files-entry-order |
 | `files-set-order-refused` | built and matches | files-set-order with two attribute records of equal names and two archive records of equal keys, their record terms blank nodes of one segment, the labelling refused: the equal records in ascending bytewise order of E([ordinal, label]) of their record terms |
+| `files-two-layouts` | built and matches | one file tree as its canonical file, whose packs stand before the entries and the bindings, and as a file that is not canonical with the entries and the bindings before the blob frames: both read with no finding and with one content digest |
 
-Totals: built and matches: 40; derived from the text: 1 (41 entries).
+Totals: built and matches: 41; derived from the text: 1 (42 entries).

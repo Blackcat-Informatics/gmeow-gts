@@ -1,0 +1,112 @@
+{
+ "name": "p8-recipient-conflict",
+ "status": "built and matches",
+ "note": "one key entry with two recipient entries that wrap different keys: a reader with both seeds has key_conflict and opens nothing, the recipient of the sealing key opens the frame, and the recipient of the other key has seal_failed with aead",
+ "section": "P8",
+ "cases": [
+  {
+   "label": "both",
+   "input_file": "p8-recipient-conflict.bin",
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190b778101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030300008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b187282020101810181018081018081871181018101820201810181018202038b02187d190a39820211018101810180810180808b03190ab618c1820212018101810180820309808187183381018101820203810181018101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e84020001000401",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [],
+    "marks": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": {
+     "segment_keys": [],
+     "recipient_keys": [
+      {
+       "suite": 1,
+       "recipient_key_id": "56c201c7304d4ebff12151beb6ba988ecdbb2971f9566f44e33c83b1cff97261",
+       "seed": "e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1"
+      },
+      {
+       "suite": 1,
+       "recipient_key_id": "541f8340732e25215042a50e823a16f9f1d0ab81a497898dda67111372a5fa3b",
+       "seed": "e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "label": "r1",
+   "input_file": "p8-recipient-conflict.bin",
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190b778101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030300008085f48202058202058202058101820258203738df19a62b0b0b414e789e5d200de789972830eecc3976ea4e334a8b2e00cd838b010b187282020101810181018081018081871181018101820201810181018202038b02187d190a39820211018101810180810180808b03190ab618c1820212018101810180810180808080820258203738df19a62b0b0b414e789e5d200de789972830eecc3976ea4e334a8b2e00cd8201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [],
+    "marks": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": {
+     "segment_keys": [],
+     "recipient_keys": [
+      {
+       "suite": 1,
+       "recipient_key_id": "56c201c7304d4ebff12151beb6ba988ecdbb2971f9566f44e33c83b1cff97261",
+       "seed": "e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "label": "r2",
+   "input_file": "p8-recipient-conflict.bin",
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190b778101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030300008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b187282020101810181018081018081871181018101820201810181018202038b02187d190a39820211018101810180810180808b03190ab618c182021201810281018082030180818718348202186181018202038202190ab6820218c18101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e84020001000401",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [],
+    "marks": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": {
+     "segment_keys": [],
+     "recipient_keys": [
+      {
+       "suite": 1,
+       "recipient_key_id": "541f8340732e25215042a50e823a16f9f1d0ab81a497898dda67111372a5fa3b",
+       "seed": "e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2"
+      }
+     ]
+    }
+   }
+  }
+ ]
+}
