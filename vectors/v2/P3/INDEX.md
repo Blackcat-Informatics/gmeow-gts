@@ -339,24 +339,24 @@
 | `labelling-weight-blank` | built and matches | the one line quad(_:b, <http://e/p>, <http://e/o>), weight 1 + 9 + 19 + 19 + 1 = 49, read with 98 and with 97: with 98 both folds labelled; with 97 the file's fold refused (P3-104) |
 | `labelling-weight-records` | built and matches | one binding of a blank node and one blob declaration, and no line: a weight equal to the sum of the weights of the two record lines of 6.2, and a refusal one byte below twice that sum (P3-104) |
 | `labelling-weight-guaranteed` | built and matches | a guaranteed labelled set above labelled_bytes_per_read: refused with refusal_weight (P3-105) |
-| `project/quad-lines` | built and matches | P3 13.8: two quad lines in the default graph and a named graph: Q of two quads, G0 empty, both variants |
-| `project/reifier-annotation` | built and matches | P3 13.8: a reifier_binding line and an annotation line of count 3: the quads (r, rdf:reifies, <<s p o>>, g) and (r, q, v, g), no count, no quad for (s, p, o) |
-| `project/annotation-count-lost` | built and matches | P3 13.8: folds that differ only in the count of one annotation line: equal projections, different content digests |
-| `project/annotation-equals-quad` | built and matches | P3 13.8: an annotation line and a quad line with the same four terms: one quad in Q, two lines in the fold |
-| `project/binding-quad-collision` | built and matches | P3 13.8: a reifier_binding line and a quad line (r, rdf:reifies, <<s p o>>, g): one quad, a content digest different from the fold with one of them |
-| `project/language-case` | built and matches | P3 13.8: x@EN and x@en: two quads in Q, the language texts byte for byte (that an RDF tool reads them as one is not a result of the projection) |
-| `project/value-pair` | built and matches | P3 13.8: a pair of VALUES for a literal and none: equal projections, different content digests |
-| `project/empty-graph` | built and matches | P3 13.8: an empty_graph line for g: Q empty, G0 = {g}; with a line that carries g: G0 empty |
-| `project/empty-graph-hidden` | built and matches | P3 13.8: visible: the graph whose only line is hidden is no name in G0, the other name is; whole: the hidden line is in Q |
-| `project/hidden-lines` | built and matches | P3 13.8: three lines, one hidden by a quad entry: visible two quads, whole three |
-| `project/bindings-suppression-blobs` | built and matches | P3 13.8: a binding, an entry, a blob declaration and a pair of VALUES: Q holds only the quads of its lines |
-| `project/blank-node-only-in-record` | built and matches | P3 13.8: a blank node named only by a binding: no blank node in the result |
-| `project/not-rdf-texts` | built and matches | P3 13.8: a relative IRI, a language that is no tag, a typed literal of datatype rdf:langString: three quads, texts unchanged, no finding, no stop |
-| `project/triple-term-nested` | built and matches | P3 13.8: a triple term whose object is a triple term, as an object of a quad: the same nested term |
-| `project/round-trip-rdf` | built and matches | P3 13.8: a dataset of quads in two graphs, a nested triple term and an empty named graph: rdf(IMPORT(D), v) = D for both variants (R1) |
-| `project/round-trip-idempotent` | built and matches | P3 13.8: rdf(IMPORT(rdf(F, v)), v) = rdf(F, v) (R2) and the digest of the import differs from that of F |
-| `project/digest-not-rdf` | built and matches | P3 13.8: x@EN and x@en: the imports have different content digests |
-| `project/order` | built and matches | P3 13.8: a fold read with labelled_lines below its size: the listing of Q is in the order of 5.1 after a refusal; the set is that of a labelled reading |
+| `project/quad-lines` | built and matches | P3 10a.1: two quad lines in the default graph and a named graph: Q of two quads, G0 empty, both variants |
+| `project/reifier-annotation` | built and matches | P3 10a.2: a reifier_binding line and an annotation line of count 3: the quads (r, rdf:reifies, <<s p o>>, g) and (r, q, v, g), no count, no quad for (s, p, o) |
+| `project/annotation-count-lost` | built and matches | P3 10a.2: folds that differ only in the count of one annotation line: equal projections, different content digests |
+| `project/annotation-equals-quad` | built and matches | P3 10a.2: an annotation line and a quad line with the same four terms: one quad in Q, two lines in the fold |
+| `project/binding-quad-collision` | built and matches | P3 10a.2: a reifier_binding line and a quad line (r, rdf:reifies, <<s p o>>, g): one quad, a content digest different from the fold with one of them |
+| `project/language-case` | built and matches | P3 10a.2: x@EN and x@en: two quads in Q, the language texts byte for byte (that an RDF tool reads them as one is not a result of the projection) |
+| `project/value-pair` | built and matches | P3 10a.2: a pair of VALUES for a literal and none: equal projections, different content digests |
+| `project/empty-graph` | built and matches | P3 10a.1: an empty_graph line for g: Q empty, G0 = {g}; with a line that carries g: G0 empty |
+| `project/empty-graph-hidden` | built and matches | P3 10a.2: visible: the graph whose only line is hidden is no name in G0, the other name is; whole: the hidden line is in Q |
+| `project/hidden-lines` | built and matches | P3 10a.1: three lines, one hidden by a quad entry: visible two quads, whole three |
+| `project/bindings-suppression-blobs` | built and matches | P3 10a.2: a binding, an entry, a blob declaration and a pair of VALUES: Q holds only the quads of its lines |
+| `project/blank-node-only-in-record` | built and matches | P3 10a.1: a blank node named only by a binding: no blank node in the result |
+| `project/not-rdf-texts` | built and matches | P3 10a.3: a relative IRI, a language that is no tag, a typed literal of datatype rdf:langString: three quads, texts unchanged, no finding, no stop |
+| `project/triple-term-nested` | built and matches | P3 10a.1: a triple term whose object is a triple term, as an object of a quad: the same nested term |
+| `project/round-trip-rdf` | built and matches | P3 10a.5: a dataset of quads in two graphs, a nested triple term and an empty named graph: rdf(IMPORT(D), v) = D for both variants (R1) |
+| `project/round-trip-idempotent` | built and matches | P3 10a.5: rdf(IMPORT(rdf(F, v)), v) = rdf(F, v) (R2) and the digest of the import differs from that of F |
+| `project/digest-not-rdf` | built and matches | P3 10a.4: x@EN and x@en: the imports have different content digests |
+| `project/order` | built and matches | P3 10a.1: a fold read with labelled_lines below its size: the listing of Q is in the order of 5.1 after a refusal; the set is that of a labelled reading |
 | `lowering-nested-term` | built and matches | P3 12.8: x = <<b q c>> nested in t = <<a p x>>, one row quad(a, p, t): one term node and one record (the preimage of d(x) is the 46 bytes of 12.8, size 2, weight 182, no blank term in the canonical file) (P3-107, P3-108, P3-109) |
 | `lowering-shared-nested-term` | built and matches | x = <<b q c>>, <<a p x>> and <<c p x>> and the lines quad(a, p, <<a p x>>), quad(c, p, <<c p x>>): one term node and one record for x, shared by two lines; size 4 (P3-107, P3-108) |
 | `lowering-two-depths` | built and matches | x = <<b q c>> and the lines quad(a, p, x), quad(a, p, <<a p x>>): the labelled set quad(a, p, <<b q c>>), quad(a, p, <<a p n_x>>) and record(P, [n_x, b, q, c]); the first line keeps x at depth one (P3-108) |

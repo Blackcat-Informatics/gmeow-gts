@@ -178,7 +178,7 @@
 | `marks-hostile-range-fold-only` | built and matches | a hostile mark with a byte target: only the folds that the range covers are judged, no frame (P7-82) |
 | `marks-hostile-scope` | built and matches | a frame within capacity and above limits, marks present: unchecked with exceeds_capacity, exceeds_capacity with decoded_size, opaque, link and signatures kept (P7-82) |
 | `marks-refused-row-frame` | built and matches | a quads frame refused by limits: the content digest present, the frame opaque, left_out 1 (P7-82) |
-| `marks-same-input-same-result` | built and matches | one file read twice with one value of marks: equal results; with marks absent and present: the differences of 2.1 alone (P7 8.1) |
+| `marks-same-input-same-result` | built and matches | one file read twice with one value of marks: equal results; with marks absent and present: the differences of 2.1 alone (P7 2) |
 | `marks-total-unmoved` | built and matches | a hostile scope mark whose limits refuse a large frame, and a later damaged region whose candidate the total refuses: the same candidate refused and the same items accepted with marks absent and present (P7-82) |
 | `read/value-after-term` | built and matches | a literal_ref term whose value stands after its terms frame, in its segment and in a later one: the term is unreadable, missing_dependency with value at the terms frame, whatever names it held with opaque_term (P3-114) |
 | `resync-stream-end-declared` | built and matches | a journal restarted after a torn frame below stored_bytes_per_frame: the scope delivered at the declared end |

@@ -1,7 +1,7 @@
 {
  "name": "registry/past_state/values",
  "status": "built and matches",
- "note": "P2 11.1: a resync item with past absent, equal to the digest of the bytes before it, different from it, and a read that does not check it: absent, matches, differs, not_checked",
+ "note": "P2 4.7: a resync item with past absent, equal to the digest of the bytes before it, different from it, and a read that does not check it: absent, matches, differs, not_checked",
  "cases": [
   {
    "label": "",

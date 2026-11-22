@@ -1,7 +1,7 @@
 {
  "name": "registry/version/forbidden",
  "status": "built and matches",
- "note": "P2 11.1: h 1, r 2, a frame of type 17, a type above 16 that r holds: malformed_value, forbidden_combination; the frame is opaque with malformed",
+ "note": "P2 7: h 1, r 2, a frame of type 17, a type above 16 that r holds: malformed_value, forbidden_combination; the frame is opaque with malformed",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "project/annotation-equals-quad",
  "status": "built and matches",
- "note": "P3 13.8: an annotation line and a quad line with the same four terms: one quad in Q, two lines in the fold",
+ "note": "P3 10a.2: an annotation line and a quad line with the same four terms: one quad in Q, two lines in the fold",
  "cases": [
   {
    "label": "",

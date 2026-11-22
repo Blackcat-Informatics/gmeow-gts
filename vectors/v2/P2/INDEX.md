@@ -2,7 +2,7 @@
 
 | vector | outcome | notes |
 |---|---|---|
-| `registry/tables` | built and matches | P2 11.3: the registry written as data (the input file, 28306 bytes): every enumeration of section 4 (64 tables), the severity of the 48 codes, the 92 reasons, the 15 contexts with the digest of 61 62 63, the reasons each code allows, the fields of 5.2 and the assignment log of 9a; the result records the number of rows compared with the tables of P2 and the values of registry version 2 listed apart |
+| `registry/tables` | built and matches | the registry written as data (the input file, 28306 bytes): every enumeration of section 4 (64 tables), the severity of the 48 codes, the 92 reasons, the 15 contexts with the digest of 61 62 63, the reasons each code allows, the fields of 5.2 and the assignment log of 9a; the result records the number of rows compared with the tables of P2 and the values of registry version 2 listed apart |
 | `finding/empty_input` | built and matches |  |
 | `finding/not_this_format` | built and matches |  |
 | `finding/unsupported_generation` | built and matches |  |
@@ -137,7 +137,7 @@
 | `registry/zero/frame_type` | built and matches | the code 0 in the frame_type field: malformed_value, unregistered_value, whatever h and r (P2-63); two inputs, h = r = 1 and h = 2, r = 1 |
 | `registry/zero/canonical_form` | built and matches | the code 0 in the canonical_form field: malformed_value, unregistered_value, whatever h and r (P2-63); two inputs, h = r = 1 and h = 2, r = 1 |
 | `registry/zero/profile` | built and matches | the code 0 in the profile field: malformed_value, unregistered_value, whatever h and r (P2-63); two inputs, h = r = 1 and h = 2, r = 1 |
-| `registry/zero/parity_geometry` | built and matches | the code 0 in the parity_geometry field: parity_damaged (damage of a parity frame, P1 2.7 and P2-67); two inputs, h = r = 1 and h = 2, r = 1 |
+| `registry/zero/parity_geometry` | built and matches | the code 0 in the parity_geometry field: parity_damaged (damage of a parity frame, P1 3.1 and P2-67); two inputs, h = r = 1 and h = 2, r = 1 |
 | `registry/zero/term_order` | built and matches | the code 0 in the term_order field: malformed_value, unregistered_value, whatever h and r (P2-63); two inputs, h = r = 1 and h = 2, r = 1 |
 | `registry/zero/row_order` | built and matches | the code 0 in the row_order field: malformed_value, unregistered_value, whatever h and r (P2-63); two inputs, h = r = 1 and h = 2, r = 1 |
 | `registry/zero/term_kind` | built and matches | the code 0 in the term_kind field: malformed_value, unregistered_value, whatever h and r (P2-63); two inputs, h = r = 1 and h = 2, r = 1 |
@@ -177,42 +177,42 @@
 | `registry/unknown/leaf_kind` | built and matches | the code 4, one above the highest of leaf_kind, with h = r = 1: unregistered_value (P2-57) |
 | `registry/unknown/suppression_kind` | built and matches | the code 9, one above the highest of suppression_kind, with h = r = 1: unregistered_value (P2-57) |
 | `registry/unknown/profile` | built and matches | the profile code 7, one above the highest: not unregistered_value, because P2-57 excepts the header's profile and P2-21 judges it: profile_not_checked with subject [4, 7, absent] and the segment read in full (question Q158) |
-| `registry/term_kind/values` | built and matches | P2 11.1: a terms frame with one run of each term_kind 1 to 7: no finding; the result records the registered kinds and the code 8 of an unregistered block tag (malformed_value, unregistered_value) |
-| `registry/literal_form/values` | built and matches | P2 11.1: a literal block whose forms are 1, 2, 3, 4 (typed, language, language_ltr, language_rtl): no finding; a forms element 5: malformed_value, unregistered_value |
-| `registry/value_kind/values` | built and matches | P2 11.1: a terms frame with one literal_value run of five values, one of each value_kind 1 to 5 (bool, uint, int, time, octets): no finding; the result records the code 6 of an unregistered typed_value tag (malformed_value, unregistered_value) |
+| `registry/term_kind/values` | built and matches | P2 4.3: a terms frame with one run of each term_kind 1 to 7: no finding; the result records the registered kinds and the code 8 of an unregistered block tag (malformed_value, unregistered_value) |
+| `registry/literal_form/values` | built and matches | P2 4.3: a literal block whose forms are 1, 2, 3, 4 (typed, language, language_ltr, language_rtl): no finding; a forms element 5: malformed_value, unregistered_value |
+| `registry/value_kind/values` | built and matches | P2 4.3: a terms frame with one literal_value run of five values, one of each value_kind 1 to 5 (bool, uint, int, time, octets): no finding; the result records the code 6 of an unregistered typed_value tag (malformed_value, unregistered_value) |
 | `registry/version/zero` | built and matches | a header with registry_version 0: malformed_value, out_of_range (P2-5) |
-| `registry/version/above` | built and matches | P2 11.1: h 3, r 1, a frame of a type above 16 (17): unsupported_registry_version once, then P2-56: the link is checked, the frame is opaque with unknown_frame_type and reported unknown_enumeration_value |
+| `registry/version/above` | built and matches | P2 7: h 3, r 1, a frame of a type above 16 (17): unsupported_registry_version once, then P2-56: the link is checked, the frame is opaque with unknown_frame_type and reported unknown_enumeration_value |
 | `registry/version/hash_equal` | built and matches | h 1, r 1, hash_algorithm 2: unregistered_value; the header is unreadable (P2-57) |
-| `registry/version/hash_above` | built and matches | P2 11.1: h 3, r 1, hash_algorithm 2: unsupported_registry_version, no link checked and nothing folded |
+| `registry/version/hash_above` | built and matches | P2 7: h 3, r 1, hash_algorithm 2: unsupported_registry_version, no link checked and nothing folded |
 | `registry/profile/not_checked` | built and matches | a header with profile present(5) read by a reader that implements no profile: the segment is read in full and profile_not_checked has the subject [4, 5, absent] |
 | `registry/version/smallest` | built and matches | r 2, a canonical file that declares registry_version 2 and uses nothing of version 2: canonical_violated, header (P2-15) |
-| `registry/version/forbidden` | built and matches | P2 11.1: h 1, r 2, a frame of type 17, a type above 16 that r holds: malformed_value, forbidden_combination; the frame is opaque with malformed |
-| `registry/frame_type/columns` | built and matches | P2 11.1: the result records, for each type of 4.2 (1 to 16), the findings of a frame with the critical and transparent columns of the registry (no forbidden_combination) and of a frame with its critical flag flipped (forbidden_combination, and for parity (16) parity_damaged and no other finding of P1); the input file is a header and one frame of type 1 |
+| `registry/version/forbidden` | built and matches | P2 7: h 1, r 2, a frame of type 17, a type above 16 that r holds: malformed_value, forbidden_combination; the frame is opaque with malformed |
+| `registry/frame_type/columns` | built and matches | P2 4.2: the result records, for each type of 4.2 (1 to 16), the findings of a frame with the critical and transparent columns of the registry (no forbidden_combination) and of a frame with its critical flag flipped (forbidden_combination, and for parity (16) parity_damaged and no other finding of P1); the input file is a header and one frame of type 1 |
 | `registry/frame_type/critical_unknown` | built and matches | h 2, r 1, a critical frame of type 99, then three frames: unsupported_critical, the fold of the segment stops |
-| `registry/frame_type/ancillary_unknown` | built and matches | P2 11.1: h 2, r 1, a non-critical frame of type 99, then three: the frame is opaque with unknown_frame_type and the three after it fold |
-| `registry/frame_type/unknown_equal` | built and matches | P2 11.1: h 1, r 1, a frame of type 99: malformed_value, unregistered_value; the frame is opaque with malformed |
-| `registry/codec/unknown` | built and matches | P2 11.1: h 2, r 1, a frame with codec 2: payload unchecked with unknown_codec; the frame is opaque with unknown_codec |
-| `registry/storage/unknown_tag` | built and matches | P2 11.1: h 2, r 1, a storage tag 3: as an unknown codec, with the subject [1, 3] |
-| `registry/item_kind/unknown` | built and matches | P2 11.1: h 2, r 1, an item of kind 9 between two frames: opaque, counted (the frame after it is at position 3), unknown_item_kind with the subject [5, 9] |
+| `registry/frame_type/ancillary_unknown` | built and matches | P2 7: h 2, r 1, a non-critical frame of type 99, then three: the frame is opaque with unknown_frame_type and the three after it fold |
+| `registry/frame_type/unknown_equal` | built and matches | P2 7: h 1, r 1, a frame of type 99: malformed_value, unregistered_value; the frame is opaque with malformed |
+| `registry/codec/unknown` | built and matches | P2 7: h 2, r 1, a frame with codec 2: payload unchecked with unknown_codec; the frame is opaque with unknown_codec |
+| `registry/storage/unknown_tag` | built and matches | P2 7: h 2, r 1, a storage tag 3: as an unknown codec, with the subject [1, 3] |
+| `registry/item_kind/unknown` | built and matches | P2 7: h 2, r 1, an item of kind 9 between two frames: opaque, counted (the frame after it is at position 3), unknown_item_kind with the subject [5, 9] |
 | `registry/signature/unknown` | built and matches | h 2, r 1, a signature of algorithm 3: unverified (status unverified, reason unknown_signature_algorithm), signature_unverified, and no unknown_enumeration_value |
-| `registry/content/unknown_value` | built and matches | P2 11.1: h 2, r 1, a terms frame whose order is 3: the frame is a frame of unknown type: unsupported_critical (the type is critical), the fold stops |
+| `registry/content/unknown_value` | built and matches | P2 7: h 2, r 1, a terms frame whose order is 3: the frame is a frame of unknown type: unsupported_critical (the type is critical), the fold stops |
 | `registry/profile/unknown_code` | built and matches | a header with profile present(99): profile_not_checked with the subject [4, 99, absent] and no error |
-| `registry/parity/signed` | built and matches | P2 11.1: a parity frame with one signature: parity_damaged and no other finding of P1; no signature result |
-| `registry/integrity/not_checked` | built and matches | P2 11.1: h 3, r 1, hash_algorithm 2: integrity not_checked, not damaged (P2-78) |
-| `registry/authenticity/index` | built and matches | P2 11.1: a canonical file whose commit carries a valid trusted signature: authenticated, the closing index not counted (P2-77) |
-| `registry/parity/damaged` | built and matches | P2 11.1: a parity frame with one byte of the table_digest altered: parity_damaged and no other finding of P1; the integrity is that of the file without the damage |
-| `registry/position/transparent` | built and matches | P2 11.1: a parity frame between two frames: the later positions count it, and the ordinary_position of the index's pack_members does not |
-| `registry/opaque/precedence` | built and matches | P2 11.1: a frame that is malformed and stands after a stop: the opaque reason is malformed (P2-30) |
+| `registry/parity/signed` | built and matches | P2 9: a parity frame with one signature: parity_damaged and no other finding of P1; no signature result |
+| `registry/integrity/not_checked` | built and matches | P2 9: h 3, r 1, hash_algorithm 2: integrity not_checked, not damaged (P2-78) |
+| `registry/authenticity/index` | built and matches | P2 9: a canonical file whose commit carries a valid trusted signature: authenticated, the closing index not counted (P2-77) |
+| `registry/parity/damaged` | built and matches | P2 7: a parity frame with one byte of the table_digest altered: parity_damaged and no other finding of P1; the integrity is that of the file without the damage |
+| `registry/position/transparent` | built and matches | P2 5.2: a parity frame between two frames: the later positions count it, and the ordinary_position of the index's pack_members does not |
+| `registry/opaque/precedence` | built and matches | P2 4.7: a frame that is malformed and stands after a stop: the opaque reason is malformed (P2-30) |
 | `registry/algorithms/lengths` | built and matches | signatures of both algorithms one byte short and one byte long (63 and 65 for ed25519, 3372 and 3374 for the composite): signature_invalid, value_length |
-| `registry/fields/all` | built and matches | P2 11.1: the result records, for each of the 48 finding codes, the fields that its seven-field record has present (exactly those that the table of 5.2 marks); the input file is a header, two frames and a commit |
-| `registry/item_kind/resync` | built and matches | P2 11.1: an item of kind 5 of the generation 2, read by a reader of registry version 1: a resync item, an opener that opens a segment |
-| `registry/reader_advisory_mark/values` | built and matches | P2 11.1: a resync item with one mark of each tag 1 to 3: all applicable; a mark of tag 4: not applicable, counted in marks_ignored, no finding |
-| `registry/mark_target_kind/values` | built and matches | P2 11.1: a mark with a target of tag 1 and one of tag 2: applicable; a target of tag 3: the mark is not applicable, no finding |
-| `registry/capacity_field/values` | built and matches | P2 11.1: a resync item with one hostile mark whose strains is 10, which is no capacity_field: not applicable, no finding |
-| `registry/opener_kind/values` | built and matches | P2 11.1: a file of one header segment and one segment that a resync item opens: opener [1] and [2, reached, displaced, past, marks_ignored] |
-| `registry/resync_reach/values` | built and matches | P2 11.1: a resync item reached by framing: walked; one found by the scan after a damaged region: scanned |
-| `registry/past_state/values` | built and matches | P2 11.1: a resync item with past absent, equal to the digest of the bytes before it, different from it, and a read that does not check it: absent, matches, differs, not_checked |
-| `registry/file_end/values` | built and matches | P2 11.1: a header, a blob frame, a commit frame and the byte 1c: an undelimitable_input finding runs to the end of the input, file_end undelimitable (6) |
+| `registry/fields/all` | built and matches | P2 5.2: the result records, for each of the 48 finding codes, the fields that its seven-field record has present (exactly those that the table of 5.2 marks); the input file is a header, two frames and a commit |
+| `registry/item_kind/resync` | built and matches | P2 4.1: an item of kind 5 of the generation 2, read by a reader of registry version 1: a resync item, an opener that opens a segment |
+| `registry/reader_advisory_mark/values` | built and matches | P2 4.5: a resync item with one mark of each tag 1 to 3: all applicable; a mark of tag 4: not applicable, counted in marks_ignored, no finding |
+| `registry/mark_target_kind/values` | built and matches | P2 4.5: a mark with a target of tag 1 and one of tag 2: applicable; a target of tag 3: the mark is not applicable, no finding |
+| `registry/capacity_field/values` | built and matches | P2 4.5: a resync item with one hostile mark whose strains is 10, which is no capacity_field: not applicable, no finding |
+| `registry/opener_kind/values` | built and matches | P2 4.7: a file of one header segment and one segment that a resync item opens: opener [1] and [2, reached, displaced, past, marks_ignored] |
+| `registry/resync_reach/values` | built and matches | P2 4.7: a resync item reached by framing: walked; one found by the scan after a damaged region: scanned |
+| `registry/past_state/values` | built and matches | P2 4.7: a resync item with past absent, equal to the digest of the bytes before it, different from it, and a read that does not check it: absent, matches, differs, not_checked |
+| `registry/file_end/values` | built and matches | P2 4.7: a header, a blob frame, a commit frame and the byte 1c: an undelimitable_input finding runs to the end of the input, file_end undelimitable (6) |
 | `registry/example/1` | built and matches | P2 section 10, example 1: uncommitted_tail at position 5, count 3; the input is three frames, a commit at position 4 and three frames |
 | `registry/example/2` | built and matches | P2 section 10, example 2: unknown_enumeration_value, reason unknown_codec, subject [1, 2], position 7 |
 | `registry/example/3` | built and matches | P2 section 10, example 3: unsupported_registry_version, the six absent fields |

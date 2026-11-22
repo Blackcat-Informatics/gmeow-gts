@@ -1,7 +1,7 @@
 {
  "name": "registry/item_kind/unknown",
  "status": "built and matches",
- "note": "P2 11.1: h 2, r 1, an item of kind 9 between two frames: opaque, counted (the frame after it is at position 3), unknown_item_kind with the subject [5, 9]",
+ "note": "P2 7: h 2, r 1, an item of kind 9 between two frames: opaque, counted (the frame after it is at position 3), unknown_item_kind with the subject [5, 9]",
  "cases": [
   {
    "label": "",

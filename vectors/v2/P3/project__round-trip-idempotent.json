@@ -1,7 +1,7 @@
 {
  "name": "project/round-trip-idempotent",
  "status": "built and matches",
- "note": "P3 13.8: rdf(IMPORT(rdf(F, v)), v) = rdf(F, v) (R2) and the digest of the import differs from that of F",
+ "note": "P3 10a.5: rdf(IMPORT(rdf(F, v)), v) = rdf(F, v) (R2) and the digest of the import differs from that of F",
  "cases": [
   {
    "label": "",

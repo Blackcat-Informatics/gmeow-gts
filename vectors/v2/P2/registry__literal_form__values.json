@@ -1,7 +1,7 @@
 {
  "name": "registry/literal_form/values",
  "status": "built and matches",
- "note": "P2 11.1: a literal block whose forms are 1, 2, 3, 4 (typed, language, language_ltr, language_rtl): no finding; a forms element 5: malformed_value, unregistered_value",
+ "note": "P2 4.3: a literal block whose forms are 1, 2, 3, 4 (typed, language, language_ltr, language_rtl): no finding; a forms element 5: malformed_value, unregistered_value",
  "cases": [
   {
    "label": "",

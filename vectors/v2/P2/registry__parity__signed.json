@@ -1,7 +1,7 @@
 {
  "name": "registry/parity/signed",
  "status": "built and matches",
- "note": "P2 11.1: a parity frame with one signature: parity_damaged and no other finding of P1; no signature result",
+ "note": "P2 9: a parity frame with one signature: parity_damaged and no other finding of P1; no signature result",
  "cases": [
   {
    "label": "",

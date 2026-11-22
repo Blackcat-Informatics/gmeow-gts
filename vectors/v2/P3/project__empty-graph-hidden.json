@@ -1,7 +1,7 @@
 {
  "name": "project/empty-graph-hidden",
  "status": "built and matches",
- "note": "P3 13.8: visible: the graph whose only line is hidden is no name in G0, the other name is; whole: the hidden line is in Q",
+ "note": "P3 10a.2: visible: the graph whose only line is hidden is no name in G0, the other name is; whole: the hidden line is in Q",
  "cases": [
   {
    "label": "",

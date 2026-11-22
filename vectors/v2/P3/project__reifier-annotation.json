@@ -1,7 +1,7 @@
 {
  "name": "project/reifier-annotation",
  "status": "built and matches",
- "note": "P3 13.8: a reifier_binding line and an annotation line of count 3: the quads (r, rdf:reifies, <<s p o>>, g) and (r, q, v, g), no count, no quad for (s, p, o)",
+ "note": "P3 10a.2: a reifier_binding line and an annotation line of count 3: the quads (r, rdf:reifies, <<s p o>>, g) and (r, q, v, g), no count, no quad for (s, p, o)",
  "cases": [
   {
    "label": "",

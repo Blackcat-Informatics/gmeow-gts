@@ -1,7 +1,7 @@
 {
  "name": "registry/zero/parity_geometry",
  "status": "built and matches",
- "note": "the code 0 in the parity_geometry field: parity_damaged (damage of a parity frame, P1 2.7 and P2-67); two inputs, h = r = 1 and h = 2, r = 1",
+ "note": "the code 0 in the parity_geometry field: parity_damaged (damage of a parity frame, P1 3.1 and P2-67); two inputs, h = r = 1 and h = 2, r = 1",
  "cases": [
   {
    "label": "",

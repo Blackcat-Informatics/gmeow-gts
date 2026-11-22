@@ -1,7 +1,7 @@
 {
  "name": "project/digest-not-rdf",
  "status": "built and matches",
- "note": "P3 13.8: x@EN and x@en: the imports have different content digests",
+ "note": "P3 10a.4: x@EN and x@en: the imports have different content digests",
  "cases": [
   {
    "label": "",

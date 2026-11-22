@@ -1,7 +1,7 @@
 {
  "name": "registry/tables",
  "status": "built and matches",
- "note": "P2 11.3: the registry written as data (the input file, 28306 bytes): every enumeration of section 4 (64 tables), the severity of the 48 codes, the 92 reasons, the 15 contexts with the digest of 61 62 63, the reasons each code allows, the fields of 5.2 and the assignment log of 9a; the result records the number of rows compared with the tables of P2 and the values of registry version 2 listed apart",
+ "note": "the registry written as data (the input file, 28306 bytes): every enumeration of section 4 (64 tables), the severity of the 48 codes, the 92 reasons, the 15 contexts with the digest of 61 62 63, the reasons each code allows, the fields of 5.2 and the assignment log of 9a; the result records the number of rows compared with the tables of P2 and the values of registry version 2 listed apart",
  "cases": [
   {
    "label": "",

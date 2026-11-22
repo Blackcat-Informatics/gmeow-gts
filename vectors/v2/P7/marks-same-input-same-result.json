@@ -2,7 +2,7 @@
  "name": "marks-same-input-same-result",
  "section": "P7",
  "status": "built and matches",
- "note": "one file read twice with one value of marks: equal results; with marks absent and present: the differences of 2.1 alone (P7 8.1)",
+ "note": "one file read twice with one value of marks: equal results; with marks absent and present: the differences of 2.1 alone (P7 2)",
  "cases": [
   {
    "label": "present",

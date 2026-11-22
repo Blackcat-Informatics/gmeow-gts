@@ -1,7 +1,7 @@
 {
  "name": "registry/parity/damaged",
  "status": "built and matches",
- "note": "P2 11.1: a parity frame with one byte of the table_digest altered: parity_damaged and no other finding of P1; the integrity is that of the file without the damage",
+ "note": "P2 7: a parity frame with one byte of the table_digest altered: parity_damaged and no other finding of P1; the integrity is that of the file without the damage",
  "cases": [
   {
    "label": "",

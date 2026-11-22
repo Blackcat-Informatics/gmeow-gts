@@ -1,7 +1,7 @@
 {
  "name": "registry/version/hash_above",
  "status": "built and matches",
- "note": "P2 11.1: h 3, r 1, hash_algorithm 2: unsupported_registry_version, no link checked and nothing folded",
+ "note": "P2 7: h 3, r 1, hash_algorithm 2: unsupported_registry_version, no link checked and nothing folded",
  "cases": [
   {
    "label": "",

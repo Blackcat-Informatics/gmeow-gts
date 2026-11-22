@@ -1,7 +1,7 @@
 {
  "name": "project/bindings-suppression-blobs",
  "status": "built and matches",
- "note": "P3 13.8: a binding, an entry, a blob declaration and a pair of VALUES: Q holds only the quads of its lines",
+ "note": "P3 10a.2: a binding, an entry, a blob declaration and a pair of VALUES: Q holds only the quads of its lines",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "registry/item_kind/resync",
  "status": "built and matches",
- "note": "P2 11.1: an item of kind 5 of the generation 2, read by a reader of registry version 1: a resync item, an opener that opens a segment",
+ "note": "P2 4.1: an item of kind 5 of the generation 2, read by a reader of registry version 1: a resync item, an opener that opens a segment",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "registry/fields/all",
  "status": "built and matches",
- "note": "P2 11.1: the result records, for each of the 48 finding codes, the fields that its seven-field record has present (exactly those that the table of 5.2 marks); the input file is a header, two frames and a commit",
+ "note": "P2 5.2: the result records, for each of the 48 finding codes, the fields that its seven-field record has present (exactly those that the table of 5.2 marks); the input file is a header, two frames and a commit",
  "cases": [
   {
    "label": "",

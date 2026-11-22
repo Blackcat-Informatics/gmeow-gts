@@ -2,7 +2,7 @@
  "name": "header-minimal",
  "section": "10.2",
  "status": "built and matches",
- "note": "h0 is the value of the vector header-h0-minimal: the `header_identifier` (and `head`) of the segment result of this file; the header is the 12 bytes of P1 10.2",
+ "note": "h0 is the value of the vector header-h0-minimal: the `header_identifier` (and `head`) of the segment result of this file; the header is the 12 bytes of P1 2.4",
  "cases": [
   {
    "label": "",

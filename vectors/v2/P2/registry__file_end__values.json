@@ -1,7 +1,7 @@
 {
  "name": "registry/file_end/values",
  "status": "built and matches",
- "note": "P2 11.1: a header, a blob frame, a commit frame and the byte 1c: an undelimitable_input finding runs to the end of the input, file_end undelimitable (6)",
+ "note": "P2 4.7: a header, a blob frame, a commit frame and the byte 1c: an undelimitable_input finding runs to the end of the input, file_end undelimitable (6)",
  "cases": [
   {
    "label": "",

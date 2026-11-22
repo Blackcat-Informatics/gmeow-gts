@@ -1,7 +1,7 @@
 {
  "name": "registry/resync_reach/values",
  "status": "built and matches",
- "note": "P2 11.1: a resync item reached by framing: walked; one found by the scan after a damaged region: scanned",
+ "note": "P2 4.7: a resync item reached by framing: walked; one found by the scan after a damaged region: scanned",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "registry/storage/unknown_tag",
  "status": "built and matches",
- "note": "P2 11.1: h 2, r 1, a storage tag 3: as an unknown codec, with the subject [1, 3]",
+ "note": "P2 7: h 2, r 1, a storage tag 3: as an unknown codec, with the subject [1, 3]",
  "cases": [
   {
    "label": "",

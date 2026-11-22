@@ -1,7 +1,7 @@
 {
  "name": "project/blank-node-only-in-record",
  "status": "built and matches",
- "note": "P3 13.8: a blank node named only by a binding: no blank node in the result",
+ "note": "P3 10a.1: a blank node named only by a binding: no blank node in the result",
  "cases": [
   {
    "label": "",

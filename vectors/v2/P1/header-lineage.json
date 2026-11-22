@@ -2,7 +2,7 @@
  "name": "header-lineage",
  "section": "10.2",
  "status": "built and matches",
- "note": "the 48-byte header (P1 10.2) is the header of a second segment naming the head of the first; no lineage_mismatch (the only finding is canonical_violated header: a canonical claim with a lineage); h0 is the value of the vector header-h0-lineage: the `header_identifier` of the second segment result",
+ "note": "the 48-byte header (P1 2.4) is the header of a second segment naming the head of the first; no lineage_mismatch (the only finding is canonical_violated header: a canonical claim with a lineage); h0 is the value of the vector header-h0-lineage: the `header_identifier` of the second segment result",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "project/round-trip-rdf",
  "status": "built and matches",
- "note": "P3 13.8: a dataset of quads in two graphs, a nested triple term and an empty named graph: rdf(IMPORT(D), v) = D for both variants (R1)",
+ "note": "P3 10a.5: a dataset of quads in two graphs, a nested triple term and an empty named graph: rdf(IMPORT(D), v) = D for both variants (R1)",
  "cases": [
   {
    "label": "",

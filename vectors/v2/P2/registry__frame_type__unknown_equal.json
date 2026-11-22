@@ -1,7 +1,7 @@
 {
  "name": "registry/frame_type/unknown_equal",
  "status": "built and matches",
- "note": "P2 11.1: h 1, r 1, a frame of type 99: malformed_value, unregistered_value; the frame is opaque with malformed",
+ "note": "P2 7: h 1, r 1, a frame of type 99: malformed_value, unregistered_value; the frame is opaque with malformed",
  "cases": [
   {
    "label": "",

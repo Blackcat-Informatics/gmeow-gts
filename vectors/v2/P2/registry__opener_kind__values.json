@@ -1,7 +1,7 @@
 {
  "name": "registry/opener_kind/values",
  "status": "built and matches",
- "note": "P2 11.1: a file of one header segment and one segment that a resync item opens: opener [1] and [2, reached, displaced, past, marks_ignored]",
+ "note": "P2 4.7: a file of one header segment and one segment that a resync item opens: opener [1] and [2, reached, displaced, past, marks_ignored]",
  "cases": [
   {
    "label": "",

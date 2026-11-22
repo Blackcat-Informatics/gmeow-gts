@@ -1,7 +1,7 @@
 {
  "name": "project/language-case",
  "status": "built and matches",
- "note": "P3 13.8: x@EN and x@en: two quads in Q, the language texts byte for byte (that an RDF tool reads them as one is not a result of the projection)",
+ "note": "P3 10a.2: x@EN and x@en: two quads in Q, the language texts byte for byte (that an RDF tool reads them as one is not a result of the projection)",
  "cases": [
   {
    "label": "",

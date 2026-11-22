@@ -1,7 +1,7 @@
 {
  "name": "registry/version/above",
  "status": "built and matches",
- "note": "P2 11.1: h 3, r 1, a frame of a type above 16 (17): unsupported_registry_version once, then P2-56: the link is checked, the frame is opaque with unknown_frame_type and reported unknown_enumeration_value",
+ "note": "P2 7: h 3, r 1, a frame of a type above 16 (17): unsupported_registry_version once, then P2-56: the link is checked, the frame is opaque with unknown_frame_type and reported unknown_enumeration_value",
  "cases": [
   {
    "label": "",

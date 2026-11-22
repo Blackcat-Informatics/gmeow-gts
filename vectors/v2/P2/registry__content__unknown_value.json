@@ -1,7 +1,7 @@
 {
  "name": "registry/content/unknown_value",
  "status": "built and matches",
- "note": "P2 11.1: h 2, r 1, a terms frame whose order is 3: the frame is a frame of unknown type: unsupported_critical (the type is critical), the fold stops",
+ "note": "P2 7: h 2, r 1, a terms frame whose order is 3: the frame is a frame of unknown type: unsupported_critical (the type is critical), the fold stops",
  "cases": [
   {
    "label": "",

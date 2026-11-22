@@ -1,7 +1,7 @@
 {
  "name": "registry/opaque/precedence",
  "status": "built and matches",
- "note": "P2 11.1: a frame that is malformed and stands after a stop: the opaque reason is malformed (P2-30)",
+ "note": "P2 4.7: a frame that is malformed and stands after a stop: the opaque reason is malformed (P2-30)",
  "cases": [
   {
    "label": "",

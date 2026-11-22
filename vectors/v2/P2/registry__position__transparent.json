@@ -1,7 +1,7 @@
 {
  "name": "registry/position/transparent",
  "status": "built and matches",
- "note": "P2 11.1: a parity frame between two frames: the later positions count it, and the ordinary_position of the index's pack_members does not",
+ "note": "P2 5.2: a parity frame between two frames: the later positions count it, and the ordinary_position of the index's pack_members does not",
  "cases": [
   {
    "label": "",

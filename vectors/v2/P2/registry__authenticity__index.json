@@ -1,7 +1,7 @@
 {
  "name": "registry/authenticity/index",
  "status": "built and matches",
- "note": "P2 11.1: a canonical file whose commit carries a valid trusted signature: authenticated, the closing index not counted (P2-77)",
+ "note": "P2 9: a canonical file whose commit carries a valid trusted signature: authenticated, the closing index not counted (P2-77)",
  "cases": [
   {
    "label": "",

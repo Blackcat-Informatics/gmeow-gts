@@ -1,7 +1,7 @@
 {
  "name": "project/not-rdf-texts",
  "status": "built and matches",
- "note": "P3 13.8: a relative IRI, a language that is no tag, a typed literal of datatype rdf:langString: three quads, texts unchanged, no finding, no stop",
+ "note": "P3 10a.3: a relative IRI, a language that is no tag, a typed literal of datatype rdf:langString: three quads, texts unchanged, no finding, no stop",
  "cases": [
   {
    "label": "",

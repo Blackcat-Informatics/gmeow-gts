@@ -1,7 +1,7 @@
 {
  "name": "project/empty-graph",
  "status": "built and matches",
- "note": "P3 13.8: an empty_graph line for g: Q empty, G0 = {g}; with a line that carries g: G0 empty",
+ "note": "P3 10a.1: an empty_graph line for g: Q empty, G0 = {g}; with a line that carries g: G0 empty",
  "cases": [
   {
    "label": "",

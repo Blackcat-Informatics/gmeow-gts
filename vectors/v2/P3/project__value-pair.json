@@ -1,7 +1,7 @@
 {
  "name": "project/value-pair",
  "status": "built and matches",
- "note": "P3 13.8: a pair of VALUES for a literal and none: equal projections, different content digests",
+ "note": "P3 10a.2: a pair of VALUES for a literal and none: equal projections, different content digests",
  "cases": [
   {
    "label": "",

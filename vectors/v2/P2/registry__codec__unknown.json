@@ -1,7 +1,7 @@
 {
  "name": "registry/codec/unknown",
  "status": "built and matches",
- "note": "P2 11.1: h 2, r 1, a frame with codec 2: payload unchecked with unknown_codec; the frame is opaque with unknown_codec",
+ "note": "P2 7: h 2, r 1, a frame with codec 2: payload unchecked with unknown_codec; the frame is opaque with unknown_codec",
  "cases": [
   {
    "label": "",

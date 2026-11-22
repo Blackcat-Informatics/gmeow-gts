@@ -1,7 +1,7 @@
 {
  "name": "registry/mark_target_kind/values",
  "status": "built and matches",
- "note": "P2 11.1: a mark with a target of tag 1 and one of tag 2: applicable; a target of tag 3: the mark is not applicable, no finding",
+ "note": "P2 4.5: a mark with a target of tag 1 and one of tag 2: applicable; a target of tag 3: the mark is not applicable, no finding",
  "cases": [
   {
    "label": "",

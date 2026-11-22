@@ -1,7 +1,7 @@
 {
  "name": "p8-state-sealed-blob",
  "status": "built and matches",
- "note": "P8 15 item 9, P3 7.2: a segment whose commit names a state with one blob entry of length 17, in sealed frames; result records three readings of the stored file: keyless, with the segment key, and with a key entry whose key conflicts; the sealing input of the second and third readings is not recorded in the case",
+ "note": "P8 12 item 9, P3 7.2: a segment whose commit names a state with one blob entry of length 17, in sealed frames; result records three readings of the stored file: keyless, with the segment key, and with a key entry whose key conflicts; the sealing input of the second and third readings is not recorded in the case",
  "cases": [
   {
    "label": "",

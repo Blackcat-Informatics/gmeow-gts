@@ -1,7 +1,7 @@
 {
  "name": "project/triple-term-nested",
  "status": "built and matches",
- "note": "P3 13.8: a triple term whose object is a triple term, as an object of a quad: the same nested term",
+ "note": "P3 10a.1: a triple term whose object is a triple term, as an object of a quad: the same nested term",
  "cases": [
   {
    "label": "",

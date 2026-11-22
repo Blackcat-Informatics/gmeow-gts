@@ -1,7 +1,7 @@
 {
  "name": "registry/integrity/not_checked",
  "status": "built and matches",
- "note": "P2 11.1: h 3, r 1, hash_algorithm 2: integrity not_checked, not damaged (P2-78)",
+ "note": "P2 9: h 3, r 1, hash_algorithm 2: integrity not_checked, not damaged (P2-78)",
  "cases": [
   {
    "label": "",
