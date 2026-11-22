@@ -1,7 +1,7 @@
 {
  "name": "dist-sealed-version-1",
  "status": "built and matches",
- "note": "PF-dist 8: a dist segment of registry version 2 with a sealed frame read by a reader of version 1: unsupported_registry_version, dist_sealed_frame; REFUTED (PF-dist-6)",
+ "note": "PF-dist 6: a dist segment of registry version 2 with a sealed frame read by a reader of version 1: unsupported_registry_version, dist_sealed_frame; REFUTED (PF-dist-6)",
  "cases": [
   {
    "label": "",

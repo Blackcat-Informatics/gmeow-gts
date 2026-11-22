@@ -1,7 +1,7 @@
 {
  "name": "dist-refuted-not-declared",
  "status": "built and matches",
- "note": "PF-dist 8: the canonical file of the fold of dist-pass with profile absent, and the input of zero bytes: no profile_violation in either; REFUTED in both (the segment does not declare the profile; the file has no segment)",
+ "note": "PF-dist 6: the canonical file of the fold of dist-pass with profile absent, and the input of zero bytes: no profile_violation in either; REFUTED in both (the segment does not declare the profile; the file has no segment)",
  "cases": [
   {
    "label": "",

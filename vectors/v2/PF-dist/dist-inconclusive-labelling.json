@@ -1,7 +1,7 @@
 {
  "name": "dist-inconclusive-labelling",
  "status": "built and matches",
- "note": "PF-dist 8: dist-pass read with labelled_lines one below the size of its fold: no profile_violation, labelling unchecked with labelling_refused, both content digests absent; INCONCLUSIVE",
+ "note": "PF-dist 6: dist-pass read with labelled_lines one below the size of its fold: no profile_violation, labelling unchecked with labelling_refused, both content digests absent; INCONCLUSIVE",
  "cases": [
   {
    "label": "",

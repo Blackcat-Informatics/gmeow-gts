@@ -1,7 +1,7 @@
 {
  "name": "dist-inconclusive-rebuilt",
  "status": "built and matches",
- "note": "PF-dist 8: the canonical file of a fold with one multi-unit blob read with rebuilt_bytes_per_read one below the charge of its recipe member: exceeds_capacity with total_rebuilt, structure unchecked, integrity intact_unchecked; INCONCLUSIVE",
+ "note": "PF-dist 6: the canonical file of a fold with one multi-unit blob read with rebuilt_bytes_per_read one below the charge of its recipe member: exceeds_capacity with total_rebuilt, structure unchecked, integrity intact_unchecked; INCONCLUSIVE",
  "cases": [
   {
    "label": "",

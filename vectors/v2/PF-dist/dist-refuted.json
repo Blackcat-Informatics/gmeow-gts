@@ -1,7 +1,7 @@
 {
  "name": "dist-refuted",
  "status": "built and matches",
- "note": "PF-dist 8: dist-not-canonical-claim-false is REFUTED (PF-dist-11)",
+ "note": "PF-dist 6: dist-not-canonical-claim-false is REFUTED (PF-dist-11)",
  "cases": [
   {
    "label": "",

@@ -1,13 +1,12 @@
 {
  "name": "dist-storage-differs",
  "status": "built and matches",
- "note": "",
+ "note": "a distribution file of 300 long IRIs whose terms frame and quads frame are stored compressed, with the canonical bytes and with the terms frame compressed at level 3, the quads frame having the same stored bytes at both levels, so that the parity frame, the offsets item and the locator differ too: the two files have the same header identifier, frame identifiers and content digest, neither has a finding, structure and labelling are verified in both, and the storage level is verified for the canonical bytes and differs for the other, which is no finding and no failure of check 1; each is a VERIFIED DISTRIBUTION",
+ "section": "PF-dist",
  "cases": [
   {
-   "label": "",
-   "input_file": "dist-storage-differs.bin",
-   "input_derived": true,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000191120810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018202582042a67bbb2ff4e42f7d601f3fb9b2f4c1a9c65b3419203d3d43ed139c6423819a838b010b190de4820201018101810180810180808b02190def1902bf820202018101810180810180808b031910ae187282020e0181018101808102808080808202582042a67bbb2ff4e42f7d601f3fb9b2f4c1a9c65b3419203d3d43ed139c6423819a8201000200",
+   "label": "canonical-storage",
+   "input_file": "dist-storage-differs.canonical-storage.bin",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,9 +19,50 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {},
-   "differences": []
+   "read": {
+    "registry_version": 1,
+    "profiles": [
+     [
+      1,
+      5
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "870101818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019063181018202582045e0b1398b1630b0751fc4a81de3054a9c75c1367d9c3390cec24c5b4704b2218202018202018202010103040300810585f581018101810181018202582042a67bbb2ff4e42f7d601f3fb9b2f4c1a9c65b3419203d3d43ed139c6423819a858b010d19015182020101810182020180810180808b0219015e189482020201810182020180810180808b031901f2187282020e018101810180810280808b0419026418de82020f018101810180810280808b051903421902d48202100181018101808102808080808202582042a67bbb2ff4e42f7d601f3fb9b2f4c1a9c65b3419203d3d43ed139c6423819a8201000200"
+  },
+  {
+   "label": "other-encoder",
+   "input_file": "dist-storage-differs.other-encoder.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [
+     [
+      1,
+      5
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "870101818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019068381018202582045e0b1398b1630b0751fc4a81de3054a9c75c1367d9c3390cec24c5b4704b2218202018202018202010103040300810585f581018101810381018202582042a67bbb2ff4e42f7d601f3fb9b2f4c1a9c65b3419203d3d43ed139c6423819a858b010d19019282020101810182020180810180808b0219019f189482020201810182020180810180808b03190233187282020e018101810180810280808b041902a518de82020f018101810180810280808b051903831902e58202100181018101808102808080808202582042a67bbb2ff4e42f7d601f3fb9b2f4c1a9c65b3419203d3d43ed139c6423819a8201000200"
   }
  ]
 }

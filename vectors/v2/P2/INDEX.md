@@ -69,7 +69,7 @@
 | `finding/canonical_violated/commit` | built and matches | a commit with count one too high: it differs from the canonical commit; as a commit it is invalid (P5 2.2), and the frames before it are an uncommitted tail (P5 2.3) |
 | `finding/canonical_violated/index` | built and matches | an index whose content_digest is absent: the payload differs from the canonical index; the segment's own digest is present, so the claim `absent` is false (P5 4.3) |
 | `finding/canonical_violated/labelling` | built and matches | blank labels that name no labelling |
-| `finding/canonical_violated/content_digest` | built and matches | an index whose content_digest is 32 bytes of 02: it differs from the canonical digest, and as a claim it is false (P5 4.3) |
+| `finding/canonical_violated/content_digest` | built and matches | an index whose content_digest is 32 zero bytes: it differs from the canonical digest, and as a claim it is false (P5 4.3) |
 | `finding/canonical_violated/tie` | built and matches | two differences at one item position: the index frame differs from the canonical index (check index) and its content_digest, absent, differs from the digest of the canonical line sequence (check content_digest); the reason of the smaller check code, index |
 | `finding/suppression_unmatched/term` | built and matches | an entry of kind term that matches nothing (input of the P3 vector suppress-unmatched-term) |
 | `finding/suppression_unmatched/quad` | built and matches | an entry of kind quad that matches nothing (input of the P3 vector suppress-unmatched-quad) |

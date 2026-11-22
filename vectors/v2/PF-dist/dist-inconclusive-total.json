@@ -1,7 +1,7 @@
 {
  "name": "dist-inconclusive-total",
  "status": "built and matches",
- "note": "PF-dist 8: dist-pass read with decoded_bytes_per_read below its total decoded length: a frame unchecked with exceeds_capacity and total_decoded; INCONCLUSIVE",
+ "note": "PF-dist 6: dist-pass read with decoded_bytes_per_read below its total decoded length: a frame unchecked with exceeds_capacity and total_decoded; INCONCLUSIVE",
  "cases": [
   {
    "label": "",

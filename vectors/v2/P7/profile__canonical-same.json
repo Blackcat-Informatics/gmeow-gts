@@ -1,13 +1,12 @@
 {
  "name": "profile/canonical-same",
  "status": "built and matches",
- "note": "the same frames, equal content and payloads but commit root and index; headers, h0 and identifiers differ",
+ "note": "the canonical files of one fold with the profile absent and with the profile dist, read by one reader: the two segments hold the same frames in the same order with the same lengths, types and states, each frame one byte later in the second file, whose header is one byte longer, the same content digest and no finding, and differ in the header, so in the header identifier and in the profile field; the frames that are not parity frames have equal content records and payloads except the commit, whose root differs, and the index, whose head and range root differ; the parity frame differs in its end, anchor, table digest and payload, since its stream holds the header; and every identifier differs",
+ "section": "P7, \"Definition and the two claims\"; P7, \"The profile mechanism\"",
  "cases": [
   {
-   "label": "",
-   "input_file": "profile__canonical-same.bin",
-   "input_derived": true,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902bc810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f48202058202058202058101820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb8858b010b18d4820201018101810180810180808b0218df186d820202018101810180810180808b0319014c1881820209018101810180810180808b041901cd187d820206018101810180810180808b0519024a187282020e018101810180810280808080820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb88201000200",
+   "label": "profile-absent",
+   "input_file": "profile__canonical-same.profile-absent.bin",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,9 +19,50 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {},
-   "differences": []
+   "read": {
+    "registry_version": 1,
+    "profiles": [
+     [
+      1,
+      5
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "870101818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001906bd8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103060500810785f58101810181018101820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb8878b010c188c82020d018101810180810180808b02189818b5820201018101810180810180808b0319014d186d820202018101810180810180808b041901ba187d820206018101810180810180808b05190237187282020e018101810180810280808b061902a919011082020f018101810180810280808b071903b91902e5820210018101810180810280808080820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb88201000200"
+  },
+  {
+   "label": "profile-dist",
+   "input_file": "profile__canonical-same.profile-dist.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [
+     [
+      1,
+      5
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "870101818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001906be81018202582045e0b1398b1630b0751fc4a81de3054a9c75c1367d9c3390cec24c5b4704b2218202018202018202010103060500810785f58101810181018101820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb8878b010d188c82020d018101810180810180808b02189918b5820201018101810180810180808b0319014e186d820202018101810180810180808b041901bb187d820206018101810180810180808b05190238187282020e018101810180810280808b061902aa19011082020f018101810180810280808b071903ba1902e5820210018101810180810280808080820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb88201000200"
   }
  ]
 }

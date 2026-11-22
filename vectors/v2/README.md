@@ -26,7 +26,8 @@ hexadecimal of its deterministic encoding (`read_result`, or the record that the
 
 A case states every further input of its read or judgement:
 
-- `read`: the inputs of the read that are not the default: `profiles`, `trusted_keys`, `held_keys`, `sealing_input`, `marks`.
+- `read`: the inputs of the read that are not the default: `profiles`, `trusted_keys`, `held_keys`, `sealing_input`, `marks`,
+  `registry_version`, and `holds_reference_encoder` (whether the reader holds the reference encoder of the storage level).
   A recorded read whose case states no `profiles` has an empty `profiles`.
 - a key that ends in `_file`: a second file of the case, such as the source of a conversion, the later file of a proof, a
   proof, or a result.
@@ -36,11 +37,11 @@ A case states every further input of its read or judgement:
   read_result]` of the nested reads; `nested` and `children` state the same reads and the nested files in plain values.
 - `signing_rnd`: the random input with which a signature of the input was made, where it is not the deterministic one.
 
-`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,097 files.
+`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,103 files.
 
 ## Large inputs
 
-A file of at most 1 MiB stands here as it is: 6,031 files.
+A file of at most 1 MiB stands here as it is: 6,037 files.
 
 A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 36 files,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.

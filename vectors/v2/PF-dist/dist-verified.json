@@ -1,7 +1,7 @@
 {
  "name": "dist-verified",
  "status": "built and matches",
- "note": "PF-dist 8: dist-pass is a VERIFIED DISTRIBUTION (PF-dist-10)",
+ "note": "PF-dist 6: dist-pass is a VERIFIED DISTRIBUTION (PF-dist-10)",
  "cases": [
   {
    "label": "",

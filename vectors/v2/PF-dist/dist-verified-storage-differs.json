@@ -1,7 +1,7 @@
 {
  "name": "dist-verified-storage-differs",
  "status": "built and matches",
- "note": "PF-dist 8: dist-storage-differs is a VERIFIED DISTRIBUTION (the storage level does not enter condition 1)",
+ "note": "PF-dist 6: the case other-encoder of dist-storage-differs is a VERIFIED DISTRIBUTION (the storage level does not enter condition 1)",
  "cases": [
   {
    "label": "",

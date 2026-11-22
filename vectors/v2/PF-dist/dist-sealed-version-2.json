@@ -1,7 +1,7 @@
 {
  "name": "dist-sealed-version-2",
  "status": "built and matches",
- "note": "PF-dist 8: the same file read by a reader of version 2 without the key: the sealed frame opaque, visible incomplete with unopened_sealed 1, dist_sealed_frame; REFUTED (PF-dist-6)",
+ "note": "PF-dist 6: the same file read by a reader of version 2 without the key: the sealed frame opaque, visible incomplete with unopened_sealed 1, dist_sealed_frame; REFUTED (PF-dist-6)",
  "cases": [
   {
    "label": "",

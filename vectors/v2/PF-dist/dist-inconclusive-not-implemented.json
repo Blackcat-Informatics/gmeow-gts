@@ -1,7 +1,7 @@
 {
  "name": "dist-inconclusive-not-implemented",
  "status": "built and matches",
- "note": "PF-dist 8: dist-not-implemented is INCONCLUSIVE",
+ "note": "PF-dist 6: dist-not-implemented is INCONCLUSIVE",
  "cases": [
   {
    "label": "",

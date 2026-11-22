@@ -1,7 +1,7 @@
 {
  "name": "finding/canonical_violated/content_digest",
  "status": "built and matches",
- "note": "an index whose content_digest is 32 bytes of 02: it differs from the canonical digest, and as a claim it is false (P5 4.3)",
+ "note": "an index whose content_digest is 32 zero bytes: it differs from the canonical digest, and as a claim it is false (P5 4.3)",
  "cases": [
   {
    "label": "",

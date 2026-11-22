@@ -1,13 +1,12 @@
 {
  "name": "dist-not-canonical-claim-false",
  "status": "built and matches",
- "note": "",
+ "note": "a distribution file cut at the first byte of its index frame, so that the index frame, the final parity frame, the offsets item and the locator are gone and the header still claims the canonical form: the structure level is failed with the first difference frame_sequence at position 4, where the index frame would stand, canonical_violated with frame_sequence stands in the segment's list at that position, and check 1, dist_not_canonical, gives profile_violation with no position and no count; REFUTED",
+ "section": "PF-dist",
  "cases": [
   {
    "label": "",
    "input_file": "dist-not-canonical-claim-false.bin",
-   "input_derived": true,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190143810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820b6344afbe92fdea47785c2a40b538a3365eba18bb8b9aa4ed8cec8f9fd51d0ee838b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d1187282020e01810181018081028080808082025820b6344afbe92fdea47785c2a40b538a3365eba18bb8b9aa4ed8cec8f9fd51d0ee8201000200",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,9 +19,20 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {},
-   "differences": []
+   "read": {
+    "registry_version": 1,
+    "profiles": [
+     [
+      1,
+      5
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "870101818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019014681018202582045e0b1398b1630b0751fc4a81de3054a9c75c1367d9c3390cec24c5b4704b22182020182020182020101030303008085f5810381018103820282020482025820b6344afbe92fdea47785c2a40b538a3365eba18bb8b9aa4ed8cec8f9fd51d0ee838b010d1868820201018101810180810180808b021875185f820202018101810180810180808b0318d4187282020e018101810180810280808287182e81018202830401820201810181018101810187181b8202184281018202048101810181018082025820b6344afbe92fdea47785c2a40b538a3365eba18bb8b9aa4ed8cec8f9fd51d0ee8201000200"
   }
  ]
 }
