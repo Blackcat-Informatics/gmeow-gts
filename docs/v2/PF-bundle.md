@@ -223,8 +223,8 @@ later ones do not judge it. Each term is judged alone and a finding counts terms
    stays: hiding the declaration of the bound blob does not fail it.
 4. `bundle_not_a_file`: the nested read of its bytes gives a `file_result` that is not of tag `second_generation`, or one with
    no segment, or one whose file findings hold `torn_tail`, `undelimitable_input` or `read_failed`, or one with a segment whose
-   `header_identifier` is `absent`. The check is not judged for a term for which no nested read is made, a nested-file term in
-   a file of depth `Dmax` whose blob has no depth of at most `Dmax`: check 5 judges that term (PF-bundle-10).
+   `header_identifier` is `absent`. The check is not judged for a nested-file term in a file of depth `Dmax` whose blob has no
+   depth of at most `Dmax`, for which no nested read is made: check 5 judges that term (PF-bundle-10).
 5. `bundle_depth`: the nested file of `T` has a depth above `Dmax`, or the tree below it holds a nested file that has.
 
 **PF-bundle-9.** A reader that implements this profile MUST run the checks `1` to the number it states in `profiles` (`P2`,

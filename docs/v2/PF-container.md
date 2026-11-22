@@ -145,7 +145,7 @@ THE LISTING ORDER. In every listing, the observations of one export stand in asc
 their `c:resource` IRI (`P1`, "Scope, dependencies and notation"), two observations of one resource (a file that fails check `6`)
 in ascending order of
 the place of the observation terms (`P7`, THE PLACE OF A TERM); the objects of `c:contains` and of `c:managedPredicate` of one
-observation stand in ascending bytewise order of the IRI; the exports stand in chain order.
+observation stand in ascending bytewise order of the IRI; the exports of a file that passes check `3` stand in chain order.
 
 REMOVAL AND CHANGE. A resource that disappears gets an observation of kind `c:Absent` (a tombstone) and no content. A resource
 that changes gets a new observation whose `c:graph` names a NEW graph (an RDF resource) or whose binding names the new blob (a
