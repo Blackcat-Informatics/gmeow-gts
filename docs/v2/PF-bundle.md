@@ -217,7 +217,8 @@ later ones do not judge it. Each term is judged alone and a finding counts terms
    referent.
 2. `bundle_size`: the blob set of the fold holds an entry of the bound name whose `length` is above `Smax`.
 3. `bundle_bytes_unavailable`: the blob set of the fold holds no entry of the bound name with `presence` `present`, or the
-   blob's state is INCOMPLETE (`P4`, "Rebuilding a blob or a value": no declaration is verified and none is refused). A blob
+   blob's state is INCOMPLETE (`P4`, "Rebuilding a blob or a value": no declaration is verified and none is refused or not run). A
+   blob
    whose state is UNCHECKED is not judged by this check (section 4). The check reads the blob set, in which a hidden declaration
    stays: hiding the declaration of the bound blob does not fail it.
 4. `bundle_not_a_file`: the nested read of its bytes gives a `file_result` that is not of tag `second_generation`, or one with
@@ -234,8 +235,8 @@ the order of section 6, and MUST report each check that fails for at least one t
 **PF-bundle-10.** A reader MUST decide `bundle_depth` by reading nested files to depth `Dmax` and no further: a nested-file term
 in a file of depth `Dmax` that is judged under this profile is, when it passes check `1`, a nested file of depth `Dmax + 1`,
 unless
-its binding names a blob that has a depth of at most `Dmax` by the smallest-depth rule of section 4: the reader counts the term
-and reads nothing for it.
+its binding names a blob that has a depth of at most `Dmax` by the smallest-depth rule of section 4; for a term that is a nested
+file of depth `Dmax + 1` the reader counts the term and reads nothing.
 
 **PF-bundle-11.** A reader MUST judge each nested-file term of the outer fold by the checks in the order of the checks.
 

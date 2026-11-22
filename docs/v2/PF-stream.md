@@ -63,7 +63,7 @@ a later revision of this document appends a check with the next number.
 - COMMIT CADENCE `Ns`; value: `200` ordinary frames; reason: a design bound. The cadence bounds what a reader that stops at
   the last valid commit leaves unread to `200` frames, at a small cost in commit frames.
 - PARITY GEOMETRY; value: `geometry_1` of `P5` (`k` `64`, `m` `4`, shards of `4096` bytes for a span of `262144` bytes or more,
-  spans of `4194304` bytes); reason: without parity the fold of a segment stops at damaged bytes; with this geometry
+  spans of `4194304` bytes); reason: without parity damaged bytes are lost; with this geometry
   recovery restores what `P5`, "What parity guarantees, and what it does not", states, and a span of fewer than `262144` bytes
   restores at most `4 * z` bytes, `z` the shard length of `P5`, "Shards, stripes and parity shards".
 - SPAN LENGTH; value: `4194304` bytes, the span length of `geometry_1` (`P5`, "The stream and the spans"); the profile adds no

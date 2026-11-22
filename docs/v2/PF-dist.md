@@ -185,8 +185,9 @@ reader did not finish the verification, because a limit of its capacity was met 
 `exceeds_capacity`, a finding
 `exceeds_capacity`, a rebuild `refused`, a `labelling_refused` by a limit of the reader), because its labelling is refused by
 `refusal_width`, which no capacity changes, or by `refusal_term_node`, the refusal of a fold in which two different nested terms
-have one digest, which no capacity changes either, because it does not implement this profile or its access is `forward`
-(`profile_not_checked`) or the registry version, a codec or the hash algorithm of the segment, or because its fold is not
+have one digest, which no capacity changes either; because it does not implement this profile or its access is `forward`
+(`profile_not_checked`); because it does not implement the registry version, a codec or the hash algorithm of the segment; or
+because its fold is not
 complete for a reason that is not damage. Such a result that shows both a refuting fact and an unfinished verification is
 REFUTED. The three outcomes are
 disjoint and every result has one. An inconclusive result is accepted neither as verified nor as refuted; a reader of a larger

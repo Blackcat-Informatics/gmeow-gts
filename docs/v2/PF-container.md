@@ -282,7 +282,7 @@ record removal by an observation
 of kind `c:Absent` and change by a new observation.
 
 **PF-container-7.** A writer MUST add an export to a file only by appending it, MUST NOT rewrite anything of an earlier export,
-and MUST name the latest export of the file as the `c:previousExport` of the export it appends.
+and MUST name the latest export of the file, when there is one, as the `c:previousExport` of the export it appends.
 
 APPEND-ONLY. A graph state is a property of the append history: compaction writes a new file whose commits are new, so the `state`
 referent of every export is unresolved in the canonical file of the fold (`missing_dependency` with `state`). A compacted copy is
@@ -308,8 +308,9 @@ document is a check of section 6 or a numbered requirement on a writer, a reader
 
 ## 6. Checks
 
-THE REPORTING SEGMENT. The checks judge the file and the visible dataset of its fold (`P7`, "The fold of the whole file"), so
-they run once for a file, after the closing phase of every segment of the file, and each is reported as a finding of the step
+THE REPORTING SEGMENT. The checks judge the file and the visible dataset of its fold (`P7`, "The fold of the whole file"), so they
+run once for a file (check `14` once for each segment that declares the profile), after the closing phase of every segment of the
+file, and each is reported as a finding of the step
 `PROFILE CHECKS` of `P7` ("The closing phase of a segment, and visibility", the step that runs the checks of a declared profile)
 of the last segment whose header outcome is `readable` and whose header `profile` is `present(container)`. Each failing check is
 ONE finding `profile_violation` with `reason` `absent`, `subject`
@@ -372,7 +373,8 @@ The conditions:
     the term `O` to a `blob` referent of name `N` such that: the binding is not a binding of the fold of `S(X)`; or the blob set
     of the fold of `S(X)` holds no entry of the name `N`; or the entry of `N` in the fold of `S(X)` differs in any field from the
     entry of `N` in the fold of the file; or that entry is `present` and the blob `N` is INCOMPLETE in the fold of `S(X)` (`P4`,
-    "Rebuilding a blob or a value": no declaration of it is verified from the units of the state and none is refused). A blob
+    "Rebuilding a blob or a value": no declaration of it is verified from the units of the state and none is refused or not run).
+    A blob
     that is UNCHECKED there (none verified and one refused by the total rebuilt length of the read or not run) is not judged by
     this
     condition. A blob
