@@ -16,7 +16,7 @@
 | `container-observation-relation` | built and matches |  |
 | `container-observation-duplicate` | built and matches | o6 is a second observation of the root in X1 |
 | `container-kind-nonrdf-unbound` | built and matches | the blob is declared and nothing binds it |
-| `container-kind-absent-graph` | built and matches |  |
+| `container-kind-absent-graph` | built and matches | a resource observed as gone (the kind c:Absent) whose observation carries a graph: one profile_violation for check 7 (container_kind_content) with the count 1 |
 | `container-graph-shared` | built and matches | o4 names the graph of o2; the graph g2 is not written, so that no graph is orphaned |
 | `container-graph-orphan` | built and matches |  |
 | `container-blank-shared` | built and matches |  |

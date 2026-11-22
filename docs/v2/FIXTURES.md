@@ -516,8 +516,8 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 
 ### FX-041 A hedged signature verifies
 
-- Input: the key and the subject of FX-040, with the ML-DSA half made with a random `rnd`. A second input: a frame whose
-  `signatures` list holds the deterministic and the hedged record of that key.
+- Input: a file whose commit carries one `mldsa65_ed25519` signature whose ML-DSA half was made with a random `rnd`. A second
+  input: the same file, whose commit's `signatures` list holds the deterministic and the hedged record of that key.
 - Built: by the generator of test inputs. A writer writes neither input: it signs deterministically, and it writes no two
   signatures of one `algorithm` and `key_id` in one list.
 - Read: `trusted_keys` and `held_keys` hold the key.
@@ -532,13 +532,15 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   copy from which the second signature was removed. A third file that declares `bundle` and carries the first file whole as a
   blob, bound to a nested-file term, the term of the custody event.
 - Built: the copy is a storage rewrite of the first file.
+- Read: `trusted_keys` holds the keys of both custodians. For the third file, `profiles` holds `bundle` with its checks `1` to
+  `5`.
 - Result: the copy reads as the first file does, with one `signature_result` fewer at that commit and no finding for the
   removal. Every identifier is equal. In the third file the blob is COMPLETE, and its bytes hold both signatures.
 - Application: for the copy, the transfer is refused: the role of the receiving custodian is not among the authenticating
   signatures. For the third file, the receipt is accepted from the read of the nested file.
 - Rule: `P6`, "The signature record" and "What a signature binds and authenticates"; `P4`, "The rebuild"; `PF-bundle`, "What a
   reader reports about nested content".
-- Corpus: `P6/cosign-remove-signature` is the copy, in its cases `two-signatures` and `second-removed`;
+- Corpus: `P6/cosign-remove-signature` is the case: `two-signatures` is the first file and `second-removed` the copy.
   `PF-bundle/bundle-signed-file-whole` is the third file, with its `nested_results`.
 
 ## 7. `P7`: capacity
@@ -578,8 +580,8 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Result: the first and the third claim the minimum capacity. The second does not, and it conforms. The reader of the first
   claim reads the frame with the payload state `verified` and no `exceeds_capacity`.
 - Rule: `P7`, "Capacity", MINIMUM CAPACITY.
-- Corpus: none is the case for the claim records. `P7/read/capacity/minimum` is the read of a frame whose `decoded_length` is
-  `67108864`; `P7/conformance/claim` is the first claim record.
+- Corpus: `P7/conformance/claim` is the first claim record; the second and the third are not in the corpus.
+  `P7/read/capacity/minimum` is the read of a frame whose `decoded_length` is `67108864`.
 
 ### FX-046 A `guaranteed` input and the labelling limits of a small reader
 
@@ -603,12 +605,14 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   anywhere; the interface reports that the read did not complete. Run three: a `read_result` with `labelling_refused` and the
   reason `refusal_limit`, equal for every reader with that capacity.
 - Rule: `P7`, "Conformance"; `L1`, "The walk and the outcome of a limit", THE FREEDOM OF AN ENGINE.
-- Corpus: none is the case for runs one and two, which give no result. `P7/read/labelling/limit` is a run of the kind of run
-  three.
+- Corpus: none is the case for runs one and two, which give no result. `P7/read/labelling/limit` records, in `result`, the outcome
+  `refusal_limit` of a run of the kind of run three at `labelling_units` `0`; its `read_result` is a read at `labelling_units`
+  `2^40` that refuses nothing.
 
 ### FX-048 A frame that is malformed and also above capacity
 
 - Input: frames to which several opaque reasons apply, among them a frame above capacity that is also malformed.
+- Read: for the frames above capacity, `decoded_bytes_per_frame` `100`.
 - Result: each frame carries the first reason in the order of precedence of the opaque reasons: `malformed` stands before
   `exceeds_capacity`.
 - Rule: `P2`, "Enumerations of the typed result" (`opaque_reason`); `P7`, "Where each finding stands, and in what order".
@@ -624,7 +628,8 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Input: one segment that declares `stream`: rows; a commit; a `suppress` frame that hides an earlier row; a `value`
   declaration, a term that names it by reference and a row that uses the term; a blob declared by a `recipe`; a final signed
   commit; one changed byte in a payload inside a span that has its parity frame.
-- Read: once with the access `forward` and `end` true; once with the access `whole`.
+- Read: `profiles` holds `stream` with its checks `1` and `2`, and `trusted_keys` holds the key of the signer of the final commit.
+  Once with the access `forward` and `end` true; once with the access `whole`.
 - Result: `forward`: every row of a frame that folds is delivered at its frame, the hidden row before the entry that hides it. The
   row by reference
   is delivered by reference. `content_digest` is `absent`. Every rebuild has the state `not_run`. The damaged frame is `damaged`,
@@ -660,10 +665,11 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   header and the `terms` frames of `S1`, one length covering the bytes between them and the next frame of `S2`. The index of `S2`
   is left as it is; the locator is written again at its new place, with the distance to the same index.
 - Built: the `offsets` item is under no identifier, so the change alters no identifier.
-- Read: the access `sparse`, with a query for a graph of `S2`; then the access `whole`.
+- Read: the access `sparse`, with a query for the default graph, which holds the rows of `S2`; then the access `whole`.
 - Result: `sparse`: every frame read is verified locally. The answer is `answered`, and its rows are the rows of `S2` resolved
-  over the dictionary of `S1`: rows that no whole read gives. `whole`: the rows of `S2` over its own dictionary; the `offsets`
-  item is checked where the reader meets it, gives `index_claim_failed` with `index_offsets`, and changes no state.
+  over the dictionary of `S1`, which here are the rows of `S1`: no whole read gives them for `S2`. `whole`: the rows of `S2` over
+  its own dictionary; the `offsets` item is checked where the reader meets it, gives `index_claim_failed` with `index_offsets`,
+  and changes no state.
 - Rule: `P7`, "Reading by range", WHAT AN ANSWER ESTABLISHES, AND WHAT IT DOES NOT; `P5`, "The `offsets` item and the locator".
 - Corpus: `P7/idx-false-offsets-whole` is the case: `sparse`, then `whole`. Its input is that of `P7/idx-mixed-chains`.
 
@@ -728,11 +734,12 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 
 - Input: a read that refuses a `terms` frame by the total formed length; then the compaction of its fold.
 - Built: the input of the corpus entry named below.
+- Read: `formed_bytes_per_read` `8`.
 - Result: the frame is `opaque` with `exceeds_capacity` and is counted in `left_out`. `compact` gives `[2, exceeds_capacity,
   present(total_formed)]`.
 - Rule: `P7`, "Compaction" (case 1).
-- Corpus: `P7/canonical/compaction/formed-refused` is the case and agrees; it records the read, with `left_out` `1`, and
-  states the outcome of the compaction in its note.
+- Corpus: `P7/canonical/compaction/formed-refused` is the case; it records the read, with `left_out` `1`, and states the outcome
+  of the compaction in its note.
 
 ### FX-057 One-pass extraction from two layouts (benchmark)
 
@@ -749,6 +756,8 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Input: (a) one canonical segment that declares `dist` and whose fold holds a file tree in the vocabulary of `PF-files`, with
   two entries of equal paths. (b) A file of a `dist` segment followed by a segment that declares `evidence`. (c) A canonical
   segment that declares no profile and is within both ceilings of `PF-dist`.
+- Read: for (a) and (b), `profiles` holds every profile of the table with all its checks; for (c), `profiles` holds `dist` with
+  its checks `1` to `5`.
 - Result: (a) the checks of `dist` run, and none of `files`. The result is a VERIFIED DISTRIBUTION and holds no
   `files_duplicate_path`. (b) `dist_not_alone` in the first segment; the result is REFUTED. (c) no profile check runs; the
   result is REFUTED, since the `profile` of its segment is `absent`.
@@ -760,6 +769,7 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 ### FX-059 A profile value outside the profile table
 
 - Input: a header whose `profile` is `present` with a value that the profile table does not hold.
+- Read: `profiles` holds every profile of the table with all its checks.
 - Result: the segment is read in full. No profile check runs. The one finding is `profile_not_checked`, of the severity
   `information`, with the subject `[4, profile, absent]`.
 - Rule: `P7`, "The profile mechanism" (item 3).
@@ -811,6 +821,7 @@ are computed again. The read holds the segment key.
 
 - Input: a segment whose `registry_version` is above that of the reader; an inner `terms` content with an enumeration value
   that the reader does not hold; one byte of the inner `payload_digest` changed. Then the same without the changed byte.
+- Read: `registry_version` `2`, below the `3` of the segment; the read holds the segment key.
 - Result: first: `damaged_frame` with `payload_digest` at step 9, and no `unsupported_critical`. Second:
   `unsupported_critical` with the subject `[2, 18]`; the fold of the segment stops, every later frame is `stopped`, and the
   sealed frame counts in `unopened_sealed`.
@@ -853,7 +864,8 @@ at the position `5`.
 ### FX-066 One private audience alone
 
 - Input: `X`.
-- Read: `sealing_input` holds the seed of `rA`, and `trusted_keys` holds `P` and `A`. A second read with `rB` and `B`.
+- Read: `sealing_input` holds the seed of `rA`, and `trusted_keys` and `held_keys` hold `P` and `A`. A second read with `rB`, and
+  with `P` and `B`.
 - Result: segments `0` and `1` are folded, and both commits name states: the run of segment `1` is that segment alone.
   Segments `2` and `3` are as in FX-065. `visible` is `[2, 0, 4, 0]`. The second read gives the same with segments `1` and `2`
   exchanged: the inner `terms` frame of segment `2` has the expected base `0`, because the dictionary is that of its segment.
@@ -969,7 +981,8 @@ at the position `5`.
 - Measured: the bytes of the `keys` frames as a share of the file, and the time to open. This entry is the input of the
   measurement of key grouping in `GUIDE-adoption.md`.
 - Rule: `P8`, "A recipient entry and the wrap's key schedule".
-- Corpus: none is the case; the entry is a measurement.
+- Corpus: none is the case; the entry is a measurement. `P8/p8-rotated-audience` is the layout of FX-071 with two sealed frames, a
+  key entry for each.
 
 ## 12. `P9`: conversion from the first generation
 
@@ -983,7 +996,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: two blank nodes. The lines are `quad(a, p, _:1)` and `quad(c, p, _:2)`. The conversion proof holds. The content
   digest is that of two nodes.
 - Rule: `P9`, "The conversion reading" (SNAPSHOT SCOPE AND IDS) and "Blank nodes".
-- Corpus: `P9/convert/snapshot-label-one-scope` is the case.
+- Corpus: `P9/convert/snapshot-label-one-scope` is the case. The corpus records the source, the converted file and the proof, and
+  no read of the converted file.
 
 ### FX-076 One label in two snapshots
 
@@ -991,7 +1005,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   which the payloads of the two snapshots are equal.
 - Result: two nodes in each input.
 - Rule: `P9`, "The conversion reading" (the scope of a blank-node term entry of a snapshot is that `snapshot` frame).
-- Corpus: `P9/convert/snapshot-label-two-snapshots` is the case, in its cases `different` and `identical`.
+- Corpus: `P9/convert/snapshot-label-two-snapshots` is the case, in its cases `different` and `identical`. The corpus records the
+  source, the converted file and the proof, and no read of the converted file.
 
 ### FX-077 One label twice in one snapshot
 
@@ -999,7 +1014,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   rows differing in their object.
 - Result: one node and two lines.
 - Rule: `P9`, "Blank nodes" (two entries of one scope with one label that is not empty are one node).
-- Corpus: `P9/convert/snapshot-blank-same-label-twice` is the case.
+- Corpus: `P9/convert/snapshot-blank-same-label-twice` is the case. The corpus records the source, the converted file and the
+  proof, and no read of the converted file.
 
 ### FX-078 Anonymous blank terms in a segment and in two snapshots
 
@@ -1007,7 +1023,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   in one snapshot and in a second snapshot, each named by one row.
 - Result: one node for each term entry: six nodes.
 - Rule: `P9`, "The conversion reading" and "Blank nodes".
-- Corpus: `P9/convert/anonymous-blank-snapshots` is the case.
+- Corpus: `P9/convert/anonymous-blank-snapshots` is the case. The corpus records the source, the converted file and the proof, and
+  no read of the converted file.
 
 ### FX-079 A triple term over a blank node, in a segment and in a snapshot
 
@@ -1015,21 +1032,24 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   it, each used as the object of one row.
 - Result: two `triple` terms over two nodes, and two lines that differ in their object.
 - Rule: `P9`, "Terms" and "Blank nodes".
-- Corpus: `P9/convert/snapshot-triple-over-blank` is the case.
+- Corpus: `P9/convert/snapshot-triple-over-blank` is the case. The corpus records the source, the converted file and the proof,
+  and no read of the converted file.
 
 ### FX-080 A suppression of the node of the segment
 
-- Input: the source of FX-075 with the rows `(_:b, p, a)` in the segment and `(_:b, p, c)` in the snapshot, and a `suppress`
-  frame after the snapshot with a `term` target on the id of the entry of `b` in the segment.
+- Input: a source of the form of FX-075, with `b` the subject of each row: the row `(_:b, p, a)` in the segment and `(_:b, p, c)`
+  in the snapshot, and a `suppress` frame after the snapshot with a `term` target on the id of the entry of `b` in the segment.
 - Result: one `term` entry on the node of the segment. The line of that node is hidden. The line of the node of the snapshot
   is visible. The visibility check passes, and the proof holds.
 - Rule: `P9`, "The conversion reading" (an id names the node of its entry) and "Suppression"; `P3`, "The hiding rule".
-- Corpus: `P9/convert/suppress-term-of-segment-node` is the case.
+- Corpus: `P9/convert/suppress-term-of-segment-node` is the case. The corpus records the source, the converted file and the proof,
+  and no read of the converted file.
 
 ### FX-081 One source converted with and without the reference encoder
 
 - Input: one source, converted by a converter that holds the reference encoder and by one that does not.
 - Built: the input of the corpus entry named below.
+- Read: `holds_reference_encoder` true for a reader that holds the reference encoder and false for one that does not.
 - Result: the same proof and the same head. The stored bytes differ. A reader of either result reports the storage level
   `verified`, `differs` or `unchecked`, with no finding.
 - Rule: `P9`, "The conversion function"; `P7`, "The reference encoder and the bytes claim".
@@ -1060,7 +1080,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 
 - Input: two nested files of the depth `1` that each need a charge `T` of the total rebuilt length.
 - Built: the input of the corpus entry named below.
-- Read: `rebuilt_bytes_per_read` equal to what the outer read uses plus `T`.
+- Read: `profiles` holds `bundle` with its checks `1` to `5`, and `rebuilt_bytes_per_read` is what the outer read uses plus `T`.
 - Result: the first nested read, in ascending `E(name)`, is made with `T`. The second is made with `0` and is limited by its
   capacity. Each nested result states its capacity.
 - Rule: `PF-bundle`, "What a reader reports about nested content" (THE SHARED ALLOWANCE and THE ORDER OF THE NESTED READS).
@@ -1074,6 +1094,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 
 - Input: an export with an observation of the kind `c:Unreadable` whose `c:status` is a count literal: once `200`, once `503`.
 - Built: each case is the input of a corpus entry named below.
+- Read: `profiles` holds `container` with its checks `1` to `17`.
 - Result: no finding of the profile.
 - Rule: `PF-container`, "Properties of an observation" and "What each kind holds" (`Unreadable`: at most one `status`).
 - Corpus: `PF-container/container-observation-status-typed` is the case with the status `200` and
@@ -1084,6 +1105,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Input: the export of FX-084 with an `Unreadable` observation that has no `c:status`. A retrieval that timed out before the
   headers and a connection that failed give this one record.
 - Built: the status statement is omitted.
+- Read: `profiles` holds `container` with its checks `1` to `17`.
 - Result: no finding of the profile. The record differs from that of FX-084 and from a tombstone.
 - Rule: `PF-container`, "What each kind holds" (`Unreadable`: at most one `status`) and "Properties of an observation" (no status
   when no response was received).
@@ -1093,10 +1115,11 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 
 - Input: an export in which a resource is observed as gone: the kind `c:Absent`, no `status` and no graph.
 - Built: the input of the corpus entry named below.
+- Read: `profiles` holds `container` with its checks `1` to `17`.
 - Result: the current observation of the resource is the tombstone. No finding.
 - Rule: `PF-container`, "What each kind holds" (`Absent`).
-- Corpus: `PF-container/container-current-latest` is the case and agrees. `PF-container/container-kind-absent-graph` is the
-  tombstone that breaks its kind and agrees.
+- Corpus: `PF-container/container-current-latest` is the case and gives no finding. `PF-container/container-kind-absent-graph` is
+  the same tombstone with a graph: one `profile_violation` for check `7` with the `count` `1`.
 
 ## 15. `PF-dist`: distribution file
 
@@ -1171,6 +1194,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 ### FX-093 A frame exactly at the ceiling
 
 - Input: as FX-087 and FX-092, with a `terms` frame whose `decoded_length` is exactly `67108864`.
+- Read: `profiles` holds `dist` with its checks `1` to `5`.
 - Result: the writer writes the file. A read gives no `profile_violation`, and the result of a reader that claims the minimum
   capacity is a VERIFIED DISTRIBUTION.
 - Rule: `PF-dist`, "Constants" (`Cd`) and "Verified distribution"; `P7`, "Capacity", MINIMUM CAPACITY.
@@ -1181,6 +1205,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Input: one canonical segment that declares `dist`. Its fold holds one `external` declaration of a blob named `N` (name,
   length, media type), whose bytes are not in the file, and one binding of the term `:module` of the manifest to the `blob`
   referent `[1, N]`.
+- Read: `profiles` holds `dist` with its checks `1` to `5`.
 - Result: the blob set holds `N` with `presence` `external`, and the state of the blob is EXTERNAL. The binding resolves to
   it, with no `missing_dependency`. `integrity` is `intact`. The result is a VERIFIED DISTRIBUTION.
 - Application: a capsule contract that requires the module offline asks for `presence` `present` and a verified rebuild of
@@ -1196,6 +1221,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   `t2` and two permission documents `q1` and `q2` as blobs; a manifest in RDF whose release names three part terms, bound to `w2`,
   `t1` and `q2`; a second manifest whose release names one part term, bound to `w1`. Variants with exactly one manifest whose
   three parts agree.
+- Read: `profiles` holds `dist` with its checks `1` to `5`.
 - Result: every variant is a VERIFIED DISTRIBUTION by one read. The profile judges the segment and its frames and reads no
   manifest.
 - Application: the contract of the host requires exactly one manifest, and that the versions stated in the module, the schema
@@ -1224,7 +1250,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   and the `offsets` item and the locator written again.
 - Built: the signatures are of `mldsa65_ed25519`, under three fixed test keys. The second file is a storage rewrite of the
   first.
-- Read: `trusted_keys` holds `K1`, `K2` and `K3`, and `held_keys` their public keys.
+- Read: `profiles` holds `evidence` with its checks `1` to `8`; `trusted_keys` holds `K1`, `K2` and `K3`, and `held_keys` their
+  public keys.
 - Result: both files: no `profile_violation` of checks `4`, `5` or `6`; the same header identifier, effective identifiers,
   roots and content digest; every commit authenticated. The two results differ only in the `key_id` of the `signature_result`
   records. Nothing in the second result shows that `K1` or `K2` signed.
@@ -1245,6 +1272,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 
 - Input: the canonical file, with `profile` `present(evidence)`, of a fold whose canonical file has 1,030 ordinary frames
   before its commit. The commit is then signed with `mldsa65_ed25519` by a trusted key.
+- Read: `profiles` holds `evidence` with its checks `1` to `8`.
 - Result: `profile_violation` for check `2`, `evidence_commit_interval`, at the position of the frame that is the 1,025th of
   the commit interval, with the `count` `1030`.
 - Application: the file is not accepted as a custody chain. The append log is.
@@ -1257,7 +1285,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   key `A`. Segment `1`: the decision of the reviewer, with the row `q`, signed by `H`. Segment `2`: a `suppress` frame with a
   `quad` entry that names `q`, before a commit signed by `A`. A variant: the `suppress` frame stands after the last commit of
   its segment and is covered by no signature.
-- Read: `trusted_keys` holds `A` and `H`.
+- Read: `profiles` holds `evidence` with its checks `1` to `8`; `trusted_keys` holds `A` and `H`.
 - Result: `q` is hidden. `visible` is `[1, 0]`. No `profile_violation`. In the variant: `q` is hidden, `visible` is `[1, 1]`,
   and `profile_violation` is given for checks `3` and `7`.
 - Application: under a table of roles in which the reviewer alone is entitled to hide a decision, the suppression is not
@@ -1273,6 +1301,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Input: four files that declare `files`. (a) No entry. (b) The tree of the worked example of `PF-files`, with one more entry
   `_:r` of the kind `Directory` whose `f:path` object is `rdf:nil`, the empty path, with an owner and a time. (c) As (b), with
   the kind `RegularFile` on `_:r`. (d) No entry, and a statement of an owner and a time on a term that is no entry.
+- Read: `profiles` holds `files` with its checks `1` to `11`.
 - Result: (a) no finding of the profile: the empty tree. (b) `_:r` is the root entry; check `1`, `files_entry_path`, and check
   `5`, `files_kind`, do not fail for it, and it states the owner and the time of the root of the tree. (c) `profile_violation`
   for check `5` with the `count` `1`. (d) `profile_violation` for check `8`, `files_property_domain`.
@@ -1286,11 +1315,13 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 
 - Input: a `RegularFile` entry, a `HardLink` entry whose `f:hardLinkOf` names it, then a segment that hides the regular file
   by a `term` entry and leaves the hard link.
+- Read: `profiles` holds `files` with its checks `1` to `11`.
 - Result: before the hiding, `files_hard_link` does not fail. After it, the hard link has no visible target and fails check
   `7`, `files_property_cardinality`.
 - Rule: `PF-files`, "Writer rules" (Removal and change) and "Checks".
-- Corpus: `PF-files/files-pass` and `PF-files/files-hide-link-target` are the nearest and agree; the second also writes a new
-  entry at the path.
+- Corpus: `PF-files/files-pass` is the tree before the change and passes. `PF-files/files-hide-link-target` is the nearest: its
+  second segment leaves the hard link without its `f:hardLinkOf` statement and writes a new entry at the path, and the record has
+  one `profile_violation` for check `7` with the `count` `1`. No entry hides the regular file by a `term` entry.
 
 ### FX-103 Two writers replace one path
 
@@ -1299,6 +1330,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   The file is the base followed by both segments. Then a further segment that hides `:e2`.
 - Built: the segment of replica 2 carries the lineage of a segment appended after that of replica 1, so that every lineage is
   checked.
+- Read: `profiles` holds `files` with its checks `1` to `11`.
 - Result: `:e1` and `:e2` are visible, and `:e0` is hidden. `profile_violation` for check `3`, `files_duplicate_path`, with
   the `count` `2`. A listing gives both, ordered by the place of their terms. After the further segment, check `3` passes.
 - Application: a conflict to be decided, and not a version chosen. The contract refuses the archive, or picks by a stated
@@ -1310,6 +1342,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 
 - Input: a tree with regular files in one directory whose last components are the octets `61 2f 62`, `61 00 62` and `2e 2e 2f
   78`; two names that differ only in the case of a letter; and a name whose octets are not UTF-8.
+- Read: `profiles` holds `files` with its checks `1` to `11`.
 - Result: every check of `files` passes. Each component is valid: a component is refused only when it is empty, `2e` or `2e 2e`.
 - Application: under an extraction contract each entry that the host cannot hold as stored is refused, or mapped by a stated
   rule, and reported: a name that the host cannot hold, or two names that the host treats as one. Nothing is written outside
@@ -1320,6 +1353,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 ### FX-105 A name outside the domain of an interface of NUL-terminated UTF-8 paths
 
 - Input: the tree of the last paragraph of the worked example of `PF-files`: a file whose one component is the octets `ff 41`.
+- Read: `profiles` holds `files` with its checks `1` to `11`.
 - Result: the component is valid; its generated literal is `"FF41"^^xsd:hexBinary`.
 - Application: through a binding whose paths are NUL-terminated UTF-8 strings, the entry is refused and reported, or mapped by
   a stated reversible encoding and reported, the same on every call. The listing by octets gives `ff 41`. `GUIDE-migration.md`

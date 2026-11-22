@@ -1,7 +1,7 @@
 {
  "name": "container-kind-absent-graph",
  "status": "built and matches",
- "note": "",
+ "note": "a resource observed as gone (the kind c:Absent) whose observation carries a graph: one profile_violation for check 7 (container_kind_content) with the count 1",
  "cases": [
   {
    "label": "",
