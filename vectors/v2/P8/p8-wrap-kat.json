@@ -1,7 +1,7 @@
 {
  "name": "p8-wrap-kat",
  "status": "built and matches",
- "note": "the first vector of Appendix C of draft-connolly-cfrg-xwing-kem-11: the X-Wing public key, encapsulation and shared secret that result records reproduce it; the draft prints no value for the vector's own inputs; the stored file holds a keys frame with one recipient entry and one sealed frame",
+ "note": "X-Wing (draft-connolly-cfrg-xwing-kem-11) and the HPKE base mode of the wrap suite (P8 section 9) for one recipient entry: the recipient seed is 00 01 .. 1f and the encapsulation seed 80 81 .. bf; result records the public key, the recipient key identifier, the encapsulation, the shared secret, the info, key and base nonce of the key schedule, the wrapped key and the unwrapped segment key 00 01 .. 1f; the stored file holds a keys frame with that recipient entry and one sealed frame, and the read holds the recipient seed; the first vector of Appendix C of the draft is P8/xwing-kat",
  "cases": [
   {
    "label": "",
@@ -18,6 +18,18 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
+   },
+   "read": {
+    "sealing_input": {
+     "segment_keys": [],
+     "recipient_keys": [
+      {
+       "suite": 1,
+       "recipient_key_id": "04daec4b3a41d304b3f412312ac806040c7e0e890233ec374dd133eb44788586",
+       "seed": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ]
+    }
    },
    "expected": null,
    "result": {

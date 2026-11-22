@@ -7,6 +7,17 @@
   {
    "label": "plain",
    "input_file": "stream-delivery-order.plain.bin",
+   "read": {
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
    "length": 4507392,
    "sha256": "70e707e6ffb2bbb984bfd75c03fe59142d6e1b331528a9e38803b50177e3a621",
    "expected": {
@@ -263,6 +274,17 @@
   {
    "label": "identifier-replaced",
    "input_file": "stream-delivery-order.identifier-replaced.bin",
+   "read": {
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
    "length": 4507392,
    "sha256": "4da787ffba4f5f341351841458d1dc46e8cac846af2e80e4d5dd58a2dc6f2cec",
    "expected": {

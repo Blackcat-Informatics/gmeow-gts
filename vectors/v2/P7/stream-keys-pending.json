@@ -7,6 +7,17 @@
   {
    "label": "pending-then-decided",
    "input_file": "stream-keys-pending.pending-then-decided.bin",
+   "read": {
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
    "length": 369,
    "sha256": "be8f2e8c3ec4f1690372f331a0d7435255433a15a230b6f3877f361e7bcc1e6a",
    "expected": {
@@ -442,6 +453,17 @@
   {
    "label": "descending-signatures",
    "input_file": "stream-keys-pending.descending-signatures.bin",
+   "read": {
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
    "length": 573,
    "sha256": "975b443dcf6a1605356424499f0db6ccd91c34b9076793d7a0abaae375d3ee11",
    "expected": {

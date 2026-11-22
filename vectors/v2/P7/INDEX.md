@@ -210,7 +210,7 @@
 | `stream-open-name` | built and matches | an entry that holds a leaf [frame, label] naming no node (open name), then a segment that holds the frame and defines the label |
 | `stream-open-referent` | built and matches | a binding whose referent names a blob not declared yet (open referent and hiding), then the blob declaration |
 | `stream-order` | built and matches | a file whose canonical order and arrival order differ: the listing in arrival order; the same file read with whole, the content in the order of THE ORDER OF THE CONTENT |
-| `stream-parity-long-item` | built and matches | an opaque item of 17 * 4194304 bytes (71303168), above the minimum stored_bytes_per_frame, then the parity frames of the spans it crosses: no parity_mismatch for them as a stream, and the read with whole judging them |
+| `stream-parity-long-item` | derived from the text | an opaque item of 17 * 4194304 bytes (71303168), above the minimum stored_bytes_per_frame, then the parity frames of the spans it crosses: no parity_mismatch for them as a stream, and the read with whole judging them |
 | `stream-parity` | built and matches | files whose parity frames are damaged, stale or short, read with the access forward: the forward read reports the same parity_* findings as a read with whole and never repaired; the inputs are the files of the P5 entries parity-damaged-shard, parity-unexplained and parity-span-short, stored here, and the two files of 10,683,877 and 10,683,878 bytes that are listed in ABSENT.md |
 | `stream-pending-at-end` | built and matches | a complete file whose last item is a frame with damaged content and a stored identifier of the digest length: at the end of the input, end true, the frame broken in the result and no item of it in any listing |
 | `stream-pending-header` | built and matches | a pending frame followed by an opener: broken and settled at the opener |
@@ -289,4 +289,4 @@
 | `read/capacity/sixteenth` | built and matches | one file for each limit of a capacity of one sixteenth of the minimum values, each one unit above its limit: the stored size, the decoded size, the total decoded length, the total formed length, the total rebuilt length, the size of a fold and the total labelled weight, each refused by its own limit and by no other |
 | `read/three-accesses-after-region` | derived from the text | one segment whose frame before the parity frame of a full span is taken by a damaged region, read with whole, forward and sparse: whole resumes at the parity frame, the frame after it is linked and detached and anchored_frames is 1; forward reads nothing after the region; sparse returns the row of the frame that the index places, verified with the anchor |
 
-Totals: built and matches: 282; derived from the text: 4 (286 entries).
+Totals: built and matches: 281; derived from the text: 5 (286 entries).

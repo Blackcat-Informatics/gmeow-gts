@@ -387,7 +387,7 @@ The reader's typed result is in the `.json` beside each `.bin`.
 | `resync-isolation-lost-header` | built and matches | the file P_bad // Y and the file P_clean // Y for the defect kind lost_header: R accepted at o in both, equal but for the join fields (P1-106) |
 | `resync-isolation-lost-keys` | built and matches | registry version 2: P_bad holds a sealed frame whose keys are lost (no keys frame): R accepted at o in both (P1-106) |
 | `resync-isolation-refused-terms` | built and matches | P_bad holds a terms frame refused by formed_bytes_per_read; Y is read the same (P1-106) |
-| `resync-isolation-stale-parity` | built and matches | P_bad holds a parity frame whose span no longer holds its bytes: R accepted at o in both (P1-106) |
+| `resync-isolation-stale-parity` | derived from the text | P_bad holds a parity frame whose span no longer holds its bytes: R accepted at o in both (P1-106) |
 | `resync-isolation-stopped-fold` | built and matches | P_bad holds an unsupported_critical frame that stops its fold: R accepted at o in both, the scope unaffected (P1-106) |
 | `resync-isolation-torn-header` | built and matches | the file P_bad // Y and the file P_clean // Y for the defect kind torn_header: R accepted at o in both, equal but for the join fields (P1-106) |
 | `resync-isolation-torn-staying` | built and matches | the file P_bad // Y and the file P_clean // Y for the defect kind torn_staying: R accepted at o in both, equal but for the join fields (P1-106) |
@@ -472,4 +472,4 @@ The reader's typed result is in the `.json` beside each `.bin`.
 | `resync-total-refused-no-occurrence-tested` | built and matches | a header, a frame whose `decoded_length` 698 the total of 600 refuses and which fails the framing test, holding an occurrence with a true offset at 700, then an incomplete item whose run covers the occurrence again: once the total is refused no occurrence is tested and none gives a finding, in the run of the frame or in the next; the one `exceeds_capacity` is the frame's, `count` 698 (P1 6.7 part 4, P1-104) |
 | `undelimitable-chunk-wrong-major-type-cut` | built and matches | an indefinite-length byte string whose chunk head is of another major type and whose argument bytes pass the end of the input is `undelimitable_input`, not `torn_tail` (P1 6.1, 6.3 item 4) |
 
-Totals: built and matches: 467 (467 entries).
+Totals: built and matches: 466; derived from the text: 1 (467 entries).

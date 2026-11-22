@@ -32,7 +32,7 @@
 | `p8-failed-openings` | built and matches |  |
 | `p8-failed-openings-storage` | built and matches |  |
 | `p8-continue` | built and matches |  |
-| `p8-wrap-kat` | built and matches | the first vector of Appendix C of draft-connolly-cfrg-xwing-kem-11: the X-Wing public key, encapsulation and shared secret that result records reproduce it; the draft prints no value for the vector's own inputs; the stored file holds a keys frame with one recipient entry and one sealed frame |
+| `p8-wrap-kat` | built and matches | X-Wing (draft-connolly-cfrg-xwing-kem-11) and the HPKE base mode of the wrap suite (P8 section 9) for one recipient entry: the recipient seed is 00 01 .. 1f and the encapsulation seed 80 81 .. bf; result records the public key, the recipient key identifier, the encapsulation, the shared secret, the info, key and base nonce of the key schedule, the wrapped key and the unwrapped segment key 00 01 .. 1f; the stored file holds a keys frame with that recipient entry and one sealed frame, and the read holds the recipient seed; the first vector of Appendix C of the draft is P8/xwing-kat |
 | `p8-wrap-tamper` | built and matches |  |
 | `p8-wrap-lengths` | built and matches |  |
 | `p8-wrap-target` | built and matches |  |
@@ -84,5 +84,6 @@
 | `p8-inner-count-and-decode` | built and matches | a pack with member_count 2 whose compressed payload begins with the generated zstd header and is cut short by one byte, sealed and read with the segment key, and the same pack as a clear frame: each has damaged_frame with decode_failed alone, is opaque with damaged and has the payload state damaged; no malformed_value is given |
 | `p8-inner-external-length` | derived from the text | a sealed frame whose inner frame is an external with decoded_length 1, a payload of one byte and a wrong payload_digest, read with the segment key: the field rule of the inner type decides at step 8, malformed_value with out_of_range; the frame is opaque with malformed, step 9 is not run and the frame has no damaged_frame |
 | `sealed-inner-newer-value-terms` | derived from the text | a segment of registry version 3 read by a reader of version 2 that holds the key, a sealed frame whose inner terms frame has the order 9 and a clear blob frame after it: with one byte of the inner payload_digest changed the sealed frame has damaged_frame with payload_digest at step 9 and no unsupported_critical, and the blob frame is folded; without the change it gives unsupported_critical with the subject [2, 18], is opaque with unsupported_critical and counts in unopened_sealed, and the blob frame is opaque with stopped |
+| `xwing-kat` | built and matches | the first test vector of Appendix C of draft-connolly-cfrg-xwing-kem-11, the KEM of the wrap suite (P8 section 9.1): the seed and the encapsulation seed eseed as the draft prints them, and the public key pk, the ciphertext ct (the encapsulation) and the shared secret ss that it prints; recipient_key_id is the identifier of P8 section 9.1 of that public key; plain values, no input file |
 
-Totals: built and matches: 74; derived from the text: 8 (82 entries).
+Totals: built and matches: 75; derived from the text: 8 (83 entries).
