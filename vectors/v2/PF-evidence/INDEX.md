@@ -25,5 +25,8 @@
 | `evidence-check-seven-segment` | built and matches | two segments declaring the profile, an unauthenticated suppress frame in the first: check 7 once, in the second |
 | `evidence-lineage-resync` | built and matches | a segment opened by a resync item with lineage absent, after a segment that declares the profile: evidence_lineage for that segment |
 | `evidence-writer-filler-marks` | built and matches | H (profile evidence) T Q C with C cut so that 100 bytes of its last value are missing; a filler of 100 bytes, then a resync item with profile evidence whose marks hold the torn_tail mark over the bytes of C and the filler mark over [L, L + 100) (PF-evidence-13) |
+| `evidence-signer-replaced` | built and matches | a segment of three commits, the first two signed by one key and the third by another, and the same segment with every signature replaced by one signature of a third trusted key and the offsets item and the locator written again: both reads authenticate every commit, have no profile_violation, and differ only in the key_id of the signature results |
+| `evidence-canonical-above-cadence` | built and matches | the canonical file of a fold whose canonical file has 1030 ordinary frames before its one commit, the header declaring evidence and the commit signed by a trusted key of the pinned algorithm: evidence_commit_interval at position 1025 with count 1030, and every other check passes (PF-evidence 4, Canonical file) |
+| `evidence-suppress-unentitled` | built and matches | three segments with checked lineage, the claims signed by a model key, a row q signed by a reviewer key, and a suppress frame of the quad q before a commit signed by the model key: q is hidden, visible is [1, 0] and no check fails, since the profile does not judge who is entitled to hide; with the suppress frame after the last commit, visible is [1, 1] and checks 3 and 7 fail |
 
-Totals: built and matches: 23 (23 entries).
+Totals: built and matches: 26 (26 entries).

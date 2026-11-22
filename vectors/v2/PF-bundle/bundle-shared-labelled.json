@@ -1,7 +1,7 @@
 {
  "name": "bundle-shared-labelled",
- "status": "built and matches",
- "note": "two nested files of depth 1, each of one segment whose fold weighs W (a total labelled weight of 2W when its own fold and its file's fold are labelled), the outer file with a total labelled weight V, read with labelled_bytes_per_read V + 2W: the first nested read made with labelled_bytes_per_read 2W and both of its folds labelled; the second made with 0, its own fold and its file's fold refused with refusal_weight; each nested result states its capacity (PF-bundle-14)",
+ "status": "derived from the text",
+ "note": "two nested files of depth 1, each of one segment whose fold weighs W, the outer file with a total labelled weight V, read with labelled_bytes_per_read V + 2W: the nested results record the first read made with 2W and both of its folds labelled, and the second made with 0, its own fold and its file's fold refused with refusal_weight (PF-bundle-14)",
  "cases": [
   {
    "label": "",
@@ -19,35 +19,55 @@
     "labelled_bytes_per_read": 1160,
     "access": "whole"
    },
-   "capacities_read": [
+   "read": {
+    "profiles": [
+     [
+      4,
+      5
+     ]
+    ]
+   },
+   "nested_results": "82838201582045b1a5436ec2f66f73357b882b939e946ac64556ee03705aa2cc102e217bc12801870101818204058a1a040000001a04000000001a040000001b0000000ffffffc731a03fffff71b00000020000000001b0000001ffffffffc18ac018101828080870281920000190157810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820905f29db804ac8292897afd46ff27b70fcf0be93905b2837b6f319b178353d13838b010b187b820201018101810180810180808b021886185f820202018101810180810180808b0318e5187282020e01810181018081028080808082025820905f29db804ac8292897afd46ff27b70fcf0be93905b2837b6f319b178353d13820100020083820158208e5479a3299448f57e18f5f0e5d0ad63e1df13805f79bded42a609b489dcf0ff01870101818204058a1a040000001a04000000001a040000001b0000000ffffffc421a03fffff31b00000020000000001b0000001fffffffd800018101828080870281920000190157810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b187b820201018101810180810180808b021886185f820202018101810180810180808b0318e5187282020e018101810180810280808187181a8202185b810181018101810181018187181a8202185b8101810181018101810181018201000200",
+   "nested": [
     {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
+     "name": [
+      1,
+      "45b1a5436ec2f66f73357b882b939e946ac64556ee03705aa2cc102e217bc128"
+     ],
+     "depth": 1,
+     "capacity": {
+      "stored_bytes_per_frame": 67108864,
+      "decoded_bytes_per_frame": 67108864,
+      "labelling_units": 0,
+      "labelled_lines": 67108864,
+      "decoded_bytes_per_read": 68719475827,
+      "items_per_read": 67108855,
+      "rebuilt_bytes_per_read": 137438953472,
+      "formed_bytes_per_read": 137438953468,
+      "labelled_bytes_per_read": 172,
+      "access": "whole"
+     }
     },
     {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 1160,
-     "access": "whole"
+     "name": [
+      1,
+      "8e5479a3299448f57e18f5f0e5d0ad63e1df13805f79bded42a609b489dcf0ff"
+     ],
+     "depth": 1,
+     "capacity": {
+      "stored_bytes_per_frame": 67108864,
+      "decoded_bytes_per_frame": 67108864,
+      "labelling_units": 0,
+      "labelled_lines": 67108864,
+      "decoded_bytes_per_read": 68719475778,
+      "items_per_read": 67108851,
+      "rebuilt_bytes_per_read": 137438953472,
+      "formed_bytes_per_read": 137438953432,
+      "labelled_bytes_per_read": 0,
+      "access": "whole"
+     }
     }
-   ],
-   "expected": null,
-   "result": {},
-   "differences": []
+   ]
   }
  ]
 }

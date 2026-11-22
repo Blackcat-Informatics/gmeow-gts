@@ -1041,6 +1041,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   the `quads` frame was changed after the file was written; the outer blob is declared over the changed bytes. Child `y`:
   intact, signed by a key outside the trusted set. Child `z`: of registry version `2`, with content sealed under a key that
   the reader does not hold.
+- Read: the registry version `2`, and `profiles` holding `bundle` with its five checks. `trusted_keys` holds the key of the outer
+  file; `held_keys` holds that key and the key of `y`.
 - Result: the outer result has no `profile_violation`: each term passes checks `1` to `5`. Its `integrity` is `intact` and its
   `authenticity` `authenticated`. `nested_results` holds three records of the depth `1`. For `x`: a result with
   `damaged_frame` at the `quads` frame and `integrity` `damaged`. For `y`: `authenticity` `unauthenticated`. For `z`:
@@ -1048,6 +1050,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Application: a contract that requires the three children accepts none of them on the outer result. It refuses `x`. It
   refuses `y` unless its signer is entitled. It reports `z` as carried and not opened.
 - Rule: `PF-bundle`, "What a reader reports about nested content" and "Checks".
+- Corpus: `PF-bundle/bundle-nested-damaged-untrusted-unopened` is the case, with its `nested_results`.
 
 ### FX-083 Two nested files that share one total
 
@@ -1057,9 +1060,9 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: the first nested read, in ascending `E(name)`, is made with `T`. The second is made with `0` and is limited by its
   capacity. Each nested result states its capacity.
 - Rule: `PF-bundle`, "What a reader reports about nested content" (THE SHARED ALLOWANCE and THE ORDER OF THE NESTED READS).
-- Corpus: `PF-bundle/bundle-shared-allowance` is the case and agrees. `PF-bundle/bundle-shared-items`,
-  `PF-bundle/bundle-shared-formed`, `PF-bundle/bundle-shared-labelled` and `PF-bundle/bundle-read-order` hold the other totals
-  and the order; all agree.
+- Corpus: `PF-bundle/bundle-shared-allowance` is the case, with its `nested_results`. `PF-bundle/bundle-shared-items`,
+  `PF-bundle/bundle-shared-formed`, `PF-bundle/bundle-shared-labelled` and `PF-bundle/bundle-read-order` record the other totals
+  and the order, each with its `nested_results`.
 
 ## 14. `PF-container`: container archive
 
@@ -1220,6 +1223,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   roots and content digest; every commit authenticated. The two results differ only in the `key_id` of the `signature_result`
   records. Nothing in the second result shows that `K1` or `K2` signed.
 - Rule: `PF-evidence`, "Checks" (checks `4` and `5`, and WHAT THE CHECKS ESTABLISH); `P6`, "The signature record".
+- Corpus: `PF-evidence/evidence-signer-replaced` is the case: `k1-k2` is the first file and `k3-all` the second.
 
 ### FX-098 A signer list of the consumer finds the replacement
 
@@ -1238,6 +1242,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   the commit interval, with the `count` `1030`.
 - Application: the file is not accepted as a custody chain. The append log is.
 - Rule: `PF-evidence`, "Writer rules" (Canonical file) and "Checks".
+- Corpus: `PF-evidence/evidence-canonical-above-cadence` is the case. Its 1030 frames are `external` declarations.
 
 ### FX-100 A suppression by a key that authenticates and is not entitled
 
@@ -1251,6 +1256,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Application: under a table of roles in which the reviewer alone is entitled to hide a decision, the suppression is not
   applied to the accepted view, `q` stands in it, and the event is reported.
 - Rule: `P3`, "The visible dataset and visibility"; `PF-evidence`, "Checks".
+- Corpus: `PF-evidence/evidence-suppress-unentitled` is the case: `suppress-before-commit` is the file and `suppress-after-commit`
+  the variant.
 
 ## 17. `PF-files`: file tree
 
@@ -1265,6 +1272,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Application: an archiver that is asked to keep the metadata of the archived directory writes the root entry. An extractor
   gives a tree with no root entry the defaults of the extractor for its root.
 - Rule: `PF-files`, "Paths" (the empty path and the root entry) and "Checks".
+- Corpus: `PF-files/files-root-entry` is the case: (a) `no-entry`, (b) `root-entry`, (c) `root-regular-file`, (d)
+  `owner-on-no-entry`.
 
 ### FX-102 A hard link whose target is hidden
 
@@ -1273,17 +1282,22 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: before the hiding, `files_hard_link` does not fail. After it, the hard link has no visible target and fails check
   `7`, `files_property_cardinality`.
 - Rule: `PF-files`, "Writer rules" (Removal and change) and "Checks".
+- Corpus: `PF-files/files-pass` and `PF-files/files-hide-link-target` are the nearest and agree; the second also writes a new
+  entry at the path.
 
 ### FX-103 Two writers replace one path
 
 - Input: a base segment with an entry `:e0` of the kind `RegularFile` at the path of the one component `a.txt`. Replica 1
   appends a segment that hides `:e0` by a `term` entry and writes `:e1` at the same path. Replica 2 does the same with `:e2`.
   The file is the base followed by both segments. Then a further segment that hides `:e2`.
+- Built: the segment of replica 2 carries the lineage of a segment appended after that of replica 1, so that every lineage is
+  checked.
 - Result: `:e1` and `:e2` are visible, and `:e0` is hidden. `profile_violation` for check `3`, `files_duplicate_path`, with
   the `count` `2`. A listing gives both, ordered by the place of their terms. After the further segment, check `3` passes.
 - Application: a conflict to be decided, and not a version chosen. The contract refuses the archive, or picks by a stated
   rule, or a further segment hides one of the two.
 - Rule: `PF-files`, "Writer rules" (Removal and change), "Paths" (THE ENTRY ORDER) and "Checks"; `P3`, "Suppression hides".
+- Corpus: `PF-files/files-replicas-same-path` is the case: `two-writers`, then `after-hiding`.
 
 ### FX-104 Names that a file system cannot take as they are
 
@@ -1294,6 +1308,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   rule, and reported: a name that the host cannot hold, or two names that the host treats as one. Nothing is written outside
   the destination, and nothing under another name silently.
 - Rule: `PF-files`, "Paths" and "Writer rules" (A COMPONENT IS A NAME, NOT A PATH).
+- Corpus: `PF-files/files-names-host-cannot-hold` is the case.
 
 ### FX-105 A name outside the domain of an interface of NUL-terminated UTF-8 paths
 
@@ -1303,6 +1318,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   a stated reversible encoding and reported, the same on every call. The listing by octets gives `ff 41`. `GUIDE-migration.md`
   describes the two behaviours.
 - Rule: `PF-files`, "Literal forms", "Paths" and "Worked example".
+- Corpus: `PF-files/files-component-octets-regular-file` is the case; `PF-files/files-component-octets` is the same component in a
+  directory entry.
 
 ## 18. Inputs whose result no rule of the format gives
 

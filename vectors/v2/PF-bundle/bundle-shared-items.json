@@ -1,7 +1,7 @@
 {
  "name": "bundle-shared-items",
- "status": "built and matches",
- "note": "a nested file whose items exceed what the outer read leaves of items_per_read: its result holds exceeds_capacity with item_count; no bundle_not_a_file for its term (PF-bundle-15)",
+ "status": "derived from the text",
+ "note": "a nested file whose items exceed what the outer read leaves of items_per_read: its nested result is made with items_per_read 1 and holds exceeds_capacity with item_count; no bundle_not_a_file for its term (PF-bundle-15)",
  "cases": [
   {
    "label": "",
@@ -19,35 +19,36 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "capacities_read": [
+   "read": {
+    "profiles": [
+     [
+      4,
+      5
+     ]
+    ]
+   },
+   "nested_results": "81838201582086190dcf90791510b5781560a590dd00284ffa0e5afd22edf98582ab623f8f3601870101818204058a1a040000001a04000000001a040000001b0000000ffffffe06011b00000020000000001b0000001ffffffffc1b0000001ffffffe120181018280808702819200000b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030000008085f4820205820205820205810181018080818714820218578101810182020b820219014e82020281018201000700",
+   "nested": [
     {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 7,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
+     "name": [
+      1,
+      "86190dcf90791510b5781560a590dd00284ffa0e5afd22edf98582ab623f8f36"
+     ],
+     "depth": 1,
+     "capacity": {
+      "stored_bytes_per_frame": 67108864,
+      "decoded_bytes_per_frame": 67108864,
+      "labelling_units": 0,
+      "labelled_lines": 67108864,
+      "decoded_bytes_per_read": 68719476230,
+      "items_per_read": 1,
+      "rebuilt_bytes_per_read": 137438953472,
+      "formed_bytes_per_read": 137438953468,
+      "labelled_bytes_per_read": 137438952978,
+      "access": "whole"
+     }
     }
-   ],
-   "expected": null,
-   "result": {},
-   "differences": []
+   ]
   }
  ]
 }
