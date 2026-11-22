@@ -1,13 +1,14 @@
 {
  "name": "read/not-this-format",
  "status": "built and matches",
- "note": "a four-byte map as the whole input: not_this_format and no segment; the array and the unsigned integer that the name also covers are not stored",
+ "note": "a whole input whose first item is neither an opener of this format nor a header of the first generation: a map without the key v, an array whose second element is not an unsigned integer, and an unsigned integer each give not_this_format and no segment",
+ "section": "P7",
  "cases": [
   {
-   "label": "",
-   "input_file": "read__not-this-format.bin",
-   "input_derived": true,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870280818702810181018101820200820204810181018201000400",
+   "label": "map",
+   "input_file": "read__not-this-format.map.bin",
+   "length": 4,
+   "sha256": "2956b2cee8e54663cef11aac45368e3a869c862ed7a6fd2dba3a408017ce3e0e",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,9 +21,72 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {},
-   "differences": []
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870280818702810181018101820200820204810181018201000400"
+  },
+  {
+   "label": "array",
+   "input_file": "read__not-this-format.array.bin",
+   "length": 4,
+   "sha256": "edd66e8a5ae68be63e0fccbda0576755553ea4b56153df9a6b6b65ec8cfc7698",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870280818702810181018101820200820204810181018201000400"
+  },
+  {
+   "label": "uint",
+   "input_file": "read__not-this-format.uint.bin",
+   "length": 1,
+   "sha256": "e77b9a9ae9e30b0dbdb6f510a264ef9de781501d7b6b92ae89eb059c5ab743db",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870280818702810181018101820200820201810181018201000400"
   }
  ]
 }

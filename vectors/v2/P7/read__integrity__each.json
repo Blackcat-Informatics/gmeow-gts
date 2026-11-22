@@ -1,13 +1,14 @@
 {
  "name": "read/integrity/each",
  "status": "built and matches",
- "note": "a blob frame and a commit read with the default capacity: integrity intact; result also records intact_unchecked, damaged (a payload, an opaque item, a damaged region, an unreadable header) and not_checked, whose files are not stored",
+ "note": "each value of the integrity state of a segment: intact (a blob frame and a commit), intact_unchecked (a frame of 200 bytes read with decoded_bytes_per_frame 100), damaged for a payload that differs from its digest, for an item that is no frame, for a header that cannot be read and for a damaged region that parity delimits, and not_checked for a header of registry version 2 whose hash algorithm the reader does not hold",
+ "section": "P7",
  "cases": [
   {
-   "label": "",
-   "input_file": "read__integrity__each.bin",
-   "input_derived": true,
-   "read_result": "870201818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f3810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258205291e75114925ab63093ec60cea3e0e8b86dc779dcbad9b74f1d928587aa2d64828b010b1876820209018101810180810180808b021881187282020e018101810180810280808080820258205291e75114925ab63093ec60cea3e0e8b86dc779dcbad9b74f1d928587aa2d648201000200",
+   "label": "intact",
+   "input_file": "read__integrity__each.intact.bin",
+   "length": 243,
+   "sha256": "f6c2639ce484ac632bcc17190be059f7ba5fa06b4806564b9d6a1de3cbc19041",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,17 +21,184 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {
-    "intact": "intact",
-    "intact_unchecked": "intact_unchecked",
-    "damaged payload": "damaged",
-    "damaged opaque item": "damaged",
-    "damaged unreadable header": "damaged",
-    "not_checked": "not_checked",
-    "damaged region": "damaged"
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
    },
-   "differences": []
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f3810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258205291e75114925ab63093ec60cea3e0e8b86dc779dcbad9b74f1d928587aa2d64828b010b1876820209018101810180810180808b021881187282020e018101810180810280808080820258205291e75114925ab63093ec60cea3e0e8b86dc779dcbad9b74f1d928587aa2d648201000200"
+  },
+  {
+   "label": "intact-unchecked",
+   "input_file": "read__integrity__each.intact-unchecked.bin",
+   "length": 328,
+   "sha256": "160be3b52bd473783e5ff114cc4a7da3167967d9f1a4c57086c4d8371b65e738",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 100,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001864001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190148810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b19013d82020901820302810180820307808287148202181e810182020182020b820219013d820218c887118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401"
+  },
+  {
+   "label": "damaged-payload",
+   "input_file": "read__integrity__each.damaged-payload.bin",
+   "length": 243,
+   "sha256": "ee7e2e954f84bce526b7ead807f14372f447f0e113a4e23220419b98fa0aa889",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f3810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b18768202090181028101808203018081870d82020c810182020182020b8202187681018b021881187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201"
+  },
+  {
+   "label": "damaged-opaque-item",
+   "input_file": "read__integrity__each.damaged-opaque-item.bin",
+   "length": 12,
+   "sha256": "92b6a0260ef87a33a3f4d15a75a4240ab74e425d4c189c962cb69b0085221a11",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000c810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80818707820204810182020182020b82020181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401"
+  },
+  {
+   "label": "damaged-unreadable-header",
+   "input_file": "read__integrity__each.damaged-unreadable-header.bin",
+   "length": 9,
+   "sha256": "c0dfe2e90d6c1cf2b37f5631dc9cc072669af99ffa6896f1f7adfcdbd49d5abb",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000098101810181018101810103030000008085f48202058202058202058101810180818707820205810182020082020082020981018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400"
+  },
+  {
+   "label": "not-checked",
+   "input_file": "read__integrity__each.not-checked.bin",
+   "length": 11,
+   "sha256": "798f141a8c222fae2ae5a169ed80071ed9213fe4078e825423a79081e0b5c866",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000b81018101820202820209810104030000008085f482020582020582020581018101808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400"
+  },
+  {
+   "label": "damaged-region",
+   "input_file": "read__integrity__each.damaged-region.bin",
+   "length": 45357,
+   "sha256": "e121144c2cc14856646cd584e94ea8133c20c509a495293ceab6254e29921f72",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019b12d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc82020182020181010303010000810385f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b194eb182020801810182020180810180828711810181018202018101810182020187182c810181018202018101810181018b03199d9e19138f8202100181018101808102808287181f820218288101820203810181018202018718238101810182020381018101820201808187088101810181018202194ebc8202194ee2810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401"
   }
  ]
 }

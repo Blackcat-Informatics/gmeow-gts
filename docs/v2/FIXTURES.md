@@ -605,9 +605,9 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   anywhere; the interface reports that the read did not complete. Run three: a `read_result` with `labelling_refused` and the
   reason `refusal_limit`, equal for every reader with that capacity.
 - Rule: `P7`, "Conformance"; `L1`, "The walk and the outcome of a limit", THE FREEDOM OF AN ENGINE.
-- Corpus: none is the case for runs one and two, which give no result. `P7/read/labelling/limit` records, in `result`, the outcome
-  `refusal_limit` of a run of the kind of run three at `labelling_units` `0`; its `read_result` is a read at `labelling_units`
-  `2^40` that refuses nothing.
+- Corpus: none is the case for runs one and two, which give no result. `P7/read/labelling/limit` is the case for run three at
+  `labelling_units` `0`, in its cases `paley13-limit-zero` and `cube-limit-zero`; its case `paley13-limit-large` reads the input
+  of the first at `labelling_units` `2^40` and refuses nothing.
 
 ### FX-048 A frame that is malformed and also above capacity
 

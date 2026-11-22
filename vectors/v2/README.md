@@ -38,11 +38,11 @@ A case states every further input of its read or judgement:
   read_result]` of the nested reads; `nested` and `children` state the same reads and the nested files in plain values.
 - `signing_rnd`: the random input with which a signature of the input was made, where it is not the deterministic one.
 
-`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,103 files.
+`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,118 files.
 
 ## Large inputs
 
-A file of at most 1 MiB stands here as it is: 6,037 files.
+A file of at most 1 MiB stands here as it is: 6,052 files.
 
 A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 36 files,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.
