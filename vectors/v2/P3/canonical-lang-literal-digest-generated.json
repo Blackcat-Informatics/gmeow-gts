@@ -1,13 +1,12 @@
 {
  "name": "canonical-lang-literal-digest-generated",
  "status": "built and matches",
- "note": "",
+ "note": "a segment with the quad whose object is the language literal x with the language en, and a segment with the quad whose object is the typed literal x of the datatype rdf:langString: the two literals are two terms and the two files have different content digests, the first being the digest of the labelled line whose datatype is the one generated for the language literal",
+ "section": "P3 1.1",
  "cases": [
   {
-   "label": "",
-   "input_file": "canonical-lang-literal-digest-generated.bin",
-   "input_derived": true,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019015e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258208c32084c7e4062c11b4601ab1e0ca36ad9be956ce3c77cf37633ec4a4da76f66838b010b1882820201018101810180810180808b02188d185f820202018101810180810180808b0318ec187282020e018101810180810280808080820258208c32084c7e4062c11b4601ab1e0ca36ad9be956ce3c77cf37633ec4a4da76f668201000200",
+   "label": "language-literal",
+   "input_file": "canonical-lang-literal-digest-generated.language-literal.bin",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,9 +19,42 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {},
-   "differences": []
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019015e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258208c32084c7e4062c11b4601ab1e0ca36ad9be956ce3c77cf37633ec4a4da76f66838b010b1882820201018101810180810180808b02188d185f820202018101810180810180808b0318ec187282020e018101810180810280808080820258208c32084c7e4062c11b4601ab1e0ca36ad9be956ce3c77cf37633ec4a4da76f668201000200"
+  },
+  {
+   "label": "typed-literal",
+   "input_file": "canonical-lang-literal-digest-generated.typed-literal.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019018d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820b9d299b11c029d978c4cd3e11cfc03bb15c5c5c0530d974f840e3d1746cdd9f0838b010b18b1820201018101810180810180808b0218bc185f820202018101810180810180808b0319011b187282020e01810181018081028080808082025820b9d299b11c029d978c4cd3e11cfc03bb15c5c5c0530d974f840e3d1746cdd9f08201000200"
   }
  ]
 }

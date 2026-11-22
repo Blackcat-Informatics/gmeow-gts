@@ -1,13 +1,12 @@
 {
  "name": "project/round-trip-rdf",
  "status": "built and matches",
- "note": "P3 10a.5: a dataset of quads in two graphs, a nested triple term and an empty named graph: rdf(IMPORT(D), v) = D for both variants (R1)",
+ "note": "IMPORT of a dataset D of quads in two named graphs and the default graph, a nested triple term and one empty named graph, a file of quad and empty_graph lines alone: the projection of the file in the variant visible and in the variant whole are equal and each is D up to the renaming of its blank node, and holds no text that RDF does not admit, so it is an RDF dataset",
+ "section": "P3 10a.5",
  "cases": [
   {
    "label": "",
    "input_file": "project__round-trip-rdf.bin",
-   "input_derived": true,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190203810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f48202058202058202058101820258201c943bae9809693a7d8832a66f17df91a6eeed3302cc206da1de0525ebabee2b848b010b18b7820201018101810180810180808b0218c2187c820202018101810180810180808b0319013e1853820205018101810180810180808b04190191187282020e018101810180810280808080820258201c943bae9809693a7d8832a66f17df91a6eeed3302cc206da1de0525ebabee2b8201000200",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,9 +19,310 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {},
-   "differences": []
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190203810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f48202058202058202058101820258201c943bae9809693a7d8832a66f17df91a6eeed3302cc206da1de0525ebabee2b848b010b18b7820201018101810180810180808b0218c2187c820202018101810180810180808b0319013e1853820205018101810180810180808b04190191187282020e018101810180810280808080820258201c943bae9809693a7d8832a66f17df91a6eeed3302cc206da1de0525ebabee2b8201000200",
+   "projection": {
+    "visible": {
+     "quads": [
+      [
+       {
+        "blank": "8200426e30"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "triple": [
+         {
+          "iri": "http://e/s"
+         },
+         {
+          "iri": "http://e/p"
+         },
+         {
+          "triple": [
+           {
+            "iri": "http://e/a"
+           },
+           {
+            "iri": "http://e/b"
+           },
+           {
+            "iri": "http://e/c"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "iri": "http://e/g2"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "iri": "http://e/o"
+       },
+       null
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "iri": "http://e/o"
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "v",
+        "datatype": "http://e/dt"
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "w",
+        "language": "en"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": [
+      {
+       "iri": "http://e/g3"
+      }
+     ]
+    },
+    "whole": {
+     "quads": [
+      [
+       {
+        "blank": "8200426e30"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "triple": [
+         {
+          "iri": "http://e/s"
+         },
+         {
+          "iri": "http://e/p"
+         },
+         {
+          "triple": [
+           {
+            "iri": "http://e/a"
+           },
+           {
+            "iri": "http://e/b"
+           },
+           {
+            "iri": "http://e/c"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "iri": "http://e/g2"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "iri": "http://e/o"
+       },
+       null
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "iri": "http://e/o"
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "v",
+        "datatype": "http://e/dt"
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "w",
+        "language": "en"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": [
+      {
+       "iri": "http://e/g3"
+      }
+     ]
+    },
+    "rdf_dataset": true
+   },
+   "dataset": {
+    "quads": [
+     [
+      {
+       "blank": "78"
+      },
+      {
+       "iri": "http://e/p"
+      },
+      {
+       "triple": [
+        {
+         "iri": "http://e/s"
+        },
+        {
+         "iri": "http://e/p"
+        },
+        {
+         "triple": [
+          {
+           "iri": "http://e/a"
+          },
+          {
+           "iri": "http://e/b"
+          },
+          {
+           "iri": "http://e/c"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "iri": "http://e/g2"
+      }
+     ],
+     [
+      {
+       "iri": "http://e/s"
+      },
+      {
+       "iri": "http://e/p"
+      },
+      {
+       "iri": "http://e/o"
+      },
+      null
+     ],
+     [
+      {
+       "iri": "http://e/s"
+      },
+      {
+       "iri": "http://e/p"
+      },
+      {
+       "iri": "http://e/o"
+      },
+      {
+       "iri": "http://e/g"
+      }
+     ],
+     [
+      {
+       "iri": "http://e/s"
+      },
+      {
+       "iri": "http://e/p"
+      },
+      {
+       "literal": "v",
+       "datatype": "http://e/dt"
+      },
+      {
+       "iri": "http://e/g"
+      }
+     ],
+     [
+      {
+       "iri": "http://e/s"
+      },
+      {
+       "iri": "http://e/p"
+      },
+      {
+       "literal": "w",
+       "language": "en"
+      },
+      null
+     ]
+    ],
+    "empty_graph_names": [
+     {
+      "iri": "http://e/g3"
+     }
+    ]
+   }
   }
  ]
 }
