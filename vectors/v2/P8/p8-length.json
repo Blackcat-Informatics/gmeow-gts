@@ -1,7 +1,7 @@
 {
  "name": "p8-length",
  "status": "built and matches",
- "note": "the payload of 2^27 + 17 zero bytes is built in memory and not stored; its payload digest is 402bbe4db2eb033a483ea8a024dba5d570d16358b3e96eeefd69a806308a498c",
+ "note": "a sealed frame whose payload is 16 bytes: malformed with out_of_range; the case of a sealed payload of 2^27 + 17 zero bytes, whose payload digest is 402bbe4db2eb033a483ea8a024dba5d570d16358b3e96eeefd69a806308a498c, is not stored",
  "cases": [
   {
    "label": "",

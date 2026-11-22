@@ -1,7 +1,7 @@
 {
  "name": "read/integrity/each",
  "status": "built and matches",
- "note": "intact, intact_unchecked, damaged (payload, opaque item, damaged region, unreadable header), not_checked",
+ "note": "a blob frame and a commit read with the default capacity: integrity intact; result also records intact_unchecked, damaged (a payload, an opaque item, a damaged region, an unreadable header) and not_checked, whose files are not stored",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "parity-span-full",
  "status": "built and matches",
- "note": "full span (1024 shards, depth 16, payload 280651 bytes), the spans of fewer than 262144 bytes of 6.4 step 0 and 6.5 (z 64 to 4096, D = 1), and the 394-shard span of 6.10 (D = 7, stripes of 57 and 56 shards, 28 parity shards)",
+ "note": "the payload sizes of a full span (1024 shards, depth 16: 280651 bytes) and of a span of 65536 bytes (5259 bytes); the input file is empty",
  "cases": [
   {
    "label": "",

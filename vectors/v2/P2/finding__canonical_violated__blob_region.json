@@ -1,7 +1,7 @@
 {
  "name": "finding/canonical_violated/blob_region",
  "status": "built and matches",
- "note": "the members of the one pack in the reverse order (input of the P7 vector canonical/check/first-difference/blob_region)",
+ "note": "the members of the one pack in the reverse order",
  "cases": [
   {
    "label": "",

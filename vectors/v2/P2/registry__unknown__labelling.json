@@ -1,5 +1,0 @@
-{
- "name": "registry/unknown/labelling",
- "status": "could not be built",
- "why": "not built: no field of a file holds a labelling code; the codes of L1 are not rows of the registry (P2-4)"
-}

@@ -1,7 +1,7 @@
 {
  "name": "index-digest-absent",
  "status": "built and matches",
- "note": "the text of 4.3 says a digest claim is not compared when the reader's own digest is absent, and the vector says the present digest gives index_digest",
+ "note": "a digest claim of an index frame is not compared when the reader's own digest is absent (case absent); with the digest present the claim that differs gives index_digest (case present)",
  "cases": [
   {
    "label": "absent",

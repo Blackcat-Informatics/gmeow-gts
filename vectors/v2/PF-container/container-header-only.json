@@ -1,7 +1,7 @@
 {
  "name": "container-header-only",
  "status": "built and matches",
- "note": "a file of the profile with no export: check 3 counts 1 when there is no export (now built with the fold)",
+ "note": "a file of the profile with no export: check 3 counts 1 when there is no export",
  "cases": [
   {
    "label": "",

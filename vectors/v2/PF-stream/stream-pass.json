@@ -1,7 +1,7 @@
 {
  "name": "stream-pass",
  "status": "built and matches",
- "note": "the 12006971-byte file is written to stream-pass.bin by the build script",
+ "note": "a segment of the profile stream with 60 commits and parity frames at positions 4213 and 8427 (12568601 bytes, listed in ABSENT.md): its recorded read has unprotected_tail as the one finding",
  "cases": [
   {
    "label": "",

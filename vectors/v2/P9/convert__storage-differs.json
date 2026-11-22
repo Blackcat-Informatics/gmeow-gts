@@ -1,7 +1,7 @@
 {
  "name": "convert/storage-differs",
  "status": "built and matches",
- "note": "a conversion by an engine without the reference encoder, then a read by a reader that holds it: storage differs, no finding; without it: unchecked with encoder_not_held, no finding",
+ "note": "a conversion by a converter without the reference encoder, then a read by a reader that holds it: storage differs, no finding; without it: unchecked with encoder_not_held, no finding",
  "cases": [
   {
    "label": "",

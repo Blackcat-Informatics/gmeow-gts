@@ -1,7 +1,7 @@
 {
  "name": "registry/fields/all",
  "status": "built and matches",
- "note": "P2 11.1: for one input of each finding code (the first vector of 11.2 for that code; code 46 from a profile document's vector), the finding is encoded as the seven-field record and exactly the fields that the table of 5.2 marks are present; the codes with no input are listed with the reason",
+ "note": "P2 11.1: the result records, for each of the 48 finding codes, the fields that its seven-field record has present (exactly those that the table of 5.2 marks); the input file is a header, two frames and a commit",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "content-digest-rename-ordinals",
  "status": "built and matches",
- "note": "a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "",

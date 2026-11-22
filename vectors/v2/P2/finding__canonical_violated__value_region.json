@@ -1,7 +1,7 @@
 {
  "name": "finding/canonical_violated/value_region",
  "status": "built and matches",
- "note": "a value region in the wrong order (input of the P7 vector canonical/check/first-difference/value_region)",
+ "note": "a value region in the wrong order",
  "cases": [
   {
    "label": "",

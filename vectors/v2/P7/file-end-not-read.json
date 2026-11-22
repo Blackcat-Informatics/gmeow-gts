@@ -2,7 +2,7 @@
  "name": "file-end-not-read",
  "section": "P7",
  "status": "built and matches",
- "note": "a read that fails: end not_read; an items_per_read exceeded: end not_read",
+ "note": "a file read with items_per_read below its item count: exceeds_capacity item_count and end not_read; the failed read that also ends not_read is not stored",
  "cases": [
   {
    "label": "items-limit",

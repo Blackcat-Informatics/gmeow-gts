@@ -1,7 +1,7 @@
 {
  "name": "record-pair-shared-frame-first-holder",
  "status": "built and matches",
- "note": "the first holder (segment 0) lacks the label; the second (segment 1) holds the frame and the label and is not searched; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "the first holder (segment 0) lacks the label; the second (segment 1) holds the frame and the label and is not searched; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "",

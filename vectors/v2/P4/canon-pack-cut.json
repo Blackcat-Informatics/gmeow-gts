@@ -1,7 +1,7 @@
 {
  "name": "canon-pack-cut",
  "status": "built and matches",
- "note": "64 one-unit blobs of 262144 bytes each of a constant byte that no mask cuts (16777216 bytes of bodies), then one more blob of one byte; the cuts are the chunker's (one unit each), passed directly to save time",
+ "note": "64 one-unit blobs of 262144 bytes each of a constant byte that no mask cuts (16777216 bytes of bodies), then one more blob of one byte: one unit each; the result records the body size 16777216, the member counts 64 and 1 and the position 27 of the extra blob (the input file is empty)",
  "cases": [
   {
    "label": "",

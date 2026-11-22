@@ -1,7 +1,7 @@
 {
  "name": "p8-members-layout-misplaced",
  "status": "built and matches",
- "note": "packs of one member; the vectors of 400000 members are not built",
+ "note": "one sealed pack of one member, a sealed frame whose inner type is not a pack, and a sealed member index: malformed_value unordered_or_repeated at the index frame and one index_claim_failed with sealed_members at the pack; the shape with a clear quads frame between is not stored",
  "cases": [
   {
    "label": "",

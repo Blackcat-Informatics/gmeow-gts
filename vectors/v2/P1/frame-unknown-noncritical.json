@@ -2,7 +2,7 @@
  "name": "frame-unknown-noncritical",
  "section": "10.4",
  "status": "built and matches",
- "note": "built in a segment of registry_version 2 (reader 1): the text does not state the version (Q)",
+ "note": "a frame of type 99 that is not critical, between two commit frames, in a segment of registry_version 2 read by reader 1: unknown_enumeration_value with unknown_frame_type at its position, the frame opaque, no unsupported_critical",
  "cases": [
   {
    "label": "",

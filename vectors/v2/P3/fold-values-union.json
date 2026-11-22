@@ -1,7 +1,7 @@
 {
  "name": "fold-values-union",
  "status": "built and matches",
- "note": "a typed value in two segments and the same literal as text in a third: one pair of VALUES, equal digests in every order; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "a typed value in two segments and the same literal as text in a third: one pair of VALUES, equal digests in every order; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "order-0",

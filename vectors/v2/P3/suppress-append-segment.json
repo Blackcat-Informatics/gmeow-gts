@@ -1,7 +1,7 @@
 {
  "name": "suppress-append-segment",
  "status": "built and matches",
- "note": "an entry whose frame no segment holds, then a segment that holds it appended: unmatched before, named and hiding after; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "an entry whose frame no segment holds, then a segment that holds it appended: unmatched before, named and hiding after; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "before",

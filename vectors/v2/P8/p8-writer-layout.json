@@ -1,7 +1,7 @@
 {
  "name": "p8-writer-layout",
  "status": "built and matches",
- "note": "keys frames from keys_frame_for (P8-58)",
+ "note": "three sealed frames, the first and third under one key and the second under another, with one recipient entry for the second key: the first keys frame directly before the first sealed frame and the second directly before the second sealed frame; the three sealed frames open",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "p8-members-layout-pass",
  "status": "built and matches",
- "note": "three sealed packs of 400000 members with the frames of P8-45, and one pack of 1048577 members with its frame (files above 20 MB keep their length and digest in the JSON)",
+ "note": "three sealed packs of 400000 members with the frames of P8-45 (the input, listed in ABSENT.md); the second input, one pack of 1048577 members with its frame, is recorded in result by its length and BLAKE3 digest only",
  "cases": [
   {
    "label": "",

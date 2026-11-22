@@ -1,7 +1,7 @@
 {
  "name": "canonical/check/where-it-stands",
  "status": "built and matches",
- "note": "P7 4.6 WHERE A DIFFERENCE STANDS, P7-41: seven files, each with the position and the check the text gives and its one canonical_violated",
+ "note": "P7 4.6 WHERE A DIFFERENCE STANDS, P7-41: one file of two segments (2045 bytes); the other files that the case names are not stored",
  "cases": [
   {
    "label": "",

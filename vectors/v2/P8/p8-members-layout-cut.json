@@ -1,7 +1,7 @@
 {
  "name": "p8-members-layout-cut",
  "status": "built and matches",
- "note": "a frame covering two packs of 600000 members; a frame after the first of two packs of 400000 and a second after the second",
+ "note": "a frame covering two sealed packs of 600000 members (the input, listed in ABSENT.md); the second input, a frame after the first of two packs of 400000 members and a second frame after the second, is recorded in result by its length and BLAKE3 digest only",
  "cases": [
   {
    "label": "",

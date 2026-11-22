@@ -1,7 +1,7 @@
 {
  "name": "p8-wrap-conflict",
  "status": "built and matches",
- "note": "",
+ "note": "a keys frame with one recipient entry and one sealed frame that opens, read by a reader that holds the key: no key_conflict; the shapes with two entries that unwrap to different keys, and with a held key beside an entry that unwraps to another, are not stored",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "state-repeated-segment",
  "status": "built and matches",
- "note": "the reviewer's file state_repeated.gts (676 bytes): one segment twice, lineage absent: both commits have one effective identifier and name equal states; a referent resolves to the first segment",
+ "note": "a file of 676 bytes: one segment twice, lineage absent: both commits have one effective identifier and name equal states; a referent resolves to the first segment",
  "cases": [
   {
    "label": "",

@@ -2,7 +2,7 @@
  "name": "link-healed-effective",
  "section": "10.6",
  "status": "built and matches",
- "note": "the range leaf of P5 is not built here; the effective identifier of the first frame is the computed one",
+ "note": "a first frame whose link is healed and a second frame linked to it: the effective identifier of the first frame is the computed one",
  "cases": [
   {
    "label": "",

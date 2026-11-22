@@ -1,7 +1,7 @@
 {
  "name": "registry/term_kind/values",
  "status": "built and matches",
- "note": "P2 11.1: a terms frame with one run of each term_kind 1 to 7, each block of the tag of its run: no finding; a block of the tag 8: malformed_value, unregistered_value",
+ "note": "P2 11.1: a terms frame with one run of each term_kind 1 to 7: no finding; the result records the registered kinds and the code 8 of an unregistered block tag (malformed_value, unregistered_value)",
  "cases": [
   {
    "label": "",

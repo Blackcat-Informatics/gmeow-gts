@@ -1,7 +1,7 @@
 {
  "name": "finding/conflicting_declaration",
  "status": "built and matches",
- "note": "the name of a blob declared by a blob frame of length 5 and by an external frame of length 9: one finding, at the frame of length 9 (the text says two blob frames, which cannot have two lengths: see the text)",
+ "note": "the name of a blob declared by a blob frame of length 5 and by an external frame of length 9: one finding, at the frame of length 9",
  "cases": [
   {
    "label": "",

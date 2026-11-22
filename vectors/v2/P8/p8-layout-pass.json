@@ -1,7 +1,7 @@
 {
  "name": "p8-layout-pass",
  "status": "built and matches",
- "note": "the file of p8-writer-layout read whole; a transparent frame between the second keys frame and its sealed frame is not built here (the keys frame is directly before the sealed frame)",
+ "note": "two keys frames, each directly before the sealed frame under its entry, read whole: no malformed_value for any keys frame; a transparent frame between the second keys frame and its sealed frame is not stored",
  "cases": [
   {
    "label": "",

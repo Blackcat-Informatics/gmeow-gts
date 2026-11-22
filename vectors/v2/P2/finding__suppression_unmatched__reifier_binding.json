@@ -1,7 +1,7 @@
 {
  "name": "finding/suppression_unmatched/reifier_binding",
  "status": "built and matches",
- "note": "an entry of kind reifier_binding that matches nothing (input of the P3 vector suppress-unmatched-reifier_binding)",
+ "note": "an entry of kind reifier_binding that matches nothing (input of the P3 vector suppress-unmatched-reifier-binding)",
  "cases": [
   {
    "label": "",

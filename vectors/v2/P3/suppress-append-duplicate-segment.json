@@ -1,7 +1,7 @@
 {
  "name": "suppress-append-duplicate-segment",
  "status": "built and matches",
- "note": "an entry that names a node of a segment, then a byte-identical copy appended: the first holder stays the holder; the hidden set and the record are unchanged; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "an entry that names a node of a segment, then a byte-identical copy appended: the first holder stays the holder; the hidden set and the record are unchanged; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "copy",

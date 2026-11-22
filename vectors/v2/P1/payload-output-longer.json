@@ -2,7 +2,7 @@
  "name": "payload-output-longer",
  "section": "10.6",
  "status": "built and matches",
- "note": "the payload begins with H(10), not H(6): its header differs (P1 3.5 step 1); the decoder is not run",
+ "note": "the payload begins with H(10), not H(6): its header differs (P1 3.5 step 1): malformed_value with codec_constraint, payload damaged",
  "cases": [
   {
    "label": "",

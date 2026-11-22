@@ -1,7 +1,7 @@
 {
  "name": "p8-committing-ciphertext",
  "status": "built and matches",
- "note": "the ciphertext is computed by solving POLYVAL for two keys (tools/vec_p8.py committing_ciphertext)",
+ "note": "a sealed frame whose ciphertext and tag the AEAD accepts under two keys with one nonce and one associated data (found by solving POLYVAL), read with a segment key: seal_failed with reason commitment",
  "cases": [
   {
    "label": "",

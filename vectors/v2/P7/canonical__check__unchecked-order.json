@@ -1,7 +1,7 @@
 {
  "name": "canonical/check/unchecked-order",
  "status": "built and matches",
- "note": "not_claimed before exceeds_capacity before encoder_not_held",
+ "note": "a plain file that does not claim the canonical form, read by a reader that holds no reference encoder: not_claimed; the files for the later results, exceeds_capacity and encoder_not_held, are not stored",
  "cases": [
   {
    "label": "",

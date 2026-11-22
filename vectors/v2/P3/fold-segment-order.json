@@ -1,7 +1,7 @@
 {
  "name": "fold-segment-order",
  "status": "built and matches",
- "note": "in the order S2, S1 the nodes (0, b) and (1, b) exchange segments: the folds are isomorphic and the lines equal as sets; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "in the order S2, S1 the nodes (0, b) and (1, b) exchange segments: the folds are isomorphic and the lines equal as sets; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "S1-S2",

@@ -1,7 +1,7 @@
 {
  "name": "state-same-name-different-prefix",
  "status": "built and matches",
- "note": "the reviewer's files state_a.gts and state_b.gts (463 bytes each, last segments of 125 bytes byte-identical, lineage absent): one effective identifier for the last commit, the state is the last segment alone and equal in the two files, the whole files differ in content digest",
+ "note": "two files of 463 bytes each (state_a, state_b), last segments of 125 bytes byte-identical, lineage absent: one effective identifier for the last commit, the state is the last segment alone and equal in the two files, the whole files differ in content digest",
  "cases": [
   {
    "label": "state_a",

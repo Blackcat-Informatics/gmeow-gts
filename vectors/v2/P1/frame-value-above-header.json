@@ -1,6 +1,0 @@
-{
- "name": "frame-value-above-header",
- "section": "10.4",
- "status": "could not be built",
- "why": "built in section P8 (tools/vec_p8.py, name frame-value-above-header): it needs a reader of registry version 2, which this builder of reader-version-1 cases cannot state"
-}

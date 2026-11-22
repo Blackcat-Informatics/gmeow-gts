@@ -1,7 +1,7 @@
 {
  "name": "p8-members-layout-missing-small",
  "status": "built and matches",
- "note": "packs of one member each: the same shape as p8-members-layout-missing, which has the packs of 400000 members (vec_r5d.py)",
+ "note": "two sealed packs of one member each, a clear quads frame, then a sealed member index covering both: malformed_value unordered_or_repeated at the index frame and index_claim_failed with sealed_members at the last pack; the shapes with the index directly after the second pack and with no index are not stored",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "canonical/check/rebuilt",
  "status": "built and matches",
- "note": "a canonical file with one multi-unit blob and one value, read with rebuilt_bytes_per_read below the charge of the value member, and the same file with a row frame out of order: structure and labelling unchecked(exceeds_capacity), storage as the encoder gives, no canonical_violated; read with a capacity that admits the value member and refuses the recipe member: structure unchecked(exceeds_capacity), labelling verified",
+ "note": "a canonical file with one multi-unit blob and one value, read with rebuilt_bytes_per_read below the charge of the value member: structure and labelling unchecked(exceeds_capacity), storage as the encoder gives, no canonical_violated; read with a capacity that admits the value member and refuses the recipe member: structure unchecked(exceeds_capacity), labelling verified; the file with a row frame out of order is not stored",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "canonical/check/not-claimed",
  "status": "built and matches",
- "note": "P7-25",
+ "note": "a plain file that does not claim the canonical form, read by a reader that implements no profile: not_claimed at all three levels and no first difference (P7-25)",
  "cases": [
   {
    "label": "",

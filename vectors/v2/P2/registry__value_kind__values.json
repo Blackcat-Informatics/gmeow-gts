@@ -1,7 +1,7 @@
 {
  "name": "registry/value_kind/values",
  "status": "built and matches",
- "note": "P2 11.1: a literal_value block with one value of each value_kind 1 to 5 (bool, uint, int, time, octets): no finding; a typed_value of the tag 6: malformed_value, unregistered_value",
+ "note": "P2 11.1: a terms frame with one literal_value run of five values, one of each value_kind 1 to 5 (bool, uint, int, time, octets): no finding; the result records the code 6 of an unregistered typed_value tag (malformed_value, unregistered_value)",
  "cases": [
   {
    "label": "",

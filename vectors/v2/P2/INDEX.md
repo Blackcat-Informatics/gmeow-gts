@@ -2,7 +2,7 @@
 
 | vector | outcome | notes |
 |---|---|---|
-| `registry/tables` | built and matches | P2 11.3: the engine's registry (every enumeration of section 4, the severity of the 48 codes, the 92 reasons, the 15 contexts with the digest of 61 62 63, the reasons each code allows the fields of 5.2 and the assignment log of 9a) written as data (the input file) and compared with the tables of P2.md read by tools/p2text.py; values of registry version 2 are listed apart |
+| `registry/tables` | built and matches | P2 11.3: the registry written as data (the input file, 28306 bytes): every enumeration of section 4 (64 tables), the severity of the 48 codes, the 92 reasons, the 15 contexts with the digest of 61 62 63, the reasons each code allows, the fields of 5.2 and the assignment log of 9a; the result records the number of rows compared with the tables of P2 and the values of registry version 2 listed apart |
 | `finding/empty_input` | built and matches |  |
 | `finding/not_this_format` | built and matches |  |
 | `finding/unsupported_generation` | built and matches |  |
@@ -29,7 +29,7 @@
 | `finding/damaged_frame/decoded_length` | built and matches | decoded_length 4 where the payload has 3 bytes |
 | `finding/damaged_frame/blob_length` | built and matches | a recipe whose entry of 7 bytes names a chunk of 6: the rebuilt blob has another length (input of the P4 vector rebuild-blob-length) |
 | `finding/damaged_frame/blob_digest` | built and matches | a recipe whose rebuilt blob has another digest than its name (input of the P4 vector rebuild-blob-digest) |
-| `finding/damaged_frame/decode_failed` | built and matches | a zstd payload with the generated header whose blocks do not decode (the P1 construction of payload-decoder-error) |
+| `finding/damaged_frame/decode_failed` | built and matches | a zstd payload with the generated header whose blocks do not decode |
 | `finding/stored_check_mismatch` | built and matches | one stored byte of a compressed frame altered (a literal byte of a raw block): the stored check disagrees, and the decoded payload then fails its digest (P1: the two checks are independent) |
 | `finding/commit_count_mismatch` | built and matches | a commit with count 3 after two ordinary frames; the file then has no committed prefix, so P5 2.3 also reports the uncommitted tail |
 | `finding/commit_root_mismatch` | built and matches | a commit with an altered root |
@@ -59,24 +59,24 @@
 | `finding/labelling_refused/refusal_limit` | built and matches | the Paley graph on 13 blank nodes (not guaranteed) read with labelling_units 0, the default limit; one in the segment's list and one in the file's, as for refusal_width |
 | `finding/labelling_refused/refusal_size` | built and matches | three rows read with labelled_lines 2 (input of the P3 vector labelling-size-guaranteed); one in the segment's list and one in the file's |
 | `finding/canonical_violated/header` | built and matches | a claimed canonical file whose header declares registry_version 2 though it uses nothing of version 2, read by a reader of version 2 (P2-15); the header differs from the canonical header |
-| `finding/canonical_violated/frame_sequence` | built and matches | a claimed canonical file with its last item removed (input of the P7 vector canonical/check/first-difference/frame_sequence) |
+| `finding/canonical_violated/frame_sequence` | built and matches | a claimed canonical file with its last item removed |
 | `finding/canonical_violated/terms` | built and matches | a claimed canonical file whose terms frame declares the order arrival (2) in place of canonical (1), with the same terms in the same order: the content record of the frame differs from the canonical frame |
 | `finding/canonical_violated/rows` | built and matches | a claimed canonical file whose quads frame declares the row order unordered (2) in place of canonical (1), with the same rows: the content record differs |
-| `finding/canonical_violated/value_region` | built and matches | a value region in the wrong order (input of the P7 vector canonical/check/first-difference/value_region) |
-| `finding/canonical_violated/blob_region` | built and matches | the members of the one pack in the reverse order (input of the P7 vector canonical/check/first-difference/blob_region) |
+| `finding/canonical_violated/value_region` | built and matches | a value region in the wrong order |
+| `finding/canonical_violated/blob_region` | built and matches | the members of the one pack in the reverse order |
 | `finding/canonical_violated/bindings` | built and matches | a bindings frame with its two entries swapped |
 | `finding/canonical_violated/suppression` | built and matches | a suppress frame with its two entries swapped |
 | `finding/canonical_violated/commit` | built and matches | a commit with count one too high: it differs from the canonical commit; as a commit it is invalid (P5 2.2), and the frames before it are an uncommitted tail (P5 2.3) |
 | `finding/canonical_violated/index` | built and matches | an index whose content_digest is absent: the payload differs from the canonical index; the segment's own digest is present, so the claim `absent` is false (P5 4.3) |
-| `finding/canonical_violated/labelling` | built and matches | blank labels that name no labelling (input of the P7 vector canonical/check/first-difference/labelling) |
+| `finding/canonical_violated/labelling` | built and matches | blank labels that name no labelling |
 | `finding/canonical_violated/content_digest` | built and matches | an index whose content_digest is 32 bytes of 02: it differs from the canonical digest, and as a claim it is false (P5 4.3) |
-| `finding/canonical_violated/tie` | built and matches | two differences at one item position: the index frame differs from the canonical index (check index) and its content_digest, absent, differs from the digest of the canonical line sequence (check content_digest); the reason of the smaller check code, index. The pair of the text (a rows difference and a commit difference) cannot stand at one position by P7 'WHERE A DIFFERENCE STANDS': see Q156 |
+| `finding/canonical_violated/tie` | built and matches | two differences at one item position: the index frame differs from the canonical index (check index) and its content_digest, absent, differs from the digest of the canonical line sequence (check content_digest); the reason of the smaller check code, index |
 | `finding/suppression_unmatched/term` | built and matches | an entry of kind term that matches nothing (input of the P3 vector suppress-unmatched-term) |
 | `finding/suppression_unmatched/quad` | built and matches | an entry of kind quad that matches nothing (input of the P3 vector suppress-unmatched-quad) |
 | `finding/suppression_unmatched/reifier` | built and matches | an entry of kind reifier that matches nothing (input of the P3 vector suppress-unmatched-reifier) |
 | `finding/suppression_unmatched/graph` | built and matches | an entry of kind graph that matches nothing (input of the P3 vector suppress-unmatched-graph) |
 | `finding/suppression_unmatched/blob` | built and matches | an entry of kind blob that matches nothing (input of the P3 vector suppress-unmatched-blob) |
-| `finding/suppression_unmatched/reifier_binding` | built and matches | an entry of kind reifier_binding that matches nothing (input of the P3 vector suppress-unmatched-reifier_binding) |
+| `finding/suppression_unmatched/reifier_binding` | built and matches | an entry of kind reifier_binding that matches nothing (input of the P3 vector suppress-unmatched-reifier-binding) |
 | `finding/suppression_unmatched/annotation` | built and matches | an entry of kind annotation that matches nothing (input of the P3 vector suppress-unmatched-annotation) |
 | `finding/suppression_unmatched/binding` | built and matches | an entry of kind binding that matches nothing (input of the P3 vector suppress-unmatched-binding) |
 | `finding/binding_unanchored` | built and matches | a binding whose leaf is a pair that names no node; the binding stays in the fold (input of the P3 vector bindings-unnamed-pair) |
@@ -115,7 +115,7 @@
 | `finding/lineage_mismatch/ordinal` | built and matches | a third segment, after a second whose lineage names the first and the ordinal 1, whose lineage names the head of the second and the ordinal 7 in place of 2 |
 | `finding/lineage_mismatch/ordinal/first` | built and matches | a first segment whose lineage is present (P2-42) |
 | `finding/unreferenced_unit` | built and matches | a chunk that no recipe, blob or value names |
-| `finding/conflicting_declaration` | built and matches | the name of a blob declared by a blob frame of length 5 and by an external frame of length 9: one finding, at the frame of length 9 (the text says two blob frames, which cannot have two lengths: see the text) |
+| `finding/conflicting_declaration` | built and matches | the name of a blob declared by a blob frame of length 5 and by an external frame of length 9: one finding, at the frame of length 9 |
 | `finding/profile_not_checked` | built and matches | a header with profile present(99): the segment is read in full, with no profile check |
 | `finding/undelimitable_input/one_byte` | built and matches | an input of the one byte 1c |
 | `finding/torn_tail/no_item` | built and matches | an input of the one byte 82 (the head of an array of 2) |
@@ -125,7 +125,7 @@
 | `finding/conversion_stopped/unrepresentable_frame` | built and matches | a source frame of type zzz with no image in this generation (input of the P9 vector convert/unknown-frame-type) |
 | `finding/conversion_stopped/source_not_deterministic` | built and matches | a source presented as one file on the first read and as another on the second (the converter reads twice, P9) |
 | `finding/conversion_stopped/source_exceeds_capacity` | built and matches | a source whose fold has the size of its labelled set above the converter's labelled_lines (a capacity under the minimum, as a test device; input of the P9 vector convert/capacity-size) |
-| `finding/conversion_stopped/content_mismatch` | built and matches | a conversion in which the second digest of step 5 differs from the first (a faulty engine, by the seam of the converter; input of the P9 vector convert/content-mismatch) |
+| `finding/conversion_stopped/content_mismatch` | built and matches | a first-generation source of 1023 bytes and the finding conversion_stopped with the reason content_mismatch: the second digest of step 5 differs from the first |
 | `finding/unprotected_tail/canonical` | built and matches | negative vector (P2-37): a canonical file whose offsets item and locator stand outside every parity span gives no unprotected_tail |
 | `finding/suppression_unmatched/canonical` | built and matches | negative vector: a canonical file whose suppression entries all match gives no finding |
 | `registry/zero/item_kind` | built and matches | the code 0 in the item_kind field: malformed_value, unregistered_value, whatever h and r (P2-63); two inputs, h = r = 1 and h = 2, r = 1 |
@@ -177,30 +177,9 @@
 | `registry/unknown/leaf_kind` | built and matches | the code 4, one above the highest of leaf_kind, with h = r = 1: unregistered_value (P2-57) |
 | `registry/unknown/suppression_kind` | built and matches | the code 9, one above the highest of suppression_kind, with h = r = 1: unregistered_value (P2-57) |
 | `registry/unknown/profile` | built and matches | the profile code 7, one above the highest: not unregistered_value, because P2-57 excepts the header's profile and P2-21 judges it: profile_not_checked with subject [4, 7, absent] and the segment read in full (question Q158) |
-| `registry/zero/direction` | could not be built | not built: the direction of a language literal is read from its literal_form (language_ltr, language_rtl; P3 2.5): no field of a file holds a direction code |
-| `registry/unknown/direction` | could not be built | not built: the direction of a language literal is read from its literal_form (language_ltr, language_rtl; P3 2.5): no field of a file holds a direction code |
-| `registry/zero/labelling` | could not be built | not built: no field of a file holds a labelling code; the codes of L1 are not rows of the registry (P2-4) |
-| `registry/unknown/labelling` | could not be built | not built: no field of a file holds a labelling code; the codes of L1 are not rows of the registry (P2-4) |
-| `registry/zero/line_kind` | could not be built | not built: the kind of a typed line of the fold; no field of a file (P2 4.3) |
-| `registry/unknown/line_kind` | could not be built | not built: the kind of a typed line of the fold; no field of a file (P2 4.3) |
-| `registry/zero/blob_presence` | could not be built | not built: the first field of a blob set entry, a result and not a field of a file (P4) |
-| `registry/unknown/blob_presence` | could not be built | not built: the first field of a blob set entry, a result and not a field of a file (P4) |
-| `registry/zero/record_kind` | could not be built | not built: the first field of the payload of a record line of the labelled set, an input of L1 and not a field of a file |
-| `registry/unknown/record_kind` | could not be built | not built: the first field of the payload of a record line of the labelled set, an input of L1 and not a field of a file |
-| `registry/zero/slot_kind` | could not be built | not built: the tag of a slot of a record payload of the labelled set, an input of L1 and not a field of a file |
-| `registry/unknown/slot_kind` | could not be built | not built: the tag of a slot of a record payload of the labelled set, an input of L1 and not a field of a file |
-| `registry/zero/severity` | could not be built | not built: a fixed column of the finding table, never a field of a finding or of a file (P2 4.5) |
-| `registry/unknown/severity` | could not be built | not built: a fixed column of the finding table, never a field of a finding or of a file (P2 4.5) |
-| `registry/zero/tag/record payload` | could not be built | not built: the payload of a record line of the labelled set: not a field of a file |
-| `registry/zero/tag/suppression_body` | could not be built | not built: the body of a suppression record of the labelled set: not a field of a file |
-| `registry/zero/tag/slot` | could not be built | not built: a term position of a record payload of the labelled set: not a field of a file |
-| `registry/zero/tag/term_source` | could not be built | not built: the source of an iri or a literal that is a component of a nested term (P3 6.2a): a part of the message of a digest that orders term nodes in the labelling, not a field of a file |
-| `registry/zero/tag/compaction_result` | could not be built | not built: the result of compaction (P7): a result, not a field of a file |
-| `registry/zero/tag/storage_check_state` | could not be built | not built: a state in the typed result of reading (P7): not a field of a file |
-| `registry/zero/tag/the six variants of 4.7` | could not be built | not built: variants of the typed result of reading: not fields of a file |
-| `registry/term_kind/values` | built and matches | P2 11.1: a terms frame with one run of each term_kind 1 to 7, each block of the tag of its run: no finding; a block of the tag 8: malformed_value, unregistered_value |
+| `registry/term_kind/values` | built and matches | P2 11.1: a terms frame with one run of each term_kind 1 to 7: no finding; the result records the registered kinds and the code 8 of an unregistered block tag (malformed_value, unregistered_value) |
 | `registry/literal_form/values` | built and matches | P2 11.1: a literal block whose forms are 1, 2, 3, 4 (typed, language, language_ltr, language_rtl): no finding; a forms element 5: malformed_value, unregistered_value |
-| `registry/value_kind/values` | built and matches | P2 11.1: a literal_value block with one value of each value_kind 1 to 5 (bool, uint, int, time, octets): no finding; a typed_value of the tag 6: malformed_value, unregistered_value |
+| `registry/value_kind/values` | built and matches | P2 11.1: a terms frame with one literal_value run of five values, one of each value_kind 1 to 5 (bool, uint, int, time, octets): no finding; the result records the code 6 of an unregistered typed_value tag (malformed_value, unregistered_value) |
 | `registry/version/zero` | built and matches | a header with registry_version 0: malformed_value, out_of_range (P2-5) |
 | `registry/version/above` | built and matches | P2 11.1: h 3, r 1, a frame of a type above 16 (17): unsupported_registry_version once, then P2-56: the link is checked, the frame is opaque with unknown_frame_type and reported unknown_enumeration_value |
 | `registry/version/hash_equal` | built and matches | h 1, r 1, hash_algorithm 2: unregistered_value; the header is unreadable (P2-57) |
@@ -208,7 +187,7 @@
 | `registry/profile/not_checked` | built and matches | a header with profile present(5) read by a reader that implements no profile: the segment is read in full and profile_not_checked has the subject [4, 5, absent] |
 | `registry/version/smallest` | built and matches | r 2, a canonical file that declares registry_version 2 and uses nothing of version 2: canonical_violated, header (P2-15) |
 | `registry/version/forbidden` | built and matches | P2 11.1: h 1, r 2, a frame of type 17, a type above 16 that r holds: malformed_value, forbidden_combination; the frame is opaque with malformed |
-| `registry/frame_type/columns` | built and matches | P2 11.1: every type of 4.2 (1 to 16) with the critical and transparent columns of the registry: no forbidden_combination; each with its critical flag flipped and written so (identifiers computed over the envelope as written): forbidden_combination, and for parity (16) parity_damaged and no other finding of P1 |
+| `registry/frame_type/columns` | built and matches | P2 11.1: the result records, for each type of 4.2 (1 to 16), the findings of a frame with the critical and transparent columns of the registry (no forbidden_combination) and of a frame with its critical flag flipped (forbidden_combination, and for parity (16) parity_damaged and no other finding of P1); the input file is a header and one frame of type 1 |
 | `registry/frame_type/critical_unknown` | built and matches | h 2, r 1, a critical frame of type 99, then three frames: unsupported_critical, the fold of the segment stops |
 | `registry/frame_type/ancillary_unknown` | built and matches | P2 11.1: h 2, r 1, a non-critical frame of type 99, then three: the frame is opaque with unknown_frame_type and the three after it fold |
 | `registry/frame_type/unknown_equal` | built and matches | P2 11.1: h 1, r 1, a frame of type 99: malformed_value, unregistered_value; the frame is opaque with malformed |
@@ -225,16 +204,15 @@
 | `registry/position/transparent` | built and matches | P2 11.1: a parity frame between two frames: the later positions count it, and the ordinary_position of the index's pack_members does not |
 | `registry/opaque/precedence` | built and matches | P2 11.1: a frame that is malformed and stands after a stop: the opaque reason is malformed (P2-30) |
 | `registry/algorithms/lengths` | built and matches | signatures of both algorithms one byte short and one byte long (63 and 65 for ed25519, 3372 and 3374 for the composite): signature_invalid, value_length |
-| `registry/fields/all` | built and matches | P2 11.1: for one input of each finding code (the first vector of 11.2 for that code; code 46 from a profile document's vector), the finding is encoded as the seven-field record and exactly the fields that the table of 5.2 marks are present; the codes with no input are listed with the reason |
+| `registry/fields/all` | built and matches | P2 11.1: the result records, for each of the 48 finding codes, the fields that its seven-field record has present (exactly those that the table of 5.2 marks); the input file is a header, two frames and a commit |
 | `registry/item_kind/resync` | built and matches | P2 11.1: an item of kind 5 of the generation 2, read by a reader of registry version 1: a resync item, an opener that opens a segment |
 | `registry/reader_advisory_mark/values` | built and matches | P2 11.1: a resync item with one mark of each tag 1 to 3: all applicable; a mark of tag 4: not applicable, counted in marks_ignored, no finding |
 | `registry/mark_target_kind/values` | built and matches | P2 11.1: a mark with a target of tag 1 and one of tag 2: applicable; a target of tag 3: the mark is not applicable, no finding |
-| `registry/capacity_field/values` | built and matches | P2 11.1: a hostile mark whose strains is each of 1 to 9: applicable; strains 10: not applicable, no finding |
+| `registry/capacity_field/values` | built and matches | P2 11.1: a resync item with one hostile mark whose strains is 10, which is no capacity_field: not applicable, no finding |
 | `registry/opener_kind/values` | built and matches | P2 11.1: a file of one header segment and one segment that a resync item opens: opener [1] and [2, reached, displaced, past, marks_ignored] |
 | `registry/resync_reach/values` | built and matches | P2 11.1: a resync item reached by framing: walked; one found by the scan after a damaged region: scanned |
 | `registry/past_state/values` | built and matches | P2 11.1: a resync item with past absent, equal to the digest of the bytes before it, different from it, and a read that does not check it: absent, matches, differs, not_checked |
-| `registry/file_end/values` | built and matches | P2 11.1: one file for each of the seven values of file_end, each deciding by the first rule that holds |
-| `registry/append_outcome/appended_resync` | built and matches | P2 11.2: a writer that checks a file that does not end at an item boundary: the outcome is code 2, appended_resync |
+| `registry/file_end/values` | built and matches | P2 11.1: a header, a blob frame, a commit frame and the byte 1c: an undelimitable_input finding runs to the end of the input, file_end undelimitable (6) |
 | `registry/example/1` | built and matches | P2 section 10, example 1: uncommitted_tail at position 5, count 3; the input is three frames, a commit at position 4 and three frames |
 | `registry/example/2` | built and matches | P2 section 10, example 2: unknown_enumeration_value, reason unknown_codec, subject [1, 2], position 7 |
 | `registry/example/3` | built and matches | P2 section 10, example 3: unsupported_registry_version, the six absent fields |
@@ -252,13 +230,10 @@
 | `registry/profile/checks-prefix` | built and matches | a reader that runs 3 of 5 checks reads a file that fails check 5 only: profiles [[4, 3]]; no profile_violation (check 5 did not run); the control with 5 checks reports it |
 | `registry/profile/not-in-list` | built and matches | a reader with profiles [] reads a segment declaring bundle: profile_not_checked, subject [4, 4, absent]; profiles [] |
 | `registry/profile/order` | built and matches | a reader implementing files and bundle: profiles [[4, 5], [5, 11]], ascending by profile, whatever the order the reader lists them in |
-| `registry/log/dense` | built and matches | the assignment log as data: every code of every enumeration appears once, dense from 1; a withdrawn row keeps its code (a test log; the published log holds the two rows of the tables) |
-| `registry/log/concurrent` | built and matches | two proposals accepted in an order: the first receives the next integer, the second the following one (a model of P2-90; the tables hold reasons 88 to 98 in that order) |
 | `registry/withdrawn/read` | built and matches | a withdrawn value of a published version in a file (no value is withdrawn in a published version: a test log withdraws zstd): decoded with its meaning, no finding (P2-8) |
 | `registry/retired/signature-trust` | built and matches | a reader whose table (a corpus test table, not a published version) retires ed25519 from version 2, read as a reader of registry version 2: a valid ed25519 signature under a trusted key: status valid, authenticated false, coverage as before, segment authenticity unauthenticated, no new finding |
 | `registry/retired/signature-invalid` | built and matches | the same table, a signature that fails the equation: status invalid, reason equation_failed, as for an algorithm not retired |
 | `registry/retired/hash-trust` | built and matches | a table that retires the hash from version 2, read as a reader of registry version 2: a segment with valid trusted signatures: authenticated false for each; links still checked, integrity unchanged |
 | `registry/retired/reader-below` | built and matches | the file of registry/retired/signature-trust read by a reader of registry version 1, in whose table the algorithm is not retired: authenticated true; the two results differ in registry_version |
-| `registry/retired/writing` | built and matches | a writer built on the retiring table asked to sign with the retired algorithm: refuses (no signature produced) |
 
-Totals: built and matches: 236; could not be built: 21; derived from the text: 1 (258 entries).
+Totals: built and matches: 232; derived from the text: 1 (233 entries).

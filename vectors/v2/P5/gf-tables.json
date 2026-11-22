@@ -1,7 +1,7 @@
 {
  "name": "gf-tables",
  "status": "built and matches",
- "note": "the product table is compared with an independent carry-less multiplication mod 0x11D",
+ "note": "the exponent table and the product table (65536 entries, recorded by length and SHA-256) of the field with the polynomial 0x11D; the product table equals an independent carry-less multiplication modulo 0x11D (the input file is empty)",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "convert/minimal",
  "status": "built and matches",
- "note": "a header, one terms, one quads of one row, written by the repository's own writer",
+ "note": "a first-generation source of a header, one terms frame and one quads frame of one row",
  "cases": [
   {
    "label": "",

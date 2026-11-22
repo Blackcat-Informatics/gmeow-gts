@@ -1,7 +1,7 @@
 {
  "name": "p8-16.5-mutations",
  "status": "built and matches",
- "note": "every bullet of 16.5 that no other entry builds",
+ "note": "16.5, the bullet that changes byte 0 of the sealed value: seal_failed with reason aead at the sealed frame; the other bullets of 16.5 that no other entry builds are not stored",
  "cases": [
   {
    "label": "",

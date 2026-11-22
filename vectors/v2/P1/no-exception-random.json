@@ -2,7 +2,7 @@
  "name": "no-exception-random",
  "section": "10.7",
  "status": "built and matches",
- "note": "checked over pseudo-random byte strings by the build script",
+ "note": "the 256 bytes 00 to ff read as one input: not_this_format at offset 0 with length 1, no segment",
  "cases": [
   {
    "label": "",

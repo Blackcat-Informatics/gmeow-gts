@@ -1,7 +1,7 @@
 {
  "name": "suppress-append-terms",
  "status": "built and matches",
- "note": "an entry whose label no terms frame of its holder defines, then the terms frame appended to the holder: unmatched before, hiding after; the digest differs; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "an entry whose label no terms frame of its holder defines, then the terms frame appended to the holder: unmatched before, hiding after; the digest differs; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "before",

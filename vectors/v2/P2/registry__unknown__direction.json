@@ -1,5 +1,0 @@
-{
- "name": "registry/unknown/direction",
- "status": "could not be built",
- "why": "not built: the direction of a language literal is read from its literal_form (language_ltr, language_rtl; P3 2.5): no field of a file holds a direction code"
-}

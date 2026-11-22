@@ -1,7 +1,7 @@
 {
  "name": "read/order/findings",
  "status": "built and matches",
- "note": "a compressed frame with chain_break, stored_check_mismatch, damaged_frame (steps 5, 6, 7); a segment whose header is of registry version 2 and four items that are not frames: each list in the order of 1.4, checked against an oracle written from the table of P7 section 3",
+ "note": "a compressed frame with chain_break, stored_check_mismatch and damaged_frame (steps 5, 6, 7), each list in the order of 1.4; the segment whose header is of registry version 2 with four items that are not frames is not stored (read/placement holds it)",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "p8-aead-kat",
  "status": "built and matches",
- "note": "the 24 vectors of RFC 8452 Appendix C.2, parsed from the RFC text (tools/rfc8452_c2.json)",
+ "note": "the 24 vectors of RFC 8452 Appendix C.2 are the known answers of the AEAD of 16.2; the entry stores no input and no value, the vectors are those printed in the RFC",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "finding/conversion_stopped/content_mismatch",
  "status": "built and matches",
- "note": "a conversion in which the second digest of step 5 differs from the first (a faulty engine, by the seam of the converter; input of the P9 vector convert/content-mismatch)",
+ "note": "a first-generation source of 1023 bytes and the finding conversion_stopped with the reason content_mismatch: the second digest of step 5 differs from the first",
  "cases": [
   {
    "label": "",

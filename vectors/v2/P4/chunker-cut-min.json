@@ -1,7 +1,7 @@
 {
  "name": "chunker-cut-min",
  "status": "built and matches",
- "note": "16382 pseudo-random bytes, then two bytes chosen so that strict holds at the first test",
+ "note": "16382 pseudo-random bytes, then two bytes chosen so that strict holds at the first test, then 40000 further bytes: the lengths are 16384 and 40000",
  "cases": [
   {
    "label": "",

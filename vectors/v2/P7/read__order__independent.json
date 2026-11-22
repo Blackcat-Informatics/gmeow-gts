@@ -1,7 +1,7 @@
 {
  "name": "read/order/independent",
  "status": "built and matches",
- "note": "the composite input read twice, and every list with several findings recomputed from every order of its members by the oracle of the order: equal lists (one engine; the second computation is the oracle's)",
+ "note": "the composite file of read/placement (a frame with three findings, a segment with a header of registry version 2 and four items that are not frames, a torn tail): every list with several findings is in the order of 1.4, whatever the order in which its members are found",
  "cases": [
   {
    "label": "",

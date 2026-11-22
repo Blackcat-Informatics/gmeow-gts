@@ -1,5 +1,0 @@
-{
- "name": "rebuild-charge-spooled",
- "status": "could not be built",
- "why": "the reference engine has one path for holding the output of a rebuild (in memory) and no switch that spools it or streams it to a caller, so there are not two engines to compare; the engine's charge depends on total_length alone (blobs.collect) and a second read of the same input gives an equal result, which rebuild-charge-repeated and the equal results of rebuild-charge-witness show without a switch (P4-39, P4-59)"
-}

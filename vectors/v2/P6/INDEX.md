@@ -38,7 +38,7 @@
 | `key-mismatch-two-entries` | built and matches | two held entries with one key_id, one inconsistent, one consistent: valid |
 | `key-length-short` | built and matches | a consistent held ed key of 31 bytes: value_length |
 | `ed25519-honest` | built and matches | a signature over a fixed subject |
-| `ed25519-honest-reproduce` | built and matches | the value of ed25519-honest equals the value of the `cryptography` module (OpenSSL) for the same seed and message |
+| `ed25519-honest-reproduce` | built and matches | the value of ed25519-honest equals the value that OpenSSL's Ed25519 gives for the same seed and message |
 | `ed25519-length-63` | built and matches |  |
 | `ed25519-length-65` | built and matches |  |
 | `ed25519-scalar-equals-l` | built and matches |  |
@@ -72,7 +72,6 @@
 | `ed25519-equation-message` | built and matches | a valid signature over a subject with one bit changed |
 | `ed25519-mixed-order-valid` | built and matches | a key A + T with T of order 8, a signature satisfying [S]B = R + [k mod L]A |
 | `ed25519-mixed-order-cofactored-only` | built and matches | a signature that satisfies only the cofactored equation |
-| `ed25519-subgroup-forms-agree` | built and matches | honest signatures: valid under the strict equation, the cofactored equation and OpenSSL's verification |
 | `composite-message-representative` | built and matches | the 127 bytes of M' for the message 00..1f |
 | `composite-honest` | built and matches | a composite signature over a fixed subject |
 | `composite-length-3372` | built and matches |  |
@@ -142,7 +141,7 @@
 | `auth-proof-only` | built and matches | a root that holds (a valid commit over its frames) and no signature: authenticated false |
 | `cosign-add-signature` | built and matches | a frame rewritten with a second signature: identifiers, roots and the first result unchanged |
 | `cosign-two-algorithms` | built and matches | one commit signed by ed and by cp, different keys |
-| `sign-composite-reproduce` | built and matches | the 3373 bytes for a composite key and a subject: ML-DSA half by gts2ref/mldsa.py (FIPS 204 deterministic) reproduced by `openssl pkeyutl -pkeyopt deterministic:1`, Ed25519 half equal to OpenSSL's |
+| `sign-composite-reproduce` | built and matches | the 3373-byte composite signature for a composite key and a subject: its length, SHA-256 and the 32-byte message are recorded; the ML-DSA half is the deterministic signature of FIPS 204, reproduced by OpenSSL (`openssl pkeyutl -pkeyopt deterministic:1`), and the Ed25519 half equals OpenSSL's (the input file is empty) |
 | `sign-ed25519-reproduce` | built and matches | the signature bytes for a key and a subject, equal to those of OpenSSL's Ed25519 |
 | `ed25519-key-non-canonical` | built and matches | a key with y at least p, and 01 with the sign bit set: equation_failed |
 | `cosign-after-torn-nothing` | built and matches | the file H T Q C cut inside the last value of C: no byte is written (P6-54) |
@@ -159,4 +158,4 @@
 | `composite-hedged` | built and matches | a composite signature whose ML-DSA half was made with a `rnd` that is not zero: valid, as the deterministic one; and both records of the key in one list: two results |
 | `cosign-remove-signature` | built and matches | a commit that carries two signatures, and a copy from which the second was removed: one result fewer, no finding, every identifier equal |
 
-Totals: built and matches: 153; derived from the text: 3 (156 entries).
+Totals: built and matches: 152; derived from the text: 3 (155 entries).

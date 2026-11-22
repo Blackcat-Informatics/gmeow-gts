@@ -1,7 +1,7 @@
 {
  "name": "read/labelling/limit",
  "status": "built and matches",
- "note": "Paley 13 with labelling_units 0: labelling_refused with refusal_limit in the file's list",
+ "note": "the Paley graph on 13 vertices read with labelling_units 0: labelling_refused with refusal_limit in the file's list; result also records the same outcome for a cube graph, whose file is not stored",
  "cases": [
   {
    "label": "",

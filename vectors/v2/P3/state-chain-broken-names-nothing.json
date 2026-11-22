@@ -1,7 +1,7 @@
 {
  "name": "state-chain-broken-names-nothing",
  "status": "built and matches",
- "note": "the reviewer's files chain_good.gts and chain_altered.gts (338 bytes, one byte differs in the first frame): the final commit has one identifier and is valid in both; it names a state in the first file and none in the second",
+ "note": "two files of 338 bytes (good, altered), one byte differing in the first frame: the final commit has one identifier and is valid in both; it names a state in the first file and none in the second",
  "cases": [
   {
    "label": "good",

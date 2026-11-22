@@ -1,7 +1,7 @@
 {
  "name": "convert/total-no-option",
  "status": "built and matches",
- "note": "two runs equal; an engine without the encoder: the same head and proof",
+ "note": "two runs equal; a converter without the reference encoder: the same head and proof",
  "cases": [
   {
    "label": "",

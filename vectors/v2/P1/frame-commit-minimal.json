@@ -2,7 +2,7 @@
  "name": "frame-commit-minimal",
  "section": "10.4",
  "status": "built and matches",
- "note": "the frame is 114 bytes; the preimage with predecessor <P> is 109 bytes (tests/test_p1_examples.py)",
+ "note": "a header and one commit frame: the frame is 114 bytes; the preimage with predecessor <P> is 109 bytes",
  "cases": [
   {
    "label": "",

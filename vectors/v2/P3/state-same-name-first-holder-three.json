@@ -1,7 +1,7 @@
 {
  "name": "state-same-name-first-holder-three",
  "status": "built and matches",
- "note": "three segments, the second and third byte-identical with lineage absent: a referent to their commit identifier resolves to the second segment, whose ordinal the blank node carries; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "three segments, the second and third byte-identical with lineage absent: a referent to their commit identifier resolves to the second segment, whose ordinal the blank node carries; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "",

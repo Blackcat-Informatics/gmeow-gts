@@ -1,7 +1,7 @@
 {
  "name": "registry/file_end/values",
  "status": "built and matches",
- "note": "P2 11.1: one file for each of the seven values of file_end, each deciding by the first rule that holds",
+ "note": "P2 11.1: a header, a blob frame, a commit frame and the byte 1c: an undelimitable_input finding runs to the end of the input, file_end undelimitable (6)",
  "cases": [
   {
    "label": "",

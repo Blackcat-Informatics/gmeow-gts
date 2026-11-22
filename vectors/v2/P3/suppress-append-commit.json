@@ -1,7 +1,7 @@
 {
  "name": "suppress-append-commit",
  "status": "built and matches",
- "note": "the reviewer's files suppression_before.gts (587 bytes) and suppression_after.gts (701 bytes, the first as a byte prefix): the node hidden in both, no suppression_unmatched, equal content digests",
+ "note": "two files (before of 587 bytes, after of 701 bytes, the first as a byte prefix of the second): the node hidden in both, no suppression_unmatched, equal content digests",
  "cases": [
   {
    "label": "before",

@@ -1,7 +1,7 @@
 {
  "name": "stream-heal-pending-by-parity",
  "status": "built and matches",
- "note": "UNCONFIRMED by the editor: a commit that reaches the end of the first span, its stored identifier damaged, healed by the parity frame of the span; the expectation is the text's",
+ "note": "a commit that reaches the end of the first span, its stored identifier damaged, healed by the parity frame of the span (the input is listed in ABSENT.md)",
  "cases": [
   {
    "label": "",

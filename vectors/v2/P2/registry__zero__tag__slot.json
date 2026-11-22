@@ -1,5 +1,0 @@
-{
- "name": "registry/zero/tag/slot",
- "status": "could not be built",
- "why": "not built: a term position of a record payload of the labelled set: not a field of a file"
-}

@@ -1,7 +1,7 @@
 {
  "name": "finding/canonical_violated/labelling",
  "status": "built and matches",
- "note": "blank labels that name no labelling (input of the P7 vector canonical/check/first-difference/labelling)",
+ "note": "blank labels that name no labelling",
  "cases": [
   {
    "label": "",

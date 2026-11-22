@@ -2,7 +2,7 @@
  "name": "no-exception-prefixes",
  "section": "10.7",
  "status": "built and matches",
- "note": "checked over every prefix of every vector file by the build script",
+ "note": "a header and four commit frames of 114 bytes with false roots, 467 bytes read whole: a typed result with commit_root_mismatch at each frame and uncommitted_tail with count 4 at the first",
  "cases": [
   {
    "label": "",

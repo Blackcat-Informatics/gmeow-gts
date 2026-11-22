@@ -2,7 +2,7 @@
  "name": "locator-recognised",
  "section": "10.3",
  "status": "built and matches",
- "note": "recognised(700) from the end; asserted in tests/test_vectors_p1.py",
+ "note": "the worked example of P1 2.6: an input of 1000 bytes whose index frame starts at byte 700 and whose locator is the last 11 bytes: recognised(700) from the end, no finding",
  "cases": [
   {
    "label": "",

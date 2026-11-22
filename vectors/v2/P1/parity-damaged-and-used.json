@@ -2,7 +2,7 @@
  "name": "parity-damaged-and-used",
  "section": "10.4",
  "status": "built and matches",
- "note": "the findings of P5 about the use of the frame are not built in this slice",
+ "note": "a segment of three commit frames and a parity frame of 162 bytes whose payload is damaged: parity_damaged at the parity frame and unprotected_tail of 342 bytes from offset 11",
  "cases": [
   {
    "label": "",

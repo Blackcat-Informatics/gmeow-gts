@@ -1,7 +1,7 @@
 {
  "name": "read/not-this-format",
  "status": "built and matches",
- "note": "a map, an array, a uint",
+ "note": "a four-byte map as the whole input: not_this_format and no segment; the array and the unsigned integer that the name also covers are not stored",
  "cases": [
   {
    "label": "",

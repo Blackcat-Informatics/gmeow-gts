@@ -2,7 +2,7 @@
  "name": "stream-prefix-guarantee",
  "section": "P7",
  "status": "built and matches",
- "note": "for the files and every ordered pair of item boundaries j <= k: PR-1 (the listing at j is a prefix of the listing at k), PR-2 (each item of G_k not in G_j belongs to a frame decided at a boundary above j and at or below k), PR-3 as the checker below states it (199 ordered pairs checked, PR-3 at 21 boundaries)",
+ "note": "for the files and every ordered pair of item boundaries j <= k: PR-1 (the listing at j is a prefix of the listing at k), PR-2 (each item of G_k not in G_j belongs to a frame decided at a boundary above j and at or below k), and PR-3 at 21 boundaries (199 ordered pairs checked)",
  "cases": [
   {
    "label": "htq",

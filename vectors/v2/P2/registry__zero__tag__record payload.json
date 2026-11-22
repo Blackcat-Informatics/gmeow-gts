@@ -1,5 +1,0 @@
-{
- "name": "registry/zero/tag/record payload",
- "status": "could not be built",
- "why": "not built: the payload of a record line of the labelled set: not a field of a file"
-}

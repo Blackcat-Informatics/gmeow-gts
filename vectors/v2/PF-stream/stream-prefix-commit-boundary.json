@@ -1,7 +1,7 @@
 {
  "name": "stream-prefix-commit-boundary",
  "status": "built and matches",
- "note": "stream-pass cut after the commits that end intervals 1, 21 and 60: every commit valid in the prefix; the clean-writer guarantee",
+ "note": "stream-pass cut after the commit that ends interval 1 (200127 bytes): the commit is valid in the prefix; the cuts after the commits that end intervals 21 and 60 are not stored",
  "cases": [
   {
    "label": "",

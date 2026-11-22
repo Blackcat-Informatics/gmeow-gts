@@ -1,7 +1,7 @@
 {
  "name": "finding/canonical_violated/tie",
  "status": "built and matches",
- "note": "two differences at one item position: the index frame differs from the canonical index (check index) and its content_digest, absent, differs from the digest of the canonical line sequence (check content_digest); the reason of the smaller check code, index. The pair of the text (a rows difference and a commit difference) cannot stand at one position by P7 'WHERE A DIFFERENCE STANDS': see Q156",
+ "note": "two differences at one item position: the index frame differs from the canonical index (check index) and its content_digest, absent, differs from the digest of the canonical line sequence (check content_digest); the reason of the smaller check code, index",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "canonical/compaction/two-declarations",
  "status": "built and matches",
- "note": "a blob declared twice: one complete is written, both incomplete stops",
+ "note": "a blob declared twice, one declaration complete and one naming a unit that no frame holds: compaction writes a file; the file whose two declarations are both incomplete, where compaction stops, is not stored",
  "cases": [
   {
    "label": "",

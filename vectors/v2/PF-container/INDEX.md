@@ -26,7 +26,7 @@
 | `container-dangling-containment` | built and matches |  |
 | `container-outside-root` | built and matches |  |
 | `container-tombstone-unlisted` | built and matches | in X2 the root is observed again and lists only n |
-| `container-header-only` | built and matches | a file of the profile with no export: check 3 counts 1 when there is no export (now built with the fold) |
+| `container-header-only` | built and matches | a file of the profile with no export: check 3 counts 1 when there is no export |
 | `container-late-property` | built and matches | a valid export, then after its commit one more statement with the observation o2 as subject: container_observation_late |
 | `container-late-graph-line` | built and matches | after the commit, one more line in the graph of o2 (a graph of export 1): container_graph_late |
 | `container-late-blob-binding` | built and matches | the non-RDF observation o3 of export 1 has its blob binding after the commit of export 1: container_blob_late |
@@ -34,7 +34,7 @@
 | `container-media-type-hex-text` | built and matches | written as text, with no pair of VALUES |
 | `container-octets-non-utf8` | built and matches | the c:entityTag of o3 is the bytes 22 ff 41 22 (not UTF-8) and the c:relationType of the auxiliary resource o4 is the bytes 41 31 (text): no finding, the form does not depend on the bytes being text |
 | `container-entity-tag-empty` | built and matches |  |
-| `container-compacted` | built and matches | the canonical file of the fold of pass, its header declaring the profile |
+| `container-compacted` | built and matches | the file of container-pass compacted at the profile: the canonical file of its fold, whose header declares the profile; the compacted file is not stored |
 | `container-blob-entry-grows` | built and matches | the blob of o3 is declared in the state of the first export and again after its commit with a smaller length: the entry differs (17) and the core reports the conflict |
 | `container-blob-present-late-unit` | built and matches | the recipe of the blob of o3 and its binding stand in the state of the first export; the second unit stands after the commit: the blob is not complete in the state. The core reports missing_dependency with chunk at the recipe: a unit serves only what stands after it (P4 6.1), so the blob is incomplete in the fold of the file too |
 | `container-blob-external` | built and matches | an observation bound to an external blob declared in the state |

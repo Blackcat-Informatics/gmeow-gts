@@ -2,7 +2,7 @@
  "name": "ser-bool",
  "section": "10.1",
  "status": "built and matches",
- "note": "the frame is a parity frame (critical f4, transparent f5); its table and shards (P5) are not built",
+ "note": "a commit frame and a parity frame of 519 bytes whose critical is written f4 and transparent f5: both frames linked, the parity frame not content, no finding for it",
  "cases": [
   {
    "label": "",

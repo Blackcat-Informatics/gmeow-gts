@@ -3,7 +3,7 @@
 | vector | outcome | notes |
 |---|---|---|
 | `canonical/construction` | built and matches | 7.5: the bytes of the pack, terms content, quads, bindings and header payloads, the index fields, positions 7 to 9 and the read-back; the input is the canonical file |
-| `read/minimal` | built and matches | 7.1: the 233 bytes of the result; 7.2: the 250 bytes of the torn tail (read/torn-tail) |
+| `read/minimal` | built and matches | 7.1: a header and a commit (125 bytes) and the 239 bytes of its encoded result, recorded in result.result_hex; the torn-tail form of 7.2 is the entry read/torn-tail |
 | `canonical/constants/terms-budget` | built and matches | the cut by Bt on the real constant, a term alone above Bt, a blank by label length |
 | `canonical/constants/rows` | built and matches | Nr + 1 quads: two frames, the second of one row |
 | `canonical/constants/threshold` | built and matches | lexical forms of 1048575 and 1048576 bytes, typed and language; octets values of 524287 and 524288 |
@@ -22,10 +22,10 @@
 | `canonical/check/first-difference/labelling` | built and matches | the canonical result with [check, position] and one canonical_violated with that reason |
 | `canonical/check/first-difference/content_digest` | built and matches | the canonical result with [check, position] and one canonical_violated with that reason |
 | `canonical/check/two-differences` | built and matches | the smaller position decides; two differences at one position (index and content_digest of the index frame): the smaller check code, index |
-| `canonical/check/not-claimed` | built and matches | P7-25 |
+| `canonical/check/not-claimed` | built and matches | a plain file that does not claim the canonical form, read by a reader that implements no profile: not_claimed at all three levels and no first difference (P7-25) |
 | `canonical/check/capacity` | built and matches | all three levels unchecked(exceeds_capacity), no difference |
 | `canonical/check/index-above-capacity` | built and matches | labelling and structure unchecked(exceeds_capacity) |
-| `canonical/check/unchecked-order` | built and matches | not_claimed before exceeds_capacity before encoder_not_held |
+| `canonical/check/unchecked-order` | built and matches | a plain file that does not claim the canonical form, read by a reader that holds no reference encoder: not_claimed; the files for the later results, exceeds_capacity and encoder_not_held, are not stored |
 | `canonical/check/parity-state` | built and matches | a parity frame with an altered table_digest, and with the parity frame removed |
 | `canonical/check/refused` | built and matches | labelling unchecked(labelling_refused) |
 | `canonical/check/storage-differs` | built and matches | a canonical file recompressed at level 3 |
@@ -33,15 +33,15 @@
 | `canonical/check/lineage` | built and matches | check header at position 0 of the second segment |
 | `canonical/hidden-kept` | built and matches | the canonical file holds the hidden line and the entry |
 | `canonical/compaction/missing-unit` | built and matches | [2, missing_dependency, present(chunk)] |
-| `canonical/compaction/damaged` | built and matches | [2, damaged_frame, present(blob_digest)] and blob_length |
-| `canonical/compaction/two-declarations` | built and matches | a blob declared twice: one complete is written, both incomplete stops |
+| `canonical/compaction/damaged` | built and matches | a recipe whose blob digest does not match its units: damaged_frame with blob_digest and integrity damaged, and compaction stops with [2, damaged_frame, present(blob_digest)]; the file whose unit length differs (blob_length) is not stored |
+| `canonical/compaction/two-declarations` | built and matches | a blob declared twice, one declaration complete and one naming a unit that no frame holds: compaction writes a file; the file whose two declarations are both incomplete, where compaction stops, is not stored |
 | `canonical/compaction/held-and-refused` | built and matches | [2, opaque_term, absent]; [2, labelling_refused, present(refusal_width)] |
 | `canonical/compaction/state-referent` | built and matches | the file is written; its read reports missing_dependency with state |
 | `profile/canonical-same` | built and matches | the same frames, equal content and payloads but commit root and index; headers, h0 and identifiers differ |
 | `profile/not-checked` | built and matches | a profile not implemented, and a value outside the table |
 | `conformance/claim` | built and matches | the implementation_claim record |
 | `read/labelling/guaranteed-limit-zero` | built and matches | a guaranteed labelled set read with labelling_units 0: labelled |
-| `read/labelling/limit` | built and matches | Paley 13 with labelling_units 0: labelling_refused with refusal_limit in the file's list |
+| `read/labelling/limit` | built and matches | the Paley graph on 13 vertices read with labelling_units 0: labelling_refused with refusal_limit in the file's list; result also records the same outcome for a cube graph, whose file is not stored |
 | `canonical/check/first-difference/value_region` | built and matches | the value region out of order |
 | `canonical/storage/1` | built and matches | the pack frame at position 1 of the canonical file of the storage fold: the decoded payload (`decoded`) and the stored bytes (`stored`) |
 | `canonical/storage/2` | built and matches | the pack frame at position 2 of the canonical file of the storage fold: the decoded payload (`decoded`) and the stored bytes (`stored`) |
@@ -57,25 +57,25 @@
 | `canonical/storage/12` | built and matches | the index frame at position 12 of the canonical file of the storage fold: the decoded payload (`decoded`) and the stored bytes (`stored`) |
 | `canonical/storage/13` | built and matches | the parity frame at position 13 of the canonical file of the storage fold: the decoded payload (`decoded`) and the stored bytes (`stored`) |
 | `canonical/storage/2^26-repeated` | built and matches | a frame of decoded length 2^26 (an IRI of the byte 'a' repeated); the stored bytes are kept in the file when they are at most 20 MB |
-| `canonical/storage/2^26-letters` | built and matches | a frame of decoded length 2^26 (an IRI of the letters A to Z drawn by random.Random(11).randbytes, each byte b a letter chr(65 + b % 26)); the stored bytes are kept in the file when they are at most 20 MB |
-| `read/order/findings` | built and matches | a compressed frame with chain_break, stored_check_mismatch, damaged_frame (steps 5, 6, 7); a segment whose header is of registry version 2 and four items that are not frames: each list in the order of 1.4, checked against an oracle written from the table of P7 section 3 |
-| `read/order/independent` | built and matches | the composite input read twice, and every list with several findings recomputed from every order of its members by the oracle of the order: equal lists (one engine; the second computation is the oracle's) |
+| `canonical/storage/2^26-letters` | built and matches | a frame of decoded length 2^26 (an IRI of the letters A to Z, each the byte b of a pseudo-random stream taken as chr(65 + b % 26)); the stored bytes are kept in the file when they are at most 20 MB |
+| `read/order/findings` | built and matches | a compressed frame with chain_break, stored_check_mismatch and damaged_frame (steps 5, 6, 7), each list in the order of 1.4; the segment whose header is of registry version 2 with four items that are not frames is not stored (read/placement holds it) |
+| `read/order/independent` | built and matches | the composite file of read/placement (a frame with three findings, a segment with a header of registry version 2 and four items that are not frames, a torn tail): every list with several findings is in the order of 1.4, whatever the order in which its members are found |
 | `read/placement` | built and matches | one finding of each class of 1.4: a frame's, a non-frame item's, a segment's (unsupported_registry_version) and the file's (torn_tail) |
 | `read/fold-precedence` | built and matches | frames to which several opaque reasons apply carry the first of P2-30: malformed, chain_break, stopped, damaged, unsupported_critical, unknown_codec, exceeds_capacity, unknown_frame_type (ten files) |
 | `read/content-digest/segment-alone` | built and matches | a segment whose entry names a node of an earlier segment by a pair: the segment digest is that of the segment alone (the pair unnamed there); the file digest names the node |
 | `read/content-digest/value-elsewhere` | built and matches | a literal_ref term of segment 1 whose value is in segment 0: segment digest absent, no finding for the own fold, file digest present |
 | `read/authenticity/index-excluded` | built and matches | P7 7.5 with a signed commit: authenticated, authenticated_frames 5 |
 | `read/empty` | built and matches |  |
-| `read/not-this-format` | built and matches | a map, an array, a uint |
+| `read/not-this-format` | built and matches | a four-byte map as the whole input: not_this_format and no segment; the array and the unsigned integer that the name also covers are not stored |
 | `read/generation-three` | built and matches |  |
 | `read/first-generation/first-and-second` | built and matches | tag first_generation |
 | `read/first-generation/second-only` | built and matches | unsupported_generation |
 | `read/damaged-and-healed` | built and matches | 7.3: the segment result with its offsets and lengths |
 | `read/frame-type-ill-typed` | built and matches |  |
-| `read/integrity/each` | built and matches | intact, intact_unchecked, damaged (payload, opaque item, damaged region, unreadable header), not_checked |
+| `read/integrity/each` | built and matches | a blob frame and a commit read with the default capacity: integrity intact; result also records intact_unchecked, damaged (a payload, an opaque item, a damaged region, an unreadable header) and not_checked, whose files are not stored |
 | `read/anchored` | built and matches | a broken link at ordinary position 2 of five frames |
 | `read/visibility/incomplete` | built and matches | a damaged suppress frame and one of an unknown codec |
-| `read/visibility/unauthenticated` | built and matches | unsigned suppress frame [1, 1]; under an authenticating signature [1, 0] |
+| `read/visibility/unauthenticated` | built and matches | a suppress frame with no signature, read with a trusted key held: visible [1, 1]; the file whose suppress frame stands under an authenticating signature (visible [1, 0]) is not stored |
 | `read/visibility/unreadable-header` | built and matches | a suppress frame in a segment with an unreadable header |
 | `read/content-digest/two` | built and matches | two segments whose digests differ from the file's |
 | `read/own-fold-silent` | built and matches |  |
@@ -91,7 +91,7 @@
 | `read/integrity/parity-ignored` | built and matches | the first input of canonical/check/parity-state: parity_damaged at position 7, unprotected_tail, integrity intact |
 | `canonical/check/verified` | built and matches | 7.4, the first result: a canonical file read by a reader that holds the reference encoder (10 bytes) |
 | `canonical/check/no-encoder` | built and matches | 7.4, the second result: the same file, no reference encoder held (11 bytes) |
-| `canonical/check/where-it-stands` | built and matches | P7 4.6 WHERE A DIFFERENCE STANDS, P7-41: seven files, each with the position and the check the text gives and its one canonical_violated |
+| `canonical/check/where-it-stands` | built and matches | P7 4.6 WHERE A DIFFERENCE STANDS, P7-41: one file of two segments (2045 bytes); the other files that the case names are not stored |
 | `read/torn-tail` | built and matches | 7.2: the file of 7.1 followed by 8b 02 0e; the 256 bytes of the result |
 | `canonical/compaction/held` | built and matches | [2, opaque_term, absent]: a fold with an unreadable term in a row |
 | `canonical/compaction/refused` | built and matches | [2, labelling_refused, present(refusal_width)] |
@@ -128,7 +128,7 @@
 | `read/capacity/rebuilt-value` | built and matches | a literal_ref term whose one candidate is refused: opaque_term, no missing_dependency with value, both content digests absent, rebuilds of the candidate's frame [[absent, refused]] |
 | `read/capacity/rebuilt-state` | built and matches | a segment whose candidate of the value of a term is refused, then a commit, and a binding to that commit's state: the commit names no state to this reader (missing_dependency with state_unavailable); with a capacity that admits the candidate it names one |
 | `read/capacity/rebuilt-sealed` | built and matches | read by a reader of registry version 2 with the segment key held: a sealed pack whose directory holds a recipe member and a value member, read with a capacity that admits the first only: the finding at the sealed frame, rebuilds of the sealed frame [[present(0), verified], [present(1), refused]]; the same file read without the key: no charge and an empty rebuilds |
-| `canonical/check/rebuilt` | built and matches | a canonical file with one multi-unit blob and one value, read with rebuilt_bytes_per_read below the charge of the value member, and the same file with a row frame out of order: structure and labelling unchecked(exceeds_capacity), storage as the encoder gives, no canonical_violated; read with a capacity that admits the value member and refuses the recipe member: structure unchecked(exceeds_capacity), labelling verified |
+| `canonical/check/rebuilt` | built and matches | a canonical file with one multi-unit blob and one value, read with rebuilt_bytes_per_read below the charge of the value member: structure and labelling unchecked(exceeds_capacity), storage as the encoder gives, no canonical_violated; read with a capacity that admits the value member and refuses the recipe member: structure unchecked(exceeds_capacity), labelling verified; the file with a row frame out of order is not stored |
 | `canonical/compaction/rebuild-refused` | built and matches | the fold of a read whose only declaration of a present blob was refused by the total rebuilt length: [2, exceeds_capacity, present(total_rebuilt)]; the same blob also declared by a verified blob frame: the file is written |
 | `read/capacity/formed` | built and matches | the input of terms-formed-witness read with formed_bytes_per_read 268365824: the frame exceeds_capacity with total_formed and count 268365825, its fold state opaque with exceeds_capacity, its payload state verified, integrity intact_unchecked; with 268365825 folded, intact |
 | `read/capacity/formed-canonical` | built and matches | a canonical file with one terms frame of charge T, read with T - 1: structure and labelling unchecked with exceeds_capacity, no canonical_violated |
@@ -148,7 +148,7 @@
 | `read/content-order-refused-size` | built and matches | the fold of read/content-order, in both of its file orders, read with labelled_lines below its size: labelling_refused with refusal_size in the file's findings; the lists in the order after a refusal, the same for both file orders; content_digest absent (P7-46) |
 | `read/content-order-sign` | built and matches | one file read with and without enough capacity: labelling_refused in the file's findings only in the first reading; the first reading's lists in the order after a refusal, the second's in the canonical order; the two hold the same sets (P7-46) |
 | `read/content-order-renamed` | built and matches | two files whose folds differ only in the labels of two blank nodes, renamed so that their bytewise order is reversed, both read with the labelling refused: the lists differ in order; read with enough capacity, the two files give lists that are equal up to the renaming |
-| `canonical/labels-automorphic` | built and matches | the canonical file of the fold of the two-segment file of lowering-blank-inside (two blank nodes in two nested terms; the second run on its canonical file returns positions that differ from the stored labels, so tau is not the identity), read alone: the stored labels are accepted, labelling verified; and the file that the construction of 4.3 forms from quad(_:v, p, a), quad(_:w, q, a) with the positions of the two blank nodes exchanged throughout: structure verified, labelling failed, one canonical_violated with check labelling at the terms frame that holds the first blank term that tau moves |
+| `canonical/labels-automorphic` | built and matches | the canonical file of the fold of the two-segment file of lowering-blank-inside (two blank nodes in two nested terms; the second run on its canonical file returns positions that differ from the stored labels, so tau is not the identity), read alone: the stored labels are accepted, labelling verified; the file that the construction of 4.3 forms from quad(_:v, p, a), quad(_:w, q, a) with the positions of the two blank nodes exchanged throughout, whose labelling fails at the terms frame of the first blank term that tau moves, is not stored |
 | `read/capacity/count-saturates` | built and matches | a reader whose every capacity is 2^64 - 1, and a segment of two frames: a frame of decoded_length 1, then a stored_plain frame whose envelope declares decoded_length 2^64 - 1 (its payload is short): the second frame unchecked, exceeds_capacity with total_decoded and the count 2^64 - 1, the sum 2^64 not being a uint (P7-49) |
 | `canonical-no-resync` | built and matches | the compaction of a file with a resync segment: header segments only, and its canonical claim holds (P7-81) |
 | `canonical-resync-claim` | built and matches | a segment opened by a resync item carries no canonical field, so it makes no canonical claim (P7-81) |
@@ -160,7 +160,7 @@
 | `file-end-at-authenticated-commit` | built and matches | end at_authenticated_commit, left_out 0 |
 | `file-end-at-valid-commit` | built and matches | end at_valid_commit, left_out 0 |
 | `file-end-no-commit` | built and matches | end no_commit, left_out 0 |
-| `file-end-not-read` | built and matches | a read that fails: end not_read; an items_per_read exceeded: end not_read |
+| `file-end-not-read` | built and matches | a file read with items_per_read below its item count: exceeds_capacity item_count and end not_read; the failed read that also ends not_read is not stored |
 | `file-end-opaque-after-commit` | built and matches | end after_commit, left_out 3 |
 | `file-end-region-after-commit` | built and matches | end after_commit, left_out 1 |
 | `file-end-torn` | built and matches | end torn, left_out 1 |
@@ -218,7 +218,7 @@
 | `stream-pending-at-end` | built and matches | a complete file whose last item is a frame with damaged content and a stored identifier of the digest length: at the end of the input, end true, the frame broken in the result and no item of it in any listing |
 | `stream-pending-header` | built and matches | a pending frame followed by an opener: broken and settled at the opener |
 | `stream-pipe` | built and matches | the file delivered through an interface that fails on a seek or a second read; the result equals the result delivered from a buffer |
-| `stream-prefix-guarantee` | built and matches | for the files and every ordered pair of item boundaries j <= k: PR-1 (the listing at j is a prefix of the listing at k), PR-2 (each item of G_k not in G_j belongs to a frame decided at a boundary above j and at or below k), PR-3 as the checker below states it (199 ordered pairs checked, PR-3 at 21 boundaries) |
+| `stream-prefix-guarantee` | built and matches | for the files and every ordered pair of item boundaries j <= k: PR-1 (the listing at j is a prefix of the listing at k), PR-2 (each item of G_k not in G_j belongs to a frame decided at a boundary above j and at or below k), and PR-3 at 21 boundaries (199 ordered pairs checked) |
 | `stream-profile-not-checked` | built and matches | a segment that declares a profile other than stream that the reader implements, read with forward: profile_not_checked, no profile_violation |
 | `stream-read-failed` | built and matches | a header and a frame, then a read that fails at the offset after the frame for 64 bytes: read_failed with that offset and length, no later input point; a first-generation file with a failure inside it: the result of whole for those bytes and that failed read but for capacity.access, an empty listing |
 | `stream-row-after-entry` | built and matches | a suppress entry, then a row that it hides: the row delivered folded, open hiding |

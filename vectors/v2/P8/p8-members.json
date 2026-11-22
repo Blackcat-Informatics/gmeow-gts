@@ -1,7 +1,7 @@
 {
  "name": "p8-members",
  "status": "built and matches",
- "note": "16.8. The text of the vector says one index_claim_failed for each altered file; the engine follows the letter of P8-44 (two findings for a wrong ordinal, two for a first that names a pack) and does not bend to the vector (P8-ITEMS item 2)",
+ "note": "16.8, the printed chain of member indexes of sealed packs: malformed_value unordered_or_repeated at position 5 and index_claim_failed with sealed_members at position 10 (P8-44, P8-62); the files with a wrong ordinal, a member left out and a first that is not a member index are not stored",
  "cases": [
   {
    "label": "",

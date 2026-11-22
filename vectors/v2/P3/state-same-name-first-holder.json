@@ -1,7 +1,7 @@
 {
  "name": "state-same-name-first-holder",
  "status": "built and matches",
- "note": "a commit identifier that two segments with lineage absent share: the referent resolves to the first segment; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "a commit identifier that two segments with lineage absent share: the referent resolves to the first segment; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "",

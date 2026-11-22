@@ -1,7 +1,7 @@
 {
  "name": "recover-a",
  "status": "built and matches",
- "note": "12 KiB flipped from the shard boundary 4194304 + 197 * 4096 = 5001216 (the text says 5000960, which is not a boundary: 4 shards) inside F3 (3 shards, stripes 5, 6, 7): repaired count 3 at the second parity frame; the repaired copy equals the undamaged file",
+ "note": "12 KiB flipped from the shard boundary 4194304 + 197 * 4096 = 5001216 inside F3 (3 shards, stripes 5, 6, 7): repaired count 3 at the second parity frame; the repaired copy equals the undamaged file",
  "cases": [
   {
    "label": "",

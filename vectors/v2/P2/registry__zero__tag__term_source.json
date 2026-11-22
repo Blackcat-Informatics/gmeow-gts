@@ -1,5 +1,0 @@
-{
- "name": "registry/zero/tag/term_source",
- "status": "could not be built",
- "why": "not built: the source of an iri or a literal that is a component of a nested term (P3 6.2a): a part of the message of a digest that orders term nodes in the labelling, not a field of a file"
-}

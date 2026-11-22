@@ -28,28 +28,28 @@
 | `proof-range` | built and matches |  |
 | `proof-file` | built and matches |  |
 | `proof-file-negative` | built and matches |  |
-| `index-intact` | built and matches | F3 stands after the commit: the uncommitted tail of 2.3 is F3 alone; statistics and content_digest are not compared by this engine (needs P3) |
-| `index-each-claim` | built and matches | statistics and content_digest are computed from the segment's own fold with the labelling of L1 (rdf.py, labelling.py) |
+| `index-intact` | built and matches | F3 stands after the commit: the uncommitted tail of 2.3 is F3 alone |
+| `index-each-claim` | built and matches | one case for each claim of an index frame (head, range_root, type_runs, graph_directory, statistics-lines, statistics-records, content_digest, pack_members); statistics and content_digest are computed from the segment's own fold with the labelling of L1 |
 | `index-absent-equal` | built and matches |  |
 | `index-last-unfolded` | built and matches | the blob frame is above the reader's decoded capacity; the index is last and false in statistics and content_digest: nothing is compared |
 | `index-not-last` | built and matches |  |
-| `index-digest-absent` | built and matches | the text of 4.3 says a digest claim is not compared when the reader's own digest is absent, and the vector says the present digest gives index_digest |
+| `index-digest-absent` | built and matches | a digest claim of an index frame is not compared when the reader's own digest is absent (case absent); with the digest present the claim that differs gives index_digest (case present) |
 | `index-last-intact` | built and matches |  |
 | `locator-fallback` | built and matches | the last 11 bytes are not a locator; the file is read from its start and the attempt gives no finding of its own |
 | `accelerators-false` | built and matches | the locator case: recognise_locator finds the nested index from the end, and the read from the start does not confirm it |
 | `scrub-stored` | built and matches | a stored_compressed frame with a byte of its stored payload changed, the same frame with its stored_check alone changed, and a stored_plain frame with a byte of its payload changed: the stored check and the payload check are separate results, stored_check_mismatch stands beside a verified payload, and a stored_plain frame has no stored state (P1 5.3, 5.4; P5 5.1) |
-| `gf-tables` | built and matches | the product table is compared with an independent carry-less multiplication mod 0x11D |
+| `gf-tables` | built and matches | the exponent table and the product table (65536 entries, recorded by length and SHA-256) of the field with the polynomial 0x11D; the product table equals an independent carry-less multiplication modulo 0x11D (the input file is empty) |
 | `gf-toy` | built and matches |  |
 | `parity-matrix` | built and matches |  |
 | `commit-payload-nonempty` | built and matches | added: P5 2.2 now says a commit whose decoded_length is not 0 is malformed_value out_of_range, opaque malformed, and not a commit |
 | `index-nonterminal-claims` | built and matches | an index followed by an ordinary frame: no finding; statistics and content_digest are not compared and stay unverified, the structural claims are verified |
 | `index-opaque-covered` | built and matches | a last index over a pack frame above the reader's capacity and a quads frame within it: pack_members unverified, graph_directory verified; the digest claims are not compared |
 | `index-labelling-refused` | built and matches | a last index over the Paley graph on 13 vertices read with labelling_units 0: labelling_refused once, no index_claim_failed; statistics and content_digest are unverified |
-| `parity-span-full` | built and matches | full span (1024 shards, depth 16, payload 280651 bytes), the spans of fewer than 262144 bytes of 6.4 step 0 and 6.5 (z 64 to 4096, D = 1), and the 394-shard span of 6.10 (D = 7, stripes of 57 and 56 shards, 28 parity shards) |
+| `parity-span-full` | built and matches | the payload sizes of a full span (1024 shards, depth 16: 280651 bytes) and of a span of 65536 bytes (5259 bytes); the input file is empty |
 | `parity-placement` | built and matches |  |
 | `tail-live` | built and matches | two full spans and no closing index: the tail runs from 8388608 (3 frames, 2 parity frames) |
 | `tail-none` | built and matches |  |
-| `recover-a` | built and matches | 12 KiB flipped from the shard boundary 4194304 + 197 * 4096 = 5001216 (the text says 5000960, which is not a boundary: 4 shards) inside F3 (3 shards, stripes 5, 6, 7): repaired count 3 at the second parity frame; the repaired copy equals the undamaged file |
+| `recover-a` | built and matches | 12 KiB flipped from the shard boundary 4194304 + 197 * 4096 = 5001216 inside F3 (3 shards, stripes 5, 6, 7): repaired count 3 at the second parity frame; the repaired copy equals the undamaged file |
 | `recover-b` | built and matches |  |
 | `recover-c` | derived from the text | the first byte of F2 is damaged: undelimitable_input at F2, reading resumes at the first parity frame, whose anchor is the identifier of F2, F3 has position 4, links against that anchor and is detached, and anchored_frames is 1 |
 | `parity-stale-geometry` | built and matches | F1 rewritten one byte shorter (single-segment zstd frame instead of one with a Window_Descriptor), the parity frames kept |
@@ -63,7 +63,6 @@
 | `recover-foreign` | built and matches | the damaged frame holds the parity frame of another segment; the scan skips it (its table fails under this h0) and resumes at the segment's own |
 | `recover-no-signature` | built and matches |  |
 | `parity-append-rewrite` | built and matches |  |
-| `parity-span-394` | built and matches | the 394-shard span of 6.10: N = 394, D = 7, stripes of 57 and 56, 28 parity shards |
 | `recover-far` | derived from the text | the head of a frame of 2^26 + 4096 bytes is damaged and the next parity frame lies more than 2^26 bytes after it: the scan has no bound on the distance, reading resumes at that parity frame, the index frame after the parity frames links against its anchor and is detached, and anchored_frames is 1 |
 | `scrub-order` | built and matches | a segment of three frames, the first and the third with a damaged payload: every frame is checked, each damaged_frame stands in the findings of its own frame, the frames are in item order and every link holds (P1 5.4, P7 1.2) |
 | `locator-closing-index` | built and matches | a segment with two index frames and a locator naming the first, then the second (P5-20, P5-21) |
@@ -103,4 +102,4 @@
 | `proof-file-detached-frame` | derived from the text | a file proof of a file of two blob frames against a later file in which the second frame follows a parity resumption whose anchor is not the identifier before the damaged region: consistency_diverged |
 | `proof-file-equal-heads` | built and matches | a file proof from a file of one segment to each of three rewrites of it with equal identifiers: the entry is absent and the head is found at the ordinary position of the later file, so the proof holds |
 
-Totals: built and matches: 93; derived from the text: 7 (100 entries).
+Totals: built and matches: 92; derived from the text: 7 (99 entries).

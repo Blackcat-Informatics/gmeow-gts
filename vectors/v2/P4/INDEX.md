@@ -6,10 +6,10 @@
 | `blob-name` | built and matches |  |
 | `chunker-table` | built and matches | the first 64 bytes equal the 64 bytes of hctx-empty-message of P1 (the same extended output stream) |
 | `chunker-cut-strict` | built and matches |  |
-| `chunker-cut-min` | built and matches | 16382 pseudo-random bytes, then two bytes chosen so that strict holds at the first test |
+| `chunker-cut-min` | built and matches | 16382 pseudo-random bytes, then two bytes chosen so that strict holds at the first test, then 40000 further bytes: the lengths are 16384 and 40000 |
 | `chunker-cut-loose` | built and matches |  |
 | `chunker-cut-max` | built and matches | 300000 bytes of the byte 0: after 64 updates the register is -G[0] mod 2^64, which no mask accepts |
-| `chunker-golden` | built and matches | stream: BLAKE3 extended output over 'gts2 P4 chunker golden stream' (the .bin file); text file: GTS-2.0-text/P1.md as it stood; a second implementation is a window-sum formulation run on first16385 and the text (the rolled register is the engine's); the 1 MiB of zero bytes give max-length chunks |
+| `chunker-golden` | built and matches | the cut lengths of the chunker on the empty input, on the first 63, 64, 65, 16384 and 16385 bytes of the stream, on 1 MiB of zero bytes (max-length chunks) and on the stream (BLAKE3 extended output over 'gts2 P4 chunker golden stream', the .bin file, listed in ABSENT.md), also with one byte inserted; the result also records the lengths for a text file that is not stored |
 | `chunker-end` | built and matches | the register at length 16384 fails strict, so the 16385-byte string ends at the end of input |
 | `chunker-restart` | built and matches |  |
 | `chunker-two-byte-step` | built and matches | the two-byte register tests only after each pair of bytes; its lengths differ, and the expected lengths are those of the one-byte rule |
@@ -70,7 +70,7 @@
 | `unit-unreferenced` | built and matches |  |
 | `blob-no-media-type-use` | built and matches | the blob's bytes are a file of this format under its media type (P1); the fold holds the one record line of the blob |
 | `canon-regions-shared` | built and matches | the value is given to the region as its octets: which literals are values of the canonical file is P7 (threshold) |
-| `canon-pack-cut` | built and matches | 64 one-unit blobs of 262144 bytes each of a constant byte that no mask cuts (16777216 bytes of bodies), then one more blob of one byte; the cuts are the chunker's (one unit each), passed directly to save time |
+| `canon-pack-cut` | built and matches | 64 one-unit blobs of 262144 bytes each of a constant byte that no mask cuts (16777216 bytes of bodies), then one more blob of one byte: one unit each; the result records the body size 16777216, the member counts 64 and 1 and the position 27 of the extra blob (the input file is empty) |
 | `canon-unit-shared-regions` | built and matches |  |
 | `canon-one-unit-blob-first-emitted` | built and matches |  |
 | `canon-empty-blob` | built and matches |  |
@@ -97,9 +97,8 @@
 | `rebuild-charge-not-charged` | built and matches | a blob frame of 1048576 bytes, a pack with one blob member and an external frame, read with rebuilt_bytes_per_read 0: no total_rebuilt finding, every rebuilds list empty (P4-55) |
 | `rebuild-charge-value-term` | built and matches | a literal_ref term whose one candidate is refused: the candidate's exceeds_capacity with total_rebuilt, its rebuild state refused, opaque_term at the frame of each row that names the term, no missing_dependency with value, the content digest absent (P4-58) |
 | `rebuild-charge-two-candidates` | built and matches | two candidates of one term in two segments: a capacity that admits the first and refuses the second reads the term from the first and reports the second refused; a capacity that admits neither: the term unreadable, two refused outcomes, no missing_dependency (P4-54, P4-58) |
-| `rebuild-charge-spooled` | could not be built | the reference engine has one path for holding the output of a rebuild (in memory) and no switch that spools it or streams it to a caller, so there are not two engines to compare; the engine's charge depends on total_length alone (blobs.collect) and a second read of the same input gives an equal result, which rebuild-charge-repeated and the equal results of rebuild-charge-witness show without a switch (P4-39, P4-59) |
 | `rebuild-unit-after-recipe` | built and matches | a recipe frame then the chunk frames of its entries; the units first; the recipe and the units as members of one pack, in both orders |
 | `rebuild-unit-after-value` | built and matches | a value frame, then the chunk frames of its entries, and a literal_ref term of its pair standing after all of them; and the units first |
 | `value-opaque-declares-nothing` | built and matches | a `value` frame that is `broken` (opaque) declares nothing: the `literal_ref` term of a later `terms` frame of its digest has no candidate, `missing_dependency` with `value` at the `terms` frame (P4 5, P4-54, P3-92) |
 
-Totals: built and matches: 98; could not be built: 1 (99 entries).
+Totals: built and matches: 98 (98 entries).

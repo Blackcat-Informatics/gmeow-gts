@@ -1,7 +1,7 @@
 {
  "name": "record-pair-two-segments",
  "status": "built and matches",
- "note": "the two byte-identical segments share their head: the pair has ONE resolution, the node of the first of them, one record line (P3 6.3); a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "the two byte-identical segments share their head: the pair has ONE resolution, the node of the first of them, one record line (P3 6.3); a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "",

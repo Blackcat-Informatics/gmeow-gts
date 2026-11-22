@@ -1,7 +1,7 @@
 {
  "name": "read/minimal",
  "status": "built and matches",
- "note": "7.1: the 233 bytes of the result; 7.2: the 250 bytes of the torn tail (read/torn-tail)",
+ "note": "7.1: a header and a commit (125 bytes) and the 239 bytes of its encoded result, recorded in result.result_hex; the torn-tail form of 7.2 is the entry read/torn-tail",
  "cases": [
   {
    "label": "",

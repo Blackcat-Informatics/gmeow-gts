@@ -1,7 +1,7 @@
 {
  "name": "finding/canonical_violated/frame_sequence",
  "status": "built and matches",
- "note": "a claimed canonical file with its last item removed (input of the P7 vector canonical/check/first-difference/frame_sequence)",
+ "note": "a claimed canonical file with its last item removed",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "sign-composite-reproduce",
  "status": "built and matches",
- "note": "the 3373 bytes for a composite key and a subject: ML-DSA half by gts2ref/mldsa.py (FIPS 204 deterministic) reproduced by `openssl pkeyutl -pkeyopt deterministic:1`, Ed25519 half equal to OpenSSL's",
+ "note": "the 3373-byte composite signature for a composite key and a subject: its length, SHA-256 and the 32-byte message are recorded; the ML-DSA half is the deterministic signature of FIPS 204, reproduced by OpenSSL (`openssl pkeyutl -pkeyopt deterministic:1`), and the Ed25519 half equals OpenSSL's (the input file is empty)",
  "cases": [
   {
    "label": "",

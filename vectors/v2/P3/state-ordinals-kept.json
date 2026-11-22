@@ -1,7 +1,7 @@
 {
  "name": "state-ordinals-kept",
  "status": "built and matches",
- "note": "a state over two segments in a file whose first segment has another segment before it: the blank node is node (1, b), the node of the file's fold; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "a state over two segments in a file whose first segment has another segment before it: the blank node is node (1, b), the node of the file's fold; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "",

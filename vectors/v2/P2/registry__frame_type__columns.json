@@ -1,7 +1,7 @@
 {
  "name": "registry/frame_type/columns",
  "status": "built and matches",
- "note": "P2 11.1: every type of 4.2 (1 to 16) with the critical and transparent columns of the registry: no forbidden_combination; each with its critical flag flipped and written so (identifiers computed over the envelope as written): forbidden_combination, and for parity (16) parity_damaged and no other finding of P1",
+ "note": "P2 11.1: the result records, for each type of 4.2 (1 to 16), the findings of a frame with the critical and transparent columns of the registry (no forbidden_combination) and of a frame with its critical flag flipped (forbidden_combination, and for parity (16) parity_damaged and no other finding of P1); the input file is a header and one frame of type 1",
  "cases": [
   {
    "label": "",

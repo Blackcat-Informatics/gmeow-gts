@@ -1,7 +1,7 @@
 {
  "name": "binding-frame-referent-first",
  "status": "built and matches",
- "note": "a frame referent whose digest is the identifier of an ordinary frame in two byte-identical segments resolves to the first; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "a frame referent whose digest is the identifier of an ordinary frame in two byte-identical segments resolves to the first; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "",

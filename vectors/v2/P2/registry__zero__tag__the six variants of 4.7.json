@@ -1,5 +1,0 @@
-{
- "name": "registry/zero/tag/the six variants of 4.7",
- "status": "could not be built",
- "why": "not built: variants of the typed result of reading: not fields of a file"
-}

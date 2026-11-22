@@ -2,7 +2,7 @@
  "name": "zstd-header-rows",
  "section": "10.5",
  "status": "built and matches",
- "note": "each payload is the reference encoder's frame of D zero bytes and begins with H(D) (checked by tests/test_rev4.py)",
+ "note": "each payload is the reference encoder's frame of D zero bytes and begins with H(D), for D 1, 255, 256, 65791, 65792, 67108864 and 67108865",
  "cases": [
   {
    "label": "D=1",

@@ -1,7 +1,7 @@
 {
  "name": "canonical/compaction/damaged",
  "status": "built and matches",
- "note": "[2, damaged_frame, present(blob_digest)] and blob_length",
+ "note": "a recipe whose blob digest does not match its units: damaged_frame with blob_digest and integrity damaged, and compaction stops with [2, damaged_frame, present(blob_digest)]; the file whose unit length differs (blob_length) is not stored",
  "cases": [
   {
    "label": "",

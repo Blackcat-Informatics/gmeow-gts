@@ -120,9 +120,9 @@
 | `rows-order-canonical-across-frames` | built and matches |  |
 | `rows-order-unordered` | built and matches |  |
 | `fold-two-segments` | built and matches |  |
-| `fold-segment-order` | built and matches | in the order S2, S1 the nodes (0, b) and (1, b) exchange segments: the folds are isomorphic and the lines equal as sets; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `fold-segment-order` | built and matches | in the order S2, S1 the nodes (0, b) and (1, b) exchange segments: the folds are isomorphic and the lines equal as sets; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `fold-blank-scope` | built and matches |  |
-| `fold-equal-headers-two-scopes` | built and matches | a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `fold-equal-headers-two-scopes` | built and matches | a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `fold-unfolded-frame` | built and matches |  |
 | `labelling-source-identifier` | built and matches | E([0, b]) is before E([1, b]) bytewise |
 | `labelling-no-blank` | built and matches |  |
@@ -135,9 +135,9 @@
 | `record-unnamed-slot` | built and matches |  |
 | `record-triple-slot` | built and matches | the subject pair names S1's node (b) and the object pair names no node: the triple leaf is unnamed as a whole (6.3) |
 | `record-equal-collapse` | built and matches | S1 names its node by id 8, S2 by the pair (head of S1, b): one entry, one record |
-| `record-pair-two-segments` | built and matches | the two byte-identical segments share their head: the pair has ONE resolution, the node of the first of them, one record line (P3 6.3); a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `record-pair-two-segments` | built and matches | the two byte-identical segments share their head: the pair has ONE resolution, the node of the first of them, one record line (P3 6.3); a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `record-pair-no-segment` | built and matches |  |
-| `record-pair-no-label` | built and matches | a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `record-pair-no-label` | built and matches | a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `record-node-only-in-records` | built and matches |  |
 | `record-graph-only-in-record` | built and matches |  |
 | `record-hidden-in-set` | built and matches |  |
@@ -161,7 +161,7 @@
 | `bindings-referent-state-resolved` | built and matches |  |
 | `bindings-referent-state-unresolved` | built and matches |  |
 | `bindings-referent-state-failing-commit` | built and matches | the commit's root is false (P5 commit_root_mismatch): it stands in the file and names no state |
-| `bindings-referent-other-segment` | built and matches | a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives; the later segment has a header without lineage, so that its identifiers are known before the earlier one is written |
+| `bindings-referent-other-segment` | built and matches | a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives; the later segment has a header without lineage, so that its identifiers are known before the earlier one is written |
 | `state-prefix-fold` | built and matches | the state named by the second commit is the fold of the prefix that ends with it (7.2): it holds the line of the first segment |
 | `content-digest-empty-fold` | built and matches |  |
 | `content-digest-lines-only` | built and matches |  |
@@ -174,7 +174,7 @@
 | `content-digest-rename-twin-pair-binding` | built and matches |  |
 | `content-digest-rename-twin-pair-binding-renamed` | built and matches |  |
 | `content-digest-rename-twin-pair-entry` | built and matches |  |
-| `content-digest-rename-ordinals` | built and matches | a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `content-digest-rename-ordinals` | built and matches | a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `content-digest-absent-held` | built and matches |  |
 | `content-digest-absent-refused` | built and matches |  |
 | `content-digest-blob-lengths-order` | built and matches |  |
@@ -207,7 +207,7 @@
 | `suppress-reifier-all-graphs` | built and matches |  |
 | `suppress-record-line-not-hidden` | built and matches |  |
 | `suppress-blob-hides-declaration-keeps-set` | built and matches |  |
-| `suppress-blank-other-segment` | built and matches | the node is in a later segment; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `suppress-blank-other-segment` | built and matches | the node is in a later segment; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `suppress-blank-pair-earlier-segment` | built and matches |  |
 | `suppress-triple-leaf` | built and matches |  |
 | `suppress-triple-leaf-no-blank` | built and matches |  |
@@ -224,7 +224,7 @@
 | `suppress-unknown-codec` | built and matches | codec 9 under a header of a later registry version is an unknown codec (P1 3.3), not a violation: the frame is not folded; the later version also gives unsupported_registry_version (P1) |
 | `suppress-visible-named-graphs` | built and matches |  |
 | `record-value-payload` | built and matches | five pairs of VALUES, one of each kind: payloads 82 04 82 0k 81 01, a term list of the one literal |
-| `fold-values-union` | built and matches | a typed value in two segments and the same literal as text in a third: one pair of VALUES, equal digests in every order; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `fold-values-union` | built and matches | a typed value in two segments and the same literal as text in a third: one pair of VALUES, equal digests in every order; a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `fold-values-unused-term` | built and matches | the literal of [2, 7] is named by no row: its pair and its record are in the labelled set, the literal in the canonical dictionary |
 | `labelling-size-values` | built and matches | size 3 = one row + a literal_value run of 2, at labelled_lines 2: refused only through the run (P3 6.5, the fourth addend) |
 | `content-digest-value-is-content` | built and matches | the same line; the first holds the literal as [2, 7] (one value record more), the second as text only |
@@ -234,42 +234,42 @@
 | `record-pair-transparent-frame` | built and matches | a parity frame is transparent: held by no segment (6.3) |
 | `record-pair-broken-link` | built and matches | both the stored identifier of a frame whose link is broken and the identifier it should have are unnamed (6.3) |
 | `record-pair-healed-link` | built and matches | the first pair names the computed identifier of the healed frame and is named (its node hidden); the second names the damaged stored identifier and is unnamed |
-| `record-pair-shared-frame-first-holder` | built and matches | the first holder (segment 0) lacks the label; the second (segment 1) holds the frame and the label and is not searched; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `record-pair-label-in-holder-only` | built and matches | the label is defined in the first holder: named, its node is hidden; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `suppress-pair-order-differing-segments` | built and matches | two segments share their first frame, differ afterwards and both define b; an entry in a third naming the shared frame: in each order the node of the first segment of that order is hidden, and the content digests differ; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `suppress-expansion-family` | built and matches | two byte-identical base segments then a segment whose one entry nests the pair to depth d in the objects of triple terms: ONE record for the entry at every depth (not 2^(d+1)) and, from depth 2, d - 1 records of its nested terms (P3 6.2a); a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `record-pair-shared-frame-first-holder` | built and matches | the first holder (segment 0) lacks the label; the second (segment 1) holds the frame and the label and is not searched; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `record-pair-label-in-holder-only` | built and matches | the label is defined in the first holder: named, its node is hidden; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `suppress-pair-order-differing-segments` | built and matches | two segments share their first frame, differ afterwards and both define b; an entry in a third naming the shared frame: in each order the node of the first segment of that order is hidden, and the content digests differ; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `suppress-expansion-family` | built and matches | two byte-identical base segments then a segment whose one entry nests the pair to depth d in the objects of triple terms: ONE record for the entry at every depth (not 2^(d+1)) and, from depth 2, d - 1 records of its nested terms (P3 6.2a); a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `labelling-size-family` | built and matches | the family at depth 6 has size 8 (two quads rows, one entry and five nested candidates): refused by size at labelled_lines 7, labelled at 8 with two lines, the record of the entry and five nested_term records (P3 6.5) |
 | `labelling-size-guaranteed` | built and matches | three rows, no blank node: guaranteed; refused by size at labelled_lines 2 in the segment's own fold and in the file's |
 | `labelling-size-own-fold` | built and matches | the segment's own fold has the size of the file's fold: both lists report it and both digests are absent |
-| `suppress-append-terms` | built and matches | an entry whose label no terms frame of its holder defines, then the terms frame appended to the holder: unmatched before, hiding after; the digest differs; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `suppress-append-segment` | built and matches | an entry whose frame no segment holds, then a segment that holds it appended: unmatched before, named and hiding after; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `suppress-append-duplicate-segment` | built and matches | an entry that names a node of a segment, then a byte-identical copy appended: the first holder stays the holder; the hidden set and the record are unchanged; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `suppress-append-heal` | built and matches | the last frame's identifier field is damaged: it is broken (nothing follows) and the pair naming its computed identifier is unnamed; a frame appended heals it and the pair is named; the pair naming the stored identifier is unnamed in both; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `suppress-append-commit` | built and matches | the reviewer's files suppression_before.gts (587 bytes) and suppression_after.gts (701 bytes, the first as a byte prefix): the node hidden in both, no suppression_unmatched, equal content digests |
+| `suppress-append-terms` | built and matches | an entry whose label no terms frame of its holder defines, then the terms frame appended to the holder: unmatched before, hiding after; the digest differs; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `suppress-append-segment` | built and matches | an entry whose frame no segment holds, then a segment that holds it appended: unmatched before, named and hiding after; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `suppress-append-duplicate-segment` | built and matches | an entry that names a node of a segment, then a byte-identical copy appended: the first holder stays the holder; the hidden set and the record are unchanged; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `suppress-append-heal` | built and matches | the last frame's identifier field is damaged: it is broken (nothing follows) and the pair naming its computed identifier is unnamed; a frame appended heals it and the pair is named; the pair naming the stored identifier is unnamed in both; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `suppress-append-commit` | built and matches | two files (before of 587 bytes, after of 701 bytes, the first as a byte prefix of the second): the node hidden in both, no suppression_unmatched, equal content digests |
 | `state-chained-lineage` | built and matches | the second commit's state holds the whole first segment: the lineage is checked |
-| `state-no-lineage-local` | built and matches | the second segment's lineage is absent: its state is that segment alone; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `state-no-lineage-local` | built and matches | the second segment's lineage is absent: its state is that segment alone; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `state-lineage-mismatch` | built and matches | a second segment with a lineage whose previous_head differs: its commit names no state, a referent to it is missing_dependency with state_unavailable |
 | `state-lineage-ordinal` | built and matches |  |
 | `state-lineage-previous-unreadable` | built and matches | the lineage of a segment after an unreadable header is not checked (P1-78) and its commit names no state |
 | `state-lineage-chain-broken-middle` | built and matches | the third segment's lineage is checked but the second has no run: the third has no run |
 | `state-failing-commit` | built and matches |  |
-| `state-same-name-first-holder` | built and matches | a commit identifier that two segments with lineage absent share: the referent resolves to the first segment; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `state-same-name-first-holder-three` | built and matches | three segments, the second and third byte-identical with lineage absent: a referent to their commit identifier resolves to the second segment, whose ordinal the blank node carries; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `state-same-name-first-naming` | built and matches | the first segment's broken frame keeps its stored identifier, so both commits have one identifier; the commit of the first names no state, the referent resolves to the state the commit of the second names; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `state-same-name-first-holder` | built and matches | a commit identifier that two segments with lineage absent share: the referent resolves to the first segment; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `state-same-name-first-holder-three` | built and matches | three segments, the second and third byte-identical with lineage absent: a referent to their commit identifier resolves to the second segment, whose ordinal the blank node carries; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `state-same-name-first-naming` | built and matches | the first segment's broken frame keeps its stored identifier, so both commits have one identifier; the commit of the first names no state, the referent resolves to the state the commit of the second names; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `state-broken-link-names-nothing` | built and matches | a frame whose link is broken before a valid commit: the commit names no state (7.2) |
 | `state-payload-damaged` | built and matches | an intact link and a payload whose digest differs before a valid commit: the commit names no state |
 | `state-payload-unchecked-capacity` | built and matches | a frame above decoded_bytes_per_frame before a valid commit: unchecked at the smaller capacity, no state; verified at the larger, a state; the two results differ in the capacity record |
 | `state-earlier-segment-frame-broken` | built and matches | a frame of the first segment with a broken link after the first segment's last commit: the commit of the second segment names no state, the first commit does |
-| `state-ordinals-kept` | built and matches | a state over two segments in a file whose first segment has another segment before it: the blank node is node (1, b), the node of the file's fold; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
-| `state-same-name-different-prefix` | built and matches | the reviewer's files state_a.gts and state_b.gts (463 bytes each, last segments of 125 bytes byte-identical, lineage absent): one effective identifier for the last commit, the state is the last segment alone and equal in the two files, the whole files differ in content digest |
-| `state-repeated-segment` | built and matches | the reviewer's file state_repeated.gts (676 bytes): one segment twice, lineage absent: both commits have one effective identifier and name equal states; a referent resolves to the first segment |
-| `state-chain-broken-names-nothing` | built and matches | the reviewer's files chain_good.gts and chain_altered.gts (338 bytes, one byte differs in the first frame): the final commit has one identifier and is valid in both; it names a state in the first file and none in the second |
+| `state-ordinals-kept` | built and matches | a state over two segments in a file whose first segment has another segment before it: the blank node is node (1, b), the node of the file's fold; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
+| `state-same-name-different-prefix` | built and matches | two files of 463 bytes each (state_a, state_b), last segments of 125 bytes byte-identical, lineage absent: one effective identifier for the last commit, the state is the last segment alone and equal in the two files, the whole files differ in content digest |
+| `state-repeated-segment` | built and matches | a file of 676 bytes: one segment twice, lineage absent: both commits have one effective identifier and name equal states; a referent resolves to the first segment |
+| `state-chain-broken-names-nothing` | built and matches | two files of 338 bytes (good, altered), one byte differing in the first frame: the final commit has one identifier and is valid in both; it names a state in the first file and none in the second |
 | `binding-undefined-and-unreadable` | built and matches | a term leaf of one id not defined at the frame and one id of an unreadable term: dropped with forward_reference, no opaque_term, content digest present |
 | `suppress-undefined-and-unreadable` | built and matches | an entry with one id not defined and one id of an unreadable term: dropped with forward_reference, no opaque_term |
 | `bindings-order-type-before-count` | built and matches | a referent tag outside the registry and an entry_count that differs: the first in the order of the bytes decides (1.4) |
-| `binding-frame-referent-first` | built and matches | a frame referent whose digest is the identifier of an ordinary frame in two byte-identical segments resolves to the first; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `binding-frame-referent-first` | built and matches | a frame referent whose digest is the identifier of an ordinary frame in two byte-identical segments resolves to the first; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `content-digest-frame-order` | built and matches | the frames of a segment written in another order that 4.2 admits: equal digests |
-| `content-digest-segment-order` | built and matches | the segments of a file in another order, no pair naming a frame that two different segments hold: equal digests (the ordinals are renamed); a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives |
+| `content-digest-segment-order` | built and matches | the segments of a file in another order, no pair naming a frame that two different segments hold: equal digests (the ordinals are renamed); a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives |
 | `rows-order-record-before-payload` | built and matches | the content record (order 3) is judged before the payload (a null, not a record): the one malformed_value is the record's (P3 1.4 step 1) |
 | `rows-order-type-before-count` | built and matches | a graph run of 0 rows (step 2, type) and a column of another length than row_count (step 3, count): the type violation decides |
 | `rows-order-trailing-before-count` | built and matches | a byte after the one item (step 2) and a column of another length than row_count (step 3): the remaining byte decides |
@@ -279,18 +279,13 @@
 | `canonical-dictionary-membership` | built and matches | terms of a hidden line, a datatype and a record-only blank node, each once |
 | `canonical-dictionary-unnamed-pair` | built and matches |  |
 | `canonical-blank-label` | built and matches | 300 blank nodes: the heads of E(position) at 23, 24, 255 and 256 |
-| `canonical-literal-ref-threshold` | built and matches | a typed and a language literal at 1048576 and 1048575 bytes, none in VALUES |
 | `canonical-literal-value-form` | built and matches |  |
-| `canonical-literal-value-ref-threshold` | built and matches | octets values of 524287 and 524288 octets |
-| `canonical-value-shared` | built and matches | 1048576 octets of valid UTF-8 as a typed value and as a text |
 | `canonical-lang-literal-datatype-absent` | built and matches |  |
 | `canonical-lang-literal-digest-generated` | built and matches |  |
 | `canonical-lang-literal-direction-digest` | built and matches |  |
 | `canonical-rows-sort` | built and matches | 12.5 |
 | `canonical-annotations-sum` | built and matches |  |
 | `canonical-bindings-sorted` | built and matches |  |
-| `canonical-bindings-cut` | built and matches | Nr + 1 entries |
-| `canonical-suppress-cut` | built and matches | Nr + 1 entries |
 | `canonical-suppress-frame` | built and matches | 12.5 |
 | `canonical-suppress-no-finding` | built and matches |  |
 | `canonical-pair-first-holder` | built and matches | the pair names a frame that two byte-identical segments hold: one resolution, one entry (P3 6.3) |
@@ -420,4 +415,4 @@
 | `two-licence-statements` | built and matches | a licence statement for a bound image, and an appended statement that replaces it, both signed by the curator: both statements stand in the fold and are visible, and no finding is reported |
 | `artwork-revisions-sealed-notes` | built and matches | an artwork with two revisions of its licence and catalogue record hidden by reifier entries and conservation notes in sealed frames of a segment of registry version 2, read without a sealing key: the earlier occurrences are hidden and their audit links visible, and the state is incomplete by the unopened sealed frames |
 
-Totals: built and matches: 415; derived from the text: 2 (417 entries).
+Totals: built and matches: 410; derived from the text: 2 (412 entries).

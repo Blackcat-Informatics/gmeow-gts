@@ -1,7 +1,7 @@
 {
  "name": "p8-members-layout-missing",
  "status": "built and matches",
- "note": "two sealed packs of 400000 members: the frame after the second; the frame absent; a clear quads frame between",
+ "note": "two sealed packs of 400000 members with a frame after the second covering both (the input, listed in ABSENT.md); the frame absent and a clear quads frame between the last pack and the frame are recorded in result by length and BLAKE3 digest only",
  "cases": [
   {
    "label": "",

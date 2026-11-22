@@ -1,7 +1,7 @@
 {
  "name": "chunker-golden",
  "status": "built and matches",
- "note": "stream: BLAKE3 extended output over 'gts2 P4 chunker golden stream' (the .bin file); text file: GTS-2.0-text/P1.md as it stood; a second implementation is a window-sum formulation run on first16385 and the text (the rolled register is the engine's); the 1 MiB of zero bytes give max-length chunks",
+ "note": "the cut lengths of the chunker on the empty input, on the first 63, 64, 65, 16384 and 16385 bytes of the stream, on 1 MiB of zero bytes (max-length chunks) and on the stream (BLAKE3 extended output over 'gts2 P4 chunker golden stream', the .bin file, listed in ABSENT.md), also with one byte inserted; the result also records the lengths for a text file that is not stored",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "index-intact",
  "status": "built and matches",
- "note": "F3 stands after the commit: the uncommitted tail of 2.3 is F3 alone; statistics and content_digest are not compared by this engine (needs P3)",
+ "note": "F3 stands after the commit: the uncommitted tail of 2.3 is F3 alone",
  "cases": [
   {
    "label": "",

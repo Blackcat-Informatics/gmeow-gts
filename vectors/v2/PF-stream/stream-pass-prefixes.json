@@ -1,7 +1,7 @@
 {
  "name": "stream-pass-prefixes",
  "status": "built and matches",
- "note": "a sample of the item boundaries of stream-pass (every 397th, and the three around each parity frame and the ends); all 12000 would read 12 MB each",
+ "note": "the first prefix of stream-pass, its 12-byte header; the other prefixes (a sample of the item boundaries: every 397th, the three around each parity frame and the ends) are not stored",
  "cases": [
   {
    "label": "",

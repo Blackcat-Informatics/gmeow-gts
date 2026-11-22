@@ -1,5 +1,0 @@
-{
- "name": "registry/zero/tag/compaction_result",
- "status": "could not be built",
- "why": "not built: the result of compaction (P7): a result, not a field of a file"
-}

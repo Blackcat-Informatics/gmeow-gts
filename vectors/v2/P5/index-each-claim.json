@@ -1,7 +1,7 @@
 {
  "name": "index-each-claim",
  "status": "built and matches",
- "note": "statistics and content_digest are computed from the segment's own fold with the labelling of L1 (rdf.py, labelling.py)",
+ "note": "one case for each claim of an index frame (head, range_root, type_runs, graph_directory, statistics-lines, statistics-records, content_digest, pack_members); statistics and content_digest are computed from the segment's own fold with the labelling of L1",
  "cases": [
   {
    "label": "head",

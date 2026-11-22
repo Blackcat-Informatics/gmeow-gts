@@ -1,7 +1,7 @@
 {
  "name": "finding/damaged_frame/decode_failed",
  "status": "built and matches",
- "note": "a zstd payload with the generated header whose blocks do not decode (the P1 construction of payload-decoder-error)",
+ "note": "a zstd payload with the generated header whose blocks do not decode",
  "cases": [
   {
    "label": "",

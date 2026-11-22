@@ -34,11 +34,11 @@ A case states every further input of its read or judgement:
   compaction, and the outcome of a proof.
 - `signing_rnd`: the random input with which a signature of the input was made, where it is not the deterministic one.
 
-`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,134 files.
+`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,075 files.
 
 ## Large inputs
 
-A file of at most 1 MiB stands here as it is: 6,068 files.
+A file of at most 1 MiB stands here as it is: 6,009 files.
 
 A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 36 files,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.

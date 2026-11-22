@@ -1,5 +1,0 @@
-{
- "name": "registry/zero/tag/storage_check_state",
- "status": "could not be built",
- "why": "not built: a state in the typed result of reading (P7): not a field of a file"
-}

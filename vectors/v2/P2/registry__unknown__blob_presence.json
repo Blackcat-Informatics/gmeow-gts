@@ -1,5 +1,0 @@
-{
- "name": "registry/unknown/blob_presence",
- "status": "could not be built",
- "why": "not built: the first field of a blob set entry, a result and not a field of a file (P4)"
-}

@@ -1,13 +1,13 @@
 # Vectors of P1 section 10
 
-Built by `tools/build_vectors.py` from the description of each entry; the reader's typed result is in the `.json` beside each `.bin`.
+The reader's typed result is in the `.json` beside each `.bin`.
 
 | vector | section | outcome | notes |
 |---|---|---|---|
 | `ser-uint-heads` | 10.1 | built and matches |  |
 | `ser-int-heads` | 10.1 | built and matches |  |
 | `ser-length-heads` | 10.1 | built and matches |  |
-| `ser-bool` | 10.1 | built and matches | the frame is a parity frame (critical f4, transparent f5); its table and shards (P5) are not built |
+| `ser-bool` | 10.1 | built and matches | a commit frame and a parity frame of 519 bytes whose critical is written f4 and transparent f5: both frames linked, the parity frame not content, no finding for it |
 | `ser-uint-long-form` | 10.1 | built and matches |  |
 | `ser-uint-long-form-wide` | 10.1 | built and matches |  |
 | `ser-length-long-form` | 10.1 | built and matches |  |
@@ -92,7 +92,7 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `offsets-count-short` | 10.3 | built and matches |  |
 | `offsets-count-long` | 10.3 | built and matches |  |
 | `offsets-counts-opaque` | 10.3 | built and matches | the opaque item has its own malformed_value; the offsets claim holds (its length 1 is in item_lengths) |
-| `locator-recognised` | 10.3 | built and matches | recognised(700) from the end; asserted in tests/test_vectors_p1.py |
+| `locator-recognised` | 10.3 | built and matches | the worked example of P1 2.6: an input of 1000 bytes whose index frame starts at byte 700 and whose locator is the last 11 bytes: recognised(700) from the end, no finding |
 | `locator-wrong-kind` | 10.3 | built and matches |  |
 | `locator-short-form` | 10.3 | built and matches |  |
 | `locator-zero-distance` | 10.3 | built and matches |  |
@@ -102,7 +102,7 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `locator-not-index-item` | 10.3 | built and matches |  |
 | `locator-torn-end` | 10.3 | built and matches |  |
 | `locator-lookalike-torn` | 10.3 | built and matches | the last 11 bytes are the inner locator and recognise_locator finds the inner index; the read from the start discards it |
-| `frame-commit-minimal` | 10.4 | built and matches | the frame is 114 bytes; the preimage with predecessor <P> is 109 bytes (tests/test_p1_examples.py) |
+| `frame-commit-minimal` | 10.4 | built and matches | a header and one commit frame: the frame is 114 bytes; the preimage with predecessor <P> is 109 bytes |
 | `frame-overhead` | 10.4 | built and matches | one frame per type of 3.2; length = 77 + content + payload head and bytes |
 | `frame-overhead-compressed` | 10.4 | built and matches | a blob frame and a quads frame, stored_compressed; the storage element is 20 bytes against 2 |
 | `frame-test-length-ten` | 10.4 | built and matches |  |
@@ -119,7 +119,7 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `identifier-ill-typed-identity-ill-typed` | 10.4 | built and matches | Case G of 5.2; F1 and F2 broken, F3 and F4 linked |
 | `frame-identifier-short` | 10.4 | built and matches |  |
 | `frame-identifier-type` | 10.4 | built and matches |  |
-| `frame-unknown-noncritical` | 10.4 | built and matches | built in a segment of registry_version 2 (reader 1): the text does not state the version (Q) |
+| `frame-unknown-noncritical` | 10.4 | built and matches | a frame of type 99 that is not critical, between two commit frames, in a segment of registry_version 2 read by reader 1: unknown_enumeration_value with unknown_frame_type at its position, the frame opaque, no unsupported_critical |
 | `frame-unknown-critical` | 10.4 | built and matches | registry_version 2, reader 1 |
 | `frame-unknown-transparent` | 10.4 | built and matches |  |
 | `frame-unknown-content-map` | 10.4 | built and matches | the unknown-type finding stands beside the malformed_value (both the field-rule step of P7 3, one position: ascending on the encoding, code 5 before code 7, P7 1.4). registry_version 2, reader 1: at registry_version 1 the type 99 is itself unregistered_value, which comes first |
@@ -135,15 +135,14 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `parity-capacity` | 10.4 | built and matches |  |
 | `parity-capacity-and-flag` | 10.4 | built and matches |  |
 | `parity-geometry-same` | 10.4 | built and matches |  |
-| `parity-damaged-and-used` | 10.4 | built and matches | the findings of P5 about the use of the frame are not built in this slice |
-| `frame-value-above-header` | 10.4 | could not be built | built in section P8 (tools/vec_p8.py, name frame-value-above-header): it needs a reader of registry version 2, which this builder of reader-version-1 cases cannot state |
+| `parity-damaged-and-used` | 10.4 | built and matches | a segment of three commit frames and a parity frame of 162 bytes whose payload is damaged: parity_damaged at the parity frame and unprotected_tail of 342 bytes from offset 11 |
 | `pred-transparent-between` | 10.4 | built and matches |  |
 | `pred-opaque-between` | 10.4 | built and matches |  |
 | `pred-transparent-not-bool` | 10.4 | built and matches |  |
 | `pred-transparent-report` | 10.4 | built and matches |  |
 | `storage-rewrite` | 10.4 | built and matches | the frame recompressed at another level with a signature added has the same identifier as the original; its one signature is by a key the reader does not hold: signature_unverified with key_not_held |
 | `zstd-ok` | 10.5 | built and matches | the reference encoder (libzstd 1.5.7, level 12, window log 26) on 300 bytes; its frame begins with H(300) = 28 b5 2f fd 60 2c 00 |
-| `zstd-header-rows` | 10.5 | built and matches | each payload is the reference encoder's frame of D zero bytes and begins with H(D) (checked by tests/test_rev4.py) |
+| `zstd-header-rows` | 10.5 | built and matches | each payload is the reference encoder's frame of D zero bytes and begins with H(D), for D 1, 255, 256, 65791, 65792, 67108864 and 67108865 |
 | `zstd-header-differs` | 10.5 | built and matches |  |
 | `zstd-header-short` | 10.5 | built and matches |  |
 | `zstd-two-frames` | 10.5 | built and matches |  |
@@ -156,7 +155,7 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `link-content-damage` | 10.6 | built and matches |  |
 | `link-two-damaged` | 10.6 | built and matches |  |
 | `link-last-damaged` | 10.6 | built and matches |  |
-| `link-healed-effective` | 10.6 | built and matches | the range leaf of P5 is not built here; the effective identifier of the first frame is the computed one |
+| `link-healed-effective` | 10.6 | built and matches | a first frame whose link is healed and a second frame linked to it: the effective identifier of the first frame is the computed one |
 | `parity-damaged-link` | 10.6 | built and matches |  |
 | `parity-flag-differs` | 10.6 | built and matches |  |
 | `parity-damaged-field` | 10.6 | built and matches |  |
@@ -178,7 +177,7 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `payload-length` | 10.6 | built and matches |  |
 | `payload-digest` | 10.6 | built and matches |  |
 | `payload-decoder-error` | 10.6 | built and matches |  |
-| `payload-output-longer` | 10.6 | built and matches | the payload begins with H(10), not H(6): its header differs (P1 3.5 step 1); the decoder is not run |
+| `payload-output-longer` | 10.6 | built and matches | the payload begins with H(10), not H(6): its header differs (P1 3.5 step 1): malformed_value with codec_constraint, payload damaged |
 | `payload-after-stop` | 10.6 | built and matches |  |
 | `payload-fields-ill-typed` | 10.6 | built and matches |  |
 | `stored-above-capacity` | 10.6 | built and matches |  |
@@ -202,8 +201,8 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `delimited-outside-grammar` | 10.7 | built and matches |  |
 | `opaque-leaves-pred` | 10.7 | built and matches |  |
 | `read-failed` | 10.7 | built and matches |  |
-| `no-exception-prefixes` | 10.7 | built and matches | 67998 prefixes read, 0 exceptions |
-| `no-exception-random` | 10.7 | built and matches | 3000 random inputs read, 0 exceptions |
+| `no-exception-prefixes` | 10.7 | built and matches | a header and four commit frames of 114 bytes with false roots, 467 bytes read whole: a typed result with commit_root_mismatch at each frame and uncommitted_tail with count 4 at the first |
+| `no-exception-random` | 10.7 | built and matches | the 256 bytes 00 to ff read as one input: not_this_format at offset 0 with length 1, no segment |
 | `boundary-claim-wrong` | 10.7 | built and matches |  |
 | `boundary-hint-embedded` | 10.7 | built and matches |  |
 | `hctx-header` | 10.8 | built and matches |  |
@@ -473,4 +472,4 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `resync-total-refused-no-occurrence-tested` |  | built and matches | a header, a frame whose `decoded_length` 698 the total of 600 refuses and which fails the framing test, holding an occurrence with a true offset at 700, then an incomplete item whose run covers the occurrence again: once the total is refused no occurrence is tested and none gives a finding, in the run of the frame or in the next; the one `exceeds_capacity` is the frame's, `count` 698 (P1 6.7 part 4, P1-104) |
 | `undelimitable-chunk-wrong-major-type-cut` |  | built and matches | an indefinite-length byte string whose chunk head is of another major type and whose argument bytes pass the end of the input is `undelimitable_input`, not `torn_tail` (P1 6.1, 6.3 item 4) |
 
-Totals: built and matches: 467; could not be built: 1 (468 entries).
+Totals: built and matches: 467 (467 entries).

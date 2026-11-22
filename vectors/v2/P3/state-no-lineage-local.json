@@ -1,7 +1,7 @@
 {
  "name": "state-no-lineage-local",
  "status": "built and matches",
- "note": "the second segment's lineage is absent: its state is that segment alone; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the built input gives",
+ "note": "the second segment's lineage is absent: its state is that segment alone; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
  "cases": [
   {
    "label": "",

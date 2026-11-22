@@ -1,7 +1,7 @@
 {
  "name": "container-compacted",
  "status": "built and matches",
- "note": "the canonical file of the fold of pass, its header declaring the profile",
+ "note": "the file of container-pass compacted at the profile: the canonical file of its fold, whose header declares the profile; the compacted file is not stored",
  "cases": [
   {
    "label": "",

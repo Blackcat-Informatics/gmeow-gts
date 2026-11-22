@@ -728,8 +728,8 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Result: the frame is `opaque` with `exceeds_capacity` and is counted in `left_out`. `compact` gives `[2, exceeds_capacity,
   present(total_formed)]`.
 - Rule: `P7`, "Compaction" (case 1).
-- Corpus: `P7/canonical/compaction/formed-refused` is the case and agrees; it records `left_out` `1`.
-  `P9/convert/compaction-stop-formed` is the same stop in a conversion, with `content_mismatch`, and agrees.
+- Corpus: `P7/canonical/compaction/formed-refused` is the case and agrees; it records the read, with `left_out` `1`, and
+  states the outcome of the compaction in its note.
 
 ### FX-057 One-pass extraction from two layouts (benchmark)
 

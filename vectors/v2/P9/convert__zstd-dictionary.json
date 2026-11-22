@@ -1,7 +1,7 @@
 {
  "name": "convert/zstd-dictionary",
  "status": "built and matches",
- "note": "a frame under zstd with a dct entry in the header's catalogue (a trained dictionary named by the frame): converted; proof holds (Q: the package refuses such a frame)",
+ "note": "a frame under zstd with a dct entry in the header's catalogue (a trained dictionary named by the frame): converted; proof holds",
  "cases": [
   {
    "label": "",

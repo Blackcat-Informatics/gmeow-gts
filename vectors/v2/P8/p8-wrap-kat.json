@@ -1,7 +1,7 @@
 {
  "name": "p8-wrap-kat",
  "status": "built and matches",
- "note": "the X-Wing part reproduces the first vector of Appendix C of draft-connolly-cfrg-xwing-kem-11 (tools/xwing_kat.json); the text prints no value for the vector's own inputs",
+ "note": "the first vector of Appendix C of draft-connolly-cfrg-xwing-kem-11: the X-Wing public key, encapsulation and shared secret that result records reproduce it; the draft prints no value for the vector's own inputs; the stored file holds a keys frame with one recipient entry and one sealed frame",
  "cases": [
   {
    "label": "",
