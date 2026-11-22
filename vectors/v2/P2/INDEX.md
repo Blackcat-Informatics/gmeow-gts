@@ -47,7 +47,7 @@
 | `finding/missing_dependency/frame` | built and matches | a binding to a frame identifier that no frame of the file has |
 | `finding/missing_dependency/state` | built and matches | a binding to a commit identifier that no commit of the file has |
 | `finding/exceeds_capacity/decoded_size` | built and matches | a frame of decoded_length 20 read with a capacity of 10 decoded bytes for a frame (a capacity under the minimum of P7-8, as a test device) |
-| `finding/exceeds_capacity/stored_size` | built and matches | a frame whose stored payload of 20 bytes exceeds a capacity of 10 stored bytes for a frame |
+| `finding/exceeds_capacity/stored_size` | derived from the text | a frame whose stored payload of 20 bytes and a commit frame whose content element of 36 bytes each exceed a capacity of 10 stored bytes for a frame |
 | `finding/exceeds_capacity/total_decoded` | built and matches | frames of decoded length 4, 4 and 1 with decoded_bytes_per_read 8: the third brings the total to 9; no commit (a commit after the refusal is refused too, its length 0 on a total of 8 judged after the refusal) |
 | `finding/exceeds_capacity/item_count` | built and matches | the header and three frames read with items_per_read 3: a byte remains after the second frame (the third item is the last allowed); the two frames read have no commit |
 | `finding/declared_order_violated` | built and matches | a quads frame declaring canonical with two rows swapped (input as the P3 vector rows-order-canonical) |

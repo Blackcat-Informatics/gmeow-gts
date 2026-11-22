@@ -32,7 +32,7 @@
 | `value-sum` | built and matches |  |
 | `value-not-in-set` | built and matches | the blob frame of the same 11 bytes is the only entry; without it (case 'value-only') the set is empty |
 | `external-ok` | built and matches |  |
-| `external-payload` | built and matches | P4-18 as corrected: decoded_length above 0 and stored_compressed are each malformed_value out_of_range, field rules at ITEMS; a non-empty payload under decoded_length 0 is damaged_frame decoded_length alone |
+| `external-payload` | built and matches | an external frame whose decoded_length is not 0, stored plain or compressed, is malformed_value with out_of_range, a field rule judged at ITEMS, and a payload that is not empty under decoded_length 0 is damaged_frame with decoded_length alone (P4-18) |
 | `writer-one-unit-blob` | built and matches |  |
 | `pack-ok` | built and matches | the pack of section 4 alone: its chunk member is named by nothing, so P4-41 gives unreferenced_unit at the pack |
 | `pack-zero-members` | built and matches |  |

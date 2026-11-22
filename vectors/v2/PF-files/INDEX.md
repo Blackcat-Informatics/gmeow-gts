@@ -9,7 +9,7 @@
 | `files-missing-parent` | built and matches | `pass` is the canonical file of its fold (P7 4.5), the header declaring this profile; the six entries below the directory each lack the parent |
 | `files-entry-path-none` | built and matches |  |
 | `files-entry-path-cycle` | built and matches | the head is the object of two statements; f:path's object is a blank node, so no files_value |
-| `files-entry-path-empty` | built and matches |  |
+| `files-entry-path-empty` | derived from the text | an entry whose f:path is rdf:nil and whose one f:kind is f:Directory is the root entry: its path is the empty path, which is well formed and valid, and no check of the profile fails |
 | `files-component-dotdot` | built and matches |  |
 | `files-component-slash-kept` | built and matches | a path member 'a/b' and a path member holding the byte 00: no files_component, a component is one value whatever its bytes (PF-files 2.3) |
 | `files-component-octets-text-bytes` | built and matches | the form does not depend on the bytes being text |

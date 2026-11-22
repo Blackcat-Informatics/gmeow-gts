@@ -39,24 +39,15 @@ obtained and its SHA-256 compared.
 
 ## Entries whose recorded value differs from the text
 
-The corpus was recorded against an earlier text of the draft. The recorded values of the following entries differ from what
-`docs/v2/` now gives. Until an entry is recorded again, the text governs and the entry is not a test.
+The corpus was recorded against an earlier text of the draft. An entry whose `status` is `derived from the text` holds a
+value that was derived again from the rules of `docs/v2/` as they stand. Every other recorded value agrees with them, but for
+one entry:
 
 | entry | what differs | rule |
 |---|---|---|
-| `P3/doubt-lost-header-recovery` | `anchored_frames` is lower: the frame after the resumption is detached | `P1`, "The predecessor and transparent frames" |
-| `P3/state-damaged-region-before-commit` | the same | the same |
-| `P5/recover-c` | the same: recorded `3`, now `1` | the same |
-| `P5/recover-far` | the same | the same |
-| `P7/read/resume` | the same: recorded `3`, now `1` | the same |
-| `P5/recover-scan-charge` | a parity candidate that the total refuses fails and is reported once | `P5`, "The one recovery procedure" |
-| `P2/finding/exceeds_capacity/stored_size` | the `content` element of the `commit` frame exceeds the stored limit of the read | `P1`, "The payload check" |
-| `P8/sealed-inner-newer-value` | the subject of `unsupported_critical` | `P8`, "Opening a sealed frame" |
 | `P9/convert/snapshot-label-one-scope` | a label in a snapshot and in its segment is two nodes; the result and the proof differ | `P9`, "The conversion reading" |
-| `PF-files/files-entry-path-empty` | the empty path is the root entry; the two recorded profile findings do not occur | `PF-files`, "Paths" |
 
-The notes of four entries describe a rule that the text no longer has, while their recorded values agree with it:
-`P5/scrub-stored` and `P5/scrub-order` (the text defines no scrub), `P4/external-payload` and `P1/append-two-writers`.
+Until that entry is recorded again, the text governs and the entry is not a test.
 
 Two entries, `P2/registry/retired/signature-trust` and `P2/registry/retired/hash-trust`, do not state which registry table
 their recorded value was made with.

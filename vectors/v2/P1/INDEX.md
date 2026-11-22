@@ -261,7 +261,7 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `append-torn-payload-prefix` |  | built and matches | H T |
 | `append-torn-payload-segment` |  | built and matches | H T with H2 T Q appended |
 | `append-torn-payload` |  | built and matches | H T then the bytes of Q up to and including the first byte of the content of its payload |
-| `append-two-writers` |  | built and matches | a segment and two frames appended after its last frame by two writers, each computed with that frame as predecessor |
+| `append-two-writers` | 2.1a | built and matches | a segment of three frames whose second and third are both computed with the first as predecessor: the second is linked, the third is broken with chain_break and integrity is damaged; a writer appends no frame to a segment that it did not write in one continuous use of the file (P1-86) |
 | `concat-append-built` |  | built and matches | two files each built by appending a second segment with lineage to its first, concatenated |
 | `concat-concat` |  | built and matches | (A0 A1 B0 B1) then C0 C1, and A0 A1 then (B0 B1 C0 C1): equal bytes and equal results |
 | `concat-continuation` |  | built and matches | a file and a file that continues it, whose first segment names its head and its ordinal |

@@ -1,7 +1,7 @@
 {
  "name": "scrub-stored",
  "status": "built and matches",
- "note": "",
+ "note": "a stored_compressed frame with a byte of its stored payload changed, the same frame with its stored_check alone changed, and a stored_plain frame with a byte of its payload changed: the stored check and the payload check are separate results, stored_check_mismatch stands beside a verified payload, and a stored_plain frame has no stored state (P1 5.3, 5.4; P5 5.1)",
  "cases": [
   {
    "label": "stored-byte",

@@ -1,7 +1,7 @@
 {
  "name": "scrub-order",
  "status": "built and matches",
- "note": "a segment of three frames, the first and the third damaged: reported in item order (P5-25)",
+ "note": "a segment of three frames, the first and the third with a damaged payload: every frame is checked, each damaged_frame stands in the findings of its own frame, the frames are in item order and every link holds (P1 5.4, P7 1.2)",
  "cases": [
   {
    "label": "",

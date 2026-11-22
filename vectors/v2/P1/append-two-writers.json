@@ -2,7 +2,7 @@
  "name": "append-two-writers",
  "section": "2.1a",
  "status": "built and matches",
- "note": "a segment and two frames appended after its last frame by two writers, each computed with that frame as predecessor",
+ "note": "a segment of three frames whose second and third are both computed with the first as predecessor: the second is linked, the third is broken with chain_break and integrity is damaged; a writer appends no frame to a segment that it did not write in one continuous use of the file (P1-86)",
  "cases": [
   {
    "label": "file",

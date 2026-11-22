@@ -114,7 +114,7 @@
 | `read/inputs/sets` | built and matches | the same keys in three orders, a key repeated in two: one read_result, the lists as sets (P7-38) |
 | `read/order/phases` | built and matches | three segments, a payload of the second above decoded_bytes_per_read: the segments judged in file order (P7-11) |
 | `read/order/directions` | built and matches | findings of three steps, of two positions (absent first) and of one position with two encodings: ascending on step, position, bytewise (1.4) |
-| `read/resume` | built and matches | P5 7.4 Case C: the first byte of F2 damaged: undelimitable_input over the region, the region one item, F3 at position 4 |
+| `read/resume` | derived from the text | P5 7.4 Case C: the first byte of F2 is damaged: undelimitable_input over the region, the region is one item, F3 at position 4 links against the anchor of the parity frame at which reading resumes and is detached, and anchored_frames is 1 |
 | `read/value-two-declarations` | built and matches | a literal_ref term whose digest two value declarations provide, in two segments, the first failing its rebuild (P4-54) |
 | `read/capacity/total-sealed` | built and matches | a sealed frame of decoded_length N with an inner frame of 4: the inner payload crosses a total of one below keys + N + m (the text's 6 and 8 cannot be a sealed frame) |
 | `read/capacity/total-sealed-at-capacity` | built and matches | the same file with the total exactly keys + N + m: judged, no exceeds_capacity |
