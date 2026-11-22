@@ -38,7 +38,7 @@
 | `key-mismatch-two-entries` | built and matches | two held entries with one key_id, one inconsistent, one consistent: valid |
 | `key-length-short` | built and matches | a consistent held ed key of 31 bytes: value_length |
 | `ed25519-honest` | built and matches | a signature over a fixed subject |
-| `ed25519-honest-reproduce` | built and matches | the value of ed25519-honest equals the value that OpenSSL's Ed25519 gives for the same seed and message |
+| `ed25519-honest-reproduce` | built and matches | the value of ed25519-honest is the deterministic Ed25519 signature of RFC 8032 for its seed and message |
 | `ed25519-length-63` | built and matches |  |
 | `ed25519-length-65` | built and matches |  |
 | `ed25519-scalar-equals-l` | built and matches |  |
@@ -141,8 +141,8 @@
 | `auth-proof-only` | built and matches | a root that holds (a valid commit over its frames) and no signature: authenticated false |
 | `cosign-add-signature` | built and matches | a frame rewritten with a second signature: identifiers, roots and the first result unchanged |
 | `cosign-two-algorithms` | built and matches | one commit signed by ed and by cp, different keys |
-| `sign-composite-reproduce` | built and matches | the 3373-byte composite signature for a composite key and a subject: its length, SHA-256 and the 32-byte message are recorded; the ML-DSA half is the deterministic signature of FIPS 204, reproduced by OpenSSL (`openssl pkeyutl -pkeyopt deterministic:1`), and the Ed25519 half equals OpenSSL's (the input file is empty) |
-| `sign-ed25519-reproduce` | built and matches | the signature bytes for a key and a subject, equal to those of OpenSSL's Ed25519 |
+| `sign-composite-reproduce` | built and matches | the 3373-byte composite signature for a composite key and a subject: its length, SHA-256 and the 32-byte message are recorded; the ML-DSA half is the deterministic signature of FIPS 204 (the input file is empty) |
+| `sign-ed25519-reproduce` | built and matches | the signature bytes for a key and a subject of Ed25519, the deterministic signature of RFC 8032 |
 | `ed25519-key-non-canonical` | built and matches | a key with y at least p, and 01 with the sign bit set: equation_failed |
 | `cosign-after-torn-nothing` | built and matches | the file H T Q C cut inside the last value of C: no byte is written (P6-54) |
 | `cosign-append-commit` | built and matches | a second commit signed by a second key: the second signature authenticated with coverage over both commits (P6) |

@@ -1,7 +1,7 @@
 {
  "name": "canonical/storage/2^26-letters",
  "status": "built and matches",
- "note": "a frame of decoded length 2^26 (an IRI of the letters A to Z, each the byte b of a pseudo-random stream taken as chr(65 + b % 26)); the stored bytes are kept in the file when they are at most 20 MB",
+ "note": "a frame of decoded length 2^26 (an IRI of the letters A to Z, each the byte b of an MT19937 stream taken as the letter chr(65 + b % 26)); the stored bytes are kept in the file when they are at most 20 MB",
  "cases": [
   {
    "label": "",
@@ -21,7 +21,7 @@
    "expected": null,
    "result": {
     "frame_type": "terms",
-    "construction": "the payload of one terms frame (order canonical, restart_group 64) of the one IRI http://e/a followed by an IRI of the letters A to Z drawn by random.Random(11).randbytes, each byte b a letter chr(65 + b % 26), 67108836 bytes of body, so that the decoded length is 2^26",
+    "construction": "the payload of one terms frame (order canonical, restart_group 64) of the one IRI http://e/a followed by an IRI of 67108836 letters, so that the decoded length is 2^26: the generator MT19937 initialised by init_by_array with the key [11], each 32-bit output written as four bytes in little-endian order, and each byte b taken as the letter chr(65 + b % 26)",
     "decoded_length": 67108864,
     "decoded_sha256": "4b154bc1cde079c0e9a2ed18e5dda8b2e0462fc64a6e27eeed6080bb8e37de9b",
     "storage": "compressed",

@@ -1,7 +1,7 @@
 {
  "name": "ed25519-honest-reproduce",
  "status": "built and matches",
- "note": "the value of ed25519-honest equals the value that OpenSSL's Ed25519 gives for the same seed and message",
+ "note": "the value of ed25519-honest is the deterministic Ed25519 signature of RFC 8032 for its seed and message",
  "cases": [
   {
    "label": "",

@@ -32,38 +32,28 @@
      "opaque_precedence": 8,
      "assignment_log_rows": 2
     },
-    "engine_values_above_version_1": [
-     "4 opaque_reason: the engine holds 9 `missing_key` above the text (registry version 2)",
-     "4.2 frame_type: the engine holds 17 {'label': 'keys', 'critical': False, 'transparent': False} above the text (registry version 2)",
-     "4.2 frame_type: the engine holds 18 {'label': 'sealed', 'critical': True, 'transparent': False} above the text (registry version 2)",
-     "4.6 context 16: the engine holds `recipient_key_id` above the text (registry version 2)",
-     "5.1 finding 49: the engine holds `segment_key_not_held` warning above the text (registry version 2)",
-     "5.1 finding 50: the engine holds `unwrap_failed` warning above the text (registry version 2)",
-     "5.1 finding 51: the engine holds `key_conflict` error above the text (registry version 2)",
-     "5.1 finding 52: the engine holds `seal_failed` error above the text (registry version 2)",
-     "5.1 finding 53: the engine holds `seal_scope_violated` warning above the text (registry version 2)",
-     "6.1 reason 93: the engine holds `padding` above the text (registry version 2)",
-     "6.1 reason 94: the engine holds `sealed_ordinal` above the text (registry version 2)",
-     "6.1 reason 95: the engine holds `sealed_members` above the text (registry version 2)",
-     "6.1 reason 96: the engine holds `failed_openings` above the text (registry version 2)",
-     "6.1 reason 97: the engine holds `aead` above the text (registry version 2)",
-     "6.1 reason 98: the engine holds `commitment` above the text (registry version 2)",
-     "5.1 allowed reasons of 7 `malformed_value`: the engine adds ['padding', 'sealed_ordinal'] (registry version 2)",
-     "5.1 allowed reasons of 18 `index_claim_failed`: the engine adds ['sealed_members'] (registry version 2)",
-     "5.1 allowed reasons of 20 `exceeds_capacity`: the engine adds ['failed_openings'] (registry version 2)",
-     "P2-30: the engine places the opaque reason `missing_key` of registry version 2 in the order (P8)"
+    "values_of_registry_version_2": [
+     "4 opaque_reason: the data holds 9 `missing_key` (registry version 2, `P8`)",
+     "4.2 frame_type: the data holds 17 {'label': 'keys', 'critical': False, 'transparent': False} (registry version 2, `P8`)",
+     "4.2 frame_type: the data holds 18 {'label': 'sealed', 'critical': True, 'transparent': False} (registry version 2, `P8`)",
+     "4.6 context 16: the data holds `recipient_key_id` (registry version 2, `P8`)",
+     "5.1 finding 49: the data holds `segment_key_not_held` warning (registry version 2, `P8`)",
+     "5.1 finding 50: the data holds `unwrap_failed` warning (registry version 2, `P8`)",
+     "5.1 finding 51: the data holds `key_conflict` error (registry version 2, `P8`)",
+     "5.1 finding 52: the data holds `seal_failed` error (registry version 2, `P8`)",
+     "5.1 finding 53: the data holds `seal_scope_violated` warning (registry version 2, `P8`)",
+     "6.1 reason 93: the data holds `padding` (registry version 2, `P8`)",
+     "6.1 reason 94: the data holds `sealed_ordinal` (registry version 2, `P8`)",
+     "6.1 reason 95: the data holds `sealed_members` (registry version 2, `P8`)",
+     "6.1 reason 96: the data holds `failed_openings` (registry version 2, `P8`)",
+     "6.1 reason 97: the data holds `aead` (registry version 2, `P8`)",
+     "6.1 reason 98: the data holds `commitment` (registry version 2, `P8`)",
+     "5.1 allowed reasons of 7 `malformed_value`: the data adds ['padding', 'sealed_ordinal'] (registry version 2, `P8`)",
+     "5.1 allowed reasons of 18 `index_claim_failed`: the data adds ['sealed_members'] (registry version 2, `P8`)",
+     "5.1 allowed reasons of 20 `exceeds_capacity`: the data adds ['failed_openings'] (registry version 2, `P8`)",
+     "P2-30: the data places the opaque reason `missing_key` of registry version 2 in the order (P8)"
     ],
-    "differences": 0,
-    "mutations_seen": {
-     "two labels of term_kind swapped": 2,
-     "a severity changed": 1,
-     "a hash context digest changed": 1,
-     "a hash context spelling changed": 1,
-     "a reason label changed": 1,
-     "a field of 5.2 changed": 1,
-     "a critical column changed": 1,
-     "a row of the assignment log changed": 1
-    }
+    "differences": 0
    },
    "differences": []
   }

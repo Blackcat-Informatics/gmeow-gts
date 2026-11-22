@@ -1,7 +1,7 @@
 {
  "name": "sign-ed25519-reproduce",
  "status": "built and matches",
- "note": "the signature bytes for a key and a subject, equal to those of OpenSSL's Ed25519",
+ "note": "the signature bytes for a key and a subject of Ed25519, the deterministic signature of RFC 8032",
  "cases": [
   {
    "label": "",
