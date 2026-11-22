@@ -47,16 +47,15 @@ profiles of the read.
 - Result: `F3` is `linked` and DETACHED, because the `anchor` differs from the effective identifier of `F1`, the nearest
   preceding ordinary frame. `anchored_frames` is `1`.
 - Rule: `P1`, "The predecessor and transparent frames"; `P7`, "What fills each field" (`anchored_frames`).
-- Corpus: `P7/read/resume` is the case. Its recorded `anchored_frames` is `1`, as the rule gives. Its input is not in the
-  repository; `vectors/v2/ABSENT.md` lists it.
+- Corpus: `P7/read/resume` is the case. Its input is not in the repository; `vectors/v2/ABSENT.md` lists it.
 
 ### FX-002 Files with equal heads and different signatures, storage or parity
 
-- Input: a file `A` of one segment with a signed valid commit, and three files made from it. `B1`: a second signature added to
-  the `signatures` list of that commit. `B2`: one payload stored `stored_compressed` where `A` stores it `stored_plain`. `B3`:
-  parity frames added at their places, with the `offsets` item and the locator written again.
-- Built: `B1` and `B2` are storage rewrites of `A`. `B3` adds transparent frames, each with an identifier of its own, and changes
-  no identifier of `A`.
+- Input: a file `A` of one segment with a signed valid commit, and three files made from it. `B1`: a second signature added to the
+  `signatures` list of that commit. `B2`: one payload stored `stored_compressed` where `A` stores it `stored_plain`. `B3`: a
+  parity frame added at its place, with the `offsets` item and the locator written again.
+- Built: `B1` and `B2` are storage rewrites of `A`. `B3` adds one transparent frame, with an identifier of its own, and changes no
+  identifier of `A`.
 - Read: `trusted_keys` holds the first signer and `held_keys` holds both signers; a second read of `A` and of `B1` trusts the
   added key alone, with the same `held_keys`.
 - Result: in all four files every frame of `A` has the same identifier, the head and the root of the commit are equal, and the
@@ -72,12 +71,11 @@ profiles of the read.
 
 ### FX-003 A cursor in a file that holds one segment twice
 
-- Input: a file `S` then `S`: two byte-equal segments with equal headers, and so equal `h0`. A transfer of the file is
-  interrupted in the second segment.
+- Input: a file `S` then `S`: two byte-equal segments with equal headers, and so equal `h0`.
 - Result: every frame identifier of segment `0` stands again in segment `1`. A search for "the frame after the identifier `i`"
   has two places. The two `segment_result` records have the ordinals `0` and `1`.
-- Application: a cursor of the whole-byte digest, the segment ordinal `1` and the ordinary position resumes at one place. A
-  cursor of the identifier alone is refused as ambiguous.
+- Application: a transfer of the file is interrupted in the second segment. A cursor of the whole-byte digest, the segment ordinal
+  `1` and the ordinary position resumes at one place. A cursor of the identifier alone is refused as ambiguous.
 - Rule: `P1`, "Every preimage, typed" (an identifier is a function of the fields of the frame and of its predecessor, and of
   no offset); `P7`, "The records" (`segment_result.ordinal`).
 - Corpus: `P3/state-repeated-segment` is the file and its read. No entry records a cursor.
@@ -158,9 +156,9 @@ profiles of the read.
 
 ### FX-010 A suppression by a party that no reader trusts
 
-- Input: segment `0`, by a trusted signer: a `quad` line `(s, p, o)` and a signed valid commit. Segment `1`, appended by a
-  party with no trusted key: the terms and one `suppress` frame with the entry `[2, (s, p, o, absent)]`. Two variants: the
-  frame of segment `1` covered by no signature; and covered by a signature of a key that is not trusted.
+- Input: segment `0`, by a trusted signer: a `quad` line `(s, p, o)` and a signed valid commit. Segment `1`, appended by a party
+  with no trusted key: the terms, one `suppress` frame with the entry `[2, (s, p, o, absent)]`, and a commit. Two variants: the
+  commit unsigned; and the commit signed by a key that is not trusted.
 - Read: `trusted_keys` holds the signer of segment `0`; `held_keys` holds both keys.
 - Result: the line is in the fold and is hidden. The visible dataset is empty. `visible` is `[1, 1]`: complete, with
   `unauthenticated_suppress` `1`. Segment `0` is `authenticated`, segment `1` `unauthenticated`. No finding is an error. The two
@@ -230,6 +228,7 @@ profiles of the read.
 - Input: segment `0` holds content, a manifest and a signed commit `c` with the effective identifier `I`. An appended segment
   with a checked lineage holds a binding of `:r1` to the `state` referent `[3, I]` and its own signed commit. Then the fold of
   the whole read is compacted and the result is read.
+- Read: `trusted_keys` holds the key that signed the two commits, in the read of each file.
 - Result: before compaction the referent resolves to the state of `c`, with no `missing_dependency`. A reader of the canonical
   file reports `missing_dependency` with the reason `state` for the referent: no commit of that file has the identifier `I`.
 - Application: before, the release is selected by `I`. After, the selection by `I` is refused, and the release is selected by
@@ -287,7 +286,8 @@ profiles of the read.
 - Result: the quad is carried unchanged. Its text is one that RDF does not admit, and the result is NOT AN RDF DATASET. No
   finding is made and no quad is dropped.
 - Rule: `P3`, "Texts that RDF does not admit".
-- Corpus: `P3/project/not-rdf-texts` is the first case; `P3/project/malformed-iri` is the second.
+- Corpus: `P3/project/not-rdf-texts` is the input and the read of the first case, with two further lines; it records no finding
+  and no projection. `P3/project/malformed-iri` is the second case, with its projection.
 
 ### FX-021 A typed literal of the datatype text `rdf:langString`, and a language that is not a tag
 
@@ -297,7 +297,7 @@ profiles of the read.
   DATASET.
 - Application: an adapter does not claim RDF output for this result, changes no text, and reports the term.
 - Rule: `P3`, "Texts that RDF does not admit".
-- Corpus: `P3/project/not-rdf-texts` is the case, holds both forms, and agrees.
+- Corpus: `P3/project/not-rdf-texts` is the input and its read, and holds both forms. It records no finding and no projection.
 
 ### FX-022 A typed literal of the datatype text `rdf:dirLangString`, and an empty language
 
@@ -347,16 +347,18 @@ profiles of the read.
 - Measured: the bytes appended and transferred in (a) and in (b), and their ratio to the bytes changed. This entry is the
   input of the measurement of incremental revision in `GUIDE-adoption.md`.
 - Rule: `P4`, "The unit index and the unit used"; `P1`, "Growing a file", THE FORMS OF APPENDING.
+- Corpus: none is the case; the entry is a measurement.
 
 ## 5. `P5`: commits and proofs
 
-In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `A'` and `B` of FX-034.
+In FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `A'` and `B` of FX-034. In FX-026 they are those of the frames
+of its own two files.
 
 ### FX-026 A file proof against a later file with a detached frame
 
-- Input: the file proof `[[0, 2, b, absent]]` of `F1 = H A B` (no commit), verified against `F2`, the file of FX-034 without
-  its signature.
-- Built: the prover on `F1`; `F2` as FX-034.
+- Input: the file proof `[[0, 2, b, absent]]` of `F1 = H A B` (no commit), verified against `F2 = H A' ff P B`, a file of the form
+  of FX-034 over the frames of `F1`, with no signature.
+- Built: the prover on `F1`; `F2` is built from `F1` as FX-034 builds its file, and `B` is not signed.
 - Result: `proof_failed` with `consistency_diverged`: `B` is one of the first `c_0 = 2` ordinary frames of `F2` and is
   detached (step 4).
 - Rule: `P5`, "File".
@@ -375,13 +377,14 @@ In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `
 
 ### FX-028 A consistency proof that is one entry short
 
-- Input: two consistent roots of one segment, and a consistency proof whose `path` is one entry short.
+- Input: two consistent roots of one segment, each on a commit signed by one trusted key, and a consistency proof whose `path` is
+  one entry short.
 - Built: the case `short-path` of the corpus entry named below.
 - Result: `proof_malformed` with `length`. The outcome shows only that the proof given does not show the extension. No
   statement about the signer follows.
 - Rule: `P5`, "Consistency"; "What a proof proves, and what it does not", AUTHENTICATION.
 - Corpus: `P5/proof-consistency-short-path` is the case: `short-path` is the proof that is one entry short, `full-path` the
-  neighbour that holds. `P5/proof-consistency-negative`, case `short-path`, records the same outcome.
+  neighbour that holds. `P5/proof-consistency-negative` names the same outcome under the key `short-path` of its `result`.
 
 ### FX-029 A consistency proof of the right shape with a wrong hash
 
@@ -422,7 +425,7 @@ In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `
 
 ### FX-033 A file proof of one entry for an empty source
 
-- Input: `F1` of zero bytes and a proof of one entry.
+- Input: `F1` of zero bytes, `F2` a file of one segment, and a proof of one entry.
 - Built: by hand.
 - Result: `proof_malformed` with `length` (step 1).
 - Rule: `P5`, "File".
@@ -463,11 +466,11 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 
 - Input: four blob frames, the second with a broken link, the fourth signed by a trusted key.
 - Built: the input of the corpus entry named below.
+- Read: `trusted_keys` holds the key of the signature; `held_keys` holds that key and two keys that sign nothing in the file.
 - Result: the coverage is `[2, 4)`: the run begins after the broken frame. `anchored_frames` is `1`, `authenticated_frames`
   `2`, `authenticity` `partly_authenticated`.
 - Rule: `P1`, "What the identifier commits to" (Claim 2); `P6`, "Coverage".
-- Corpus: `P6/cov-break-before` is the case and agrees. Its recorded signature is `[valid, absent, 1, key, 2, 4, true]`, and
-  its `anchored_frames` is `1`. `P7/read/anchored` and `P6/auth-broken-middle` hold the same rule and agree.
+- Corpus: `P6/cov-break-before` is the case. `P7/read/anchored` and `P6/auth-broken-middle` test the same rule.
 
 ### FX-037 A signed valid commit over an undamaged segment
 
@@ -476,7 +479,7 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Result: the commit is valid. The coverage is `[0, 2)`. Both frames are authenticated through the root. `authenticity` is
   `authenticated`.
 - Rule: `P6`, "Authentication".
-- Corpus: `P6/auth-commit-valid` is the case and agrees. It records `committed_frames` `2` and `authenticated_frames` `2`.
+- Corpus: `P6/auth-commit-valid` is the case.
 
 ### FX-038 A signed valid commit after a detached frame
 
@@ -966,6 +969,7 @@ at the position `5`.
 - Measured: the bytes of the `keys` frames as a share of the file, and the time to open. This entry is the input of the
   measurement of key grouping in `GUIDE-adoption.md`.
 - Rule: `P8`, "A recipient entry and the wrap's key schedule".
+- Corpus: none is the case; the entry is a measurement.
 
 ## 12. `P9`: conversion from the first generation
 
@@ -1162,6 +1166,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: the writer writes no distribution file: the fold has none. It does not hand the canonical file that compaction returns
   to its caller as one.
 - Rule: `PF-dist`, "Constants" (what follows from the ceilings) and "Writer rules".
+- Corpus: none is the case; the entry states a duty of a writer, which no file holds.
 
 ### FX-093 A frame exactly at the ceiling
 
@@ -1208,6 +1213,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Measured: the time and the peak memory of the labelling and of the canonical check, and the largest `decoded_length` of a
   frame. This entry is the input of the measurement of the largest release in `GUIDE-adoption.md`.
 - Rule: `PF-dist`, "Constants"; `P7`, "The canonical frames that can exceed the minimum capacity".
+- Corpus: none is the case; the entry is a measurement.
 
 ## 16. `PF-evidence`: signed custody chain
 
@@ -1233,6 +1239,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Application: the first file passes the rule of the consumer. The second fails it at each commit, though no check of the
   profile fails. This entry tests a contract of the application, and no reader.
 - Rule: `P6`, "Co-signing and pinning" (whether a set of signers suffices is a rule of the caller).
+- Corpus: none is the case; the entry tests a contract of the application, and no reader.
 
 ### FX-099 A canonical file under `evidence` above the cadence
 
@@ -1333,6 +1340,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: for each, the output that the specification of the adapter for this generation gives, and its loss report. None is
   derived from the core alone.
 - Rule: the adapter's own specification; `P3`, "The RDF projection of a fold", for what an adapter can receive from a fold.
+- Corpus: none is the case; the output of each adapter is given by the adapter's own specification.
 
 ### FX-107 Cold creation of an archive (benchmark)
 
@@ -1340,6 +1348,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: nothing follows from the rules alone.
 - Measured: the time, the peak memory and the output size of creating an archive from a file system. This entry is the input
   of the measurement of archive creation in `GUIDE-adoption.md`.
+- Corpus: none is the case; the entry is a measurement.
 
 ## 19. The predicate of a distribution, by number of checks
 
