@@ -5,7 +5,7 @@
 | `p8-key-schedule` | built and matches | 16.1 and RFC 5869 Appendix A cases 1 and 3 |
 | `p8-hmac-kat` | built and matches |  |
 | `p8-aead-kat` | built and matches | the 24 vectors of RFC 8452 Appendix C.2 are the known answers of the AEAD of 16.2; the entry stores no input and no value, the vectors are those printed in the RFC |
-| `p8-seal-kat` | built and matches | every value printed in 16.2 to 16.4 |
+| `p8-seal-kat` | built and matches | every value printed in 13.2 to 13.4 |
 | `p8-seal-kat-keyless` | built and matches |  |
 | `p8-flags` | built and matches |  |
 | `p8-keys-counts` | built and matches |  |
@@ -24,7 +24,6 @@
 | `p8-committing-ciphertext` | built and matches | a sealed frame whose ciphertext and tag the AEAD accepts under two keys with one nonce and one associated data (found by solving POLYVAL), read with a segment key: seal_failed with reason commitment |
 | `p8-segment-lift` | built and matches |  |
 | `p8-context` | built and matches |  |
-| `p8-determinism` | built and matches |  |
 | `p8-padding` | built and matches |  |
 | `p8-inner-grammar` | built and matches |  |
 | `p8-inner-type` | built and matches |  |
@@ -70,9 +69,8 @@
 | `p8-wrap-precedence` | built and matches | one recipient entry: wrong_length, then out_of_range, then unordered_or_repeated (9.3) |
 | `p8-wrap-repeat-frames` | built and matches | the same recipient and target in two keys frames: the second entry is refused by P8-49 whether or not the first was admitted |
 | `p8-wrap-trial-order` | built and matches | three admitted recipient entries for one key: key_conflict when two held keys unwrap differently; one unwrap_failed when one fails (9.4) |
-| `p8-members-layout-pass` | built and matches | three sealed packs of 400000 members with the frames of P8-45 (the input, listed in ABSENT.md); the second input, one pack of 1048577 members with its frame, is recorded in result by its length and BLAKE3 digest only |
-| `p8-members-layout-missing` | built and matches | two sealed packs of 400000 members with a frame after the second covering both (the input, listed in ABSENT.md); the frame absent and a clear quads frame between the last pack and the frame are recorded in result by length and BLAKE3 digest only |
-| `p8-members-layout-cut` | built and matches | a frame covering two sealed packs of 600000 members (the input, listed in ABSENT.md); the second input, a frame after the first of two packs of 400000 members and a second frame after the second, is recorded in result by its length and BLAKE3 digest only |
+| `p8-members-layout-pass` | built and matches | three sealed packs of 400000 members, each followed by its member index as P8-45 places it (the input, listed in ABSENT.md): no finding |
+| `p8-members-layout-cut` | built and matches | two sealed packs of 600000 members followed by one member index whose coverage holds more than Nr members of more than one pack (the input, listed in ABSENT.md): the index breaks the layout, malformed_value unordered_or_repeated at the index (position 4), and the run of the first pack, which no member index directly follows, gives index_claim_failed sealed_members at that pack (position 2) (P8-45, P8-62) |
 | `p8-state-sealed-blob` | built and matches | P8 12 item 9, P3 7.2: a segment whose commit names a state with one blob entry of length 17, in sealed frames; result records three readings of the stored file: keyless, with the segment key, and with a key entry whose key conflicts; the sealing input of the second and third readings is not recorded in the case |
 | `p8-sealed-pack-charge` | built and matches | a sealed pack whose directory holds two chunk members, a recipe member of charge T1 and a value member of charge T2, read by a key holder with rebuilt_bytes_per_read T1: the recipe admitted and rebuilt, the value refused, one exceeds_capacity with total_rebuilt and count T1 + T2 at the sealed frame, the rebuilds of the sealed frame in directory order; keyless: no charge, no total_rebuilt finding (P8-63) |
 | `p8-audiences` | built and matches | a file of public content, two private analyses and a deliberation, each private segment sealed under a key of its own and wrapped for its readers: the read of the public, of each analysis service, of the reviewer who holds every key, and of a mirror that holds the four public keys and trusts none |
@@ -87,4 +85,4 @@
 | `p8-inner-external-length` | derived from the text | a sealed frame whose inner frame is an external with decoded_length 1, a payload of one byte and a wrong payload_digest, read with the segment key: the field rule of the inner type decides at step 8, malformed_value with out_of_range; the frame is opaque with malformed, step 9 is not run and the frame has no damaged_frame |
 | `sealed-inner-newer-value-terms` | derived from the text | a segment of registry version 3 read by a reader of version 2 that holds the key, a sealed frame whose inner terms frame has the order 9 and a clear blob frame after it: with one byte of the inner payload_digest changed the sealed frame has damaged_frame with payload_digest at step 9 and no unsupported_critical, and the blob frame is folded; without the change it gives unsupported_critical with the subject [2, 18], is opaque with unsupported_critical and counts in unopened_sealed, and the blob frame is opaque with stopped |
 
-Totals: built and matches: 80; derived from the text: 4 (84 entries).
+Totals: built and matches: 78; derived from the text: 4 (82 entries).

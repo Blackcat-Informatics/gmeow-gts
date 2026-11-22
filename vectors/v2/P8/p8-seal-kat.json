@@ -1,7 +1,7 @@
 {
  "name": "p8-seal-kat",
  "status": "built and matches",
- "note": "every value printed in 16.2 to 16.4",
+ "note": "every value printed in 13.2 to 13.4",
  "cases": [
   {
    "label": "",

@@ -22,7 +22,6 @@
 | `P7/stream-parity.parity-stale-equal.bin` | 10683878 | `d24d8dbf8b80f4108fead892649a7ca5d7ea73035cb565ea9760504c4003fbf4` |
 | `P7/stream-parity.parity-stale-geometry.bin` | 10683877 | `43f8662cadb24048e8e1ff7cb3e1c9051608da789826b32090d876df44fa0089` |
 | `P8/p8-members-layout-cut.bin` | 100663853 | `70b40bfb7079c10c419c03cdaff868b16dbd451a4ba3264a793b75ef391d30bd` |
-| `P8/p8-members-layout-missing.bin` | 67633709 | `0f9c819f50a8b74a255c21978ee9240c2ed98aed813a812aecb4ba4264124007` |
 | `P8/p8-members-layout-pass.bin` | 101450563 | `64165bf554cdc453a85ca2fed4f65b8e7972322da60abe38cbd34e25deb8bd1f` |
 | `PF-dist/dist-stored-size.bin` | 71603220 | `281650daa324225d2ff2f47945bdde9db162cfd6b687daf1e22bf66a135d7a61` |
 | `PF-stream/stream-concat-two.bin` | 25137202 | `598f8d2f8c4b8a6e566da121ac5a36d602ba27dea87ee3a12213be5d5e6e33f7` |

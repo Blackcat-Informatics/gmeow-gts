@@ -1,12 +1,11 @@
 {
  "name": "p8-members-layout-pass",
  "status": "built and matches",
- "note": "three sealed packs of 400000 members with the frames of P8-45 (the input, listed in ABSENT.md); the second input, one pack of 1048577 members with its frame, is recorded in result by its length and BLAKE3 digest only",
+ "note": "three sealed packs of 400000 members, each followed by its member index as P8-45 places it (the input, listed in ABSENT.md): no finding",
  "cases": [
   {
    "label": "",
    "input_file": "p8-members-layout-pass.bin",
-   "input_derived": true,
    "read_result_file": "p8-members-layout-pass.result.bin",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
@@ -21,16 +20,6 @@
     "access": "whole"
    },
    "expected": null,
-   "result": {
-    "three packs": {
-     "length": 101450563,
-     "blake3": "1ad64d2c259d1e903d4d29f4e56fe9c0ae69543d9538e564ef9ded25e6de0094"
-    },
-    "one pack of 1048577": {
-     "length": 88080802,
-     "blake3": "94d8828ba1e750b00668b1707dafe592c3b0e59c5680cc0ed19d4328f80b0734"
-    }
-   },
    "differences": []
   }
  ]

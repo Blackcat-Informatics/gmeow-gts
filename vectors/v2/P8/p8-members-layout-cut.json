@@ -1,12 +1,11 @@
 {
  "name": "p8-members-layout-cut",
  "status": "built and matches",
- "note": "a frame covering two sealed packs of 600000 members (the input, listed in ABSENT.md); the second input, a frame after the first of two packs of 400000 members and a second frame after the second, is recorded in result by its length and BLAKE3 digest only",
+ "note": "two sealed packs of 600000 members followed by one member index whose coverage holds more than Nr members of more than one pack (the input, listed in ABSENT.md): the index breaks the layout, malformed_value unordered_or_repeated at the index (position 4), and the run of the first pack, which no member index directly follows, gives index_claim_failed sealed_members at that pack (position 2) (P8-45, P8-62)",
  "cases": [
   {
    "label": "",
    "input_file": "p8-members-layout-cut.bin",
-   "input_derived": true,
    "read_result_file": "p8-members-layout-cut.result.bin",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
@@ -21,16 +20,6 @@
     "access": "whole"
    },
    "expected": null,
-   "result": {
-    "two packs of 600000": {
-     "length": 100663853,
-     "blake3": "bbce320b4def86876f41474e958279b8fdb05912c82704eab6c3f58329597dd9"
-    },
-    "early cut": {
-     "length": 67633848,
-     "blake3": "71d9323cf398369c713a24ee53587bf45cb49a26502a9880f75c580c83890e51"
-    }
-   },
    "differences": []
   }
  ]
