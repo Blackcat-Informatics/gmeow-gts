@@ -28,7 +28,8 @@ A case states every further input of its read or judgement:
 
 - `read`: the inputs of the read that are not the default: `profiles`, `trusted_keys`, `held_keys`, `sealing_input`, `marks`,
   `registry_version`, and `holds_reference_encoder` (whether the reader holds the reference encoder of the storage level).
-  A recorded read whose case states no `profiles` has an empty `profiles`.
+  A recorded `read_result` itself holds the `capacity`, the `inputs` and the `profiles` of its read; where a case has no
+  `read` key, those fields of the record state them.
 - a key that ends in `_file`: a second file of the case, such as the source of a conversion, the later file of a proof, a
   proof, or a result.
 - `projection`, `compaction_result`, `verify`: the projection of the fold in plain values, the encoded outcome of a
