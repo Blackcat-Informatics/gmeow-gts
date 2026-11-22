@@ -27,7 +27,8 @@ hexadecimal of its deterministic encoding (`read_result`, or the record that the
 A case states every further input of its read or judgement:
 
 - `read`: the inputs of the read that are not the default: `profiles`, `trusted_keys`, `held_keys`, `sealing_input`, `marks`,
-  `registry_version`, and `holds_reference_encoder` (whether the reader holds the reference encoder of the storage level).
+  `registry_version`, `readers` (the generations that the reader claims to read), and `holds_reference_encoder`
+  (whether the reader holds the reference encoder of the storage level).
   A recorded `read_result` itself holds the `capacity`, the `inputs` and the `profiles` of its read; where a case has no
   `read` key, those fields of the record state them.
 - a key that ends in `_file`: a second file of the case, such as the source of a conversion, the later file of a proof, a
@@ -38,7 +39,8 @@ A case states every further input of its read or judgement:
   `file`, the `length` of the prefix and its `sha256`.
 - `input_edit`, in place of `input_file`: an input that is a corpus file changed by an edit and is not stored, stated as
   the `file`, the `edit` in words, and the `length` and `sha256` of the result.
-- `output_read_result`: the read of the file that a compaction of the case's input writes.
+- `output_read_result`: the read of the file that a compaction of the case's input writes; `later_read_result`: the read
+  of the later file of a file proof.
 - An entry that reads no file states its known answer in plain values, under keys that name them (`key`, `nonce`,
   `plaintext`, `result` and the like).
 - `compaction`: the `profile` input of a compaction of the case's input and, where it was written, its outcome.
@@ -47,16 +49,16 @@ A case states every further input of its read or judgement:
   read_result]` of the nested reads; `nested` and `children` state the same reads and the nested files in plain values.
 - `signing_rnd`: the random input with which a signature of the input was made, where it is not the deterministic one.
 
-`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,207 files.
+`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,239 files.
 
 ## Large inputs
 
-A file of at most 1 MiB stands here as it is: 6,133 files.
+A file of at most 1 MiB stands here as it is: 6,165 files.
 
-A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 45 files,
+A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 47 files,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.
 
-A larger input that does not compress to that size is not in this directory: 29 files, 579,863,179 bytes, listed in `ABSENT.md`
+A larger input that does not compress to that size is not in this directory: 27 files, 565,827,205 bytes, listed in `ABSENT.md`
 with their size and SHA-256. Their descriptions are here. An entry whose input is absent cannot be run until that input is
 obtained and its SHA-256 compared.
 

@@ -90,7 +90,7 @@
 | `reader/first-and-second` | built and matches | the same file read by a first_and_second reader: file_result variant first_generation, the first-generation reader's result unchanged |
 | `reader/mixed` | built and matches | a first-generation file followed by a file of this generation: the first-generation reader's result; the trailing items are its own diagnostics |
 | `reader/header-late` | built and matches | a file of this generation with a first-generation header after its first segment: an opaque item with wrong_type; no segment begins |
-| `reader/version-two-map` | built and matches | a first item {v 2}: unsupported_generation from either claim |
+| `reader/version-two-map` | built and matches | a file whose first item is the map {v 2}, read by a reader that claims second_only and by one that claims first_and_second: both give unsupported_generation and no segment, and neither offers the input to the first-generation reader |
 | `convert/deep-value` | built and matches | a first-generation source whose meta value nests arrays deep: the value that V gives at depth 1 for the same shape, carried whole, no stop (3.3, case 9). The whole conversion (reading, M(SF), labelling, canonical file, proof and the four checks) runs at the depth of the entry, 1000 |
 | `convert/capacity-rebuilt` | built and matches | a source whose held blobs share units, so that the recipes of the result have a total rebuilt length T, converted with rebuilt_bytes_per_read T - 1 and with T: stop source_exceeds_capacity, offset 0; with T, a result and a proof (P9-42) |
 | `convert/text-null-iri` | built and matches | {k 0, v null} used by a row: unrepresentable_term at the offset of the frame (3.3 case 1: a null is not text) |

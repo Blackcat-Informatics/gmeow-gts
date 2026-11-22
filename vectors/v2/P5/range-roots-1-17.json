@@ -1,24 +1,31 @@
 {
  "name": "range-roots-1-17",
+ "section": "P5 1.1",
  "status": "built and matches",
- "note": "",
+ "note": "the roots of the ranges of 1 to 17 leaves over the stated identifiers: the root of n leaves is over the first n of them",
  "cases": [
   {
    "label": "",
-   "input_file": "range-roots-1-17.bin",
-   "capacity": {
-    "stored_bytes_per_frame": 67108864,
-    "decoded_bytes_per_frame": 67108864,
-    "labelling_units": 0,
-    "labelled_lines": 67108864,
-    "decoded_bytes_per_read": 68719476736,
-    "items_per_read": 67108864,
-    "rebuilt_bytes_per_read": 137438953472,
-    "formed_bytes_per_read": 137438953472,
-    "labelled_bytes_per_read": 137438953472,
-    "access": "whole"
-   },
-   "expected": null,
+   "identifiers": [
+    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "c5cd35965349ca1cb48d4fd2cc9d9a372863a1b954dfa72af8d95cf5b4f9fe3f",
+    "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
+    "36a5462b16ac8cde6971a76cd9416a439799f25a51a9ec5f4a03d0cf08853531",
+    "f45b74548cb36bf72ad006b5285d3f7ccb05b6929c848dbbbf08656e60526750",
+    "43e691231a46dd6394aeabc356e6e427c3b611abae086fcbd8f43d060eaa528a",
+    "3dfd39f7662493d84f97ff3032e84c2e54133f65f151d0ef6d56b9952c7761c4",
+    "5bfa558003d53127627ffae85bed5aadafa4ebf7a14f75980999af8272dd9ab1",
+    "d8ccef2ab30970664fb8086e1b1b08ea789d6ffc3a74fad32bdea60b47219ebc",
+    "9649a04fdb3e5ebfba7d90dfb66f7f3a2e97f19ec4241c403185af684982f64b",
+    "0bc3cf4ea0b07b2d97733f7624ce5f771077cf2148659e2440f82d644489527e",
+    "2863c4cd918a0d005c28fb1a1fc548080087befe57db66fa484a7b133966ae6b",
+    "700ad6cb69cfaa1295a9604baf5d045c0972dcbe3d60d59188eaa5064c5f378a",
+    "9012a073929e6a7b1c1ed8a20864d57732c6c47f96625de175ba392f41bbcdc1",
+    "885b1726437984a2165098c5f358a65e4e5b38c21c408de5c434b19e83c92b00",
+    "978fc50b77c38817267646c6d16f9ec637099c8a00848be362c965d7bd39922b",
+    "92803641c45446ae6a99a5e2bab1330ff03ea4da640e856e04bb9f15e7059297"
+   ],
+   "identifier_rule": "h0 is the 32 bytes 00 to 1f; Ik, for each k that an entry of P5 names (1 to 16, 30, 40, 41 and 42), is the unit digest H_ctx(unit, the ASCII text I followed by the decimal k)",
    "result": {
     "roots": {
      "1": "47a9f9661f89295c5291740d410f801c99a9efd19c695f2a86f561907b62d10f",
@@ -39,8 +46,7 @@
      "16": "1de91b5b8229b6fbd4231567f2ef57279b26afb8e8708e08e14697d8fa171ec6",
      "17": "a96ef20ce8963351cb1c4a8e46483b9c289f8d59275c970baa75697699828923"
     }
-   },
-   "differences": []
+   }
   }
  ]
 }

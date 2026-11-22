@@ -1,33 +1,86 @@
 {
  "name": "proof-consistency-negative",
+ "section": "P5 3.3",
  "status": "built and matches",
- "note": "",
+ "note": "six consistency proofs that do not hold, over roots of the identifiers of range-roots-1-17 and of identifiers by its rule that replace one of them (I40, I41, I42): another old root, a replaced later leaf, two roots for one leaf count (the one outcome that shows two histories), an old count of 0, an old count above the new and a short path",
  "cases": [
   {
-   "label": "",
-   "input_file": "proof-consistency-negative.bin",
-   "capacity": {
-    "stored_bytes_per_frame": 67108864,
-    "decoded_bytes_per_frame": 67108864,
-    "labelling_units": 0,
-    "labelled_lines": 67108864,
-    "decoded_bytes_per_read": 68719476736,
-    "items_per_read": 67108864,
-    "rebuilt_bytes_per_read": 137438953472,
-    "formed_bytes_per_read": 137438953472,
-    "labelled_bytes_per_read": 137438953472,
-    "access": "whole"
-   },
-   "expected": null,
+   "label": "other-first-root",
+   "proof_file": "proof-consistency-negative.other-first-root.proof.bin",
+   "old_root": "144436575d68a4b10674095d4252a99e834db63d9b7c0457a5b36ea23bfe6d1d",
+   "old_count": 5,
+   "new_root": "c333f697ed4fb920261ad5d2befa1cae6aedf123c3c1f7ad283747389a913a26",
+   "new_count": 8,
+   "roots_over": "the old root is over I40 in place of h0, then I1 to I4",
+   "outcome": "8718268202183081018101810181018101",
    "result": {
-    "other-first-root": "proof_failed/consistency_old_root",
-    "replaced-later-leaf": "proof_failed/consistency_new_root",
-    "two-roots-one-count": "proof_failed/consistency_diverged",
-    "old-0-counts-match": "proof_malformed/order",
-    "old-above-new": "proof_malformed/order",
+    "other-first-root": "proof_failed/consistency_old_root"
+   }
+  },
+  {
+   "label": "replaced-later-leaf",
+   "proof_file": "proof-consistency-negative.replaced-later-leaf.proof.bin",
+   "old_root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "old_count": 5,
+   "new_root": "d620d3eab21ad69124438ac717934b5a5b13f3e5718437ee1cbf0eaff3e9b1b5",
+   "new_count": 8,
+   "roots_over": "the new root is over h0, I1 to I4, I41, I6, I7: leaf 5 replaced",
+   "outcome": "8718268202183181018101810181018101",
+   "result": {
+    "replaced-later-leaf": "proof_failed/consistency_new_root"
+   }
+  },
+  {
+   "label": "two-roots-one-count",
+   "proof_file": "proof-consistency-negative.two-roots-one-count.proof.bin",
+   "old_root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "old_count": 5,
+   "new_root": "678dd53622283765efc39d8ae3f96369fdfff4e42b583141f7cd0bac89762ed6",
+   "new_count": 5,
+   "roots_over": "the new root is over h0, I1 to I3 and I42: another root for the leaf count 5",
+   "outcome": "8718268202183281018101810181018101",
+   "result": {
+    "two-roots-one-count": "proof_failed/consistency_diverged"
+   }
+  },
+  {
+   "label": "old-0-counts-match",
+   "proof_file": "proof-consistency-negative.old-0-counts-match.proof.bin",
+   "old_root": "0000000000000000000000000000000000000000000000000000000000000000",
+   "old_count": 0,
+   "new_root": "c333f697ed4fb920261ad5d2befa1cae6aedf123c3c1f7ad283747389a913a26",
+   "new_count": 8,
+   "roots_over": "old_count 0",
+   "outcome": "8718258202182e81018101810181018101",
+   "result": {
+    "old-0-counts-match": "proof_malformed/order"
+   }
+  },
+  {
+   "label": "old-above-new",
+   "proof_file": "proof-consistency-negative.old-above-new.proof.bin",
+   "old_root": "c333f697ed4fb920261ad5d2befa1cae6aedf123c3c1f7ad283747389a913a26",
+   "old_count": 8,
+   "new_root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "new_count": 5,
+   "roots_over": "old_count above new_count",
+   "outcome": "8718258202182e81018101810181018101",
+   "result": {
+    "old-above-new": "proof_malformed/order"
+   }
+  },
+  {
+   "label": "short-path",
+   "proof_file": "proof-consistency-negative.short-path.proof.bin",
+   "old_root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "old_count": 5,
+   "new_root": "c333f697ed4fb920261ad5d2befa1cae6aedf123c3c1f7ad283747389a913a26",
+   "new_count": 8,
+   "roots_over": "the path of 5 to 8 without its last entry",
+   "outcome": "8718258202182d81018101810181018101",
+   "result": {
     "short-path": "proof_malformed/length"
-   },
-   "differences": []
+   }
   }
  ]
 }

@@ -12,8 +12,8 @@
 | `parity-above-capacity-wrong-table` | built and matches |  |
 | `parity-above-capacity-and-damaged` | built and matches |  |
 | `parity-frame-type-second-form` | built and matches | no parity frame in the segment, so no unprotected_tail |
-| `range-roots-1-17` | built and matches |  |
-| `range-transparent` | built and matches |  |
+| `range-roots-1-17` | built and matches | the roots of the ranges of 1 to 17 leaves over the stated identifiers: the root of n leaves is over the first n of them |
+| `range-transparent` | built and matches | a segment of two quads frames and a commit, without and with a parity frame between the two quads frames: the parity frame is no leaf and no predecessor, so the commit has the same identifier and root and committed_frames is 3 in both; the parity frame covers the short span of the first quads frame in the middle of the segment, where a writer places no parity frame, and the read of it gives unprotected_tail for the bytes after that span; the quads frames have no terms frame, so each read gives forward_reference and an empty fold |
 | `range-healed-leaf` | built and matches |  |
 | `range-ill-typed-identifier` | built and matches |  |
 | `commit-valid` | built and matches |  |
@@ -21,16 +21,16 @@
 | `commit-root-mismatch` | built and matches |  |
 | `commit-none` | built and matches |  |
 | `commit-canonical-tail` | built and matches |  |
-| `proof-inclusion-all` | built and matches |  |
-| `proof-inclusion-negative` | built and matches |  |
-| `proof-consistency-all` | built and matches |  |
-| `proof-consistency-negative` | built and matches |  |
-| `proof-range` | built and matches |  |
-| `proof-file` | built and matches |  |
-| `proof-file-negative` | built and matches |  |
+| `proof-inclusion-all` | built and matches | the inclusion proof of every leaf of the ranges of 1 to 17 leaves over the stated identifiers, each checked against the root of its count with the identifier of its leaf: proof_holds with inclusion for all 153; the proof of leaf 2 of 5 is the 106 bytes of the worked example |
+| `proof-inclusion-negative` | built and matches | six inclusion proofs of the identifier I2 that do not hold: a path one entry short, index 5 of 5, the proof of 5 leaves against the root of 8, two siblings exchanged, a sibling of 31 bytes and a trailing byte; each gives the finding of the first step that fails |
+| `proof-consistency-all` | built and matches | the consistency proof of every pair of leaf counts old <= new from 1 to 17 over the stated identifiers, each checked against the roots of its two counts: proof_holds with consistency for all 153; the proof from 5 to 8 is the 140 bytes of the worked example |
+| `proof-consistency-negative` | built and matches | six consistency proofs that do not hold, over roots of the identifiers of range-roots-1-17 and of identifiers by its rule that replace one of them (I40, I41, I42): another old root, a replaced later leaf, two roots for one leaf count (the one outcome that shows two histories), an old count of 0, an old count above the new and a short path |
+| `proof-range` | built and matches | range proofs under the root of 5 leaves of the stated identifiers: leaves 2 and 3 of the worked example and the ranges 0-3, 3-5, 0-5 and 4-5 hold; first not below end is order, an identifier that is not the leaf's is proof_failed with range, and one identifier for a proof of two is length |
+| `proof-file` | built and matches | the file proof of the worked example: a source of three quads frames and a later file that adds a fourth frame, a commit of leaf count 5 and another frame, with the inclusion proof of leaf 3 present; and a later file of four frames and no commit, with the proof absent: both hold; the quads frames have no terms frame, so each read gives forward_reference and an empty fold |
+| `proof-file-negative` | built and matches | six file proofs that do not hold: a later file whose third frame is replaced, a source of two segments whose first segment has grown in the later file, a head that is not the source's, ordinals from 1, no entry for the one segment of the source, and an inclusion proof present where the later file has no commit; each gives the finding of the first step that fails; the quads frames have no terms frame, so each read gives forward_reference and an empty fold |
 | `index-intact` | built and matches | F3 stands after the commit: the uncommitted tail of 2.3 is F3 alone |
 | `index-each-claim` | built and matches | one case for each claim of an index frame (head, range_root, type_runs, graph_directory, statistics-lines, statistics-records, content_digest, pack_members); statistics and content_digest are computed from the segment's own fold with the labelling of L1 |
-| `index-absent-equal` | built and matches |  |
+| `index-absent-equal` | built and matches | a segment with its index, offsets item and locator, and the same segment without them: the folds and content digests are equal and the committed frames are 3 in both; the index is an ordinary frame, so the ordinary frames are 5 and 4 and the heads differ |
 | `index-last-unfolded` | built and matches | the blob frame is above the reader's decoded capacity; the index is last and false in statistics and content_digest: nothing is compared |
 | `index-not-last` | built and matches |  |
 | `index-digest-absent` | built and matches | a digest claim of an index frame is not compared when the reader's own digest is absent (case absent); with the digest present the claim that differs gives index_digest (case present) |
@@ -39,14 +39,14 @@
 | `accelerators-false` | built and matches | the locator case: recognise_locator finds the nested index from the end, and the read from the start does not confirm it |
 | `scrub-stored` | built and matches | a stored_compressed frame with a byte of its stored payload changed, the same frame with its stored_check alone changed, and a stored_plain frame with a byte of its payload changed: the stored check and the payload check are separate results, stored_check_mismatch stands beside a verified payload, and a stored_plain frame has no stored state (P1 5.3, 5.4; P5 5.1) |
 | `gf-tables` | built and matches | the exponent table and the product table (65536 entries, recorded by length and SHA-256) of the field with the polynomial 0x11D; the product table equals an independent carry-less multiplication modulo 0x11D (the input file is empty) |
-| `gf-toy` | built and matches |  |
+| `gf-toy` | built and matches | the toy geometry of the worked example (k 3, m 2, shards of 4 bytes, the field and matrix construction of geometry_1): the two rows, the parity shards of the three data shards, and the two data shards solved after d0 and d2 are erased |
 | `parity-matrix` | built and matches |  |
 | `commit-payload-nonempty` | built and matches | added: P5 2.2 now says a commit whose decoded_length is not 0 is malformed_value out_of_range, opaque malformed, and not a commit |
 | `index-nonterminal-claims` | built and matches | an index followed by an ordinary frame: no finding; statistics and content_digest are not compared and stay unverified, the structural claims are verified |
 | `index-opaque-covered` | built and matches | a last index over a pack frame above the reader's capacity and a quads frame within it: pack_members unverified, graph_directory verified; the digest claims are not compared |
 | `index-labelling-refused` | built and matches | a last index over the Paley graph on 13 vertices read with labelling_units 0: labelling_refused once, no index_claim_failed; statistics and content_digest are unverified |
 | `parity-span-full` | built and matches | the payload sizes of a full span (1024 shards, depth 16: 280651 bytes) and of a span of 65536 bytes (5259 bytes); the input file is empty |
-| `parity-placement` | built and matches |  |
+| `parity-placement` | built and matches | the placement of parity frames, the full spans over one stored_plain chunk frame whose payload repeats the bytes 00 to ff from 00: a frame that ends exactly at the end of the first span is followed by its parity frame (position 2); a frame that crosses the ends of two spans is followed by both parity frames in span order (positions 2 and 3); a closing index is followed by the parity frame of the short final span (position 3); the closing case holds no chunk frame |
 | `tail-live` | built and matches | two full spans and no closing index: the tail runs from 8388608 (3 frames, 2 parity frames) |
 | `tail-none` | built and matches |  |
 | `recover-a` | built and matches | 12 KiB flipped from the shard boundary 4194304 + 197 * 4096 = 5001216 inside F3 (3 shards, stripes 5, 6, 7): repaired count 3 at the second parity frame; the repaired copy equals the undamaged file |
@@ -61,8 +61,7 @@
 | `recover-none` | built and matches |  |
 | `recover-header` | built and matches | the flipped byte is registry_version 1 -> 2 (also unsupported_registry_version); h0 changes |
 | `recover-foreign` | built and matches | the damaged frame holds the parity frame of another segment; the scan skips it (its table fails under this h0) and resumes at the segment's own |
-| `recover-no-signature` | built and matches |  |
-| `parity-append-rewrite` | built and matches |  |
+| `recover-no-signature` | built and matches | two copies of a segment of one signed chunk frame, its closing index and its parity frame, whose signatures are the bytes 00 to 3f and 64 zero bytes under a key the reader does not hold, each with a run flipped inside the chunk: both give parity_mismatch with data and count 4 and repaired with count 4, and each repaired copy is its undamaged file, whatever the signature |
 | `recover-far` | derived from the text | the head of a frame of 2^26 + 4096 bytes is damaged and the next parity frame lies more than 2^26 bytes after it: the scan has no bound on the distance, reading resumes at that parity frame, the index frame after the parity frames links against its anchor and is detached, and anchored_frames is 1 |
 | `scrub-order` | built and matches | a segment of three frames, the first and the third with a damaged payload: every frame is checked, each damaged_frame stands in the findings of its own frame, the frames are in item order and every link holds (P1 5.4, P7 1.2) |
 | `locator-closing-index` | built and matches | a segment with two index frames and a locator naming the first, then the second (P5-20, P5-21) |
@@ -102,4 +101,4 @@
 | `proof-file-detached-frame` | derived from the text | a file proof of a file of two blob frames against a later file in which the second frame follows a parity resumption whose anchor is not the identifier before the damaged region: consistency_diverged |
 | `proof-file-equal-heads` | built and matches | a file proof from a file of one segment to each of three rewrites of it with equal identifiers: the entry is absent and the head is found at the ordinary position of the later file, so the proof holds |
 
-Totals: built and matches: 92; derived from the text: 7 (99 entries).
+Totals: built and matches: 91; derived from the text: 7 (98 entries).

@@ -2,8 +2,6 @@
 |---|---:|---|
 | `P4/chunker-golden.bin` | 4194304 | `f07f91e1376601061ced3044d6f6f0bee5470211fc381bf3d720a34fc0f1d7d7` |
 | `P4/rebuild-charge-not-charged.bin` | 1054076 | `a6e0f3442ee0a0a6022a97a8a08fa90466c009d8889fdae117e371eea1b55d79` |
-| `P5/parity-append-rewrite.bin` | 9560857 | `d97fe52c2800e3fd96551d0ee11c18a9f2410b7cc387b09b3934dc425e2f0f28` |
-| `P5/parity-placement.bin` | 4475117 | `64f2e27bd5800e68af8dda57e08ea7e5e9fcff0cc4405a934639b05b9fe589a2` |
 | `P5/parity-stale-equal.case.bin` | 10683878 | `d24d8dbf8b80f4108fead892649a7ca5d7ea73035cb565ea9760504c4003fbf4` |
 | `P5/parity-stale-equal.nothing-repaired.bin` | 10683878 | `d24d8dbf8b80f4108fead892649a7ca5d7ea73035cb565ea9760504c4003fbf4` |
 | `P5/parity-stale-geometry.case.bin` | 10683877 | `43f8662cadb24048e8e1ff7cb3e1c9051608da789826b32090d876df44fa0089` |

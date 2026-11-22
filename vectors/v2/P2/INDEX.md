@@ -218,7 +218,7 @@
 | `registry/example/3` | built and matches | P2 section 10, example 3: unsupported_registry_version, the six absent fields |
 | `registry/example/4` | built and matches | P2 section 10, example 4: signature_unverified, key_not_held, subject [3, 1], position 3 |
 | `registry/example/5` | built and matches | P2 section 10, example 5: a blob name declared at position 4 (length 5, a blob frame) and at position 9 (length 9, an external frame): one finding at position 9 |
-| `registry/example/6` | built and matches | P2 section 10, example 6: the codes of six labels of 6.1, and the reasons of the codes 5, 7, 13 and 41 |
+| `registry/example/6` | built and matches | P2 section 10, example 6: the reasons that the example names, each with its code and the finding code it qualifies: codes 1 and 2 qualify 5, codes 3 to 11 qualify 7, codes 12 and 16 qualify 13, and code 53 qualifies 41 |
 | `registry/example/7` | built and matches | P2 section 10, example 7: visibility [2, 1, 0, 0] of a read in which one suppress frame is not folded (input of the P3 vector suppress-not-folded) |
 | `registry/example/8` | built and matches | P2 section 10, example 8: suppression_unmatched, reason quad (34), at the suppress frame at position 12 |
 | `finding/missing_dependency/state_unavailable` | built and matches | a binding to a commit identifier whose every commit in the file names no state to the reader (the commit's root is false) |

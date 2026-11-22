@@ -29,7 +29,7 @@
 | `subject-relabel-algorithm` | built and matches | a valid ed record with algorithm 2, the held key unchanged |
 | `subject-relabel-key` | built and matches | a valid record with key_id of another held key |
 | `key-id-ed25519` | built and matches | E([1, PK]) is 36 bytes |
-| `key-id-composite` | built and matches | E([2, PK2]) is 1989 bytes |
+| `key-id-composite` | built and matches | the key identifier of a composite key: the input file is the 1984-byte public key (the ML-DSA-65 key of the seed 40 to 5f, then the Ed25519 key of the seed 60 to 7f), E([2, PK2]) is 1989 bytes and begins 82 02 59 07 c0 |
 | `key-held-order` | built and matches | held_keys and trusted_keys reordered and repeated: the same results |
 | `key-held-not-trusted` | built and matches | valid, authenticated false |
 | `key-trusted-not-held` | built and matches | unverified, key_not_held |
@@ -141,8 +141,8 @@
 | `auth-proof-only` | built and matches | a root that holds (a valid commit over its frames) and no signature: authenticated false |
 | `cosign-add-signature` | built and matches | a frame rewritten with a second signature: identifiers, roots and the first result unchanged |
 | `cosign-two-algorithms` | built and matches | one commit signed by ed and by cp, different keys |
-| `sign-composite-reproduce` | built and matches | the 3373-byte composite signature for a composite key and a subject: its length, SHA-256 and the 32-byte message are recorded; the ML-DSA half is the deterministic signature of FIPS 204 (the input file is empty) |
-| `sign-ed25519-reproduce` | built and matches | the signature bytes for a key and a subject of Ed25519, the deterministic signature of RFC 8032 |
+| `sign-composite-reproduce` | built and matches | the deterministic composite signature for the stated private key and subject: the value file is the 3373 bytes, the ML-DSA-65 signature of M' with the context Label and rnd of 32 zero bytes, then the Ed25519 signature of M'; it verifies under the public key file |
+| `sign-ed25519-reproduce` | built and matches | the deterministic Ed25519 signature of RFC 8032 for the seed 00 to 1f, whose public key is that of key-id-ed25519, over the subject of the stated header and frame identifiers |
 | `ed25519-key-non-canonical` | built and matches | a key with y at least p, and 01 with the sign bit set: equation_failed |
 | `cosign-after-torn-nothing` | built and matches | the file H T Q C cut inside the last value of C: no byte is written (P6-54) |
 | `cosign-append-commit` | built and matches | a second commit signed by a second key: the second signature authenticated with coverage over both commits (P6) |

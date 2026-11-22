@@ -12,6 +12,8 @@
 | `P3/terms-formed-suffix-free.bin` | 1057005 | 3757 | `8971e6d708e15c46c764e25b465ec092e58ee17a73bd320fb03c60d25c8ad540` |
 | `P4/canon-value-region-literals.source.bin` | 1311871 | 968 | `a88c06ace5ad072edc96613e6f61cf79b2497e648c58920f572a9f2d1c32f11d` |
 | `P5/parity-append-open-span.whole.bin` | 8951297 | 9484 | `909a7047b2e1a434b36850c0d0614350ef7375231edc7b8f32cca8414e29a5eb` |
+| `P5/parity-placement.crossing.bin` | 8951249 | 2264 | `dd8a9e64889fa46bc335b5ace1dcc049cd9cf3e7ce175d40c05822a5145e34bd` |
+| `P5/parity-placement.exact.bin` | 4475117 | 1964 | `e5a3975d702460806225312f2121b1c9f47366dfe5d18be547226c67c0a0ecde` |
 | `P5/recover-chain-independent.bin` | 28948732 | 6985 | `acec966dbf9c8904392f2c8c728b91900dbe44e66741156adf5e0d912c3d2a54` |
 | `P5/recover-chain-witness.bin` | 73701152 | 17920 | `1e544badbdbdc26478be5a3f803a916adb6f664d26c9448e655c80b622c22e34` |
 | `P5/recover-predecessor.bin` | 11047885 | 3411 | `33157cc690d03cde939e22f6b4782e411e7fe8e59f3b52e7a1aaa760bdd6a70d` |
