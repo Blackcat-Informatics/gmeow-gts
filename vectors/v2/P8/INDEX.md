@@ -28,7 +28,7 @@
 | `p8-padding` | built and matches |  |
 | `p8-inner-grammar` | built and matches |  |
 | `p8-inner-type` | built and matches |  |
-| `sealed-inner-newer-value` | derived from the text | a segment of registry version 3 read by a reader of version 2 that holds both keys: a sealed frame whose inner quads frame has the order 9, a value the reader does not hold, gives unsupported_critical with the subject [2, 18] of its own envelope, is opaque with unsupported_critical and counts in unopened_sealed, and the clear terms frame after it is opaque with stopped (P8-33) |
+| `sealed-inner-newer-value` | derived from the text | a segment of registry version 3 read by a reader of version 2 that holds the key: a sealed frame whose inner quads frame has the order 9, a value the reader does not hold, gives unsupported_critical with the subject [2, 18] of its own envelope, is opaque with unsupported_critical and counts in unopened_sealed, and the clear terms frame after it is opaque with stopped (P8-33) |
 | `p8-inner-payload` | built and matches |  |
 | `p8-failed-openings` | built and matches |  |
 | `p8-failed-openings-storage` | built and matches |  |
