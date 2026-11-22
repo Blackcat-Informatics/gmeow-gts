@@ -102,8 +102,9 @@ A different depth or size is a different profile, with a value of its own in the
 
 THE NESTED READ. For a nested file whose bytes the reader can rebuild, the reader reads those bytes by the procedure of `P7`
 "The reader procedure", with the registry version, the `inputs`, the `marks` and the sealing input of the outer read, the access
-`whole`, the capacity of THE SHARED ALLOWANCE (below), and with two inputs that only a nested read has: the DEPTH `d` of that file
-and the depth of every blob of the tree of the outer read (THE TREE, below). A nested read is the read of one file: it runs the
+`whole`, the capacity of THE SHARED ALLOWANCE (below), and with one input that only a nested read has: the DEPTH `d` of that file.
+The findings of its checks `4` and `5` are those that the depths of THE TREE (below) give once every nested read of the outer read
+has been made. A nested read is the read of one file: it runs the
 checks of this profile on that file with depth `d` and reads no other file; which nested files are read, and at which depth, THE
 ORDER OF THE NESTED READS (below) decides for the whole tree. The content of a nested read is not delivered. That read is
 separate: its result is not part
@@ -163,17 +164,17 @@ What the outer result carries. Exactly the findings of section 6, which judge th
 depth of the tree below them. A finding of a nested read (a damaged frame inside a nested file, its own `profile_violation`) is
 in the result of that read and is never copied into the outer result.
 
-**PF-bundle-5.** A reader MUST NOT fold, label or digest the content of a nested file into the outer file, and MUST NOT copy a
-finding of a nested read into the outer result.
+**PF-bundle-5.** A reader MUST NOT fold, label or digest the content of a nested file into the outer file, MUST NOT copy a finding
+of a nested read into the outer result, and MUST NOT deliver the content of a nested read.
 
 **PF-bundle-6.** A reader MUST read each distinct nested file (by blob name) at most once for one outer read, at the smallest
 depth at which it occurs, MUST count every depth from the outer file, and MUST NOT read a nested file of depth above `Dmax`.
 
 **PF-bundle-12.** A reader MUST make the nested reads by ascending depth, all reads of one depth before any of the next, and
 within one depth in ascending bytewise order of `E(name)` of the blob name, and MUST deliver `nested_results` beside the outer
-`read_result`, with one `nested_result` for each nested file that it read, in that order, and MUST give as the findings of the
-step `PROFILE CHECKS` of each nested result those that the checks of this profile give for the terms of that file once every
-nested read of the outer read has been made.
+`read_result`, with one `nested_result` for each nested file that it read, in that order, and MUST give, among the findings of the
+step `PROFILE CHECKS` of each nested result, as the findings of the checks of this profile those that they give for the terms of
+that file once every nested read of the outer read has been made.
 
 **PF-bundle-14.** A reader MUST make each nested read with the reader's capacity except `items_per_read`,
 `decoded_bytes_per_read`,
