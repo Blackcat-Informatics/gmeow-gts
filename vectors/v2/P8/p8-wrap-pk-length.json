@@ -1,26 +1,32 @@
 {
  "name": "p8-wrap-pk-length",
- "status": "built and matches",
- "note": "a writer given a recipient public key of 1,215 and of 1,217 bytes: an error each, no entry written (P8-60)",
+ "status": "derived from the text",
+ "section": "P8",
+ "note": "a writer judgement with no input file: a recipient public key given to a writer must be bytes of exactly 1216 bytes (P8-60), so a key of 1215 bytes and a key of 1217 bytes are each an error of the wrap call and no recipient entry is written; the reader side of a wrong length is p8-wrap-lengths",
  "cases": [
   {
-   "label": "",
-   "input_file": "p8-wrap-pk-length.bin",
-   "capacity": {
-    "stored_bytes_per_frame": 67108864,
-    "decoded_bytes_per_frame": 67108864,
-    "labelling_units": 0,
-    "labelled_lines": 67108864,
-    "decoded_bytes_per_read": 68719476736,
-    "items_per_read": 67108864,
-    "rebuilt_bytes_per_read": 137438953472,
-    "formed_bytes_per_read": 137438953472,
-    "labelled_bytes_per_read": 137438953472,
-    "access": "whole"
+   "label": "public-key-1215",
+   "writer_request": {
+    "operation": "wrap",
+    "recipient_public_key_length": 1215,
+    "recipient_public_key": "bytes of 1215 zero octets"
    },
-   "expected": null,
-   "result": {},
-   "differences": []
+   "outcome": {
+    "error_of_the_wrap_call": true,
+    "entry_written": false
+   }
+  },
+  {
+   "label": "public-key-1217",
+   "writer_request": {
+    "operation": "wrap",
+    "recipient_public_key_length": 1217,
+    "recipient_public_key": "bytes of 1217 zero octets"
+   },
+   "outcome": {
+    "error_of_the_wrap_call": true,
+    "entry_written": false
+   }
   }
  ]
 }

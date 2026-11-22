@@ -1,26 +1,36 @@
 {
  "name": "p8-key-schedule",
- "status": "built and matches",
- "note": "16.1 and RFC 5869 Appendix A cases 1 and 3",
+ "status": "derived from the text",
+ "section": "P8",
+ "note": "the key schedule of P8 section 5 for the segment key 00 to 1f: PRK = HMAC(0^32, SK), K_aead = HMAC(PRK, 82 01 01 01) and K_commit = HMAC(PRK, 82 01 02 01); a known answer of plain values with no input file; the same HKDF-SHA-256 with the test cases 1 and 3 of RFC 5869 Appendix A",
  "cases": [
   {
-   "label": "",
-   "input_file": "p8-key-schedule.bin",
-   "capacity": {
-    "stored_bytes_per_frame": 67108864,
-    "decoded_bytes_per_frame": 67108864,
-    "labelling_units": 0,
-    "labelled_lines": 67108864,
-    "decoded_bytes_per_read": 68719476736,
-    "items_per_read": 67108864,
-    "rebuilt_bytes_per_read": 137438953472,
-    "formed_bytes_per_read": 137438953472,
-    "labelled_bytes_per_read": 137438953472,
-    "access": "whole"
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   "label": "worked-example-13.1",
+   "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+   "salt": "0000000000000000000000000000000000000000000000000000000000000000",
+   "info_aead": "820101",
+   "info_commit": "820102",
+   "prk": "46bd320605c5a6b6163ab70bc6345b92a5f908e79fe58979c23ebb47d1a5e307",
+   "k_aead": "da2d6ab179deb700f11d6eb37ce9d9d0edf01cd46ca20f81d16975092e93e73f",
+   "k_commit": "0369b8f733f62e5debdac14665f5faa8530d24e5de5abdac5e8c40db2e909c89"
+  },
+  {
+   "label": "rfc-5869-a1",
+   "ikm": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+   "salt": "000102030405060708090a0b0c",
+   "info": "f0f1f2f3f4f5f6f7f8f9",
+   "length": 42,
+   "prk": "077709362c2e32df0ddc3f0dc47bba6390b6c73bb50f9c3122ec844ad7c2b3e5",
+   "okm": "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"
+  },
+  {
+   "label": "rfc-5869-a3",
+   "ikm": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+   "salt": "",
+   "info": "",
+   "length": 42,
+   "prk": "19ef24a32c717b167f33a91d6f648bdf96596776afdb6377ac434c1c293ccb04",
+   "okm": "8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8"
   }
  ]
 }

@@ -1,28 +1,78 @@
 {
  "name": "canonical/constants/storage-choice",
- "status": "built and matches",
- "note": "63 and 64 bytes and a frame that saves exactly 16 bytes",
+ "status": "derived from the text",
+ "note": "a payload is stored_compressed exactly when its decoded length is at least 64 and the encoder output plus the 16 bytes of the stored check is strictly less than the decoded length: 63 zero bytes stay plain, 64 zero bytes are compressed, 64 bytes that do not compress stay plain, the 64-byte payload whose encoder output is 48 bytes saves 16 bytes without the check and 0 with it and stays plain, and the 65-byte payload whose encoder output is 48 bytes saves 17 without the check and 1 with it and is compressed; each case has a decoded file and a stored file (<name>.<label>.stored.bin) that holds the stored bytes without the stored check",
+ "section": "P7",
  "cases": [
   {
-   "label": "",
-   "input_file": "canonical__constants__storage-choice.bin",
-   "capacity": {
-    "stored_bytes_per_frame": 67108864,
-    "decoded_bytes_per_frame": 67108864,
-    "labelling_units": 0,
-    "labelled_lines": 67108864,
-    "decoded_bytes_per_read": 68719476736,
-    "items_per_read": 67108864,
-    "rebuilt_bytes_per_read": 137438953472,
-    "formed_bytes_per_read": 137438953472,
-    "labelled_bytes_per_read": 137438953472,
-    "access": "whole"
-   },
-   "expected": null,
+   "label": "zeros-63",
+   "input_file": "canonical__constants__storage-choice.zeros-63.decoded.bin",
    "result": {
-    "found_saving_16": true
-   },
-   "differences": []
+    "decoded_length": 63,
+    "decoded_sha256": "c7723fa1e0127975e49e62e753db53924c1bd84b8ac1ac08df78d09270f3d971",
+    "encoder_output_length": 16,
+    "saving_with_stored_check": 31,
+    "storage": "plain",
+    "stored_length": 63,
+    "stored_sha256": "c7723fa1e0127975e49e62e753db53924c1bd84b8ac1ac08df78d09270f3d971",
+    "encoder": "reference encoder of P7 4.4 (libzstd level 12, window_log 26)"
+   }
+  },
+  {
+   "label": "zeros-64",
+   "input_file": "canonical__constants__storage-choice.zeros-64.decoded.bin",
+   "result": {
+    "decoded_length": 64,
+    "decoded_sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b",
+    "encoder_output_length": 16,
+    "saving_with_stored_check": 32,
+    "storage": "compressed",
+    "stored_length": 16,
+    "stored_sha256": "fe911ff08742e135d86abc5e85b82b56963743de63436f38a5de775ea0d268cb",
+    "encoder": "reference encoder of P7 4.4 (libzstd level 12, window_log 26)"
+   }
+  },
+  {
+   "label": "incompressible-64",
+   "input_file": "canonical__constants__storage-choice.incompressible-64.decoded.bin",
+   "result": {
+    "decoded_length": 64,
+    "decoded_sha256": "0799ef76f19eb9d1b652c25705f4d980254f9bd25f7a89e17b31b5772bf53206",
+    "encoder_output_length": 73,
+    "saving_with_stored_check": -25,
+    "storage": "plain",
+    "stored_length": 64,
+    "stored_sha256": "0799ef76f19eb9d1b652c25705f4d980254f9bd25f7a89e17b31b5772bf53206",
+    "encoder": "reference encoder of P7 4.4 (libzstd level 12, window_log 26)"
+   }
+  },
+  {
+   "label": "saves-16",
+   "input_file": "canonical__constants__storage-choice.saves-16.decoded.bin",
+   "result": {
+    "decoded_length": 64,
+    "decoded_sha256": "701066b5e56a975611f9a6262d781430b937233b301d251ab58da410ae0aed52",
+    "encoder_output_length": 48,
+    "saving_with_stored_check": 0,
+    "storage": "plain",
+    "stored_length": 64,
+    "stored_sha256": "701066b5e56a975611f9a6262d781430b937233b301d251ab58da410ae0aed52",
+    "encoder": "reference encoder of P7 4.4 (libzstd level 12, window_log 26)"
+   }
+  },
+  {
+   "label": "saves-17",
+   "input_file": "canonical__constants__storage-choice.saves-17.decoded.bin",
+   "result": {
+    "decoded_length": 65,
+    "decoded_sha256": "5ac370153440c63bedd32ca5d96ec8a728a9ea581bd768abb46ab079c0de3f79",
+    "encoder_output_length": 48,
+    "saving_with_stored_check": 1,
+    "storage": "compressed",
+    "stored_length": 48,
+    "stored_sha256": "7dd416fd2fc2af747df6078e0d022cd1a13700f7fb0ba7b85419a6948963e556",
+    "encoder": "reference encoder of P7 4.4 (libzstd level 12, window_log 26)"
+   }
   }
  ]
 }

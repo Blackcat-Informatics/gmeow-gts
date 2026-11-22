@@ -1,11 +1,18 @@
 {
  "name": "stream-parity-misplaced",
  "status": "built and matches",
- "note": "stream-pass with the parity frame of the first span moved two frames later: stream_parity_missing at the item that reaches the span (position 4212), count 1, beside parity_damaged (the text says parity_stale)",
+ "note": "stream-pass with the parity frame of span 0 (first 0, end 4194304) moved from position 4213 to 4215, after the ordinary frames that stood at 4214 and 4215. In the main case every byte of the moved frame is kept: its anchor is the identifier of the frame at 4212 and its identifier was made over that predecessor, so against its new predecessor (the frame that stood at 4215, now at 4214) its link is broken and its anchor differs, and it is damaged by condition 3 of the parity check: parity_damaged at 4215. In the case anchor-rewritten its anchor is the identifier of the frame that stood at 4215, now at 4214 and its identifier is made over it, so it is linked and used, and its placement fails because the item before it begins after the end of its span: parity_stale at 4215. In both cases no parity frame stands at position 4213, where the item at 4212 that reaches span 0 places it, so stream_parity_missing is at 4212 with count 1, and the unprotected tail is that of stream-pass (offset 8669421, 3618363 bytes); each input is stated as an edit of stream-pass.bin, with its length and SHA-256",
+ "section": "PF-stream 5; P5 6.6",
  "cases": [
   {
    "label": "",
-   "input_file": "stream-parity-misplaced.bin",
+   "input_edit": {
+    "file": "PF-stream/stream-pass.bin",
+    "edit": "the item at position 4213, the parity frame of span 0, moved with its bytes unchanged to stand after the item at position 4215",
+    "length": 12568601,
+    "sha256": "c687af6d114ad19fd1285f7ccfd329c3630d7f65f7e9cef5b9fcafafb5d32933"
+   },
+   "read_result_file": "stream-parity-misplaced.result.bin",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -18,39 +25,54 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {
-    "findings": [
+   "read": {
+    "profiles": [
      [
-      "parity_damaged",
-      "None",
-      "None",
-      "4215",
-      "None",
-      "None",
-      "None"
-     ],
-     [
-      "profile_violation",
-      "None",
-      "(4, 3, (2, 2))",
-      "4212",
-      "None",
-      "None",
-      "1"
-     ],
-     [
-      "unprotected_tail",
-      "None",
-      "None",
-      "None",
-      "8669421",
-      "3618363",
-      "None"
+      3,
+      2
      ]
-    ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   }
+  },
+  {
+   "label": "anchor-rewritten",
+   "input_edit": {
+    "file": "PF-stream/stream-pass.bin",
+    "edit": "the item at position 4213, the parity frame of span 0, moved with its bytes unchanged to stand after the item at position 4215, and its anchor and its identifier made over the identifier of the item at position 4215, its new predecessor",
+    "length": 12568601,
+    "sha256": "0956d62e0dd2893afa52ca3266e496a74a9a9830bf7561933df7951d8cd984b5"
    },
-   "differences": []
+   "read_result_file": "stream-parity-misplaced.anchor-rewritten.result.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [
+     [
+      3,
+      2
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   }
   }
  ]
 }

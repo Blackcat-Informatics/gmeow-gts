@@ -34,19 +34,26 @@ A case states every further input of its read or judgement:
   proof, or a result.
 - `projection`, `compaction_result`, `verify`: the projection of the fold in plain values, the encoded outcome of a
   compaction, and the outcome of a proof.
+- `input_cut`, in place of `input_file`: an input that is a prefix of a corpus file and is not stored, stated as the
+  `file`, the `length` of the prefix and its `sha256`.
+- `input_edit`, in place of `input_file`: an input that is a corpus file changed by an edit and is not stored, stated as
+  the `file`, the `edit` in words, and the `length` and `sha256` of the result.
+- `output_read_result`: the read of the file that a compaction of the case's input writes.
+- An entry that reads no file states its known answer in plain values, under keys that name them (`key`, `nonce`,
+  `plaintext`, `result` and the like).
 - `compaction`: the `profile` input of a compaction of the case's input and, where it was written, its outcome.
 - `dataset`: in an entry of IMPORT, the dataset that the file was made from, in plain values.
 - `nested_results`: in an entry of the bundle profile, the hexadecimal of the list of the records `[name, depth,
   read_result]` of the nested reads; `nested` and `children` state the same reads and the nested files in plain values.
 - `signing_rnd`: the random input with which a signature of the input was made, where it is not the deterministic one.
 
-`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,134 files.
+`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,207 files.
 
 ## Large inputs
 
-A file of at most 1 MiB stands here as it is: 6,070 files.
+A file of at most 1 MiB stands here as it is: 6,133 files.
 
-A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 35 files,
+A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 45 files,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.
 
 A larger input that does not compress to that size is not in this directory: 29 files, 579,863,179 bytes, listed in `ABSENT.md`

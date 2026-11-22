@@ -2,9 +2,9 @@
 
 | vector | outcome | notes |
 |---|---|---|
-| `p8-key-schedule` | built and matches | 16.1 and RFC 5869 Appendix A cases 1 and 3 |
-| `p8-hmac-kat` | built and matches |  |
-| `p8-aead-kat` | built and matches | the 24 vectors of RFC 8452 Appendix C.2 are the known answers of the AEAD of 16.2; the entry stores no input and no value, the vectors are those printed in the RFC |
+| `p8-key-schedule` | derived from the text | the key schedule of P8 section 5 for the segment key 00 to 1f: PRK = HMAC(0^32, SK), K_aead = HMAC(PRK, 82 01 01 01) and K_commit = HMAC(PRK, 82 01 02 01); a known answer of plain values with no input file; the same HKDF-SHA-256 with the test cases 1 and 3 of RFC 5869 Appendix A |
+| `p8-hmac-kat` | derived from the text | a known answer of HMAC-SHA-256 (RFC 2104) with a 32-byte key, the form P8-4 requires: the key 00 to 1f over the three bytes of "abc"; plain values, no input file |
+| `p8-aead-kat` | derived from the text | the 24 known answers of AES-256-GCM-SIV (RFC 8452 Appendix C.2) for the AEAD of P8 section 2, used in section 6.4 step 6: key, nonce, associated data and plaintext in hexadecimal, and the result, the ciphertext followed by the 16-byte tag; plain values, no input file |
 | `p8-seal-kat` | built and matches | every value printed in 13.2 to 13.4 |
 | `p8-seal-kat-keyless` | built and matches |  |
 | `p8-flags` | built and matches |  |
@@ -15,7 +15,7 @@
 | `p8-keys-storage` | built and matches |  |
 | `p8-index-out-of-range` | built and matches |  |
 | `p8-ordinal` | built and matches |  |
-| `p8-length` | built and matches | a sealed frame whose payload is 16 bytes: malformed with out_of_range; the case of a sealed payload of 2^27 + 17 zero bytes, whose payload digest is 402bbe4db2eb033a483ea8a024dba5d570d16358b3e96eeefd69a806308a498c, is not stored |
+| `p8-length` | built and matches | a sealed frame whose payload length is outside 17 to 2^27 + 16 bytes is malformed with reason out_of_range whether or not a key is held: a payload of 16 bytes, and a payload of 2^27 + 17 zero bytes read with a capacity of 2^28 bytes for a frame; at the default capacity the second file is not checked, its stored size exceeding the capacity |
 | `p8-sealed-storage` | built and matches |  |
 | `p8-canonical` | built and matches |  |
 | `p8-aead` | built and matches |  |
@@ -65,7 +65,7 @@
 | `p8-members-lookup` | built and matches | a lookup whose chain ends at a member index that breaks the layout of P8-62: frames uncovered after the last member index and before it (8.3) |
 | `p8-members-order` | built and matches | entries with one unit_digest at the ordinals 9 and 10, and at the member indexes 2 and 10: numeric order; the reverse is unordered_or_repeated (P8-43) |
 | `p8-wrap-order` | built and matches | recipient entries ascending, in the other order, and with one pair adjacent twice (P8-57) |
-| `p8-wrap-pk-length` | built and matches | a writer given a recipient public key of 1,215 and of 1,217 bytes: an error each, no entry written (P8-60) |
+| `p8-wrap-pk-length` | derived from the text | a writer judgement with no input file: a recipient public key given to a writer must be bytes of exactly 1216 bytes (P8-60), so a key of 1215 bytes and a key of 1217 bytes are each an error of the wrap call and no recipient entry is written; the reader side of a wrong length is p8-wrap-lengths |
 | `p8-wrap-precedence` | built and matches | one recipient entry: wrong_length, then out_of_range, then unordered_or_repeated (9.3) |
 | `p8-wrap-repeat-frames` | built and matches | the same recipient and target in two keys frames: the second entry is refused by P8-49 whether or not the first was admitted |
 | `p8-wrap-trial-order` | built and matches | three admitted recipient entries for one key: key_conflict when two held keys unwrap differently; one unwrap_failed when one fails (9.4) |
@@ -85,4 +85,4 @@
 | `p8-inner-external-length` | derived from the text | a sealed frame whose inner frame is an external with decoded_length 1, a payload of one byte and a wrong payload_digest, read with the segment key: the field rule of the inner type decides at step 8, malformed_value with out_of_range; the frame is opaque with malformed, step 9 is not run and the frame has no damaged_frame |
 | `sealed-inner-newer-value-terms` | derived from the text | a segment of registry version 3 read by a reader of version 2 that holds the key, a sealed frame whose inner terms frame has the order 9 and a clear blob frame after it: with one byte of the inner payload_digest changed the sealed frame has damaged_frame with payload_digest at step 9 and no unsupported_critical, and the blob frame is folded; without the change it gives unsupported_critical with the subject [2, 18], is opaque with unsupported_critical and counts in unopened_sealed, and the blob frame is opaque with stopped |
 
-Totals: built and matches: 78; derived from the text: 4 (82 entries).
+Totals: built and matches: 74; derived from the text: 8 (82 entries).

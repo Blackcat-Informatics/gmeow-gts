@@ -1,29 +1,48 @@
 {
  "name": "pf-example-bytes",
- "status": "built and matches",
- "note": "",
+ "status": "derived from the text",
+ "section": "PF-stream",
+ "note": "the deterministic encoding of the profile_violation findings of the worked examples of PF-stream (check 2, stream_parity_missing, at position 40 with count 1, 24 bytes) and of PF-container (check 11, container_dangling_auxiliary, with no position and count 1, 22 bytes); plain values, no input file",
  "cases": [
   {
-   "label": "",
-   "input_file": "pf-example-bytes.bin",
-   "capacity": {
-    "stored_bytes_per_frame": 67108864,
-    "decoded_bytes_per_frame": 67108864,
-    "labelling_units": 0,
-    "labelled_lines": 67108864,
-    "decoded_bytes_per_read": 68719476736,
-    "items_per_read": 67108864,
-    "rebuilt_bytes_per_read": 137438953472,
-    "formed_bytes_per_read": 137438953472,
-    "labelled_bytes_per_read": 137438953472,
-    "access": "whole"
+   "label": "stream",
+   "finding": {
+    "code": "profile_violation",
+    "code_value": 46,
+    "reason": null,
+    "subject": {
+     "form": 4,
+     "profile": 3,
+     "profile_name": "stream",
+     "check": 2
+    },
+    "position": 40,
+    "offset": null,
+    "length": null,
+    "count": 1
    },
-   "expected": null,
-   "result": {
-    "stream": "87182e810182028304038202028202182881018101820201",
-    "container": "87182e8101820283040682020b810181018101820201"
+   "encoded_hex": "87182e810182028304038202028202182881018101820201",
+   "length": 24
+  },
+  {
+   "label": "container",
+   "finding": {
+    "code": "profile_violation",
+    "code_value": 46,
+    "reason": null,
+    "subject": {
+     "form": 4,
+     "profile": 6,
+     "profile_name": "container",
+     "check": 11
+    },
+    "position": null,
+    "offset": null,
+    "length": null,
+    "count": 1
    },
-   "differences": []
+   "encoded_hex": "87182e8101820283040682020b810181018101820201",
+   "length": 22
   }
  ]
 }
