@@ -74,7 +74,22 @@ their recorded value was made with.
 
 ## What the corpus does not cover
 
-`docs/v2/FIXTURES.md` lists further inputs with their expected typed results, among them the smallest witness and the nearest
-neighbour for each boundary that the text draws between an authenticated run and a detached frame, a verified and an
-inconclusive distribution, and two blank-node scopes. An entry of that catalogue that names no entry of this corpus has no
-files here.
+Each entry of `docs/v2/FIXTURES.md` names the corpus entry that holds its files, or says why none does: the entry states a
+duty of a writer or a contract of an application that no file holds, or it is a measurement.
+
+Inputs that are not in this directory. The inputs listed in `ABSENT.md` are recorded by length and SHA-256 with their
+expected results, and a case whose input is a prefix or an edit of such a file states it by `input_cut` or `input_edit`. A
+reader of this corpus checks those cases only with the listed files at hand.
+
+Values that no second computation confirmed. Every entry was checked against the text by a reader independent of the program
+that wrote it, but some values were taken from that program without being recomputed:
+
+- the content digests of folds whose canonical labelling needs the search of `docs/v2/L1.md`, and the unit counts of the
+  entries that the labelling limit refuses;
+- the bytes of the storage level, which depend on the reference encoder;
+- the parity bytes of the spans whose shards were checked only against their digests, and the solving of a stripe outside
+  `P5/gf-toy`, `P5/recover-no-signature` and `P5/parity-placement`;
+- the wrapped keys of the sealing entries other than the known answers of `P8`.
+
+Behaviour that no entry holds. A member index missing after a full-size sealed pack (`P8/p8-members-layout-missing-small`
+holds the rule at a small size), and a file before and after an append that keeps its parity frames (`P5-27`).
