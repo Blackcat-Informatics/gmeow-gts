@@ -59,8 +59,8 @@ A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.
 
 A larger input that does not compress to that size is not in this directory: 27 files, 565,827,205 bytes, listed in `ABSENT.md`
-with their size and SHA-256. Their descriptions are here. An entry whose input is absent cannot be run until that input is
-obtained and its SHA-256 compared.
+with their size and SHA-256. Their descriptions are here. The files are in the release archive that `ABSENT.md` names;
+extract it at the root of a checkout and compare each SHA-256 before use.
 
 ## How the recorded values were obtained
 
@@ -79,7 +79,7 @@ duty of a writer or a contract of an application that no file holds, or it is a 
 
 Inputs that are not in this directory. The inputs listed in `ABSENT.md` are recorded by length and SHA-256 with their
 expected results, and a case whose input is a prefix or an edit of such a file states it by `input_cut` or `input_edit`. A
-reader of this corpus checks those cases only with the listed files at hand.
+reader of this corpus checks those cases only with the release archive that `ABSENT.md` names.
 
 Values that no second computation confirmed. Every entry was checked against the text by a reader independent of the program
 that wrote it, but some values were taken from that program without being recomputed:

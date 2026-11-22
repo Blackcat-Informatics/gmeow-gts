@@ -1,3 +1,12 @@
+# Inputs not stored in this directory
+
+These inputs do not compress under the size limit for added files. They are in the archive
+`gts-v2-corpus-absent-inputs.tar.zst` of the release `corpus-v2-inputs-1`:
+<https://github.com/blackcat-informatics/gmeow-gts/releases/download/corpus-v2-inputs-1/gts-v2-corpus-absent-inputs.tar.zst>
+(SHA-256 `49a874dccefa583f40cc75f74ab0fa1bc146ee0f6782c7b9b3da81f1a6e4464c`). Extract it at the root of a checkout with
+`zstd -dc --long=27 gts-v2-corpus-absent-inputs.tar.zst | tar -x`; each file lands at its path below `vectors/v2/`.
+Compare the SHA-256 of each file with the table before use.
+
 | file | bytes | SHA-256 |
 |---|---:|---|
 | `P4/chunker-golden.bin` | 4194304 | `f07f91e1376601061ced3044d6f6f0bee5470211fc381bf3d720a34fc0f1d7d7` |
