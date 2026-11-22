@@ -156,5 +156,7 @@
 | `sig-commit-after-detached-frame` | derived from the text | a signed valid commit after a detached frame, its root over the frames present: the three frames are authenticated through the root, the coverage of the signature is [1, 3) and anchored_frames is 1 |
 | `sig-two-after-detached-frame` | derived from the text | a signature on a detached frame and one on the frame after it: the coverages [1, 2) and [1, 3) begin at the detached frame, the frame before it is not authenticated and anchored_frames is 1 |
 | `signature-added-other-key-trusted` | built and matches | a commit with one signature and the same commit with a second signature, read with the key of the added signature alone trusted: both signatures are valid, only the added key authenticates, and the file without it is unauthenticated |
+| `composite-hedged` | built and matches | a composite signature whose ML-DSA half was made with a `rnd` that is not zero: valid, as the deterministic one; and both records of the key in one list: two results |
+| `cosign-remove-signature` | built and matches | a commit that carries two signatures, and a copy from which the second was removed: one result fewer, no finding, every identifier equal |
 
-Totals: built and matches: 151; derived from the text: 3 (154 entries).
+Totals: built and matches: 153; derived from the text: 3 (156 entries).

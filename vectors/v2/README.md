@@ -32,14 +32,15 @@ A case states every further input of its read or judgement:
   proof, or a result.
 - `projection`, `compaction_result`, `verify`: the projection of the fold in plain values, the encoded outcome of a
   compaction, and the outcome of a proof.
+- `signing_rnd`: the random input with which a signature of the input was made, where it is not the deterministic one.
 
-`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,089 files.
+`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,134 files.
 
 ## Large inputs
 
-A file of at most 1 MiB stands here as it is: 6,028 files.
+A file of at most 1 MiB stands here as it is: 6,068 files.
 
-A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 31 files,
+A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 36 files,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.
 
 A larger input that does not compress to that size is not in this directory: 30 files, 647,496,888 bytes, listed in `ABSENT.md`

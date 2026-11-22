@@ -1,0 +1,56 @@
+{
+ "name": "read/capacity/low-stated",
+ "status": "built and matches",
+ "note": "a quads frame stored plain whose decoded length is 1048577, read with decoded_bytes_per_frame 1048576: unchecked and opaque with exceeds_capacity, decoded_size, never damaged, counted in left_out; read with 67108864: verified and folded",
+ "section": "P7, \"Capacity\"; P1, \"The payload check\"",
+ "cases": [
+  {
+   "label": "decoded-1048576",
+   "input_file": "read__capacity__low-stated.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 1048576,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a00100000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a001000e7810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030200008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b187e82020101810181018081018081871181018101820201810181018202028b0218891a0010005e82020201820302810180820307808187148202181e81018202028202188982021a0010005e82021a00100001808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "read": {
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": [],
+    "marks": null
+   }
+  },
+  {
+   "label": "decoded-67108864",
+   "input_file": "read__capacity__low-stated.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a001000e7810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f482020582020582020581018202582095007c5335064e4b03571fe7c2d7d74a25c26e58eb57a2ec0151d49b6723fddc828b010b187e82020101810181018081018081871181018101820201810181018202028b0218891a0010005e8202020181018101808101808080808202582095007c5335064e4b03571fe7c2d7d74a25c26e58eb57a2ec0151d49b6723fddc8201000400",
+   "read": {
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": [],
+    "marks": null
+   }
+  }
+ ]
+}

@@ -1,0 +1,56 @@
+{
+ "name": "read/labelling/guaranteed-size-boundary",
+ "status": "built and matches",
+ "note": "a guaranteed fold of 1000 lines read with labelling_units 0: labelled with labelled_lines 1000, and refused by size with 999, every frame folded",
+ "section": "P7, \"Capacity\"; \"Honouring `hostile`\"",
+ "cases": [
+  {
+   "label": "lines-1000",
+   "input_file": "read__labelling__guaranteed-size-boundary.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 1000,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001903e81b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000191c51810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820ff1a21b975b90b168f876e5d4ee0f962bb5b86f2e0acfd45c8e3c140ccafbdd1838b010b191399820201018101810180810180808b021913a419083b820202018101810180810180808b03191bdf187282020e01810181018081028080808082025820ff1a21b975b90b168f876e5d4ee0f962bb5b86f2e0acfd45c8e3c140ccafbdd18201000200",
+   "read": {
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": [],
+    "marks": null
+   }
+  },
+  {
+   "label": "lines-999",
+   "input_file": "read__labelling__guaranteed-size-boundary.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 999,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001903e71b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000191c51810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b191399820201018101810180810180808b021913a419083b820202018101810180810180808b03191bdf187282020e018101810180810280808187181a82021855810181018101810181018187181a820218558101810181018101810181018201000200",
+   "read": {
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": [],
+    "marks": null
+   }
+  }
+ ]
+}

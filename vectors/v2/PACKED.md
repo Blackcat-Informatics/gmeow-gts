@@ -23,6 +23,11 @@
 | `P7/idx-local-opaque-before.five-plus-2-28.bin` | 268436707 | 9455 | `ec23e1f24a185c0bc3125983976a63de0c8309a13d72d9b840206f6289817387` |
 | `P7/idx-placement.graph.bin` | 4590706 | 13809 | `21dc0487455afddd424e0d4d2b24a41f00143ec814751fd4bf89f4f5de98d989` |
 | `P7/idx-placement.unit.bin` | 4590706 | 13809 | `21dc0487455afddd424e0d4d2b24a41f00143ec814751fd4bf89f4f5de98d989` |
+| `P7/read__capacity__low-stated.bin` | 1048807 | 326 | `d349f4dfac5bc6551d21c654da480c75d4196d2600330653db218e05de9759ef` |
+| `P7/read__capacity__sixteenth.fold-size.bin` | 8389107 | 704 | `79fdd605b23761873a121608397a8f83287f551e1c9f23de8cca5f89e6f3cdf3` |
+| `P7/read__capacity__sixteenth.labelled-weight.bin` | 4001131 | 482 | `e5ec34ccd8f5d36f310233292de782a630c17160fb2b5f87ed1b4e66939da250` |
+| `P7/read__capacity__sixteenth.stored-size.bin` | 4194439 | 292 | `cdb007f4a282b46ede96a01fa3e17f3e909a65c5d3d85ce8d3a2616531388cd0` |
+| `P7/read__three-accesses-after-region.bin` | 4590706 | 13809 | `ed5fa8a226ea603383c5ee57a5c1faaf2512843b384c8ced9a7d9170ea775d17` |
 | `P7/stream-delivery-order.identifier-replaced.bin` | 4507392 | 57522 | `4da787ffba4f5f341351841458d1dc46e8cac846af2e80e4d5dd58a2dc6f2cec` |
 | `P7/stream-delivery-order.plain.bin` | 4507392 | 57518 | `70e707e6ffb2bbb984bfd75c03fe59142d6e1b331528a9e38803b50177e3a621` |
 | `P7/stream-parity-long-item.bin` | 76077167 | 4330 | `ea297cfa7644378bbb0e114fdbe74cb3a733b40ad3235dc71eabc1e389682545` |

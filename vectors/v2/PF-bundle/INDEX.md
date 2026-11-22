@@ -28,5 +28,6 @@
 | `bundle-shared-labelled` | built and matches | two nested files of depth 1, each of one segment whose fold weighs W (a total labelled weight of 2W when its own fold and its file's fold are labelled), the outer file with a total labelled weight V, read with labelled_bytes_per_read V + 2W: the first nested read made with labelled_bytes_per_read 2W and both of its folds labelled; the second made with 0, its own fold and its file's fold refused with refusal_weight; each nested result states its capacity (PF-bundle-14) |
 | `bundle-refused-order` | built and matches | bundle-pass with two blank nested-file terms, read with labelled_lines below the size: the same profile_violation findings (none) and counts as bundle-pass, plus labelling_refused in the file's findings; nested reads in ascending E(name) of the blob names, unchanged |
 | `bundle-refused-violations` | built and matches | three blank nested-file terms failing checks 1, 3 and 4, labelling refused: the findings and counts equal those of the same file read with enough capacity (the order decides no count) |
+| `bundle-signed-file-whole` | derived from the text | a nested file whose last commit carries two signatures, carried whole as a blob: the blob is complete, no check fails, and the result of the nested read holds both signature results |
 
-Totals: built and matches: 26 (26 entries).
+Totals: built and matches: 26; derived from the text: 1 (27 entries).

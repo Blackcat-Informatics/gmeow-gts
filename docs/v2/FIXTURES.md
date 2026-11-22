@@ -501,12 +501,15 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 
 ### FX-040 Deterministic signing
 
-- Input: one fixed composite key and one fixed `ed25519` key, and the subject of the worked example "The subject and its
-  bytes" of `P6`. Each of two writers makes the signature twice with each key.
+- Input: one fixed composite key and one fixed `ed25519` key, and one subject: a frame identifier, with the header identifier of
+  its segment, as the worked example "The subject and its bytes" of `P6` forms one. Each of two writers makes the signature twice
+  with each key.
 - Result: four equal signature values for each key. The ML-DSA half is the output of the deterministic variant of FIPS 204,
   with `rnd` of 32 zero bytes. A writer that is given the signature a second time for the same frame leaves its `signatures`
   list unchanged.
 - Rule: `P6`, "Signing"; "Co-signing and pinning" (no signature equal to one already present).
+- Corpus: none is the case. The nearest are `P6/sign-ed25519-reproduce` and `P6/sign-composite-reproduce`, which record the
+  signature value for a subject of their own.
 
 ### FX-041 A hedged signature verifies
 
@@ -518,6 +521,7 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Result: the status is `valid`, and `authenticated` is as for the deterministic signature. No finding is made. The second
   input has two `signature_result` records of one `key_id`, each reported by itself.
 - Rule: `P6`, "Signing" (no outcome of reading depends on the rule); "The signature record"; "Co-signing and pinning".
+- Corpus: `P6/composite-hedged` is the case: `hedged` for the first input, `both` for the second.
 
 ### FX-042 A receipt whose signature is removed
 
@@ -531,12 +535,14 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   signatures. For the third file, the receipt is accepted from the read of the nested file.
 - Rule: `P6`, "The signature record" and "What a signature binds and authenticates"; `P4`, "The rebuild"; `PF-bundle`, "What a
   reader reports about nested content".
+- Corpus: `P6/cosign-remove-signature` is the copy, in its cases `two-signatures` and `second-removed`;
+  `PF-bundle/bundle-signed-file-whole` is the third file, with its `nested_results`.
 
 ## 7. `P7`: capacity
 
 ### FX-043 A reader of a low stated capacity, and one frame beyond it
 
-- Input: a file of one segment with one `quads` frame, stored plain, whose `decoded_length` is `1048577`.
+- Input: a file of one segment with a `terms` frame and one `quads` frame, stored plain, whose `decoded_length` is `1048577`.
 - Read: `decoded_bytes_per_frame` `1048576`, every other field at its minimum value. A second read with
   `decoded_bytes_per_frame` `67108864`.
 - Result: the `capacity` of the result holds `1048576`. The frame has the payload state `unchecked` and the finding
@@ -544,17 +550,21 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   `damaged`. `left_out` counts it. The reader does not claim the minimum capacity. In the second read the frame is `verified`
   and folded.
 - Rule: `P7`, "Capacity", MINIMUM CAPACITY and ORDER OF JUDGEMENT; `P1`, "The payload check" (its capacity step).
+- Corpus: `P7/read/capacity/low-stated` is the case: `decoded-1048576`, then `decoded-67108864`.
 
 ### FX-044 Two readers of one low capacity agree at every limit
 
-- Input: the file of FX-043, and one file for each of the other limits, each the smallest file that exceeds one sixteenth of
-  the minimum value by one unit. The limits: the stored size, the total decoded length, the number of items, the total formed
-  length, the total rebuilt length, the size of a fold, the total labelled weight.
+- Input: one file for each limit, each one unit above one sixteenth of the minimum value. The limits: the stored size, the decoded
+  size, the total decoded length, the total formed length, the total rebuilt length, the size of a fold, the total labelled
+  weight. The number of items is not among them: a read that stops at that limit judges every item before the stop, and its result
+  is too large to record.
 - Read: two readers with the same `capacity`, each field at one sixteenth of its minimum value.
-- Result: for each file the two `read_result` values are equal byte for byte, and each holds exactly one refusal, of the limit
-  that the file was built for: `exceeds_capacity` with `stored_size`, `total_decoded`, `item_count`, `total_formed` or
-  `total_rebuilt`, or `labelling_refused` with `refusal_size` or `refusal_weight`.
+- Result: for each file the two `read_result` values are equal byte for byte, and each holds the refusal of the limit that the
+  file was built for and of no other: `exceeds_capacity` with `stored_size`, `decoded_size`, `total_decoded`, `total_formed` or
+  `total_rebuilt`, once; `labelling_refused` with `refusal_size` in the list of the segment and in the list of the file;
+  `labelling_refused` with `refusal_weight` in the list of the file only, the own fold of the segment being admitted.
 - Rule: `P7`, "Capacity" (one result for one capacity), ORDER OF JUDGEMENT.
+- Corpus: `P7/read/capacity/sixteenth` is the case, one case for each of the seven limits. It records the result of one reader.
 
 ### FX-045 The claim of the minimum capacity, and its boundary
 
@@ -565,16 +575,20 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Result: the first and the third claim the minimum capacity. The second does not, and it conforms. The reader of the first
   claim reads the frame with the payload state `verified` and no `exceeds_capacity`.
 - Rule: `P7`, "Capacity", MINIMUM CAPACITY.
+- Corpus: none is the case for the claim records. `P7/read/capacity/minimum` is the read of a frame whose `decoded_length` is
+  `67108864`; `P7/conformance/claim` is the first claim record.
 
 ### FX-046 A `guaranteed` input and the labelling limits of a small reader
 
 - Input: a fold of `1000` lines, for which the predicate `guaranteed` of `L1` holds.
 - Read: `labelling_units` `0` and `labelled_lines` `1000`; then the same with `labelled_lines` `999`.
 - Result: first read: the fold is labelled, and the content digest is `present`. Second read: `labelling_refused` with
-  `refusal_size`, made before `L1` is called; the content digest is `absent`; every frame is folded and `left_out` does not
+  `refusal_size`, in the list of the segment and in the list of the file, made before `L1` is called; the content digest is
+  `absent`; every frame is folded and `left_out` does not
   move.
 - Rule: `P7`, "Capacity" (`labelling_units` is never applied to a `guaranteed` input; `labelled_lines` is applied to every
   input); `P7`, "Honouring `hostile`", WHAT THE CONTENT DIGEST AND THE COUNT SHOW.
+- Corpus: `P7/read/labelling/guaranteed-size-boundary` is the case: `lines-1000`, then `lines-999`.
 
 ### FX-047 A stopped read, and a refusal by the labelling limit
 
@@ -586,20 +600,19 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   anywhere; the interface reports that the read did not complete. Run three: a `read_result` with `labelling_refused` and the
   reason `refusal_limit`, equal for every reader with that capacity.
 - Rule: `P7`, "Conformance"; `L1`, "The walk and the outcome of a limit", THE FREEDOM OF AN ENGINE.
+- Corpus: none is the case for runs one and two, which give no result. `P7/read/labelling/limit` is a run of the kind of run
+  three.
 
 ### FX-048 A frame that is malformed and also above capacity
 
 - Input: frames to which several opaque reasons apply, among them a frame above capacity that is also malformed.
-
 - Result: each frame carries the first reason in the order of precedence of the opaque reasons: `malformed` stands before
   `exceeds_capacity`.
 - Rule: `P2`, "Enumerations of the typed result" (`opaque_reason`); `P7`, "Where each finding stands, and in what order".
-- Corpus: none holds a frame that is `malformed` and above capacity. The nearest is `P7/read/fold-precedence`: it records ten
-  pairs of opaque reasons, among them `malformed` before `chain_break`, `damaged` and `stopped`, and `exceeds_capacity` before
-  `unknown_frame_type`, and holds the input of the first pair only; it agrees. `P3/terms-formed-malformed-first` is a `terms`
-  frame that is malformed and above the total formed length, reported `malformed_value` and not charged. `P7/read/capacity/order`,
+- Corpus: `P7/read/fold-precedence-each` is the case: one file for each pair of opaque reasons, and in its case
+  `malformed-exceeds-capacity` a frame that is `malformed` and above capacity. `P7/read/capacity/order`,
   `P5/parity-above-capacity-and-damaged` and `P9/convert/order-earlier-item-wins` state the order of the capacity limits of a
-  read, of the findings of a parity frame and of the stops of a conversion; all agree.
+  read, of the findings of a parity frame and of the stops of a conversion.
 
 ## 8. `P7`: the accesses
 
@@ -609,13 +622,16 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   declaration, a term that names it by reference and a row that uses the term; a blob declared by a `recipe`; a final signed
   commit; one changed byte in a payload inside a span that has its parity frame.
 - Read: once with the access `forward` and `end` true; once with the access `whole`.
-- Result: `forward`: every row is delivered at its frame, the hidden row before the entry that hides it. The row by reference
-  is delivered by reference. `content_digest` is `absent`. Every rebuild has the state `not_run`. The damaged frame is
-  `damaged`, and nothing is repaired. `integrity` is that of the items read. `whole`: the frame is `damaged` as well, since the
-  result reports the input as it is; the finding `repaired` is added and the repaired copy holds the restored bytes; the fold is
+- Result: `forward`: every row of a frame that folds is delivered at its frame, the hidden row before the entry that hides it. The
+  row by reference
+  is delivered by reference. `content_digest` is `absent`. Every rebuild has the state `not_run`. The damaged frame is `damaged`,
+  its parity frame gives `parity_mismatch` with `data`, and nothing is repaired. `integrity` is that of the items read. `whole`:
+  the frame is `damaged` as well, since the result reports the input as it is; the same `parity_mismatch` stands, the finding
+  `repaired` is added and the repaired copy holds the restored bytes; the fold is
   formed, the row is hidden in the visible dataset, the value and the blob rebuild, and the content digest
   is `present`.
 - Rule: `P7`, "Access: the steps by access", STEPS BY ACCESS and FIELDS BY ACCESS; "Reading as a stream".
+- Corpus: `P7/stream-forward-and-whole` is the case: `forward`, then `whole`.
 
 ### FX-050 One input under the three accesses
 
@@ -628,24 +644,25 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   later frames are not read. `sparse`: the rows of the frames that the index places, each frame verified locally, with no
   chain membership, no authentication and no `anchored_frames`.
 - Rule: `P7`, "Access: the steps by access" and "Reading by range"; `P1`, "The predecessor and transparent frames".
-- Corpus: no entry reads one input with all three. `P5/recover-c` and `P7/read/resume` are the `whole` half: the frame after the
-  parity frame is detached and `anchored_frames` is `1`; they agree. `P7/stream-no-resume` is one input under `whole` and
-  `forward`, in which the `anchor` is true and no frame is detached; it agrees. `P7/idx-local-after-parity` is the `sparse` half,
-  a frame verified with the `anchor` of the parity frame before it; it agrees.
+- Corpus: `P7/read/three-accesses-after-region` reads one input with all three: `whole`, `forward`, `sparse`. `P5/recover-c` and
+  `P7/read/resume` are the `whole` read of a larger input, and `P7/idx-local-after-parity` the `sparse` read of another; they
+  agree.
 
 ## 9. `P7`: reading by range
 
 ### FX-051 An answer over a false `offsets` item
 
 - Input: a file of two segments `S1` and `S2`, whose dictionaries have the same number of terms with different texts. The
-  `offsets` item of `S2` is written again so that the places of its covered `terms` frames are those of the `terms` frames of
-  `S1`, with lengths that match. The locator and the index of `S2` are left as they are.
+  `offsets` item of `S2` is written again so that the places of its header and of its covered `terms` frames are those of the
+  header and the `terms` frames of `S1`, one length covering the bytes between them and the next frame of `S2`. The index of `S2`
+  is left as it is; the locator is written again at its new place, with the distance to the same index.
 - Built: the `offsets` item is under no identifier, so the change alters no identifier.
 - Read: the access `sparse`, with a query for a graph of `S2`; then the access `whole`.
 - Result: `sparse`: every frame read is verified locally. The answer is `answered`, and its rows are the rows of `S2` resolved
   over the dictionary of `S1`: rows that no whole read gives. `whole`: the rows of `S2` over its own dictionary; the `offsets`
-  item is checked where the reader meets it and changes no state.
+  item is checked where the reader meets it, gives `index_claim_failed` with `index_offsets`, and changes no state.
 - Rule: `P7`, "Reading by range", WHAT AN ANSWER ESTABLISHES, AND WHAT IT DOES NOT; `P5`, "The `offsets` item and the locator".
+- Corpus: `P7/idx-false-offsets-whole` is the case: `sparse`, then `whole`. Its input is that of `P7/idx-mixed-chains`.
 
 ### FX-052 The same query on the true file
 
@@ -654,16 +671,18 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Result: `answered`, with the rows that the whole read gives for that graph, a term by reference where the dictionary holds
   it by reference.
 - Rule: `P7`, "Reading by range", THE ANSWER.
+- Corpus: `P7/idx-true-offsets` is the case.
 
 ### FX-053 A query by range for a blob of several units
 
-- Input: a canonical segment with a blob `N` declared by a `recipe` over three chunks `u1`, `u2`, `u3`, and a blob `K` held by
-  one `blob` frame.
+- Input: a canonical segment whose blob pack holds a blob `N` declared by a `recipe` member over three `chunk` members `u1`, `u2`,
+  `u3`, and a blob `K` held by one `blob` member.
 - Read: the access `sparse`, with three queries of the target `unit`: the digest of `N`; the digest of `u2`; the digest of
   `K`. Then the access `whole`.
 - Result: the first query is `answered` with no item. The second is `answered` with the unit `u2`. The third is `answered`
   with the bytes of `K`. The whole read gives `N` in the blob set with its rebuild verified.
 - Rule: `P7`, "Reading by range", THE QUERY and the step THE FRAMES OF THE TARGET; `P5`, "The `index` frame" (`pack_members`).
+- Corpus: `P7/idx-unit-recipe-and-blob` is the case: `blob-of-three-units`, `second-unit`, `blob-of-one-unit`, then `whole`.
 
 ### FX-054 Joined requests, read-ahead and a read-ahead that fails
 
@@ -685,20 +704,22 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 
 ### FX-055 The compaction of a source that was read with every key
 
-- Input: (a) the fold of the read of the file `X'` in FX-067 (section 11), then `compact` with `profile` `absent`. (b) A file
+- Input: (a) the fold of the read of the file `X'` with every key, as in FX-069 (section 11), then `compact` with `profile`
+  `absent`. (b) A file
   built as that of FX-073, but with the sealed frames of each audience holding a `terms` frame and a `quads` frame, an unsigned
   commit, and a clear `suppress` frame that hides one private row, read with both keys, so that `visible` is `complete`;
   then `compact` with `profile` `absent`.
 - Result: `[1, file]` in both. The file is one clear segment with `canonical` `present`. It holds no `keys` and no `sealed`
-  frame, and its commit has an empty `signatures` list. In (a) it holds the lines of all four segments, the row `q`, and a
-  `suppress` frame with the entry that hides `q`; a keyless reader of it folds everything and reports `visible` `[1, 1]`. In
+  frame, and its commit has an empty `signatures` list. In (a) it holds the five lines of the four segments, among them the row
+  `q`, and a `suppress` frame with the one entry that hides `q`; a keyless reader of it folds everything and reports `visible`
+  `[1, 1]`. In
   (b) it holds the public rows, the rows of both private audiences and the hidden row.
 - Application: the publication of this file is refused: no export scope was selected. The publishing workflow selects the
   scope before it compacts. For (a) the public release is the compaction of the file that holds the bytes of segment `0`
   alone, signed after compaction. The workflow does not sign a canonical file made from a read that opened sealed frames
   outside the scope, and it reports the scope of the source and the scope of the output apart.
 - Rule: `P7`, "The construction, from a fold to the item sequence" and "Compaction"; `P8`, "The inner frame".
-- Corpus: `P7/canonical/compaction/keyed-source` is (b). No entry is (a).
+- Corpus: `P7/canonical/compaction/keyed-source` is (a) in its case `all-segments` and (b) in its case `two-audiences`.
 
 ### FX-056 The compaction of a read that refused a `terms` frame
 
