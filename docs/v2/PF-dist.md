@@ -94,7 +94,8 @@ is a check of section 5 or a numbered requirement on a writer, a reader or a con
 `canonical_form_v1`, with `canonical` `present(canonical_form_v1)`.
 
 **PF-dist-5.** A writer MUST NOT write a distribution file whose canonical file holds a frame with `decoded_length` above `Cd`
-or a `payload` longer than `Cs`: the fold has no distribution file, and the writer MUST NOT hand the canonical file that
+or a `payload`, a `content` element or a `signatures` element longer than `Cs`: the fold has no distribution file, and the writer
+MUST NOT hand the canonical file that
 compaction returns for it (`P7`, "Compaction") to its caller as one.
 
 **PF-dist-6.** A writer MUST NOT write a frame of type `keys` or `sealed` in a distribution file.
@@ -119,7 +120,7 @@ whose header `profile` is `present(dist)`. Each failing check is the finding `pr
 | `dist_not_canonical` | the canonical result of the segment has `claimed` `false` (`P7`, "The canonical check"), or the canonical check gives its structure or its labelling level the state `failed` | absent | absent | the segment |
 | `dist_not_alone` | the file holds a segment other than this one | absent | the number of segments of the file | the segment |
 | `dist_decoded_size` | a frame has `decoded_length` above `Cd` | the frame | the `decoded_length` | each such frame |
-| `dist_stored_size` | a frame has a `payload` of more than `Cs` bytes | the frame | the length of `payload` | each such frame |
+| `dist_stored_size` | a frame has a `payload`, a `content` element or a `signatures` element of more than `Cs` bytes | the frame | the length of the first of the three, in that order, that is above `Cs` | each such frame |
 | `dist_sealed_frame` | a frame has as its `frame_type` the `uint` `17` or `18` (`keys`, `sealed`), compared as read whatever the reader's registry version | the frame | absent | each such frame |
 
 `offset` and `length` are absent in every finding of this profile (`P2`, "The fields of a finding that are present"). A finding

@@ -9,8 +9,8 @@ Title of this document, as the profile table of `P2` names it: `Profile PF-bundl
 
 This profile defines a BUNDLE: a file some of whose blobs are themselves files of this generation. It gives one typed way to say
 that a blob is a nested file, bounds the depth of nesting and the size of a nested file by constants, and states what a reader
-reports about nested content. It is the value `4` `bundle` of the profile table, has five checks of its own and one class IRI
-and two constants; it adds no value to any enumeration of the core and uses no frame type of its own.
+reports about nested content. It is the value `4` `bundle` of the profile table, has five checks of its own, one class IRI, two
+constants and one record; it adds no value to any enumeration of the core and uses no frame type of its own.
 
 It depends on these parts, cited by part and section title:
 
@@ -102,10 +102,11 @@ A different depth or size is a different profile, with a value of its own in the
 
 THE NESTED READ. For a nested file whose bytes the reader can rebuild, the reader reads those bytes by the procedure of `P7`
 "The reader procedure", with the registry version, the `inputs`, the `marks` and the sealing input of the outer read, the access
-`whole`, the capacity of THE SHARED ALLOWANCE (below), and with the DEPTH of that file in the tree of the
-outer read (below). The depth is carried through every nested read: a nested read of a file at depth `d` runs the checks of this
-profile on that file with depth `d`, reads its own nested files at depth `d + 1`, reads no nested file when `d` is `Dmax`, and
-reads no blob that has already been read in the ORDER OF THE NESTED READS (below). That read is separate: its result is not part
+`whole`, the capacity of THE SHARED ALLOWANCE (below), and with two inputs that only a nested read has: the DEPTH `d` of that file
+and the depth of every blob of the tree of the outer read (THE TREE, below). A nested read is the read of one file: it runs the
+checks of this profile on that file with depth `d` and reads no other file; which nested files are read, and at which depth, THE
+ORDER OF THE NESTED READS (below) decides for the whole tree. The content of a nested read is not delivered. That read is
+separate: its result is not part
 of the outer `read_result`,
 and the outer fold, the outer labelled set, the outer content digest, `integrity` and `authenticity` hold the nested file as a
 blob and nothing else. A nested file's frames are never frames of the outer segment and its lines are never lines of the outer
@@ -123,8 +124,11 @@ THE ORDER OF THE NESTED READS. Depths are assigned in ascending order: the neste
 of depth `d`, and all the reads of one depth are made before any read of the next. Within one depth the nested files are read in
 ascending bytewise order of `E(name)` of the blob name (the bytes compared as unsigned integers from the first byte, a proper
 prefix before the longer string), each distinct blob once. A blob is read at the smallest depth at which any file that is read
-binds it; a blob already read at a smaller depth, or earlier at the same depth in this order, is not read again. The results of
-the nested reads are listed in this order, and a nested file that is not read has no entry.
+binds it; a blob already read at a smaller depth, or earlier at the same depth in this order, is not read again. The reader
+delivers beside the outer `read_result` the list `nested_results` of records `nested_result = [name: qualified_name, depth: uint,
+result: read_result]`, one for each nested file that is read, in this order, `name` the blob name, `depth` the depth at which it
+was read and `result` the result of its nested read; the list is empty when no nested file is read. The findings of the step
+`PROFILE CHECKS` of a nested result are those that its checks give once every nested read of the outer read has been made.
 
 THE SHARED ALLOWANCE. An outer read and all its nested reads draw on ONE allowance of each of the five totals of a read of `P7`
 "Capacity": the items delimited (`items_per_read`), the total decoded length (`decoded_bytes_per_read`), the total rebuilt
@@ -151,8 +155,9 @@ front-coded text and weigh at most `labelled_bytes_per_read` bytes of labelled l
 addition, each
 nested read takes at most `Smax` bytes of input, each distinct blob is read once, and no file of a depth above `Dmax` is read. Let
 `E_1` be the number of distinct nested files of the outer file, and `E_(d+1)` the number of distinct nested files of the files
-read at depth `d`; the nested reads of one outer read take at most `Smax * (E_1 + ... + E_Dmax)` bytes of input. The bound is a
-function of the reader's capacity, the outer file and the two constants.
+read at depth `d`; the nested reads of one outer read take at most `Smax * (E_1 + ... + E_Dmax)` bytes of input. The limited units
+of the labellings are bounded for each fold and not for the read (`P7`, "Capacity"). The bound is a function of the reader's
+capacity, the outer file and the two constants.
 
 What the outer result carries. Exactly the findings of section 6, which judge the nested-file terms of the outer fold and the
 depth of the tree below them. A finding of a nested read (a damaged frame inside a nested file, its own `profile_violation`) is
@@ -165,10 +170,13 @@ finding of a nested read into the outer result.
 depth at which it occurs, MUST count every depth from the outer file, and MUST NOT read a nested file of depth above `Dmax`.
 
 **PF-bundle-12.** A reader MUST make the nested reads by ascending depth, all reads of one depth before any of the next, and
-within one depth in ascending bytewise order of `E(name)` of the blob name, and MUST list the results of the nested reads in
-that order.
+within one depth in ascending bytewise order of `E(name)` of the blob name, and MUST deliver `nested_results` beside the outer
+`read_result`, with one `nested_result` for each nested file that it read, in that order, and MUST give as the findings of the
+step `PROFILE CHECKS` of each nested result those that the checks of this profile give for the terms of that file once every
+nested read of the outer read has been made.
 
-**PF-bundle-14.** A reader MUST make each nested read with its own capacity except `items_per_read`, `decoded_bytes_per_read`,
+**PF-bundle-14.** A reader MUST make each nested read with the reader's capacity except `items_per_read`,
+`decoded_bytes_per_read`,
 `rebuilt_bytes_per_read`, `formed_bytes_per_read` and `labelled_bytes_per_read`, each of which MUST be the reader's value
 less what the outer read and the nested reads before it, in the order of the nested reads, have used, and MUST state those
 values in the `capacity` of the nested result.
@@ -179,15 +187,17 @@ capacity-limited.
 
 ## 5. What the profile adds, and what it never changes
 
-The profile consists of its checks (section 1), the class of section 2, the constants of section 3 and the conditions of section
-6.
+The profile consists of its checks (section 1), the class of section 2, the constants of section 3, the record `nested_result` of
+section 4 and the conditions of section 6.
 
 It changes none of these: the header grammar, the frame envelope and every content record, the grammar of the `bindings` frame
 and its referent kinds, framing, identifiers, every hash and signature preimage, the codec rules, the fold, the labelled set,
 the content digest, the canonical form, and the registry and the meaning of any of its values.
 
 **PF-bundle-7.** A reader or writer that implements this profile MUST give, for every input, the result that the parts it depends
-on give, with the findings of this document added and nothing else changed; every rule of this
+on give, with the findings of this document added, the list `nested_results` of section 4 delivered beside the `read_result`, and
+the `capacity` of a nested result as section 4 states it, whether or not it lies below the minimums of `P7`, and nothing else
+changed; every rule of this
 document is a check of section 6 or a requirement on a writer or a reader.
 
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
