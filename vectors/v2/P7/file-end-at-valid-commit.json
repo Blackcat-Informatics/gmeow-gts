@@ -1,0 +1,69 @@
+{
+ "name": "file-end-at-valid-commit",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "end at_valid_commit, left_out 0",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "file-end-at-valid-commit.bin",
+   "length": 323,
+   "sha256": "29ee4a6f74506d90da3f6260e49104f89350c9adcd689144304cac5b23917697",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190143810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15838b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d1187282020e01810181018081028080808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "4705c2fd02abba0c7736a540959b9be9ef5c5cfe7342a9d1e6b9346dd4b7b526",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "end at_valid_commit, left_out 0"
+   }
+  }
+ ]
+}

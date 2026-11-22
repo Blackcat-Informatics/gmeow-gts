@@ -1,0 +1,313 @@
+{
+ "name": "ser-deep-list",
+ "section": "10.1",
+ "status": "built and matches",
+ "note": "1000000 heads 81 in the content of a frame of type 99 (critical false), registry_version 2, reader 1; the depth changes neither result",
+ "cases": [
+  {
+   "label": "array-00",
+   "input_file": "ser-deep-list.array-00.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a000f429b8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b1a000f42908202186301810181018082030380828705820202820282021863820201810181018101871181018101820201810181018202018187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        {}
+       ]
+      ],
+      "frames": [
+       {
+        "findings": [
+         [
+          "unknown_enumeration_value",
+          "unknown_frame_type",
+          {
+           "subject": [
+            2,
+            99
+           ]
+          }
+         ]
+        ],
+        "fold": "opaque(unknown_frame_type)"
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 1000091,
+       "header_outcome": "readable",
+       "header_identifier": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+       "registry_version": 2,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact",
+       "head": "6ab14fcfbcc06316ca76a709915d240de1417d73f1d74b21936f129e0dfc2f43",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 1000080,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 1000080,
+         "frame_type": 99,
+         "link": "linked",
+         "predecessor": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+         "effective_identifier": "6ab14fcfbcc06316ca76a709915d240de1417d73f1d74b21936f129e0dfc2f43",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "opaque",
+          "reason": "unknown_frame_type"
+         },
+         "findings": [
+          {
+           "code": "unknown_enumeration_value",
+           "reason": "unknown_frame_type",
+           "subject": [
+            2,
+            99
+           ],
+           "position": 1
+          },
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 1
+          }
+         ]
+        }
+       ],
+       "findings": [
+        {
+         "code": "unsupported_registry_version"
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  },
+  {
+   "label": "array-a0",
+   "input_file": "ser-deep-list.array-a0.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a000f429b8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b1a000f429082021863038101810180820302808387058202028202820218638202018101810181018707820204810182020182020b82021a000f42908101871181018101820201810181018202018187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        {}
+       ]
+      ],
+      "frames": [
+       {
+        "findings": [
+         [
+          "unknown_enumeration_value",
+          "unknown_frame_type",
+          {
+           "subject": [
+            2,
+            99
+           ]
+          }
+         ],
+         [
+          "malformed_value",
+          "wrong_type",
+          {}
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 1000091,
+       "header_outcome": "readable",
+       "header_identifier": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+       "registry_version": 2,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "damaged",
+       "head": "f1ab23ff641f63f62977c585b3ab1ec0d8456f40b1c7a121d43fcdbf91eded19",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 1000080,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 1000080,
+         "frame_type": 99,
+         "link": "broken",
+         "predecessor": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+         "effective_identifier": "f1ab23ff641f63f62977c585b3ab1ec0d8456f40b1c7a121d43fcdbf91eded19",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "opaque",
+          "reason": "malformed"
+         },
+         "findings": [
+          {
+           "code": "unknown_enumeration_value",
+           "reason": "unknown_frame_type",
+           "subject": [
+            2,
+            99
+           ],
+           "position": 1
+          },
+          {
+           "code": "malformed_value",
+           "reason": "wrong_type",
+           "position": 1,
+           "offset": 11,
+           "length": 1000080
+          },
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 1
+          }
+         ]
+        }
+       ],
+       "findings": [
+        {
+         "code": "unsupported_registry_version"
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

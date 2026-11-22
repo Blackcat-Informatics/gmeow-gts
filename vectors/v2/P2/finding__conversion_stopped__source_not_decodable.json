@@ -1,0 +1,47 @@
+{
+ "name": "finding/conversion_stopped/source_not_decodable",
+ "status": "built and matches",
+ "note": "a source frame whose codec is outside the baseline of the first-generation format (input of the P9 vector convert/unknown-codec)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__conversion_stopped__source_not_decodable.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 47,
+    "reason": 78,
+    "severity": "fatal",
+    "readings": [
+     {
+      "input_hex": "d9d9f7a56176016269645820198fa179ddcdcd1883382555f221797b69c5c2cc96206eec2c0d307a68392eec63636174a400a263636c7366656e636f6465646e616d65686964656e7469747901a263636c7368636f6d7072657373646e616d6564677a697002a263636c7368636f6d7072657373646e616d65647a73746403a263636c7368636f6d7072657373646e616d656a66726f626e69636174656367747364475453316470726f666767656e65726963a561644278786174657465726d73617881036269645820e93a7f0170f21569db0110ec88c3bd3be72fc55cb9e8b08cd39c4ed6f1ebf50f64707265765820198fa179ddcdcd1883382555f221797b69c5c2cc96206eec2c0d307a68392eec",
+      "input_length": 273,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "conversion_stopped",
+        "reason": "source_not_decodable",
+        "offset": 179
+       }
+      ],
+      "expected_finding_bytes": [
+       "87182f8202184e81018101820218b381018101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

@@ -28,6 +28,7 @@ repos:
           (?x)^(
             LICENSE.*|
             vectors/.*\.gts|
+            vectors/v2/.*|
             ts/package-lock.json|
             rust/Cargo.lock|
             rust/capi/Cargo.lock

@@ -1,0 +1,5359 @@
+{
+ "name": "resync-filler-table-header",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the item of kind header cut at every byte: the filler that completes it, then the resync item reached by framing; the completed item passes or fails the framing test as its row says (P1-108) (48 files)",
+ "cases": [
+  {
+   "label": "cut-1",
+   "input_file": "resync-filler-table-header.cut-1.bin",
+   "length": 473,
+   "sha256": "71098ab99613597d1f2494751cdcd34fac2feab41af2e436f13d850dee944a9d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000018d9810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f820202018101810180810180808187078202078101820203820218d18202088101920118d9190100850201f4020082025820b7d9762f9e87b1884c341b930b007fe6bdec16c31124329f26d55baf2560ce4d820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119017218678202010181018101808101808187118101810182020181018101820201808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [
+       [
+        "malformed_value",
+        "unregistered_value",
+        3,
+        null,
+        209,
+        8
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": true,
+      "head": "9610d488eea3f6a388aff30b84b81fa0033026d9c9a8267431022b919501b5b6",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 7 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-2",
+   "input_file": "resync-filler-table-header.cut-2.bin",
+   "length": 437,
+   "sha256": "af7edc5cf764a639c039f0bbaba307916aceabc63bf8c12d2e6243879cd42e68",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1088101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202088101920218d918dc850201f40200820258204af65ecc69108236f4dc32e20def3bc1dd0c985c956957f108cc4fbe308300ad820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119014e186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        8
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "5fc98edbbec8d03dad15a6b868fa7fc12495f570a9eac3c9c69515b5faa162a1",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 6 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-3",
+   "input_file": "resync-filler-table-header.cut-3.bin",
+   "length": 437,
+   "sha256": "a1a23436941925c1e0d86227f16be614e26506dd6208fd2d5ae3ba8420493a3d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1088101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202088101920218d918dc850201f40200820258201a6e8219f4c34e3f22a4f314fcaf7d7226ff4c296e9eca6eaeeac88674cd592d820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119014e186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        8
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "7064fb8503e2991b87252e38ba2b7204508a23289a78a7fc5f12f431ad9f1d52",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 5 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-4",
+   "input_file": "resync-filler-table-header.cut-4.bin",
+   "length": 437,
+   "sha256": "022e01c2e799a3146870794bd98acfc962fd7933cbc13a1a36ac9d97e176700d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1088101810181018101810103030000008085f482020582020582020581018101808187078202078101820200820218d18202088101920218d918dc850201f4020082025820373519f014430fc004f5c1082230ee2d65f82e2eac5924f92669f0c80e8d3a76820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119014e186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "unregistered_value",
+        0,
+        null,
+        209,
+        8
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "c08605feefce2e6f19f7d3e017706f92da8243edcb78f73a99353d70842be940",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 4 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-5",
+   "input_file": "resync-filler-table-header.cut-5.bin",
+   "length": 437,
+   "sha256": "8378f30ea2aa689941186d4e6584387c3487010af505531f9dc4aad78afc7383",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1088101810181018101810103030000008085f482020582020582020581018101808187078202048101820200820218d18202088101920218d918dc850201f4020082025820172279372ced216668a4544f1ec8212770db474e62c79cec46fbf1ebd9ecc307820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119014e186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        0,
+        null,
+        209,
+        8
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "4dfa1f069828fb6df325ce381b2094dc5f725c4207472613dd86ae6ea884821a",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 3 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-6",
+   "input_file": "resync-filler-table-header.cut-6.bin",
+   "length": 438,
+   "sha256": "59f79a01a30b493e15aa2f1e84b999f42a80727755a276c50ef2975c2e9bd2ce",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1098101810181018101810103030000008085f482020582020582020581018101808187078202078101820200820218d18202098101920218da18dc850201f40200820258206f2d4e264d8ff68f7dbd478e3a10d581b7aabe28be9ec5f78d06a43514ce3af9820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119014f186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "unregistered_value",
+        0,
+        null,
+        209,
+        9
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "176c6d01a5d3612c36fe18fa4e9559fe7fb6008e561de620017a8b4b7cd94e59",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 3 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-7",
+   "input_file": "resync-filler-table-header.cut-7.bin",
+   "length": 438,
+   "sha256": "bee08e8d76f1d8530f2db0c3b461192574414dbd44fac924aa463fd5469bee40",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1098101810181018101810103030000008085f482020582020582020581018101808187078202048101820200820218d18202098101920218da18dc850201f4020082025820baf5c6c2d0eb2cc639440141415dfa68cc326ae423880424c1701f57cb336e30820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119014f186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        0,
+        null,
+        209,
+        9
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "1ecfde7f9572e54122f07f99dceca6323580592cfe60ace267b19a3a442de170",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 2 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-8",
+   "input_file": "resync-filler-table-header.cut-8.bin",
+   "length": 439,
+   "sha256": "54c62ce267a17bfc541842320d352dc91c446fa28d418e448b28790b805c3828",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d10a8101810181018101810103030000008085f482020582020582020581018101808187078202078101820200820218d182020a8101920218db18dc850201f40200820258208ab86ff2f90e74f17f96f8d20e70121af3cc85d6a3e692e60d52d0b5387343f4820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190150186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "unregistered_value",
+        0,
+        null,
+        209,
+        10
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "748521f39fa0f050d061b46ff62e21ed62f0e25e73dbe62b4feb48f90c2b5b03",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 2 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-9",
+   "input_file": "resync-filler-table-header.cut-9.bin",
+   "length": 439,
+   "sha256": "bcb38ec8d8a12e187f53274fb4918f87e9abf2c7fa97177f586409346804811a",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d10a8101810181018101810103030000008085f482020582020582020581018101808187078202048101820200820218d182020a8101920218db18dc850201f402008202582083a65a99d6e454aba31658d9bea5b2122bdc951d078f77165373a8fc6db295a4820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190150186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        0,
+        null,
+        209,
+        10
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "ac26ce001e261b46d61f35e4b02da4bfce96c41c1909fbaa0f74850ebaea4e4c",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 1 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-10",
+   "input_file": "resync-filler-table-header.cut-10.bin",
+   "length": 441,
+   "sha256": "65c8a0933fa221f146f2fd0285fe0a322871e87e035918a54397898ca44ca456",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d10c8101810181018101810103030000008085f482020582020582020581018101808187078202078101820200820218d182020c8101920218dd18dc850201f4020082025820199bbeeb90cdbe94ada32a220c23520f6f61fe4628706cf083c261263020550d820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190152186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "unregistered_value",
+        0,
+        null,
+        209,
+        12
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "1c4e698cee638cd6b428559eed1ff79bf1fbd0b4c36adb9bab708a15d70acfa6",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 2 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-11",
+   "input_file": "resync-filler-table-header.cut-11.bin",
+   "length": 441,
+   "sha256": "60b4a1da3a3732219fdf7f407b5950166a93daa6f95a62092ebb7f7a4fde0267",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d10c8101810181018101810103030000008085f482020582020582020581018101808187078202048101820200820218d182020c8101920218dd18dc850201f40200820258201a2cb2192f6b0aea75d0c2812d1e7772c95d05529ac741d26999bbb6205457ab820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190152186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        0,
+        null,
+        209,
+        12
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "dd120fbc7b5d3d2f0be96d46ea7eabf14eba14fdb139057129ec30e6bb4a4e86",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 1 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-12",
+   "input_file": "resync-filler-table-header.cut-12.bin",
+   "length": 443,
+   "sha256": "5d7453d1117a1634a5d726e1e474ffa1a05f54d9f75620b0961b11457ea6123d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d10e8101810181018101810103030000008085f482020582020582020581018101808187078202048101820200820218d182020e8101920218df18dc850201f40200820258205aadb07ef5a6711a9e1f93e11c9c9dc22d71494d12b344923e63c9b10f5ffd3a820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190154186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        0,
+        null,
+        209,
+        14
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "cdcb7a807f4da7c04ccc5e833057ab9a46c6774c68efa67a26dc1460371a3676",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 2 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-13",
+   "input_file": "resync-filler-table-header.cut-13.bin",
+   "length": 444,
+   "sha256": "c31bb00050f45e9d18c493b0c481c309520dac0a3964890ba1845330b805419b",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d10f8101810181018101810103030000008085f482020582020582020581018101808187078202038101820200820218d182020f8101920218e018dc850201f4020082025820cbf051e45cfd84552234aac96b47b0bfe123358f29b963c607586df75bd6a048820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190155186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "not_deterministic",
+        0,
+        null,
+        209,
+        15
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "67a7b56d1fc23a7cc55fc024e53bda7596dcb67e1b20985fd5c1fd5b252fcf7b",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 2 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-14",
+   "input_file": "resync-filler-table-header.cut-14.bin",
+   "length": 478,
+   "sha256": "e69764012404ed5868c1ba7f9e310d0f5ea08dead5ca6853a56e27e84eea9551",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258200822077ee29075e7150d7b63920fd36b4d1e4402e834eb2b02b18dba61bca2f2820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "cf247536c26634f29c7c16313c288a1e9304b0b661b29bd40136d376ed397fb0",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 33 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-15",
+   "input_file": "resync-filler-table-header.cut-15.bin",
+   "length": 478,
+   "sha256": "9b0bd1912e331eda66885a355c3118c5e860f747a7e4c9bb92f4f93f11c18303",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820da1e7f5ab7f977a0ac3cf682efa0515e4f8695504b9e59bd6826a4a334480859820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "1bb2138fa7f3770d8d2b675d6aa56c17500443ff4854e26ea9cfa12cabe96a48",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 32 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-16",
+   "input_file": "resync-filler-table-header.cut-16.bin",
+   "length": 478,
+   "sha256": "e8ce3eb6e49a8a4d34e7e6cb96ff6bac3c5d5dbd858b5fb70c9cecbb71a69f8a",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820b147b6b184c057f011fd617d53bfc3bae9efa42f82978c0fbf9ae843c5081594820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "56f7834c735837a29ee740203605bc25f639fc2791fc395d06be6eeb6e25d5de",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 31 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-17",
+   "input_file": "resync-filler-table-header.cut-17.bin",
+   "length": 478,
+   "sha256": "988ea15f45f0d8adf722d16cc3f4262645520a782f50ba2a9599dcb3c1bb6983",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820e2ab3121e949a3eb3f69190142e3a3793d838600c07f52531495b24c18ce2da4820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "90797e5db9fa4f63309e852167fa4bc0e15b36b5b9b4658f60d1bcd9be0cb856",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 30 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-18",
+   "input_file": "resync-filler-table-header.cut-18.bin",
+   "length": 478,
+   "sha256": "145f3b565b9f95872f1e8ad4b7bf8f981ab16b52d4986d11b5c32eed73374e26",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820a5869ace6a8f68e7c1c52e9e97b2eb0754a7a05d8d5a1272ba1224d744a8379b820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "c06bffe839be6b9ace8048d99f85e664ca90d137a49c2c90d60e7a2cce751e15",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 29 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-19",
+   "input_file": "resync-filler-table-header.cut-19.bin",
+   "length": 478,
+   "sha256": "574501d2f0bb8210b686effd8e2840b86769eb2bec458917ba9ae098f82adcaa",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f402008202582024c5cb953870149ed3dc3d32bc98b539dbb66b7ade3db7f910e7e9881333d83d820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "b0ba252e22b0058c6f9c055502cb407fa6a22129e77d8b1df50a6f8e7a4b02a6",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 28 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-20",
+   "input_file": "resync-filler-table-header.cut-20.bin",
+   "length": 478,
+   "sha256": "14d6cbca173692649d1fb9bd0e3e68ce4eb3f87e73bad070114c3ca002c3557f",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f402008202582022a5dc7f075cf5956af52a9b67d6a86f5adace8b2991ba7d785761d360489d57820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "f9f97089edd8c887da69d045af6ddbb1126ea80f54e11da776acebb6da21f1ac",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 27 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-21",
+   "input_file": "resync-filler-table-header.cut-21.bin",
+   "length": 478,
+   "sha256": "78c27cbde8a7310b278fba8a385823a32e390a87e12e077736bbeb3092527a3b",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258206e804c6b74f3c9d2ad9cba67c7e80d50451a07a0e63a602c2c77d75866400a26820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "e1218e9626d3656de9f80a62b0f22dd35cce34d51fda2d64edf426ef7dc2d2ac",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 26 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-22",
+   "input_file": "resync-filler-table-header.cut-22.bin",
+   "length": 478,
+   "sha256": "4a1e6f417b4969fe66523011a4d9323e28f311555dbd012cf9bd3b7c6906174e",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258204ed47fefdc725e36bcef5a6bbe950f88fea2d3005230cc4baf710127f16881a5820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "9ef3e60af802293eccf1e0e60ba3e8cd7ab5044d90fcfeae1ac0b9448c109f18",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 25 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-23",
+   "input_file": "resync-filler-table-header.cut-23.bin",
+   "length": 478,
+   "sha256": "74c093d8691607f15267a1fdcfcc962cf7c74516b4f2765f8cd1707ad613d8d4",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258205f726a261a1c1b989255f4e93bc03cbdf14b1ca1d8027e1f0828d174cd2528ac820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "bd83d6f93fc07c51c08f832df89bc22bdce8be0d6e937bd4d3c77d59af14b6d9",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 24 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-24",
+   "input_file": "resync-filler-table-header.cut-24.bin",
+   "length": 478,
+   "sha256": "f5c0c6c3941ace19ecd142b6918e11bc1278e3d6ece40952c23969dbb1274349",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258209abffa80b76f3a3b0318b90b8b128e2ec822caf4aa93d865a28294c3ad5bf09b820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "96223e2f351636f3f391c3bfd7e6385414012e0ff4b3ad206360f48a18c2eba3",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 23 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-25",
+   "input_file": "resync-filler-table-header.cut-25.bin",
+   "length": 478,
+   "sha256": "eca6a55f84797e58a7ba5d504d50c7dd2bc39cf60bb0f490ecff11610aad005d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820bb978c82e679bb0e6ef4cad97a36691892b7010a08dd2dac276ed0cd4a919d39820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "66c96669dd0adaeafcda2ddddec687d60a01422a31f4ed9c0ba9b0ee4f946662",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 22 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-26",
+   "input_file": "resync-filler-table-header.cut-26.bin",
+   "length": 478,
+   "sha256": "5ef97a6071f0c83f47bd49048b6c5a6eb9efbc3e21b8dee7894d8d30fd25ae98",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258206712e307a2a7be9eba980c2c9a11ac1b24da830d36a3c2c68ce7df8d9bceb5c8820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "ad66a13e85a2f8bb45ecfdf5d10fe033e9656d47bb77498b21ae91d189b348cf",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 21 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-27",
+   "input_file": "resync-filler-table-header.cut-27.bin",
+   "length": 478,
+   "sha256": "99dd367fd800ff26152c3086f68370b6bdf865b9f1f8a53ee2be181fd55dbc08",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820058b977ef85444fdb4116f345e5e3600835c051cdbd1831a3c335a84855a114e820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "3327c60801e2bbac4de5f3853d1c2a0289faf68093b0cd26cbd73e6c1e63c344",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 20 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-28",
+   "input_file": "resync-filler-table-header.cut-28.bin",
+   "length": 478,
+   "sha256": "d89d0250474e2daa55694956f8eb141e545296a1661d122dbbcf93a9d008a158",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820c9e67177ca0b5c6ebec98a41a38af22e1ced1151e00b5b38e5e5912bcaf532ec820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "2297cad4ab264b385aa3656a1a3030a04c1d6031ad365ebadfadec1a8d0bcd05",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 19 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-29",
+   "input_file": "resync-filler-table-header.cut-29.bin",
+   "length": 478,
+   "sha256": "2d7f6ccff097adf7d04609d7b2259e94fbfcf01af20c803e03f90a72964d9de4",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258209700c72a2c1bdb72aebde45e7c9c847af4ef733c5a1661d5e0ef6d7865fee854820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "de5501f99453bc8c540ef596766218f7cab21f747751340e01bf2920d155d1b8",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 18 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-30",
+   "input_file": "resync-filler-table-header.cut-30.bin",
+   "length": 478,
+   "sha256": "0876e8a291946b7cc362a22955f7d9ab4e9aa01680a8e5c1fd6657be730619f0",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820d0e17dad653d9838b1bbce8dcc950820671ec756b35a91dabf3d669b0b71e530820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "323a997b95f36993aa237e838efb81aa34c2c11bef684a07cfdf54f8168a14ff",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 17 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-31",
+   "input_file": "resync-filler-table-header.cut-31.bin",
+   "length": 478,
+   "sha256": "8964f7028be5b863a8fad36a8c1c10084660b8770290774e9bd551159e070a35",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820c2ae0684e950f72f1b75b852ea41c74f81aabeeccc625cdee35931b69cbf0e6f820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "02653f032f338d4edd51cbf581ac253616100eb44dd41f4589dd5ac9b5816a45",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 16 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-32",
+   "input_file": "resync-filler-table-header.cut-32.bin",
+   "length": 478,
+   "sha256": "57e00c4252902eb002e19b75250ad169959fb2a541c471e9c04c299be4afb839",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f402008202582011546340e703461c349f7f01cbd11337269af736a2426b87777f6cd73480c783820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "a5d94927caac8bfe6be4e1154e8be8d72385e2c94bbf6ebb4858c567cd414a86",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 15 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-33",
+   "input_file": "resync-filler-table-header.cut-33.bin",
+   "length": 478,
+   "sha256": "ead72bef6aae47a54ecc97f77af3fd931ae11d915721d4de7fdb26ccad81d8b9",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258201b4517228a3c2da3b09d5738c431f794f83189de7585a0ee5330e6fb98ad6c98820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "753c3fa1a5d701d838bfc43614dbf10cf8fd32567ed6a1b6a2d480e5be2c28b2",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 14 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-34",
+   "input_file": "resync-filler-table-header.cut-34.bin",
+   "length": 478,
+   "sha256": "1b135c26ca53a5b052b1b7a576a30dc0156d3ae1038305a2b52361d6fda41580",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820f6f3c91e1b2d3cfeedc8ce3453299188888dc19c221a9dd29f974c3b441360d3820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "2c2eaa93cda18efce2aeb2befff65ff2f6428125b3d38f0b488399435c795d5e",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 13 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-35",
+   "input_file": "resync-filler-table-header.cut-35.bin",
+   "length": 478,
+   "sha256": "4b05b1667409b3e1576bf63b029b943a877f6c6dd9cb6840a041cf1b2bd100fa",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258208293f59752dc282b7d0146b7c0d08acf7ee9f89c4176ddd0562d9d7132a2a9b8820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "a2bdc7f0def206d3971dd6be2032e850608addcf4d9d5b783fdf17efcfae0809",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 12 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-36",
+   "input_file": "resync-filler-table-header.cut-36.bin",
+   "length": 478,
+   "sha256": "3e240bff8e50747774a4a56c30560cdf91a5a19caa5a2ea48de22c977661f3f9",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258201014aa03623d083cd8813591dadf4dae2e92df772c181a99325930b7b5e570b9820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "3e6cd371e9bc3c6629a20a45f15fa8f0bf1c4cb36c979ccb9f8481548c81a6a4",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 11 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-37",
+   "input_file": "resync-filler-table-header.cut-37.bin",
+   "length": 478,
+   "sha256": "f63bca3b3b28ea5a1538cd26507396adb492e0f768c104b093f3cf9671bc7d7a",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820d34010ecdafc3561184d362e6790a2dc25f8107eff7f6cfc73b6ce3a6870ce8b820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "232566936df70b3d17c17e56321481538726908e0dadb2414f4337398c56e705",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 10 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-38",
+   "input_file": "resync-filler-table-header.cut-38.bin",
+   "length": 478,
+   "sha256": "581aeaedb11f95c89642233e6cf7df63065a230534a24a772f17ae3f8dec802e",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f402008202582007ca933ca171572242fd0e254b57ee36b67c043ee1a559a6a6eab4cd83e0fcf5820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "4e17ca21c041bfc8928917e961072c30399563040dddd5bee8e30a583204c24c",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 9 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-39",
+   "input_file": "resync-filler-table-header.cut-39.bin",
+   "length": 478,
+   "sha256": "a26a6d3392729703d28cfd96e65c2de14d543758c3e106b882339689590153b3",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820bbf7afa97631083a12514c5b384a6c9fe8e1df723222d9ecf7557ad5969982d0820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "f548cb48bfaee43c3d0d743589eaf44257186af912816248715aef1fbda9ece4",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 8 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-40",
+   "input_file": "resync-filler-table-header.cut-40.bin",
+   "length": 478,
+   "sha256": "d1c90594c14841b8e98c7b4376b5a2899b1c1644554af26dc584ed294c47e84f",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f402008202582042e907f965f00398049c3046dfa3c347e123e22355b1877b2043cfcbd261aa41820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "89f997f8977d1a08906906ec2cc290d06deab7e4dfbcc9ff8940f68d8fdce7b9",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 7 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-41",
+   "input_file": "resync-filler-table-header.cut-41.bin",
+   "length": 478,
+   "sha256": "bab9729ac41d7d0415517dbee4770f2f21a65a551091d9fa1f292aac6ffc3be7",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820b31bf494323eb4ec73adebba82bd5e3f91b42aa378d2626be1afae6fec556c76820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "75eb83af3908c7ed96b57e2240086061c59c69b15b8d7229ae276637accdd60e",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 6 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-42",
+   "input_file": "resync-filler-table-header.cut-42.bin",
+   "length": 478,
+   "sha256": "cdb31f4af91bb1046a0104ba188417ec681a6e3504702d1a76cc30f677815f7a",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f402008202582002ee51687a1dffebfe769afbc0007f2d9c1671380c0f24189d97227f5e93a2d4820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "a699bd5b2616688ceba5e9aa0cf271f13d4d39093c3aceb4014ec57c8adbe318",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 5 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-43",
+   "input_file": "resync-filler-table-header.cut-43.bin",
+   "length": 478,
+   "sha256": "7415b049c1ec8cd761b5d37890a7ed5296467746e450ab9a64debb2840538482",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258208b808f378f3de3449dfbf0c081f2a20fc33d39312a451f63f35b89a219cc87ed820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "0f2b089bce292c4a1458123e8e974c1482434063244f31d84c4f84f6b8ce4a8e",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 4 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-44",
+   "input_file": "resync-filler-table-header.cut-44.bin",
+   "length": 478,
+   "sha256": "5857a34e533031008b8b39456acc5121cffeb6b76b7332d800f19bcbe5a71919",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820356114792a75e4466240b786a8159a9dd3902b1ed48ba81a62087559164aa24e820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "d3b24993f570049a210ee319d92db85e23b2acfe2b6f7269e368263b6fc86be6",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 3 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-45",
+   "input_file": "resync-filler-table-header.cut-45.bin",
+   "length": 478,
+   "sha256": "5d5bbdaf710ba552c870ef368cb7ac53a15393218ba2aab8016d0f092043cf94",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f40200820258208dfd15401d00014e2dd8359ecf7683efc489553962fdad207e7740779c6c3220820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "a35923d73fb46166aaee2c4f9b3bc320e8e832f6d825df43d574b4194c7e4f97",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 2 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-46",
+   "input_file": "resync-filler-table-header.cut-46.bin",
+   "length": 478,
+   "sha256": "2b834565bde73a76142b772c4fc57fc4d1405b84d451e2821417e4aa6bf617a7",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1182f8101810181018101810103030000008085f482020582020582020581018101808187078202068101820200820218d18202182f8101920219010018de850201f4020082025820435a16cb1f3ade8638017028247c355bd5ef49c73507f8fe701ee9c5e72a960f820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190177186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "out_of_range",
+        0,
+        null,
+        209,
+        47
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "c5eac2770806c25b4ef229ab6c6272d45e95f00d985d54bd696bb2dd7c94c2e2",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 1 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-47",
+   "input_file": "resync-filler-table-header.cut-47.bin",
+   "length": 481,
+   "sha256": "02f28b3aea2a34cc5c31532b3d409f1028edc7e8fe254571d824e30e204aea0d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d118318101810181018101810103030000008085f482020582020582020581018101808187078202038101820200820218d1820218318101920219010218df850201f4020082025820e4ade682351b5fad1047f9e287844a7e161f92565f1f49a83807eb2b45e543e5820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119017a186782020101810181018081018081871181018101820201810181018202018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "not_deterministic",
+        0,
+        null,
+        209,
+        49
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "59e5b0d5a5f3dd2202c9390ff4292bf71de344833489467d0b451f4dc1f7a5f5",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 2 bytes; the completed item fails"
+   }
+  },
+  {
+   "label": "cut-48",
+   "input_file": "resync-filler-table-header.cut-48.bin",
+   "length": 519,
+   "sha256": "1877b4bb56ad040609bddcc490fac07f3eb7d73b2c52dfeb557d7c53d5fc7340",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d11831810182025820c8a7ba544103add9d0d5c7f068fe3a9eb4e83bbecd15bde42286ed809f4e8063820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e808187182b82021837810181018101810181019202190102190105850201f4020082025820d526269286469e3efec3ed67e9b6189abc8032ca69b4f80c3a99179bba18436e820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b011901a018678202010181018101808101808187118101810182020181018101820201808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "c8a7ba544103add9d0d5c7f068fe3a9eb4e83bbecd15bde42286ed809f4e8063",
+      "findings": [
+       [
+        "lineage_mismatch",
+        "head",
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": true,
+      "head": "5e725351958c9d1d956db7b82a7b199dd7cc2374ddb1a0eed232705f9da80649",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "filler 1 bytes; the completed item passes"
+   }
+  }
+ ]
+}

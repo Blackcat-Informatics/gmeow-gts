@@ -1,0 +1,472 @@
+{
+ "name": "delimited-outside-grammar",
+ "section": "10.7",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "a0",
+   "input_file": "delimited-outside-grammar.a0.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000c810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80818707820204810182020182020b82020181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "file": [],
+    "segs": [
+     {
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        {
+         "position": 1
+        }
+       ]
+      ],
+      "classes": [
+       "header",
+       "opaque"
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 12,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "damaged",
+       "head": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 1,
+         "class": "opaque",
+         "findings": [
+          {
+           "code": "malformed_value",
+           "reason": "wrong_type",
+           "position": 1,
+           "offset": 11,
+           "length": 1
+          }
+         ]
+        }
+       ],
+       "frames": [],
+       "findings": [
+        {
+         "code": "malformed_value",
+         "reason": "wrong_type",
+         "position": 1,
+         "offset": 11,
+         "length": 1
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  },
+  {
+   "label": "c1 00",
+   "input_file": "delimited-outside-grammar.c1 00.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80818707820204810182020182020b82020281018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "file": [],
+    "segs": [
+     {
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        {
+         "position": 1
+        }
+       ]
+      ],
+      "classes": [
+       "header",
+       "opaque"
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 13,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "damaged",
+       "head": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 2,
+         "class": "opaque",
+         "findings": [
+          {
+           "code": "malformed_value",
+           "reason": "wrong_type",
+           "position": 1,
+           "offset": 11,
+           "length": 2
+          }
+         ]
+        }
+       ],
+       "frames": [],
+       "findings": [
+        {
+         "code": "malformed_value",
+         "reason": "wrong_type",
+         "position": 1,
+         "offset": 11,
+         "length": 2
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  },
+  {
+   "label": "f9 00 00",
+   "input_file": "delimited-outside-grammar.f9 00 00.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80818707820204810182020182020b82020381018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "file": [],
+    "segs": [
+     {
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        {
+         "position": 1
+        }
+       ]
+      ],
+      "classes": [
+       "header",
+       "opaque"
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 14,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "damaged",
+       "head": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 3,
+         "class": "opaque",
+         "findings": [
+          {
+           "code": "malformed_value",
+           "reason": "wrong_type",
+           "position": 1,
+           "offset": 11,
+           "length": 3
+          }
+         ]
+        }
+       ],
+       "frames": [],
+       "findings": [
+        {
+         "code": "malformed_value",
+         "reason": "wrong_type",
+         "position": 1,
+         "offset": 11,
+         "length": 3
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  },
+  {
+   "label": "9f ff",
+   "input_file": "delimited-outside-grammar.9f ff.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80818707820204810182020182020b82020281018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "file": [],
+    "segs": [
+     {
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        {
+         "position": 1
+        }
+       ]
+      ],
+      "classes": [
+       "header",
+       "opaque"
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 13,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "damaged",
+       "head": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 2,
+         "class": "opaque",
+         "findings": [
+          {
+           "code": "malformed_value",
+           "reason": "wrong_type",
+           "position": 1,
+           "offset": 11,
+           "length": 2
+          }
+         ]
+        }
+       ],
+       "frames": [],
+       "findings": [
+        {
+         "code": "malformed_value",
+         "reason": "wrong_type",
+         "position": 1,
+         "offset": 11,
+         "length": 2
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

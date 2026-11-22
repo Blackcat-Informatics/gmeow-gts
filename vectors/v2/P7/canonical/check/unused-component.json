@@ -1,0 +1,196 @@
+{
+ "name": "canonical/check/unused-component",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "a claimed segment whose dictionary holds the iri term x in its first terms frame and the triple term <<x x x>> in a later terms frame, no line, binding or entry naming either: first_difference [terms, p1], p1 the frame that holds x",
+ "cases": [
+  {
+   "label": "with-lines",
+   "input_file": "canonical/check/unused-component.with-lines.bin",
+   "length": 1352,
+   "sha256": "6787946d9f18ab1de86b993aa6313162f33834f0bd2706a7d6a8245595603367",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001905488101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103050400810685f58103810181018202820301820258206790773c142dc323b7a8ae08523aeaf0e52ce2ca64844493d8ec9d06651e4b3b868b010c18758202010181018101808101808187181b8202184381018202018101810181018b0218811861820201018101810180810180808b0318e2185f820202018101810180810180808b04190141187282020e018101810180810280808b051901b318d882020f018101810180810280808b0619028b1902a1820210018101810180810280808080820258206790773c142dc323b7a8ae08523aeaf0e52ce2ca64844493d8ec9d06651e4b3b8201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "1a61c4c14b2e596bb50fda6b9b1aeed3ad0f2b13e5d0a70766bb9041256ff58f",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "canonical_violated",
+          "terms",
+          1,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 6,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "first_difference [terms, 1]: x (id 3) is unused, and so is <<x x x>>; the first terms frame holds x; one canonical_violated"
+   }
+  },
+  {
+   "label": "x-alone-in-first-frame",
+   "input_file": "canonical/check/unused-component.x-alone-in-first-frame.bin",
+   "length": 1369,
+   "sha256": "8b26798d27954ffbdc14f2fe2ef47f0bc26f4559c68243d96d347d4670cc093f",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001905598101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103050400810685f581038101810182028203018202582099ac41be899c94b06bbf41a824e9023a079e82afa3dd23cf5552a354baa9588e868b010c186a8202010181018101808101808187181b8202184381018202018101810181018b021876187d820201018101810180810180808b0318f3185f820202018101810180810180808b04190152187282020e018101810180810280808b051901c418d882020f018101810180810280808b0619029c1902a18202100181018101808102808080808202582099ac41be899c94b06bbf41a824e9023a079e82afa3dd23cf5552a354baa9588e8201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "37e1671e01eb03e69870cec75ec719ce2ca2d0242a459af34c2b4619ef518abe",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "canonical_violated",
+          "terms",
+          1,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 6,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "first_difference [terms, 1]"
+   }
+  }
+ ]
+}

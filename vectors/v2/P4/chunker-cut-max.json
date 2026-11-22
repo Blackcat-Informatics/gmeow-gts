@@ -1,0 +1,31 @@
+{
+ "name": "chunker-cut-max",
+ "status": "built and matches",
+ "note": "300000 bytes of the byte 0: after 64 updates the register is -G[0] mod 2^64, which no mask accepts",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "chunker-cut-max.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "lengths": [
+     262144,
+     37856
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+{
+ "name": "files-cardinality-modified",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "files-cardinality-modified.bin",
+   "read_result": "8701018182050b8a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902a781018202582063dd72780ed65331f60bd390f6d241cc93bbd2965552dce186061c715e31837582020182020182020501030303008085f482020582020582020581018202582062c6e2d23c98581704bd462a642da6eabe02e42283c4809aeb9029fb92150224838b010c1901ad820201018101810180810180808b021901b9187c820202018101810180810180808b03190235187282020e018101810180810280808187182e81018202830405820207810181018101820201808202582062c6e2d23c98581704bd462a642da6eabe02e42283c4809aeb9029fb921502248201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "profile": [
+     [
+      7,
+      1
+     ]
+    ],
+    "core": []
+   },
+   "differences": []
+  }
+ ]
+}

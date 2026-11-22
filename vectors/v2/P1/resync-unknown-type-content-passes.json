@@ -1,0 +1,203 @@
+{
+ "name": "resync-unknown-type-content-passes",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a readable v2 segment, two frames of a type of registry version 2, critical false: content an array of uints passes the test and nothing is scanned; content `fb` and eight bytes (a float) is not well typed, no identifier, link broken, fails the test by its link (P1 6.7)",
+ "cases": [
+  {
+   "label": "uint-array",
+   "input_file": "resync-unknown-type-content-passes.uint-array.bin",
+   "length": 292,
+   "sha256": "320d67308459272c7d7636842f7d6b7ee8b12201d7dc8ebc78ac92e95e6079e2",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901248101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030300008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15838b010b186782020101810181018081018081871181018101820201810181018202038b021872185382021832018101810180820303808187058202028202820218328202028101810181018b0318c5185f820202018101810180810180808187048101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "4915a9d7a103b7cdb442e5347c2b33bda892d382cba19790f95a072743fb23d0",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "unknown_frame_type"
+        ],
+        "findings": [
+         [
+          "unknown_enumeration_value",
+          "unknown_frame_type",
+          2,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "passes the test; nothing scanned"
+   }
+  },
+  {
+   "label": "float",
+   "input_file": "resync-unknown-type-content-passes.float.bin",
+   "length": 297,
+   "sha256": "7f473e3717a74c59b7826fb519ff7f8a92294ab040c580c6de7e6b580844dd6c",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901298101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030100008085f482020582020582020581018101838b010b186782020101810181018081018081871181018101820201810181018202038b0218721858820218320381018101808203028082870582020282028202183282020281018101810187078202048101820202820218728202185881018b0318ca185f82020201810181018081018081871819810181018202038101810181018187048101810181018101810181018081018201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "753a1a7754dfd139e71949197a1940f4ef5d1440ecf7d1ac8fcb0ab0e301b462",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "unknown_enumeration_value",
+          "unknown_frame_type",
+          2,
+          null,
+          null,
+          null
+         ],
+         [
+          "malformed_value",
+          "wrong_type",
+          2,
+          null,
+          114,
+          88
+         ]
+        ]
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "opaque_term",
+          null,
+          3,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "link broken; fails the test by its link"
+   }
+  }
+ ]
+}

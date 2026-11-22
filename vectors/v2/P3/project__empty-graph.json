@@ -1,0 +1,27 @@
+{
+ "name": "project/empty-graph",
+ "status": "built and matches",
+ "note": "P3 13.8: an empty_graph line for g: Q empty, G0 = {g}; with a line that carries g: G0 empty",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "project__empty-graph.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019013a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018202582006cee19fa7df0979b15805a89b16ca395283e2b530b2b01db4ec7ab6643cffdc838b010b186a820201018101810180810180808b0218751853820205018101810180810180808b0318c8187282020e0181018101808102808080808202582006cee19fa7df0979b15805a89b16ca395283e2b530b2b01db4ec7ab6643cffdc8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

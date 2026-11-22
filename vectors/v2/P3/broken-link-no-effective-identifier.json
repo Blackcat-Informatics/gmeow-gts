@@ -1,0 +1,130 @@
+{
+ "name": "broken-link-no-effective-identifier",
+ "section": "P3",
+ "status": "built and matches",
+ "note": "an ordinary frame that is `broken` and has no effective identifier (its `transparent` not a `bool`, its `identifier` not `bytes`) starts THE DICTIONARY AFTER A BROKEN LINK: a later row naming ids of an earlier `terms` frame is held, `opaque_term`, the content digest `absent` (P3 2.8, P3-117)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "broken-link-no-effective-identifier.bin",
+   "length": 663,
+   "sha256": "97bd67ff763b7fa14a96a19ccc41fdf3a5174b632d8c066856ee96d113fa37b0",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702829200001901a2810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f482020582020582020581018101838b010b186782020101810181018081018081871181018101820201810181018202028b02187218d1810103810281018082030280818707820204810182020282021872820218d181018b03190143185f82020201810181018081018081871819810181018202038101810181018092011901a218f58101820258205d429b98a943eef5888bd9e0b5721998dd5658c2dbf3ebdb5e733b3546414eeb820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b011901d1186782020101810181018081018081871181018101820201810181018202028b02190238185f82020201810181018081018080808081018201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "wrong_type",
+          2,
+          null,
+          114,
+          209
+         ]
+        ]
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "opaque_term",
+          null,
+          3,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": true,
+      "head": "4942564b9d20450af954959290d9ce6946ce5f9bad8c8b866d475d494527d32a",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "frame 2: broken, no effective identifier; frame 3: opaque_term; content digest of the segment and of the file absent"
+   }
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "name": "finding/malformed_value/unregistered_value",
+ "status": "built and matches",
+ "note": "a terms frame whose only block has the tag 8, in a segment of version 1 read by a reader of version 1",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__malformed_value__unregistered_value.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018de810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186182020101810181018082030280818707820207810182020182020b8202186181018b02186c187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 7,
+    "reason": 7,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0201f5f484008182010102100b5820c6e161c57bc30d2522907c2535cce97f2542588f31dafed09dbe868cb1f6d90c81014b82818408810081014161805820e832c8c14ba09494e6c4ea1306a321b486148345da3c4837f583661f80535e47808b020ef4f48201582043f20fcb31a8c77035e1035b449f7a3c8a076d5278814e22f112f9e0ab701a860058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d4492379251810140582055959982ce63b7bdd124d09df383cf942aabba2d79dc9686ce530f760449526280",
+      "input_length": 222,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "malformed_value",
+        "reason": "unregistered_value",
+        "position": 1,
+        "offset": 11,
+        "length": 97
+       }
+      ],
+      "expected_finding_bytes": [
+       "8707820207810182020182020b820218618101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

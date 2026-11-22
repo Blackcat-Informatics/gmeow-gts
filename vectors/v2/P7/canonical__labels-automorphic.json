@@ -1,0 +1,81 @@
+{
+ "name": "canonical/labels-automorphic",
+ "status": "built and matches",
+ "note": "the canonical file of the fold of the two-segment file of lowering-blank-inside (two blank nodes in two nested terms; the second run on its canonical file returns positions that differ from the stored labels, so tau is not the identity), read alone: the stored labels are accepted, labelling verified; and the file that the construction of 4.3 forms from quad(_:v, p, a), quad(_:w, q, a) with the positions of the two blank nodes exchanged throughout: structure verified, labelling failed, one canonical_violated with check labelling at the terms frame that holds the first blank term that tau moves",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "canonical__labels-automorphic.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904f58101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f58101810181018101820258206cc3e4f3d1a873cc8f25d2a152edaca42f85bba9cf3f8e6687f4b4b88724fa6c858b010c1894820201018101810180810180808b0218a01861820202018101810180810180808b03190101187282020e018101810180810280808b0419017318d882020f018101810180810280808b0519024b190290820210018101810180810280808080820258206cc3e4f3d1a873cc8f25d2a152edaca42f85bba9cf3f8e6687f4b4b88724fa6c8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "c": "http://e/c",
+    "tried": [
+     [
+      "c",
+      false
+     ]
+    ],
+    "Pu": 0,
+    "Pw": 2,
+    "Pnu": 1,
+    "Pnw": 3,
+    "Tau": {
+     "u0": "u1",
+     "u1": "u0"
+    },
+    "stored_labels": {
+     "u0": "02",
+     "u1": "00"
+    },
+    "positions_of_the_first_run": {
+     "_:(0,u)": 2,
+     "_:(1,u)": 0
+    },
+    "term_nodes": {
+     "n1": {
+      "d": "ca545f529bf0b44d6886e5f8d0fdb2bfa421c63f42f5b8e7f4de51c11c6e5ff2",
+      "source_identifier": "815820ca545f529bf0b44d6886e5f8d0fdb2bfa421c63f42f5b8e7f4de51c11c6e5ff2",
+      "position": 3
+     },
+     "n0": {
+      "d": "3cf63ee5588e92bc95798230d755b463699a066908fc23158360be7ceaf72452",
+      "source_identifier": "8158203cf63ee5588e92bc95798230d755b463699a066908fc23158360be7ceaf72452",
+      "position": 1
+     }
+    },
+    "canonical_sha256": "2ff76583a020b63c94c927df25762356ff811a0d2ea131dab704c4d489197b4c",
+    "canonical_bytes": 1269,
+    "labelling": [
+     "verified"
+    ],
+    "second_case": {
+     "structure": [
+      "verified"
+     ],
+     "labelling": [
+      "failed"
+     ],
+     "first_difference": [
+      "labelling",
+      1
+     ],
+     "sha256": "18038a165737cd87e7224bda6dffd8eeeafa549a00bab1c8d492f1309766acdc"
+    }
+   },
+   "differences": []
+  }
+ ]
+}

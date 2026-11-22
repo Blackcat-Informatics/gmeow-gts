@@ -1,0 +1,121 @@
+{
+ "name": "broken-link-forward-held",
+ "section": "P3",
+ "status": "built and matches",
+ "note": "the file of broken-link-commit-ends under the access forward: rows held, the commit releases none (P3-117)",
+ "cases": [
+  {
+   "label": "forward",
+   "input_file": "broken-link-forward-held.forward.bin",
+   "length": 608,
+   "sha256": "153b719ab4b91ab32aab0c2c99adb6e148d6ee8b0fc4c0970664af02350e3b06",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000028101828080870281920000190260810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030206008085f482020582020582020581018101868b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d1185f8202020381018101808203068081870b81018101820203820218d18202185f81018b04190130185f82020201810181018081018081871819810181018202048101810181018b0519018f185f82020201810181018081018081871819810181018202058101810181018b061901ee187282020e01810181018081028080808081018201000201",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "ea8583afab94db54efb3821c82d487c5c75815a7d38728cfe871e44ec229c749",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "chain_break"
+        ],
+        "findings": [
+         [
+          "chain_break",
+          null,
+          3,
+          null,
+          209,
+          95
+         ]
+        ]
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "opaque_term",
+          null,
+          4,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "opaque_term",
+          null,
+          5,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 6,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "the rows delivered held with opaque_term at 4 and 5"
+   }
+  }
+ ]
+}

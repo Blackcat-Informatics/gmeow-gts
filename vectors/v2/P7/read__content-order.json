@@ -1,0 +1,445 @@
+{
+ "name": "read/content-order",
+ "status": "built and matches",
+ "note": "a fold of quads and an empty graph with a suppression entry written in two orders and as its canonical file: the delivered lines, bindings, entries, blob set, visible lines and visible graphs are in the order of the canonical file in all three (P7-39)",
+ "cases": [
+  {
+   "label": "file-order-a",
+   "input_file": "read__content-order.file-order-a.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190206810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f48202058202058202058101820258206dfbe45f7c66793972796ca2372cfe4f2ffc3b55616dc920e0ed8b119adf417b858b010b1878820201018101810180810180808b0218831868820202018101810180810180808b0318eb1853820205018101810180810180808b0419013e1856820207018101810180810180808b05190194187282020e018101810180810280808080820258206dfbe45f7c66793972796ca2372cfe4f2ffc3b55616dc920e0ed8b119adf417b8201010200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "delivered": {
+     "lines": [
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f62"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        null
+       ]
+      ],
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f62"
+        ],
+        null
+       ]
+      ],
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f67"
+        ]
+       ]
+      ],
+      [
+       67,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f68"
+        ]
+       ]
+      ]
+     ],
+     "visible_lines": [
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f67"
+        ]
+       ]
+      ],
+      [
+       67,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f68"
+        ]
+       ]
+      ]
+     ],
+     "bindings": [],
+     "entries": [
+      "8201820101"
+     ],
+     "blob_set": [],
+     "visible_named_graphs": [
+      null,
+      [
+       "iri",
+       "687474703a2f2f652f67"
+      ],
+      [
+       "iri",
+       "687474703a2f2f652f68"
+      ]
+     ]
+    },
+    "file_findings": []
+   },
+   "differences": []
+  },
+  {
+   "label": "file-order-b",
+   "input_file": "read__content-order.file-order-b.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190206810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f48202058202058202058101820258206dfbe45f7c66793972796ca2372cfe4f2ffc3b55616dc920e0ed8b119adf417b858b010b1878820201018101810180810180808b0218831856820207018101810180810180808b0318d91853820205018101810180810180808b0419012c1868820202018101810180810180808b05190194187282020e018101810180810280808080820258206dfbe45f7c66793972796ca2372cfe4f2ffc3b55616dc920e0ed8b119adf417b8201010200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "delivered": {
+     "lines": [
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f62"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        null
+       ]
+      ],
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f62"
+        ],
+        null
+       ]
+      ],
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f67"
+        ]
+       ]
+      ],
+      [
+       67,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f68"
+        ]
+       ]
+      ]
+     ],
+     "visible_lines": [
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f67"
+        ]
+       ]
+      ],
+      [
+       67,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f68"
+        ]
+       ]
+      ]
+     ],
+     "bindings": [],
+     "entries": [
+      "8201820101"
+     ],
+     "blob_set": [],
+     "visible_named_graphs": [
+      null,
+      [
+       "iri",
+       "687474703a2f2f652f67"
+      ],
+      [
+       "iri",
+       "687474703a2f2f652f68"
+      ]
+     ]
+    },
+    "file_findings": []
+   },
+   "differences": []
+  },
+  {
+   "label": "canonical-file",
+   "input_file": "read__content-order.canonical-file.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001905ca8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103060500810785f58101810181018101820258206dfbe45f7c66793972796ca2372cfe4f2ffc3b55616dc920e0ed8b119adf417b878b010c1879820201018101810180810180808b0218851868820202018101810180810180808b0318ed1853820205018101810180810180808b041901401856820207018101810180810180808b05190196187282020e018101810180810280808b0619020818f282020f018101810180810280808b071902fa1902b2820210018101810180810280808080820258206dfbe45f7c66793972796ca2372cfe4f2ffc3b55616dc920e0ed8b119adf417b8201010200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "delivered": {
+     "lines": [
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f62"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        null
+       ]
+      ],
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f62"
+        ],
+        null
+       ]
+      ],
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f67"
+        ]
+       ]
+      ],
+      [
+       67,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f68"
+        ]
+       ]
+      ]
+     ],
+     "visible_lines": [
+      [
+       64,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f70"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f61"
+        ],
+        [
+         "iri",
+         "687474703a2f2f652f67"
+        ]
+       ]
+      ],
+      [
+       67,
+       null,
+       [
+        [
+         "iri",
+         "687474703a2f2f652f68"
+        ]
+       ]
+      ]
+     ],
+     "bindings": [],
+     "entries": [
+      "8201820101"
+     ],
+     "blob_set": [],
+     "visible_named_graphs": [
+      null,
+      [
+       "iri",
+       "687474703a2f2f652f67"
+      ],
+      [
+       "iri",
+       "687474703a2f2f652f68"
+      ]
+     ]
+    },
+    "file_findings": []
+   },
+   "differences": []
+  }
+ ]
+}

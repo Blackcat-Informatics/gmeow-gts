@@ -1,0 +1,33 @@
+{
+ "name": "chunker-end",
+ "status": "built and matches",
+ "note": "the register at length 16384 fails strict, so the 16385-byte string ends at the end of input",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "chunker-end.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "16384": [
+     16384
+    ],
+    "16385": [
+     16385
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

@@ -1,0 +1,544 @@
+{
+ "name": "stream-delivery-order",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "registry version 2: a header, a keys frame whose item reaches the end of span 0, the parity frame of that span and the sealed frame under the keys frame: after the parity frame no item of the keys frame or of the parity frame; after the sealed frame the frame item of the keys frame, then the items of the sealed frame; and the same file with the stored identifier of the keys frame replaced, which the parity frame heals: the same listings, the keys frame's item with its computed identifier",
+ "cases": [
+  {
+   "label": "plain",
+   "input_file": "stream-delivery-order.plain.bin",
+   "length": 4507392,
+   "sha256": "70e707e6ffb2bbb984bfd75c03fe59142d6e1b331528a9e38803b50177e3a621",
+   "expected": {
+    "expected": "at the boundary after the parity frame no item of the keys frame or the parity frame; after the sealed frame the keys frame's frame item, then the sealed frame's items; same listings in both files"
+   },
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001a0044c7008101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b6373582020282020181010103020000810285f482020582020582020581018101838b010b1a00407d2382021101810181018081018081871181018101820201810181018202028b021a00407d2e1a000448ed820210018101810180810280808b031a0044c61b18e5820212018101810180810180808187182481018101810182021a004000008202197e1381018081018201000400",
+   "registry_version": 2,
+   "sealing_input": "SK1 under KID1 (00..1f, 11..11), SK2 under KID2 (01..20, 33..33) of P8 section 17",
+   "stream_points": [
+    {
+     "at": 4507163,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "07db987431b1617a8919bd8b68498c932805af90a40c18b89f9454a04623c677",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "unprotected_tail",
+         null,
+         null,
+         null,
+         4194304,
+         32046
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "unordered_or_repeated",
+           1,
+           null,
+           11,
+           4226339
+          ],
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "not_content"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": []
+    },
+    {
+     "at": 4507392,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "0f93504e02675f1816ebd1910acf4f1de75877e2da6590a87b4f52caacdfde8d",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "unprotected_tail",
+         null,
+         null,
+         null,
+         4194304,
+         32275
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "not_content"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 4507392,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "0f93504e02675f1816ebd1910acf4f1de75877e2da6590a87b4f52caacdfde8d",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "unprotected_tail",
+         null,
+         null,
+         null,
+         4194304,
+         32275
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "not_content"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ],
+   "access": "forward",
+   "input_points": [
+    4507163,
+    4507392
+   ]
+  },
+  {
+   "label": "identifier-replaced",
+   "input_file": "stream-delivery-order.identifier-replaced.bin",
+   "length": 4507392,
+   "sha256": "4da787ffba4f5f341351841458d1dc46e8cac846af2e80e4d5dd58a2dc6f2cec",
+   "expected": {
+    "expected": "at the boundary after the parity frame no item of the keys frame or the parity frame; after the sealed frame the keys frame's frame item, then the sealed frame's items; same listings in both files"
+   },
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001a0044c7008101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b6373582020282020181010103020000810285f482020582020582020581018101838b010b1a00407d2382021102810181018081018082870c8101810182020182020b82021a00407d238101871181018101820201810181018202028b021a00407d2e1a000448ed820210018101810180810280808b031a0044c61b18e5820212018101810180810180808187182481018101810182021a004000008202197e1381018081018201000400",
+   "registry_version": 2,
+   "sealing_input": "SK1 under KID1 (00..1f, 11..11), SK2 under KID2 (01..20, 33..33) of P8 section 17",
+   "stream_points": [
+    {
+     "at": 4507163,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "b0c3b8712c88f371e065b492a93bf27859c6c0d89e00bdb700052823c0839f7f",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "unprotected_tail",
+         null,
+         null,
+         null,
+         4194304,
+         32046
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "healed",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "healed_link",
+           null,
+           1,
+           null,
+           11,
+           4226339
+          ],
+          [
+           "malformed_value",
+           "unordered_or_repeated",
+           1,
+           null,
+           11,
+           4226339
+          ],
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "not_content"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": []
+    },
+    {
+     "at": 4507392,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "39629e1729775a18bbd233e2d339de3f0fe15cfcecf6bcef9cf400e582cc57c4",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "unprotected_tail",
+         null,
+         null,
+         null,
+         4194304,
+         32275
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "healed",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "healed_link",
+           null,
+           1,
+           null,
+           11,
+           4226339
+          ],
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "not_content"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 4507392,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "39629e1729775a18bbd233e2d339de3f0fe15cfcecf6bcef9cf400e582cc57c4",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "unprotected_tail",
+         null,
+         null,
+         null,
+         4194304,
+         32275
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "healed",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "healed_link",
+           null,
+           1,
+           null,
+           11,
+           4226339
+          ],
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "not_content"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ],
+   "access": "forward",
+   "input_points": [
+    4507163,
+    4507392
+   ]
+  }
+ ]
+}

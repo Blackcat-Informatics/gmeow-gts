@@ -1,0 +1,187 @@
+{
+ "name": "append-after-canonical",
+ "section": "2.1a",
+ "status": "built and matches",
+ "note": "a canonical file with a segment appended",
+ "cases": [
+  {
+   "label": "canonical",
+   "input_file": "append-after-canonical.canonical.bin",
+   "length": 1206,
+   "sha256": "51ff1e3024f2c24488091cce55b07475905758428f45f54353e20fded84a03e9",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904b68101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f5810181018101810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15858b010c1868820201018101810180810180808b021874185f820202018101810180810180808b0318d3187282020e018101810180810280808b0419014518d882020f018101810180810280808b0519021d19027f82021001810181018081028080808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "c6f30f5f4ce3bf0ed89a4c600933039b3dbf80a711ec1dde4a7246859fbab4a6",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {}
+  },
+  {
+   "label": "appended",
+   "input_file": "append-after-canonical.appended.bin",
+   "length": 1451,
+   "sha256": "906659532300af15539ba21689b53f940b3a87966fc17d24eca95973bce4137b",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702829200001904b68101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f5810181018101810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15858b010c1868820201018101810180810180808b021874185f820202018101810180810180808b0318d3187282020e018101810180810280808b0419014518d882020f018101810180810280808b0519021d19027f820210018101810180810280808092011904b618f5810182025820b510433570622827bdffccee09b4b0e3034760db3213b123bf90410bed811a26820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b011904e5186782020101810181018081018081871181018101820201810181018202028b0219054c185f82020201810181018081018080808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "c6f30f5f4ce3bf0ed89a4c600933039b3dbf80a711ec1dde4a7246859fbab4a6",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": true,
+      "head": "c67e9746e1486d29ff73a10e216e9e6c114d80b2a8c7b5d0bc496b1eeec47cf3",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {}
+  }
+ ]
+}

@@ -1,0 +1,105 @@
+{
+ "name": "resync-crash-after-filler",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a crash after the filler and before the first byte of the item: the next writer's read ends at the boundary after F', it writes no filler, its item stands at that boundary (P1 THE CRASH AT EVERY POINT, THE GAP)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-crash-after-filler.bin",
+   "length": 753,
+   "sha256": "04f1c52cee7c5c47b6eaeb804c2cd30455e8dbfc4b8f952a84b2937fa52863ca",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702829200001901f4810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186782020101810181018081018081871181018101820201810181018202028b02187219018282020903810181018082030280818707820204810182020282021872820219018281018092011901f418fd850201f4020082025820bfb28211cdc979cca951290f181a44b4a7ba58e9d8aa22c20496fa6a6972638e820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119028a18678202010181018101808101808187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "f4af571722f26da5d3e769df33f3633abd7e22d1413660f7ed50ed3c06d136d0",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "wrong_type",
+          2,
+          null,
+          114,
+          386
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": true,
+      "head": "84a840d46a19ac38ad72eb25b27a28d0f36153563a11b24c16e0f5418988e646",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "no filler; the item at the boundary after F'; F' stays as completed"
+   }
+  }
+ ]
+}

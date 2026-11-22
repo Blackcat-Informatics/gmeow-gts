@@ -1,0 +1,37 @@
+{
+ "name": "p8-members-layout-cut",
+ "status": "built and matches",
+ "note": "a frame covering two packs of 600000 members; a frame after the first of two packs of 400000 and a second after the second",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "p8-members-layout-cut.bin",
+   "input_derived": true,
+   "read_result_file": "p8-members-layout-cut.result.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "two packs of 600000": {
+     "length": 100663853,
+     "blake3": "bbce320b4def86876f41474e958279b8fdb05912c82704eab6c3f58329597dd9"
+    },
+    "early cut": {
+     "length": 67633848,
+     "blake3": "71d9323cf398369c713a24ee53587bf45cb49a26502a9880f75c580c83890e51"
+    }
+   },
+   "differences": []
+  }
+ ]
+}

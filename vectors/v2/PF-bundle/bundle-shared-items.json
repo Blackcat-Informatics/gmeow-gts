@@ -1,0 +1,53 @@
+{
+ "name": "bundle-shared-items",
+ "status": "built and matches",
+ "note": "a nested file whose items exceed what the outer read leaves of items_per_read: its result holds exceeds_capacity with item_count; no bundle_not_a_file for its term (PF-bundle-15)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "bundle-shared-items.bin",
+   "read_result": "870101818204058a1a040000001a04000000001a040000001b0000001000000000071b00000020000000001b00000020000000001b00000020000000000181018280808702819200001903ed81018202582093ccf045b7e712191ef8811eeaa3fe1957d400e76233b4153c1b3f2eecce054082020182020182020401030505008085f4820205820205820205810182025820a8aa31758480aaa838542655f95eafd6a89ceccc3864a7f136d8d71fbaf3be63858b010c18c3820201018101810180810180808b0218cf185f820202018101810180810180808b0319012e1901d0820209018101810180810180808b041902fe187d820206018101810180810180808b0519037b187282020e01810181018081028080808082025820a8aa31758480aaa838542655f95eafd6a89ceccc3864a7f136d8d71fbaf3be638201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 7,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 7,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    }
+   ],
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

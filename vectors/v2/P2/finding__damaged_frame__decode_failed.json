@@ -1,0 +1,50 @@
+{
+ "name": "finding/damaged_frame/decode_failed",
+ "status": "built and matches",
+ "note": "a zstd payload with the generated header whose blocks do not decode (the P1 construction of payload-decoder-error)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__damaged_frame__decode_failed.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190145810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b18c8820209018102820201808203018081870d820210810182020182020b820218c881018b0218d3187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 13,
+    "reason": 16,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f4825820d29442b38bae4a607b1297521287d31bd6edd8e00a4c097584e3ab5a6457e5348101190210582090ca8635b34bc894cefa3bbb8b3386023f2f40a12225152b26bcc5501ce9aa7e83020150153bd803028ad615077a176fa85334b0584028b52ffd601001b50100b40274686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f670200dd4f29301066e658205288955e3c57211be2a132aa41afb277074a0ac0c58e55d024af1f51d9c0800e808b020ef4f482015820e0bc3e56ecb6fa4eabda4c515390a490bf380940d2544140914eda3345f0a07d0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820e53ecbff78dae03b68aa7bd463eebaad07f4f391e9267da08c1f62641fe47c5380",
+      "input_length": 325,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "damaged_frame",
+        "reason": "decode_failed",
+        "position": 1,
+        "offset": 11,
+        "length": 200
+       }
+      ],
+      "expected_finding_bytes": [
+       "870d820210810182020182020b820218c88101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

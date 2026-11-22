@@ -1,0 +1,35 @@
+{
+ "name": "files-kind-two",
+ "status": "built and matches",
+ "note": "f:kind multiplicity is files_kind's alone",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "files-kind-two.bin",
+   "read_result": "8701018182050b8a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019028b81018202582063dd72780ed65331f60bd390f6d241cc93bbd2965552dce186061c715e31837582020182020182020501030303008085f482020582020582020581018202582096908618382cb00e7c7d808ed949ce005237e6d1972a7f20b61fc94370b0e464838b010c190193820201018101810180810180808b0219019f187a820202018101810180810180808b03190219187282020e018101810180810280808187182e81018202830405820205810181018101820201808202582096908618382cb00e7c7d808ed949ce005237e6d1972a7f20b61fc94370b0e4648201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "profile": [
+     [
+      5,
+      1
+     ]
+    ],
+    "core": []
+   },
+   "differences": []
+  }
+ ]
+}

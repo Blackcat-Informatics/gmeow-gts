@@ -1,0 +1,56 @@
+{
+ "name": "stream-parity-misplaced",
+ "status": "built and matches",
+ "note": "stream-pass with the parity frame of the first span moved two frames later: stream_parity_missing at the item that reaches the span (position 4212), count 1, beside parity_damaged (the text says parity_stale)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "stream-parity-misplaced.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "parity_damaged",
+      "None",
+      "None",
+      "4215",
+      "None",
+      "None",
+      "None"
+     ],
+     [
+      "profile_violation",
+      "None",
+      "(4, 3, (2, 2))",
+      "4212",
+      "None",
+      "None",
+      "1"
+     ],
+     [
+      "unprotected_tail",
+      "None",
+      "None",
+      "None",
+      "8669421",
+      "3618363",
+      "None"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

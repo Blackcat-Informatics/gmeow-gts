@@ -1,0 +1,261 @@
+{
+ "name": "terms-canonical-value-order",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "ascending",
+   "input_file": "terms-canonical-value-order.ascending.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece81828b010b187e820201018101810180810180808b021889187282020e018101810180810280808080820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece818201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": []
+   },
+   "differences": []
+  },
+  {
+   "label": "swap-0",
+   "input_file": "terms-canonical-value-order.swap-0.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece81828b010b187e820201018101810180810180818715810181018202018101810181018b021889187282020e018101810180810280808080820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece818201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "1",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "swap-1",
+   "input_file": "terms-canonical-value-order.swap-1.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece81828b010b187e820201018101810180810180818715810181018202018101810181018b021889187282020e018101810180810280808080820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece818201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "1",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "swap-2",
+   "input_file": "terms-canonical-value-order.swap-2.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece81828b010b187e820201018101810180810180818715810181018202018101810181018b021889187282020e018101810180810280808080820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece818201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "1",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "swap-3",
+   "input_file": "terms-canonical-value-order.swap-3.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece81828b010b187e820201018101810180810180818715810181018202018101810181018b021889187282020e018101810180810280808080820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece818201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "1",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "swap-4",
+   "input_file": "terms-canonical-value-order.swap-4.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece81828b010b187e820201018101810180810180818715810181018202018101810181018b021889187282020e018101810180810280808080820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece818201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "1",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "swap-5",
+   "input_file": "terms-canonical-value-order.swap-5.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece81828b010b187e820201018101810180810180818715810181018202018101810181018b021889187282020e018101810180810280808080820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece818201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "1",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "swap-6",
+   "input_file": "terms-canonical-value-order.swap-6.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece81828b010b187e820201018101810180810180818715810181018202018101810181018b021889187282020e018101810180810280808080820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece818201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "1",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "swap-7",
+   "input_file": "terms-canonical-value-order.swap-7.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece81828b010b187e820201018101810180810180818715810181018202018101810181018b021889187282020e018101810180810280808080820258208943e2a8885689d9b8a1b48bdc94d62079f292f049864c70f23697d2c20ece818201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "1",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

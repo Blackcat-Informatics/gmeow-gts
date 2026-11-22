@@ -1,0 +1,152 @@
+{
+ "name": "resync-candidate-untested-at-limit",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the count reaches `items_per_read` at or before the decision point of a run whose candidate would be accepted: the candidate is not tested, one segment, no torn_tail, and no item_count when no byte remains (P1 6.7 step 4)",
+ "cases": [
+  {
+   "label": "ends-at-third",
+   "input_file": "resync-candidate-untested-at-limit.ends-at-third.bin",
+   "length": 299,
+   "sha256": "95e0b5dc7638c54cf0ddeec3f27a76466f9840a7d709fea06b69de4ae7d5801b",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 3,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b0000001000000000031b00000020000000001b00000020000000001b000000200000000001810182808087028192000019012b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186782020101810181018081018081871181018101820201810181018202028b02187218b98202090381018101808203068081870b8101810182020282021872820218b98101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "45ce580761d1fda72e4b657a9116448d556295599e5de971a416a794b1145894",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "chain_break"
+        ],
+        "findings": [
+         [
+          "chain_break",
+          null,
+          2,
+          null,
+          114,
+          185
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "one segment over the input; no torn_tail; no exceeds_capacity item_count"
+   }
+  },
+  {
+   "label": "swallowing-third",
+   "input_file": "resync-candidate-untested-at-limit.swallowing-third.bin",
+   "length": 394,
+   "sha256": "d48237ebdd74efbcec4f814513e70cdf9348d6c3a739483c6372919daad5fa97",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 3,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b0000001000000000031b00000020000000001b00000020000000001b000000200000000001810182808087028192000019018a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186782020101810181018081018081871181018101820201810181018202018b0218721901188202090381028101808203028081870782020581018202028202187282021901188101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "c9a382544729bc90f9d51c5532b8f6a4587bee531f62d13c1a9d3e4c4cf96c86",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "wrong_length",
+          2,
+          null,
+          114,
+          280
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "one segment over the input; no torn_tail; no exceeds_capacity item_count"
+   }
+  }
+ ]
+}

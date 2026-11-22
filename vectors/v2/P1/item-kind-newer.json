@@ -1,0 +1,139 @@
+{
+ "name": "item-kind-newer",
+ "section": "10.2",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "item-kind-newer.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000e8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8082870481018101810181018101810187058202185482028205098202018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        {}
+       ],
+       [
+        "unknown_enumeration_value",
+        "unknown_item_kind",
+        {
+         "position": 1,
+         "subject": [
+          5,
+          9
+         ]
+        }
+       ]
+      ],
+      "classes": [
+       "header",
+       "opaque"
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 14,
+       "header_outcome": "readable",
+       "header_identifier": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+       "registry_version": 2,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact",
+       "head": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 3,
+         "class": "opaque",
+         "findings": [
+          {
+           "code": "unknown_enumeration_value",
+           "reason": "unknown_item_kind",
+           "subject": [
+            5,
+            9
+           ],
+           "position": 1
+          }
+         ]
+        }
+       ],
+       "frames": [],
+       "findings": [
+        {
+         "code": "unsupported_registry_version"
+        },
+        {
+         "code": "unknown_enumeration_value",
+         "reason": "unknown_item_kind",
+         "subject": [
+          5,
+          9
+         ],
+         "position": 1
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

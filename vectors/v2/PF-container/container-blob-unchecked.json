@@ -1,0 +1,53 @@
+{
+ "name": "container-blob-unchecked",
+ "status": "built and matches",
+ "note": "a valid export whose observation is bound to a blob declared by one recipe in the state, every unit before the commit, read with rebuilt_bytes_per_read one below the charge of the recipe: exceeds_capacity with total_rebuilt at the recipe, the blob UNCHECKED, no container_blob_late; read at the minimum capacity: no finding",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "container-blob-unchecked.bin",
+   "read_result": "870101818206118a1a040000001a04000000001a040000001b00000010000000001a040000000a1b00000020000000001b0000002000000000018101828080870281920000190dbb810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020602031111008085f48202058202058202058101820258201a5f2e46f4dcabff02d65b80ada2917cf430b1b051f7c75cb7b4524cdb5640b9918b010c190590820201018101810180810180808b0219059c18f7820202018101810180810180808b031906931863820202018101810180810180808b041906f61863820202018101810180810180808b051907591877820208018101810180810180808b061907d01876820208018101810180810180808b0719084618c082020a01810181018081018182810181038187148202185981018202078202190846820218c082020b8b08190906187d820206018101810180810180808b09190983187282020e018101810180810280808b0a1909f5187c820202018101810180810180808b0b190a71187b820206018101810180810180808b0c190aec187282020e018101810180810280808b0d190b5e1879820202018101810180810180808b0e190bd7187282020e018101810180810280808b0f190c491884820202018101810180810180808b10190ccd187c820206018101810180810180808b11190d49187282020e018101810180810280808080820258201a5f2e46f4dcabff02d65b80ada2917cf430b1b051f7c75cb7b4524cdb5640b98201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 10,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 10,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    }
+   ],
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

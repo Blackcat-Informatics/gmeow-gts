@@ -1,0 +1,175 @@
+{
+ "name": "commit-payload-nonempty",
+ "status": "built and matches",
+ "note": "added: P5 2.2 now says a commit whose decoded_length is not 0 is malformed_value out_of_range, opaque malformed, and not a commit",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "commit-payload-nonempty.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f7810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f48202058202058202058101820258202e3be5c31bc8e64cbee26ea96c8017690defbf0f6bf9b3e0bcd968b604bf8ed3828b010b187982020901810181018081018081871181018101820201810181018202028b021884187382020e018101810180820302808187078202068101820202820218848202187381018080820258202e3be5c31bc8e64cbee26ea96c8017690defbf0f6bf9b3e0bcd968b604bf8ed38201000401",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "committed_frames": 0,
+      "loose": true,
+      "frames": [
+       {
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          {
+           "position": 1,
+           "count": 2
+          }
+         ]
+        ]
+       },
+       {
+        "findings": [
+         [
+          "malformed_value",
+          "out_of_range",
+          {
+           "position": 2
+          }
+         ]
+        ],
+        "fold": "opaque(malformed)"
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 247,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "damaged",
+       "head": "a66e8fb3204de4ed5ffd3f6485efb1cbb0eb5904a8e1d53ea096cb0ba0e87284",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "2e3be5c31bc8e64cbee26ea96c8017690defbf0f6bf9b3e0bcd968b604bf8ed3",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 121,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 132,
+         "length": 115,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 121,
+         "frame_type": 9,
+         "link": "linked",
+         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+         "effective_identifier": "5b538b7e3ae015f7170ce3cc91f09741e024753c798236afb8ef762cf9caac4b",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 2
+          }
+         ]
+        },
+        {
+         "position": 2,
+         "offset": 132,
+         "length": 115,
+         "frame_type": 14,
+         "link": "linked",
+         "predecessor": "5b538b7e3ae015f7170ce3cc91f09741e024753c798236afb8ef762cf9caac4b",
+         "effective_identifier": "a66e8fb3204de4ed5ffd3f6485efb1cbb0eb5904a8e1d53ea096cb0ba0e87284",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "opaque",
+          "reason": "malformed"
+         },
+         "findings": [
+          {
+           "code": "malformed_value",
+           "reason": "out_of_range",
+           "position": 2,
+           "offset": 132,
+           "length": 115
+          }
+         ]
+        }
+       ],
+       "findings": []
+      }
+     ],
+     "findings": [],
+     "content_digest": "2e3be5c31bc8e64cbee26ea96c8017690defbf0f6bf9b3e0bcd968b604bf8ed3",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+{
+ "name": "proof-range",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "proof-range.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "example": "proof_holds/range",
+    "0-3": "proof_holds/range",
+    "3-5": "proof_holds/range",
+    "0-5": "proof_holds/range",
+    "4-5": "proof_holds/range",
+    "first-ge-end": "proof_malformed/order",
+    "wrong-identifier": "proof_failed/range",
+    "too-few-ids": "proof_malformed/length"
+   },
+   "differences": []
+  }
+ ]
+}

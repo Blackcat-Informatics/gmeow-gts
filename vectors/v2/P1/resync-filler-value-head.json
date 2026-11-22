@@ -1,0 +1,118 @@
+{
+ "name": "resync-filler-value-head",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the same commit cut after `59 0d`: a filler of 3329 bytes, the value invalid with value_length (P1-108)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-filler-value-head.bin",
+   "length": 4047,
+   "sha256": "bcac939276a88c8aacbfb9b37f4bf6941c21c93e919103e7a58cab1463b4d479",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000190e6b8101820258209facd2bdd0654fe255314a238834b9cb3b25f09a12ae4846a0eaca11b749764c82020182020182020201030303008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15838b010c1867820201018101810180810180808b021873185f820202018101810180810180808b0318d2190d9982020e018101810181870382021836025820961bae3296f3734a1304f13b5ff19ae21d546f71288bc9bbcbadf71b98db63000202f4810280818718298202183682028203028202038101810181018187183081018202830402810181018101810181019201190e6b190164850201f4020082025820cff24e966ba01daa8358f538be0adaf78311b541ce870788abbc599a8575f7fe820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b01190f09186782020101810181018081018081871181018101820201810181018202028b02190f70185f82020201810181018081018080808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "30307bf45f36c1b56fc9c6ef01511fb696b990038a602b7230c6fb7e8bfd8ca4",
+      "findings": [
+       [
+        "profile_not_checked",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "signature_unverified",
+          "key_not_held",
+          3,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": true,
+      "head": "6e42bab40f05e33db7779f0bc92f4b18e5664704573bb615c7dd0bf5f5b8b2f8",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {}
+  }
+ ]
+}

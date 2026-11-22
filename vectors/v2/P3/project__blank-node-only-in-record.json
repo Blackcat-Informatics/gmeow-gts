@@ -1,0 +1,27 @@
+{
+ "name": "project/blank-node-only-in-record",
+ "status": "built and matches",
+ "note": "P3 13.8: a blank node named only by a binding: no blank node in the result",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "project__blank-node-only-in-record.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190249810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f4820205820205820205810182025820004090bcd0cbf3ab7401f217e01efbec9fb14ad8cec15ad6a2cceb9cab870b8f858b010b187a820201018101810180810180808b0218851876820209018101810180810180808b0318fb185f820202018101810180810180808b0419015a187d820206018101810180810180808b051901d7187282020e01810181018081028080808082025820004090bcd0cbf3ab7401f217e01efbec9fb14ad8cec15ad6a2cceb9cab870b8f8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

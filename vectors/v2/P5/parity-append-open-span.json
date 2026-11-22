@@ -1,0 +1,60 @@
+{
+ "name": "parity-append-open-span",
+ "section": "6.4",
+ "status": "built and matches",
+ "note": "a segment with a parity frame and 1000 bytes after its span, continued by the same writer until the next span ends: the parity frame of the second span is that of the segment written at once",
+ "cases": [
+  {
+   "label": "whole",
+   "input_file": "parity-append-open-span.whole.bin",
+   "length": 8951297,
+   "sha256": "909a7047b2e1a434b36850c0d0614350ef7375231edc7b8f32cca8414e29a5eb",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a0088960181018202582078ca03d89edc828324c6b1a7260a23b1498f9f1a20fbfb82361b5c8100ec70b2820201820201820201010303000082030585f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e858b010c1a003fff41820208018101810180810180828711810181018202018101810182020387182c810181018202018101810181018b021a003fff4d19045d8202080181018101808101808187182c810181018202028101810181018b031a004003aa1a000448ed820210018101810180810280808b041a00444c971a004000798202080181018101808101808187182c810181018202048101810181018b051a00844d101a000448f1820210018101810180810280808287182481018101810182021a008448ed8202190423810187183081018202830401810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "expected": {
+    "span_ends": [
+     4194304,
+     8388608
+    ],
+    "requests": 4
+   },
+   "findings": [
+    [
+     "unprotected_tail",
+     null,
+     null,
+     null
+    ],
+    [
+     "profile_not_checked",
+     null,
+     null,
+     null
+    ],
+    [
+     "uncommitted_tail",
+     null,
+     1,
+     3
+    ],
+    [
+     "unreferenced_unit",
+     null,
+     1,
+     null
+    ],
+    [
+     "unreferenced_unit",
+     null,
+     2,
+     null
+    ],
+    [
+     "unreferenced_unit",
+     null,
+     4,
+     null
+    ]
+   ]
+  }
+ ]
+}

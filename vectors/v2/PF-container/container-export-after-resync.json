@@ -1,0 +1,436 @@
+{
+ "name": "container-export-after-resync",
+ "section": "PF-container",
+ "status": "built and matches",
+ "note": "an export whose content stands in a segment before a resync item with a checked lineage, the commit in the segment the item opens: the state is local to that segment (container_observation_late), as with no lineage",
+ "cases": [
+  {
+   "label": "after-resync",
+   "input_file": "container-export-after-resync.after-resync.bin",
+   "length": 3650,
+   "sha256": "f94c0dc9a5acd1710e501ac0c92654be1f549967c28533ec89c87bb86f6911af",
+   "profiles": [
+    "container"
+   ],
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101818206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000190707810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020601030600008085f48202058202058202058101820258207310020657a888ee9693f0b2d3f64d9df8eaadec4d19b7db8fb16051df507fa7868b010c19042b82020101810181018081018081871181018101820201810181018202068b0219043718f7820202018101810180810180808b0319052e1863820202018101810180810180808b041905911863820202018101810180810180808b051905f41896820209018101810180810180808b0619068a187d8202060181018101808101808080920119070719073b850201f4010082025820291b9f2479350ce47c0ef7b7b447e79bcd6f7dc00cebf344f47de35a5a1b08dc82020182020182020601030a0a008085f4820205820205820205810182025820a621f3a283bc993d5e75b2184f3d1eeae4326e1c251e3e695ee7b5fff305fd8d8a8b0119076e1902b2820201018101810180810180808b02190a20187282020e018101810180810280808b03190a921875820202018101810180810180808b04190b07187b820206018101810180810180808b05190b82187282020e018101810180810280808b06190bf41875820202018101810180810180808b07190c69187282020e018101810180810280808b08190cdb187a820202018101810180810180808b09190d55187b820206018101810180810180808b0a190dd0187282020e018101810180810280808387182e8101820283040682020f81018101810182020487182e8101820283040682021081018101810182020287182e8101820283040682021181018101810182020180820258207fc40eec89115912cdbd9ac06ffcc6b0487812aed1e06099de3ab4f0f667b03f8201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "faf85da59aca889499796080079b6d424870ee4ec166493802b603644c43fd5a",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          6,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 6,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": true,
+      "head": "b37bb6103053791969b10beb82a814879e9610641aa1d0d9ac8c14e4e9edd0c0",
+      "findings": [
+       [
+        "profile_violation",
+        null,
+        null,
+        4,
+        null,
+        null
+       ],
+       [
+        "profile_violation",
+        null,
+        null,
+        2,
+        null,
+        null
+       ],
+       [
+        "profile_violation",
+        null,
+        null,
+        1,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 6,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 7,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 8,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 9,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 10,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "container_observation_late 4, container_graph_late 2, container_blob_late 1; the state local to the segment the item opens"
+   }
+  },
+  {
+   "label": "two-segments-no-lineage",
+   "input_file": "container-export-after-resync.two-segments-no-lineage.bin",
+   "length": 3559,
+   "sha256": "1d02d118f7496893312c42ac3c9d568cfb8be3ee4a768d8c44611e9be9d09945",
+   "profiles": [
+    "container"
+   ],
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101818206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000190707810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020601030600008085f48202058202058202058101820258207310020657a888ee9693f0b2d3f64d9df8eaadec4d19b7db8fb16051df507fa7868b010c19042b82020101810181018081018081871181018101820201810181018202068b0219043718f7820202018101810180810180808b0319052e1863820202018101810180810180808b041905911863820202018101810180810180808b051905f41896820209018101810180810180808b0619068a187d820206018101810180810180808092011907071906e0810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020601030a0a008085f482020582020582020581018202582022da99a3a9e6495459ac7af7e852d4cff4656ff7efee6b95474bba42986819e18a8b011907131902b2820201018101810180810180808b021909c5187282020e018101810180810280808b03190a371875820202018101810180810180808b04190aac187b820206018101810180810180808b05190b27187282020e018101810180810280808b06190b991875820202018101810180810180808b07190c0e187282020e018101810180810280808b08190c80187a820202018101810180810180808b09190cfa187b820206018101810180810180808b0a190d75187282020e018101810180810280808487182a81018101810181018101810187182e8101820283040682020f81018101810182020487182e8101820283040682021081018101810182020287182e810182028304068202118101810181018202018082025820cb85b1327446e1120c4748b71421b10d1e10acbb83b33302a841bbb04ed0ccd38201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "faf85da59aca889499796080079b6d424870ee4ec166493802b603644c43fd5a",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          6,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 6,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "31b96a0ddefc8c53e9d2c7f7e28f8c2679a6cf8115cd415eed46d150141bbeb8",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ],
+       [
+        "profile_violation",
+        null,
+        null,
+        4,
+        null,
+        null
+       ],
+       [
+        "profile_violation",
+        null,
+        null,
+        2,
+        null,
+        null
+       ],
+       [
+        "profile_violation",
+        null,
+        null,
+        1,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 6,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 7,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 8,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 9,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 10,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "container_observation_late 4, container_graph_late 2, container_blob_late 1"
+   }
+  }
+ ]
+}

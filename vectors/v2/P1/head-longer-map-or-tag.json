@@ -1,0 +1,684 @@
+{
+ "name": "head-longer-map-or-tag",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a map or a tag written with a longer head than its argument needs is `wrong_type`, not `not_deterministic`: in a frame's `identifier` and inside a mark of a resync item (P1 1.4)",
+ "cases": [
+  {
+   "label": "map-identifier",
+   "input_file": "head-longer-map-or-tag.map-identifier.bin",
+   "length": 583,
+   "sha256": "6942e500c157e8428c5f0fa9c37d97c1f852850b1dc9e24f54b1733f2ec36d7d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000190143810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15838b010b186782020101810181018081018081871181018101820201810181018202038b021872185f820202018101810180810180808b0318d1185d82020e038102810180820302808287078202048101820203820218d18202185d8101870d82020d8101820203820218d18202185d81019587078202048101820204820219012e820201810187078202048101820205820219012f820201810187078202048101820206820219013082020181018707820204810182020782021901318202018101870782020481018202088202190132820201810187078202048101820209820219013382020181018707820204810182020a820219013482020181018707820204810182020b820219013582020181018707820204810182020c820219013682020181018707820204810182020d820219013782020181018707820204810182020e820219013882020181018707820204810182020f8202190139820201810187078202048101820210820219013a820201810187078202048101820211820219013b820201810187078202048101820212820219013c820201810187078202048101820213820219013d820201810187078202048101820214820219013e820201810187078202048101820215820219013f8202018101870782020481018202168202190140820201810187078202048101820217820219014182020181018707820204810182021818820219014282020181019201190143190104850201f4030082025820caddae31e2f2e6f45e9365094c8c05270022d6be861352a11f533fbc89b4c228820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b011901e0186782020101810181018081018081871181018101820201810181018202018187182b82021837810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000416",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "4705c2fd02abba0c7736a540959b9be9ef5c5cfe7342a9d1e6b9346dd4b7b526",
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        4,
+        null,
+        302,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        5,
+        null,
+        303,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        6,
+        null,
+        304,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        7,
+        null,
+        305,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        8,
+        null,
+        306,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        9,
+        null,
+        307,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        10,
+        null,
+        308,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        11,
+        null,
+        309,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        12,
+        null,
+        310,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        13,
+        null,
+        311,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        14,
+        null,
+        312,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        15,
+        null,
+        313,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        16,
+        null,
+        314,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        17,
+        null,
+        315,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        18,
+        null,
+        316,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        19,
+        null,
+        317,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        20,
+        null,
+        318,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        21,
+        null,
+        319,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        22,
+        null,
+        320,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        23,
+        null,
+        321,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        24,
+        null,
+        322,
+        1
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "wrong_type",
+          3,
+          null,
+          209,
+          93
+         ],
+         [
+          "damaged_frame",
+          "decoded_length",
+          3,
+          null,
+          209,
+          93
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "e9c366b7e8dfaf8883bb14bbf78278e5f8f6ea090b0d714531e922008c3b95d3",
+      "findings": [
+       [
+        "lineage_mismatch",
+        "head",
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "frame 3: malformed_value wrong_type"
+   }
+  },
+  {
+   "label": "tag-identifier",
+   "input_file": "head-longer-map-or-tag.tag-identifier.bin",
+   "length": 582,
+   "sha256": "d4f93b66feeb0d339649dcdc8c10a24531eddad79bbf35c71eb7d594a55b27f0",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000190142810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15838b010b186782020101810181018081018081871181018101820201810181018202038b021872185f820202018101810180810180808b0318d1185c82020e038102810180820302808287078202048101820203820218d18202185c8101870d82020d8101820203820218d18202185c81019587078202048101820204820219012d820201810187078202048101820205820219012e820201810187078202048101820206820219012f82020181018707820204810182020782021901308202018101870782020481018202088202190131820201810187078202048101820209820219013282020181018707820204810182020a820219013382020181018707820204810182020b820219013482020181018707820204810182020c820219013582020181018707820204810182020d820219013682020181018707820204810182020e820219013782020181018707820204810182020f82021901388202018101870782020481018202108202190139820201810187078202048101820211820219013a820201810187078202048101820212820219013b820201810187078202048101820213820219013c820201810187078202048101820214820219013d820201810187078202048101820215820219013e820201810187078202048101820216820219013f820201810187078202048101820217820219014082020181018707820204810182021818820219014182020181019201190142190104850201f5040082025820caddae31e2f2e6f45e9365094c8c05270022d6be861352a11f533fbc89b4c228820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b011901df186782020101810181018081018081871181018101820201810181018202018187182b82021837810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000416",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "4705c2fd02abba0c7736a540959b9be9ef5c5cfe7342a9d1e6b9346dd4b7b526",
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        4,
+        null,
+        301,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        5,
+        null,
+        302,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        6,
+        null,
+        303,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        7,
+        null,
+        304,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        8,
+        null,
+        305,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        9,
+        null,
+        306,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        10,
+        null,
+        307,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        11,
+        null,
+        308,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        12,
+        null,
+        309,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        13,
+        null,
+        310,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        14,
+        null,
+        311,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        15,
+        null,
+        312,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        16,
+        null,
+        313,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        17,
+        null,
+        314,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        18,
+        null,
+        315,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        19,
+        null,
+        316,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        20,
+        null,
+        317,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        21,
+        null,
+        318,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        22,
+        null,
+        319,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        23,
+        null,
+        320,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        24,
+        null,
+        321,
+        1
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "wrong_type",
+          3,
+          null,
+          209,
+          92
+         ],
+         [
+          "damaged_frame",
+          "decoded_length",
+          3,
+          null,
+          209,
+          92
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "e9c366b7e8dfaf8883bb14bbf78278e5f8f6ea090b0d714531e922008c3b95d3",
+      "findings": [
+       [
+        "lineage_mismatch",
+        "head",
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "frame 3: malformed_value wrong_type"
+   }
+  },
+  {
+   "label": "tag-in-mark",
+   "input_file": "head-longer-map-or-tag.tag-in-mark.bin",
+   "length": 438,
+   "sha256": "9a1d0bb71891b112e8fc8a2939e85193641526979e82530efa6574e5d1e00f89",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d1098101810181018101810103030000008085f482020582020582020581018101808187078202048101820200820218d18202098101920218da18dc850201f40100810181018101810103030000008085f482020582020582020581018101808187078202048101820200820218da820218dc81018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        0,
+        null,
+        209,
+        9
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "wrong_type",
+        0,
+        null,
+        218,
+        220
+       ]
+      ],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "expected": "the resync item at 218 unreadable; malformed_value wrong_type"
+   }
+  }
+ ]
+}

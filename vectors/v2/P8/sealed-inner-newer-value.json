@@ -1,0 +1,27 @@
+{
+ "name": "sealed-inner-newer-value",
+ "status": "built and matches",
+ "note": "a segment of registry version 3 read by a reader of version 2 holding both keys, H K S T: S a sealed frame whose inner quads frame has the order 9, a value the reader does not hold; T a clear terms frame: S unsupported_critical, opaque unsupported_critical, not folded, unopened_sealed 1; T opaque stopped (P8-33)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "sealed-inner-newer-value.bin",
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901b48101820258205c2216fae2b497ee150b791298d8f05a44da828ce01bbef50ef0de41e730068d820203820201810101030300008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b188182021101810181018081018081871181018101820201810181018202038b02188c18c182021201810181018082030480818706810182028202028202028101810181018b0319014d186782020101810181018082030580808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e84020001000402",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+ "name": "range-roots-1-17",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "range-roots-1-17.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "roots": {
+     "1": "47a9f9661f89295c5291740d410f801c99a9efd19c695f2a86f561907b62d10f",
+     "2": "19ed46ae9d1a4b91721d9fc5baf7a3241b34b52fd2cb83ea7fea330dad0f8a5a",
+     "3": "7c00a19d5cf5ee9c3fa3870e3e01a0b5e825d151a67841677b7d6ae40fd7a6c7",
+     "4": "feca17f233f9c4cb6b331f22e66327c90bf9203eb3691aed460e587686c105b1",
+     "5": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+     "6": "5cde7b2f5a313ad2780ac4d51ea932a97e5d8d5c4061594dff227950586904ad",
+     "7": "4cd38daff0826f35769f2103549a25fac11cc08c943b002760472364bfab296a",
+     "8": "c333f697ed4fb920261ad5d2befa1cae6aedf123c3c1f7ad283747389a913a26",
+     "9": "2fd1dff78ab0944a0a7dbd2331d8bd3ce26c4bd2619abedacbf9508ed9df3301",
+     "10": "9424760aae3d6b7d03418801570567a78a100b48ac8cf4c2bba9b514225024ad",
+     "11": "57f2e2d3d6de6bd8392a86f53a7d66fdfa28bd15b0aef044ef5700a2119ad0c5",
+     "12": "3fcee41b567064e9e9383eb3bb3c4a284c91df5b0f12c8127f70fd579334417c",
+     "13": "e01b49ee1281f3ba926ab97d7f3e259b829172b6c1d2f84abf27ee65c739a67b",
+     "14": "90c0d6ad712ad84c258dc24cf8dccf51d424a34a136d6e225e13acbe79952ec8",
+     "15": "0cd7fe5a9e708617e2d00e94fc68492d59d21f4b3e01bed82f3240162ed2d81a",
+     "16": "1de91b5b8229b6fbd4231567f2ef57279b26afb8e8708e08e14697d8fa171ec6",
+     "17": "a96ef20ce8963351cb1c4a8e46483b9c289f8d59275c970baa75697699828923"
+    }
+   },
+   "differences": []
+  }
+ ]
+}

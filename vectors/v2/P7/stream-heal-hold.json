@@ -1,0 +1,551 @@
+{
+ "name": "stream-heal-hold",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "the shape of stream-heal-pending-full/-prefix (a small segment: H T Q, a commit whose stored identifier is 32 bytes 00, one more frame linked to its computed identifier) read as a stream: at the commit the commit broken and no state handed over; at the next frame healed",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "stream-heal-hold.bin",
+   "length": 418,
+   "sha256": "209fb3ad999589dda19cf27b0e045d000fd3449288e1161bb752570f47f11d1f",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001901a2810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030403008085f482020582020582020581018101848b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d1187282020e02810181018081028081870c81018101820203820218d18202187281018b04190143185f8202020181018101808101808187118101810182020481018101820201808081018201000300",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "a696b320b24c5c5e78d09abb8db17a471a9bdb50037895c1284fda35248501bf",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "healed",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "healed_link",
+          null,
+          3,
+          null,
+          209,
+          114
+         ]
+        ]
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          4,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "at the commit: broken, committed_frames 0, no item of the commit; at the next frame: healed (healed_link), committed_frames 3 (T, Q and the commit), the item delivered"
+   },
+   "stream_points": [
+    {
+     "at": 323,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "2bc900d746f0d64d12bf8cdd49a9e4931f39ee9323cbabda08bf59d325b78104",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           3,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "broken",
+         "fold": [
+          "opaque",
+          "chain_break"
+         ],
+         "findings": [
+          [
+           "chain_break",
+           null,
+           3,
+           null,
+           209,
+           114
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 418,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "3048cf5956435f035fa6a89f5d0ed09ac79dff1ce5f0d5c7dd15abd650c12f78",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "healed",
+         "fold": [
+          "not_content"
+         ],
+         "findings": [
+          [
+           "healed_link",
+           null,
+           3,
+           null,
+           209,
+           114
+          ]
+         ]
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           4,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       4,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 418,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "3048cf5956435f035fa6a89f5d0ed09ac79dff1ce5f0d5c7dd15abd650c12f78",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "healed",
+         "fold": [
+          "not_content"
+         ],
+         "findings": [
+          [
+           "healed_link",
+           null,
+           3,
+           null,
+           209,
+           114
+          ]
+         ]
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           4,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       4,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    }
+   ],
+   "access": "forward",
+   "input_points": [
+    323,
+    418
+   ]
+  }
+ ]
+}

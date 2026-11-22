@@ -1,0 +1,27 @@
+{
+ "name": "recover-zeroed-range",
+ "status": "built and matches",
+ "note": "a segment of 40 chunk frames of 1000 payload bytes each, every payload byte 01, stored_plain, and its parity frame, with the 4096 bytes of one data shard inside the frames overwritten with 00: the frame in which the range begins is delimited short and the zero bytes after it as one item for each byte; the span repaired with count 1, the repaired copy byte-identical to the undamaged file; the same file with the range overwritten with ff (one damaged region): the same repaired copy (P5-37, P5-41)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "recover-zeroed-range.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019c32e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc82020182020181010303030000810585f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e848b010b19045d820208018101810180810180828711810181018202018101810182020387182c810181018202018101810181018b0219046819045d8202080181018101808101808187182c810181018202028101810181018b031908c519045d8202080181018101808101808187182c810181018202038101810181018b0519af5b1913d38202100181018101808102808287181f820218288101820205810181018202018718238101810182020581018101820201808187088101810181018202190d22820219a239810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

@@ -1,0 +1,51 @@
+{
+ "name": "finding/exceeds_capacity/total_formed",
+ "status": "built and matches",
+ "note": "a terms frame of charge 9 read with formed_bytes_per_read 8 (a capacity under the minimum of P7-47, as a test device): the total kept so far plus the charge is 9",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__exceeds_capacity__total_formed.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b0000002000000000081b000000200000000001810182808087028192000018ea810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186d820201018101810180820307808187148202185a810182020182020b8202186d8202098b021878187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 8,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 20,
+    "reason": 90,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0201f5f48400818201020210175820936a2e434ded6ef071ad468f79ae444ac0498919ebd91085d18a206344a84a0081015782818401820009820a014b6161616161616161617879805820f255a8ea289c1b0bebb18d9029dd63e872c28274637ee115da7b4cb4d9a06448808b020ef4f482015820141c63963898592b580d4a10058bc024a34a78a12c187e868b76697a2b95dbce0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820576df8322d9b3190a220c6e1a77e51068de664eade14ab4e94151a3360354e8180",
+      "input_length": 234,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "exceeds_capacity",
+        "reason": "total_formed",
+        "position": 1,
+        "offset": 11,
+        "length": 109,
+        "count": 9
+       }
+      ],
+      "expected_finding_bytes": [
+       "87148202185a810182020182020b8202186d820209"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

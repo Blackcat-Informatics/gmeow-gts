@@ -1,0 +1,343 @@
+{
+ "name": "resync-limit-torn-signature-at-new-kind",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "limit 1 (d): the same commit in a segment of registry_version 2, cut with m bytes missing, the first frame of the scope a blob whose payload holds `81 06` at L + m: R is not accepted; in a segment of version 1 the `81 06` fails and R is found (P1-107)",
+ "cases": [
+  {
+   "label": "v2",
+   "input_file": "resync-limit-torn-signature-at-new-kind.v2.bin",
+   "length": 3594,
+   "sha256": "45451ef20d0266e51b0765f31a9c08c549aad8beab9b44d5b3211a4d8603a0e5",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190e0a8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030101008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b190dc682020e01810181018187038202183602582084df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac33010000f481028081871829820218368202820302820201810181018101981887048101810181018101810181018705820218548202820506820202810181018101870782020481018202038202190dd38202018101870782020481018202048202190dd48202018101870782020481018202058202190dd58202018101870782020481018202068202190dd68202018101870782020481018202078202190dd78202018101870782020481018202088202190dd88202018101870782020481018202098202190dd982020181018707820204810182020a8202190dda82020181018707820204810182020b8202190ddb82020181018707820204810182020c8202190ddc82020181018707820204810182020d8202190ddd82020181018707820204810182020e8202190dde82020181018707820204810182020f8202190ddf8202018101870782020481018202108202190de08202018101870782020481018202118202190de18202018101870782020481018202128202190de28202018101870782020481018202138202190de38202018101870782020481018202148202190de48202018101870782020481018202158202190de58202018101870782020481018202168202190de68202018101870782020481018202178202190de782021822810187078202048101820218188202190e0982020181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000317",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "18091dfe54d3baada84916629b949572cc70470e9a1c66d02d505d8c33723507",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ],
+       [
+        "unknown_enumeration_value",
+        "unknown_item_kind",
+        2,
+        null,
+        null,
+        null
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        3,
+        null,
+        3539,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        4,
+        null,
+        3540,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        5,
+        null,
+        3541,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        6,
+        null,
+        3542,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        7,
+        null,
+        3543,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        8,
+        null,
+        3544,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        9,
+        null,
+        3545,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        10,
+        null,
+        3546,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        11,
+        null,
+        3547,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        12,
+        null,
+        3548,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        13,
+        null,
+        3549,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        14,
+        null,
+        3550,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        15,
+        null,
+        3551,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        16,
+        null,
+        3552,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        17,
+        null,
+        3553,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        18,
+        null,
+        3554,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        19,
+        null,
+        3555,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        20,
+        null,
+        3556,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        21,
+        null,
+        3557,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        22,
+        null,
+        3558,
+        1
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        23,
+        null,
+        3559,
+        34
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        24,
+        null,
+        3593,
+        1
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "signature_unverified",
+          "key_not_held",
+          1,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "R accepted: False"
+   }
+  },
+  {
+   "label": "v1",
+   "input_file": "resync-limit-torn-signature-at-new-kind.v1.bin",
+   "length": 3594,
+   "sha256": "0a0f39b1f37d5b16487f4630316a3876cc9a355e94a092728b36b8d34d7683f4",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000190d33810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030101008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b190dc682020e01810181018187038202183602582084df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac33010000f481028081871829820218368202820302820201810181018101809201190d3318d7850202f40100820258203ac351222fee7c0f4cefa792d046af8de41036aee564ef46a6f0aef0f10e532a820201820201810101030100008085f48202058202058202058101820258209e1d52fc74a65316a03627a82ec76e1f86528e8965fc72f7d783083e4620ab66818b01190d75189582020901810181018081018081871181018101820201810181018202018187182a81018101810181018101810180820258209e1d52fc74a65316a03627a82ec76e1f86528e8965fc72f7d783083e4620ab668201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "2cc2681cf869201d8812b31323d1f724afbb9f389aa1c5f53c9266e65134b372",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "signature_unverified",
+          "key_not_held",
+          1,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "1fd9b104908a44d6da10bb97e68b22e645a3eb34a7ed4ddfcb70ba0d28886208",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "R accepted: True"
+   }
+  }
+ ]
+}

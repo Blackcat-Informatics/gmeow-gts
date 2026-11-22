@@ -1,0 +1,94 @@
+{
+ "name": "rows-order-canonical-violated",
+ "status": "built and matches",
+ "note": "each frame still folds: its lines are in the fold",
+ "cases": [
+  {
+   "label": "quads",
+   "input_file": "rows-order-canonical-violated.quads.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019017d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258206daeb052353205572c49242570217653a2593dd87ea6b311742c9e9f0ea26676838b010b189f820201018101810180810180808b0218aa1861820202018101810180810180818715810181018202028101810181018b0319010b187282020e018101810180810280808080820258206daeb052353205572c49242570217653a2593dd87ea6b311742c9e9f0ea266768201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "2",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "reifier_bindings",
+   "input_file": "rows-order-canonical-violated.reifier_bindings.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190179810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018202582081b6edcbd797b2ff98f8dd320155eb479e3934ebdf5e8833a0a61a5826731eba838b010b189f820201018101810180810180808b0218aa185d820203018101810180810180818715810181018202028101810181018b03190107187282020e0181018101808102808080808202582081b6edcbd797b2ff98f8dd320155eb479e3934ebdf5e8833a0a61a5826731eba8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "2",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "annotations",
+   "input_file": "rows-order-canonical-violated.annotations.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019017f810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258204a74736ad6c4764d0b5450c37bd06820ba6ec5869cb0c63a18b11ad5e62ac840838b010b189f820201018101810180810180808b0218aa1863820204018101810180810180818715810181018202028101810181018b0319010d187282020e018101810180810280808080820258204a74736ad6c4764d0b5450c37bd06820ba6ec5869cb0c63a18b11ad5e62ac8408201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "declared_order_violated",
+      "None",
+      "2",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

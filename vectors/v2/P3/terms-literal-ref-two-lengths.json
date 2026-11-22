@@ -1,0 +1,36 @@
+{
+ "name": "terms-literal-ref-two-lengths",
+ "status": "built and matches",
+ "note": "one value frame of (D, 3) and two terms naming D of lengths 3 and 4: the first readable, one missing_dependency with value for (D, 4) at its terms frame (P3-92)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "terms-literal-ref-two-lengths.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902b1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f482020582020582020581018202582032eaa574d4ae4e3e6ac525138ba9413b07a0dffb9f03be55fb84d00196b223dd858b010b1874820208018101810180810180808b02187f189a82020b0181018101808101818281018101808b0319011918c78202010181018101808101808187138202181a81018202038101810181018b041901e0185f820202018101810180810180808b0519023f187282020e0181018101808102808080808202582032eaa574d4ae4e3e6ac525138ba9413b07a0dffb9f03be55fb84d00196b223dd8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "missing_dependency",
+      "value",
+      "3",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

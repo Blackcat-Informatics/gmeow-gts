@@ -1,0 +1,5 @@
+{
+ "name": "registry/unknown/severity",
+ "status": "could not be built",
+ "why": "not built: a fixed column of the finding table, never a field of a finding or of a file (P2 4.5)"
+}

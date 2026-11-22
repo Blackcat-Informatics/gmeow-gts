@@ -1,0 +1,54 @@
+{
+ "name": "finding/opaque_term",
+ "status": "built and matches",
+ "note": "a quads row naming a term of a terms frame whose payload is damaged: the frame is opaque, its terms are unreadable (P3 2.8)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__opaque_term.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019017b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030303008085f482020582020582020581018101838b010b189f8202010181028101808203018081870d82020c810182020182020b8202189f81018b0218aa185f82020201810181018081018081871819810181018202028101810181018b03190109187282020e01810181018081028080808081018201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 25,
+    "reason": null,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0201f5f48400848201068203018202018204010210183e58208ed86125669dd77a50220d9086733675ecb6af6ec8d05cf75d09eb350f1a564a8101583e8284840186000909090909860a010101010250687474703a2f2f652f73706f677264748203814162870281008101417681018105808404810081018102815820087238284db31def93eaaa8ceafe33772f5cedc732c81d934d95a088dd99d2eb808b0202f5f48202010e58201ab669b2bb08c92c18433bc9f3f753f6176eb5b6b1c3de1afc24e4cb95539e1281014e848182810101818201018102810058206c247d02f2a3d7208088d023fc9e70bdfd3072da4b5d1c196682ef55cca44c71808b020ef4f482025820251ba62dabdcb131080d61c923a147fd2dc1a0de028ac109525759cb083d3b290058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820e6c5c8a6c9bd1b798edcf9241b81b0dd00c96781f9439ae7534d341c17ba8a0680",
+      "input_length": 379,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "damaged_frame",
+        "reason": "payload_digest",
+        "position": 1,
+        "offset": 11,
+        "length": 159
+       },
+       {
+        "code": "opaque_term",
+        "position": 2
+       }
+      ],
+      "expected_finding_bytes": [
+       "87181981018101820202810181018101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

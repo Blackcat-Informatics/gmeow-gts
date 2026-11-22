@@ -1,0 +1,70 @@
+{
+ "name": "lowering-none",
+ "status": "built and matches",
+ "note": "triple terms of depth one only: quad(a, p, <<b q c>>), reifier_binding(_:r, <<b q c>>), annotation(1, _:r, q, c): no term node and no nested_term record; the labelled set is the three lines as written; both nested-candidate numbers of the size 0; content digest <Dnone> (6.2a, THREE CASES)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lowering-none.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190221810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f48202058202058202058101820258204630ed7d8c104e09305b6c9e69e672ab4162e70250024f2afd9518026c7a79ad858b010b188b820201018101810180810180808b021896185f820202018101810180810180808b0318f5185b820203018101810180810180808b04190150185f820204018101810180810180808b051901af187282020e018101810180810280808080820258204630ed7d8c104e09305b6c9e69e672ab4162e70250024f2afd9518026c7a79ad8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "sha256": "13a6f3411ddfdb15bf137614876c3052b29d73645e9ab65fbfd42287f0ede668",
+    "bytes": 545,
+    "refusal": null,
+    "size": 3,
+    "content_digest": "4630ed7d8c104e09305b6c9e69e672ab4162e70250024f2afd9518026c7a79ad",
+    "findings": [],
+    "lines": 3,
+    "records": 0,
+    "nested_terms": 0,
+    "weight": 224,
+    "labelled": 3,
+    "max_depth_of_a_triple_term": 1,
+    "term_nodes": [],
+    "blank_positions": {
+     "_:(0,r)": 0
+    },
+    "labelled_set": [
+     "quad(<a>, <p>, <<<b> <q> <c>>>, -)",
+     "reifier_binding(_:(0,r), <<<b> <q> <c>>>, -)",
+     "annotation(1, _:(0,r), <q>, <c>, -)"
+    ],
+    "guaranteed": true,
+    "walk": {
+     "total": 45,
+     "kinds": {
+      "START": 17,
+      "REFINE": 4,
+      "FIX-SUM": 24,
+      "SPLIT": 0,
+      "TWIN": 0
+     },
+     "allowance": 120,
+     "broken_by": 0
+    },
+    "oracle_guaranteed": true,
+    "oracle_digest": "4630ed7d8c104e09305b6c9e69e672ab4162e70250024f2afd9518026c7a79ad",
+    "nested_candidates": [
+     0,
+     0
+    ],
+    "Dnone": "4630ed7d8c104e09305b6c9e69e672ab4162e70250024f2afd9518026c7a79ad",
+    "digest_without_6_2a": "4630ed7d8c104e09305b6c9e69e672ab4162e70250024f2afd9518026c7a79ad"
+   },
+   "differences": []
+  }
+ ]
+}

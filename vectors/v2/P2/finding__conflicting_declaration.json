@@ -1,0 +1,47 @@
+{
+ "name": "finding/conflicting_declaration",
+ "status": "built and matches",
+ "note": "the name of a blob declared by a blob frame of length 5 and by an external frame of length 9: one finding, at the frame of length 9 (the text says two blob frames, which cannot have two lengths: see the text)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__conflicting_declaration.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019016b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820d9490f4e1a45015396adddfb4f5a24c78bdfcbc5090acd08ac1accc871c23105838b010b1878820209018101810180810180808b021883187682020c0181018101808101808187182d810181018202028101810181018b0318f9187282020e01810181018081028080808082025820d9490f4e1a45015396adddfb4f5a24c78bdfcbc5090acd08ac1accc871c231058201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 45,
+    "reason": null,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f482582052ea766897c5507d0819a4cdebe6f38f12bc89f943515668e8daae514dd630728101055820f8cf8b63871f96e020e09d03fbfafea493ffab529c3b543df73bd3b2891c863c810145313233343558208bd1681e6f1e9dd3a9b3c5481f7f215d48b3b8bad247bdadf8c4c42d1357ff84808b020cf5f4838201582052ea766897c5507d0819a4cdebe6f38f12bc89f943515668e8daae514dd630720981010058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820db588482d529c340a5638720d4ecaa43d59b1364972e3e845a6a15ea1218cea5808b020ef4f482025820fd3102c4ddf89bf66a8ca656549f49bcd025c27753c6578073240c795ae2f6d40058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d4492379251810140582006d25b5c96fd109d87aa82c194162ef8d15959f66763ed02bd4316e7a973de0180",
+      "input_length": 363,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "conflicting_declaration",
+        "position": 2
+       }
+      ],
+      "expected_finding_bytes": [
+       "87182d81018101820202810181018101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

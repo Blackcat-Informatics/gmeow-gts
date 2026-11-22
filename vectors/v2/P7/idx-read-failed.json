@@ -1,0 +1,54 @@
+{
+ "entry": "idx-read-failed",
+ "note": "a read of the range of the index that fails",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "idx-read-failed.bin",
+   "length": 1224,
+   "sha256": "c409171d6527bccfac9c8acc47d564b03438fe516dcbb074a4b5b94138d1aee5",
+   "query": {
+    "segment_end": 1224,
+    "target": [
+     "graph",
+     null
+    ],
+    "suppression": false
+   },
+   "capacity": [
+    67108864,
+    67108864,
+    0,
+    67108864,
+    68719476736,
+    67108864,
+    137438953472,
+    137438953472,
+    137438953472,
+    3
+   ],
+   "registry_version": 1,
+   "fail": [
+    333,
+    1
+   ],
+   "expected": {
+    "outcome": "unknown",
+    "reason": "read",
+    "scope": null
+   },
+   "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831904c882018101f40282020f810180",
+   "ranges": [
+    [
+     1213,
+     11
+    ],
+    [
+     333,
+     1
+    ]
+   ],
+   "charged": 12
+  }
+ ]
+}

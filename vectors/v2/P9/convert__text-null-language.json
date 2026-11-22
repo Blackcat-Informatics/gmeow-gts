@@ -1,0 +1,38 @@
+{
+ "name": "convert/text-null-language",
+ "status": "built and matches",
+ "note": "{k 1, v x, l null}: unrepresentable_term (3.3 case 1)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "convert__text-null-language.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "conversions": [
+     {
+      "source": {
+       "hex": "d9d9f7a5617601626964582096e25f142b507cc43666fdd09cf747ce00a02716d989cbe3d16afcc0af0e7a7863636174a300a263636c7366656e636f6465646e616d65686964656e7469747901a263636c7368636f6d7072657373646e616d6564677a697002a263636c7368636f6d7072657373646e616d65647a7374646367747364475453316470726f666767656e65726963a4616483a2616b0061766a687474703a2f2f652f61a2616b0061766a687474703a2f2f652f70a3616b01616cf6617661786174657465726d736269645820b8f5290d16403db6b4f9bbff975b028d9fd71c6ba337ca14b3c0c05e362f888b6470726576582096e25f142b507cc43666fdd09cf747ce00a02716d989cbe3d16afcc0af0e7a78a4616481830001026174657175616473626964582093a1ae5d2a257a85b4f6e748b61bd7d8f4bc696817ba43148e52cbe197ad23dc64707265765820b8f5290d16403db6b4f9bbff975b028d9fd71c6ba337ca14b3c0c05e362f888b"
+      },
+      "stopped": {
+       "reason": "unrepresentable_term",
+       "offset": 148
+      }
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

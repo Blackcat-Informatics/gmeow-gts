@@ -1,0 +1,36 @@
+{
+ "name": "registry/example/6",
+ "status": "built and matches",
+ "note": "P2 section 10, example 6: the codes of six labels of 6.1, and the reasons of the codes 5, 7, 13 and 41",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__example__6.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "codes": {
+     "unknown_codec": 1,
+     "unknown_frame_type": 2,
+     "not_deterministic": 3,
+     "codec_constraint": 11,
+     "payload_digest": 12,
+     "decode_failed": 16,
+     "unknown_signature_algorithm": 53
+    }
+   },
+   "differences": []
+  }
+ ]
+}

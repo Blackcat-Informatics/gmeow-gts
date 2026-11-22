@@ -1,0 +1,24 @@
+{
+ "name": "resync-writer-fits",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the largest honest item: a fixed part of 152 bytes, 48 observed_defect marks of 37 bytes, the mark of the torn tail of 37, the filler mark of 22 and 14 hostile marks of 123: 3709 bytes, 64 marks, readable (P1-91)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-writer-fits.bin",
+   "length": 3709,
+   "sha256": "e55871f45aaecb879d7358870de8983fd5ff6a088f3e24c1fd92b27bba8a8af5",
+   "expected": {
+    "size": 3709,
+    "fixed_part": 152,
+    "sizes": {
+     "observed_defect": 37,
+     "torn_tail": 37,
+     "filler": 22,
+     "hostile": 123
+    }
+   }
+  }
+ ]
+}

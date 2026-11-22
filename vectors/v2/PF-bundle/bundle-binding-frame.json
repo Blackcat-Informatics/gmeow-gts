@@ -1,0 +1,35 @@
+{
+ "name": "bundle-binding-frame",
+ "status": "built and matches",
+ "note": "the referent names the terms frame of the segment",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "bundle-binding-frame.bin",
+   "read_result": "870101818204058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019021b81018202582093ccf045b7e712191ef8811eeaa3fe1957d400e76233b4153c1b3f2eecce054082020182020182020401030404008085f4820205820205820205810182025820289b5bf726fdd59cbb084d6e5a8de12623a136d2cdca119f32bbdc4a7efe28bb848b010c18c3820201018101810180810180808b0218cf185f820202018101810180810180808b0319012e187b820206018101810180810180808b041901a9187282020e018101810180810280808187182e810182028304048202018101810181018202018082025820289b5bf726fdd59cbb084d6e5a8de12623a136d2cdca119f32bbdc4a7efe28bb8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "profile": [
+     [
+      1,
+      1
+     ]
+    ],
+    "core": []
+   },
+   "differences": []
+  }
+ ]
+}

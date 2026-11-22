@@ -1,0 +1,47 @@
+{
+ "name": "finding/conversion_stopped/source_exceeds_capacity",
+ "status": "built and matches",
+ "note": "a source whose fold has the size of its labelled set above the converter's labelled_lines (a capacity under the minimum, as a test device; input of the P9 vector convert/capacity-size)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__conversion_stopped__source_exceeds_capacity.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 47,
+    "reason": 82,
+    "severity": "fatal",
+    "readings": [
+     {
+      "input_hex": "d9d9f7a5617601626964582096e25f142b507cc43666fdd09cf747ce00a02716d989cbe3d16afcc0af0e7a7863636174a300a263636c7366656e636f6465646e616d65686964656e7469747901a263636c7368636f6d7072657373646e616d6564677a697002a263636c7368636f6d7072657373646e616d65647a7374646367747364475453316470726f666767656e65726963a4616486a2616b0061766a687474703a2f2f652f70a2616b0061766a687474703a2f2f652f61a2616b0061766c687474703a2f2f652f6f3030a2616b0061766c687474703a2f2f652f6f3031a2616b0061766c687474703a2f2f652f6f3032a2616b0061766c687474703a2f2f652f6f30336174657465726d736269645820bbbd69cf68081eb75fecb50666db260b8c892bd07822fd7eece21ee8178910cb6470726576582096e25f142b507cc43666fdd09cf747ce00a02716d989cbe3d16afcc0af0e7a78a46164848301000283010003830100048301000561746571756164736269645820f79087893e54796993e2cc333a7591f53246e3c2b524374011e20de5c6c2103364707265765820bbbd69cf68081eb75fecb50666db260b8c892bd07822fd7eece21ee8178910cb",
+      "input_length": 450,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "conversion_stopped",
+        "reason": "source_exceeds_capacity",
+        "offset": 0
+       }
+      ],
+      "expected_finding_bytes": [
+       "87182f820218528101810182020081018101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

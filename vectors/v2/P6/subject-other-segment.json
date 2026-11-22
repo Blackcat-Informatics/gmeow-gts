@@ -1,0 +1,128 @@
+{
+ "name": "subject-other-segment",
+ "section": "P6",
+ "status": "built and matches",
+ "note": "a valid signature copied to the same frame content in a segment of another opener: invalid, equation_failed (P6)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "subject-other-segment.bin",
+   "length": 905,
+   "sha256": "b5f730ae89ffb5ee7b4a7ec2be1502537315e7d3fafeb807b02ed56a240dfa27",
+   "inputs": [
+    [
+     "b'\\xcf\\xc2\\x1dO~\\t\\x98\\x0c\\xbf\\xc7\\xcb*\\x04\\x02n\\x07~\\xcc\\x8b\\xcdo\\xba\\\\Y\\x97\\xd6\\x1d\\xa3RI\\x90\\xa6'"
+    ],
+    [
+     [
+      "b'\\xcf\\xc2\\x1dO~\\t\\x98\\x0c\\xbf\\xc7\\xcb*\\x04\\x02n\\x07~\\xcc\\x8b\\xcdo\\xba\\\\Y\\x97\\xd6\\x1d\\xa3RI\\x90\\xa6'",
+      1,
+      "b'\\x8a\\x88\\xe3\\xddt\\t\\xf1\\x95\\xfdR\\xdb-<\\xba]r\\xcag\\t\\xbf\\x1d\\x94\\x12\\x1b\\xf3t\\x88\\x01\\xb4\\x0fo\\\\'"
+     ]
+    ]
+   ],
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182815820cfc21d4f7e09980cbfc7cb2a04026e077ecc8bcd6fba5c5997d61da3524990a681835820cfc21d4f7e09980cbfc7cb2a04026e077ecc8bcd6fba5c5997d61da3524990a60158208a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c8702829200001901a9810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101010303038085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15838b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d118d882020e01810181018187018101015820cfc21d4f7e09980cbfc7cb2a04026e077ecc8bcd6fba5c5997d61da3524990a60003f5810280808092011901a91901e0850201f40100820258208842661f09cc27d6c498f079ff1473c8af66e67aa407d41790650ecde2fe24f4820201820201810101030303008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15838b011901eb1867820201018101810180810180808b02190252185f820202018101810180810180808b031902b118d882020e01810181018187028202183e015820cfc21d4f7e09980cbfc7cb2a04026e077ecc8bcd6fba5c5997d61da3524990a60202f4810280818718288202183e82028203018202038101810181018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "4705c2fd02abba0c7736a540959b9be9ef5c5cfe7342a9d1e6b9346dd4b7b526",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "8c880f6f233243881678a32bf43eff6a8c3ce2136ef533c3bad9adda803292b1",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "signature_invalid",
+          "equation_failed",
+          3,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {}
+  }
+ ]
+}

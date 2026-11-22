@@ -1,0 +1,51 @@
+{
+ "name": "convert/capacity-rebuilt",
+ "status": "built and matches",
+ "note": "a source whose held blobs share units, so that the recipes of the result have a total rebuilt length T, converted with rebuilt_bytes_per_read T - 1 and with T: stop source_exceeds_capacity, offset 0; with T, a result and a proof (P9-42)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "convert__capacity-rebuilt.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "T": 200000,
+    "conversions": [
+     {
+      "source": {
+       "length": 200552,
+       "blake3": "fde17d9a34473296e0b7483ffe82bdbba87a72952707f01f8da8bd8c0d2d6764"
+      },
+      "stopped": {
+       "reason": "source_exceeds_capacity",
+       "offset": 0
+      }
+     },
+     {
+      "source": {
+       "length": 200552,
+       "blake3": "fde17d9a34473296e0b7483ffe82bdbba87a72952707f01f8da8bd8c0d2d6764"
+      },
+      "result": {
+       "length": 158831,
+       "blake3": "9c5e44a5ea30dbf183469e487d2af7fc6ac9753fb46f6c3e85020be2946e01a3"
+      },
+      "proof": "84582021ceebfc2a9c571bd9c4c22feb75eb406e078334ef6dd620e8b221dc5b21e9d75820ba1cccea612dcf5ec7455164ac9d7aa0041555a88c5f918c889c55feac38bce00100"
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

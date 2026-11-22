@@ -1,0 +1,29 @@
+{
+ "name": "suppress-term-hides-graph-name-lines",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "suppress-term-hides-graph-name-lines.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901d8810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f48202058202058202058101820258200a282e3ed8bc2be85b8149087d51442f5ebf483c4ead01224acabe2871b566f8848b010b189f820201018101810180810180808b0218aa1866820202018101810180810180808b031901101856820207018101810180810180808b04190166187282020e018101810180810280808080820258200a282e3ed8bc2be85b8149087d51442f5ebf483c4ead01224acabe2871b566f88201010200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": []
+   },
+   "differences": []
+  }
+ ]
+}

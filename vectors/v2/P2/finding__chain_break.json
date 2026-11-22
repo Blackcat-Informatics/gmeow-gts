@@ -1,0 +1,49 @@
+{
+ "name": "finding/chain_break",
+ "status": "built and matches",
+ "note": "the first frame's envelope altered after its identifier was computed (its content), the next frame unchanged: the identifier is neither the computed one nor explained by the next link",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__chain_break.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019017a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030003008085f4820205820205820205810182025820c208efcd02253fec8b78f4c69833bbe86682e56db6f45c8f36128c5bfd32281d838b010b18838202090381018101808203068081870b8101810182020182020b8202188381018b02188e187a820209018101810180810180808b03190108187282020e01810181018081028080808082025820c208efcd02253fec8b78f4c69833bbe86682e56db6f45c8f36128c5bfd32281d8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 11,
+    "reason": null,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f48258204e965690c2db98ff9e144d62760efd5d134474640a7bd926f10f5286470ba4fa82026a746578742f706c61696e0558201f1f4ea42fc9f95d519961f5e69b783c03b5e2dd4c8b0e4f1395bcb59008ed3381014566697273745820bc7b004cba4a5bfddd06153d50aeb09ff69ce36dd49675cb4623456055dafbce808b0209f5f4825820446a71b4bc04cd148db6a7b8e3152074e9c63cfbdb21caaea4084ee81634780b81010758203bafdfdad8e8e177c273ca89a78b41bd8a4efeae50589f2f89dc76621d7685b48101476166746572203058207a003c21d9a155c6dfdcb876484e79f9101df2f54aad949bdb9ebb68f3f5c018808b020ef4f4820258200855fff017670dc963c0bfaaadd0946e8b68da7dad5291482e75855aef65af1d0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820e9e44305aa07934800efaae98750197fc5ff00c9b90f3a637ade90244438ea9280",
+      "input_length": 378,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "chain_break",
+        "position": 1,
+        "offset": 11,
+        "length": 131
+       }
+      ],
+      "expected_finding_bytes": [
+       "870b8101810182020182020b820218838101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

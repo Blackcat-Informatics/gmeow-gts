@@ -1,0 +1,284 @@
+{
+ "name": "commit-count-mismatch",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "commit-count-mismatch.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904e6810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc82020182020181010103050000810385f482020582020582020581018202582034b815e490f32f3e9b1732e266844155100f6767f0fe32333f9d16321ff69c24868b010b188d82020101810181018081018081871181018101820201810181018202048b0218981868820202018101810180810180808b0319010019022a820210018101810180810280808b0419032a187282020e01810181018081028081870f81018101820204810181018202028b0519039c1862820202018101810180810180808b061903fe18e882020f0181018101808102808081871824810181018101820219032a82021901bc8101808202582034b815e490f32f3e9b1732e266844155100f6767f0fe32333f9d16321ff69c248201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "committed_frames": 0,
+      "loose": true,
+      "frames": [
+       {
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          {
+           "position": 1,
+           "count": 4
+          }
+         ]
+        ]
+       },
+       {},
+       {},
+       {
+        "findings": [
+         [
+          "commit_count_mismatch",
+          null,
+          {
+           "position": 4,
+           "count": 2
+          }
+         ]
+        ]
+       },
+       {},
+       {}
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 1254,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact",
+       "head": "2469380a5f9318771d14a550a3e2c8e0014ec853d5dfc189bab549c44d59d479",
+       "transparent_frames": [
+        3
+       ],
+       "committed_frames": 0,
+       "index_used": {
+        "content_digest": 6,
+        "frame_count_head": 6,
+        "graph_directory": 6,
+        "pack_members": 6,
+        "range_root": 6,
+        "statistics": 6,
+        "type_runs": 6
+       },
+       "content_digest": "34b815e490f32f3e9b1732e266844155100f6767f0fe32333f9d16321ff69c24",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 141,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 152,
+         "length": 104,
+         "class": "frame"
+        },
+        {
+         "position": 3,
+         "offset": 256,
+         "length": 554,
+         "class": "frame"
+        },
+        {
+         "position": 4,
+         "offset": 810,
+         "length": 114,
+         "class": "frame"
+        },
+        {
+         "position": 5,
+         "offset": 924,
+         "length": 98,
+         "class": "frame"
+        },
+        {
+         "position": 6,
+         "offset": 1022,
+         "length": 232,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 141,
+         "frame_type": 1,
+         "link": "linked",
+         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+         "effective_identifier": "c557655f0237180966f85f1b41247b0ebc6a475d8c5fcd91e309d2c4063a76cc",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 4
+          }
+         ]
+        },
+        {
+         "position": 2,
+         "offset": 152,
+         "length": 104,
+         "frame_type": 2,
+         "link": "linked",
+         "predecessor": "c557655f0237180966f85f1b41247b0ebc6a475d8c5fcd91e309d2c4063a76cc",
+         "effective_identifier": "4d47383d53dd603dd46803dbdaa81054ef5e81ab038788a9123bab894edcd99b",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": []
+        },
+        {
+         "position": 3,
+         "offset": 256,
+         "length": 554,
+         "frame_type": 16,
+         "link": "linked",
+         "predecessor": "4d47383d53dd603dd46803dbdaa81054ef5e81ab038788a9123bab894edcd99b",
+         "effective_identifier": null,
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": []
+        },
+        {
+         "position": 4,
+         "offset": 810,
+         "length": 114,
+         "frame_type": 14,
+         "link": "linked",
+         "predecessor": "4d47383d53dd603dd46803dbdaa81054ef5e81ab038788a9123bab894edcd99b",
+         "effective_identifier": "e6963b86a7c814b38196c9f3857af0d7cf8b0b5e95d3b6cccfd2b7a2e1044bd8",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "commit_count_mismatch",
+           "position": 4,
+           "count": 2
+          }
+         ]
+        },
+        {
+         "position": 5,
+         "offset": 924,
+         "length": 98,
+         "frame_type": 2,
+         "link": "linked",
+         "predecessor": "e6963b86a7c814b38196c9f3857af0d7cf8b0b5e95d3b6cccfd2b7a2e1044bd8",
+         "effective_identifier": "3f1c003566ebf6794b82769cf6fddaa510f1ef1b9efc9b0a23bee8a9bf56137d",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": []
+        },
+        {
+         "position": 6,
+         "offset": 1022,
+         "length": 232,
+         "frame_type": 15,
+         "link": "linked",
+         "predecessor": "3f1c003566ebf6794b82769cf6fddaa510f1ef1b9efc9b0a23bee8a9bf56137d",
+         "effective_identifier": "2469380a5f9318771d14a550a3e2c8e0014ec853d5dfc189bab549c44d59d479",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": []
+        }
+       ],
+       "findings": [
+        {
+         "code": "unprotected_tail",
+         "offset": 810,
+         "length": 444
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "34b815e490f32f3e9b1732e266844155100f6767f0fe32333f9d16321ff69c24",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

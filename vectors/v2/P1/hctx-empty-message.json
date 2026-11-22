@@ -1,0 +1,32 @@
+{
+ "name": "hctx-empty-message",
+ "section": "10.8",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "hctx-empty-message.bin",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "context": "gear_table"
+   },
+   "result": {
+    "output": "6cd472932a5b36433295530ede73fa5f9ba336a64c2b16dd6d338234f55adf82d1f88e317a5fe940d2d2ad582efa6c05c203f19acdf9b1e39a8c383f200397a6"
+   },
+   "differences": []
+  }
+ ]
+}

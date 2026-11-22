@@ -1,0 +1,53 @@
+{
+ "name": "p8-sealed-pack-charge",
+ "status": "built and matches",
+ "note": "a sealed pack whose directory holds two chunk members, a recipe member of charge T1 and a value member of charge T2, read by a key holder with rebuilt_bytes_per_read T1: the recipe admitted and rebuilt, the value refused, one exceeds_capacity with total_rebuilt and count T1 + T2 at the sealed frame, the rebuilds of the sealed frame in directory order; keyless: no charge, no total_rebuilt finding (P8-63)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "p8-sealed-pack-charge.bin",
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a04000000188d1b00000020000000001b00000020000000000181018280808702819200001903658101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810102030303008085f48202058202058202058101820258205a0657531b74fc56bac2da530c83786a753a2e10d6f60e1bbcfd57ba58474f76838b010b1881820211018101810180810180808b02188c1902678202120181018101808101828282020281018282020381038287148202185981018202028202188c8202190267820218d287128202185f81018202028101810181018b031902f3187282020e018101810180810280808080820258205a0657531b74fc56bac2da530c83786a753a2e10d6f60e1bbcfd57ba58474f768201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 141,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 141,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 0,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    }
+   ],
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

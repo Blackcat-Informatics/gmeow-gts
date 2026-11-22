@@ -1,0 +1,37 @@
+{
+ "name": "unit-digest",
+ "status": "built and matches",
+ "note": "the 2^20-byte string is the first 2^20 bytes of BLAKE3 extended output over 'P4 unit-digest' (the .bin file)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "unit-digest.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "unit": [
+     "fd333553fcd5a9a21f2f02d8975a121d076261ab21681b642bd99ce82fb597ab",
+     "e0fd1bfed8d0ebdc51d5dd4566a49697189d80a57468118c0488ffdc1f34f4be",
+     "cc3fb75ea36f80c63afa7ba1bba9d7b593929cdd7dc8ac9e9f8148991aad211b"
+    ],
+    "payload": [
+     "6fe2440cd1dab629acd5584d26ee9597ac03de5492405cdacef614cd317d90b6",
+     "3509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d4492379251",
+     "32e64a8613115c5c6fc4027a0d96bcffaa0bb744014c124eec68237c8ae4eb41"
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

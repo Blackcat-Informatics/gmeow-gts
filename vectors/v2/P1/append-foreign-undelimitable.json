@@ -1,0 +1,18 @@
+{
+ "name": "append-foreign-undelimitable",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the bytes ff d8 ff: refused_generation (P1-87)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "append-foreign-undelimitable.bin",
+   "length": 3,
+   "sha256": "6e568e1f67fba258184c78181539e5e8fdee447e49bb706fc0ea34fbf12336a5",
+   "expected": {
+    "outcome": "refused_generation",
+    "outcome_code": 3
+   }
+  }
+ ]
+}

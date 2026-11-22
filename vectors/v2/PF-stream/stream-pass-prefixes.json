@@ -1,0 +1,30 @@
+{
+ "name": "stream-pass-prefixes",
+ "status": "built and matches",
+ "note": "a sample of the item boundaries of stream-pass (every 397th, and the three around each parity frame and the ends); all 12000 would read 12 MB each",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "stream-pass-prefixes.bin",
+   "input_derived": true,
+   "read_result": "870101818203028a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000c8101820258202305a9acdda182b3ff3896388db55c040c959bc9af7d797ddc222772952457f482020182020182020301030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "prefixes_read": 43
+   },
+   "differences": []
+  }
+ ]
+}

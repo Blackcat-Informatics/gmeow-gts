@@ -1,0 +1,56 @@
+{
+ "name": "finding/stored_check_mismatch",
+ "status": "built and matches",
+ "note": "one stored byte of a compressed frame altered (a literal byte of a raw block): the stored check disagrees, and the decoded payload then fails its digest (P1: the two checks are independent)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__stored_check_mismatch.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019010e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b1891820209018102820202808203018082870e8101810182020182020b820218918101870d82020c810182020182020b8202189181018b02189c187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 14,
+    "reason": null,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f4825820fd333553fcd5a9a21f2f02d8975a121d076261ab21681b642bd99ce82fb597ab81010358206fe2440cd1dab629acd5584d26ee9597ac03de5492405cdacef614cd317d90b6830201501ebc3e575fa4f313d0b1dd467570c1154c28b52ffd20031900006162625820ceb7353d458d90fbdfc130ad572b659c0f8d8a988fc78c1e48c677108520d866808b020ef4f48201582088fcb4cf8d93409eb02d554ef773e5bc3d6fbce960ab001773cf95c77363f4250058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820ca68b5b9b1ec2ea371856f371904f0ad2a1bd5997383a4661c1609afe6cb60b680",
+      "input_length": 270,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "stored_check_mismatch",
+        "position": 1,
+        "offset": 11,
+        "length": 145
+       },
+       {
+        "code": "damaged_frame",
+        "reason": "payload_digest",
+        "position": 1,
+        "offset": 11,
+        "length": 145
+       }
+      ],
+      "expected_finding_bytes": [
+       "870e8101810182020182020b820218918101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

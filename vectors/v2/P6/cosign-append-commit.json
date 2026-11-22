@@ -1,0 +1,92 @@
+{
+ "name": "cosign-append-commit",
+ "section": "P6",
+ "status": "built and matches",
+ "note": "a second commit signed by a second key: the second signature authenticated with coverage over both commits (P6)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "cosign-append-commit.bin",
+   "length": 641,
+   "sha256": "f547d241a4fc60e462696d5703fe08db77deb0855382a4a895d9a3971c610eef",
+   "inputs": [
+    [
+     "b'd\\xf0\\xf7\\x89\\x1ee)S\\xa3^h\\xdb\\x9d7\\x1b\\\\\\x03\"V=\\xe2\\xc8\\xc0]\\xbf\\x01\\x81\\ne\\x07\\x03\\xcf'",
+     "b'\\xcf\\xc2\\x1dO~\\t\\x98\\x0c\\xbf\\xc7\\xcb*\\x04\\x02n\\x07~\\xcc\\x8b\\xcdo\\xba\\\\Y\\x97\\xd6\\x1d\\xa3RI\\x90\\xa6'"
+    ],
+    [
+     [
+      "b'd\\xf0\\xf7\\x89\\x1ee)S\\xa3^h\\xdb\\x9d7\\x1b\\\\\\x03\"V=\\xe2\\xc8\\xc0]\\xbf\\x01\\x81\\ne\\x07\\x03\\xcf'",
+      1,
+      "b'\\x819w\\x0e\\xa8}\\x17_V\\xa3Tf\\xc3L~\\xcc\\xcb\\x8d\\x8a\\x91\\xb4\\xee7\\xa2]\\xf6\\x0f[\\x8f\\xc9\\xb3\\x94'"
+     ],
+     [
+      "b'\\xcf\\xc2\\x1dO~\\t\\x98\\x0c\\xbf\\xc7\\xcb*\\x04\\x02n\\x07~\\xcc\\x8b\\xcdo\\xba\\\\Y\\x97\\xd6\\x1d\\xa3RI\\x90\\xa6'",
+      1,
+      "b'\\x8a\\x88\\xe3\\xddt\\t\\xf1\\x95\\xfdR\\xdb-<\\xba]r\\xcag\\t\\xbf\\x1d\\x94\\x12\\x1b\\xf3t\\x88\\x01\\xb4\\x0fo\\\\'"
+     ]
+    ]
+   ],
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018282582064f0f7891e652953a35e68db9d371b5c0322563de2c8c05dbf01810a650703cf5820cfc21d4f7e09980cbfc7cb2a04026e077ecc8bcd6fba5c5997d61da3524990a68283582064f0f7891e652953a35e68db9d371b5c0322563de2c8c05dbf01810a650703cf0158208139770ea87d175f56a35466c34c7ecccb8d8a91b4ee37a25df60f5b8fc9b394835820cfc21d4f7e09980cbfc7cb2a04026e077ecc8bcd6fba5c5997d61da3524990a60158208a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c870281920000190281810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101010404048085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15848b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d118d882020e01810181018187018101015820cfc21d4f7e09980cbfc7cb2a04026e077ecc8bcd6fba5c5997d61da3524990a60003f5810280808b041901a918d882020e0181018101818701810101582064f0f7891e652953a35e68db9d371b5c0322563de2c8c05dbf01810a650703cf0004f581028080808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000100",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fcdda55d54e3dc9c8b3ef2b461101b3847bc0543e2c44585f3bed4292704d55f",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {}
+  }
+ ]
+}

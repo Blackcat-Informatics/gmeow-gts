@@ -1,0 +1,39 @@
+{
+ "name": "container-listing-order",
+ "status": "built and matches",
+ "note": "an export of three observations written in descending order of c:resource and a container observation with three c:contains objects: the listing is in ascending bytewise order, the shorter IRI first when it is a prefix of the other",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "container-listing-order.bin",
+   "read_result": "870101818206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019081a810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020601030909008085f482020582020582020581018202582080d07b774bf5f9f354d21df9104c45480e5aef57e38e0fb1af6fd92a7a4753bf898b010c19041f820201018101810180810180808b0219042b18ed820202018101810180810180808b031905181863820202018101810180810180808b0419057b1863820202018101810180810180808b051905de1863820202018101810180810180808b06190641187282020e018101810180810280808b071906b3187a820202018101810180810180808b0819072d187b820206018101810180810180808b091907a8187282020e0181018101808102808080808202582080d07b774bf5f9f354d21df9104c45480e5aef57e38e0fb1af6fd92a7a4753bf8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "listing": [
+     "https://pod.example/",
+     "https://pod.example/a",
+     "https://pod.example/ab",
+     "https://pod.example/z"
+    ],
+    "contains": [
+     "https://pod.example/a",
+     "https://pod.example/ab",
+     "https://pod.example/z"
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

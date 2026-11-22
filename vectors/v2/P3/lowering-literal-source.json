@@ -1,0 +1,102 @@
+{
+ "name": "lowering-literal-source",
+ "status": "built and matches",
+ "note": "a segment with quad(a, p, <<a p <<b q \"x\"@EN-us--ltr>>>>) and quad(a, p, <<a p <<b q \"7\"^^xsd:nonNegativeInteger>>>>), the second literal stored as the typed value [2, 7]: the sources K and the preimages of 6.2a (44 and 93 bytes), the digests <Dlang> and <Dtyped> and the content digest <Dlit> (P3-109)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lowering-literal-source.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190186810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820fe88d78fb408d2fa2ebc4467efa70995927075f11a3af3c9e1d4ddb14c17063d838b010b18a8820201018101810180810180808b0218b31861820202018101810180810180808b03190114187282020e01810181018081028080808082025820fe88d78fb408d2fa2ebc4467efa70995927075f11a3af3c9e1d4ddb14c17063d8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "sha256": "5ce888f3ba042e4808a3503c8d0c09a20054cfbcabb9e5419079c186c5bf182d",
+    "bytes": 390,
+    "refusal": null,
+    "size": 5,
+    "content_digest": "fe88d78fb408d2fa2ebc4467efa70995927075f11a3af3c9e1d4ddb14c17063d",
+    "findings": [],
+    "lines": 2,
+    "records": 1,
+    "nested_terms": 2,
+    "weight": 581,
+    "labelled": 5,
+    "max_depth_of_a_triple_term": 1,
+    "term_nodes": [
+     {
+      "node": "n#a91d0424",
+      "K": [
+       "4d82016a687474703a2f2f652f62",
+       "4d82016a687474703a2f2f652f71",
+       "4b840261780365454e2d7573"
+      ],
+      "preimage": "834e4d82016a687474703a2f2f652f624e4d82016a687474703a2f2f652f714c4b840261780365454e2d7573",
+      "preimage_bytes": 44,
+      "d": "a91d0424f25e9e0423454d552c887a8d9824307e4d53f857a7083637f3023a2e",
+      "source_identifier": "815820a91d0424f25e9e0423454d552c887a8d9824307e4d53f857a7083637f3023a2e",
+      "position": 1
+     },
+     {
+      "node": "n#fb2aec9c",
+      "K": [
+       "4d82016a687474703a2f2f652f62",
+       "4d82016a687474703a2f2f652f71",
+       "583a84026137017833687474703a2f2f7777772e77332e6f72672f323030312f584d4c536368656d61236e6f6e4e65676174697665496e7465676572"
+      ],
+      "preimage": "834e4d82016a687474703a2f2f652f624e4d82016a687474703a2f2f652f71583c583a84026137017833687474703a2f2f7777772e77332e6f72672f323030312f584d4c536368656d61236e6f6e4e65676174697665496e7465676572",
+      "preimage_bytes": 93,
+      "d": "fb2aec9c921addc57fdafe909549d87b54a7391637a55485159fcffab2afa361",
+      "source_identifier": "815820fb2aec9c921addc57fdafe909549d87b54a7391637a55485159fcffab2afa361",
+      "position": 0
+     }
+    ],
+    "blank_positions": {},
+    "labelled_set": [
+     "quad(<a>, <p>, <<<a> <p> n#a91d0424>>, -)",
+     "quad(<a>, <p>, <<<a> <p> n#fb2aec9c>>, -)",
+     "record(P820482028101, b'7')",
+     "record(P8205848101810181018101, n#a91d0424, <b>, <q>, b'x')",
+     "record(P8205848101810181018101, n#fb2aec9c, <b>, <q>, b'7')"
+    ],
+    "guaranteed": true,
+    "walk": {
+     "total": 149,
+     "kinds": {
+      "START": 62,
+      "REFINE": 8,
+      "FIX-SUM": 76,
+      "SPLIT": 3,
+      "TWIN": 0
+     },
+     "allowance": 411,
+     "broken_by": 0
+    },
+    "oracle_guaranteed": true,
+    "oracle_digest": "fe88d78fb408d2fa2ebc4467efa70995927075f11a3af3c9e1d4ddb14c17063d",
+    "Dlang": "a91d0424f25e9e0423454d552c887a8d9824307e4d53f857a7083637f3023a2e",
+    "Dtyped": "fb2aec9c921addc57fdafe909549d87b54a7391637a55485159fcffab2afa361",
+    "Dlit": "fe88d78fb408d2fa2ebc4467efa70995927075f11a3af3c9e1d4ddb14c17063d",
+    "sources": {
+     "E(v) language": "840261780365454e2d7573",
+     "K language": "4b840261780365454e2d7573",
+     "E(v) typed": "84026137017833687474703a2f2f7777772e77332e6f72672f323030312f584d4c536368656d61236e6f6e4e65676174697665496e7465676572",
+     "K typed": "583a84026137017833687474703a2f2f7777772e77332e6f72672f323030312f584d4c536368656d61236e6f6e4e65676174697665496e7465676572",
+     "preimage language": "834e4d82016a687474703a2f2f652f624e4d82016a687474703a2f2f652f714c4b840261780365454e2d7573",
+     "preimage typed": "834e4d82016a687474703a2f2f652f624e4d82016a687474703a2f2f652f71583c583a84026137017833687474703a2f2f7777772e77332e6f72672f323030312f584d4c536368656d61236e6f6e4e65676174697665496e7465676572"
+    }
+   },
+   "differences": []
+  }
+ ]
+}

@@ -1,0 +1,217 @@
+{
+ "name": "blobset-length",
+ "status": "built and matches",
+ "note": "a blob frame (5), externals of 9 and 3: the entry takes 3 in every order; the two others conflict",
+ "cases": [
+  {
+   "label": "order-0",
+   "input_file": "blobset-length.order-0.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901e1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd848b010b18788202090181018101808101808187182d810181018202018101810181018b021883187682020c0181018101808101808187182d810181018202028101810181018b0318f9187682020c018101810180810180808b0419016f187282020e01810181018081028080808082025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "conflicting_declaration",
+      "None",
+      "1",
+      "0"
+     ],
+     [
+      "conflicting_declaration",
+      "None",
+      "2",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "order-1",
+   "input_file": "blobset-length.order-1.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901e1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd848b010b18788202090181018101808101808187182d810181018202018101810181018b021883187682020c018101810180810180808b0318f9187682020c0181018101808101808187182d810181018202038101810181018b0419016f187282020e01810181018081028080808082025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "conflicting_declaration",
+      "None",
+      "1",
+      "0"
+     ],
+     [
+      "conflicting_declaration",
+      "None",
+      "3",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "order-2",
+   "input_file": "blobset-length.order-2.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901e1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd848b010b187682020c0181018101808101808187182d810181018202018101810181018b02188118788202090181018101808101808187182d810181018202028101810181018b0318f9187682020c018101810180810180808b0419016f187282020e01810181018081028080808082025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "conflicting_declaration",
+      "None",
+      "1",
+      "0"
+     ],
+     [
+      "conflicting_declaration",
+      "None",
+      "2",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "order-3",
+   "input_file": "blobset-length.order-3.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901e1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd848b010b187682020c0181018101808101808187182d810181018202018101810181018b021881187682020c018101810180810180808b0318f718788202090181018101808101808187182d810181018202038101810181018b0419016f187282020e01810181018081028080808082025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "conflicting_declaration",
+      "None",
+      "1",
+      "0"
+     ],
+     [
+      "conflicting_declaration",
+      "None",
+      "3",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "order-4",
+   "input_file": "blobset-length.order-4.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901e1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd848b010b187682020c018101810180810180808b02188118788202090181018101808101808187182d810181018202028101810181018b0318f9187682020c0181018101808101808187182d810181018202038101810181018b0419016f187282020e01810181018081028080808082025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "conflicting_declaration",
+      "None",
+      "2",
+      "0"
+     ],
+     [
+      "conflicting_declaration",
+      "None",
+      "3",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "order-5",
+   "input_file": "blobset-length.order-5.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901e1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd848b010b187682020c018101810180810180808b021881187682020c0181018101808101808187182d810181018202028101810181018b0318f718788202090181018101808101808187182d810181018202038101810181018b0419016f187282020e01810181018081028080808082025820f0bd8e6154a3cf8f2e9d5d8a133cd2c4a28eb81b35aecaa2ba028629b15afebd8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "conflicting_declaration",
+      "None",
+      "2",
+      "0"
+     ],
+     [
+      "conflicting_declaration",
+      "None",
+      "3",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

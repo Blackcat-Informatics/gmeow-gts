@@ -1,0 +1,149 @@
+{
+ "name": "lineage-head-broken-last-frame",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the head of a segment whose last ordinary frame is `broken` with a damaged stored identifier is that stored identifier: a later `previous_head` written before the damage is `lineage_mismatch` with `head` (P1 3.4 HEAD, 5.2 step 5)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lineage-head-broken-last-frame.bin",
+   "length": 4811,
+   "sha256": "d38a76ad6e6372ceeb8af8725e4b396f46fe59ac3d96d082c1aeae97a4a5a45b",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 3127,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a04000000190c371a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000019121e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc82020182020181010303000000810385f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b18758202080381018101808203068082870b8101810182020182020b820218758101871181018101820201810181018202018b031910291901f582021001810181018081028081871821810181018202038101810181018187182481018101810182020b820219101e8101920119121e18ad8101820258204f1c116929be9d170f566163742b9f31e9a5d7bfc449fea2649ff60199eee65f820201820201810102030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b0119124d187e8202080182030281018082030780828714820218568101820201820219124d8202187e8202190c44871181018101820201810181018202018187182b8202183781018101810181018101818708810181018101820218808202190fa9810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000403",
+   "observed": {
+    "file_findings": [
+     [
+      "undelimitable_input",
+      null,
+      null,
+      null,
+      128,
+      4009
+     ]
+    ],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "7a5853812d4c20f1bf88f9ba42783c540a79b69486b1959e463313774b7345bd",
+      "findings": [
+       [
+        "unprotected_tail",
+        null,
+        null,
+        null,
+        11,
+        4126
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "chain_break"
+        ],
+        "findings": [
+         [
+          "chain_break",
+          null,
+          1,
+          null,
+          11,
+          117
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "parity_stale",
+          null,
+          3,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "2e67c6d6027c691ea76e6616fa37891f8a795e16827f4b5dd07c47246c74d3c9",
+      "findings": [
+       [
+        "lineage_mismatch",
+        "head",
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "exceeds_capacity"
+        ],
+        "findings": [
+         [
+          "exceeds_capacity",
+          "total_decoded",
+          1,
+          3140,
+          4685,
+          126
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "segment 1: lineage_mismatch head"
+   }
+  }
+ ]
+}

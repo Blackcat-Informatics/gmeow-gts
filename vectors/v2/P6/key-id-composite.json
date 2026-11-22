@@ -1,0 +1,30 @@
+{
+ "name": "key-id-composite",
+ "status": "built and matches",
+ "note": "E([2, PK2]) is 1989 bytes",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "key-id-composite.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "public_key": "c0f4848649b3b8e661deb1d0f53ac876f32bd50eb812aab82021fda65f3f15fa...",
+    "preimage_length": 1989,
+    "key_id": "84df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac3301"
+   },
+   "differences": []
+  }
+ ]
+}

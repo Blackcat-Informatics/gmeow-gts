@@ -1,0 +1,96 @@
+{
+ "name": "frame-enum-unknown-term-kind-newer",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a `terms` frame with `critical` true in a segment of `registry_version` 2 whose `runs` hold a `term_kind` a reader of version 1 does not hold, its link broken: the content of a `broken` frame is not interpreted, so `chain_break` alone, no `unsupported_critical` and no `malformed_value` (P1 3.3, P3-74)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "frame-enum-unknown-term-kind-newer.bin",
+   "length": 186,
+   "sha256": "3cab7e595a97031c3d519992c0f9a8d0437ca90bf7bac477350fab8871569fd9",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018ba8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b18678202010381018101808203068082870b8101810182020182020b820218678101871181018101820201810181018202018387048101810181018101810181018705820218548202820506820202810181018101871282021381018202038101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000402",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "b63241f2f32abac1a0afcec0d48f3d5d91028d2cc8a73ad70ebd9c13a95d6e1e",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ],
+       [
+        "unknown_enumeration_value",
+        "unknown_item_kind",
+        2,
+        null,
+        null,
+        null
+       ],
+       [
+        "index_claim_failed",
+        "index_offsets",
+        3,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "chain_break"
+        ],
+        "findings": [
+         [
+          "chain_break",
+          null,
+          1,
+          null,
+          11,
+          103
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "frame 1: chain_break alone; no unsupported_critical; no malformed_value"
+   }
+  }
+ ]
+}

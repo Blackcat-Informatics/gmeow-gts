@@ -1,0 +1,130 @@
+{
+ "name": "resync-limit-torn-ends-at-measure",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "limit 4 (b): a frame of a segment of registry version 2 cut so that the completion ends at a measure `82 06 v` of a hostile mark of R: R is not accepted (P1-107)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-limit-torn-ends-at-measure.bin",
+   "length": 462,
+   "sha256": "57ac590b90a6d3abceaa2c7b7bb3276ee6fed06ad4fcb6f11a35ff13abb98068",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901ce8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030101008085f482020582020582020581018101838b010b18d882020e01810181018187038202183601582075a9a6938575614777069035ee459793419347e2c46214f2b1f478a92c0dcd0c0000f4810280818718298202183682028203018202018101810181018b0419010818678202010381018101808203068082870b810181018202048202190108820218678101871181018101820204810181018202028b0519016f185f8202020181018101808101808187181981018101820205810181018101838704810181018101810181018101870582021854820282050682020281018101810187078202048101820203820218e68202182281018081018201000303",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "63cebd7130c32f3db44ebb705d28a3d61ad28e72cb4aa5024f3a39efce1a610c",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ],
+       [
+        "unknown_enumeration_value",
+        "unknown_item_kind",
+        2,
+        null,
+        null,
+        null
+       ],
+       [
+        "malformed_value",
+        "wrong_type",
+        3,
+        null,
+        230,
+        34
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "signature_unverified",
+          "key_not_held",
+          1,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 4,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "chain_break"
+        ],
+        "findings": [
+         [
+          "chain_break",
+          null,
+          4,
+          null,
+          264,
+          103
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          4,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "opaque_term",
+          null,
+          5,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "R is not accepted; the completion (m = 37 bytes) ends at the measure"
+   }
+  }
+ ]
+}

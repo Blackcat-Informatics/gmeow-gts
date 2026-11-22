@@ -1,0 +1,27 @@
+{
+ "name": "read/capacity/order",
+ "status": "built and matches",
+ "note": "items_per_read, total and labelled_lines all exceeded: only item_count",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "read__capacity__order.bin",
+   "read_result": "870101808a1a040000001a0400000000021864031b00000020000000001b00000020000000001b000000200000000001810182808087028192000018e3810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f482020582020582020581018101828b010b187582020101810181018081018081871181018101820201810181018202028b021880186382020201810181018081018080808187148202185781018101820218e382021901d782020481018201000700",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 2,
+    "decoded_bytes_per_read": 100,
+    "items_per_read": 3,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

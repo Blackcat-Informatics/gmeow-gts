@@ -1,0 +1,36 @@
+{
+ "name": "bindings-referent-frame-unresolved",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "bindings-referent-frame-unresolved.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901bf810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258202cea14328c8d47a37982179961ef507de2895bfd46669d98278dfa08d7c08776838b010b189f820201018101810180810180808b0218aa18a38202060181018101808101808187138202181c81018202028101810181018b0319014d187282020e018101810180810280808080820258202cea14328c8d47a37982179961ef507de2895bfd46669d98278dfa08d7c087768201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "missing_dependency",
+      "frame",
+      "2",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

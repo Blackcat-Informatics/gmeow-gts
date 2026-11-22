@@ -1,0 +1,291 @@
+{
+ "name": "canonical/check/triple-depth-order",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "a claimed segment whose dictionary stores the triple terms t1 = <<a p b>>, t2 = <<b p t1>> (t1 is the OBJECT of t2: see the text defect on <<t1 p b>>) and t3 = <<a p c>> in the order t1, t2, t3: structure failed, first_difference [terms, p], p the terms frame that holds t3, one canonical_violated with reason 64 + terms",
+ "cases": [
+  {
+   "label": "canonical-declared",
+   "input_file": "canonical/check/triple-depth-order.canonical-declared.bin",
+   "length": 1238,
+   "sha256": "55a54741a6bb10a61077a5cbdea903c79db233693f6ebae7cfd3b73ff0a557e3",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904d68101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f58103810181018202820301820258207e52ae340169426857e89570da0d4b3be12e5c38a0c512ced9ed6c35a60b7c99858b010c18868202010181018101808101808287158101810182020181018101810187181b8202184381018202018101810181018b0218921861820202018101810180810180808b0318f3187282020e018101810180810280808b0419016518d882020f018101810180810280808b0519023d19027f820210018101810180810280808080820258207e52ae340169426857e89570da0d4b3be12e5c38a0c512ced9ed6c35a60b7c998201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "a1e45421aea184b0607b3656a115c6e1d6c1d5dbc61f2d6de4a240bb494c2b30",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "declared_order_violated",
+          null,
+          1,
+          null,
+          null,
+          null
+         ],
+         [
+          "canonical_violated",
+          "terms",
+          1,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "structure failed, first_difference [terms, 1] (the terms frame holds t3), one canonical_violated with reason terms"
+   }
+  },
+  {
+   "label": "unordered",
+   "input_file": "canonical/check/triple-depth-order.unordered.bin",
+   "length": 1238,
+   "sha256": "4e7c4a61e513a5ab464bdc154b69c6dafd65c9dec96fe5cfd7e280feecacd59d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904d68101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f58103810181018202820301820258207e52ae340169426857e89570da0d4b3be12e5c38a0c512ced9ed6c35a60b7c99858b010c18868202010181018101808101808187181b8202184381018202018101810181018b0218921861820202018101810180810180808b0318f3187282020e018101810180810280808b0419016518d882020f018101810180810280808b0519023d19027f820210018101810180810280808080820258207e52ae340169426857e89570da0d4b3be12e5c38a0c512ced9ed6c35a60b7c998201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "ae8a6c8e4276f62059b58ad89ec60b50b77e46cd72b545cabc17da1a340d2179",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "canonical_violated",
+          "terms",
+          1,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "structure failed, first_difference [terms, 1] (the terms frame holds t3), one canonical_violated with reason terms"
+   }
+  },
+  {
+   "label": "text-as-written-subject-nested",
+   "input_file": "canonical/check/triple-depth-order.text-as-written-subject-nested.bin",
+   "length": 1204,
+   "sha256": "2b97ec4ea3f97937e48e38ec8c703c3143c7b5de80bcfeb0ed404df567fe9e95",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904b48101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f581038101810182028203018101858b010c18868202010181018101808101808287178101810182020181018101810187181b8202184381018202018101810181018b021892186182020201810181018081018081871819810181018202028101810181018b0318f3187282020e018101810180810280808b0419016518b682020f018101810180810280808b0519021b19027f82021001810181018081028080808081018201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "47b5bd33c09f6a9296922bff94fa8f0d9380e83e70887a49ddf4da696ed4370c",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "position_constraint",
+          null,
+          1,
+          null,
+          null,
+          null
+         ],
+         [
+          "canonical_violated",
+          "terms",
+          1,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "opaque_term",
+          null,
+          2,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "first_difference [terms, 1] as well, with a counted finding of P3 (position_constraint) on the frame"
+   }
+  }
+ ]
+}

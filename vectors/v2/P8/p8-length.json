@@ -1,0 +1,28 @@
+{
+ "name": "p8-length",
+ "status": "built and matches",
+ "note": "the payload of 2^27 + 17 zero bytes is built in memory and not stored; its payload digest is 402bbe4db2eb033a483ea8a024dba5d570d16358b3e96eeefd69a806308a498c",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "p8-length.bin",
+   "input_derived": true,
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019010f8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030200008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b188182021101810181018081018081871181018101820201810181018202028b02188c18838202120181018101808203028081870782020681018202028202188c820218838101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e84020001000401",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

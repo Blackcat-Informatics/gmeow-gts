@@ -1,0 +1,31 @@
+{
+ "name": "lowering-doubling",
+ "status": "built and matches",
+ "note": "t(1) = <<a p a>>, t(k + 1) = <<t(k) p t(k)>> for k from 1 to 31 and the row quad(a, p, t(32)): t(2) to t(32) unreadable (position_constraint once), the row held (opaque_term), the content digest absent, no term node (P3-19)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lowering-doubling.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901ca810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b18ed820201018101810180810180818717810181018202018101810181018b0218f8186082020201810181018081018081871819810181018202028101810181018b03190158187282020e01810181018081028080808081018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "terms_input_bytes": 458,
+    "terms_sha256": "c89bcb0c503244a633d4ee3615ebe4a050eb28e2f2bbf746b7103171dba059d6",
+    "size": 32
+   },
+   "differences": []
+  }
+ ]
+}

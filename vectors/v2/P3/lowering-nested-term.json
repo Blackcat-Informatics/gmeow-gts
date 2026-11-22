@@ -1,0 +1,78 @@
+{
+ "name": "lowering-nested-term",
+ "status": "built and matches",
+ "note": "P3 12.8: x = <<b q c>> nested in t = <<a p x>>, one row quad(a, p, t): one term node and one record (the preimage of d(x) is the 46 bytes of 12.8, size 2, weight 182, no blank term in the canonical file) (P3-107, P3-108, P3-109)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lowering-nested-term.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190162810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018202582058f87244a0384c2a186972fe7760d3c01813103e64c5c26eee6cf7d9a622f641838b010b1886820201018101810180810180808b021891185f820202018101810180810180808b0318f0187282020e0181018101808102808080808202582058f87244a0384c2a186972fe7760d3c01813103e64c5c26eee6cf7d9a622f6418201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "sha256": "16d52912fe49077089f16b332774588d90d87be28213ef08f91e6fa8194795da",
+    "bytes": 354,
+    "refusal": null,
+    "size": 2,
+    "content_digest": "58f87244a0384c2a186972fe7760d3c01813103e64c5c26eee6cf7d9a622f641",
+    "findings": [],
+    "lines": 1,
+    "records": 0,
+    "nested_terms": 1,
+    "weight": 182,
+    "labelled": 2,
+    "max_depth_of_a_triple_term": 1,
+    "term_nodes": [
+     {
+      "node": "n#29fea6d0",
+      "K": [
+       "4d82016a687474703a2f2f652f62",
+       "4d82016a687474703a2f2f652f71",
+       "4d82016a687474703a2f2f652f63"
+      ],
+      "preimage": "834e4d82016a687474703a2f2f652f624e4d82016a687474703a2f2f652f714e4d82016a687474703a2f2f652f63",
+      "preimage_bytes": 46,
+      "d": "29fea6d08405881c4f32d24d662e2c5b9d54b7aec223600d668e54f9336a84a5",
+      "source_identifier": "81582029fea6d08405881c4f32d24d662e2c5b9d54b7aec223600d668e54f9336a84a5",
+      "position": 0
+     }
+    ],
+    "blank_positions": {},
+    "labelled_set": [
+     "quad(<a>, <p>, <<<a> <p> n#29fea6d0>>, -)",
+     "record(P8205848101810181018101, n#29fea6d0, <b>, <q>, <c>)"
+    ],
+    "guaranteed": true,
+    "walk": {
+     "total": 57,
+     "kinds": {
+      "START": 23,
+      "REFINE": 4,
+      "FIX-SUM": 30,
+      "SPLIT": 0,
+      "TWIN": 0
+     },
+     "allowance": 156,
+     "broken_by": 0
+    },
+    "oracle_guaranteed": true,
+    "oracle_digest": "58f87244a0384c2a186972fe7760d3c01813103e64c5c26eee6cf7d9a622f641",
+    "Dx": "29fea6d08405881c4f32d24d662e2c5b9d54b7aec223600d668e54f9336a84a5",
+    "Dlowered": "58f87244a0384c2a186972fe7760d3c01813103e64c5c26eee6cf7d9a622f641",
+    "canonical_file_sha256": "4acb767ed739e7054ab1a72c87f641ec6004a5ce98a9b4907d9fc0d8c7b8340c"
+   },
+   "differences": []
+  }
+ ]
+}

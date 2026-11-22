@@ -1,0 +1,31 @@
+{
+ "name": "sign-composite-reproduce",
+ "status": "built and matches",
+ "note": "the 3373 bytes for a composite key and a subject: ML-DSA half by gts2ref/mldsa.py (FIPS 204 deterministic) reproduced by `openssl pkeyutl -pkeyopt deterministic:1`, Ed25519 half equal to OpenSSL's",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "sign-composite-reproduce.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "value_length": 3373,
+    "value_sha256": "97afda4ae2910164ffd601f787b9470f8a48d3d458ff28cc1e150623664db962",
+    "mldsa_half_second_implementation": "reproduced",
+    "message": "e0492e0a13c836521e3fb4f92f7b7920dfdf9b2c4d6153c626942a961138924e"
+   },
+   "differences": []
+  }
+ ]
+}

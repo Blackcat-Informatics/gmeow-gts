@@ -1,0 +1,46 @@
+{
+ "name": "finding/proof_failed/range",
+ "status": "built and matches",
+ "note": "a range proof for the frames 2 and 3 given with an altered identifier for the second",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__proof_failed__range.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 38,
+    "reason": 51,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "84020405825820a89d2f607f63d8263858ad28098689f7a55421d07619a75a969bfa10ecd4a8f658202aacc1816ae96cbdd47e074e9d8de8b1dfee2aff58376f5d2cbe7b896a7c52a2",
+      "input_length": 73,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "proof_failed",
+        "reason": "range"
+       }
+      ],
+      "expected_finding_bytes": [
+       "8718268202183381018101810181018101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

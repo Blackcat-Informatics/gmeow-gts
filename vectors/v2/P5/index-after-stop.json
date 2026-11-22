@@ -1,0 +1,287 @@
+{
+ "name": "index-after-stop",
+ "section": "P5",
+ "status": "built and matches",
+ "note": "a segment of a higher registry version, a critical frame of a type the reader does not hold, a quads frame, an index after them (4.3, P5-22)",
+ "cases": [
+  {
+   "label": "exact",
+   "input_file": "index-after-stop.exact.bin",
+   "length": 397,
+   "sha256": "02305c34fed0eeabcc1b6849f6307c5ea20f472da294ae5a02e15d6455a91076",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019018d8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030300008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b185082021863018101810180820304808287068101820282021863820201810181018101871181018101820201810181018202028b02185b185f82020201810181018082030580808b0318ba18d382020f01810181018082030580808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000403",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "693bc73a290329422ca6dd33a8e400947e6b212323684b7f4ed8ea4be3717e13",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "unsupported_critical"
+        ],
+        "findings": [
+         [
+          "unsupported_critical",
+          null,
+          1,
+          null,
+          null,
+          null
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "stopped"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "stopped"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "unsupported_critical; later frames opaque stopped; the index: no finding"
+   }
+  },
+  {
+   "label": "wrong-type-runs",
+   "input_file": "index-after-stop.wrong-type-runs.bin",
+   "length": 393,
+   "sha256": "36d2308ffb3f8b72aec20d5750ca453cbb3f9cd9026d349333c3b6ba348be24d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901898101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030300008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b185082021863018101810180820304808287068101820282021863820201810181018101871181018101820201810181018202028b02185b185f82020201810181018082030580808b0318ba18cf82020f0181018101808203058081871282021681018202038101810181018187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000403",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "83f1f6d61b4ccc1c23eba1f8a1d05adeb078972abc2902dc49283c3c1b7c9bda",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "unsupported_critical"
+        ],
+        "findings": [
+         [
+          "unsupported_critical",
+          null,
+          1,
+          null,
+          null,
+          null
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "stopped"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "stopped"
+        ],
+        "findings": [
+         [
+          "index_claim_failed",
+          "index_directory",
+          3,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "index_claim_failed with index_directory"
+   }
+  },
+  {
+   "label": "graph-directory-false",
+   "input_file": "index-after-stop.graph-directory-false.bin",
+   "length": 397,
+   "sha256": "6096bc658fab8cb949de95fca1fd3685526aef47819ad5a431b08b83c3c4523d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019018d8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030300008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b185082021863018101810180820304808287068101820282021863820201810181018101871181018101820201810181018202028b02185b185f82020201810181018082030580808b0318ba18d382020f01810181018082030580808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000403",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "b2905177cbd3e1770956ab8b6b4c396d02d7a94f725de87ad8dad9c35ef61802",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "unsupported_critical"
+        ],
+        "findings": [
+         [
+          "unsupported_critical",
+          null,
+          1,
+          null,
+          null,
+          null
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "stopped"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "stopped"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "no index_claim_failed: graph_directory unverified"
+   }
+  }
+ ]
+}

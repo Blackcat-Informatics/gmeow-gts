@@ -1,0 +1,5 @@
+{
+ "name": "registry/zero/record_kind",
+ "status": "could not be built",
+ "why": "not built: the first field of the payload of a record line of the labelled set, an input of L1 and not a field of a file"
+}

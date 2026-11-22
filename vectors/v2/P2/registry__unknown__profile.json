@@ -1,0 +1,53 @@
+{
+ "name": "registry/unknown/profile",
+ "status": "built and matches",
+ "note": "the profile code 7, one above the highest: not unregistered_value, because P2-57 excepts the header's profile and P2-21 judges it: profile_not_checked with subject [4, 7, absent] and the segment read in full (question Q158)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__unknown__profile.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f4810182025820ed5c4066978124920d9178b5d9fb3b7f00ac2889bd8c68bf9435dd7a9d15177082020182020182020701030202008085f48202058202058202058101820258206dcfa297c60e841098035af3bc9ecb68d01ac08f6e8b841ce4b90ccde2ca4f22828b010c1876820209018101810180810180808b021882187282020e0181018101808102808081871830810182028304078101810181018101810180820258206dcfa297c60e841098035af3bc9ecb68d01ac08f6e8b841ce4b90ccde2ca4f228201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 48,
+    "reason": null,
+    "severity": "information",
+    "readings": [
+     {
+      "input_hex": "8701020101820207810181018b0209f5f4825820bd8d8c335fe5ea11f6daea1c89303c1a9976a31339af81b64eec83922e9f5c6f8101035820314bca0ecfbe7ff1404be18764844fc46214b6538c13ec55628ddd146ad83cd381014378797a5820fdf8f549b1dd512e7dd4e9aae0f5f785d4a2a719a7ce6bb883db42b75372e4d6808b020ef4f482015820bef678d003e9fa8af052817165f7a9139dd6b0b0d9006bb502aaf0148397cc610058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820220cce8f99963a2d5eec8e68f7644933bc58df1ddb2df4da990fac22b5c39a4980",
+      "input_length": 244,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "profile_not_checked",
+        "subject": [
+         4,
+         7,
+         [
+          1
+         ]
+        ]
+       }
+      ],
+      "expected_finding_bytes": [
+       "8718308101820283040781018101810181018101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

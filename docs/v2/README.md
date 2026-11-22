@@ -54,4 +54,5 @@ of two concatenated files is not in general the union of their folds (`P1`, "Gro
 Proofs, rationale and measurements are kept outside the sixteen documents. Each such record names the document, the
 requirement or claim it supports and the commit of the text it was made against, as `GUIDE-adoption.md` states.
 
-No implementation of this generation and no conformance corpus for it exist in this repository.
+No implementation of this generation exists in this repository. Its conformance corpus is `vectors/v2/`; the `README.md` of
+that directory says what an entry records and which entries were recorded against an earlier text.

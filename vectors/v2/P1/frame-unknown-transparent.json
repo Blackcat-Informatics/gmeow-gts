@@ -1,0 +1,216 @@
+{
+ "name": "frame-unknown-transparent",
+ "section": "10.4",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "frame-unknown-transparent.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901428101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b6373582020282020181010103020000810285f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b187282020e01810181018081028082871081018101820201810181018101871181018101820201810181018202028b02187d185382021863018101810180820303808187058202028202820218638202028101810181018b0318d0187282020e018101810180810280818710810181018202038101810181018187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "transparent": [
+       2
+      ],
+      "frames": [
+       {
+        "link": "linked"
+       },
+       {
+        "link": "linked",
+        "findings": [
+         [
+          "unknown_enumeration_value",
+          "unknown_frame_type",
+          {
+           "subject": [
+            2,
+            99
+           ]
+          }
+         ]
+        ]
+       },
+       {
+        "link": "linked",
+        "predecessor": "522e59013dfc6c2b9feb38d3104ee9df26de80a12a91abc9d55dbf7ea2de10d1"
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 322,
+       "header_outcome": "readable",
+       "header_identifier": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+       "registry_version": 2,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact",
+       "head": "878d5df4815f29e186e6794f17f14ebeb55453d6fb6b8c55e048b31d943ac9c0",
+       "transparent_frames": [
+        2
+       ],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 114,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 125,
+         "length": 83,
+         "class": "frame"
+        },
+        {
+         "position": 3,
+         "offset": 208,
+         "length": 114,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 114,
+         "frame_type": 14,
+         "link": "linked",
+         "predecessor": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+         "effective_identifier": "522e59013dfc6c2b9feb38d3104ee9df26de80a12a91abc9d55dbf7ea2de10d1",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "commit_root_mismatch",
+           "position": 1
+          },
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 2
+          }
+         ]
+        },
+        {
+         "position": 2,
+         "offset": 125,
+         "length": 83,
+         "frame_type": 99,
+         "link": "linked",
+         "predecessor": "522e59013dfc6c2b9feb38d3104ee9df26de80a12a91abc9d55dbf7ea2de10d1",
+         "effective_identifier": null,
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "opaque",
+          "reason": "unknown_frame_type"
+         },
+         "findings": [
+          {
+           "code": "unknown_enumeration_value",
+           "reason": "unknown_frame_type",
+           "subject": [
+            2,
+            99
+           ],
+           "position": 2
+          }
+         ]
+        },
+        {
+         "position": 3,
+         "offset": 208,
+         "length": 114,
+         "frame_type": 14,
+         "link": "linked",
+         "predecessor": "522e59013dfc6c2b9feb38d3104ee9df26de80a12a91abc9d55dbf7ea2de10d1",
+         "effective_identifier": "878d5df4815f29e186e6794f17f14ebeb55453d6fb6b8c55e048b31d943ac9c0",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "commit_root_mismatch",
+           "position": 3
+          }
+         ]
+        }
+       ],
+       "findings": [
+        {
+         "code": "unsupported_registry_version"
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

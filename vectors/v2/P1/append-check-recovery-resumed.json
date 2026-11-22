@@ -1,0 +1,123 @@
+{
+ "name": "append-check-recovery-resumed",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "H T Q1 D Par Q2, D the five bytes 1c, Par a parity frame at which recovery resumes, the file ending at the complete Q2: the walk with no recovery stops at D: appended_resync, no filler, the item alone (P1-87)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "append-check-recovery-resumed.bin",
+   "length": 948,
+   "sha256": "a9c60c9c38323488480a6c4fe83fe5e618b94a0a81ad1a71822a1f3a96f2a7a6",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001903b4810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc82020182020181010303020000810485f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15848b010b186782020101810181018081018081871181018101820201810181018202038b021872185f820202018101810180810180808b0418d619027f82021001810181018081028081871821810181018202048101810181018b05190355185f8202020381018101808203068081870b8101810182020582021903558202185f81018187182481018101810182020b820219012a8101818708810181018101820218d1820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000402",
+   "observed": {
+    "file_findings": [
+     [
+      "undelimitable_input",
+      null,
+      null,
+      null,
+      209,
+      5
+     ]
+    ],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
+      "findings": [
+       [
+        "unprotected_tail",
+        null,
+        null,
+        null,
+        11,
+        298
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "parity_stale",
+          null,
+          4,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 5,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "chain_break"
+        ],
+        "findings": [
+         [
+          "chain_break",
+          null,
+          5,
+          null,
+          853,
+          95
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "outcome": "appended_resync"
+   }
+  }
+ ]
+}

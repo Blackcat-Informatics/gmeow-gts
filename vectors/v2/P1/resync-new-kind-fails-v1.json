@@ -1,0 +1,112 @@
+{
+ "name": "resync-new-kind-fails-v1",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the same input in a segment of registry_version 1 is no limit: `81 06` fails, the scan covers it and the torn frame, and R is accepted (P1 6.7)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-new-kind-fails-v1.bin",
+   "length": 33294,
+   "sha256": "c03c8b198d4cab9ba9e6bea23de709fbdb91e3eb494818ea92e6501b8386c94a",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000198106810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f4820205820205820205810182025820195bb26658654d5f014cbadd58fd83b9a0b2ba13467c94180fed69480c4d8449828b010b19803e820209018101810180810180808b0219804918d882020e01810181018187038202183601582075a9a6938575614777069035ee459793419347e2c46214f2b1f478a92c0dcd0c0101f481028081871829820218368202820301820202810181018101809201198106190108850202f4010082025820cea6f5ffdb5ba70b25b5a47b933462c9e28d7d8021d8358a24d667dfbe2ca0b8820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b01198148186782020101810181018081018081871181018101820201810181018202028b021981af185f820202018101810180810180808187182a81018101810181018101810180820258205eb923b7b05bfa3aee42694446363d4a30a290c22218695cdd84557ada463ae58201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "2081676b4e35e47b031a6a3d0e9e17e674d256bb113d7d6a1296eaecaa822a26",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "signature_unverified",
+          "key_not_held",
+          2,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "7f2620a0b6e582fd2c6d0ac892c0c4eda2c785ad66b598377c1743a1126b12ad",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "R accepted by the scan"
+   }
+  }
+ ]
+}

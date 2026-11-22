@@ -1,0 +1,243 @@
+{
+ "name": "parity-wrong-transparent",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "parity-wrong-transparent.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019044f810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030402008085f4820205820205820205810182025820b182bef6fec5c3d563c1eee1759d1ebccb69928a34af5f79244ed2bc6c220bab848b010b189b820209018101810180810180808b0218a6187282020e018101810180810280808b0319011818c982020f018101810180810280808b041901e119026e8202100181018101808102808287181e81018101820204810181018101871181018101820204810181018202018187182481018101810182020b820219044481018082025820b182bef6fec5c3d563c1eee1759d1ebccb69928a34af5f79244ed2bc6c220bab8201000300",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "file": [],
+    "segs": [
+     {
+      "integrity": "intact",
+      "findings": [
+       [
+        "unprotected_tail",
+        null,
+        {
+         "offset": 11,
+         "length": 1092
+        }
+       ]
+      ],
+      "frames": [
+       {
+        "findings": []
+       },
+       {
+        "findings": []
+       },
+       {
+        "findings": []
+       },
+       {
+        "findings": [
+         [
+          "parity_damaged",
+          null,
+          {
+           "position": 4
+          }
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          {
+           "position": 4,
+           "count": 1
+          }
+         ]
+        ],
+        "fold": "not_content"
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 1103,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact",
+       "head": "cce3abf9f7a7fecf3f4c83116322686a0f4188740b4b20220f828d3a49974206",
+       "transparent_frames": [],
+       "committed_frames": 2,
+       "index_used": {
+        "frame_count_head": 3,
+        "graph_directory": 3,
+        "pack_members": 3,
+        "range_root": 3,
+        "type_runs": 3
+       },
+       "content_digest": "b182bef6fec5c3d563c1eee1759d1ebccb69928a34af5f79244ed2bc6c220bab",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 155,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 166,
+         "length": 114,
+         "class": "frame"
+        },
+        {
+         "position": 3,
+         "offset": 280,
+         "length": 201,
+         "class": "frame"
+        },
+        {
+         "position": 4,
+         "offset": 481,
+         "length": 622,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 155,
+         "frame_type": 9,
+         "link": "linked",
+         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+         "effective_identifier": "30a4a80764c1a433cb24331e0a30ffa526bd1d4c47063eb96986cb3393afd4f8",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": []
+        },
+        {
+         "position": 2,
+         "offset": 166,
+         "length": 114,
+         "frame_type": 14,
+         "link": "linked",
+         "predecessor": "30a4a80764c1a433cb24331e0a30ffa526bd1d4c47063eb96986cb3393afd4f8",
+         "effective_identifier": "12f312c31834b181ecf692b3ce2ecbe002ae9ace866e56f923eba6d248f1a720",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": []
+        },
+        {
+         "position": 3,
+         "offset": 280,
+         "length": 201,
+         "frame_type": 15,
+         "link": "linked",
+         "predecessor": "12f312c31834b181ecf692b3ce2ecbe002ae9ace866e56f923eba6d248f1a720",
+         "effective_identifier": "421a2110e7c372a2cd34e012a6f98970b62975177a34f9868bbd40a4011e2c13",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": []
+        },
+        {
+         "position": 4,
+         "offset": 481,
+         "length": 622,
+         "frame_type": 16,
+         "link": "linked",
+         "predecessor": "421a2110e7c372a2cd34e012a6f98970b62975177a34f9868bbd40a4011e2c13",
+         "effective_identifier": "cce3abf9f7a7fecf3f4c83116322686a0f4188740b4b20220f828d3a49974206",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "parity_damaged",
+           "position": 4
+          },
+          {
+           "code": "uncommitted_tail",
+           "position": 4,
+           "count": 1
+          }
+         ]
+        }
+       ],
+       "findings": [
+        {
+         "code": "unprotected_tail",
+         "offset": 11,
+         "length": 1092
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "b182bef6fec5c3d563c1eee1759d1ebccb69928a34af5f79244ed2bc6c220bab",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

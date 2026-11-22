@@ -1,0 +1,27 @@
+{
+ "name": "project/binding-quad-collision",
+ "status": "built and matches",
+ "note": "P3 13.8: a reifier_binding line and a quad line (r, rdf:reifies, <<s p o>>, g): one quad, a content digest different from the fold with one of them",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "project__binding-quad-collision.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901eb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820ace1cf1a393e27fee8f50193e2cc40eb579c5b883047c181f94c26d8ffad7be6848b010b18b2820201018101810180810180808b0218bd185c820203018101810180810180808b031901191860820202018101810180810180808b04190179187282020e01810181018081028080808082025820ace1cf1a393e27fee8f50193e2cc40eb579c5b883047c181f94c26d8ffad7be68201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

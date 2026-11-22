@@ -1,0 +1,46 @@
+{
+ "name": "finding/proof_failed/consistency_new_root",
+ "status": "built and matches",
+ "note": "a consistency proof checked against a new root that differs",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__proof_failed__consistency_new_root.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 38,
+    "reason": 49,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "8305088458202ad5a7412dbbbc5eab80e2cfd267a0c515824b0dbcf967bdd58fc15c51d9ba9358202aacc1816ae96cbdd47e074e9d8de8b1dfee2aff58376f5d2cbe7b896a7c52a258209f66e90124b708ff0ad5a7236e3e3ad38ba8cbdbdfeada01daba8f683bc11e91582000debbe7dc8d3253b2e1dc63320a35b2461b76a90098c570ce9dffbb2e4c8a5d",
+      "input_length": 140,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "proof_failed",
+        "reason": "consistency_new_root"
+       }
+      ],
+      "expected_finding_bytes": [
+       "8718268202183181018101810181018101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

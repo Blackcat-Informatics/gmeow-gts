@@ -1,0 +1,56 @@
+{
+ "name": "labelling-held-fold",
+ "status": "built and matches",
+ "note": "P3 8.1: a fold with a held item is labelled on the labelled set of what it holds; a refusal of that labelling is reported with its finding; the digest is absent in both cases",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "labelling-held-fold.bin",
+   "read_result": "870201808a1a040000001a040000001b00000100000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190228810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b18a982020101810181018081018081871818810181018202018101810181018b0218b419010282020201810181018081018081871819810181018202028101810181018b031901b6187282020e01810181018081028080808081018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 1099511627776,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 1099511627776,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    }
+   ],
+   "expected": null,
+   "result": {
+    "held_rows": 1,
+    "labelled_lines_of_what_it_holds": 78
+   },
+   "differences": []
+  }
+ ]
+}

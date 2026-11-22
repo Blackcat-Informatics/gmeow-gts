@@ -1,0 +1,46 @@
+{
+ "name": "finding/proof_malformed/order",
+ "status": "built and matches",
+ "note": "a range proof with first 4 above end 3",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__proof_malformed__order.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 37,
+    "reason": 46,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "8404030580",
+      "input_length": 5,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "proof_malformed",
+        "reason": "order"
+       }
+      ],
+      "expected_finding_bytes": [
+       "8718258202182e81018101810181018101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

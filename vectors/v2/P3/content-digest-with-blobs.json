@@ -1,0 +1,29 @@
+{
+ "name": "content-digest-with-blobs",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "content-digest-with-blobs.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901f1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f48202058202058202058101820258203a6319b0d44e02aeabfdb0b0fbd3973d57e0f4f53509ab01745a16aaef36a544848b010b189f820201018101810180810180808b0218aa185f820202018101810180810180808b031901091876820209018101810180810180808b0419017f187282020e018101810180810280808080820258203a6319b0d44e02aeabfdb0b0fbd3973d57e0f4f53509ab01745a16aaef36a5448201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": []
+   },
+   "differences": []
+  }
+ ]
+}

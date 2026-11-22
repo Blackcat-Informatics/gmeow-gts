@@ -1,0 +1,30 @@
+{
+ "name": "lowering-doubling-leaf",
+ "status": "built and matches",
+ "note": "the leaf form of the shape of lowering-doubling: a binding whose leaf is [3, [L, [1, p], L]] with L a leaf of tag 3 that holds a leaf of tag 2: an unreadable leaf (6.3, POSITIONS IN A LEAF), the binding held, opaque_term, the content digest absent (P3-112)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lowering-doubling-leaf.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901ca810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b186d820201018101810180810180808b02187818e082020601810181018081018081871819810181018202028101810181018b03190158187282020e01810181018081028080808081018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "leaf_input_bytes": 458,
+    "leaf_sha256": "1bf4eea022288c3efcd3606fc6766640c6978a423e67214e5d154d0ea1c0d1f3"
+   },
+   "differences": []
+  }
+ ]
+}

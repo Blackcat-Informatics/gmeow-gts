@@ -1,0 +1,41 @@
+{
+ "name": "p8-members-layout-missing",
+ "status": "built and matches",
+ "note": "two sealed packs of 400000 members: the frame after the second; the frame absent; a clear quads frame between",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "p8-members-layout-missing.bin",
+   "input_derived": true,
+   "read_result_file": "p8-members-layout-missing.result.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "frame after the second pack covering both": {
+     "length": 67633709,
+     "blake3": "ae96a043035fdb145ab4982d82b1f77df5bd5c94a34217bbb7dfeab31a277a0b"
+    },
+    "the frame absent": {
+     "length": 34603426,
+     "blake3": "71a08c5254ae01c77c84a0581770bebd51f4fb474a0f10ac416762afc581280d"
+    },
+    "a clear quads frame between the last pack and the frame": {
+     "length": 67633910,
+     "blake3": "b1656c5da391afe54ba9c66aaa5c2d8903d73e88a17d86184460d20a270f0ac1"
+    }
+   },
+   "differences": []
+  }
+ ]
+}

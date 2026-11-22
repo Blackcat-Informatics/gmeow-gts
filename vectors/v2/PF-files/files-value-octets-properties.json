@@ -1,0 +1,30 @@
+{
+ "name": "files-value-octets-properties",
+ "status": "built and matches",
+ "note": "bytes that are text, bytes that are not text, and the empty value for f:attributeValue and f:recordValue",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "files-value-octets-properties.bin",
+   "read_result": "8701018182050b8a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019065b81018202582063dd72780ed65331f60bd390f6d241cc93bbd2965552dce186061c715e31837582020182020182020501030303008085f48202058202058202058101820258204b83ca6f7d520e438657c39e61ea963a32a6d609a35a7b731d6fd6d9c8eb44ca838b010c19049c820201018101810180810180808b021904a8190141820202018101810180810180808b031905e9187282020e018101810180810280808080820258204b83ca6f7d520e438657c39e61ea963a32a6d609a35a7b731d6fd6d9c8eb44ca8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "profile": [],
+    "core": []
+   },
+   "differences": []
+  }
+ ]
+}

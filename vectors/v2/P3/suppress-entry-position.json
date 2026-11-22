@@ -1,0 +1,27 @@
+{
+ "name": "suppress-entry-position",
+ "status": "built and matches",
+ "note": "the entry before the line, after it, in the same segment and in another segment before or after: equal visible datasets",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "suppress-entry-position.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901aa810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820c5aaeaf5f3c0b1f99da2558b5aaec0ec3b50b9919d37567d8a231d36a3b3d751848b010b1876820201018101810180810180808b0218811856820207018101810180810180808b0318d71861820202018101810180810180808b04190138187282020e01810181018081028080808082025820c5aaeaf5f3c0b1f99da2558b5aaec0ec3b50b9919d37567d8a231d36a3b3d7518201010200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

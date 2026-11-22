@@ -1,0 +1,224 @@
+{
+ "name": "rebuild-unit-after-recipe",
+ "section": "6.1",
+ "status": "built and matches",
+ "note": "a recipe frame then the chunk frames of its entries; the units first; the recipe and the units as members of one pack, in both orders",
+ "cases": [
+  {
+   "label": "recipe-first",
+   "input_file": "rebuild-unit-after-recipe.recipe-first.bin",
+   "length": 440,
+   "sha256": "01f7015e512832f7404745a5ffbaac536b04fc2045cd2057d90e068caab3cc78",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901b8810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f48202058202058202058101820258208765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a8440838b010b18c082020a01810181018081018182810182021818828711810181018202018101810182020387138202181881018202018101810181018b0218cb1877820208018101810180810180808b031901421876820208018101810180810180808080820258208765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a84408201000400",
+   "expected": {
+    "recipe": "incomplete chunk",
+    "finding": "missing_dependency chunk at the recipe"
+   },
+   "observed": {
+    "segments": [
+     {
+      "ordinal": 0,
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "ftype": 10,
+        "fold": [
+         "folded"
+        ],
+        "rebuilds": [
+         [
+          null,
+          [
+           "incomplete",
+           "chunk"
+          ]
+         ]
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null
+         ],
+         [
+          "missing_dependency",
+          "chunk"
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "ftype": 8,
+        "fold": [
+         "folded"
+        ],
+        "rebuilds": [],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "ftype": 8,
+        "fold": [
+         "folded"
+        ],
+        "rebuilds": [],
+        "findings": []
+       }
+      ]
+     }
+    ],
+    "file_findings": [],
+    "content_digest": "8765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a8440"
+   }
+  },
+  {
+   "label": "units-first",
+   "input_file": "rebuild-unit-after-recipe.units-first.bin",
+   "length": 440,
+   "sha256": "96e74a510a3b2c88cac9ebfa9f31b2b94e1f86d29326c38cdba2100867049e3d",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901b8810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f48202058202058202058101820258208765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a8440838b010b187782020801810181018081018081871181018101820201810181018202038b0218821876820208018101810180810180808b0318f818c082020a0181018101808101818281018101808080820258208765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a84408201000400",
+   "expected": {
+    "recipe": "verified"
+   },
+   "observed": {
+    "segments": [
+     {
+      "ordinal": 0,
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "ftype": 8,
+        "fold": [
+         "folded"
+        ],
+        "rebuilds": [],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "ftype": 8,
+        "fold": [
+         "folded"
+        ],
+        "rebuilds": [],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "ftype": 10,
+        "fold": [
+         "folded"
+        ],
+        "rebuilds": [
+         [
+          null,
+          [
+           "verified"
+          ]
+         ]
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ],
+    "file_findings": [],
+    "content_digest": "8765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a8440"
+   }
+  },
+  {
+   "label": "pack-recipe-first",
+   "input_file": "rebuild-unit-after-recipe.pack-recipe-first.bin",
+   "length": 301,
+   "sha256": "a61b4770edd107f010454bc62d80842ac36b9fb27cb23b6d73dd95cf6043e9cd",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019012d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030100008085f48202058202058202058101820258208765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a8440818b010b19012282020d01810181018081018182820200810181871181018101820201810181018202018080820258208765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a84408201000400",
+   "expected": {
+    "recipe": "verified",
+    "note": "the recipe and the units are members of one pack: the unit and the declaration may be members of one pack"
+   },
+   "observed": {
+    "segments": [
+     {
+      "ordinal": 0,
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "ftype": 13,
+        "fold": [
+         "folded"
+        ],
+        "rebuilds": [
+         [
+          0,
+          [
+           "verified"
+          ]
+         ]
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ],
+    "file_findings": [],
+    "content_digest": "8765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a8440"
+   }
+  },
+  {
+   "label": "pack-recipe-last",
+   "input_file": "rebuild-unit-after-recipe.pack-recipe-last.bin",
+   "length": 301,
+   "sha256": "de6dcdc3c5e22e8f74c769d3acbeb796113ab27d2f4d21d29e174b538b858aa5",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019012d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030100008085f48202058202058202058101820258208765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a8440818b010b19012282020d01810181018081018182820202810181871181018101820201810181018202018080820258208765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a84408201000400",
+   "expected": {
+    "recipe": "verified",
+    "note": "the recipe and the units are members of one pack: the unit and the declaration may be members of one pack"
+   },
+   "observed": {
+    "segments": [
+     {
+      "ordinal": 0,
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "ftype": 13,
+        "fold": [
+         "folded"
+        ],
+        "rebuilds": [
+         [
+          2,
+          [
+           "verified"
+          ]
+         ]
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ],
+    "file_findings": [],
+    "content_digest": "8765caaba1ad5242f066a0f89a35c8b36257a157b72da8a8592381cf8c2a8440"
+   }
+  }
+ ]
+}

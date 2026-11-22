@@ -1,0 +1,39 @@
+{
+ "name": "container-export-state-signature-grammar",
+ "status": "built and matches",
+ "note": "before the commit, a frame whose signatures field holds two equal records: the commit names no state",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "container-export-state-signature-grammar.bin",
+   "read_result": "870101818206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001905cc810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020603030707008085f48202058202058202058101820258206f3a58818adede0bcee4631c0a5a641245ec97bdca56a46d3f1955ce9d94b011878b010c190237820201018101810180810180808b021902431875820202018101810180810180808b031902b819014082020901810181018082030280818707820208810182020382021902b8820219014081018b041903f8187282020e018101810180810280808b0519046a1875820202018101810180810180808b061904df187b8202060181018101808101808187138202185881018202068101810181018b0719055a187282020e018101810180810280808080820258206f3a58818adede0bcee4631c0a5a641245ec97bdca56a46d3f1955ce9d94b0118201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "profile": [],
+    "core": [
+     [
+      "malformed_value",
+      "unordered_or_repeated"
+     ],
+     [
+      "missing_dependency",
+      "state_unavailable"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

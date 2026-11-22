@@ -1,0 +1,38 @@
+{
+ "name": "chunker-two-byte-step",
+ "status": "built and matches",
+ "note": "the two-byte register tests only after each pair of bytes; its lengths differ, and the expected lengths are those of the one-byte rule",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "chunker-two-byte-step.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "one_byte": [
+     76745,
+     69293,
+     41976,
+     11986
+    ],
+    "two_byte": [
+     76745,
+     69293,
+     53962
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

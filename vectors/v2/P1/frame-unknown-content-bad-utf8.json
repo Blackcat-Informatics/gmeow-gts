@@ -1,0 +1,166 @@
+{
+ "name": "frame-unknown-content-bad-utf8",
+ "section": "10.9",
+ "status": "built and matches",
+ "note": "frame_type 99 with 62 c3 28 as content in a segment of registry_version 2: wrong_type (P1-10), beside the unknown type; both are the field-rule step at one position, so unknown_enumeration_value (code 5) stands before malformed_value (code 7) by the bytewise order of P7 1.4",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "frame-unknown-content-bad-utf8.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000185d8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b185282021863038101810180820302808387058202028202820218638202018101810181018707820204810182020182020b820218528101871181018101820201810181018202018187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "frames": [
+       {
+        "findings": [
+         [
+          "unknown_enumeration_value",
+          "unknown_frame_type",
+          {
+           "subject": [
+            2,
+            99
+           ]
+          }
+         ],
+         [
+          "malformed_value",
+          "wrong_type",
+          {}
+         ]
+        ]
+       }
+      ],
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        {}
+       ]
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 93,
+       "header_outcome": "readable",
+       "header_identifier": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+       "registry_version": 2,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "damaged",
+       "head": "10c75442beacbf9457b29e7175bf93b1c94ae1be1ae54d3136f309673e7a6b62",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 82,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 82,
+         "frame_type": 99,
+         "link": "broken",
+         "predecessor": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
+         "effective_identifier": "10c75442beacbf9457b29e7175bf93b1c94ae1be1ae54d3136f309673e7a6b62",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "opaque",
+          "reason": "malformed"
+         },
+         "findings": [
+          {
+           "code": "unknown_enumeration_value",
+           "reason": "unknown_frame_type",
+           "subject": [
+            2,
+            99
+           ],
+           "position": 1
+          },
+          {
+           "code": "malformed_value",
+           "reason": "wrong_type",
+           "position": 1,
+           "offset": 11,
+           "length": 82
+          },
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 1
+          }
+         ]
+        }
+       ],
+       "findings": [
+        {
+         "code": "unsupported_registry_version"
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

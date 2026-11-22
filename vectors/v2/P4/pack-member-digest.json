@@ -1,0 +1,85 @@
+{
+ "name": "pack-member-digest",
+ "status": "built and matches",
+ "note": "the failing chunk member's stated digest is named by no recipe or value of the segment: P4-41 also reports it (unreferenced_unit at the pack); the blob member that fails in the second case still declares its blob",
+ "cases": [
+  {
+   "label": "one-failing",
+   "input_file": "pack-member-digest.one-failing.bin",
+   "input_derived": true,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901ed810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030303008085f4820205820205820205810182025820d780cc8bd54c888f1828dd2a44b08cb02f7a0b3d1654d98fd79dcc292b13391a838b010b18d682020d01810181018081018082870d82020c810182020182020b820218d6810187182c810181018202018101810181018b0218e1189a82020b0181018101808101818281018101808b0319017b187282020e01810181018081028080808082025820d780cc8bd54c888f1828dd2a44b08cb02f7a0b3d1654d98fd79dcc292b13391a8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "unit_index": [
+     [
+      "e902efad3b6375d4672b3e65f9519e524505b4b7227fda95ac7decac6fa8aeaa",
+      0,
+      true
+     ],
+     [
+      "bfda033747255f1b62d57cae5d4e6e62ff31bde460a421f3078feddbb353bfd6",
+      1,
+      false
+     ],
+     [
+      "000bb051662fd3e68bcf9cdcfc3aedf86c326157bc12428dc86c7c2378f2527b",
+      2,
+      true
+     ]
+    ]
+   },
+   "differences": []
+  },
+  {
+   "label": "two-failing",
+   "input_file": "pack-member-digest.two-failing.bin",
+   "input_derived": true,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901ed810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030303008085f4820205820205820205810182025820d780cc8bd54c888f1828dd2a44b08cb02f7a0b3d1654d98fd79dcc292b13391a838b010b18d682020d01810181018081018083870d82020c810182020182020b820218d68101870d82020c810182020182020b820218d6810187182c810181018202018101810181018b0218e1189a82020b0181018101808101818281018101808b0319017b187282020e01810181018081028080808082025820d780cc8bd54c888f1828dd2a44b08cb02f7a0b3d1654d98fd79dcc292b13391a8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "unit_index": [
+     [
+      "e902efad3b6375d4672b3e65f9519e524505b4b7227fda95ac7decac6fa8aeaa",
+      0,
+      true
+     ],
+     [
+      "bfda033747255f1b62d57cae5d4e6e62ff31bde460a421f3078feddbb353bfd6",
+      1,
+      false
+     ],
+     [
+      "000bb051662fd3e68bcf9cdcfc3aedf86c326157bc12428dc86c7c2378f2527b",
+      2,
+      false
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

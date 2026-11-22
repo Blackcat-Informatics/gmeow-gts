@@ -1,0 +1,67 @@
+{
+ "name": "canonical/storage/6",
+ "status": "built and matches",
+ "note": "the reifier_bindings frame at position 6 of the canonical file of the storage fold: the decoded payload (`decoded`) and the stored bytes (`stored`)",
+ "cases": [
+  {
+   "label": "decoded",
+   "input_file": "canonical__storage__6.decoded.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "frame_type": "reifier_bindings",
+    "decoded_length": 12,
+    "decoded_sha256": "d0d5559c9696754b35273586739333a8453f96c6fc45950399f124353a1bd614",
+    "storage": "plain",
+    "stored_length": 12,
+    "stored_sha256": "d0d5559c9696754b35273586739333a8453f96c6fc45950399f124353a1bd614",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 6
+   },
+   "differences": []
+  },
+  {
+   "label": "stored",
+   "input_file": "canonical__storage__6.stored.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "frame_type": "reifier_bindings",
+    "decoded_length": 12,
+    "decoded_sha256": "d0d5559c9696754b35273586739333a8453f96c6fc45950399f124353a1bd614",
+    "storage": "plain",
+    "stored_length": 12,
+    "stored_sha256": "d0d5559c9696754b35273586739333a8453f96c6fc45950399f124353a1bd614",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 6
+   },
+   "differences": []
+  }
+ ]
+}

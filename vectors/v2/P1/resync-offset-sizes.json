@@ -1,0 +1,296 @@
+{
+ "name": "resync-offset-sizes",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "items with offset 23, 24, 255, 256, 65535, 65536, 2^32 - 1, 2^32: 64, 65, 65, 66, 66, 68, 68, 72 bytes (P1-91)",
+ "cases": [
+  {
+   "label": "23",
+   "input_file": "resync-offset-sizes.23.bin",
+   "length": 64,
+   "sha256": "00649b3454a8e920f14cc0cffd8a75bcd92757a67825af659e71f15f3c399bd8",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001840850201f5010082025820e0ea13b76e7d18da13cc2784e1cea73490f28b745247a8a40473b25392fc4537820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "e0ea13b76e7d18da13cc2784e1cea73490f28b745247a8a40473b25392fc4537",
+      "findings": [],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "length_expected": 64
+   }
+  },
+  {
+   "label": "24",
+   "input_file": "resync-offset-sizes.24.bin",
+   "length": 65,
+   "sha256": "e57fba317932010ee1a5903f01cc93410440661a71d5fa4cb0dfcaceb43667a9",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001841850201f5010082025820811ea82561cffcf0f0497a6a4f12edfee159eaeeaa06e997150732efa7a7a0bb820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "811ea82561cffcf0f0497a6a4f12edfee159eaeeaa06e997150732efa7a7a0bb",
+      "findings": [],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "length_expected": 65
+   }
+  },
+  {
+   "label": "255",
+   "input_file": "resync-offset-sizes.255.bin",
+   "length": 65,
+   "sha256": "983e282e6b3be067a20a4aaad740474809af05dcbc89c3bbb8a4f1581977b257",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001841850201f5010082025820ff7b82cdda4f8fced7092d3c5e41a6012b3cd7e72927e3900cbba017b7af36e4820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "ff7b82cdda4f8fced7092d3c5e41a6012b3cd7e72927e3900cbba017b7af36e4",
+      "findings": [],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "length_expected": 65
+   }
+  },
+  {
+   "label": "256",
+   "input_file": "resync-offset-sizes.256.bin",
+   "length": 66,
+   "sha256": "178b80b455fd1183d5e71a97e0cec4d6eb1c041ca69176e6552bc4c9054fee52",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001842850201f5010082025820b2d5656c4ba530ad70872f54bf8c9ef5d0bf885b84766a2a22088cd31e2f1022820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "b2d5656c4ba530ad70872f54bf8c9ef5d0bf885b84766a2a22088cd31e2f1022",
+      "findings": [],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "length_expected": 66
+   }
+  },
+  {
+   "label": "65535",
+   "input_file": "resync-offset-sizes.65535.bin",
+   "length": 66,
+   "sha256": "220bffedc7ddee24a503ad790371631c6a55960b9bc4c47a9bf9ca1bdd817c66",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001842850201f501008202582077457961c4c931db3cfc105b25c847fc3f680aac5f0ab7d19e27714781674338820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "77457961c4c931db3cfc105b25c847fc3f680aac5f0ab7d19e27714781674338",
+      "findings": [],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "length_expected": 66
+   }
+  },
+  {
+   "label": "65536",
+   "input_file": "resync-offset-sizes.65536.bin",
+   "length": 68,
+   "sha256": "ff9a0604e82d40094c5f963e591de32f192d6a44516bd8f68770a7c7ba311d7d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001844850201f50100820258204d09c5e4ba9962004c1e983b571d6baad49dcd5211448fd9a7f8932dac9d4a46820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "4d09c5e4ba9962004c1e983b571d6baad49dcd5211448fd9a7f8932dac9d4a46",
+      "findings": [],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "length_expected": 68
+   }
+  },
+  {
+   "label": "4294967295",
+   "input_file": "resync-offset-sizes.4294967295.bin",
+   "length": 68,
+   "sha256": "23fac5d427481f7ccfa22c2a19e6c7c9b9e26518f0af87a02fadb3e65a9a7569",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001844850201f5010082025820f0f63b9940879e93d4fed67537c3bf2b844550616ca955a52c7cfa8052bbc384820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "f0f63b9940879e93d4fed67537c3bf2b844550616ca955a52c7cfa8052bbc384",
+      "findings": [],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "length_expected": 68
+   }
+  },
+  {
+   "label": "4294967296",
+   "input_file": "resync-offset-sizes.4294967296.bin",
+   "length": 72,
+   "sha256": "430cf32d2a18bf598332ddc93abe171b5c68b6da914d4bad77f601dbf2bdda4b",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001848850201f50100820258208759145dac636ffb7c7408490c9346a0900acbae1f9342441407c5290c465dbf820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "8759145dac636ffb7c7408490c9346a0900acbae1f9342441407c5290c465dbf",
+      "findings": [],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "length_expected": 72
+   }
+  }
+ ]
+}

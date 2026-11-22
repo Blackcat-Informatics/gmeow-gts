@@ -1,0 +1,35 @@
+{
+ "name": "files-value-count",
+ "status": "built and matches",
+ "note": "written as text, with no pair of VALUES",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "files-value-count.bin",
+   "read_result": "8701018182050b8a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902d081018202582063dd72780ed65331f60bd390f6d241cc93bbd2965552dce186061c715e31837582020182020182020501030303008085f48202058202058202058101820258202efbef72ecee28bba516a124715b3e272101428b65a412929e636cbb8902c3e0838b010c1901d8820201018101810180810180808b021901e4187a820202018101810180810180808b0319025e187282020e018101810180810280808187182e8101820283040582020981018101810182020180820258202efbef72ecee28bba516a124715b3e272101428b65a412929e636cbb8902c3e08201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "profile": [
+     [
+      9,
+      1
+     ]
+    ],
+    "core": []
+   },
+   "differences": []
+  }
+ ]
+}

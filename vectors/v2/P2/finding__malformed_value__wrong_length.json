@@ -1,0 +1,50 @@
+{
+ "name": "finding/malformed_value/wrong_length",
+ "status": "built and matches",
+ "note": "a blob frame whose content record holds three fields where it has two",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__malformed_value__wrong_length.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f2810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030002008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b187582020903810181018082030280818707820205810182020182020b8202187581018b021880187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 7,
+    "reason": 5,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f483582097968a69b551ca73ac97ab901dbe9ec871c264c7e16009cb7952fa3662f651488101070158202955649ec05d494aced4e3f3856bddd4863c697394741355226b2c255cfdb1ac8101417858204765a14be3411f9d5d28c29a89179cbc20069ff91c27da0a660d77af680ab0f4808b020ef4f48201582032f569be4adbf303123f434f6e2d7a915c3bc19f0fd5f382d5c739026fa2582d0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058201bf6ca4449078d9e674466745aea0e58fc100abe8c92f7aef56744725c29144880",
+      "input_length": 242,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "malformed_value",
+        "reason": "wrong_length",
+        "position": 1,
+        "offset": 11,
+        "length": 117
+       }
+      ],
+      "expected_finding_bytes": [
+       "8707820205810182020182020b820218758101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

@@ -1,0 +1,30 @@
+{
+ "name": "key-id-ed25519",
+ "status": "built and matches",
+ "note": "E([1, PK]) is 36 bytes",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "key-id-ed25519.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+    "preimage_length": 36,
+    "key_id": "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c"
+   },
+   "differences": []
+  }
+ ]
+}

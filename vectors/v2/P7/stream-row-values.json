@@ -1,0 +1,525 @@
+{
+ "name": "stream-row-values",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "a quads frame with one folded row, one row held with opaque_term and one row dropped with forward_reference: the value of the folded row its typed line; of each of the other two the graph id (absent for the default graph) and the column values in column order (predicate, object, subject)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "stream-row-values.bin",
+   "length": 265,
+   "sha256": "d78d21d001148645e96145845ba78f813624a90a0c0c723001dc9e3630e30095",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000028101828080870281920000190109810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f482020582020582020581018101828b010b189b820201018101810180810180828711810181018202018101810182020287138202181a81018202018101810181018b0218a618638202020181018101808101808287168101810182020281018101810187181981018101820202810181018101808081018201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "f0559f0e01c6464f215f6554b4047ebb13245acc237ca9371f5ac84f2ee1501a",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ],
+         [
+          "missing_dependency",
+          "value",
+          1,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "forward_reference",
+          null,
+          2,
+          null,
+          null,
+          null
+         ],
+         [
+          "opaque_term",
+          null,
+          2,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "folded: the typed line; held: (absent, [1, 3, 0]); dropped: (absent, [1, 9, 0])"
+   },
+   "stream_points": [
+    {
+     "at": 11,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "d0c259e784083d9f7e8c2549654646155bb60b6dcc6ea23f2179352e85f14f65",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": []
+      }
+     ],
+     "listing": []
+    },
+    {
+     "at": 166,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "a0d35e6761d6038cd3b11d79004168b853fb68eac14eb35537ee6f5d6ec186e8",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 265,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "22666adbdcfba431a503db2a2801dfd49227380d3f1e33447c15b92711a2ad1e",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "forward_reference",
+           null,
+           2,
+           null,
+           null,
+           null
+          ],
+          [
+           "opaque_term",
+           null,
+           2,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       1,
+       2,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       2,
+       3,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 265,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "22666adbdcfba431a503db2a2801dfd49227380d3f1e33447c15b92711a2ad1e",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "forward_reference",
+           null,
+           2,
+           null,
+           null,
+           null
+          ],
+          [
+           "opaque_term",
+           null,
+           2,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       1,
+       2,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       2,
+       3,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ],
+   "access": "forward"
+  }
+ ]
+}

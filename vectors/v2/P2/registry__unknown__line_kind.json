@@ -1,0 +1,5 @@
+{
+ "name": "registry/unknown/line_kind",
+ "status": "could not be built",
+ "why": "not built: the kind of a typed line of the fold; no field of a file (P2 4.3)"
+}

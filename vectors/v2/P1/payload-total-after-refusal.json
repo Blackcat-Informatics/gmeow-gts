@@ -1,0 +1,259 @@
+{
+ "name": "payload-total-after-refusal",
+ "section": "10.9",
+ "status": "built and matches",
+ "note": "a frame of decoded_length 0 after the refusal is refused too, count 8: the total does not grow by a refused frame, and every later frame is refused",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "payload-total-after-refusal.bin",
+   "read_result": "870101808a1a040000001a04000000001a04000000081a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901d9810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030400008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e848b010b1875820208018101810180810180828711810181018202018101810182020487182c810181018202018101810181018b02188018758202080181018101808101808187182c810181018202028101810181018b0318f518728202080182030281018082030780818714820218568101820203820218f5820218728202098b04190167187282020e0182030281018082030780838714820218568101820204820219016782021872820208870f8101810182020481018101820203871081018101820204810181018101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000402",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 8,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "frames": [
+       {
+        "payload": "verified"
+       },
+       {
+        "payload": "verified"
+       },
+       {
+        "payload": "unchecked(exceeds_capacity)",
+        "findings": [
+         [
+          "exceeds_capacity",
+          "total_decoded",
+          {
+           "count": 9
+          }
+         ]
+        ],
+        "fold": "opaque(exceeds_capacity)"
+       },
+       {
+        "payload": "unchecked(exceeds_capacity)",
+        "findings": [
+         [
+          "exceeds_capacity",
+          "total_decoded",
+          {
+           "count": 8
+          }
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 8,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 473,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact_unchecked",
+       "head": "79ab41a95e3e335a0abc24147a48b8625424db554c84c86f26b1d6bfb9ad2067",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 117,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 128,
+         "length": 117,
+         "class": "frame"
+        },
+        {
+         "position": 3,
+         "offset": 245,
+         "length": 114,
+         "class": "frame"
+        },
+        {
+         "position": 4,
+         "offset": 359,
+         "length": 114,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 117,
+         "frame_type": 8,
+         "link": "linked",
+         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+         "effective_identifier": "9d322a84c113fddfee8df44c3dd7af30bfbab19ec2e8e0fe9947fd49653723d2",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 4
+          },
+          {
+           "code": "unreferenced_unit",
+           "position": 1
+          }
+         ]
+        },
+        {
+         "position": 2,
+         "offset": 128,
+         "length": 117,
+         "frame_type": 8,
+         "link": "linked",
+         "predecessor": "9d322a84c113fddfee8df44c3dd7af30bfbab19ec2e8e0fe9947fd49653723d2",
+         "effective_identifier": "3368cee9593be6fb4fedbf95f3636853dd5895bdcd81b97a3bfaeabe5565fb18",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "unreferenced_unit",
+           "position": 2
+          }
+         ]
+        },
+        {
+         "position": 3,
+         "offset": 245,
+         "length": 114,
+         "frame_type": 8,
+         "link": "linked",
+         "predecessor": "3368cee9593be6fb4fedbf95f3636853dd5895bdcd81b97a3bfaeabe5565fb18",
+         "effective_identifier": "96519b2bf925b78cba2ee51714528c66b34ebfce438fb04709d3c11bb35a7b93",
+         "stored": null,
+         "payload": {
+          "state": "unchecked",
+          "reason": "exceeds_capacity"
+         },
+         "fold": {
+          "state": "opaque",
+          "reason": "exceeds_capacity"
+         },
+         "findings": [
+          {
+           "code": "exceeds_capacity",
+           "reason": "total_decoded",
+           "position": 3,
+           "offset": 245,
+           "length": 114,
+           "count": 9
+          }
+         ]
+        },
+        {
+         "position": 4,
+         "offset": 359,
+         "length": 114,
+         "frame_type": 14,
+         "link": "linked",
+         "predecessor": "96519b2bf925b78cba2ee51714528c66b34ebfce438fb04709d3c11bb35a7b93",
+         "effective_identifier": "79ab41a95e3e335a0abc24147a48b8625424db554c84c86f26b1d6bfb9ad2067",
+         "stored": null,
+         "payload": {
+          "state": "unchecked",
+          "reason": "exceeds_capacity"
+         },
+         "fold": {
+          "state": "opaque",
+          "reason": "exceeds_capacity"
+         },
+         "findings": [
+          {
+           "code": "exceeds_capacity",
+           "reason": "total_decoded",
+           "position": 4,
+           "offset": 359,
+           "length": 114,
+           "count": 8
+          },
+          {
+           "code": "commit_count_mismatch",
+           "position": 4,
+           "count": 3
+          },
+          {
+           "code": "commit_root_mismatch",
+           "position": 4
+          }
+         ]
+        }
+       ],
+       "findings": []
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

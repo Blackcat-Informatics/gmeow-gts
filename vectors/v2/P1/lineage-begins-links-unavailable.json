@@ -1,0 +1,128 @@
+{
+ "name": "lineage-begins-links-unavailable",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a later segment whose header outcome is `links_unavailable` and whose `lineage` is `absent`: `unsupported_registry_version` and `lineage_begins` (P1 2.4, P1-24)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lineage-begins-links-unavailable.bin",
+   "length": 564,
+   "sha256": "163f4761e3ced556ebdeb17cea856cb53302a410263791bb838489a6cedd4167",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870283920000190121810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030100008085f4820205820205820205810182025820f087844e6d854d44edf6f08583adbc3ab3b51059d4d43f8ae16cf244755047e7818b010b19011682020901810181018081018081871181018101820201810181018202018092011901210b81018101820203820207810104030000008085f4820205820205820205810181018082870481018101810181018101810187182a810181018101810181018101920219012c190108850201f4010082025820e179241840f1f12df27210c64013f74e0904291285c74fa0055ce22cb338c765820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b0119016e186782020101810181018081018081871181018101820201810181018202028b021901d5185f820202018101810180810180808187182a810181018101810181018101808202582011384f52a3775bcd22407eb9911a467c4596eebad7b49a08b6d4e06b16041e478201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "6f27ca58ee3e395969685ffd0ef671dc8ced8d8ee0c4abaedc7b77fb684174d3",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ],
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": []
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "0105292a7065aeec02abaa8c881f42b4a4fe3877e34f03927b36e9b2e1057fbc",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "segment 1: links_unavailable; unsupported_registry_version, lineage_begins"
+   }
+  }
+ ]
+}

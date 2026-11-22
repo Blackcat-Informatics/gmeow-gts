@@ -1,0 +1,28 @@
+{
+ "name": "conformance/claim",
+ "status": "built and matches",
+ "note": "the implementation_claim record",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "conformance__claim.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "claim_hex": "8602018582010582030282040582050b8206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001f5f5"
+   },
+   "differences": []
+  }
+ ]
+}

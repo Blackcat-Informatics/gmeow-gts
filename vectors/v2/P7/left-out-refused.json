@@ -1,0 +1,80 @@
+{
+ "name": "left-out-refused",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "a frame refused by capacity: counted",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "left-out-refused.bin",
+   "length": 5233,
+   "sha256": "ff484c4bc0660ea0352f7ae04c0bdbd3e660f322475ec1688653953a82889174",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 4096,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1910001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000191471810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030200008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186782020101810181018081018081871181018101820201810181018202028b0218721913ff82020901820302810180820307808187148202181f81018202028202187282021913ff8202191388808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "cb0b3cf90457acd83667b131393bc9fe67fde52447aa7c92fa4d05435606d09c",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "opaque",
+         "exceeds_capacity"
+        ],
+        "findings": [
+         [
+          "exceeds_capacity",
+          "stored_size",
+          2,
+          5000,
+          114,
+          5119
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "left_out 1"
+   }
+  }
+ ]
+}

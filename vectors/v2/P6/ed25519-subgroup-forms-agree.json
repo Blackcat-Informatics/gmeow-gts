@@ -1,0 +1,26 @@
+{
+ "name": "ed25519-subgroup-forms-agree",
+ "status": "built and matches",
+ "note": "honest signatures: valid under the strict equation, the cofactored equation and OpenSSL's verification",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "ed25519-subgroup-forms-agree.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

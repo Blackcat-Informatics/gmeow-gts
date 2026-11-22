@@ -1,0 +1,703 @@
+{
+ "name": "stream-keys-pending",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "registry version 2: a keys frame is decided when the item after it arrives (P8-61): pending with malformed_value unordered_or_repeated and no item until the sealed frame comes; stored_compressed: forbidden_combination; two signatures in descending order: decided at its arrival",
+ "cases": [
+  {
+   "label": "pending-then-decided",
+   "input_file": "stream-keys-pending.pending-then-decided.bin",
+   "length": 369,
+   "sha256": "be8f2e8c3ec4f1690372f331a0d7435255433a15a230b6f3877f361e7bcc1e6a",
+   "expected": {
+    "expected": "at the keys frame: malformed_value unordered_or_repeated, opaque, no item; at the sealed frame: no finding, folded, the keys frame's item delivered before the sealed frame's"
+   },
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001901718101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030200008085f482020582020582020581018101828b010b188182021101810181018081018081871181018101820201810181018202028b02188c18e582021201810181018081018080808081018201000400",
+   "registry_version": 2,
+   "sealing_input": "SK1 under KID1 (00..1f, 11..11), SK2 under KID2 (01..20, 33..33) of P8 section 17",
+   "stream_points": [
+    {
+     "at": 140,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "fb8589d1ec7a8821123be96e84988139c26bd0350180203f4639470a266bba41",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "unordered_or_repeated",
+           1,
+           null,
+           11,
+           129
+          ],
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": []
+    },
+    {
+     "at": 369,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "426efe728904f852fe13aefe3ef32253f2de500b219651d07fd5b1b79dced863",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 369,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "426efe728904f852fe13aefe3ef32253f2de500b219651d07fd5b1b79dced863",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ],
+   "access": "forward",
+   "input_points": [
+    140,
+    369
+   ]
+  },
+  {
+   "label": "stored-compressed",
+   "input_file": "stream-keys-pending.stored-compressed.bin",
+   "length": 371,
+   "sha256": "c8d98021a7e4274b11d6d6d6afaeb2b69e150085cebb5dd2cdfeb1b246e596bb",
+   "expected": {
+    "expected": "forbidden_combination (P8-12) at the boundary after the keys frame"
+   },
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001901738101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030200008085f482020582020582020581018101828b010b1883820211018101820201808203028082870782020a810182020182020b820218838101871181018101820201810181018202028b02188e18e58202120181018101808203028081870782020681018202028202188e820218e581018080810184020001000402",
+   "registry_version": 2,
+   "sealing_input": "SK1 under KID1 (00..1f, 11..11), SK2 under KID2 (01..20, 33..33) of P8 section 17",
+   "stream_points": [
+    {
+     "at": 142,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "6576ca60296b48b7a0ec2799d7a8d23063aaeabf75c95db928dc781307c3ca49",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "forbidden_combination",
+           1,
+           null,
+           11,
+           131
+          ],
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 371,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "0c2b3468b45c0530c97ab4346ae59e12ac68cfbfb176d1ac8764c511b6833bbe",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "forbidden_combination",
+           1,
+           null,
+           11,
+           131
+          ],
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "out_of_range",
+           2,
+           null,
+           142,
+           229
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 371,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "0c2b3468b45c0530c97ab4346ae59e12ac68cfbfb176d1ac8764c511b6833bbe",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "forbidden_combination",
+           1,
+           null,
+           11,
+           131
+          ],
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "out_of_range",
+           2,
+           null,
+           142,
+           229
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ],
+   "access": "forward"
+  },
+  {
+   "label": "descending-signatures",
+   "input_file": "stream-keys-pending.descending-signatures.bin",
+   "length": 573,
+   "sha256": "975b443dcf6a1605356424499f0db6ccd91c34b9076793d7a0abaae375d3ee11",
+   "expected": {
+    "expected": "the keys frame decided at its arrival with the malformed_value of R4; its item of kind frame delivered at the boundary after it"
+   },
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000019023d8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030200008085f482020582020582020581018101828b010b19014d82021101810181018287038202183601582001010101010101010101010101010101010101010101010101010101010101010000f487038202183601582002020202020202020202020202020202020202020202020202020202020202020000f481018083871181018101820201810181018202028718298202183682028203018202018101810181018718298202183682028203018202018101810181018b0219015818e582021201810181018081018080808081018201000400",
+   "registry_version": 2,
+   "sealing_input": "SK1 under KID1 (00..1f, 11..11), SK2 under KID2 (01..20, 33..33) of P8 section 17",
+   "stream_points": [
+    {
+     "at": 344,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "06605b1f5b9a12179b0ddc5279ea0596ea65ae205ac90ac97b858391f18a90e4",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "unordered_or_repeated",
+           1,
+           null,
+           11,
+           333
+          ],
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ],
+          [
+           "signature_unverified",
+           "key_not_held",
+           1,
+           null,
+           null,
+           null
+          ],
+          [
+           "signature_unverified",
+           "key_not_held",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 573,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "80bef8f0819f1ecf7a9f618d7c18cd3b7dd3fd66f65fe1c8415c6e5b33f0dd7e",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ],
+          [
+           "signature_unverified",
+           "key_not_held",
+           1,
+           null,
+           null,
+           null
+          ],
+          [
+           "signature_unverified",
+           "key_not_held",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 573,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "80bef8f0819f1ecf7a9f618d7c18cd3b7dd3fd66f65fe1c8415c6e5b33f0dd7e",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ],
+          [
+           "signature_unverified",
+           "key_not_held",
+           1,
+           null,
+           null,
+           null
+          ],
+          [
+           "signature_unverified",
+           "key_not_held",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ],
+   "access": "forward"
+  }
+ ]
+}

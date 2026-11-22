@@ -1,0 +1,77 @@
+{
+ "name": "canon-regions-shared",
+ "status": "built and matches",
+ "note": "the value is given to the region as its octets: which literals are values of the canonical file is P7 (threshold)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "canon-regions-shared.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "value_members": [
+     [
+      1,
+      "c3701aad5cef0b786721625a6abf667300d4f5e5543611b038b7cc8a66a9133a"
+     ],
+     [
+      4,
+      "c3701aad5cef0b786721625a6abf667300d4f5e5543611b038b7cc8a66a9133a"
+     ]
+    ],
+    "blob_members": [
+     [
+      1,
+      "7b4f52adea7467278b744b3d820442a1dd471d5b83cb0c1c4921b3701127a5f3"
+     ],
+     [
+      1,
+      "c3701aad5cef0b786721625a6abf667300d4f5e5543611b038b7cc8a66a9133a"
+     ],
+     [
+      3,
+      "cb28cd848212e1e1abe508f2db6266cc4405d0ca229a4954a9902193f86ce76c"
+     ],
+     [
+      2,
+      "cb9d8a1a65b57a6b3195a2d9003ce381b2c82f4c90141ac7d5b7d62b012b282c"
+     ],
+     [
+      3,
+      "d400514b793d50309aa35960d1ec7121ead5190728401a54803f141849cdfb9a"
+     ]
+    ],
+    "externals": [
+     [
+      [
+       1,
+       "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      ],
+      9,
+      null
+     ],
+     [
+      [
+       1,
+       "cb9d8a1a65b57a6b3195a2d9003ce381b2c82f4c90141ac7d5b7d62b012b282c"
+      ],
+      48824,
+      "b/b"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

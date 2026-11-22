@@ -1,0 +1,67 @@
+{
+ "name": "canonical/storage/7",
+ "status": "built and matches",
+ "note": "the annotations frame at position 7 of the canonical file of the storage fold: the decoded payload (`decoded`) and the stored bytes (`stored`)",
+ "cases": [
+  {
+   "label": "decoded",
+   "input_file": "canonical__storage__7.decoded.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "frame_type": "annotations",
+    "decoded_length": 18,
+    "decoded_sha256": "5e91a55fd10fd4466437695f81804918b9a6d90464fca77463577aa0a129af07",
+    "storage": "plain",
+    "stored_length": 18,
+    "stored_sha256": "5e91a55fd10fd4466437695f81804918b9a6d90464fca77463577aa0a129af07",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 7
+   },
+   "differences": []
+  },
+  {
+   "label": "stored",
+   "input_file": "canonical__storage__7.stored.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "frame_type": "annotations",
+    "decoded_length": 18,
+    "decoded_sha256": "5e91a55fd10fd4466437695f81804918b9a6d90464fca77463577aa0a129af07",
+    "storage": "plain",
+    "stored_length": 18,
+    "stored_sha256": "5e91a55fd10fd4466437695f81804918b9a6d90464fca77463577aa0a129af07",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 7
+   },
+   "differences": []
+  }
+ ]
+}

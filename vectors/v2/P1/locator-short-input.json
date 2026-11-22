@@ -1,0 +1,73 @@
+{
+ "name": "locator-short-input",
+ "section": "10.3",
+ "status": "built and matches",
+ "note": "10 bytes: the first item is a header cut inside its last field, which ends in 82 03 1b",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "locator-short-input.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028081870981018101810182020082020a810181018201000501",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "file": [
+     [
+      "torn_tail",
+      null,
+      {
+       "offset": 0,
+       "length": 10
+      }
+     ]
+    ],
+    "n_segments": 0
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [],
+     "findings": [
+      {
+       "code": "torn_tail",
+       "offset": 0,
+       "length": 10
+      }
+     ],
+     "content_digest": null,
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

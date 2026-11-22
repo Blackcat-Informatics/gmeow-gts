@@ -1,0 +1,48 @@
+{
+ "name": "rebuild-value-none-verified",
+ "status": "built and matches",
+ "note": "two value declarations of one digest, both failing their rebuilds: the term is unreadable, one finding at each declaration (missing_dependency with chunk), the row held, and no missing_dependency with value (P4-54)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "rebuild-value-none-verified.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702829200001901ae810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b1873820208018101810180810180808b02187e18be82020b018101810180810181828101820218188187138202181881018202028101810181018b0319013c187282020e018101810180810280808092011901ae1902d2810182025820686ccc4dad5c8d635ab9b3286361fc242c2946104fa536e935f1dee1eaf2e911820201820201810101030505008085f482020582020582020581018101858b011901dd1872820208018101810180810180808b0219024f18be82020b018101810180810181828101820218188187138202181881018202028101810181018b0319030d18a2820201018101810180810180808b041903af185f82020201810181018081018081871819810181018202048101810181018b0519040e187282020e01810181018081028080808081018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "missing_dependency",
+      "chunk",
+      "2",
+      "0"
+     ],
+     [
+      "missing_dependency",
+      "chunk",
+      "2",
+      "1"
+     ],
+     [
+      "opaque_term",
+      "None",
+      "4",
+      "1"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

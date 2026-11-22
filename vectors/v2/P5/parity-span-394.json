@@ -1,0 +1,29 @@
+{
+ "name": "parity-span-394",
+ "status": "built and matches",
+ "note": "the 394-shard span of 6.10: N = 394, D = 7, stripes of 57 and 56, 28 parity shards",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "parity-span-394.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "full": 280651,
+    "short": 5259
+   },
+   "differences": []
+  }
+ ]
+}

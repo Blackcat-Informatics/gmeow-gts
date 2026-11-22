@@ -1,0 +1,31 @@
+{
+ "name": "sign-ed25519-reproduce",
+ "status": "built and matches",
+ "note": "the signature bytes for a key and a subject, equal to those of OpenSSL's Ed25519",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "sign-ed25519-reproduce.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "value": "0459965ba59065d73797fba26da4876fc0b1e160ef4bd75ab23c2a83b14bf5ccd698c1a65cfb4132edfc220b65cf84206f25d258618daa914d0df63deb399909",
+    "message": "0a1e6977759fc0c8dc627d5e606f12c65efc22c97dd24b70bc95313b366513dd",
+    "h0": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "frame": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+   },
+   "differences": []
+  }
+ ]
+}

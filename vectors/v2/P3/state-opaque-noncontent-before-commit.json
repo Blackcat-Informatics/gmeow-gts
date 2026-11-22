@@ -1,0 +1,27 @@
+{
+ "name": "state-opaque-noncontent-before-commit",
+ "status": "built and matches",
+ "note": "P3 7.2 clause (3): an opaque commit (signatures grammar) before a valid commit: the valid commit names no state",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "state-opaque-noncontent-before-commit.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902ac810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030404008085f48202058202058202058101820258203ee5fbb318074cf2c484cfa3b9f8bc4639231cf7288208f7104d6f3f2f2e8923848b010b1878820209018101810180810180808b02188319013e82020e01810181018082030280818707820208810182020282021883820219013e81018b031901c11879820209018101810180810180808b0419023a187282020e018101810180810280808080820258203ee5fbb318074cf2c484cfa3b9f8bc4639231cf7288208f7104d6f3f2f2e89238201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

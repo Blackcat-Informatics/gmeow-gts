@@ -1,0 +1,36 @@
+{
+ "name": "suppress-term-datatype-unmatched",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "suppress-term-datatype-unmatched.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f482020582020582020581018202582073d1f2d1d13d5e83310a594e28c3a633f5be1715821d6fe186d39f15c9560c91848b010b189f820201018101810180810180808b0218aa185f820202018101810180810180808b0319010918568202070181018101808101808187181c8202181981018202038101810181018b0419015f187282020e0181018101808102808080808202582073d1f2d1d13d5e83310a594e28c3a633f5be1715821d6fe186d39f15c9560c918201010200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "suppression_unmatched",
+      "term",
+      "3",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

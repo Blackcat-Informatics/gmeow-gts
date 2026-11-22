@@ -1,0 +1,29 @@
+{
+ "name": "blob-ok",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "blob-ok.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018fe810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258209e465bb2fed64a5a232ddab87aea45d2f08eecbf559c2b2c2ce2414fadd2534f828b010b1881820209018101810180810180808b02188c187282020e018101810180810280808080820258209e465bb2fed64a5a232ddab87aea45d2f08eecbf559c2b2c2ce2414fadd2534f8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": []
+   },
+   "differences": []
+  }
+ ]
+}

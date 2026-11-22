@@ -1,0 +1,434 @@
+{
+ "name": "resync-field-head-not-shortest",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a frame whose decoded_length is written `18 05`: it fails the framing test and is scanned with the item before it in a readable v1 segment and in a readable v2 segment whose hash algorithm v1 holds; in a links_unavailable segment it passes and nothing is scanned; a stored_plain frame whose payload holds `fb` passes in every segment (P1 6.7)",
+ "cases": [
+  {
+   "label": "v1",
+   "input_file": "resync-field-head-not-shortest.v1.bin",
+   "length": 330,
+   "sha256": "7055b0bf7cd83ce33814c988e6bc1e9a97f47ba695872dba64677e67be22d55f",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019014a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f482020582020582020581018101838b010b186782020101810181018081018081871181018101820201810181018202038b0218721879820209038102810180820302808187078202038101820202820218728202187981018b0318eb185f8202020181018101808101808187181981018101820203810181018101808081018201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "b1b8a0334b5de7c3eea7cbc1ef723ac7cdfe04336b3dfb90106767944ad9cec6",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "not_deterministic",
+          2,
+          null,
+          114,
+          121
+         ]
+        ]
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "opaque_term",
+          null,
+          3,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "scanned: True"
+   }
+  },
+  {
+   "label": "v1-payload-fb",
+   "input_file": "resync-field-head-not-shortest.v1-payload-fb.bin",
+   "length": 347,
+   "sha256": "8ea710201453efcdccd069833ea175e351b08594872c6d183ebdb849e0c581b8",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019015b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f482020582020582020581018202582086509c1d2d254363efcab5c09e9023ad644bc33c3bd13cea6325b0caf595f28e838b010b186782020101810181018081018081871181018101820201810181018202038b021872188a820209018101810180810180808b0318fc185f8202020181018101808101808080808202582086509c1d2d254363efcab5c09e9023ad644bc33c3bd13cea6325b0caf595f28e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "09220e2dc7c9636441d82af89e952a46db4e80c2051daacb32795c17a5c943fd",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "nothing scanned"
+   }
+  },
+  {
+   "label": "v2-readable",
+   "input_file": "resync-field-head-not-shortest.v2-readable.bin",
+   "length": 330,
+   "sha256": "929f063b8d0870a694a79f2ef932039064a72654aa17c75438069df7d8c6f18d",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019014a8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030100008085f482020582020582020581018101838b010b186782020101810181018081018081871181018101820201810181018202038b0218721879820209038102810180820302808187078202038101820202820218728202187981018b0318eb185f82020201810181018081018081871819810181018202038101810181018187048101810181018101810181018081018201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "7ceb9feae96d087c1ffc97afcc3885197973a381e21075033634a52c82f5eb3e",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "not_deterministic",
+          2,
+          null,
+          114,
+          121
+         ]
+        ]
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "opaque_term",
+          null,
+          3,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "scanned: True"
+   }
+  },
+  {
+   "label": "v2-readable-payload-fb",
+   "input_file": "resync-field-head-not-shortest.v2-readable-payload-fb.bin",
+   "length": 347,
+   "sha256": "32baaddf96857b9d537115eccfc2de3e830b8726351e0c9dfd57347c4e5b0139",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019015b8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030300008085f482020582020582020581018202582086509c1d2d254363efcab5c09e9023ad644bc33c3bd13cea6325b0caf595f28e838b010b186782020101810181018081018081871181018101820201810181018202038b021872188a820209018101810180810180808b0318fc185f82020201810181018081018080818704810181018101810181018101808202582086509c1d2d254363efcab5c09e9023ad644bc33c3bd13cea6325b0caf595f28e8201000400",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "aa8bad28ebba27151e49e1554d638f96ad84ac64b4a2c8de73d45c3753a3c647",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "nothing scanned"
+   }
+  },
+  {
+   "label": "v2-links-unavailable",
+   "input_file": "resync-field-head-not-shortest.v2-links-unavailable.bin",
+   "length": 330,
+   "sha256": "ac594322930ceb86830477cbbf023426d75cf335749be4d28307fbbcd0aec4ff",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019014a81018101820202820207810104030000008085f482020582020582020581018101808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000403",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "expected": "scanned: False"
+   }
+  },
+  {
+   "label": "v2-links-unavailable-payload-fb",
+   "input_file": "resync-field-head-not-shortest.v2-links-unavailable-payload-fb.bin",
+   "length": 347,
+   "sha256": "eaaea1f39a57737eb414585d058e4e7c2e4eb243014aedfe5f639bd0e4be68de",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019015b81018101820202820207810104030000008085f482020582020582020581018101808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000403",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "expected": "nothing scanned"
+   }
+  }
+ ]
+}

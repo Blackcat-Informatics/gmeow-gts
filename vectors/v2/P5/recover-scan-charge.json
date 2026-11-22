@@ -1,0 +1,53 @@
+{
+ "name": "recover-scan-charge",
+ "status": "built and matches",
+ "note": "a damaged region holding 8 candidates for the span [0, 1), each with the payload length 347 that 6.5 gives that span and a wrong payload digest, then a parity frame that passes: with a decoded_bytes_per_read that admits 5 candidates after the frames before the region, the sixth candidate is refused by the total, reading resumes at it, it is exceeds_capacity with total_decoded at its position and not used, and every later frame is refused by the total; with enough capacity, resumption at the parity frame after the eight (P5-38)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "recover-scan-charge.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001906cb1a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019121e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc82020182020181010303010000840304050685f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e858b010b1875820208018101810180810180828711810181018202018101810182020187182c810181018202018101810181018b03190a4a1901f5820210018203028101808102808187148202185681018202038202190a4a82021901f582021908268b04190c3f1901f5820210018203028101808102808187181e810181018202048101810181018b05190e341901f5820210018203028101808102808187181e810181018202058101810181018b061910291901f5820210018203028101808102808187181e810181018202068101810181018187182481018101810182020b8202190a3f81018187088101810181018202188082021909ca810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 1739,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 1739,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    }
+   ],
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

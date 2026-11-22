@@ -1,0 +1,36 @@
+{
+ "name": "read/integrity/each",
+ "status": "built and matches",
+ "note": "intact, intact_unchecked, damaged (payload, opaque item, damaged region, unreadable header), not_checked",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "read__integrity__each.bin",
+   "input_derived": true,
+   "read_result": "870201818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f3810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258205291e75114925ab63093ec60cea3e0e8b86dc779dcbad9b74f1d928587aa2d64828b010b1876820209018101810180810180808b021881187282020e018101810180810280808080820258205291e75114925ab63093ec60cea3e0e8b86dc779dcbad9b74f1d928587aa2d648201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "intact": "intact",
+    "intact_unchecked": "intact_unchecked",
+    "damaged payload": "damaged",
+    "damaged opaque item": "damaged",
+    "damaged unreadable header": "damaged",
+    "not_checked": "not_checked",
+    "damaged region": "damaged"
+   },
+   "differences": []
+  }
+ ]
+}

@@ -1,0 +1,401 @@
+{
+ "name": "parity-stale-geometry",
+ "status": "built and matches",
+ "note": "F1 rewritten one byte shorter (single-segment zstd frame instead of one with a Window_Descriptor), the parity frames kept",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "parity-stale-geometry.case.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a00a305e5810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030400008303050785f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e878b010b1a002dc6bf82020801810182020180810180828711810181018202018101810182020387182c810181018202018101810181018b021a002dc6ca1a001e84808202080181018101808101808187182c810181018202028101810181018b031a004c4b4a1a000448ed8202100181018101808102808287181f820218288101820203810181018202190400871821810181018202038101810181018b041a005094371a004c4b40820208018101820201808101808187182c810181018202048101810181018b051a009cdf771a000448f18202100181018101808102808287181f820218288101820205810181018202190400871821810181018202058101810181018b061a00a1286818c682020f018101810180810280808b071a00a1292e1a0001dcb782021001810181018081028081871821810181018202078101810181018187182481018101810182020b82021a0098974581018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "findings": [
+       [
+        "unprotected_tail",
+        null,
+        {
+         "offset": 11,
+         "length": 10000197
+        }
+       ]
+      ],
+      "frames": [
+       {
+        "loose": true
+       },
+       {},
+       {
+        "findings": [
+         [
+          "parity_mismatch",
+          "data",
+          {
+           "position": 3,
+           "count": 1024
+          }
+         ],
+         [
+          "parity_stale",
+          null,
+          {
+           "position": 3
+          }
+         ]
+        ]
+       },
+       {
+        "loose": true
+       },
+       {
+        "findings": [
+         [
+          "parity_mismatch",
+          "data",
+          {
+           "position": 5,
+           "count": 1024
+          }
+         ],
+         [
+          "parity_stale",
+          null,
+          {
+           "position": 5
+          }
+         ]
+        ]
+       },
+       {},
+       {
+        "findings": [
+         [
+          "parity_stale",
+          null,
+          {
+           "position": 7
+          }
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 10683877,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact",
+       "head": "e7e2f7e9457b362c35e6d38d7ebc99ab879273c91d42331157149da9704e85e3",
+       "transparent_frames": [
+        3,
+        5,
+        7
+       ],
+       "committed_frames": 0,
+       "index_used": {
+        "content_digest": 6,
+        "frame_count_head": 6,
+        "graph_directory": 6,
+        "pack_members": 6,
+        "range_root": 6,
+        "statistics": 6,
+        "type_runs": 6
+       },
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 2999999,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 3000010,
+         "length": 2000000,
+         "class": "frame"
+        },
+        {
+         "position": 3,
+         "offset": 5000010,
+         "length": 280813,
+         "class": "frame"
+        },
+        {
+         "position": 4,
+         "offset": 5280823,
+         "length": 5000000,
+         "class": "frame"
+        },
+        {
+         "position": 5,
+         "offset": 10280823,
+         "length": 280817,
+         "class": "frame"
+        },
+        {
+         "position": 6,
+         "offset": 10561640,
+         "length": 198,
+         "class": "frame"
+        },
+        {
+         "position": 7,
+         "offset": 10561838,
+         "length": 122039,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 2999999,
+         "frame_type": 8,
+         "link": "linked",
+         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+         "effective_identifier": "777bd37b9aba202c6e0f0da1f5b838607463163644185454df124c45f966d7aa",
+         "stored": "matches",
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 3
+          },
+          {
+           "code": "unreferenced_unit",
+           "position": 1
+          }
+         ]
+        },
+        {
+         "position": 2,
+         "offset": 3000010,
+         "length": 2000000,
+         "frame_type": 8,
+         "link": "linked",
+         "predecessor": "777bd37b9aba202c6e0f0da1f5b838607463163644185454df124c45f966d7aa",
+         "effective_identifier": "61c547f0f6e49cf800a22927e5ab30a996c0642fc095017b3aeeaa19f0fc98aa",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "unreferenced_unit",
+           "position": 2
+          }
+         ]
+        },
+        {
+         "position": 3,
+         "offset": 5000010,
+         "length": 280813,
+         "frame_type": 16,
+         "link": "linked",
+         "predecessor": "61c547f0f6e49cf800a22927e5ab30a996c0642fc095017b3aeeaa19f0fc98aa",
+         "effective_identifier": null,
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "parity_mismatch",
+           "reason": "data",
+           "position": 3,
+           "count": 1024
+          },
+          {
+           "code": "parity_stale",
+           "position": 3
+          }
+         ]
+        },
+        {
+         "position": 4,
+         "offset": 5280823,
+         "length": 5000000,
+         "frame_type": 8,
+         "link": "linked",
+         "predecessor": "61c547f0f6e49cf800a22927e5ab30a996c0642fc095017b3aeeaa19f0fc98aa",
+         "effective_identifier": "157789037638e1e5c8012ab83cbbb9120e36576bfd08ebd664ecb0c3c4720870",
+         "stored": "matches",
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "unreferenced_unit",
+           "position": 4
+          }
+         ]
+        },
+        {
+         "position": 5,
+         "offset": 10280823,
+         "length": 280817,
+         "frame_type": 16,
+         "link": "linked",
+         "predecessor": "157789037638e1e5c8012ab83cbbb9120e36576bfd08ebd664ecb0c3c4720870",
+         "effective_identifier": null,
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "parity_mismatch",
+           "reason": "data",
+           "position": 5,
+           "count": 1024
+          },
+          {
+           "code": "parity_stale",
+           "position": 5
+          }
+         ]
+        },
+        {
+         "position": 6,
+         "offset": 10561640,
+         "length": 198,
+         "frame_type": 15,
+         "link": "linked",
+         "predecessor": "157789037638e1e5c8012ab83cbbb9120e36576bfd08ebd664ecb0c3c4720870",
+         "effective_identifier": "e7e2f7e9457b362c35e6d38d7ebc99ab879273c91d42331157149da9704e85e3",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": []
+        },
+        {
+         "position": 7,
+         "offset": 10561838,
+         "length": 122039,
+         "frame_type": 16,
+         "link": "linked",
+         "predecessor": "e7e2f7e9457b362c35e6d38d7ebc99ab879273c91d42331157149da9704e85e3",
+         "effective_identifier": null,
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "parity_stale",
+           "position": 7
+          }
+         ]
+        }
+       ],
+       "findings": [
+        {
+         "code": "unprotected_tail",
+         "offset": 11,
+         "length": 10000197
+        }
+       ]
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  },
+  {
+   "label": "nothing-repaired",
+   "input_file": "parity-stale-geometry.nothing-repaired.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a00a305e5810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030400008303050785f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e878b010b1a002dc6bf82020801810182020180810180828711810181018202018101810182020387182c810181018202018101810181018b021a002dc6ca1a001e84808202080181018101808101808187182c810181018202028101810181018b031a004c4b4a1a000448ed8202100181018101808102808287181f820218288101820203810181018202190400871821810181018202038101810181018b041a005094371a004c4b40820208018101820201808101808187182c810181018202048101810181018b051a009cdf771a000448f18202100181018101808102808287181f820218288101820205810181018202190400871821810181018202058101810181018b061a00a1286818c682020f018101810180810280808b071a00a1292e1a0001dcb782021001810181018081028081871821810181018202078101810181018187182481018101810182020b82021a0098974581018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

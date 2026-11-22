@@ -1,0 +1,48 @@
+{
+ "name": "finding/read_failed",
+ "status": "built and matches",
+ "note": "a source whose read of 16 bytes at offset 10 fails (the 10 bytes before it were read)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__read_failed.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028081870a81018101810182020a820210810181018201000700",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 10,
+    "reason": null,
+    "severity": "fatal",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181",
+      "input_length": 10,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "read_failed",
+        "offset": 10,
+        "length": 16
+       }
+      ],
+      "expected_finding_bytes": [
+       "870a81018101810182020a8202108101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

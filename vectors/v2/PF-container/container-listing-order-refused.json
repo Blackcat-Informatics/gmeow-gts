@@ -1,0 +1,53 @@
+{
+ "name": "container-listing-order-refused",
+ "status": "built and matches",
+ "note": "an export with two observations of one resource (check 6 fails), both blank nodes of one segment with the labels y and x, written in that order, read with labelled_lines below the size of the fold: labelling_refused in the file's findings; the two observations listed with x first; checks 5 and 6 report as in a reading whose labelling succeeds",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "container-listing-order-refused.bin",
+   "read_result": "870101818206118a1a040000001a0400000000011b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019067b810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020601030808008085f482020582020582020581018101888b010c190336820201018101810180810180808b0219034218a2820202018101810180810180808b031903e41860820202018101810180810180808b041904441860820202018101810180810180808b051904a4187282020e018101810180810280808b061905161878820202018101810180810180808b0719058e187b820206018101810180810180808b08190609187282020e018101810180810280808287181a820218558101810181018101810187182e810182028304068202068101810181018202028187181a820218558101810181018101810181018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 1,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 1,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    }
+   ],
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

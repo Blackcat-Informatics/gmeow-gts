@@ -1,0 +1,28 @@
+{
+ "name": "canonical/compaction/state-referent",
+ "status": "built and matches",
+ "note": "the file is written; its read reports missing_dependency with state",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "canonical__compaction__state-referent.bin",
+   "input_derived": true,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901d4810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820b6153e1def0376d38fab325738484314c947f1c80bf7653ec18b210e6cce2e06848b010b186a820201018101810180810180808b021875187282020e018101810180810280808b0318e7187b820206018101810180810180808b04190162187282020e01810181018081028080808082025820b6153e1def0376d38fab325738484314c947f1c80bf7653ec18b210e6cce2e068201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

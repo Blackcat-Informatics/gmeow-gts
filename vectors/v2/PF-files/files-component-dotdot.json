@@ -1,0 +1,35 @@
+{
+ "name": "files-component-dotdot",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "files-component-dotdot.bin",
+   "read_result": "8701018182050b8a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019026681018202582063dd72780ed65331f60bd390f6d241cc93bbd2965552dce186061c715e31837582020182020182020501030303008085f4820205820205820205810182025820543fc258cf442e0e870cbdc475f02c76858204fa10f1172d500ea4921cdb5470838b010c190173820201018101810180810180808b0219017f1875820202018101810180810180808b031901f4187282020e018101810180810280808187182e810182028304058202028101810181018202018082025820543fc258cf442e0e870cbdc475f02c76858204fa10f1172d500ea4921cdb54708201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "profile": [
+     [
+      2,
+      1
+     ]
+    ],
+    "core": []
+   },
+   "differences": []
+  }
+ ]
+}

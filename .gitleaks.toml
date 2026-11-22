@@ -14,3 +14,7 @@ regexes = [
   '''6eb8c7e1fa146fa53261108b87ec3798ba4a0d415b7790ae69638c7f1761b1dc''',
   '''ad5d2d9f69e8c1daf65da2be6df6d4128842bca8d2ce92526aacec1cc176871d''',
 ]
+# A known-answer test of the key wrap in the generation-2 corpus states its fixed inputs.
+paths = [
+  '''v2/P8/p8-wrap-kat\.json$''',
+]

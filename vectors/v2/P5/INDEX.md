@@ -1,0 +1,97 @@
+# Vectors of P5
+
+| vector | outcome | notes |
+|---|---|---|
+| `parity-base` | built and matches | the base segment read clean: no finding |
+| `parity-wrong-transparent` | built and matches |  |
+| `parity-damaged-each` | built and matches |  |
+| `parity-damaged-shard` | built and matches |  |
+| `parity-signed` | built and matches |  |
+| `parity-later-version` | built and matches |  |
+| `parity-above-capacity` | built and matches |  |
+| `parity-above-capacity-wrong-table` | built and matches |  |
+| `parity-above-capacity-and-damaged` | built and matches |  |
+| `parity-frame-type-second-form` | built and matches | no parity frame in the segment, so no unprotected_tail |
+| `range-roots-1-17` | built and matches |  |
+| `range-transparent` | built and matches |  |
+| `range-healed-leaf` | built and matches |  |
+| `range-ill-typed-identifier` | built and matches |  |
+| `commit-valid` | built and matches |  |
+| `commit-count-mismatch` | built and matches |  |
+| `commit-root-mismatch` | built and matches |  |
+| `commit-none` | built and matches |  |
+| `commit-canonical-tail` | built and matches |  |
+| `proof-inclusion-all` | built and matches |  |
+| `proof-inclusion-negative` | built and matches |  |
+| `proof-consistency-all` | built and matches |  |
+| `proof-consistency-negative` | built and matches |  |
+| `proof-range` | built and matches |  |
+| `proof-file` | built and matches |  |
+| `proof-file-negative` | built and matches |  |
+| `index-intact` | built and matches | F3 stands after the commit: the uncommitted tail of 2.3 is F3 alone; statistics and content_digest are not compared by this engine (needs P3) |
+| `index-each-claim` | built and matches | statistics and content_digest are computed from the segment's own fold with the labelling of L1 (rdf.py, labelling.py) |
+| `index-absent-equal` | built and matches |  |
+| `index-last-unfolded` | built and matches | the blob frame is above the reader's decoded capacity; the index is last and false in statistics and content_digest: nothing is compared |
+| `index-not-last` | built and matches |  |
+| `index-digest-absent` | built and matches | the text of 4.3 says a digest claim is not compared when the reader's own digest is absent, and the vector says the present digest gives index_digest |
+| `index-last-intact` | built and matches |  |
+| `locator-fallback` | built and matches | the last 11 bytes are not a locator; the file is read from its start and the attempt gives no finding of its own |
+| `accelerators-false` | built and matches | the locator case: recognise_locator finds the nested index from the end, and the read from the start does not confirm it |
+| `scrub-stored` | built and matches |  |
+| `gf-tables` | built and matches | the product table is compared with an independent carry-less multiplication mod 0x11D |
+| `gf-toy` | built and matches |  |
+| `parity-matrix` | built and matches |  |
+| `commit-payload-nonempty` | built and matches | added: P5 2.2 now says a commit whose decoded_length is not 0 is malformed_value out_of_range, opaque malformed, and not a commit |
+| `index-nonterminal-claims` | built and matches | an index followed by an ordinary frame: no finding; statistics and content_digest are not compared and stay unverified, the structural claims are verified |
+| `index-opaque-covered` | built and matches | a last index over a pack frame above the reader's capacity and a quads frame within it: pack_members unverified, graph_directory verified; the digest claims are not compared |
+| `index-labelling-refused` | built and matches | a last index over the Paley graph on 13 vertices read with labelling_units 0: labelling_refused once, no index_claim_failed; statistics and content_digest are unverified |
+| `parity-span-full` | built and matches | full span (1024 shards, depth 16, payload 280651 bytes), the spans of fewer than 262144 bytes of 6.4 step 0 and 6.5 (z 64 to 4096, D = 1), and the 394-shard span of 6.10 (D = 7, stripes of 57 and 56 shards, 28 parity shards) |
+| `parity-placement` | built and matches |  |
+| `tail-live` | built and matches | two full spans and no closing index: the tail runs from 8388608 (3 frames, 2 parity frames) |
+| `tail-none` | built and matches |  |
+| `recover-a` | built and matches | 12 KiB flipped from the shard boundary 4194304 + 197 * 4096 = 5001216 (the text says 5000960, which is not a boundary: 4 shards) inside F3 (3 shards, stripes 5, 6, 7): repaired count 3 at the second parity frame; the repaired copy equals the undamaged file |
+| `recover-b` | built and matches |  |
+| `recover-c` | built and matches | the first byte of F2 is damaged: undelimitable_input at F2, resumption at the first parity frame, F3 has position 4 |
+| `parity-stale-geometry` | built and matches | F1 rewritten one byte shorter (single-segment zstd frame instead of one with a Window_Descriptor), the parity frames kept |
+| `parity-stale-equal` | built and matches |  |
+| `parity-unexplained` | built and matches | one stripe; the rewritten frame's shard is an unknown of the stripe, solved and never written |
+| `parity-unexplained-two-stripes` | built and matches | F1 rewritten at equal length (unexplained shard, never written) and F2 damaged (explained shard): in different stripes (a span of 115 shards has depth 2); in one stripe the unexplained shard would corrupt the solution and the repair would be verify_failed |
+| `recover-verify-failed` | built and matches | the table covers a frame whose payload digest was already wrong: the solved shard restores that frame and it still fails |
+| `recover-length` | built and matches |  |
+| `recover-none` | built and matches |  |
+| `recover-header` | built and matches | the flipped byte is registry_version 1 -> 2 (also unsupported_registry_version); h0 changes |
+| `recover-foreign` | built and matches | the damaged frame holds the parity frame of another segment; the scan skips it (its table fails under this h0) and resumes at the segment's own |
+| `recover-no-signature` | built and matches |  |
+| `parity-append-rewrite` | built and matches |  |
+| `parity-span-394` | built and matches | the 394-shard span of 6.10: N = 394, D = 7, stripes of 57 and 56, 28 parity shards |
+| `recover-far` | built and matches | the damaged head of a frame of 2^26 + 4096 bytes; the next parity frame lies more than 2^26 bytes after it |
+| `scrub-order` | built and matches | a segment of three frames, the first and the third damaged: reported in item order (P5-25) |
+| `locator-closing-index` | built and matches | a segment with two index frames and a locator naming the first, then the second (P5-20, P5-21) |
+| `proof-file-missing-segment` | built and matches | a file proof whose last entry is present for a segment F2 does not hold (P5-16) |
+| `recover-rounds-straddle` | built and matches | P5 7.2 step 5.3: an item straddling the end of span 0, damaged in both spans, with a forged parity frame for span 1: both spans removed in round one, verify_failed at each parity frame, nothing written |
+| `recover-chain-witness` | built and matches | a first frame whose stored identifier is 32 zero bytes and 16 frames of 4194304 bytes, frame t straddling the end of span t, one byte damaged in the first frame and in each span part of each straddling frame (73701152 bytes): every one of the 16 spans repair_failed verify_failed; each of the 17 touched items checked once (P5-41) |
+| `recover-chain-independent` | built and matches | the chain of recover-chain-witness with 4 frames, then an undamaged span, then a second span with one explained shard in a frame that no span of the chain touches: the four spans of the chain removed, the second span repaired (P5-41) |
+| `recover-predecessor` | built and matches | span 1 repairs a frame F whose nearest earlier ordinary frame E lies in an item that span 0 touches, and span 0 does not pass: span 1 removed by the propagation although F checks in the working copy (P5-41) |
+| `recover-straddle-propagate` | built and matches | an item that straddles the end of span 0 and the start of span 1, damaged in both spans, with a forged parity frame for span 1 whose table holds but whose parity bytes encode other data: span 1 does not pass; span 0 depends on the item that span 1 touches and is removed by the propagation: repair_failed verify_failed at the position of each of the two parity frames, nothing written (P5-37, P5-41) |
+| `recover-scan-witness` | built and matches | a header, one chunk frame and a damaged region of 314291 bytes that begins with 1c and holds 2000 nested candidates whose links hold, whose payloads hold the next candidate and whose payload digests are wrong: undelimitable_input to the end of the input; no candidate reaches its charge, because no payload has the length of its span; read with a decoded_bytes_per_read equal to the decoded length of the chunk frame: no total_decoded finding (P5-38) |
+| `recover-scan-walk` | built and matches | a damaged region of 1048576 bytes: 1c, then 1048574 bytes of 81 (nested one-element arrays), then 00: undelimitable_input to the end of the input; the test reads at most a fixed number of heads at each offset (P5-38) |
+| `recover-scan-charge` | built and matches | a damaged region holding 8 candidates for the span [0, 1), each with the payload length 347 that 6.5 gives that span and a wrong payload digest, then a parity frame that passes: with a decoded_bytes_per_read that admits 5 candidates after the frames before the region, the sixth candidate is refused by the total, reading resumes at it, it is exceeds_capacity with total_decoded at its position and not used, and every later frame is refused by the total; with enough capacity, resumption at the parity frame after the eight (P5-38) |
+| `recover-check-charge` | built and matches | a repair whose touched items decode 3 MiB in all, read with a total decoded length whose remainder after the items of the segment is 2 MiB: the payload checks beyond the remainder unchecked; a stored_compressed item among them accepted by its stored state, a stored_plain one not passing; the frames of a later segment exceeds_capacity with total_decoded (P5-41, P5-39) |
+| `recover-zeroed-range` | built and matches | a segment of 40 chunk frames of 1000 payload bytes each, every payload byte 01, stored_plain, and its parity frame, with the 4096 bytes of one data shard inside the frames overwritten with 00: the frame in which the range begins is delimited short and the zero bytes after it as one item for each byte; the span repaired with count 1, the repaired copy byte-identical to the undamaged file; the same file with the range overwritten with ff (one damaged region): the same repaired copy (P5-37, P5-41) |
+| `index-covers-frame-of-no-type` | built and matches | the index covers a frame whose element 1 is no value (18 0f, critical true): the frame is counted in frame_count and belongs to no run of type_runs, so the index has index_claim_failed with index_directory whether its runs name a type for the frame or omit it; the frame is malformed_value / not_deterministic, of no frame type, and gives no unsupported_critical even with critical true; the later frames are folded |
+| `parity-append-open-span` | built and matches | a segment with a parity frame and 1000 bytes after its span, continued by the same writer until the next span ends: the parity frame of the second span is that of the segment written at once |
+| `parity-short-run` | built and matches | a segment of a header of 12 bytes and one chunk frame of 4084 bytes: S is one span of 4096 bytes (z 64); 193 bytes from S-offset 127 are repaired, 256 bytes from S-offset 160 are not |
+| `parity-span-262143` | built and matches | the parity frame of a span of 262143 bytes in a segment of its own: z 4096, N 64, D 1, payload of 17547 bytes |
+| `parity-span-262144` | built and matches | the parity frame of a span of 262144 bytes in a segment of its own: z 4096, N 64, D 1, payload of 17547 bytes |
+| `parity-span-4096` | built and matches | the parity frame of a span of 4096 bytes in a segment of its own: z 64, N 64, D 1, payload of 1419 bytes |
+| `parity-span-65536` | built and matches | the parity frame of a span of 65536 bytes in a segment of its own: z 1024, N 64, D 1, payload of 5259 bytes |
+| `parity-span-short` | built and matches | the parity frame of a span of 100000 bytes in a segment of its own: z 2048, N 49, D 1, payload of 9100 bytes |
+| `index-after-stop` | built and matches | a segment of a higher registry version, a critical frame of a type the reader does not hold, a quads frame, an index after them (4.3, P5-22) |
+| `proof-without-payload` | built and matches | the inclusion proofs computed from elements 1 to 6 and the stored identifier of each frame, with no payload byte, equal those computed from a read with whole (3.6) |
+| `recovery-resync-buffer` | built and matches | a damaged region followed by a resync item that begins 4000 bytes into the region and is 300 bytes long: accepted (P5-43) |
+| `parity-broken-copy-no-first` | built and matches | `H T Q P P'` with `P` and `P'` two parity frames of the one span of `T Q`, `P` written with its stored identifier changed by one bit so that its link fails: a `broken` parity frame has no `first` and matches no span, so `P'` is not damaged by condition 6 and is used: `P` `parity_damaged`, `P'` no finding (P5 6.6, condition 6) |
+| `parity-condition-six-first-by-case` | built and matches | `H T Q P0 P` with `P0` and `P` parity frames of the one span, `P` as its writer wrote it: when `P0` has the `geometry` `0` in a segment of the reader's version it is judged, damaged by condition 1, and has a `first`, so `P` is damaged by condition 6; when `P0` has a `geometry` of a later version in a segment of `registry_version` `2` it is the later-version case, has no `first`, and `P` is used (P5 6.6 condition 6, P5-31) |
+| `recovery-parity-in-resync-segment` | built and matches | framing lost in a segment opened by a resync item, an untouched parity frame later whose span begins at the item: recovery resumes at the parity frame under the segment's `h0` (the computed identifier of the item) and repairs the span (P5 7.2 step 6, 7.2A) |
+| `uncommitted-tail-unregistered-option` | built and matches | a frame whose content holds an option tag of no `option_tag` value and whose `identifier` is no `bytes` keeps elements 1 to 6 well typed, has its computed identifier as effective identifier and is counted in `uncommitted_tail`; its one finding is the `wrong_type` of element 9, since the tag is a value of the content record of a `broken` frame and is not judged (P1 5.1 step 1, 3.4, P1-36, P5 2.3) |
+
+Totals: built and matches: 91 (91 entries).

@@ -1,0 +1,36 @@
+{
+ "name": "bindings-unnamed-pair",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "bindings-unnamed-pair.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190234810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f482020582020582020581018202582026c7ae98de4a0581b5c15cc0fa04f0a6f980aaf6733b39ba4d39e4f4c79b426d848b010b189f820201018101810180810180808b0218aa1876820209018101810180810180808b0319012018a28202060181018101808101808187181d810181018202038101810181018b041901c2187282020e0181018101808102808080808202582026c7ae98de4a0581b5c15cc0fa04f0a6f980aaf6733b39ba4d39e4f4c79b426d8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "binding_unanchored",
+      "None",
+      "3",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

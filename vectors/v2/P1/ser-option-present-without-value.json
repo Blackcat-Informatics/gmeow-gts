@@ -1,0 +1,34 @@
+{
+ "name": "ser-option-present-without-value",
+ "section": "10.1",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "ser-option-present-without-value.bin",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "malformed": "wrong_length"
+   },
+   "result": {
+    "position_result": {
+     "malformed": "wrong_length"
+    }
+   },
+   "differences": []
+  }
+ ]
+}

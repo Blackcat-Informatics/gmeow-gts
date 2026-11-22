@@ -1,0 +1,53 @@
+{
+ "name": "resync-limit-torn-unreadable-segment",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "limit 2: a header with hash_algorithm 7, then a frame cut with 200 bytes missing; R(L) and a scope whose first frame is 134 bytes: the torn frame completes at the end of the first scope frame, the second scope frame passes classification: the scope frames are items of the unreadable segment (P1-107)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-limit-torn-unreadable-segment.bin",
+   "length": 589,
+   "sha256": "ab211c1bf71701e7988030d1db972dbc39f9b4b8897e2f42b74afeae7340553e",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019024d8101810181018101810103030000008085f48202058202058202058101810180818707820207810182020082020082020b81018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000402",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": null,
+      "findings": [
+       [
+        "malformed_value",
+        "unregistered_value",
+        0,
+        null,
+        0,
+        11
+       ]
+      ],
+      "frames": []
+     }
+    ]
+   },
+   "expected": {
+    "expected": "R is not accepted; the scope frames are items of the unreadable segment"
+   }
+  }
+ ]
+}

@@ -1,0 +1,32 @@
+{
+ "name": "canon-media-types",
+ "status": "built and matches",
+ "note": "'a/b' (4 bytes encoded) is smallest by E, then 'text/plain', then 'zz/top-level'",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "canon-media-types.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "member_media_type": "a/b",
+    "externals": [
+     "text/plain",
+     "zz/top-level"
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

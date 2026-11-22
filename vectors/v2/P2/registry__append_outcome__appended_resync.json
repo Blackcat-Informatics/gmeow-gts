@@ -1,0 +1,26 @@
+{
+ "name": "registry/append_outcome/appended_resync",
+ "status": "built and matches",
+ "note": "P2 11.2: a writer that checks a file that does not end at an item boundary: the outcome is code 2, appended_resync",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__append_outcome__appended_resync.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

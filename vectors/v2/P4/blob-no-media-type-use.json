@@ -1,0 +1,29 @@
+{
+ "name": "blob-no-media-type-use",
+ "status": "built and matches",
+ "note": "the blob's bytes are a file of this format under its media type (P1); the fold holds the one record line of the blob",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "blob-no-media-type-use.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190216810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f4820205820205820205810182025820faf5685d058be9dca0841599e88098fbd18ecca1143f9decc97ba9d63794e1be828b010b190199820209018101810180810180808b021901a4187282020e01810181018081028080808082025820faf5685d058be9dca0841599e88098fbd18ecca1143f9decc97ba9d63794e1be8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": []
+   },
+   "differences": []
+  }
+ ]
+}

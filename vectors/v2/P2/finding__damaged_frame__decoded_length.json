@@ -1,0 +1,50 @@
+{
+ "name": "finding/damaged_frame/decoded_length",
+ "status": "built and matches",
+ "note": "decoded_length 4 where the payload has 3 bytes",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__damaged_frame__decoded_length.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f3810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b18768202090181028101808203018081870d82020d810182020182020b8202187681018b021881187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 13,
+    "reason": 13,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f4825820bd8d8c335fe5ea11f6daea1c89303c1a9976a31339af81b64eec83922e9f5c6f8101045820314bca0ecfbe7ff1404be18764844fc46214b6538c13ec55628ddd146ad83cd381014378797a58202b7e4038835a12d81d074e65971235ec4618fcd4982a90848aca611dfa5552f1808b020ef4f4820158207b8f47308e655f7b6c9e340438e6d84ddbd4f8d5b8153a48263a3944f0d64c1b0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820ac1bc88bf8f0a1dd2d807de8bebe62d98102b5f1485ac36b14043de2ff63ddf380",
+      "input_length": 243,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "damaged_frame",
+        "reason": "decoded_length",
+        "position": 1,
+        "offset": 11,
+        "length": 118
+       }
+      ],
+      "expected_finding_bytes": [
+       "870d82020d810182020182020b820218768101"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

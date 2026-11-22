@@ -1,0 +1,36 @@
+{
+ "name": "bindings-referent-blob-unresolved",
+ "status": "built and matches",
+ "note": "two bindings with one referent: one finding",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "bindings-referent-blob-unresolved.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901c3810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820d4a293da9fce16b6256c40a56dfa6135db04b7e0a1d4672ea4b807c1875c417f838b010b189f820201018101810180810180808b0218aa18a78202060181018101808101808187138202181b81018202028101810181018b03190151187282020e01810181018081028080808082025820d4a293da9fce16b6256c40a56dfa6135db04b7e0a1d4672ea4b807c1875c417f8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "findings": [
+     [
+      "missing_dependency",
+      "blob",
+      "2",
+      "0"
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

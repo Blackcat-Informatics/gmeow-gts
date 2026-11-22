@@ -1,0 +1,27 @@
+{
+ "name": "project/annotation-equals-quad",
+ "status": "built and matches",
+ "note": "P3 13.8: an annotation line and a quad line with the same four terms: one quad in Q, two lines in the fold",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "project__annotation-equals-quad.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901b2810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f48202058202058202058101820258208219c28ad96ba8105858edb0b0915414615aa051d1be64e2a57aef1b9584b4a3848b010b1875820201018101810180810180808b0218801860820204018101810180810180808b0318e01860820202018101810180810180808b04190140187282020e018101810180810280808080820258208219c28ad96ba8105858edb0b0915414615aa051d1be64e2a57aef1b9584b4a38201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

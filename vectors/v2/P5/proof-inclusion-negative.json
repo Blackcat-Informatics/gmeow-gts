@@ -1,0 +1,33 @@
+{
+ "name": "proof-inclusion-negative",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "proof-inclusion-negative.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "short-path": "proof_malformed/length",
+    "index-5": "proof_malformed/order",
+    "count-8": "proof_malformed/count",
+    "swapped-sibling": "proof_failed/inclusion",
+    "digest-31": "proof_malformed/length",
+    "trailing-byte": "proof_malformed/length"
+   },
+   "differences": []
+  }
+ ]
+}

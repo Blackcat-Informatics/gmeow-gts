@@ -1,0 +1,97 @@
+{
+ "name": "stream-heal-pending-by-parity",
+ "status": "built and matches",
+ "note": "UNCONFIRMED by the editor: a commit that reaches the end of the first span, its stored identifier damaged, healed by the parity frame of the span; the expectation is the text's",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "stream-heal-pending-by-parity.bin",
+   "read_result_file": "stream-heal-pending-by-parity.result.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "parity-last": {
+     "commit_position": 4213,
+     "link": "healed",
+     "valid": true,
+     "committed_frames": 4213,
+     "integrity": "intact",
+     "findings": [
+      [
+       "healed_link",
+       null,
+       4213,
+       null
+      ],
+      [
+       "unprotected_tail",
+       null,
+       null,
+       null
+      ]
+     ]
+    },
+    "full": {
+     "commit_position": 4213,
+     "link": "healed",
+     "valid": true,
+     "committed_frames": 4213,
+     "integrity": "intact",
+     "findings": [
+      [
+       "healed_link",
+       null,
+       4213,
+       null
+      ],
+      [
+       "uncommitted_tail",
+       null,
+       4215,
+       1
+      ],
+      [
+       "unprotected_tail",
+       null,
+       null,
+       null
+      ]
+     ]
+    },
+    "cut": {
+     "commit_position": 4213,
+     "link": "broken",
+     "valid": false,
+     "committed_frames": 4020,
+     "integrity": "damaged",
+     "findings": [
+      [
+       "chain_break",
+       null,
+       4213,
+       null
+      ],
+      [
+       "uncommitted_tail",
+       null,
+       4021,
+       193
+      ]
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

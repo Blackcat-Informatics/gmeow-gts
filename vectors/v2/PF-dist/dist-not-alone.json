@@ -1,0 +1,28 @@
+{
+ "name": "dist-not-alone",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "dist-not-alone.bin",
+   "input_derived": true,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190143810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820b6344afbe92fdea47785c2a40b538a3365eba18bb8b9aa4ed8cec8f9fd51d0ee838b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d1187282020e01810181018081028080808082025820b6344afbe92fdea47785c2a40b538a3365eba18bb8b9aa4ed8cec8f9fd51d0ee8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

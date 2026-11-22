@@ -1,0 +1,186 @@
+{
+ "name": "frame-unknown-transparent-not-bool",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a frame of a type the reader does not know whose `transparent` is not a `bool`: only its `malformed_value` `wrong_type`, no `unknown_enumeration_value`, no `unsupported_critical`, and the fold does not stop (P1 3.3)",
+ "cases": [
+  {
+   "label": "critical-false",
+   "input_file": "frame-unknown-transparent-not-bool.critical-false.bin",
+   "length": 91,
+   "sha256": "21cd6efa2a0d96d7a1a2a22b56abfe4c11dcedff438a9eab1d14a27301afb768",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000185b8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b18508202186303810181018082030280828707820204810182020182020b820218508101871181018101820201810181018202018187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "655f22d1dac62a037429ebdf476fe704d2c9cbda23fb4c28e2b5cb585196c7bd",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "wrong_type",
+          1,
+          null,
+          11,
+          80
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "frame 1: malformed_value wrong_type only of the two"
+   }
+  },
+  {
+   "label": "critical-true",
+   "input_file": "frame-unknown-transparent-not-bool.critical-true.bin",
+   "length": 393,
+   "sha256": "e9e48afb36a5fecf6ef94993e0086137c1c77206c16358fc9e5a9ec79f702f30",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901898101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b18508202186303810181018082030280828707820204810182020182020b820218508101871181018101820201810181018202028b02185b185f820202018101810180810180818716810181018202028101810181018b0318ba18cf82020f01810181018081028081871282021681018202038101810181018187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "83f1f6d61b4ccc1c23eba1f8a1d05adeb078972abc2902dc49283c3c1b7c9bda",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "wrong_type",
+          1,
+          null,
+          11,
+          80
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "forward_reference",
+          null,
+          2,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": [
+         [
+          "index_claim_failed",
+          "index_directory",
+          3,
+          null,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "frame 1: malformed_value wrong_type; no unsupported_critical; no later frame stopped"
+   }
+  }
+ ]
+}

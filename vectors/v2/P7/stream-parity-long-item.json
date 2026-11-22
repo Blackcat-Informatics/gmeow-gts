@@ -1,0 +1,31 @@
+{
+ "name": "stream-parity-long-item",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "an opaque item of 17 * 4194304 bytes (71303168), above the minimum stored_bytes_per_frame, then the parity frames of the spans it crosses: no parity_mismatch for them as a stream, and the read with whole judging them",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "stream-parity-long-item.bin",
+   "length": 76077167,
+   "sha256": "ea297cfa7644378bbb0e114fdbe74cb3a733b40ad3235dc71eabc1e389682545",
+   "expected": {
+    "expected": "forward: no parity_mismatch; whole: parity_mismatch for the span with the damaged parity shard"
+   },
+   "forward_end_result_sha256": "4556830cff7982a112668517a993dbb295cbce9023bdd9eb472cc3462295261c",
+   "whole_parity_findings": [
+    [
+     "parity_mismatch",
+     "parity",
+     6
+    ]
+   ],
+   "input_points": [
+    11,
+    114,
+    71303282,
+    "..."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+{
+ "name": "hctx-nested_term",
+ "section": "10.8",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "hctx-nested_term.bin",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "context": "nested_term"
+   },
+   "result": {
+    "context": "nested_term",
+    "spelling": "gts2 nested term",
+    "message": "616263",
+    "output": "e76469751babdda3f73180e485cdb8284fe1070aa4340b7ebf59e102b8ae5ea9"
+   },
+   "differences": []
+  }
+ ]
+}

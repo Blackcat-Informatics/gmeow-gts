@@ -1,0 +1,157 @@
+{
+ "name": "payload-total-at-capacity",
+ "section": "10.9",
+ "status": "built and matches",
+ "note": "a total equal to the capacity is not refused",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "payload-total-at-capacity.bin",
+   "read_result": "870101808a1a040000001a04000000001a04000000081a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f5810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b1875820208018101810180810180828711810181018202018101810182020287182c810181018202018101810181018b02188018758202080181018101808101808187182c81018101820202810181018101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 8,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "frames": [
+       {
+        "payload": "verified"
+       },
+       {
+        "payload": "verified"
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 8,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 245,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact",
+       "head": "3368cee9593be6fb4fedbf95f3636853dd5895bdcd81b97a3bfaeabe5565fb18",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 117,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 128,
+         "length": 117,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 117,
+         "frame_type": 8,
+         "link": "linked",
+         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+         "effective_identifier": "9d322a84c113fddfee8df44c3dd7af30bfbab19ec2e8e0fe9947fd49653723d2",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 2
+          },
+          {
+           "code": "unreferenced_unit",
+           "position": 1
+          }
+         ]
+        },
+        {
+         "position": 2,
+         "offset": 128,
+         "length": 117,
+         "frame_type": 8,
+         "link": "linked",
+         "predecessor": "9d322a84c113fddfee8df44c3dd7af30bfbab19ec2e8e0fe9947fd49653723d2",
+         "effective_identifier": "3368cee9593be6fb4fedbf95f3636853dd5895bdcd81b97a3bfaeabe5565fb18",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "unreferenced_unit",
+           "position": 2
+          }
+         ]
+        }
+       ],
+       "findings": []
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

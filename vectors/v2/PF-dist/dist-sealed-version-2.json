@@ -1,0 +1,45 @@
+{
+ "name": "dist-sealed-version-2",
+ "status": "built and matches",
+ "note": "PF-dist 8: the same file read by a reader of version 2 without the key: the sealed frame opaque, visible incomplete with unopened_sealed 1, dist_sealed_frame; REFUTED (PF-dist-6)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "dist-sealed-version-2.bin",
+   "read_result": "870102818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901e481018202582027e440347b933d62d256408d7df469043bc8d1b2435dbdac135de4b32f784a3682020282020182020101030303008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010c18818202110181018101808101808187182e810182028304018202058202018101810181018b02188d18e58202120181018101808203098082871831810181018202028101810182020187182e810182028304018202058202028101810181018b03190172187282020e018101810180810280808187182e8101820283040182020181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e84020001000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "violations": [
+     [
+      1,
+      null,
+      null
+     ],
+     [
+      5,
+      1,
+      null
+     ],
+     [
+      5,
+      2,
+      null
+     ]
+    ]
+   },
+   "differences": []
+  }
+ ]
+}

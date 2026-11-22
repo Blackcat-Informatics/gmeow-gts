@@ -1,0 +1,65 @@
+{
+ "name": "canonical/check/rebuilt",
+ "status": "built and matches",
+ "note": "a canonical file with one multi-unit blob and one value, read with rebuilt_bytes_per_read below the charge of the value member, and the same file with a row frame out of order: structure and labelling unchecked(exceeds_capacity), storage as the encoder gives, no canonical_violated; read with a capacity that admits the value member and refuses the recipe member: structure unchecked(exceeds_capacity), labelling verified",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "canonical__check__rebuilt.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001a0007ffff1b00000020000000001b00000020000000000181018280808702819200001a000a59918101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010203060500810785f5820202820202810181018101878b010c1a0008023482020d0181018202018081018182820208810381871482021859810182020182020c82021a0008023482021a000800008b021a000802401a000187d482020d01810181018081018182820202810381871482021859810182020282021a0008024082021a000187d482021a000186a08b031a00098a14189e820201018101810180810180808b041a00098ab2185f82020201810181018081018081871819810181018202048101810181018b051a00098b11187282020e018101810180810280808b061a00098b8319024f82020f0181018101808102808287128202148101820206810181018101871282021681018202068101810181018b071a00098dd219cb9a82021001810181018081028080808081018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 524287,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 524287,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 524288,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    }
+   ],
+   "expected": null,
+   "result": {},
+   "differences": []
+  }
+ ]
+}

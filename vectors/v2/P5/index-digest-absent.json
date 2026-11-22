@@ -1,0 +1,375 @@
+{
+ "name": "index-digest-absent",
+ "status": "built and matches",
+ "note": "the text of 4.3 says a digest claim is not compared when the reader's own digest is absent, and the vector says the present digest gives index_digest",
+ "cases": [
+  {
+   "label": "absent",
+   "input_file": "index-digest-absent.absent.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190187810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f482020582020582020581018101838b010b186d8202010181018101808101808287118101810182020181018101820202871818810181018202018101810181018b021878185f82020201810181018081018081871819810181018202028101810181018b0318d718b082020f01810181018081028080808081018201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "loose": true,
+      "frames": [
+       {},
+       {
+        "loose": true
+       },
+       {
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 391,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact",
+       "head": "6407acb5cbf40004e37c8c5b05dff87120e470a3190cfd8b307491bd7379f736",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {
+        "content_digest": 3,
+        "frame_count_head": 3,
+        "graph_directory": 3,
+        "pack_members": 3,
+        "range_root": 3,
+        "statistics": 3,
+        "type_runs": 3
+       },
+       "content_digest": null,
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 109,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 120,
+         "length": 95,
+         "class": "frame"
+        },
+        {
+         "position": 3,
+         "offset": 215,
+         "length": 176,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 109,
+         "frame_type": 1,
+         "link": "linked",
+         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+         "effective_identifier": "88774567b3f0bda1279fdaf59983f272ce2f5ec5ba23a4f601f2951e95591f08",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 2
+          },
+          {
+           "code": "ill_formed_term",
+           "position": 1
+          }
+         ]
+        },
+        {
+         "position": 2,
+         "offset": 120,
+         "length": 95,
+         "frame_type": 2,
+         "link": "linked",
+         "predecessor": "88774567b3f0bda1279fdaf59983f272ce2f5ec5ba23a4f601f2951e95591f08",
+         "effective_identifier": "cf2c09b358cfb6b87f115063786b73ee8c81f7b2da9ae7bf15695c763ba427fe",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "opaque_term",
+           "position": 2
+          }
+         ]
+        },
+        {
+         "position": 3,
+         "offset": 215,
+         "length": 176,
+         "frame_type": 15,
+         "link": "linked",
+         "predecessor": "cf2c09b358cfb6b87f115063786b73ee8c81f7b2da9ae7bf15695c763ba427fe",
+         "effective_identifier": "6407acb5cbf40004e37c8c5b05dff87120e470a3190cfd8b307491bd7379f736",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": []
+        }
+       ],
+       "findings": []
+      }
+     ],
+     "findings": [],
+     "content_digest": null,
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  },
+  {
+   "label": "present",
+   "input_file": "index-digest-absent.present.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901a9810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f482020582020582020581018101838b010b186d8202010181018101808101808287118101810182020181018101820202871818810181018202018101810181018b021878185f82020201810181018081018081871819810181018202028101810181018b0318d718d282020f0181018101808102808187128202148101820203810181018101808081018201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "loose": true,
+      "frames": [
+       {},
+       {
+        "loose": true
+       },
+       {
+        "findings": [
+         [
+          "index_claim_failed",
+          "index_digest",
+          {
+           "position": 3
+          }
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 425,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "intact",
+       "head": "a7f11c9d0ad9839f9c903e38f5b7a83e6ec8b4bc4013243f3f9431e432c0d86c",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": null,
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 109,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 120,
+         "length": 95,
+         "class": "frame"
+        },
+        {
+         "position": 3,
+         "offset": 215,
+         "length": 210,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 109,
+         "frame_type": 1,
+         "link": "linked",
+         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+         "effective_identifier": "88774567b3f0bda1279fdaf59983f272ce2f5ec5ba23a4f601f2951e95591f08",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 2
+          },
+          {
+           "code": "ill_formed_term",
+           "position": 1
+          }
+         ]
+        },
+        {
+         "position": 2,
+         "offset": 120,
+         "length": 95,
+         "frame_type": 2,
+         "link": "linked",
+         "predecessor": "88774567b3f0bda1279fdaf59983f272ce2f5ec5ba23a4f601f2951e95591f08",
+         "effective_identifier": "cf2c09b358cfb6b87f115063786b73ee8c81f7b2da9ae7bf15695c763ba427fe",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "folded"
+         },
+         "findings": [
+          {
+           "code": "opaque_term",
+           "position": 2
+          }
+         ]
+        },
+        {
+         "position": 3,
+         "offset": 215,
+         "length": 210,
+         "frame_type": 15,
+         "link": "linked",
+         "predecessor": "cf2c09b358cfb6b87f115063786b73ee8c81f7b2da9ae7bf15695c763ba427fe",
+         "effective_identifier": "a7f11c9d0ad9839f9c903e38f5b7a83e6ec8b4bc4013243f3f9431e432c0d86c",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "index_claim_failed",
+           "reason": "index_digest",
+           "position": 3
+          }
+         ]
+        }
+       ],
+       "findings": []
+      }
+     ],
+     "findings": [],
+     "content_digest": null,
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

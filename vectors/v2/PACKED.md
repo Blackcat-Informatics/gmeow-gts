@@ -1,0 +1,33 @@
+| file | bytes | bytes as stored | SHA-256 |
+|---|---:|---:|---|
+| `P1/continue-segment.request-4.bin` | 4194037 | 1531 | `c123e2af153f1f20d4f08ed66a0686dc95b402d8a9755fe5bdd5c2c739caabfa` |
+| `P1/continue-segment.request-5.bin` | 4194151 | 1605 | `063a39feec210cde68e3072c3571971e9fbae571288836128303832bae115d7c` |
+| `P1/continue-segment.request-6.bin` | 4475750 | 6870 | `a526d5fbfbec47d567c3633b1d491ac419b48701b106599352c67413085b0b3a` |
+| `P1/continue-segment.whole.bin` | 4475750 | 6870 | `a526d5fbfbec47d567c3633b1d491ac419b48701b106599352c67413085b0b3a` |
+| `P1/delimited-deep.map.bin` | 2000126 | 285 | `a4416387a3dc04944240d0dcea27dfe7c760e394d7b60c8395848bce620dd015` |
+| `P1/resync-filler-table-parity.json` | 1783148 | 65415 | `d939fac06018fa2bd6a36a9e1f71a2160649938dd8d818837223f675bb72ed2e` |
+| `P1/resync-flood-false-offsets.bin` | 1048770 | 348 | `8d6ff032ee2a0690ee79c62eae5581438ebfe429e17e9c002414bff03f2736b2` |
+| `P3/doubt-lost-header-recovery.first-file.bin` | 5281836 | 5111 | `8bb547f6453bb914fd2ac8e83fe8008200e2f01ee303cb7db78610a0f5e601ff` |
+| `P3/doubt-lost-header-recovery.lost-header.bin` | 5281836 | 5112 | `a52ce35fb52b1dc3de2605a1fae5c977c81cc0a30666ef52d563710c9dab463a` |
+| `P3/terms-formed-suffix-free.bin` | 1057005 | 3757 | `8971e6d708e15c46c764e25b465ec092e58ee17a73bd320fb03c60d25c8ad540` |
+| `P4/canon-value-region-literals.bin` | 1311871 | 968 | `a88c06ace5ad072edc96613e6f61cf79b2497e648c58920f572a9f2d1c32f11d` |
+| `P5/parity-append-open-span.whole.bin` | 8951297 | 9484 | `909a7047b2e1a434b36850c0d0614350ef7375231edc7b8f32cca8414e29a5eb` |
+| `P5/recover-chain-independent.bin` | 28948732 | 6985 | `acec966dbf9c8904392f2c8c728b91900dbe44e66741156adf5e0d912c3d2a54` |
+| `P5/recover-chain-witness.bin` | 73701152 | 17920 | `1e544badbdbdc26478be5a3f803a916adb6f664d26c9448e655c80b622c22e34` |
+| `P5/recover-predecessor.bin` | 11047885 | 3411 | `33157cc690d03cde939e22f6b4782e411e7fe8e59f3b52e7a1aaa760bdd6a70d` |
+| `P5/recover-scan-walk.bin` | 1048704 | 191 | `ed8216ad4a35a11c58cca20abdb8efa5d8bb9b1e0fb8550750bca8d845095804` |
+| `P5/recover-straddle-propagate.bin` | 11047764 | 2762 | `e15fd6bc92114d534a61e9d7d5e6b02d9b137cedfb16ac9c0f1b62e97e2546e0` |
+| `P7/canonical__storage__1.decoded.bin` | 1049766 | 15678 | `cb293e9c034151e84a1bf6773f7767be0279db3c5941563025fccf18cc3c32b5` |
+| `P7/idx-local-after-parity.bin` | 4590706 | 13809 | `21dc0487455afddd424e0d4d2b24a41f00143ec814751fd4bf89f4f5de98d989` |
+| `P7/idx-local-after-parity.parity-identifier-damaged.bin` | 4590706 | 13809 | `be2ce75a73c86ab19f1fe441a550d9c69d7511de1548784da8ed325247e38638` |
+| `P7/idx-local-opaque-before.five-plus-2-28.bin` | 268436707 | 9455 | `ec23e1f24a185c0bc3125983976a63de0c8309a13d72d9b840206f6289817387` |
+| `P7/idx-placement.graph.bin` | 4590706 | 13809 | `21dc0487455afddd424e0d4d2b24a41f00143ec814751fd4bf89f4f5de98d989` |
+| `P7/idx-placement.unit.bin` | 4590706 | 13809 | `21dc0487455afddd424e0d4d2b24a41f00143ec814751fd4bf89f4f5de98d989` |
+| `P7/stream-delivery-order.identifier-replaced.bin` | 4507392 | 57522 | `4da787ffba4f5f341351841458d1dc46e8cac846af2e80e4d5dd58a2dc6f2cec` |
+| `P7/stream-delivery-order.plain.bin` | 4507392 | 57518 | `70e707e6ffb2bbb984bfd75c03fe59142d6e1b331528a9e38803b50177e3a621` |
+| `P7/stream-parity-long-item.bin` | 76077167 | 4330 | `ea297cfa7644378bbb0e114fdbe74cb3a733b40ad3235dc71eabc1e389682545` |
+| `P8/p8-members-layout-cut.result.bin` | 19200384 | 1968 | `8db2dcfb9101948d4792bf1e69f7ee9ca48a66e40eedd0e89852769c183654a4` |
+| `P8/p8-members-layout-missing.result.bin` | 12800338 | 1363 | `3ca4bafbb4e8faf78238379c70c45e2e987ca1bb1ef74368d7f0accddb0885e3` |
+| `P8/p8-members-layout-pass.result.bin` | 19200392 | 1934 | `84fac17bdbf0f37c7a9a47c5b1ae1995c5f27d0e26530bd9551750fa793b8f27` |
+| `PF-stream/stream-concat-two.json` | 4611461 | 96493 | `1499ee9a7300679ce0d0c8cb5319f4b14d7931fcc27785f486768bdef5d4957d` |
+| `PF-stream/stream-stream-read.json` | 2306098 | 57700 | `8b7f34d6944ca50626fddaf926dc342bc1055aa0f1435d75de3657de3d7c91f2` |

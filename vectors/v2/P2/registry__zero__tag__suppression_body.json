@@ -1,0 +1,5 @@
+{
+ "name": "registry/zero/tag/suppression_body",
+ "status": "could not be built",
+ "why": "not built: the body of a suppression record of the labelled set: not a field of a file"
+}

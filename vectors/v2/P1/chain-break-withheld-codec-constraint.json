@@ -1,0 +1,71 @@
+{
+ "name": "chain-break-withheld-codec-constraint",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a `broken` frame whose only `malformed_value` is `codec_constraint` from the payload check has no `chain_break` (P1 5.2 step 4, P1-62)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "chain-break-withheld-codec-constraint.bin",
+   "length": 145,
+   "sha256": "377c64b2f4ab6d9591ccd852439ee520dbc618654ace1f4e511ba6fdabeaf99c",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001891810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b1886820208038102820201808203028082870782020b810182020182020b82021886810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "85b27c086775dc97109e7a50a02f489d1ca7777125d1cd42b9e0c7ecf85261da",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "malformed"
+        ],
+        "findings": [
+         [
+          "malformed_value",
+          "codec_constraint",
+          1,
+          null,
+          11,
+          134
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          1,
+          null,
+          null
+         ]
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "frame 1: broken; malformed_value codec_constraint; no chain_break; opaque malformed"
+   }
+  }
+ ]
+}

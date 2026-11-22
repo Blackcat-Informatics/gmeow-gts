@@ -1,0 +1,30 @@
+{
+ "name": "read/capacity/count-saturates",
+ "status": "built and matches",
+ "note": "a reader whose every capacity is 2^64 - 1, and a segment of two frames: a frame of decoded_length 1, then a stored_plain frame whose envelope declares decoded_length 2^64 - 1 (its payload is short): the second frame unchecked, exceeds_capacity with total_decoded and the count 2^64 - 1, the sum 2^64 not being a uint (P7-49)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "read__capacity__count-saturates.bin",
+   "read_result": "870101808a1bffffffffffffffff1bffffffffffffffff1bffffffffffffffff1bffffffffffffffff1bffffffffffffffff1bffffffffffffffff1bffffffffffffffff1bffffffffffffffff1bffffffffffffffff01810182808087028192000018f7810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030200008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b1872820208018101810180810180828711810181018202018101810182020287182c810181018202018101810181018b02187d187a82020801820302810180820307808187148202185681018202028202187d8202187a82021bffffffffffffffff808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "capacity": {
+    "stored_bytes_per_frame": 18446744073709551615,
+    "decoded_bytes_per_frame": 18446744073709551615,
+    "labelling_units": 18446744073709551615,
+    "labelled_lines": 18446744073709551615,
+    "decoded_bytes_per_read": 18446744073709551615,
+    "items_per_read": 18446744073709551615,
+    "rebuilt_bytes_per_read": 18446744073709551615,
+    "formed_bytes_per_read": 18446744073709551615,
+    "labelled_bytes_per_read": 18446744073709551615,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "count": 18446744073709551615,
+    "bytes": 247
+   },
+   "differences": []
+  }
+ ]
+}

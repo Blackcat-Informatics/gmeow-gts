@@ -1,0 +1,88 @@
+{
+ "name": "broken-link-newer-value-not-interpreted",
+ "section": "P3",
+ "status": "built and matches",
+ "note": "a segment of `registry_version` `2`, reader version `1`, `H T B`: `T` a critical `terms` frame, the first of its segment, whose `order` is `9`, a value the reader does not hold, `B` a `blob` frame linked as its writer wrote it, and the `id_base` of `T` changed by one bit from `0` to `16` so that the link of `T` fails: `unsupported_registry_version` once; `T` `broken` with `chain_break` alone, no `inconsistent_counts`, no `unsupported_critical`, no `unknown_enumeration_value`; `T` opaque with `chain_break`; the fold of the segment does not stop: `B` `linked` and `folded` (P3-74)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "broken-link-newer-value-not-interpreted.bin",
+   "length": 233,
+   "sha256": "c6978284ad2b927ba7c0ffb726c9cb61979662977b267b218ed8480efedc25c6",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018e98101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030000008085f4820205820205820205810182025820f68f2b237e03ecba18c7cc8906ff2baf081808c678dac4e9ec357da6ea30d643828b010b18678202010381018101808203068082870b8101810182020182020b820218678101871181018101820201810181018202028b0218721877820209018101810180810180808187048101810181018101810181018082025820f68f2b237e03ecba18c7cc8906ff2baf081808c678dac4e9ec357da6ea30d6438201000401",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "3c3358e1b27cc93001aded5e34b315bd569270576d4a96bb94081dba8d3cc6ff",
+      "findings": [
+       [
+        "unsupported_registry_version",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "broken",
+        "fold": [
+         "opaque",
+         "chain_break"
+        ],
+        "findings": [
+         [
+          "chain_break",
+          null,
+          1,
+          null,
+          11,
+          103
+         ],
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "unsupported_registry_version once; T broken, chain_break alone, opaque chain_break; B linked and folded"
+   }
+  }
+ ]
+}

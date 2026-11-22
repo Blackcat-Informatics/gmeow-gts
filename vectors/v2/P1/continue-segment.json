@@ -1,0 +1,117 @@
+{
+ "name": "continue-segment",
+ "section": "2.1a",
+ "status": "built and matches",
+ "note": "a segment written by one writer in several requests of one continuous use, and the same segment written at once",
+ "cases": [
+  {
+   "label": "whole",
+   "input_file": "continue-segment.whole.bin",
+   "length": 4475750,
+   "sha256": "a526d5fbfbec47d567c3633b1d491ac419b48701b106599352c67413085b0b3a",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a00444b66810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc8202018202018101010306050082070885f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15888b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d1187282020e018101810180810280808b041901431a003ffdb28202080181018101808101808187182c810181018202048101810181018b051a003ffef5187282020e018101810180810280808b061a003fff6718de82020f018101810180810280808b071a004000451a000448ed820210018101810180810280808b081a0044493219020e82021001810181018081028080808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000200",
+   "observed": {
+    "file_findings": [],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "9b57badaf46365bc93151db0db5eff5f6951a789cf850705400e531dc1f8af85",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 4,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "unreferenced_unit",
+          null,
+          4,
+          null,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 5,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 6,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 7,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       },
+       {
+        "position": 8,
+        "link": "linked",
+        "fold": [
+         "not_content"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "requests": 7,
+    "steps": 6
+   }
+  }
+ ]
+}

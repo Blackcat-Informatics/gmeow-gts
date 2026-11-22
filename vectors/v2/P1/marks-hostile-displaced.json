@@ -1,0 +1,335 @@
+{
+ "name": "marks-hostile-displaced",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the file F of 1000 bytes joined before G, whose item at 400 carries a hostile mark on [100, 150): a reader that honours marks refuses the fold of the first segment of G at [1100, 1150) and not that of F, as G read alone does (P7-82)",
+ "cases": [
+  {
+   "label": "g-alone",
+   "input_file": "marks-hostile-displaced.g-alone.bin",
+   "length": 674,
+   "sha256": "26f40e8da64478231bbf57ff0bdcc100480545032644c5e9443932f90ae9101c",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": [
+    67108864,
+    67108864,
+    0,
+    0,
+    68719476736,
+    137438953472,
+    137438953472,
+    137438953472
+   ],
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018202881a040000001a0400000000001b00000010000000001b00000020000000001b00000020000000001b0000002000000000828080870282920000190190810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f482020582020582020581018101838b010b186782020101810181018081018081871181018101820201810181018202038b021872185f820202018101810180810180808b0318d118bf820209018101810180810180808187181a82021855810181018101810181019201190190190112850201f4010082025820a72158be6f8d67bbcf64959b95de9db23fa27f7b3ec61a085a668e1c511499e5820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b011901dc186782020101810181018081018081871181018101820201810181018202028b02190243185f820202018101810180810180808187182a8101810181018101810181018187181a820218558101810181018101810181018201000400",
+   "observed": {
+    "file_findings": [
+     [
+      "labelling_refused",
+      "refusal_size",
+      null,
+      null,
+      null,
+      null
+     ]
+    ],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "58b130187d5d2c31b6811e7f727d32d28782b5d26821ee415334105b00a6f6ee",
+      "findings": [
+       [
+        "labelling_refused",
+        "refusal_size",
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "2da1ac670732da14ec6306844fd6380e733c869102810027ac15c7160299528d",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "the fold of the first segment refused"
+   }
+  },
+  {
+   "label": "joined",
+   "input_file": "marks-hostile-displaced.joined.bin",
+   "length": 1674,
+   "sha256": "73bad93fbefbd1f34e0413905a8242e9b02ef543075c187c618becf48900c634",
+   "inputs": null,
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": [
+    67108864,
+    67108864,
+    0,
+    0,
+    68719476736,
+    137438953472,
+    137438953472,
+    137438953472
+   ],
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018202881a040000001a0400000000001b00000010000000001b00000020000000001b00000020000000001b00000020000000008280808702839200001903e8810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f48202058202058202058101820258204828e84ed13a747bdbf85e99c3b24a1a529264b371d4a26b46bd6d6d3781a7c0838b010b186782020101810181018081018081871181018101820201810181018202038b021872185f820202018101810180810180808b0318d1190317820209018101810180810180808092011903e8190190810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f482020582020582020581018101838b011903f3186782020101810181018081018081871181018101820201810181018202038b0219045a185f820202018101810180810180808b031904b918bf820209018101810180810180808287182a81018101810181018101810187181a82021855810181018101810181019202190578190112850201f5010082025820a72158be6f8d67bbcf64959b95de9db23fa27f7b3ec61a085a668e1c511499e5820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b011905c4186782020101810181018081018081871181018101820201810181018202028b0219062b185f820202018101810180810180808187182a8101810181018101810181018187181a820218558101810181018101810181018201000400",
+   "observed": {
+    "file_findings": [
+     [
+      "labelling_refused",
+      "refusal_size",
+      null,
+      null,
+      null,
+      null
+     ]
+    ],
+    "segments": [
+     {
+      "ordinal": 0,
+      "lineage_checked": false,
+      "head": "e471900a9673daecbbbb2904c1ac962a3884ba6d3fc4334d08a6e3560ca3e941",
+      "findings": [],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 1,
+      "lineage_checked": false,
+      "head": "58b130187d5d2c31b6811e7f727d32d28782b5d26821ee415334105b00a6f6ee",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ],
+       [
+        "labelling_refused",
+        "refusal_size",
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          3,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       },
+       {
+        "position": 3,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     },
+     {
+      "ordinal": 2,
+      "lineage_checked": false,
+      "head": "2da1ac670732da14ec6306844fd6380e733c869102810027ac15c7160299528d",
+      "findings": [
+       [
+        "lineage_begins",
+        null,
+        null,
+        null,
+        null,
+        null
+       ]
+      ],
+      "frames": [
+       {
+        "position": 1,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": [
+         [
+          "uncommitted_tail",
+          null,
+          1,
+          2,
+          null,
+          null
+         ]
+        ]
+       },
+       {
+        "position": 2,
+        "link": "linked",
+        "fold": [
+         "folded"
+        ],
+        "findings": []
+       }
+      ]
+     }
+    ]
+   },
+   "expected": {
+    "expected": "the fold of the first segment of G refused at [1100, 1150), not that of F"
+   }
+  }
+ ]
+}

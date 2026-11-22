@@ -1,0 +1,35 @@
+{
+ "name": "canon-pack-cut",
+ "status": "built and matches",
+ "note": "64 one-unit blobs of 262144 bytes each of a constant byte that no mask cuts (16777216 bytes of bodies), then one more blob of one byte; the cuts are the chunker's (one unit each), passed directly to save time",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "canon-pack-cut.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "first": [
+     16777216
+    ],
+    "second_member_counts": [
+     64,
+     1
+    ],
+    "position_of_the_extra_blob": 27
+   },
+   "differences": []
+  }
+ ]
+}

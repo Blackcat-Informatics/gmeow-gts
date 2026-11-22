@@ -1,6 +1,8 @@
 # The conformance corpus is byte-exact binary data — never normalize line
 # endings or treat as text.
 vectors/*.gts -text -diff
+vectors/v2/**/*.bin -text -diff
+vectors/v2/**/*.zst -text -diff
 vectors/tar/*.tar -text -diff
 vectors/tar/*.tar.gz -text -diff
 vectors/tar/*.tar.zst -text -diff

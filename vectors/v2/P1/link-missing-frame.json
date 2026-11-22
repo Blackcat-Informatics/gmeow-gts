@@ -1,0 +1,205 @@
+{
+ "name": "link-missing-frame",
+ "section": "10.6",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "link-missing-frame.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190161810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b187282020e01810181018081028082871081018101820201810181018101871181018101820201810181018202038b02187d187282020e0381018101808203068083870b810181018202028202187d820218728101870f81018101820202810181018202018710810181018202028101810181018b0318ef187282020e01810181018081028082870f8101810182020381018101820202871081018101820203810181018101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "claim": "second_only",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": {
+    "segs": [
+     {
+      "frames": [
+       {
+        "link": "linked"
+       },
+       {
+        "link": "broken"
+       },
+       {
+        "link": "linked"
+       }
+      ]
+     }
+    ]
+   },
+   "result": {
+    "readers": "second_only",
+    "registry_version": 1,
+    "profiles": {},
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "file": {
+     "tag": "second_generation",
+     "segments": [
+      {
+       "ordinal": 0,
+       "offset": 0,
+       "length": 353,
+       "header_outcome": "readable",
+       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+       "registry_version": 1,
+       "hash_algorithm": 1,
+       "profile": null,
+       "integrity": "damaged",
+       "head": "5223ab527cc9b0acf48fabfb4c8a85910f7d7930e73aa65ff85e80fb7fa618f8",
+       "transparent_frames": [],
+       "committed_frames": 0,
+       "index_used": {},
+       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+       "items": [
+        {
+         "position": 0,
+         "offset": 0,
+         "length": 11,
+         "class": "header"
+        },
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 114,
+         "class": "frame"
+        },
+        {
+         "position": 2,
+         "offset": 125,
+         "length": 114,
+         "class": "frame"
+        },
+        {
+         "position": 3,
+         "offset": 239,
+         "length": 114,
+         "class": "frame"
+        }
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "offset": 11,
+         "length": 114,
+         "frame_type": 14,
+         "link": "linked",
+         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
+         "effective_identifier": "283f12a8b53424ac543711d6ea45df6d876427f65296d5235594276cdfd30eb1",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "commit_root_mismatch",
+           "position": 1
+          },
+          {
+           "code": "uncommitted_tail",
+           "position": 1,
+           "count": 3
+          }
+         ]
+        },
+        {
+         "position": 2,
+         "offset": 125,
+         "length": 114,
+         "frame_type": 14,
+         "link": "broken",
+         "predecessor": "283f12a8b53424ac543711d6ea45df6d876427f65296d5235594276cdfd30eb1",
+         "effective_identifier": "57f8ce74b9ef2577368327b8c03335a113f64e056fba15267d21b186ac903962",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "opaque",
+          "reason": "chain_break"
+         },
+         "findings": [
+          {
+           "code": "chain_break",
+           "position": 2,
+           "offset": 125,
+           "length": 114
+          },
+          {
+           "code": "commit_count_mismatch",
+           "position": 2,
+           "count": 1
+          },
+          {
+           "code": "commit_root_mismatch",
+           "position": 2
+          }
+         ]
+        },
+        {
+         "position": 3,
+         "offset": 239,
+         "length": 114,
+         "frame_type": 14,
+         "link": "linked",
+         "predecessor": "57f8ce74b9ef2577368327b8c03335a113f64e056fba15267d21b186ac903962",
+         "effective_identifier": "5223ab527cc9b0acf48fabfb4c8a85910f7d7930e73aa65ff85e80fb7fa618f8",
+         "stored": null,
+         "payload": {
+          "state": "verified"
+         },
+         "fold": {
+          "state": "not_content"
+         },
+         "findings": [
+          {
+           "code": "commit_count_mismatch",
+           "position": 3,
+           "count": 2
+          },
+          {
+           "code": "commit_root_mismatch",
+           "position": 3
+          }
+         ]
+        }
+       ],
+       "findings": []
+      }
+     ],
+     "findings": [],
+     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
+     "visible": [
+      1,
+      0
+     ]
+    }
+   },
+   "differences": []
+  }
+ ]
+}

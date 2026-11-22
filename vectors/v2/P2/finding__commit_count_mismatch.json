@@ -1,0 +1,53 @@
+{
+ "name": "finding/commit_count_mismatch",
+ "status": "built and matches",
+ "note": "a commit with count 3 after two ordinary frames; the file then has no committed prefix, so P5 2.3 also reports the uncommitted tail",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__commit_count_mismatch.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190178810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f4820205820205820205810182025820b68bc0aa2fa25b8ae355e69f50fc85be31163b2b38c46e148591bcb8a6f84679838b010b187d82020901810181018081018081871181018101820201810181018202038b021888187e820209018101810180810180808b03190106187282020e01810181018081028081870f8101810182020381018101820202808082025820b68bc0aa2fa25b8ae355e69f50fc85be31163b2b38c46e148591bcb8a6f846798201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "expected": null,
+   "result": {
+    "code": 15,
+    "reason": null,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f48258203daeb90defff561db18da23f644003d09fc4be25a9f59d22205691570d9eab3181010a5820934beed81e4d7f42fe02e3950465b96fa41179e3b6a393f2b54088665ab53e2f81014a666972737420626c6f625820a6581f97a2e6d736c9aadff33c411b79d65b5314246b7fef391c838ee8810259808b0209f5f4825820268e7bf913943bcd55d30c1d465668423874c7de8dd7b7ef53933dc405a0292981010b5820d47a216b54483d9efdab170960623b907d039564da87a7cc088bc18da852dc5c81014b7365636f6e6420626c6f625820420a38d4ced460db9210b9f4d11014f26ceabf13bc6ffc34d86d9256d2b94de2808b020ef4f482035820a126a499c57547be147c9310fbc098b9ffb416dec7c0e1b67d8420cc47a881ac0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820036759a78e40a7e263d8960f4c158e71eefe68b12c551e555eaee66dd1e37de580",
+      "input_length": 376,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "uncommitted_tail",
+        "position": 1,
+        "count": 3
+       },
+       {
+        "code": "commit_count_mismatch",
+        "position": 3,
+        "count": 2
+       }
+      ],
+      "expected_finding_bytes": [
+       "870f8101810182020381018101820202"
+      ]
+     }
+    ]
+   },
+   "differences": []
+  }
+ ]
+}
