@@ -112,7 +112,7 @@
 | `convert/prof-null` | built and matches | a header with prof null: unrepresentable_frame (3.3 case 1) |
 | `convert/dt-beside-language-text` | built and matches | l en with dt naming the IRI that is the generated datatype by text only: a lang_literal; any other dt beside l is unrepresentable_term (3.3 case 2) |
 | `convert/snapshot-ids-after` | built and matches | a snapshot after three terms, then a quads frame naming the ids of snapshot terms shifted by three: the rows resolve to the snapshot terms; dt, tt and the snapshot's rows are shifted by three (3.3 case 3) |
-| `convert/snapshot-label-one-scope` | built and matches | the label b in a snapshot and in a frame of its segment: one node (3.3 case 3) |
+| `convert/snapshot-label-one-scope` | derived from the text | the label b in a snapshot and in a frame of its segment: two nodes, two lines (3.3 case 3) |
 | `convert/meta-order-snapshot` | built and matches | a meta frame {a 1}, a snapshot whose meta is {a 2, b 3}, a meta frame {b 4}: the segment meta {a 2, b 4} (3.3 case 4) |
 | `convert/meta-key-not-text` | built and matches | a meta map with an integer key: unrepresentable_frame (3.3 case 4) |
 | `convert/meta-replace-whole` | built and matches | {m {x 1}} then {m {y 2}}: m holds {y 2} only, no map is merged into a map (3.3 case 4) |
@@ -124,5 +124,11 @@
 | `convert/stop-layout-header-offset` | built and matches | a segment claiming layout streamable and breaking it, and in the same segment a later terms frame with a k outside 0 to 3: source_damaged at the header offset (3.3 case 7) |
 | `convert/stop-raise-order` | built and matches | one source read through two first-generation readers that raise the diagnostics of an item in opposite orders (a test double that reverses the raise order only): the same stop, reason and offset (3.3 case 7) |
 | `convert/stop-lowest-rule` | built and matches | one frame holding a row of a wrong length (rule 13) and a k 3 term without tt (rule 9): unrepresentable_term; the rule of the lowest number that holds anywhere in the item (3.3 case 7) |
+| `convert/snapshot-label-two-snapshots` | derived from the text | the label b in two snapshots, in two different lines and in two byte-identical snapshots: two nodes each (3.3 case 3) |
+| `convert/snapshot-blank-same-label-twice` | built and matches | two term entries {k 2, v b} in one snapshot, named by two rows: one node, two lines |
+| `convert/anonymous-blank-snapshots` | built and matches | the terms {k 2} and {k 2, v ""} in a frame of the segment and in each of two snapshots: six nodes, six lines |
+| `convert/snapshot-triple-over-blank` | derived from the text | a blank term x and a triple term over it in a frame of the segment and in a snapshot: two triple terms over two nodes, two lines |
+| `convert/suppress-term-of-segment-node` | derived from the text | a term target on the entry of b in the segment, and b in a snapshot: the line of the segment node is hidden, the line of the snapshot node is visible |
+| `convert/storage-two-converters` | built and matches | one source converted with and without the reference encoder: the same proof and head, the stored bytes differ; a holder reads storage verified or differs, a reader without it unchecked, no finding |
 
-Totals: built and matches: 122 (122 entries).
+Totals: built and matches: 124; derived from the text: 4 (128 entries).

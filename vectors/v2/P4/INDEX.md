@@ -102,4 +102,4 @@
 | `rebuild-unit-after-value` | built and matches | a value frame, then the chunk frames of its entries, and a literal_ref term of its pair standing after all of them; and the units first |
 | `value-opaque-declares-nothing` | built and matches | a `value` frame that is `broken` (opaque) declares nothing: the `literal_ref` term of a later `terms` frame of its digest has no candidate, `missing_dependency` with `value` at the `terms` frame (P4 5, P4-54, P3-92) |
 
-Totals: built and matches: 98, could not be built: 1 (99 entries).
+Totals: built and matches: 98; could not be built: 1 (99 entries).

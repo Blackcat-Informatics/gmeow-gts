@@ -76,4 +76,4 @@
 | `p8-state-sealed-blob` | built and matches | P8 15 item 9, P3 7.2: the sealed blob state: keyless, key holder, and a key entry whose key conflicts |
 | `p8-sealed-pack-charge` | built and matches | a sealed pack whose directory holds two chunk members, a recipe member of charge T1 and a value member of charge T2, read by a key holder with rebuilt_bytes_per_read T1: the recipe admitted and rebuilt, the value refused, one exceeds_capacity with total_rebuilt and count T1 + T2 at the sealed frame, the rebuilds of the sealed frame in directory order; keyless: no charge, no total_rebuilt finding (P8-63) |
 
-Totals: built and matches: 73 (73 entries).
+Totals: built and matches: 72; derived from the text: 1 (73 entries).

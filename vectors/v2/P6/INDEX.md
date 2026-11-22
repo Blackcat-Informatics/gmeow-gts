@@ -151,5 +151,9 @@
 | `cosign-item-limit` | built and matches | an undamaged file of more items than the items_per_read of the co-signer: the commit is appended (P6-54) |
 | `subject-other-segment` | built and matches | a valid signature copied to the same frame content in a segment of another opener: invalid, equation_failed (P6) |
 | `parity-transparent-not-bool-signed` | built and matches | a signed `parity` frame whose `transparent` is not a `bool` is ordinary, has an effective identifier and has a signature result: `signature_unverified` `key_not_held` beside `parity_damaged` (P1 3.4, P6-3) |
+| `sig-detached-frame` | derived from the text | a valid signature on the frame that takes the anchor of a parity frame at which reading resumes, the anchor not being the identifier of the frame before the damaged region: the frame is detached, the coverage is [1, 2), one of two frames is authenticated and anchored_frames is 1 |
+| `sig-resumed-frame-anchor-true` | built and matches | a valid signature on the frame after a parity frame at which reading resumes, the anchor being the identifier of the frame before the damaged region: no frame is detached, the coverage is [0, 2), both frames are authenticated and anchored_frames is 2 |
+| `sig-commit-after-detached-frame` | derived from the text | a signed valid commit after a detached frame, its root over the frames present: the three frames are authenticated through the root, the coverage of the signature is [1, 3) and anchored_frames is 1 |
+| `sig-two-after-detached-frame` | derived from the text | a signature on a detached frame and one on the frame after it: the coverages [1, 2) and [1, 3) begin at the detached frame, the frame before it is not authenticated and anchored_frames is 1 |
 
-Totals: built and matches: 149 (149 entries).
+Totals: built and matches: 150; derived from the text: 3 (153 entries).

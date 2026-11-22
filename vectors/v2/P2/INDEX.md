@@ -261,4 +261,4 @@
 | `registry/retired/reader-below` | built and matches | the file of registry/retired/signature-trust read by a reader of registry version 1, in whose table the algorithm is not retired: authenticated true; the two results differ in registry_version |
 | `registry/retired/writing` | built and matches | a writer built on the retiring table asked to sign with the retired algorithm: refuses (no signature produced) |
 
-Totals: built and matches: 237, could not be built: 21 (258 entries).
+Totals: built and matches: 236; could not be built: 21; derived from the text: 1 (258 entries).

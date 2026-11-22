@@ -24,11 +24,20 @@ A case names its input (`input_file`), states the `capacity` of the read, and re
 hexadecimal of its deterministic encoding (`read_result`, or the record that the case names). The typed records are those of
 `docs/v2/P7.md`, "The typed result of reading", and of the part that the entry belongs to.
 
-`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 5,873 files.
+A case states every further input of its read or judgement:
+
+- `read`: the inputs of the read that are not the default: `profiles`, `trusted_keys`, `held_keys`, `sealing_input`, `marks`.
+  A recorded read whose case states no `profiles` has an empty `profiles`.
+- a key that ends in `_file`: a second file of the case, such as the source of a conversion, the later file of a proof, a
+  proof, or a result.
+- `projection`, `compaction_result`, `verify`: the projection of the fold in plain values, the encoded outcome of a
+  compaction, and the outcome of a proof.
+
+`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 5,983 files.
 
 ## Large inputs
 
-A file of at most 1 MiB stands here as it is: 5,812 files.
+A file of at most 1 MiB stands here as it is: 5,922 files.
 
 A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 31 files,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.
@@ -37,17 +46,12 @@ A larger input that does not compress to that size is not in this directory: 30 
 with their size and SHA-256. Their descriptions are here. An entry whose input is absent cannot be run until that input is
 obtained and its SHA-256 compared.
 
-## Entries whose recorded value differs from the text
+## How the recorded values were obtained
 
-The corpus was recorded against an earlier text of the draft. An entry whose `status` is `derived from the text` holds a
-value that was derived again from the rules of `docs/v2/` as they stand. Every other recorded value agrees with them, but for
-one entry:
-
-| entry | what differs | rule |
-|---|---|---|
-| `P9/convert/snapshot-label-one-scope` | a label in a snapshot and in its segment is two nodes; the result and the proof differ | `P9`, "The conversion reading" |
-
-Until that entry is recorded again, the text governs and the entry is not a test.
+An entry whose `status` is `built and matches` holds the value that the program that built the corpus gave, and that value
+agrees with the rules of `docs/v2/`. An entry whose `status` is `derived from the text` holds a value that was derived from
+those rules by hand, because that program was written against an earlier text and gave another value. Where an entry and
+the text differ, the text governs.
 
 Two entries, `P2/registry/retired/signature-trust` and `P2/registry/retired/hash-trust`, do not state which registry table
 their recorded value was made with.

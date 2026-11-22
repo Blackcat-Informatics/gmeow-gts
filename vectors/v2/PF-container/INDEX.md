@@ -60,5 +60,7 @@
 | `container-listing-order-refused` | built and matches | an export with two observations of one resource (check 6 fails), both blank nodes of one segment with the labels y and x, written in that order, read with labelled_lines below the size of the fold: labelling_refused in the file's findings; the two observations listed with x first; checks 5 and 6 report as in a reading whose labelling succeeds |
 | `container-listing-order-canonical` | built and matches | the same file read with a capacity that labels its fold: the two observations in the order of their ids in the canonical dictionary |
 | `container-export-after-resync` | built and matches | an export whose content stands in a segment before a resync item with a checked lineage, the commit in the segment the item opens: the state is local to that segment (container_observation_late), as with no lineage |
+| `container-observation-status-503` | built and matches | c:status of an Unreadable observation written as the typed value [2, 503], the status that the server returned: no finding |
+| `container-observation-status-absent` | derived from the text | an Unreadable observation with no c:status, the record of a retrieval that received no response: no finding, and a content digest that differs from that of the same export with a status |
 
-Totals: built and matches: 58 (58 entries).
+Totals: built and matches: 59; derived from the text: 1 (60 entries).

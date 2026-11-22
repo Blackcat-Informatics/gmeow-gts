@@ -1,0 +1,120 @@
+{
+ "name": "project/dirlangstring-and-empty-language",
+ "status": "built and matches",
+ "note": "P3 10a.3: a typed literal of the datatype text rdf:dirLangString and a lang_literal of the empty language: each is carried unchanged with no finding, and the result is not an RDF dataset",
+ "section": "P3 10a.3",
+ "cases": [
+  {
+   "label": "typed-literal-dirlangstring",
+   "input_file": "project__dirlangstring-and-empty-language.typed-literal-dirlangstring.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190192810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820fdb73c0026f1bf8824078b33bfa2a4f9a0cc3c8e30160515fbd2edb9a4589d1a838b010b18b6820201018101810180810180808b0218c1185f820202018101810180810180808b03190120187282020e01810181018081028080808082025820fdb73c0026f1bf8824078b33bfa2a4f9a0cc3c8e30160515fbd2edb9a4589d1a8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "projection": {
+    "visible": {
+     "quads": [
+      [
+       {
+        "iri": "urn:s"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "literal": "x",
+        "datatype": "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "whole": {
+     "quads": [
+      [
+       {
+        "iri": "urn:s"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "literal": "x",
+        "datatype": "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "rdf_dataset": false
+   }
+  },
+  {
+   "label": "empty-language",
+   "input_file": "project__dirlangstring-and-empty-language.empty-language.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190157810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258205d24edcd01ddd3151ecb3552cd2374fcb0fdcb8dcab8add11e8fe483a8b1ad37838b010b187b820201018101810180810180808b021886185f820202018101810180810180808b0318e5187282020e018101810180810280808080820258205d24edcd01ddd3151ecb3552cd2374fcb0fdcb8dcab8add11e8fe483a8b1ad378201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "projection": {
+    "visible": {
+     "quads": [
+      [
+       {
+        "iri": "urn:s"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "literal": "x",
+        "language": ""
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "whole": {
+     "quads": [
+      [
+       {
+        "iri": "urn:s"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "literal": "x",
+        "language": ""
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "rdf_dataset": false
+   }
+  }
+ ]
+}

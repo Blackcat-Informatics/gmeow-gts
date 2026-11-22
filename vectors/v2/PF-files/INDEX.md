@@ -44,4 +44,4 @@
 | `files-entry-order-refused` | built and matches | files-entry-order with the two entries of equal paths written as the blank nodes \_:y then \_:x of one segment, read with labelled_lines below the size of the fold: labelling_refused in the file's findings; the equal pair listed with \_:x first, the other entries as in files-entry-order |
 | `files-set-order-refused` | built and matches | files-set-order with two attribute records of equal names and two archive records of equal keys, their record terms blank nodes of one segment, the labelling refused: the equal records in ascending bytewise order of E([ordinal, label]) of their record terms |
 
-Totals: built and matches: 41 (41 entries).
+Totals: built and matches: 40; derived from the text: 1 (41 entries).

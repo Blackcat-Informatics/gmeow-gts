@@ -278,5 +278,6 @@
 | `end-frame-no-effective-identifier` | built and matches | a frame with no effective identifier after the last valid commit is an ordinary frame other than an `index` frame: `end` is `after_commit` (P7 1.2, P1 3.4) |
 | `end-locator-own-grammar` | built and matches | an item of kind `locator` that breaks its own grammar after the last valid commit does not move the end: `end` is `at_valid_commit` (P7 1.2) |
 | `findings-order-by-step` | built and matches | the refusal of the charge of a scan candidate is a finding of the step PAYLOAD CHECK: in the file's list after `not_this_format` (of the step GENERATION), for a first item that is a map with no key `"v"`; in a segment's list after `lineage_begins` (of the step OPENER) (P7 1.4 ORDER, P7 3) |
+| `read/equal-folds-held-row` | built and matches | two files whose folds are equal: the content digest is present and compaction writes a file for the file of one ground row, and the content digest is absent and compaction stops with opaque_term for the file that also holds a row naming an unreadable term |
 
-Totals: built and matches: 277 (277 entries).
+Totals: built and matches: 276; derived from the text: 1 (277 entries).

@@ -21,11 +21,11 @@ profile whose rule gives the result. An entry has these lines:
 - Measured: in a benchmark entry, what is measured; the rules give no value for it.
 - Rule: the part and the section title of the rule that gives the result.
 - Corpus: the entry of the draft corpus of this generation that is the case, or the nearest to it, by directory and entry name.
-  That corpus is not part of this repository.
+  That corpus is `vectors/v2/`; its `README.md` says what an entry records.
 
 THE DEFAULT READ. Unless an entry says otherwise, the read has the access `whole`, every field of `capacity` that has a
-minimum value at that value, `marks` `absent`, `profiles` holding every profile with the number of its checks, the registry
-version that the file needs, and empty `trusted_keys`, `held_keys` and `sealing_input`. Where an entry puts a key in
+minimum value at that value, `marks` `absent`, an empty `profiles`, the registry version that the file needs, and empty
+`trusted_keys`, `held_keys` and `sealing_input`. Where an entry puts a key in
 `trusted_keys`, or calls a signer trusted, both `trusted_keys` and `held_keys` hold that key, unless the entry says otherwise.
 
 WORDS. KEYLESS is a read with an empty `sealing_input`. A POSITION is the position of an item in its segment, the header at
@@ -47,8 +47,8 @@ profiles of the read.
 - Result: `F3` is `linked` and DETACHED, because the `anchor` differs from the effective identifier of `F1`, the nearest
   preceding ordinary frame. `anchored_frames` is `1`.
 - Rule: `P1`, "The predecessor and transparent frames"; `P7`, "What fills each field" (`anchored_frames`).
-- Corpus: `P7/read/resume` is the case. Its recorded `anchored_frames` is `3`; the rule gives `1`. Every other recorded field
-  agrees.
+- Corpus: `P7/read/resume` is the case. Its recorded `anchored_frames` is `1`, as the rule gives. Its input is not in the
+  repository; `vectors/v2/ABSENT.md` lists it.
 
 ### FX-002 Files with equal heads and different signatures, storage or parity
 
@@ -213,18 +213,19 @@ profiles of the read.
 - Application: before, the release is selected by `I`. After, the selection by `I` is refused, and the release is selected by
   the commit of the canonical file.
 - Rule: `P3`, "Graph states"; `P7`, "Compaction".
+- Corpus: `P3/state-selector-compaction` is the case: `appended` is the file before compaction, `canonical` its compaction.
 
 ### FX-016 Two reads with equal folds, of which one holds a row
 
 - Input: two files with equal folds. `A` holds one valid ground quad `q`. `B` holds `q` and a second row that names an
   unreadable term.
-- Built: `B` is the input of `P3/content-digest-absent-held`, built over the rows of `A`.
+- Built: `B` is the input of `P7/read/content-order-held`; `A` holds its readable row alone.
 - Result: the folds are equal. `A`: the content digest is `present`, and `compact` gives `[1, file]`. `B`: one held row,
   `opaque_term`, the content digest `absent`, and `compact` gives `[2, opaque_term, absent]`.
 - Rule: `P3`, "The fold", THE FOLD AND THE READ; "Held"; "The content digest"; `P7`, "Compaction" (case 2).
-- Corpus: no entry pairs two reads of equal folds. The nearest is `P3/content-digest-absent-held`, the `B` half alone;
-  `P7/canonical/compaction/held` is its compaction, and `P7/read/content-order-held` is a held row beside a labelling that
-  succeeds. The three agree.
+- Corpus: `P7/read/equal-folds-held-row` is the case: `a` is the file of the ground row alone, `b` the file that also holds the
+  held row, which is the input of `P7/read/content-order-held`. The outcome of each compaction stands in the key
+  `compaction_result`. `P3/content-digest-absent-held` and `P7/canonical/compaction/held` each hold one held row and no other row.
 
 ### FX-017 Two reads with equal folds and different sizes
 
@@ -235,8 +236,7 @@ profiles of the read.
   with `refusal_size`, the digest `absent`, and `compact` gives `[2, labelling_refused, present(refusal_size)]`.
 - Rule: `P3`, "Refusals and the reader's limit", THE SIZE OF THE LABELLED SET (the size is counted over the folded frames
   before the union); `P7`, "Compaction" (case 3).
-- Corpus: no entry shows two reads of equal folds with different sizes. The nearest are `P3/labelling-size-values`, a refusal
-  by size at `labelled_lines` `2`, and `P7/read/labelling/size`. Both agree.
+- Corpus: `P3/labelling-size-equal-folds` is the case; `a` and `b` are read with `labelled_lines` `1`.
 
 ### FX-018 A literal outside the lexical space of its datatype
 
@@ -247,7 +247,7 @@ profiles of the read.
 - Application: an adapter reports two outcomes apart. Its loss report has no entry for the literal. Its datatype report names
   one literal outside the lexical space of its datatype; the format does not judge that.
 - Rule: `P3`, "Texts that RDF does not admit".
-- Corpus: none is the case. The nearest is `P3/project/not-rdf-texts`, which holds no ill-typed literal and agrees.
+- Corpus: `P3/project/ill-typed-literal` is the case.
 
 ### FX-019 A literal of a datatype that no tool recognises
 
@@ -255,7 +255,7 @@ profiles of the read.
 - Built: as FX-018.
 - Result: as FX-018: a literal of RDF 1.2, and an RDF dataset.
 - Rule: `P3`, "Texts that RDF does not admit".
-- Corpus: none is the case. The nearest is `P3/project/not-rdf-texts`.
+- Corpus: `P3/project/unknown-datatype` is the case.
 
 ### FX-020 A relative or malformed IRI
 
@@ -265,7 +265,7 @@ profiles of the read.
 - Result: the quad is carried unchanged. Its text is one that RDF does not admit, and the result is NOT AN RDF DATASET. No
   finding is made and no quad is dropped.
 - Rule: `P3`, "Texts that RDF does not admit".
-- Corpus: `P3/project/not-rdf-texts` is the first case and agrees. It holds no text that is absolute in form and malformed.
+- Corpus: `P3/project/not-rdf-texts` is the first case; `P3/project/malformed-iri` is the second.
 
 ### FX-021 A typed literal of the datatype text `rdf:langString`, and a language that is not a tag
 
@@ -282,13 +282,13 @@ profiles of the read.
 - Input: a typed literal whose datatype text equals `rdf:dirLangString`; a `lang_literal` with the empty language text.
 - Result: each is a text that RDF does not admit; the result is NOT AN RDF DATASET.
 - Rule: `P3`, "Texts that RDF does not admit" (it names both generated datatype texts).
-- Corpus: none is the case. The nearest is `P3/project/not-rdf-texts`. `P9/convert/text-empty-language` holds a `lang_literal`
-  with an empty language and agrees.
+- Corpus: `P3/project/dirlangstring-and-empty-language` is the case, in its cases `typed-literal-dirlangstring` and
+  `empty-language`.
 
 ### FX-023 A rich fold exported as N-Quads and into a schema that keeps the fold
 
-- Input: one file whose fold holds: a `quad` line; a `reifier_binding` line; an `annotation` line with the count `3`; an
-  `annotation` line whose four terms equal those of a `quad` line; an `empty_graph` line; a binding to a blob; a suppression
+- Input: one file whose fold holds: a `quad` line; a `reifier_binding` line; an `annotation` line with the count `3` whose four
+  terms equal those of a `quad` line; an `empty_graph` line; a binding to a blob; a suppression
   entry that hides one `quad` line; a literal stored as a typed value, so with a pair of VALUES; the literals `"x"@EN` and
   `"x"@en`; a blank node that occurs only in a binding; a blob declaration with its bytes.
 - Result: `rdf(F, visible)` and `rdf(F, whole)` are as the function gives them. The reifier binding is a quad with
@@ -300,6 +300,7 @@ profiles of the read.
   no line. An export to a schema that keeps the fold holds a row for each of them, and its loss report is empty. The import of
   the N-Quads output has another content digest than the source.
 - Rule: `P3`, "The function", "What each construct gives and what it loses", "Import and the round trip".
+- Corpus: `P3/project/rich-fold` is the case.
 
 ### FX-024 A digest written as a literal
 
@@ -307,6 +308,7 @@ profiles of the read.
 - Result: the literal is a term of a line. The blob set has no entry for it. No finding is made, and no reader reports a
   missing blob.
 - Rule: `P3`, "Typed references: the `bindings` frame" (a reference is never recognised by a spelling).
+- Corpus: `P3/project/digest-as-literal` is the case.
 
 ## 4. `P4`: blobs
 
@@ -336,9 +338,8 @@ In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `
 - Result: `proof_failed` with `consistency_diverged`: `B` is one of the first `c_0 = 2` ordinary frames of `F2` and is
   detached (step 4).
 - Rule: `P5`, "File".
-- Corpus: none is the case. The nearest is `P5/proof-file-negative`, whose six cases of a refused file proof
-  (`replaced-frame`, `earlier-segment-grown`, `other-head`, `ordinals-from-1`, `one-entry-too-few`, `present-where-none-due`)
-  agree; none has a damaged region.
+- Corpus: `P5/proof-file-detached-frame` is the case: `f1` and `f2` are the reads of the two files, `verify` the outcome of the
+  proof.
 
 ### FX-027 A file proof of a source with a broken frame
 
@@ -348,7 +349,7 @@ In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `
 - Result: a verifier that reads `F1` gives `proof_failed` with `consistency_old_root` (step 3). A verifier that keeps `c_k`
   and `g_k` for later verifications keeps none from this read of `F1`.
 - Rule: `P5`, "File".
-- Corpus: none is the case. The nearest is `P5/proof-file-negative`; no entry has a source with a `broken` or detached frame.
+- Corpus: `P5/proof-file-source-broken` is the case.
 
 ### FX-028 A consistency proof that is one entry short
 
@@ -357,7 +358,8 @@ In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `
 - Result: `proof_malformed` with `length`. The outcome shows only that the proof given does not show the extension. No
   statement about the signer follows.
 - Rule: `P5`, "Consistency"; "What a proof proves, and what it does not", AUTHENTICATION.
-- Corpus: `P5/proof-consistency-negative`, case `short-path`, is the case and agrees.
+- Corpus: `P5/proof-consistency-short-path` is the case: `short-path` is the proof that is one entry short, `full-path` the
+  neighbour that holds. `P5/proof-consistency-negative`, case `short-path`, records the same outcome.
 
 ### FX-029 A consistency proof of the right shape with a wrong hash
 
@@ -367,9 +369,7 @@ In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `
 - Result: `proof_failed` with `consistency_old_root`, and `proof_failed` with `consistency_new_root`. Both signatures
   authenticate their roots. Neither outcome shows that the key signed two histories.
 - Rule: `P5`, "Consistency"; "What a proof proves, and what it does not", AUTHENTICATION.
-- Corpus: none is the case. The nearest is `P5/proof-consistency-negative`: its cases `other-first-root` and
-  `replaced-later-leaf` give the two reasons by a changed root or leaf, with no signature, and agree. Its case
-  `two-roots-one-count` gives `consistency_diverged`, the one outcome that shows two histories, and agrees.
+- Corpus: `P5/proof-consistency-signed-roots` is the case, in its cases `old-peak-replaced` and `later-entry-replaced`.
 
 ### FX-030 A file proof from an empty source to an empty file
 
@@ -377,8 +377,7 @@ In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `
 - Built: by hand.
 - Result: `proof_holds` with `consistency`.
 - Rule: `P5`, "File" (steps 1 to 5 run over no entry; step 6 runs only when `p` is not `0`).
-- Corpus: none has a source with no segment. The nearest is `P5/proof-file`, a file proof that holds for a source of one
-  segment; it agrees. `P7/read/empty` is the read of zero bytes.
+- Corpus: `P5/proof-file-empty-source-empty-target` is the case.
 
 ### FX-031 A file proof from an empty source to a file of one segment
 
@@ -386,18 +385,18 @@ In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `
 - Built: by hand.
 - Result: `proof_holds` with `consistency`. The segment of `F2` is not covered by the proof.
 - Rule: `P5`, "File" (a segment of `F2` with an ordinal of `p` or more is not covered).
-- Corpus: as FX-030.
+- Corpus: `P5/proof-file-empty-source-one-segment` is the case.
 
 ### FX-032 A file proof from a file of one segment to an empty file
 
 - Input: `F1` of one segment, `F2` of zero bytes, and the proof of `F1`: once with the `proof` of its entry `absent` (`F1 = H
   A B`, no valid commit), once with it `present`.
-- Built: the prover on `H A B` and on a segment with a commit.
+- Built: the prover on `H A B`; for `present`, the same entry with an inclusion proof written by hand, which step 2 never
+  verifies.
 - Result: `absent`: `proof_failed` with `consistency_diverged` (step 3: `F2` has fewer than `p` segments). `present`:
   `proof_malformed` with `count` (step 2, which stands before step 3).
 - Rule: `P5`, "File".
-- Corpus: none is the case. The nearest is `P5/proof-file-missing-segment`, a `present` entry for a segment that a file `F2`
-  that is not empty does not hold; it agrees.
+- Corpus: `P5/proof-file-empty-target` is the case, in its cases `absent` and `present`.
 
 ### FX-033 A file proof of one entry for an empty source
 
@@ -405,8 +404,7 @@ In FX-026 and FX-027, `a`, `a'` and `b` are the identifiers of the frames `A`, `
 - Built: by hand.
 - Result: `proof_malformed` with `length` (step 1).
 - Rule: `P5`, "File".
-- Corpus: none is the case. The nearest is `P5/proof-file-negative`, case `one-entry-too-few`, which gives the same outcome
-  for a source of one segment and agrees.
+- Corpus: `P5/proof-file-empty-source-one-entry` is the case.
 
 ## 6. `P6`: signatures, coverage and authentication
 
@@ -426,8 +424,7 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   `partly_authenticated`, `anchored_frames` `1`, `integrity` `damaged`.
 - Rule: `P1`, "The predecessor and transparent frames" and "What the identifier commits to" (Claim 2); `P6`, "Coverage" and
   "Authentication"; `P7`, "What fills each field" (`anchored_frames`).
-- Corpus: none holds a resumption with a signature. The nearest is `P6/cov-transparent-between`, a parity frame inside a
-  signed run with no damaged region; its coverage `[0, 2)` agrees.
+- Corpus: `P6/sig-detached-frame` is the case.
 
 ### FX-035 The neighbour of FX-034 whose `anchor` is true
 
@@ -438,9 +435,7 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 - Result: `B` is not detached. The signature on `B` is `valid`, with the coverage `[0, 2)`. `A` and `B` are authenticated
   frames. `authenticated_frames` is `2` and `anchored_frames` `2`. `integrity` is `damaged`, by the region.
 - Rule: `P1`, "The predecessor and transparent frames" (step 4); `P5`, "The one recovery procedure", RESUMPTION.
-- Corpus: none is the case. The nearest is `P7/file-end-region-after-commit`: a region that took no ordinary frame, then the
-  parity frame of the span, whose `anchor` is the identifier of the last ordinary frame. It has no signature and no ordinary
-  frame after the parity frame, and it agrees.
+- Corpus: `P6/sig-resumed-frame-anchor-true` is the case.
 
 ### FX-036 A signature after a broken link
 
@@ -463,24 +458,24 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 
 ### FX-038 A signed valid commit after a detached frame
 
-- Input: `H A' ff P B C`: the file of FX-034 without the signature on `B`, then a commit `C` linked from `b`, whose leaf count
-  is `2` and whose root is over the effective identifiers `a'` and `b`, signed by a trusted key.
+- Input: `H A' ff P B C`: the file of FX-034 without the signature on `B`, then a commit `C` linked from `b`, whose `count` is `2`
+  and whose root is over `h0` and the effective identifiers `a'` and `b`, signed by a trusted key.
 - Built: as FX-034; the root of `C` is computed from the frames present.
 - Result: `C` is a valid commit. `A'`, `B` and `C` are authenticated frames, the detached frame `B` and the frame before it
-  included, because the root holds each effective identifier as a leaf. `anchored_frames` is `1`.
+  included, because the root holds each effective identifier as a leaf. The coverage of the signature on `C` is `[1, 3)`,
+  `authenticity` is `authenticated`, and `anchored_frames` is `1`.
 - Rule: `P6`, "Authentication" (a signed valid commit); `P5`, "The committed prefix".
-- Corpus: no entry has a signed commit after a resumption. The nearest are `P6/auth-commit-valid` and
-  `P3/state-damaged-region-before-commit`, which has an unsigned commit after a region.
+- Corpus: `P6/sig-commit-after-detached-frame` is the case.
 
 ### FX-039 Two signatures after a detached frame
 
-- Input: `H A' ff P B D`: the file of FX-034 with one more blob frame `D` linked from `b`; `B` and `D` are each signed by a
+- Input: `H A' ff P B D`: the file of FX-034 with one more blob frame `D` linked from `b`; `B` and `D` are each signed by one
   trusted key.
 - Built: as FX-034.
 - Result: the signature on `B` covers `[1, 2)`, and the signature on `D` covers `[1, 3)`. `B` and `D` are authenticated
   frames; `A'` is not. `authenticated_frames` is `2`, `authenticity` `partly_authenticated`, `anchored_frames` `1`.
 - Rule: `P6`, "Coverage" (the run begins at the detached frame).
-- Corpus: none is the case. The nearest is `P6/cov-break-before`, the same shape of coverage after a broken frame; it agrees.
+- Corpus: `P6/sig-two-after-detached-frame` is the case.
 
 ### FX-040 Deterministic signing
 
@@ -573,12 +568,16 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
 ### FX-048 A frame that is malformed and also above capacity
 
 - Input: frames to which several opaque reasons apply, among them a frame above capacity that is also malformed.
-- Built: the ten input files of the corpus entry named below.
+
 - Result: each frame carries the first reason in the order of precedence of the opaque reasons: `malformed` stands before
   `exceeds_capacity`.
 - Rule: `P2`, "Enumerations of the typed result" (`opaque_reason`); `P7`, "Where each finding stands, and in what order".
-- Corpus: `P7/read/fold-precedence` is the case and agrees. `P7/read/capacity/order`, `P5/parity-above-capacity-and-damaged`
-  and `P9/convert/order-earlier-item-wins` state the precedence for a read, a parity frame and a conversion; all agree.
+- Corpus: none holds a frame that is `malformed` and above capacity. The nearest is `P7/read/fold-precedence`: it records ten
+  pairs of opaque reasons, among them `malformed` before `chain_break`, `damaged` and `stopped`, and `exceeds_capacity` before
+  `unknown_frame_type`, and holds the input of the first pair only; it agrees. `P3/terms-formed-malformed-first` is a `terms`
+  frame that is malformed and above the total formed length, reported `malformed_value` and not charged. `P7/read/capacity/order`,
+  `P5/parity-above-capacity-and-damaged` and `P9/convert/order-earlier-item-wins` state the order of the capacity limits of a
+  read, of the findings of a parity frame and of the stops of a conversion; all agree.
 
 ## 8. `P7`: the accesses
 
@@ -607,9 +606,10 @@ In FX-034 to FX-039 the positions in a coverage are ordinary positions. `a`, `a'
   later frames are not read. `sparse`: the rows of the frames that the index places, each frame verified locally, with no
   chain membership, no authentication and no `anchored_frames`.
 - Rule: `P7`, "Access: the steps by access" and "Reading by range"; `P1`, "The predecessor and transparent frames".
-- Corpus: no entry reads one input with all three. The nearest is `P7/stream-no-resume`, one input under `whole` and
-  `forward`; it agrees. `P7/idx-local-after-parity` is the `sparse` half, a frame verified with the `anchor` of the parity
-  frame before it; it agrees.
+- Corpus: no entry reads one input with all three. `P5/recover-c` and `P7/read/resume` are the `whole` half: the frame after the
+  parity frame is detached and `anchored_frames` is `1`; they agree. `P7/stream-no-resume` is one input under `whole` and
+  `forward`, in which the `anchor` is true and no frame is detached; it agrees. `P7/idx-local-after-parity` is the `sparse` half,
+  a frame verified with the `anchor` of the parity frame before it; it agrees.
 
 ## 9. `P7`: reading by range
 
@@ -910,25 +910,23 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: two blank nodes. The lines are `quad(a, p, _:1)` and `quad(c, p, _:2)`. The conversion proof holds. The content
   digest is that of two nodes.
 - Rule: `P9`, "The conversion reading" (SNAPSHOT SCOPE AND IDS) and "Blank nodes".
-- Corpus: `P9/convert/snapshot-label-one-scope` is the case. It records one node, with the result, the proof and the content
-  digest of one node; the rule gives two nodes.
+- Corpus: `P9/convert/snapshot-label-one-scope` is the case.
 
 ### FX-076 One label in two snapshots
 
-- Input: a source with two `snapshot` frames, each with a blank term of the label `b` and one row that names it. A second
-  input in which the two snapshots are byte-identical.
+- Input: a source with two `snapshot` frames, each with a blank term of the label `b` and one row that names it. A second input in
+  which the payloads of the two snapshots are equal.
 - Result: two nodes in each input.
 - Rule: `P9`, "The conversion reading" (the scope of a blank-node term entry of a snapshot is that `snapshot` frame).
-- Corpus: none is the case. The nearest are `P9/convert/snapshot-label-one-scope` (see FX-075) and, for containers that are
-  byte-identical, `P9/convert/suppress-frame-twin-segments`, which agrees.
+- Corpus: `P9/convert/snapshot-label-two-snapshots` is the case, in its cases `different` and `identical`.
 
 ### FX-077 One label twice in one snapshot
 
-- Input: a source with one `snapshot` whose `terms` hold two entries of the blank label `b`, each named by one row.
+- Input: a source with one `snapshot` whose `terms` hold two entries of the blank label `b`, each the subject of one row, the two
+  rows differing in their object.
 - Result: one node and two lines.
 - Rule: `P9`, "Blank nodes" (two entries of one scope with one label that is not empty are one node).
-- Corpus: none is the case. The nearest is `P9/convert/blank-same-label-twice`, the same rule in the scope of a segment; it
-  agrees.
+- Corpus: `P9/convert/snapshot-blank-same-label-twice` is the case.
 
 ### FX-078 Anonymous blank terms in a segment and in two snapshots
 
@@ -936,8 +934,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   in one snapshot and in a second snapshot, each named by one row.
 - Result: one node for each term entry: six nodes.
 - Rule: `P9`, "The conversion reading" and "Blank nodes".
-- Corpus: none is the case. The nearest is `P9/convert/anonymous-blank`: two anonymous terms in one segment are two nodes; it
-  agrees.
+- Corpus: `P9/convert/anonymous-blank-snapshots` is the case.
 
 ### FX-079 A triple term over a blank node, in a segment and in a snapshot
 
@@ -945,9 +942,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   it, each used as the object of one row.
 - Result: two `triple` terms over two nodes, and two lines that differ in their object.
 - Rule: `P9`, "Terms" and "Blank nodes".
-- Corpus: none is the case. The nearest is `P9/convert/snapshot`, a snapshot with a term of kind `3` and no blank term. Its
-  result agrees. Its note says that the sections of a snapshot are in one scope with its segment, which the rule does not say
-  of a blank-node term entry.
+- Corpus: `P9/convert/snapshot-triple-over-blank` is the case.
 
 ### FX-080 A suppression of the node of the segment
 
@@ -956,8 +951,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: one `term` entry on the node of the segment. The line of that node is hidden. The line of the node of the snapshot
   is visible. The visibility check passes, and the proof holds.
 - Rule: `P9`, "The conversion reading" (an id names the node of its entry) and "Suppression"; `P3`, "The hiding rule".
-- Corpus: none is the case. The nearest is `P9/convert/language-case-suppressed`, a `term` target on one of two terms that
-  differ, the line of the other visible; it agrees.
+- Corpus: `P9/convert/suppress-term-of-segment-node` is the case.
 
 ### FX-081 One source converted with and without the reference encoder
 
@@ -966,7 +960,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: the same proof and the same head. The stored bytes differ. A reader of either result reports the storage level
   `verified`, `differs` or `unchecked`, with no finding.
 - Rule: `P9`, "The conversion function"; `P7`, "The reference encoder and the bytes claim".
-- Corpus: `P9/convert/total-no-option` is the case and agrees. `P9/convert/storage-differs` reads such a result and agrees.
+- Corpus: `P9/convert/storage-two-converters` is the case. `P9/convert/total-no-option` converts the same source and agrees.
+  `P9/convert/storage-differs` records such a conversion and no read.
 
 ## 13. `PF-bundle`: nested files
 
@@ -1002,11 +997,11 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 ### FX-084 An unreadable observation with a status
 
 - Input: an export with an observation of the kind `c:Unreadable` whose `c:status` is a count literal: once `200`, once `503`.
-- Built: the first case is the input of the corpus entry named below.
+- Built: each case is the input of a corpus entry named below.
 - Result: no finding of the profile.
 - Rule: `PF-container`, "Properties of an observation" and "What each kind holds" (`Unreadable`: at most one `status`).
-- Corpus: `PF-container/container-observation-status-typed` is the case with the status `200` and agrees. It holds no case
-  with `503`.
+- Corpus: `PF-container/container-observation-status-typed` is the case with the status `200` and
+  `PF-container/container-observation-status-503` the case with `503`.
 
 ### FX-085 An unreadable observation with no status
 
@@ -1016,8 +1011,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: no finding of the profile. The record differs from that of FX-084 and from a tombstone.
 - Rule: `PF-container`, "What each kind holds" (`Unreadable`: at most one `status`) and "Properties of an observation" (no status
   when no response was received).
-- Corpus: none holds an `Unreadable` observation without a status. The nearest is
-  `PF-container/container-observation-status-typed`.
+- Corpus: `PF-container/container-observation-status-absent` is the case.
 
 ### FX-086 A resource observed as gone
 
@@ -1040,8 +1034,8 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   and is INCONCLUSIVE. `k` = `3`, `4` and `5`: one `profile_violation` with the subject `[4, 1, present(3)]` at the `terms`
   frame, with the `count` `67108865`; the canonical result has structure and labelling `verified`; the result is REFUTED.
 - Rule: `PF-dist`, "Checks" and "Verified distribution".
-- Corpus: no entry reads with fewer than five checks. The nearest is `PF-dist/dist-decoded-size`, the same file read at the
-  minimum capacity with `profiles` `[[1, 5]]` (FX-089); it agrees.
+- Corpus: `PF-dist/dist-decoded-size-checks-prefix` is the case; its case `checks-k` is the read with `profiles` `[[1, k]]`.
+  `PF-dist/dist-decoded-size` is the same file read at the minimum capacity with `profiles` `[[1, 5]]` (FX-089).
 
 ### FX-088 A valid distribution file read with fewer checks than the profile numbers
 
@@ -1051,9 +1045,9 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: no finding of the profile. `canonical` is verified. The result is not a VERIFIED DISTRIBUTION, because `checks` is
   below the number of the checks. It shows no refuting fact, so it is INCONCLUSIVE.
 - Rule: `PF-dist`, "Verified distribution" (item 2, and the causes of INCONCLUSIVE).
-- Corpus: none is the case. The nearest is `PF-dist/dist-verified`, the same file with `[[1, 5]]`, a VERIFIED DISTRIBUTION; it
-  agrees. `P2/registry/profile/checks-prefix`, a reader that runs 3 of the 5 checks of `bundle` and reports no violation of
-  check 5, states the rule of the prefix and agrees.
+- Corpus: `PF-dist/dist-inconclusive-checks-prefix` is the case; its case `checks-k` is the read with `profiles` `[[1, k]]`.
+  `PF-dist/dist-verified` is the same file with `[[1, 5]]`, a VERIFIED DISTRIBUTION. The note of
+  `P2/registry/profile/checks-prefix` states the rule of the prefix; that entry records the control alone.
 
 ### FX-089 The frame above the ceiling, read at the minimum capacity with all five checks
 
@@ -1068,20 +1062,22 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 ### FX-090 A reader that does not implement the profile
 
 - Input: a valid distribution file; in a second case, the file of FX-087.
-- Built: the first case is the input of the corpus entry named below.
+- Built: each case is the input of a corpus entry named below.
 - Read: `profiles` is empty.
 - Result: `profile_not_checked` with the subject `[4, 1, absent]`. `profiles` holds no pair of the profile `1`. The result is
-  INCONCLUSIVE in both cases.
+  INCONCLUSIVE in both cases. In the second case, read at the minimum capacity, the `terms` frame also has `exceeds_capacity` with
+  `decoded_size`, the `quads` frame `opaque_term`, and both content digests are `absent`.
 - Rule: `P7`, "The profile mechanism"; `PF-dist`, "Verified distribution".
-- Corpus: `PF-dist/dist-inconclusive-not-implemented` is the first case and agrees; it records `profiles` `[]` and one
-  `profile_not_checked`. No entry is the second case.
+- Corpus: `PF-dist/dist-inconclusive-not-implemented` is the first case and
+  `PF-dist/dist-inconclusive-not-implemented-decoded-size` the second.
 
 ### FX-091 A result that states more checks than the profile numbers
 
 - Input: the `read_result` of a valid distribution file with `profiles` `[[1, 6]]`, judged by the predicate. A second half,
   for a revision of the profile that appends a sixth check: a result with `[[1, 5]]`, judged by the predicate of that
   revision.
-- Built: the result record of FX-088 is encoded with `checks` `6`. The second half is built when a revision appends a check.
+- Built: the result record of `PF-dist/dist-verified` is encoded with `checks` `6`. The second half is built when a revision
+  appends a check.
 - Result: first: a VERIFIED DISTRIBUTION, since `6` is at least the number of the checks: the predicate reads the field `checks`
   and nothing else of it. Second:
   INCONCLUSIVE.
@@ -1101,6 +1097,7 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
 - Result: the writer writes the file. A read gives no `profile_violation`, and the result of a reader that claims the minimum
   capacity is a VERIFIED DISTRIBUTION.
 - Rule: `PF-dist`, "Constants" (`Cd`) and "Verified distribution"; `P7`, "Capacity", MINIMUM CAPACITY.
+- Corpus: `PF-dist/dist-decoded-size-pass` is the read. No entry tests the writer.
 
 ### FX-094 A verified distribution whose required blob is external
 
@@ -1114,18 +1111,22 @@ The sources of FX-075 to FX-080 are files of the first generation, written by th
   differ, and both are reported.
 - Rule: `PF-dist`, "Verified distribution"; `P4`, "The frames", "The blob set" and "The rebuild"; `P3`, "Typed references: the
   `bindings` frame".
+- Corpus: `PF-dist/dist-verified-external-blob` is the case. The blob set is content and stands in no `read_result`.
 
 ### FX-095 A capsule with two module versions and mixed manifests
 
 - Input: one canonical segment that declares `dist`: two modules as the blobs `w1` and `w2`; two schema documents `t1` and
-  `t2` and two permission documents `q1` and `q2` as blobs; a manifest in RDF that binds a release term to `w2`, `t1` and
-  `q2`; a second manifest term that binds another release to `w1`. Variants with exactly one manifest whose three parts agree.
+  `t2` and two permission documents `q1` and `q2` as blobs; a manifest in RDF whose release names three part terms, bound to `w2`,
+  `t1` and `q2`; a second manifest whose release names one part term, bound to `w1`. Variants with exactly one manifest whose
+  three parts agree.
 - Result: every variant is a VERIFIED DISTRIBUTION by one read. The profile judges the segment and its frames and reads no
   manifest.
 - Application: the contract of the host requires exactly one manifest, and that the versions stated in the module, the schema
   and the permissions agree. It refuses the input with two manifests as ambiguous and the manifest of `w2`, `t1` and `q2` as
   mixed, and it accepts the consistent variant.
 - Rule: `PF-dist`, "Verified distribution" (a predicate over the fields of the result).
+- Corpus: `PF-dist/dist-verified-capsule-manifests` is the case: `two-manifests` is the input with two manifests, and
+  `one-manifest-version-1` and `one-manifest-version-2` are the consistent variants.
 
 ### FX-096 The largest release as a distribution (benchmark)
 

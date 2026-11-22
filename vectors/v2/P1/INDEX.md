@@ -472,4 +472,4 @@ Built by `tools/build_vectors.py` from the description of each entry; the reader
 | `resync-total-refused-no-occurrence-tested` |  | built and matches | a header, a frame whose `decoded_length` 698 the total of 600 refuses and which fails the framing test, holding an occurrence with a true offset at 700, then an incomplete item whose run covers the occurrence again: once the total is refused no occurrence is tested and none gives a finding, in the run of the frame or in the next; the one `exceeds_capacity` is the frame's, `count` 698 (P1 6.7 part 4, P1-104) |
 | `undelimitable-chunk-wrong-major-type-cut` |  | built and matches | an indefinite-length byte string whose chunk head is of another major type and whose argument bytes pass the end of the input is `undelimitable_input`, not `torn_tail` (P1 6.1, 6.3 item 4) |
 
-Totals: built and matches: 466, could not be built: 1 (467 entries).
+Totals: 10.1: 34; 10.2: 51; 10.3: 16; 10.4: 41; 10.5: 9; 10.6: 37; 10.7: 22; 10.8: 19; 10.9: 14; 2.1a: 1 (244 entries).

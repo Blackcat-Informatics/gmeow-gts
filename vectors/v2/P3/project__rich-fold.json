@@ -1,0 +1,240 @@
+{
+ "name": "project/rich-fold",
+ "status": "built and matches",
+ "note": "P3 10a: one fold of every construct of the projection (quad, reifier binding, annotation of count 3, annotation equal to a quad, empty graph, binding, suppression entry, typed value, two language cases, blank node only in a binding, blob declaration): the two variants differ only by the hidden quad",
+ "section": "P3 10a.1",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "project__rich-fold.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190426810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030909008085f4820205820205820205810182025820f7664da4b072dbfa3167e13869ab74e769617cbf14905354e681c252fda4da63898b010b18cc820201018101810180810180808b0218d71876820209018101810180810180808b0319014d187c820202018101810180810180808b041901c9185c820203018101810180810180808b051902251860820204018101810180810180808b061902851853820205018101810180810180808b071902d8187d820206018101810180810180808b08190355185f820207018101810180810180808b091903b4187282020e01810181018081028080808082025820f7664da4b072dbfa3167e13869ab74e769617cbf14905354e681c252fda4da638201010200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "projection": {
+    "visible": {
+     "quads": [
+      [
+       {
+        "iri": "http://e/r"
+       },
+       {
+        "iri": "http://e/q"
+       },
+       {
+        "iri": "http://e/v"
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/r"
+       },
+       {
+        "iri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
+       },
+       {
+        "triple": [
+         {
+          "iri": "http://e/s"
+         },
+         {
+          "iri": "http://e/p"
+         },
+         {
+          "iri": "http://e/o"
+         }
+        ]
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "iri": "http://e/o"
+       },
+       null
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "7",
+        "datatype": "http://www.w3.org/2001/XMLSchema#nonNegativeInteger"
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "x",
+        "language": "EN"
+       },
+       null
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "x",
+        "language": "en"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": [
+      {
+       "iri": "http://e/h"
+      }
+     ]
+    },
+    "whole": {
+     "quads": [
+      [
+       {
+        "iri": "http://e/r"
+       },
+       {
+        "iri": "http://e/q"
+       },
+       {
+        "iri": "http://e/v"
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/r"
+       },
+       {
+        "iri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
+       },
+       {
+        "triple": [
+         {
+          "iri": "http://e/s"
+         },
+         {
+          "iri": "http://e/p"
+         },
+         {
+          "iri": "http://e/o"
+         }
+        ]
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "iri": "http://e/o"
+       },
+       null
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "7",
+        "datatype": "http://www.w3.org/2001/XMLSchema#nonNegativeInteger"
+       },
+       {
+        "iri": "http://e/g"
+       }
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "x",
+        "language": "EN"
+       },
+       null
+      ],
+      [
+       {
+        "iri": "http://e/s"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "literal": "x",
+        "language": "en"
+       },
+       null
+      ],
+      [
+       {
+        "iri": "http://e/s2"
+       },
+       {
+        "iri": "http://e/p"
+       },
+       {
+        "iri": "http://e/o"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": [
+      {
+       "iri": "http://e/h"
+      }
+     ]
+    },
+    "rdf_dataset": true
+   }
+  }
+ ]
+}

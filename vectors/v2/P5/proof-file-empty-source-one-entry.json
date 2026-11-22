@@ -1,0 +1,48 @@
+{
+ "name": "proof-file-empty-source-one-entry",
+ "section": "P5",
+ "status": "built and matches",
+ "note": "a file proof of one entry for an empty source: proof_malformed with length, from step 1",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "proof-file-empty-source-one-entry.source.bin",
+   "length": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "later_file": "proof-file-empty-source-one-entry.later.bin",
+   "later_length": 316,
+   "later_sha256": "9efe6aa1aa1e489d08d867f42271f8edfdb0466d8c91be3d6b7ba2347f04a1fe",
+   "proof_file": "proof-file-empty-source-one-entry.proof.bin",
+   "proof_length": 40,
+   "proof_sha256": "2307979a9da77f0b05502edaaf5311233863ad9cf31dc55f1e9a29232c531e95",
+   "inputs": [
+    [],
+    []
+   ],
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "profiles": [],
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028081870181018101810181018101810181018201000400",
+   "later_read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019013c810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820689d83064a6b253ff5eef37a5f482666ccb8663b678f51c0e5d86629896a1cc6828b010b189d82020901810181018081018081871181018101820201810181018202028b0218a8189482020901810181018081018080808082025820689d83064a6b253ff5eef37a5f482666ccb8663b678f51c0e5d86629896a1cc68201000400",
+   "values": {
+    "segments_of_source": 0,
+    "entries": 1
+   },
+   "result": {
+    "case": "proof_malformed/length"
+   },
+   "outcome": "8718258202182d81018101810181018101"
+  }
+ ]
+}

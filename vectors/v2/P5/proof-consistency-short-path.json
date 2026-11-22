@@ -1,0 +1,104 @@
+{
+ "name": "proof-consistency-short-path",
+ "section": "P5",
+ "status": "built and matches",
+ "note": "a consistency proof whose path is one entry short: proof_malformed with length, and the proof of the same two roots with its full path, which holds",
+ "cases": [
+  {
+   "label": "short-path",
+   "input_file": "proof-consistency-short-path.bin",
+   "length": 918,
+   "sha256": "05e8d00c6b531898a073a7ce53e3fc44fb3c5cc898dce4e73da19b0dd017ca06",
+   "proof_file": "proof-consistency-short-path.short-path.proof.bin",
+   "proof_length": 72,
+   "proof_sha256": "67cccbeadf90155866c7b215d3c4f1ca5096298611a7d0bd780311d773f70130",
+   "inputs": [
+    [
+     "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c"
+    ],
+    [
+     [
+      "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c",
+      1,
+      "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+     ]
+    ]
+   ],
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "profiles": [],
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c818358200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c01582003a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8870281920000190396810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101010505058085f4820205820205820205810182025820ca4278e357a68d33c7a7061cf1f038cbe76521083f925164c62b95467ac7377d858b010b189f820209018101810180810180808b0218aa18d882020e018101810181870181010158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c0002f5810280808b03190182189c820209018101810180810180808b0419021e18a0820209018101810180810180808b051902be18d882020e018101810181870181010158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c0005f581028080808082025820ca4278e357a68d33c7a7061cf1f038cbe76521083f925164c62b95467ac7377d8201000100",
+   "roots": {
+    "old_commit_position": 2,
+    "old_count": 2,
+    "old_root": "0480dfdc9ddd84d924d1b8aa8021c79c66987ca116b6e697e015fc6e448399fb",
+    "new_commit_position": 5,
+    "new_count": 5,
+    "new_root": "40527a209e414022ec1f462c424115cbf883a1f373b277fb6abc4649e0bf0377"
+   },
+   "result": {
+    "short-path": "proof_malformed/length"
+   },
+   "outcome": "8718258202182d81018101810181018101"
+  },
+  {
+   "label": "full-path",
+   "input_file": "proof-consistency-short-path.bin",
+   "length": 918,
+   "sha256": "05e8d00c6b531898a073a7ce53e3fc44fb3c5cc898dce4e73da19b0dd017ca06",
+   "proof_file": "proof-consistency-short-path.full-path.proof.bin",
+   "proof_length": 106,
+   "proof_sha256": "88ec7efaab225533830e2f552a20b4d478c541e2406998c84e222125840ebe96",
+   "inputs": [
+    [
+     "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c"
+    ],
+    [
+     [
+      "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c",
+      1,
+      "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+     ]
+    ]
+   ],
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "profiles": [],
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c818358200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c01582003a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8870281920000190396810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101010505058085f4820205820205820205810182025820ca4278e357a68d33c7a7061cf1f038cbe76521083f925164c62b95467ac7377d858b010b189f820209018101810180810180808b0218aa18d882020e018101810181870181010158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c0002f5810280808b03190182189c820209018101810180810180808b0419021e18a0820209018101810180810180808b051902be18d882020e018101810181870181010158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c0005f581028080808082025820ca4278e357a68d33c7a7061cf1f038cbe76521083f925164c62b95467ac7377d8201000100",
+   "roots": {
+    "old_commit_position": 2,
+    "old_count": 2,
+    "old_root": "0480dfdc9ddd84d924d1b8aa8021c79c66987ca116b6e697e015fc6e448399fb",
+    "new_commit_position": 5,
+    "new_count": 5,
+    "new_root": "40527a209e414022ec1f462c424115cbf883a1f373b277fb6abc4649e0bf0377"
+   },
+   "result": {
+    "full-path": "proof_holds/consistency"
+   },
+   "outcome": "8718278202183481018101810181018101"
+  }
+ ]
+}

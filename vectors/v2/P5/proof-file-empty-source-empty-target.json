@@ -1,0 +1,47 @@
+{
+ "name": "proof-file-empty-source-empty-target",
+ "section": "P5",
+ "status": "derived from the text",
+ "note": "a file proof from an empty source to an empty file: the proof is the empty list and holds",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "proof-file-empty-source-empty-target.source.bin",
+   "length": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "later_file": "proof-file-empty-source-empty-target.later.bin",
+   "later_length": 0,
+   "later_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "proof_file": "proof-file-empty-source-empty-target.proof.bin",
+   "proof_length": 1,
+   "proof_sha256": "76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71",
+   "inputs": [
+    [],
+    []
+   ],
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "marks_input": null,
+   "profiles": [],
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028081870181018101810181018101810181018201000400",
+   "later_read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028081870181018101810181018101810181018201000400",
+   "values": {
+    "segments_of_source": 0
+   },
+   "result": {
+    "case": "proof_holds/consistency"
+   },
+   "outcome": "8718278202183481018101810181018101"
+  }
+ ]
+}
