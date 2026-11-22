@@ -8,7 +8,9 @@ Title of this document, as the profile table of `P2` names it: `Profile PF-dist:
 ## 0. Scope and dependencies
 
 This profile defines a DISTRIBUTION FILE: one canonical segment, standing alone, each of whose frames is within the per-frame
-minimum capacity of a reader. That is its promise and no more: whether one reader verified one file is a property of that
+minimum values of `P7`, "Capacity", so that a reader that claims the minimum capacity refuses none of them by size. That is its
+promise and no more: a fold can have no distribution file (section 2), and whether one
+reader verified one file is a property of that
 reader's result, which section 6 defines as a VERIFIED DISTRIBUTION. It is the value `1` `dist` of the profile table, has five
 checks of its own and two constants; it adds no vocabulary; it adds no value to any enumeration of the core and uses no frame
 type of its own.
@@ -18,6 +20,7 @@ It depends on these parts, cited by part and section title:
 - `P1` (Model and wire): "The header", "The locator", "The frame envelope";
 - `P2` (Registry): "Identity, labelling, geometry, severity and profile enumerations" (the profile table), "The finding table"
   and "The fields of a finding that are present" (the findings `profile_violation` and `profile_not_checked`);
+- `P4` (Blobs): "The blob set";
 - `P5` (Durability): "The committed prefix";
 - `P6` (Signatures): "Coverage and authentication";
 - `P7` (Canonical form and reading): "The typed result of reading", "Capacity", "The reader procedure", "The fold of the whole
@@ -64,9 +67,9 @@ later revision of this document appends a check with the next number.
 
 ## 2. Constants
 
-- DECODED CEILING `Cd`; value: `67108864` bytes (`2^26`); reason: the minimum `decoded_bytes_per_frame` of a conforming reader
+- DECODED CEILING `Cd`; value: `67108864` bytes (`2^26`); reason: the minimum value of `decoded_bytes_per_frame`
   (`P7` "Capacity").
-- STORED CEILING `Cs`; value: `67108864` bytes (`2^26`); reason: the minimum `stored_bytes_per_frame` of a conforming reader
+- STORED CEILING `Cs`; value: `67108864` bytes (`2^26`); reason: the minimum value of `stored_bytes_per_frame`
   (`P7` "Capacity").
 
 A different ceiling is a different profile, with a value of its own in the profile table, never a parameter.
@@ -109,7 +112,8 @@ header's
 
 ## 5. Checks
 
-A reader that implements this profile runs these checks at the step `PROFILE CHECKS` of `P7` "The closing phase of a segment,
+A reader that implements this profile runs these checks, to the number it states in `profiles`, at the step `PROFILE CHECKS` of
+`P7` "The closing phase of a segment,
 and visibility", the step that runs the checks of a declared profile, for every segment whose header outcome is `readable` and
 whose header `profile` is `present(dist)`. Each failing check is the finding `profile_violation` with `reason` `absent` and
 `subject` `[4, 1, present(c)]`, `c` the number of the check (section 1). A reader that does not implement the profile reports
@@ -139,11 +143,13 @@ ITEM HAS A TYPE ONLY BY A VALUE: an item of no frame type is of no type and give
 `malformed_value` finding stands as for any file. A transparent frame is judged as any frame. The size checks `3` and `4`
 are this profile's own and report `profile_violation`; the canonical check reports nothing for a frame's size.
 
-**PF-dist-8.** A reader that implements this profile MUST run the five checks of the table on every segment of section 5, and
+**PF-dist-8.** A reader that implements this profile MUST run the checks `1` to the number it states for this profile in
+`profiles` (`P7`, "The typed result of reading") on every segment of section 5, and
 MUST report each failure as `profile_violation` with `reason` `absent`, `subject` `[4, 1, present(c)]`, and exactly the
 `position` and `count` of the table.
 
-**PF-dist-9.** A reader MUST report `dist_decoded_size`, `dist_stored_size` and `dist_sealed_frame` once for each frame that
+**PF-dist-9.** A reader MUST report, of the checks that it runs, `dist_decoded_size`, `dist_stored_size` and `dist_sealed_frame`
+once for each frame that
 fails, and `dist_not_canonical` and `dist_not_alone` at most once for the segment.
 
 Overlaps. Each check reports its own finding (`P7`, "The profile mechanism"). A frame above `Cd` read by a reader whose
@@ -163,7 +169,8 @@ A `read_result` is a VERIFIED DISTRIBUTION exactly when all five of these hold.
 1. ONE CLAIMED SEGMENT. `file` has the tag `second_generation` and exactly one segment; that segment's `header_identifier` is
    `present`, its `profile` is `present` with `1` (`dist`), and its `canonical` has `claimed` `true`, structure `verified` and
    labelling `verified`, whatever its storage level.
-2. PROFILE CHECKED, NO VIOLATION. No finding of the segment or of its frames has the code `profile_not_checked`, and none has the
+2. PROFILE CHECKED, NO VIOLATION. The `profiles` of the result holds the pair of profile `1` with `checks` at least the number of
+   the checks of section 1, and no finding of the segment or of its frames has the code `profile_not_checked`, and none has the
    code `profile_violation` with the subject profile `1`.
 3. CONTENT DIGEST. The file's `content_digest` is `present` and equal to the segment's `content_digest`.
 4. WHOLE INPUT READ. The file's findings hold none of `torn_tail`, `undelimitable_input`, `read_failed` and `exceeds_capacity`;
@@ -187,7 +194,9 @@ reader did not finish the verification, because a limit of its capacity was met 
 `exceeds_capacity`, a rebuild `refused`, a `labelling_refused` by a limit of the reader), because its labelling is refused by
 `refusal_width`, which no capacity changes, or by `refusal_term_node`, the refusal of a fold in which two different nested terms
 have one digest, which no capacity changes either; because it does not implement this profile or its access is `forward`
-(`profile_not_checked`); because it does not implement the registry version, a codec or the hash algorithm of the segment; or
+(`profile_not_checked`), or because it runs fewer of its checks than section 1 numbers (`profiles`); because it does not implement
+the
+registry version, a codec or the hash algorithm of the segment; or
 because its fold is not
 complete for a reason that is not damage. Such a result that shows both a refuting fact and an unfinished verification is
 REFUTED. The three outcomes are
@@ -195,7 +204,8 @@ disjoint and every result has one. An inconclusive result is accepted neither as
 capacity or a fuller implementation can verify the same file.
 
 The predicate says nothing about who wrote the file: `authenticity` is a separate field, and a consumer that needs it applies its
-own rule to it (`P6`, "Coverage and authentication").
+own rule to it (`P6`, "Coverage and authentication"). It says nothing about the bytes of a blob whose `presence` is `external`
+(`P4`, "The blob set"): the file does not hold them, and a consumer that needs them applies its own rule to the blob set.
 
 **PF-dist-10.** A consumer that accepts a file as a distribution MUST accept it only when one `read_result` of it is a VERIFIED
 DISTRIBUTION by section 6, and MUST NOT take the absence of `profile_violation` as acceptance.

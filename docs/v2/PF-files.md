@@ -134,7 +134,8 @@ literal receives its octets; the text that the literal generates is upper-case h
 
 ### 2.3 Paths
 
-A PATH is an RDF collection: the object of `f:path` is the head of a WELL-FORMED LIST. A list whose head is `h` is well formed
+A PATH is an RDF collection: the object of `f:path` is the head of a WELL-FORMED LIST, or `rdf:nil`, the EMPTY PATH. A list whose
+head is `h` is well formed
 when
 
 1. `h` is a blank node, and has exactly one statement with predicate `rdf:first` and exactly one with predicate `rdf:rest`;
@@ -142,8 +143,12 @@ when
 3. every node of the chain is the object of exactly one statement: the head of the `f:path` statement, each other node of the
    `rdf:rest` statement of the node before it.
 
-The MEMBERS of the list are the objects of the `rdf:first` statements of its nodes, in chain order; a well-formed path has at
-least one member. Each member is a COMPONENT: the name of one directory level, or of the entry itself for the last member.
+The MEMBERS of the list are the objects of the `rdf:first` statements of its nodes, in chain order; a well-formed list has at
+least one member, and the empty path has none. A path is well formed when it is the empty path or a well-formed list. An entry
+whose path is the empty path is a ROOT ENTRY: it states the permissions, the owner, the time of last modification, the attributes
+and the records of
+the root of the tree, its kind is `Directory`, and a tree need not have one. Each member is a COMPONENT: the name of one directory
+level, or of the entry itself for the last member.
 
 A component is VALID when it is an octets literal whose octets are not empty, are not `2e` (one dot) and are not `2e 2e` (two
 dots). These are the names that name the directory itself or its parent, or nothing. Nothing else of a name is judged: the format
@@ -156,7 +161,8 @@ model"); since the text of an octets literal is generated from its octets, this 
 PREFIX of a path `q` when
 `p` has fewer members than `q` and they are equal member by member.
 
-THE ENTRY ORDER. The entries that have a VALID PATH (a well-formed list, every component valid) are ordered by their paths:
+THE ENTRY ORDER. The entries that have a VALID PATH (the empty path, or a well-formed list every component of which is valid) are
+ordered by their paths:
 compare the members in turn by their octets, bytewise, the bytes as unsigned integers from the first byte, a shorter octet
 string that is a prefix of a longer one first; a path that is a proper prefix of another comes first. Every directory therefore
 precedes what it holds. Entries with equal paths (check `3` reports them) are ordered among themselves by the place of the entry
@@ -180,7 +186,8 @@ For each property: its full IRI, its subject (the domain), its object (the range
 allows), and
 how many statements of it one subject has. "Functional" means at most one.
 
-- `https://w3id.org/gts/pf/files#path`; subject: an entry; object: a blank node, the head of a well-formed list; exactly one.
+- `https://w3id.org/gts/pf/files#path`; subject: an entry; object: a blank node, the head of a well-formed list, or the IRI
+  `rdf:nil`, the empty path; exactly one.
 - `https://w3id.org/gts/pf/files#kind`; subject: an entry; object: one of the eight kind IRIs; exactly one.
 - `https://w3id.org/gts/pf/files#permission`; subject: an entry; object: one of the twelve permission IRIs; any number.
 - `https://w3id.org/gts/pf/files#modified`; subject: an entry; object: a time literal, the last modification; functional.
@@ -223,8 +230,9 @@ as the extended attribute or the archive record that holds it.
 
 ## 3. Writer rules
 
-**PF-files-3.** A writer MUST write each entry with exactly one `f:path`, whose object is a well-formed list of valid
-components, and exactly one `f:kind`.
+**PF-files-3.** A writer MUST write each entry with exactly one `f:path`, whose object is a well-formed list of valid components
+or, for the root entry, `rdf:nil`, and exactly one `f:kind`; MUST write at most one root entry; and MUST write the root entry with
+the kind `Directory`.
 
 **PF-files-4.** A writer MUST write a component, and every other octets value of the vocabulary, as the octets literal of its
 bytes (2.2), a typed value of kind `octets`, for every byte string whether or not it is valid UTF-8.
@@ -232,7 +240,8 @@ bytes (2.2), a typed value of kind `octets`, for every byte string whether or no
 **PF-files-14.** A writer MUST write every count of the vocabulary as a typed value of kind `uint` and every time as a typed value
 of kind `time` (`P3`, "Typed values").
 
-**PF-files-5.** A writer MUST write an entry of kind `Directory` for every proper prefix of the path of every entry, and MUST
+**PF-files-5.** A writer MUST write an entry of kind `Directory` for every proper prefix, other than the empty path, of the path
+of every entry, and MUST
 NOT write two entries with equal paths.
 
 **PF-files-6.** A writer MUST bind every entry of kind `RegularFile`, and only such an entry, to the blob of its bytes by
@@ -303,15 +312,16 @@ The conditions. Each names the subjects it counts. An entry has a VALID KIND whe
 path or a valid kind does not judge an entry that
 lacks one; that entry is counted by `files_entry_path`, `files_component` or `files_kind`.
 
-1. `files_entry_path`: an entry that has not exactly one `f:path` statement, or whose path object is not the head of a
-   well-formed list (2.3). Counts entries.
+1. `files_entry_path`: an entry that has not exactly one `f:path` statement, or whose path object is neither `rdf:nil` nor the
+   head of a well-formed list (2.3). Counts entries.
 2. `files_component`: an entry with a well-formed path one of whose members is not a valid component. Counts entries.
 3. `files_duplicate_path`: an entry with a valid path (well formed, every component valid) that equals the path of another
    entry. Counts entries.
-4. `files_missing_parent`: an entry with a valid path some proper prefix of which is the path of no entry of kind `Directory`.
+4. `files_missing_parent`: an entry with a valid path some proper prefix of which, other than the empty path, is the path of no
+   entry of kind `Directory`.
    Counts entries.
-5. `files_kind`: an entry that has not exactly one `f:kind` statement, or whose `f:kind` object is not one of the eight kind
-   IRIs. Counts entries.
+5. `files_kind`: an entry that has not exactly one `f:kind` statement, or whose `f:kind` object is not one of the eight kind IRIs,
+   or a root entry whose kind is not `Directory`. Counts entries.
 6. `files_content_binding`: an entry of kind `RegularFile` that has not exactly one visible binding, or whose binding's referent
    is not a `blob` referent; or an entry of another kind that has a visible binding. Counts entries.
 7. `files_property_cardinality`: a subject, of the property's domain or not, with more than one statement of a functional
@@ -324,8 +334,8 @@ lacks one; that entry is counted by `files_entry_path`, `files_component` or `fi
    of more than one `f:extendedAttribute` statement or of more than one `f:archiveRecord` statement. Counts subjects.
 9. `files_value`: a statement whose predicate is a property of 2.4 and whose object is not of its range: a term of another kind,
    a literal of another datatype or form (2.2), an empty value where 2.4 forbids one, or an IRI outside the set the property
-   names. For `f:path` the check judges the kind of the object alone, a
-   blank node; whether the list is well formed is check `1`. For `f:hardLinkOf` it judges the kind of the object alone, an IRI
+   names. For `f:path` the check judges the kind of the object alone, a blank node or the IRI `rdf:nil`; whether the list is well
+   formed is check `1`. For `f:hardLinkOf` it judges the kind of the object alone, an IRI
    or a blank node; whether that term is an entry of kind `RegularFile` is check `10`. Counts subjects.
 10. `files_hard_link`: an entry of kind `HardLink` whose `f:hardLinkOf` object is not an entry of kind `RegularFile`. Counts
     entries.

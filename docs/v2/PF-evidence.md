@@ -129,9 +129,11 @@ header's
 
 ## 5. Checks
 
-A reader that implements this profile runs checks 1 to 6 and 8 at the step `PROFILE CHECKS` of `P7` "The closing phase of a
+A reader that implements this profile runs, to the number it states in `profiles`, checks 1 to 6 and 8 at the step `PROFILE
+CHECKS` of `P7` "The closing phase of a
 segment, and visibility", the step that runs the checks of a declared profile, for every segment whose header outcome is
-`readable` and whose header `profile` is `present(evidence)`. It runs check 7, a check over the whole file, once, after the
+`readable` and whose header `profile` is `present(evidence)`. It runs check 7, when that number reaches it, as a check over the
+whole file, once, after the
 closing phase of every segment of the file, and reports it as a finding of the step `PROFILE CHECKS` of the last segment whose
 header outcome is `readable` and whose header `profile` is `present(evidence)`. The findings of a list stand in the order of `P7`
 ("Where each finding stands, and in what order"). Each failing check is the finding `profile_violation` with `reason` `absent` and
@@ -180,8 +182,10 @@ present").
 | `evidence_suppress_unauthenticated` | absent | the number of folded `suppress` frames of the file, clear or inner, that are not authenticated |
 | `evidence_no_commit` | absent | absent |
 
-**PF-evidence-9.** A reader that implements this profile MUST run checks 1 to 6 and 8 on every segment of section 5 and check 7
-once for the file, and MUST report each failure as `profile_violation` with `reason` `absent`, `subject` `[4, 2, present(c)]`, and
+**PF-evidence-9.** A reader that implements this profile MUST run those of checks 1 to 6 and 8 that are at or below the number it
+states for this profile in `profiles` (`P7`, "The typed result of reading") on every segment of section 5 and check 7, when that
+number reaches it, once for the file, and MUST report each failure as `profile_violation` with `reason` `absent`, `subject` `[4,
+2, present(c)]`, and
 exactly the `position` and
 `count` of the table.
 
@@ -190,7 +194,8 @@ reader's inputs, and MUST NOT verify any signature a second time or by another r
 
 **PF-evidence-11.** A reader MUST report `evidence_lineage` and `evidence_uncommitted_tail` at most once for a segment, and
 `evidence_suppress_unauthenticated` at most once for the file, in the last segment that declares the profile; it MUST report
-`evidence_no_commit` at most once for a segment, and each other check once for each commit interval or frame that fails it.
+`evidence_no_commit` at most once for a segment, and each other check that it runs once for each commit interval or frame that
+fails it.
 
 **PF-evidence-12.** A writer MUST write every `suppress` frame of a segment of this profile before a `commit` frame that it
 signs as `PF-evidence-6` requires, so that the frame is authenticated wherever its signer is trusted.
@@ -205,8 +210,16 @@ or `links_unavailable`. A commit whose pinned signature is `invalid` or `unverif
 not valid: its signature does not authenticate (`P6`, "Coverage and authentication"), so it gives
 `evidence_commit_unauthenticated`, and the commit interval it would have ended continues.
 
- Rollback to an
-earlier valid commit and loss of a later suffix cannot be detected from the file alone (`P5`, "What a commit does not show").
+ WHAT THE CHECKS ESTABLISH. A segment that passes checks 4 to 6 has, on every `commit` frame whose `signatures` field is well
+ formed, a signature of the pinned algorithm
+ that authenticates under the reader's `trusted_keys`: some trusted key signed each commit, and each commit covers the frames
+ before it. The checks do not establish which key signed a commit when it was written, nor that a signature once written is still
+ in the file: the `signatures` list is outside every identifier and root (`P6`, "The signature record"), so the holder of one
+ trusted key can sign every earlier commit and remove the signatures of the other keys, and no check of this profile fails. The
+ rule that a writer removes no signature (`P6`, "Co-signing and pinning") binds the writer and shows a reader nothing. A transfer
+ of custody that a consumer is to verify is content that a commit covers, or a list of the signers of each commit that the
+ consumer holds outside the file; this profile defines neither. Rollback to an earlier valid commit and loss of a later suffix
+ cannot be detected from the file alone (`P5`, "What a commit does not show").
 
 ## 6. Worked example
 

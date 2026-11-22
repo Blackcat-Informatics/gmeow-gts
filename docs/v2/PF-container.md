@@ -221,8 +221,8 @@ hexadecimal and is not the value the server sent.
   (RFC 9110 section 8.8.3), its quotes and weak marker included; at most one.
 - `https://w3id.org/gts/pf/container#graph`; object: an IRI or a blank node, the name of the graph that holds this observed
   state of the resource's statements; at most one.
-- `https://w3id.org/gts/pf/container#status`; object: a count literal, the status code the server returned (RFC 9110 section
-  15); at most one.
+- `https://w3id.org/gts/pf/container#status`; object: a count literal, the status code the server returned (RFC 9110 section 15),
+  absent when the retrieval received no response; at most one.
 - `https://w3id.org/gts/pf/container#auxiliaryFor`; object: an IRI, the subject resource of which this resource is an auxiliary
   resource; at most one.
 - `https://w3id.org/gts/pf/container#relationType`; object: an octets literal whose octets are not empty, one link relation type,
@@ -244,7 +244,7 @@ hexadecimal and is not the value the server sent.
 | `RdfResource` | exactly one | none | none | none | |
 | `NonRdfResource` | none | exactly one | none | none | `mediaType` present |
 | `ContainerResource` | at most one | none | none | any number | |
-| `Unreadable` | none | none | exactly one | none | |
+| `Unreadable` | none | none | at most one | none | |
 | `Absent` | none | none | none | none | no `mediaType`, `entityTag`, `lastModified` |
 
 An observation has no binding other than the one blob binding that its kind allows.
@@ -270,7 +270,8 @@ export again in full in the new scope.
 `c:managedPredicate` of an observation MUST list them in the listing order of section 2.
 
 **PF-container-4.** A writer MUST write every observation with the properties of 3.4 in the numbers 3.4 states and the content
-3.5 states for its kind, and every export with the properties of 3.3.
+3.5 states for its kind, and every export with the properties of 3.3; it MUST write the `c:status` of an observation of kind
+`c:Unreadable` when the server returned a status code and MUST NOT write one when the retrieval received no response.
 
 **PF-container-15.** A writer MUST write every time of the vocabulary as a typed value of kind `time`, every count as a typed
 value of kind `uint`, every truth value as a typed value of kind `bool` and every media type, entity tag and link relation type as
@@ -476,3 +477,9 @@ resource would be dangling, and the finding is the typed value
 seven), code `46` as `18 2e`, `reason` absent `81 01`, subject `82 02` then `83 04`, the profile, `82 02` and the check (eight
 bytes for a profile and a check below `24`), then `position`, `offset`, `length` and `count`, each `81 01` when absent or `82 02`
 and the value.
+
+Three retrievals that did not give a representation are three different records. A server that answers `503` for
+`<https://pod.example/e>` gives an observation of kind `c:Unreadable` whose `c:status` is the count `503`, written as the typed
+value `[2, 503]`. A retrieval of `<https://pod.example/f>` that receives no response (the name does not resolve, the connection
+fails, or no response header arrives) gives an observation of kind `c:Unreadable` with no `c:status`. A resource that is gone
+gives the tombstone of kind `c:Absent` above. Each holds what 3.5 states for its kind.

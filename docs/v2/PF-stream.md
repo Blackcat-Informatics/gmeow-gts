@@ -115,7 +115,8 @@ header's
 
 ## 5. Checks
 
-A reader that implements this profile runs these checks at the step `PROFILE CHECKS` of `P7` "The closing phase of a segment,
+A reader that implements this profile runs these checks, to the number it states in `profiles`, at the step `PROFILE CHECKS` of
+`P7` "The closing phase of a segment,
 and visibility", the step that runs the checks of a declared profile, for every segment whose header outcome is `readable` and
 whose header `profile` is `present(stream)`. Each failing check is the finding `profile_violation` with `reason` `absent` and
 `subject` `[4, 3, present(c)]`, `c` the number of the check (section 1). A reader that does not implement the profile reports
@@ -134,7 +135,8 @@ The conditions, one for each check:
 `offset` and `length` are absent in both findings (`P2`, "The fields of a finding that are present"). Each stands in the list that
 its `position` gives it (`P7`, "Where each finding stands, and in what order").
 
-**PF-stream-7.** A reader that implements this profile MUST run the two checks on every segment of section 5 and MUST report, once
+**PF-stream-7.** A reader that implements this profile MUST run the checks `1` to the number it states for this profile in
+`profiles` (`P7`, "The typed result of reading") on every segment of section 5 and MUST report, for the checks that it runs, once
 for each commit interval that fails check `1` and once for each item that check `2` names, one `profile_violation` with `reason`
 `absent`, `subject` `[4, 3, present(c)]`, and the `position` and `count` that
 the condition states.
@@ -152,7 +154,8 @@ that ends at an item boundary inside the segment and in which every `commit` fra
 
 A READ AS A STREAM. A reader with the access `forward` (`P7`, "Reading as a stream") reads the segment at each item boundary as
 the file that is the prefix up to it, so the claim above holds for the stream read of a conforming writer at every item
-boundary: both checks run on the frames that have arrived, a due span being judged when the ordinary frame after its reaching
+boundary: the checks that the reader runs run on the frames that have arrived, a due span being judged when the ordinary frame
+after its reaching
 item has arrived.
 
 **PF-stream-10.** A consumer of the result of reading a prefix of a segment MUST NOT take the findings of this profile in it, or

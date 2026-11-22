@@ -139,8 +139,8 @@ READS, is made with the reader's capacity except those five fields, each of whic
 read and every nested read before it in that order have used: the items they delimited, the sums of their total decoded
 lengths, of their total rebuilt lengths, of their total formed lengths and of their total labelled weights. The `capacity` of
 the result of a nested read states the values it was made
-with, so every refusal in it is explained by its own result (`P7`, "Capacity"). These values can lie below the minimum capacity
-of a conforming reader: the minimums of `P7` bind the reader's own capacity, and a nested read uses what remains of it. The bytes
+with, so every refusal in it is explained by its own result (`P7`, "Capacity"). These values can lie below the minimum values of
+`P7`: those are of the capacity that an implementation claims, and a nested read uses what remains of it. The bytes
 of a nested file are not charged again: they are the output of a rebuild that the outer read admitted, or the decoded payload of
 a `blob` frame or member, which a total already counts.
 
@@ -161,8 +161,12 @@ of the labellings are bounded for each fold and not for the read (`P7`, "Capacit
 capacity, the outer file and the two constants.
 
 What the outer result carries. Exactly the findings of section 6, which judge the nested-file terms of the outer fold and the
-depth of the tree below them. A finding of a nested read (a damaged frame inside a nested file, its own `profile_violation`) is
-in the result of that read and is never copied into the outer result.
+depth of the tree below them. A finding of a nested read (a damaged frame inside a nested file, its own `profile_violation`) is in
+the result of that read and is never copied into the outer result.
+
+**PF-bundle-16.** A consumer MUST NOT take the outer `read_result`, or the absence of a `profile_violation` of this profile in it,
+as the acceptance of a nested file: it MUST judge a nested file by the `result` of its `nested_result` and by nothing else, and
+MUST treat a nested file that has no `nested_result` as not read.
 
 **PF-bundle-5.** A reader MUST NOT fold, label or digest the content of a nested file into the outer file, MUST NOT copy a finding
 of a nested read into the outer result, and MUST NOT deliver the content of a nested read.
@@ -199,7 +203,7 @@ the content digest, the canonical form, and the registry and the meaning of any 
 on give, with the findings of this document added, the list `nested_results` of section 4 delivered beside the `read_result`, and
 the `capacity` of a nested result as section 4 states it, whether or not it lies below the minimums of `P7`, and nothing else
 changed; every rule of this
-document is a check of section 6 or a requirement on a writer or a reader.
+document is a check of section 6 or a requirement on a writer, a reader or a consumer of a result.
 
 Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
 its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). The
