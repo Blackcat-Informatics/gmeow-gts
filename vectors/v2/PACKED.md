@@ -10,7 +10,7 @@
 | `P3/doubt-lost-header-recovery.first-file.bin` | 5281836 | 5111 | `8bb547f6453bb914fd2ac8e83fe8008200e2f01ee303cb7db78610a0f5e601ff` |
 | `P3/doubt-lost-header-recovery.lost-header.bin` | 5281836 | 5112 | `a52ce35fb52b1dc3de2605a1fae5c977c81cc0a30666ef52d563710c9dab463a` |
 | `P3/terms-formed-suffix-free.bin` | 1057005 | 3757 | `8971e6d708e15c46c764e25b465ec092e58ee17a73bd320fb03c60d25c8ad540` |
-| `P4/canon-value-region-literals.bin` | 1311871 | 968 | `a88c06ace5ad072edc96613e6f61cf79b2497e648c58920f572a9f2d1c32f11d` |
+| `P4/canon-value-region-literals.source.bin` | 1311871 | 968 | `a88c06ace5ad072edc96613e6f61cf79b2497e648c58920f572a9f2d1c32f11d` |
 | `P5/parity-append-open-span.whole.bin` | 8951297 | 9484 | `909a7047b2e1a434b36850c0d0614350ef7375231edc7b8f32cca8414e29a5eb` |
 | `P5/recover-chain-independent.bin` | 28948732 | 6985 | `acec966dbf9c8904392f2c8c728b91900dbe44e66741156adf5e0d912c3d2a54` |
 | `P5/recover-chain-witness.bin` | 73701152 | 17920 | `1e544badbdbdc26478be5a3f803a916adb6f664d26c9448e655c80b622c22e34` |

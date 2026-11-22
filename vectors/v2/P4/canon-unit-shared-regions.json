@@ -1,7 +1,8 @@
 {
  "name": "canon-unit-shared-regions",
  "status": "built and matches",
- "note": "",
+ "note": "the canonical file of a fold that holds a literal_value_ref of kind octets whose 524288 octets are BLAKE3 extended output over 'P4 canon unit shared' (8 units) and a one-unit blob whose bytes are the first unit of that value (113355 bytes): the unit is stored in both regions, as the first chunk member of the value pack and as the one blob member of the blob pack (P4-45); the canonical check verifies it",
+ "section": "P4 7",
  "cases": [
   {
    "label": "",
@@ -18,26 +19,16 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {
-    "value": [
-     [
-      1,
-      "ecf1166f70650e37bbc4da38e608689e83bc368504721e1a576ccfb4605024b3"
-     ],
-     [
-      4,
-      "ecf1166f70650e37bbc4da38e608689e83bc368504721e1a576ccfb4605024b3"
-     ]
-    ],
-    "blob": [
-     [
-      2,
-      "ecf1166f70650e37bbc4da38e608689e83bc368504721e1a576ccfb4605024b3"
-     ]
-    ]
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
    },
-   "differences": []
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a000a8d318101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103060500810785f5810181018101810182025820e98a84bb06088544491c4c7e89fd4c343fe290b9228f0ba17c4af787eecc7c8d878b010c1a0008023482020d01810182020180810181828202088101808b021a000802401a0001bb5b82020d018101810180810180808b031a0009bd9b189e820201018101810180810180808b041a0009be39185f820202018101810180810180808b051a0009be98187282020e018101810180810280808b061a0009bf0a19022482020f01810182020180810280808b071a0009c12e19cbde82021001810181018081028080808082025820e98a84bb06088544491c4c7e89fd4c343fe290b9228f0ba17c4af787eecc7c8d8201000200"
   }
  ]
 }

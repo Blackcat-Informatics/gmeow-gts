@@ -1,11 +1,12 @@
 {
  "name": "canon-value-region-typed-octets",
  "status": "built and matches",
- "note": "",
+ "note": "a fold of three literals: the typed value of kind octets of 1048576 bytes v, the typed literal of datatype xsd:string whose lexical form is the same 1048576 bytes, and the typed value of kind octets of 524287 bytes w: the value region of the canonical file holds one value, the 1048576 bytes v, named by the literal_value_ref and by the literal_ref term; the octets value below the value threshold is a literal_value term and has no value; the canonical check verifies the canonical file",
+ "section": "P4 7",
  "cases": [
   {
-   "label": "",
-   "input_file": "canon-value-region-typed-octets.bin",
+   "label": "source",
+   "input_file": "canon-value-region-typed-octets.source.bin",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -18,9 +19,47 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {},
-   "differences": []
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a000c0379810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f482020582020582020581018202582009f3dd093ca45fbb79f5ef4ff3a53df57ee30ae1ba6c8228269775975827e00e858b010b1a00040079820208018101810180810180808b021a0004008419011a82020b0181018101808101818281018101808b031a0004019e1a00080106820201018101810180810180808b041a000c02a41863820202018101810180810180808b051a000c0307187282020e0181018101808102808080808202582009f3dd093ca45fbb79f5ef4ff3a53df57ee30ae1ba6c8228269775975827e00e8201000200",
+   "compaction": {
+    "profile": null,
+    "outcome": "written"
+   },
+   "output_file": "canon-value-region-typed-octets.canonical.bin"
+  },
+  {
+   "label": "canonical",
+   "input_file": "canon-value-region-typed-octets.canonical.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019070a8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103050400810685f581018101810181018202582009f3dd093ca45fbb79f5ef4ff3a53df57ee30ae1ba6c8228269775975827e00e868b010c18f782020d01810182020180810181828202018101808b0219010319011e82020101810182020180810180808b031902211863820202018101810180810180808b04190284187282020e018101810180810280808b051902f619010082020f018101810180810280808b061903f61902f68202100181018101808102808080808202582009f3dd093ca45fbb79f5ef4ff3a53df57ee30ae1ba6c8228269775975827e00e8201000200"
   }
  ]
 }

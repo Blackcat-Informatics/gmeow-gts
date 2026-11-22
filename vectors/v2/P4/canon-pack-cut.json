@@ -1,11 +1,12 @@
 {
  "name": "canon-pack-cut",
  "status": "built and matches",
- "note": "64 one-unit blobs of 262144 bytes each of a constant byte that no mask cuts (16777216 bytes of bodies), then one more blob of one byte: one unit each; the result records the body size 16777216, the member counts 64 and 1 and the position 27 of the extra blob (the input file is empty)",
+ "note": "the packing of the blob region by P = 16777216: 64 one-unit blobs of 262144 bytes each of one constant byte, the first 64 byte values c in ascending order for which (-G[c] mod 2^64) >= 2^50, so that no mask cuts (case 64-blobs: one pack of 64 blob members, unit_length 16777216, equal to P and so not cut); the same with a blob of the one byte 01 added, which stands at index 27 of the 65 names in ascending E(name) (case 65-blobs: the 65th member would bring the sum to 16777217, above P, so the first pack closes with 64 members and the last blob of 262144 bytes is alone in a second pack); the canonical check verifies both",
+ "section": "P4 7",
  "cases": [
   {
-   "label": "",
-   "input_file": "canon-pack-cut.bin",
+   "label": "64-blobs",
+   "input_file": "canon-pack-cut.64-blobs.bin",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -18,18 +19,42 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {
-    "first": [
-     16777216
-    ],
-    "second_member_counts": [
-     64,
-     1
-    ],
-    "position_of_the_extra_blob": 27
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
    },
-   "differences": []
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000191ded8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103030200810485f5810181018101810182025820fdfa1eacf025fb779748b1051a6a68f980ba187dd370154535181cdc207a6758848b010c190d7f82020d01810182020180810180808b02190d8b187282020e018101810180810280808b03190dfd1909bf82020f01810182020180810280808b041917bc19061782021001810181018081028080808082025820fdfa1eacf025fb779748b1051a6a68f980ba187dd370154535181cdc207a67588201000200"
+  },
+  {
+   "label": "65-blobs",
+   "input_file": "canon-pack-cut.65-blobs.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000191ee78101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f5810181018101810182025820afd67a2d6f8b9db05e2d3088fea1f26bf556edcca476d6342fd40c07ab99253e858b010c190d7682020d01810182020180810180808b02190d8218bd82020d01810182020180810180808b03190e3f187282020e018101810180810280808b04190eb11909e182020f01810182020180810280808b0519189219063982021001810181018081028080808082025820afd67a2d6f8b9db05e2d3088fea1f26bf556edcca476d6342fd40c07ab99253e8201000200"
   }
  ]
 }

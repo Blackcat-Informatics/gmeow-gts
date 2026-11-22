@@ -1,7 +1,8 @@
 {
  "name": "canon-regions-shared",
  "status": "built and matches",
- "note": "the value is given to the region as its octets: which literals are values of the canonical file is P7 (threshold)",
+ "note": "the canonical file of a fold cut from 400000 bytes of BLAKE3 extended output over 'P4 canon shared', whose chunking gives the units c1 (48824 bytes), c2 (73555) and c3 (80312): the multi-unit blobs b1 = c1 c2 (media type x/1) and b2 = c2 c3 (none), the one-unit blob b3 = c3 (a/a and b/b), an external name 7e7e...7e of length 9, and a literal_value_ref v of kind octets whose 597843 octets are c2 then 524288 bytes over 'P4 canon shared value'. Ascending E(name) is b3, b2, b1. The value region is one pack: chunk c2, 8 chunk members of the further units of v, value v; the blob region is one pack: blob c3, chunk c2, recipe b2, chunk c1, recipe b1: c2 is stored in both regions, each unit once in its region, b3 is a blob member with least(M) a/a, and the external frames are 7e.. with no media type, then b3 with b/b; the canonical check verifies it",
+ "section": "P4 7",
  "cases": [
   {
    "label": "",
@@ -18,60 +19,16 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
-   "result": {
-    "value_members": [
-     [
-      1,
-      "c3701aad5cef0b786721625a6abf667300d4f5e5543611b038b7cc8a66a9133a"
-     ],
-     [
-      4,
-      "c3701aad5cef0b786721625a6abf667300d4f5e5543611b038b7cc8a66a9133a"
-     ]
-    ],
-    "blob_members": [
-     [
-      1,
-      "7b4f52adea7467278b744b3d820442a1dd471d5b83cb0c1c4921b3701127a5f3"
-     ],
-     [
-      1,
-      "c3701aad5cef0b786721625a6abf667300d4f5e5543611b038b7cc8a66a9133a"
-     ],
-     [
-      3,
-      "cb28cd848212e1e1abe508f2db6266cc4405d0ca229a4954a9902193f86ce76c"
-     ],
-     [
-      2,
-      "cb9d8a1a65b57a6b3195a2d9003ce381b2c82f4c90141ac7d5b7d62b012b282c"
-     ],
-     [
-      3,
-      "d400514b793d50309aa35960d1ec7121ead5190728401a54803f141849cdfb9a"
-     ]
-    ],
-    "externals": [
-     [
-      [
-       1,
-       "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-      ],
-      9,
-      null
-     ],
-     [
-      [
-       1,
-       "cb9d8a1a65b57a6b3195a2d9003ce381b2c82f4c90141ac7d5b7d62b012b282c"
-      ],
-      48824,
-      "b/b"
-     ]
-    ]
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
    },
-   "differences": []
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a000d50658101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103080700810985f5810181018101810182025820a0ea050825d46362042e0d06b1d20a8fc72bade5a6417ef537dab20a462117d3898b010c1a000922bc82020d018101810180810181828202098101808b021a000922c81a000319ab82020d018101810180810182828202028101828202048101808b031a000c3c73187682020c018101810180810180808b041a000c3ce9187e82020c018101810180810180808b051a000c3d67189e820201018101810180810180808b061a000c3e05185f820202018101810180810180808b071a000c3e64187282020e018101810180810280808b081a000c3ed619029482020f01810182020180810280808b091a000c416a1a00010ed082021001810181018081028080808082025820a0ea050825d46362042e0d06b1d20a8fc72bade5a6417ef537dab20a462117d38201000200"
   }
  ]
 }
