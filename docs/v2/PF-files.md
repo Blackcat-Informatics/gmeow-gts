@@ -268,8 +268,9 @@ without a visible target fails `files_property_cardinality`.
 **PF-files-15.** A writer that removes or changes an entry MUST also hide its record nodes, MUST hide or rewrite every hard link
 that names it, and MUST give an entry that replaces a hidden one a term that no suppression entry of the file hides.
 
-Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
-its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form").
+Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order, other than its
+parity frames, whose number and place follow the length of the stream (`P5`, "The stream and the spans"), whatever profile its
+header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form").
 
 **PF-files-8.** A writer of the canonical file of a fold under this profile MUST write the canonical file of the fold with the
 header's

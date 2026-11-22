@@ -205,8 +205,9 @@ the `capacity` of a nested result as section 4 states it, whether or not it lies
 changed; every rule of this
 document is a check of section 6 or a requirement on a writer, a reader or a consumer of a result.
 
-Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
-its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). The
+Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order, other than its
+parity frames, whose number and place follow the length of the stream (`P5`, "The stream and the spans"), whatever profile its
+header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). The
 canonical status of a nested file is its own.
 
 **PF-bundle-8.** A writer of the canonical file of a fold under this profile MUST write the canonical file of the fold with the

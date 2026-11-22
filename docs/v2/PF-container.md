@@ -293,7 +293,8 @@ and MUST name the latest export of the file, when there is one, as the `c:previo
 APPEND-ONLY. A graph state is a property of the append history: compaction writes a new file whose commits are new, so the `state`
 referent of every export is unresolved in the canonical file of the fold (`missing_dependency` with `state`). A compacted copy is
 therefore not an archive of this profile, and a segment that declares the profile makes no canonical claim (check `14`). The
-canonical file of a fold otherwise has the same frames in the same order whatever profile its header declares (`P7`, "The
+canonical file of a fold otherwise has the same frames in the same order, other than its parity frames, whose number and place
+follow the length of the stream (`P5`, "The stream and the spans"), whatever profile its header declares (`P7`, "The
 canonical form").
 
 **PF-container-8.** A writer MUST NOT write `canonical` `present` in the header of a segment that declares this profile.

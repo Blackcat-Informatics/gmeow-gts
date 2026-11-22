@@ -118,8 +118,9 @@ head and, as `ordinal`, `1` when that segment has no lineage and that segment's 
 item's bytes) and the `filler` mark naming exactly the filler's bytes. This is a requirement of a writer; no check of a reader
 judges it, since a reader cannot tell a filler that no mark names.
 
-Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
-its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). A
+Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order, other than its
+parity frames, whose number and place follow the length of the stream (`P5`, "The stream and the spans"), whatever profile its
+header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). A
 canonical file has one commit, so the canonical file of a fold of more than `Ne` ordinary frames before that commit fails
 `evidence_commit_interval` and is no custody chain.
 

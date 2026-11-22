@@ -103,8 +103,9 @@ a further ordinary frame.
 "The stream and the spans" places it, and, when it closes a segment with an `index` frame, the parity frame of the final span
 after that frame.
 
-Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order whatever profile
-its header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). A
+Canonical file. A profile places no frame. The canonical file of a fold has the same frames in the same order, other than its
+parity frames, whose number and place follow the length of the stream (`P5`, "The stream and the spans"), whatever profile its
+header declares; the `profile` value changes the header and what is computed from it (`P7`, "The canonical form"). A
 canonical file has one commit, so the canonical file of a fold of more than `Ns` ordinary frames before that commit fails
 `stream_commit_interval`; the snapshot of a long stream is
 distributed without this profile.
