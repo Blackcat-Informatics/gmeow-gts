@@ -204,7 +204,7 @@ The package can describe:
 
 A source AI can export a selected portion of its domain knowledge together with the tool that operates on it. A receiving AI or application can then:
 
-1. verify the package and publisher;
+1. choose the release it means to load, and verify that release, every part the release requires and its publisher;
 2. inspect the tool’s declared capabilities before execution;
 3. review its knowledge and examples;
 4. decide whether its requested permissions are acceptable;
@@ -228,13 +228,28 @@ These examples show three different reasons for GTS to exist:
 
 In every case, GTS remains the exchanged artifact—not the database, AI model, policy engine, or execution environment.
 
+### Sharing parts of an artifact with chosen readers
+
+One artifact can serve readers who are not allowed to see the same things. Frames can be encrypted for chosen recipients, and
+different frames for different recipients. In the document review above, one model's analysis can be shared with its own
+service and the human reviewer alone, the private deliberation with the research team alone, and the published document and
+the decision with everyone.
+
+A reader without a key still verifies the chain and the signatures over the encrypted frames and can pass the file on
+unchanged. It does not learn what they hold, and it cannot call what it sees the complete view: an encrypted frame can hold a
+suppression of content that the reader can see. A package for several audiences therefore says which part each audience is
+expected to read in full, and a recipient accepts that part and no more.
+
 ---
 
 GTS encodes a graph as an **append-only log of CBOR frames**. The logical graph is the
 *fold* (replay) of the log. Growth is an append; "deletion" is **suppression**, never a
 physical removal; optimisation is a separate, explicitly lossy compaction. Concatenating
-two valid GTS files (`cat`) yields a valid GTS file whose fold is the value-union of the
-inputs.
+two valid GTS files (`cat`) yields a valid GTS file whose fold is the fold of all their
+segments, in file order. That fold is the plain union of the two inputs only when their segments
+are independent sets of statements without blank nodes: blank-node labels are scoped to their
+segment, a segment that is concatenated twice is two segments, repeated annotation rows
+accumulate, and a suppression in one input hides matching content of the other.
 
 GTS is ontology-independent. **GTS is the primary distribution method for GMEOW, but GTS does
 not depend on GMEOW.** A conformant reader does not need GMEOW vocabulary, OWL reasoning,
@@ -348,15 +363,21 @@ GTS supports several use cases without making any of them the project frame:
 - **Archives and file manifests:** package directory trees with graph-native metadata and
   content-addressed blobs.
 - **Evidence and custody chains:** append observations, signatures, and sealed payloads without
-  rewriting prior history.
+  rewriting prior history. A signature shows that a trusted key signed the state. To show who handed
+  a state to whom, record the transfer as signed content.
 - **Local-first graph synchronization:** concatenate independently produced segments and fold
-  the value-union.
+  them as one file. GTS is the exchanged artifact and not the synchronization protocol: the layer
+  above it filters replayed segments, orders segments that depend on one another and decides
+  concurrent revisions.
 - **Agent memory:** model belief revision with suppression frames while preserving the original
   signed history. See Python
   [`gts.examples.agent_memory`](./python/src/gts/examples/agent_memory.py) and Rust
   [`gmeow_gts::examples::agent_memory`](./rust/src/examples/agent_memory.rs).
 - **Graph database interchange:** hand the folded graph state to N-Quads, SQLite, DuckDB, Parquet,
   or other transform targets.
+
+For the draft of format generation 2, [`docs/v2/GUIDE-applications.md`](./docs/v2/GUIDE-applications.md) states, for
+each of these uses, what a recipient checks before it relies on a package.
 
 ## Install
 
@@ -794,6 +815,11 @@ contract are maintained in
 [`docs/GTS-API-CLI-PARITY.md`](./docs/GTS-API-CLI-PARITY.md) and
 [`docs/api-parity.json`](./docs/api-parity.json).
 
+The matrix above, the command verbs, the COSE signing and encryption helpers, the proof output of the command line, the
+transform catalogue and the header fields described in this file belong to format generation 1, the generation in force.
+Format generation 2 is a draft under [`docs/v2/`](./docs/v2/README.md).
+[`docs/v2/GUIDE-migration.md`](./docs/v2/GUIDE-migration.md) says where each of these features stands in that draft.
+
 ## The file format in one minute
 
 A GTS file is a **CBOR Sequence** (`application/cbor-seq`) of one or more **segments**.
@@ -819,7 +845,7 @@ GTS file (CBOR Sequence)
     ├── header {gts, v, prof, cat, layout?, dct?, meta?, id}
     └── frame  {t, x?, pub?, to?, d?, prev, id, sig?}
 
-fold(file) = value-union of all segment graphs
+fold(file) = fold of all segments in file order (a value-union, not a set union of the segment graphs)
 ```
 
 Payloads carry a stackable codec chain; unknown codecs or held-back keys degrade a frame to an
@@ -1067,6 +1093,8 @@ For historical releases that predate SBOM and immutable-release hardening, pass
   manifest schema, diagnostics registry, and read/verify modes.
 - [`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md) — GIP process, registry policies,
   compatibility rules, and the v1.0 release-candidate path.
+- [`docs/v2/`](./docs/v2/README.md) — the draft specification of format generation 2 (not in force), with informative
+  guides for applications, for migration from generation 1 and for adoption, and a fixture catalogue.
 - [`docs/GTS-V1-RC1-CHECKLIST.md`](./docs/GTS-V1-RC1-CHECKLIST.md) — runnable `v1.0-rc1`
   checklist for blocker review, conformance reports, package dry-runs, release notes, and
   artifact verification.
