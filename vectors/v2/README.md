@@ -76,16 +76,16 @@ A case states every further input of its read or judgement:
   `forward_end_result_sha256`, `input_points`: statements of a further read of the case's input that no recorded record
   holds.
 
-`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,240 files.
+`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,252 files.
 
 ## Large inputs
 
-A file of at most 1 MiB stands here as it is: 6,168 files.
+A file of at most 1 MiB stands here as it is: 6,170 files.
 
-A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 45 files,
+A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 51 files,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.
 
-A larger input that does not compress to that size is not in this directory: 27 files, 565,827,205 bytes, listed in `ABSENT.md`
+A larger input that does not compress to that size is not in this directory: 31 files, 875,159,317 bytes, listed in `ABSENT.md`
 with their size and SHA-256. Their descriptions are here. The files are in the release archive that `ABSENT.md` names;
 extract it at the root of a checkout and compare each SHA-256 before use.
 
@@ -122,6 +122,3 @@ Two kinds of bytes of an input were not computed a second time, and no recorded 
 of the stale frames of `P5/parity-stale-equal` and `P5/parity-stale-geometry`, which protect data that the corpus does not
 hold and which no reader uses (`docs/v2/P5.md`, "Checking a parity frame"), and the recipient entries of
 `P7/stream-delivery-order` whose identifier is zero, which name no key and which no reader tries.
-
-Behaviour that no entry holds. A member index missing after a full-size sealed pack (`P8/p8-members-layout-missing-small`
-holds the rule at a small size), and a file before and after an append that keeps its parity frames (`P5-27`).

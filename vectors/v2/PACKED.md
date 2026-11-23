@@ -10,6 +10,8 @@
 | `P3/doubt-lost-header-recovery.lost-header.bin` | 5281836 | 5112 | `a52ce35fb52b1dc3de2605a1fae5c977c81cc0a30666ef52d563710c9dab463a` |
 | `P3/terms-formed-suffix-free.bin` | 1057005 | 3757 | `8971e6d708e15c46c764e25b465ec092e58ee17a73bd320fb03c60d25c8ad540` |
 | `P4/canon-value-region-literals.source.bin` | 1311871 | 968 | `a88c06ace5ad072edc96613e6f61cf79b2497e648c58920f572a9f2d1c32f11d` |
+| `P5/parity-append-keeps-frames.after.bin` | 8951297 | 9484 | `909a7047b2e1a434b36850c0d0614350ef7375231edc7b8f32cca8414e29a5eb` |
+| `P5/parity-append-keeps-frames.before.bin` | 4476055 | 4307 | `3a4a9d9e39e3357bd99d51d2f91d1c17e29a464e8feada63ef78dd7f54d0ff27` |
 | `P5/parity-append-open-span.whole.bin` | 8951297 | 9484 | `909a7047b2e1a434b36850c0d0614350ef7375231edc7b8f32cca8414e29a5eb` |
 | `P5/parity-placement.crossing.bin` | 8951249 | 2264 | `dd8a9e64889fa46bc335b5ace1dcc049cd9cf3e7ce175d40c05822a5145e34bd` |
 | `P5/parity-placement.exact.bin` | 4475117 | 1964 | `e5a3975d702460806225312f2121b1c9f47366dfe5d18be547226c67c0a0ecde` |
@@ -43,5 +45,9 @@
 | `P8/p8-length.payload-2-pow-27-plus-17-capacity-2-pow-28.bin` | 134218008 | 4353 | `75296a778a55247208238c782e765fee4ada4a6ff1476052343c144c62bcf7e3` |
 | `P8/p8-length.payload-2-pow-27-plus-17-default-capacity.bin` | 134218008 | 4353 | `75296a778a55247208238c782e765fee4ada4a6ff1476052343c144c62bcf7e3` |
 | `P8/p8-members-layout-cut.result.bin` | 19200384 | 1968 | `8db2dcfb9101948d4792bf1e69f7ee9ca48a66e40eedd0e89852769c183654a4` |
+| `P8/p8-members-layout-missing.absent.result.bin` | 16777517 | 1677 | `28bc056393f284d2fdd85b195ee0e9487004e3514b8612c908a263bb4bec72c7` |
+| `P8/p8-members-layout-missing.after-next-pack.result.bin` | 16777609 | 1744 | `77d8a0e33cf294f53752fe9d7e7f40b3188ff2b4deabd417b200d76997533e34` |
+| `P8/p8-members-layout-missing.boundary-fits.result.bin` | 16777547 | 1715 | `0d9f0c27770f916e5744c5522014caa11af75d40415e01591336fcc4049ee728` |
+| `P8/p8-members-layout-missing.clear-between.result.bin` | 16777630 | 1761 | `b0f75d1a208a7b55f99a1bfa2b1d5783718447cbca04d5c0e093b2bb7b788628` |
 | `P8/p8-members-layout-pass.result.bin` | 19200392 | 1934 | `84fac17bdbf0f37c7a9a47c5b1ae1995c5f27d0e26530bd9551750fa793b8f27` |
 | `PF-stream/stream-concat-two.json` | 1206402 | 73720 | `685ff3b8f5d5231932a6940ce74a852504ba0feeff4e66cb752d4fa891fd1ed2` |

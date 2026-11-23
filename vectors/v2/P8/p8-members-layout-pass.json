@@ -1,7 +1,7 @@
 {
  "name": "p8-members-layout-pass",
  "status": "built and matches",
- "note": "three sealed packs of 400000 members, each followed by its member index as P8-45 places it (the input, listed in ABSENT.md): no finding",
+ "note": "three sealed packs of 400000 members: the first two form one run (800000 members, at most Nr) and are followed by one member index that covers both, and the third is a run of its own followed by its member index, as P8-45 places them (the input, listed in ABSENT.md): no finding",
  "cases": [
   {
    "label": "",
