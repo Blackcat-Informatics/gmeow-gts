@@ -13,8 +13,8 @@ use crate::wire;
 const FRAME: u64 = 2;
 const CHUNK: u64 = 8;
 const EXTERNAL: u64 = 12;
-const COMMIT: u64 = 14;
-const PARITY: u64 = 16;
+pub(super) const COMMIT: u64 = 14;
+pub(super) const PARITY: u64 = 16;
 const DIGEST_HEAD: [u8; 2] = [0x58, 0x20];
 
 /// The first malformed field of a frame and its absolute input offset.
@@ -412,6 +412,16 @@ pub fn encode_plain_frame(
     content: &[u8],
     payload: &[u8],
 ) -> Result<Vec<u8>, FrameError> {
+    encode_plain_frame_with_identifier(predecessor, frame_type, content, payload)
+        .map(|(encoded, _)| encoded)
+}
+
+pub(super) fn encode_plain_frame_with_identifier(
+    predecessor: &[u8; 32],
+    frame_type: u64,
+    content: &[u8],
+    payload: &[u8],
+) -> Result<(Vec<u8>, [u8; 32]), FrameError> {
     let mut encoded = vec![0x8b, 0x02];
     if !(1..=PARITY).contains(&frame_type) {
         return Err(FrameError {
@@ -464,5 +474,5 @@ pub fn encode_plain_frame(
     encoded.extend_from_slice(&DIGEST_HEAD);
     encoded.extend_from_slice(&identifier);
     encoded.push(0x80);
-    Ok(encoded)
+    Ok((encoded, identifier))
 }
