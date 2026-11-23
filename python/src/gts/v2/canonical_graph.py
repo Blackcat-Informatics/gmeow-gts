@@ -107,6 +107,18 @@ def _row_terms(rows: Iterable[Row]) -> Iterator[int]:
         yield from slots.ordered_terms()
 
 
+def dictionary_terms(
+    pool: TermPool,
+    rows: Iterable[Row],
+    records: RecordFold,
+    typed_values: Iterable[int],
+) -> dict[int, Term]:
+    """Return the terms reachable from the canonical dictionary's roots."""
+    return _reachable(
+        pool, chain(_row_terms(rows), named_record_terms(records), typed_values)
+    )
+
+
 def _reference(octets: bytes, values: dict[bytes, ValueReference]) -> ValueReference:
     if octets not in values:
         values[octets] = ValueReference(unit_digest(octets), len(octets))
@@ -167,8 +179,7 @@ def canonical_graph(
     """Build dictionary and row frames from an admitted fold's real blank positions."""
     original_rows = tuple(rows)
     typed_values = dict(values)
-    roots = chain(_row_terms(original_rows), named_record_terms(records), typed_values)
-    terms = _reachable(pool, roots)
+    terms = dictionary_terms(pool, original_rows, records, typed_values)
 
     iri_names = {term.text for term in terms.values() if isinstance(term, Iri)}
     iri_names.update(
