@@ -84,6 +84,7 @@ class SourceItem:
     decoded_size: int = 0
     rule: SourceRule | None = None
     exceeds_capacity: bool = False
+    id_holds: bool = False
 
 
 def source_boundaries(data: bytes) -> Iterator[SourceBoundary]:
@@ -105,6 +106,30 @@ def _fields(item: Value) -> dict[str, Value]:
     if isinstance(item, MapValue):
         return {key: value for key, value in item.entries if isinstance(key, str)}
     return {}
+
+
+def _valid_catalog(value: Value, dictionaries: Value) -> bool:
+    if not isinstance(value, MapValue) or not isinstance(dictionaries, MapValue):
+        return False
+    names: set[str] = set()
+    for name, data in dictionaries.entries:
+        if not isinstance(name, str) or not isinstance(data, bytes):
+            return False
+        names.add(name)
+    for key, entry in value.entries:
+        fields = _fields(entry)
+        if (
+            type(key) is not int
+            or not 0 <= key < 1 << 64
+            or not isinstance(fields.get("name"), str)
+            or fields.get("cls") not in ("encode", "compress", "encrypt")
+        ):
+            return False
+        if "dct" in fields:
+            reference = fields["dct"]
+            if not isinstance(reference, str) or reference not in names:
+                return False
+    return True
 
 
 def _catalog(header: dict[str, Value]) -> dict[int, Codec]:
@@ -267,7 +292,7 @@ def read_source_items(
                 fields["gts"] == MAGIC
                 and type(fields.get("v")) is int
                 and fields["v"] == 1
-                and isinstance(fields.get("cat"), MapValue)
+                and _valid_catalog(fields.get("cat"), fields.get("dct", _EMPTY_MAP))
                 and (
                     not isinstance(raw, TaggedValue) or raw.number == SELF_DESCRIBE_TAG
                 )
@@ -300,8 +325,9 @@ def read_source_items(
         if decoded_total > capacity.decoded_bytes_per_read:
             yield SourceItem(boundary, _EMPTY_MAP, exceeds_capacity=True)
             return
+        id_holds = source_id_matches(raw)
         if (
-            not source_id_matches(raw)
+            not id_holds
             or previous is None
             or fields.get("prev") != previous
             or (
@@ -317,5 +343,11 @@ def read_source_items(
         previous = identifier if isinstance(identifier, bytes) else None
         identifiers.append(previous if previous is not None else b"")
         yield SourceItem(
-            boundary, raw, kind=kind, payload=payload, decoded_size=size, rule=rule
+            boundary,
+            raw,
+            kind=kind,
+            payload=payload,
+            decoded_size=size,
+            rule=rule,
+            id_holds=id_holds,
         )

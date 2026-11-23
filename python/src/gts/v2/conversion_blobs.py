@@ -106,6 +106,11 @@ class ConversionBlobs:
     def _note(self, rule: _Rule, location: BlobLocation, detail: str) -> None:
         self._stop = _earlier(self._stop, BlobSourceError(rule, location, detail))
 
+    @property
+    def item_failure(self) -> BlobSourceError | None:
+        """Return a failure established without relying on the merged metadata."""
+        return self._stop
+
     def hold_digest(self, value: Value) -> None:
         """Remember a stored frame identifier or a digest in a digest position."""
         if isinstance(value, bytes) and len(value) == 32:
@@ -130,13 +135,14 @@ class ConversionBlobs:
         stored = metadata.get("digest")
         self.hold_digest(stored)
         body = payload if isinstance(payload, bytes) else None
+        if body is None and ("d" in fields or fields.get("x", ()) != ()):
+            self._note(8, location, "source blob payload must be bytes")
+            return
         digest: _Digest | None = blake3_256(body) if body is not None else None
         if isinstance(digest, bytes):
             if "digest" in metadata and not _matches(stored, digest):
                 self._note(6, location, "source blob digest does not match its bytes")
         else:
-            if "d" in fields:
-                self._note(8, location, "source blob payload must be bytes")
             if (
                 isinstance(stored, str)
                 or isinstance(stored, bytes)

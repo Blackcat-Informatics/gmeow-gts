@@ -167,6 +167,22 @@ class ConversionSuppression:
         self._blobs.hold_digest(identifier)
         self._frames.setdefault(identifier, []).append((location, rows))
 
+    def hold_digests(self, payload: Value) -> None:
+        """Register digest positions in a decoded directive."""
+        if not isinstance(payload, MapValue):
+            return
+        targets = _fields(payload).get("targets")
+        if not isinstance(targets, tuple):
+            return
+        for target in targets:
+            if isinstance(target, MapValue):
+                fields = _fields(target)
+                kind = fields.get("kind")
+                if kind == "frame":
+                    self._blobs.hold_digest(fields.get("id"))
+                elif kind == "blob":
+                    self._blobs.hold_digest(fields.get("digest"))
+
     def add_directive(
         self,
         segment: int,
@@ -177,6 +193,7 @@ class ConversionSuppression:
         envelope: MapValue = _EMPTY_MAP,
     ) -> None:
         """Judge every member of the item and resolve its local term IDs."""
+        self.hold_digests(payload)
         errors: set[_Rule] = set()
         if any(
             contains_invalid_text(value)
@@ -222,9 +239,6 @@ class ConversionSuppression:
             errors.add(9)
         if errors:
             raise SuppressionSourceError(min(errors))
-        for target in targets:
-            if isinstance(target.value, bytes):
-                self._blobs.hold_digest(target.value)
         self._directives.append(directive)
 
     def _entries(

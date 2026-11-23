@@ -191,11 +191,16 @@ class ConversionGraph:
         for predicate, value in (
             ("headerExtension", extensions(header, _HEADER_FIELDS)),
             ("catalogExtension", catalog),
-            ("segmentMeta", merged),
         ):
             if value.entries:
                 self._quad(segment, _NS + predicate, self.map_value(value))
+        self.add_segment_metadata(segment, merged)
         return segment
+
+    def add_segment_metadata(self, segment: int, metadata: MapValue) -> None:
+        """State the segment metadata after the source fold merges its keys."""
+        if metadata.entries:
+            self._quad(segment, _NS + "segmentMeta", self.map_value(metadata))
 
     def add_frame(
         self,
