@@ -3,10 +3,14 @@
 
 use std::{fs, path::Path};
 
-use gmeow_gts::v2::{
-    decode_header,
-    frame::{decode_frame, Storage},
-    MalformedReason,
+use ciborium::Value;
+use gmeow_gts::{
+    v2::{
+        decode_header,
+        frame::{decode_frame, encode_plain_frame, Storage},
+        MalformedReason,
+    },
+    wire,
 };
 
 fn vector(name: &str) -> Vec<u8> {
@@ -18,7 +22,7 @@ fn vector(name: &str) -> Vec<u8> {
 
 #[test]
 fn frame_identifiers_and_plain_payloads_match_the_published_chain() {
-    let data = vector("P1/link-ok.bin");
+    let data = vector("P5/commit-valid.bin");
     let header = decode_header(&data, 0).expect("header");
     let mut predecessor = header.identifier.expect("header ID");
     let mut offset = header.next_offset;
@@ -28,11 +32,65 @@ fn frame_identifiers_and_plain_payloads_match_the_published_chain() {
         assert_eq!(&frame.computed_identifier(&predecessor), frame.identifier);
         assert!(frame.check_decoded_payload(frame.stored_payload));
         assert_eq!(frame.check_storage(), None);
-        predecessor = *frame.identifier;
+        assert_eq!(
+            encode_plain_frame(
+                &predecessor,
+                frame.frame_type,
+                frame.content,
+                frame.stored_payload
+            )
+            .expect("re-encode published frame"),
+            data[offset..frame.next_offset],
+        );
+        if !frame.transparent {
+            predecessor = *frame.identifier;
+        }
         offset = frame.next_offset;
         count += 1;
     }
     assert!(count >= 2);
+}
+
+#[test]
+fn plain_writer_preserves_payload_length_boundaries() {
+    let predecessor = [0; 32];
+    for length in [23, 24, 255, 256] {
+        let payload = vec![0xaf; length];
+        let content = wire::encode(&Value::Array(vec![Value::Bytes(
+            blake3::derive_key("gts2 unit", &payload).to_vec(),
+        )]));
+        let encoded = encode_plain_frame(&predecessor, 8, &content, &payload).expect("chunk");
+        let frame = decode_frame(&encoded, 0, 1).expect("decode written frame");
+        assert_eq!(frame.stored_payload, payload);
+        assert_eq!(&frame.computed_identifier(&predecessor), frame.identifier);
+        assert!(frame.check_decoded_payload(&payload));
+    }
+    let content = wire::encode(&Value::Array(vec![Value::Bytes(
+        blake3::derive_key("gts2 unit", &[]).to_vec(),
+    )]));
+    assert_eq!(
+        encode_plain_frame(&predecessor, 8, &content, &[])
+            .expect_err("empty chunk")
+            .reason,
+        MalformedReason::OutOfRange,
+    );
+}
+
+#[test]
+fn plain_writer_requires_one_deterministic_content_record() {
+    let predecessor = [0; 32];
+    for (content, reason) in [
+        (&[0x81, 0, 0][..], MalformedReason::WrongLength),
+        (&[0x81, 0x18, 0][..], MalformedReason::NotDeterministic),
+        (&[0x81, 0x81, 0][..], MalformedReason::WrongType),
+    ] {
+        assert_eq!(
+            encode_plain_frame(&predecessor, 7, content, &[])
+                .expect_err("invalid content")
+                .reason,
+            reason
+        );
+    }
 }
 
 #[test]

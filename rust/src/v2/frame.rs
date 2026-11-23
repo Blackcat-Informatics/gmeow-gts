@@ -15,6 +15,7 @@ const CHUNK: u64 = 8;
 const EXTERNAL: u64 = 12;
 const COMMIT: u64 = 14;
 const PARITY: u64 = 16;
+const DIGEST_HEAD: [u8; 2] = [0x58, 0x20];
 
 /// The first malformed field of a frame and its absolute input offset.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -84,11 +85,7 @@ impl Frame<'_> {
     /// Compute the frame ID from the predecessor and original identity fields.
     #[must_use]
     pub fn computed_identifier(&self, predecessor: &[u8; 32]) -> [u8; 32] {
-        let mut hash = blake3::Hasher::new_derive_key("gts2 frame");
-        hash.update(&[0x87, 0x58, 0x20]);
-        hash.update(predecessor);
-        hash.update(self.identity_fields);
-        *hash.finalize().as_bytes()
+        frame_identifier(predecessor, self.identity_fields)
     }
 
     /// Compare the stored check of a compressed frame, including a future codec.
@@ -113,9 +110,28 @@ impl Frame<'_> {
         if u64::try_from(decoded.len()).ok() != Some(self.decoded_length) {
             return false;
         }
-        let mut hash = blake3::Hasher::new_derive_key("gts2 payload");
-        hash.update(decoded);
-        hash.finalize().as_bytes() == self.payload_digest
+        &payload_digest(decoded) == self.payload_digest
+    }
+}
+
+fn frame_identifier(predecessor: &[u8; 32], fields: &[u8]) -> [u8; 32] {
+    let mut hash = blake3::Hasher::new_derive_key("gts2 frame");
+    hash.update(&[0x87]);
+    hash.update(&DIGEST_HEAD);
+    hash.update(predecessor);
+    hash.update(fields);
+    *hash.finalize().as_bytes()
+}
+
+fn payload_digest(decoded: &[u8]) -> [u8; 32] {
+    blake3::derive_key("gts2 payload", decoded)
+}
+
+fn valid_decoded_length(frame_type: u64, length: u64) -> bool {
+    match frame_type {
+        COMMIT | EXTERNAL => length == 0,
+        CHUNK => length != 0,
+        _ => true,
     }
 }
 
@@ -365,9 +381,7 @@ pub fn decode_frame(
     if frame_type == PARITY && !signatures.is_empty() {
         return Err(error.into());
     }
-    if (matches!(frame_type, COMMIT | EXTERNAL) && decoded_length != 0)
-        || (frame_type == CHUNK && decoded_length == 0)
-    {
+    if !valid_decoded_length(frame_type, decoded_length) {
         return Err(length_error.into());
     }
 
@@ -386,4 +400,69 @@ pub fn decode_frame(
         identity_fields,
         next_offset: decoder.offset,
     })
+}
+
+/// Write a registry 1 frame with plain storage and no signatures.
+///
+/// Supply the deterministic encoding of the content record and decoded bytes
+/// that satisfy the rules of the selected frame type.
+pub fn encode_plain_frame(
+    predecessor: &[u8; 32],
+    frame_type: u64,
+    content: &[u8],
+    payload: &[u8],
+) -> Result<Vec<u8>, FrameError> {
+    let mut encoded = vec![0x8b, 0x02];
+    if !(1..=PARITY).contains(&frame_type) {
+        return Err(FrameError {
+            reason: MalformedReason::UnregisteredValue,
+            offset: encoded.len(),
+        });
+    }
+    encoded.extend(wire::encode(&Value::from(frame_type)));
+    encoded.push(if frame_type < COMMIT { 0xf5 } else { 0xf4 });
+    encoded.push(if frame_type == PARITY { 0xf5 } else { 0xf4 });
+    let offset = encoded.len();
+    let mut decoder = Decoder {
+        bytes: content,
+        offset: 0,
+    };
+    decoder
+        .frame_content(frame_type)
+        .map_err(|error| FrameError {
+            reason: error.reason,
+            offset: offset + error.offset,
+        })?;
+    if decoder.offset != content.len() {
+        return Err(FrameError {
+            reason: MalformedReason::WrongLength,
+            offset: offset + decoder.offset,
+        });
+    }
+    encoded.extend_from_slice(content);
+
+    let error = FrameError {
+        reason: MalformedReason::OutOfRange,
+        offset: encoded.len(),
+    };
+    let length = u64::try_from(payload.len()).map_err(|_| error)?;
+    if !valid_decoded_length(frame_type, length) {
+        return Err(error);
+    }
+    let mut length_head = wire::encode(&Value::from(length));
+    encoded.extend_from_slice(&length_head);
+    encoded.extend_from_slice(&DIGEST_HEAD);
+    encoded.extend_from_slice(&payload_digest(payload));
+    let identifier = frame_identifier(predecessor, &encoded[2..]);
+
+    encoded.extend_from_slice(&[0x81, 0x01]);
+    // A byte string and a uint use the same preferred argument encoding.
+    length_head[0] |= 0x40;
+    encoded.extend(length_head);
+    encoded.reserve(payload.len() + DIGEST_HEAD.len() + identifier.len() + 1);
+    encoded.extend_from_slice(payload);
+    encoded.extend_from_slice(&DIGEST_HEAD);
+    encoded.extend_from_slice(&identifier);
+    encoded.push(0x80);
+    Ok(encoded)
 }
