@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Validate and rebuild GTS v2 recipes and values (P4 §§3, 6)."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from itertools import islice
 from typing import Literal
 
 from blake3 import blake3
@@ -110,6 +111,13 @@ class VerifiedRebuild:
 @dataclass(frozen=True, slots=True)
 class IncompleteRebuild:
     reason: RebuildFailure
+    later_unit_missing: bool | None = field(default=None, compare=False)
+
+    @property
+    def all_units_present(self) -> bool:
+        if self.reason == "blob_length" and self.later_unit_missing is None:
+            raise ValueError("recipe length failure lacks unit availability")
+        return self.reason != "chunk" and not self.later_unit_missing
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,6 +154,7 @@ class RebuildBudget:
         digest: bytes,
         total_length: int,
         entries: tuple[Entry, ...],
+        kind: RebuildKind | None = None,
     ) -> RebuildResult:
         """Charge a folded declaration with validated entries, then rebuild it."""
         if type(total_length) is not int or not 0 <= total_length <= _MAX_UINT:
@@ -160,12 +169,22 @@ class RebuildBudget:
 
         hasher = blake3(derive_key_context=_UNIT_CONTEXT)
         parts = []
-        for entry in entries:
+        for ordinal, entry in enumerate(entries):
             unit = index._at_or_before(position, entry.digest)
             if unit is None:
                 return IncompleteRebuild("chunk")
             if len(unit) != entry.length:
-                return IncompleteRebuild("blob_length")
+                # Keep the first P4 failure. P7 compaction also needs to
+                # distinguish whether this declaration has every unit.
+                missing = (
+                    any(
+                        index._at_or_before(position, following.digest) is None
+                        for following in islice(entries, ordinal + 1, None)
+                    )
+                    if kind == "recipe"
+                    else None
+                )
+                return IncompleteRebuild("blob_length", missing)
             parts.append(unit)
             hasher.update(unit)
         if hasher.digest() != digest:

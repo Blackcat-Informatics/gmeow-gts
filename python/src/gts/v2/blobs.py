@@ -296,6 +296,7 @@ class BlobRead:
                 digest=record.digest,
                 total_length=record.total_length,
                 entries=record.entries,
+                kind="recipe" if record.kind == MemberKind.RECIPE else "value",
             )
             rebuilds.append((location, outcome))
             state = _rebuild_state(location, outcome, findings)
