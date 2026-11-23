@@ -105,7 +105,7 @@ def _registry_code(decoder: _Decoder, last: int, newer: bool) -> int:
 def _content(decoder: _Decoder, frame_type: int) -> None:
     # P1 §3.2 checks the shape here and leaves values to the part that owns
     # the type.
-    if frame_type > _LAST_FRAME_TYPE:
+    if not 1 <= frame_type <= _LAST_FRAME_TYPE:
         decoder.closed_item()
         return
     if frame_type == 1:
@@ -212,6 +212,45 @@ def _signatures(decoder: _Decoder, *, newer: bool) -> tuple[Signature, ...]:
     return tuple(signatures)
 
 
+def _identity(
+    decoder: _Decoder, *, newer: bool | None
+) -> tuple[int, bool, bool, memoryview, int, int, bytes]:
+    # P1 §5.1 needs the typed shape even if a value rule fails. The envelope
+    # decoder additionally checks registry membership and both flag values.
+    frame_type = (
+        decoder.uint()
+        if newer is None
+        else _registry_code(decoder, _LAST_FRAME_TYPE, newer)
+    )
+    check_flags = newer is not None and frame_type <= _LAST_FRAME_TYPE
+
+    offset = decoder.offset
+    critical = decoder.boolean()
+    if check_flags and critical != (frame_type < _COMMIT):
+        raise FrameError("forbidden_combination", offset)
+    offset = decoder.offset
+    transparent = decoder.boolean()
+    if check_flags and transparent != (frame_type == _PARITY):
+        raise FrameError("forbidden_combination", offset)
+
+    offset = decoder.offset
+    _content(decoder, frame_type)
+    content = memoryview(decoder.data)[offset : decoder.offset]
+
+    decoded_length_offset = decoder.offset
+    decoded_length = decoder.uint()
+    digest = bytes(decoder.bytes(32))
+    return (
+        frame_type,
+        critical,
+        transparent,
+        content,
+        decoded_length_offset,
+        decoded_length,
+        digest,
+    )
+
+
 def decode_frame(data: bytes, offset: int = 0, *, registry_version: int = 1) -> Frame:
     """Decode one BLAKE3 frame envelope for a reader of registry version 1.
 
@@ -227,26 +266,16 @@ def decode_frame(data: bytes, offset: int = 0, *, registry_version: int = 1) -> 
     decoder.uint(minimum=2, maximum=2, reason="unregistered_value")
     identity_start = decoder.offset
     newer = registry_version > 1
-    frame_type = _registry_code(decoder, _LAST_FRAME_TYPE, newer)
-
-    offset = decoder.offset
-    critical = decoder.boolean()
-    if frame_type <= _LAST_FRAME_TYPE and critical != (frame_type < _COMMIT):
-        raise FrameError("forbidden_combination", offset)
-    offset = decoder.offset
-    transparent = decoder.boolean()
-    if frame_type <= _LAST_FRAME_TYPE and transparent != (frame_type == _PARITY):
-        raise FrameError("forbidden_combination", offset)
-
-    data_view = memoryview(data)
-    offset = decoder.offset
-    _content(decoder, frame_type)
-    content = data_view[offset : decoder.offset]
-
-    decoded_length_offset = decoder.offset
-    decoded_length = decoder.uint()
-    digest = bytes(decoder.bytes(32))
-    identity = data_view[identity_start : decoder.offset]
+    (
+        frame_type,
+        critical,
+        transparent,
+        content,
+        decoded_length_offset,
+        decoded_length,
+        digest,
+    ) = _identity(decoder, newer=newer)
+    identity = memoryview(data)[identity_start : decoder.offset]
 
     offset = decoder.offset
     storage = _storage(decoder, newer=newer, decoded_length=decoded_length)
