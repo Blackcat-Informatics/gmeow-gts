@@ -160,14 +160,15 @@ def decode_rows(
     payload: bytes | memoryview,
     *,
     registry_version: int = 1,
-    previous: DecodedRows | None = None,
+    previous: DecodedRows | Row | None = None,
     written_alike: _TermIdentity = _identity,
 ) -> DecodedRows:
     """Check one row frame after its envelope, link and payload checks.
 
-    Pass the nearest earlier decoded frame of this type when its order is
-    known. Map term IDs to equality keys from the dictionary for checking
-    written-alike annotations. Unknown or unreadable IDs have distinct keys.
+    Pass the nearest earlier decoded frame of this type or its last row when
+    it declares canonical order. Map term IDs to equality keys for checking
+    written-alike annotations. Undefined IDs and IDs from non-folded terms
+    frames have distinct keys.
     """
     if frame_type not in _PAYLOAD_SIZES:
         raise ValueError("frame type is not a row frame")
@@ -242,14 +243,16 @@ def _end(decoder: _Decoder) -> None:
         raise ContentError("wrong_length", decoder.offset)
 
 
-def _previous_row(frame_type: int, previous: DecodedRows | None) -> Row | None:
-    if (
-        previous is not None
-        and previous.frame_type == frame_type
-        and previous.order == "canonical"
-    ):
-        return previous.rows[-1]
-    return None
+def _previous_row(frame_type: int, previous: DecodedRows | Row | None) -> Row | None:
+    if isinstance(previous, DecodedRows):
+        if previous.frame_type == frame_type and previous.order == "canonical":
+            return previous.rows[-1]
+        return None
+    return (
+        previous
+        if previous is not None and _row_parts(previous)[0] == frame_type
+        else None
+    )
 
 
 def _runs[T](values: Iterable[T]) -> list[tuple[T, int]]:

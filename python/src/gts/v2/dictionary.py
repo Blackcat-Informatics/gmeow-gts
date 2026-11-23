@@ -3,7 +3,7 @@
 """Resolve segment-local IDs to P3 term values and graph lines."""
 
 from bisect import bisect_right
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -141,6 +141,16 @@ def _literal_form(term: LiteralTerm) -> int:
     )
 
 
+def _written_term_key(
+    term: WireTerm, lookup: Callable[[int], tuple[bool, int]]
+) -> tuple[object, ...]:
+    if isinstance(term, LiteralTerm) and term.datatype is not None:
+        return (_kind(term), term.lexical, lookup(term.datatype))
+    if isinstance(term, TripleTerm):
+        return (4, lookup(term.subject), lookup(term.predicate), lookup(term.object))
+    return (_kind(term), term)
+
+
 class TermDictionary:
     """Maintain one segment's IDs and resolve them into a shared term pool."""
 
@@ -196,19 +206,7 @@ class TermDictionary:
         return kind is not None and kind <= 7 and kind not in valid
 
     def _written_key(self, term: WireTerm) -> int:
-        key: tuple[object, ...]
-        if isinstance(term, LiteralTerm) and term.datatype is not None:
-            key = (_kind(term), term.lexical, self.written_alike(term.datatype))
-        elif isinstance(term, TripleTerm):
-            key = (
-                4,
-                *(
-                    self.written_alike(t)
-                    for t in (term.subject, term.predicate, term.object)
-                ),
-            )
-        else:
-            key = (_kind(term), term)
+        key = _written_term_key(term, self.written_alike)
         return self._written.setdefault(key, len(self._written))
 
     def _order_key(self, term: WireTerm) -> tuple[_OrderKey | None, int | None]:
