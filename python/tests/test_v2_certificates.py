@@ -1,0 +1,134 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
+"""Check L1 certificates, positions and copy indices against the specification."""
+
+from itertools import combinations, product
+
+from gts.v2._certificates import (
+    Call,
+    canonical_map,
+    compare_certificates,
+    component_certificates,
+)
+from gts.v2.labelling import Blank, Iri, LabellingInput, LabellingTerms
+from gts.v2.rows import QuadRow
+
+
+def _graph(arcs: list[tuple[bytes, bytes]]) -> LabellingInput:
+    terms = LabellingTerms()
+    predicate = terms.add(Iri(b"p"))
+    return LabellingInput(
+        terms,
+        (QuadRow(terms.add(Blank(a)), predicate, terms.add(Blank(b))) for a, b in arcs),
+    )
+
+
+def test_cycle_copies_use_source_order_for_ties_but_share_an_identity() -> None:
+    # Section 12.2 gives two copies of the directed triangle.
+    source = _graph(
+        [
+            (b"z", b"x"),
+            (b"y", b"z"),
+            (b"x", b"y"),
+            (b"b", b"c"),
+            (b"c", b"a"),
+            (b"a", b"b"),
+        ]
+    )
+    components = component_certificates(source)
+    identity = bytes.fromhex(
+        "0642fe795c2b0f0ac68c93348399d176cbd6666baf179e35f5da142aaa8dc857"
+    )
+    for component in components:
+        assert component.identity == identity
+        assert component.call.target_size == component.call.attaining == 3
+        assert component.refinement_units + component.call.refinement_units == 20
+        assert component.call.fix_units == 12
+    labels = canonical_map(components)
+    assert list(labels) == [b"a", b"c", b"b", b"x", b"z", b"y"]
+    for i, label in enumerate(labels.values()):
+        assert (
+            label.position,
+            label.component,
+            label.local_position,
+            label.copy_index,
+        ) == (
+            i,
+            identity,
+            i % 3,
+            i // 3,
+        )
+    result = source.positioned_sequence(
+        {node: label.position for node, label in labels.items()}
+    )
+    assert result.digest.hex() == (
+        "aad8fba9f3f9b55f69d2d2d7bdbc48f43f5164eaec2b947ce5870077c50501fd"
+    )
+
+
+def test_fixed_node_counts_distinguish_otherwise_identical_certificates() -> None:
+    # Section 12.6 keeps the entries equal and changes the count at every level.
+    first = list(product((b"a1", b"a2"), (b"b1", b"b2")))
+    second = [(b"u", b"c1"), (b"v1", b"c1"), (b"u", b"c2"), (b"v2", b"c2")]
+    source = _graph(first + second)
+    left, right = components = component_certificates(source)
+    assert (left.identity.hex(), right.identity.hex()) == (
+        "317cfcc5349aad5e59854af7992d2355d81d3661a4ff5fd8baf3157b092c9cd1",
+        "7868b0cc1be5dc2938479ebcf7b247340ec1f2336684c8e4e421ac4769ddb7a4",
+    )
+    a, b = (b"".join(component.call.certificate_chunks()) for component in components)
+    assert [i for i, (x, y) in enumerate(zip(a, b, strict=True)) if x != y] == [
+        7,
+        31,
+        131,
+    ]
+    assert compare_certificates(left.call, right.call) > 0
+    assert sum(call.fix_units for call in left.call.preorder()) == 19
+    assert sum(call.fix_units for call in right.call.preorder()) == 21
+    labels = canonical_map(components)
+    assert list(labels) == [
+        b"a1",
+        b"a2",
+        b"b1",
+        b"b2",
+        b"u",
+        b"v1",
+        b"c1",
+        b"v2",
+        b"c2",
+    ]
+    result = source.positioned_sequence(
+        {node: label.position for node, label in labels.items()}
+    )
+    assert result.digest.hex() == (
+        "05ba28bf4bce28c3e4113f8de9adf8cbf549e6de2550db47de69ddbd9bc652f6"
+    )
+
+
+def test_tied_node_cell_can_have_nonattaining_children() -> None:
+    # Section 6.8 gives a cubic graph with two distinct orbits in one cell.
+    edges = [(b"a2", b"b2"), (b"a3", b"b3")]
+    for prefix in (b"a", b"b"):
+        nodes = [prefix + digit for digit in (b"0", b"1", b"2", b"3")]
+        edges.extend(list(combinations(nodes, 2))[:-1])
+    source = _graph(edges + [(b, a) for a, b in edges])
+    (component,) = component_certificates(source)
+    assert (component.call.target_size, component.call.attaining) == (8, 4)
+    assert component.call.fixed[0] == b"a0"
+    names = {b"a0": b"a2", b"a2": b"a0"}
+    renamed_edges = [(names.get(a, a), names.get(b, b)) for a, b in edges]
+    renamed = _graph(renamed_edges + [(b, a) for a, b in renamed_edges])
+    (renamed_component,) = component_certificates(renamed)
+    assert renamed_component.call.fixed[0] == b"a1"
+    assert renamed_component.call.attaining == 4
+    assert renamed_component.identity == component.identity
+
+
+def test_certificate_operations_accept_nesting_beyond_the_recursion_limit() -> None:
+    a = Call((b"a",), ((0, b"a"),), (), b"a", 0, 0)
+    b = Call((b"b",), ((0, b"b"),), (), b"b", 0, 0)
+    for _ in range(1200):
+        a = Call((b"a",), (), (a,), b"a", 0, 0)
+        b = Call((b"b",), (), (b,), b"b", 0, 0)
+    assert compare_certificates(a, b) < 0
+    assert b"".join(a.certificate_chunks()).endswith(b"a" + bytes(8))
