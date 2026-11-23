@@ -6,8 +6,10 @@ from dataclasses import dataclass
 
 import cbor2
 from blake3 import blake3
+from zstandard import ZstdCompressor
 
 from ._decode import WireError, _Decoder
+from ._zstd import ZSTD_CODEC, compressed_payload
 from .framing import item_end
 
 _LAST_FRAME_TYPE = 16
@@ -318,11 +320,16 @@ def encode_plain_frame(
     Supply the content record and decoded payload defined by the frame type.
     The caller handles the frame's semantic and segment-level constraints.
     """
-    return _encode_plain_frame(predecessor, frame_type, content, payload)[0]
+    return _encode_frame(predecessor, frame_type, content, payload)[0]
 
 
-def _encode_plain_frame(
-    predecessor: bytes, frame_type: int, content: list[object], payload: bytes
+def _encode_frame(
+    predecessor: bytes,
+    frame_type: int,
+    content: list[object],
+    payload: bytes,
+    *,
+    compressor: ZstdCompressor | None = None,
 ) -> tuple[bytes, bytes]:
     if type(frame_type) is not int or not 1 <= frame_type <= _LAST_FRAME_TYPE:
         raise ValueError("frame type must be assigned in registry version 1")
@@ -341,11 +348,21 @@ def _encode_plain_frame(
         )
     )
     identifier = _identifier(predecessor, fields)
+    stored = (
+        compressed_payload(payload, compressor)
+        if compressor is not None and frame_type != _PARITY
+        else None
+    )
+    storage = (
+        b"\x81\x01"
+        if stored is None
+        else cbor2.dumps([2, ZSTD_CODEC, _stored_check(ZSTD_CODEC, stored)])
+    )
     encoded = (
         b"\x8b\x02"
         + fields
-        + b"\x81\x01"
-        + cbor2.dumps(payload)
+        + storage
+        + cbor2.dumps(payload if stored is None else stored)
         + cbor2.dumps(identifier)
         + b"\x80"
     )
