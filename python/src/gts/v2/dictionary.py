@@ -84,8 +84,12 @@ class TermPool:
     def term(self, term_id: int) -> Term:
         return self._terms[term_id]
 
+    def lookup(self, term: Term) -> int | None:
+        """Find a resolved term by value without adding it to the pool."""
+        return self._ids.get(term)
+
     def _intern(self, term: Term) -> int:
-        found = self._ids.get(term)
+        found = self.lookup(term)
         if found is not None:
             return found
         term_id = len(self._terms)
