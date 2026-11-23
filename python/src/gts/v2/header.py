@@ -48,6 +48,30 @@ class DecodedHeader:
     identifier: bytes | None
 
 
+def _opener_registry_code(decoder: _Decoder, registry_version: int, last: int) -> int:
+    if registry_version <= _REGISTRY_VERSION:
+        return decoder.uint(minimum=1, maximum=last, reason="unregistered_value")
+    return decoder.uint(minimum=1, reason="unregistered_value")
+
+
+def _decode_opener_fields(decoder: _Decoder) -> tuple[int, int, int | None]:
+    registry = decoder.uint(minimum=1)
+    algorithm = _opener_registry_code(decoder, registry, _BLAKE3_256)
+    profile = decoder.option(
+        lambda: decoder.uint(minimum=1, reason="unregistered_value")
+    )
+    return registry, algorithm, profile
+
+
+def _decode_lineage(decoder: _Decoder, digest_size: int | None) -> Lineage | None:
+    def read_lineage() -> Lineage:
+        decoder.record(2)
+        head = decoder.bytes(digest_size)
+        return Lineage(bytes(head), decoder.uint(minimum=1))
+
+    return decoder.option(read_lineage)
+
+
 def decode_header(data: bytes, offset: int = 0) -> DecodedHeader:
     """Read one header and return the next item position and P1 header identifier.
 
@@ -61,27 +85,12 @@ def decode_header(data: bytes, offset: int = 0) -> DecodedHeader:
     decoder.record(7)
     decoder.uint(minimum=1, maximum=1, reason="unregistered_value")
     decoder.uint(minimum=2, maximum=2)
-    registry_version = decoder.uint(minimum=1)
-    known_registry = registry_version <= _REGISTRY_VERSION
-
-    def registry_code(last: int) -> int:
-        if known_registry:
-            return decoder.uint(minimum=1, maximum=last, reason="unregistered_value")
-        return decoder.uint(minimum=1, reason="unregistered_value")
-
-    algorithm = registry_code(_BLAKE3_256)
+    registry_version, algorithm, profile = _decode_opener_fields(decoder)
     has_hash = algorithm == _BLAKE3_256
-    profile = decoder.option(
-        lambda: decoder.uint(minimum=1, reason="unregistered_value")
+    canonical = decoder.option(
+        lambda: _opener_registry_code(decoder, registry_version, _CANONICAL_FORM)
     )
-    canonical = decoder.option(lambda: registry_code(_CANONICAL_FORM))
-
-    def read_lineage() -> Lineage:
-        decoder.record(2)
-        head = decoder.bytes(32 if has_hash else None)
-        return Lineage(bytes(head), decoder.uint(minimum=1))
-
-    lineage = decoder.option(read_lineage)
+    lineage = _decode_lineage(decoder, 32 if has_hash else None)
     header = Header(registry_version, algorithm, profile, canonical, lineage)
 
     identifier = None
@@ -91,12 +100,9 @@ def decode_header(data: bytes, offset: int = 0) -> DecodedHeader:
     return DecodedHeader(header, decoder.offset, identifier)
 
 
-def encode_header(header: Header) -> bytes:
-    """Encode a registry version 1 header for a segment writer.
-
-    A caller sets lineage from the preceding segment and sets the canonical
-    claim only when it has produced the corresponding canonical file.
-    """
+def _encode_opener_fields(
+    header: Header,
+) -> tuple[int, int, list[object], list[object]]:
     if (
         type(header.registry_version) is not int
         or header.registry_version != _REGISTRY_VERSION
@@ -108,11 +114,6 @@ def encode_header(header: Header) -> bytes:
         type(header.profile) is not int or not 1 <= header.profile <= _LAST_PROFILE
     ):
         raise ValueError("profile must be assigned in the profile table")
-    if header.canonical is not None and (
-        type(header.canonical) is not int or header.canonical != _CANONICAL_FORM
-    ):
-        raise ValueError("canonical form must be assigned in registry version 1")
-
     lineage: list[object] = [1]
     if header.lineage is not None:
         previous_head, ordinal = header.lineage.previous_head, header.lineage.ordinal
@@ -121,14 +122,28 @@ def encode_header(header: Header) -> bytes:
         if type(ordinal) is not int or not 1 <= ordinal < 1 << 64:
             raise ValueError("lineage ordinal must be a positive uint")
         lineage = [2, [previous_head, ordinal]]
+    profile: list[object] = [1] if header.profile is None else [2, header.profile]
+    return header.registry_version, header.hash_algorithm, profile, lineage
 
+
+def encode_header(header: Header) -> bytes:
+    """Encode a registry version 1 header for a segment writer.
+
+    A caller sets lineage from the preceding segment and sets the canonical
+    claim only when it has produced the corresponding canonical file.
+    """
+    registry, algorithm, profile, lineage = _encode_opener_fields(header)
+    if header.canonical is not None and (
+        type(header.canonical) is not int or header.canonical != _CANONICAL_FORM
+    ):
+        raise ValueError("canonical form must be assigned in registry version 1")
     return cbor2.dumps(
         [
             1,
             2,
-            header.registry_version,
-            header.hash_algorithm,
-            [1] if header.profile is None else [2, header.profile],
+            registry,
+            algorithm,
+            profile,
             [1] if header.canonical is None else [2, header.canonical],
             lineage,
         ]
