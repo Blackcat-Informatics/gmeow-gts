@@ -6,6 +6,7 @@ from collections.abc import Iterable, Iterator
 
 import cbor2
 
+from ._conversion_fields import extensions, frame_values
 from ._legacy_cbor import (
     FloatValue,
     InvalidText,
@@ -15,6 +16,7 @@ from ._legacy_cbor import (
     Value,
     merge_legacy_maps,
 )
+from .conversion_rdf import TermNote
 from .dictionary import Blank, Iri, TermPool, TypedLiteral
 from .rows import QuadRow
 from .terms import TypedValue
@@ -49,16 +51,6 @@ def _metadata_maps(maps: Iterable[MapValue]) -> Iterator[MapValue]:
         yield value
 
 
-def _extensions(value: MapValue, fields: set[str]) -> MapValue:
-    return MapValue(
-        tuple(
-            (key, item)
-            for key, item in value.entries
-            if not isinstance(key, str) or key not in fields
-        )
-    )
-
-
 def _catalog_extensions(catalog: Value) -> MapValue:
     if not isinstance(catalog, MapValue):
         raise ValueError("source codec catalogue must be a map")
@@ -66,7 +58,7 @@ def _catalog_extensions(catalog: Value) -> MapValue:
     for key, codec in catalog.entries:
         if not isinstance(codec, MapValue):
             raise ValueError("source codec entry must be a map")
-        extras = _extensions(codec, _CODEC_FIELDS)
+        extras = extensions(codec, _CODEC_FIELDS)
         if extras.entries:
             found.append((key, extras))
     return MapValue(tuple(found))
@@ -197,10 +189,40 @@ class ConversionGraph:
         if "meta" in fields:
             self._quad(segment, _NS + "headerMeta", self.map_value(fields["meta"]))
         for predicate, value in (
-            ("headerExtension", _extensions(header, _HEADER_FIELDS)),
+            ("headerExtension", extensions(header, _HEADER_FIELDS)),
             ("catalogExtension", catalog),
             ("segmentMeta", merged),
         ):
             if value.entries:
                 self._quad(segment, _NS + predicate, self.map_value(value))
         return segment
+
+    def add_frame(
+        self,
+        segment: int,
+        ordinal: int,
+        frame_type: str,
+        envelope: MapValue,
+        payload: Value,
+        term_notes: tuple[TermNote, ...] = (),
+    ) -> None:
+        """Carry frame fields that have no image in the source rows or blob set."""
+        values = frame_values(frame_type, envelope, payload)
+        if not values and not term_notes:
+            return
+        node = self._blank()
+        self._quad(node, _RDF + "type", self._iri(_NS + "Frame"))
+        self._quad(node, _NS + "inSegment", segment)
+        self._quad(node, _NS + "frameOrdinal", self._typed(TypedValue(3, ordinal)))
+        self._quad(node, _NS + "frameType", self._literal(frame_type))
+        for predicate, value in values:
+            self._quad(node, _NS + predicate, self.map_value(value))
+        for note in term_notes:
+            term_node = self._blank()
+            self._quad(node, _NS + "termNote", term_node)
+            self._quad(term_node, _RDF + "type", self._iri(_NS + "TermNote"))
+            self._quad(
+                term_node, _NS + "termIndex", self._typed(TypedValue(3, note.index))
+            )
+            self._quad(term_node, _NS + "termValue", note.term)
+            self._quad(term_node, _NS + "termKeys", self.map_value(note.keys))
