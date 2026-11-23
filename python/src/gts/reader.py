@@ -114,13 +114,24 @@ def term_from_wire(d: Mapping[str, object]) -> Term:
 def _catalog(header: Mapping[str, object]) -> dict[int, Codec]:
     """Build the id → :class:`Codec` map from the header ``"cat"``."""
     raw = header.get("cat", {})
+    dictionaries = header.get("dct")
     out: dict[int, Codec] = {}
     if isinstance(raw, Mapping):
         for cid, entry in raw.items():
             if isinstance(cid, int) and isinstance(entry, Mapping):
                 name = str(entry.get("name", ""))
                 cls = _codec_class(entry.get("cls", "encode"))
-                out[cid] = Codec(name, cls)
+                dictionary = None
+                catalog_name = entry.get("dct")
+                if (
+                    name == "zstd"
+                    and isinstance(dictionaries, Mapping)
+                    and isinstance(catalog_name, str)
+                ):
+                    data = dictionaries.get(catalog_name)
+                    if isinstance(data, bytes):
+                        dictionary = data
+                out[cid] = Codec(name, cls, dictionary)
     return out
 
 
@@ -452,7 +463,7 @@ class _Folder:
                     )
                     if walked:
                         try:
-                            check_zstd_frames(d)
+                            check_zstd_frames(d, dictionary=chain[-1].dictionary)
                         except PayloadDecodeError as exc:
                             self._opaque(frame, "blob", "damaged")
                             self.g.diagnostics.append(

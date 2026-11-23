@@ -48,12 +48,17 @@ class PayloadDecodeError(ValueError):
     """
 
 
+class PayloadLimitError(ValueError):
+    """A reverse transform exceeded the output budget."""
+
+
 @dataclass(frozen=True)
 class Codec:
     """A catalog entry (§5, §8.5)."""
 
     name: str
     cls: CodecClass
+    dictionary: bytes | None = None
 
 
 # The default catalog a writer emits; ids are file-local (§8.5 — match by name).
@@ -130,7 +135,7 @@ def _zstd_window(descriptor: int) -> int:
     return base + (base >> 3) * (descriptor & 7)
 
 
-def check_zstd_frames(data: bytes) -> None:
+def check_zstd_frames(data: bytes, *, dictionary: bytes | None = None) -> None:
     """Check that ``data`` is whole zstd frames this reader decodes, without decoding.
 
     Walks every frame header and block header (a few bytes per 128 KiB block), so a
@@ -141,6 +146,21 @@ def check_zstd_frames(data: bytes) -> None:
     Raises:
         PayloadDecodeError: the payload is not whole, decodable zstd frames.
     """
+    _prepare_zstd_frames(data, dictionary, None)
+
+
+def _prepare_zstd_frames(
+    data: bytes, dictionary: bytes | None, output_limit: int | None
+) -> tuple[bytes, int]:
+    window_log = ZSTD_MAX_WINDOW_LOG
+    if output_limit is not None:
+        # One complete block may be expanded before the caller can observe the
+        # next output byte. Keep that block, the accepted prefix, and any
+        # initial dictionary in the history window.
+        needed = output_limit + _ZSTD_MAX_BLOCK + len(dictionary or b"") + 1
+        window_log = min((needed - 1).bit_length(), zstandard.WINDOWLOG_MAX)
+    window_limit = 1 << window_log
+    edits: list[tuple[int, int, bytes]] = []
     n = len(data)
     pos = 0
     while pos < n:
@@ -164,6 +184,7 @@ def check_zstd_frames(data: bytes) -> None:
         if pos >= n:
             msg = "zstd frame is truncated"
             raise PayloadDecodeError(msg)
+        flags_pos = pos
         flags = data[pos]
         pos += 1
         single_segment = bool(flags & 0x20)
@@ -181,8 +202,8 @@ def check_zstd_frames(data: bytes) -> None:
         if pos + dict_bytes > n:
             msg = "zstd frame is truncated"
             raise PayloadDecodeError(msg)
-        if any(data[pos : pos + dict_bytes]):
-            msg = "zstd frame names a dictionary, which this reader does not implement"
+        if dictionary is None and any(data[pos : pos + dict_bytes]):
+            msg = "zstd frame names a dictionary that the reader does not hold"
             raise PayloadDecodeError(msg)
         pos += dict_bytes
         size_bytes = _ZSTD_CONTENT_SIZE_BYTES[flags >> 6] or (
@@ -197,12 +218,23 @@ def check_zstd_frames(data: bytes) -> None:
             if flags >> 6 == 1:
                 window += 256
         pos += size_bytes
-        if window > 1 << ZSTD_MAX_WINDOW_LOG:
-            msg = (
-                f"zstd frame declares a window of {window} bytes, above this reader's "
-                f"limit of 2**{ZSTD_MAX_WINDOW_LOG}"
+        if window > window_limit:
+            if output_limit is None:
+                msg = (
+                    f"zstd frame declares a window of {window} bytes, above the "
+                    f"reader's limit of 2**{ZSTD_MAX_WINDOW_LOG}"
+                )
+                raise PayloadDecodeError(msg)
+            # The bounded decode cannot reach a backreference outside this
+            # prefix. Limit the decoder's allocation without altering content
+            # size, dictionary identity, compressed blocks, or their checksum.
+            edits.append(
+                (
+                    flags_pos,
+                    flags_pos + (1 if single_segment else 2),
+                    bytes([flags & ~0x20, (window_log - 10) << 3]),
+                )
             )
-            raise PayloadDecodeError(msg)
         while True:
             if pos + 3 > n:
                 msg = "zstd frame is truncated"
@@ -224,9 +256,36 @@ def check_zstd_frames(data: bytes) -> None:
             if pos > n:
                 msg = "zstd frame is truncated"
                 raise PayloadDecodeError(msg)
+    if not edits:
+        return data, window_limit
+    parts: list[bytes] = []
+    position = 0
+    for start, end, replacement in edits:
+        parts.extend((data[position:start], replacement))
+        position = end
+    parts.append(data[position:])
+    return b"".join(parts), window_limit
 
 
-def _decode_zstd(data: bytes, *, checked: bool = False) -> bytes:
+def _read_output(read: Callable[[int], bytes], limit: int | None) -> bytes:
+    out = io.BytesIO()
+    while True:
+        size = 131072 if limit is None else min(131072, limit - out.tell() + 1)
+        chunk = read(size)
+        if not chunk:
+            return out.getvalue()
+        if limit is not None and out.tell() + len(chunk) > limit:
+            raise PayloadLimitError("decoded payload exceeds its byte budget")
+        out.write(chunk)
+
+
+def _decode_zstd(
+    data: bytes,
+    *,
+    checked: bool = False,
+    dictionary: bytes | None = None,
+    limit: int | None = None,
+) -> bytes:
     """Decompress zstd bytes, including rsyncable streams with flush blocks.
 
     ``checked`` says the caller already ran :func:`check_zstd_frames` on ``data``.
@@ -235,23 +294,34 @@ def _decode_zstd(data: bytes, *, checked: bool = False) -> bytes:
         PayloadDecodeError: the payload is damaged, truncated or beyond this reader's
             window limit.
     """
-    if not checked:
-        check_zstd_frames(data)
-    out = io.BytesIO()
+    window = 1 << ZSTD_MAX_WINDOW_LOG
+    if not checked or limit is not None:
+        data, window = _prepare_zstd_frames(data, dictionary, limit)
     try:
-        with _ZSTD_D.stream_reader(io.BytesIO(data), read_across_frames=True) as reader:
-            while True:
-                chunk = reader.read(131072)
-                if not chunk:
-                    break
-                out.write(chunk)
+        decoder = (
+            _ZSTD_D
+            if dictionary is None and window == 1 << ZSTD_MAX_WINDOW_LOG
+            else zstandard.ZstdDecompressor(
+                dict_data=None
+                if dictionary is None
+                else zstandard.ZstdCompressionDict(dictionary),
+                max_window_size=window,
+            )
+        )
+        with decoder.stream_reader(io.BytesIO(data), read_across_frames=True) as reader:
+            return _read_output(reader.read, limit)
     except zstandard.ZstdError as exc:
         msg = f"zstd decode failed: {exc}"
         raise PayloadDecodeError(msg) from exc
-    return out.getvalue()
 
 
-def _decode_one(codec: Codec, data: bytes, *, checked: bool = False) -> bytes:
+def _decode_one(
+    codec: Codec,
+    data: bytes,
+    *,
+    checked: bool = False,
+    limit: int | None = None,
+) -> bytes:
     """Reverse a single codec, or raise :class:`CodecUnavailableError` (§8.3)."""
     if codec.cls == "encrypt":
         raise CodecUnavailableError(
@@ -260,9 +330,14 @@ def _decode_one(codec: Codec, data: bytes, *, checked: bool = False) -> bytes:
     if codec.name == "identity":
         return data
     if codec.name == "gzip":
-        return gzip.decompress(data)
+        if limit is None:
+            return gzip.decompress(data)
+        with gzip.GzipFile(fileobj=io.BytesIO(data)) as reader:
+            return _read_output(reader.read, limit)
     if codec.name in ("zstd", "zstd-rsyncable"):
-        return _decode_zstd(data, checked=checked)
+        return _decode_zstd(
+            data, checked=checked, dictionary=codec.dictionary, limit=limit
+        )
     raise CodecUnavailableError("unknown-codec", f"unknown codec {codec.name!r}")
 
 
@@ -297,6 +372,7 @@ def decode_chain(
     *,
     decrypt: Decryptor | None = None,
     checked: bool = False,
+    max_output: int | None = None,
 ) -> bytes:
     """Reverse a resolved codec chain, last to first (§6.1, §8.2).
 
@@ -307,11 +383,17 @@ def decode_chain(
     reader supplies); if none is given, the frame degrades to ``missing-key`` —
     keeping this module free of any crypto dependency.
     """
+    if max_output is not None and (type(max_output) is not int or max_output < 0):
+        raise ValueError("max_output must be a nonnegative integer")
     for step, codec in enumerate(reversed(chain)):
         if codec.cls == "encrypt":
             if decrypt is None:
                 raise CodecUnavailableError("missing-key", f"no key for {codec.name!r}")
             data = decrypt(data)
         else:
-            data = _decode_one(codec, data, checked=checked and step == 0)
+            data = _decode_one(
+                codec, data, checked=checked and step == 0, limit=max_output
+            )
+        if max_output is not None and len(data) > max_output:
+            raise PayloadLimitError("decoded payload exceeds its byte budget")
     return data
