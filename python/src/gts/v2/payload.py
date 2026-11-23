@@ -87,6 +87,10 @@ class PayloadBudget:
         self._total_decoded = total
         return None
 
+    def _allows_plain_candidate(self, length: int) -> bool:
+        """Check the two per-frame limits for a plain recovery candidate."""
+        return length <= self._stored_limit and length <= self._decoded_limit
+
     def check(self, frame: Frame) -> PayloadCheck:
         """Check a frame whose payload fields have passed envelope validation."""
         return self._check(frame)

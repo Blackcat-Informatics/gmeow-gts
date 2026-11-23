@@ -127,6 +127,9 @@ def test_walked_header_has_absolute_item_boundary() -> None:
         "resync-healed-not-scanned",
         "resync-flood-true-offsets",
         "link-healed-before-transparent",
+        "resync-parity-first",
+        "link-heal-region-between",
+        "lineage-head-broken-last-frame",
     ],
 )
 def test_read_wire_recovers_and_settles_links_as_in_corpus(name: str) -> None:
