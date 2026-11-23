@@ -7,7 +7,15 @@ from typing import Literal
 
 import zstandard
 
-from .frame import CompressedStorage, Frame, UnknownStorage
+from .frame import (
+    CompressedStorage,
+    Frame,
+    UnknownStorage,
+    _payload_digest,
+    _PayloadFields,
+    _read_payload_fields,
+    _storage_matches,
+)
 
 _UINT_MAX = (1 << 64) - 1
 _ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
@@ -81,7 +89,21 @@ class PayloadBudget:
 
     def check(self, frame: Frame) -> PayloadCheck:
         """Check a frame whose payload fields have passed envelope validation."""
-        stored = frame.check_storage()
+        return self._check(frame)
+
+    def _check_invalid_envelope(
+        self, data: bytes, starts: tuple[int, ...], *, newer: bool
+    ) -> PayloadCheck:
+        fields, stored = _read_payload_fields(data, starts, newer=newer)
+        if fields is None:
+            return PayloadCheck("damaged", stored)
+        result = self._check(fields)
+        if result.reason == "codec_constraint":
+            return PayloadCheck(result.state, result.stored_matches)
+        return result
+
+    def _check(self, frame: Frame | _PayloadFields) -> PayloadCheck:
+        stored = _storage_matches(frame.storage, frame.stored_payload)
         length = frame.decoded_length
         if not self._total_refused:
             for size in (
@@ -106,6 +128,8 @@ class PayloadBudget:
         if isinstance(storage, CompressedStorage):
             if storage.codec != _ZSTD_CODEC:
                 return PayloadCheck("unchecked", stored, "unknown_codec")
+            if length == 0:
+                return PayloadCheck("damaged", stored, "codec_constraint")
             header = _zstd_header(length)
             if payload[: len(header)] != header:
                 return PayloadCheck("damaged", stored, "codec_constraint")
@@ -127,7 +151,7 @@ class PayloadBudget:
             if len(decoded) != length:
                 return PayloadCheck("damaged", stored, "decoded_length")
 
-        if not frame.check_decoded_payload(decoded):
+        if _payload_digest(decoded) != frame.payload_digest:
             return PayloadCheck("damaged", stored, "payload_digest")
         return PayloadCheck("verified", stored, decoded=decoded)
 

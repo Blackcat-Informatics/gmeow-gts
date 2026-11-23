@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """CBOR item boundaries and the first-item generation field (P1 §§2.3, 6)."""
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Literal
 
@@ -100,6 +101,21 @@ def item_end(data: bytes | memoryview, offset: int = 0) -> int:
         while parents and parents[-1] == 0:
             parents.pop()
     return offset
+
+
+def _byte_string_chunks(data: bytes, offset: int) -> Iterator[memoryview]:
+    """Yield the bytes of an already delimited byte string in chunk order."""
+    view = memoryview(data)
+    _, length, start = _head(data, offset, offset)
+    if length is not None:
+        yield view[start : start + length]
+        return
+    while data[start] != 0xFF:
+        _, length, start = _head(data, start, offset)
+        assert length is not None
+        end = start + length
+        yield view[start:end]
+        start = end
 
 
 def _is_version_key(data: bytes, offset: int) -> bool:

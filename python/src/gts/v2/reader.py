@@ -3,12 +3,23 @@
 """Whole-input item walk for the GTS v2 reader."""
 
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from typing import Literal
 
-from ._decode import WireError
+from ._decode import WireError, _Decoder
+from .frame import Frame, FrameError, _decode_frame_at, _frame_field_offsets
 from .framing import FramingReason, ItemFramingError, _generation_field, _head, item_end
 from .header import DecodedHeader, decode_header
+from .items import (
+    ClosingFinding,
+    DamagedRegion,
+    Item,
+    _check_closing_grammar,
+    _classify_item_at,
+    check_closing_items,
+)
+from .link import FrameLink, _inspect_frame_link, check_frame_link
+from .payload import PayloadBudget, PayloadCheck
 from .resync import (
     RESYNC_MAX,
     DecodedResync,
@@ -50,6 +61,98 @@ class _Opening:
     decision: _Opener | _Dispatch
     damaged_prefix: _Boundary | None = None
     refusal: ResyncRefusal | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class WireFrame:
+    """Envelope, link and payload observations for a frame in a readable segment."""
+
+    position: int
+    frame_type: int | None
+    transparent: bool
+    envelope: Frame | FrameError
+    link: FrameLink
+    payload: PayloadCheck
+
+
+@dataclass(frozen=True, slots=True)
+class WireSegment:
+    """Items of a segment and the results of the wire-level checks."""
+
+    opener: _Opener
+    end_offset: int
+    head: bytes | None
+    items: tuple[Item | DamagedRegion, ...]
+    frames: tuple[WireFrame, ...]
+    closing: tuple[ClosingFinding, ...]
+    framing_failure: _Boundary | None
+    resync_refusals: tuple[ResyncRefusal, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class WireRead:
+    """Generation dispatch and item observations for a whole byte input."""
+
+    opening: _Opening
+    segments: tuple[WireSegment, ...] = ()
+    item_limit_offset: int | None = None
+
+
+@dataclass(slots=True)
+class _Segment:
+    opener: _Opener
+    head: bytes | None = field(init=False)
+    registry_version: int = field(init=False)
+    items: list[Item | DamagedRegion] = field(init=False)
+    frames: list[WireFrame] = field(default_factory=list)
+    refusals: list[ResyncRefusal] = field(default_factory=list)
+    pending: tuple[WireFrame, FrameLink] | None = None
+
+    def __post_init__(self) -> None:
+        opener = self.opener
+        self.items = [Item(opener.kind, opener.item.offset, opener.item.end)]
+        self.head = None
+        self.registry_version = 2
+        if not isinstance(opener.value, WireError):
+            self.head = opener.value.identifier
+            if self.head is not None:
+                # Unknown kinds fail framing only under a readable version 1 opener.
+                self.registry_version = opener.value.header.registry_version
+
+    def add_frame(self, frame: WireFrame, without_witness: FrameLink) -> None:
+        if frame.link.effective_identifier is not None:
+            self.head = frame.link.effective_identifier
+        if frame.link.state == "healed":
+            self.pending = frame, without_witness
+        else:
+            self.frames.append(frame)
+
+    def settle_witness(self, kept: bool) -> None:
+        if self.pending is None:
+            return
+        frame, without_witness = self.pending
+        self.pending = None
+        if not kept:
+            frame = replace(frame, link=without_witness)
+            self.head = without_witness.effective_identifier
+        self.frames.append(frame)
+
+    def finish(
+        self, data: bytes, end: int, failure: _Boundary | None = None
+    ) -> WireSegment:
+        closing = (
+            () if self.head is None else tuple(check_closing_items(data, self.items))
+        )
+        return WireSegment(
+            self.opener,
+            end,
+            self.head,
+            tuple(self.items),
+            tuple(self.frames),
+            closing,
+            failure,
+            tuple(self.refusals),
+        )
 
 
 class _ItemWalk:
@@ -130,6 +233,24 @@ def _walked_opener(data: bytes, item: _Boundary, kind: _OpenerKind) -> _Opener:
     return _Opener(kind, item, value)
 
 
+def _scanned_opener(recovered: DecodedResync) -> _Opener:
+    return _Opener(
+        "resync",
+        _Boundary(recovered.offset, recovered.next_offset),
+        recovered,
+        scanned=True,
+    )
+
+
+def _damage_before(data: bytes, start: int, end: int) -> _Boundary | None:
+    if start < end:
+        try:
+            item_end(memoryview(data)[:end], start)
+        except ItemFramingError as error:
+            return _Boundary(start, end, error.reason)
+    return None
+
+
 def _open_input(
     data: bytes, walk: _ItemWalk, scanner: ResyncScanner, *, first_and_second: bool
 ) -> _Opening:
@@ -165,11 +286,157 @@ def _open_input(
     if not isinstance(recovered, DecodedResync):
         return _Opening(decision, refusal=recovered)
 
-    prefix = None
-    if recovered.offset:
+    return _Opening(
+        _scanned_opener(recovered), _damage_before(data, 0, recovered.offset)
+    )
+
+
+def _read_frame(
+    data: bytes,
+    walk: _ItemWalk,
+    budget: PayloadBudget,
+    segment: _Segment,
+    offset: int,
+    predecessor: bytes,
+) -> tuple[WireFrame, FrameLink]:
+    starts = _frame_field_offsets(data, offset)
+    fields = _inspect_frame_link(data, offset, starts)
+    link = without_witness = check_frame_link(fields, predecessor)
+    if (
+        link.state == "broken"
+        and not fields.transparent
+        and fields.stored_identifier is not None
+        and link.computed_identifier is not None
+    ):
+        following = walk.peek()
+        if (
+            following is not None
+            and following.failure is None
+            and data.startswith(b"\x8b\x02", following.offset)
+        ):
+            witness = _inspect_frame_link(
+                data, following.offset, _frame_field_offsets(data, following.offset)
+            )
+            link = check_frame_link(fields, predecessor, witness)
+
+    newer = segment.registry_version > 1
+    envelope: Frame | FrameError
+    try:
+        envelope = decoded = _decode_frame_at(data, offset, newer=newer)
+    except FrameError as error:
+        envelope = error
+        payload = budget._check_invalid_envelope(data, starts, newer=newer)
         try:
-            item_end(memoryview(data)[: recovered.offset])
-        except ItemFramingError as error:
-            prefix = _Boundary(0, recovered.offset, error.reason)
-    boundary = _Boundary(recovered.offset, recovered.next_offset)
-    return _Opening(_Opener("resync", boundary, recovered, scanned=True), prefix)
+            frame_type = _Decoder(data, starts[0], FrameError).uint()
+        except FrameError:
+            frame_type = None
+    else:
+        payload = budget.check(decoded)
+        frame_type = decoded.frame_type
+    frame = WireFrame(
+        len(segment.items), frame_type, fields.transparent, envelope, link, payload
+    )
+    return frame, without_witness
+
+
+def read_wire(
+    data: bytes,
+    *,
+    items_per_read: int,
+    stored_bytes_per_frame: int,
+    decoded_bytes_per_frame: int,
+    decoded_bytes_per_read: int,
+    first_and_second: bool = True,
+) -> WireRead:
+    """Walk GTS v2 bytes and check openers, links, payloads and closing claims.
+
+    A legacy dispatch is returned to the caller for the first-generation reader.
+    The wire observations are inputs to parity recovery, content folding and
+    construction of the typed read result.
+    """
+    if type(items_per_read) is not int or not 0 <= items_per_read < 1 << 64:
+        raise ValueError("item limit must be a uint")
+    budget = PayloadBudget(
+        stored_bytes_per_frame=stored_bytes_per_frame,
+        decoded_bytes_per_frame=decoded_bytes_per_frame,
+        decoded_bytes_per_read=decoded_bytes_per_read,
+    )
+    walk = _ItemWalk(data, items_per_read)
+    scanner = ResyncScanner(data, budget)
+    opening = _open_input(data, walk, scanner, first_and_second=first_and_second)
+    if not isinstance(opening.decision, _Opener):
+        return WireRead(
+            opening, item_limit_offset=0 if opening.decision == "item_count" else None
+        )
+
+    segments: list[WireSegment] = []
+    segment = _Segment(opening.decision)
+    if opening.refusal is not None:
+        segment.refusals.append(opening.refusal)
+    previous = segment.opener.item
+    while (boundary := walk.take()) is not None:
+        item = None
+        opener = None
+        frame = None
+        failed = boundary.failure is not None
+        if not failed:
+            item = _classify_item_at(
+                data, boundary.offset, boundary.end, segment.registry_version
+            )
+            if item.kind in ("header", "resync"):
+                opener = _walked_opener(data, boundary, item.kind)
+                failed = isinstance(opener.value, WireError)
+            elif item.kind == "opaque":
+                failed = item.reason != "unknown_item_kind"
+            elif segment.head is not None:
+                if item.kind == "frame":
+                    frame, without_witness = _read_frame(
+                        data, walk, budget, segment, item.offset, segment.head
+                    )
+                    failed = (
+                        isinstance(frame.envelope, FrameError)
+                        or frame.link.state == "broken"
+                    )
+                else:
+                    try:
+                        _check_closing_grammar(data, item)
+                    except WireError:
+                        failed = True
+
+        if failed:
+            start = (
+                boundary.offset if segment.pending is not None else previous.offset + 1
+            )
+            recovered = walk.recover(scanner, start, boundary)
+            if isinstance(recovered, DecodedResync):
+                segment.settle_witness(kept=False)
+                failure = _damage_before(data, boundary.offset, recovered.offset)
+                end = recovered.offset
+                if failure is not None:
+                    if failure.failure == "undelimitable_input":
+                        segment.items.append(DamagedRegion(failure.offset, failure.end))
+                    else:
+                        end = failure.offset
+                segments.append(segment.finish(data, end, failure))
+                segment = _Segment(_scanned_opener(recovered))
+                previous = segment.opener.item
+                continue
+            if isinstance(recovered, ResyncRefusal):
+                segment.refusals.append(recovered)
+
+        segment.settle_witness(kept=True)
+        if boundary.failure is not None:
+            segments.append(segment.finish(data, boundary.offset, boundary))
+            break
+        if opener is not None:
+            segments.append(segment.finish(data, boundary.offset))
+            segment = _Segment(opener)
+        elif item is not None:
+            segment.items.append(item)
+            if frame is not None:
+                segment.add_frame(frame, without_witness)
+        previous = boundary
+    else:
+        segment.settle_witness(kept=True)
+        segments.append(segment.finish(data, previous.end))
+    return WireRead(opening, tuple(segments), walk.stopped_at)
