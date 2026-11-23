@@ -121,20 +121,37 @@ def _plan_blobs(blobs: BlobSet, verified: Mapping[BlobName, bytes]) -> Iterator[
         yield _Blob(entry, units, media)
 
 
-def canonical_binary_frames(
-    value_octets: Iterable[bytes], blobs: BlobSet, verified: Mapping[BlobName, bytes]
-) -> Iterator[EncodedFrame]:
-    """Yield the canonical value region, blob region, and external frames."""
+def canonical_value_frames(value_octets: Iterable[bytes]) -> Iterator[EncodedFrame]:
+    """Yield the packs of the canonical value region."""
     values = sorted(
         ((unit_digest(data), data) for data in set(value_octets)),
         key=lambda pair: pair[0],
     )
     if any(not data for _, data in values):
         raise ValueError("canonical value octets must be non-empty")
-    plans = tuple(_plan_blobs(blobs, verified))
-    yield from _packs(_value_members(values))
+    return _packs(_value_members(values))
+
+
+def canonical_blob_frames(
+    blobs: BlobSet, verified: Mapping[BlobName, bytes]
+) -> Iterator[EncodedFrame]:
+    """Yield the packs and external frames of the canonical blob region."""
+    return _blob_frames(tuple(_plan_blobs(blobs, verified)))
+
+
+def _blob_frames(plans: tuple[_Blob, ...]) -> Iterator[EncodedFrame]:
     yield from _packs(_blob_members(plans))
     for blob in plans:
         media = blob.media[1:] if blob.entry.present else blob.media
         for option in media:
             yield 12, [blob.entry.name, blob.entry.length, option], b""
+
+
+def canonical_binary_frames(
+    value_octets: Iterable[bytes], blobs: BlobSet, verified: Mapping[BlobName, bytes]
+) -> Iterator[EncodedFrame]:
+    """Yield the canonical value region, blob region, and external frames."""
+    value_frames = canonical_value_frames(value_octets)
+    blob_frames = canonical_blob_frames(blobs, verified)
+    yield from value_frames
+    yield from blob_frames

@@ -55,7 +55,7 @@ def _head(
     raise ItemFramingError("undelimitable_input", item_start)
 
 
-def item_end(data: bytes, offset: int = 0) -> int:
+def item_end(data: bytes | memoryview, offset: int = 0) -> int:
     """Walk one CBOR item at a known boundary and return its exclusive end.
 
     This walk checks well-formedness without allocating decoded values. The
