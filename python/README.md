@@ -37,6 +37,10 @@ the hash algorithm is supported. `gts.v2.encode_header(header)` writes the
 registry version 1 header record for a segment writer.
 Use `gts.v2.item_end(data, offset=0)` to walk a CBOR item at a known boundary and
 `gts.v2.generation_field(data)` to identify the first item's generation prefix.
+`gts.v2.decode_frame(data, offset=0)` reads a frame envelope, preserves its exact
+identity fields and exposes separate checks for stored and decoded payloads.
+`gts.v2.encode_plain_frame(predecessor, frame_type, content, payload)` builds an
+unsigned, uncompressed envelope from a byte payload and a content record.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.
 

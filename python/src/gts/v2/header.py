@@ -6,39 +6,24 @@ These functions operate on one header item at a known offset. File framing,
 generation detection and lineage comparison belong to the file reader.
 """
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal
 
 import cbor2
 from blake3 import blake3
 
-from .framing import ItemFramingError, _head
+from ._decode import WireError, _Decoder
 
 _REGISTRY_VERSION = 1
 _BLAKE3_256 = 1
 _CANONICAL_FORM = 1
 _LAST_PROFILE = 6
 
-type HeaderErrorReason = Literal[
-    "not_deterministic",
-    "wrong_type",
-    "wrong_length",
-    "out_of_range",
-    "unregistered_value",
-]
 
-
-class HeaderError(ValueError):
-    """A P1 rejection reason and absolute byte offset.
+class HeaderError(WireError):
+    """A P1 header rejection reason and absolute byte offset.
 
     If an argument or string body is truncated, the offset is where it begins.
     """
-
-    def __init__(self, reason: HeaderErrorReason, offset: int) -> None:
-        self.reason = reason
-        self.offset = offset
-        super().__init__(f"{reason} in GTS v2 header at offset {offset}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,83 +48,6 @@ class DecodedHeader:
     identifier: bytes | None
 
 
-class _HeaderDecoder:
-    """A cursor over the known header grammar, with checks in byte order."""
-
-    def __init__(self, data: bytes, offset: int) -> None:
-        self.data = data
-        self.offset = offset
-
-    def _take(self, size: int) -> bytes:
-        start = self.offset
-        end = start + size
-        if end > len(self.data):
-            raise HeaderError("wrong_length", start)
-        self.offset = end
-        return self.data[start:end]
-
-    def _head(self, major_type: int) -> int:
-        start = self.offset
-        try:
-            major, argument, self.offset = _head(self.data, start, start)
-        except ItemFramingError as error:
-            if error.reason == "torn_tail" and start < len(self.data):
-                raise HeaderError("wrong_length", start + 1) from error
-            raise HeaderError("wrong_length", start) from error
-
-        additional = self.data[start] & 31
-        if major <= 4 and (
-            argument is None
-            or (
-                additional >= 24
-                and argument < (24, 256, 65536, 4294967296)[additional - 24]
-            )
-        ):
-            raise HeaderError("not_deterministic", start)
-        if major == 7 and argument is None:
-            raise HeaderError("wrong_length", start)
-        if major != major_type or argument is None:
-            raise HeaderError("wrong_type", start)
-        return argument
-
-    def record(self, length: int) -> None:
-        start = self.offset
-        if self._head(4) != length:
-            raise HeaderError("wrong_length", start)
-
-    def uint(
-        self,
-        *,
-        minimum: int = 0,
-        maximum: int = (1 << 64) - 1,
-        reason: HeaderErrorReason = "out_of_range",
-    ) -> int:
-        start = self.offset
-        value = self._head(0)
-        if not minimum <= value <= maximum:
-            raise HeaderError(reason, start)
-        return value
-
-    def option[T](self, decode: Callable[[], T]) -> T | None:
-        start = self.offset
-        length = self._head(4)
-        if not length:
-            raise HeaderError("wrong_length", start)
-        tag = self.uint(minimum=1, maximum=2, reason="unregistered_value")
-        if length != tag:
-            raise HeaderError("wrong_length", start)
-        return decode() if tag == 2 else None
-
-    def lineage(self, *, known_hash: bool) -> Lineage:
-        self.record(2)
-        start = self.offset
-        length = self._head(2)
-        if known_hash and length != 32:
-            raise HeaderError("wrong_length", start)
-        head = self._take(length)
-        return Lineage(head, self.uint(minimum=1))
-
-
 def decode_header(data: bytes, offset: int = 0) -> DecodedHeader:
     """Read one header and return the next item position and P1 header identifier.
 
@@ -149,7 +57,7 @@ def decode_header(data: bytes, offset: int = 0) -> DecodedHeader:
     if not 0 <= offset <= len(data):
         raise ValueError("header offset is outside the input")
 
-    decoder = _HeaderDecoder(data, offset)
+    decoder = _Decoder(data, offset, HeaderError)
     decoder.record(7)
     decoder.uint(minimum=1, maximum=1, reason="unregistered_value")
     decoder.uint(minimum=2, maximum=2)
@@ -167,7 +75,13 @@ def decode_header(data: bytes, offset: int = 0) -> DecodedHeader:
         lambda: decoder.uint(minimum=1, reason="unregistered_value")
     )
     canonical = decoder.option(lambda: registry_code(_CANONICAL_FORM))
-    lineage = decoder.option(lambda: decoder.lineage(known_hash=has_hash))
+
+    def read_lineage() -> Lineage:
+        decoder.record(2)
+        head = decoder.bytes(32 if has_hash else None)
+        return Lineage(bytes(head), decoder.uint(minimum=1))
+
+    lineage = decoder.option(read_lineage)
     header = Header(registry_version, algorithm, profile, canonical, lineage)
 
     identifier = None
