@@ -41,6 +41,17 @@ class _DirectoryEntry:
     entry_count: int
 
 
+def _media_type(cursor: _Decoder, registry_version: int) -> str | None:
+    start = cursor.offset
+    size = cursor.array()
+    if size == 0:
+        raise PackError("wrong_length", start)
+    tag = content_code(cursor, 2, registry_version)
+    if size != tag:
+        raise PackError("wrong_length", start)
+    return cursor.text_value() if tag == 2 else None
+
+
 def _decode_member(cursor: _Decoder, registry_version: int) -> _DirectoryEntry:
     start = cursor.offset
     size = cursor.array()
@@ -54,10 +65,7 @@ def _decode_member(cursor: _Decoder, registry_version: int) -> _DirectoryEntry:
     declaration = kind >= MemberKind.RECIPE
     total_length = cursor.uint() if declaration else 0
     media_type = (
-        cursor.option(
-            cursor.text_value,
-            read_tag=lambda: content_code(cursor, 2, registry_version),
-        )
+        _media_type(cursor, registry_version)
         if kind in (MemberKind.BLOB, MemberKind.RECIPE)
         else None
     )

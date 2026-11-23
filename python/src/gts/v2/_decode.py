@@ -97,18 +97,12 @@ class _Decoder:
             raise self.error(reason, start)
         return value
 
-    def option[T](
-        self, decode: Callable[[], T], *, read_tag: Callable[[], int] | None = None
-    ) -> T | None:
+    def option[T](self, decode: Callable[[], T]) -> T | None:
         start = self.offset
         length = self._head(4)
         if not length:
             raise self.error("wrong_length", start)
-        tag = (
-            self.uint(minimum=1, maximum=2, reason="unregistered_value")
-            if read_tag is None
-            else read_tag()
-        )
+        tag = self.uint(minimum=1, maximum=2, reason="unregistered_value")
         if length != tag:
             raise self.error("wrong_length", start)
         return decode() if tag == 2 else None
