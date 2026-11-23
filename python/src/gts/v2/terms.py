@@ -278,23 +278,23 @@ def _read_value(decoder: _Decoder, registry_version: int) -> TypedValue:
     kind = content_code(decoder, 5, registry_version)
     if size != (3 if kind == 4 else 2):
         raise ContentError("wrong_length", offset)
+    value: bool | int | TimeValue | bytes
     match kind:
         case 1:
-            return TypedValue(kind, decoder.boolean())
+            value = decoder.boolean()
         case 2:
-            return TypedValue(kind, decoder.uint())
+            value = decoder.uint()
         case 3:
-            return TypedValue(kind, decoder.integer())
+            value = decoder.integer()
         case 4:
             seconds_at = decoder.offset
             seconds = decoder.integer()
             if not _OLDEST_SECOND <= seconds <= _LATEST_SECOND:
                 raise ContentError("out_of_range", seconds_at)
-            return TypedValue(
-                kind, TimeValue(seconds, decoder.uint(maximum=_MAX_NANOSECOND))
-            )
+            value = TimeValue(seconds, decoder.uint(maximum=_MAX_NANOSECOND))
         case _:
-            return TypedValue(kind, bytes(decoder.bytes()))
+            value = bytes(decoder.bytes())
+    return TypedValue(kind, value)
 
 
 def _read_forms(decoder: _Decoder, registry_version: int) -> _Forms:

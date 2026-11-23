@@ -433,15 +433,17 @@ class TermDictionary:
             return None, "position_constraint"
 
         graph = ids[-1] if named else None
+        resolved_row: Row
         match row:
             case QuadRow():
-                return QuadRow(ids[0], ids[1], ids[2], graph), None
+                resolved_row = QuadRow(ids[0], ids[1], ids[2], graph)
             case ReifierBindingRow():
-                return ReifierBindingRow(ids[0], ids[1], graph), None
+                resolved_row = ReifierBindingRow(ids[0], ids[1], graph)
             case AnnotationRow():
-                return AnnotationRow(row.count, ids[0], ids[1], ids[2], graph), None
+                resolved_row = AnnotationRow(row.count, ids[0], ids[1], ids[2], graph)
             case _:
-                return EmptyGraphRow(ids[0]), None
+                resolved_row = EmptyGraphRow(ids[0])
+        return resolved_row, None
 
     def resolve_rows(
         self, batch: DecodedRows, *, hidden_before: int = 0, in_doubt: bool = False
