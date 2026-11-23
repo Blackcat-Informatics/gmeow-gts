@@ -15,6 +15,7 @@ type WireReason = Literal[
     "unregistered_value",
     "forbidden_combination",
     "unordered_or_repeated",
+    "inconsistent_counts",
 ]
 
 
