@@ -7,8 +7,10 @@ from pathlib import Path
 import cbor2
 import pytest
 
-from gts.v2 import decode_frame, decode_header
+from gts.v2 import PayloadBudget, decode_frame, decode_header
+from gts.v2.index_claims import IndexStatistics
 from gts.v2.items import classify_item
+from gts.v2.rows import AnnotationRow, EmptyGraphRow, QuadRow, encode_rows
 from gts.v2.writer import SegmentWriter
 
 P5 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P5"
@@ -43,3 +45,65 @@ def test_segment_writer_reproduces_golden_bytes(name: str, closing: bool) -> Non
 def test_locator_without_index_cannot_be_written() -> None:
     with pytest.raises(ValueError, match="locator requires an index"):
         SegmentWriter().to_bytes(locator=True)
+
+
+def test_build_index_reproduces_canonical_construction() -> None:
+    data = (P5.parent / "P7" / "canonical__construction.bin").read_bytes()
+    opener = decode_header(data)
+    writer = SegmentWriter(opener.header, collect_index=True)
+    budget = PayloadBudget(
+        stored_bytes_per_frame=len(data),
+        decoded_bytes_per_frame=len(data),
+        decoded_bytes_per_read=len(data),
+    )
+    offset = opener.next_offset
+    while True:
+        frame = decode_frame(data, offset)
+        decoded = budget.check(frame).decoded
+        assert decoded is not None
+        if frame.frame_type == 15:
+            expected_index = frame
+            expected_payload = decoded
+            break
+        if frame.frame_type == 14:
+            identifier = writer.commit()
+        else:
+            identifier = writer.append(
+                frame.frame_type, cbor2.loads(frame.content), bytes(decoded)
+            )
+        assert identifier == frame.identifier
+        offset = frame.next_offset
+
+    digest = bytes.fromhex(
+        "0f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb8"
+    )
+    index_offset = len(writer.to_bytes())
+    assert writer.append_index(IndexStatistics(3, 2, 1), content_digest=digest) == (
+        expected_index.identifier
+    )
+    index = decode_frame(writer.to_bytes(), index_offset)
+    assert index.content == expected_index.content
+    assert index.stored_payload == expected_payload
+
+
+def test_index_extends_graph_ranges_across_frames_of_the_same_type() -> None:
+    writer = SegmentWriter(collect_index=True)
+    writer.append(*encode_rows([QuadRow(1, 4, 2), QuadRow(1, 5, 2, 7)]))
+    writer.append(*encode_rows([AnnotationRow(8, 2, 4, 1, 7)]))
+    writer.append(*encode_rows([QuadRow(2, 4, 1, 7), QuadRow(2, 5, 1)]))
+    writer.append(*encode_rows([EmptyGraphRow(3)]))
+    writer.commit()
+    prefix = writer.to_bytes()
+    writer.append_index(IndexStatistics(6, 0, 0), content_digest=None)
+
+    index = decode_frame(writer.to_bytes(), len(prefix))
+    assert cbor2.loads(index.content)[0] == 5
+    runs, graphs, counts, _, digest, _ = cbor2.loads(index.stored_payload)
+    assert runs == [[2, 1], [4, 1], [2, 1], [5, 1], [14, 1]]
+    assert graphs == [
+        [[1], [[2, 0, 0, 1], [2, 2, 1, 1]]],
+        [[2, 3], [[5, 3, 0, 1]]],
+        [[2, 7], [[2, 0, 1, 2], [4, 1, 0, 1]]],
+    ]
+    assert counts == [6, 0, 0, [[4, 2], [5, 2]]]
+    assert digest == [1]
