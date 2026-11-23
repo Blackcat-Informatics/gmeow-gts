@@ -120,10 +120,13 @@ class _Decoder:
         return memoryview(self.data)[body : self.offset]
 
     def text(self) -> None:
+        self.text_value()
+
+    def text_value(self) -> str:
         start = self.offset
         size = self._head(3)
         try:
-            self._take(size).decode("utf-8")
+            return self._take(size).decode("utf-8")
         except UnicodeDecodeError as error:
             raise self.error("wrong_type", start) from error
 
