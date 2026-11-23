@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
-"""Conformance vectors for the GTS reference implementation (§18 of GTS-SPEC.md).
+"""Conformance vectors for the GTS reference implementation.
 
 Each test builds a GTS file with the :class:`Writer` (or hand-crafts edge-case
 frames) and asserts the folded :class:`Graph`, its diagnostics, and the

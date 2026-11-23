@@ -3,6 +3,8 @@
 
 # GTS C++ Wrapper
 
+The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format. This package predates v2.
+
 The C++ wrapper is a header-only RAII layer over the Rust-backed `libgts` C ABI.
 It consumes `rust/capi/include/gts.h` and links to `libgts`; it is not an
 independent GTS engine and does not add a CLI parity column.

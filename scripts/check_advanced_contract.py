@@ -9,7 +9,7 @@ import sys
 
 from check_cli_parity import (
     ENGINES,
-    ROOT,
+    V1_DOCS,
     between,
     go_verbs,
     kotlin_verbs,
@@ -20,7 +20,7 @@ from check_cli_parity import (
     typescript_verbs,
 )
 
-CONTRACT = ROOT / "docs" / "GTS-ADVANCED-PRIMITIVES.md"
+CONTRACT = V1_DOCS / "docs" / "GTS-ADVANCED-PRIMITIVES.md"
 
 
 def deferred_cli_verbs() -> set[str]:

@@ -4,9 +4,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 -->
 # Contributing to gmeow-gts
 
-Thanks for your interest in GTS. This repository holds four interoperable parity engines
-(Rust, Python, Go, TypeScript), a Phase 0 Smalltalk/Pharo engine bootstrap, the wire-format
-specification, and the frozen conformance corpus. Issues and pull requests are welcome.
+This repository publishes the [GTS v2 specification](docs/GTS-SPEC.md), its [conformance corpus](vectors/v2/README.md), and reference software. Issues and pull requests are welcome.
 
 ## Ways to contribute
 
@@ -18,33 +16,15 @@ specification, and the frozen conformance corpus. Issues and pull requests are w
 
 ## Spec governance
 
-Core wire-format changes, baseline conformance changes, optional-standard profile promotion,
-and registry additions follow the lightweight governance policy in
-[`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md). In short:
+Changes to the wire grammar, hash or signature preimages, fold, conformance claims and standard
+profiles follow the [GTS Improvement Proposal process](docs/GTS-GOVERNANCE.md).
 
-- changes to header/frame grammar, hash or signature preimages, transform resolution, segment
-  composition, or fold semantics require a GTS Improvement Proposal (GIP);
-- domain-specific profiles can be registered without changing core GTS, but they must not alter
-  core parse, verify, or fold semantics;
-- registry entries for codecs, frame types, diagnostics, transform targets, and profiles must
-  follow the registry change policy and reserved namespace rules.
+## The conformance corpus
 
-## The conformance corpus is the contract
-
-The four parity engines are interchangeable only because they all fold the **same bytes** to the
-**same expectations**. The frozen corpus lives in [`vectors/`](./vectors); the Python
-reference implementation (`gts.vectors`) is its single source of truth.
-
-- A change to format behaviour MUST update the corpus and keep all four engines green.
-- Regenerate the committed corpus and prove it is reproducible byte-for-byte:
-
-  ```bash
-  cd python && uv run python scripts/gen_vectors.py
-  git diff --exit-code vectors        # no changes ⇒ reproducible
-  ```
-
-- If you change one engine's observable behaviour, change the others to match (or open an
-  issue first to discuss whether the spec itself should change).
+For a v2 format change, update the affected normative part and its [conformance cases](vectors/v2/README.md).
+Record input, capacity and expected typed result. Consult the [fixture catalogue](docs/v2/FIXTURES.md)
+before adding a new case. The published engines use a separate corpus. For changes to those engines,
+regenerate their fixtures with `just check-vectors` and check engine agreement on the affected behavior.
 
 ## Development
 
@@ -70,8 +50,7 @@ docker build -t gmeow-gts-smalltalk smalltalk && \
 - Every eligible first-party source file must carry an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
 - Keep changes focused; describe **what** changed and **why** in the PR description.
 
-CI runs all four parity engines, the Smalltalk/Pharo bootstrap, and a lint lane on every pull
-request.
+CI runs the Rust, Python, Go, TypeScript, Smalltalk/Pharo and Kotlin/JVM engine lanes and the repository lint checks.
 
 ## Licensing of contributions
 
@@ -96,23 +75,9 @@ contributions are merged. See [`LICENSING.md`](./LICENSING.md) for the full lice
 
 ## Releases
 
-Contributors do not cut releases, but two things about the release process affect
-ordinary changes and are easy to trip over:
-
-- **Versions are checked, not assumed.** `scripts/check-versions.sh` compares every
-  language lane against the Rust crate, and also asserts specific version strings
-  inside `README.md`, `rust/README.md`, `docs/GTS-ECOSYSTEM-INTEGRATIONS.md`,
-  `rust/capi/gts.pc.in`, the vcpkg port and both `Cargo.lock` files. A change that
-  edits a version snippet in prose will fail CI unless the manifests agree.
-- **The conformance corpus is generated.** Never hand-edit `vectors/`. Change
-  `python/src/gts/vectors.py` and run `just check-vectors`, which regenerates the
-  corpus and fails if the committed bytes differ.
-
-The release procedure itself lives in
-[`docs/GTS-V1-RC1-CHECKLIST.md`](./docs/GTS-V1-RC1-CHECKLIST.md) for a release
-candidate and [`docs/GTS-V1-CHECKLIST.md`](./docs/GTS-V1-CHECKLIST.md) for a final
-release; the policy behind both is [`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md),
-including the deprecation policy in §5.1 if your change retires a public API.
+Package versions and the specification revision are independent. Keep installation snippets and
+manifests in sync with `scripts/check-versions.sh`. For API deprecation, see
+[governance §5.1](docs/GTS-GOVERNANCE.md#51-deprecation-policy).
 
 ## Conduct
 

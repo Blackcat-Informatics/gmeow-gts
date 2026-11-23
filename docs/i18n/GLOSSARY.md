@@ -20,9 +20,10 @@ aids and should stay consistent across documentation.
 | fold | repli | 折叠 | The deterministic replay result of the log. |
 | reader | lecteur | 读取器 | Component that parses and verifies GTS data. |
 | writer | rédacteur | 写入器 | Component that emits GTS data. |
-| conformance corpus | corpus de conformité | 一致性语料库 | Frozen cross-engine test corpus. |
-| opaque node | noeud opaque | 不透明节点 | Preserve the protocol phrase; avoid inventing RDF identifiers. |
-| streamable layout | disposition diffusable en continu | 可流式处理布局 | Layout that can be consumed incrementally. |
+| conformance corpus | corpus de conformité | 一致性语料库 | Inputs and expected results for the v2 format. |
+| content digest | empreinte du contenu | 内容摘要 | Identifies the content recovered by the reader. |
+| sealed data | données scellées | 密封数据 | Content protected under P8. |
+
 | profile | profil | 配置文件 | Domain or application layer above the core transport. |
 | BLAKE3 | BLAKE3 | BLAKE3 | Algorithm name; do not translate. |
 | N-Quads | N-Quads | N-Quads | RDF serialization name; do not translate. |

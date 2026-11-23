@@ -1,0 +1,643 @@
+<!-- SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca> -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<!-- i18n-source: CHANGELOG.md -->
+<!-- i18n-locale: fr-CA -->
+<!-- i18n-status: translated -->
+
+# Journal des modifications
+
+> Traduction informative de [`CHANGELOG.md`](../../../CHANGELOG.md). Le document anglais demeure la source faisant autorité pour la gouvernance, la sécurité, les versions, les licences, la contribution, les obligations de conduite, les processus de divulgation et les commandes exécutables. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md) et reste informative.
+
+Tous les changements notables apportés à GTS sont documentés ici. Le format est basé sur
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Les moteurs principaux
+publient à partir de ce dépôt via des étiquettes de version par écosystème ; les versions sont normalement
+maintenues alignées pour les versions multi-moteurs, tandis que les versions restreintes prioritaires à Rust peuvent
+incrémenter la crate Rust indépendamment. Voir
+[`scripts/check-versions.sh`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/scripts/check-versions.sh).
+
+Le format de transfert est GELÉ pour la ligne de version 1 (document `GTS-SPEC.md`
+version `1.0-rc1`). Un fichier valide en version majeure 1 du format de transfert GTS
+restera analysable et pliable en toute sécurité par les futurs lecteurs de version
+majeure 1 ; un changement de transfert incompatible exige une nouvelle version majeure
+de format de transfert.
+
+## [Non publié]
+
+### Corrigé
+
+- Les signatures de trame respectent désormais l'algorithme de signature déclaré dans
+  l'en-tête protégé COSE (§9.2 : les lecteurs DOIVENT respecter l'algorithme déclaré).
+  Rust, Python, Go, TypeScript (y compris le chemin WebCrypto du navigateur), Kotlin et
+  Smalltalk aiguillent selon `alg` : EdDSA est vérifié comme Ed25519, et tout autre
+  algorithme déclaré est rapporté `unverified`, avec son `kid` conservé, jamais
+  `invalid` et jamais `valid`. Auparavant, chaque moteur exécutait Ed25519
+  inconditionnellement : une signature d'un autre algorithme était rapportée `invalid`
+  (ou, avec un en-tête protégé déclarant un autre algorithme sur une véritable
+  signature Ed25519, `valid`). Un COSE_Sign1 dont l'en-tête protégé ne respecte pas la grammaire suivante
+  est mal formé, et sa signature est `invalid` ; il en va de même d'une signature
+  EdDSA qui ne fait pas 64 octets dès que sa clé est résolue :
+
+  > L'en-tête protégé est une chaîne d'octets dont le contenu est du CBOR à
+  > encodage déterministe (longueurs définies, entiers et longueurs sous la forme
+  > la plus courte, clés de table dans l'ordre octet par octet de leurs
+  > encodages, aucune clé en double, aucun octet superflu) formant exactement une
+  > table. Toute clé de table, à toute profondeur, est un entier ou une chaîne de
+  > texte. Toute valeur, à toute profondeur, est un entier, une chaîne d'octets,
+  > une chaîne de texte, un tableau, une table, null, true ou false. Tout entier,
+  > clé ou valeur, se situe dans l'intervalle de -2^63 à 2^63-1 inclusivement. Les
+  > chaînes de texte sont de l'UTF-8 valide. L'imbrication compte au plus 8
+  > niveaux, la table d'en-tête elle-même étant le niveau 1. La table contient la
+  > clé entière 1, dont la valeur est un entier ou une chaîne de texte. Un
+  > en-tête qui ne respecte pas tout ceci est mal formé et la signature est
+  > `invalid`.
+
+  Les octets écrits sont inchangés : la sortie de signature et chaque vecteur
+  antérieur à ce changement sont identiques octet pour octet. Les nouveaux vecteurs `vectors/signed/sigalg-*.json`
+  fixent ce comportement, y compris les limites de la grammaire (intervalle des entiers, types de clés, UTF-8, profondeur d'imbrication), avec l'identifiant d'algorithme à usage privé -65537 ; les tests de chaque moteur vérifient chacun de ces vecteurs selon son état indiqué.
+- Autres changements de comportement : Rust ne rapporte plus un COSE_Sign1 mal formé comme
+  `unverified` ; Smalltalk rapporte maintenant un `kid` absent comme `invalid` au lieu de
+  `unverified` ; le lecteur Python ne lève plus d'exception sur des octets de signature
+  indécodables et ne rapporte plus de `kid` pour un COSE_Sign1 mal formé, comme tous les
+  autres moteurs ; `cose::parse` de Rust n'est plus public .
+- Conséquence pour les scripts : la commande `verify` de chaque moteur, lorsqu'une clé est
+  fournie, ne traite que `invalid` comme un échec. Une signature d'algorithme non pris en
+  charge dont le `kid` est résolu est maintenant `unverified` et se termine avec le code 0
+  alors qu'elle se terminait avec 1 auparavant, comme un `kid` non résolu le faisait déjà.
+  Les appelants qui doivent rejeter les signatures `unverified` doivent le vérifier
+  explicitement.
+- Le lecteur Python ne laisse plus sa bibliothèque CBOR interpréter les étiquettes. GTS ne
+  donne de sens à aucune étiquette, sauf `55799` autour d'un en-tête (§3), mais la
+  bibliothèque construisait des ensembles, des décimaux, des dates et des valeurs semblables
+  à partir d'autres étiquettes; ce que le lecteur acceptait dépendait donc de la version de
+  la bibliothèque. Toute étiquette est désormais décodée en un `CBORTag` non interprété,
+  pour les éléments du fichier, pour les charges utiles transformées et pour les structures
+  COSE, de façon identique avec `cbor2` 6.1.5 et 6.2.1. Un élément CBOR complet qui n'est
+  pas une trame, avec ou sans étiquette, est rapporté comme `DamagedFrame` (une trame qui
+  n'est pas une table, ou une discordance d'auto-condensé pour une table) et le repli
+  continue avec l'élément suivant. Auparavant, avec `cbor2` 6.2.1, un élément d'étiquette
+  `258` portant autre chose qu'un tableau, ou d'étiquette `4` ou `5` dont une partie n'est
+  pas un entier, faisait rapporter un ajout tronqué (`TornAppendError`) au lecteur, qui
+  cessait de replier, alors que l'élément est du CBOR complet. Avec 6.1.5, les mêmes octets
+  étaient rapportés comme une trame endommagée et les trames suivantes étaient quand même
+  repliées. Ce changement concerne les éléments bien formés, étiquetés ou isolés. Les autres
+  échecs de décodage, comme une imbrication excessive ou de l'UTF-8 invalide, ne sont pas
+  modifiés par lui et ne sont pas encore rapportés de la même façon par tous les moteurs. Les étiquettes `2` et `3` restent des entiers (un contenu en
+  chaîne d'octets devient l'entier qu'il porte), de sorte qu'une trame est condensée sur
+  l'entier, comme dans les moteurs Rust, Go et TypeScript, et qu'un grand entier écrit sous une forme
+  non préférée est une discordance d'auto-condensé ici comme ailleurs.
+- `decrypt0` et `recipient_kid` rapportent des octets indécodables et des tableaux de
+  mauvaise longueur comme un `COSE_Encrypt0` malformé (`missing-key`, ou aucun `kid`) au
+  lieu de lever `CBORDecodeError` ou `IndexError`, et une structure COSE sous une étiquette
+  telle que `258` n'est plus dépaquetée comme un ensemble Python dont l'ordre décidait du
+  résultat. L'acceptation d'une structure COSE sous une étiquette autre que `18` ou `16`
+  diffère selon les moteurs et n'est pas encore figée par un vecteur.
+- Les nouveaux vecteurs `28i-stray-set-between-frames`, `28j-stray-set-last-item`,
+  `28k-stray-decimal-between-frames`, `28l-stray-decimal-last-item`,
+  `28m-stray-self-reference-in-set` et `28n-stray-self-reference-as-key` figent le résultat
+  pour un élément étiqueté isolé entre des trames et en dernier : un `DamagedFrame`, aucun
+  `TornAppendError`, et le quad qui suit l'élément est quand même replié. Les octets écrits
+  `28o-suppression-over-damaged-terms` fige une suppression d'un segment ultérieur qui
+  nomme les identifiants d'une trame `terms` endommagée, et `28p-tagged-value-in-frame-field`
+  fige une valeur étiquetée dans un champ de trame.
+  Les octets écrits sont inchangés : chaque vecteur existant auparavant est identique octet
+  pour octet.
+- `read` ne lève plus `IndexError` lorsqu'une suppression d'un segment ultérieur nomme un
+  identifiant de terme que la trame `terms` endommagée de son segment n'a jamais défini;
+  l'identifiant est conservé tel que reçu et le dommage est le seul diagnostic, comme dans
+  Rust, Go et TypeScript.
+- Les décodeurs Kotlin et Smalltalk délimitent désormais les éléments à virgule flottante
+  et les autres valeurs simples bien formées, et les gardent non interprétés. Auparavant,
+  un élément complet qui en contenait une, comme un élément d'étiquette `4` dont une partie
+  est un flottant en demi-précision, était rapporté comme un ajout tronqué et le repli
+  s'arrêtait; il est maintenant une trame endommagée et le repli continue, comme l'exige la
+  spécification.
+- Une charge utile `zstd` ou `zstd-rsyncable` dont la structure de trame ou de bloc est
+  invalide (pas du zstd, coupée, en-tête de bloc erroné), qui nomme un dictionnaire ou qui
+  déclare une fenêtre que le lecteur ne décodera pas, fait désormais de cette seule trame
+  un nœud opaque (raison `damaged`, diagnostic `DamagedFrame`), et le repli continue, en
+  Python, Rust et TypeScript (ses versions Node et navigateur). Go le faisait déjà ;
+  Kotlin et Smalltalk devraient le faire, d'après la lecture seule, car ils n'ont pas été
+  exécutés. Rapporter `damaged` pour une trame intacte qu'un lecteur ne fait que ne pas
+  pouvoir décoder est une lacune des raisons opaques de la spécification (§7.6 ne nomme que
+  `unknown-codec`, `missing-key` et `damaged`), non une règle. Auparavant, Python et Rust
+  enregistraient une trame de blob sous son condensat déclaré sans examiner sa charge
+  utile : Python levait alors l'erreur de la bibliothèque zstd, avec une trace d'appels,
+  depuis `gts ls` et `gts extract`, et renvoyait moins d'octets sans erreur pour une charge
+  utile coupée ; Rust signalait une erreur propre à la lecture mais ne repliait aucun nœud
+  opaque. Les deux parcourent maintenant les en-têtes de trame et de bloc zstd au repli de
+  la trame de blob (quelques octets par bloc de 128 Kio, sans décompression, et sans
+  répétition à la lecture du blob). Un dommage à l'intérieur d'un bloc apparaît toujours à
+  la première lecture ; la ligne de commande de Python le signale par
+  `gts: cannot decode blob` et le code 1 au lieu d'une trace d'appels, et les appelants de
+  la bibliothèque qui interceptaient `zstandard.ZstdError` depuis `g.blobs[...]` reçoivent
+  maintenant `PayloadDecodeError` (une `ValueError`). Les outils en ligne de commande de Go
+  et de TypeScript sortent avec le code 1 dès qu'un `DamagedFrame` est signalé, comme avant.
+- TypeScript ne décode plus une trame zstd qui déclare une fenêtre supérieure à 2**27
+  octets (128 Mio), dans ses deux versions. Sa bibliothèque zstd renvoie des octets
+  erronés, sans erreur, dès qu'une correspondance remonte d'environ 256 Mio, ce que permet
+  une fenêtre de 2**29 ou plus ; 2**27 est la plus grande fenêtre que tous les lecteurs de
+  référence ont été mesurés décoder correctement. La limite est une constante nommée
+  (`MAX_ZSTD_WINDOW_LOG`) dans un module commun aux deux versions, et toute structure que le
+  parcours n'accepte pas est refusée par le parcours lui-même, non laissée à la
+  bibliothèque, qui accepte plus que le format. Comme filet pour toute autre façon dont
+  cette bibliothèque peut renvoyer des octets erronés (un dictionnaire sans identifiant
+  stocké, une trame à segment unique déclarant une taille de contenu qu'elle n'a pas), un
+  blob dont les octets décodés n'ont pas pour condensat son `pub.digest` déclaré est
+  désormais une trame endommagée dans les deux versions, que le condensat soit écrit en texte
+  ou en 32 octets bruts ; auparavant il était listé sous le condensat des mauvais octets,
+  sans diagnostic. Le texte déclaré est comparé comme le font Python et Rust : l'hexadécimal
+  nu reçoit le préfixe `blake3:` et est accepté, mais l'hexadécimal en majuscules n'est pas la
+  forme minuscule exigée par la spécification et rend maintenant le blob endommagé.
+- Cela change ce que le lecteur Python accepte. Il refuse désormais toute trame qui déclare
+  une fenêtre supérieure à 2**27, que sa bibliothèque la décode ou non : la bibliothèque
+  ignore sa propre limite quand tout le contenu tient dans le tampon de l'appelant, de sorte
+  que ce qu'elle acceptait dépendait d'une taille de tampon et non de la trame. Les trames
+  construites à la main qui déclarent une fenêtre plus grande pour un petit contenu de taille
+  connue étaient décodées auparavant et sont maintenant opaques ; aucun encodeur réel n'est
+  connu pour en écrire. Le parcours de Rust refuse aussi une fenêtre supérieure à 2**31, le
+  maximum de son décodeur, au repli plutôt qu'à la première lecture ; aucune autre limite de
+  moteur n'a changé.
+- Non réglé ici, et non tranché par le format : les moteurs divergent encore sur des trames
+  que le format permet. Une trame déclarant une fenêtre de 2**28 est décodée par Rust, Go et
+  Smalltalk et refusée par Python, TypeScript et (d'après la lecture) Kotlin ; 2**29 par Rust
+  et Go seulement ; 2**30 par Rust et Smalltalk seulement. Une trame qui nomme un identifiant de
+  dictionnaire est refusée au repli par Python, Rust, TypeScript et Go, et échoue au
+  décodage dans Kotlin et Smalltalk (d'après la lecture) ; une trame compressée avec un
+  dictionnaire qui ne stocke pas d'identifiant (un dictionnaire de contenu brut) porte
+  l'identifiant 0, qu'aucun parcours d'en-tête ne voit : Python et Rust la replient et
+  échouent à la première lecture, TypeScript ne l'attrape que par le condensat du blob, et
+  Go la marque endommagée au repli. Smalltalk échoue sur toute trame sans taille de contenu.
+  Savoir si la spécification doit nommer une limite de fenêtre unique et un paramètre de
+  dictionnaire reste ouvert.
+- Le décodeur Smalltalk décode maintenant une charge utile de trames zstd concaténées
+  jusqu'à sa fin. Il dimensionnait sa sortie d'après la première trame seulement : toute
+  charge utile `zstd-rsyncable` de plus d'une unité, que les écrivains de référence
+  composent d'une trame par unité, était donc signalée comme trame endommagée.
+- Nouveaux vecteurs `22b-zstd-rsyncable-multi-frame` (une charge utile de trois trames
+  concaténées, décodée, condensat du blob concordant), `22c-zstd-declared-window-2-27`,
+  `28q-blob-payload-not-zstd`, `28r-blob-payload-truncated` et
+  `28s-blob-payload-names-dictionary` (un nœud opaque chacun, les trames qui précèdent et
+  suivent étant repliées). Chaque vecteur antérieur est identique à l'octet près.
+
+### Modifié
+
+- L'implémentation zstd du moteur Rust a été mise à jour (`structured-zstd` 0.0.48 vers 0.3.0) et produit désormais des octets compressés différents pour certaines entrées, qui se décodent toutes de façon identique.
+- Comme l'identifiant d'une trame couvre la charge utile compressée stockée, une tête écrite par la bibliothèque Rust avec un codec zstd change avec la version du compresseur; une telle tête ne doit donc pas être figée ni comparée entre versions, et il faut comparer le contenu.
+- Les mises à jour de `getrandom`, `aes-gcm`, `quick-xml`, `ed25519-dalek` et `visual-hashing` n'ont aucun effet sur les octets écrits.
+- Le moteur TypeScript utilise désormais `@noble/ed25519` 3.2.0 et `@noble/hashes` 2.4.0
+  (deux mises à jour majeures), et ses importations suivent la nouvelle organisation des
+  modules (`sha2.js` et `legacy.js` remplacent `sha512.js` et `sha1.js`). Les octets écrits
+  et signés sont inchangés : les signatures, les condensés et les empreintes OpenPGP sont
+  identiques, comme le montre une comparaison avant-après. La vérification des signatures
+  change pour les signatures dégénérées que seul le détenteur de la clé de signature peut
+  produire; les signatures honnêtes ne sont pas touchées. L'ancienne bibliothèque acceptait
+  une signature construite sur le point neutre pour tout message sous une clé, et la
+  nouvelle la rejette. La nouvelle bibliothèque vérifie sur les octets de `R` de la
+  signature tels que reçus (ZIP-215) : une signature dont le `R` n'est pas canonique et qui
+  était valide auparavant ne l'est plus, et inversement. La politique de vérification
+  elle-même est inchangée et reste une décision à prendre pour tout le format.
+- Les dépendances Python ont été mises à jour, dont `cbor2` 6.1.5 vers 6.2.1. Les octets
+  écrits sont inchangés : le corpus se régénère à l'identique avec les deux versions. La
+  mise à jour supprime un plantage : `cbor2` 6.1.5 terminait le processus par une faute de
+  segmentation sur une étiquette autoréférentielle utilisée comme clé de table ou élément
+  d'ensemble, et 6.2.1 lève une erreur qui peut être interceptée. Le lecteur ne confie plus
+  les étiquettes à la bibliothèque pour interprétation (voir Corrigé); aucune des deux
+  versions ne peut donc planter sur une telle entrée, et les deux la replient de la même façon.
+
+## [1.0.0-rc.1] — 2026-09-04
+
+### Modifié
+
+- **RUPTURE (contrat de lecteur).** Un TERME de triplet cité est désormais
+  auto-descriptif : une rangée `terms` peut porter `"tt": [s, p, o]`, qui FAIT
+  AUTORITÉ lorsqu'il est présent. `"rf"` reste un encodage hérité valide et se
+  résout vers la première liaison de son réificateur, de sorte que les octets
+  existants se lisent inchangés — mais tout lecteur tiers antérieur devient non
+  conforme, car `rdf:reifies` n'est PAS fonctionnel en RDF 1.2 et la trame
+  `reifies` est une couche d'énoncés MULTIVALUÉE. Chaque rangée survit avec son
+  propre emplacement de graphe ; un lecteur ne peut ni choisir parmi elles, ni
+  les réordonner, ni en supprimer aucune. Seules les rangées identiques octet
+  pour octet fusionnent (§7.8).
+- `ConflictingReifier` est restreint à la seule forme véritablement incohérente :
+  un terme sans `"tt"` dont le réificateur lie plus d'un triplet distinct. Il est
+  signalé une fois par terme fautif, ne supprime aucune rangée, et ce terme
+  continue de se résoudre vers la première liaison dans l'ordre du fichier. Le
+  vecteur de conformité 12 passe d'un cas négatif à un cas positif.
+- **RUPTURE (projection relationnelle §14).** La table `terms` de l'export
+  `gts → {sqlite,duckdb,parquet}` passe de 7 à 10 colonnes, en ajoutant `tt_s`,
+  `tt_p`, `tt_o`. Les index positionnels 0-6 existants sont inchangés, mais un
+  identifiant de réificateur n'identifie plus un triplet : tout consommateur qui
+  effectue une clé ou une jointure sur `reifier` en attendant un seul triplet
+  perdra silencieusement des rangées.
+
+### Ajouté
+
+- Contrainte de position normative : dans une rangée `reifies`, le réificateur
+  DOIT (MUST) être un IRI ou un nœud vide (`k:0|2`), jamais un littéral ni un
+  triplet cité. Il est le SUJET de l'énoncé `R rdf:reifies <<( S P O )>>` que
+  chaque rangée affirme, et RDF 1.2 n'admet que ces genres à cette position. Les
+  violations sont signalées `PositionConstraint` et la rangée est supprimée.
+- Vecteurs de conformité `13b-reifier-position-constraint`,
+  `13c-self-describing-triple-term` et `13e-literal-base-direction`. Le dernier
+  couvre la direction de base des littéraux RDF 1.2, entièrement implémentée
+  dans les six moteurs mais sans aucune couverture figée.
+
+### Corrigé
+
+- La résolution d'un terme de triplet se termine désormais sur chaque parcours.
+  Une rangée `reifies` peut nommer le terme même qui se résout à travers elle,
+  ce qui est constructible avec l'écrivain ordinaire et ne nécessite aucun
+  `"tt"`. Auparavant, le pliage d'un tel fichier interrompait Go avec
+  `fatal error: stack overflow` — irrécupérable, et une violation du contrat
+  sans panique du lecteur que `FuzzRead` défend — et levait `RecursionError` en
+  Python. Les deux constituent un déni de service d'analyseur.
+- Go ne rejette plus un `"tt"` faisant autorité lorsqu'un `"rf"` hérité est
+  également présent. Un aller-retour `Graph → events → Graph` rétrogradait un
+  tel terme.
+- L'écrivain Rust n'émet `"tt"` que pour les termes `k:3`.
+
+## [0.9.11] — 2026-06-29
+
+### Modifié
+
+- Les rangées `reifies` et `annot` portent désormais le même identifiant de terme
+  de graphe optionnel que les `quads`, ce qui rétablit le partitionnement par
+  graphe nommé de la réification et des annotations RDF 1.2. `reifies` est
+  maintenant une charge utile en tableau de rangées (`[rid, s, p, o, g?]`) plutôt
+  qu'une carte indexée par identifiant de réificateur.
+- Les métadonnées de version sont alignées sur `0.9.11` pour la mise à jour
+  coordonnée du schéma.
+
+## [0.9.10] — 2026-06-29
+
+### Ajouté
+
+- Rust peut émettre des instantanés de graphe déterministes directement à partir
+  de l'état de graphe replié, y compris les termes, les quads, les réificateurs,
+  les annotations, les blobs et les options zstd au niveau de l'instantané.
+- Les scripteurs Python et Rust prennent en charge les niveaux de compression
+  zstd par trame pour les trames `zstd` et `zstd-rsyncable`.
+
+### Modifié
+
+- La gestion de zstd en Rust utilise désormais le moteur pure-Rust
+  `structured-zstd` pour l'encodage et le décodage.
+- Les métadonnées de version sont alignées sur `0.9.10` pour les canaux de
+  publication Python et Rust, avec les métadonnées compagnons verrouillées
+  maintenues synchronisées.
+
+### Corrigé
+
+- Suppression du plafond fixe de 16 Mio pour la taille décodée de zstd dans
+  Python, Rust, Go, TypeScript, le navigateur TypeScript, Kotlin et Smalltalk.
+  Les implémentations s'appuient désormais sur le streaming/la contre-pression,
+  le stockage, les échecs d'allocation de plateforme et les erreurs de données
+  corrompues au lieu de rejeter uniquement parce que la sortie décodée dépasse un
+  plafond d'octets au niveau du codec.
+
+## [0.9.9]
+
+### Corrigé
+
+- Native Turtle/TriG parser now resolves `PN_LOCAL_ESC` escapes in prefixed-name
+  local parts: a backslash-escaped delimiter (`\(`, `\)`, `\,`, `\.`, …) is part of
+  the local name, not a statement/object delimiter, and expands to the literal
+  character in the IRI (e.g. `dbr:Semantic_analysis_\(linguistics\)` →
+  `http://dbpedia.org/resource/Semantic_analysis_(linguistics)`). An escaped trailing
+  `\.` is kept rather than stripped as the statement terminator.
+
+## [0.9.8]
+
+### Corrigé
+
+- Turtle/TriG prefixed names admit internal dots (`repo:README.md`): a `.` is no longer
+  a name delimiter; only a trailing dot terminates the statement.
+- The N-Triples/N-Quads statement-layer fold HARD-FAILS on a conflicting `rdf:reifies`
+  rebind (same reifier subject, different triple term) instead of silently
+  last-write-winning (CONSTITUTION P7); an identical rebind stays idempotent.
+
+## [0.9.7]
+
+### Ajouté
+
+- Full RDF 1.2 reification/annotation surface in the native Turtle/TriG parser:
+  `<< s p o [~ id] >>` reifying triples (expanding to `reifier rdf:reifies <<( s p o )>>`),
+  `{| … |}` annotation blocks and `~` reifiers in any sequence, `VERSION`/`@version`
+  directives, optional predicate-object lists for self-asserting subjects, and
+  `rdf:annotationNodeID` (blank-node reifier) in RDF/XML.
+
+### Corrigé
+
+- Serialize a triple term in quad-object position: the self-referential reifier entry
+  (a triple term keying its own components in the reifiers map) no longer trips the
+  event source's `cycle while declaring term N` guard.
+
+## [0.9.6]
+
+### Ajouté
+
+- Native Turtle/TriG parsing of bare numeric (`xsd:integer`/`decimal`/`double`),
+  boolean (`xsd:boolean`), and single- and triple-quoted string literals, with
+  lexical forms preserved verbatim (`0.70`, `1.0E0` survive unchanged). This
+  closes the gaps that previously forced an oxttl-backed codec fallback, so the
+  hand-rolled native codecs fully replace `oxttl`/`oxrdfxml`/`oxrdfio` with no
+  text-codec dependency on the Oxigraph family.
+- Installable C ABI archive packaging for `libgts`, including pkg-config,
+  CMake, checksum, SBOM, provenance, and immutable GitHub Release publication
+  through the `capi-v*` tag lane.
+- Publishable `gmeow-gts-capi` Rust source crate metadata and a bootstrap
+  crates.io release workflow for the C ABI source package.
+- Credential-free package dry-run CI for the C ABI wrapper family, covering
+  local package/artifact validation without registry publication secrets.
+
+### Modifié
+
+- N-Quads/N-Triples language-tag validation now accepts long BCP-47 private-use
+  subtags (e.g. `x-gmeow-norwegiannynorsk`): once the `x` singleton appears the
+  8-char per-subtag cap is dropped for the remainder. This is the native
+  equivalent of the prior oxttl `.lenient()` mode and lets GMEOW's long
+  private-use language tags round-trip through every native text codec.
+- Corrected the Go module release tag shape to `go/v<version>` so
+  `go.blackcatinformatics.ca/gts` versions in the `go/` subdirectory are
+  discoverable by the Go proxy and pkg.go.dev.
+- Moved canonical `visual-hashing` publication to
+  `Blackcat-Informatics/visual-hashing`; version `0.1.3` is published from that
+  repository with crates.io Trusted Publishing provenance, and the old monorepo
+  release workflow is retired.
+- Replaced the Rust Oxigraph/OxRDF/Sophia adapter surfaces with native RDF
+  dataset, text-codec, RDF/XML, ULID, and in-memory store implementations; CI
+  now locks the `wasm32-unknown-unknown --all-features` library build and audits
+  that dependency tree to keep the removed toolkit blockers out.
+
+## [0.9.5] — 2026-06-22
+
+Rust-only release. Python, Go, TypeScript, and wrapper package versions remain
+at `0.9.4`.
+
+### Ajouté
+
+- Rust RDF event source/sink API for folded GTS graphs, including declaration
+  ordering for sinks that require term declarations before references.
+- Rust RDF text codecs for N-Triples, Turtle, TriG, and RDF/XML behind the
+  `rdf-codecs` feature.
+- Rust XSD lexical validation annotations for parsed RDF literals.
+- C ABI RDF format discovery and conversion helpers for the new Rust codec
+  surface.
+
+### Modifié
+
+- Folded the RDF event protocol back into the main `gmeow-gts` crate so the
+  Rust release does not require publishing a second support crate.
+
+## [0.9.4] — 2026-06-21
+
+### Ajouté
+
+- Rust GTS terms now preserve RDF 1.2 language-tagged literal base direction
+  (`"dir": "ltr" | "rtl"`) across the wire model, deterministic writer,
+  multi-segment union, N-Quads/TriG projection, YAML-LD import/export, SQL
+  exports, and dump-directory JSONL tables.
+- Regression coverage for multiple distinct reifiers bound to the same asserted
+  triple.
+- Regression coverage documenting the blob contract: inline blob frames preserve
+  bytes, while external blob records carry metadata and digest references only.
+
+### Modifié
+
+- Bumped lockstep package metadata to `0.9.4` across release manifests,
+  citation metadata, C API metadata, Kotlin metadata, and documentation snippets.
+- Native `oxrdf` export now refuses RDF 1.2 directional literals rather than
+  silently dropping base direction on an adapter surface that cannot carry it.
+
+## [0.9.2] — 2026-06-19
+
+### Ajouté
+
+- Rust-only YAML-LD-star/JSON-LD-star import/export behind the `yaml-ld`
+  Cargo feature, including `gts to-yaml-ld` and `gts from-yaml-ld`. This is a
+  transform-only feature with no wire-format, canonical-catalog, or shared
+  corpus oracle change, so no GIP is required.
+- Rust `gts dump --directory` inspection export for versioned directory trees
+  containing folded N-Quads, JSONL tables, unfolded frame views, blob indexes,
+  and files-profile payloads.
+- TriG import/export support for readable graph-block interchange over the same
+  folded RDF content.
+- Rust OKF profile import/export, an OKF conformance corpus, and ecosystem
+  positioning for Markdown/YAML-frontmatter knowledge bundles.
+- Files-profile-v2 metadata support plus the Rust tar bridge: `from-tar`,
+  `to-tar`, and tar-compatible `gts tar -c/-x/-t/-d`.
+- Tar round-trip conformance fixtures covering ustar, PAX metadata, gzip/zstd,
+  links, special nodes, and unsafe archive refusals.
+
+### Modifié
+
+- Documented OKF and tar as intentional Rust-first extension surfaces with
+  explicit future parity gates for Python, Go, and TypeScript.
+- Strengthened ecosystem and parity drift guards for the new OKF and tar
+  documentation surfaces.
+
+### Sécurité
+
+- Hardened files-profile-v2 and tar extraction behavior around traversal,
+  symlinks, hardlinks, special files, ownership, setuid/setgid bits, and unsafe
+  output paths.
+
+## [0.9.1] — 2026-06-19
+
+### Ajouté
+
+- v1.0-rc1 release support docs: release checklist, third-party implementer guide,
+  benchmark release report template, paper draft, and public release verification workflow.
+- Go and TypeScript `from-nq` parity so all four engines can import N-Quads into GTS.
+
+### Modifié
+
+- Refined README, specification, conformance, vector-manifest, streaming-reader, and
+  benchmark documentation for clearer release-candidate evidence and implementer guidance.
+- Improved language-specific quality gates and docs: Rust public API docs and `rustdoc` gate,
+  Python inline docs and typing, Go docs plus `golangci-lint`, and TypeScript API docs plus
+  stricter lint rules.
+- Added project DOI and homepage metadata across package and citation surfaces.
+
+### Sécurité
+
+- Hardened release publication with crates.io Trusted Publishing, GitHub SLSA provenance,
+  SPDX SBOM attestations for release artifacts, immutable Go GitHub Releases, and release
+  smoke verification.
+- Documented the current release SLSA posture as Build Level 2 evidence and the signer
+  workflow requirements for any future Build Level 3 claim.
+
+## [0.9.0] — 2026-06-18
+
+### Ajouté
+
+- Rust parity expansion: N-Quads import, SQLite/DuckDB/Parquet exports, lazy blob
+  decoding, verification APIs, policy/nested reader APIs, agent-memory example,
+  streaming sink reader, MMR proof support, replication inventory verbs, deterministic
+  writer helpers, transform encryption APIs, and native RDF adapters for `oxrdf`,
+  Oxigraph, and Sophia.
+- Cross-engine service/browser parity: Go streaming reader sinks, replication verbs
+  across Rust/Go/TypeScript/Python CLIs, TypeScript browser streaming/WebCrypto export,
+  and cross-engine MMR proof verification.
+- Repository contracts for API/CLI parity, advanced primitives, ecosystem integrations,
+  conformance, security policy, vector manifest metadata, and downstream Rust ontology
+  CI coverage.
+
+### Modifié
+
+- Vector corpus and conformance documentation now stamp corpus revision metadata and
+  sharpen total-reader, fold-semantics, media-type, CDDL/preimage, and publication
+  guidance.
+- Release documentation now records visual-hashing publish ordering and lockstep
+  release expectations for the four GTS engines.
+
+### Sécurité
+
+- Added security policy parity for Go and TypeScript, including nested-GTS/profile
+  policy coverage, and documented deferred multi-recipient crypto behavior.
+
+## [0.2.0] — 2026-06-17
+
+### Ajouté
+
+- **`visual-hashing` standalone Rust crate (#16).** The emojihash utility
+  (BLAKE3-XOF → 6-bit → 64-emoji visual hash) is GTS-independent, so it now lives
+  in its own crate, `visual-hashing/`, ready to publish to crates.io
+  independently of GTS. It also carries **randomart** (the OpenSSH "Drunken
+  Bishop" ASCII-art fingerprint) — ported to Rust from the Python reference and
+  gated by a new frozen corpus (`vectors/randomart/*.json` +
+  `scripts/gen_randomart_vectors.py`), so the Rust art reproduces Python's
+  byte-for-byte. The `gmeow-gts` crate now depends on `visual-hashing` and
+  re-exports it as `gmeow_gts::emojihash`, so existing paths keep working. The
+  crate's only dependency is `blake3`; it stays `wasm32`-friendly. (The
+  standalone crate is published to crates.io as `visual-hashing 0.1.1`; publish
+  it first whenever the Rust `gmeow-gts` crate bumps its compatible
+  `visual-hashing` requirement, since `gmeow-gts` packaging resolves that
+  dependency from crates.io rather than the in-repo path.)
+
+- **Cross-engine COSE_Encrypt0 (#18): AES-256-GCM payload encryption in all four engines.**
+  - `encrypt0` / `decrypt0` / `recipient_kid` (§9.3) in Rust (pure-Rust
+    `aes-gcm`), Go (`crypto/aes` + `crypto/cipher`), and TypeScript
+    (`@noble/ciphers`) — byte-compatible with the Python reference. The COSE
+    structure is `16([protected{1:3}, unprotected{4:kid, 5:iv}, ciphertext])`
+    with the Enc_structure (`["Encrypt0", protected, b""]`) bound as AAD.
+  - Because AES-GCM uses a random 12-byte IV, the seal is not deterministic, so
+    conformance is gated two ways: a **fixed-IV vector**
+    (`vectors/encrypt0/basic.json` + `scripts/gen_encrypt0_vectors.py`) freezes
+    the exact transform (every engine reproduces the sealed bytes and opens
+    them), and each engine round-trips a **random-IV** seal. Verified live
+    across engine boundaries (e.g. Go seals → Python/Rust open).
+  - The Rust seal/open paths stay pure / wasm-friendly: `aes-gcm` is built with
+    `getrandom` off, and the random-IV `encrypt0` convenience (the only RNG user)
+    is gated off `wasm32`, so the `wasm32-unknown-unknown` build is still green.
+  - This was the last tracked crypto-parity follow-up from #15; signing (#15),
+    `extract-key` (#17), and now encryption (#18) all reach four-engine parity.
+
+- **Cross-engine `extract-key` (#17): OpenPGP key inspection in all four engines.**
+  - A minimal OpenPGP reader (de-armor → packet parse → raw Ed25519 key + v4
+    SHA-1 fingerprint) in Rust (`openpgp.rs`, pure-Rust `sha1`), Go
+    (`openpgp` package, `crypto/sha1`), and TypeScript (`openpgp.ts`,
+    `@noble/hashes/sha1`) — narrow by design: only the unencrypted armored
+    Ed25519 (algorithm 22) certificates GPG emits, mirroring the Python
+    `gts.openpgp` reference. SHA-1 appears solely because RFC 4880 mandates it
+    for v4 fingerprints; it is not a general-purpose hash here.
+  - **`gts extract-key <file>`** in the Rust, Go, and TypeScript CLIs (Python
+    already had it, #12): prints the embedded transport key's `kid`, OpenPGP
+    fingerprint, emojihash, and armored public key. Gated by a frozen shared
+    vector set (`vectors/openpgp/*.json` + `scripts/gen_openpgp_vectors.py`):
+    every engine parses the same key to the same raw bytes / fingerprint /
+    emojihash, and the CLI reproduces the Python-generated stdout byte-for-byte.
+  - The Rust OpenPGP reader stays pure / wasm-friendly (the `wasm32` build is
+    still green).
+  - COSE_Encrypt0 landed as #18 (above) — four-engine crypto parity is complete.
+
+- **Cross-engine crypto parity (#15): COSE_Sign1 + emojihash in all four engines.**
+  - **COSE_Sign1 Ed25519** (`sign_id`/`verify_sig`, detached over the frame id,
+    §9.2) in Rust (`ed25519-dalek`), Go (`crypto/ed25519`), and TypeScript
+    (`@noble/ed25519`) — byte-compatible with the Python reference and gated by a
+    frozen shared vector set (`vectors/cose/*.json` + `scripts/gen_cose_vectors.py`).
+    Ed25519 is deterministic, so every engine reproduces the exact COSE bytes and
+    verifies them.
+  - **emojihash** (BLAKE3-XOF → 6-bit → 64-emoji visual hash) in Rust, Go, and
+    TypeScript, byte-identical to Python, gated by `vectors/emojihash/*.json`.
+  - **File-level signing**: each engine's `Writer` can COSE-sign every frame
+    (`sign_with`/`SignWith`/`signWith`), and each engine verifies the signatures of
+    a signed GTS against resolved keys (`cose.verify_signatures` /
+    `VerifySignatures` / `verifySignatures`). Gated by a frozen signed-GTS vector
+    (`vectors/signed/basic.json`): every engine reproduces the Python-signed file
+    byte-for-byte and verifies it (valid / unverified / invalid).
+  - **`gts verify --key KID:HEXPUB`** in all four CLIs: verify a signed file's
+    COSE signatures against raw Ed25519 public keys (repeatable; exit 1 on any
+    invalid signature).
+  - All crypto stays pure / wasm-friendly (the Rust `wasm32` build is still green).
+  - Cross-engine `extract-key` landed as #17 (above); COSE_Encrypt0
+    (random-IV AES-GCM) remains tracked as #18.
+
+- `gts extract-key <file>` (Python CLI, #12): prints the embedded transport
+  (verification) key for a signed GTS — `kid`, OpenPGP fingerprint, emojihash,
+  and the armored public key.
+- `gts from-nq <in.nq> -o <out.gts>` (Python CLI, #14): build a GTS from
+  N-Quads — the inverse of `fold`. Native N-Quads(-star) parser (no rdflib);
+  handles IRIs, blank nodes, language/datatyped literals, named graphs, and the
+  RDF 1.2 reifying style. `-` reads stdin, so `rdflib → n-quads → gts` pipes. Also
+  exported as `gts.from_nquads`.
+- Relational export (Python CLI, #13): `gts to-sqlite`, `gts to-duckdb`,
+  `gts to-parquet` load a folded graph into the integer-id, dictionary-encoded
+  five-table schema (`terms`/`quads`/`reifiers`/`annotations`/`blobs`). SQLite
+  uses the standard library; DuckDB and Parquet need the new `[db]` extra
+  (`pip install 'gmeow-gts[db]'`). Library API: `gts.db.to_sqlite/to_duckdb/to_parquet`.
+
+### Corrigé
+
+- **Cross-engine `pack` byte parity (#5).** The TypeScript and Go engines encoded
+  the files-profile `mode` as an octal string (`"644"`) instead of the decimal
+  `xsd:integer` value (`"420"`) the Rust and Python engines use, and TypeScript
+  emitted millisecond-precision `modified` timestamps (`…20.000Z`). All four
+  engines now pack identical fixtures to byte-identical output. The `interop`
+  check promotes byte-identity to a hard gate and folds every package against a
+  single global reference, so writer drift (not just reader disagreement) fails CI.
+
+## [0.1.3] — 2026-06-16
+
+### Ajouté
+
+- Live cross-engine interoperability check (`scripts/interop.sh`): every engine
+  packs a fixture and every other engine folds/unpacks it, asserting identical
+  results — interop coverage beyond the Python-generated frozen corpus.
+- Fuzzing for the readers: Rust `cargo-fuzz` target and Go native `FuzzRead`,
+  seeded from the conformance corpus, run on a schedule and as a PR smoke test.
+- Per-ecosystem supply-chain vulnerability scanning (`cargo audit`,
+  `govulncheck`, `npm audit`, `pip-audit`) on lockfile changes, on main, and weekly.
+- Cross-platform CI (Linux, macOS, Windows) for every engine's build and tests.
+- `wasm32-unknown-unknown` build gate for the Rust library.
+- Developer `justfile`, a lockstep version-sync check, and this changelog.
+- Full release attestations across all four engines: SLSA build-provenance
+  attestations and SPDX SBOMs for the crate, the npm tarball (in addition to
+  npm's sigstore provenance), the Python distributions, and the Go binaries.
+- npm releases use trusted publishing (OIDC); the Go release cross-builds and
+  publishes attested binaries (replacing the Pro-only goreleaser monorepo setup).
+
+## [0.1.2] — 2026-06-16
+
+### Ajouté
+
+- Initial public import of GTS into the standalone `gmeow-gts` repository: four
+  interoperable engines (Rust, Python, Go, TypeScript), the `GTS-SPEC.md`
+  specification, and the frozen conformance corpus.
+- Triple licensing: `MIT OR Apache-2.0 OR proprietary`.
+
+[1.0.0-rc.1]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.11...rust-v1.0.0-rc.1
+[0.9.11]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.10...rust-v0.9.11
+[0.9.10]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.9...rust-v0.9.10
+[0.9.9]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.8...rust-v0.9.9
+[0.9.8]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.7...rust-v0.9.8
+[0.9.7]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.6...rust-v0.9.7
+[0.9.6]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.5...rust-v0.9.6
+[0.9.5]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/rust-v0.9.4...rust-v0.9.5
+[0.9.4]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.2...py-v0.9.4
+[0.9.2]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.1...py-v0.9.2
+[0.9.1]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.9.0...py-v0.9.1
+[0.9.0]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.2.0...py-v0.9.0
+[0.2.0]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.3...py-v0.2.0
+[0.1.3]: https://github.com/Blackcat-Informatics/gmeow-gts/compare/py-v0.1.2...py-v0.1.3
+[0.1.2]: https://github.com/Blackcat-Informatics/gmeow-gts/releases/tag/py-v0.1.2

@@ -18,9 +18,9 @@ SPDX-License-Identifier: MIT OR Apache-2.0
   - [ ] `cd python && uv run pytest` (and `uv run ruff check` + `uv run mypy`)
   - [ ] `docker build -t gmeow-gts-smalltalk smalltalk && docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc 'sh /workspace/smalltalk/scripts/run-tests.sh'`
   - [ ] `cd kotlin && gradle test detekt`
-- [ ] If behaviour changed: the conformance corpus is updated and reproducible
-      (`cd python && uv run python scripts/gen_vectors.py && git diff --exit-code vectors`)
-- [ ] If behaviour changed: all six engines agree on the new corpus
+- [ ] A v2 format change updates the affected normative parts and [v2 conformance cases](../vectors/v2/README.md).
+- [ ] For released-engine behavior changes, the generated corpus reproduces and affected engines agree.
+
 - [ ] Docs / spec updated if behaviour, flags, or the wire format changed
 - [ ] If the quality-budget baseline increased: PR has the
       `quality-budget-baseline-increase` label or an updated architecture-review note

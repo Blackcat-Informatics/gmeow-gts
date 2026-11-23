@@ -4,57 +4,23 @@
 <!-- i18n-locale: zh-Hans -->
 <!-- i18n-status: draft -->
 
-# GTS 简体中文入口
+# GTS v2 中文导览
 
-> [`README.md`](../../../README.md) 的信息性中文翻译。英文仍然是协议、版本、命令和可执行示例的规范来源。
+GTS 将 RDF 数据集及其二进制附件保存在一个可追加写入的文件中。项目已发布 2.0 版规范，供实现者使用和评审。规范正文为英文。
 
-GTS，即 `Graph Transport Substrate`，是一种 append-only 格式，用于传输 RDF 图及其相关数据，并提供内容标识符、可验证段、可选签名以及多语言 CLI/API 表面。
+[项目主页](../../../README.md) · [GTS v2 规范](docs/GTS-SPEC.md) · [符合性测试集](../../../vectors/v2/README.md)
 
-本页是 #364 翻译批次的本地化入口。术语遵循 [`本地化词汇表`](../GLOSSARY.md)；总体本地化索引位于 [`docs/i18n/README.md`](../README.md)。
+## 规范性文档
 
-## 本批次的本地化文档
+- [P1 — 模型与线格式](../../v2/P1.md)
+- [P2 — 注册表](../../v2/P2.md)
+- [P3 — RDF 内容](../../v2/P3.md)
+- [P4 — 二进制对象](../../v2/P4.md)
+- [P5 — 持久性](../../v2/P5.md)
+- [P6 — 签名](../../v2/P6.md)
+- [P7 — 读取与符合性](../../v2/P7.md)
+- [P8 — 密封](../../v2/P8.md)
+- [P9 — 转换](../../v2/P9.md)
+- [L1 — 空白节点的规范标记](../../v2/L1.md)
 
-| 英文源文档 | zh-Hans 页面 |
-|---|---|
-| `docs/GTS-SPEC.md` | [GTS 规范](docs/GTS-SPEC.md) |
-| `docs/GTS-CONFORMANCE.md` | [GTS 一致性](docs/GTS-CONFORMANCE.md) |
-| `docs/GTS-API-CLI-PARITY.md` | [API/CLI 对等](docs/GTS-API-CLI-PARITY.md) |
-| `docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md` | [第三方实现者指南](docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) |
-| `docs/gts-reference.md` | [Python 参考](docs/gts-reference.md) |
-| `docs/GTS-ECOSYSTEM-INTEGRATIONS.md` | [生态系统集成](docs/GTS-ECOSYSTEM-INTEGRATIONS.md) |
-| `docs/GTS-ADVANCED-PRIMITIVES.md` | [高级基元](docs/GTS-ADVANCED-PRIMITIVES.md) |
-| `docs/GTS-OKF.md` | [OKF](docs/GTS-OKF.md) |
-| `docs/GTS-DUMP-DIR.md` | [Dump 目录](docs/GTS-DUMP-DIR.md) |
-| `docs/GTS-PAPER-DRAFT.md` | [论文草稿](docs/GTS-PAPER-DRAFT.md) |
-| `docs/GTS-BENCHMARK-RELEASE-REPORT.md` | [基准发布报告](docs/GTS-BENCHMARK-RELEASE-REPORT.md) |
-| `docs/GTS-GOVERNANCE.md` | [治理](docs/GTS-GOVERNANCE.md) |
-| `docs/GTS-SECURITY-POLICY.md` | [安全与信任策略](docs/GTS-SECURITY-POLICY.md) |
-| `docs/GTS-RELEASE-SLSA.md` | [发布 SLSA 状态](docs/GTS-RELEASE-SLSA.md) |
-| `docs/GTS-V1-RC1-CHECKLIST.md` | [v1.0-rc1 检查清单](docs/GTS-V1-RC1-CHECKLIST.md) |
-| `CHANGELOG.md` | [变更日志](CHANGELOG.md) |
-| `CONTRIBUTING.md` | [贡献](CONTRIBUTING.md) |
-| `SECURITY.md` | [安全](SECURITY.md) |
-| `CODE_OF_CONDUCT.md` | [行为准则](CODE_OF_CONDUCT.md) |
-| `LICENSING.md` | [许可](LICENSING.md) |
-| `README.md` | [项目](README.md) |
-| `docs/positioning.md` | [定位](docs/positioning.md) |
-| `rust/README.md` | [Rust](rust/README.md) |
-| `python/README.md` | [Python](python/README.md) |
-| `go/README.md` | [Go](go/README.md) |
-| `ts/README.md` | [TypeScript](ts/README.md) |
-| `smalltalk/README.md` | [Smalltalk/Pharo](smalltalk/README.md) |
-| `kotlin/README.md` | [Kotlin/JVM](kotlin/README.md) |
-| `rust/capi/README.md` | [C ABI](rust/capi/README.md) |
-| `cpp/README.md` | [C++](cpp/README.md) |
-| `dotnet/README.md` | [.NET](dotnet/README.md) |
-| `php/README.md` | [PHP](php/README.md) |
-| `lua/README.md` | [Lua](lua/README.md) |
-| `swift/README.md` | [Swift](swift/README.md) |
-| `ruby/README.md` | [Ruby](ruby/README.md) |
-| `r/README.md` | [R](r/README.md) |
-| `julia/README.md` | [Julia](julia/README.md) |
-| `python/examples/README.md` | [Python 示例](python/examples/README.md) |
-
-## 状态
-
-本地化规范、一致性页面和实现者参考标记为 `translated`，相对于英文文档仍然是信息性内容。其他页面标记为 `draft`，以便将初始翻译与 #369 的最终 QA 分开处理。命令、路径、URL、包名、API 标识符、JSON 值、诊断代码和代码片段必须与英文源文档保持完全一致。
+配置文件 · [dist](../../v2/PF-dist.md) · [evidence](../../v2/PF-evidence.md) · [stream](../../v2/PF-stream.md) · [bundle](../../v2/PF-bundle.md) · [files](../../v2/PF-files.md) · [container](../../v2/PF-container.md)

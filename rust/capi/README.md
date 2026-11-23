@@ -3,6 +3,8 @@
 
 # GTS C ABI
 
+The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format. This package predates v2.
+
 `gmeow-gts-capi` builds `libgts` from the safe Rust GTS core. It is a distribution and interoperability surface for C-compatible runtimes; it is not a new GTS engine or a new CLI parity column.
 
 ## ABI model

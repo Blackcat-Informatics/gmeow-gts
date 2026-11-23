@@ -28,7 +28,7 @@
 
 下方的行（如果存在）是计划中的词汇，而非当前的公开命令。如果这些谓词 (verbs) 中的任何一个
 在更新此表之前出现在引擎调度接口或公开 CLI 一致性矩阵中，守护脚本
-[`scripts/check_advanced_contract.py`](../../../../scripts/check_advanced_contract.py) 将会失败。当所有当前计划的高级 CLI 谓词 (verb) 都已
+[`scripts/check_advanced_contract.py`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/scripts/check_advanced_contract.py) 将会失败。当所有当前计划的高级 CLI 谓词 (verb) 都已
 提升时，此表可能为空。
 
 <!-- advanced-cli-deferred:start -->

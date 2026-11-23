@@ -259,9 +259,9 @@ def command_environment() -> dict[str, Any]:
         "command_line": display_command(sys.argv),
         "repo_commit": git_value(["rev-parse", "HEAD"]),
         "spec_commit": git_value(
-            ["log", "-n1", "--format=%H", "--", "docs/GTS-SPEC.md"]
+            ["log", "-n1", "--format=%H", "--", "archive/v1/docs/GTS-SPEC.md"]
         ),
-        "spec_blob": git_value(["rev-parse", "HEAD:docs/GTS-SPEC.md"]),
+        "spec_blob": git_value(["rev-parse", "HEAD:archive/v1/docs/GTS-SPEC.md"]),
         "corpus_commit": git_value(["log", "-n1", "--format=%H", "--", "vectors"]),
         "corpus_manifest_sha256": sha256_file(manifest) if manifest.exists() else None,
         "platform": platform.platform(),

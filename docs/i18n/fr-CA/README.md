@@ -4,57 +4,23 @@
 <!-- i18n-locale: fr-CA -->
 <!-- i18n-status: draft -->
 
-# GTS en français canadien
+# GTS v2 en français canadien
 
-> Traduction informative de [`README.md`](../../../README.md). L'anglais demeure la source normative pour le protocole, les versions, les commandes et les exemples exécutables.
+GTS transporte un jeu de données RDF et ses pièces jointes dans un fichier auquel on peut ajouter de nouvelles données. La version 2.0 est publiée pour examen et mise en œuvre. Les textes normatifs sont en anglais.
 
-GTS, ou `Graph Transport Substrate`, est un format append-only pour transporter des graphes RDF et leurs données associées avec des identifiants de contenu, des segments vérifiables, des signatures optionnelles et des surfaces CLI/API dans plusieurs langages.
+[Accueil du projet](../../../README.md) · [La spécification GTS v2](docs/GTS-SPEC.md) · [Corpus de conformité](../../../vectors/v2/README.md)
 
-Cette page sert d'entrée locale pour le lot de traduction #364. Les termes suivent le [`glossaire de localisation`](../GLOSSARY.md); l'index général de localisation est [`docs/i18n/README.md`](../README.md).
+## Parties normatives
 
-## Documents localisés de ce lot
+- [P1 — Modèle et format binaire](../../v2/P1.md)
+- [P2 — Registre](../../v2/P2.md)
+- [P3 — Contenu RDF](../../v2/P3.md)
+- [P4 — Objets binaires](../../v2/P4.md)
+- [P5 — Durabilité](../../v2/P5.md)
+- [P6 — Signatures](../../v2/P6.md)
+- [P7 — Lecture et conformité](../../v2/P7.md)
+- [P8 — Scellement](../../v2/P8.md)
+- [P9 — Conversion](../../v2/P9.md)
+- [L1 — Étiquetage canonique des nœuds anonymes](../../v2/L1.md)
 
-| Source anglaise | Page fr-CA |
-|---|---|
-| `docs/GTS-SPEC.md` | [Spécification GTS](docs/GTS-SPEC.md) |
-| `docs/GTS-CONFORMANCE.md` | [Conformité GTS](docs/GTS-CONFORMANCE.md) |
-| `docs/GTS-API-CLI-PARITY.md` | [Parité API/CLI](docs/GTS-API-CLI-PARITY.md) |
-| `docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md` | [Guide d'implémentation tierce](docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) |
-| `docs/gts-reference.md` | [Référence Python](docs/gts-reference.md) |
-| `docs/GTS-ECOSYSTEM-INTEGRATIONS.md` | [Intégrations de l'écosystème](docs/GTS-ECOSYSTEM-INTEGRATIONS.md) |
-| `docs/GTS-ADVANCED-PRIMITIVES.md` | [Primitives avancées](docs/GTS-ADVANCED-PRIMITIVES.md) |
-| `docs/GTS-OKF.md` | [OKF](docs/GTS-OKF.md) |
-| `docs/GTS-DUMP-DIR.md` | [Répertoire de dump](docs/GTS-DUMP-DIR.md) |
-| `docs/GTS-PAPER-DRAFT.md` | [Brouillon d'article](docs/GTS-PAPER-DRAFT.md) |
-| `docs/GTS-BENCHMARK-RELEASE-REPORT.md` | [Rapport de publication des benchmarks](docs/GTS-BENCHMARK-RELEASE-REPORT.md) |
-| `docs/GTS-GOVERNANCE.md` | [Gouvernance](docs/GTS-GOVERNANCE.md) |
-| `docs/GTS-SECURITY-POLICY.md` | [Politique de sécurité et de confiance](docs/GTS-SECURITY-POLICY.md) |
-| `docs/GTS-RELEASE-SLSA.md` | [Posture SLSA des versions](docs/GTS-RELEASE-SLSA.md) |
-| `docs/GTS-V1-RC1-CHECKLIST.md` | [Liste de contrôle v1.0-rc1](docs/GTS-V1-RC1-CHECKLIST.md) |
-| `CHANGELOG.md` | [Journal des changements](CHANGELOG.md) |
-| `CONTRIBUTING.md` | [Contribution](CONTRIBUTING.md) |
-| `SECURITY.md` | [Sécurité](SECURITY.md) |
-| `CODE_OF_CONDUCT.md` | [Code de conduite](CODE_OF_CONDUCT.md) |
-| `LICENSING.md` | [Licences](LICENSING.md) |
-| `README.md` | [Projet](README.md) |
-| `docs/positioning.md` | [Positionnement](docs/positioning.md) |
-| `rust/README.md` | [Rust](rust/README.md) |
-| `python/README.md` | [Python](python/README.md) |
-| `go/README.md` | [Go](go/README.md) |
-| `ts/README.md` | [TypeScript](ts/README.md) |
-| `smalltalk/README.md` | [Smalltalk/Pharo](smalltalk/README.md) |
-| `kotlin/README.md` | [Kotlin/JVM](kotlin/README.md) |
-| `rust/capi/README.md` | [C ABI](rust/capi/README.md) |
-| `cpp/README.md` | [C++](cpp/README.md) |
-| `dotnet/README.md` | [.NET](dotnet/README.md) |
-| `php/README.md` | [PHP](php/README.md) |
-| `lua/README.md` | [Lua](lua/README.md) |
-| `swift/README.md` | [Swift](swift/README.md) |
-| `ruby/README.md` | [Ruby](ruby/README.md) |
-| `r/README.md` | [R](r/README.md) |
-| `julia/README.md` | [Julia](julia/README.md) |
-| `python/examples/README.md` | [Python examples](python/examples/README.md) |
-
-## Statut
-
-La spécification, les pages de conformité et les références d'implémentation localisées sont marquées `translated` et demeurent informatives par rapport aux documents anglais. Les autres pages sont marquées `draft` afin de séparer la traduction initiale de la revue finale prévue par #369. Les commandes, chemins, URLs, noms de paquets, identifiants d'API, valeurs JSON, codes de diagnostic et extraits de code doivent rester exactement comme dans les sources anglaises.
+Profils · [dist](../../v2/PF-dist.md) · [evidence](../../v2/PF-evidence.md) · [stream](../../v2/PF-stream.md) · [bundle](../../v2/PF-bundle.md) · [files](../../v2/PF-files.md) · [container](../../v2/PF-container.md)

@@ -220,7 +220,7 @@ The paper should report measurements only from reproducible release artifacts. T
 repository provides a benchmark runner and report template in
 [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md). A measured evidence
 run for this draft is kept as generated output in
-[`dist/benchmarks/paper-evidence/release-benchmark-report.md`](../dist/benchmarks/paper-evidence/release-benchmark-report.md)
+[`dist/benchmarks/paper-evidence/release-benchmark-report.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/dist/benchmarks/paper-evidence/release-benchmark-report.md)
 rather than overwriting the benchmark template.
 
 Evaluation should cover four claims:

@@ -34,7 +34,7 @@ proof creation yet.
 ## Deferred Advanced CLI Verbs
 
 The rows below, when present, are planned vocabulary rather than current public commands. The guard script
-[`scripts/check_advanced_contract.py`](../scripts/check_advanced_contract.py) fails if any of
+[`scripts/check_advanced_contract.py`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/scripts/check_advanced_contract.py) fails if any of
 these verbs appear in an engine dispatch surface or in the public CLI parity matrix before this
 table is updated. The table may be empty when every currently planned advanced CLI verb has been
 promoted.

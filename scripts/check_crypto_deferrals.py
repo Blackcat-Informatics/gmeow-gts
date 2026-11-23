@@ -11,11 +11,12 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+V1_DOCS = ROOT / "archive" / "v1"
 VECTOR_DIR = ROOT / "vectors" / "crypto-deferred"
 DOCS = [
-    ROOT / "docs" / "GTS-SPEC.md",
-    ROOT / "docs" / "GTS-CONFORMANCE.md",
-    ROOT / "docs" / "GTS-SECURITY-POLICY.md",
+    V1_DOCS / "docs" / "GTS-SPEC.md",
+    V1_DOCS / "docs" / "GTS-CONFORMANCE.md",
+    V1_DOCS / "docs" / "GTS-SECURITY-POLICY.md",
 ]
 
 REQUIRED_DOC_MARKERS = [

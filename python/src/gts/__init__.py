@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """GTS — Graph Transport Substrate — the format engine (reference implementation).
 
-A small, dependency-light reader/writer for the GTS wire format defined in
-``docs/GTS-SPEC.md``: the CBOR append-only log, the RDF 1.2 folded state,
-multi-segment ``cat``-append composition (§3.1), the ``identity``/``gzip``/
+A small, dependency-light reader/writer for the released package format: the CBOR
+append-only log, RDF 1.2 folded state, multi-segment composition,
+the ``identity``/``gzip``/
 ``zstd`` codecs, opaque/damaged degradation, torn-append detection, the
 ``gts → nquads`` transform, and COSE signing (§9.2).
 

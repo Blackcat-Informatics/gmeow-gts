@@ -3,8 +3,7 @@
 
 # GTS Security Policy
 
-GTS (the Graph Transport Substrate specification and its four engines — Rust, Python, Go, and
-TypeScript) is maintained by Blackcat Informatics® Inc. We take security reports seriously and
+Blackcat Informatics® Inc. maintains the Graph Transport Substrate specification and its reference software. We take security reports seriously and
 ask that vulnerabilities be reported privately so they can be investigated and fixed
 responsibly.
 
@@ -23,22 +22,14 @@ Instead:
 
 - email <security@blackcatinformatics.ca>
 - include `SECURITY` in the subject line
-- name the affected engine(s) (Rust / Python / Go / TypeScript) and version(s)
+- name the affected engine(s) and package version(s), or the specification revision
 - describe the issue, impact, and affected versions
 - provide reproduction steps, a proof-of-concept `.gts` file, or patches when possible
 
-The most relevant security surface for this project is **reading untrusted GTS data and
-running the `gts` tooling**, for example:
-
-- **Parsing** — CBOR decoding and the stackable transform/codec chain (decompression of
-  `gzip` / `zstd` payloads, including resource-exhaustion / decompression-bomb inputs) and
-  opaque/degraded-frame handling.
-- **Integrity & crypto** — BLAKE3 chain verification, COSE signing/verification (§9.2) and
-  COSE encryption (§9.3); incorrect verification that accepts a tampered or torn log.
-- **The files profile** — `gts unpack`/`extract` writing to disk; path traversal, symlink, or
-  absolute-path escapes (the engines are expected to refuse these).
-- **Supply chain** — the published packages on crates.io, PyPI, npm, and the Go module proxy,
-  and the release/CI workflows that produce them.
+For a design issue in the [GTS v2 specification](docs/GTS-SPEC.md), identify the part and requirement.
+Security-sensitive areas include decoding untrusted CBOR, enforcing resource limits, verifying content and
+signatures, processing sealed data, and extracting file paths. For a released package or build pipeline,
+include the package version and platform.
 
 ## What to expect
 
@@ -48,7 +39,7 @@ running the `gts` tooling**, for example:
 
 Resolution timelines depend on severity, exploitability, and release constraints, but we aim
 to address confirmed issues as quickly as practical. A fix that affects the wire format or a
-shared behaviour will be coordinated across all four engines and the conformance corpus.
+shared behaviour will be coordinated across affected engines and the conformance corpus.
 
 ## Responsible disclosure process
 

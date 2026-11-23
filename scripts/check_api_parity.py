@@ -14,9 +14,10 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+V1_DOCS = ROOT / "archive" / "v1"
 DECLARATION = ROOT / "docs" / "api-parity.json"
-CONTRACT = ROOT / "docs" / "GTS-API-CLI-PARITY.md"
-README = ROOT / "README.md"
+CONTRACT = V1_DOCS / "docs" / "GTS-API-CLI-PARITY.md"
+README = V1_DOCS / "README.md"
 ENGINES = ("Python", "Rust", "Go", "TypeScript", "Smalltalk", "Kotlin")
 README_ENGINE_HEADERS = {
     "Python": "Python",

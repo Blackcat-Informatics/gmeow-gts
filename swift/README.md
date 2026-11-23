@@ -1,5 +1,7 @@
 # GTS Swift C ABI Wrapper
 
+The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format. This package predates v2.
+
 <!-- SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca> -->
 <!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
 

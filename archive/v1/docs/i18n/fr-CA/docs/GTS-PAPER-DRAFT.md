@@ -144,7 +144,7 @@ Le statut de mise en œuvre devrait être présenté comme un fait évolutif du 
 
 ## 7. Plan d'évaluation
 
-L'article devrait rapporter des mesures provenant uniquement d'artefacts de version reproductibles. Le dépôt actuel fournit un exécuteur de repère (benchmark) et un modèle de rapport dans [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md). Une exécution de preuves mesurées pour ce projet est conservée en tant que sortie générée dans [`dist/benchmarks/paper-evidence/release-benchmark-report.md`](../../../../dist/benchmarks/paper-evidence/release-benchmark-report.md) plutôt que d'écraser le modèle de repère (benchmark).
+L'article devrait rapporter des mesures provenant uniquement d'artefacts de version reproductibles. Le dépôt actuel fournit un exécuteur de repère (benchmark) et un modèle de rapport dans [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md). Une exécution de preuves mesurées pour ce projet est conservée en tant que sortie générée dans [`dist/benchmarks/paper-evidence/release-benchmark-report.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/dist/benchmarks/paper-evidence/release-benchmark-report.md) plutôt que d'écraser le modèle de repère (benchmark).
 
 L'évaluation devrait couvrir quatre affirmations :
 

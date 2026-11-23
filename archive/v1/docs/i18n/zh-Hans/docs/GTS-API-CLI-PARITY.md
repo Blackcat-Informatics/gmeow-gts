@@ -65,7 +65,7 @@
 
 ## CLI 一致性矩阵
 
-`yes` 意味着该动词已由该引擎的 `gts` 二进制文件实现。`no` 意味着该缺失是在一致性 issue 落地之前有意留出的公开缺口。该矩阵由 [`scripts/check_cli_parity.py`](../../../../scripts/check_cli_parity.py) 检查，它会读取此表格及实际的调度接口。
+`yes` 意味着该动词已由该引擎的 `gts` 二进制文件实现。`no` 意味着该缺失是在一致性 issue 落地之前有意留出的公开缺口。该矩阵由 [`scripts/check_cli_parity.py`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/scripts/check_cli_parity.py) 检查，它会读取此表格及实际的调度接口。
 
 <!-- cli-parity-matrix:start -->
 | verb | Python | Rust | Go | TypeScript | Smalltalk | Kotlin | status |
@@ -181,4 +181,4 @@ C ABI 包装器系列有意设计得比原生完整引擎更窄。包装器将�
 - `unpack` 在写入前对内联 blob 字节重新进行哈希计算。如果未禁用的 `FileEntry` 缺少其内联 blob，则视为拒绝；禁用的 blob 摘要默认会被跳过，且仅在使用 `--include-suppressed` 时提取。
 - `diff` 通过 `files:digest` 将存档清单与目录进行比较，并返回排序后的 `added:`、`modified:` 和 `removed:` 行。退出码 `0` 表示没有差异；退出码 `1` 表示存在差异或输入被拒绝。
 
-实时跨引擎保护机制为 [`scripts/interop.sh`](../../../../scripts/interop.sh)：每个引擎打包相同的固定装置 (fixture)，每个引擎折叠 (fold) 并解包每个包，并且每个引擎都针对每个包，对匹配树和已更改树进行 diff 比较。
+实时跨引擎保护机制为 [`scripts/interop.sh`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/scripts/interop.sh)：每个引擎打包相同的固定装置 (fixture)，每个引擎折叠 (fold) 并解包每个包，并且每个引擎都针对每个包，对匹配树和已更改树进行 diff 比较。

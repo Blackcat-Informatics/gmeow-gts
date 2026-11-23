@@ -1,0 +1,119 @@
+<!--
+SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+SPDX-License-Identifier: MIT OR Apache-2.0
+-->
+# Contributing to gmeow-gts
+
+Thanks for your interest in GTS. This repository holds four interoperable parity engines
+(Rust, Python, Go, TypeScript), a Phase 0 Smalltalk/Pharo engine bootstrap, the wire-format
+specification, and the frozen conformance corpus. Issues and pull requests are welcome.
+
+## Ways to contribute
+
+- **Report a bug or request a feature** — open an issue with a minimal reproduction
+  (ideally a `.gts` file or a failing conformance vector).
+- **Fix a bug or add a feature** — open a pull request against `main`.
+- **Improve the spec or docs** — corrections and clarifications to
+  [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) and the per-engine guides are very welcome.
+
+## Spec governance
+
+Core wire-format changes, baseline conformance changes, optional-standard profile promotion,
+and registry additions follow the lightweight governance policy in
+[`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md). In short:
+
+- changes to header/frame grammar, hash or signature preimages, transform resolution, segment
+  composition, or fold semantics require a GTS Improvement Proposal (GIP);
+- domain-specific profiles can be registered without changing core GTS, but they must not alter
+  core parse, verify, or fold semantics;
+- registry entries for codecs, frame types, diagnostics, transform targets, and profiles must
+  follow the registry change policy and reserved namespace rules.
+
+## The conformance corpus is the contract
+
+The four parity engines are interchangeable only because they all fold the **same bytes** to the
+**same expectations**. The frozen corpus lives in [`vectors/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/vectors); the Python
+reference implementation (`gts.vectors`) is its single source of truth.
+
+- A change to format behaviour MUST update the corpus and keep all four engines green.
+- Regenerate the committed corpus and prove it is reproducible byte-for-byte:
+
+  ```bash
+  cd python && uv run python scripts/gen_vectors.py
+  git diff --exit-code vectors        # no changes ⇒ reproducible
+  ```
+
+- If you change one engine's observable behaviour, change the others to match (or open an
+  issue first to discuss whether the spec itself should change).
+
+## Development
+
+Each implementation builds and tests independently from its own directory:
+
+```bash
+cd rust   && cargo test                              # unit + CLI + conformance
+cd go     && go test ./...                            # unit + conformance
+cd ts     && npm ci && npm test                       # compiles, runs against vectors/
+cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
+docker build -t gmeow-gts-smalltalk smalltalk && \
+  docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
+  'sh /workspace/smalltalk/scripts/run-tests.sh'      # Pharo bootstrap tests
+```
+
+## Before you open a pull request
+
+- Run the relevant engine's test suite (above) and make sure it is green.
+- Run repo-wide hygiene: `pre-commit run --all-files` (formatting, SPDX headers,
+  YAML/Markdown/shell, secret scanning).
+- Per-language gates: `cargo fmt --check` + `cargo clippy`, `go vet` + `golangci-lint`,
+  `npm run lint`, `ruff check` + `mypy`.
+- Every eligible first-party source file must carry an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
+- Keep changes focused; describe **what** changed and **why** in the PR description.
+
+CI runs all four parity engines, the Smalltalk/Pharo bootstrap, and a lint lane on every pull
+request.
+
+## Licensing of contributions
+
+Contributions intentionally submitted for inclusion in eligible first-party implementation
+code, build and packaging tooling, GTS specifications, and frozen conformance test vectors
+are accepted under **MIT OR Apache-2.0 OR MulanPSL-2.0**. Contributions to other documentation
+retain that document's declared grant unless explicitly stated otherwise. The project CLA
+separately governs permission for proprietary/commercial relicensing.
+
+For context, contributions to **GMEOW tooling/code** elsewhere in the project (the
+[`gmeow-ontology`](https://github.com/Blackcat-Informatics/gmeow-ontology) repository) are
+accepted under **AGPL-3.0-only** and, under the project CLA, under terms that permit Blackcat
+Informatics® Inc. to relicense them under separate proprietary/commercial terms. gmeow-gts is
+the deliberately permissive, dependency-light engine layer, so it carries the permissive
+`MIT OR Apache-2.0 OR MulanPSL-2.0` terms rather than AGPL.
+
+By submitting a contribution you agree to its applicable grant described above. For the
+dual-licensing reservation to extend to your contribution, you agree to license it to
+Blackcat Informatics® Inc. under terms that permit relicensing, including under proprietary
+terms. A Contributor License Agreement (CLA) may be required before substantial
+contributions are merged. See [`LICENSING.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/LICENSING.md) for the full licensing scheme.
+
+## Releases
+
+Contributors do not cut releases, but two things about the release process affect
+ordinary changes and are easy to trip over:
+
+- **Versions are checked, not assumed.** `scripts/check-versions.sh` compares every
+  language lane against the Rust crate, and also asserts specific version strings
+  inside `README.md`, `rust/README.md`, `docs/GTS-ECOSYSTEM-INTEGRATIONS.md`,
+  `rust/capi/gts.pc.in`, the vcpkg port and both `Cargo.lock` files. A change that
+  edits a version snippet in prose will fail CI unless the manifests agree.
+- **The conformance corpus is generated.** Never hand-edit `vectors/`. Change
+  `python/src/gts/vectors.py` and run `just check-vectors`, which regenerates the
+  corpus and fails if the committed bytes differ.
+
+The release procedure itself lives in
+[`docs/GTS-V1-RC1-CHECKLIST.md`](./docs/GTS-V1-RC1-CHECKLIST.md) for a release
+candidate and [`docs/GTS-V1-CHECKLIST.md`](./docs/GTS-V1-CHECKLIST.md) for a final
+release; the policy behind both is [`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md),
+including the deprecation policy in §5.1 if your change retires a public API.
+
+## Conduct
+
+Be respectful and constructive. Harassment and abuse are not tolerated.

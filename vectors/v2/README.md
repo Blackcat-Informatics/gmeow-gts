@@ -1,7 +1,6 @@
 # Conformance corpus of format generation 2
 
-This directory holds the conformance corpus of the draft of format generation 2 (`docs/v2/`). The generation is not in force;
-the corpus of the generation in force is the rest of `vectors/`.
+This is the conformance corpus for the [GTS v2 specification](../../docs/GTS-SPEC.md).
 
 ## What it holds
 

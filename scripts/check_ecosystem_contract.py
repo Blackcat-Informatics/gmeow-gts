@@ -9,7 +9,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = ROOT / "docs" / "GTS-ECOSYSTEM-INTEGRATIONS.md"
+V1_DOCS = ROOT / "archive" / "v1"
+DOC = V1_DOCS / "docs" / "GTS-ECOSYSTEM-INTEGRATIONS.md"
 
 REQUIRED_DOC_MARKERS = [
     "<!-- gts-ecosystem-contract:v1 -->",
@@ -41,12 +42,12 @@ REQUIRED_DOC_MARKERS = [
 ]
 
 LINK_TARGETS = [
-    ROOT / "README.md",
-    ROOT / "docs" / "gts-reference.md",
-    ROOT / "rust" / "README.md",
-    ROOT / "python" / "README.md",
-    ROOT / "ts" / "README.md",
-    ROOT / "go" / "README.md",
+    V1_DOCS / "README.md",
+    V1_DOCS / "docs" / "gts-reference.md",
+    V1_DOCS / "rust" / "README.md",
+    V1_DOCS / "python" / "README.md",
+    V1_DOCS / "ts" / "README.md",
+    V1_DOCS / "go" / "README.md",
 ]
 
 
