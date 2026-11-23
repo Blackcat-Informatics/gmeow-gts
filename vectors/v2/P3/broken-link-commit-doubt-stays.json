@@ -7,9 +7,6 @@
   {
    "label": "whole",
    "input_file": "broken-link-commit-doubt-stays.whole.bin",
-   "length": 611,
-   "sha256": "2c43e34c3c0c9666ab1e012e7cdd07806fedb14de2a7244fefa82a8e643a8204",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,107 +19,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190263810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030206008085f482020582020582020581018101868b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d1185f8202020381018101808203068081870b81018101820203820218d18202185f81018b04190130185f820202018101810180810180808b06190192185f82020201810181018081018081871819810181018202068101810181018b071901f1187282020e018101810180810280808187078202078101820205820219018f82020381018081018201000202",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "ea8583afab94db54efb3821c82d487c5c75815a7d38728cfe871e44ec229c749",
-      "findings": [
-       [
-        "malformed_value",
-        "unregistered_value",
-        5,
-        null,
-        399,
-        3
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "broken",
-        "fold": [
-         "opaque",
-         "chain_break"
-        ],
-        "findings": [
-         [
-          "chain_break",
-          null,
-          3,
-          null,
-          209,
-          95
-         ]
-        ]
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 6,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "opaque_term",
-          null,
-          6,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 7,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "Q2 resolves, Q3 held"
-   }
+   "note": "Q2 resolves, Q3 held"
   },
   {
    "label": "terms-instead",
    "input_file": "broken-link-commit-doubt-stays.terms-instead.bin",
-   "length": 619,
-   "sha256": "70c3d58ad91ad9039ebf6b007b86106d74d57e5443bcae4349128642988d41a0",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -135,98 +37,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019026b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030206008085f482020582020582020581018202582073b1c00991bf75e2feadf9e0d5cdda3008682079f8dd26c9799aa319777524ef868b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d1185f8202020381018101808203068081870b81018101820203820218d18202185f81018b04190130185f820202018101810180810180808b061901921867820201018101810180810180808b071901f9187282020e018101810180810280808187078202078101820205820219018f8202038101808202582073b1c00991bf75e2feadf9e0d5cdda3008682079f8dd26c9799aa319777524ef8201000202",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "17ae616ef2abd259b39472ff5eb3323fea2abad80e860f41ce13e7542f76b4f3",
-      "findings": [
-       [
-        "malformed_value",
-        "unregistered_value",
-        5,
-        null,
-        399,
-        3
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "broken",
-        "fold": [
-         "opaque",
-         "chain_break"
-        ],
-        "findings": [
-         [
-          "chain_break",
-          null,
-          3,
-          null,
-          209,
-          95
-         ]
-        ]
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 6,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 7,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "the later terms frame defines nothing"
-   }
+   "note": "the later terms frame defines nothing"
   },
   {
    "label": "forward",
    "input_file": "broken-link-commit-doubt-stays.forward.bin",
-   "length": 611,
-   "sha256": "2c43e34c3c0c9666ab1e012e7cdd07806fedb14de2a7244fefa82a8e643a8204",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -239,109 +55,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000028101828080870281920000190263810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030206008085f482020582020582020581018101868b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d1185f8202020381018101808203068081870b81018101820203820218d18202185f81018b04190130185f82020201810181018081018081871819810181018202048101810181018b06190192185f82020201810181018081018081871819810181018202068101810181018b071901f1187282020e018101810180810280808187078202078101820205820219018f82020381018081018201000202",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "ea8583afab94db54efb3821c82d487c5c75815a7d38728cfe871e44ec229c749",
-      "findings": [
-       [
-        "malformed_value",
-        "unregistered_value",
-        5,
-        null,
-        399,
-        3
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "broken",
-        "fold": [
-         "opaque",
-         "chain_break"
-        ],
-        "findings": [
-         [
-          "chain_break",
-          null,
-          3,
-          null,
-          209,
-          95
-         ]
-        ]
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "opaque_term",
-          null,
-          4,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 6,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "opaque_term",
-          null,
-          6,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 7,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "Q2 and Q3 held"
-   }
+   "note": "Q2 and Q3 held"
   }
  ]
 }

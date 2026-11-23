@@ -11,8 +11,8 @@
    "old_count": 5,
    "new_root": "c333f697ed4fb920261ad5d2befa1cae6aedf123c3c1f7ad283747389a913a26",
    "new_count": 8,
-   "roots_over": "the old root is over I40 in place of h0, then I1 to I4",
-   "outcome": "8718268202183081018101810181018101",
+   "note": "the old root is over I40 in place of h0, then I1 to I4",
+   "verify": "8718268202183081018101810181018101",
    "result": {
     "other-first-root": "proof_failed/consistency_old_root"
    }
@@ -24,8 +24,8 @@
    "old_count": 5,
    "new_root": "d620d3eab21ad69124438ac717934b5a5b13f3e5718437ee1cbf0eaff3e9b1b5",
    "new_count": 8,
-   "roots_over": "the new root is over h0, I1 to I4, I41, I6, I7: leaf 5 replaced",
-   "outcome": "8718268202183181018101810181018101",
+   "note": "the new root is over h0, I1 to I4, I41, I6, I7: leaf 5 replaced",
+   "verify": "8718268202183181018101810181018101",
    "result": {
     "replaced-later-leaf": "proof_failed/consistency_new_root"
    }
@@ -37,8 +37,8 @@
    "old_count": 5,
    "new_root": "678dd53622283765efc39d8ae3f96369fdfff4e42b583141f7cd0bac89762ed6",
    "new_count": 5,
-   "roots_over": "the new root is over h0, I1 to I3 and I42: another root for the leaf count 5",
-   "outcome": "8718268202183281018101810181018101",
+   "note": "the new root is over h0, I1 to I3 and I42: another root for the leaf count 5",
+   "verify": "8718268202183281018101810181018101",
    "result": {
     "two-roots-one-count": "proof_failed/consistency_diverged"
    }
@@ -50,8 +50,8 @@
    "old_count": 0,
    "new_root": "c333f697ed4fb920261ad5d2befa1cae6aedf123c3c1f7ad283747389a913a26",
    "new_count": 8,
-   "roots_over": "old_count 0",
-   "outcome": "8718258202182e81018101810181018101",
+   "note": "old_count 0",
+   "verify": "8718258202182e81018101810181018101",
    "result": {
     "old-0-counts-match": "proof_malformed/order"
    }
@@ -63,8 +63,8 @@
    "old_count": 8,
    "new_root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
    "new_count": 5,
-   "roots_over": "old_count above new_count",
-   "outcome": "8718258202182e81018101810181018101",
+   "note": "old_count above new_count",
+   "verify": "8718258202182e81018101810181018101",
    "result": {
     "old-above-new": "proof_malformed/order"
    }
@@ -76,8 +76,8 @@
    "old_count": 5,
    "new_root": "c333f697ed4fb920261ad5d2befa1cae6aedf123c3c1f7ad283747389a913a26",
    "new_count": 8,
-   "roots_over": "the path of 5 to 8 without its last entry",
-   "outcome": "8718258202182d81018101810181018101",
+   "note": "the path of 5 to 8 without its last entry",
+   "verify": "8718258202182d81018101810181018101",
    "result": {
     "short-path": "proof_malformed/length"
    }

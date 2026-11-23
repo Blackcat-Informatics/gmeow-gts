@@ -7,8 +7,6 @@
   {
    "label": "level-12",
    "input_file": "canonical__check__storage-differs.level-12.bin",
-   "length": 1589,
-   "sha256": "b1302e1baab9cdd1938422b438d5c4a4d95d50dab4b1f9b851f9e201fd2aaf5c",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -34,8 +32,6 @@
   {
    "label": "level-3",
    "input_file": "canonical__check__storage-differs.level-3.bin",
-   "length": 1680,
-   "sha256": "194372f275e72ab89e78d7a0745e5154e859fc69a24e0081202a652bcb6217e8",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

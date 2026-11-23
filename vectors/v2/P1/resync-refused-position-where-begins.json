@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "resync-refused-position-where-begins.bin",
-   "length": 964,
-   "sha256": "0f92579f10882a7f327a49266731fc6d47c4c888c0114591ae38a3ba250c3577",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,49 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001902581a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902cc8101810181018101810103030000008085f48202058202058202058101810180828707820204810182020082020082020b8101871482021856810182020182021902bc8202191000820219100081870981018101810182021902cc820218f8810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000502",
-   "observed": {
-    "file_findings": [
-     [
-      "torn_tail",
-      null,
-      null,
-      null,
-      716,
-      248
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": null,
-      "findings": [
-       [
-        "malformed_value",
-        "wrong_type",
-        0,
-        null,
-        0,
-        11
-       ],
-       [
-        "exceeds_capacity",
-        "total_decoded",
-        1,
-        4096,
-        700,
-        4096
-       ]
-      ],
-      "frames": []
-     }
-    ]
-   },
-   "expected": {
-    "expected": "segment 0: exceeds_capacity total_decoded position 1 offset 700 length 4096 count 4096; torn_tail 716/248"
-   }
+   "note": "segment 0: exceeds_capacity total_decoded position 1 offset 700 length 4096 count 4096; torn_tail 716/248"
   }
  ]
 }

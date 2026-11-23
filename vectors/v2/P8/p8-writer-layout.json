@@ -33,10 +33,7 @@
      ],
      "recipient_keys": []
     }
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   }
  ]
 }

@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "resync-minimal.bin",
-   "length": 64,
-   "sha256": "fc5539602e3fe59772d0e169111df8689f5132a290b67dac4e5b3d140f07c541",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,21 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001840850201f40100820258205ffed92234e0fd4edf19bda69f91f5ea78a53418a84f7aeae74898564b925114820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "5ffed92234e0fd4edf19bda69f91f5ea78a53418a84f7aeae74898564b925114",
-      "findings": [],
-      "frames": []
-     }
-    ]
-   },
-   "expected": {
+   "result": {
     "identifier": "5ffed92234e0fd4edf19bda69f91f5ea78a53418a84f7aeae74898564b925114"
    }
   }

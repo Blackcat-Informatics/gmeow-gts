@@ -26,9 +26,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "differences": []
+   }
   },
   {
    "label": "encoder.no-holder",
@@ -53,9 +51,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "differences": []
+   }
   },
   {
    "label": "no-encoder.holder",
@@ -80,9 +76,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "differences": []
+   }
   },
   {
    "label": "no-encoder.no-holder",
@@ -107,9 +101,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "differences": []
+   }
   }
  ]
 }

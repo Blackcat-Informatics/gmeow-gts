@@ -8,7 +8,9 @@
    "label": "",
    "input_file": "items-over-limit.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b0000001000000000031b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f0810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f482020582020582020581018101828b010b1872820208018101810180810180828711810181018202018101810182020287182c810181018202018101810181018b02187d18738202080181018101808101808187182c81018101820202810181018101808187148202185781018101820218f08202187482020481018201000700",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -21,7 +23,7 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
+   "result": {
     "file": [
      [
       "exceeds_capacity",
@@ -32,141 +34,8 @@
        "count": 4
       }
      ]
-    ],
-    "segs": [
-     {
-      "frames": [
-       {},
-       {}
-      ]
-     }
     ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 3,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 240,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "intact",
-       "head": "f473513518fe3e02e807a1a54301b5f88750a67fb5e3a1c8de54a709091e8ce1",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": null,
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 114,
-         "class": "frame"
-        },
-        {
-         "position": 2,
-         "offset": 125,
-         "length": 115,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 114,
-         "frame_type": 8,
-         "link": "linked",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "dd8ca9eff7e147758ef60fa0cc428dbbe927cbaa46943d91acfa641f7f852265",
-         "stored": null,
-         "payload": {
-          "state": "verified"
-         },
-         "fold": {
-          "state": "folded"
-         },
-         "findings": [
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 2
-          },
-          {
-           "code": "unreferenced_unit",
-           "position": 1
-          }
-         ]
-        },
-        {
-         "position": 2,
-         "offset": 125,
-         "length": 115,
-         "frame_type": 8,
-         "link": "linked",
-         "predecessor": "dd8ca9eff7e147758ef60fa0cc428dbbe927cbaa46943d91acfa641f7f852265",
-         "effective_identifier": "f473513518fe3e02e807a1a54301b5f88750a67fb5e3a1c8de54a709091e8ce1",
-         "stored": null,
-         "payload": {
-          "state": "verified"
-         },
-         "fold": {
-          "state": "folded"
-         },
-         "findings": [
-          {
-           "code": "unreferenced_unit",
-           "position": 2
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [
-      {
-       "code": "exceeds_capacity",
-       "reason": "item_count",
-       "offset": 240,
-       "length": 116,
-       "count": 4
-      }
-     ],
-     "content_digest": null,
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   }
  ]
 }

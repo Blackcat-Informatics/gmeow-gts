@@ -13,19 +13,18 @@
       {
        "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
        "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      {
+       "key_id": "3333333333333333333333333333333333333333333333333333333333333333",
+       "segment_key": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
       }
      ],
      "recipient_keys": []
-    }
+    },
+    "registry_version": 2
    },
-   "length": 4507392,
-   "sha256": "70e707e6ffb2bbb984bfd75c03fe59142d6e1b331528a9e38803b50177e3a621",
-   "expected": {
-    "expected": "at the boundary after the parity frame no item of the keys frame or the parity frame; after the sealed frame the keys frame's frame item, then the sealed frame's items; same listings in both files"
-   },
+   "note": "at the boundary after the parity frame no item of the keys frame or the parity frame; after the sealed frame the keys frame's frame item, then the sealed frame's items; same listings in both files",
    "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001a0044c7008101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b6373582020282020181010103020000810285f482020582020582020581018101838b010b1a00407d2382021101810181018081018081871181018101820201810181018202028b021a00407d2e1a000448ed820210018101810180810280808b031a0044c61b18e5820212018101810180810180808187182481018101810182021a004000008202197e1381018081018201000400",
-   "registry_version": 2,
-   "sealing_input": "SK1 under KID1 (00..1f, 11..11), SK2 under KID2 (01..20, 33..33) of P8 section 17",
    "stream_points": [
     {
      "at": 4507163,
@@ -264,11 +263,6 @@
       ]
      ]
     }
-   ],
-   "access": "forward",
-   "input_points": [
-    4507163,
-    4507392
    ]
   },
   {
@@ -280,19 +274,18 @@
       {
        "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
        "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      {
+       "key_id": "3333333333333333333333333333333333333333333333333333333333333333",
+       "segment_key": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"
       }
      ],
      "recipient_keys": []
-    }
+    },
+    "registry_version": 2
    },
-   "length": 4507392,
-   "sha256": "4da787ffba4f5f341351841458d1dc46e8cac846af2e80e4d5dd58a2dc6f2cec",
-   "expected": {
-    "expected": "at the boundary after the parity frame no item of the keys frame or the parity frame; after the sealed frame the keys frame's frame item, then the sealed frame's items; same listings in both files"
-   },
+   "note": "at the boundary after the parity frame no item of the keys frame or the parity frame; after the sealed frame the keys frame's frame item, then the sealed frame's items; same listings in both files",
    "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001a0044c7008101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b6373582020282020181010103020000810285f482020582020582020581018101838b010b1a00407d2382021102810181018081018082870c8101810182020182020b82021a00407d238101871181018101820201810181018202028b021a00407d2e1a000448ed820210018101810180810280808b031a0044c61b18e5820212018101810180810180808187182481018101810182021a004000008202197e1381018081018201000400",
-   "registry_version": 2,
-   "sealing_input": "SK1 under KID1 (00..1f, 11..11), SK2 under KID2 (01..20, 33..33) of P8 section 17",
    "stream_points": [
     {
      "at": 4507163,
@@ -555,11 +548,6 @@
       ]
      ]
     }
-   ],
-   "access": "forward",
-   "input_points": [
-    4507163,
-    4507392
    ]
   }
  ]

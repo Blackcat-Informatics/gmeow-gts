@@ -19,7 +19,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "code": 20,
     "reason": 87,
@@ -48,8 +47,7 @@
       ]
      }
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

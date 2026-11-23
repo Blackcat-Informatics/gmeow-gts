@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "resync-limit-torn-signature-at-end.bin",
-   "length": 3537,
-   "sha256": "7e7555d899f73206daf53b9d0f6661d1a42a543df69f2a1bc7a84802847c10dd",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,41 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190dd1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030101008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b190dc682020e01810181018187038202183602582084df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac33010000f481028081871829820218368202820302820201810181018101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000200",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "2cc2681cf869201d8812b31323d1f724afbb9f389aa1c5f53c9266e65134b372",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": [
-         [
-          "signature_unverified",
-          "key_not_held",
-          1,
-          null,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "R is not accepted and no segment begins at it; the frame completes at the end of the input"
-   }
+   "note": "R is not accepted and no segment begins at it; the frame completes at the end of the input"
   }
  ]
 }

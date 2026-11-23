@@ -7,7 +7,9 @@
   {
    "label": "",
    "input_file": "ser-length-heads.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,25 +22,7 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
-    "ok": [
-     0,
-     23,
-     24,
-     255,
-     256,
-     0,
-     23,
-     24,
-     255,
-     256,
-     0,
-     23,
-     24,
-     255,
-     256
-    ]
-   },
+   "note": "expected ok [0, 23, 24, 255, 256, 0, 23, 24, 255, 256, 0, 23, 24, 255, 256]",
    "result": {
     "position_result": {
      "ok": [
@@ -59,8 +43,7 @@
       256
      ]
     }
-   },
-   "differences": []
+   }
   }
  ]
 }

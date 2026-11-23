@@ -8,7 +8,9 @@
    "label": "",
    "input_file": "segment-two-locators.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001821810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80828707820208810182020182020b82020b81018707820208810182020282021682020b81018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,133 +22,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "item_findings": {
-       "1": [
-        [
-         "malformed_value",
-         "unordered_or_repeated",
-         {
-          "position": 1
-         }
-        ]
-       ],
-       "2": [
-        [
-         "malformed_value",
-         "unordered_or_repeated",
-         {
-          "position": 2
-         }
-        ]
-       ]
-      }
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 33,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 11,
-         "class": "opaque",
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "unordered_or_repeated",
-           "position": 1,
-           "offset": 11,
-           "length": 11
-          }
-         ]
-        },
-        {
-         "position": 2,
-         "offset": 22,
-         "length": 11,
-         "class": "opaque",
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "unordered_or_repeated",
-           "position": 2,
-           "offset": 22,
-           "length": 11
-          }
-         ]
-        }
-       ],
-       "frames": [],
-       "findings": [
-        {
-         "code": "malformed_value",
-         "reason": "unordered_or_repeated",
-         "position": 1,
-         "offset": 11,
-         "length": 11
-        },
-        {
-         "code": "malformed_value",
-         "reason": "unordered_or_repeated",
-         "position": 2,
-         "offset": 22,
-         "length": 11
-        }
-       ]
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   }
  ]
 }

@@ -7,7 +7,9 @@
   {
    "label": "tag-3",
    "input_file": "ser-option-tag-unregistered.tag-3.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,20 +22,19 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
-    "malformed": "unregistered_value"
-   },
+   "note": "expected malformed \"unregistered_value\"",
    "result": {
     "position_result": {
      "malformed": "unregistered_value"
     }
-   },
-   "differences": []
+   }
   },
   {
    "label": "tag-0",
    "input_file": "ser-option-tag-unregistered.tag-0.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -46,15 +47,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
-    "malformed": "unregistered_value"
-   },
+   "note": "expected malformed \"unregistered_value\"",
    "result": {
     "position_result": {
      "malformed": "unregistered_value"
     }
-   },
-   "differences": []
+   }
   }
  ]
 }

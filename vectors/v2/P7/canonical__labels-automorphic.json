@@ -19,7 +19,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "c": "http://e/c",
     "tried": [
@@ -74,8 +73,7 @@
      ],
      "sha256": "18038a165737cd87e7224bda6dffd8eeeafa549a00bab1c8d492f1309766acdc"
     }
-   },
-   "differences": []
+   }
   }
  ]
 }

@@ -1,12 +1,12 @@
 {
- "entry": "idx-false-offsets",
+ "name": "idx-false-offsets",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "an offsets item whose length of the index is wrong; one whose length of the first frame is too small by 1",
  "cases": [
   {
    "label": "index-length",
    "input_file": "idx-false-offsets.index-length.bin",
-   "length": 1224,
-   "sha256": "6c92e5eee9fd6aff61527db147d66f9f5c59769c915d0df3fcf5d4011e1e4983",
    "query": {
     "segment_end": 1224,
     "target": [
@@ -15,24 +15,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "offsets",
-    "scope": null
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831904c882018101f402820203810180",
    "ranges": [
@@ -298,8 +294,6 @@
   {
    "label": "first-frame-short",
    "input_file": "idx-false-offsets.first-frame-short.bin",
-   "length": 1224,
-   "sha256": "dc91c12ab2997f21a53a4e29731e375f2cc33979b7cdaa54db1cc2628e972406",
    "query": {
     "segment_end": 1224,
     "target": [
@@ -308,24 +302,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "header",
-    "scope": null
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831904c882018101f402820204810180",
    "ranges": [

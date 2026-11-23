@@ -7,9 +7,6 @@
   {
    "label": "lineage-tag-no-charge",
    "input_file": "resync-candidate-option-rule.lineage-tag-no-charge.bin",
-   "length": 418,
-   "sha256": "7e5ad11daa4014260deb07b095e5a1649265d1dd1a89b31144d94132cbed7d83",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,91 +19,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001910121a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901a2810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030300008085f4820205820205820205810182025820f2dafe5c5a8836dec3f2cd169997c1f458246b190a9cfdf06ccd1b66fd7de765838b010b186782020101810181018081018081871181018101820201810181018202038b021872187582020902810181018081018081870c81018101820202820218728202187581018b0318e718bb820209018102810180820302808287078202048101820203820218e7820218bb8101870d82020c8101820203820218e7820218bb8101808082025820f2dafe5c5a8836dec3f2cd169997c1f458246b190a9cfdf06ccd1b66fd7de7658201000401",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "8c0c2dbf1a6b32bf3a7f70f9b404e34bdf3017903b5cfafec4fe0e929386cd9b",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          3,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "healed",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "healed_link",
-          null,
-          2,
-          null,
-          114,
-          117
-         ]
-        ]
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "opaque",
-         "malformed"
-        ],
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          3,
-          null,
-          231,
-          187
-         ],
-         [
-          "damaged_frame",
-          "payload_digest",
-          3,
-          null,
-          231,
-          187
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "no exceeds_capacity in the segment"
-   }
+   "note": "no exceeds_capacity in the segment"
   },
   {
    "label": "profile-tag-next-charged",
    "input_file": "resync-candidate-option-rule.profile-tag-next-charged.bin",
-   "length": 737,
-   "sha256": "ba6563a1f8bc219d8741fd1f2bb2c34f10c626e495c72e2c852a54f8d7df5c5e",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -119,74 +37,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a04000000190fa01a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808081871482021856810182020382021901d98202191000820219101f818708810181018101820218d18202190210810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000600",
-   "observed": {
-    "file_findings": [
-     [
-      "undelimitable_input",
-      null,
-      null,
-      null,
-      209,
-      528
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
-      "findings": [
-       [
-        "exceeds_capacity",
-        "total_decoded",
-        3,
-        4127,
-        473,
-        4096
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "the refused charge is that of the next occurrence: exceeds_capacity total_decoded offset 473"
-   }
+   "note": "the refused charge is that of the next occurrence: exceeds_capacity total_decoded offset 473"
   },
   {
    "label": "opener-own-occurrence",
    "input_file": "resync-candidate-option-rule.opener-own-occurrence.bin",
-   "length": 1164,
-   "sha256": "456cbbd38bfef5a5967aa9f76b9653fd28799820854de7f7469c38f738dc8036",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -199,116 +55,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001912121a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d11902b3850201f50100810181018101810103030000008085f482020582020582020581018101808187078202078101820200820218d18202184781019202190384190108850202f40100820258209682912ea531c52fe29ad57c83cfee2eed79d891cdafed0f70a1f56a0a071e70820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b011903c6186782020101810181018081018081871181018101820201810181018202028b0219042d185f820202018101810180810180808187182a8101810181018101810181018187088101810181018202190383820201810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000402",
-   "observed": {
-    "file_findings": [
-     [
-      "undelimitable_input",
-      null,
-      null,
-      null,
-      899,
-      1
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     },
-     {
-      "ordinal": 1,
-      "lineage_checked": false,
-      "head": null,
-      "findings": [
-       [
-        "malformed_value",
-        "unregistered_value",
-        0,
-        null,
-        209,
-        71
-       ]
-      ],
-      "frames": []
-     },
-     {
-      "ordinal": 2,
-      "lineage_checked": false,
-      "head": "d10e1a78fc1020e1581d8999de43d284339dc8aa44249892ed02e734c1b0553e",
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "the unreadable opener at 209 is not charged: the item at 900 is accepted; undelimitable_input offset 899 length 1; segments at 0, 209, 900"
-   }
+   "note": "the unreadable opener at 209 is not charged: the item at 900 is accepted; undelimitable_input offset 899 length 1; segments at 0, 209, 900"
   }
  ]
 }

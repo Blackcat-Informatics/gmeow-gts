@@ -1,12 +1,12 @@
 {
- "entry": "idx-locator-earlier-index",
+ "name": "idx-locator-earlier-index",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "the same segment with a locator whose distance names the index in mid-segment",
  "cases": [
   {
    "label": "",
    "input_file": "idx-locator-earlier-index.bin",
-   "length": 858,
-   "sha256": "eaeb2256fe2bf218f198d3b9f74a72276f714f62fb3dc9822332b425196c142b",
    "query": {
     "segment_end": 858,
     "target": [
@@ -15,28 +15,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     209,
-     2
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000038319035a82018101f40181018202830018d1820202818502810100f48101",
    "ranges": [

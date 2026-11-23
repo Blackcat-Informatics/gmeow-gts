@@ -19,34 +19,7 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
-    "findings": [
-     [
-      "unsupported_registry_version",
-      null
-     ],
-     [
-      "profile_violation",
-      null
-     ],
-     [
-      "unknown_enumeration_value",
-      "unknown_frame_type"
-     ],
-     [
-      "profile_violation",
-      null
-     ],
-     [
-      "unsupported_critical",
-      null
-     ],
-     [
-      "profile_violation",
-      null
-     ]
-    ],
     "violations": [
      [
       1,
@@ -64,8 +37,7 @@
       null
      ]
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

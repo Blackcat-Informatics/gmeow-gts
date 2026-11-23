@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "resync-total-refused-no-occurrence-tested.bin",
-   "length": 964,
-   "sha256": "94ae248b398a438acfe11860b62f2b14296e48ca464ce4bd36024d87fb34f25d",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,67 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001902581a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902cc810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b1902c18202090382030281018082030280838707820205810182020182020b82021902c18101871482021856810182020182020b82021902c182021902ba871181018101820201810181018202018081870981018101810182021902cc820218f8810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000502",
-   "observed": {
-    "file_findings": [
-     [
-      "torn_tail",
-      null,
-      null,
-      null,
-      716,
-      248
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "d73569f83e8565a45939da7dfafa38a6e81ef827551e53ac528d0a458d2894a1",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "broken",
-        "fold": [
-         "opaque",
-         "malformed"
-        ],
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_length",
-          1,
-          null,
-          11,
-          705
-         ],
-         [
-          "exceeds_capacity",
-          "total_decoded",
-          1,
-          698,
-          11,
-          705
-         ],
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          1,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "frame 1: exceeds_capacity total_decoded count 698; no exceeds_capacity in the segment's or the file's findings; torn_tail 716/248"
-   }
+   "note": "frame 1: exceeds_capacity total_decoded count 698; no exceeds_capacity in the segment's or the file's findings; torn_tail 716/248"
   }
  ]
 }

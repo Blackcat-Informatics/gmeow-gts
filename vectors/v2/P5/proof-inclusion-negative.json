@@ -10,7 +10,7 @@
    "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
    "count": 5,
    "index_identifier": "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
-   "outcome": "8718258202182d81018101810181018101",
+   "verify": "8718258202182d81018101810181018101",
    "result": {
     "short-path": "proof_malformed/length"
    }
@@ -21,7 +21,7 @@
    "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
    "count": 5,
    "index_identifier": "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
-   "outcome": "8718258202182e81018101810181018101",
+   "verify": "8718258202182e81018101810181018101",
    "result": {
     "index-5": "proof_malformed/order"
    }
@@ -32,7 +32,7 @@
    "root": "c333f697ed4fb920261ad5d2befa1cae6aedf123c3c1f7ad283747389a913a26",
    "count": 8,
    "index_identifier": "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
-   "outcome": "8718258202182c81018101810181018101",
+   "verify": "8718258202182c81018101810181018101",
    "result": {
     "count-8": "proof_malformed/count"
    }
@@ -43,7 +43,7 @@
    "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
    "count": 5,
    "index_identifier": "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
-   "outcome": "8718268202182f81018101810181018101",
+   "verify": "8718268202182f81018101810181018101",
    "result": {
     "swapped-sibling": "proof_failed/inclusion"
    }
@@ -54,7 +54,7 @@
    "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
    "count": 5,
    "index_identifier": "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
-   "outcome": "8718258202182d81018101810181018101",
+   "verify": "8718258202182d81018101810181018101",
    "result": {
     "digest-31": "proof_malformed/length"
    }
@@ -65,7 +65,7 @@
    "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
    "count": 5,
    "index_identifier": "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
-   "outcome": "8718258202182d81018101810181018101",
+   "verify": "8718258202182d81018101810181018101",
    "result": {
     "trailing-byte": "proof_malformed/length"
    }

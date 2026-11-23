@@ -1,12 +1,12 @@
 {
- "entry": "idx-wrong-type",
+ "name": "idx-wrong-type",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "an index whose type_runs names the first two covered frames, a terms frame and a quads frame, in the other order",
  "cases": [
   {
    "label": "",
    "input_file": "idx-wrong-type.bin",
-   "length": 1224,
-   "sha256": "0fc098c50ed232d69de8576718ec6503ded4ab2e3f8dfe26764dcc3251f13a77",
    "query": {
     "segment_end": 1224,
     "target": [
@@ -15,28 +15,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "placement",
-    "scope": [
-     0,
-     333,
-     3
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831904c882018101f40282020e8202830019014d82020380",
    "ranges": [

@@ -7,9 +7,6 @@
   {
    "label": "whole",
    "input_file": "resync-first-item.whole.bin",
-   "length": 262,
-   "sha256": "9567e38b2a36fa47485aea01fad217cb4ab901c74881527a312448832a55a13c",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,54 +19,11 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190106850201f40100820258205ffed92234e0fd4edf19bda69f91f5ea78a53418a84f7aeae74898564b925114820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b011840186782020101810181018081018081871181018101820201810181018202028b0218a7185f82020201810181018081018080808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "c6ade234ccf44e94db90d387c19c81200391e4abd1615577f26453f2e950707f",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {}
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190106850201f40100820258205ffed92234e0fd4edf19bda69f91f5ea78a53418a84f7aeae74898564b925114820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b011840186782020101810181018081018081871181018101820201810181018202028b0218a7185f82020201810181018081018080808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400"
   },
   {
    "label": "forward",
    "input_file": "resync-first-item.forward.bin",
-   "length": 262,
-   "sha256": "9567e38b2a36fa47485aea01fad217cb4ab901c74881527a312448832a55a13c",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -82,47 +36,7 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000028101828080870281920000190106850201f40100820258205ffed92234e0fd4edf19bda69f91f5ea78a53418a84f7aeae74898564b925114820201820201810101030200008085f482020582020582020581018101828b011840186782020101810181018081018081871181018101820201810181018202028b0218a7185f82020201810181018081018080808081018201000400",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "c6ade234ccf44e94db90d387c19c81200391e4abd1615577f26453f2e950707f",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {}
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000028101828080870281920000190106850201f40100820258205ffed92234e0fd4edf19bda69f91f5ea78a53418a84f7aeae74898564b925114820201820201810101030200008085f482020582020582020581018101828b011840186782020101810181018081018081871181018101820201810181018202028b0218a7185f82020201810181018081018080808081018201000400"
   }
  ]
 }

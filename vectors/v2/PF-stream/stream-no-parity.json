@@ -18,30 +18,42 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "findings": [
      [
       "profile_violation",
-      "None",
-      "(4, 3, (2, 2))",
+      null,
+      [
+       4,
+       3,
+       [
+        2,
+        2
+       ]
+      ],
       "4212",
-      "None",
-      "None",
+      null,
+      null,
       "1"
      ],
      [
       "profile_violation",
-      "None",
-      "(4, 3, (2, 2))",
+      null,
+      [
+       4,
+       3,
+       [
+        2,
+        2
+       ]
+      ],
       "8425",
-      "None",
-      "None",
+      null,
+      null,
       "1"
      ]
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

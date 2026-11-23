@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "cosign-item-limit.bin",
-   "length": 425,
-   "sha256": "f7cbd52d6e2859fc8c3c113ac9c747d533ed7c23d13f79b10626022b0111b3c8",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,48 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b0000001000000000021b00000020000000001b00000020000000001b00000020000000000181018280808702819200001872810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030100008085f482020582020582020581018101818b010b1867820201018101810180810180818711810181018202018101810182020180818714820218578101810182021872820219013782020381018201000700",
-   "observed": {
-    "file_findings": [
-     [
-      "exceeds_capacity",
-      "item_count",
-      null,
-      3,
-      114,
-      311
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "c9a382544729bc90f9d51c5532b8f6a4587bee531f62d13c1a9d3e4c4cf96c86",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          1,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
+   "result": {
     "appended": "8b020ef4f4820358208eab9af994fa5dc9c103f1b4a8c18ac51237850abc13c2fb945469efacb0a0fc0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820fcdda55d54e3dc9c8b3ef2b461101b3847bc0543e2c44585f3bed4292704d55f818301582064f0f7891e652953a35e68db9d371b5c0322563de2c8c05dbf01810a650703cf5840662a64847382ae6828ef59a782df64e878db04017562880011d7e247f6a3318498370b7198169584f73314e87a81c652789fe12799b93ad9ac70341d7734b009"
    }
   }

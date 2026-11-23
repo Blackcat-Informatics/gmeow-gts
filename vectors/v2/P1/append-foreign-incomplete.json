@@ -7,11 +7,9 @@
   {
    "label": "",
    "input_file": "append-foreign-incomplete.bin",
-   "length": 2,
-   "sha256": "5a45220da885d16a25e63e5fdd9e09c499a10ef53f566722180cb11bd6ab3d29",
-   "expected": {
-    "outcome": "refused_generation",
-    "outcome_code": 3
+   "append_outcome": {
+    "code": 3,
+    "outcome": "refused_generation"
    }
   }
  ]

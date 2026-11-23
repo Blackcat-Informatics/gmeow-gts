@@ -56,15 +56,13 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "k": 46,
     "N": 64,
     "m": 5,
     "decoded_bytes_per_read": 114,
     "count": 115
-   },
-   "differences": []
+   }
   }
  ]
 }

@@ -18,7 +18,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "frame_type": "commit",
     "decoded_length": 0,
@@ -30,8 +29,7 @@
     "level": 12,
     "window_log": 26,
     "position": 11
-   },
-   "differences": []
+   }
   },
   {
    "label": "stored",
@@ -48,7 +46,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "frame_type": "commit",
     "decoded_length": 0,
@@ -60,8 +57,7 @@
     "level": 12,
     "window_log": 26,
     "position": 11
-   },
-   "differences": []
+   }
   }
  ]
 }

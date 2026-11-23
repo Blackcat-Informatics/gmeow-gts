@@ -18,25 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "unsupported_registry_version",
-      "None",
-      "None",
-      "0"
-     ],
-     [
-      "malformed_value",
-      "inconsistent_counts",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "runs-before-newer-order",
@@ -53,25 +35,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "unsupported_registry_version",
-      "None",
-      "None",
-      "0"
-     ],
-     [
-      "malformed_value",
-      "out_of_range",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "newer-order-before-restart-group",
@@ -88,25 +52,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "unsupported_registry_version",
-      "None",
-      "None",
-      "0"
-     ],
-     [
-      "unsupported_critical",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "newer-order-alone",
@@ -123,25 +69,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "unsupported_registry_version",
-      "None",
-      "None",
-      "0"
-     ],
-     [
-      "unsupported_critical",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   }
  ]
 }

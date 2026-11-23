@@ -57,11 +57,9 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "weight": 128
-   },
-   "differences": []
+   }
   }
  ]
 }

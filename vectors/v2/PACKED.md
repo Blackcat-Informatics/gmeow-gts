@@ -5,7 +5,6 @@
 | `P1/continue-segment.request-6.bin` | 4475750 | 6870 | `a526d5fbfbec47d567c3633b1d491ac419b48701b106599352c67413085b0b3a` |
 | `P1/continue-segment.whole.bin` | 4475750 | 6870 | `a526d5fbfbec47d567c3633b1d491ac419b48701b106599352c67413085b0b3a` |
 | `P1/delimited-deep.map.bin` | 2000126 | 285 | `a4416387a3dc04944240d0dcea27dfe7c760e394d7b60c8395848bce620dd015` |
-| `P1/resync-filler-table-parity.json` | 1783148 | 65415 | `d939fac06018fa2bd6a36a9e1f71a2160649938dd8d818837223f675bb72ed2e` |
 | `P1/resync-flood-false-offsets.bin` | 1048770 | 348 | `8d6ff032ee2a0690ee79c62eae5581438ebfe429e17e9c002414bff03f2736b2` |
 | `P3/doubt-lost-header-recovery.first-file.bin` | 5281836 | 5111 | `8bb547f6453bb914fd2ac8e83fe8008200e2f01ee303cb7db78610a0f5e601ff` |
 | `P3/doubt-lost-header-recovery.lost-header.bin` | 5281836 | 5112 | `a52ce35fb52b1dc3de2605a1fae5c977c81cc0a30666ef52d563710c9dab463a` |
@@ -45,5 +44,4 @@
 | `P8/p8-length.payload-2-pow-27-plus-17-default-capacity.bin` | 134218008 | 4353 | `75296a778a55247208238c782e765fee4ada4a6ff1476052343c144c62bcf7e3` |
 | `P8/p8-members-layout-cut.result.bin` | 19200384 | 1968 | `8db2dcfb9101948d4792bf1e69f7ee9ca48a66e40eedd0e89852769c183654a4` |
 | `P8/p8-members-layout-pass.result.bin` | 19200392 | 1934 | `84fac17bdbf0f37c7a9a47c5b1ae1995c5f27d0e26530bd9551750fa793b8f27` |
-| `PF-stream/stream-concat-two.json` | 4611461 | 96493 | `1499ee9a7300679ce0d0c8cb5319f4b14d7931fcc27785f486768bdef5d4957d` |
-| `PF-stream/stream-stream-read.json` | 2306098 | 57700 | `8b7f34d6944ca50626fddaf926dc342bc1055aa0f1435d75de3657de3d7c91f2` |
+| `PF-stream/stream-concat-two.json` | 1206402 | 73720 | `685ff3b8f5d5231932a6940ce74a852504ba0feeff4e66cb752d4fa891fd1ed2` |

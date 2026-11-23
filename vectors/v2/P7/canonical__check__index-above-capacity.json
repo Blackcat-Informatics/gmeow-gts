@@ -7,8 +7,6 @@
   {
    "label": "",
    "input_file": "canonical__check__index-above-capacity.bin",
-   "length": 2164,
-   "sha256": "1fbe2ca2d44faed5392e04034000da9879d79b261b66aeb4a96d811d711eda7f",
    "capacity": {
     "stored_bytes_per_frame": 203,
     "decoded_bytes_per_frame": 203,

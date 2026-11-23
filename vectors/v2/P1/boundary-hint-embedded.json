@@ -7,7 +7,9 @@
   {
    "label": "four-bytes",
    "input_file": "boundary-hint-embedded.four-bytes.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,20 +22,19 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
-    "1": "boundary_not_established"
-   },
+   "note": "expected 1 \"boundary_not_established\"",
    "result": {
     "boundary_outcomes": {
      "1": "boundary_not_established"
     }
-   },
-   "differences": []
+   }
   },
   {
    "label": "embedded-envelope",
    "input_file": "boundary-hint-embedded.embedded-envelope.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -46,21 +47,20 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
-    "13": "boundary_not_established"
-   },
+   "note": "expected 13 \"boundary_not_established\"",
    "result": {
     "boundary_outcomes": {
      "13": "boundary_not_established"
     }
-   },
-   "differences": []
+   }
   },
   {
    "label": "embedded-envelope-read",
    "input_file": "boundary-hint-embedded.embedded-envelope-read.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001886810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80828707820204810182020182020b820218748101871282021381018202028101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -72,133 +72,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "classes": [
-       "header",
-       "opaque",
-       "offsets"
-      ],
-      "findings": [
-       [
-        "malformed_value",
-        "wrong_type",
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116
-        }
-       ],
-       [
-        "index_claim_failed",
-        "index_offsets",
-        {
-         "position": 2
-        }
-       ]
-      ],
-      "frames": []
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 134,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116,
-         "class": "opaque",
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 116
-          }
-         ]
-        },
-        {
-         "position": 2,
-         "offset": 127,
-         "length": 7,
-         "class": "offsets",
-         "findings": [
-          {
-           "code": "index_claim_failed",
-           "reason": "index_offsets",
-           "position": 2
-          }
-         ]
-        }
-       ],
-       "frames": [],
-       "findings": [
-        {
-         "code": "malformed_value",
-         "reason": "wrong_type",
-         "position": 1,
-         "offset": 11,
-         "length": 116
-        },
-        {
-         "code": "index_claim_failed",
-         "reason": "index_offsets",
-         "position": 2
-        }
-       ]
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   }
  ]
 }

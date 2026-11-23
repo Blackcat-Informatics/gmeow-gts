@@ -18,7 +18,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "lengths": [
      81019,
@@ -29,8 +28,7 @@
      68321,
      13111
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

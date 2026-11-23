@@ -7,8 +7,6 @@
   {
    "label": "unsigned",
    "input_file": "read__visibility__unauthenticated.unsigned.bin",
-   "length": 429,
-   "sha256": "37684169dadf69e630080a4d2eee0b5f3a6829a23b48b4c49651eeff5799b4f4",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -43,8 +41,6 @@
   {
    "label": "signed",
    "input_file": "read__visibility__unauthenticated.signed.bin",
-   "length": 531,
-   "sha256": "d5507deb57e3b11774348ca030869ce90f4357d9d6dc9b2ef62f7d979a974aea",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

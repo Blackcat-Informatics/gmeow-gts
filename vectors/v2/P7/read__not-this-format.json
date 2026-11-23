@@ -7,8 +7,6 @@
   {
    "label": "map",
    "input_file": "read__not-this-format.map.bin",
-   "length": 4,
-   "sha256": "2956b2cee8e54663cef11aac45368e3a869c862ed7a6fd2dba3a408017ce3e0e",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -35,8 +33,6 @@
   {
    "label": "array",
    "input_file": "read__not-this-format.array.bin",
-   "length": 4,
-   "sha256": "edd66e8a5ae68be63e0fccbda0576755553ea4b56153df9a6b6b65ec8cfc7698",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -63,8 +59,6 @@
   {
    "label": "uint",
    "input_file": "read__not-this-format.uint.bin",
-   "length": 1,
-   "sha256": "e77b9a9ae9e30b0dbdb6f510a264ef9de781501d7b6b92ae89eb059c5ab743db",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

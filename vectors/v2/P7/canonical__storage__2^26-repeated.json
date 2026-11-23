@@ -18,7 +18,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "frame_type": "terms",
     "construction": "the payload of one terms frame (order canonical, restart_group 64) of the one IRI http://e/a followed by an IRI of the byte 'a' repeated, 67108836 bytes of body, so that the decoded length is 2^26",
@@ -31,8 +30,7 @@
     "encoder": "libzstd 1.5.7",
     "level": 12,
     "window_log": 26
-   },
-   "differences": []
+   }
   }
  ]
 }

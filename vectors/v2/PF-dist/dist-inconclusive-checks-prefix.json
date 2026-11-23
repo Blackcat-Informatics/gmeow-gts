@@ -26,10 +26,7 @@
       1
      ]
     ]
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   },
   {
    "label": "checks-2",
@@ -54,10 +51,7 @@
       2
      ]
     ]
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   },
   {
    "label": "checks-3",
@@ -82,10 +76,7 @@
       3
      ]
     ]
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   },
   {
    "label": "checks-4",
@@ -110,10 +101,7 @@
       4
      ]
     ]
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   }
  ]
 }

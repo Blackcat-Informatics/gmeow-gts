@@ -7,9 +7,6 @@
   {
    "label": "wrong-length",
    "input_file": "stream-field-offsets.wrong-length.bin",
-   "length": 215,
-   "sha256": "51001575a92883be0916a5210b1c211d3f1204e9f9cc4a299b81ce032909cd62",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,58 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000018d7810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f482020582020582020581018101828b010b186782020101810181018081018081871181018101820201810181018202028b031878185f8202020181018101808101808081870782020881018202028202187282020681018081018201000400",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
-      "findings": [
-       [
-        "malformed_value",
-        "unordered_or_repeated",
-        2,
-        null,
-        114,
-        6
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "index_claim_failed index_offsets at the first boundary after the offsets item; after the next frame that finding gone and malformed_value unordered_or_repeated at the offsets item"
-   },
+   "note": "index_claim_failed index_offsets at the first boundary after the offsets item; after the next frame that finding gone and malformed_value unordered_or_repeated at the offsets item",
    "stream_points": [
     {
      "at": 120,
@@ -386,19 +333,11 @@
       ]
      ]
     }
-   ],
-   "access": "forward",
-   "input_points": [
-    120,
-    215
    ]
   },
   {
    "label": "opaque-after",
    "input_file": "stream-field-offsets.opaque-after.bin",
-   "length": 121,
-   "sha256": "faa1dffe6eaac6078acf77e7a8ce39f60943da2fe01988b6fc321fb23e7a468e",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -411,58 +350,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001879810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f482020582020582020581018101818b010b186782020101810181018081018081871181018101820201810181018202018287078202088101820202820218728202068101870782020481018202038202187882020181018081018201000401",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "c9a382544729bc90f9d51c5532b8f6a4587bee531f62d13c1a9d3e4c4cf96c86",
-      "findings": [
-       [
-        "malformed_value",
-        "unordered_or_repeated",
-        2,
-        null,
-        114,
-        6
-       ],
-       [
-        "malformed_value",
-        "wrong_type",
-        3,
-        null,
-        120,
-        1
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          1,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "no finding at the third boundary; at the fourth malformed_value unordered_or_repeated at the offsets item, wrong_type at the opaque item, integrity damaged"
-   },
+   "note": "no finding at the third boundary; at the fourth malformed_value unordered_or_repeated at the offsets item, wrong_type at the opaque item, integrity damaged",
    "stream_points": [
     {
      "at": 120,
@@ -720,11 +609,6 @@
       ]
      ]
     }
-   ],
-   "access": "forward",
-   "input_points": [
-    120,
-    121
    ]
   }
  ]

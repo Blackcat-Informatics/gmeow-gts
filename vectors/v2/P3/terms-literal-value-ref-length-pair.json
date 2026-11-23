@@ -7,9 +7,6 @@
   {
    "label": "length-3",
    "input_file": "terms-literal-value-ref-length-pair.length-3.bin",
-   "length": 682,
-   "sha256": "e4f659811ea1f3e4bd50e067dd9c56e99ba6010d7b4f73f85d8566b3f9d94c03",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,71 +19,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902aa810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f48202058202058202058101820258208815869d25a8890d36cc4b850fb8ee6e66796c20c92f11b0af8a4eb8e8eaebb1858b010b1874820208018101810180810180808b02187f189a82020b0181018101808101818281018101808b0319011918c0820201018101810180810180808b041901d9185f820202018101810180810180808b05190238187282020e018101810180810280808080820258208815869d25a8890d36cc4b850fb8ee6e66796c20c92f11b0af8a4eb8e8eaebb18201000200",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "db4e4c7a87eee195a629b83c335164dae20b6587768beb01e51d42bc611f3975",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 5,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "no finding; the content digest present; the value frame verified"
-   }
+   "note": "no finding; the content digest present; the value frame verified"
   },
   {
    "label": "length-4",
    "input_file": "terms-literal-value-ref-length-pair.length-4.bin",
-   "length": 682,
-   "sha256": "dbbc93221dabad5ce92309f9a62bb094360d655d0ea4e89171aea2b528d81f27",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -99,82 +37,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902aa810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f482020582020582020581018101858b010b1874820208018101810180810180808b02187f189a82020b0181018101808101818281018101808b0319011918c08202010181018101808101808187138202181a81018202038101810181018b041901d9185f82020201810181018081018081871819810181018202048101810181018b05190238187282020e01810181018081028080808081018201000200",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "70dec3c7cef0eb55b26a429224b2050a53fea3497fd94f62bbc3837d1f46e80a",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "missing_dependency",
-          "value",
-          3,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "opaque_term",
-          null,
-          4,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 5,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "missing_dependency/value at the terms frame, opaque_term at the row, the content digest absent, the value frame verified"
-   }
+   "note": "missing_dependency/value at the terms frame, opaque_term at the row, the content digest absent, the value frame verified"
   }
  ]
 }

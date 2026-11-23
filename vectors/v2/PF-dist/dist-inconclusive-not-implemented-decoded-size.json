@@ -21,10 +21,7 @@
    },
    "read": {
     "profiles": []
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   }
  ]
 }

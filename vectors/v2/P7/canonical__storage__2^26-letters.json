@@ -18,7 +18,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "frame_type": "terms",
     "construction": "the payload of one terms frame (order canonical, restart_group 64) of the one IRI http://e/a followed by an IRI of 67108836 letters, so that the decoded length is 2^26: the generator MT19937 initialised by init_by_array with the key [11], each 32-bit output written as four bytes in little-endian order, and each byte b taken as the letter chr(65 + b % 26)",
@@ -31,8 +30,7 @@
     "encoder": "libzstd 1.5.7",
     "level": 12,
     "window_log": 26
-   },
-   "differences": []
+   }
   }
  ]
 }

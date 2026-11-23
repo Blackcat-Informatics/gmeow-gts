@@ -6,10 +6,7 @@
  "cases": [
   {
    "label": "",
-   "input_file": "canonical/check/unit-cuts.bin",
-   "length": 110138,
-   "sha256": "a6d2747c9b92839cdb959010f73408babf1de55b35a5c1cf5a63b810c5ec82a9",
-   "inputs": null,
+   "input_file": "canonical__check__unit-cuts.bin",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,65 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001a0001ae3a8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103030200810485f5810381018101820282060182025820c316e4c0346e65156b53bb94376f0eb7ad3a03931cb74d77299a2eba3a59081f848b010c1a0001882d82020d0181018101808101818282020381018187181b8202184681018202018101810181018b021a00018839187282020e018101810180810280808b031a000188ab19013882020f018101810180810280808b041a000189e319243b82021001810181018081028080808082025820c316e4c0346e65156b53bb94376f0eb7ad3a03931cb74d77299a2eba3a59081f8201000200",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "040b47ef65640288935d62e0bd14098d658e22235535b3a58faa84868e03fb10",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "canonical_violated",
-          "blob_region",
-          1,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "first_difference [blob_region, 1]"
-   }
+   "note": "first_difference [blob_region, 1]"
   }
  ]
 }

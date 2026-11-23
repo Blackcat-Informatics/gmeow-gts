@@ -18,12 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "quad",
@@ -40,12 +35,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "reifier",
@@ -62,12 +52,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "graph",
@@ -84,12 +69,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "blob",
@@ -106,12 +86,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "reifier_binding",
@@ -128,12 +103,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "annotation",
@@ -150,12 +120,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "binding",
@@ -172,12 +137,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   }
  ]
 }

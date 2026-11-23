@@ -19,14 +19,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "sha256": "2f02ebd51ecaf1c5acc3b33d50fe583603b8edbf219604d791d3384df1175edc",
     "bytes": 359,
     "refusal": null,
     "size": 4,
     "content_digest": "853c3df985fae8a03b883886688d4ee7e3b4cb6abfc5beb8754f7e3678e72226",
-    "findings": [],
     "lines": 2,
     "records": 0,
     "nested_terms": 1,
@@ -70,8 +68,7 @@
     "oracle_guaranteed": true,
     "oracle_digest": "853c3df985fae8a03b883886688d4ee7e3b4cb6abfc5beb8754f7e3678e72226",
     "Dshared": "853c3df985fae8a03b883886688d4ee7e3b4cb6abfc5beb8754f7e3678e72226"
-   },
-   "differences": []
+   }
   }
  ]
 }

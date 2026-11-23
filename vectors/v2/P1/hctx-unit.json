@@ -7,7 +7,9 @@
   {
    "label": "",
    "input_file": "hctx-unit.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,16 +22,13 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
-    "context": "unit"
-   },
+   "note": "expected context \"unit\"",
    "result": {
     "context": "unit",
     "spelling": "gts2 unit",
     "message": "616263",
     "output": "fd333553fcd5a9a21f2f02d8975a121d076261ab21681b642bd99ce82fb597ab"
-   },
-   "differences": []
+   }
   }
  ]
 }

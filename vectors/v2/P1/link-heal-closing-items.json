@@ -7,32 +7,6 @@
   {
    "label": "damaged",
    "input_file": "link-heal-closing-items.damaged.bin",
-   "length": 878,
-   "sha256": "6b3c7816c799b9542f88c517e49ed1741f145e83f2ad8817a78a5607a8497c5e",
-   "inputs": [
-    [
-     "b'dz9\\xe6\\xbd\\xe7\\xdd\\x99\\x1cS\\xcb\\x7f\\xaa\\x00\\xf9\\xfeW\\x10\\x93\\xdbv\\xe3\\xf6\\xee\\xee\\x97\\x96K\\xaa\\xe6WE'",
-     "b'\\x85-\\xe4\\x02\\xab\\xb8\\xe1\\x17`ry\\x94\\xec\\xb9\\xfct.(\\xe1a%\\tXz\\xd8\\xc9\\x97\\x9f-4\\xf9\\xe6'",
-     "b'\\x87\\xc4\\xd5\\xe0\\xe7\\xc75\\x8b\\xc3P^6\\xa5*\\xf5\\x9e\\xbc?B\\x1e-\\x8c\\xe0\\xe7\\x07\\x07\\xd9(\\xac\\xba2\\x83'"
-    ],
-    [
-     [
-      "b'dz9\\xe6\\xbd\\xe7\\xdd\\x99\\x1cS\\xcb\\x7f\\xaa\\x00\\xf9\\xfeW\\x10\\x93\\xdbv\\xe3\\xf6\\xee\\xee\\x97\\x96K\\xaa\\xe6WE'",
-      1,
-      "b'\\x0bQ:\\xd9\\xb4\\x92@\\x15\\xca\\t\\x02\\xed\\x07\\x90D\\xd3\\xac]\\xbe\\xc20o\\x06\\x94\\x8c\\x10\\xda\\x8e\\xb6\\xe3\\x9f-'"
-     ],
-     [
-      "b'\\x85-\\xe4\\x02\\xab\\xb8\\xe1\\x17`ry\\x94\\xec\\xb9\\xfct.(\\xe1a%\\tXz\\xd8\\xc9\\x97\\x9f-4\\xf9\\xe6'",
-      1,
-      "b'\\x91\\xa2\\x8a\\x0bt8\\x15\\x93\\xa4\\xd9F\\x95y \\x89&\\xaf\\xc8\\xad\\x82\\xc8\\x83\\x9bvD5\\x9b\\x9e\\xba\\x9aK:'"
-     ],
-     [
-      "b'\\x87\\xc4\\xd5\\xe0\\xe7\\xc75\\x8b\\xc3P^6\\xa5*\\xf5\\x9e\\xbc?B\\x1e-\\x8c\\xe0\\xe7\\x07\\x07\\xd9(\\xac\\xba2\\x83'",
-      1,
-      "b'f\\xbe~3,zE32\\xbd\\x9d\\n\\x7f}\\xb0U\\xf5\\xc5\\xef\\x1a\\x06\\xad\\xa6m\\x98\\xb3\\x9f\\xb6\\x81\\x0cG:'"
-     ]
-    ]
-   ],
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -45,165 +19,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182835820647a39e6bde7dd991c53cb7faa00f9fe571093db76e3f6eeee97964baae657455820852de402abb8e11760727994ecb9fc742e28e1612509587ad8c9979f2d34f9e6582087c4d5e0e7c7358bc3505e36a52af59ebc3f421e2d8ce0e70707d928acba328383835820647a39e6bde7dd991c53cb7faa00f9fe571093db76e3f6eeee97964baae657450158200b513ad9b4924015ca0902ed079044d3ac5dbec2306f06948c10da8eb6e39f2d835820852de402abb8e11760727994ecb9fc742e28e1612509587ad8c9979f2d34f9e601582091a28a0b74381593a4d9469579208926afc8ad82c8839b7644359b9eba9a4b3a83582087c4d5e0e7c7358bc3505e36a52af59ebc3f421e2d8ce0e70707d928acba328301582066be7e332c7a453332bd9d0a7f7db055f5c5ef1a06ada66d98b39fb6810c473a87028192000019036e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15858b010b186782020101810181018081018081871181018101820201810181018202058b021872185f820202018101810180810180808b0318d118d882020e03810181018187028202183e01582087c4d5e0e7c7358bc3505e36a52af59ebc3f421e2d8ce0e70707d928acba32830202f48203068082870b81018101820203820218d1820218d881018718288202183e82028203018202038101810181018b061901be18d882020e03810181018187018101015820647a39e6bde7dd991c53cb7faa00f9fe571093db76e3f6eeee97964baae657450303f48203068082870b8101810182020682021901be820218d881018710810181018202068101810181018b0719029618d882020e01810181018187018101015820852de402abb8e11760727994ecb9fc742e28e1612509587ad8c9979f2d34f9e60405f481028081871081018101820207810181018101828707820208810182020482021901a982020a81018707820208810182020582021901b382020b81018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000402",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "676729d56e2cb12571f8455760140ef6f1ed18a023d2ca5803767b7a5c14c1f0",
-      "findings": [
-       [
-        "malformed_value",
-        "unordered_or_repeated",
-        4,
-        null,
-        425,
-        10
-       ],
-       [
-        "malformed_value",
-        "unordered_or_repeated",
-        5,
-        null,
-        435,
-        11
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          5,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "broken",
-        "fold": [
-         "opaque",
-         "chain_break"
-        ],
-        "findings": [
-         [
-          "chain_break",
-          null,
-          3,
-          null,
-          209,
-          216
-         ],
-         [
-          "signature_invalid",
-          "equation_failed",
-          3,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 6,
-        "link": "broken",
-        "fold": [
-         "opaque",
-         "chain_break"
-        ],
-        "findings": [
-         [
-          "chain_break",
-          null,
-          6,
-          null,
-          446,
-          216
-         ],
-         [
-          "commit_root_mismatch",
-          null,
-          6,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 7,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": [
-         [
-          "commit_root_mismatch",
-          null,
-          7,
-          null,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "X broken, C1 broken, C2 linked failing ROOT, nothing authenticates"
-   }
+   "note": "X broken, C1 broken, C2 linked failing ROOT, nothing authenticates"
   },
   {
    "label": "restored",
    "input_file": "link-heal-closing-items.restored.bin",
-   "length": 878,
-   "sha256": "d39539caa4ced701534ea7288a3dbb3cae3cdfc6b3bb9a814a5a56bbac3922f1",
-   "inputs": [
-    [
-     "b'dz9\\xe6\\xbd\\xe7\\xdd\\x99\\x1cS\\xcb\\x7f\\xaa\\x00\\xf9\\xfeW\\x10\\x93\\xdbv\\xe3\\xf6\\xee\\xee\\x97\\x96K\\xaa\\xe6WE'",
-     "b'\\x85-\\xe4\\x02\\xab\\xb8\\xe1\\x17`ry\\x94\\xec\\xb9\\xfct.(\\xe1a%\\tXz\\xd8\\xc9\\x97\\x9f-4\\xf9\\xe6'",
-     "b'\\x87\\xc4\\xd5\\xe0\\xe7\\xc75\\x8b\\xc3P^6\\xa5*\\xf5\\x9e\\xbc?B\\x1e-\\x8c\\xe0\\xe7\\x07\\x07\\xd9(\\xac\\xba2\\x83'"
-    ],
-    [
-     [
-      "b'dz9\\xe6\\xbd\\xe7\\xdd\\x99\\x1cS\\xcb\\x7f\\xaa\\x00\\xf9\\xfeW\\x10\\x93\\xdbv\\xe3\\xf6\\xee\\xee\\x97\\x96K\\xaa\\xe6WE'",
-      1,
-      "b'\\x0bQ:\\xd9\\xb4\\x92@\\x15\\xca\\t\\x02\\xed\\x07\\x90D\\xd3\\xac]\\xbe\\xc20o\\x06\\x94\\x8c\\x10\\xda\\x8e\\xb6\\xe3\\x9f-'"
-     ],
-     [
-      "b'\\x85-\\xe4\\x02\\xab\\xb8\\xe1\\x17`ry\\x94\\xec\\xb9\\xfct.(\\xe1a%\\tXz\\xd8\\xc9\\x97\\x9f-4\\xf9\\xe6'",
-      1,
-      "b'\\x91\\xa2\\x8a\\x0bt8\\x15\\x93\\xa4\\xd9F\\x95y \\x89&\\xaf\\xc8\\xad\\x82\\xc8\\x83\\x9bvD5\\x9b\\x9e\\xba\\x9aK:'"
-     ],
-     [
-      "b'\\x87\\xc4\\xd5\\xe0\\xe7\\xc75\\x8b\\xc3P^6\\xa5*\\xf5\\x9e\\xbc?B\\x1e-\\x8c\\xe0\\xe7\\x07\\x07\\xd9(\\xac\\xba2\\x83'",
-      1,
-      "b'f\\xbe~3,zE32\\xbd\\x9d\\n\\x7f}\\xb0U\\xf5\\xc5\\xef\\x1a\\x06\\xad\\xa6m\\x98\\xb3\\x9f\\xb6\\x81\\x0cG:'"
-     ]
-    ]
-   ],
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -216,81 +37,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182835820647a39e6bde7dd991c53cb7faa00f9fe571093db76e3f6eeee97964baae657455820852de402abb8e11760727994ecb9fc742e28e1612509587ad8c9979f2d34f9e6582087c4d5e0e7c7358bc3505e36a52af59ebc3f421e2d8ce0e70707d928acba328383835820647a39e6bde7dd991c53cb7faa00f9fe571093db76e3f6eeee97964baae657450158200b513ad9b4924015ca0902ed079044d3ac5dbec2306f06948c10da8eb6e39f2d835820852de402abb8e11760727994ecb9fc742e28e1612509587ad8c9979f2d34f9e601582091a28a0b74381593a4d9469579208926afc8ad82c8839b7644359b9eba9a4b3a83582087c4d5e0e7c7358bc3505e36a52af59ebc3f421e2d8ce0e70707d928acba328301582066be7e332c7a453332bd9d0a7f7db055f5c5ef1a06ada66d98b39fb6810c473a87028192000019036e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103010505058085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15858b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d118d882020e0181018101818701810101582087c4d5e0e7c7358bc3505e36a52af59ebc3f421e2d8ce0e70707d928acba32830003f5810280808b061901be18d882020e01810181018187018101015820647a39e6bde7dd991c53cb7faa00f9fe571093db76e3f6eeee97964baae657450004f5810280808b0719029618d882020e01810181018187018101015820852de402abb8e11760727994ecb9fc742e28e1612509587ad8c9979f2d34f9e60005f581028080828707820208810182020482021901a982020a81018707820208810182020582021901b382020b81018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000100",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "676729d56e2cb12571f8455760140ef6f1ed18a023d2ca5803767b7a5c14c1f0",
-      "findings": [
-       [
-        "malformed_value",
-        "unordered_or_repeated",
-        4,
-        null,
-        425,
-        10
-       ],
-       [
-        "malformed_value",
-        "unordered_or_repeated",
-        5,
-        null,
-        435,
-        11
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 6,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 7,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "all valid and authenticating"
-   }
+   "note": "all valid and authenticating"
   }
  ]
 }

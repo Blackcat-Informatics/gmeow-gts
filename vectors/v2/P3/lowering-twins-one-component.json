@@ -69,14 +69,12 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "sha256": "693c2582c8e13dd796a9c08a2aa9644f3b159bb41aca9c2916fbfb6f065b8b32",
     "bytes": 379,
     "refusal": null,
     "size": 6,
     "content_digest": "1289b887353e9a5d89308b4aa9e6d969be8bcff01d59ca123d24dec18b7b9e62",
-    "findings": [],
     "lines": 4,
     "records": 0,
     "nested_terms": 2,
@@ -182,8 +180,7 @@
       "n#ec53a238"
      ]
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

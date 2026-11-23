@@ -19,12 +19,9 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
-    "suppress_frames": 1,
-    "findings": []
-   },
-   "differences": []
+    "suppress_frames": 1
+   }
   }
  ]
 }

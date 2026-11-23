@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "first-item-five-alone.bin",
-   "length": 64,
-   "sha256": "ddbe47aa6f953606a4ff181f797715c711d103f4251603db4a2d356618eb1a3a",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,24 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870280818702810181018101820200820202810181018201000400",
-   "observed": {
-    "file_findings": [
-     [
-      "not_this_format",
-      null,
-      null,
-      null,
-      0,
-      2
-     ]
-    ],
-    "segments": []
-   },
-   "expected": {
-    "expected": "no segment; not_this_format offset 0 length 2"
-   }
+   "note": "no segment; not_this_format offset 0 length 2"
   }
  ]
 }

@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "resync-occurrence-tested-once.bin",
-   "length": 1164,
-   "sha256": "d8fd33e6d5cd6dcbbfd6b8de36143f1049cc1a850d1046d28cc70b9c4b46f679",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,49 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001912121a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001903838101810181018101810103030000008085f48202058202058202058101810180828707820205810182020082020082021901858101871482021856810182021901de82021903848202191000820219200081870881018101810182021903838202190109810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e820100061901dd",
-   "observed": {
-    "file_findings": [
-     [
-      "undelimitable_input",
-      null,
-      null,
-      null,
-      899,
-      265
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": null,
-      "findings": [
-       [
-        "malformed_value",
-        "wrong_length",
-        0,
-        null,
-        0,
-        389
-       ],
-       [
-        "exceeds_capacity",
-        "total_decoded",
-        478,
-        8192,
-        900,
-        4096
-       ]
-      ],
-      "frames": []
-     }
-    ]
-   },
-   "expected": {
-    "expected": "one segment; exceeds_capacity total_decoded position 478 offset 900 length 4096 count 8192; undelimitable_input 899/265"
-   }
+   "note": "one segment; exceeds_capacity total_decoded position 478 offset 900 length 4096 count 8192; undelimitable_input 899/265"
   }
  ]
 }

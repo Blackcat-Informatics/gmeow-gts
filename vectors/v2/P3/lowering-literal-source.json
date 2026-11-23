@@ -19,14 +19,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "sha256": "5ce888f3ba042e4808a3503c8d0c09a20054cfbcabb9e5419079c186c5bf182d",
     "bytes": 390,
     "refusal": null,
     "size": 5,
     "content_digest": "fe88d78fb408d2fa2ebc4467efa70995927075f11a3af3c9e1d4ddb14c17063d",
-    "findings": [],
     "lines": 2,
     "records": 1,
     "nested_terms": 2,
@@ -95,8 +93,7 @@
      "preimage language": "834e4d82016a687474703a2f2f652f624e4d82016a687474703a2f2f652f714c4b840261780365454e2d7573",
      "preimage typed": "834e4d82016a687474703a2f2f652f624e4d82016a687474703a2f2f652f71583c583a84026137017833687474703a2f2f7777772e77332e6f72672f323030312f584d4c536368656d61236e6f6e4e65676174697665496e7465676572"
     }
-   },
-   "differences": []
+   }
   }
  ]
 }

@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "left-out-stopped.bin",
-   "length": 384,
-   "sha256": "028d7c8ea2148ad15c678581523d23b4a96d02607ee409fd088d9ab8b8712bb5",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,86 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901808101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030400008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e848b010b186782020101810181018081018081871181018101820201810181018202048b0218721850820218630181018101808203048081870681018202820218638202028101810181018b0318c2185f82020201810181018082030580808b04190121185f82020201810181018082030580808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000403",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "8e4b76d9da2d7994cd37ef8dbaf59ef45b305720461771cea901293a22d60dea",
-      "findings": [
-       [
-        "unsupported_registry_version",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          4,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "opaque",
-         "unsupported_critical"
-        ],
-        "findings": [
-         [
-          "unsupported_critical",
-          null,
-          2,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "opaque",
-         "stopped"
-        ],
-        "findings": []
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "opaque",
-         "stopped"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "integrity intact, left_out 3"
-   }
+   "note": "integrity intact, left_out 3"
   }
  ]
 }

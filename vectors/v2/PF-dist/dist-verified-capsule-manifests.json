@@ -26,10 +26,7 @@
       5
      ]
     ]
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   },
   {
    "label": "one-manifest-version-1",
@@ -54,10 +51,7 @@
       5
      ]
     ]
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   },
   {
    "label": "one-manifest-version-2",
@@ -82,10 +76,7 @@
       5
      ]
     ]
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   }
  ]
 }

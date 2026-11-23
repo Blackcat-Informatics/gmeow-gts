@@ -18,31 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "damaged_frame",
-      "payload_digest",
-      "1",
-      "0"
-     ],
-     [
-      "damaged_frame",
-      "payload_digest",
-      "2",
-      "0"
-     ],
-     [
-      "missing_dependency",
-      "chunk",
-      "4",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   }
  ]
 }

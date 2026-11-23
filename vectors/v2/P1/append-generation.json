@@ -7,31 +7,25 @@
   {
    "label": "first-generation-header",
    "input_file": "append-generation.first-generation-header.bin",
-   "length": 4,
-   "sha256": "1a192210cda38666a0d04cb15e6afd2b27bc097c1bc872240329e11bbfb4c1cb",
-   "expected": {
-    "outcome": "refused_generation",
-    "outcome_code": 3
+   "append_outcome": {
+    "code": 3,
+    "outcome": "refused_generation"
    }
   },
   {
    "label": "header-generation-3",
    "input_file": "append-generation.header-generation-3.bin",
-   "length": 11,
-   "sha256": "94ae52737fb8aec696e3d0b18308d981c51ffe585709ecd443c6dd0b937a28af",
-   "expected": {
-    "outcome": "refused_generation",
-    "outcome_code": 3
+   "append_outcome": {
+    "code": 3,
+    "outcome": "refused_generation"
    }
   },
   {
    "label": "first-generation-map-and-frame",
    "input_file": "append-generation.first-generation-map-and-frame.bin",
-   "length": 114,
-   "sha256": "da8f865b367a328056fcdc89d460cab1442a0f37ca0da2065a4bfe7393d965a1",
-   "expected": {
-    "outcome": "refused_generation",
-    "outcome_code": 3
+   "append_outcome": {
+    "code": 3,
+    "outcome": "refused_generation"
    }
   }
  ]

@@ -7,9 +7,7 @@
   {
    "label": "",
    "input_file": "resync-marker.bin",
-   "length": 20,
-   "sha256": "f43868ed9963b8f1564661d342b8f9fd5860ef994843b2338e2285d720c0e82a",
-   "expected": {
+   "result": {
     "output": "fcf3eb32a2f0267dd16a53f09bff8792e32500027ff8f6d3a2bf1756c96060cb",
     "marker": "fcf3eb32a2f0267dd16a53f09bff8792",
     "pattern": "8b050250fcf3eb32a2f0267dd16a53f09bff8792"

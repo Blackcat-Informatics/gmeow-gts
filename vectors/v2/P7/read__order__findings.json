@@ -7,8 +7,6 @@
   {
    "label": "frame",
    "input_file": "read__order__findings.frame.bin",
-   "length": 288,
-   "sha256": "ec1a56015f9368ab91f7b6fbbdc8d2e681b1d9b3791e3ed780eb57f734802001",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -35,8 +33,6 @@
   {
    "label": "four-items",
    "input_file": "read__order__findings.four-items.bin",
-   "length": 20,
-   "sha256": "936799350e0bdbff7e527462d2caedffebb555412734328750c429721950d121",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

@@ -19,14 +19,31 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "frames": [
-     "(1, 'linked', ('verified',), ('opaque', 'unknown_frame_type'))",
-     "(2, 'linked', ('verified',), ('not_content',))"
+     [
+      1,
+      "linked",
+      [
+       "verified"
+      ],
+      [
+       "opaque",
+       "unknown_frame_type"
+      ]
+     ],
+     [
+      2,
+      "linked",
+      [
+       "verified"
+      ],
+      [
+       "not_content"
+      ]
+     ]
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

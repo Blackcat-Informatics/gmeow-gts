@@ -19,13 +19,11 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "printed": "87182d81018101820209810181018101",
     "encoded": "87182d81018101820209810181018101",
     "read": "87182d81018101820209810181018101"
-   },
-   "differences": []
+   }
   }
  ]
 }

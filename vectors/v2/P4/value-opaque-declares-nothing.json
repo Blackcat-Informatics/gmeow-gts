@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "value-opaque-declares-nothing.bin",
-   "length": 652,
-   "sha256": "6b28f4897ff7a03e04d25fdd77254717b2124473a17315f7dfcf7649ddf3956c",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,109 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a04000000021b00000020000000001b000000200000000001810182808087028192000019028c810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030105008085f482020582020582020581018101858b010b18748202080181018101808101808187182c810181018202018101810181018b02187f189a82020b0381028101808203068082870b810181018202028202187f8202189a8101870d82020c81018202028202187f8202189a81018b0319011918a28202010181018101808101808187138202181a81018202038101810181018b041901bb185f82020201810181018081018081871819810181018202048101810181018b0519021a187282020e01810181018081028080808081018201000201",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "094333412821baae260dd73dbd3d6209b8146dedb46b4dd2b48bb75e0f627cfb",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "unreferenced_unit",
-          null,
-          1,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "broken",
-        "fold": [
-         "opaque",
-         "chain_break"
-        ],
-        "findings": [
-         [
-          "chain_break",
-          null,
-          2,
-          null,
-          127,
-          154
-         ],
-         [
-          "damaged_frame",
-          "payload_digest",
-          2,
-          null,
-          127,
-          154
-         ]
-        ]
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "missing_dependency",
-          "value",
-          3,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "opaque_term",
-          null,
-          4,
-          null,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 5,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "frame 2: broken, opaque; frame 3: missing_dependency value; frame 4: opaque_term"
-   }
+   "note": "frame 2: broken, opaque; frame 3: missing_dependency value; frame 4: opaque_term"
   }
  ]
 }

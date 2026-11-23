@@ -1,42 +1,34 @@
 {
- "entry": "idx-pack-members-type",
+ "name": "idx-pack-members-type",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "a true file whose index has one false pack_members entry for the digest asked, naming the ordinary position of a quads frame",
  "cases": [
   {
    "label": "",
    "input_file": "idx-pack-members-type.bin",
-   "length": 1279,
-   "sha256": "3a2923d9e24507306f6d964e8f3a87e378ecb9d3d274bca96494bfd957c12359",
    "query": {
     "segment_end": 1279,
     "target": [
      "unit",
-     "b'\\xa0i\\xb9\\xd6\\x92w\\xd2\\x10\"\\xaf\\x1f\\x8c`9u\\xfc\\x1b\\xb4O-\\xb8\\x14\\x95\\x9da\\xf6\\x86\\xd7\\x01{\\xde\\x17'"
+     "a069b9d69277d21022af1f8c603975fc1bb44f2db814959d61f686d7017bde17"
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "index_claims",
-    "scope": [
-     0,
-     333,
-     3
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831904ff82025820a069b9d69277d21022af1f8c603975fc1bb44f2db814959d61f686d7017bde17f4028202078202830019014d82020380",
    "ranges": [

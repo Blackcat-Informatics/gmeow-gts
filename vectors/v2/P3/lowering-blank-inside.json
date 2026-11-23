@@ -19,7 +19,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "sha256": "9173a8009e0cd9651798a86bfbbd138bd823d03c7b14edccf5e6cbcacdd4730b",
     "bytes": 359,
@@ -88,8 +87,7 @@
       1
      ]
     }
-   },
-   "differences": []
+   }
   }
  ]
 }

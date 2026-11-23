@@ -45,11 +45,9 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "base": 3372770
-   },
-   "differences": []
+   }
   }
  ]
 }

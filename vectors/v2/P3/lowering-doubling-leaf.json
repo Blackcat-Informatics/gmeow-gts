@@ -19,12 +19,10 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "leaf_input_bytes": 458,
     "leaf_sha256": "1bf4eea022288c3efcd3606fc6766640c6978a423e67214e5d154d0ea1c0d1f3"
-   },
-   "differences": []
+   }
   }
  ]
 }

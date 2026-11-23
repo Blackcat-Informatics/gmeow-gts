@@ -45,11 +45,9 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "charge": 268365825
-   },
-   "differences": []
+   }
   }
  ]
 }

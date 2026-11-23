@@ -7,11 +7,7 @@
   {
    "label": "",
    "public_key_file": "sign-composite-reproduce.public-key.bin",
-   "public_key_length": 1984,
-   "public_key_sha256": "b7fdbc764f72752241caacd09625e870ac3bb101d3e2610074e7dcb493fc13be",
    "value_file": "sign-composite-reproduce.value.bin",
-   "value_length": 3373,
-   "value_sha256": "97afda4ae2910164ffd601f787b9470f8a48d3d458ff28cc1e150623664db962",
    "signer": {
     "private_key": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
     "algorithm": 2,

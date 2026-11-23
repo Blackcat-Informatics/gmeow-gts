@@ -1,7 +1,7 @@
 {
  "name": "terms-prefix-splits-character",
  "status": "built and matches",
- "note": "\u00e9 is c3 a9 and \u00e8 is c3 a8: the common prefix of 10 bytes ends inside the second character",
+ "note": "é is c3 a9 and è is c3 a8: the common prefix of 10 bytes ends inside the second character",
  "cases": [
   {
    "label": "",
@@ -18,12 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   }
  ]
 }

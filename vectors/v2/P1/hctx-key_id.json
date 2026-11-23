@@ -7,7 +7,9 @@
   {
    "label": "",
    "input_file": "hctx-key_id.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,16 +22,13 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
-    "context": "key_id"
-   },
+   "note": "expected context \"key_id\"",
    "result": {
     "context": "key_id",
     "spelling": "gts2 key id",
     "message": "616263",
     "output": "9fa6b405ace0831f6a5f100ec4c2fae316b59ec0e0f19911d4f6618fddeddbbb"
-   },
-   "differences": []
+   }
   }
  ]
 }

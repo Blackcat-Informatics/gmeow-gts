@@ -19,7 +19,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "conversions": [
      {
@@ -32,8 +31,7 @@
       "proof": "845820ce4996bd2198213b0f9e667f9d5418b626b98be226aa09c1de27b1d1adec36f95820aa79983bc2e0ed6f35e27997d81ecf95c319927231a83496495e24c475e207c20100"
      }
     ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "identical",
@@ -51,7 +49,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "conversions": [
      {
@@ -64,8 +61,7 @@
       "proof": "84582067922e57b0e74a687c89f9a1c4d114c8381615a1668cd4bac71993d3258f5cd458203ee7775bd261dba8087bfa0292933509230624f4b53bf5ace4735de7d2d98b7f0100"
      }
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

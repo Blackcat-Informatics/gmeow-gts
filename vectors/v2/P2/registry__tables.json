@@ -18,7 +18,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "data_bytes": 28306,
     "compared": {
@@ -54,8 +53,7 @@
      "P2-30: the data places the opaque reason `missing_key` of registry version 2 in the order (P8)"
     ],
     "differences": 0
-   },
-   "differences": []
+   }
   }
  ]
 }

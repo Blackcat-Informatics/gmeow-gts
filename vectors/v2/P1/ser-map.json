@@ -7,7 +7,9 @@
   {
    "label": "",
    "input_file": "ser-map.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,15 +22,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
-    "malformed": "wrong_type"
-   },
+   "note": "expected malformed \"wrong_type\"",
    "result": {
     "position_result": {
      "malformed": "wrong_type"
     }
-   },
-   "differences": []
+   }
   }
  ]
 }

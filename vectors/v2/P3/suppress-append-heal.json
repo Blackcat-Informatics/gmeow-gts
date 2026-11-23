@@ -18,37 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "suppression_unmatched",
-      "term",
-      "2",
-      "0"
-     ],
-     [
-      "lineage_begins",
-      "None",
-      "None",
-      "1"
-     ],
-     [
-      "uncommitted_tail",
-      "None",
-      "1",
-      "1"
-     ],
-     [
-      "chain_break",
-      "None",
-      "3",
-      "1"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "after",
@@ -65,31 +35,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "suppression_unmatched",
-      "term",
-      "2",
-      "0"
-     ],
-     [
-      "lineage_begins",
-      "None",
-      "None",
-      "1"
-     ],
-     [
-      "healed_link",
-      "None",
-      "3",
-      "1"
-     ]
-    ]
-   },
-   "differences": []
+   }
   }
  ]
 }

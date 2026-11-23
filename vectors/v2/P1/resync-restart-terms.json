@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "resync-restart-terms.bin",
-   "length": 369,
-   "sha256": "bbfc6da22458852121f0dcfcd6bfe4b4f4300fd7a6dc474c8efa2daa74445603",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,89 +19,7 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d118a0850201f40100820258202cbeaa670e0dfe28cf61c1916f79327aaf4ae572596fcf0f4eb49daebaae6cd6820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190112185f82020201810181018081018082871181018101820201810181018202018716810181018202018101810181018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     },
-     {
-      "ordinal": 1,
-      "lineage_checked": false,
-      "head": "16aaeb3b9d03c4e9123fb4dcc56fb49a1230d3513645372ca26b3dbd8916a3e5",
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          1,
-          null,
-          null
-         ],
-         [
-          "forward_reference",
-          null,
-          1,
-          null,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {}
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d118a0850201f40100820258202cbeaa670e0dfe28cf61c1916f79327aaf4ae572596fcf0f4eb49daebaae6cd6820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b01190112185f82020201810181018081018082871181018101820201810181018202018716810181018202018101810181018187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400"
   }
  ]
 }

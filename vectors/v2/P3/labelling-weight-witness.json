@@ -57,11 +57,9 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "fold_weight": 3127936
-   },
-   "differences": []
+   }
   }
  ]
 }

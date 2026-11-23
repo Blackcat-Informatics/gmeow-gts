@@ -19,14 +19,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "sha256": "13a6f3411ddfdb15bf137614876c3052b29d73645e9ab65fbfd42287f0ede668",
     "bytes": 545,
     "refusal": null,
     "size": 3,
     "content_digest": "4630ed7d8c104e09305b6c9e69e672ab4162e70250024f2afd9518026c7a79ad",
-    "findings": [],
     "lines": 3,
     "records": 0,
     "nested_terms": 0,
@@ -63,8 +61,7 @@
     ],
     "Dnone": "4630ed7d8c104e09305b6c9e69e672ab4162e70250024f2afd9518026c7a79ad",
     "digest_without_6_2a": "4630ed7d8c104e09305b6c9e69e672ab4162e70250024f2afd9518026c7a79ad"
-   },
-   "differences": []
+   }
   }
  ]
 }

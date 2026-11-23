@@ -1,42 +1,34 @@
 {
- "entry": "idx-unit-digest",
+ "name": "idx-unit-digest",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "a chunk frame whose content names the digest d asked for and whose payload does not hash to it",
  "cases": [
   {
    "label": "",
    "input_file": "idx-unit-digest.bin",
-   "length": 1069,
-   "sha256": "3661204b50152a1f57f971f7e2d2d75a1c2d7657e4f76f1b2fdd706dce8ea9ed",
    "query": {
     "segment_end": 1069,
     "target": [
      "unit",
-     "b'2qK\\xf2\\x96i\\xfa \\xd5\\xfe\\xf4\\xf7\\xee\\xe8L3\\x10r\\x13\\xd1\\xb0\\x8b\\xcd\\xe0Y\\xad\\xd00\\xe6\\xf9\\xdc6'"
+     "32714bf29669fa20d5fef4f7eee84c33107213d1b08bcde059add030e6f9dc36"
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "payload",
-    "scope": [
-     0,
-     239,
-     2
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000038319042d8202582032714bf29669fa20d5fef4f7eee84c33107213d1b08bcde059add030e6f9dc36f4028202068202830018ef82020280",
    "ranges": [

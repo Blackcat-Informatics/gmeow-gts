@@ -7,29 +7,29 @@
   {
    "label": "fail-at-0",
    "input_file": "append-read-failed.fail-at-0.bin",
-   "length": 209,
-   "sha256": "6146525bedd7060db841eddce898aeaec56d8b26666762512eebd3a5bb39fd1b",
-   "expected": {
-    "outcome": "refused_read",
-    "outcome_code": 4,
+   "read": {
     "read_failure": {
      "offset": 0,
      "length": 11
     }
+   },
+   "append_outcome": {
+    "code": 4,
+    "outcome": "refused_read"
    }
   },
   {
    "label": "fail-after-header",
    "input_file": "append-read-failed.fail-after-header.bin",
-   "length": 209,
-   "sha256": "6146525bedd7060db841eddce898aeaec56d8b26666762512eebd3a5bb39fd1b",
-   "expected": {
-    "outcome": "refused_read",
-    "outcome_code": 4,
+   "read": {
     "read_failure": {
      "offset": 11,
      "length": 11
     }
+   },
+   "append_outcome": {
+    "code": 4,
+    "outcome": "refused_read"
    }
   }
  ]

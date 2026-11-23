@@ -18,7 +18,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "one_byte": [
      76745,
@@ -31,8 +30,7 @@
      69293,
      53962
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

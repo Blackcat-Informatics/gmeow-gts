@@ -18,19 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "malformed_value",
-      "wrong_length",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "literal_value_ref",
@@ -47,19 +35,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "malformed_value",
-      "wrong_length",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   }
  ]
 }

@@ -7,8 +7,6 @@
   {
    "label": "pack",
    "input_file": "canonical__check__two-differences.pack.bin",
-   "length": 2164,
-   "sha256": "df6c3cd72f7da297db84e21a56144b85f28c5139923944d3b4980a3ac20ae4f2",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -34,8 +32,6 @@
   {
    "label": "commit-and-index",
    "input_file": "canonical__check__two-differences.commit-and-index.bin",
-   "length": 2165,
-   "sha256": "819840a1985c3966c4d0ee543fa550df15ca7116333c19364262c85dc61f05ff",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -61,8 +57,6 @@
   {
    "label": "one-position",
    "input_file": "canonical__check__two-differences.one-position.bin",
-   "length": 2164,
-   "sha256": "c85b5cd5534395328907839b08d597e16c5e132ed986d2c87152c05c6d3c5daf",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

@@ -19,7 +19,6 @@
     "labelled_bytes_per_read": 1000,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "depth": 100000,
     "nested_terms": 99999,
@@ -28,8 +27,7 @@
     "ground_sha256": "7bb7dc0142cc53556a56304b99d1b1c2bd82435282f6956cde0b7f87ba60a643",
     "named_bytes": 900681,
     "ground_bytes": 900645
-   },
-   "differences": []
+   }
   }
  ]
 }

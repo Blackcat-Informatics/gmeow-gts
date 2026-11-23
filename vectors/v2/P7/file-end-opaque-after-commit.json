@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "file-end-opaque-after-commit.bin",
-   "length": 428,
-   "sha256": "b709c82f75f9e852387f890d78778084493c136a3bf1d90408c50af4bc6783d9",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,82 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901ac810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030303008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15838b010b1867820201018101810180810180808b021872185f820202018101810180810180808b0318d118d882020e0181018101818703820218360158208f117004795c66a9b187600d037d2e329f5759ca312c3dad107098de09d169020202f481028081871829820218368202820301820203810181018101838707820204810182020482021901a982020181018707820204810182020582021901aa82020181018707820204810182020682021901ab82020181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000303",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "4705c2fd02abba0c7736a540959b9be9ef5c5cfe7342a9d1e6b9346dd4b7b526",
-      "findings": [
-       [
-        "malformed_value",
-        "wrong_type",
-        4,
-        null,
-        425,
-        1
-       ],
-       [
-        "malformed_value",
-        "wrong_type",
-        5,
-        null,
-        426,
-        1
-       ],
-       [
-        "malformed_value",
-        "wrong_type",
-        6,
-        null,
-        427,
-        1
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": [
-         [
-          "signature_unverified",
-          "key_not_held",
-          3,
-          null,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "end after_commit, left_out 3"
-   }
+   "note": "end after_commit, left_out 3"
   }
  ]
 }

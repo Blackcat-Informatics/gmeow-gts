@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "stream-end-declared.bin",
-   "length": 249,
-   "sha256": "853e45021579d52fd8a991477205c17cea8652882171493a8e28a6dda103bdb9",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,58 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f482020582020582020581018101828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080818709810181018101820218d182021828810181018201000501",
-   "observed": {
-    "file_findings": [
-     [
-      "torn_tail",
-      null,
-      null,
-      null,
-      209,
-      40
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "no torn_tail at any point with end false; torn_tail with end true"
-   },
+   "note": "no torn_tail at any point with end false; torn_tail with end true",
    "stream_points": [
     {
      "at": 11,
@@ -383,8 +330,7 @@
       ]
      ]
     }
-   ],
-   "access": "forward"
+   ]
   }
  ]
 }

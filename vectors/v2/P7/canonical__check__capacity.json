@@ -7,8 +7,6 @@
   {
    "label": "",
    "input_file": "canonical__check__capacity.bin",
-   "length": 2164,
-   "sha256": "65647d941938aebc5d80d4877ab5e66fc4efd50c983bced1f29f0d4f1c912801",
    "capacity": {
     "stored_bytes_per_frame": 60,
     "decoded_bytes_per_frame": 60,

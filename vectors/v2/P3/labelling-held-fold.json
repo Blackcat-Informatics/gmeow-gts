@@ -45,12 +45,10 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "held_rows": 1,
     "labelled_lines_of_what_it_holds": 78
-   },
-   "differences": []
+   }
   }
  ]
 }

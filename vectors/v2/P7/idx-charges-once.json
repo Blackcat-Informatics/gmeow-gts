@@ -1,12 +1,12 @@
 {
- "entry": "idx-charges-once",
+ "name": "idx-charges-once",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "each range charged once; the payload of the parity frame that the walk passes neither read nor charged; stored_compressed besides; a unit read only as the item before",
  "cases": [
   {
    "label": "exact",
    "input_file": "idx-charges-once.exact.bin",
-   "length": 1051,
-   "sha256": "bd727d8b01b8d6f4fcf2826854f0078655422ece136c17d43cac67ac5f3fafb8",
    "query": {
     "segment_end": 1051,
     "target": [
@@ -15,28 +15,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    474,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     209,
-     2
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 474,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001901da1a040000001b00000020000000001b00000020000000001b0000002000000000038319041b82018101f40181018202830018d1820202818502810100f48101",
    "ranges": [
@@ -454,8 +446,6 @@
   {
    "label": "one-less",
    "input_file": "idx-charges-once.one-less.bin",
-   "length": 1051,
-   "sha256": "bd727d8b01b8d6f4fcf2826854f0078655422ece136c17d43cac67ac5f3fafb8",
    "query": {
     "segment_end": 1051,
     "target": [
@@ -464,28 +454,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    473,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "capacity",
-    "scope": [
-     0,
-     209,
-     2
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 473,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001901d91a040000001b00000020000000001b00000020000000001b0000002000000000038319041b82018101f40282020b8202830018d182020280",
    "ranges": [
@@ -899,8 +881,6 @@
   {
    "label": "compressed-R",
    "input_file": "idx-charges-once.compressed-R.bin",
-   "length": 1095,
-   "sha256": "683c55abf3b910e5d66c715b6273bbb7bbb153f75417b0f5c312d5231aad0a68",
    "query": {
     "segment_end": 1095,
     "target": [
@@ -909,28 +889,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    501,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "capacity",
-    "scope": [
-     0,
-     236,
-     2
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 501,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001901f51a040000001b00000020000000001b00000020000000001b0000002000000000038319044782018101f40282020b8202830018ec82020280",
    "ranges": [
@@ -1360,8 +1332,6 @@
   {
    "label": "compressed-R-plus-D",
    "input_file": "idx-charges-once.compressed-R-plus-D.bin",
-   "length": 1095,
-   "sha256": "683c55abf3b910e5d66c715b6273bbb7bbb153f75417b0f5c312d5231aad0a68",
    "query": {
     "segment_end": 1095,
     "target": [
@@ -1370,28 +1340,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    515,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     236,
-     2
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 515,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001902031a040000001b00000020000000001b00000020000000001b0000002000000000038319044782018101f40181018202830018ec820202818502810100f48101",
    "ranges": [
@@ -1821,8 +1783,6 @@
   {
    "label": "chunk-exact",
    "input_file": "idx-charges-once.chunk-exact.bin",
-   "length": 1425,
-   "sha256": "2b90b3b0dac4570098db3764bd89557964e7f813b29cd609614dc06f5d3b5ced",
    "query": {
     "segment_end": 1425,
     "target": [
@@ -1831,28 +1791,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    585,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     488,
-     4
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 585,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001902491a040000001b00000020000000001b00000020000000001b0000002000000000038319059182018101f4018101820283001901e8820204818503810100f48101",
    "ranges": [
@@ -2418,8 +2370,6 @@
   {
    "label": "chunk-one-less",
    "input_file": "idx-charges-once.chunk-one-less.bin",
-   "length": 1425,
-   "sha256": "2b90b3b0dac4570098db3764bd89557964e7f813b29cd609614dc06f5d3b5ced",
    "query": {
     "segment_end": 1425,
     "target": [
@@ -2428,28 +2378,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    584,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "capacity",
-    "scope": [
-     0,
-     488,
-     4
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 584,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001902481a040000001b00000020000000001b00000020000000001b0000002000000000038319059182018101f40282020b820283001901e882020480",
    "ranges": [

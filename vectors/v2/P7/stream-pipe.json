@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "stream-pipe.bin",
-   "length": 2164,
-   "sha256": "1fbe2ca2d44faed5392e04034000da9879d79b261b66aeb4a96d811d711eda7f",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,96 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001908748101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103080700810985f582020682020682020681018101898b010c18c282020d018101810180810180808b0218ce18b8820201018101810180810180808b03190186186d820202018101810180810180808b041901f3185f820204018101810180810180808b0519025218a7820206018101810180810180808b061902f9185b820207018101810180810180808b07190354187282020e018101810180810280808b081903c619014082020f018101810180810280808b0919050619034b82021001810181018081028080808081018201010200",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "a4cecb92d15d61641dc0053dd3bca43855896cdfa43dd71c29df44e5857b6eaa",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 5,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 6,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 7,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 8,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 9,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "the points delivered through the one-pass source equal those of the buffer"
-   },
+   "note": "the points delivered through the one-pass source equal those of the buffer",
    "stream_points": [
     {
      "at": 12,
@@ -4338,8 +4247,7 @@
       ]
      ]
     }
-   ],
-   "access": "forward"
+   ]
   }
  ]
 }

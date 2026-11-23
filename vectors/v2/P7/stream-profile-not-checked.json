@@ -7,13 +7,6 @@
   {
    "label": "",
    "input_file": "stream-profile-not-checked.bin",
-   "length": 1726,
-   "sha256": "b63f1ef75c67d23883eb453f6d64951923494fa8cae8f43c2f7806616825daf0",
-   "profiles": [
-    "dist",
-    "stream"
-   ],
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -26,89 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
    "read_result": "870101828201058203028a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001906be81018202582045e0b1398b1630b0751fc4a81de3054a9c75c1367d9c3390cec24c5b4704b2218202018202018202010103060500810785f582020682020682020681018101878b010d188c82020d018101810180810180808b02189918b5820201018101810180810180808b0319014e186d820202018101810180810180808b041901bb187d820206018101810180810180808b05190238187282020e018101810180810280808b061902aa19011082020f018101810180810280808b071903ba1902e5820210018101810180810280808187183081018202830401810181018101810181018081018201000200",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "d2cbfcf23d43e9a344b17688d356f9a39c8cee2b27dcc76a1ad56847bc6dd967",
-      "findings": [
-       [
-        "profile_not_checked",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 5,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 6,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 7,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "profile_not_checked, no profile_violation"
-   },
+   "note": "profile_not_checked, no profile_violation",
    "stream_points": [
     {
      "at": 13,
@@ -2892,8 +2804,7 @@
       ]
      ]
     }
-   ],
-   "access": "forward"
+   ]
   }
  ]
 }

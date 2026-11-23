@@ -8,7 +8,9 @@
    "label": "c2 41 01",
    "input_file": "frame-field-outside-grammar.c2 41 01.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001881810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187682020803810281018082030280828707820204810182020182020b82021876810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,126 +22,15 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 129,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "19829faa4fda938bdbedfee9893385fe55990c8e85f35d71b7ded1cc84fc1000",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 118,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 118,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "19829faa4fda938bdbedfee9893385fe55990c8e85f35d71b7ded1cc84fc1000",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 118
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   },
   {
    "label": "c3 41 01",
    "input_file": "frame-field-outside-grammar.c3 41 01.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001881810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187682020803810281018082030280828707820204810182020182020b82021876810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -151,126 +42,15 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 129,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "26de30390365b60d9cce71f883791d52abf42670ec06c0a6204f26376f447bcf",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 118,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 118,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "26de30390365b60d9cce71f883791d52abf42670ec06c0a6204f26376f447bcf",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 118
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   },
   {
    "label": "d9 01 02 80",
    "input_file": "frame-field-outside-grammar.d9 01 02 80.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001882810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187782020803810281018082030280828707820204810182020182020b82021877810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -282,126 +62,15 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 130,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "a027cf56efb3ec3135aa09da69fa675266c1d601c68864c4a34dc5ebf505a76f",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 119,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 119,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "a027cf56efb3ec3135aa09da69fa675266c1d601c68864c4a34dc5ebf505a76f",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 119
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   },
   {
    "label": "d9 d9 f7 00",
    "input_file": "frame-field-outside-grammar.d9 d9 f7 00.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001882810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187782020803810281018082030280828707820204810182020182020b82021877810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -413,126 +82,15 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 130,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "45b21494b1afa32b6de13cacef82684919e62493c874b57d7a806a7661aa9856",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 119,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 119,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "45b21494b1afa32b6de13cacef82684919e62493c874b57d7a806a7661aa9856",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 119
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   },
   {
    "label": "f9 3c 00",
    "input_file": "frame-field-outside-grammar.f9 3c 00.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001881810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187682020803810281018082030280828707820204810182020182020b82021876810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -544,126 +102,15 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 129,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "1fcd4561ad2d7b7df828c460d161d912f8ed1c9048448ee155a48cbb83c572fe",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 118,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 118,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "1fcd4561ad2d7b7df828c460d161d912f8ed1c9048448ee155a48cbb83c572fe",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 118
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   },
   {
    "label": "fa 3f c0 00 00",
    "input_file": "frame-field-outside-grammar.fa 3f c0 00 00.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001883810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187882020803810281018082030280828707820204810182020182020b82021878810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -675,126 +122,15 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 131,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "3902f48a0dac5a83371f57ae9c8a02d7c2e39865751b0d94bcc3ce3d793b2130",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 120,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 120,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "3902f48a0dac5a83371f57ae9c8a02d7c2e39865751b0d94bcc3ce3d793b2130",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 120
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   },
   {
    "label": "f6",
    "input_file": "frame-field-outside-grammar.f6.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000187f810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187482020803810281018082030280828707820204810182020182020b82021874810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -806,126 +142,15 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 127,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "17dbd9019e12434cece587dc3be66ce3b3e7ec0ae51e798b824590c9dba1bb88",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "17dbd9019e12434cece587dc3be66ce3b3e7ec0ae51e798b824590c9dba1bb88",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 116
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   },
   {
    "label": "f7",
    "input_file": "frame-field-outside-grammar.f7.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000187f810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187482020803810281018082030280828707820204810182020182020b82021874810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -937,126 +162,15 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 127,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "cf2b1429d4c41e2814a7c957765cc93be2e1aa2273e46ad038926fbacf2235a4",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "cf2b1429d4c41e2814a7c957765cc93be2e1aa2273e46ad038926fbacf2235a4",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 116
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   },
   {
    "label": "f0",
    "input_file": "frame-field-outside-grammar.f0.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000187f810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187482020803810281018082030280828707820204810182020182020b82021874810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -1068,126 +182,15 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 127,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "06bae0fca61f2909655d3efa9a037e1e34ac2438ec0172a6a2c7ad56390649f5",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "06bae0fca61f2909655d3efa9a037e1e34ac2438ec0172a6a2c7ad56390649f5",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 116
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   },
   {
    "label": "a0",
    "input_file": "frame-field-outside-grammar.a0.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000187f810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187482020803810281018082030280828707820204810182020182020b82021874810187118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -1199,120 +202,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "link": "broken",
-        "payload": "damaged",
-        "fold": "opaque(malformed)",
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          {}
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 127,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "damaged",
-       "head": "34d442d3c7d6d4964291385560b9a53fbe925f23c1677e67e59f2f43f20973e9",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 116,
-         "frame_type": 8,
-         "link": "broken",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "34d442d3c7d6d4964291385560b9a53fbe925f23c1677e67e59f2f43f20973e9",
-         "stored": null,
-         "payload": {
-          "state": "damaged"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "malformed"
-         },
-         "findings": [
-          {
-           "code": "malformed_value",
-           "reason": "wrong_type",
-           "position": 1,
-           "offset": 11,
-           "length": 116
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   }
  ]
 }

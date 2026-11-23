@@ -7,9 +7,6 @@
   {
    "label": "torn-first-item",
    "input_file": "stream-before-first-item.torn-first-item.bin",
-   "length": 6,
-   "sha256": "28a84195d52359d312349d090bba3bd97238109db788e5903650f004b7eae17a",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,34 +19,14 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000028101828080870280818709810181018101820200820206810181018201000501",
-   "observed": {
-    "file_findings": [
-     [
-      "torn_tail",
-      null,
-      null,
-      null,
-      0,
-      6
-     ]
-    ],
-    "segments": []
-   },
-   "expected": {
-    "expected": "end false: no point, so no segment and no finding (result for b = 0); end true: torn_tail alone"
-   },
+   "note": "end false: no point, so no segment and no finding (result for b = 0); end true: torn_tail alone",
    "empty_result_sha256": "215b6e6d99c4bd39fe6d992c78ac415ed95e5dc39fb459ba6530c7bf0ebf03e6"
   },
   {
    "label": "first-generation",
    "input_file": "stream-before-first-item.first-generation.bin",
-   "length": 72,
-   "sha256": "9878f99c3f7fd3691dc54f36d9d49a40239f7e750b3798d487f697d15c38560e",
-   "expected": {
-    "expected": "empty listing at every point; end false the result for b = 0; end true the result of whole but for capacity.access"
-   },
+   "note": "empty listing at every point; end false the result for b = 0; end true the result of whole but for capacity.access",
    "stream_points": [
     {
      "at": 72,

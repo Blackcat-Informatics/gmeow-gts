@@ -8,7 +8,9 @@
    "label": "",
    "input_file": "zstd-ok.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901a7810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030100008085f4820205820205820205810182025820833cbe877b688c548858db5d17731ae80692ddfbcf34affc05e9b67bff4850eb818b010b19019c820209018101820201808101808187118101810182020181018101820201808082025820833cbe877b688c548858db5d17731ae80692ddfbcf34affc05e9b67bff4850eb8201000400",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,105 +22,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "findings": [],
-        "payload": "verified",
-        "stored": "matches"
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 423,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "intact",
-       "head": "0951251411ca30c875452bdcdfff3f8e2d688e6aba77a01b2c72de931978cc90",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "833cbe877b688c548858db5d17731ae80692ddfbcf34affc05e9b67bff4850eb",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 412,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 412,
-         "frame_type": 9,
-         "link": "linked",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "0951251411ca30c875452bdcdfff3f8e2d688e6aba77a01b2c72de931978cc90",
-         "stored": "matches",
-         "payload": {
-          "state": "verified"
-         },
-         "fold": {
-          "state": "folded"
-         },
-         "findings": [
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "833cbe877b688c548858db5d17731ae80692ddfbcf34affc05e9b67bff4850eb",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   }
  ]
 }

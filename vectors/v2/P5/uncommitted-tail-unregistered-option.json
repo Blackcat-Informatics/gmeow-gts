@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "uncommitted-tail-unregistered-option.bin",
-   "length": 658,
-   "sha256": "371bd418aae4d3f2831c40959098882371218217ea6280e54c462b74fc110702",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,75 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702829200001901f4810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186782020101810181018081018081871181018101820201810181018202028b02187219018282020903810181018082030280818707820204810182020282021872820219018281018092011901f4189e850201f40300820258200a269f029b8d81f4e2880deb40616c7e5e220d557fca586654094ed51068d5ab820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e808187182b82021837810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "822ee16e28bd16ebbf4e734ba4dc4f150a5892a8d8617d39eecde3b161ccc280",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "broken",
-        "fold": [
-         "opaque",
-         "malformed"
-        ],
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_type",
-          2,
-          null,
-          114,
-          386
-         ]
-        ]
-       }
-      ]
-     },
-     {
-      "ordinal": 1,
-      "lineage_checked": false,
-      "head": "0a269f029b8d81f4e2880deb40616c7e5e220d557fca586654094ed51068d5ab",
-      "findings": [
-       [
-        "lineage_mismatch",
-        "head",
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": []
-     }
-    ]
-   },
-   "expected": {
-    "expected": "frame 2: malformed_value wrong_type alone; uncommitted_tail count 2"
-   }
+   "note": "frame 2: malformed_value wrong_type alone; uncommitted_tail count 2"
   }
  ]
 }

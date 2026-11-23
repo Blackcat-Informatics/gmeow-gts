@@ -1,42 +1,34 @@
 {
- "entry": "idx-query",
+ "name": "idx-query",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "a target digest of 20 bytes in a segment whose digest has 32",
  "cases": [
   {
    "label": "",
    "input_file": "idx-query.bin",
-   "length": 1071,
-   "sha256": "f2a76e5beb9abe1f1ee51985faf7458f65553736b64753871d9d716e5e2126bc",
    "query": {
     "segment_end": 1071,
     "target": [
      "unit",
-     "b'x\\xd9L\\xd8\\xeb\\x10\\xd1*\\xe1\\x85@\\xda\\xa3\\xaao\\x83\\xf2\\xc0\\x143'"
+     "78d94cd8eb10d12ae18540daa3aa6f83f2c01433"
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "query",
-    "scope": [
-     0,
-     241,
-     null
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000038319042f82025478d94cd8eb10d12ae18540daa3aa6f83f2c01433f40282020c8202830018f1810180",
    "ranges": [

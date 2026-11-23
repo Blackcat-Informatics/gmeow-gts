@@ -19,12 +19,10 @@
     "labelled_bytes_per_read": 18446744073709551615,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "count": 18446744073709551615,
     "bytes": 247
-   },
-   "differences": []
+   }
   }
  ]
 }

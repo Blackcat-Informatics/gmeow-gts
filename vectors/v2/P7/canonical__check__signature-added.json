@@ -7,8 +7,6 @@
   {
    "label": "",
    "input_file": "canonical__check__signature-added.bin",
-   "length": 1861,
-   "sha256": "43f75cbbbaba1d212d31bbbfdd39839dd0dc471b2735749f457e67c394958823",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

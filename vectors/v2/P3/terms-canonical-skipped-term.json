@@ -18,19 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "forward_reference",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "skipped-between-descending",
@@ -47,25 +35,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "declared_order_violated",
-      "None",
-      "1",
-      "0"
-     ],
-     [
-      "forward_reference",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "skipped-at-the-end-of-the-earlier-frame",
@@ -82,19 +52,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "forward_reference",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "skipped-at-the-end-descending-junction",
@@ -111,25 +69,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "forward_reference",
-      "None",
-      "1",
-      "0"
-     ],
-     [
-      "declared_order_violated",
-      "None",
-      "2",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "datatype-names-a-non-iri",
@@ -146,19 +86,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "position_constraint",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   }
  ]
 }

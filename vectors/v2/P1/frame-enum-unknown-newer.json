@@ -8,7 +8,9 @@
    "label": "",
    "input_file": "frame-enum-unknown-newer.bin",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018618101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b18568202010181018101808203048082870681018202820201820201810181018101871181018101820201810181018202018187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,136 +22,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "findings": [
-       [
-        "unsupported_registry_version",
-        null,
-        {}
-       ]
-      ],
-      "frames": [
-       {
-        "link": "linked",
-        "findings": [
-         [
-          "unsupported_critical",
-          null,
-          {
-           "subject": [
-            2,
-            1
-           ]
-          }
-         ]
-        ],
-        "fold": "opaque(unsupported_critical)"
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 67108864,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 97,
-       "header_outcome": "readable",
-       "header_identifier": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
-       "registry_version": 2,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "intact",
-       "head": "0133ca656bb6568d04075b6b12bbd953b7f5cf29bb8cdcca73fda1b4a58d1bb8",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 86,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 86,
-         "frame_type": 1,
-         "link": "linked",
-         "predecessor": "3cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735",
-         "effective_identifier": "0133ca656bb6568d04075b6b12bbd953b7f5cf29bb8cdcca73fda1b4a58d1bb8",
-         "stored": null,
-         "payload": {
-          "state": "verified"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "unsupported_critical"
-         },
-         "findings": [
-          {
-           "code": "unsupported_critical",
-           "subject": [
-            2,
-            1
-           ],
-           "position": 1
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": [
-        {
-         "code": "unsupported_registry_version"
-        }
-       ]
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   }
  ]
 }

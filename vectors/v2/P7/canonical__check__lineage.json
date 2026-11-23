@@ -7,8 +7,6 @@
   {
    "label": "",
    "input_file": "canonical__check__lineage.bin",
-   "length": 3504,
-   "sha256": "5afb99a5a2c5cd0344cfe42e88165629c5b234c4c0f8a7343c5095b2708d551e",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

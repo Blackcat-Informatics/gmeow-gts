@@ -19,7 +19,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "reads": 5,
     "control_profile": [
@@ -28,8 +27,7 @@
       1
      ]
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

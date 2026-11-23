@@ -1,42 +1,34 @@
 {
- "entry": "idx-chunk-empty",
+ "name": "idx-chunk-empty",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "a chunk frame whose decoded_length is 0, whose payload is empty and whose unit_digest is the digest of the empty string",
  "cases": [
   {
    "label": "",
    "input_file": "idx-chunk-empty.bin",
-   "length": 1068,
-   "sha256": "b9ffb19a4b4316bdc7b3cda7b89a1d8578849354035072f32901c5ab9a112ac1",
    "query": {
     "segment_end": 1068,
     "target": [
      "unit",
-     "b'\\xe0\\xfd\\x1b\\xfe\\xd8\\xd0\\xeb\\xdcQ\\xd5\\xddEf\\xa4\\x96\\x97\\x18\\x9d\\x80\\xa5th\\x11\\x8c\\x04\\x88\\xff\\xdc\\x1f4\\xf4\\xbe'"
+     "e0fd1bfed8d0ebdc51d5dd4566a49697189d80a57468118c0488ffdc1f34f4be"
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "payload",
-    "scope": [
-     0,
-     238,
-     2
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000038319042c82025820e0fd1bfed8d0ebdc51d5dd4566a49697189d80a57468118c0488ffdc1f34f4bef4028202068202830018ee82020280",
    "ranges": [

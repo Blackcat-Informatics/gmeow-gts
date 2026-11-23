@@ -19,7 +19,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "delivered": {
      "lines": [
@@ -146,8 +145,7 @@
      ]
     },
     "file_findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "file-order-b",
@@ -165,7 +163,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "delivered": {
      "lines": [
@@ -292,8 +289,7 @@
      ]
     },
     "file_findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "canonical-file",
@@ -311,7 +307,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "delivered": {
      "lines": [
@@ -438,8 +433,7 @@
      ]
     },
     "file_findings": []
-   },
-   "differences": []
+   }
   }
  ]
 }

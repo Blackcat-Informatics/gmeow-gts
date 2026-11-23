@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "append-resync-length-only.bin",
-   "length": 76,
-   "sha256": "20fdc012e07ceedabaee23e9079245eeb68ce2633011ec562a1be12d6834c9e0",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,57 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702829200000c8101810181018101810103030000008085f48202058202058202058101810180818707820207810182020082020082020b810192010c1840850202f4010082025820d53f48e592a0a400790de91ef5ff9cc19f66d828a6d1d93b31c742c05c88acc9820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e808187182a81018101810181018101810181870881018101810182020b820201810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "observed": {
-    "file_findings": [
-     [
-      "undelimitable_input",
-      null,
-      null,
-      null,
-      11,
-      1
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": null,
-      "findings": [
-       [
-        "malformed_value",
-        "unregistered_value",
-        0,
-        null,
-        0,
-        11
-       ]
-      ],
-      "frames": []
-     },
-     {
-      "ordinal": 1,
-      "lineage_checked": false,
-      "head": "d53f48e592a0a400790de91ef5ff9cc19f66d828a6d1d93b31c742c05c88acc9",
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": []
-     }
-    ]
-   },
-   "expected": {
-    "expected": "the item of a writer given only the length equals the item of the writer that read the file"
-   }
+   "note": "the item of a writer given only the length equals the item of the writer that read the file"
   }
  ]
 }

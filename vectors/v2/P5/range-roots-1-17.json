@@ -25,7 +25,7 @@
     "978fc50b77c38817267646c6d16f9ec637099c8a00848be362c965d7bd39922b",
     "92803641c45446ae6a99a5e2bab1330ff03ea4da640e856e04bb9f15e7059297"
    ],
-   "identifier_rule": "h0 is the 32 bytes 00 to 1f; Ik, for each k that an entry of P5 names (1 to 16, 30, 40, 41 and 42), is the unit digest H_ctx(unit, the ASCII text I followed by the decimal k)",
+   "note": "h0 is the 32 bytes 00 to 1f; Ik, for each k that an entry of P5 names (1 to 16, 30, 40, 41 and 42), is the unit digest H_ctx(unit, the ASCII text I followed by the decimal k)",
    "result": {
     "roots": {
      "1": "47a9f9661f89295c5291740d410f801c99a9efd19c695f2a86f561907b62d10f",

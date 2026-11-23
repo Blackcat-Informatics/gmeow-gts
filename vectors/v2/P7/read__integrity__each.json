@@ -7,8 +7,6 @@
   {
    "label": "intact",
    "input_file": "read__integrity__each.intact.bin",
-   "length": 243,
-   "sha256": "f6c2639ce484ac632bcc17190be059f7ba5fa06b4806564b9d6a1de3cbc19041",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -35,8 +33,6 @@
   {
    "label": "intact-unchecked",
    "input_file": "read__integrity__each.intact-unchecked.bin",
-   "length": 328,
-   "sha256": "160be3b52bd473783e5ff114cc4a7da3167967d9f1a4c57086c4d8371b65e738",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 100,
@@ -63,8 +59,6 @@
   {
    "label": "damaged-payload",
    "input_file": "read__integrity__each.damaged-payload.bin",
-   "length": 243,
-   "sha256": "ee7e2e954f84bce526b7ead807f14372f447f0e113a4e23220419b98fa0aa889",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -91,8 +85,6 @@
   {
    "label": "damaged-opaque-item",
    "input_file": "read__integrity__each.damaged-opaque-item.bin",
-   "length": 12,
-   "sha256": "92b6a0260ef87a33a3f4d15a75a4240ab74e425d4c189c962cb69b0085221a11",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -119,8 +111,6 @@
   {
    "label": "damaged-unreadable-header",
    "input_file": "read__integrity__each.damaged-unreadable-header.bin",
-   "length": 9,
-   "sha256": "c0dfe2e90d6c1cf2b37f5631dc9cc072669af99ffa6896f1f7adfcdbd49d5abb",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -147,8 +137,6 @@
   {
    "label": "not-checked",
    "input_file": "read__integrity__each.not-checked.bin",
-   "length": 11,
-   "sha256": "798f141a8c222fae2ae5a169ed80071ed9213fe4078e825423a79081e0b5c866",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -175,8 +163,6 @@
   {
    "label": "damaged-region",
    "input_file": "read__integrity__each.damaged-region.bin",
-   "length": 45357,
-   "sha256": "e121144c2cc14856646cd584e94ea8133c20c509a495293ceab6254e29921f72",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

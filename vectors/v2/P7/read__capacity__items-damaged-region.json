@@ -45,14 +45,12 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "items": 4,
     "items_per_read_no_finding": 4,
     "items_per_read_item_count": 3,
     "count": 4
-   },
-   "differences": []
+   }
   }
  ]
 }

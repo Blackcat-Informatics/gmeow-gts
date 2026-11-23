@@ -7,8 +7,6 @@
   {
    "label": "",
    "input_file": "read__index__earlier.bin",
-   "length": 670,
-   "sha256": "9da050a6813d9cf4103b0242ffce4cffce0b55a4b830e1ff84cd4bf20c3cc4d3",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

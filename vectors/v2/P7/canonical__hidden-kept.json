@@ -7,8 +7,6 @@
   {
    "label": "",
    "input_file": "canonical__hidden-kept.bin",
-   "length": 420,
-   "sha256": "fd0089d4a149d702fe1b4915642293e05cb8f8eb0392beb6a14d3625c3496adb",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

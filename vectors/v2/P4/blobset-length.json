@@ -18,25 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "conflicting_declaration",
-      "None",
-      "1",
-      "0"
-     ],
-     [
-      "conflicting_declaration",
-      "None",
-      "2",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "order-1",
@@ -53,25 +35,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "conflicting_declaration",
-      "None",
-      "1",
-      "0"
-     ],
-     [
-      "conflicting_declaration",
-      "None",
-      "3",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "order-2",
@@ -88,25 +52,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "conflicting_declaration",
-      "None",
-      "1",
-      "0"
-     ],
-     [
-      "conflicting_declaration",
-      "None",
-      "2",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "order-3",
@@ -123,25 +69,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "conflicting_declaration",
-      "None",
-      "1",
-      "0"
-     ],
-     [
-      "conflicting_declaration",
-      "None",
-      "3",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "order-4",
@@ -158,25 +86,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "conflicting_declaration",
-      "None",
-      "2",
-      "0"
-     ],
-     [
-      "conflicting_declaration",
-      "None",
-      "3",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "order-5",
@@ -193,25 +103,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "conflicting_declaration",
-      "None",
-      "2",
-      "0"
-     ],
-     [
-      "conflicting_declaration",
-      "None",
-      "3",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   }
  ]
 }

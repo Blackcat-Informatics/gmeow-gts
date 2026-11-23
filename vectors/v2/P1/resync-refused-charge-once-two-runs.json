@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "resync-refused-charge-once-two-runs.bin",
-   "length": 964,
-   "sha256": "9f754b98d193685ab94cf45aa143a73f2d1f3f6b6a0cfcf80185d9877bf632f0",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,68 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001902581a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902cc810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b1902c182020903810181018082030280828707820205810182020182020b82021902c181018711810181018202018101810182020181871482021856810182020182021902bc8202191000820219123a81870981018101810182021902cc820218f8810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000502",
-   "observed": {
-    "file_findings": [
-     [
-      "torn_tail",
-      null,
-      null,
-      null,
-      716,
-      248
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "a208a3bfcbd506a7c19adaf601b6d54f185bbbbcb0402015286a1c8129009777",
-      "findings": [
-       [
-        "exceeds_capacity",
-        "total_decoded",
-        1,
-        4666,
-        700,
-        4096
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "broken",
-        "fold": [
-         "opaque",
-         "malformed"
-        ],
-        "findings": [
-         [
-          "malformed_value",
-          "wrong_length",
-          1,
-          null,
-          11,
-          705
-         ],
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          1,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "segment 0: one exceeds_capacity total_decoded, position 1 offset 700 length 4096 count 4666; no frame holds it; torn_tail offset 716 length 248"
-   }
+   "note": "segment 0: one exceeds_capacity total_decoded, position 1 offset 700 length 4096 count 4666; no frame holds it; torn_tail offset 716 length 248"
   }
  ]
 }

@@ -1,12 +1,12 @@
 {
- "entry": "idx-read-order",
+ "name": "idx-read-order",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "a frame of the target whose head is of another type than type_runs names, after the opaque item",
  "cases": [
   {
    "label": "",
    "input_file": "idx-read-order.bin",
-   "length": 1373,
-   "sha256": "2b69672f67baf5eeaf6ed94248d1f152663564cca669847b6c676df6472452d8",
    "query": {
     "segment_end": 1373,
     "target": [
@@ -15,28 +15,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "identifier",
-    "scope": [
-     0,
-     456,
-     4
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000038319055d82018101f402820205820283001901c882020480",
    "ranges": [

@@ -7,8 +7,6 @@
   {
    "label": "table-altered",
    "input_file": "canonical__check__parity-state.table-altered.bin",
-   "length": 1725,
-   "sha256": "3d09ebdd476617fc3e0a339b43059a24aec8ba3f8ccb97b7203b123a59f30a0d",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -34,8 +32,6 @@
   {
    "label": "frame-removed",
    "input_file": "canonical__check__parity-state.frame-removed.bin",
-   "length": 984,
-   "sha256": "444960a921f260500127ed36cb08c3cdda22600a9df684fb3c66629e1201577d",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

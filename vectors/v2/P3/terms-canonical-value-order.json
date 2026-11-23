@@ -18,12 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": []
-   },
-   "differences": []
+   }
   },
   {
    "label": "swap-0",
@@ -40,19 +35,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "declared_order_violated",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "swap-1",
@@ -69,19 +52,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "declared_order_violated",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "swap-2",
@@ -98,19 +69,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "declared_order_violated",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "swap-3",
@@ -127,19 +86,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "declared_order_violated",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "swap-4",
@@ -156,19 +103,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "declared_order_violated",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "swap-5",
@@ -185,19 +120,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "declared_order_violated",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "swap-6",
@@ -214,19 +137,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "declared_order_violated",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "swap-7",
@@ -243,19 +154,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "declared_order_violated",
-      "None",
-      "1",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   }
  ]
 }

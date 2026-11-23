@@ -7,8 +7,6 @@
   {
    "label": "encoder-held",
    "input_file": "canonical__check__verified-and-no-encoder.bin",
-   "length": 1725,
-   "sha256": "38f307b7302c8e88e43690bcd6f894802f26c6e6f3e092bbcb9a64e9dffbcb37",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -34,8 +32,6 @@
   {
    "label": "encoder-not-held",
    "input_file": "canonical__check__verified-and-no-encoder.bin",
-   "length": 1725,
-   "sha256": "38f307b7302c8e88e43690bcd6f894802f26c6e6f3e092bbcb9a64e9dffbcb37",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

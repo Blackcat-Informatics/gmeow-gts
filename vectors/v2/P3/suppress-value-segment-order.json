@@ -7,211 +7,21 @@
   {
    "label": "value-segment-first",
    "input_file": "suppress-value-segment-order.value-segment-first.bin",
-   "length": 644,
-   "sha256": "f841562f0d0125c768faf9a2b633fb8105895f84b26daeca493429d19d88b5a7",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000190119810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b187482020801810181018081018081871181018101820201810181018202028b02187f189a82020b01810181018081018182810181018080920119011919016b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f482020582020582020581018101838b0119012418a282020101810181018081018081871181018101820201810181018202038b021901c6185f820202018101810180810180808b03190225185f820207018101810180810180808187182a8101810181018101810181018082025820248591c28877c4f23f0f96d0ca92e41142e456683a0691624ed2ec3deb336fb28201010400",
-   "expected": {
+   "result": {
     "term": "readable",
     "line": "hidden"
-   },
-   "observed": {
-    "segments": [
-     {
-      "ordinal": 0,
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "ftype": 8,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "ftype": 11,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [
-         [
-          null,
-          [
-           "verified"
-          ]
-         ]
-        ],
-        "findings": []
-       }
-      ]
-     },
-     {
-      "ordinal": 1,
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "ftype": 1,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "ftype": 2,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "ftype": 7,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [],
-        "findings": []
-       }
-      ]
-     }
-    ],
-    "file_findings": [],
-    "content_digest": "248591c28877c4f23f0f96d0ca92e41142e456683a0691624ed2ec3deb336fb2"
    }
   },
   {
    "label": "value-segment-second",
    "input_file": "suppress-value-segment-order.value-segment-second.bin",
-   "length": 644,
-   "sha256": "4892e536821a467324b82ffafbfbfa64d512e4ed9274adf5da324f732d4ef76b",
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000019016b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f482020582020582020581018101838b010b18a2820201018101810180810180828711810181018202018101810182020387138202181a81018202018101810181018b0218ad185f82020201810181018081018081871819810181018202028101810181018b0319010c185f820207018101810180810180818718198101810182020381018101810180920119016b190119810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b01190176187482020801810181018081018081871181018101820201810181018202028b021901ea189a82020b0181018101808101818281018101808187182a8101810181018101810181018081018201010400",
-   "expected": {
+   "result": {
     "term": "unreadable",
     "missing_dependency": "value",
     "row_and_entry": "held",
     "hidden": "nothing"
-   },
-   "observed": {
-    "segments": [
-     {
-      "ordinal": 0,
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "ftype": 1,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null
-         ],
-         [
-          "missing_dependency",
-          "value"
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "ftype": 2,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [],
-        "findings": [
-         [
-          "opaque_term",
-          null
-         ]
-        ]
-       },
-       {
-        "position": 3,
-        "ftype": 7,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [],
-        "findings": [
-         [
-          "opaque_term",
-          null
-         ]
-        ]
-       }
-      ]
-     },
-     {
-      "ordinal": 1,
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "ftype": 8,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "ftype": 11,
-        "fold": [
-         "folded"
-        ],
-        "rebuilds": [
-         [
-          null,
-          [
-           "verified"
-          ]
-         ]
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ],
-    "file_findings": [],
-    "content_digest": null
    }
   }
  ]

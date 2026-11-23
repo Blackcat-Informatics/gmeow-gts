@@ -19,7 +19,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "span_0_first": 0,
     "span_1_first": 4194304,
@@ -27,8 +26,7 @@
      2,
      4
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

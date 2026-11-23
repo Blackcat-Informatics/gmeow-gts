@@ -21,10 +21,7 @@
    },
    "read": {
     "registry_version": 2
-   },
-   "expected": null,
-   "result": {},
-   "differences": []
+   }
   }
  ]
 }

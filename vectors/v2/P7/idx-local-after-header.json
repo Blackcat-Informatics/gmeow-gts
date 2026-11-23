@@ -1,42 +1,34 @@
 {
- "entry": "idx-local-after-header",
+ "name": "idx-local-after-header",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "the first frame of a segment: verified with h0",
  "cases": [
   {
    "label": "",
    "input_file": "idx-local-after-header.bin",
-   "length": 574,
-   "sha256": "fc000d25e789e9fbe67b5d509d6dd6cf0acfacb715ba02319e353dd80ef4d3b9",
    "query": {
     "segment_end": 574,
     "target": [
      "unit",
-     "b'N\\x96V\\x90\\xc2\\xdb\\x98\\xff\\x9e\\x14Mbv\\x0e\\xfd]\\x13Dtd\\n{\\xd9&\\xf1\\x0fR\\x86G\\x0b\\xa4\\xfa'"
+     "4e965690c2db98ff9e144d62760efd5d134474640a7bd926f10f5286470ba4fa"
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     338,
-     3
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000038319023e820258204e965690c2db98ff9e144d62760efd5d134474640a7bd926f10f5286470ba4faf401810182028300190152820203818501810100f48101",
    "ranges": [

@@ -7,8 +7,6 @@
   {
    "label": "",
    "input_file": "canonical__compaction__state-referent.bin",
-   "length": 468,
-   "sha256": "d5f65455835ea3edb23f4b8260f6dfec28ca02abab45541276d0d05b074fa58b",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

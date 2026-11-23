@@ -18,7 +18,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "conversions": [
      {
@@ -31,8 +30,7 @@
       "proof": "8458209a5a74adc27a923cc2ed14991e6d1c5e2469b11ebd7b9b82d1653afb3946f7bf5820b701657469380196311ab6374c69d8579f09ecc417f8f800eeac64455eda6c8d0100"
      }
     ]
-   },
-   "differences": []
+   }
   }
  ]
 }

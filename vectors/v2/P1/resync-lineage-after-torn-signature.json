@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "resync-lineage-after-torn-signature.bin",
-   "length": 502,
-   "sha256": "90ce71cef1037fb018dea109e7b6d3754076b1ac530d4ac79c746b23aa5d3535",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,83 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000018cb810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030101008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b18d882020e01810181018187038202183601582075a9a6938575614777069035ee459793419347e2c46214f2b1f478a92c0dcd0c0000f48102808187182982021836820282030182020181018101810180920118cb19012b850202f4010082025820f9d3b9b104476bf7a8c1d0f7b2f70c5cebf3518e3d913ab3803c64ab59816954820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b01190130186782020101810181018081018081871181018101820201810181018202028b02190197185f820202018101810180810180808187182b82021837810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "2cc2681cf869201d8812b31323d1f724afbb9f389aa1c5f53c9266e65134b372",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": [
-         [
-          "signature_unverified",
-          "key_not_held",
-          1,
-          null,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     },
-     {
-      "ordinal": 1,
-      "lineage_checked": false,
-      "head": "3dfc6a0c78a26a8d294dcbd540060bc9978f9c0fefc6a62d6387c85a78207132",
-      "findings": [
-       [
-        "lineage_mismatch",
-        "head",
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "R found and accepted"
-   }
+   "note": "R found and accepted"
   }
  ]
 }

@@ -26,7 +26,7 @@
    "result": {
     "replaced-frame": "proof_failed/consistency_diverged"
    },
-   "outcome": "8718268202183281018101810181018101"
+   "verify": "8718268202183281018101810181018101"
   },
   {
    "label": "earlier-segment-grown",
@@ -50,7 +50,7 @@
    "result": {
     "earlier-segment-grown": "proof_failed/consistency_diverged"
    },
-   "outcome": "8718268202183281018101810181018101"
+   "verify": "8718268202183281018101810181018101"
   },
   {
    "label": "other-head",
@@ -74,7 +74,7 @@
    "result": {
     "other-head": "proof_malformed/count"
    },
-   "outcome": "8718258202182c81018101810181018101"
+   "verify": "8718258202182c81018101810181018101"
   },
   {
    "label": "ordinals-from-1",
@@ -98,7 +98,7 @@
    "result": {
     "ordinals-from-1": "proof_malformed/order"
    },
-   "outcome": "8718258202182e81018101810181018101"
+   "verify": "8718258202182e81018101810181018101"
   },
   {
    "label": "one-entry-too-few",
@@ -122,7 +122,7 @@
    "result": {
     "one-entry-too-few": "proof_malformed/length"
    },
-   "outcome": "8718258202182d81018101810181018101"
+   "verify": "8718258202182d81018101810181018101"
   },
   {
    "label": "present-where-none-due",
@@ -146,7 +146,7 @@
    "result": {
     "present-where-none-due": "proof_malformed/count"
    },
-   "outcome": "8718258202182c81018101810181018101"
+   "verify": "8718258202182c81018101810181018101"
   }
  ]
 }

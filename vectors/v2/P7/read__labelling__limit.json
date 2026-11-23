@@ -7,8 +7,6 @@
   {
    "label": "paley13-limit-zero",
    "input_file": "read__labelling__limit.paley13-limit-zero.bin",
-   "length": 538,
-   "sha256": "965eb21e35d9584f0cf60a8acdd0cb997e32fee32bfa6d569c6f00126d51e9fc",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -35,8 +33,6 @@
   {
    "label": "paley13-limit-large",
    "input_file": "read__labelling__limit.paley13-limit-large.bin",
-   "length": 538,
-   "sha256": "965eb21e35d9584f0cf60a8acdd0cb997e32fee32bfa6d569c6f00126d51e9fc",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -63,8 +59,6 @@
   {
    "label": "cube-limit-zero",
    "input_file": "read__labelling__limit.cube-limit-zero.bin",
-   "length": 410,
-   "sha256": "15ccd3f894062a0705c060c424b04a90bcc1d257e778eefb637fd0a5b395ada2",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

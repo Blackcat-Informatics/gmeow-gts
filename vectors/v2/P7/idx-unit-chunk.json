@@ -1,42 +1,34 @@
 {
- "entry": "idx-unit-chunk",
+ "name": "idx-unit-chunk",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "a unit held by a `chunk` frame outside any pack, in a file whose pack_members do not name it: found by its head",
  "cases": [
   {
    "label": "",
    "input_file": "idx-unit-chunk.bin",
-   "length": 1448,
-   "sha256": "96fdf0dc5d787b91fb7f4f7c847c5a172562df4a70473ab9c930ed8bc22312e9",
    "query": {
     "segment_end": 1448,
     "target": [
      "unit",
-     "b\"\\xa6\\xeey\\x11\\xd0\\\\\\n V`\\xa0\\xd7\\x82\\xa9B\\xc6\\xc9\\xdf\\xa7l\\xf0\\xe8\\x8a\\xc3\\xefP\\xb4'F\\x0e\\x90\\xf3\""
+     "a6ee7911d05c0a205660a0d782a942c6c9dfa76cf0e88ac3ef50b427460e90f3"
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     486,
-     4
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831905a882025820a6ee7911d05c0a205660a0d782a942c6c9dfa76cf0e88ac3ef50b427460e90f3f4018101820283001901e6820204818503810100f48101",
    "ranges": [
@@ -578,38 +570,28 @@
   {
    "label": "first-frame",
    "input_file": "idx-unit-chunk.first-frame.bin",
-   "length": 1448,
-   "sha256": "96fdf0dc5d787b91fb7f4f7c847c5a172562df4a70473ab9c930ed8bc22312e9",
    "query": {
     "segment_end": 1448,
     "target": [
      "unit",
-     "b\"x\\xd9L\\xd8\\xeb\\x10\\xd1*\\xe1\\x85@\\xda\\xa3\\xaao\\x83\\xf2\\xc0\\x143$\\xbc3\\x1ab\\x95,\\x84\\x91\\x08\\xd6'\""
+     "78d94cd8eb10d12ae18540daa3aa6f83f2c0143324bc331a62952c849108d627"
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     486,
-     4
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831905a88202582078d94cd8eb10d12ae18540daa3aa6f83f2c0143324bc331a62952c849108d627f4018101820283001901e6820204818501810100f48101",
    "ranges": [

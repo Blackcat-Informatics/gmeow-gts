@@ -7,7 +7,9 @@
   {
    "label": "",
    "input_file": "hctx-frame.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,16 +22,13 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {
-    "context": "frame"
-   },
+   "note": "expected context \"frame\"",
    "result": {
     "context": "frame",
     "spelling": "gts2 frame",
     "message": "616263",
     "output": "674f93839d2e1dea697a16af0b60a8f7dc065d7aa665a2d29ef21559af35c3da"
-   },
-   "differences": []
+   }
   }
  ]
 }

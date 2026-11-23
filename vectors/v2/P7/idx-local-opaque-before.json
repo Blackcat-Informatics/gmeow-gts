@@ -1,12 +1,12 @@
 {
- "entry": "idx-local-opaque-before",
+ "name": "idx-local-opaque-before",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "the item before a frame of the target is a covered frame made opaque (first byte 8a); and one of 5 + 2^28 bytes whose first head is 5a 10 00 00 00",
  "cases": [
   {
    "label": "first-byte-8a",
    "input_file": "idx-local-opaque-before.first-byte-8a.bin",
-   "length": 1357,
-   "sha256": "7cc23de1e6cb7873bbf5442b4f6e8027bdf2f6657c60e7ce425fc514b059a068",
    "query": {
     "segment_end": 1357,
     "target": [
@@ -15,28 +15,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "identifier",
-    "scope": [
-     0,
-     437,
-     4
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000038319054d82018101f402820205820283001901b582020480",
    "ranges": [
@@ -470,8 +462,6 @@
   {
    "label": "five-plus-2-28",
    "input_file": "idx-local-opaque-before.five-plus-2-28.bin",
-   "length": 268436707,
-   "sha256": "ec23e1f24a185c0bc3125983976a63de0c8309a13d72d9b840206f6289817387",
    "query": {
     "segment_end": 268436707,
     "target": [
@@ -480,28 +470,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    268435455,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "identifier",
-    "scope": [
-     0,
-     268435784,
-     4
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 268435455,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001a0fffffff1a040000001b00000020000000001b00000020000000001b000000200000000003831a100004e382018101f402820205820283001a1000014882020480",
    "ranges": [

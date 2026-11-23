@@ -57,11 +57,9 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "W": 60
-   },
-   "differences": []
+   }
   }
  ]
 }

@@ -7,9 +7,6 @@
   {
    "label": "whole",
    "input_file": "resync-first-item-torn.whole.bin",
-   "length": 272,
-   "sha256": "690e2287a722f77c5e695267b6f3b9ad8babf57b43367097ec1306f71c0ee092",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,63 +19,11 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000a190106850202f401008202582051b7b164c91cba7a20bb049def3a3ce2b479c92b8b4b2bc61bdd9a1dc5d41d78820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b01184a186782020101810181018081018081871181018101820201810181018202028b0218b1185f820202018101810180810180808081870981018101810182020082020a810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000401",
-   "observed": {
-    "file_findings": [
-     [
-      "torn_tail",
-      null,
-      null,
-      null,
-      0,
-      10
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "46a97648acf2555e4dac3c140a21e21de813dab07755096356c4b56c1b0d9bef",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {}
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000a190106850202f401008202582051b7b164c91cba7a20bb049def3a3ce2b479c92b8b4b2bc61bdd9a1dc5d41d78820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b01184a186782020101810181018081018081871181018101820201810181018202028b0218b1185f820202018101810180810180808081870981018101810182020082020a810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000401"
   },
   {
    "label": "forward",
    "input_file": "resync-first-item-torn.forward.bin",
-   "length": 272,
-   "sha256": "690e2287a722f77c5e695267b6f3b9ad8babf57b43367097ec1306f71c0ee092",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -91,56 +36,7 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
-   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000a190106850202f401008202582051b7b164c91cba7a20bb049def3a3ce2b479c92b8b4b2bc61bdd9a1dc5d41d78820201820201810101030200008085f482020582020582020581018101828b01184a186782020101810181018081018081871181018101820201810181018202028b0218b1185f820202018101810180810180808081870981018101810182020082020a810181018201000401",
-   "observed": {
-    "file_findings": [
-     [
-      "torn_tail",
-      null,
-      null,
-      null,
-      0,
-      10
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "46a97648acf2555e4dac3c140a21e21de813dab07755096356c4b56c1b0d9bef",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {}
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000a190106850202f401008202582051b7b164c91cba7a20bb049def3a3ce2b479c92b8b4b2bc61bdd9a1dc5d41d78820201820201810101030200008085f482020582020582020581018101828b01184a186782020101810181018081018081871181018101820201810181018202028b0218b1185f820202018101810180810180808081870981018101810182020082020a810181018201000401"
   }
  ]
 }

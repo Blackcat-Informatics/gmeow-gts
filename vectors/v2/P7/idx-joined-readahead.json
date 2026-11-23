@@ -6,8 +6,6 @@
   {
    "label": "default",
    "input_file": "idx-joined-readahead.default.bin",
-   "length": 1721,
-   "sha256": "d276338696d57c3d3359dd86ebdf0edac7f97b20ea99f177e8d9482f8039d149",
    "query": {
     "segment_end": 1721,
     "target": [
@@ -16,28 +14,17 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     730,
-     7
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831906b982018101f4018101820283001902da820207838506810100f481018506810101f481018506810102f48101",
    "ranges": [
@@ -907,13 +894,7 @@
     ]
    ],
    "charged": 944,
-   "readers": [
-    "each range of the procedure asked for alone",
-    "the last 64 KiB of the file asked for in one request, adjacent ranges joined",
-    "as the second, and holding the terms frames of an earlier answer over the same bytes"
-   ],
    "read": {
-    "access": "sparse",
     "registry_version": 1,
     "sealing_input": null,
     "profiles": null,
@@ -925,8 +906,6 @@
   {
    "label": "capacity-third-terms",
    "input_file": "idx-joined-readahead.capacity-third-terms.bin",
-   "length": 1721,
-   "sha256": "d276338696d57c3d3359dd86ebdf0edac7f97b20ea99f177e8d9482f8039d149",
    "query": {
     "segment_end": 1721,
     "target": [
@@ -935,28 +914,17 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    543,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "unknown",
-    "reason": "capacity",
-    "scope": [
-     0,
-     730,
-     7
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 543,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
    },
    "answer": "87018a1a040000001a04000000001a0400000019021f1a040000001b00000020000000001b00000020000000001b000000200000000003831906b982018101f40282020b820283001902da82020780",
    "ranges": [
@@ -1494,13 +1462,7 @@
     ]
    ],
    "charged": 543,
-   "readers": [
-    "each range of the procedure asked for alone",
-    "the last 64 KiB of the file asked for in one request, adjacent ranges joined",
-    "as the second, and holding the terms frames of an earlier answer over the same bytes"
-   ],
    "read": {
-    "access": "sparse",
     "registry_version": 1,
     "sealing_input": null,
     "profiles": null,
@@ -1512,8 +1474,6 @@
   {
    "label": "fails-beyond-reach",
    "input_file": "idx-joined-readahead.fails-beyond-reach.bin",
-   "length": 1721,
-   "sha256": "d276338696d57c3d3359dd86ebdf0edac7f97b20ea99f177e8d9482f8039d149",
    "query": {
     "segment_end": 1721,
     "target": [
@@ -1522,31 +1482,17 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": [
-    1685,
-    1
-   ],
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     730,
-     7
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831906b982018101f4018101820283001902da820207838506810100f481018506810101f481018506810102f48101",
    "ranges": [
@@ -2416,26 +2362,22 @@
     ]
    ],
    "charged": 944,
-   "readers": [
-    "each range of the procedure asked for alone",
-    "the last 64 KiB of the file asked for in one request, adjacent ranges joined",
-    "as the second, and holding the terms frames of an earlier answer over the same bytes"
-   ],
    "read": {
-    "access": "sparse",
     "registry_version": 1,
     "sealing_input": null,
     "profiles": null,
     "trusted_keys": null,
     "held_keys": null,
-    "marks": null
+    "marks": null,
+    "read_failure": {
+     "offset": 1685,
+     "length": 1
+    }
    }
   },
   {
    "label": "fails-at-reached",
    "input_file": "idx-joined-readahead.fails-at-reached.bin",
-   "length": 1721,
-   "sha256": "d276338696d57c3d3359dd86ebdf0edac7f97b20ea99f177e8d9482f8039d149",
    "query": {
     "segment_end": 1721,
     "target": [
@@ -2444,31 +2386,17 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": [
-    215,
-    1
-   ],
-   "expected": {
-    "outcome": "unknown",
-    "reason": "read",
-    "scope": [
-     0,
-     730,
-     7
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831906b982018101f40282020f820283001902da82020780",
    "ranges": [
@@ -3010,19 +2938,17 @@
     ]
    ],
    "charged": 544,
-   "readers": [
-    "each range of the procedure asked for alone",
-    "the last 64 KiB of the file asked for in one request, adjacent ranges joined",
-    "as the second, and holding the terms frames of an earlier answer over the same bytes"
-   ],
    "read": {
-    "access": "sparse",
     "registry_version": 1,
     "sealing_input": null,
     "profiles": null,
     "trusted_keys": null,
     "held_keys": null,
-    "marks": null
+    "marks": null,
+    "read_failure": {
+     "offset": 215,
+     "length": 1
+    }
    }
   }
  ]

@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "stream-two-sittings.bin",
-   "length": 1404,
-   "sha256": "781aaacb637eae8a3a2111a7221a1e0c96dcde6624b757044fb09322637c8395",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,89 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000019057c810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc82020182020181010203060600810685f482020582020582020581018101878b010b1874820208018101810180810180808b02187f189a82020b0181018101808101818281018104808b031901191868820201018101810180810180808b04190181187282020e018101810180810280808b051901f31887820201018101810180810180808b0619027a190290820210018101810180810280808b0719050a187282020e0181018101808102808081871824810181018101820219050a8202187281018081018201000200",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "4bd56053a860ff6d313079728407e5d7c2bd4eecfd0f1b18172d19a3011ef3f8",
-      "findings": [
-       [
-        "unprotected_tail",
-        null,
-        null,
-        null,
-        1290,
-        114
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 4,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 5,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       },
-       {
-        "position": 6,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       },
-       {
-        "position": 7,
-        "link": "linked",
-        "fold": [
-         "not_content"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "3 stream points of the second sitting equal those of one sitting; the term of the value by_reference"
-   },
+   "note": "3 stream points of the second sitting equal those of one sitting; the term of the value by_reference",
    "stream_points": [
     {
      "at": 11,
@@ -1290,9 +1206,7 @@
       ]
      ]
     }
-   ],
-   "access": "forward",
-   "first_sitting_ends_at": 499
+   ]
   }
  ]
 }

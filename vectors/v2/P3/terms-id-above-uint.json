@@ -18,25 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "malformed_value",
-      "inconsistent_counts",
-      "1",
-      "0"
-     ],
-     [
-      "malformed_value",
-      "out_of_range",
-      "2",
-      "0"
-     ]
-    ]
-   },
-   "differences": []
+   }
   }
  ]
 }

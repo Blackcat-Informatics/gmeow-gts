@@ -19,11 +19,9 @@
     "labelled_bytes_per_read": 60,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "W": 60
-   },
-   "differences": []
+   }
   }
  ]
 }

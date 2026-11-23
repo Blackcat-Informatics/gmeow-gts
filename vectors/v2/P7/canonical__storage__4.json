@@ -18,7 +18,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "frame_type": "terms",
     "decoded_length": 5552,
@@ -30,8 +29,7 @@
     "level": 12,
     "window_log": 26,
     "position": 4
-   },
-   "differences": []
+   }
   },
   {
    "label": "stored",
@@ -48,7 +46,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "frame_type": "terms",
     "decoded_length": 5552,
@@ -60,8 +57,7 @@
     "level": 12,
     "window_log": 26,
     "position": 4
-   },
-   "differences": []
+   }
   }
  ]
 }

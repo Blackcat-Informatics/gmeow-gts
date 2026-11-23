@@ -7,11 +7,7 @@
   {
    "label": "",
    "input_file": "stream-parity-long-item.bin",
-   "length": 76077167,
-   "sha256": "ea297cfa7644378bbb0e114fdbe74cb3a733b40ad3235dc71eabc1e389682545",
-   "expected": {
-    "expected": "forward: no parity_mismatch; whole: parity_mismatch for the span with the damaged parity shard, and repaired for that span (P5-37)"
-   },
+   "note": "forward: no parity_mismatch; whole: parity_mismatch for the span with the damaged parity shard, and repaired for that span (P5-37)",
    "forward_end_result_sha256": "4556830cff7982a112668517a993dbb295cbce9023bdd9eb472cc3462295261c",
    "whole_parity_findings": [
     {
@@ -29,8 +25,7 @@
    "input_points": [
     11,
     114,
-    71303282,
-    "..."
+    71303282
    ]
   }
  ]

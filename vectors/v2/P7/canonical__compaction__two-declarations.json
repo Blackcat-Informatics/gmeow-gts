@@ -7,8 +7,6 @@
   {
    "label": "one-complete",
    "input_file": "canonical__compaction__two-declarations.one-complete.bin",
-   "length": 750,
-   "sha256": "7e7d07356c3019fa824bc86b9ad7593084f51aa14079ed28a6e94c88736be8b6",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -47,8 +45,6 @@
   {
    "label": "both-incomplete",
    "input_file": "canonical__compaction__two-declarations.both-incomplete.bin",
-   "length": 632,
-   "sha256": "d6199472a1886fbcd5f646517856fdc0fe9d4ca6105838af178000755887277c",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

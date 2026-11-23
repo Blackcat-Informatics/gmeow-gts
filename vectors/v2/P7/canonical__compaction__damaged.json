@@ -7,8 +7,6 @@
   {
    "label": "blob-digest",
    "input_file": "canonical__compaction__damaged.blob-digest.bin",
-   "length": 554,
-   "sha256": "6e3b905f35fb14826311a53b4563b275a6f5a126d6cb07e5ceaf44e4b99bf0ec",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -36,8 +34,6 @@
   {
    "label": "blob-length",
    "input_file": "canonical__compaction__damaged.blob-length.bin",
-   "length": 554,
-   "sha256": "513df6cc8587513a24c7738007f3673244db3a52639e7ade82f51216d093c8ae",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

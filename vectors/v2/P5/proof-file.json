@@ -26,7 +26,7 @@
    "result": {
     "present": "proof_holds/consistency"
    },
-   "outcome": "8718278202183481018101810181018101"
+   "verify": "8718278202183481018101810181018101"
   },
   {
    "label": "absent",
@@ -50,7 +50,7 @@
    "result": {
     "absent": "proof_holds/consistency"
    },
-   "outcome": "8718278202183481018101810181018101"
+   "verify": "8718278202183481018101810181018101"
   }
  ]
 }

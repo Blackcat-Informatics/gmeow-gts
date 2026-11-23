@@ -8,7 +8,9 @@
    "label": "",
    "input_file": "stored-above-capacity.bin",
    "read_result": "870101808a18321a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901a6810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b19019b8202080182030282020180820307808287148202181f810182020182020b820219019b820219011487118101810182020181018101820201808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 50,
     "decoded_bytes_per_frame": 67108864,
@@ -20,122 +22,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": {
-    "segs": [
-     {
-      "frames": [
-       {
-        "stored": "matches",
-        "payload": "unchecked(exceeds_capacity)",
-        "findings": [
-         [
-          "exceeds_capacity",
-          "stored_size",
-          {}
-         ]
-        ],
-        "fold": "opaque(exceeds_capacity)"
-       }
-      ]
-     }
-    ]
-   },
-   "result": {
-    "readers": "second_only",
-    "registry_version": 1,
-    "profiles": {},
-    "capacity": {
-     "stored_bytes_per_frame": 50,
-     "decoded_bytes_per_frame": 67108864,
-     "labelling_units": 0,
-     "labelled_lines": 67108864,
-     "decoded_bytes_per_read": 68719476736,
-     "items_per_read": 67108864,
-     "rebuilt_bytes_per_read": 137438953472,
-     "formed_bytes_per_read": 137438953472,
-     "labelled_bytes_per_read": 137438953472,
-     "access": "whole"
-    },
-    "file": {
-     "tag": "second_generation",
-     "segments": [
-      {
-       "ordinal": 0,
-       "offset": 0,
-       "length": 422,
-       "header_outcome": "readable",
-       "header_identifier": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-       "registry_version": 1,
-       "hash_algorithm": 1,
-       "profile": null,
-       "integrity": "intact_unchecked",
-       "head": "612a10e405782f3a6dc4ccbcbcb1548829ed8de530fc62f4aaadeeee3ffab6f1",
-       "transparent_frames": [],
-       "committed_frames": 0,
-       "index_used": {},
-       "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-       "items": [
-        {
-         "position": 0,
-         "offset": 0,
-         "length": 11,
-         "class": "header"
-        },
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 411,
-         "class": "frame"
-        }
-       ],
-       "frames": [
-        {
-         "position": 1,
-         "offset": 11,
-         "length": 411,
-         "frame_type": 8,
-         "link": "linked",
-         "predecessor": "e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc",
-         "effective_identifier": "612a10e405782f3a6dc4ccbcbcb1548829ed8de530fc62f4aaadeeee3ffab6f1",
-         "stored": "matches",
-         "payload": {
-          "state": "unchecked",
-          "reason": "exceeds_capacity"
-         },
-         "fold": {
-          "state": "opaque",
-          "reason": "exceeds_capacity"
-         },
-         "findings": [
-          {
-           "code": "exceeds_capacity",
-           "reason": "stored_size",
-           "position": 1,
-           "offset": 11,
-           "length": 411,
-           "count": 276
-          },
-          {
-           "code": "uncommitted_tail",
-           "position": 1,
-           "count": 1
-          }
-         ]
-        }
-       ],
-       "findings": []
-      }
-     ],
-     "findings": [],
-     "content_digest": "bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e",
-     "visible": [
-      1,
-      0
-     ]
-    }
-   },
-   "differences": []
+   }
   }
  ]
 }

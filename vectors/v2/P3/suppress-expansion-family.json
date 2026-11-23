@@ -18,19 +18,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "lineage_begins",
-      "None",
-      "None",
-      "1"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "depth-1",
@@ -47,25 +35,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "lineage_begins",
-      "None",
-      "None",
-      "1"
-     ],
-     [
-      "suppression_unmatched",
-      "term",
-      "2",
-      "2"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "depth-2",
@@ -82,25 +52,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "lineage_begins",
-      "None",
-      "None",
-      "1"
-     ],
-     [
-      "suppression_unmatched",
-      "term",
-      "2",
-      "2"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "depth-3",
@@ -117,25 +69,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "lineage_begins",
-      "None",
-      "None",
-      "1"
-     ],
-     [
-      "suppression_unmatched",
-      "term",
-      "2",
-      "2"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "depth-4",
@@ -152,25 +86,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "lineage_begins",
-      "None",
-      "None",
-      "1"
-     ],
-     [
-      "suppression_unmatched",
-      "term",
-      "2",
-      "2"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "depth-5",
@@ -187,25 +103,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "lineage_begins",
-      "None",
-      "None",
-      "1"
-     ],
-     [
-      "suppression_unmatched",
-      "term",
-      "2",
-      "2"
-     ]
-    ]
-   },
-   "differences": []
+   }
   },
   {
    "label": "depth-6",
@@ -222,25 +120,7 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
-   },
-   "expected": null,
-   "result": {
-    "findings": [
-     [
-      "lineage_begins",
-      "None",
-      "None",
-      "1"
-     ],
-     [
-      "suppression_unmatched",
-      "term",
-      "2",
-      "2"
-     ]
-    ]
-   },
-   "differences": []
+   }
   }
  ]
 }

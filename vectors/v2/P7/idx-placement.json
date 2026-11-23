@@ -1,12 +1,12 @@
 {
- "entry": "idx-placement",
+ "name": "idx-placement",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
  "note": "a segment of more than 4194304 bytes of S with a parity frame at the span end before the closing index: the rows of the frame after the first parity frame",
  "cases": [
   {
    "label": "graph",
    "input_file": "idx-placement.graph.bin",
-   "length": 4590706,
-   "sha256": "21dc0487455afddd424e0d4d2b24a41f00143ec814751fd4bf89f4f5de98d989",
    "query": {
     "segment_end": 4590706,
     "target": [
@@ -15,28 +15,20 @@
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     4581138,
-     4
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831a00460c7282018101f4018101820283001a0045e712820204818504810100f48101",
    "ranges": [
@@ -642,38 +634,28 @@
   {
    "label": "unit",
    "input_file": "idx-placement.unit.bin",
-   "length": 4590706,
-   "sha256": "21dc0487455afddd424e0d4d2b24a41f00143ec814751fd4bf89f4f5de98d989",
    "query": {
     "segment_end": 4590706,
     "target": [
      "unit",
-     "b'\\xec<\\x1d\\xd7\\xf1\\xf6\\xa0)(\\xd3j\\x90\\x8dF\\\\\\xc5A*q\\xbe6\\xc8\\xb2\\x96\\xbaX\\x11G\\xca\\x82W|'"
+     "ec3c1dd7f1f6a02928d36a908d465cc5412a71be36c8b296ba581147ca82577c"
     ],
     "suppression": false
    },
-   "capacity": [
-    67108864,
-    67108864,
-    0,
-    67108864,
-    68719476736,
-    67108864,
-    137438953472,
-    137438953472,
-    137438953472,
-    3
-   ],
-   "registry_version": 1,
-   "fail": null,
-   "expected": {
-    "outcome": "answered",
-    "reason": null,
-    "scope": [
-     0,
-     4581138,
-     4
-    ]
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
    },
    "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831a00460c7282025820ec3c1dd7f1f6a02928d36a908d465cc5412a71be36c8b296ba581147ca82577cf4018101820283001a0045e712820204818502810100f48101",
    "ranges": [

@@ -7,9 +7,6 @@
   {
    "label": "framing",
    "input_file": "append-resync-fresh-after-pad.framing.bin",
-   "length": 543,
-   "sha256": "287f1e5f7063b1c207056c5d7077c5c1a7c14781ee4463a3917ba32400ae1c7b",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,155 +19,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028392000018d6810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f820202018101810180810180808587078202048101820203820218d1820201810187078202048101820204820218d2820201810187078202048101820205820218d3820201810187078202048101820206820218d4820201810187078202048101820207820218d58202018101920118d61841850201f50100820258202cbeaa670e0dfe28cf61c1916f79327aaf4ae572596fcf0f4eb49daebaae6cd6820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e808187182a8101810181018101810181019202190117190108850201f4010082025820848eef686058b78f43ed17ddd33562148f171689b522d58795d7cd3dc5515a21820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b01190159186782020101810181018081018081871181018101820201810181018202028b021901c0185f820202018101810180810180808187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000405",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
-      "findings": [
-       [
-        "malformed_value",
-        "wrong_type",
-        3,
-        null,
-        209,
-        1
-       ],
-       [
-        "malformed_value",
-        "wrong_type",
-        4,
-        null,
-        210,
-        1
-       ],
-       [
-        "malformed_value",
-        "wrong_type",
-        5,
-        null,
-        211,
-        1
-       ],
-       [
-        "malformed_value",
-        "wrong_type",
-        6,
-        null,
-        212,
-        1
-       ],
-       [
-        "malformed_value",
-        "wrong_type",
-        7,
-        null,
-        213,
-        1
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     },
-     {
-      "ordinal": 1,
-      "lineage_checked": false,
-      "head": "2cbeaa670e0dfe28cf61c1916f79327aaf4ae572596fcf0f4eb49daebaae6cd6",
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": []
-     },
-     {
-      "ordinal": 2,
-      "lineage_checked": false,
-      "head": "36a604e39dcab14951868d66a0a0eb8256df06418b247e188eb9da1b84a6c5ee",
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "both reached by framing; the first displaced true, the second not"
-   }
+   "note": "both reached by framing; the first displaced true, the second not"
   },
   {
    "label": "after-damage",
    "input_file": "append-resync-fresh-after-pad.after-damage.bin",
-   "length": 543,
-   "sha256": "e19956bb748ea1f6cfc6cb3e62162204bd1e039ee1bc34232077da64685301aa",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -183,100 +37,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000190117810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f82020201810181018081018080809201190117190108850202f4010082025820848eef686058b78f43ed17ddd33562148f171689b522d58795d7cd3dc5515a21820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b01190159186782020101810181018081018081871181018101820201810181018202028b021901c0185f820202018101810180810180808187182a810181018101810181018101818708810181018101820218d182021846810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000401",
-   "observed": {
-    "file_findings": [
-     [
-      "undelimitable_input",
-      null,
-      null,
-      null,
-      209,
-      70
-     ]
-    ],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "fb9ae5b97dbba0fea5d3a5c8c4eb2fd66a97010071a72f9a5fd43278c303bb0d",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     },
-     {
-      "ordinal": 1,
-      "lineage_checked": false,
-      "head": "36a604e39dcab14951868d66a0a0eb8256df06418b247e188eb9da1b84a6c5ee",
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "the scan accepts the second, rejects the first at part 3"
-   }
+   "note": "the scan accepts the second, rejects the first at part 3"
   }
  ]
 }

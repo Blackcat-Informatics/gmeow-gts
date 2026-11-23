@@ -7,7 +7,9 @@
   {
    "label": "",
    "input_file": "hctx-distinct.bin",
-   "claim": "second_only",
+   "read": {
+    "readers": "second_only"
+   },
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -20,7 +22,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": {},
    "result": {
     "outputs": {
      "header": "038cb23b29996cdafb3767121032ec18c616f42cd79c3f67e1d59e6796000446",
@@ -39,8 +40,7 @@
      "source_bytes": "a9c86f4f50abab05bb4ec15ab03d62ba8402c0281ff95b7cd47f50e2d5263e05",
      "nested_term": "e76469751babdda3f73180e485cdb8284fe1070aa4340b7ebf59e102b8ae5ea9"
     }
-   },
-   "differences": []
+   }
   }
  ]
 }

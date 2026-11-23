@@ -7,9 +7,7 @@
   {
    "label": "",
    "input_file": "resync-writer-fits.bin",
-   "length": 3709,
-   "sha256": "e55871f45aaecb879d7358870de8983fd5ff6a088f3e24c1fd92b27bba8a8af5",
-   "expected": {
+   "result": {
     "size": 3709,
     "fixed_part": 152,
     "sizes": {

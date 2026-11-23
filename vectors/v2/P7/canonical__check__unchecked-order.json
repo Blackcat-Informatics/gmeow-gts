@@ -7,8 +7,6 @@
   {
    "label": "not-claimed",
    "input_file": "canonical__check__unchecked-order.not-claimed.bin",
-   "length": 700,
-   "sha256": "70233bdfd54a6dc72145916ace8a24fe9657d7e7e8753554c02c521fc00f8aae",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -35,8 +33,6 @@
   {
    "label": "exceeds-capacity",
    "input_file": "canonical__check__unchecked-order.exceeds-capacity.bin",
-   "length": 2164,
-   "sha256": "1fbe2ca2d44faed5392e04034000da9879d79b261b66aeb4a96d811d711eda7f",
    "capacity": {
     "stored_bytes_per_frame": 60,
     "decoded_bytes_per_frame": 60,
@@ -63,8 +59,6 @@
   {
    "label": "encoder-not-held",
    "input_file": "canonical__check__unchecked-order.encoder-not-held.bin",
-   "length": 2164,
-   "sha256": "1fbe2ca2d44faed5392e04034000da9879d79b261b66aeb4a96d811d711eda7f",
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,

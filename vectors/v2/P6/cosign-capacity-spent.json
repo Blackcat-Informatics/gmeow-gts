@@ -7,9 +7,6 @@
   {
    "label": "",
    "input_file": "cosign-capacity-spent.bin",
-   "length": 425,
-   "sha256": "f7cbd52d6e2859fc8c3c113ac9c747d533ed7c23d13f79b10626022b0111b3c8",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,84 +19,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a04000000011a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901a9810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030303008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b1867820201018203028101808203078081871482021856810182020182020b820218678202118b021872185f8202020182030281018082030780818714820218568101820202820218728202185f82020e8b0318d118d882020e01820302810181870382021836015820cfc21d4f7e09980cbfc7cb2a04026e077ecc8bcd6fba5c5997d61da3524990a60202f482030780828714820218568101820203820218d1820218d8820200871829820218368202820301820203810181018101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000203",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": "4705c2fd02abba0c7736a540959b9be9ef5c5cfe7342a9d1e6b9346dd4b7b526",
-      "findings": [],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "opaque",
-         "exceeds_capacity"
-        ],
-        "findings": [
-         [
-          "exceeds_capacity",
-          "total_decoded",
-          1,
-          17,
-          11,
-          103
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "opaque",
-         "exceeds_capacity"
-        ],
-        "findings": [
-         [
-          "exceeds_capacity",
-          "total_decoded",
-          2,
-          14,
-          114,
-          95
-         ]
-        ]
-       },
-       {
-        "position": 3,
-        "link": "linked",
-        "fold": [
-         "opaque",
-         "exceeds_capacity"
-        ],
-        "findings": [
-         [
-          "exceeds_capacity",
-          "total_decoded",
-          3,
-          0,
-          209,
-          216
-         ],
-         [
-          "signature_unverified",
-          "key_not_held",
-          3,
-          null,
-          null,
-          null
-         ]
-        ]
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
+   "result": {
     "appended": "8b020ef4f4820358208eab9af994fa5dc9c103f1b4a8c18ac51237850abc13c2fb945469efacb0a0fc0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820fcdda55d54e3dc9c8b3ef2b461101b3847bc0543e2c44585f3bed4292704d55f818301582064f0f7891e652953a35e68db9d371b5c0322563de2c8c05dbf01810a650703cf5840662a64847382ae6828ef59a782df64e878db04017562880011d7e247f6a3318498370b7198169584f73314e87a81c652789fe12799b93ad9ac70341d7734b009"
    }
   }

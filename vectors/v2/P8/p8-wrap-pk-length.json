@@ -11,7 +11,7 @@
     "recipient_public_key_length": 1215,
     "recipient_public_key": "bytes of 1215 zero octets"
    },
-   "outcome": {
+   "result": {
     "error_of_the_wrap_call": true,
     "entry_written": false
    }
@@ -23,7 +23,7 @@
     "recipient_public_key_length": 1217,
     "recipient_public_key": "bytes of 1217 zero octets"
    },
-   "outcome": {
+   "result": {
     "error_of_the_wrap_call": true,
     "entry_written": false
    }

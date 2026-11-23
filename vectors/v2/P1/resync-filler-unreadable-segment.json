@@ -7,9 +7,6 @@
   {
    "label": "whole",
    "input_file": "resync-filler-unreadable-segment.whole.bin",
-   "length": 783,
-   "sha256": "9c03a9a7fb7c0cd725b7b1c40d19c3bb81f29657bd2cb3bcbd6fde47a972a52a",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -22,81 +19,12 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702829200001901c58101810181018101810103030000008085f48202058202058202058101810180818707820207810182020082020082020b810192011901c519014a850201f402008202582047d5b4e52d2da7080c62e7a696e2ce498e43ba260a18d81a1cd45cd0e2a434da820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b01190249186782020101810181018081018081871181018101820201810181018202028b021902b0185f820202018101810180810180808187182a8101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000401",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": null,
-      "findings": [
-       [
-        "malformed_value",
-        "unregistered_value",
-        0,
-        null,
-        0,
-        11
-       ]
-      ],
-      "frames": []
-     },
-     {
-      "ordinal": 1,
-      "lineage_checked": false,
-      "head": "4689c366ed4e34751eec27c71b1425a8d11e83a6d9260872e31d2d8db29fa2e3",
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "the item reached by framing, its own segment"
-   }
+   "note": "the item reached by framing, its own segment"
   },
   {
    "label": "forward",
    "input_file": "resync-filler-unreadable-segment.forward.bin",
-   "length": 783,
-   "sha256": "9c03a9a7fb7c0cd725b7b1c40d19c3bb81f29657bd2cb3bcbd6fde47a972a52a",
-   "inputs": null,
    "capacity": {
     "stored_bytes_per_frame": 67108864,
     "decoded_bytes_per_frame": 67108864,
@@ -109,74 +37,8 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "forward"
    },
-   "marks_input": null,
    "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702829200001901c58101810181018101810103030000008085f48202058202058202058101810180818707820207810182020082020082020b810192011901c519014a850201f402008202582047d5b4e52d2da7080c62e7a696e2ce498e43ba260a18d81a1cd45cd0e2a434da820201820201810101030200008085f482020582020582020581018101828b01190249186782020101810181018081018081871181018101820201810181018202028b021902b0185f820202018101810180810180808187182a8101810181018101810181018081018201000401",
-   "observed": {
-    "file_findings": [],
-    "segments": [
-     {
-      "ordinal": 0,
-      "lineage_checked": false,
-      "head": null,
-      "findings": [
-       [
-        "malformed_value",
-        "unregistered_value",
-        0,
-        null,
-        0,
-        11
-       ]
-      ],
-      "frames": []
-     },
-     {
-      "ordinal": 1,
-      "lineage_checked": false,
-      "head": "4689c366ed4e34751eec27c71b1425a8d11e83a6d9260872e31d2d8db29fa2e3",
-      "findings": [
-       [
-        "lineage_begins",
-        null,
-        null,
-        null,
-        null,
-        null
-       ]
-      ],
-      "frames": [
-       {
-        "position": 1,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": [
-         [
-          "uncommitted_tail",
-          null,
-          1,
-          2,
-          null,
-          null
-         ]
-        ]
-       },
-       {
-        "position": 2,
-        "link": "linked",
-        "fold": [
-         "folded"
-        ],
-        "findings": []
-       }
-      ]
-     }
-    ]
-   },
-   "expected": {
-    "expected": "the same"
-   }
+   "note": "the same"
   }
  ]
 }

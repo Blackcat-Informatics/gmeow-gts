@@ -45,7 +45,6 @@
      "access": "whole"
     }
    ],
-   "expected": null,
    "result": {
     "n": 1000,
     "size": 1999,
@@ -70,8 +69,7 @@
      "preimage": "834e4d82016a687474703a2f2f652f614e4d82016a687474703a2f2f652f615823815820597f24edc3df000fe5d99f45a1262466a40f4290334ea784d3f2584a4ed01644",
      "position": 0
     }
-   },
-   "differences": []
+   }
   }
  ]
 }

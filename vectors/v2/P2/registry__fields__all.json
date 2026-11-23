@@ -19,7 +19,6 @@
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
    },
-   "expected": null,
    "result": {
     "codes_with_an_input": 48,
     "codes_without": {},
@@ -204,8 +203,7 @@
       "subject"
      ]
     }
-   },
-   "differences": []
+   }
   }
  ]
 }
