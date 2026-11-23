@@ -141,6 +141,39 @@ def _literal_form(term: LiteralTerm) -> int:
     )
 
 
+def _term_order_key(
+    term: WireTerm,
+    datatype_text: Callable[[int], bytes | None],
+    depth: int,
+) -> _OrderKey | None:
+    match term:
+        case IriTerm(text):
+            return 0, text
+        case BlankTerm(label):
+            return 5, label
+        case TripleTerm(subject, predicate, object_id):
+            return 6, depth, subject, predicate, object_id
+        case TypedValueTerm(ValueReference(digest, length)):
+            return 4, digest, length
+        case TypedValueTerm(TypedValue(kind, value)):
+            if isinstance(value, TimeValue):
+                return 3, kind, value.seconds, value.nanoseconds
+            return 3, kind, value
+        case LiteralTerm(lexical, datatype, language, _):
+            if datatype is not None:
+                form_value = datatype_text(datatype)
+                if form_value is None:
+                    return None
+            else:
+                assert language is not None
+                form_value = language.encode("utf-8")
+            suffix = (_literal_form(term), form_value)
+            if isinstance(lexical, ValueReference):
+                return 2, lexical.digest, lexical.length, *suffix
+            return 1, lexical, *suffix
+    raise TypeError("expected a v2 term")
+
+
 def _written_term_key(
     term: WireTerm, lookup: Callable[[int], tuple[bool, int]]
 ) -> tuple[object, ...]:
@@ -223,44 +256,26 @@ class TermDictionary:
         return self._written.setdefault(key, len(self._written))
 
     def _order_key(self, term: WireTerm) -> tuple[_OrderKey | None, int | None]:
-        match term:
-            case IriTerm(text):
-                return (0, text), 0
-            case BlankTerm(label):
-                return (5, label), 0
-            case TripleTerm(subject, predicate, object_id):
-                depth = 0
-                for component in (subject, predicate, object_id):
-                    entry = self._entries.get(component)
-                    if entry is None:
-                        kind = self._kind_at(component)
-                        if kind is None or kind == 4 or kind > 7:
-                            return None, None
-                        continue
-                    if entry.depth is None:
+        depth = 0
+        if isinstance(term, TripleTerm):
+            for component in (term.subject, term.predicate, term.object):
+                entry = self._entries.get(component)
+                if entry is None:
+                    kind = self._kind_at(component)
+                    if kind is None or kind == 4 or kind > 7:
                         return None, None
-                    depth = max(depth, entry.depth)
-                return (6, depth + 1, subject, predicate, object_id), depth + 1
-            case TypedValueTerm(ValueReference(digest, length)):
-                return (4, digest, length), 0
-            case TypedValueTerm(TypedValue(kind, value)):
-                if isinstance(value, TimeValue):
-                    return (3, kind, value.seconds, value.nanoseconds), 0
-                return (3, kind, value), 0
-            case LiteralTerm(lexical, datatype, language, _):
-                if datatype is not None:
-                    entry = self._entries.get(datatype)
-                    if entry is None or not isinstance(entry.wire, IriTerm):
-                        return None, 0
-                    form_value = entry.wire.text
-                else:
-                    assert language is not None
-                    form_value = language.encode("utf-8")
-                suffix = (_literal_form(term), form_value)
-                if isinstance(lexical, ValueReference):
-                    return (2, lexical.digest, lexical.length, *suffix), 0
-                return (1, lexical, *suffix), 0
-        raise TypeError("expected a v2 term")
+                    continue
+                if entry.depth is None:
+                    return None, None
+                depth = max(depth, entry.depth)
+            depth += 1
+        return _term_order_key(term, self._datatype_text, depth), depth
+
+    def _datatype_text(self, term_id: int) -> bytes | None:
+        entry = self._entries.get(term_id)
+        if entry is None or not isinstance(entry.wire, IriTerm):
+            return None
+        return entry.wire.text
 
     def _literal(
         self, term: LiteralTerm, term_id: int, values: _Values
