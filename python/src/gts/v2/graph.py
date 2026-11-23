@@ -128,6 +128,11 @@ class GraphFold:
         self._dictionary = TermDictionary(pool, segment)
         self._lines = lines
 
+    @property
+    def dictionary(self) -> TermDictionary:
+        """The segment's resolved term dictionary."""
+        return self._dictionary
+
     def add(
         self,
         frame: GraphFrame,
