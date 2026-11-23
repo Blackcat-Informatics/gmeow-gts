@@ -13,6 +13,8 @@ from typing import Literal
 import cbor2
 from blake3 import blake3
 
+from .framing import ItemFramingError, _head
+
 _REGISTRY_VERSION = 1
 _BLAKE3_256 = 1
 _CANONICAL_FORM = 1
@@ -78,27 +80,25 @@ class _HeaderDecoder:
 
     def _head(self, major_type: int) -> int:
         start = self.offset
-        major, additional = divmod(self._take(1)[0], 32)
-        if additional < 24:
-            argument = additional
-        elif additional <= 27:
-            width = 1 << (additional - 24)
-            argument = int.from_bytes(self._take(width), "big")
-            if major <= 4:
-                minimum = (24, 256, 65536, 4294967296)[additional - 24]
-                if argument < minimum:
-                    raise HeaderError("not_deterministic", start)
-            if major == 7 and additional == 24 and argument < 32:
-                raise HeaderError("wrong_length", start)
-        elif additional == 31 and 2 <= major <= 5:
-            reason: HeaderErrorReason = (
-                "not_deterministic" if major <= 4 else "wrong_type"
-            )
-            raise HeaderError(reason, start)
-        else:
-            raise HeaderError("wrong_length", start)
+        try:
+            major, argument, self.offset = _head(self.data, start, start)
+        except ItemFramingError as error:
+            if error.reason == "torn_tail" and start < len(self.data):
+                raise HeaderError("wrong_length", start + 1) from error
+            raise HeaderError("wrong_length", start) from error
 
-        if major != major_type:
+        additional = self.data[start] & 31
+        if major <= 4 and (
+            argument is None
+            or (
+                additional >= 24
+                and argument < (24, 256, 65536, 4294967296)[additional - 24]
+            )
+        ):
+            raise HeaderError("not_deterministic", start)
+        if major == 7 and argument is None:
+            raise HeaderError("wrong_length", start)
+        if major != major_type or argument is None:
             raise HeaderError("wrong_type", start)
         return argument
 

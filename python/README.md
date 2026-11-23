@@ -35,6 +35,8 @@ In the source tree, `gts.v2.decode_header(data, offset=0)` decodes one P1 header
 and returns its fields, the next byte offset and the header identifier when
 the hash algorithm is supported. `gts.v2.encode_header(header)` writes the
 registry version 1 header record for a segment writer.
+Use `gts.v2.item_end(data, offset=0)` to walk a CBOR item at a known boundary and
+`gts.v2.generation_field(data)` to identify the first item's generation prefix.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.
 
