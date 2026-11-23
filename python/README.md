@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 # gts — Graph Transport Substrate
 
-The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format. This package predates v2.
+The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format. The released package predates v2.
 
 ## Install
 
@@ -30,6 +30,11 @@ gh attestation verify <path-to-wheel-or-sdist> --repo Blackcat-Informatics/gmeow
 An SPDX SBOM is also generated for each release and attached as a workflow artifact.
 
 ## Format and conformance
+
+In the source tree, `gts.v2.decode_header(data, offset=0)` decodes one P1 header
+and returns its fields, the next byte offset and the header identifier when
+the hash algorithm is supported. `gts.v2.encode_header(header)` writes the
+registry version 1 header record for a segment writer.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.
 
