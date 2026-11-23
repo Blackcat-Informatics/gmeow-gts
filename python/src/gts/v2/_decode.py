@@ -15,6 +15,7 @@ type WireReason = Literal[
     "unregistered_value",
     "forbidden_combination",
     "unordered_or_repeated",
+    "inconsistent_counts",
 ]
 
 
@@ -84,6 +85,11 @@ class _Decoder:
         if not minimum <= value <= maximum:
             raise self.error(reason, start)
         return value
+
+    def integer(self) -> int:
+        if self.offset < len(self.data) and self.data[self.offset] >> 5 == 1:
+            return -1 - self._head(1)
+        return self._head(0)
 
     def option[T](self, decode: Callable[[], T]) -> T | None:
         start = self.offset
