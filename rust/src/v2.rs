@@ -9,6 +9,8 @@ use ciborium::value::Value;
 
 use crate::wire;
 
+pub mod frame;
+
 const REGISTRY_VERSION: u64 = 1;
 const BLAKE3_256: u64 = 1;
 const CANONICAL_FORM: u64 = 1;
@@ -53,7 +55,7 @@ pub struct DecodedHeader<'a> {
     pub identifier: Option<[u8; 32]>,
 }
 
-/// A P1 malformed-value reason for a header.
+/// A P1 malformed-value reason for a wire field.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MalformedReason {
     NotDeterministic,
@@ -61,6 +63,8 @@ pub enum MalformedReason {
     WrongLength,
     OutOfRange,
     UnregisteredValue,
+    ForbiddenCombination,
+    UnorderedOrRepeated,
 }
 
 /// The first malformed header field and its absolute input offset.
