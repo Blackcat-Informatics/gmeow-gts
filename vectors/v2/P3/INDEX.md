@@ -346,6 +346,7 @@
 | `project/language-case` | built and matches | P3 10a.2: x@EN and x@en: two quads in Q, the language texts byte for byte (that an RDF tool reads them as one is not a result of the projection) |
 | `project/value-pair` | built and matches | P3 10a.2: a pair of VALUES for a literal and none: equal projections, different content digests |
 | `project/empty-graph` | built and matches | P3 10a.1: an empty_graph line for g: Q empty, G0 = {g}; with a line that carries g: G0 empty |
+| `project/relative-empty-graph` | derived from the text | P3-100: a relative name occurs only in G0. A quads-only N-Quads export is empty and omits that graph. |
 | `project/empty-graph-hidden` | built and matches | P3 10a.2: visible: the graph whose only line is hidden is no name in G0, the other name is; whole: the hidden line is in Q |
 | `project/hidden-lines` | built and matches | P3 10a.1: three lines, one hidden by a quad entry: visible two quads, whole three |
 | `project/bindings-suppression-blobs` | built and matches | P3 10a.2: a binding, an entry, a blob declaration and a pair of VALUES: Q holds only the quads of its lines |

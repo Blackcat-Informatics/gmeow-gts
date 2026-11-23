@@ -30,6 +30,9 @@ Match the reader's claims and read inputs to the case before comparing results (
 In `P9/reader/first-and-second`, compare the enclosing fields and the `first_generation` variant tag with the recorded case.
 Compare the embedded byte string with the output of the implementation's own first-generation reader on that input
 (P9-3). Its recorded contents illustrate one first-generation reader's output.
+Compare the required companion values when a case supplies them. For example, the outer `read_result` of
+`PF-bundle/bundle-nested-damaged-untrusted-unopened` has its ordered `nested_results` alongside it, and
+`P7/idx-true-offsets` supplies the values of the answer items in `items_plain`.
 
 A case states every further input of its read or judgement:
 
@@ -52,7 +55,7 @@ A case states every further input of its read or judgement:
 - An entry that reads no file states its known answer in plain values, under keys that name them (`key`, `nonce`,
   `plaintext`, `result` and the like).
 - `compaction`: the `profile` input of a compaction of the case's input and, where it was written, its outcome.
-- `dataset`: in an entry of IMPORT, the dataset that the file was made from, in plain values.
+- `dataset`: the input to IMPORT, in plain values. A projection case can use the imported fold directly.
 - `nested_results`: in an entry of the bundle profile, the hexadecimal of the list of the records `[name, depth,
   read_result]` of the nested reads; `nested` and `children` state the same reads and the nested files in plain values.
 - `signing_rnd`: the random input with which a signature of the input was made, where it is not the deterministic one.
@@ -83,11 +86,11 @@ A case states every further input of its read or judgement:
   `forward_end_result_sha256`, `input_points`: statements of a further read of the case's input that no recorded record
   holds.
 
-`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,252 files.
+`SHA256SUMS` lists the SHA-256 of every file of the corpus in its expanded form: 6,253 files.
 
 ## Large inputs
 
-A file of at most 1 MiB stands here as it is: 6,170 files.
+A file of at most 1 MiB stands here as it is: 6,171 files.
 
 A larger input that compresses to at most 1 MiB stands here as `<name>.bin.zst`, a Zstandard frame of the input: 51 files,
 listed in `PACKED.md` with their expanded size and SHA-256. Expand one with `zstd -d` before use.
@@ -99,8 +102,8 @@ extract it at the root of a checkout and compare each SHA-256 before use.
 ## How the recorded values were obtained
 
 An entry whose `status` is `built and matches` holds the value that the program that built the corpus gave, and that value
-agrees with the rules of `docs/v2/`. An entry whose `status` is `derived from the text` holds a value that was derived from
-those rules by hand, because that program was written against an earlier text and gave another value. Where an entry and
+agrees with the rules of `docs/v2/`. An entry whose `status` is `derived from the text` holds a value derived directly from
+those rules. Where an entry and
 the text differ, the text governs.
 
 ## What the corpus does not cover

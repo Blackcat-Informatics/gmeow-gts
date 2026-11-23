@@ -1,22 +1,25 @@
 <!-- SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca> -->
 <!-- SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0 -->
 
-# GTS format generation 2: draft specification
+# GTS format generation 2
 
 Graph Transport Substrate (GTS) carries graph statements and content-addressed binary data in an appendable sequence of
 CBOR items. A reader folds the items into graph content and reports what it could verify, recover or read only in part.
 The format defines a projection of the fold into quads and empty named graphs, and a canonical representation of the fold.
 
-**Status.** This is the draft of format generation 2, document version 2.0. The reference engines implement
-[generation 1](../GTS-SPEC.md). Generation 2 has its own [draft conformance corpus](../../vectors/v2/README.md).
-Adoption follows the [GTS proposal process](../GTS-GOVERNANCE.md).
+**Document version 2.0 · In review.** [Implementer Draft 1](https://github.com/Blackcat-Informatics/gmeow-gts/releases/tag/spec-v2-draft-1)
+identifies the published review snapshot. Cite a commit when reviewing revisions to that snapshot.
+The reference engines implement [generation 1](../GTS-SPEC.md). Adoption follows the [GTS proposal process](../GTS-GOVERNANCE.md).
+
+For a reader's introduction to content identity, partial reads, recovery, privacy and migration,
+see [what changes from v1](../../DIFFERENCES_IN_v2.md).
 
 Start with P1 for the wire grammar, P7 §5 for the claims an implementation can make and P7-10 for how to compare two
 readers. For RDF interoperability, P3 §10a defines the projection, the information it loses, and the conditions for writing
 it in an RDF syntax. Report a discrepancy with the document version or commit, the part and requirement or section, and,
 where possible, the smallest input and the two outcomes. [GTS issue tracker](https://github.com/Blackcat-Informatics/gmeow-gts/issues)
 
-The draft is a set of sixteen normative documents and four informative documents. The normative documents:
+The specification consists of the following sixteen normative documents.
 
 | document | title |
 |---|---|
@@ -56,7 +59,7 @@ them state no rule of the format. Where one of them and a normative document dif
 
 The main `README.md` of the repository describes the first generation. Its command verbs, its detached proof JSON, its
 embedded OpenPGP transport key, its streaming reader, its `fold` and `from-nq` pair and its profile spellings are interfaces
-of that generation. This draft defines other typed contracts for proofs (`P5`), signatures (`P6`), sealing (`P8`), the
+of that generation. Generation 2 defines typed contracts for proofs (`P5`), signatures (`P6`), sealing (`P8`), the
 accesses of a reader (`P7`) and the RDF projection (`P3`). `GUIDE-migration.md` maps each of them. In this generation the fold
 of two concatenated files is not in general the union of their folds (`P1`, "Growing a file").
 

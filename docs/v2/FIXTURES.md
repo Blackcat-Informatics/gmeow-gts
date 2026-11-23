@@ -288,6 +288,9 @@ profiles of the read.
 - Rule: `P3`, "Texts that RDF does not admit".
 - Corpus: `P3/project/not-rdf-texts` is the input and the read of the first case, with two further lines; it records no finding
   and no projection. `P3/project/malformed-iri` is the second case, with its projection.
+- Empty graph variant: `P3/project/relative-empty-graph` starts with no quads and the single empty graph named
+  `iri("g")`. Writing the whole projection preserves that name and precludes an RDF claim. Writing only its quads
+  gives an empty N-Quads document and loses the graph.
 
 ### FX-021 A typed literal of the datatype text `rdf:langString`, and a language that is not a tag
 

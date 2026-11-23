@@ -1,0 +1,24 @@
+{
+ "name": "project/relative-empty-graph",
+ "status": "derived from the text",
+ "note": "Project the imported fold in both variants. The relative name occurs only in the set of empty graph names. Compare an export of the complete projection with a quads-only N-Quads export.",
+ "section": "P3 10a.1 to 10a.3, 10a.5, P3-100",
+ "cases": [
+  {
+   "label": "",
+   "dataset": {
+    "quads": [],
+    "empty_graph_names": [{"iri": "g"}]
+   },
+   "projection": {
+    "visible": {"quads": [], "empty_graph_names": [{"iri": "g"}]},
+    "whole": {"quads": [], "empty_graph_names": [{"iri": "g"}]},
+    "rdf_dataset": false
+   },
+   "result": {
+    "complete_projection": {"rdf_claim_permitted": false},
+    "quads_only": {"rdf_claim_permitted": true, "represents_full_projection": false, "example_nquads_utf8_hex": ""}
+   }
+  }
+ ]
+}

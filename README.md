@@ -36,6 +36,9 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 ---
 
+**Looking at GTS v2?** Read [what changes from v1](./DIFFERENCES_IN_v2.md) for a practical introduction.
+The engines and commands described below implement generation 1.
+
 ## Why does this exist?
 
 Most “portable data” is not actually one thing.

@@ -294,7 +294,9 @@ It is the program that builds the corpus and gives the expected result of every 
 - Write one canonical writer (the construction and the compaction of `P7`, "The canonical form") from the text alone, by an
   author who did not write the program that builds the corpus.
 - Compare the readers on the bytes, implementation claims and read inputs specified by P7-10. Compare each encoded
-  `read_result`, each stream point and each answer by range as that requirement specifies. For a file delegated to a
+  `read_result`, each stream point and each answer by range, together with their required companion outputs. Compare
+  the fold and its required labelling statistics, the values delivered with stream and range items, and any profile
+  records, including the ordered list of nested reads for a bundle. For any file delegated to a
   first-generation reader, compare the embedded byte string to the result of running that same first-generation reader
   on the same file. Compare the enclosing fields across implementations. Report every discrepancy and the field involved.
 - Compare the writers on the same fold and the same `profile` value: the items of the head claim are equal byte for byte;
