@@ -65,6 +65,7 @@ pub mod stream;
 pub mod tar;
 pub mod trig;
 pub mod ulid;
+pub mod v2;
 pub mod verify;
 pub mod wire;
 pub mod writer;
