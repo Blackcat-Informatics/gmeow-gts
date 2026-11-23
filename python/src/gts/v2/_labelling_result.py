@@ -24,6 +24,7 @@ from ._labelling_structure import (
     PreparedInput,
     prepare_input,
 )
+from ._labelling_walk import walk
 from .labelling import _MAX_UINT, LabellingInput, LabellingRefused, PositionedSequence
 
 
@@ -220,10 +221,15 @@ def _input_statistics(
     )
 
 
-def label_unlimited(source: LabellingInput) -> LabellingResult:
-    """Compute the L1 result with the maximum unsigned work limit."""
+def label(source: LabellingInput, *, work_limit: int = _MAX_UINT) -> LabellingResult:
+    """Compute the L1 result or raise its typed refusal at the reader's limit."""
+    if type(work_limit) is not int or not 0 <= work_limit <= _MAX_UINT:
+        raise ValueError("labelling work limit must be an unsigned 64-bit integer")
     prepared = prepare_input(source)
-    certificates = solve_components(prepared)
+    if max(work_limit, prepared.allowance) == _MAX_UINT:
+        certificates = solve_components(prepared)
+    else:
+        certificates, _ = walk(prepared, work_limit)
     components = tuple(_component_statistics(item) for item in certificates)
     diagnostic = tuple(
         sorted(item for result in certificates for item in result.diagnostic)

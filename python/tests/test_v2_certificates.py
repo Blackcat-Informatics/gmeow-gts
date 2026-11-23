@@ -4,13 +4,17 @@
 
 from itertools import combinations, product
 
+import pytest
+
 from gts.v2._certificates import (
     Call,
     canonical_map,
     compare_certificates,
     component_certificates,
 )
-from gts.v2._labelling_result import label_unlimited
+from gts.v2._labelling_result import label
+from gts.v2._labelling_structure import prepare_input
+from gts.v2._labelling_walk import LabellingLimitRefused, walk
 from gts.v2._twins import TwinIndex
 from gts.v2.labelling import Blank, Iri, LabellingInput, LabellingTerms, RecordLine
 from gts.v2.rows import QuadRow
@@ -48,12 +52,12 @@ def test_cycle_copies_use_source_order_for_ties_but_share_an_identity() -> None:
         assert component.call.fix_units == 12
     labels = canonical_map(components)
     assert list(labels) == [b"a", b"c", b"b", b"x", b"z", b"y"]
-    for i, label in enumerate(labels.values()):
+    for i, node in enumerate(labels.values()):
         assert (
-            label.position,
-            label.component,
-            label.local_position,
-            label.copy_index,
+            node.position,
+            node.component,
+            node.local_position,
+            node.copy_index,
         ) == (
             i,
             identity,
@@ -174,7 +178,7 @@ def test_structural_record_counts_top_copies_and_repeated_failures() -> None:
             (b"z", b"x"),
         ]
     )
-    result = label_unlimited(source)
+    result = label(source)
     stats = result.statistics
     assert (stats.calls, stats.chosen_children) == ((0, 0, 2), (2, 0))
     assert (stats.size_histogram, stats.top_multiplicities) == (((1, 2),), (2,))
@@ -192,7 +196,9 @@ def test_structural_record_counts_nested_symmetry_and_work_parts() -> None:
     # Section 12.6 has a branching component and a forest, each with equal siblings.
     arcs = list(product((b"a1", b"a2"), (b"b1", b"b2")))
     arcs.extend([(b"u", b"c1"), (b"v1", b"c1"), (b"u", b"c2"), (b"v2", b"c2")])
-    result = label_unlimited(_graph(arcs))
+    source = _graph(arcs)
+    result = label(source, work_limit=0)
+    assert result == label(source)
     first, second = result.components
     assert first.dimensions.largest_cell == 2
     assert not first.dimensions.forest
@@ -224,7 +230,7 @@ def test_search_free_failures_use_path_positions_in_each_sibling() -> None:
         (b"g", b"e"),
     ]
     hub = [(b"a", node) for node, _ in cycles]
-    result = label_unlimited(_graph(cycles + hub))
+    result = label(_graph(cycles + hub))
     failure = (1, 3, 7, 12)
     assert result.diagnostic == ((failure, b"a", b"b"), (failure, b"a", b"e"))
     assert result.statistics.broken_by == (failure, failure)
@@ -236,7 +242,7 @@ def test_structural_record_distinguishes_incidences_from_occurrences() -> None:
     source = LabellingInput(
         terms, [RecordLine(b"", (blank, blank)), RecordLine(b"", ())]
     )
-    result = label_unlimited(source)
+    result = label(source)
     (component,) = result.components
     assert component.dimensions.label_elements == 2
     assert component.dimensions.incidences == 1
@@ -245,3 +251,53 @@ def test_structural_record_distinguishes_incidences_from_occurrences() -> None:
     assert result.statistics.units == (4, 4, 3, 6)
     assert result.statistics.allowance == 39
     assert len(result.sequence.encodings) == 2
+
+
+@pytest.mark.parametrize(("order", "charged"), [(b"abcd", 154), (b"acbd", 202)])
+def test_walk_charges_source_order_specific_totals(order: bytes, charged: int) -> None:
+    # L1 section 8.3 gives different walks for these two names of one cycle.
+    nodes = [bytes([node]) for node in order]
+    source = _graph(list(zip(nodes, nodes[1:] + nodes[:1], strict=True)))
+    assert walk(prepare_input(source), 0)[1] == charged
+    assert label(source, work_limit=0) == label(source)
+
+
+def test_walk_carries_nested_maps_before_visiting_later_children() -> None:
+    ring = [b"a", b"b", b"c", b"e", b"d"]
+    arcs = list(zip(ring, ring[1:] + ring[:1], strict=True))
+    source = _graph(arcs + [(b, a) for a, b in arcs])
+    assert walk(prepare_input(source), 640)[1] == 640
+    assert label(source, work_limit=640) == label(source)
+    with pytest.raises(LabellingLimitRefused) as raised:
+        label(source, work_limit=639)
+    assert raised.value.units == 640
+
+
+def test_walk_refuses_on_the_first_charge_strictly_above_the_limit() -> None:
+    # COMPL(3, 5) in L1 sections 8.3 and 13.1.
+    omitted = {(0, 1), (1, 2), (0, 2), (3, 4), (4, 5), (5, 6), (6, 7), (3, 7)}
+    arcs = [
+        (a, b)
+        for a, b in product(range(8), repeat=2)
+        if a != b and (min(a, b), max(a, b)) not in omitted
+    ]
+    source = _graph([(f"n{a}".encode(), f"n{b}".encode()) for a, b in arcs])
+    below = 3505
+    with pytest.raises(LabellingLimitRefused) as raised:
+        label(source, work_limit=below)
+    refusal = raised.value
+    assert (refusal.source, refusal.nodes, refusal.units) == (b"n0", 8, 3506)
+    assert refusal.broken_by == ((0, 8, 8, 40),)
+    result = label(source, work_limit=3506)
+    assert result == label(source)
+    assert result.statistics.allowance == 2608
+
+    # Section 13.1's permutation for seed 5 uses full unsigned encodings as names.
+    names = [value.to_bytes(8, "big") for value in (7, 2, 6, 4, 0, 1, 5, 3)]
+    renamed = _graph([(names[a], names[b]) for a, b in arcs])
+    assert walk(prepare_input(renamed), 4539)[1] == 4539
+    with pytest.raises(LabellingLimitRefused) as raised:
+        label(renamed, work_limit=3506)
+    assert (raised.value.source, raised.value.nodes) == (bytes(8), 8)
+    assert 3506 < raised.value.units < 4539
+    assert label(renamed, work_limit=4539).sequence == result.sequence

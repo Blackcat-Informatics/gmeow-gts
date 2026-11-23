@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator, Iterator, Mapping
+from collections.abc import Callable, Generator, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from functools import cmp_to_key
@@ -69,6 +69,11 @@ class Call:
                 if call.nested:
                     stack.append(iter(call.nested))
 
+    def ordered_nodes(self) -> Iterator[bytes]:
+        """Visit the nodes in final position order within the call."""
+        for call in self.preorder():
+            yield from call.fixed
+
 
 def compare_certificates(left: Call, right: Call) -> int:
     """Compare typed certificates in the order of L1 section 6.3."""
@@ -103,6 +108,31 @@ def _compare_nested(left: Call, right: Call) -> int:
 
 
 type _SearchStep = Generator[RefinedComponent, Call, Call]
+
+
+def drive_calls[Result](
+    component: RefinedComponent,
+    visit: Callable[[RefinedComponent], Generator[RefinedComponent, Result, Result]],
+) -> Result:
+    """Evaluate nested call frames without Python recursion."""
+    stack = [visit(component)]
+    nested = None
+    try:
+        while stack:
+            try:
+                current = next(stack[-1]) if nested is None else stack[-1].send(nested)
+            except StopIteration as completed:
+                stack.pop()
+                nested = completed.value
+            else:
+                stack.append(visit(current))
+                nested = None
+    finally:
+        # A refusal can leave ancestor frames suspended inside a fixing.
+        for frame in reversed(stack):
+            frame.close()
+    assert nested is not None
+    return nested
 
 
 class _Search:
@@ -159,20 +189,7 @@ class _Search:
             yield from inherit_components(self.source, component, self.positions)
 
     def solve(self) -> Call:
-        # The explicit stack sends each nested result back to its parent.
-        stack = [self._call(self.top)]
-        nested = None
-        while stack:
-            try:
-                current = next(stack[-1]) if nested is None else stack[-1].send(nested)
-            except StopIteration as completed:
-                stack.pop()
-                nested = completed.value
-            else:
-                stack.append(self._call(current))
-                nested = None
-        assert nested is not None
-        return nested
+        return drive_calls(self.top, self._call)
 
     def _call(self, component: RefinedComponent) -> _SearchStep:
         smallest = _smallest_source(component)
@@ -206,17 +223,14 @@ class _Search:
         return ((group[0], len(group)) for group in groups.values())
 
     def _test_twins(self, target: list[bytes], *, stop_on_failure: bool) -> bool:
-        # Only the top component's vertices and line set define a twin test.
-        if self.twin_index is None:
-            lines = (index for cell in self.top.line_cells for index in cell)
-            self.twin_index = TwinIndex(self.source, lines, self.line_nodes)
+        index = self.permutation_index()
         first = target[0]
         all_twins = True
         for vertex in target[1:]:
             if self.twin_classes.representative(
                 first
             ) != self.twin_classes.representative(vertex):
-                passes, _ = self.twin_index.test(first, vertex)
+                passes, _ = index.test(first, vertex)
                 if passes:
                     self.twin_classes.join(first, vertex)
                 elif stop_on_failure:
@@ -224,6 +238,13 @@ class _Search:
                 else:
                     all_twins = False
         return all_twins
+
+    def permutation_index(self) -> TwinIndex:
+        # Only the top component's vertices and line set define a twin test.
+        if self.twin_index is None:
+            lines = (index for cell in self.top.line_cells for index in cell)
+            self.twin_index = TwinIndex(self.source, lines, self.line_nodes)
+        return self.twin_index
 
     def _fix(
         self,
@@ -239,12 +260,7 @@ class _Search:
             entries, fix_units = self._entries(component, fixed)
             if best is not None and (len(fixed), entries) > best.prefix():
                 return None
-            remaining = inherit_components(self.source, component, self.positions)
-            sizes = [
-                sum(map(len, child.node_cells)) + sum(map(len, child.line_cells))
-                for child in remaining
-            ]
-            fix_units += sum(sizes) - max(sizes, default=0)
+            remaining, split_units = self.nest(component)
             nested = []
             for child in remaining:
                 result = yield child
@@ -256,8 +272,18 @@ class _Search:
                 tuple(nested),
                 smallest,
                 refinement_units,
-                fix_units,
+                fix_units + split_units,
             )
+
+    def nest(
+        self, component: RefinedComponent
+    ) -> tuple[tuple[RefinedComponent, ...], int]:
+        remaining = inherit_components(self.source, component, self.positions)
+        sizes = [
+            sum(map(len, child.node_cells)) + sum(map(len, child.line_cells))
+            for child in remaining
+        ]
+        return remaining, sum(sizes) - max(sizes, default=0)
 
     @contextmanager
     def _positioned(self, fixed: tuple[bytes, ...]) -> Iterator[None]:
@@ -323,20 +349,34 @@ def solve_components(prepared: PreparedInput) -> tuple[ComponentCertificate, ...
     for partition, dimensions in prepared.components:
         search = _Search(prepared.source, prepared.line_nodes, partition)
         diagnostic = search.first_failures(dimensions)
-        call = search.solve()
-        digest = blake3(derive_key_context=_COMPONENT_CONTEXT)
-        for chunk in call.certificate_chunks():
-            digest.update(chunk)
         components.append(
-            ComponentCertificate(
-                digest.digest(),
-                call,
-                partition.start_units,
-                partition.refinement_units,
-                dimensions,
-                diagnostic,
-            )
+            certified_component(search.solve(), partition, dimensions, diagnostic)
         )
+    return order_components(components)
+
+
+def certified_component(
+    call: Call,
+    partition: RefinedComponent,
+    dimensions: ComponentDimensions,
+    diagnostic: tuple[Diagnostic, ...],
+) -> ComponentCertificate:
+    digest = blake3(derive_key_context=_COMPONENT_CONTEXT)
+    for chunk in call.certificate_chunks():
+        digest.update(chunk)
+    return ComponentCertificate(
+        digest.digest(),
+        call,
+        partition.start_units,
+        partition.refinement_units,
+        dimensions,
+        diagnostic,
+    )
+
+
+def order_components(
+    components: list[ComponentCertificate],
+) -> tuple[ComponentCertificate, ...]:
     return tuple(
         sorted(
             components,
@@ -352,9 +392,6 @@ def canonical_map(
     nodes: dict[bytes, CanonicalNode] = {}
     for identity, copies in groupby(components, key=lambda result: result.identity):
         for copy_index, component in enumerate(copies):
-            ordered = (
-                node for call in component.call.preorder() for node in call.fixed
-            )
-            for local, node in enumerate(ordered):
+            for local, node in enumerate(component.call.ordered_nodes()):
                 nodes[node] = CanonicalNode(len(nodes), identity, local, copy_index)
     return nodes
