@@ -588,8 +588,7 @@ A read ends in one of two ways.
 
 A RESULT. The reader returns the typed result of `P7`. Everything that a limit of the reader refused is in it: a frame beyond a
 limit is `unchecked` with `exceeds_capacity`, a fold beyond one has `labelling_refused`, and the `capacity` that the result
-records explains each. Another reader with the same capacity and the same inputs gives the same result for the same bytes. A
-source that fails to
+records explains each. P7-10 defines the comparison between readers. A source that fails to
 deliver bytes at an offset is an input of the read and gives a result with the finding `read_failed` (`P1`, "A failed read is not
 the end of the input").
 

@@ -8,8 +8,9 @@ the corpus of the generation in force is the rest of `vectors/`.
 One directory for each part that has vectors (`P1` to `P9`) and one for each of the six profile documents. The vectors of the
 labelling text `L1` stand in `P3`. Each directory has an `INDEX.md` that lists its entries.
 
-An entry is a description, `<name>.json`, and its inputs, `<name>*.bin`. A `/` in the name of an entry is written `__` in
-its file names: the entry `finding/exceeds_capacity/stored_size` of `P2` is `P2/finding__exceeds_capacity__stored_size.json`.
+To enumerate the entries, read every path ending in `.json` in `SHA256SUMS`, expanding any packed file as described below.
+Use the `name` field to look up the entry in its part's index. Resolve a case's `input_file` relative to the part directory.
+For example, the description `P7/read/value-after-term.json` names `read/value-after-term.same-segment.bin` within `P7`.
 A description has these keys:
 
 | key | holds |
@@ -24,6 +25,12 @@ A case names its input (`input_file`), states the `capacity` of the read, and re
 hexadecimal of its deterministic encoding (`read_result`, or the record that the case names). The typed records are those of
 `docs/v2/P7.md`, "The typed result of reading", and of the part that the entry belongs to.
 
+Match the reader's claims and read inputs to the case before comparing results (P7-10). For example,
+`P7/canonical/check/verified-and-no-encoder` uses the same file twice and changes only `holds_reference_encoder`.
+In `P9/reader/first-and-second`, compare the enclosing fields and the `first_generation` variant tag with the recorded case.
+Compare the embedded byte string with the output of the implementation's own first-generation reader on that input
+(P9-3). Its recorded contents illustrate one first-generation reader's output.
+
 A case states every further input of its read or judgement:
 
 - `read`: the inputs of the read that are not the default: `profiles`, `trusted_keys`, `held_keys`, `sealing_input`, `marks`,
@@ -31,8 +38,8 @@ A case states every further input of its read or judgement:
   (whether the reader holds the reference encoder of the storage level) and `read_failure` (the `offset` and `length` of a
   read of the input that fails).
   A recorded `read_result` itself holds the `capacity`, the `inputs`, the `profiles` and the `marks` of its read; where a case
-  has no `read` key, those fields of the record state them. The length and SHA-256 of a case's input are those of its line in
-  `SHA256SUMS` (`PACKED.md` and `ABSENT.md` give them for an input that is not stored plain); a case does not repeat them.
+  has no `read` key, those fields of the record state them. `SHA256SUMS` gives the digest of the expanded input.
+  `PACKED.md` and `ABSENT.md` also give its byte length for inputs distributed separately or compressed.
 - a key that ends in `_file`: a second file of the case, such as the source of a conversion, the later file of a proof, a
   proof, or a result.
 - `projection`, `compaction_result`: the projection of the fold in plain values and the encoded outcome of a compaction.

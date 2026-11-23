@@ -3,7 +3,7 @@
 These inputs do not compress under the size limit for added files. They are in the archive
 `gts-v2-corpus-absent-inputs.tar.zst` of the release `corpus-v2-inputs-2`:
 <https://github.com/blackcat-informatics/gmeow-gts/releases/download/corpus-v2-inputs-2/gts-v2-corpus-absent-inputs.tar.zst>
-(SHA-256 `1dcae001e4d8fe6d68223d2c015b1b531e2ae7eb28644fcfa546f1b997ae6250`). Extract it at the root of a checkout with
+(SHA-256 `1dcae001e4d8fe6d68223d2c015b1b531f2ae7eb28644fcfa546f1b997ae6250`). Extract it at the root of a checkout with
 `zstd -dc --long=27 gts-v2-corpus-absent-inputs.tar.zst | tar -x`; each file lands at its path below `vectors/v2/`.
 Compare the SHA-256 of each file with the table before use.
 

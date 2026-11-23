@@ -43,8 +43,8 @@ and label with an external sort: the specification fixes the result and the orde
 
 A reader states any capacity. A reader whose every field is at least its minimum value claims the minimum capacity. A file
 within the minimum values is read by every such reader without a refusal by one of those limits. A reader that states less is
-complete in every rule and refuses, with a typed finding, what is beyond its limits; another reader of the same capacity gives
-the same result for the same bytes. The claim is not a tier, a mode or a subset: every value, frame type, check and finding
+complete in every rule and refuses, with a typed finding, what is beyond its limits. Section 4.2 describes how to compare
+its result with another reader's. The claim is not a tier, a mode or a subset: every value, frame type, check and finding
 stays mandatory, and so do the three accesses (`P7`, "Conformance").
 
 ### 1.2 What bounds the work of a reader
@@ -293,12 +293,10 @@ It is the program that builds the corpus and gives the expected result of every 
   program or of the program that builds the corpus.
 - Write one canonical writer (the construction and the compaction of `P7`, "The canonical form") from the text alone, by an
   author who did not write the program that builds the corpus.
-- Compare the readers on the same input and report every difference. An input is the bytes, the capacity (all ten fields,
-  the access among them), the input `marks`, the held keys and the trusted keys, the sealing input, the registry version of the
-  reader, and the profiles with the number of checks of each; with `forward` also the value of `end`, and with `sparse` the query.
-  The comparison is of the whole encoded `read_result`, byte for byte, and of the stream points
-  and the answers by range where the access gives them. A field is left out of the comparison only where the text says that
-  two conforming readers can differ in it, and the report names each such field.
+- Compare the readers on the bytes, implementation claims and read inputs specified by P7-10. Compare each encoded
+  `read_result`, each stream point and each answer by range as that requirement specifies. For a file delegated to a
+  first-generation reader, compare the embedded byte string to the result of running that same first-generation reader
+  on the same file. Compare the enclosing fields across implementations. Report every discrepancy and the field involved.
 - Compare the writers on the same fold and the same `profile` value: the items of the head claim are equal byte for byte;
   the stored bytes are equal when both hold the reference encoder (`P7`, "The reference encoder and the bytes claim").
 - Each reader carries out every part that it claims: signatures, sealing, profiles, proofs, conversion, the canonical check,

@@ -317,8 +317,8 @@ Each adapter has a schema, mapping laws and safety behaviour of its own: the ref
 escaping of a syntax. Each is specified again for generation 2, with fixtures of its own. An adapter keeps its version apart
 from the registry version of the format.
 
-An adapter that writes RDF text does not claim that its output is RDF when a text of the quads is a text that RDF does not
-admit, and does not change the text to make it so (`P3`, "Texts that RDF does not admit").
+An adapter that writes RDF text applies the condition on RDF output to every term it writes, including the name of an empty
+graph. An adapter that writes only quads loses the empty named graphs (`P3`, "The RDF projection of a fold").
 
 ## 9. Versions of tools and schemas
 
