@@ -11,7 +11,13 @@ from ._fold_terms import FoldTerms
 from .blobs import BlobSet
 from .items import _shortest_head_size
 from .labelling import RecordLine
-from .record_fold import GroundRef, GroundTerm, RecordFold, ResolvedLeaf
+from .record_fold import (
+    GroundRef,
+    GroundTerm,
+    RecordFold,
+    ResolvedLeaf,
+    ResolvedSuppression,
+)
 from .records import (
     BlankPair,
     BlobReference,
@@ -35,7 +41,8 @@ class _ArrayHead:
 
 type _Field = int | str | bytes | _Slot | tuple[_Field, ...]
 type RecordBody = tuple[_Field, ...]
-type _Part = int | str | bytes | _ArrayHead | _Slot
+type _WirePart = int | str | bytes | _ArrayHead
+type _Part = _WirePart | _Slot
 
 
 def _referent(value: Referent) -> RecordBody:
@@ -48,30 +55,43 @@ def _referent(value: Referent) -> RecordBody:
             return 3, identifier
 
 
+def _binding_body(term: ResolvedLeaf, referent: Referent) -> RecordBody:
+    return _Slot(term), _referent(referent)
+
+
+def _suppression_body(
+    suppression: ResolvedSuppression,
+) -> tuple[SuppressionKind, _Field]:
+    kind = suppression.kind
+    slots = tuple(_Slot(term) for term in suppression.terms)
+    if kind == SuppressionKind.BLOB:
+        blob = suppression.referent
+        assert isinstance(blob, BlobReference)
+        return kind, (blob.algorithm, blob.digest)
+    if kind == SuppressionKind.BINDING:
+        referent = suppression.referent
+        assert referent is not None and len(slots) == 1
+        return kind, _binding_body(slots[0].term, referent)
+    if kind in (
+        SuppressionKind.QUAD,
+        SuppressionKind.REIFIER_BINDING,
+        SuppressionKind.ANNOTATION,
+    ):
+        graph = (1,) if suppression.graph is None else (2, _Slot(suppression.graph))
+        return kind, (*slots, graph)
+    (target,) = slots
+    return kind, target
+
+
 def _graph_bodies(records: RecordFold) -> Iterator[RecordBody]:
     for binding in records.bindings:
-        yield 1, (_Slot(binding.term), _referent(binding.referent))
+        yield 1, _binding_body(binding.term, binding.referent)
     for suppression in records.suppression:
-        kind = suppression.kind
-        slots = tuple(_Slot(term) for term in suppression.terms)
-        if kind == SuppressionKind.BLOB:
-            blob_reference = suppression.referent
-            assert isinstance(blob_reference, BlobReference)
-            body: RecordBody = kind, (blob_reference.algorithm, blob_reference.digest)
-        elif kind == SuppressionKind.BINDING:
-            referent = suppression.referent
-            assert referent is not None
-            body = kind, *slots, _referent(referent)
-        elif kind in (
-            SuppressionKind.QUAD,
-            SuppressionKind.REIFIER_BINDING,
-            SuppressionKind.ANNOTATION,
-        ):
-            graph = (1,) if suppression.graph is None else (2, _Slot(suppression.graph))
-            body = kind, *slots, graph
+        kind, target = _suppression_body(suppression)
+        if isinstance(target, tuple) and kind != SuppressionKind.BLOB:
+            yield 2, (kind, *target)
         else:
-            body = kind, *slots
-        yield 2, body
+            yield 2, (kind, target)
 
 
 def record_bodies(
@@ -84,7 +104,9 @@ def record_bodies(
         yield 4, (value.kind, _Slot(ref))
 
 
-def _parts(body: RecordBody, ground: tuple[GroundTerm, ...]) -> Iterator[_Part]:
+def _parts(
+    body: RecordBody, ground: tuple[GroundTerm, ...], *, wire: bool = False
+) -> Iterator[_Part]:
     pending: list[_Field] = [body]
     while pending:
         field = pending.pop()
@@ -95,16 +117,15 @@ def _parts(body: RecordBody, ground: tuple[GroundTerm, ...]) -> Iterator[_Part]:
             case _Slot(GroundRef(index)):
                 term = ground[index]
                 if isinstance(term, BlankPair):
-                    pending.append((2, term.frame, term.label))
+                    pair = (term.frame, term.label)
+                    pending.append((2, pair) if wire else (2, *pair))
                 else:
-                    pending.append(
-                        (
-                            3,
-                            _Slot(term.subject),
-                            _Slot(term.predicate),
-                            _Slot(term.object),
-                        )
+                    children = (
+                        _Slot(term.subject),
+                        _Slot(term.predicate),
+                        _Slot(term.object),
                     )
+                    pending.append((3, children) if wire else (3, *children))
             case _:
                 yield field
 
@@ -148,12 +169,19 @@ def record_line(
             case _Slot(int(ref)):
                 payload.extend(b"\x81\x01")
                 refs.append(terms.lowered(ref))
-            case _ArrayHead(length):
-                argument = cbor2.dumps(length)
-                payload.append(0x80 | argument[0])
-                payload.extend(argument[1:])
             case _Slot():
                 raise AssertionError("unresolved record slot")
             case _:
-                payload.extend(cbor2.dumps(part))
+                payload.extend(_encode_part(part))
     return RecordLine(bytes(payload), tuple(refs))
+
+
+def _array_head(length: int) -> bytes:
+    argument = cbor2.dumps(length)
+    return bytes((0x80 | argument[0],)) + argument[1:]
+
+
+def _encode_part(part: _WirePart) -> bytes:
+    return (
+        _array_head(part.length) if isinstance(part, _ArrayHead) else cbor2.dumps(part)
+    )
