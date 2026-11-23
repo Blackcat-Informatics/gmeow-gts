@@ -45,10 +45,10 @@ def _media_type(cursor: _Decoder, registry_version: int) -> str | None:
     start = cursor.offset
     size = cursor.array()
     if size == 0:
-        raise PackError("wrong_length", start)
+        raise cursor.error("wrong_length", start)
     tag = content_code(cursor, 2, registry_version)
     if size != tag:
-        raise PackError("wrong_length", start)
+        raise cursor.error("wrong_length", start)
     return cursor.text_value() if tag == 2 else None
 
 
