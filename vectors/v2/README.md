@@ -81,15 +81,23 @@ Inputs that are not in this directory. The inputs listed in `ABSENT.md` are reco
 expected results, and a case whose input is a prefix or an edit of such a file states it by `input_cut` or `input_edit`. A
 reader of this corpus checks those cases only with the release archive that `ABSENT.md` names.
 
-Values that no second computation confirmed. Every entry was checked against the text by a reader independent of the program
-that wrote it, but some values were taken from that program without being recomputed:
+Values computed a second time. Every entry was checked against the text by a reader independent of the program that wrote
+it. These values were also computed a second time from the text, with library primitives and code written from the text and
+not with that program, and agree with the recorded values:
 
-- the content digests of folds whose canonical labelling needs the search of `docs/v2/L1.md`, and the unit counts of the
-  entries that the labelling limit refuses;
-- the bytes of the storage level, which depend on the reference encoder;
-- the parity bytes of the spans whose shards were checked only against their digests, and the solving of a stripe outside
-  `P5/gf-toy`, `P5/recover-no-signature` and `P5/parity-placement`;
-- the wrapped keys of the sealing entries other than the known answers of `P8`.
+- the content digests and refusals of every fold whose canonical labelling needs the search of `docs/v2/L1.md`, with the unit
+  counts of the entries that the labelling limit refuses; the code reproduces the fifteen worked examples of `L1`;
+- the stored bytes of the storage level: every compressed payload of a segment whose storage is `verified` encodes again to
+  the same bytes under the reference encoder that `docs/v2/P7.md` names, and every choice between stored and compressed holds;
+- the parity bytes and tables of every used parity frame, the solving of every damaged stripe, and every repaired copy;
+- the sealed frames, wrapped keys, key identifiers and member indexes of the sealing entries, and the first test vector of the
+  X-Wing draft (`P8/xwing-kat`);
+- the lineage ordinals of every input of two or more segments, and the lineage findings of their reads.
+
+Not computed a second time: the parity bytes of `P5/parity-stale-equal` and `P5/parity-stale-geometry` before the rewrite
+that made them stale, whose earlier file the corpus does not hold; the recipient entries of `P7/stream-delivery-order` whose
+identifier is zero, which name no key; the refusal of `P3/labelling-width-and-limit`, which the fold decides before any
+labelling.
 
 Behaviour that no entry holds. A member index missing after a full-size sealed pack (`P8/p8-members-layout-missing-small`
 holds the rule at a small size), and a file before and after an append that keeps its parity frames (`P5-27`).

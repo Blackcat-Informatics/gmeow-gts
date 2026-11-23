@@ -2,7 +2,7 @@
  "name": "broken-link-no-effective-identifier",
  "section": "P3",
  "status": "built and matches",
- "note": "an ordinary frame that is `broken` and has no effective identifier (its `transparent` not a `bool`, its `identifier` not `bytes`) starts THE DICTIONARY AFTER A BROKEN LINK: a later row naming ids of an earlier `terms` frame is held, `opaque_term`, the content digest `absent` (P3 2.8, P3-117)",
+ "note": "an ordinary frame that is `broken` and has no effective identifier (its `transparent` not a `bool`, its `identifier` not `bytes`) starts THE DICTIONARY AFTER A BROKEN LINK: a later row naming ids of an earlier `terms` frame is held, `opaque_term`, the content digest `absent` (P3 2.8, P3-117); the lineage of the second segment has ordinal 2 after a segment whose lineage is absent, where a writer writes 1 (P1-22); a reader does not compare it (P1 2.4), so the result is that of ordinal 1",
  "cases": [
   {
    "label": "",

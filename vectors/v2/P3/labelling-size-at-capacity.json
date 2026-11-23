@@ -1,7 +1,7 @@
 {
  "name": "labelling-size-at-capacity",
  "status": "built and matches",
- "note": "the family at depth 6 (size 8) with labelled_lines 8: labelled, with two lines, the record of the entry and five nested_term records",
+ "note": "the family at depth 6 (size 8) with labelled_lines 8: labelled, with two lines, the record of the entry and five nested_term records; the lineage of the third segment has ordinal 2 after a segment whose lineage is absent, where a writer writes 1 (P1-22); a reader does not compare it (P1 2.4), so the result is that of ordinal 1",
  "cases": [
   {
    "label": "",

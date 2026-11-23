@@ -1,7 +1,7 @@
 {
  "name": "state-ordinals-kept",
  "status": "built and matches",
- "note": "a state over two segments in a file whose first segment has another segment before it: the blank node is node (1, b), the node of the file's fold; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
+ "note": "a state over two segments in a file whose first segment has another segment before it: the blank node is node (1, b), the node of the file's fold; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives; the lineage of the third segment has ordinal 2 after a segment whose lineage is absent, where a writer writes 1 (P1-22); a reader does not compare it (P1 2.4), so the result is that of ordinal 1",
  "cases": [
   {
    "label": "",
