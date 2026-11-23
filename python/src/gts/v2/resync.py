@@ -4,7 +4,7 @@
 
 import codecs
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import cbor2
 from blake3 import blake3
@@ -18,6 +18,7 @@ from .header import (
     _decode_opener_fields,
     _encode_opener_fields,
 )
+from .payload import PayloadBudget
 
 RESYNC_MAX = 4096
 _RESYNC_MARKS_MAX = 64
@@ -191,25 +192,27 @@ def _computed_identifier(body_fields: bytes | memoryview) -> bytes:
     return hasher.digest()
 
 
-def decode_resync(data: bytes, offset: int = 0) -> DecodedResync:
-    """Decode a resync item at a known boundary and compute its opener identifier.
-
-    A walked item can be displaced or carry a different stored identifier.
-    The recovery scan checks candidate acceptance separately.
-    """
-    if not 0 <= offset <= len(data):
-        raise ValueError("resync offset is outside the input")
-    decoder = _ResyncDecoder(data, offset)
+def _decode_prefix(
+    decoder: _ResyncDecoder, *, scan: bool = False
+) -> tuple[Header, int]:
     decoder.record(11)
     decoder.uint(minimum=5, maximum=5, reason="unregistered_value")
     decoder.uint(minimum=2, maximum=2)
     marker_at = decoder.offset
     if decoder.bytes() != _MARKER:
         raise ResyncError("out_of_range", marker_at)
-    registry, algorithm, profile = _decode_opener_fields(decoder)
+    registry, algorithm, profile = _decode_opener_fields(
+        decoder, require_known_hash=scan
+    )
     digest_size = 32 if algorithm == _BLAKE3_256 else None
     lineage = _decode_lineage(decoder, digest_size)
-    stated_offset = decoder.uint()
+    return Header(registry, algorithm, profile, lineage=lineage), decoder.uint()
+
+
+def _decode_tail(
+    decoder: _ResyncDecoder, offset: int, header: Header, stated_offset: int
+) -> DecodedResync:
+    digest_size = 32 if header.hash_algorithm == _BLAKE3_256 else None
     try:
         past = decoder.option(lambda: bytes(decoder.bytes(digest_size)))
         marks, marks_ignored = _read_marks(decoder, stated_offset)
@@ -225,8 +228,8 @@ def decode_resync(data: bytes, offset: int = 0) -> DecodedResync:
 
     identifier = None
     if digest_size is not None:
-        identifier = _computed_identifier(memoryview(data)[offset + 1 : body_end])
-    header = Header(registry, algorithm, profile, lineage=lineage)
+        encoded_body = memoryview(decoder.data)[offset + 1 : body_end]
+        identifier = _computed_identifier(encoded_body)
     return DecodedResync(
         header,
         stated_offset,
@@ -238,6 +241,90 @@ def decode_resync(data: bytes, offset: int = 0) -> DecodedResync:
         marks,
         marks_ignored,
     )
+
+
+def decode_resync(data: bytes, offset: int = 0) -> DecodedResync:
+    """Decode a resync item at a known boundary and compute its opener identifier.
+
+    A walked item can be displaced or carry a different stored identifier.
+    The recovery scan checks candidate acceptance separately.
+    """
+    if not 0 <= offset <= len(data):
+        raise ValueError("resync offset is outside the input")
+    decoder = _ResyncDecoder(data, offset)
+    header, stated_offset = _decode_prefix(decoder)
+    return _decode_tail(decoder, offset, header, stated_offset)
+
+
+@dataclass(frozen=True, slots=True)
+class ResyncRefusal:
+    """The first candidate refused by the read total, at its input offset."""
+
+    offset: int
+    count: int
+
+
+class ResyncScanner:
+    """Test resync candidates in the reader's recovery runs (P1 §6.7)."""
+
+    def __init__(self, data: bytes, budget: PayloadBudget) -> None:
+        self._data = data
+        self._budget = budget
+        self._tested_until = 0
+        self._last_start = 0
+
+    def scan(self, start: int, end: int) -> DecodedResync | ResyncRefusal | None:
+        """Find the first candidate starting in [start, end), or a refusal.
+
+        Supply runs in ascending order of their starts. Runs may overlap and
+        a candidate's final bytes may lie past the end of its run.
+        """
+        if not self._last_start <= start <= end <= len(self._data):
+            raise ValueError("resync scan runs must start in order within the input")
+        self._last_start = start
+        if self._budget.total_refused:
+            return None
+
+        position = max(start, self._tested_until)
+        search_end = min(len(self._data), end + len(RESYNC_PATTERN) - 1)
+        while position < end:
+            position = self._data.find(RESYNC_PATTERN, position, search_end)
+            if position == -1:
+                break
+            self._tested_until = position + 1
+            prefix = _ResyncDecoder(self._data, position)
+            try:
+                header, stated_offset = _decode_prefix(prefix, scan=True)
+            except ResyncError:
+                position = self._tested_until
+                continue
+            if stated_offset == position:
+                refused = self._budget.charge_decoded(RESYNC_MAX)
+                if refused is not None:
+                    return ResyncRefusal(position, refused)
+                candidate = self._candidate_tail(position, prefix.offset, header)
+                if candidate is not None:
+                    return candidate
+            position = self._tested_until
+
+        self._tested_until = max(self._tested_until, end)
+        return None
+
+    def _candidate_tail(
+        self, position: int, tail_at: int, header: Header
+    ) -> DecodedResync | None:
+        data = self._data[position : position + RESYNC_MAX]
+        decoder = _ResyncDecoder(data, 0)
+        decoder.offset = tail_at - position
+        try:
+            candidate = _decode_tail(decoder, 0, header, position)
+        except ResyncError:
+            return None
+        if candidate.identifier != candidate.stored_identifier:
+            return None
+        return replace(
+            candidate, next_offset=position + candidate.next_offset, displaced=False
+        )
 
 
 def encode_resync(

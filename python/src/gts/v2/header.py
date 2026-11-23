@@ -54,9 +54,12 @@ def _opener_registry_code(decoder: _Decoder, registry_version: int, last: int) -
     return decoder.uint(minimum=1, reason="unregistered_value")
 
 
-def _decode_opener_fields(decoder: _Decoder) -> tuple[int, int, int | None]:
+def _decode_opener_fields(
+    decoder: _Decoder, *, require_known_hash: bool = False
+) -> tuple[int, int, int | None]:
     registry = decoder.uint(minimum=1)
-    algorithm = _opener_registry_code(decoder, registry, _BLAKE3_256)
+    hash_registry = _REGISTRY_VERSION if require_known_hash else registry
+    algorithm = _opener_registry_code(decoder, hash_registry, _BLAKE3_256)
     profile = decoder.option(
         lambda: decoder.uint(minimum=1, reason="unregistered_value")
     )

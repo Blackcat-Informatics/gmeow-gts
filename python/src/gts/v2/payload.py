@@ -37,9 +37,9 @@ class PayloadCheck:
 class PayloadBudget:
     """The stored, decoded and cumulative byte limits for one read.
 
-    Use one instance across every segment. Submit frames in reader order
-    after checking their links. The stored check remains independent of
-    payload acceptance and runs even when capacity refuses decoding.
+    Use one instance across every segment and charge frames and recovery
+    candidates in reader order. The stored check runs even when capacity
+    refuses decoding.
     """
 
     def __init__(
@@ -64,32 +64,39 @@ class PayloadBudget:
         self._total_decoded = 0
         self._total_refused = False
 
+    @property
+    def total_refused(self) -> bool:
+        return self._total_refused
+
+    def charge_decoded(self, length: int) -> int | None:
+        """Charge work against the read total or return the refused count."""
+        if type(length) is not int or not 0 <= length <= _UINT_MAX:
+            raise ValueError("decoded charge must be a uint")
+        total = self._total_decoded + length
+        if self._total_refused or total > self._total_limit:
+            self._total_refused = True
+            return min(total, _UINT_MAX)
+        self._total_decoded = total
+        return None
+
     def check(self, frame: Frame) -> PayloadCheck:
         """Check a frame whose payload fields have passed envelope validation."""
         stored = frame.check_storage()
         length = frame.decoded_length
-        total = self._total_decoded + length
-        if self._total_refused:
-            return PayloadCheck(
-                "unchecked", stored, "total_decoded", min(total, _UINT_MAX)
-            )
+        if not self._total_refused:
+            for size in (
+                len(frame.stored_payload),
+                len(frame.content),
+                frame.encoded_signatures_size,
+            ):
+                if size > self._stored_limit:
+                    return PayloadCheck("unchecked", stored, "stored_size", size)
 
-        for size in (
-            len(frame.stored_payload),
-            len(frame.content),
-            frame.encoded_signatures_size,
-        ):
-            if size > self._stored_limit:
-                return PayloadCheck("unchecked", stored, "stored_size", size)
-
-        if length > self._decoded_limit:
-            return PayloadCheck("unchecked", stored, "decoded_size", length)
-        if total > self._total_limit:
-            self._total_refused = True
-            return PayloadCheck(
-                "unchecked", stored, "total_decoded", min(total, _UINT_MAX)
-            )
-        self._total_decoded = total
+            if length > self._decoded_limit:
+                return PayloadCheck("unchecked", stored, "decoded_size", length)
+        refused = self.charge_decoded(length)
+        if refused is not None:
+            return PayloadCheck("unchecked", stored, "total_decoded", refused)
 
         payload = frame.stored_payload
         storage = frame.storage
