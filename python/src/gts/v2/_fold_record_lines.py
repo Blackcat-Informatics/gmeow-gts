@@ -48,9 +48,7 @@ def _referent(value: Referent) -> RecordBody:
             return 3, identifier
 
 
-def record_bodies(
-    records: RecordFold, blobs: BlobSet, values: Iterable[tuple[int, TypedValue]]
-) -> Iterator[RecordBody]:
+def _graph_bodies(records: RecordFold) -> Iterator[RecordBody]:
     for binding in records.bindings:
         yield 1, (_Slot(binding.term), _referent(binding.referent))
     for suppression in records.suppression:
@@ -74,6 +72,12 @@ def record_bodies(
         else:
             body = kind, *slots
         yield 2, body
+
+
+def record_bodies(
+    records: RecordFold, blobs: BlobSet, values: Iterable[tuple[int, TypedValue]]
+) -> Iterator[RecordBody]:
+    yield from _graph_bodies(records)
     for blob in blobs.entries:
         yield 3, (1 if blob.present else 2, blob.name, blob.length, blob.media_types)
     for ref, value in values:
@@ -103,6 +107,14 @@ def _parts(body: RecordBody, ground: tuple[GroundTerm, ...]) -> Iterator[_Part]:
                     )
             case _:
                 yield field
+
+
+def named_record_terms(records: RecordFold) -> Iterator[int]:
+    """Yield named term slots without assigning terms to unresolved pairs."""
+    for body in _graph_bodies(records):
+        for part in _parts(body, records.ground_terms):
+            if isinstance(part, _Slot) and isinstance(part.term, int):
+                yield part.term
 
 
 def record_weight(

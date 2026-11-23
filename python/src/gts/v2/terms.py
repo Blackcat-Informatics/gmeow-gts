@@ -598,12 +598,26 @@ def _encode_block(
 
 
 def encode_terms(
-    terms: Sequence[WireTerm], *, id_base: int = 0, restart_group: int = 64
+    terms: Sequence[WireTerm],
+    *,
+    id_base: int = 0,
+    restart_group: int = 64,
 ) -> tuple[list[object], bytes]:
     """Return a terms content record and payload in arrival order.
 
     Supply the earlier datatype and triple IDs from the same segment.
     """
+    return _encode_terms(terms, id_base, restart_group, canonical=False)
+
+
+def _encode_terms(
+    terms: Sequence[WireTerm],
+    id_base: int,
+    restart_group: int,
+    *,
+    canonical: bool,
+) -> tuple[list[object], bytes]:
+    # The graph builder supplies dictionary order before declaring it.
     _uint(id_base)
     _uint(restart_group)
     if not terms or not restart_group or id_base + len(terms) > UINT_MAX + 1:
@@ -617,4 +631,6 @@ def encode_terms(
         runs.append([kind, len(run)])
         blocks.append(_encode_block(kind, run, base, restart_group, languages))
         base += len(run)
-    return [id_base, runs, 2, restart_group], cbor2.dumps([blocks, list(languages)])
+    return [id_base, runs, 1 if canonical else 2, restart_group], cbor2.dumps(
+        [blocks, list(languages)]
+    )
