@@ -389,7 +389,7 @@ dev = [
 requires-dist = [
     { name = "blake3", specifier = ">=1.0.8" },
     { name = "cbor2", specifier = ">=6.1.2" },
-    { name = "cryptography", specifier = ">=44" },
+    { name = "cryptography", specifier = ">=47" },
     { name = "duckdb", marker = "extra == 'db'", specifier = ">=1.0" },
     { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=7.6" },
     { name = "zstandard", specifier = ">=0.25.0" },
