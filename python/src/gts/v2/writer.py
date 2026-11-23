@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Write a header-led GTS v2 segment with its links and closing items."""
 
-from .frame import _COMMIT, _PARITY, _encode_plain_frame
+from zstandard import ZstdCompressionParameters, ZstdCompressor
+
+from .frame import _COMMIT, _PARITY, _encode_frame
 from .header import Header, decode_header, encode_header
 from .index_claims import IndexStatistics, _IndexClaims
 from .items import encode_locator, encode_offsets
@@ -13,14 +15,20 @@ _INDEX = 15
 
 
 class SegmentWriter:
-    """Assemble a new segment of unsigned, uncompressed v2 frames.
+    """Assemble a new segment of unsigned v2 frames.
 
     The writer derives wire links, commit counts and roots, and byte offsets.
     The caller supplies the records and payloads defined by each frame type.
+    Enable compression to apply the P7 size threshold with the runtime's encoder.
+    The byte-for-byte reference form requires the encoder defined in P7.
     """
 
     def __init__(
-        self, header: Header | None = None, *, collect_index: bool = False
+        self,
+        header: Header | None = None,
+        *,
+        collect_index: bool = False,
+        compress: bool = False,
     ) -> None:
         encoded = encode_header(Header() if header is None else header)
         identifier = decode_header(encoded).identifier
@@ -32,6 +40,15 @@ class SegmentWriter:
         self._range = RangeAccumulator(identifier)
         self._last_index: int | None = None
         self._index_claims = _IndexClaims() if collect_index else None
+        self._compressor = (
+            ZstdCompressor(
+                compression_params=ZstdCompressionParameters(
+                    compression_level=12, window_log=26
+                )
+            )
+            if compress
+            else None
+        )
 
     @property
     def head(self) -> bytes:
@@ -39,8 +56,8 @@ class SegmentWriter:
         return self._head
 
     def _append(self, frame_type: int, content: list[object], payload: bytes) -> bytes:
-        encoded, identifier = _encode_plain_frame(
-            self._head, frame_type, content, payload
+        encoded, identifier = _encode_frame(
+            self._head, frame_type, content, payload, compressor=self._compressor
         )
         if frame_type != _PARITY:
             if self._index_claims is not None:
