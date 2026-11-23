@@ -89,7 +89,7 @@ class _ResyncDecoder(_Decoder):
         if end <= self.limit:
             encoded = self._take(size)
         else:
-            encoded = self.data[body : self.limit]
+            encoded = bytes(self.data[body : self.limit])
         try:
             # A partial code point at the cap is not an earlier UTF-8 error.
             codecs.utf_8_decode(encoded, "strict", end <= self.limit)

@@ -47,13 +47,13 @@ class _Decoder:
         self.data = data
         self.offset = offset
 
-    def _take(self, size: int) -> bytes | memoryview:
+    def _take(self, size: int) -> bytes:
         start = self.offset
         end = start + size
         if end > len(self.data):
             raise self.error("wrong_length", start)
         self.offset = end
-        return self.data[start:end]
+        return bytes(self.data[start:end])
 
     def _head(self, major_type: int) -> int:
         start = self.offset
@@ -132,7 +132,7 @@ class _Decoder:
         start = self.offset
         size = self._head(3)
         try:
-            return bytes(self._take(size)).decode("utf-8")
+            return self._take(size).decode("utf-8")
         except UnicodeDecodeError as error:
             raise self.error("wrong_type", start) from error
 
