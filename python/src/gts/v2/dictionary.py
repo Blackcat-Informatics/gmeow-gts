@@ -190,6 +190,19 @@ class TermDictionary:
         found = self._entries.get(term_id)
         return found.resolved if found is not None else None
 
+    def value_at(
+        self, term_id: int, *, hidden_before: int = 0, in_doubt: bool = False
+    ) -> int | None:
+        """Resolve an ID under the dictionary rules at its use."""
+        entry = self._entries.get(term_id)
+        if entry is None or in_doubt or entry.first_source < hidden_before:
+            return None
+        return entry.resolved
+
+    def blank_id(self, label: bytes) -> int | None:
+        """Find a readable blank label defined by this segment."""
+        return self._pool._ids.get(Blank(self._segment, label))
+
     def _kind_at(self, term_id: int) -> int | None:
         entry = self._entries.get(term_id)
         if entry is not None:
@@ -418,15 +431,12 @@ class TermDictionary:
             return None, "forward_reference"
         ids = []
         for source, _ in slots:
-            entry = self._entries.get(source)
-            if (
-                entry is None
-                or entry.resolved is None
-                or in_doubt
-                or entry.first_source < hidden_before
-            ):
+            value = self.value_at(
+                source, hidden_before=hidden_before, in_doubt=in_doubt
+            )
+            if value is None:
                 return None, "opaque_term"
-            ids.append(entry.resolved)
+            ids.append(value)
         if any(
             valid and self._invalid_position(source, valid) for source, valid in slots
         ):
