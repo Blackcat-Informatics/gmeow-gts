@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Typed L1 input, line encoding, and the digest of a positioned sequence."""
 
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal as Choice
 
@@ -140,6 +140,15 @@ class _Slots:
             1 + (8 if self.count is not None else 0) + (self.kind in (0x40, 0x41, 0x42))
         )
 
+    def free_shape(self, sizes: Sequence[tuple[int, int]]) -> tuple[int, int]:
+        length = self.header_length()
+        occurrences = 0
+        for ref in self.ordered_terms():
+            term_length, term_occurrences = sizes[ref]
+            length += term_length
+            occurrences += term_occurrences
+        return length, occurrences
+
 
 def _slots(line: Line) -> _Slots | None:
     match line:
@@ -195,19 +204,14 @@ class LabellingInput:
                 empty.add(shape.terms[0])
             elif shape.graph is not None:
                 named.add(shape.graph)
-            free_length = shape.header_length()
-            line_occurrences = 0
-            for ref in shape.ordered_terms():
-                length, occurrences = terms._sizes[ref]
-                free_length += length
-                line_occurrences += occurrences
+            free_length, line_occurrences = shape.free_shape(terms._sizes)
             if free_length + 8 * line_occurrences > _MAX_UINT:
                 widths.add("length")
             if line_occurrences:
                 total_length += free_length
             total_occurrences += line_occurrences
         self._terms = tuple(terms._terms)
-        self._occurrences = tuple(occurrences for _, occurrences in terms._sizes)
+        self._sizes = tuple(terms._sizes)
         for fault in ("slot", "count", "repeated", "kind"):
             if fault in faults:
                 raise LabellingRefused("input", fault)
@@ -236,6 +240,10 @@ class LabellingInput:
     def __len__(self) -> int:
         return len(self._lines)
 
+    def free_shape(self, index: int) -> tuple[int, int]:
+        """Return the all-free encoding length and number of blank occurrences."""
+        return self._lines[index].free_shape(self._sizes)
+
     @staticmethod
     def _valid_slots(terms: LabellingTerms, shape: _Slots) -> bool:
         if not isinstance(shape.terms, tuple) or not all(
@@ -256,7 +264,7 @@ class LabellingInput:
         pending = list(reversed(refs))
         while pending:
             ref = pending.pop()
-            if blanks_only and not self._occurrences[ref]:
+            if blanks_only and not self._sizes[ref][1]:
                 continue
             term = self._terms[ref]
             yield term

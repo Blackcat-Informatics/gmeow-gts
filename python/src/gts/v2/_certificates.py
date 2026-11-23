@@ -5,19 +5,26 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from functools import cmp_to_key
 from itertools import groupby, zip_longest
 
 from blake3 import blake3
 
+from ._labelling_structure import (
+    ComponentDimensions,
+    Diagnostic,
+    Failure,
+    PreparedInput,
+    prepare_input,
+)
 from ._twins import TwinClasses, TwinIndex
 from .labelling import LabellingInput, _uint
 from .refinement import (
     RefinedComponent,
     individualize,
     inherit_components,
-    refine_top_components,
 )
 
 type _Entries = tuple[tuple[int, bytes], ...]
@@ -112,6 +119,45 @@ class _Search:
         self.twin_classes = TwinClasses()
         self.twin_index: TwinIndex | None = None
 
+    def first_failures(self, dimensions: ComponentDimensions) -> tuple[Diagnostic, ...]:
+        """Visit the search-free run, stopping the descent at each failed twin test."""
+        failures: list[Diagnostic] = []
+        smallest = _smallest_source(self.top)
+        stack = [self._search_free_nested(self.top, dimensions, smallest, failures)]
+        while stack:
+            child = next(stack[-1], None)
+            if child is None:
+                stack.pop()
+            else:
+                stack.append(
+                    self._search_free_nested(child, dimensions, smallest, failures)
+                )
+        return tuple(failures)
+
+    def _search_free_nested(
+        self,
+        component: RefinedComponent,
+        dimensions: ComponentDimensions,
+        smallest: bytes,
+        failures: list[Diagnostic],
+    ) -> Iterator[RefinedComponent]:
+        fixed = _singletons(component)
+        if not fixed:
+            target = sorted(component.node_cells[0])
+            if not self._test_twins(target, stop_on_failure=True):
+                failure = Failure(
+                    len(self.positions),
+                    len(target),
+                    dimensions.blank_nodes,
+                    dimensions.lines,
+                )
+                failures.append(Diagnostic(failure, smallest, target[0]))
+                return
+            component = individualize(self.source, component, self.positions, target[0])
+            fixed = _singletons(component)
+        with self._positioned(fixed):
+            yield from inherit_components(self.source, component, self.positions)
+
     def solve(self) -> Call:
         # The explicit stack sends each nested result back to its parent.
         stack = [self._call(self.top)]
@@ -129,7 +175,7 @@ class _Search:
         return nested
 
     def _call(self, component: RefinedComponent) -> _SearchStep:
-        smallest = min(min(cell) for cell in component.node_cells)
+        smallest = _smallest_source(component)
         if any(len(cell) == 1 for cell in component.node_cells):
             result = yield from self._fix(component, smallest, 0, None)
             assert result is not None
@@ -151,11 +197,21 @@ class _Search:
         return replace(best, target_size=len(target), attaining=attaining)
 
     def _twin_representatives(self, target: list[bytes]) -> Iterator[tuple[bytes, int]]:
+        self._test_twins(target, stop_on_failure=False)
+        groups: dict[bytes, list[bytes]] = {}
+        for vertex in target:
+            root = self.twin_classes.representative(vertex)
+            groups.setdefault(root, []).append(vertex)
+        # Classes are visited by their smallest source identifier.
+        return ((group[0], len(group)) for group in groups.values())
+
+    def _test_twins(self, target: list[bytes], *, stop_on_failure: bool) -> bool:
         # Only the top component's vertices and line set define a twin test.
         if self.twin_index is None:
             lines = (index for cell in self.top.line_cells for index in cell)
             self.twin_index = TwinIndex(self.source, lines, self.line_nodes)
         first = target[0]
+        all_twins = True
         for vertex in target[1:]:
             if self.twin_classes.representative(
                 first
@@ -163,12 +219,11 @@ class _Search:
                 passes, _ = self.twin_index.test(first, vertex)
                 if passes:
                     self.twin_classes.join(first, vertex)
-        groups: dict[bytes, list[bytes]] = {}
-        for vertex in target:
-            root = self.twin_classes.representative(vertex)
-            groups.setdefault(root, []).append(vertex)
-        # Classes are visited by their smallest source identifier.
-        return ((group[0], len(group)) for group in groups.values())
+                elif stop_on_failure:
+                    return False
+                else:
+                    all_twins = False
+        return all_twins
 
     def _fix(
         self,
@@ -177,14 +232,10 @@ class _Search:
         refinement_units: int,
         best: Call | None,
     ) -> Generator[RefinedComponent, Call, Call | None]:
-        fixed = tuple(
-            next(iter(cell)) for cell in component.node_cells if len(cell) == 1
-        )
+        fixed = _singletons(component)
         if best is not None and len(fixed) > len(best.fixed):
             return None
-        start = len(self.positions)
-        self.positions.update((node, start + index) for index, node in enumerate(fixed))
-        try:
+        with self._positioned(fixed):
             entries, fix_units = self._entries(component, fixed)
             if best is not None and (len(fixed), entries) > best.prefix():
                 return None
@@ -207,6 +258,13 @@ class _Search:
                 refinement_units,
                 fix_units,
             )
+
+    @contextmanager
+    def _positioned(self, fixed: tuple[bytes, ...]) -> Iterator[None]:
+        start = len(self.positions)
+        self.positions.update((node, start + index) for index, node in enumerate(fixed))
+        try:
+            yield
         finally:
             for node in fixed:
                 del self.positions[node]
@@ -229,12 +287,22 @@ class _Search:
         return tuple(sorted(entries)), units
 
 
+def _smallest_source(component: RefinedComponent) -> bytes:
+    return min(min(cell) for cell in component.node_cells)
+
+
+def _singletons(component: RefinedComponent) -> tuple[bytes, ...]:
+    return tuple(next(iter(cell)) for cell in component.node_cells if len(cell) == 1)
+
+
 @dataclass(frozen=True, slots=True)
 class ComponentCertificate:
     identity: bytes
     call: Call
     start_units: int
     refinement_units: int
+    dimensions: ComponentDimensions
+    diagnostic: tuple[Diagnostic, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -247,18 +315,26 @@ class CanonicalNode:
 
 def component_certificates(source: LabellingInput) -> tuple[ComponentCertificate, ...]:
     """Find the minimum certificates and order the top components by identity."""
-    line_nodes = tuple(
-        frozenset(source.incidences(index, {})) for index in range(len(source))
-    )
+    return solve_components(prepare_input(source))
+
+
+def solve_components(prepared: PreparedInput) -> tuple[ComponentCertificate, ...]:
     components = []
-    for partition in refine_top_components(source):
-        call = _Search(source, line_nodes, partition).solve()
+    for partition, dimensions in prepared.components:
+        search = _Search(prepared.source, prepared.line_nodes, partition)
+        diagnostic = search.first_failures(dimensions)
+        call = search.solve()
         digest = blake3(derive_key_context=_COMPONENT_CONTEXT)
         for chunk in call.certificate_chunks():
             digest.update(chunk)
         components.append(
             ComponentCertificate(
-                digest.digest(), call, partition.start_units, partition.refinement_units
+                digest.digest(),
+                call,
+                partition.start_units,
+                partition.refinement_units,
+                dimensions,
+                diagnostic,
             )
         )
     return tuple(
