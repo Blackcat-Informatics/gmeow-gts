@@ -41,6 +41,9 @@ Use `gts.v2.item_end(data, offset=0)` to walk a CBOR item at a known boundary an
 identity fields and exposes separate checks for stored and decoded payloads.
 `gts.v2.encode_plain_frame(predecessor, frame_type, content, payload)` builds an
 unsigned, uncompressed envelope from a byte payload and a content record.
+For frame payloads, use one `gts.v2.PayloadBudget` per read. Check frames in
+reader order after checking their links. The budget guards zstd decoding and
+reports the stored check independently of payload acceptance.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.
 

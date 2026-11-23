@@ -12,6 +12,7 @@ from .header import (
     decode_header,
     encode_header,
 )
+from .payload import PayloadBudget, PayloadCheck
 
 __all__ = [
     "DecodedHeader",
@@ -22,6 +23,8 @@ __all__ = [
     "HeaderError",
     "ItemFramingError",
     "Lineage",
+    "PayloadBudget",
+    "PayloadCheck",
     "decode_frame",
     "decode_header",
     "encode_header",

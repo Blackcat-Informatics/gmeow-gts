@@ -52,6 +52,7 @@ class Frame:
     stored_payload: memoryview
     identifier: bytes
     signatures: tuple[Signature, ...]
+    encoded_signatures_size: int
     identity_fields: memoryview
     next_offset: int
 
@@ -274,6 +275,7 @@ def decode_frame(data: bytes, offset: int = 0, *, registry_version: int = 1) -> 
         payload,
         identifier,
         signatures,
+        decoder.offset - offset,
         identity,
         decoder.offset,
     )
