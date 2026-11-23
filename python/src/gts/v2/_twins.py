@@ -3,7 +3,7 @@
 """Exact transposition tests for L1 blank nodes."""
 
 from collections import ChainMap, defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from .labelling import LabellingInput
 
@@ -35,13 +35,27 @@ class TwinIndex:
         """Check the transposition and return the charge for all affected lines."""
         affected = self._incident[left] | self._incident[right]
         units = sum(self._charges[line] for line in affected)
-        exchanged = ChainMap(
-            {left: self._names[right], right: self._names[left]}, self._names
+        return self._matches(affected, {left: right, right: left}), units
+
+    def preserves(self, moved: Mapping[bytes, bytes]) -> bool:
+        """Verify an exact permutation against the affected typed lines."""
+        if (
+            moved.keys() != set(moved.values())
+            or not moved.keys() <= self._names.keys()
+        ):
+            return False
+        affected: set[int] = set()
+        for node in moved:
+            affected.update(self._incident[node])
+        return self._matches(affected, moved)
+
+    def _matches(self, affected: set[int], moved: Mapping[bytes, bytes]) -> bool:
+        positions = ChainMap(
+            {node: self._names[image] for node, image in moved.items()}, self._names
         )
-        passes = all(
-            self._source.mask(line, exchanged) in self._encoded for line in affected
+        return all(
+            self._source.mask(line, positions) in self._encoded for line in affected
         )
-        return passes, units
 
 
 class TwinClasses:
@@ -61,4 +75,4 @@ class TwinClasses:
         left_root = self.representative(left)
         right_root = self.representative(right)
         if left_root != right_root:
-            self._parent[right_root] = left_root
+            self._parent[max(left_root, right_root)] = min(left_root, right_root)
