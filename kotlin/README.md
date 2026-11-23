@@ -3,28 +3,12 @@
 
 # GTS Kotlin/JVM Engine
 
-This directory contains the Kotlin/JVM implementation of Graph Transport Substrate (GTS).
-It is a native JVM engine, not a wrapper around another `gts` binary.
+The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format. This package predates v2.
 
-The implementation target is Go-equal/common parity:
+## Build and test
 
-- read, fold, and verify the committed conformance corpus;
-- deterministic writer and `from-nq`;
-- files-profile `pack`, `unpack`, and `diff`;
-- COSE Sign1/Encrypt0 helpers, zstd/gzip codec handling, OpenPGP key extraction,
-  detached MMR proof verification, streamable compaction, and replication verbs;
-- the common `gts` CLI verbs used by the cross-engine interop gate.
+Run `gradle test` from the `kotlin/` directory with a local JDK and Gradle installation.
 
-Build and test with a local JDK/Gradle installation:
+## Format and conformance
 
-```bash
-cd kotlin
-gradle test
-gradle run --args='fold ../vectors/01-minimal.gts'
-```
-
-On systems without a host JVM, use Docker:
-
-```bash
-docker run --rm -v "$PWD:/workspace" -w /workspace/kotlin gradle:jdk21 gradle test
-```
+Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.

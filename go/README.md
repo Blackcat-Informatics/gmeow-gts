@@ -2,48 +2,10 @@
 SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 SPDX-License-Identifier: MIT OR Apache-2.0
 -->
+
 # GTS — Go engine
 
-[![Go Reference](https://pkg.go.dev/badge/go.blackcatinformatics.ca/gts.svg)](https://pkg.go.dev/go.blackcatinformatics.ca/gts)
-[![CI](https://github.com/Blackcat-Informatics/gmeow-gts/actions/workflows/ci.yml/badge.svg)](https://github.com/Blackcat-Informatics/gmeow-gts/actions/workflows/ci.yml)
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/LICENSING.md)
-
-The Go implementation of the **Graph Transport Substrate (GTS)** — a single-file,
-content-addressed, append-only transport for RDF 1.2 graphs and the binaries they
-reference. This module ships the Go 1.0 engine: a total reader, streaming reader,
-deterministic writer, files-profile helpers, COSE/OpenPGP support, RDF text codecs,
-replication helpers, and the `gts` command-line tool.
-
-GTS encodes a graph as an **append-only log of CBOR frames**; the logical graph is the
-*fold* (replay) of the log. Concatenating two valid GTS files (`cat`) yields a valid
-GTS file whose fold is the value-union of the inputs — memory grows by append, never by
-rewrite. Four properties define the format
-([full spec](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md)):
-
-Published GTS artifacts use media type `application/vnd.blackcat.gts+cbor-seq`. The
-`+cbor-seq` suffix follows RFC 8742 because the file is a CBOR Sequence, not a single CBOR
-data item.
-
-1. **CBOR all the way down** (RFC 8949) — one IETF-standardised binary encoding; a reader
-   needs only a CBOR library.
-2. **A durable transform catalog** — each frame's payload carries a stackable codec chain
-   (`identity`, `gzip`, `zstd`, `cose-encrypt`, …).
-3. **Integrity by construction** — every frame carries an independent **BLAKE3 self-hash**
-   and names its predecessor, a git-style content-addressed chain; the head id transitively
-   commits to all history.
-4. **Recursive composition (matryoshka)** — a reversed payload is just bytes, and a GTS file
-   is just bytes, so a payload MAY itself be a complete signed GTS.
-
-This is one of **six interoperable full engines** (Rust, Python, Go, TypeScript,
-Smalltalk/Pharo, Kotlin/JVM) in the GTS 1.0 release set. All six gate against one
-frozen, byte-exact conformance corpus: every engine folds identical bytes to identical
-N-Quads. See the
-[project README](https://github.com/Blackcat-Informatics/gmeow-gts#readme) for the
-cross-engine picture.
-
-GTS is ontology-independent. GTS is the primary distribution method for GMEOW, but GTS does
-not depend on GMEOW. The module path is neutral (`go.blackcatinformatics.ca/gts`), while the
-repository and release workflows keep the distinctive `gmeow-gts` package family.
+The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format. This package predates v2. The Go implementation is one of **six interoperable full engines** (Rust, Python, Go, TypeScript, Smalltalk/Pharo, Kotlin/JVM) in the released family. The interoperability suite exercises all six `gts` binaries.
 
 ## Install
 
@@ -53,146 +15,6 @@ go install go.blackcatinformatics.ca/gts/cmd/gts@v1.0.0-rc.1
 
 The module path is `go.blackcatinformatics.ca/gts`. Releases are tagged in the
 `gmeow-gts` repository with the module subdirectory prefix, e.g. `go/v1.0.0`.
-
-## Library quick start
-
-Read bytes into a `*model.Graph`, then project to N-Quads:
-
-```go
-package main
-
-import (
-    "fmt"
-    "os"
-
-    "go.blackcatinformatics.ca/gts/nquads"
-    "go.blackcatinformatics.ca/gts/reader"
-)
-
-func main() {
-    data, _ := os.ReadFile("package.gts")
-    g := reader.Read(data, false, nil) // (bytes, allowSegments, expectedHead)
-    fmt.Print(nquads.ToNQuads(g))
-}
-```
-
-`reader.Read` never panics on bad input: unknown codecs or held-back keys degrade a frame
-to an opaque node, and any problems surface on `g.Diagnostics` rather than as an error
-return. Pass `allowSegments=true` to fold a multi-segment (concatenated) file, and a
-non-nil `expectedHead` to assert the file's head digest.
-
-Use `fromnquads.FromNQuads(text)` for the inverse transform when rebuilding a GTS file
-from N-Quads text. During import, recognized invalid XSD typed literals are preserved
-verbatim and recorded under metadata key `gts:illTypedLiterals` as
-`{"version": 1, "items": [{"term": <term-id>, "datatype": <iri>, "lexical": <text>, "reason": <detail>}]}`.
-The companion `xsd` package exposes `IllTypedLiteral` diagnostics with stable code
-`IllTypedLiteral` for callers working with a materialized graph.
-
-For service code that receives an `io.Reader`, `reader.ReadFrom(ctx, r, opts)` returns the
-same materialized graph with cancellation and byte-limit handling. For incremental folds,
-`reader.ReadToSink(ctx, r, opts, sink)` emits segment-local term, quad, blob, opaque,
-signature, diagnostic, segment-head, and streamable-layout events without constructing the
-final union graph:
-
-<!-- markdownlint-disable MD010 -->
-```go
-sink := reader.StreamingSinkFunc(func(event reader.StreamingEvent) error {
-	if event.Kind == reader.StreamingEventQuad {
-		// project or forward event.Quad here
-	}
-	return nil
-})
-
-result, err := reader.ReadToSink(ctx, body, reader.Options{
-	AllowSegments: true,
-	MaxBytes:      64 << 20,
-}, sink)
-_ = result
-_ = err
-```
-<!-- markdownlint-enable MD010 -->
-
-Produce a minimal graph with the writer (a files-profile writer; `New("")` writes a plain
-graph with no profile):
-
-```go
-package main
-
-import (
-    "os"
-
-    "go.blackcatinformatics.ca/gts/model"
-    "go.blackcatinformatics.ca/gts/writer"
-)
-
-func main() {
-    w := writer.New("") // or writer.New("files") for the files profile
-    w.AddTerms([]model.Term{
-        {Kind: model.Iri, Value: "https://example.org/Cat"},
-        {Kind: model.Iri, Value: "http://www.w3.org/2000/01/rdf-schema#label"},
-        {Kind: model.Literal, Value: "Cat", Lang: "en"},
-    })
-    w.AddQuads([]model.Quad{{S: 0, P: 1, O: 2}}) // term-ids into the term table
-    _ = os.WriteFile("cat.gts", w.ToBytes(), 0o644)
-}
-```
-
-The writer also exposes `AddBlob`, `AddReifies`, `AddAnnot`, `AddMeta`, `AddSuppress`,
-`AddIndex`, and `SignWith(priv ed25519.PrivateKey, kid string)` for COSE_Sign1 signing.
-
-## Command-line interface
-
-`go install …` installs a `gts` binary whose verbs match the cross-engine surface
-(§14.1 of the spec — the engines are CLI-compatible by conformance test):
-
-```text
-gts info <file>...            per-segment composition ledger
-gts fold <file>               fold to N-Quads on stdout
-gts verify <file>... [--key KID:HEXPUB]   verify chains + COSE signatures
-gts extract-key <file>        print the embedded transport key: kid, OpenPGP
-                              fingerprint, emojihash, armored public key
-gts ls <file>                 list inline blobs: digest, size, declared media type
-gts extract <file> <digest>   write a single content-addressed blob
-gts cat -o <out> <file>...    validating composer: refuse degenerate inputs, then concatenate
-gts compact <file> -o <out> --streamable   rewrite into the streamable layout state
-gts pack <dir|file>... -o <out>            package files/directories into a files profile
-gts unpack <archive> [-C dir] extract a files profile (refuses path traversal)
-gts diff <archive> <dir>      compare a files profile to a directory by digest
-gts from-nq <in.nq> [-o out]  build a GTS from N-Quads (`-` reads stdin)
-gts to-nt <file>              fold the default graph to N-Triples
-gts from-nt <in.nt> [-o out]  build a GTS from N-Triples (`-` reads stdin)
-gts to-trig <file>            fold to TriG
-gts from-trig <in.trig> [-o out]  build a GTS from TriG (`-` reads stdin)
-gts to-turtle <file>          fold the default graph to Turtle
-gts from-turtle <in.ttl> [-o out]  build a GTS from Turtle (`-` reads stdin)
-gts to-rdfxml <file>          fold the default graph to RDF/XML
-gts from-rdfxml <in.rdf> [-o out]  build a GTS from RDF/XML (`-` reads stdin)
-```
-
-Exit codes: `0` clean · `1` diagnostics found or input refused · `2` usage/IO error.
-
-`cat` is raw byte concatenation with validation *added*, transformation *never*: it
-refuses dirty inputs, contributes-nothing segments, and compositions whose suppressions
-hide every folded quad.
-
-> The `to-sqlite` / `to-duckdb` / `to-parquet` relational exports remain Python/Rust
-> extension surfaces and are outside the Go 1.0 CLI.
-
-## Signing & encryption
-
-The Go engine implements the optional COSE layer (RFC 9052) and OpenPGP transport-key
-handling:
-
-- **COSE_Sign1 signatures** (§9.2) — `writer.SignWith` signs frame ids with Ed25519;
-  `gts verify --key KID:HEXPUB` (or `cose.VerifySignatures`) verifies them. The `--key`
-  value is a `kid:hex-ed25519-public-key` pair.
-- **COSE_Encrypt0** (§9.3) — `cose.Encrypt0` / `cose.Decrypt0` provide AES-256-GCM
-  payload confidentiality; an undecryptable frame degrades to an opaque node.
-- **Transport key** — `gts extract-key` parses the embedded OpenPGP transport key and
-  prints its kid, fingerprint, **emojihash** (a stable visual fingerprint), and armored
-  public block. `verify --key` and `extract-key` are cross-engine: all six `gts`
-  binaries resolve the same fingerprint and emojihash and verify COSE signatures
-  identically.
 
 ## Binary releases
 
@@ -210,38 +32,10 @@ golangci-lint run ./...
 go test ./...        # unit + conformance against ../vectors/
 ```
 
-## Layout
+## Format and conformance
 
-- `cmd/gts` — `gts` CLI
-- `reader` / `writer` — total and streaming GTS readers plus deterministic writer
-- `files` / `wire` / `compact` / `nquads` / `fromnquads` — format plumbing
-- `model` / `stream` / `codec` — core data types and codecs
-- `cose` / `openpgp` / `emojihash` — COSE_Sign1/Encrypt0 and transport-key handling
-
-## Specification & docs
-
-- [`docs/GTS-SPEC.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md)
-  — the authoritative, normative wire-format specification.
-- [`docs/gts-reference.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/gts-reference.md)
-  — implementation notes, vector-corpus guidance, and release engineering details.
-- [`docs/GTS-ECOSYSTEM-INTEGRATIONS.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-ECOSYSTEM-INTEGRATIONS.md)
-  — Go service/object-store integration examples and deferrals.
-- API reference: [pkg.go.dev/go.blackcatinformatics.ca/gts](https://pkg.go.dev/go.blackcatinformatics.ca/gts).
-
-## Contributing
-
-Issues and pull requests are welcome. See
-[`CONTRIBUTING.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/CONTRIBUTING.md)
-for the workflow; before opening a PR, run `go test ./...` and `pre-commit run --all-files`.
-Please also read the
-[`CODE_OF_CONDUCT.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/CODE_OF_CONDUCT.md).
-To report a vulnerability, follow
-[`SECURITY.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/SECURITY.md)
-(do not open a public issue).
+Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.
 
 ## License
 
-Triple-licensed: **MIT OR Apache-2.0 OR proprietary** — use under MIT or Apache-2.0
-at your option; a proprietary license is also available (see
-[`LICENSING.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/LICENSING.md)).
-© Blackcat Informatics® Inc.
+See the repository’s [licensing terms](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/LICENSING.md) for the package and its documentation.

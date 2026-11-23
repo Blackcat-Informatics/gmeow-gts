@@ -10,7 +10,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = ROOT / "docs" / "GTS-SECURITY-POLICY.md"
+V1_DOCS = ROOT / "archive" / "v1"
+DOC = V1_DOCS / "docs" / "GTS-SECURITY-POLICY.md"
 VECTOR_DIR = ROOT / "vectors" / "security"
 
 REQUIRED_MARKERS = [

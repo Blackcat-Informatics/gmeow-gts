@@ -149,7 +149,7 @@ GTS 分离了四个关注点：
 
 ## 7. 评估计划
 
-论文应仅报告来自可重复发布制品的测量结果。当前仓库在 [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md) 中提供了一个基准 (benchmark) 运行器和报告模板。此草案的实测证据运行结果保留在 [`dist/benchmarks/paper-evidence/release-benchmark-report.md`](../../../../dist/benchmarks/paper-evidence/release-benchmark-report.md) 的生成输出中，而不是覆盖基准 (benchmark) 模板。
+论文应仅报告来自可重复发布制品的测量结果。当前仓库在 [`GTS-BENCHMARK-RELEASE-REPORT.md`](./GTS-BENCHMARK-RELEASE-REPORT.md) 中提供了一个基准 (benchmark) 运行器和报告模板。此草案的实测证据运行结果保留在 [`dist/benchmarks/paper-evidence/release-benchmark-report.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/dist/benchmarks/paper-evidence/release-benchmark-report.md) 的生成输出中，而不是覆盖基准 (benchmark) 模板。
 
 评估应涵盖四个主张：
 

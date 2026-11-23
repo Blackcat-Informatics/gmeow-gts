@@ -75,7 +75,7 @@ The canonical diagnostic code registry is in
 
 `yes` means the verb is implemented by that engine's `gts` binary. `no` means the absence is an
 intentional public gap until a parity issue lands. The matrix is checked by
-[`scripts/check_cli_parity.py`](../scripts/check_cli_parity.py), which reads this table and the
+[`scripts/check_cli_parity.py`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/scripts/check_cli_parity.py), which reads this table and the
 actual dispatch surfaces.
 
 <!-- cli-parity-matrix:start -->
@@ -193,7 +193,7 @@ python scripts/check_cli_parity.py
 ```
 
 The CI lint job runs the same commands. The API check reads
-[`api-parity.json`](./api-parity.json), this document, the README engine feature matrix, and
+[`api-parity.json`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/docs/api-parity.json), this document, the README engine feature matrix, and
 small source-level smoke evidence for the six full engines. Full engines are Rust, Python, Go,
 TypeScript, Smalltalk/Pharo, and Kotlin/JVM. C ABI-derived wrappers stay declared separately and
 must not become full-engine parity columns.
@@ -262,6 +262,6 @@ is part of the parity surface:
   `added:`, `modified:`, and `removed:` lines. Exit `0` means no differences; exit `1` means
   either a difference or a refused input.
 
-The live cross-engine guard is [`scripts/interop.sh`](../scripts/interop.sh): each engine packs
+The live cross-engine guard is [`scripts/interop.sh`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/scripts/interop.sh): each engine packs
 the same fixture, every engine folds and unpacks every package, and every engine diffs both the
 matching tree and a changed tree against every package.

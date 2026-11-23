@@ -35,7 +35,7 @@ création de preuves pour le moment.
 
 ## Verbes CLI avancés différés
 
-Les rangées ci-dessous, lorsqu'elles sont présentes, constituent un vocabulaire planifié plutôt que des commandes publiques actuelles. Le script de garde [`scripts/check_advanced_contract.py`](../../../../scripts/check_advanced_contract.py) échoue si l'un de ces verbes apparaît dans une surface de répartition du moteur ou dans la matrice de parité CLI publique avant que ce tableau ne soit mis à jour. Le tableau peut être vide lorsque chaque verbe CLI avancé actuellement planifié a été promu.
+Les rangées ci-dessous, lorsqu'elles sont présentes, constituent un vocabulaire planifié plutôt que des commandes publiques actuelles. Le script de garde [`scripts/check_advanced_contract.py`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/scripts/check_advanced_contract.py) échoue si l'un de ces verbes apparaît dans une surface de répartition du moteur ou dans la matrice de parité CLI publique avant que ce tableau ne soit mis à jour. Le tableau peut être vide lorsque chaque verbe CLI avancé actuellement planifié a été promu.
 
 <!-- advanced-cli-deferred:start -->
 | verb | status | next implementation gate |

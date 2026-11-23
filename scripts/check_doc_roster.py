@@ -219,9 +219,7 @@ def check_paths(
             )
 
 
-def check_spec(
-    errors: list[str], version: str, engine_phrase: str, engine_count_word: str
-) -> None:
+def check_spec(errors: list[str], version: str) -> None:
     text = read_text(SPEC)
     require_phrase(
         errors,
@@ -230,20 +228,21 @@ def check_spec(
         f"**Document version:** {version}",
         "document version header",
     )
-    require_phrase(
-        errors,
-        rel(SPEC),
-        text,
-        f"| Document version | {version} |",
-        "document version table",
-    )
-    require_phrase(
-        errors,
-        rel(SPEC),
-        text,
-        f"alongside {engine_count_word} interoperable reference engines ({engine_phrase})",
-        "current independent-engine roster",
-    )
+    parts = [
+        *(f"P{number}" for number in range(1, 10)),
+        "L1",
+        "PF-dist",
+        "PF-evidence",
+        "PF-stream",
+        "PF-bundle",
+        "PF-files",
+        "PF-container",
+    ]
+    for part in parts:
+        target = f"v2/{part}.md"
+        require_phrase(errors, rel(SPEC), text, f"]({target})", "normative part link")
+        if not (SPEC.parent / target).is_file():
+            errors.append(f"{rel(SPEC)}: missing normative document {target}")
 
 
 def check_api_parity_json(errors: list[str], engines: Sequence[str]) -> None:
@@ -277,13 +276,12 @@ def check_current_docs(registry: Mapping[str, Any]) -> list[str]:
     check_paths(errors, engines, ENGINE_PATHS, "engine")
     check_paths(errors, wrappers, WRAPPER_PATHS, "wrapper")
     check_api_parity_json(errors, engines)
-    check_spec(errors, version, engine_phrase, engine_count_word)
+    check_spec(errors, version)
 
     docs_to_scan = [
         "CITATION.cff",
         "README.md",
         "go/README.md",
-        "docs/GTS-PAPER-DRAFT.md",
     ]
     for doc in docs_to_scan:
         text = read_text(ROOT / doc)
@@ -299,16 +297,12 @@ def check_current_docs(registry: Mapping[str, Any]) -> list[str]:
             f"provides {engine_count_word} interoperable engines ({engine_phrase_with_and})",
         ],
         "README.md": [
+            "](docs/GTS-SPEC.md)",
             f"**{engine_count_word} interoperable full engines** ({engine_phrase})",
         ],
         "go/README.md": [
             f"one of **{engine_count_word} interoperable full engines** ({engine_phrase})",
             f"all {engine_count_word} `gts` binaries",
-        ],
-        "docs/GTS-PAPER-DRAFT.md": [
-            f"hosts {engine_count_word} reference engines in {engine_phrase_with_and}",
-            f"The repository contains {engine_count_word} engines:",
-            f"all {engine_count_word} engines are described as gating against the shared corpus",
         ],
         "CHANGELOG.md": [
             f"`GTS-SPEC.md` document version `{version}`",

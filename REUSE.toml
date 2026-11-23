@@ -68,10 +68,59 @@ SPDX-License-Identifier = "MIT OR Apache-2.0"
 # REUSE 5 can miss them on some non-Latin Markdown files; keep an aggregate
 # subtree annotation so the licensing gate remains deterministic.
 [[annotations]]
-path = ["docs/i18n/zh-Hans/CHANGELOG.md", "docs/i18n/zh-Hans/CODE_OF_CONDUCT.md", "docs/i18n/zh-Hans/CONTRIBUTING.md", "docs/i18n/zh-Hans/LICENSING.md", "docs/i18n/zh-Hans/README.md", "docs/i18n/zh-Hans/SECURITY.md", "docs/i18n/zh-Hans/cpp/README.md", "docs/i18n/zh-Hans/docs/GTS-ADVANCED-PRIMITIVES.md", "docs/i18n/zh-Hans/docs/GTS-API-CLI-PARITY.md", "docs/i18n/zh-Hans/docs/GTS-BENCHMARK-RELEASE-REPORT.md", "docs/i18n/zh-Hans/docs/GTS-CONFORMANCE.md", "docs/i18n/zh-Hans/docs/GTS-DUMP-DIR.md", "docs/i18n/zh-Hans/docs/GTS-ECOSYSTEM-INTEGRATIONS.md", "docs/i18n/zh-Hans/docs/GTS-GOVERNANCE.md", "docs/i18n/zh-Hans/docs/GTS-OKF.md", "docs/i18n/zh-Hans/docs/GTS-PAPER-DRAFT.md", "docs/i18n/zh-Hans/docs/GTS-RELEASE-SLSA.md", "docs/i18n/zh-Hans/docs/GTS-SECURITY-POLICY.md", "docs/i18n/zh-Hans/docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md", "docs/i18n/zh-Hans/docs/GTS-V1-RC1-CHECKLIST.md", "docs/i18n/zh-Hans/docs/gts-reference.md", "docs/i18n/zh-Hans/docs/positioning.md", "docs/i18n/zh-Hans/dotnet/README.md", "docs/i18n/zh-Hans/go/README.md", "docs/i18n/zh-Hans/julia/README.md", "docs/i18n/zh-Hans/kotlin/README.md", "docs/i18n/zh-Hans/lua/README.md", "docs/i18n/zh-Hans/php/README.md", "docs/i18n/zh-Hans/python/README.md", "docs/i18n/zh-Hans/python/examples/README.md", "docs/i18n/zh-Hans/r/README.md", "docs/i18n/zh-Hans/ruby/README.md", "docs/i18n/zh-Hans/rust/README.md", "docs/i18n/zh-Hans/rust/capi/README.md", "docs/i18n/zh-Hans/smalltalk/README.md", "docs/i18n/zh-Hans/swift/README.md", "docs/i18n/zh-Hans/ts/README.md"]
+path = [
+  "archive/v1/docs/i18n/zh-Hans/CHANGELOG.md",
+  "archive/v1/docs/i18n/zh-Hans/CONTRIBUTING.md",
+  "archive/v1/docs/i18n/zh-Hans/README.md",
+  "archive/v1/docs/i18n/zh-Hans/SECURITY.md",
+  "archive/v1/docs/i18n/zh-Hans/cpp/README.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-ADVANCED-PRIMITIVES.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-API-CLI-PARITY.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-BENCHMARK-RELEASE-REPORT.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-CONFORMANCE.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-DUMP-DIR.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-ECOSYSTEM-INTEGRATIONS.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-GOVERNANCE.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-OKF.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-PAPER-DRAFT.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-RELEASE-SLSA.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-SECURITY-POLICY.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/GTS-V1-RC1-CHECKLIST.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/gts-reference.md",
+  "archive/v1/docs/i18n/zh-Hans/docs/positioning.md",
+  "archive/v1/docs/i18n/zh-Hans/dotnet/README.md",
+  "archive/v1/docs/i18n/zh-Hans/go/README.md",
+  "archive/v1/docs/i18n/zh-Hans/julia/README.md",
+  "archive/v1/docs/i18n/zh-Hans/kotlin/README.md",
+  "archive/v1/docs/i18n/zh-Hans/lua/README.md",
+  "archive/v1/docs/i18n/zh-Hans/php/README.md",
+  "archive/v1/docs/i18n/zh-Hans/python/README.md",
+  "archive/v1/docs/i18n/zh-Hans/python/examples/README.md",
+  "archive/v1/docs/i18n/zh-Hans/r/README.md",
+  "archive/v1/docs/i18n/zh-Hans/ruby/README.md",
+  "archive/v1/docs/i18n/zh-Hans/rust/README.md",
+  "archive/v1/docs/i18n/zh-Hans/rust/capi/README.md",
+  "archive/v1/docs/i18n/zh-Hans/smalltalk/README.md",
+  "archive/v1/docs/i18n/zh-Hans/swift/README.md",
+  "archive/v1/docs/i18n/zh-Hans/ts/README.md",
+  "docs/i18n/zh-Hans/CHANGELOG.md",
+  "docs/i18n/zh-Hans/CODE_OF_CONDUCT.md",
+  "docs/i18n/zh-Hans/CONTRIBUTING.md",
+  "docs/i18n/zh-Hans/SECURITY.md",
+  "docs/i18n/zh-Hans/docs/GTS-GOVERNANCE.md",
+  "docs/i18n/zh-Hans/LICENSING.md",
+  "docs/i18n/zh-Hans/README.md",
+]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+[[annotations]]
+path = ["docs/i18n/zh-Hans/docs/GTS-SPEC.md", "archive/v1/docs/i18n/zh-Hans/docs/GTS-SPEC.md"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0 OR MulanPSL-2.0"
 
 # Pharo Tonel source and smalltalkCI configuration are annotated here because
 # several Tonel metadata files conventionally do not carry inline comments.
@@ -87,7 +136,7 @@ SPDX-License-Identifier = "MIT OR Apache-2.0 OR MulanPSL-2.0"
 # Generated benchmark evidence reports (JSON cannot carry an inline header; the
 # Markdown report is regenerated from the same payload).
 [[annotations]]
-path = "dist/benchmarks/paper-evidence/release-benchmark-report.*"
+path = "archive/v1/dist/benchmarks/paper-evidence/release-benchmark-report.*"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
@@ -96,8 +145,8 @@ SPDX-License-Identifier = "MIT OR Apache-2.0"
 # RFCXML must be byte-for-byte generated from that source.
 [[annotations]]
 path = [
-  "ietf/draft-audley-gts-graph-transport-substrate.md",
-  "ietf/draft-audley-gts-graph-transport-substrate-00.xml",
+  "archive/v1/ietf/draft-audley-gts-graph-transport-substrate.md",
+  "archive/v1/ietf/draft-audley-gts-graph-transport-substrate-00.xml",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"

@@ -53,4 +53,4 @@ conversion. Original signatures stay with the v1 file, so keep that file for any
 [Conversion and its proof](docs/v2/P9.md) · [Feature-by-feature migration guide](docs/v2/GUIDE-migration.md)
 
 The repository's reference engines implement v1. For teams building v2, the specification and test cases are available
-for review and implementation. [V2 specification](docs/v2/README.md) · [Conformance corpus](vectors/v2/README.md)
+for review and implementation. [V2 specification](docs/GTS-SPEC.md) · [Conformance corpus](vectors/v2/README.md)

@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 ## Decision
 
-Defer the reusable-workflow migration for the v1.0-rc1 release path. Current
+For published software packages, current
 release artifacts should be described as GitHub artifact-attested SLSA v1.0
 Build Level 2 evidence, plus the registry, SBOM, immutable-release, and public
 verification controls described below. Do not claim SLSA v1.0 Build Level 3 for
@@ -45,7 +45,7 @@ except for `visual-hashing`, which now publishes from its standalone repository:
 
 Refactoring those jobs into same-repository reusable workflows would centralize
 release logic, but it would not by itself add enough governance separation to
-justify changing every release lane immediately before v1.0-rc1. The stronger
+justify changing every release lane. The stronger
 upgrade is a protected, reviewed reusable-workflow boundary with verification
 that requires the expected reusable workflow identity.
 

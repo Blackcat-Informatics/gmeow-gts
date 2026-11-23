@@ -1602,7 +1602,7 @@ def verify_github_attestations(
     Each plan entry carries the repository whose attestation store to query.
     Most artifacts are attested by this repository, but `visual-hashing`
     publishes from its own standalone repository (see CHANGELOG 0.9.6 and
-    docs/GTS-V1-RC1-CHECKLIST.md:344-347), so its attestations live there.
+    archive/v1/docs/GTS-V1-RC1-CHECKLIST.md), so its attestations live there.
     Querying this repository for them returns a bare HTTP 404, which reads like
     a missing attestation rather than a lookup pointed at the wrong store.
     """

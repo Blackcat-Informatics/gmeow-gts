@@ -1,0 +1,60 @@
+<!-- SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca> -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<!-- i18n-source: README.md -->
+<!-- i18n-locale: fr-CA -->
+<!-- i18n-status: draft -->
+
+# GTS en français canadien
+
+> Traduction informative de [`README.md`](../../../README.md). L'anglais demeure la source normative pour le protocole, les versions, les commandes et les exemples exécutables.
+
+GTS, ou `Graph Transport Substrate`, est un format append-only pour transporter des graphes RDF et leurs données associées avec des identifiants de contenu, des segments vérifiables, des signatures optionnelles et des surfaces CLI/API dans plusieurs langages.
+
+Cette page sert d'entrée locale pour le lot de traduction #364. Les termes suivent le [`glossaire de localisation`](../GLOSSARY.md); l'index général de localisation est [`docs/i18n/README.md`](../README.md).
+
+## Documents localisés de ce lot
+
+| Source anglaise | Page fr-CA |
+|---|---|
+| `docs/GTS-SPEC.md` | [Spécification GTS](docs/GTS-SPEC.md) |
+| `docs/GTS-CONFORMANCE.md` | [Conformité GTS](docs/GTS-CONFORMANCE.md) |
+| `docs/GTS-API-CLI-PARITY.md` | [Parité API/CLI](docs/GTS-API-CLI-PARITY.md) |
+| `docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md` | [Guide d'implémentation tierce](docs/GTS-THIRD-PARTY-IMPLEMENTER-GUIDE.md) |
+| `docs/gts-reference.md` | [Référence Python](docs/gts-reference.md) |
+| `docs/GTS-ECOSYSTEM-INTEGRATIONS.md` | [Intégrations de l'écosystème](docs/GTS-ECOSYSTEM-INTEGRATIONS.md) |
+| `docs/GTS-ADVANCED-PRIMITIVES.md` | [Primitives avancées](docs/GTS-ADVANCED-PRIMITIVES.md) |
+| `docs/GTS-OKF.md` | [OKF](docs/GTS-OKF.md) |
+| `docs/GTS-DUMP-DIR.md` | [Répertoire de dump](docs/GTS-DUMP-DIR.md) |
+| `docs/GTS-PAPER-DRAFT.md` | [Brouillon d'article](docs/GTS-PAPER-DRAFT.md) |
+| `docs/GTS-BENCHMARK-RELEASE-REPORT.md` | [Rapport de publication des benchmarks](docs/GTS-BENCHMARK-RELEASE-REPORT.md) |
+| `docs/GTS-GOVERNANCE.md` | [Gouvernance](docs/GTS-GOVERNANCE.md) |
+| `docs/GTS-SECURITY-POLICY.md` | [Politique de sécurité et de confiance](docs/GTS-SECURITY-POLICY.md) |
+| `docs/GTS-RELEASE-SLSA.md` | [Posture SLSA des versions](docs/GTS-RELEASE-SLSA.md) |
+| `docs/GTS-V1-RC1-CHECKLIST.md` | [Liste de contrôle v1.0-rc1](docs/GTS-V1-RC1-CHECKLIST.md) |
+| `CHANGELOG.md` | [Journal des changements](CHANGELOG.md) |
+| `CONTRIBUTING.md` | [Contribution](CONTRIBUTING.md) |
+| `SECURITY.md` | [Sécurité](SECURITY.md) |
+| `CODE_OF_CONDUCT.md` | [Code de conduite](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/docs/i18n/fr-CA/CODE_OF_CONDUCT.md) |
+| `LICENSING.md` | [Licences](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/docs/i18n/fr-CA/LICENSING.md) |
+| `README.md` | [Projet](README.md) |
+| `docs/positioning.md` | [Positionnement](docs/positioning.md) |
+| `rust/README.md` | [Rust](rust/README.md) |
+| `python/README.md` | [Python](python/README.md) |
+| `go/README.md` | [Go](go/README.md) |
+| `ts/README.md` | [TypeScript](ts/README.md) |
+| `smalltalk/README.md` | [Smalltalk/Pharo](smalltalk/README.md) |
+| `kotlin/README.md` | [Kotlin/JVM](kotlin/README.md) |
+| `rust/capi/README.md` | [C ABI](rust/capi/README.md) |
+| `cpp/README.md` | [C++](cpp/README.md) |
+| `dotnet/README.md` | [.NET](dotnet/README.md) |
+| `php/README.md` | [PHP](php/README.md) |
+| `lua/README.md` | [Lua](lua/README.md) |
+| `swift/README.md` | [Swift](swift/README.md) |
+| `ruby/README.md` | [Ruby](ruby/README.md) |
+| `r/README.md` | [R](r/README.md) |
+| `julia/README.md` | [Julia](julia/README.md) |
+| `python/examples/README.md` | [Python examples](python/examples/README.md) |
+
+## Statut
+
+La spécification, les pages de conformité et les références d'implémentation localisées sont marquées `translated` et demeurent informatives par rapport aux documents anglais. Les autres pages sont marquées `draft` afin de séparer la traduction initiale de la revue finale prévue par #369. Les commandes, chemins, URLs, noms de paquets, identifiants d'API, valeurs JSON, codes de diagnostic et extraits de code doivent rester exactement comme dans les sources anglaises.

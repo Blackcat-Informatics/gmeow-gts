@@ -1,0 +1,123 @@
+<!-- SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca> -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<!-- i18n-source: CONTRIBUTING.md -->
+<!-- i18n-locale: fr-CA -->
+<!-- i18n-status: translated -->
+
+# Contribuer à GTS
+
+> Traduction informative de [`CONTRIBUTING.md`](../../../CONTRIBUTING.md). Le document anglais demeure la source faisant autorité pour la gouvernance, la sécurité, les versions, les licences, la contribution, les obligations de conduite, les processus de divulgation et les commandes exécutables. Cette traduction suit [`docs/i18n/GLOSSARY.md`](../GLOSSARY.md) et reste informative.
+
+Merci de votre intérêt pour Graph Transport Substrate (GTS). Ce document décrit comment contribuer aux moteurs principaux, à la spécification et aux outils de l'écosystème.
+
+## Façons de contribuer
+
+- **Report a bug or request a feature** — open an issue with a minimal reproduction
+  (ideally a `.gts` file or a failing conformance vector).
+- **Fix a bug or add a feature** — open a pull request against `main`.
+- **Improve the spec or docs** — corrections and clarifications to
+  [`docs/GTS-SPEC.md`](./docs/GTS-SPEC.md) and the per-engine guides are very welcome.
+
+## Gouvernance de la spécification
+
+Core wire-format changes, baseline conformance changes, optional-standard profile promotion,
+and registry additions follow the lightweight governance policy in
+[`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md). In short:
+
+- changes to header/frame grammar, hash or signature preimages, transform resolution, segment
+  composition, or fold semantics require a GTS Improvement Proposal (GIP);
+- domain-specific profiles can be registered without changing core GTS, but they must not alter
+  core parse, verify, or fold semantics;
+- registry entries for codecs, frame types, diagnostics, transform targets, and profiles must
+  follow the registry change policy and reserved namespace rules.
+
+## Le corpus de conformité est le contrat
+
+The four parity engines are interchangeable only because they all fold the **same bytes** to the
+**same expectations**. The frozen corpus lives in [`vectors/`](https://github.com/Blackcat-Informatics/gmeow-gts/tree/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/vectors); the Python
+reference implementation (`gts.vectors`) is its single source of truth.
+
+- A change to format behaviour MUST update the corpus and keep all four engines green.
+- Regenerate the committed corpus and prove it is reproducible byte-for-byte:
+
+  ```bash
+  cd python && uv run python scripts/gen_vectors.py
+  git diff --exit-code vectors        # no changes ⇒ reproducible
+  ```
+
+- If you change one engine's observable behaviour, change the others to match (or open an
+  issue first to discuss whether the spec itself should change).
+
+## Développement
+
+Each implementation builds and tests independently from its own directory:
+
+```bash
+cd rust   && cargo test                              # unit + CLI + conformance
+cd go     && go test ./...                            # unit + conformance
+cd ts     && npm ci && npm test                       # compiles, runs against vectors/
+cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
+docker build -t gmeow-gts-smalltalk smalltalk && \
+  docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
+  'sh /workspace/smalltalk/scripts/run-tests.sh'      # Pharo bootstrap tests
+```
+
+## Avant d’ouvrir une pull request
+
+- Run the relevant engine's test suite (above) and make sure it is green.
+- Run repo-wide hygiene: `pre-commit run --all-files` (formatting, SPDX headers,
+  YAML/Markdown/shell, secret scanning).
+- Per-language gates: `cargo fmt --check` + `cargo clippy`, `go vet` + `golangci-lint`,
+  `npm run lint`, `ruff check` + `mypy`.
+- Every eligible first-party source file must carry an SPDX `MIT OR Apache-2.0 OR MulanPSL-2.0` license header.
+- Keep changes focused; describe **what** changed and **why** in the PR description.
+
+CI runs all four parity engines, the Smalltalk/Pharo bootstrap, and a lint lane on every pull
+request.
+
+## Licence des contributions
+
+Les contributions soumises intentionnellement pour inclusion dans le code d'implémentation
+de première partie admissible, les outils de construction et d'empaquetage, les spécifications
+GTS et les vecteurs de conformité figés sont acceptées sous **MIT OR Apache-2.0 OR MulanPSL-2.0**.
+Les contributions aux autres documents conservent la licence déclarée du document, sauf
+indication contraire explicite. Le CLA du projet régit séparément l'autorisation de
+relicencier sous des conditions propriétaires ou commerciales.
+
+For context, contributions to **GMEOW tooling/code** elsewhere in the project (the
+[`gmeow-ontology`](https://github.com/Blackcat-Informatics/gmeow-ontology) repository) are
+accepted under **AGPL-3.0-only** and, under the project CLA, under terms that permit Blackcat
+Informatics® Inc. to relicense them under separate proprietary/commercial terms. gmeow-gts is
+the deliberately permissive, dependency-light engine layer, so it carries the permissive
+`MIT OR Apache-2.0 OR MulanPSL-2.0` terms rather than AGPL.
+
+En soumettant une contribution, vous acceptez la licence applicable décrite ci-dessus.
+Pour que la réserve de double licence s'étende à votre contribution, vous acceptez aussi
+d'accorder à Blackcat Informatics® Inc. une licence permettant la redistribution sous
+d'autres licences, y compris sous des conditions propriétaires. Un accord de licence de
+contributeur (CLA) peut être exigé avant la fusion de contributions importantes.
+Voir [`LICENSING.md`](https://github.com/Blackcat-Informatics/gmeow-gts/blob/c646f9d98be7ff31ceb0cb96695ee5ccc75db04a/docs/i18n/fr-CA/LICENSING.md) pour le régime de licence complet.
+
+## Versions
+
+Les contributeurs ne publient pas les versions, mais deux aspects du processus de publication
+affectent les changements ordinaires :
+
+- **Les versions sont vérifiées, pas supposées.** `scripts/check-versions.sh` compare chaque
+  langage à la crate Rust, et vérifie aussi des chaînes de version précises dans `README.md`,
+  `rust/README.md`, `docs/GTS-ECOSYSTEM-INTEGRATIONS.md`, `rust/capi/gts.pc.in`, le port vcpkg
+  et les deux fichiers `Cargo.lock`. Un changement qui modifie un extrait de version dans le
+  texte échouera en CI si les manifestes ne concordent pas.
+- **Le corpus de conformité est généré.** Ne modifiez jamais `vectors/` à la main. Modifiez
+  `python/src/gts/vectors.py` puis exécutez `just check-vectors`, qui régénère le corpus et
+  échoue si les octets commis diffèrent.
+
+La procédure de publication elle-même se trouve dans
+[`docs/GTS-V1-RC1-CHECKLIST.md`](./docs/GTS-V1-RC1-CHECKLIST.md) pour une version candidate et
+[`docs/GTS-V1-CHECKLIST.md`](./docs/GTS-V1-CHECKLIST.md) pour une version finale ; la politique
+sous-jacente est [`docs/GTS-GOVERNANCE.md`](./docs/GTS-GOVERNANCE.md), y compris la politique de
+dépréciation au §5.1 si votre changement retire une API publique.
+
+## Conduite
+
+Be respectful and constructive. Harassment and abuse are not tolerated.

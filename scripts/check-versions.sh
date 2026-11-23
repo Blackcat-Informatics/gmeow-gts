@@ -55,7 +55,7 @@ fi
 # Both Cargo LOCKFILES must already name the new version. The release workflows
 # build with --locked, so a lockfile left behind by a version bump does not fail
 # here or in CI -- it fails at PUBLISH time, after the tag is pushed, which
-# docs/GTS-V1-RC1-CHECKLIST.md:425 makes a release incident rather than
+# archive/v1/docs/GTS-V1-RC1-CHECKLIST.md makes a release incident rather than
 # something you can quietly redo. That is exactly how capi-v1.0.0-rc.1 failed:
 #
 #   error: cannot update the lock file .../rust/capi/Cargo.lock
@@ -148,10 +148,8 @@ else
   check_contains "lua/gmeow-gts-${lua_v}-1.rockspec" "tag = \"lua-v${lua_v}\"" "rockspec source tag"
 fi
 
-check_contains "README.md" "gmeow-gts = \"$rust_v\"" "README Rust dependency snippet"
-check_contains "README.md" "gmeow-gts = { version = \"$rust_v\"" "README Rust feature snippet"
 check_contains "rust/README.md" "gmeow-gts = \"$rust_v\"" "Rust README dependency snippet"
-check_contains "docs/GTS-ECOSYSTEM-INTEGRATIONS.md" "gmeow-gts = { version = \"$rust_v\"" "ecosystem Rust feature snippet"
+check_contains "rust/README.md" "gmeow-gts = { version = \"$rust_v\"" "Rust README feature snippet"
 check_contains "rust/capi/Cargo.toml" "gmeow-gts = { version = \"$rust_v\"" "C ABI Rust dependency"
 check_contains "rust/capi/gts.pc.in" "Version: $rust_v" "C ABI pkg-config template version"
 check_contains "packaging/vcpkg/ports/gmeow-gts/vcpkg.json" "\"version\": \"$rust_v\"" "vcpkg overlay package version"

@@ -2,9 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Files-profile pack/unpack/diff logic for GTS archives.
 
-Implements the ``files`` profile defined in ``docs/GTS-SPEC.md`` §13.2 and
-§14.2: a portable, content-addressed archive of a file tree with deterministic,
-reproducible packing.
+The released engine packs a file tree into a reproducible, content-addressed archive.
 """
 
 from __future__ import annotations

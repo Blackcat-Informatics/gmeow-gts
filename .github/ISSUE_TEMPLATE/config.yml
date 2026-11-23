@@ -3,7 +3,7 @@
 
 blank_issues_enabled: false
 contact_links:
-  - name: GTS specification
+  - name: GTS v2 specification
     url: https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md
     about: Read the authoritative wire-format specification.
   - name: Security policy

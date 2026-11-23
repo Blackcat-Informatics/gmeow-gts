@@ -10,8 +10,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = ROOT / "docs" / "GTS-API-CLI-PARITY.md"
-README = ROOT / "README.md"
+V1_DOCS = ROOT / "archive" / "v1"
+CONTRACT = V1_DOCS / "docs" / "GTS-API-CLI-PARITY.md"
+README = V1_DOCS / "README.md"
 ENGINES = ("Python", "Rust", "Go", "TypeScript", "Smalltalk", "Kotlin")
 
 

@@ -1,6 +1,6 @@
 {
   "schema": "gts-api-parity-v1",
-  "description": "Machine-readable declaration for the six full-engine API parity claims rendered in README.md and docs/GTS-API-CLI-PARITY.md.",
+  "description": "Machine-readable declaration for the released engines’ API parity claims in archive/v1/README.md and archive/v1/docs/GTS-API-CLI-PARITY.md.",
   "full_engines": [
     "Python",
     "Rust",
