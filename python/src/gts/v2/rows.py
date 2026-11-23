@@ -67,6 +67,7 @@ def remap_row(row: Row, term: Callable[[int], int]) -> Row:
             return AnnotationRow(
                 count, term(reifier), term(predicate), term(object_id), graph
             )
+    raise TypeError("expected a v2 graph row")
 
 
 @dataclass(frozen=True, slots=True)

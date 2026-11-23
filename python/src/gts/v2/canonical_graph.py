@@ -82,8 +82,7 @@ def _term_text_length(term: WireTerm) -> int:
             return len(text)
         case TypedValueTerm(TypedValue() as value):
             return len(cbor2.dumps(_value_record(value)))
-        case _:
-            return 0
+    return 0
 
 
 def _reachable(pool: TermPool, roots: Iterable[int]) -> dict[int, Term]:
