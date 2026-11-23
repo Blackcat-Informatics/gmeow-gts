@@ -10,6 +10,7 @@ from gts.v2._certificates import (
     compare_certificates,
     component_certificates,
 )
+from gts.v2._twins import TwinIndex
 from gts.v2.labelling import Blank, Iri, LabellingInput, LabellingTerms
 from gts.v2.rows import QuadRow
 
@@ -132,3 +133,29 @@ def test_certificate_operations_accept_nesting_beyond_the_recursion_limit() -> N
         b = Call((b"b",), (), (b,), b"b", 0, 0)
     assert compare_certificates(a, b) < 0
     assert b"".join(a.certificate_chunks()).endswith(b"a" + bytes(8))
+
+
+def test_twin_charge_covers_the_union_of_affected_lines() -> None:
+    # Section 8.1(f) prints both charges for the directed four-cycle.
+    source = _graph([(b"a", b"b"), (b"b", b"c"), (b"c", b"d"), (b"d", b"a")])
+    lines = range(len(source))
+    twins = TwinIndex(
+        source, lines, tuple(frozenset(source.incidences(line, {})) for line in lines)
+    )
+    assert twins.test(b"a", b"b") == (False, 9)
+    assert twins.test(b"a", b"c") == (False, 12)
+
+
+def test_nested_twin_class_counts_every_attaining_child() -> None:
+    # The hub is fixed at the top; the complete subgraph first branches below it.
+    nodes = [bytes([name]) for name in b"abcdef"]
+    edges = [(b"hub", node) for node in nodes]
+    edges.extend((a, b) for a, b in product(nodes, repeat=2) if a != b)
+    source = _graph(edges)
+    (component,) = component_certificates(source)
+    assert component.call.fixed == (b"hub",)
+    branch_sizes = [
+        (call.target_size, call.attaining) for call in component.call.preorder()
+    ]
+    assert branch_sizes == [(0, 0), (6, 6), (5, 5), (4, 4), (3, 3), (2, 2)]
+    assert list(canonical_map((component,))) == [b"hub", *nodes]

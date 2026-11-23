@@ -11,6 +11,7 @@ from itertools import groupby, zip_longest
 
 from blake3 import blake3
 
+from ._twins import TwinClasses, TwinIndex
 from .labelling import LabellingInput, _uint
 from .refinement import (
     RefinedComponent,
@@ -98,16 +99,22 @@ type _SearchStep = Generator[RefinedComponent, Call, Call]
 
 
 class _Search:
-    def __init__(self, source: LabellingInput) -> None:
+    def __init__(
+        self,
+        source: LabellingInput,
+        line_nodes: tuple[frozenset[bytes], ...],
+        top: RefinedComponent,
+    ) -> None:
         self.source = source
         self.positions: dict[bytes, int] = {}
-        self.line_nodes = tuple(
-            frozenset(source.incidences(index, {})) for index in range(len(source))
-        )
+        self.line_nodes = line_nodes
+        self.top = top
+        self.twin_classes = TwinClasses()
+        self.twin_index: TwinIndex | None = None
 
-    def solve(self, component: RefinedComponent) -> Call:
+    def solve(self) -> Call:
         # The explicit stack sends each nested result back to its parent.
-        stack = [self._call(component)]
+        stack = [self._call(self.top)]
         nested = None
         while stack:
             try:
@@ -130,18 +137,38 @@ class _Search:
         target = sorted(component.node_cells[0])
         best = None
         attaining = 0
-        for vertex in target:
+        for vertex, count in self._twin_representatives(target):
             child = individualize(self.source, component, self.positions, vertex)
             result = yield from self._fix(child, smallest, child.refinement_units, best)
             if result is None:
                 continue
             comparison = -1 if best is None else compare_certificates(result, best)
             if comparison < 0:
-                best, attaining = result, 1
+                best, attaining = result, count
             elif comparison == 0:
-                attaining += 1
+                attaining += count
         assert best is not None
         return replace(best, target_size=len(target), attaining=attaining)
+
+    def _twin_representatives(self, target: list[bytes]) -> Iterator[tuple[bytes, int]]:
+        # Only the top component's vertices and line set define a twin test.
+        if self.twin_index is None:
+            lines = (index for cell in self.top.line_cells for index in cell)
+            self.twin_index = TwinIndex(self.source, lines, self.line_nodes)
+        first = target[0]
+        for vertex in target[1:]:
+            if self.twin_classes.representative(
+                first
+            ) != self.twin_classes.representative(vertex):
+                passes, _ = self.twin_index.test(first, vertex)
+                if passes:
+                    self.twin_classes.join(first, vertex)
+        groups: dict[bytes, list[bytes]] = {}
+        for vertex in target:
+            root = self.twin_classes.representative(vertex)
+            groups.setdefault(root, []).append(vertex)
+        # Classes are visited by their smallest source identifier.
+        return ((group[0], len(group)) for group in groups.values())
 
     def _fix(
         self,
@@ -220,10 +247,12 @@ class CanonicalNode:
 
 def component_certificates(source: LabellingInput) -> tuple[ComponentCertificate, ...]:
     """Find the minimum certificates and order the top components by identity."""
-    search = _Search(source)
+    line_nodes = tuple(
+        frozenset(source.incidences(index, {})) for index in range(len(source))
+    )
     components = []
     for partition in refine_top_components(source):
-        call = search.solve(partition)
+        call = _Search(source, line_nodes, partition).solve()
         digest = blake3(derive_key_context=_COMPONENT_CONTEXT)
         for chunk in call.certificate_chunks():
             digest.update(chunk)
