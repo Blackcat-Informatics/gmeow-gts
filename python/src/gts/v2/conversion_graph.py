@@ -226,3 +226,28 @@ class ConversionGraph:
             )
             self._quad(term_node, _NS + "termValue", note.term)
             self._quad(term_node, _NS + "termKeys", self.map_value(note.keys))
+
+    def add_blob(
+        self,
+        digest: bytes | str,
+        media_type: str | None,
+        representation: str | None,
+        extras: MapValue,
+        *,
+        external: bool,
+    ) -> int:
+        """State a blob declaration or an external blob in the conversion graph."""
+        node = self._blank()
+        kind = "ExternalBlob" if external else "BlobDeclaration"
+        self._quad(node, _RDF + "type", self._iri(_NS + kind))
+        if isinstance(digest, bytes):
+            self._quad(node, _NS + "digest", self._typed(TypedValue(5, digest)))
+        else:
+            self._quad(node, _NS + "digestText", self._literal(digest))
+        if media_type is not None:
+            self._quad(node, _NS + "mediaType", self._literal(media_type))
+        if representation is not None:
+            self._quad(node, _NS + "representation", self._literal(representation))
+        if extras.entries:
+            self._quad(node, _NS + "pub", self.map_value(extras))
+        return node
