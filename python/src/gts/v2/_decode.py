@@ -19,6 +19,15 @@ type WireReason = Literal[
 ]
 
 
+def _immutable_octets(data: bytes | memoryview) -> bytes | memoryview:
+    """Retain octets independently of the caller's view and any mutable backing."""
+    if isinstance(data, bytes):
+        return data
+    if isinstance(data.obj, bytes) and data.c_contiguous:
+        return data.cast("B")
+    return bytes(data)
+
+
 class WireError(ValueError):
     """A malformed wire field and its position."""
 
@@ -31,12 +40,14 @@ class WireError(ValueError):
 class _Decoder:
     """A cursor over the deterministic GTS grammar, with checks in byte order."""
 
-    def __init__(self, data: bytes, offset: int, error: type[WireError]) -> None:
+    def __init__(
+        self, data: bytes | memoryview, offset: int, error: type[WireError]
+    ) -> None:
         self.error = error
         self.data = data
         self.offset = offset
 
-    def _take(self, size: int) -> bytes:
+    def _take(self, size: int) -> bytes | memoryview:
         start = self.offset
         end = start + size
         if end > len(self.data):
@@ -86,12 +97,18 @@ class _Decoder:
             raise self.error(reason, start)
         return value
 
-    def option[T](self, decode: Callable[[], T]) -> T | None:
+    def option[T](
+        self, decode: Callable[[], T], *, read_tag: Callable[[], int] | None = None
+    ) -> T | None:
         start = self.offset
         length = self._head(4)
         if not length:
             raise self.error("wrong_length", start)
-        tag = self.uint(minimum=1, maximum=2, reason="unregistered_value")
+        tag = (
+            self.uint(minimum=1, maximum=2, reason="unregistered_value")
+            if read_tag is None
+            else read_tag()
+        )
         if length != tag:
             raise self.error("wrong_length", start)
         return decode() if tag == 2 else None
@@ -115,10 +132,13 @@ class _Decoder:
         return memoryview(self.data)[body : self.offset]
 
     def text(self) -> None:
+        self.text_value()
+
+    def text_value(self) -> str:
         start = self.offset
         size = self._head(3)
         try:
-            self._take(size).decode("utf-8")
+            return bytes(self._take(size)).decode("utf-8")
         except UnicodeDecodeError as error:
             raise self.error("wrong_type", start) from error
 

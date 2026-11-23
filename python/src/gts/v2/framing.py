@@ -32,7 +32,9 @@ class GenerationField:
     value: int
 
 
-def _head(data: bytes, offset: int, item_start: int) -> tuple[int, int | None, int]:
+def _head(
+    data: bytes | memoryview, offset: int, item_start: int
+) -> tuple[int, int | None, int]:
     """Read a CBOR head without applying the deterministic GTS grammar."""
     if offset == len(data):
         raise ItemFramingError("torn_tail", item_start)
