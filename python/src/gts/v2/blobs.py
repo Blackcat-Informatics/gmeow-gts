@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Collect folded GTS v2 blobs, units and values (P4 §§3–6)."""
 
+from bisect import bisect_left
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 import cbor2
@@ -137,6 +138,51 @@ class BlobSegment:
 class ValueSelection:
     declared: bool
     rebuilt: VerifiedRebuild | None
+    refused: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class _ValueCandidate:
+    location: BlobLocation
+    outcome: RebuildResult
+
+
+@dataclass(slots=True)
+class _ValueCandidates:
+    declared: list[_ValueCandidate] = field(default_factory=list)
+    verified: list[_ValueCandidate] = field(default_factory=list)
+    refused: list[_ValueCandidate] = field(default_factory=list)
+
+    def add(self, location: BlobLocation, outcome: RebuildResult) -> None:
+        candidate = _ValueCandidate(location, outcome)
+        self._append_first(self.declared, candidate)
+        if isinstance(outcome, VerifiedRebuild):
+            self._append_first(self.verified, candidate)
+        elif isinstance(outcome, RefusedRebuild):
+            self._append_first(self.refused, candidate)
+
+    @staticmethod
+    def _append_first(
+        candidates: list[_ValueCandidate], candidate: _ValueCandidate
+    ) -> None:
+        if (
+            not candidates
+            or candidates[-1].location.segment != candidate.location.segment
+        ):
+            candidates.append(candidate)
+
+    @staticmethod
+    def before(
+        candidates: list[_ValueCandidate],
+        first_segment: int,
+        boundary: tuple[int, int],
+    ) -> _ValueCandidate | None:
+        index = bisect_left(candidates, first_segment, key=lambda c: c.location.segment)
+        if index == len(candidates):
+            return None
+        candidate = candidates[index]
+        where = candidate.location
+        return candidate if (where.segment, where.position) < boundary else None
 
 
 class BlobRead:
@@ -145,23 +191,33 @@ class BlobRead:
     def __init__(self, rebuilt_bytes_per_read: int, *, whole: bool = True) -> None:
         self._whole = whole
         self._budget = RebuildBudget(rebuilt_bytes_per_read, enabled=whole)
-        self._first: dict[tuple[bytes, int], tuple[int, int]] = {}
-        self._verified: dict[
-            tuple[bytes, int], tuple[tuple[int, int], VerifiedRebuild]
-        ] = {}
+        self._values: dict[tuple[bytes, int], _ValueCandidates] = {}
 
     def value_before(
-        self, digest: bytes, length: int, *, segment: int, position: int
+        self,
+        digest: bytes,
+        length: int,
+        *,
+        segment: int,
+        position: int,
+        first_segment: int = 0,
     ) -> ValueSelection:
-        """Find the first verified value that stands before a terms frame."""
-        key = (digest, length)
+        """Select an already rebuilt value in the requested segment run.
+
+        Report whether any candidate was declared and whether any of their
+        rebuilds was refused in the whole-file read. The first eligible
+        segment defaults to the start of the file.
+        """
+        candidates = self._values.get((digest, length))
+        if candidates is None:
+            return ValueSelection(False, None)
         before = (segment, position)
-        first = self._first.get(key)
-        verified = self._verified.get(key)
-        return ValueSelection(
-            first is not None and first < before,
-            verified[1] if verified is not None and verified[0] < before else None,
-        )
+        declared = candidates.before(candidates.declared, first_segment, before)
+        verified = candidates.before(candidates.verified, first_segment, before)
+        refused = candidates.before(candidates.refused, first_segment, before)
+        rebuilt = None if verified is None else verified.outcome
+        assert rebuilt is None or isinstance(rebuilt, VerifiedRebuild)
+        return ValueSelection(declared is not None, rebuilt, refused is not None)
 
     def fold_segment(
         self,
@@ -256,10 +312,10 @@ class BlobRead:
                 )
             else:
                 key = (record.digest, record.total_length)
-                where = (segment, location.position)
-                self._first.setdefault(key, where)
-                if isinstance(outcome, VerifiedRebuild):
-                    self._verified.setdefault(key, (where, outcome))
+                candidates = self._values.get(key)
+                if candidates is None:
+                    candidates = self._values[key] = _ValueCandidates()
+                candidates.add(location, outcome)
 
         if self._whole:
             findings.extend(

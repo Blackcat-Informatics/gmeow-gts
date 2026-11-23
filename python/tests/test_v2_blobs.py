@@ -16,7 +16,8 @@ from gts.v2.blobs import (
     blob_set,
     decode_blob_content,
 )
-from gts.v2.rebuild import unit_digest
+from gts.v2.pack import MemberKind, PackMember
+from gts.v2.rebuild import Entry, unit_digest
 from gts.v2.writer import SegmentWriter
 
 _P4 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P4"
@@ -163,6 +164,50 @@ def test_value_availability_is_temporal_and_distinguishes_failed_declarations(
         assert not reader.value_before(
             digest, length + 1, segment=second, position=3
         ).declared
+
+
+def test_value_selection_excludes_declarations_before_the_run() -> None:
+    for index, (reader, _, _, segments, values) in enumerate(
+        _read_cases("rebuild-value-first-verified")
+    ):
+        ((digest, length),) = values
+        last = segments[-1][0]
+        choice = reader.value_before(
+            digest, length, segment=last, position=3, first_segment=last
+        )
+        assert choice.declared
+        assert (choice.rebuilt is not None) == (index == 0)
+
+
+def test_scoped_selection_keeps_the_whole_file_rebuild_refusal() -> None:
+    payload = b"data"
+    name = unit_digest(payload)
+    chunk = PackMember(
+        MemberKind.CHUNK, name, None, len(payload), memoryview(payload), ()
+    )
+    value = PackMember(
+        MemberKind.VALUE,
+        name,
+        None,
+        len(payload),
+        memoryview(b""),
+        (Entry(name, len(payload)),),
+    )
+    reader = BlobRead(len(payload))
+    reader.fold_segment(0, [(1, (chunk, value))])
+    reader.fold_segment(1, [(1, (chunk, value))])
+
+    before = reader.value_before(
+        name, len(payload), segment=1, position=1, first_segment=1
+    )
+    assert not before.declared and not before.refused
+    whole = reader.value_before(name, len(payload), segment=1, position=2)
+    assert whole.rebuilt is not None and whole.rebuilt.to_bytes() == payload
+    assert whole.refused
+    local = reader.value_before(
+        name, len(payload), segment=1, position=2, first_segment=1
+    )
+    assert local.declared and local.refused and local.rebuilt is None
 
 
 def test_body_does_not_follow_a_mutable_source() -> None:
