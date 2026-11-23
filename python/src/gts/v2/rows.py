@@ -53,6 +53,23 @@ type _RowOrder = Literal["canonical", "unordered"]
 type _TermIdentity = Callable[[int], Hashable]
 
 
+def remap_row(row: Row, term: Callable[[int], int]) -> Row:
+    """Replace a row's term IDs, keeping options and annotation counts."""
+    if isinstance(row, EmptyGraphRow):
+        return EmptyGraphRow(term(row.graph))
+    graph = None if row.graph is None else term(row.graph)
+    match row:
+        case QuadRow(subject, predicate, object_id):
+            return QuadRow(term(subject), term(predicate), term(object_id), graph)
+        case ReifierBindingRow(reifier, triple):
+            return ReifierBindingRow(term(reifier), term(triple), graph)
+        case AnnotationRow(count, reifier, predicate, object_id):
+            return AnnotationRow(
+                count, term(reifier), term(predicate), term(object_id), graph
+            )
+    raise TypeError("expected a v2 graph row")
+
+
 @dataclass(frozen=True, slots=True)
 class DecodedRows:
     frame_type: int

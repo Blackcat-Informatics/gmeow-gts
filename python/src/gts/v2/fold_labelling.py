@@ -16,14 +16,7 @@ from .labelling import LabellingInput, LabellingRefused, Line, RecordLine, _slot
 from .lines import LineResult
 from .record_fold import RecordFold, RecordFrame, _leaves
 from .records import TripleLeaf
-from .rows import (
-    AnnotationRow,
-    DecodedRows,
-    EmptyGraphRow,
-    QuadRow,
-    ReifierBindingRow,
-    Row,
-)
+from .rows import DecodedRows, remap_row
 from .terms import DecodedTerms, TripleTerm, TypedValue, TypedValueTerm
 
 type RefusalReason = Literal[
@@ -88,26 +81,10 @@ def folded_size(
     return size
 
 
-def _lower_row(row: Row, terms: FoldTerms) -> Row:
-    if isinstance(row, EmptyGraphRow):
-        return EmptyGraphRow(terms.lowered(row.graph))
-    term = terms.lowered
-    graph = None if row.graph is None else term(row.graph)
-    match row:
-        case QuadRow(subject, predicate, object_id):
-            return QuadRow(term(subject), term(predicate), term(object_id), graph)
-        case ReifierBindingRow(reifier, triple):
-            return ReifierBindingRow(term(reifier), term(triple), graph)
-        case AnnotationRow(count, reifier, predicate, object_id):
-            return AnnotationRow(
-                count, term(reifier), term(predicate), term(object_id), graph
-            )
-
-
 def _fold_lines(
     lines: LineResult, records: Iterable[RecordLine], terms: FoldTerms
 ) -> Iterator[Line]:
-    yield from (_lower_row(row, terms) for row in lines.lines)
+    yield from (remap_row(row, terms.lowered) for row in lines.lines)
     yield from set(records)
 
 
