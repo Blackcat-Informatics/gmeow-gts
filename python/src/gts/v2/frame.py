@@ -318,6 +318,12 @@ def encode_plain_frame(
     Supply the content record and decoded payload defined by the frame type.
     The caller handles the frame's semantic and segment-level constraints.
     """
+    return _encode_plain_frame(predecessor, frame_type, content, payload)[0]
+
+
+def _encode_plain_frame(
+    predecessor: bytes, frame_type: int, content: list[object], payload: bytes
+) -> tuple[bytes, bytes]:
     if type(frame_type) is not int or not 1 <= frame_type <= _LAST_FRAME_TYPE:
         raise ValueError("frame type must be assigned in registry version 1")
     if not isinstance(payload, bytes):
@@ -344,4 +350,4 @@ def encode_plain_frame(
         + b"\x80"
     )
     decode_frame(encoded)
-    return encoded
+    return encoded, identifier
