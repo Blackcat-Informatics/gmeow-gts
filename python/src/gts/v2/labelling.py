@@ -153,8 +153,7 @@ def _slots(line: Line) -> _Slots | None:
             return _Slots(0x43, (graph,))
         case RecordLine(payload, terms):
             return _Slots(0x44, terms, payload=payload)
-        case _:
-            return None
+    return None
 
 
 @dataclass(frozen=True, slots=True)
