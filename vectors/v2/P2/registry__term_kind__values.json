@@ -1,0 +1,36 @@
+{
+ "name": "registry/term_kind/values",
+ "status": "built and matches",
+ "note": "P2 4.3: a terms frame with one run of each term_kind 1 to 7: no finding; the result records the registered kinds and the code 8 of an unregistered block tag (malformed_value, unregistered_value)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__term_kind__values.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019027d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f48202058202058202058101820258209db9da7753cee1e0087bb99f2f3bf45a3af4ffe726ddeeb70c2c24895366a3aa848b010b1874820208018101810180810180808b02187f189a82020b0181018101808101818281018101808b0319011918f2820201018101810180810180808b0419020b187282020e018101810180810280808080820258209db9da7753cee1e0087bb99f2f3bf45a3af4ffe726ddeeb70c2c24895366a3aa8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "registered_kinds": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ],
+    "bad_code": 8
+   }
+  }
+ ]
+}

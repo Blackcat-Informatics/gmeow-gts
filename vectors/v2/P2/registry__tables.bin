@@ -1,0 +1,1378 @@
+{
+ "assignment_log": [
+  [
+   "none: the values of sections 4 to 6 and 8",
+   "1",
+   "every enumeration of those sections",
+   "as listed",
+   "assigned"
+  ],
+  [
+   "none: the values that `P8` lists",
+   "2",
+   "as `P8` lists",
+   "as `P8` lists",
+   "assigned"
+  ]
+ ],
+ "enumerations": {
+  "access": {
+   "1": "whole",
+   "2": "forward",
+   "3": "sparse"
+  },
+  "answer_outcome": {
+   "1": "answered",
+   "2": "unknown"
+  },
+  "append_outcome": {
+   "1": "appended",
+   "2": "appended_resync",
+   "3": "refused_generation",
+   "4": "refused_read"
+  },
+  "arrival_kind": {
+   "1": "term",
+   "2": "row",
+   "3": "binding",
+   "4": "entry",
+   "5": "declaration",
+   "6": "unit",
+   "7": "index_claim",
+   "8": "frame"
+  },
+  "arrival_status": {
+   "1": "folded",
+   "2": "held",
+   "3": "dropped",
+   "4": "unreadable",
+   "5": "by_reference",
+   "6": "unverified"
+  },
+  "authenticity_state": {
+   "1": "authenticated",
+   "2": "partly_authenticated",
+   "3": "unauthenticated"
+  },
+  "blob_presence": {
+   "1": "present",
+   "2": "external"
+  },
+  "canonical_check": {
+   "1": "header",
+   "10": "index",
+   "11": "labelling",
+   "12": "content_digest",
+   "2": "frame_sequence",
+   "3": "terms",
+   "4": "rows",
+   "5": "value_region",
+   "6": "blob_region",
+   "7": "bindings",
+   "8": "suppression",
+   "9": "commit"
+  },
+  "canonical_form": {
+   "1": "canonical_form_v1"
+  },
+  "capacity": {
+   "1": "stored_bytes_per_frame",
+   "2": "decoded_bytes_per_frame",
+   "3": "labelling_units",
+   "4": "labelled_lines",
+   "5": "decoded_bytes_per_read",
+   "6": "items_per_read",
+   "7": "rebuilt_bytes_per_read",
+   "8": "formed_bytes_per_read",
+   "9": "labelled_bytes_per_read"
+  },
+  "capacity_field": {
+   "1": "stored_bytes_per_frame",
+   "2": "decoded_bytes_per_frame",
+   "3": "labelling_units",
+   "4": "labelled_lines",
+   "5": "decoded_bytes_per_read",
+   "6": "items_per_read",
+   "7": "rebuilt_bytes_per_read",
+   "8": "formed_bytes_per_read",
+   "9": "labelled_bytes_per_read"
+  },
+  "check_state": {
+   "1": "verified",
+   "2": "unchecked",
+   "3": "failed"
+  },
+  "codec": {
+   "1": "zstd"
+  },
+  "compaction_outcome": {
+   "1": "written",
+   "2": "stopped"
+  },
+  "direction": {
+   "1": "ltr",
+   "2": "rtl"
+  },
+  "file_end": {
+   "1": "at_authenticated_commit",
+   "2": "at_valid_commit",
+   "3": "after_commit",
+   "4": "no_commit",
+   "5": "torn",
+   "6": "undelimitable",
+   "7": "not_read"
+  },
+  "file_result": {
+   "1": "first_generation",
+   "2": "second_generation"
+  },
+  "finality": {
+   "1": "settled",
+   "2": "open"
+  },
+  "finding_code": {
+   "1": "empty_input",
+   "10": "read_failed",
+   "11": "chain_break",
+   "12": "healed_link",
+   "13": "damaged_frame",
+   "14": "stored_check_mismatch",
+   "15": "commit_count_mismatch",
+   "16": "commit_root_mismatch",
+   "17": "uncommitted_tail",
+   "18": "index_claim_failed",
+   "19": "missing_dependency",
+   "2": "not_this_format",
+   "20": "exceeds_capacity",
+   "21": "declared_order_violated",
+   "22": "forward_reference",
+   "23": "position_constraint",
+   "24": "ill_formed_term",
+   "25": "opaque_term",
+   "26": "labelling_refused",
+   "27": "canonical_violated",
+   "28": "suppression_unmatched",
+   "29": "binding_unanchored",
+   "3": "unsupported_generation",
+   "30": "parity_damaged",
+   "31": "parity_mismatch",
+   "32": "parity_unexplained",
+   "33": "parity_stale",
+   "34": "repair_failed",
+   "35": "repaired",
+   "36": "unprotected_tail",
+   "37": "proof_malformed",
+   "38": "proof_failed",
+   "39": "proof_holds",
+   "4": "unsupported_registry_version",
+   "40": "signature_invalid",
+   "41": "signature_unverified",
+   "42": "lineage_begins",
+   "43": "lineage_mismatch",
+   "44": "unreferenced_unit",
+   "45": "conflicting_declaration",
+   "46": "profile_violation",
+   "47": "conversion_stopped",
+   "48": "profile_not_checked",
+   "49": "segment_key_not_held",
+   "5": "unknown_enumeration_value",
+   "50": "unwrap_failed",
+   "51": "key_conflict",
+   "52": "seal_failed",
+   "53": "seal_scope_violated",
+   "6": "unsupported_critical",
+   "7": "malformed_value",
+   "8": "undelimitable_input",
+   "9": "torn_tail"
+  },
+  "finding_severity": {
+   "1": "fatal",
+   "10": "fatal",
+   "11": "error",
+   "12": "warning",
+   "13": "error",
+   "14": "warning",
+   "15": "error",
+   "16": "error",
+   "17": "information",
+   "18": "warning",
+   "19": "warning",
+   "2": "fatal",
+   "20": "warning",
+   "21": "error",
+   "22": "error",
+   "23": "error",
+   "24": "error",
+   "25": "warning",
+   "26": "warning",
+   "27": "error",
+   "28": "information",
+   "29": "information",
+   "3": "fatal",
+   "30": "warning",
+   "31": "error",
+   "32": "warning",
+   "33": "warning",
+   "34": "error",
+   "35": "information",
+   "36": "information",
+   "37": "error",
+   "38": "error",
+   "39": "information",
+   "4": "error",
+   "40": "error",
+   "41": "warning",
+   "42": "information",
+   "43": "warning",
+   "44": "information",
+   "45": "error",
+   "46": "error",
+   "47": "fatal",
+   "48": "information",
+   "49": "warning",
+   "5": "warning",
+   "50": "warning",
+   "51": "error",
+   "52": "error",
+   "53": "warning",
+   "6": "error",
+   "7": "error",
+   "8": "fatal",
+   "9": "warning"
+  },
+  "fold_state": {
+   "1": "folded",
+   "2": "not_content",
+   "3": "opaque"
+  },
+  "frame_type": {
+   "1": "terms",
+   "10": "recipe",
+   "11": "value",
+   "12": "external",
+   "13": "pack",
+   "14": "commit",
+   "15": "index",
+   "16": "parity",
+   "2": "quads",
+   "3": "reifier_bindings",
+   "4": "annotations",
+   "5": "empty_graphs",
+   "6": "bindings",
+   "7": "suppress",
+   "8": "chunk",
+   "9": "blob"
+  },
+  "frame_type_v2": {
+   "1": "terms",
+   "10": "recipe",
+   "11": "value",
+   "12": "external",
+   "13": "pack",
+   "14": "commit",
+   "15": "index",
+   "16": "parity",
+   "17": "keys",
+   "18": "sealed",
+   "2": "quads",
+   "3": "reifier_bindings",
+   "4": "annotations",
+   "5": "empty_graphs",
+   "6": "bindings",
+   "7": "suppress",
+   "8": "chunk",
+   "9": "blob"
+  },
+  "graph_name_kind": {
+   "1": "default_graph",
+   "2": "named"
+  },
+  "hash_algorithm": {
+   "1": "blake3_256"
+  },
+  "index_claim": {
+   "1": "head",
+   "2": "type_runs",
+   "3": "graph_directory",
+   "4": "statistics",
+   "5": "range_root",
+   "6": "content_digest",
+   "7": "pack_members"
+  },
+  "integrity_state": {
+   "1": "intact",
+   "2": "intact_unchecked",
+   "3": "damaged",
+   "4": "not_checked"
+  },
+  "item_kind": {
+   "1": "header",
+   "2": "frame",
+   "3": "locator",
+   "4": "offsets",
+   "5": "resync"
+  },
+  "item_visibility": {
+   "1": "visible",
+   "2": "hidden"
+  },
+  "key_wrap_suite": {
+   "1": "hpke_base_xwing"
+  },
+  "labelling": {
+   "1": "L1"
+  },
+  "leaf_kind": {
+   "1": "term",
+   "2": "blank",
+   "3": "triple"
+  },
+  "line_kind": {
+   "1": "quad",
+   "2": "reifier_binding",
+   "3": "annotation",
+   "4": "empty_graph"
+  },
+  "link_state": {
+   "1": "linked",
+   "2": "healed",
+   "3": "broken"
+  },
+  "literal_form": {
+   "1": "typed",
+   "2": "language",
+   "3": "language_ltr",
+   "4": "language_rtl"
+  },
+  "mark_target_kind": {
+   "1": "scope",
+   "2": "bytes"
+  },
+  "member_kind": {
+   "1": "chunk",
+   "2": "blob",
+   "3": "recipe",
+   "4": "value"
+  },
+  "opaque_reason": {
+   "1": "damaged",
+   "2": "malformed",
+   "3": "unknown_frame_type",
+   "4": "unsupported_critical",
+   "5": "stopped",
+   "6": "chain_break",
+   "7": "exceeds_capacity",
+   "8": "unknown_codec",
+   "9": "missing_key"
+  },
+  "open_kind": {
+   "1": "name",
+   "2": "referent",
+   "3": "hiding",
+   "4": "count",
+   "5": "empty_graph",
+   "6": "blob_entry"
+  },
+  "opener_kind": {
+   "1": "header",
+   "2": "resync"
+  },
+  "option_tag": {
+   "1": "absent",
+   "2": "present"
+  },
+  "parity_geometry": {
+   "1": "geometry_1"
+  },
+  "past_state": {
+   "1": "absent",
+   "2": "matches",
+   "3": "differs",
+   "4": "not_checked"
+  },
+  "payload_state": {
+   "1": "verified",
+   "2": "damaged",
+   "3": "unchecked"
+  },
+  "profile": {
+   "1": "dist",
+   "2": "evidence",
+   "3": "stream",
+   "4": "bundle",
+   "5": "files",
+   "6": "container"
+  },
+  "query_target": {
+   "1": "graph",
+   "2": "unit"
+  },
+  "range_reason": {
+   "1": "locator",
+   "10": "contradiction",
+   "11": "capacity",
+   "12": "query",
+   "13": "value",
+   "14": "placement",
+   "15": "read",
+   "2": "index_item",
+   "3": "offsets",
+   "4": "header",
+   "5": "identifier",
+   "6": "payload",
+   "7": "index_claims",
+   "8": "sealed",
+   "9": "frame_type"
+  },
+  "reader_advisory_mark": {
+   "1": "hostile",
+   "2": "observed_defect",
+   "3": "filler"
+  },
+  "readers_claim": {
+   "1": "second_only",
+   "2": "first_and_second"
+  },
+  "reason": {
+   "1": "unknown_codec",
+   "10": "forbidden_combination",
+   "11": "codec_constraint",
+   "12": "payload_digest",
+   "13": "decoded_length",
+   "14": "blob_length",
+   "15": "blob_digest",
+   "16": "decode_failed",
+   "17": "index_head",
+   "18": "index_root",
+   "19": "index_offsets",
+   "2": "unknown_frame_type",
+   "20": "index_digest",
+   "21": "index_members",
+   "22": "index_directory",
+   "23": "index_locator",
+   "24": "chunk",
+   "25": "term",
+   "26": "value",
+   "27": "blob",
+   "28": "frame",
+   "29": "state",
+   "3": "not_deterministic",
+   "30": "decoded_size",
+   "31": "stored_size",
+   "32": "refusal_width",
+   "33": "refusal_limit",
+   "34": "quad",
+   "35": "reifier",
+   "36": "graph",
+   "37": "reifier_binding",
+   "38": "annotation",
+   "39": "binding",
+   "4": "wrong_type",
+   "40": "data",
+   "41": "parity",
+   "42": "too_many_erasures",
+   "43": "verify_failed",
+   "44": "count",
+   "45": "length",
+   "46": "order",
+   "47": "inclusion",
+   "48": "consistency_old_root",
+   "49": "consistency_new_root",
+   "5": "wrong_length",
+   "50": "consistency_diverged",
+   "51": "range",
+   "52": "consistency",
+   "53": "unknown_signature_algorithm",
+   "54": "key_not_held",
+   "55": "head",
+   "56": "ordinal",
+   "57": "key_mismatch",
+   "58": "value_length",
+   "59": "non_canonical_scalar",
+   "6": "out_of_range",
+   "60": "small_order_key",
+   "61": "small_order_nonce",
+   "62": "equation_failed",
+   "63": "composite_classical_failed",
+   "64": "composite_post_quantum_failed",
+   "65": "header",
+   "66": "frame_sequence",
+   "67": "terms",
+   "68": "rows",
+   "69": "value_region",
+   "7": "unregistered_value",
+   "70": "blob_region",
+   "71": "bindings",
+   "72": "suppression",
+   "73": "commit",
+   "74": "index",
+   "75": "labelling",
+   "76": "content_digest",
+   "77": "source_damaged",
+   "78": "source_not_decodable",
+   "79": "unrepresentable_term",
+   "8": "unordered_or_repeated",
+   "80": "unrepresentable_frame",
+   "81": "source_not_deterministic",
+   "82": "source_exceeds_capacity",
+   "83": "content_mismatch",
+   "84": "unknown_item_kind",
+   "85": "refusal_size",
+   "86": "total_decoded",
+   "87": "item_count",
+   "88": "state_unavailable",
+   "89": "total_rebuilt",
+   "9": "inconsistent_counts",
+   "90": "total_formed",
+   "91": "refusal_weight",
+   "92": "refusal_term_node",
+   "93": "padding",
+   "94": "sealed_ordinal",
+   "95": "sealed_members",
+   "96": "failed_openings",
+   "97": "aead",
+   "98": "commitment"
+  },
+  "rebuild_state": {
+   "1": "verified",
+   "2": "incomplete",
+   "3": "refused",
+   "4": "not_run"
+  },
+  "record_kind": {
+   "1": "binding",
+   "2": "suppression",
+   "3": "blob_declaration",
+   "4": "value",
+   "5": "nested_term"
+  },
+  "referent_kind": {
+   "1": "blob",
+   "2": "frame",
+   "3": "state"
+  },
+  "resync_reach": {
+   "1": "walked",
+   "2": "scanned"
+  },
+  "row_order": {
+   "1": "canonical",
+   "2": "unordered"
+  },
+  "seal_key_purpose": {
+   "1": "aead",
+   "2": "commit"
+  },
+  "sealed_inner_type": {
+   "1": "terms",
+   "10": "sealed_members",
+   "2": "quads",
+   "3": "reifier_bindings",
+   "4": "annotations",
+   "5": "empty_graphs",
+   "6": "bindings",
+   "7": "suppress",
+   "8": "external",
+   "9": "pack"
+  },
+  "sealing_cipher": {
+   "1": "aes256_gcm_siv"
+  },
+  "sealing_refusal_reason": {
+   "1": "duplicate_segment_key",
+   "2": "duplicate_recipient_key",
+   "3": "recipient_key_mismatch"
+  },
+  "severity": {
+   "1": "information",
+   "2": "warning",
+   "3": "error",
+   "4": "fatal"
+  },
+  "signature_algorithm": {
+   "1": "ed25519",
+   "2": "mldsa65_ed25519"
+  },
+  "signature_status": {
+   "1": "valid",
+   "2": "invalid",
+   "3": "unverified"
+  },
+  "slot_kind": {
+   "1": "term",
+   "2": "unnamed",
+   "3": "triple"
+  },
+  "storage_check_state": {
+   "1": "verified",
+   "2": "unchecked",
+   "3": "differs"
+  },
+  "storage_kind": {
+   "1": "stored_plain",
+   "2": "stored_compressed"
+  },
+  "stored_state": {
+   "1": "matches",
+   "2": "mismatch"
+  },
+  "subject_kind": {
+   "1": "codec",
+   "2": "frame_type",
+   "3": "signature_algorithm",
+   "4": "profile",
+   "5": "item_kind"
+  },
+  "suppression_kind": {
+   "1": "term",
+   "2": "quad",
+   "3": "reifier",
+   "4": "graph",
+   "5": "blob",
+   "6": "reifier_binding",
+   "7": "annotation",
+   "8": "binding"
+  },
+  "term_kind": {
+   "1": "iri",
+   "2": "literal",
+   "3": "blank",
+   "4": "triple",
+   "5": "literal_ref",
+   "6": "literal_value",
+   "7": "literal_value_ref"
+  },
+  "term_order": {
+   "1": "canonical",
+   "2": "arrival"
+  },
+  "unchecked_reason": {
+   "1": "unknown_codec",
+   "2": "exceeds_capacity",
+   "3": "labelling_refused",
+   "4": "encoder_not_held",
+   "5": "not_claimed",
+   "6": "access"
+  },
+  "value_kind": {
+   "1": "bool",
+   "2": "uint",
+   "3": "int",
+   "4": "time",
+   "5": "octets"
+  },
+  "visibility": {
+   "1": "complete",
+   "2": "incomplete"
+  }
+ },
+ "fields_present": {
+  "binding_unanchored": "p",
+  "canonical_violated": "rp",
+  "chain_break": "pol",
+  "commit_count_mismatch": "pc",
+  "commit_root_mismatch": "p",
+  "conflicting_declaration": "p",
+  "conversion_stopped": "ro",
+  "damaged_frame": "rpol",
+  "declared_order_violated": "p",
+  "empty_input": "",
+  "exceeds_capacity": "rpolc",
+  "forward_reference": "p",
+  "healed_link": "pol",
+  "ill_formed_term": "p",
+  "index_claim_failed": "rp",
+  "key_conflict": "p",
+  "labelling_refused": "r",
+  "lineage_begins": "",
+  "lineage_mismatch": "r",
+  "malformed_value": "rpol",
+  "missing_dependency": "rp",
+  "not_this_format": "ol",
+  "opaque_term": "p",
+  "parity_damaged": "p",
+  "parity_mismatch": "rpc",
+  "parity_stale": "p",
+  "parity_unexplained": "pc",
+  "position_constraint": "p",
+  "profile_not_checked": "s",
+  "profile_violation": "s",
+  "proof_failed": "r",
+  "proof_holds": "r",
+  "proof_malformed": "r",
+  "read_failed": "ol",
+  "repair_failed": "rp",
+  "repaired": "pc",
+  "seal_failed": "rpol",
+  "seal_scope_violated": "p",
+  "segment_key_not_held": "pc",
+  "signature_invalid": "rsp",
+  "signature_unverified": "rsp",
+  "stored_check_mismatch": "pol",
+  "suppression_unmatched": "rp",
+  "torn_tail": "ol",
+  "uncommitted_tail": "pc",
+  "undelimitable_input": "ol",
+  "unknown_enumeration_value": "rsp",
+  "unprotected_tail": "ol",
+  "unreferenced_unit": "p",
+  "unsupported_critical": "sp",
+  "unsupported_generation": "ol",
+  "unsupported_registry_version": "",
+  "unwrap_failed": "p"
+ },
+ "finding_severity": {
+  "1": {
+   "label": "empty_input",
+   "severity": "fatal"
+  },
+  "10": {
+   "label": "read_failed",
+   "severity": "fatal"
+  },
+  "11": {
+   "label": "chain_break",
+   "severity": "error"
+  },
+  "12": {
+   "label": "healed_link",
+   "severity": "warning"
+  },
+  "13": {
+   "label": "damaged_frame",
+   "severity": "error"
+  },
+  "14": {
+   "label": "stored_check_mismatch",
+   "severity": "warning"
+  },
+  "15": {
+   "label": "commit_count_mismatch",
+   "severity": "error"
+  },
+  "16": {
+   "label": "commit_root_mismatch",
+   "severity": "error"
+  },
+  "17": {
+   "label": "uncommitted_tail",
+   "severity": "information"
+  },
+  "18": {
+   "label": "index_claim_failed",
+   "severity": "warning"
+  },
+  "19": {
+   "label": "missing_dependency",
+   "severity": "warning"
+  },
+  "2": {
+   "label": "not_this_format",
+   "severity": "fatal"
+  },
+  "20": {
+   "label": "exceeds_capacity",
+   "severity": "warning"
+  },
+  "21": {
+   "label": "declared_order_violated",
+   "severity": "error"
+  },
+  "22": {
+   "label": "forward_reference",
+   "severity": "error"
+  },
+  "23": {
+   "label": "position_constraint",
+   "severity": "error"
+  },
+  "24": {
+   "label": "ill_formed_term",
+   "severity": "error"
+  },
+  "25": {
+   "label": "opaque_term",
+   "severity": "warning"
+  },
+  "26": {
+   "label": "labelling_refused",
+   "severity": "warning"
+  },
+  "27": {
+   "label": "canonical_violated",
+   "severity": "error"
+  },
+  "28": {
+   "label": "suppression_unmatched",
+   "severity": "information"
+  },
+  "29": {
+   "label": "binding_unanchored",
+   "severity": "information"
+  },
+  "3": {
+   "label": "unsupported_generation",
+   "severity": "fatal"
+  },
+  "30": {
+   "label": "parity_damaged",
+   "severity": "warning"
+  },
+  "31": {
+   "label": "parity_mismatch",
+   "severity": "error"
+  },
+  "32": {
+   "label": "parity_unexplained",
+   "severity": "warning"
+  },
+  "33": {
+   "label": "parity_stale",
+   "severity": "warning"
+  },
+  "34": {
+   "label": "repair_failed",
+   "severity": "error"
+  },
+  "35": {
+   "label": "repaired",
+   "severity": "information"
+  },
+  "36": {
+   "label": "unprotected_tail",
+   "severity": "information"
+  },
+  "37": {
+   "label": "proof_malformed",
+   "severity": "error"
+  },
+  "38": {
+   "label": "proof_failed",
+   "severity": "error"
+  },
+  "39": {
+   "label": "proof_holds",
+   "severity": "information"
+  },
+  "4": {
+   "label": "unsupported_registry_version",
+   "severity": "error"
+  },
+  "40": {
+   "label": "signature_invalid",
+   "severity": "error"
+  },
+  "41": {
+   "label": "signature_unverified",
+   "severity": "warning"
+  },
+  "42": {
+   "label": "lineage_begins",
+   "severity": "information"
+  },
+  "43": {
+   "label": "lineage_mismatch",
+   "severity": "warning"
+  },
+  "44": {
+   "label": "unreferenced_unit",
+   "severity": "information"
+  },
+  "45": {
+   "label": "conflicting_declaration",
+   "severity": "error"
+  },
+  "46": {
+   "label": "profile_violation",
+   "severity": "error"
+  },
+  "47": {
+   "label": "conversion_stopped",
+   "severity": "fatal"
+  },
+  "48": {
+   "label": "profile_not_checked",
+   "severity": "information"
+  },
+  "49": {
+   "label": "segment_key_not_held",
+   "severity": "warning"
+  },
+  "5": {
+   "label": "unknown_enumeration_value",
+   "severity": "warning"
+  },
+  "50": {
+   "label": "unwrap_failed",
+   "severity": "warning"
+  },
+  "51": {
+   "label": "key_conflict",
+   "severity": "error"
+  },
+  "52": {
+   "label": "seal_failed",
+   "severity": "error"
+  },
+  "53": {
+   "label": "seal_scope_violated",
+   "severity": "warning"
+  },
+  "6": {
+   "label": "unsupported_critical",
+   "severity": "error"
+  },
+  "7": {
+   "label": "malformed_value",
+   "severity": "error"
+  },
+  "8": {
+   "label": "undelimitable_input",
+   "severity": "fatal"
+  },
+  "9": {
+   "label": "torn_tail",
+   "severity": "warning"
+  }
+ },
+ "frame_type_columns": {
+  "1": {
+   "critical": true,
+   "label": "terms",
+   "transparent": false
+  },
+  "10": {
+   "critical": true,
+   "label": "recipe",
+   "transparent": false
+  },
+  "11": {
+   "critical": true,
+   "label": "value",
+   "transparent": false
+  },
+  "12": {
+   "critical": true,
+   "label": "external",
+   "transparent": false
+  },
+  "13": {
+   "critical": true,
+   "label": "pack",
+   "transparent": false
+  },
+  "14": {
+   "critical": false,
+   "label": "commit",
+   "transparent": false
+  },
+  "15": {
+   "critical": false,
+   "label": "index",
+   "transparent": false
+  },
+  "16": {
+   "critical": false,
+   "label": "parity",
+   "transparent": true
+  },
+  "17": {
+   "critical": false,
+   "label": "keys",
+   "transparent": false
+  },
+  "18": {
+   "critical": true,
+   "label": "sealed",
+   "transparent": false
+  },
+  "2": {
+   "critical": true,
+   "label": "quads",
+   "transparent": false
+  },
+  "3": {
+   "critical": true,
+   "label": "reifier_bindings",
+   "transparent": false
+  },
+  "4": {
+   "critical": true,
+   "label": "annotations",
+   "transparent": false
+  },
+  "5": {
+   "critical": true,
+   "label": "empty_graphs",
+   "transparent": false
+  },
+  "6": {
+   "critical": true,
+   "label": "bindings",
+   "transparent": false
+  },
+  "7": {
+   "critical": true,
+   "label": "suppress",
+   "transparent": false
+  },
+  "8": {
+   "critical": true,
+   "label": "chunk",
+   "transparent": false
+  },
+  "9": {
+   "critical": true,
+   "label": "blob",
+   "transparent": false
+  }
+ },
+ "hash_algorithm_digest_length": {
+  "1": 32
+ },
+ "hash_contexts": {
+  "1": {
+   "digest_of_616263": "038cb23b29996cdafb3767121032ec18c616f42cd79c3f67e1d59e6796000446",
+   "label": "header",
+   "spelling": "gts2 header"
+  },
+  "10": {
+   "digest_of_616263": "2a1740fe5eae73571714a78a9fb3136497bffb05aa836e00f0b39d2eca46e798",
+   "label": "parity_table",
+   "spelling": "gts2 parity table"
+  },
+  "11": {
+   "digest_of_616263": "c0fe7088cfe2648c253bc18a1ba1938f04cbe2e53ef049b4b297f30eeeed2371",
+   "label": "signature_subject",
+   "spelling": "gts2 signature subject"
+  },
+  "12": {
+   "digest_of_616263": "9fa6b405ace0831f6a5f100ec4c2fae316b59ec0e0f19911d4f6618fddeddbbb",
+   "label": "key_id",
+   "spelling": "gts2 key id"
+  },
+  "13": {
+   "digest_of_616263": "521ba6c297b3856161ce4f6c3a2799440bfbe8a9d87f37b1e0a49f9b96c29ca1",
+   "label": "gear_table",
+   "spelling": "gts2 gear table"
+  },
+  "14": {
+   "digest_of_616263": "a9c86f4f50abab05bb4ec15ab03d62ba8402c0281ff95b7cd47f50e2d5263e05",
+   "label": "source_bytes",
+   "spelling": "gts2 source bytes"
+  },
+  "15": {
+   "digest_of_616263": "e76469751babdda3f73180e485cdb8284fe1070aa4340b7ebf59e102b8ae5ea9",
+   "label": "nested_term",
+   "spelling": "gts2 nested term"
+  },
+  "16": {
+   "digest_of_616263": "a61f20089999ad42a4b0fd9e3a94ef7af2605b245fa5fb53a20f02b082265c17",
+   "label": "recipient_key_id",
+   "spelling": "gts2 recipient key id"
+  },
+  "2": {
+   "digest_of_616263": "674f93839d2e1dea697a16af0b60a8f7dc065d7aa665a2d29ef21559af35c3da",
+   "label": "frame",
+   "spelling": "gts2 frame"
+  },
+  "3": {
+   "digest_of_616263": "6fe2440cd1dab629acd5584d26ee9597ac03de5492405cdacef614cd317d90b6",
+   "label": "payload",
+   "spelling": "gts2 payload"
+  },
+  "4": {
+   "digest_of_616263": "b68446649dc74daa1720d00bfe21a0dc64b328a7da85f99d9b155f5593aaadbc",
+   "label": "stored",
+   "spelling": "gts2 stored"
+  },
+  "5": {
+   "digest_of_616263": "fd333553fcd5a9a21f2f02d8975a121d076261ab21681b642bd99ce82fb597ab",
+   "label": "unit",
+   "spelling": "gts2 unit"
+  },
+  "6": {
+   "digest_of_616263": "a0d82222efa4750b9e74b014398efc13898f727a3753dd79e606932b3540cebf",
+   "label": "range_leaf",
+   "spelling": "gts2 range leaf"
+  },
+  "7": {
+   "digest_of_616263": "f09c1e2f18cc3a826f71932370b8a5e024ec17b5bd0ceda356285b179a9fbd66",
+   "label": "range_node",
+   "spelling": "gts2 range node"
+  },
+  "8": {
+   "digest_of_616263": "8a9770fc692629658030ffd8cba7c383bfaf53f2bfc2667aef4d544d00a70228",
+   "label": "range_root",
+   "spelling": "gts2 range root"
+  },
+  "9": {
+   "digest_of_616263": "84c9e139f97e067cb3dd100b4439098709ba034a1f6531f46f91abb8b85e8c85",
+   "label": "shard",
+   "spelling": "gts2 shard"
+  }
+ },
+ "opaque_reason_precedence": [
+  "malformed",
+  "chain_break",
+  "stopped",
+  "damaged",
+  "unsupported_critical",
+  "unknown_codec",
+  "exceeds_capacity",
+  "missing_key",
+  "unknown_frame_type"
+ ],
+ "reasons": {
+  "1": "unknown_codec",
+  "10": "forbidden_combination",
+  "11": "codec_constraint",
+  "12": "payload_digest",
+  "13": "decoded_length",
+  "14": "blob_length",
+  "15": "blob_digest",
+  "16": "decode_failed",
+  "17": "index_head",
+  "18": "index_root",
+  "19": "index_offsets",
+  "2": "unknown_frame_type",
+  "20": "index_digest",
+  "21": "index_members",
+  "22": "index_directory",
+  "23": "index_locator",
+  "24": "chunk",
+  "25": "term",
+  "26": "value",
+  "27": "blob",
+  "28": "frame",
+  "29": "state",
+  "3": "not_deterministic",
+  "30": "decoded_size",
+  "31": "stored_size",
+  "32": "refusal_width",
+  "33": "refusal_limit",
+  "34": "quad",
+  "35": "reifier",
+  "36": "graph",
+  "37": "reifier_binding",
+  "38": "annotation",
+  "39": "binding",
+  "4": "wrong_type",
+  "40": "data",
+  "41": "parity",
+  "42": "too_many_erasures",
+  "43": "verify_failed",
+  "44": "count",
+  "45": "length",
+  "46": "order",
+  "47": "inclusion",
+  "48": "consistency_old_root",
+  "49": "consistency_new_root",
+  "5": "wrong_length",
+  "50": "consistency_diverged",
+  "51": "range",
+  "52": "consistency",
+  "53": "unknown_signature_algorithm",
+  "54": "key_not_held",
+  "55": "head",
+  "56": "ordinal",
+  "57": "key_mismatch",
+  "58": "value_length",
+  "59": "non_canonical_scalar",
+  "6": "out_of_range",
+  "60": "small_order_key",
+  "61": "small_order_nonce",
+  "62": "equation_failed",
+  "63": "composite_classical_failed",
+  "64": "composite_post_quantum_failed",
+  "65": "header",
+  "66": "frame_sequence",
+  "67": "terms",
+  "68": "rows",
+  "69": "value_region",
+  "7": "unregistered_value",
+  "70": "blob_region",
+  "71": "bindings",
+  "72": "suppression",
+  "73": "commit",
+  "74": "index",
+  "75": "labelling",
+  "76": "content_digest",
+  "77": "source_damaged",
+  "78": "source_not_decodable",
+  "79": "unrepresentable_term",
+  "8": "unordered_or_repeated",
+  "80": "unrepresentable_frame",
+  "81": "source_not_deterministic",
+  "82": "source_exceeds_capacity",
+  "83": "content_mismatch",
+  "84": "unknown_item_kind",
+  "85": "refusal_size",
+  "86": "total_decoded",
+  "87": "item_count",
+  "88": "state_unavailable",
+  "89": "total_rebuilt",
+  "9": "inconsistent_counts",
+  "90": "total_formed",
+  "91": "refusal_weight",
+  "92": "refusal_term_node",
+  "93": "padding",
+  "94": "sealed_ordinal",
+  "95": "sealed_members",
+  "96": "failed_openings",
+  "97": "aead",
+  "98": "commitment"
+ },
+ "reasons_allowed": {
+  "canonical_violated": [
+   "header",
+   "frame_sequence",
+   "terms",
+   "rows",
+   "value_region",
+   "blob_region",
+   "bindings",
+   "suppression",
+   "commit",
+   "index",
+   "labelling",
+   "content_digest"
+  ],
+  "conversion_stopped": [
+   "source_damaged",
+   "source_not_decodable",
+   "unrepresentable_term",
+   "unrepresentable_frame",
+   "source_not_deterministic",
+   "source_exceeds_capacity",
+   "content_mismatch"
+  ],
+  "damaged_frame": [
+   "payload_digest",
+   "decoded_length",
+   "blob_length",
+   "blob_digest",
+   "decode_failed"
+  ],
+  "exceeds_capacity": [
+   "decoded_size",
+   "stored_size",
+   "total_decoded",
+   "item_count",
+   "total_rebuilt",
+   "total_formed",
+   "failed_openings"
+  ],
+  "index_claim_failed": [
+   "index_head",
+   "index_root",
+   "index_offsets",
+   "index_digest",
+   "index_members",
+   "index_directory",
+   "index_locator",
+   "sealed_members"
+  ],
+  "labelling_refused": [
+   "refusal_width",
+   "refusal_limit",
+   "refusal_size",
+   "refusal_weight",
+   "refusal_term_node"
+  ],
+  "lineage_mismatch": [
+   "head",
+   "ordinal"
+  ],
+  "malformed_value": [
+   "not_deterministic",
+   "wrong_type",
+   "wrong_length",
+   "out_of_range",
+   "unregistered_value",
+   "unordered_or_repeated",
+   "inconsistent_counts",
+   "forbidden_combination",
+   "codec_constraint",
+   "padding",
+   "sealed_ordinal"
+  ],
+  "missing_dependency": [
+   "chunk",
+   "value",
+   "blob",
+   "frame",
+   "state",
+   "state_unavailable"
+  ],
+  "parity_mismatch": [
+   "data",
+   "parity"
+  ],
+  "proof_failed": [
+   "inclusion",
+   "consistency_old_root",
+   "consistency_new_root",
+   "consistency_diverged",
+   "range"
+  ],
+  "proof_holds": [
+   "inclusion",
+   "consistency",
+   "range"
+  ],
+  "proof_malformed": [
+   "count",
+   "length",
+   "order"
+  ],
+  "repair_failed": [
+   "too_many_erasures",
+   "verify_failed"
+  ],
+  "seal_failed": [
+   "aead",
+   "commitment"
+  ],
+  "signature_invalid": [
+   "key_mismatch",
+   "value_length",
+   "non_canonical_scalar",
+   "small_order_key",
+   "small_order_nonce",
+   "equation_failed",
+   "composite_classical_failed",
+   "composite_post_quantum_failed"
+  ],
+  "signature_unverified": [
+   "unknown_signature_algorithm",
+   "key_not_held"
+  ],
+  "suppression_unmatched": [
+   "term",
+   "quad",
+   "reifier",
+   "graph",
+   "blob",
+   "reifier_binding",
+   "annotation",
+   "binding"
+  ],
+  "unknown_enumeration_value": [
+   "unknown_codec",
+   "unknown_frame_type",
+   "unknown_item_kind"
+  ]
+ },
+ "registry_version_of_the_engine": 2,
+ "suppression_kind_reason_code": {
+  "1": 25,
+  "2": 34,
+  "3": 35,
+  "4": 36,
+  "5": 27,
+  "6": 37,
+  "7": 38,
+  "8": 39
+ }
+}

@@ -1,0 +1,28 @@
+{
+ "name": "lineage-previous-links-unavailable",
+ "section": "10.2",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lineage-previous-links-unavailable.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702829200000b81018101820202820209810104030000008085f4820205820205820205810181018081870481018101810181018101810192010b182f81018202582022b183791a63a81cd03b61343acea045e4a673baa63204ee03b072a2a884a957820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e80808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "read": {
+    "readers": "second_only"
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

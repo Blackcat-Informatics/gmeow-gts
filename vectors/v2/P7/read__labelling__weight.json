@@ -1,0 +1,24 @@
+{
+ "name": "read/labelling/weight",
+ "status": "built and matches",
+ "note": "the segment of the worked example of P3 6.5 (weight 12448 for each fold) read with labelled_bytes_per_read 24895: the own fold labelled, labelling_refused with refusal_weight in the file's list, the file's content_digest absent, the segment's present, the labelling level of an unclaimed segment not_claimed; with 12447 the finding in both lists and both digests absent",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "read__labelling__weight.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b000000200000000019613f018101828080870281920000190554810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258207a6e86ba5bb44c9a8542d35981ebee344dad1329f1f2e248f81cfff277c13597838b010b190476820201018101810180810180808b021904811861820202018101810180810180808b031904e2187282020e01810181018081028080808187181a8202185b8101810181018101810181018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 24895,
+    "access": "whole"
+   }
+  }
+ ]
+}

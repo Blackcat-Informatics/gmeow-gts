@@ -1,0 +1,64 @@
+{
+ "name": "project/ill-typed-literal",
+ "status": "built and matches",
+ "note": "P3 10a.3: a typed literal whose lexical form is outside the lexical space of its datatype: one quad, the text unchanged, no finding, and an RDF dataset",
+ "section": "P3 10a.3",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "project__ill-typed-literal.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019018f810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820f13ef65d2a06105232adddff49b80795e26721534e01764658ef1adff97cba73838b010b18b3820201018101810180810180808b0218be185f820202018101810180810180808b0319011d187282020e01810181018081028080808082025820f13ef65d2a06105232adddff49b80795e26721534e01764658ef1adff97cba738201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "projection": {
+    "visible": {
+     "quads": [
+      [
+       {
+        "iri": "urn:s"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "literal": "not-an-integer",
+        "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "whole": {
+     "quads": [
+      [
+       {
+        "iri": "urn:s"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "literal": "not-an-integer",
+        "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "rdf_dataset": true
+   }
+  }
+ ]
+}

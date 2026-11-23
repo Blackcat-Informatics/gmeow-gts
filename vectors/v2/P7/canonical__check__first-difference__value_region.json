@@ -1,0 +1,34 @@
+{
+ "name": "canonical/check/first-difference/value_region",
+ "status": "built and matches",
+ "note": "a claimed canonical file of a fold with two values whose one pack holds the two values, each after its chunks, in the reverse of the canonical order: the structure level is failed with the first difference [value_region, 1], labelling and storage are verified, and the pack holds one canonical_violated with the reason value_region",
+ "section": "P7, \"The canonical check\"",
+ "cases": [
+  {
+   "label": "values-swapped",
+   "input_file": "canonical__check__first-difference__value_region.values-swapped.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001907848101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103050400810685f581038101810182028205018202582013a408971490f3504746f8686903fc1aadeb540308c2cc8cdc2b396ccc027b9d868b010c19015c82020d018101820201808101828282020181018282020381018187181b8202184581018202018101810181018b0219016818ee820201018101810180810180808b031902561861820202018101810180810180808b041902b7187282020e018101810180810280808b0519032919012582020f018101810180810280808b0619044e1903188202100181018101808102808080808202582013a408971490f3504746f8686903fc1aadeb540308c2cc8cdc2b396ccc027b9d8201000200"
+  }
+ ]
+}

@@ -1,0 +1,62 @@
+{
+ "name": "conformance/claim",
+ "status": "derived from the text",
+ "section": "P7",
+ "note": "the implementation_claim of an implementation that reads both generations, implements registry version 1 in full and the profiles dist (5 checks), stream (2), bundle (5), files (11) and container (17), has the minimum capacity, writes the canonical form and holds the reference encoder: a record of the documentation of an implementation, never of a file, so the entry has no input; its deterministic encoding is the 80 bytes given",
+ "cases": [
+  {
+   "label": "",
+   "record": {
+    "readers": {
+     "enum": "readers_claim",
+     "value": 2,
+     "name": "first_and_second"
+    },
+    "registry_version": 1,
+    "profiles": [
+     {
+      "profile": 1,
+      "name": "dist",
+      "checks": 5
+     },
+     {
+      "profile": 3,
+      "name": "stream",
+      "checks": 2
+     },
+     {
+      "profile": 4,
+      "name": "bundle",
+      "checks": 5
+     },
+     {
+      "profile": 5,
+      "name": "files",
+      "checks": 11
+     },
+     {
+      "profile": 6,
+      "name": "container",
+      "checks": 17
+     }
+    ],
+    "capacity": {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    "writes_canonical": true,
+    "holds_reference_encoder": true
+   },
+   "claim_hex": "8602018582010582030282040582050b8206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001f5f5",
+   "length": 80
+  }
+ ]
+}

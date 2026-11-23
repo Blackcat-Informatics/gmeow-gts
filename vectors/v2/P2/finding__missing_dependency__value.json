@@ -1,0 +1,61 @@
+{
+ "name": "finding/missing_dependency/value",
+ "status": "built and matches",
+ "note": "two inputs, each one finding at the terms frame: a literal_ref term with no value frame, and a literal_value_ref term with none (P3 2.8 item 5)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__missing_dependency__value.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018ff810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b18828202010181018101808101808187138202181a81018202018101810181018b02188d187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 19,
+    "reason": 26,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0201f5f484008282010182050102101841582073dbd0a7e5ce25dfe3c98588402d0cbb6d2cf76b6c35378700f52702826e589f81015841828284018100810b4b687474703a2f2f652f64748605815820fd333553fcd5a9a21f2f02d8975a121d076261ab21681b642bd99ce82fb597ab81038101810080805820733562e09ad03d57340687afd651177414bff6141b9570839a90165b8f8eec5b808b020ef4f48201582066d59acd9da907320573db51a79bb0ad8914bc357024e635f4e939377b0629c10058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820d8c9ec3bb82e4ee98560409c23a22f420618d28fc05185b5c553f27fcc7fb88c80",
+      "input_length": 281,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "missing_dependency",
+        "reason": "value",
+        "position": 1
+       }
+      ],
+      "expected_finding_bytes": [
+       "87138202181a8101820201810181018101"
+      ]
+     },
+     {
+      "input_hex": "87010201018101810181018b0201f5f48400818207010210182a58200d9789d228036a2f7a6f48311f8cdcbf663083b031a63ad5be2703da60c36e0a8101582a82818307815820fd333553fcd5a9a21f2f02d8975a121d076261ab21681b642bd99ce82fb597ab8103805820faebb615938ad20fe6465b4025adffe7aea919f3bbb44c287742f51f98d97400808b020ef4f4820158205146bc6d91fc0cbe1a11c7fd2c6e9900ca2d95aaffee6224c1e1261494ad33fd0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820e33dd0cf5a6d3228f799036c50c461c9baf0d22f0bd28d00380eb06519608d6880",
+      "input_length": 255,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "missing_dependency",
+        "reason": "value",
+        "position": 1
+       }
+      ],
+      "expected_finding_bytes": [
+       "87138202181a8101820201810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

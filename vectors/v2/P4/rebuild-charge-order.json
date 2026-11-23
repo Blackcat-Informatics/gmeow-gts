@@ -1,0 +1,24 @@
+{
+ "name": "rebuild-charge-order",
+ "status": "built and matches",
+ "note": "a pack whose directory holds a recipe member of charge 60 then a value member of charge 60, and after the pack a recipe frame of charge 10, read with 100: the recipe member admitted, the value member refused with count 120, the recipe frame refused with count 70; the same members in the other directory order: the value member admitted (P4-56)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "rebuild-charge-order.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a0400000018641b00000020000000001b00000020000000000181018280808702819200001903a2810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030505008085f4820205820205820205810182025820439f4fc5c8e4a5f3b0ea390233a4b8dbebee1a4276cf59ec7f9c60acc90d14b8858b010b1891820208018101810180810180808b02189c1891820208018101810180810180808b0319012d19014382020d018101810180810182828202008101828202018103818714820218598101820203820219012d8202190143820218788b0419027018c082020a01810181018081018182810181038187148202185981018202048202190270820218c0820218468b05190330187282020e01810181018081028080808082025820439f4fc5c8e4a5f3b0ea390233a4b8dbebee1a4276cf59ec7f9c60acc90d14b88201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 100,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

@@ -1,0 +1,24 @@
+{
+ "name": "terms-id-above-uint",
+ "status": "built and matches",
+ "note": "P3 2.1 AN ID IS A uint and P3-5: the first frame's run of 2^64 - 1 reserves the ids 0 to 2^64 - 2 (its payload cannot hold them: its own finding is inconsistent_counts, and it reserves them all the same, P3-6); the second, whose last id would be 2^64, has runs not well formed (out_of_range) and reserves no id; the third is judged at the expected base 2^64 - 1 and is folded; no count of the result is above 2^64 - 1",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "terms-id-above-uint.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901a8810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030404008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e848b010b186182020101810181018082030280818707820209810182020182020b8202186181018b02186c18618202010181018101808203028081870782020681018202028202186c8202186181018b0318cd1869820201018101810180810180808b04190136187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000202",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

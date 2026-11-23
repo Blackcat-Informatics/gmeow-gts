@@ -1,0 +1,60 @@
+{
+ "name": "canonical-blank-label",
+ "status": "built and matches",
+ "note": "a segment of one IRI and 300 blank nodes, each with one quad that has the node as subject and object, and the canonical file of its fold: the labels of the blank terms are the deterministic encodings of the final positions 0 to 299 in ascending bytewise order, so the heads of the labels at positions 23, 24, 255 and 256 are 17, 1818, 18ff and 190100",
+ "section": "P3 11.1",
+ "cases": [
+  {
+   "label": "source",
+   "input_file": "canonical-blank-label.source.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019098b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018202582078945eaec8d91d71eaba610f257a040eab9c52fecf813be2ad1bc4e93e55b6e2838b010b19064b820201018101810180810180808b021906561902c3820202018101810180810180808b03190919187282020e0181018101808102808080808202582078945eaec8d91d71eaba610f257a040eab9c52fecf813be2ad1bc4e93e55b6e28201000200"
+  },
+  {
+   "label": "canonical",
+   "input_file": "canonical-blank-label.canonical.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001907e68101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f581018101810181018202582078945eaec8d91d71eaba610f257a040eab9c52fecf813be2ad1bc4e93e55b6e2858b010c1902b582020101810182020180810180808b021902c1188f82020201810182020180810180808b03190350187282020e018101810180810280808b041903c218e082020f018101810180810280808b051904a21903298202100181018101808102808080808202582078945eaec8d91d71eaba610f257a040eab9c52fecf813be2ad1bc4e93e55b6e28201000200"
+  }
+ ]
+}

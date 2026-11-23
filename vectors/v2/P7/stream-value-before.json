@@ -1,0 +1,2942 @@
+{
+ "name": "stream-value-before",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "a value declaration before a terms frame with a literal_ref term and a row that names it: by_reference, settled for the term; the declaration after: unreadable, missing_dependency value, the row held; the unit missing: by_reference in the stream, unreadable and held with opaque_term in whole; two terms frames and no declaration: one missing_dependency at the first; the forward_reference case",
+ "cases": [
+  {
+   "label": "declaration-before",
+   "input_file": "stream-value-before.declaration-before.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000019021a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030400008085f482020582020582020581018101848b010b187482020801810181018081018081871181018101820201810181018202048b02187f189a82020b0181018101808101818281018104808b0319011918a2820201018101810180810180808b041901bb185f82020201810181018081018080808081018201000400",
+   "note": "the term and the row by_reference, settled for the term",
+   "stream_points": [
+    {
+     "at": 11,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "d0c259e784083d9f7e8c2549654646155bb60b6dcc6ea23f2179352e85f14f65",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": []
+      }
+     ],
+     "listing": []
+    },
+    {
+     "at": 127,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "63d37c1755f532d137a0f2a3a0953741c4335166360e13105d0d4b05c9d9b8d5",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 281,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "a40d0d5b0ede68fdf76d8e5533511913a576fe5f47f67f44209a8b741986998a",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 443,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "b6001d5b5faab18a3a2163dbd645a116ec54883807b32edeefd0efe011e68cff",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           3,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       3,
+       5,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 538,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "b967a618122168c048dcd806f667a862accf27c246b773172cc73129449f2b47",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           4,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       3,
+       5,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       4,
+       0,
+       5,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 538,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "b967a618122168c048dcd806f667a862accf27c246b773172cc73129449f2b47",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           4,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       3,
+       5,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       4,
+       0,
+       5,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "label": "declaration-after",
+   "input_file": "stream-value-before.declaration-after.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000019021a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030400008085f482020582020582020581018101848b010b18a2820201018101810180810180828711810181018202018101810182020487138202181a81018202018101810181018b0218ad1874820208018101810180810180808b03190121189a82020b0181018101808101818281018104808b041901bb185f8202020181018101808101808187181981018101820204810181018101808081018201000400",
+   "note": "the term unreadable, missing_dependency value at the terms frame, the row held",
+   "stream_points": [
+    {
+     "at": 11,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "d0c259e784083d9f7e8c2549654646155bb60b6dcc6ea23f2179352e85f14f65",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": []
+      }
+     ],
+     "listing": []
+    },
+    {
+     "at": 173,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "3baa6eba1e68786a248fab875c1a07d94114340dea85b96799466e8aca3accd3",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 289,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "7b5680a7023cb14afb8045f35eb9dacc550d3b00e4133cf01f578eea615e8be5",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 443,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "5574afad738a404a2fb80ba5a9441bf5c06e88442dd9bcb0040d37dde40b64ef",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           3,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 538,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "9e3bd8f0ff832049c6358b6f4f0db911608ecd4c97fa61908efae0691f0b983d",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           4,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "opaque_term",
+           null,
+           4,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       4,
+       0,
+       2,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 538,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "9e3bd8f0ff832049c6358b6f4f0db911608ecd4c97fa61908efae0691f0b983d",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           4,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "opaque_term",
+           null,
+           4,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       4,
+       0,
+       2,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "label": "unit-missing",
+   "input_file": "stream-value-before.unit-missing.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001901a6810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030300008085f482020582020582020581018101838b010b189a82020b018101810180810181828101810481871181018101820201810181018202038b0218a518a2820201018101810180810180808b03190147185f82020201810181018081018080808081018201000400",
+   "note": "by_reference in the stream; in the read with whole the term unreadable and the row held with opaque_term",
+   "stream_points": [
+    {
+     "at": 11,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "d0c259e784083d9f7e8c2549654646155bb60b6dcc6ea23f2179352e85f14f65",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": []
+      }
+     ],
+     "listing": []
+    },
+    {
+     "at": 165,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "c0464988f2f768e2e43b46be4d48c4dbf0884de8c53012d919824da4cad7b5d2",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 327,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "2d3df38ef002466c154777a229c7bb2db208fc87bd11d184640eb71764127a25",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       3,
+       5,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 422,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "774cf57cc70316a5074f0d95a97f5e661dc7b53927ad652a68f3e7fe1eb2fdef",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           3,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       3,
+       5,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       3,
+       0,
+       5,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 422,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "774cf57cc70316a5074f0d95a97f5e661dc7b53927ad652a68f3e7fe1eb2fdef",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           3,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       3,
+       5,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       3,
+       0,
+       5,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "label": "two-frames-no-declaration",
+   "input_file": "stream-value-before.two-frames-no-declaration.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000019013f810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f482020582020582020581018101828b010b18a2820201018101810180810180828711810181018202018101810182020287138202181a81018202018101810181018b0218ad1892820201018101810180820302808187078202098101820202820218ad820218928101808081018201000401",
+   "note": "one missing_dependency value, at the first terms frame",
+   "stream_points": [
+    {
+     "at": 11,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "d0c259e784083d9f7e8c2549654646155bb60b6dcc6ea23f2179352e85f14f65",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": []
+      }
+     ],
+     "listing": []
+    },
+    {
+     "at": 173,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "3baa6eba1e68786a248fab875c1a07d94114340dea85b96799466e8aca3accd3",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 319,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "c7d7071c43969a4c054bc54755c2b75d4e5476233be700d5d03c9c46b5edc067",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "inconsistent_counts",
+           2,
+           null,
+           173,
+           146
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 319,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "c7d7071c43969a4c054bc54755c2b75d4e5476233be700d5d03c9c46b5edc067",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ],
+          [
+           "missing_dependency",
+           "value",
+           1,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "opaque",
+          "malformed"
+         ],
+         "findings": [
+          [
+           "malformed_value",
+           "inconsistent_counts",
+           2,
+           null,
+           173,
+           146
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       3,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "label": "forward-reference-datatype",
+   "input_file": "stream-value-before.forward-reference-datatype.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000019020d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030400008085f482020582020582020581018101848b010b187482020801810181018081018081871181018101820201810181018202048b02187f189a82020b0181018101808101818281018104808b031901191895820201018101810180810180818716810181018202038101810181018b041901ae185f8202020181018101808101808187181981018101820204810181018101808081018201000400",
+   "note": "the term unreadable with forward_reference, the row held with opaque_term",
+   "stream_points": [
+    {
+     "at": 11,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "d0c259e784083d9f7e8c2549654646155bb60b6dcc6ea23f2179352e85f14f65",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": []
+      }
+     ],
+     "listing": []
+    },
+    {
+     "at": 127,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "63d37c1755f532d137a0f2a3a0953741c4335166360e13105d0d4b05c9d9b8d5",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 281,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "a40d0d5b0ede68fdf76d8e5533511913a576fe5f47f67f44209a8b741986998a",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 430,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "42f970f8bea5ebaade87faa8d8e87b8851f13af3cbd4fd213b279c8869d32fc5",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           3,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "forward_reference",
+           null,
+           3,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       0,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       2,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 525,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "8595ba6896713772da3284af35b60913701a45f6001598b21d78f4bee12a3c98",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           4,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "forward_reference",
+           null,
+           3,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "opaque_term",
+           null,
+           4,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       0,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       4,
+       0,
+       2,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 525,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "8595ba6896713772da3284af35b60913701a45f6001598b21d78f4bee12a3c98",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           4,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "forward_reference",
+           null,
+           3,
+           null,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "opaque_term",
+           null,
+           4,
+           null,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       0,
+       4,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       3,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       4,
+       0,
+       2,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

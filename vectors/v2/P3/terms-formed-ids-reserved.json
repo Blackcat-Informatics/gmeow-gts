@@ -1,0 +1,24 @@
+{
+ "name": "terms-formed-ids-reserved",
+ "status": "built and matches",
+ "note": "a refused frame of 3 terms, then a terms frame with id_base 3 of charge 0, and a quads row naming ids 3, 3, 3: the second frame refused as well, with the count equal to the total kept (P3-102); no inconsistent_counts, because its id_base follows the ids that the first frame reserves; the row held, opaque_term at the row frame (P3-103)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "terms-formed-ids-reserved.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b0000002000000000081b00000020000000000181018280808702819200001901b5810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030404008085f482020582020582020581018101848b010b1872820201018101810180820307808187148202185a810182020182020b820218728202128b02187d1867820201018101810180820307808187148202185a81018202028202187d820218678202008b0318e4185f82020201810181018081018081871819810181018202038101810181018b04190143187282020e01810181018081028080808081018201000202",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 8,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

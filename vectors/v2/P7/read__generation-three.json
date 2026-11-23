@@ -1,0 +1,24 @@
+{
+ "name": "read/generation-three",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "read__generation-three.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028081870381018101810182020082020b810181018201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

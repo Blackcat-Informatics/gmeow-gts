@@ -1,0 +1,86 @@
+{
+ "name": "canon-frame-outside-pack",
+ "status": "built and matches",
+ "note": "three files that claim the canonical form and hold one frame outside a pack, each otherwise the canonical file of its fold: a chunk frame of abc (the unit of a present blob) before the one blob pack (case chunk, position 1); a value frame of the value of 1048576 bytes x after the one value pack, where the canonical file holds the terms frame (case value, position 2); a chunk frame of abc after the terms frame, where the canonical file holds the quads frame (case chunk-at-rows): each is failed at the structure level with the first difference value_region for the value frame and blob_region for a chunk frame at the position of that frame, never frame_sequence, and one canonical_violated there (P4-47, P4-50)",
+ "section": "P4 7",
+ "cases": [
+  {
+   "label": "chunk",
+   "input_file": "canon-frame-outside-pack.chunk.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001905978101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f58103810181018202820601820258204bf912e4583202741d57400328bc0a80ca3bbf2c0909a4cb9eadde8c2d9bab86858b010c18748202080181018101808101808187181b8202184681018202018101810181018b02188018c282020d018101810180810180808b03190142187282020e018101810180810280808b041901b419011682020f018101810180810280808b051902ca1902b2820210018101810180810280808080820258204bf912e4583202741d57400328bc0a80ca3bbf2c0909a4cb9eadde8c2d9bab868201000200"
+  },
+  {
+   "label": "value",
+   "input_file": "canon-frame-outside-pack.value.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001908818101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103060500810785f581038101810182028205028202582013a408971490f3504746f8686903fc1aadeb540308c2cc8cdc2b396ccc027b9d878b010c19015c82020d01810182020180810182828202018101828202038101808b0219016818c582020b0181018202018081018182810181018187181b8202184581018202028101810181018b0319022d18ee820201018101810180810180808b0419031b1861820202018101810180810180808b0519037c187282020e018101810180810280808b061903ee19012882020f018101810180810280808b0719051619034b8202100181018101808102808080808202582013a408971490f3504746f8686903fc1aadeb540308c2cc8cdc2b396ccc027b9d8201000200"
+  },
+  {
+   "label": "chunk-at-rows",
+   "input_file": "canon-frame-outside-pack.chunk-at-rows.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001908fe8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103090800810a85f58103810181018202820603820258207aa0af40bcf4189c0031d13c3a86bb0ec9a0ba0b198069060eefb899615927908a8b010c18c282020d018101810180810180808b0218ce18b8820201018101810180810180808b0319018618748202080181018101808101808187181b8202184681018202038101810181018b041901fa186d820202018101810180810180808b05190267185f820204018101810180810180808b061902c618a7820206018101810180810180808b0719036d185b820207018101810180810180808b081903c8187282020e018101810180810280808b0919043a19014382020f018101810180810280808b0a19057d19035c820210018101810180810280808080820258207aa0af40bcf4189c0031d13c3a86bb0ec9a0ba0b198069060eefb899615927908201010200"
+  }
+ ]
+}

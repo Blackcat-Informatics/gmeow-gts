@@ -1,0 +1,46 @@
+{
+ "name": "hctx-distinct",
+ "section": "10.8",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "hctx-distinct.bin",
+   "read": {
+    "readers": "second_only"
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "outputs": {
+     "header": "038cb23b29996cdafb3767121032ec18c616f42cd79c3f67e1d59e6796000446",
+     "frame": "674f93839d2e1dea697a16af0b60a8f7dc065d7aa665a2d29ef21559af35c3da",
+     "payload": "6fe2440cd1dab629acd5584d26ee9597ac03de5492405cdacef614cd317d90b6",
+     "stored": "b68446649dc74daa1720d00bfe21a0dc64b328a7da85f99d9b155f5593aaadbc",
+     "unit": "fd333553fcd5a9a21f2f02d8975a121d076261ab21681b642bd99ce82fb597ab",
+     "range_leaf": "a0d82222efa4750b9e74b014398efc13898f727a3753dd79e606932b3540cebf",
+     "range_node": "f09c1e2f18cc3a826f71932370b8a5e024ec17b5bd0ceda356285b179a9fbd66",
+     "range_root": "8a9770fc692629658030ffd8cba7c383bfaf53f2bfc2667aef4d544d00a70228",
+     "shard": "84c9e139f97e067cb3dd100b4439098709ba034a1f6531f46f91abb8b85e8c85",
+     "parity_table": "2a1740fe5eae73571714a78a9fb3136497bffb05aa836e00f0b39d2eca46e798",
+     "signature_subject": "c0fe7088cfe2648c253bc18a1ba1938f04cbe2e53ef049b4b297f30eeeed2371",
+     "key_id": "9fa6b405ace0831f6a5f100ec4c2fae316b59ec0e0f19911d4f6618fddeddbbb",
+     "gear_table": "521ba6c297b3856161ce4f6c3a2799440bfbe8a9d87f37b1e0a49f9b96c29ca1",
+     "source_bytes": "a9c86f4f50abab05bb4ec15ab03d62ba8402c0281ff95b7cd47f50e2d5263e05",
+     "nested_term": "e76469751babdda3f73180e485cdb8284fe1070aa4340b7ebf59e102b8ae5ea9"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,24 @@
+{
+ "name": "read/visibility/unreadable-header",
+ "status": "built and matches",
+ "note": "a suppress frame in a segment with an unreadable header",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "read__visibility__unreadable-header.bin",
+   "read_result": "870201818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018688101810181018101810103030000008085f48202058202058202058101810180818707820205810182020082020082020981018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e84020100000401",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

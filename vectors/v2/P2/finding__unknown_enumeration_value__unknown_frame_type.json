@@ -1,0 +1,53 @@
+{
+ "name": "finding/unknown_enumeration_value/unknown_frame_type",
+ "status": "built and matches",
+ "note": "a non-critical frame of type 99 in a segment of version 2, reader version 1 (P2-58)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__unknown_enumeration_value__unknown_frame_type.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018d08101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b185382021863018101810180820303808187058202028202820218638202018101810181018b02185e187282020e018101810180810280808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 5,
+    "reason": 2,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "87010202018101810181018b021863f4f4830102030058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058201463f0364ca6b8734e23e72989d2f474a2fa701148a9df365b35c2abe709bee2808b020ef4f482015820912b2d80ede7921e67a7f7096f5890841392b68f5859316d86dae0a04a17ea320058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820cf0d92d74955697cd4fa14f6f4956b04c171eedcc891ec5c23e69a5a8bf38b3c80",
+      "input_length": 208,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "unsupported_registry_version"
+       },
+       {
+        "code": "unknown_enumeration_value",
+        "reason": "unknown_frame_type",
+        "subject": [
+         2,
+         99
+        ],
+        "position": 1
+       }
+      ],
+      "expected_finding_bytes": [
+       "8705820202820282021863820201810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

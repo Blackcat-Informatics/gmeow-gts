@@ -1,0 +1,112 @@
+{
+ "name": "labelling-limit-not-guaranteed",
+ "status": "built and matches",
+ "note": "the Paley graph on 13 vertices, an input that is not guaranteed and whose walk has 8144 limited units, more than its allowance, read with labelling_units 0 and 8143, each refused with refusal_limit and no content digest, and with labelling_units 8144 and 2^40, each labelled with the same content digest",
+ "section": "P3 6.5, L1 8.3",
+ "cases": [
+  {
+   "label": "units-0",
+   "input_file": "labelling-limit-not-guaranteed.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019021a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b189d820201018101810180810180808b0218a8190100820202018101810180810180808b031901a8187282020e018101810180810280808187181a82021821810181018101810181018187181a820218218101810181018101810181018201000200"
+  },
+  {
+   "label": "units-8143",
+   "input_file": "labelling-limit-not-guaranteed.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 8143,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000191fcf1a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019021a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b189d820201018101810180810180808b0218a8190100820202018101810180810180808b031901a8187282020e018101810180810280808187181a82021821810181018101810181018187181a820218218101810181018101810181018201000200"
+  },
+  {
+   "label": "units-8144",
+   "input_file": "labelling-limit-not-guaranteed.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 8144,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000191fd01a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019021a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258205ceec0bdcc64928f2a1a029061d536d9bbb76b11a95aef8d1482ea8c8d0743b6838b010b189d820201018101810180810180808b0218a8190100820202018101810180810180808b031901a8187282020e018101810180810280808080820258205ceec0bdcc64928f2a1a029061d536d9bbb76b11a95aef8d1482ea8c8d0743b68201000200"
+  },
+  {
+   "label": "units-2-pow-40",
+   "input_file": "labelling-limit-not-guaranteed.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 1099511627776,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a040000001b00000100000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019021a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258205ceec0bdcc64928f2a1a029061d536d9bbb76b11a95aef8d1482ea8c8d0743b6838b010b189d820201018101810180810180808b0218a8190100820202018101810180810180808b031901a8187282020e018101810180810280808080820258205ceec0bdcc64928f2a1a029061d536d9bbb76b11a95aef8d1482ea8c8d0743b68201000200"
+  }
+ ]
+}

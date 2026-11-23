@@ -1,0 +1,46 @@
+{
+ "name": "finding/undelimitable_input/one_byte",
+ "status": "built and matches",
+ "note": "an input of the one byte 1c",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__undelimitable_input__one_byte.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870280818708810181018101820200820201810181018201000600",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 8,
+    "reason": null,
+    "severity": "fatal",
+    "readings": [
+     {
+      "input_hex": "1c",
+      "input_length": 1,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "undelimitable_input",
+        "offset": 0,
+        "length": 1
+       }
+      ],
+      "expected_finding_bytes": [
+       "87088101810181018202008202018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

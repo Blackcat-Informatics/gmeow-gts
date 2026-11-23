@@ -1,0 +1,26 @@
+{
+ "name": "sign-ed25519-reproduce",
+ "section": "P6 5",
+ "status": "built and matches",
+ "note": "the deterministic Ed25519 signature of RFC 8032 for the seed 00 to 1f, whose public key is that of key-id-ed25519, over the subject of the stated header and frame identifiers",
+ "cases": [
+  {
+   "label": "",
+   "signer": {
+    "seed": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+    "algorithm": 1,
+    "key_id": "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c"
+   },
+   "subject_fields": {
+    "header_identifier": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "frame_identifier": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+   },
+   "result": {
+    "subject": "840158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c5820000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f5820202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+    "message": "0a1e6977759fc0c8dc627d5e606f12c65efc22c97dd24b70bc95313b366513dd",
+    "value": "0459965ba59065d73797fba26da4876fc0b1e160ef4bd75ab23c2a83b14bf5ccd698c1a65cfb4132edfc220b65cf84206f25d258618daa914d0df63deb399909"
+   }
+  }
+ ]
+}

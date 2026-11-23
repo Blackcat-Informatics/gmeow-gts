@@ -1,0 +1,62 @@
+{
+ "name": "canonical/compaction/damaged",
+ "status": "built and matches",
+ "note": "a blob whose recipe does not rebuild, and compaction stopped by it: when the digest of the recipe is not the digest of its units the read gives damaged_frame with blob_digest and integrity damaged, and compaction stops with damaged_frame and present(blob_digest); when the length of an entry differs from the length of its unit the read gives damaged_frame with blob_length and compaction stops with damaged_frame and present(blob_length); no file is written in either case",
+ "section": "P7",
+ "cases": [
+  {
+   "label": "blob-digest",
+   "input_file": "canonical__compaction__damaged.blob-digest.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019022a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030404008085f482020582020582020581018202582085b5e3f9daa447e8241c84786bca89e3e4bf831f57732c09fcf26a665d5d5041848b010b1877820208018101810180810180808b0218821876820208018101810180810180808b0318f818c082020a01810181018081018182810182020f81870d82020f8101820203820218f8820218c081018b041901b8187282020e0181018101808102808080808202582085b5e3f9daa447e8241c84786bca89e3e4bf831f57732c09fcf26a665d5d50418201000200",
+   "compaction_result": "83020d82020f"
+  },
+  {
+   "label": "blob-length",
+   "input_file": "canonical__compaction__damaged.blob-length.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019022a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030404008085f4820205820205820205810182025820fedbc2e9b25b9a904e9f4bfa85f272991d53ede3dba04c8999a8763c0e622104848b010b1877820208018101810180810180808b0218821876820208018101810180810180808b0318f818c082020a01810181018081018182810182020e81870d82020e8101820203820218f8820218c081018b041901b8187282020e01810181018081028080808082025820fedbc2e9b25b9a904e9f4bfa85f272991d53ede3dba04c8999a8763c0e6221048201000200",
+   "compaction_result": "83020d82020e"
+  }
+ ]
+}

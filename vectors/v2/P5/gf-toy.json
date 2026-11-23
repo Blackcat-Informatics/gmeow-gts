@@ -1,0 +1,52 @@
+{
+ "name": "gf-toy",
+ "section": "P5 6.10",
+ "status": "built and matches",
+ "note": "the toy geometry of the worked example (k 3, m 2, shards of 4 bytes, the field and matrix construction of geometry_1): the two rows, the parity shards of the three data shards, and the two data shards solved after d0 and d2 are erased",
+ "cases": [
+  {
+   "label": "",
+   "given": {
+    "field_polynomial": "11d",
+    "x": [
+     "ff",
+     "fe"
+    ],
+    "y": [
+     "00",
+     "01",
+     "02"
+    ],
+    "data_shards": [
+     "11223344",
+     "55667788",
+     "99aabbcc"
+    ],
+    "erased": [
+     0,
+     2
+    ]
+   },
+   "result": {
+    "rows": [
+     [
+      "fd",
+      "7e",
+      "ff"
+     ],
+     [
+      "7e",
+      "fd",
+      "7f"
+     ]
+    ],
+    "P0": "3519f667",
+    "P1": "4bdf582e",
+    "solved": [
+     "11223344",
+     "99aabbcc"
+    ]
+   }
+  }
+ ]
+}

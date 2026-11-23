@@ -1,0 +1,28 @@
+{
+ "name": "registry/example/7",
+ "status": "built and matches",
+ "note": "P2 section 10, example 7: visibility [2, 1, 0, 0] of a read in which one suppress frame is not folded (input of the P3 vector suppress-not-folded)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__example__7.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901da810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030404008085f48202058202058202058101820258203738df19a62b0b0b414e789e5d200de789972830eecc3976ea4e334a8b2e00cd848b010b189f820201018101810180810180808b0218aa185f820202018101810180810180808b03190109185f8202070181028101808203018081870d82020c810182020382021901098202185f81018b04190168187282020e018101810180810280808080820258203738df19a62b0b0b414e789e5d200de789972830eecc3976ea4e334a8b2e00cd84020100000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "printed": "8402010000",
+    "encoded": "8402010000"
+   }
+  }
+ ]
+}

@@ -1,0 +1,119 @@
+{
+ "name": "proof-range",
+ "section": "P5 3.4",
+ "status": "built and matches",
+ "note": "range proofs under the root of 5 leaves of the stated identifiers: leaves 2 and 3 of the worked example and the ranges 0-3, 3-5, 0-5 and 4-5 hold; first not below end is order, an identifier that is not the leaf's is proof_failed with range, and one identifier for a proof of two is length",
+ "cases": [
+  {
+   "label": "example",
+   "proof_file": "proof-range.example.proof.bin",
+   "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "count": 5,
+   "identifiers": [
+    "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
+    "36a5462b16ac8cde6971a76cd9416a439799f25a51a9ec5f4a03d0cf08853531"
+   ],
+   "verify": "8718278202183381018101810181018101",
+   "result": {
+    "example": "proof_holds/range"
+   }
+  },
+  {
+   "label": "0-3",
+   "proof_file": "proof-range.0-3.proof.bin",
+   "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "count": 5,
+   "identifiers": [
+    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "c5cd35965349ca1cb48d4fd2cc9d9a372863a1b954dfa72af8d95cf5b4f9fe3f",
+    "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6"
+   ],
+   "verify": "8718278202183381018101810181018101",
+   "result": {
+    "0-3": "proof_holds/range"
+   }
+  },
+  {
+   "label": "3-5",
+   "proof_file": "proof-range.3-5.proof.bin",
+   "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "count": 5,
+   "identifiers": [
+    "36a5462b16ac8cde6971a76cd9416a439799f25a51a9ec5f4a03d0cf08853531",
+    "f45b74548cb36bf72ad006b5285d3f7ccb05b6929c848dbbbf08656e60526750"
+   ],
+   "verify": "8718278202183381018101810181018101",
+   "result": {
+    "3-5": "proof_holds/range"
+   }
+  },
+  {
+   "label": "0-5",
+   "proof_file": "proof-range.0-5.proof.bin",
+   "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "count": 5,
+   "identifiers": [
+    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "c5cd35965349ca1cb48d4fd2cc9d9a372863a1b954dfa72af8d95cf5b4f9fe3f",
+    "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
+    "36a5462b16ac8cde6971a76cd9416a439799f25a51a9ec5f4a03d0cf08853531",
+    "f45b74548cb36bf72ad006b5285d3f7ccb05b6929c848dbbbf08656e60526750"
+   ],
+   "verify": "8718278202183381018101810181018101",
+   "result": {
+    "0-5": "proof_holds/range"
+   }
+  },
+  {
+   "label": "4-5",
+   "proof_file": "proof-range.4-5.proof.bin",
+   "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "count": 5,
+   "identifiers": [
+    "f45b74548cb36bf72ad006b5285d3f7ccb05b6929c848dbbbf08656e60526750"
+   ],
+   "verify": "8718278202183381018101810181018101",
+   "result": {
+    "4-5": "proof_holds/range"
+   }
+  },
+  {
+   "label": "first-ge-end",
+   "proof_file": "proof-range.first-ge-end.proof.bin",
+   "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "count": 5,
+   "identifiers": [],
+   "verify": "8718258202182e81018101810181018101",
+   "result": {
+    "first-ge-end": "proof_malformed/order"
+   }
+  },
+  {
+   "label": "wrong-identifier",
+   "proof_file": "proof-range.wrong-identifier.proof.bin",
+   "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "count": 5,
+   "identifiers": [
+    "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6",
+    "a7c754923d0bf8ce37db56059c8007954687ab7318acb49ce0626dcce46061e4"
+   ],
+   "verify": "8718268202183381018101810181018101",
+   "result": {
+    "wrong-identifier": "proof_failed/range"
+   }
+  },
+  {
+   "label": "too-few-ids",
+   "proof_file": "proof-range.too-few-ids.proof.bin",
+   "root": "b5bcf8af519a5c98125367dd9d7a4075d154da6df30922200ebc837303d61f5e",
+   "count": 5,
+   "identifiers": [
+    "6219b7a1e686f93d8103ee6c07f492daf7c51493fc184a6497d278c8a1d859e6"
+   ],
+   "verify": "8718258202182d81018101810181018101",
+   "result": {
+    "too-few-ids": "proof_malformed/length"
+   }
+  }
+ ]
+}

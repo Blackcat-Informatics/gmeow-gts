@@ -1,0 +1,34 @@
+{
+ "name": "hctx-range_node",
+ "section": "10.8",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "hctx-range_node.bin",
+   "read": {
+    "readers": "second_only"
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "note": "expected context \"range_node\"",
+   "result": {
+    "context": "range_node",
+    "spelling": "gts2 range node",
+    "message": "616263",
+    "output": "f09c1e2f18cc3a826f71932370b8a5e024ec17b5bd0ceda356285b179a9fbd66"
+   }
+  }
+ ]
+}

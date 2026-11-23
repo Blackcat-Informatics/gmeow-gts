@@ -1,0 +1,29 @@
+{
+ "name": "sign-composite-reproduce",
+ "section": "P6 5",
+ "status": "built and matches",
+ "note": "the deterministic composite signature for the stated private key and subject: the value file is the 3373 bytes, the ML-DSA-65 signature of M' with the context Label and rnd of 32 zero bytes, then the Ed25519 signature of M'; it verifies under the public key file",
+ "cases": [
+  {
+   "label": "",
+   "public_key_file": "sign-composite-reproduce.public-key.bin",
+   "value_file": "sign-composite-reproduce.value.bin",
+   "signer": {
+    "private_key": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+    "algorithm": 2,
+    "key_id": "84df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac3301"
+   },
+   "subject_fields": {
+    "header_identifier": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "frame_identifier": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+   },
+   "result": {
+    "subject": "8402582084df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac33015820000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f5820202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+    "message": "e0492e0a13c836521e3fb4f92f7b7920dfdf9b2c4d6153c626942a961138924e",
+    "m_prime": "436f6d706f73697465416c676f726974686d5369676e61747572657332303235434f4d505349472d4d4c44534136352d456432353531392d534841353132006a22f3186c3cdffae4032f1500730b934f284a019c641e5d118fa094da65146cb35b089299709145a13d335daa0c973d4296bedb745fd2cf0612d86c4448f1b3",
+    "value_length": 3373,
+    "value_sha256": "97afda4ae2910164ffd601f787b9470f8a48d3d458ff28cc1e150623664db962"
+   }
+  }
+ ]
+}

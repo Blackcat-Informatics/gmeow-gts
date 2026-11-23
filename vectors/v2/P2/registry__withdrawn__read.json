@@ -1,0 +1,24 @@
+{
+ "name": "registry/withdrawn/read",
+ "status": "built and matches",
+ "note": "a withdrawn value of a published version in a file (no value is withdrawn in a published version: a test log withdraws zstd): decoded with its meaning, no finding (P2-8)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__withdrawn__read.bin",
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901a7810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030100008085f4820205820205820205810182025820833cbe877b688c548858db5d17731ae80692ddfbcf34affc05e9b67bff4850eb818b010b19019c820209018101820201808101808187118101810182020181018101820201808082025820833cbe877b688c548858db5d17731ae80692ddfbcf34affc05e9b67bff4850eb8201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

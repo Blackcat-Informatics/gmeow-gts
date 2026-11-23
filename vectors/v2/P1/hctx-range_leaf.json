@@ -1,0 +1,34 @@
+{
+ "name": "hctx-range_leaf",
+ "section": "10.8",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "hctx-range_leaf.bin",
+   "read": {
+    "readers": "second_only"
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "note": "expected context \"range_leaf\"",
+   "result": {
+    "context": "range_leaf",
+    "spelling": "gts2 range leaf",
+    "message": "616263",
+    "output": "a0d82222efa4750b9e74b014398efc13898f727a3753dd79e606932b3540cebf"
+   }
+  }
+ ]
+}

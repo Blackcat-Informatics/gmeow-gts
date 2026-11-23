@@ -1,0 +1,45 @@
+{
+ "name": "convert/not-first-generation",
+ "status": "built and matches",
+ "note": "a file of this generation as the source; zero bytes: source_damaged, offset 0",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "convert__not-first-generation.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "conversions": [
+     {
+      "source": {
+       "hex": "8701020101810181018101"
+      },
+      "stopped": {
+       "reason": "source_damaged",
+       "offset": 0
+      }
+     },
+     {
+      "source": {
+       "hex": ""
+      },
+      "stopped": {
+       "reason": "source_damaged",
+       "offset": 0
+      }
+     }
+    ]
+   }
+  }
+ ]
+}

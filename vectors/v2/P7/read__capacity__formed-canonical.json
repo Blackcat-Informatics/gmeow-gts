@@ -1,0 +1,58 @@
+{
+ "name": "read/capacity/formed-canonical",
+ "status": "built and matches",
+ "note": "a canonical file with one terms frame whose charge to the total formed length is 48, read with formed_bytes_per_read 48 and 47: with 48 every frame is folded and the three levels are verified; with 47 the terms frame carries exceeds_capacity with total_formed and the count 48, its payload is verified and its fold state opaque with exceeds_capacity, the quads frame after it is folded and its one row is held with opaque_term since its terms are not formed, integrity is intact_unchecked, both content digests are absent, left_out is 1, structure and labelling are unchecked with exceeds_capacity, storage is verified and there is no canonical_violated",
+ "section": "P7, \"The canonical check\" (CAPACITY); P3, \"Front coding\"",
+ "cases": [
+  {
+   "label": "at-charge",
+   "input_file": "read__capacity__formed-canonical.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 48,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b000000200000000018301b00000020000000000181018280808702819200001904f38101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f58101810181018101820258205df69b59e72eaeca91e5542ea845c23dd4be4f39a29927ff7e2ecd8e9a3b1101858b010c1894820201018101810180810180808b0218a0185f820202018101810180810180808b0318ff187282020e018101810180810280808b0419017118d882020f018101810180810280808b05190249190290820210018101810180810280808080820258205df69b59e72eaeca91e5542ea845c23dd4be4f39a29927ff7e2ecd8e9a3b11018201000200"
+  },
+  {
+   "label": "below-charge",
+   "input_file": "read__capacity__formed-canonical.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 47,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b0000002000000000182f1b00000020000000000181018280808702819200001904f38101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010203040300810585f5820202820202810181018101858b010c1894820201018101810180820307808187148202185a810182020182020c82021894820218308b0218a0185f82020201810181018081018081871819810181018202028101810181018b0318ff187282020e018101810180810280808b0419017118d882020f018101810180810280808b0519024919029082021001810181018081028080808081018201000201"
+  }
+ ]
+}

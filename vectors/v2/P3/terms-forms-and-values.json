@@ -1,0 +1,24 @@
+{
+ "name": "terms-forms-and-values",
+ "status": "built and matches",
+ "note": "12.1, the second payload: the languages en, en, fr, fr; the directions absent, ltr, absent, absent; two pairs of VALUES",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "terms-forms-and-values.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019025f810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820ec84c95821a852de976b8e54da7bfc5d9e420f2dd7e063c41bcd36ee0b061513848b010b1874820208018101810180810180808b02187f189a82020b0181018101808101818281018101808b0319011918d4820201018101810180810180808b041901ed187282020e01810181018081028080808082025820ec84c95821a852de976b8e54da7bfc5d9e420f2dd7e063c41bcd36ee0b0615138201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

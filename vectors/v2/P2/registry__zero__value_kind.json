@@ -1,0 +1,68 @@
+{
+ "name": "registry/zero/value_kind",
+ "status": "built and matches",
+ "note": "the code 0 in the value_kind field: malformed_value, unregistered_value, whatever h and r (P2-63); two inputs, h = r = 1 and h = 2, r = 1",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__zero__value_kind.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018dc8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810103030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b185f82020101810181018082030280818707820207810182020182020b8202185f81018b02186a187282020e018101810180810280808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 7,
+    "reason": 7,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0201f5f484008182060102100958204b700768a26abe8297ae2bd310b3f45284da0a5ace69f5745ce66de58486704d8101498281820681820001805820857a52531713cbfa2df9422cb1b7cf85ee9d79139596e25feefa253b1928fbdf808b020ef4f4820158204279c29024d2f494663d2b8d3e15af2a742dc3e54dc8e32531fedfdedac20e230058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058204f85c52d4acc2bf9584425ac83e1ffec80a460cb762695590d60d2756861f9a080",
+      "input_length": 220,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "malformed_value",
+        "reason": "unregistered_value",
+        "position": 1,
+        "offset": 11,
+        "length": 95
+       }
+      ],
+      "expected_finding_bytes": [
+       "8707820207810182020182020b8202185f8101"
+      ]
+     },
+     {
+      "input_hex": "87010202018101810181018b0201f5f484008182060102100958204b700768a26abe8297ae2bd310b3f45284da0a5ace69f5745ce66de58486704d8101498281820681820001805820061e1517235cf9a2441db2f0ef3c6850333f2adfa5cfcaedf818678606b148b6808b020ef4f482015820dcbf82d78bab4c4f5b8dfa6ba80a3946ea4489e7445c894596364424f12868010058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820b0c3b8a02bca7d7a88736a9e1cdd58f5d17a26c52b1c58358fc86056e801d32580",
+      "input_length": 220,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "unsupported_registry_version"
+       },
+       {
+        "code": "malformed_value",
+        "reason": "unregistered_value",
+        "position": 1,
+        "offset": 11,
+        "length": 95
+       }
+      ],
+      "expected_finding_bytes": [
+       "8707820207810182020182020b8202185f8101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

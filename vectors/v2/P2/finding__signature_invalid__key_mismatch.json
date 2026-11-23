@@ -1,0 +1,50 @@
+{
+ "name": "finding/signature_invalid/key_mismatch",
+ "status": "built and matches",
+ "note": "a commit with one signature, checked by a verifier that holds the key: a key_id of an ed25519 key written under the algorithm 2: it is not the digest of the key held for it",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__signature_invalid__key_mismatch.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c818358200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c01582003a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8870281920000190158810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258208cb2f3a6fdfa53ed306a104a250774df88d7ce3771d9e9171112a0f1d3a7aa69828b010b1875820209018101810180810180808b02188018d882020e0181018101818702820218390258200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c0101f4810280818718288202183982028203028202028101810181018080820258208cb2f3a6fdfa53ed306a104a250774df88d7ce3771d9e9171112a0f1d3a7aa698201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 40,
+    "reason": 57,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f4825820281603005628ca2f1f19e8fef19ebc02f79d8e530d605b1e5538ae7d46345b098101025820d5af23ba89b05ba0494e036720470e9376e42125ea537a33f00ac35cba1d194b81014246315820799edbffa92b8ff10a159c5a314ed65288e28d775635c6b5f6db8852ba3419ed808b020ef4f482015820c76052fde0862d40a6dc69e6ee7884851b8e5c57ea5c98cbabfceddb02895bbb0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820add6bb9d1c6e5f29abc268552c818182e17cd0eec301f8e7b453ba3d3d4273d781830258200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c5840e26dbd7001983b901f8a34d5af11973849f29cbe5d5724be45a1f1ef6592e53c89956801e6dcfa646265269f919722b888494eabb9ebbccc236d8e97be54890c",
+      "input_length": 344,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "signature_invalid",
+        "reason": "key_mismatch",
+        "subject": [
+         3,
+         2
+        ],
+        "position": 2
+       }
+      ],
+      "expected_finding_bytes": [
+       "871828820218398202820302820202810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

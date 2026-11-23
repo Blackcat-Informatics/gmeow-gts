@@ -1,0 +1,24 @@
+{
+ "name": "canonical/check/not-claimed",
+ "status": "built and matches",
+ "note": "a plain file that does not claim the canonical form, read by a reader that implements no profile: not_claimed at all three levels and no first difference (P7-25)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "canonical__check__not-claimed.bin",
+   "read_result": "870201808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902bc810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030505008085f48202058202058202058101820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb8858b010b18d4820201018101810180810180808b0218df186d820202018101810180810180808b0319014c1881820209018101810180810180808b041901cd187d820206018101810180810180808b0519024a187282020e018101810180810280808080820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb88201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

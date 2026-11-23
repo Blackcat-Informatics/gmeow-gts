@@ -1,0 +1,49 @@
+{
+ "name": "finding/exceeds_capacity/decoded_size",
+ "status": "built and matches",
+ "note": "a frame of decoded_length 20 read with a capacity of 10 decoded bytes for a frame (a capacity under the minimum of P7-8, as a test device)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__exceeds_capacity__decoded_size.bin",
+   "read_result": "870101808a1a040000000a001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190104810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b188782020901820302810180820307808187148202181e810182020182020b820218878202148b021892187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 10,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 20,
+    "reason": 30,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f48258200c94c12745a7f8730862eb481f344a471db89ed645b5a560e1a2e520d29283fd8101145820aa3ce7d67a1d768c1e232a3eb3ee6443a8c4ae7351de1065135fee9c66f8ef3d81015400000000000000000000000000000000000000005820a82cda5587a24e2c3a5e5e650c2a81f9b48dc4be47d7a2a653a6baa0a6666fdb808b020ef4f482015820e1733447378ae70c381740a8ac1d8cf6a6c36f405a8031b1ade09d01082c41690058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058200678e72762394fece6743c5e4936085f94cfe7d346afb330253d3bbe5b5caf4280",
+      "input_length": 260,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "exceeds_capacity",
+        "reason": "decoded_size",
+        "position": 1,
+        "offset": 11,
+        "length": 135,
+        "count": 20
+       }
+      ],
+      "expected_finding_bytes": [
+       "87148202181e810182020182020b82021887820214"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

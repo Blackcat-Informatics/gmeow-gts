@@ -1,0 +1,53 @@
+{
+ "name": "finding/exceeds_capacity/item_count",
+ "status": "built and matches",
+ "note": "the header and three frames read with items_per_read 3: a byte remains after the second frame (the third item is the last allowed); the two frames read have no commit",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__exceeds_capacity__item_count.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b0000001000000000031b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f9810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f482020582020582020581018101828b010b187782020901810181018081018081871181018101820201810181018202028b021882187782020901810181018081018080808187148202185781018101820218f9820218e682020481018201000700",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 3,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 20,
+    "reason": 87,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f4825820ce6a06c36000fc3575bfcabe04a6c9dbe7fa260dac925a5d8585403f5595d1b881010458200fd216313a307d982675c764e86c646f7e74470107662d18d89df04b2ce8e213810144616263645820a8335f72e21391b627b0f42d87c88da7af87e3572429c756eacd21f454adb5f4808b0209f5f482582077e57596f4192bc03e44d88db252baacea9eb1bb925400cacf439838566a61ca81010458209eed50c84de38e60de9abf5cec58c3f5a49a12deb3b55768b115fb199131b58a8101446566676858204b3e0d1db2e891a23d6cbffa9ca5e8b391bc7048391b773b7fbcac396b355cd0808b0209f5f4825820655331275edc3d24459b521863254ccd686e00f52ba8ce54cc82a3e27ef1430181010158208983b644b1df2d6818cbbec2b79b84d79906d2c2ab3774d45a92cdf731958517810141695820cc834328504ac16d143ef1bce10b2da18511ecc540528d80aea3bfed72543aa8808b020ef4f482035820c88faaad74a9cb7e2109b1051360fb63fcc45d13ecf5a48768a3ce9dc65212a50058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820e5f43b49c56a72bc49fa768a5f599af6320da6f597a8dc6ff7f8db4c096645d880",
+      "input_length": 479,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "exceeds_capacity",
+        "reason": "item_count",
+        "offset": 249,
+        "length": 230,
+        "count": 4
+       },
+       {
+        "code": "uncommitted_tail",
+        "position": 1,
+        "count": 2
+       }
+      ],
+      "expected_finding_bytes": [
+       "87148202185781018101820218f9820218e6820204"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

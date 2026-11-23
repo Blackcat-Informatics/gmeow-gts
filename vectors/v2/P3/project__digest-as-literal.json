@@ -1,0 +1,64 @@
+{
+ "name": "project/digest-as-literal",
+ "status": "built and matches",
+ "note": "P3 7: a literal whose text is the hexadecimal digest of a payload that the file does not hold and that no binding names: a term of one quad, no finding, no missing blob",
+ "section": "P3 7",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "project__digest-as-literal.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901c2810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820be190aebb9415bb1b6cd16b3c141b7077aa722b0a3372933681128c2ce953eb3838b010b18e6820201018101810180810180808b0218f1185f820202018101810180810180808b03190150187282020e01810181018081028080808082025820be190aebb9415bb1b6cd16b3c141b7077aa722b0a3372933681128c2ce953eb38201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "projection": {
+    "visible": {
+     "quads": [
+      [
+       {
+        "iri": "urn:s"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "literal": "41148384582d4796b7953fa373dbeed0209a9a1baa0015c83e8989f62147ce6d",
+        "datatype": "http://www.w3.org/2001/XMLSchema#string"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "whole": {
+     "quads": [
+      [
+       {
+        "iri": "urn:s"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "literal": "41148384582d4796b7953fa373dbeed0209a9a1baa0015c83e8989f62147ce6d",
+        "datatype": "http://www.w3.org/2001/XMLSchema#string"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "rdf_dataset": true
+   }
+  }
+ ]
+}

@@ -1,0 +1,48 @@
+{
+ "name": "registry/unknown/term_kind",
+ "status": "built and matches",
+ "note": "the code 8, one above the highest of term_kind, with h = r = 1: unregistered_value (P2-57)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__unknown__term_kind.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018de810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186182020101810181018082030280818707820207810182020182020b8202186181018b02186c187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 7,
+    "reason": 7,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0201f5f484008182080102100b582016a2c548e81136a5d905e19f5819cbe494187ce67b445680c05913345279c64581014b8281840181008101416180582020380d48312266a2801b79512adf4d35b9d5b17630ddb314e353f012e913e0ab808b020ef4f482015820fcbc30e10499e40f9510826f5ec361c1670729f1972cbed5a74a33376fa80a690058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058202f05afd824112345077470e09ad14c50c05d710465361a031d77a74ae5da296380",
+      "input_length": 222,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "malformed_value",
+        "reason": "unregistered_value",
+        "position": 1,
+        "offset": 11,
+        "length": 97
+       }
+      ],
+      "expected_finding_bytes": [
+       "8707820207810182020182020b820218618101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

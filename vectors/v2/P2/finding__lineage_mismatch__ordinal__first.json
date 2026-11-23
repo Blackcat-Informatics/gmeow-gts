@@ -1,0 +1,45 @@
+{
+ "name": "finding/lineage_mismatch/ordinal/first",
+ "status": "built and matches",
+ "note": "a first segment whose lineage is present (P2-42)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__lineage_mismatch__ordinal__first.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019012081018202582022b183791a63a81cd03b61343acea045e4a673baa63204ee03b072a2a884a957820201820201810101030202008085f48202058202058202058101820258208b5ebfadff341ad2ef58ad964626d7f04c4ca0f887bb0d0ca5304f2f19f6daea828b01182f187f820209018101810180810180808b0218ae187282020e018101810180810280808187182b820218388101810181018101810180820258208b5ebfadff341ad2ef58ad964626d7f04c4ca0f887bb0d0ca5304f2f19f6daea8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 43,
+    "reason": 56,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "8701020101810181018202825820000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f018b0209f5f4825820396a58f0efe577c26c7d5f45fb6c58366b5140f486877075b0377a6e2e61ebd081010c58206f591b09aaa87486db075737fd5318a46f66b59d739b0e4b15f16609c7a76cc981014c6f6e6c79207365676d656e745820fdad40ae64ce64393bc4da8585d3bdf70e31ff61277be0a0509b3d1438cd914a808b020ef4f48201582035c469eef89bf63ebd91bb59ed0cad9dcd755d14be52067f2c875f89f4d3a22f0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d4492379251810140582037b7f4dc2b7e34e69059f89dc57f249f54bd81d70530caf9c52bcb15a68ccd8f80",
+      "input_length": 288,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "lineage_mismatch",
+        "reason": "ordinal"
+       }
+      ],
+      "expected_finding_bytes": [
+       "87182b8202183881018101810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,24 @@
+{
+ "name": "registry/content/unknown_value",
+ "status": "built and matches",
+ "note": "P2 7: h 2, r 1, a terms frame whose order is 3: the frame is a frame of unknown type: unsupported_critical (the type is critical), the fold stops",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__content__unknown_value.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018de8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186182020101810181018082030480818706810182028202018202018101810181018b02186c187282020e01810181018082030580808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000202",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

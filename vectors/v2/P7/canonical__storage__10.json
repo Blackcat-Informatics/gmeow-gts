@@ -1,0 +1,63 @@
+{
+ "name": "canonical/storage/10",
+ "status": "built and matches",
+ "note": "the suppress frame at position 10 of the canonical file of the storage fold: the decoded payload (`decoded`) and the stored bytes (`stored`)",
+ "cases": [
+  {
+   "label": "decoded",
+   "input_file": "canonical__storage__10.decoded.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "frame_type": "suppress",
+    "decoded_length": 6,
+    "decoded_sha256": "56e0806aa2f4c490963fbda6d82173347d82d8a47fe51dd04b45705cc466906c",
+    "storage": "plain",
+    "stored_length": 6,
+    "stored_sha256": "56e0806aa2f4c490963fbda6d82173347d82d8a47fe51dd04b45705cc466906c",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 10
+   }
+  },
+  {
+   "label": "stored",
+   "input_file": "canonical__storage__10.stored.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "frame_type": "suppress",
+    "decoded_length": 6,
+    "decoded_sha256": "56e0806aa2f4c490963fbda6d82173347d82d8a47fe51dd04b45705cc466906c",
+    "storage": "plain",
+    "stored_length": 6,
+    "stored_sha256": "56e0806aa2f4c490963fbda6d82173347d82d8a47fe51dd04b45705cc466906c",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 10
+   }
+  }
+ ]
+}

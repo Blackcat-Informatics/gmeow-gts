@@ -1,0 +1,24 @@
+{
+ "name": "terms-language-case-distinct",
+ "status": "built and matches",
+ "note": "P3 1, WHAT THE FORMAT DOES NOT JUDGE: two language texts that differ in the case of a letter are two languages; two terms, two lines, no finding, and the content digest of those two lines",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "terms-language-case-distinct.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019016d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018202582071882498cb465cd1899e49e1c5e95be6833190dead0f2bfc26d2eef007dd9185838b010b188f820201018101810180810180808b02189a1861820202018101810180810180808b0318fb187282020e0181018101808102808080808202582071882498cb465cd1899e49e1c5e95be6833190dead0f2bfc26d2eef007dd91858201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

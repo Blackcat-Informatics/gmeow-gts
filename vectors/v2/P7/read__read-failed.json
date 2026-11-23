@@ -1,0 +1,24 @@
+{
+ "name": "read/read-failed",
+ "status": "built and matches",
+ "note": "offset 12, length 64",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "read__read-failed.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000c8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc0820201820201810101030000008085f581038101810382028202018101808187181b82021842810182020181018101810181870a81018101810182020c82021840810181018201000700",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

@@ -1,0 +1,76 @@
+{
+ "name": "read/visibility/unauthenticated",
+ "status": "built and matches",
+ "note": "a suppress frame hides a line only under authentication: the same line and suppress frame read with a trusted key held give visible [1, 1] when the suppress frame stands with no signature, and visible [1, 0] when a commit after it carries a signature of that key",
+ "section": "P7",
+ "cases": [
+  {
+   "label": "unsigned",
+   "input_file": "read__visibility__unauthenticated.unsigned.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [
+     "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c"
+    ],
+    "held_keys": [
+     {
+      "key_id": "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c",
+      "algorithm": 1,
+      "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+     }
+    ],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c818358200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c01582003a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b88702819200001901ad810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f48202058202058202058101820258205bbab742497c7e8882d34c35a3a81a596cbc580a97d9f5ae2150b5a1abb4581b848b010b1872820201018101810180810180808b02187d185f820202018101810180810180808b0318dc185f820207018101810180810180808b0419013b187282020e018101810180810280808080820258205bbab742497c7e8882d34c35a3a81a596cbc580a97d9f5ae2150b5a1abb4581b8201010200"
+  },
+  {
+   "label": "signed",
+   "input_file": "read__visibility__unauthenticated.signed.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [
+     "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c"
+    ],
+    "held_keys": [
+     {
+      "key_id": "0b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c",
+      "algorithm": 1,
+      "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+     }
+    ],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c818358200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c01582003a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8870281920000190213810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101010404048085f48202058202058202058101820258205bbab742497c7e8882d34c35a3a81a596cbc580a97d9f5ae2150b5a1abb4581b848b010b1872820201018101810180810180808b02187d185f820202018101810180810180808b0318dc185f820207018101810180810180808b0419013b18d882020e018101810181870181010158200b79463c662fe28d890dfbe7b32d86575c87ea6caa17891d3b37cbbffc3b905c0004f5810280808080820258205bbab742497c7e8882d34c35a3a81a596cbc580a97d9f5ae2150b5a1abb4581b8201000100"
+  }
+ ]
+}

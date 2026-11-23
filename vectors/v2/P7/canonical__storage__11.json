@@ -1,0 +1,63 @@
+{
+ "name": "canonical/storage/11",
+ "status": "built and matches",
+ "note": "the commit frame at position 11 of the canonical file of the storage fold: the decoded payload (`decoded`) and the stored bytes (`stored`)",
+ "cases": [
+  {
+   "label": "decoded",
+   "input_file": "canonical__storage__11.decoded.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "frame_type": "commit",
+    "decoded_length": 0,
+    "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "storage": "plain",
+    "stored_length": 0,
+    "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 11
+   }
+  },
+  {
+   "label": "stored",
+   "input_file": "canonical__storage__11.stored.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "frame_type": "commit",
+    "decoded_length": 0,
+    "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "storage": "plain",
+    "stored_length": 0,
+    "stored_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 11
+   }
+  }
+ ]
+}

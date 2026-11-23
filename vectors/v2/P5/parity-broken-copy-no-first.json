@@ -1,0 +1,26 @@
+{
+ "name": "parity-broken-copy-no-first",
+ "section": "P5",
+ "status": "built and matches",
+ "note": "`H T Q P P'` with `P` and `P'` two parity frames of the one span of `T Q`, `P` written with its stored identifier changed by one bit so that its link fails: a `broken` parity frame has no `first` and matches no span, so `P'` is not damaged by condition 6 and is used: `P` `parity_damaged`, `P'` no finding (P5 6.6, condition 6)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "parity-broken-copy-no-first.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190523810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc8202018202018101010302000082030485f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15848b010b186782020101810181018081018081871181018101820201810181018202028b021872185f820202018101810180810180808b0318d11902298202100381018101808102808187181e810181018202038101810181018b041902fa19022982021001810181018081028080808082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "note": "P (position 3) broken and parity_damaged; P' (position 4) linked, used, no finding; no unprotected_tail"
+  }
+ ]
+}

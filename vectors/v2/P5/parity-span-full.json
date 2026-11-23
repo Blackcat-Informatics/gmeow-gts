@@ -1,0 +1,27 @@
+{
+ "name": "parity-span-full",
+ "status": "built and matches",
+ "note": "the payload sizes of a full span (1024 shards, depth 16: 280651 bytes) and of a span of 65536 bytes (5259 bytes); the input file is empty",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "parity-span-full.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "full": 280651,
+    "short": 5259
+   }
+  }
+ ]
+}

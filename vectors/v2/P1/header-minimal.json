@@ -1,0 +1,28 @@
+{
+ "name": "header-minimal",
+ "section": "10.2",
+ "status": "built and matches",
+ "note": "h0 is the value of the vector header-h0-minimal: the `header_identifier` (and `head`) of the segment result of this file; the header is the 12 bytes of P1 2.4",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "header-minimal.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000c8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc0820201820201810101030000008085f5810381018103820282020182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e808187181b8202184281018202018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "read": {
+    "readers": "second_only"
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

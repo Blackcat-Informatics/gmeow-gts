@@ -1,0 +1,48 @@
+{
+ "name": "registry/unknown/canonical_form",
+ "status": "built and matches",
+ "note": "the code 2, one above the highest of canonical_form, with h = r = 1: unregistered_value (P2-57)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__unknown__canonical_form.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200000c8101810181018101810103030000008085f48202058202058202058101810180818707820207810182020082020082020c81018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 7,
+    "reason": 7,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "870102010181018202028101",
+      "input_length": 12,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "malformed_value",
+        "reason": "unregistered_value",
+        "position": 0,
+        "offset": 0,
+        "length": 12
+       }
+      ],
+      "expected_finding_bytes": [
+       "8707820207810182020082020082020c8101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+{
+ "name": "append-torn-first-header",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the first 10 bytes of H: appended_resync, no filler, the resync item alone at offset 10; the one byte 1c: refused_generation (P1-87)",
+ "cases": [
+  {
+   "label": "ten",
+   "input_file": "append-torn-first-header.ten.bin",
+   "append_outcome": {
+    "code": 2,
+    "outcome": "appended_resync"
+   }
+  },
+  {
+   "label": "ten-then-item",
+   "input_file": "append-torn-first-header.ten-then-item.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000a186c850202f40200820258207b97f9172a10caec05595d1bc255853fdcea05cc129015eb048e49e4be2fa686820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e808081870981018101810182020082020a810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401"
+  },
+  {
+   "label": "one",
+   "input_file": "append-torn-first-header.one.bin",
+   "append_outcome": {
+    "code": 3,
+    "outcome": "refused_generation"
+   }
+  }
+ ]
+}

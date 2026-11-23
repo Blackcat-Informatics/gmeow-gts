@@ -1,0 +1,82 @@
+{
+ "name": "idx-false-locator",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
+ "note": "a locator whose distance is above its own offset; a locator whose distance leads into the payload of a frame",
+ "cases": [
+  {
+   "label": "above-offset",
+   "input_file": "idx-false-locator.above-offset.bin",
+   "query": {
+    "segment_end": 1224,
+    "target": [
+     "graph",
+     null
+    ],
+    "suppression": false
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
+   },
+   "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831904c882018101f402820201810180",
+   "ranges": [
+    [
+     1213,
+     11
+    ]
+   ],
+   "charged": 11
+  },
+  {
+   "label": "into-payload",
+   "input_file": "idx-false-locator.into-payload.bin",
+   "query": {
+    "segment_end": 1224,
+    "target": [
+     "graph",
+     null
+    ],
+    "suppression": false
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 1
+   },
+   "answer": "87018a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831904c882018101f402820202810180",
+   "ranges": [
+    [
+     1213,
+     11
+    ],
+    [
+     31,
+     1
+    ]
+   ],
+   "charged": 12
+  }
+ ]
+}

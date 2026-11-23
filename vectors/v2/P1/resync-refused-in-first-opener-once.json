@@ -1,0 +1,26 @@
+{
+ "name": "resync-refused-in-first-opener-once",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a first item that is an unreadable header of 716 bytes holding an occurrence with a true offset at 700, then an incomplete item: the total of 600 refuses the charge in the run of the first item; the file has a segment, so the one finding stands in the segment's findings with `position` 0 and not in the findings of the file, and the next run, which covers the occurrence again, gives none (P1 6.7 part 4, P2-82, P1-104)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-refused-in-first-opener-once.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 600,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001902581a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902cc8101810181018101810103030000008085f48202058202058202058101810180828707820204810182020082020082021902cc8101871482021856810182020082021902bc8202191000820219100081870981018101810182021902cc820218f8810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000501",
+   "note": "segment 0: exceeds_capacity total_decoded position 0 offset 700 length 4096 count 4096; the file findings: torn_tail 716/248 only"
+  }
+ ]
+}

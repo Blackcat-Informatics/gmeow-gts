@@ -1,0 +1,259 @@
+{
+ "name": "idx-scope-unknown",
+ "section": "P7, \"Reading by range\"",
+ "status": "built and matches",
+ "note": "the segment of idx-sealed read with segment_end the length of the file: unknown, sealed, the scope names the header of the segment and the frame_count of the index",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "idx-scope-unknown.bin",
+   "query": {
+    "segment_end": 939,
+    "target": [
+     "graph",
+     null
+    ],
+    "suppression": false
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "sparse"
+   },
+   "read": {
+    "registry_version": 2
+   },
+   "answer": "87028a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000003831903ab82018101f40282020882028318831902ba82020480",
+   "ranges": [
+    [
+     928,
+     11
+    ],
+    [
+     698,
+     1
+    ],
+    [
+     699,
+     1
+    ],
+    [
+     700,
+     1
+    ],
+    [
+     701,
+     1
+    ],
+    [
+     702,
+     1
+    ],
+    [
+     703,
+     1
+    ],
+    [
+     704,
+     1
+    ],
+    [
+     705,
+     1
+    ],
+    [
+     706,
+     1
+    ],
+    [
+     707,
+     32
+    ],
+    [
+     739,
+     1
+    ],
+    [
+     740,
+     1
+    ],
+    [
+     741,
+     1
+    ],
+    [
+     742,
+     1
+    ],
+    [
+     743,
+     32
+    ],
+    [
+     775,
+     1
+    ],
+    [
+     776,
+     1
+    ],
+    [
+     777,
+     1
+    ],
+    [
+     778,
+     1
+    ],
+    [
+     779,
+     100
+    ],
+    [
+     879,
+     1
+    ],
+    [
+     880,
+     1
+    ],
+    [
+     881,
+     32
+    ],
+    [
+     913,
+     1
+    ],
+    [
+     914,
+     1
+    ],
+    [
+     915,
+     1
+    ],
+    [
+     916,
+     1
+    ],
+    [
+     917,
+     1
+    ],
+    [
+     918,
+     1
+    ],
+    [
+     919,
+     1
+    ],
+    [
+     920,
+     1
+    ],
+    [
+     921,
+     1
+    ],
+    [
+     922,
+     1
+    ],
+    [
+     923,
+     1
+    ],
+    [
+     924,
+     1
+    ],
+    [
+     925,
+     1
+    ],
+    [
+     926,
+     1
+    ],
+    [
+     927,
+     1
+    ],
+    [
+     131,
+     11
+    ],
+    [
+     603,
+     1
+    ],
+    [
+     604,
+     1
+    ],
+    [
+     605,
+     1
+    ],
+    [
+     606,
+     1
+    ],
+    [
+     607,
+     1
+    ],
+    [
+     608,
+     1
+    ],
+    [
+     609,
+     1
+    ],
+    [
+     610,
+     1
+    ],
+    [
+     611,
+     1
+    ],
+    [
+     612,
+     1
+    ],
+    [
+     613,
+     1
+    ],
+    [
+     646,
+     1
+    ],
+    [
+     647,
+     1
+    ],
+    [
+     648,
+     1
+    ],
+    [
+     663,
+     35
+    ]
+   ],
+   "charged": 301
+  }
+ ]
+}

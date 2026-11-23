@@ -1,0 +1,45 @@
+{
+ "name": "finding/ill_formed_term",
+ "status": "built and matches",
+ "note": "a front-coded IRI whose suffix bytes ff are not valid UTF-8",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__ill_formed_term.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f2810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b187582020101810181018081018081871818810181018202018101810181018b021880187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 24,
+    "reason": null,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0201f5f48400818201040210181d5820c3b33c23e712a50220bc981447184d07ac71b502e8f44944e74ad7553392e7f08101581d828184018400090909840a0101014d687474703a2f2f652f73ff706f8058206355fd1be851bdbea5a656ff253ec0d0efd4bee7db0c7e247d2fa3eec6ea5ab4808b020ef4f4820158201d9c2c667d762a0c9dfaa2b1e7105fe0b15d192fac5310ea386795e1e39380980058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058204fd8e7ea6c34630f6e5cabacce4c3008842e6410b651e6cbde034839f29ed7d380",
+      "input_length": 242,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "ill_formed_term",
+        "position": 1
+       }
+      ],
+      "expected_finding_bytes": [
+       "87181881018101820201810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

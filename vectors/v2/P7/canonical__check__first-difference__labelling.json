@@ -1,0 +1,34 @@
+{
+ "name": "canonical/check/first-difference/labelling",
+ "status": "built and matches",
+ "note": "a claimed canonical file whose one blank node carries the label of position 1 where its position is 0, every frame being the one that the construction forms with that stored label: the structure level is verified, the stored labels name no labelling, so the labelling level is failed with the first difference [labelling, 2] at the terms frame, storage is verified, and that frame holds one canonical_violated with the reason labelling",
+ "section": "P7, \"The canonical check\"",
+ "cases": [
+  {
+   "label": "label-of-no-position",
+   "input_file": "canonical__check__first-difference__labelling.label-of-no-position.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001908748101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103080700810985f58101810381018202820b02820258207aa0af40bcf4189c0031d13c3a86bb0ec9a0ba0b198069060eefb89961592790898b010c18c282020d018101810180810180808b0218ce18b88202010181018101808101808187181b8202184b81018202028101810181018b03190186186d820202018101810180810180808b041901f3185f820204018101810180810180808b0519025218a7820206018101810180810180808b061902f9185b820207018101810180810180808b07190354187282020e018101810180810280808b081903c619014082020f018101810180810280808b0919050619034b820210018101810180810280808080820258207aa0af40bcf4189c0031d13c3a86bb0ec9a0ba0b198069060eefb899615927908201010200"
+  }
+ ]
+}

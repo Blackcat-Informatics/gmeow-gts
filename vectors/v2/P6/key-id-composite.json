@@ -1,0 +1,22 @@
+{
+ "name": "key-id-composite",
+ "section": "P6 3.2",
+ "status": "built and matches",
+ "note": "the key identifier of a composite key: the input file is the 1984-byte public key (the ML-DSA-65 key of the seed 40 to 5f, then the Ed25519 key of the seed 60 to 7f), E([2, PK2]) is 1989 bytes and begins 82 02 59 07 c0",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "key-id-composite.bin",
+   "key": {
+    "algorithm": 2,
+    "mldsa_seed": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+    "ed25519_seed": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f"
+   },
+   "result": {
+    "preimage_head": "82025907c0",
+    "preimage_length": 1989,
+    "key_id": "84df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac3301"
+   }
+  }
+ ]
+}

@@ -1,0 +1,34 @@
+{
+ "name": "canon-empty-blob",
+ "status": "built and matches",
+ "note": "the canonical file of a fold whose one present blob is the empty blob: one pack in the blob region with one member of kind blob, digest H_ctx(unit, empty) and body length 0, member_count 1 and unit_length 0; the canonical check verifies it",
+ "section": "P4 7",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "canon-empty-blob.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904708101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103030200810485f5810181018101810182025820e4da20128792e890908d57451c6abfe01718bbf7c9c86a686ad2df1da8786bc5848b010c187e82020d018101810180810180808b02188a187282020e018101810180810280808b0318fc18ee82020f018101810180810280808b041901ea19026e82021001810181018081028080808082025820e4da20128792e890908d57451c6abfe01718bbf7c9c86a686ad2df1da8786bc58201000200"
+  }
+ ]
+}

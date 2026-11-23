@@ -1,0 +1,51 @@
+{
+ "name": "registry/profile/unknown_code",
+ "status": "built and matches",
+ "note": "a header with profile present(99): profile_not_checked with the subject [4, 99, absent] and no error",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__profile__unknown_code.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f3810182025820b86a63534a2bb4bdac58c8af2fef4aa1a67be988b9ddfbb72b038570da8220608202018202018202186301030202008085f482020582020582020581018202582046c891953dd8b27621bab89136fb0306f82f6eedad81cd9f4cedcf39e8b6b2e1828b010d1874820209018101810180810180808b021881187282020e0181018101808102808081871830810182028304186381018101810181018101808202582046c891953dd8b27621bab89136fb0306f82f6eedad81cd9f4cedcf39e8b6b2e18201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 48,
+    "reason": null,
+    "severity": "information",
+    "readings": [
+     {
+      "input_hex": "870102010182021863810181018b0209f5f482582097968a69b551ca73ac97ab901dbe9ec871c264c7e16009cb7952fa3662f6514881010158202955649ec05d494aced4e3f3856bddd4863c697394741355226b2c255cfdb1ac810141785820821696d6ad0184245a3a59a3971158f7e8f1763952545927fc160df456eaae0e808b020ef4f4820158200d67609c64b3356ba771b4296ea56e22b9426e0c9f7d00a4929c3b267ab62e1a0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058207e0d79cf29cf85b4d38074adac99b9935aa89261046265f8b10eb735ec17a19780",
+      "input_length": 243,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "profile_not_checked",
+        "subject": [
+         4,
+         99,
+         [
+          1
+         ]
+        ]
+       }
+      ],
+      "expected_finding_bytes": [
+       "871830810182028304186381018101810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

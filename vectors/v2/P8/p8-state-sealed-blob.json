@@ -1,0 +1,99 @@
+{
+ "name": "p8-state-sealed-blob",
+ "status": "built and matches",
+ "note": "P8 12 item 9, P3 7.2: a segment whose commit names a state with one blob entry of length 17, in sealed frames; result records three readings of the stored file: keyless, with the segment key, and with a key entry whose key conflicts; the sealing input of the second and third readings is not recorded in the case",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "p8-state-sealed-blob.bin",
+   "read_result": "870102808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001907ad8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030404008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e848b010b19055e820211018101810180810180808b0219056918f5820212018101810180820309808187183181018101820202810181018202028b0319065e18dd82021201810181018082030980808b0419073b187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e84020002000202",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "keyless": {
+     "folds": [
+      [
+       "opaque",
+       "missing_key"
+      ],
+      [
+       "opaque",
+       "missing_key"
+      ]
+     ],
+     "integrity": "intact",
+     "visible": [
+      2,
+      0,
+      2,
+      0
+     ],
+     "outcome": "unavailable",
+     "findings": [
+      [
+       "segment_key_not_held",
+       null,
+       2,
+       2
+      ]
+     ]
+    },
+    "key": {
+     "folds": [
+      [
+       "folded"
+      ],
+      [
+       "folded"
+      ]
+     ],
+     "integrity": "intact",
+     "visible": [
+      1,
+      0
+     ],
+     "outcome": "named",
+     "findings": []
+    },
+    "conflict": {
+     "folds": [
+      [
+       "opaque",
+       "missing_key"
+      ],
+      [
+       "opaque",
+       "missing_key"
+      ]
+     ],
+     "integrity": "intact",
+     "visible": [
+      2,
+      0,
+      2,
+      0
+     ],
+     "outcome": "unavailable",
+     "findings": [
+      [
+       "key_conflict",
+       null,
+       2,
+       null
+      ]
+     ]
+    }
+   }
+  }
+ ]
+}

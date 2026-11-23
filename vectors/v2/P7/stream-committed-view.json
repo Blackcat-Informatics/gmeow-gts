@@ -1,0 +1,505 @@
+{
+ "name": "stream-committed-view",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "the commit-valid segment (H F1 T C F3) read as a stream: at the commit committed_frames covers the items of F1 and T and not those of F3",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "stream-committed-view.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001901e4810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030403008085f482020582020582020581018101848b010b1880820209018101810180810180808b02188b1867820201018101810180810180808b0318f2187282020e018101810180810280808b0419016418808202090181018101808101808187118101810182020481018101820201808081018201000300",
+   "note": "committed_frames 3 at the commit: the frame items at positions 1, 2, 3 (F1, T, the commit) are below it, the item of F3 (position 4, ordinary position 3) is not",
+   "stream_points": [
+    {
+     "at": 356,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "311ef0bd355148028e499aaa5accc0328ea8008ff99101080b9f85a2f59e538d",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "not_content"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       1,
+       0,
+       1,
+       [
+        2,
+        [
+         3,
+         6
+        ]
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 484,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "5bb0fbb92700ec510cd6afc608405014b4dd2ce812a8e8575cc8db675b7f6324",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "not_content"
+         ],
+         "findings": []
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           4,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       1,
+       0,
+       1,
+       [
+        2,
+        [
+         3,
+         6
+        ]
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       4,
+       0,
+       1,
+       [
+        2,
+        [
+         3,
+         6
+        ]
+       ]
+      ],
+      [
+       6,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 484,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "5bb0fbb92700ec510cd6afc608405014b4dd2ce812a8e8575cc8db675b7f6324",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "not_content"
+         ],
+         "findings": []
+        },
+        {
+         "position": 4,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           4,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       1,
+       0,
+       1,
+       [
+        2,
+        [
+         3,
+         6
+        ]
+       ]
+      ],
+      [
+       6,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       2,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       5,
+       0,
+       4,
+       0,
+       1,
+       [
+        2,
+        [
+         3,
+         6
+        ]
+       ]
+      ],
+      [
+       6,
+       0,
+       4,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

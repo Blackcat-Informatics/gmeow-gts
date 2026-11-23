@@ -1,0 +1,93 @@
+{
+ "name": "lowering-blank-inside",
+ "status": "built and matches",
+ "note": "a segment S with the blank term u (label 75), x = <<_:u q c>>, <<a p x>> and the line quad(a, p, <<a p x>>); and a file of two segments, each S: h(_:u), K(_:u), the preimage of d(x) of 69 bytes, the source identifier; two nested terms and two term nodes in the fold of the file, one in the own fold of each segment (P3-109)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lowering-blank-inside.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000190167810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018202582081d84782efd9b8e87bc5ac427ebad31647deb0fb38eafd339df2248fa25d8bd5838b010b188b820201018101810180810180808b021896185f820202018101810180810180808b0318f5187282020e01810181018081028080809201190167190167810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018202582081d84782efd9b8e87bc5ac427ebad31647deb0fb38eafd339df2248fa25d8bd5838b01190172188b820201018101810180810180808b021901fd185f820202018101810180810180808b0319025c187282020e018101810180810280808187182a81018101810181018101810180820258206cc3e4f3d1a873cc8f25d2a152edaca42f85bba9cf3f8e6687f4b4b88724fa6c8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "sha256": "9173a8009e0cd9651798a86bfbbd138bd823d03c7b14edccf5e6cbcacdd4730b",
+    "bytes": 359,
+    "refusal": null,
+    "size": 2,
+    "content_digest": "81d84782efd9b8e87bc5ac427ebad31647deb0fb38eafd339df2248fa25d8bd5",
+    "findings": [],
+    "lines": 1,
+    "records": 0,
+    "nested_terms": 1,
+    "weight": 172,
+    "labelled": 2,
+    "max_depth_of_a_triple_term": 1,
+    "term_nodes": [
+     {
+      "node": "n#ec53a238",
+      "K": [
+       "82005820a3cb3113975ce8112bed4f372d95cbfa4f6e543464cb58f4256fe0b01ccd5217",
+       "4d82016a687474703a2f2f652f71",
+       "4d82016a687474703a2f2f652f63"
+      ],
+      "preimage": "83582482005820a3cb3113975ce8112bed4f372d95cbfa4f6e543464cb58f4256fe0b01ccd52174e4d82016a687474703a2f2f652f714e4d82016a687474703a2f2f652f63",
+      "preimage_bytes": 69,
+      "d": "ec53a2381a3e6cd2674fbf96686e8248bca8eed8c0b3d82e03d0f22d3952de41",
+      "source_identifier": "815820ec53a2381a3e6cd2674fbf96686e8248bca8eed8c0b3d82e03d0f22d3952de41",
+      "position": 1
+     }
+    ],
+    "blank_positions": {
+     "_:(0,u)": 0
+    },
+    "labelled_set": [
+     "quad(<a>, <p>, <<<a> <p> n#ec53a238>>, -)",
+     "record(P8205848101810181018101, n#ec53a238, _:(0,u), <q>, <c>)"
+    ],
+    "guaranteed": true,
+    "walk": {
+     "total": 60,
+     "kinds": {
+      "START": 21,
+      "REFINE": 8,
+      "FIX-SUM": 31,
+      "SPLIT": 0,
+      "TWIN": 0
+     },
+     "allowance": 202,
+     "broken_by": 0
+    },
+    "Hu": "a3cb3113975ce8112bed4f372d95cbfa4f6e543464cb58f4256fe0b01ccd5217",
+    "Dblank": "ec53a2381a3e6cd2674fbf96686e8248bca8eed8c0b3d82e03d0f22d3952de41",
+    "oracle_guaranteed": true,
+    "oracle_digest": "81d84782efd9b8e87bc5ac427ebad31647deb0fb38eafd339df2248fa25d8bd5",
+    "file_of_two_segments": {
+     "sha256": "6ec7f3123c7f810bc4266655af09c6d5c8b8849e7ac9196e45045c02cc617b01",
+     "content_digest": "6cc3e4f3d1a873cc8f25d2a152edaca42f85bba9cf3f8e6687f4b4b88724fa6c",
+     "term_node_digests": [
+      "ec53a2381a3e6cd2674fbf96686e8248bca8eed8c0b3d82e03d0f22d3952de41",
+      "9d04c52758e1c85f5dca062056c648b7b304d5fc0c04d24abf9121aedde5a171"
+     ],
+     "positions": {
+      "_:(0,u)": 2,
+      "_:(1,u)": 0
+     },
+     "node_positions": [
+      3,
+      1
+     ]
+    }
+   }
+  }
+ ]
+}

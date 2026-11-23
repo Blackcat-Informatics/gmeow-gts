@@ -1,0 +1,53 @@
+{
+ "name": "terms-formed-witness",
+ "status": "built and matches",
+ "note": "4096 IRIs, term 0 of 65536 bytes, every later term prefix 65535 and one suffix byte (decoded payload 86033, charge 268365825): refused with 268365824 (count 268365825, frame opaque, no ill_formed_term), folded with 268365825 (P3-101, P3-102)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "terms-formed-witness.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001a0ffef0001b00000020000000000181018280808702819200001a000150f0810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b1a00015073820201018101810180820307808187148202185a810182020182020b82021a0001507382021a0ffef0018b021a0001507e187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 268365824,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 268365824,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 268365825,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    }
+   ],
+   "result": {
+    "charge": 268365825
+   }
+  }
+ ]
+}

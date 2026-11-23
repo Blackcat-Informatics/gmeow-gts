@@ -1,0 +1,78 @@
+{
+ "name": "state-rebuild-refused-capacity",
+ "status": "built and matches",
+ "note": "P3 7.2 clause (4): a term unreadable because the rebuild allowance refused its value: the commit names no state below the allowance, a state above it; the refusal is produced by the total rebuilt length of P4 6.3",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "state-rebuild-refused-capacity.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a04000000183f1b00000020000000001b00000020000000000181018280808702819200001902ce810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030505008085f482020582020582020581018101858b010b18b3820208018101810180810180808b0218be189c82020b0181018101808101818281018103818714820218598101820202820218be8202189c820218408b0319015a18a3820201018101810180810180808b041901fd185f82020201810181018081018081871819810181018202048101810181018b0519025c187282020e01810181018081028080808081018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 63,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 63,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 65,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    }
+   ],
+   "result": {
+    "below": {
+     "outcome": "unavailable",
+     "rebuilds": [
+      [
+       [
+        null,
+        [
+         "refused"
+        ]
+       ]
+      ]
+     ]
+    },
+    "above": {
+     "outcome": "named",
+     "rebuilds": [
+      [
+       [
+        null,
+        [
+         "verified"
+        ]
+       ]
+      ]
+     ]
+    }
+   }
+  }
+ ]
+}

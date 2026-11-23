@@ -1,0 +1,14 @@
+{
+ "name": "p8-hmac-kat",
+ "status": "derived from the text",
+ "section": "P8",
+ "note": "a known answer of HMAC-SHA-256 (RFC 2104) with a 32-byte key, the form P8-4 requires: the key 00 to 1f over the three bytes of \"abc\"; plain values, no input file",
+ "cases": [
+  {
+   "label": "",
+   "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+   "message": "616263",
+   "hmac_sha256": "f0133729c4163dede81e21cd47839256da58171238c8a0d874397c73b14e1e47"
+  }
+ ]
+}

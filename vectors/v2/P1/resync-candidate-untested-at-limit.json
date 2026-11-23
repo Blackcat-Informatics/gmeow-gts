@@ -1,0 +1,44 @@
+{
+ "name": "resync-candidate-untested-at-limit",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the count reaches `items_per_read` at or before the decision point of a run whose candidate would be accepted: the candidate is not tested, one segment, no torn_tail, and no item_count when no byte remains (P1 6.7 step 4)",
+ "cases": [
+  {
+   "label": "ends-at-third",
+   "input_file": "resync-candidate-untested-at-limit.ends-at-third.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 3,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b0000001000000000031b00000020000000001b00000020000000001b000000200000000001810182808087028192000019012b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186782020101810181018081018081871181018101820201810181018202028b02187218b98202090381018101808203068081870b8101810182020282021872820218b98101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "note": "one segment over the input; no torn_tail; no exceeds_capacity item_count"
+  },
+  {
+   "label": "swallowing-third",
+   "input_file": "resync-candidate-untested-at-limit.swallowing-third.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 3,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b0000001000000000031b00000020000000001b00000020000000001b000000200000000001810182808087028192000019018a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186782020101810181018081018081871181018101820201810181018202018b0218721901188202090381028101808203028081870782020581018202028202187282021901188101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "note": "one segment over the input; no torn_tail; no exceeds_capacity item_count"
+  }
+ ]
+}

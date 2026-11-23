@@ -1,0 +1,103 @@
+{
+ "name": "canon-blob-set-preserved",
+ "status": "built and matches",
+ "note": "the fold of the worked example of P4 5 (a blob of the five bytes 'hello' declared by a blob frame with media type a/b and by an external frame of length 5 with c/d, and a second external frame of c/d that states length 6, one conflicting_declaration at position 3) and its canonical file, one blob member with a/b and one external frame of length 5 with c/d: the blob set [1, [1, D], 5, [a/b, c/d]], D = H_ctx(unit, hello), and its one blob_declaration record line are the same in both files (P4-52)",
+ "section": "P4 7",
+ "cases": [
+  {
+   "label": "source",
+   "input_file": "canon-blob-set-preserved.source.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901ed810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030404008085f4820205820205820205810182025820612c2ef036440815c33eeb092a6a4ff7e0a8083e37e48453c7aca92a0f206535848b010b187c820209018101810180810180808b021887187a82020c018101810180810180808b03190101187a82020c0181018101808101808187182d810181018202038101810181018b0419017b187282020e01810181018081028080808082025820612c2ef036440815c33eeb092a6a4ff7e0a8083e37e48453c7aca92a0f2065358201000200",
+   "compaction": {
+    "profile": null,
+    "outcome": "written"
+   },
+   "output_file": "canon-blob-set-preserved.canonical.bin",
+   "projection": {
+    "blob_set": [
+     [
+      1,
+      [
+       1,
+       "6ef5698cb563519a07ece858618bae7a1bf8575e84864ba707f38bc3b698f46e"
+      ],
+      5,
+      [
+       "a/b",
+       "c/d"
+      ]
+     ]
+    ],
+    "blob_declaration_lines": [
+     "82038401820158206ef5698cb563519a07ece858618bae7a1bf8575e84864ba707f38bc3b698f46e058263612f6263632f64"
+    ]
+   }
+  },
+  {
+   "label": "canonical",
+   "input_file": "canon-blob-set-preserved.canonical.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019051a8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f5810181018101810182025820612c2ef036440815c33eeb092a6a4ff7e0a8083e37e48453c7aca92a0f206535858b010c188782020d018101810180810180808b021893187a82020c018101810180810180808b0319010d187282020e018101810180810280808b0419017f18f182020f018101810180810280808b0519027019029082021001810181018081028080808082025820612c2ef036440815c33eeb092a6a4ff7e0a8083e37e48453c7aca92a0f2065358201000200",
+   "projection": {
+    "blob_set": [
+     [
+      1,
+      [
+       1,
+       "6ef5698cb563519a07ece858618bae7a1bf8575e84864ba707f38bc3b698f46e"
+      ],
+      5,
+      [
+       "a/b",
+       "c/d"
+      ]
+     ]
+    ],
+    "blob_declaration_lines": [
+     "82038401820158206ef5698cb563519a07ece858618bae7a1bf8575e84864ba707f38bc3b698f46e058263612f6263632f64"
+    ]
+   }
+  }
+ ]
+}

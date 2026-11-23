@@ -1,0 +1,33 @@
+{
+ "name": "files-value-octets-as-text",
+ "status": "built and matches",
+ "note": "each of the six properties as a text literal, and as FF41 hexBinary written as text with no pair of VALUES; per entry the entry, its attribute record and its archive record fail",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "files-value-octets-as-text.bin",
+   "read_result": "8701018182050b8a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904f081018202582063dd72780ed65331f60bd390f6d241cc93bbd2965552dce186061c715e31837582020182020182020501030303008085f48202058202058202058101820258205eea2073202c5584e421d85ae171a5a883d62aeec40e7f6a721c02cf01974aef838b010c190383820201018101810180810180808b0219038f18ef820202018101810180810180808b0319047e187282020e018101810180810280808187182e8101820283040582020981018101810182020680820258205eea2073202c5584e421d85ae171a5a883d62aeec40e7f6a721c02cf01974aef8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "profile": [
+     [
+      9,
+      6
+     ]
+    ],
+    "core": []
+   }
+  }
+ ]
+}

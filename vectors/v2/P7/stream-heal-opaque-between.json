@@ -1,0 +1,593 @@
+{
+ "name": "stream-heal-opaque-between",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "an opaque item between the pending frame and the next frame: the frame broken with chain_break and settled at the boundary after the opaque item, no item of it in any listing",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "stream-heal-opaque-between.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000028101828080870281920000190190810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f482020582020582020581018101848b010b186782020101810181018081018081871181018101820201810181018202048b021872185f820202018101810180810180808b0318d1185f8202020381018101808203068081870b81018101820203820218d18202185f81018b05190131185f8202020381018101808203068081870b8101810182020582021901318202185f81018187078202048101820204820219013082020181018081018201000403",
+   "note": "the frame at position 3 pending at its boundary, broken with chain_break from the boundary after the opaque item on; no item of it in any listing",
+   "stream_points": [
+    {
+     "at": 304,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "beabd472149d2639ab1ca319eb078fd9dc950a307ab8a6c2fad1b69b475dbea9",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           3,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "broken",
+         "fold": [
+          "opaque",
+          "chain_break"
+         ],
+         "findings": [
+          [
+           "chain_break",
+           null,
+           3,
+           null,
+           209,
+           95
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 305,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "f79fbec214a57f130a77b29624f74a596a9e4ffb42510f671879bc8e28984c40",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "malformed_value",
+         "wrong_type",
+         4,
+         null,
+         304,
+         1
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           3,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "broken",
+         "fold": [
+          "opaque",
+          "chain_break"
+         ],
+         "findings": [
+          [
+           "chain_break",
+           null,
+           3,
+           null,
+           209,
+           95
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 400,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "7ca2273feb41cb72e1afc34f535685809fb0a99e836734c80456c1a370e81d8b",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "malformed_value",
+         "wrong_type",
+         4,
+         null,
+         304,
+         1
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           4,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "broken",
+         "fold": [
+          "opaque",
+          "chain_break"
+         ],
+         "findings": [
+          [
+           "chain_break",
+           null,
+           3,
+           null,
+           209,
+           95
+          ]
+         ]
+        },
+        {
+         "position": 5,
+         "link": "broken",
+         "fold": [
+          "opaque",
+          "chain_break"
+         ],
+         "findings": [
+          [
+           "chain_break",
+           null,
+           5,
+           null,
+           305,
+           95
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 400,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "7ca2273feb41cb72e1afc34f535685809fb0a99e836734c80456c1a370e81d8b",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "malformed_value",
+         "wrong_type",
+         4,
+         null,
+         304,
+         1
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           4,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 2,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        },
+        {
+         "position": 3,
+         "link": "broken",
+         "fold": [
+          "opaque",
+          "chain_break"
+         ],
+         "findings": [
+          [
+           "chain_break",
+           null,
+           3,
+           null,
+           209,
+           95
+          ]
+         ]
+        },
+        {
+         "position": 5,
+         "link": "broken",
+         "fold": [
+          "opaque",
+          "chain_break"
+         ],
+         "findings": [
+          [
+           "chain_break",
+           null,
+           5,
+           null,
+           305,
+           95
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       2,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       2,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

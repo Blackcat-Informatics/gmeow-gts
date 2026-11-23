@@ -1,0 +1,33 @@
+{
+ "name": "read/integrity/parity-ignored",
+ "status": "built and matches",
+ "note": "a canonical file whose final parity frame has one byte of its table digest altered: the one finding of the frame is parity_damaged at position 7, its link state is broken, its payload state verified and its fold state not_content, the segment reports unprotected_tail with offset 12 and length 941, the stream after the header, and integrity is intact, since a transparent frame does not enter it; the canonical check stays verified at the structure and labelling levels and the storage level differs, with no canonical_violated",
+ "section": "P7, \"How each state value is decided\"; P5, \"Checking a parity frame\"",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "read__integrity__parity-ignored.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001906bd8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103060500810785f58101810181038101820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb8878b010c188c82020d018101810180810180808b02189818b5820201018101810180810180808b0319014d186d820202018101810180810180808b041901ba187d820206018101810180810180808b05190237187282020e018101810180810280808b061902a919011082020f018101810180810280808b071903b91902e58202100381018101808102808187181e810181018202078101810181018187182481018101810182020c82021903ad810180820258200f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb88201000200"
+  }
+ ]
+}

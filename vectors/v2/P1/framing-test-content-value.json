@@ -1,0 +1,26 @@
+{
+ "name": "framing-test-content-value",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "`H T B` with `B` a `blob` frame whose `media_type` is the option tag `0` and whose payload holds a resync item at its true offset: the tag is a rule of the part, not of the shape the framing test judges, so `B` passes the test, framing is not lost and the occurrence is not scanned; `B` `linked` with `malformed_value` `unregistered_value` (the step CONTENT) and opaque with `malformed`; one segment (P1 6.7, P1-100)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "framing-test-content-value.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019012b810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186782020101810181018081018081871181018101820201810181018202028b02187218b982020901810181018082030280818707820207810182020282021872820218b98101808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "note": "one segment; B (position 2) linked, malformed_value unregistered_value, opaque malformed; no file finding"
+  }
+ ]
+}

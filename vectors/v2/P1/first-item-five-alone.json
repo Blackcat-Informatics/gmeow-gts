@@ -1,0 +1,26 @@
+{
+ "name": "first-item-five-alone",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a first item `[5]`, an array whose element 0 is `5` and which has no element 1: no record grammar; scanned; `not_this_format`, no segment (P1 2.3 steps 4 and 6, P1-20)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "first-item-five-alone.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870280818702810181018101820200820202810181018201000400",
+   "note": "no segment; not_this_format offset 0 length 2"
+  }
+ ]
+}

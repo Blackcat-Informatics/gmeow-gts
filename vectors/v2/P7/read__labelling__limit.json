@@ -1,0 +1,86 @@
+{
+ "name": "read/labelling/limit",
+ "status": "built and matches",
+ "note": "the reader's limit on labelling: the Paley graph on 13 vertices and the graph of the cube on 8 vertices, each a vertex-transitive graph of blank nodes that is not guaranteed, read with labelling_units 0 are refused with labelling_refused and refusal_limit and have no content digest; the Paley graph read with labelling_units 2^40 is labelled and has a content digest",
+ "section": "P7",
+ "cases": [
+  {
+   "label": "paley13-limit-zero",
+   "input_file": "read__labelling__limit.paley13-limit-zero.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019021a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b189d820201018101810180810180808b0218a8190100820202018101810180810180808b031901a8187282020e018101810180810280808187181a82021821810181018101810181018187181a820218218101810181018101810181018201000200"
+  },
+  {
+   "label": "paley13-limit-large",
+   "input_file": "read__labelling__limit.paley13-limit-large.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 1099511627776,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a040000001b00000100000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019021a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258205ceec0bdcc64928f2a1a029061d536d9bbb76b11a95aef8d1482ea8c8d0743b6838b010b189d820201018101810180810180808b0218a8190100820202018101810180810180808b031901a8187282020e018101810180810280808080820258205ceec0bdcc64928f2a1a029061d536d9bbb76b11a95aef8d1482ea8c8d0743b68201000200"
+  },
+  {
+   "label": "cube-limit-zero",
+   "input_file": "read__labelling__limit.cube-limit-zero.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019019a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b1889820201018101810180810180808b0218941894820202018101810180810180808b03190128187282020e018101810180810280808187181a82021821810181018101810181018187181a820218218101810181018101810181018201000200"
+  }
+ ]
+}

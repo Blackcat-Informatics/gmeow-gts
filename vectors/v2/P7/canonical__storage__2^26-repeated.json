@@ -1,0 +1,36 @@
+{
+ "name": "canonical/storage/2^26-repeated",
+ "status": "built and matches",
+ "note": "a frame of decoded length 2^26 (an IRI of the byte 'a' repeated); the stored bytes are kept in the file when they are at most 20 MB",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "canonical__storage__2^26-repeated.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "frame_type": "terms",
+    "construction": "the payload of one terms frame (order canonical, restart_group 64) of the one IRI http://e/a followed by an IRI of the byte 'a' repeated, 67108836 bytes of body, so that the decoded length is 2^26",
+    "decoded_length": 67108864,
+    "decoded_sha256": "eeaa9db89b7793b22729c9fe7bae836f03ae724f0d7fe8bd65b963f7f0dfcca8",
+    "storage": "compressed",
+    "stored_length": 2099,
+    "stored_sha256": "532cfd8adf07c22037c45ae1275f011bdd4c2474d7e5b0f8ede2a6892624df8c",
+    "stored_file": "kept",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26
+   }
+  }
+ ]
+}

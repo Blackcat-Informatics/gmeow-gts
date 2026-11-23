@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
+
+# The default rules apply. The allowlist names two published values of the
+# key-wrap worked example of docs/v2/P8.md: the `secret` and `key` that its key
+# schedule derives from the fixed inputs the example states. They protect
+# nothing.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Worked-example values of the generation-2 sealing draft"
+regexes = [
+  '''6eb8c7e1fa146fa53261108b87ec3798ba4a0d415b7790ae69638c7f1761b1dc''',
+  '''ad5d2d9f69e8c1daf65da2be6df6d4128842bca8d2ce92526aacec1cc176871d''',
+]
+# Known-answer tests in the generation-2 corpus state their fixed inputs: the key wrap, the AEAD test vectors
+# published in RFC 8452 Appendix C.2, and the composite signature made from a test key whose seeds the entry states.
+paths = [
+  '''v2/P8/p8-wrap-kat\.json$''',
+  '''v2/P8/p8-aead-kat\.json$''',
+  '''v2/P6/sign-composite-reproduce\.json$''',
+]

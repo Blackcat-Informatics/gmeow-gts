@@ -1,0 +1,37 @@
+{
+ "name": "container-export-state-opaque-frame",
+ "status": "built and matches",
+ "note": "before the commit, a quads frame whose link holds and whose content has the wrong shape: the commit names no state; no container_export_state",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "container-export-state-opaque-frame.bin",
+   "read_result": "870101818206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904ea810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020603030207008085f4820205820205820205810182025820e694b137f7b5a9547b44d6855210c6890a05decd752e6d954922a663dfd7f4c8878b010c190237820201018101810180810180808b021902431875820202018101810180810180808b031902b8185e82020203810181018082030280818707820205810182020382021902b88202185e81018b04190316187282020e018101810180810280808b051903881875820202018101810180810180808b061903fd187b8202060181018101808101808187138202185881018202068101810181018b07190478187282020e01810181018081028080808082025820e694b137f7b5a9547b44d6855210c6890a05decd752e6d954922a663dfd7f4c88201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "profile": [],
+    "core": [
+     [
+      "malformed_value",
+      "wrong_length"
+     ],
+     [
+      "missing_dependency",
+      "state_unavailable"
+     ]
+    ]
+   }
+  }
+ ]
+}

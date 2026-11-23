@@ -1,0 +1,44 @@
+{
+ "name": "resync-nested-intact",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a blob that holds a file with a resync item whose offset is true for its place in the outer file, in a frame that passes, followed by an item that passes: not examined; equal to the file whose blob holds other bytes of the same length (P1 6.7)",
+ "cases": [
+  {
+   "label": "forged-nested",
+   "input_file": "resync-nested-intact.forged-nested.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019018a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f48202058202058202058101820258201497c36ee12c819eade23e55c733e21f510b6cc850e90dd3b62fa7fbff07741c838b010b186782020101810181018081018081871181018101820201810181018202038b02187218b9820209018101810180810180808b0319012b185f820202018101810180810180808080820258201497c36ee12c819eade23e55c733e21f510b6cc850e90dd3b62fa7fbff07741c8201000400",
+   "note": "not examined"
+  },
+  {
+   "label": "other-bytes",
+   "input_file": "resync-nested-intact.other-bytes.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019018a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030300008085f482020582020582020581018202582071315cfcd8745cf23978fda4df47330658d6f6144188fa707324bd2208ec9ab6838b010b186782020101810181018081018081871181018101820201810181018202038b02187218b9820209018101810180810180808b0319012b185f8202020181018101808101808080808202582071315cfcd8745cf23978fda4df47330658d6f6144188fa707324bd2208ec9ab68201000400",
+   "note": "equal results"
+  }
+ ]
+}

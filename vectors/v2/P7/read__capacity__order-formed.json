@@ -1,0 +1,24 @@
+{
+ "name": "read/capacity/order-formed",
+ "status": "built and matches",
+ "note": "an input that exceeds the total decoded length at a frame and the total formed length at a later terms frame: the later frame is refused by the total decoded length, not charged to the total formed length",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "read__capacity__order-formed.bin",
+   "read_result": "870101808a1a040000001a04000000001a0400000018641a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901ce810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030303008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b18d78202080181018101808101808187182c810181018202018101810181018b0218e2187a8202010182030281018082030780818714820218568101820202820218e28202187a820218868b0319015c187282020e0182030281018082030780818714820218568101820203820219015c8202187282021864808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000202",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 100,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

@@ -1,0 +1,48 @@
+{
+ "name": "finding/malformed_value/not_deterministic",
+ "status": "built and matches",
+ "note": "the uint 5 written as 18 05 in the decoded_length of a frame",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__malformed_value__not_deterministic.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f4810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030002008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b187782020803810281018082030280818707820203810182020182020b8202187781018b021882187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 7,
+    "reason": 3,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0208f5f481582052ea766897c5507d0819a4cdebe6f38f12bc89f943515668e8daae514dd6307218055820f8cf8b63871f96e020e09d03fbfafea493ffab529c3b543df73bd3b2891c863c81014531323334355820504444f1b41b90de60ed712450c4be41bb7f426386d267c97ea1edbc1c93abff808b020ef4f482015820829a005073e369add3960bdc83b08924f6a1bcc27d88693fdf1624f9975003df0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058200c526663243dddfcf8265ca102bb17c06debd1004394481266895e4dba53d2d380",
+      "input_length": 244,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "malformed_value",
+        "reason": "not_deterministic",
+        "position": 1,
+        "offset": 11,
+        "length": 119
+       }
+      ],
+      "expected_finding_bytes": [
+       "8707820203810182020182020b820218778101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

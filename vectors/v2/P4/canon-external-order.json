@@ -1,0 +1,60 @@
+{
+ "name": "canon-external-order",
+ "status": "built and matches",
+ "note": "a fold of two external names and no present blob, 0303...03 of length 20 and 0505...05 of length 10, no media type: in its canonical file (case canonical, verified) the external frame of 03.. stands at position 1 and that of 05.. at 2, ascending by E(name); the file whose two external frames are exchanged (case swapped) is failed at the structure level with the first difference blob_region at position 1 and one canonical_violated there (P4-47, P4-50)",
+ "section": "P4 7",
+ "cases": [
+  {
+   "label": "swapped",
+   "input_file": "canon-external-order.swapped.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904cc8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f5810381018101820282060182025820822c6bec150b87939bae6a68aa45c1f8dc9e3e5b693b0b14016ca396e7b5ce7a858b010c187682020c0181018101808101808187181b8202184681018202018101810181018b021882187682020c018101810180810180808b0318f8187282020e018101810180810280808b0419016a18c982020f018101810180810280808b0519023319027f82021001810181018081028080808082025820822c6bec150b87939bae6a68aa45c1f8dc9e3e5b693b0b14016ca396e7b5ce7a8201000200"
+  },
+  {
+   "label": "canonical",
+   "input_file": "canon-external-order.canonical.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "holds_reference_encoder": true,
+    "sealing_input": null,
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904cc8101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f5810181018101810182025820822c6bec150b87939bae6a68aa45c1f8dc9e3e5b693b0b14016ca396e7b5ce7a858b010c187682020c018101810180810180808b021882187682020c018101810180810180808b0318f8187282020e018101810180810280808b0419016a18c982020f018101810180810280808b0519023319027f82021001810181018081028080808082025820822c6bec150b87939bae6a68aa45c1f8dc9e3e5b693b0b14016ca396e7b5ce7a8201000200"
+  }
+ ]
+}

@@ -1,0 +1,44 @@
+{
+ "name": "marks-head-not-shortest",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "two items, each with one hostile mark on the scope: strains written 18 05 in place of 05, and the head of the mark's own array written 98 04 in place of 84: unreadable, malformed_value not_deterministic, past absent, marks_ignored 0 (P1-96)",
+ "cases": [
+  {
+   "label": "strains",
+   "input_file": "marks-head-not-shortest.strains.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d11848850201f40100810181018101810103030000008085f482020582020582020581018101808187078202038101820200820218d18202184881018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "note": "unreadable; malformed_value not_deterministic; opener.past absent; opener.marks_ignored 0"
+  },
+  {
+   "label": "mark-head",
+   "input_file": "marks-head-not-shortest.mark-head.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028292000018d1810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15828b010b186782020101810181018081018081871181018101820201810181018202028b021872185f8202020181018101808101808080920118d11848850201f40100810181018101810103030000008085f482020582020582020581018101808187078202038101820200820218d18202184881018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000400",
+   "note": "unreadable; malformed_value not_deterministic; opener.past absent; opener.marks_ignored 0"
+  }
+ ]
+}

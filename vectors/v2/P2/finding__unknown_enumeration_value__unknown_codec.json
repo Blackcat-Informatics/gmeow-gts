@@ -1,0 +1,53 @@
+{
+ "name": "finding/unknown_enumeration_value/unknown_codec",
+ "status": "built and matches",
+ "note": "a frame with codec 2 (the value in the subject), in a segment of registry version 2 read by a reader of version 1; P2-56 gives the one unsupported_registry_version beside it",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__unknown_enumeration_value__unknown_codec.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901038101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810102030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b188682020801820301820201808203088081870582020182028201028202018101810181018b021891187282020e018101810180810280808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 5,
+    "reason": 1,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "87010202018101810181018b0208f5f4815820fd333553fcd5a9a21f2f02d8975a121d076261ab21681b642bd99ce82fb597ab0358206fe2440cd1dab629acd5584d26ee9597ac03de5492405cdacef614cd317d90b683020250ea2da9c6b428bcb53b89ba5c49ff9802430102035820fbae414eccf70d0251b915a3f360d41d35d138491ace9b7118e348261fc57373808b020ef4f482015820f15b16c039876bfb7e944b5b01869f8a5827c9a8ffe3652d8aa4448899ad67a60058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820e49ddc0419f498553ce71c0c1205b3f11c2c2c1ac0712c613af2cbe72b5ac56380",
+      "input_length": 259,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "unsupported_registry_version"
+       },
+       {
+        "code": "unknown_enumeration_value",
+        "reason": "unknown_codec",
+        "subject": [
+         1,
+         2
+        ],
+        "position": 1
+       }
+      ],
+      "expected_finding_bytes": [
+       "87058202018202820102820201810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

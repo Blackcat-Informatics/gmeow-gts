@@ -1,0 +1,17 @@
+{
+ "name": "resync-marker",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the 32-byte output H_ctx(header, 81 05), M, the pattern and its border test (P1-93)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-marker.bin",
+   "result": {
+    "output": "fcf3eb32a2f0267dd16a53f09bff8792e32500027ff8f6d3a2bf1756c96060cb",
+    "marker": "fcf3eb32a2f0267dd16a53f09bff8792",
+    "pattern": "8b050250fcf3eb32a2f0267dd16a53f09bff8792"
+   }
+  }
+ ]
+}

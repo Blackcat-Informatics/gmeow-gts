@@ -1,0 +1,62 @@
+{
+ "name": "project/malformed-iri",
+ "status": "built and matches",
+ "note": "P3 10a.3: an iri of a text that is absolute in form and malformed: one quad, the text unchanged, no finding, and the result is not an RDF dataset",
+ "section": "P3 10a.3",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "project__malformed-iri.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019015c810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820e2d9bb8c2168d82bacd740db36f9bf3c65673cc4de7dc142268d60755a1d5cc4838b010b1880820201018101810180810180808b02188b185f820202018101810180810180808b0318ea187282020e01810181018081028080808082025820e2d9bb8c2168d82bacd740db36f9bf3c65673cc4de7dc142268d60755a1d5cc48201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "projection": {
+    "visible": {
+     "quads": [
+      [
+       {
+        "iri": "http://exa mple/<s>"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "iri": "urn:o"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "whole": {
+     "quads": [
+      [
+       {
+        "iri": "http://exa mple/<s>"
+       },
+       {
+        "iri": "urn:p"
+       },
+       {
+        "iri": "urn:o"
+       },
+       null
+      ]
+     ],
+     "empty_graph_names": []
+    },
+    "rdf_dataset": false
+   }
+  }
+ ]
+}

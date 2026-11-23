@@ -1,0 +1,26 @@
+{
+ "name": "uncommitted-tail-unregistered-option",
+ "section": "P5",
+ "status": "built and matches",
+ "note": "a frame whose content holds an option tag of no `option_tag` value and whose `identifier` is no `bytes` keeps elements 1 to 6 well typed, has its computed identifier as effective identifier and is counted in `uncommitted_tail`; its one finding is the `wrong_type` of element 9, since the tag is a value of the content record of a `broken` frame and is not judged (P1 5.1 step 1, 3.4, P1-36, P5 2.3)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "uncommitted-tail-unregistered-option.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702829200001901f4810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b186782020101810181018081018081871181018101820201810181018202028b02187219018282020903810181018082030280818707820204810182020282021872820219018281018092011901f4189e850201f40300820258200a269f029b8d81f4e2880deb40616c7e5e220d557fca586654094ed51068d5ab820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e808187182b82021837810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "note": "frame 2: malformed_value wrong_type alone; uncommitted_tail count 2"
+  }
+ ]
+}

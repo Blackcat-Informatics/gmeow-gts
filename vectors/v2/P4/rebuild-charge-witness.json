@@ -1,0 +1,24 @@
+{
+ "name": "rebuild-charge-witness",
+ "status": "built and matches",
+ "note": "a chunk of 16384 bytes and a recipe of 1024 entries naming it, total_length 16777216 and a wrong blob_digest: with 16777215 one exceeds_capacity with total_rebuilt, count 16777216, the rebuild state refused, no damaged_frame, the blob UNCHECKED, intact_unchecked; with 16777216 and at the minimum damaged_frame with blob_digest (P4-55, P4-57, P4-58)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "rebuild-charge-witness.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001a00ffffff1b00000020000000001b000000200000000001810182808087028192000019d902810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030200008085f4820205820205820205810182025820964a95183e22e2d0a23de64a538b6b23accd552b8ae46f750fd9ce163c9d364a828b010b19407582020801810181018081018081871181018101820201810181018202028b0219408019988282020a01810181018081018182810181038187148202185981018202028202194080820219988282021a01000000808082025820964a95183e22e2d0a23de64a538b6b23accd552b8ae46f750fd9ce163c9d364a8201000400",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 16777215,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

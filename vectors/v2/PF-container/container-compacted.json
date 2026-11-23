@@ -1,0 +1,45 @@
+{
+ "name": "container-compacted",
+ "status": "built and matches",
+ "section": "PF-container",
+ "note": "the canonical file of the fold of container-pass, compacted at the container profile so that its header declares the profile with canonical present: a reader of the profile reports check 14 (container_canonical_claim) once, and missing_dependency with state for each of the two exports, whose graph states do not survive compaction; it reports nothing else",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "container-compacted.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [
+     [
+      6,
+      17
+     ]
+    ],
+    "registry_version": 1,
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101818206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190a3a8101820258208158726f5d54e38779f125b9d896fa63c3ebcf846210ff159660c4520ea3587d8202018202018202060103060500810785f5810181018101810182025820f864fbed7d6de5df134407cd6bad824fa5bced5ec68e528e893ebca660feb25a878b010d18a282020d018101810180810180808b0218af19022882020101810182020180810180808b031902d719010782020201810182020180810180808b041903de18ce8202060181018101808101808287138202181d810182020481018101810187138202181d81018202048101810181018b051904ac187282020e018101810180810280808b0619051e19015a82020f018101810180810280808b071906781903a1820210018101810180810280808187182e8101820283040682020e81018101810181018082025820f864fbed7d6de5df134407cd6bad824fa5bced5ec68e528e893ebca660feb25a8201000200",
+   "compaction": {
+    "source_file": "container-pass.bin",
+    "source_sha256": "9b41d7579276b3573a53cb8e69e696d4440f87d1518bea98aadc444d6bbe0200",
+    "profile": "container",
+    "outcome": "written"
+   }
+  }
+ ]
+}

@@ -1,0 +1,105 @@
+{
+ "name": "stream-prefix-commit-boundary",
+ "status": "built and matches",
+ "section": "PF-stream",
+ "note": "stream-pass cut immediately after the commit that ends commit interval 1, after the one that ends interval 21 and after the one that ends interval 60: every commit that a prefix holds is valid in it, and a reader of the profile reports no profile_violation and no uncommitted_tail; a cut above 1 MiB is named by stream-pass.bin (listed in ABSENT.md), its length and its SHA-256, and the cut after interval 60 is stream-pass.bin itself",
+ "cases": [
+  {
+   "label": "interval-1",
+   "input_file": "stream-prefix-commit-boundary.interval-1.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [
+     [
+      3,
+      2
+     ]
+    ],
+    "registry_version": 1,
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result_file": "stream-prefix-commit-boundary.interval-1.result.bin"
+  },
+  {
+   "label": "interval-21",
+   "input_cut": {
+    "file": "PF-stream/stream-pass.bin",
+    "length": 4483260,
+    "sha256": "1d3a7d5333f048579b0399c356168fa391b741f965626317dbfafde944747e5c"
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [
+     [
+      3,
+      2
+     ]
+    ],
+    "registry_version": 1,
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result_file": "stream-prefix-commit-boundary.interval-21.result.bin"
+  },
+  {
+   "label": "interval-60",
+   "input_file": "stream-pass.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [
+     [
+      3,
+      2
+     ]
+    ],
+    "registry_version": 1,
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result_file": "stream-prefix-commit-boundary.interval-60.result.bin"
+  }
+ ]
+}

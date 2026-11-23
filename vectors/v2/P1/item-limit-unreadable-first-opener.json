@@ -1,0 +1,44 @@
+{
+ "name": "item-limit-unreadable-first-opener",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "the first item, a complete opener that is unreadable and holds no candidate, counts one item toward `items_per_read` (P7 2, THE ONE COUNT; P1-80)",
+ "cases": [
+  {
+   "label": "limit-5",
+   "input_file": "item-limit-unreadable-first-opener.limit-5.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 5,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b0000001000000000051b00000020000000001b00000020000000001b000000200000000001810182808087028292000018ea8101810181018101810103030000008085f482020582020582020581018101808187078202058101820200820200820218ea8101920118ea188c8101810181018101810103030000008085f482020582020582020581018101808187078202058101820200820218ea8202028101818714820218578101810182021901768202185f82020681018201000703",
+   "note": "exceeds_capacity item_count offset 374 length 95 count 6; the second segment length 140"
+  },
+  {
+   "label": "limit-4",
+   "input_file": "item-limit-unreadable-first-opener.limit-4.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 4,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b0000001000000000041b00000020000000001b00000020000000001b000000200000000001810182808087028292000018ea8101810181018101810103030000008085f482020582020582020581018101808187078202058101820200820200820218ea8101920118ea18258101810181018101810103030000008085f482020582020582020581018101808187078202058101820200820218ea82020281018187148202185781018101820219010f820218c682020581018201000702",
+   "note": "exceeds_capacity item_count offset 271 length 198 count 5; the second segment length 37"
+  }
+ ]
+}

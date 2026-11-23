@@ -1,0 +1,108 @@
+{
+ "name": "files-two-layouts",
+ "status": "built and matches",
+ "note": "one file tree as its canonical file, whose packs stand before the entries and the bindings, and as a file that is not canonical with the entries and the bindings before the blob frames: both read with no finding and with one content digest",
+ "section": "PF-files",
+ "cases": [
+  {
+   "label": "canonical",
+   "input_file": "files-two-layouts.canonical.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [
+     [
+      1,
+      5
+     ],
+     [
+      2,
+      8
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      5,
+      11
+     ],
+     [
+      6,
+      17
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "8701018682010582020882030282040582050b8206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190b9f81018202582099f0a4a660b168882700976e3afc96f3e510244ea0f9d322f060a527995a61778202018202018202050103060500810785f58101810181018101820258206bfcba3313b3ff9c3efe44f3b14549e77739bb4477fbb21489c9af1bae92a2ac878b010d19010782020d018101810180810180808b0219011419027282020101810182020180810180808b0319038619012882020201810182020180810180808b041904ae18d1820206018101810180810180808b0519057f187282020e018101810180810280808b061905f119019682020f018101810180810280808b071907871903f6820210018101810180810280808080820258206bfcba3313b3ff9c3efe44f3b14549e77739bb4477fbb21489c9af1bae92a2ac8201000200"
+  },
+  {
+   "label": "entries-first",
+   "input_file": "files-two-layouts.entries-first.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [
+     [
+      1,
+      5
+     ],
+     [
+      2,
+      8
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      5,
+      11
+     ],
+     [
+      6,
+      17
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null
+   },
+   "read_result": "8701018682010582020882030282040582050b8206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190c2381018202582063dd72780ed65331f60bd390f6d241cc93bbd2965552dce186061c715e31837582020182020182020501030707008085f48202058202058202058101820258206bfcba3313b3ff9c3efe44f3b14549e77739bb4477fbb21489c9af1bae92a2ac878b010c1906ec820201018101810180810180808b021906f8190255820202018101810180810180808b0319094d18d3820206018101810180810180808b04190a201876820209018101810180810180808b05190a961885820209018101810180810180808b06190b1b1896820209018101810180810180808b07190bb1187282020e018101810180810280808080820258206bfcba3313b3ff9c3efe44f3b14549e77739bb4477fbb21489c9af1bae92a2ac8201000200"
+  }
+ ]
+}

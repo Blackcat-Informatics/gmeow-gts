@@ -1,0 +1,127 @@
+{
+ "name": "registry/example/6",
+ "section": "P2 10",
+ "status": "built and matches",
+ "note": "P2 section 10, example 6: the reasons that the example names, each with its code and the finding code it qualifies: codes 1 and 2 qualify 5, codes 3 to 11 qualify 7, codes 12 and 16 qualify 13, and code 53 qualifies 41",
+ "cases": [
+  {
+   "label": "",
+   "result": {
+    "reasons": [
+     {
+      "label": "unknown_codec",
+      "code": 1,
+      "qualifies": [
+       5,
+       "unknown_enumeration_value"
+      ]
+     },
+     {
+      "label": "unknown_frame_type",
+      "code": 2,
+      "qualifies": [
+       5,
+       "unknown_enumeration_value"
+      ]
+     },
+     {
+      "label": "not_deterministic",
+      "code": 3,
+      "qualifies": [
+       7,
+       "malformed_value"
+      ]
+     },
+     {
+      "label": "wrong_type",
+      "code": 4,
+      "qualifies": [
+       7,
+       "malformed_value"
+      ]
+     },
+     {
+      "label": "wrong_length",
+      "code": 5,
+      "qualifies": [
+       7,
+       "malformed_value"
+      ]
+     },
+     {
+      "label": "out_of_range",
+      "code": 6,
+      "qualifies": [
+       7,
+       "malformed_value"
+      ]
+     },
+     {
+      "label": "unregistered_value",
+      "code": 7,
+      "qualifies": [
+       7,
+       "malformed_value"
+      ]
+     },
+     {
+      "label": "unordered_or_repeated",
+      "code": 8,
+      "qualifies": [
+       7,
+       "malformed_value"
+      ]
+     },
+     {
+      "label": "inconsistent_counts",
+      "code": 9,
+      "qualifies": [
+       7,
+       "malformed_value"
+      ]
+     },
+     {
+      "label": "forbidden_combination",
+      "code": 10,
+      "qualifies": [
+       7,
+       "malformed_value"
+      ]
+     },
+     {
+      "label": "codec_constraint",
+      "code": 11,
+      "qualifies": [
+       7,
+       "malformed_value"
+      ]
+     },
+     {
+      "label": "payload_digest",
+      "code": 12,
+      "qualifies": [
+       13,
+       "damaged_frame"
+      ]
+     },
+     {
+      "label": "decode_failed",
+      "code": 16,
+      "qualifies": [
+       13,
+       "damaged_frame"
+      ]
+     },
+     {
+      "label": "unknown_signature_algorithm",
+      "code": 53,
+      "qualifies": [
+       41,
+       "signature_unverified"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

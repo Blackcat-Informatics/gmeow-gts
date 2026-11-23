@@ -1,0 +1,48 @@
+{
+ "name": "finding/malformed_value/inconsistent_counts",
+ "status": "built and matches",
+ "note": "a recipe whose entry_count 2 differs from its list of 3 entries (input of the P4 vector recipe-list-length)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__malformed_value__inconsistent_counts.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190161810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b18e482020a01810181018082030280818707820209810182020182020b820218e481018b0218ef187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 7,
+    "reason": 9,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b020af5f4845820853a4f9cdd30c1814b48e2a374ca9dc2e29bff6acb161b9ccd0f61fc94c24d8b11810102186d58206273de9c00c9727ff37ae61e146146955f3d6c3e8aba64ee4dac10b7a78fc43d8101586d83825820b1839d140583662c3efbce60b9241324f420d2819fa87aec8d174e0d747d933b06825820ed6f2d12454f846cc1c3e0dce837dfe703995f83ed8672a4c03e6b444029335c05825820b1839d140583662c3efbce60b9241324f420d2819fa87aec8d174e0d747d933b065820bdd75d945c28c59ac9109f891f5b475daafde8567e011d14ae7f70fe462255f8808b020ef4f4820158203fec5a2e940b5f661560b2ebc830cc24c94f761191018c8a5414b1d2e8d14ee20058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058209d29fd899d5ef0c11de9078bd91ce04038e0decaf52b56151af00d8c5474c2c280",
+      "input_length": 353,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "malformed_value",
+        "reason": "inconsistent_counts",
+        "position": 1,
+        "offset": 11,
+        "length": 228
+       }
+      ],
+      "expected_finding_bytes": [
+       "8707820209810182020182020b820218e48101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

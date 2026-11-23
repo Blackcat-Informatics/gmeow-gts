@@ -1,0 +1,28 @@
+{
+ "name": "frame-unknown-noncritical",
+ "section": "10.4",
+ "status": "built and matches",
+ "note": "a frame of type 99 that is not critical, between two commit frames, in a segment of registry_version 2 read by reader 1: unknown_enumeration_value with unknown_frame_type at its position, the frame opaque, no unsupported_critical",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "frame-unknown-noncritical.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901428101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b63735820202820201810101030300008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b187282020e01810181018081028082871081018101820201810181018101871181018101820201810181018202038b02187d185382021863018101810180820303808187058202028202820218638202028101810181018b0318d0187282020e01810181018081028082870f81018101820203810181018202028710810181018202038101810181018187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401",
+   "read": {
+    "readers": "second_only"
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

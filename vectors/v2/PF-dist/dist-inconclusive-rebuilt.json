@@ -1,0 +1,24 @@
+{
+ "name": "dist-inconclusive-rebuilt",
+ "status": "built and matches",
+ "note": "PF-dist 6: the canonical file of a fold with one multi-unit blob read with rebuilt_bytes_per_read one below the charge of its recipe member: exceeds_capacity with total_rebuilt, structure unchecked, integrity intact_unchecked; INCONCLUSIVE",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "dist-inconclusive-rebuilt.bin",
+   "read_result": "870201818201058a1a040000001a04000000001a040000001b00000010000000001a040000001a00030d3f1b00000020000000001b00000020000000000181018280808702819200001a000354d481018202582045e0b1398b1630b0751fc4a81de3054a9c75c1367d9c3390cec24c5b4704b2218202018202018202010203030200810485f582020281018101810182025820a98de88131f08c4dfab4ffb7c29d2047d2e684e0279496f04cf4686495982c52848b010d1a00030ec682020d01810181018081018182820203810381871482021859810182020182020d82021a00030ec682021a00030d408b021a00030ed3187282020e018101810180810280808b031a00030f4519013882020f018101810180810280808b041a0003107d19443b82021001810181018081028080808082025820a98de88131f08c4dfab4ffb7c29d2047d2e684e0279496f04cf4686495982c528201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 199999,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "name": "header-lineage",
+ "section": "10.2",
+ "status": "built and matches",
+ "note": "the 48-byte header (P1 2.4) is the header of a second segment naming the head of the first; no lineage_mismatch (the only finding is canonical_violated header: a canonical claim with a lineage); h0 is the value of the vector header-h0-lineage: the `header_identifier` of the second segment result",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "header-lineage.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870282920000187d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b187282020e0181018101808102808287108101810182020181018101810187118101810182020181018101820201809201187d1830810182025820697e528776e8fbddc1014c279a9c76a4e44d8c53e2dc3d96ef6ab146d9bd0a15820201820201810101030000008085f5810381018103820282010082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e808187181b8202184181018202008101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000400",
+   "read": {
+    "readers": "second_only"
+   },
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

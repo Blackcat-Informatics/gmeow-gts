@@ -1,0 +1,62 @@
+{
+ "name": "proof-file-empty-target",
+ "section": "P5",
+ "status": "built and matches",
+ "note": "a file proof from a file of one segment to an empty file: absent gives consistency_diverged, present gives proof_malformed with count, which stands before step 3",
+ "cases": [
+  {
+   "label": "absent",
+   "input_file": "proof-file-empty-target.absent.source.bin",
+   "later_file": "proof-file-empty-target.absent.later.bin",
+   "proof_file": "proof-file-empty-target.absent.proof.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019013c810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820689d83064a6b253ff5eef37a5f482666ccb8663b678f51c0e5d86629896a1cc6828b010b189d82020901810181018081018081871181018101820201810181018202028b0218a8189482020901810181018081018080808082025820689d83064a6b253ff5eef37a5f482666ccb8663b678f51c0e5d86629896a1cc68201000400",
+   "later_read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028081870181018101810181018101810181018201000400",
+   "values": {
+    "proof_entry": "absent"
+   },
+   "result": {
+    "absent": "proof_failed/consistency_diverged"
+   },
+   "verify": "8718268202183281018101810181018101"
+  },
+  {
+   "label": "present",
+   "input_file": "proof-file-empty-target.present.source.bin",
+   "later_file": "proof-file-empty-target.present.later.bin",
+   "proof_file": "proof-file-empty-target.present.proof.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019013c810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030200008085f4820205820205820205810182025820689d83064a6b253ff5eef37a5f482666ccb8663b678f51c0e5d86629896a1cc6828b010b189d82020901810181018081018081871181018101820201810181018202028b0218a8189482020901810181018081018080808082025820689d83064a6b253ff5eef37a5f482666ccb8663b678f51c0e5d86629896a1cc68201000400",
+   "later_read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028081870181018101810181018101810181018201000400",
+   "values": {
+    "proof_entry": "present"
+   },
+   "result": {
+    "present": "proof_malformed/count"
+   },
+   "verify": "8718258202182c81018101810181018101"
+  }
+ ]
+}

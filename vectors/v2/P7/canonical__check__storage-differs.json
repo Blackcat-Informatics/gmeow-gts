@@ -1,0 +1,58 @@
+{
+ "name": "canonical/check/storage-differs",
+ "status": "built and matches",
+ "note": "the canonical file of a fold of 300 IRIs and 298 quads, whose terms frame is stored_compressed, with the bytes of the reference encoder (storage verified), and the same items with the terms frame compressed at level 3 and the parity frame, the offsets item and the locator written over those bytes (storage differs): the same header identifier and frame identifiers, structure and labelling verified in both, no first difference and no finding",
+ "section": "P7",
+ "cases": [
+  {
+   "label": "level-12",
+   "input_file": "canonical__check__storage-differs.level-12.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001906358101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f5810181018101810182025820a86d9df91fb4bb434ce2536d90af8a3cdc652d8e80c54849eb8324429895a22f858b010c19015682020101810182020180810180808b02190162189482020201810182020180810180808b031901f6187282020e018101810180810280808b0419026818de82020f018101810180810280808b051903461902d482021001810181018081028080808082025820a86d9df91fb4bb434ce2536d90af8a3cdc652d8e80c54849eb8324429895a22f8201000200"
+  },
+  {
+   "label": "level-3",
+   "input_file": "canonical__check__storage-differs.level-3.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001906908101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f5810181018103810182025820a86d9df91fb4bb434ce2536d90af8a3cdc652d8e80c54849eb8324429895a22f858b010c1901a082020101810182020180810180808b021901ac189482020201810182020180810180808b03190240187282020e018101810180810280808b041902b218de82020f018101810180810280808b051903901902e582021001810181018081028080808082025820a86d9df91fb4bb434ce2536d90af8a3cdc652d8e80c54849eb8324429895a22f8201000200"
+  }
+ ]
+}

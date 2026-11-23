@@ -1,0 +1,63 @@
+{
+ "name": "canonical/storage/5",
+ "status": "built and matches",
+ "note": "the quads frame at position 5 of the canonical file of the storage fold: the decoded payload (`decoded`) and the stored bytes (`stored`)",
+ "cases": [
+  {
+   "label": "decoded",
+   "input_file": "canonical__storage__5.decoded.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "frame_type": "quads",
+    "decoded_length": 4752,
+    "decoded_sha256": "843ef8168590914bf1a72c9a03cbb3cbac2bd33f6647fbfb5aa0d9be95023eaf",
+    "storage": "compressed",
+    "stored_length": 2752,
+    "stored_sha256": "5a636a94a98d217dc5acbfb3143b41b73c91e280b54feffc2a815b5a89bee0be",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 5
+   }
+  },
+  {
+   "label": "stored",
+   "input_file": "canonical__storage__5.stored.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "frame_type": "quads",
+    "decoded_length": 4752,
+    "decoded_sha256": "843ef8168590914bf1a72c9a03cbb3cbac2bd33f6647fbfb5aa0d9be95023eaf",
+    "storage": "compressed",
+    "stored_length": 2752,
+    "stored_sha256": "5a636a94a98d217dc5acbfb3143b41b73c91e280b54feffc2a815b5a89bee0be",
+    "encoder": "libzstd 1.5.7",
+    "level": 12,
+    "window_log": 26,
+    "position": 5
+   }
+  }
+ ]
+}

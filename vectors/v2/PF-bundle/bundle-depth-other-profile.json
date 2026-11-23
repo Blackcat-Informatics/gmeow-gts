@@ -1,0 +1,29 @@
+{
+ "name": "bundle-depth-other-profile",
+ "status": "built and matches",
+ "note": "the file of depth 2 declares no profile: its nested file is not read and the files below it are not judged",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "bundle-depth-other-profile.bin",
+   "read_result": "870101818204058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190e4281018202582093ccf045b7e712191ef8811eeaa3fe1957d400e76233b4153c1b3f2eecce054082020182020182020401030505008085f48202058202058202058101820258207e5413581da451eb488efd5d93f95223c2178533573b2f96a0d7227d85b4a96f858b010c18c3820201018101810180810180808b0218cf185f820202018101810180810180808b0319012e190c25820209018101810180810180808b04190d53187d820206018101810180810180808b05190dd0187282020e018101810180810280808080820258207e5413581da451eb488efd5d93f95223c2178533573b2f96a0d7227d85b4a96f8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "profile": [],
+    "core": [],
+    "reads": 2
+   }
+  }
+ ]
+}

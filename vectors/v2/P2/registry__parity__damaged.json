@@ -1,0 +1,24 @@
+{
+ "name": "registry/parity/damaged",
+ "status": "built and matches",
+ "note": "P2 7: a parity frame with one byte of the table_digest altered: parity_damaged and no other finding of P1; the integrity is that of the file without the damage",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__parity__damaged.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019033e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc82020182020181010103020200810385f4820205820205820205810182025820842ff035d0ef26f64ccd4c3d58537ff57ffb405347735e52209605825ae0f9fb838b010b1886820209018101810180810180808b021891187282020e018101810180810280808b0319010319023b8202100181018101808102808187181e810181018202038101810181018187182481018101810182020b820218f881018082025820842ff035d0ef26f64ccd4c3d58537ff57ffb405347735e52209605825ae0f9fb8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

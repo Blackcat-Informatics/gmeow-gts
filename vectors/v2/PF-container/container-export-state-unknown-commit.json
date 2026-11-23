@@ -1,0 +1,33 @@
+{
+ "name": "container-export-state-unknown-commit",
+ "status": "built and matches",
+ "note": "the export's referent has an identifier that no commit of the file has",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "container-export-state-unknown-commit.bin",
+   "read_result": "870101818206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019048c810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020601030606008085f4820205820205820205810182025820bda8187d21d08efe7c99581b831b43f281c7258e3a3f5d6a4d6809ef5bc4f1f6868b010c190237820201018101810180810180808b021902431875820202018101810180810180808b031902b8187282020e018101810180810280808b0419032a1875820202018101810180810180808b0519039f187b8202060181018101808101808187138202181d81018202058101810181018b0619041a187282020e01810181018081028080808082025820bda8187d21d08efe7c99581b831b43f281c7258e3a3f5d6a4d6809ef5bc4f1f68201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "profile": [],
+    "core": [
+     [
+      "missing_dependency",
+      "state"
+     ]
+    ]
+   }
+  }
+ ]
+}

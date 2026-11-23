@@ -1,0 +1,48 @@
+{
+ "name": "finding/malformed_value/wrong_type",
+ "status": "built and matches",
+ "note": "a text string where the uint decoded_length stands",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__malformed_value__wrong_type.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000018f2810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030002008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b187582020803810281018082030280818707820204810182020182020b8202187581018b021880187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 7,
+    "reason": 4,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0208f5f4815820bd8d8c335fe5ea11f6daea1c89303c1a9976a31339af81b64eec83922e9f5c6f61335820314bca0ecfbe7ff1404be18764844fc46214b6538c13ec55628ddd146ad83cd381014378797a5820e175b1b5e0c6a36098f5ba1be3520e8c80f909de863a92952c5f3e5f3815caf1808b020ef4f48201582010d27398fbe4e2a3c492b1a8d40e2fc5555ba719610706de37b249e9f6b0eaf60058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d44923792518101405820ac2799912721cd605c73628c09c86a8930ffdd49d76a4a4aedab7e2301f1fc6180",
+      "input_length": 242,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "malformed_value",
+        "reason": "wrong_type",
+        "position": 1,
+        "offset": 11,
+        "length": 117
+       }
+      ],
+      "expected_finding_bytes": [
+       "8707820204810182020182020b820218758101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

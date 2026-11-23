@@ -1,0 +1,42 @@
+{
+ "name": "resync-first-item-fails",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a complete first item that fails (the map {x: bytes} holding a resync item with a true offset): the item accepted inside it, no not_this_format (P1-105)",
+ "cases": [
+  {
+   "label": "whole",
+   "input_file": "resync-first-item-fails.whole.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200051840850202f4010082025820856d5f7795e7415f7639ed907aed1e12d6f39e2b5ac79a1c457ab2d3ecf3ba31820201820201810101030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8080818709810181018101820200820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000401"
+  },
+  {
+   "label": "forward",
+   "input_file": "resync-first-item-fails.forward.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200051840850202f4010082025820856d5f7795e7415f7639ed907aed1e12d6f39e2b5ac79a1c457ab2d3ecf3ba31820201820201810101030000008085f4820205820205820205810181018080818709810181018101820200820205810181018201000401"
+  }
+ ]
+}

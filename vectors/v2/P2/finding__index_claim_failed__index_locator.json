@@ -1,0 +1,46 @@
+{
+ "name": "finding/index_claim_failed/index_locator",
+ "status": "built and matches",
+ "note": "a locator whose distance leads to the first byte of a frame that is not the index",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__index_claim_failed__index_locator.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190105810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f48202058202058202058101820258207fc376d7b8a3c5a2e80abaa62548929158fb868fd48bcf20211089b1cf5f550b828b010b187d820209018101810180810180808b021888187282020e01810181018081028080818712820217810182020381018101810180820258207fc376d7b8a3c5a2e80abaa62548929158fb868fd48bcf20211089b1cf5f550b8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 18,
+    "reason": 23,
+    "severity": "warning",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0209f5f48258203daeb90defff561db18da23f644003d09fc4be25a9f59d22205691570d9eab3181010a5820934beed81e4d7f42fe02e3950465b96fa41179e3b6a393f2b54088665ab53e2f81014a666972737420626c6f625820a6581f97a2e6d736c9aadff33c411b79d65b5314246b7fef391c838ee8810259808b020ef4f48201582085150ab41af2e98618c914acc869d6d04b50a4efaab1ebaaacb0e4f37a9a0d5a0058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058202d223ad41d3fde6c3fb96b00d7c234d0884a13b65a746fe647201a5a8976c4c08082031b00000000000000ef",
+      "input_length": 261,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "index_claim_failed",
+        "reason": "index_locator",
+        "position": 3
+       }
+      ],
+      "expected_finding_bytes": [
+       "87128202178101820203810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

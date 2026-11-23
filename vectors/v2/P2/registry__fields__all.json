@@ -1,0 +1,209 @@
+{
+ "name": "registry/fields/all",
+ "status": "built and matches",
+ "note": "P2 5.2: the result records, for each of the 48 finding codes, the fields that its seven-field record has present (exactly those that the table of 5.2 marks); the input file is a header, two frames and a commit",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__fields__all.bin",
+   "read_result": "870201818201058a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019014481018202582078ca03d89edc828324c6b1a7260a23b1498f9f1a20fbfb82361b5c8100ec70b282020182020182020101030303008085f4820205820205820205810182025820b6344afbe92fdea47785c2a40b538a3365eba18bb8b9aa4ed8cec8f9fd51d0ee838b010c1867820201018101810180810180808b021873185f820202018101810180810180808b0318d2187282020e018101810180810280808187182e8101820283040182020181018101810181018082025820b6344afbe92fdea47785c2a40b538a3365eba18bb8b9aa4ed8cec8f9fd51d0ee8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "codes_with_an_input": 48,
+    "codes_without": {},
+    "fields_present_by_code": {
+     "empty_input": [],
+     "not_this_format": [
+      "offset",
+      "length"
+     ],
+     "unsupported_generation": [
+      "offset",
+      "length"
+     ],
+     "unsupported_registry_version": [],
+     "unknown_enumeration_value": [
+      "reason",
+      "subject",
+      "position"
+     ],
+     "unsupported_critical": [
+      "subject",
+      "position"
+     ],
+     "malformed_value": [
+      "reason",
+      "position",
+      "offset",
+      "length"
+     ],
+     "undelimitable_input": [
+      "offset",
+      "length"
+     ],
+     "torn_tail": [
+      "offset",
+      "length"
+     ],
+     "read_failed": [
+      "offset",
+      "length"
+     ],
+     "chain_break": [
+      "position",
+      "offset",
+      "length"
+     ],
+     "healed_link": [
+      "position",
+      "offset",
+      "length"
+     ],
+     "damaged_frame": [
+      "reason",
+      "position",
+      "offset",
+      "length"
+     ],
+     "stored_check_mismatch": [
+      "position",
+      "offset",
+      "length"
+     ],
+     "commit_count_mismatch": [
+      "position",
+      "count"
+     ],
+     "commit_root_mismatch": [
+      "position"
+     ],
+     "uncommitted_tail": [
+      "position",
+      "count"
+     ],
+     "index_claim_failed": [
+      "reason",
+      "position"
+     ],
+     "missing_dependency": [
+      "reason",
+      "position"
+     ],
+     "exceeds_capacity": [
+      "reason",
+      "position",
+      "offset",
+      "length",
+      "count"
+     ],
+     "declared_order_violated": [
+      "position"
+     ],
+     "forward_reference": [
+      "position"
+     ],
+     "position_constraint": [
+      "position"
+     ],
+     "ill_formed_term": [
+      "position"
+     ],
+     "opaque_term": [
+      "position"
+     ],
+     "labelling_refused": [
+      "reason"
+     ],
+     "canonical_violated": [
+      "reason",
+      "position"
+     ],
+     "suppression_unmatched": [
+      "reason",
+      "position"
+     ],
+     "binding_unanchored": [
+      "position"
+     ],
+     "parity_damaged": [
+      "position"
+     ],
+     "parity_mismatch": [
+      "reason",
+      "position",
+      "count"
+     ],
+     "parity_unexplained": [
+      "position",
+      "count"
+     ],
+     "parity_stale": [
+      "position"
+     ],
+     "repair_failed": [
+      "reason",
+      "position"
+     ],
+     "repaired": [
+      "position",
+      "count"
+     ],
+     "unprotected_tail": [
+      "offset",
+      "length"
+     ],
+     "proof_malformed": [
+      "reason"
+     ],
+     "proof_failed": [
+      "reason"
+     ],
+     "proof_holds": [
+      "reason"
+     ],
+     "signature_invalid": [
+      "reason",
+      "subject",
+      "position"
+     ],
+     "signature_unverified": [
+      "reason",
+      "subject",
+      "position"
+     ],
+     "lineage_begins": [],
+     "lineage_mismatch": [
+      "reason"
+     ],
+     "unreferenced_unit": [
+      "position"
+     ],
+     "conflicting_declaration": [
+      "position"
+     ],
+     "profile_violation": [
+      "subject"
+     ],
+     "conversion_stopped": [
+      "reason",
+      "offset"
+     ],
+     "profile_not_checked": [
+      "subject"
+     ]
+    }
+   }
+  }
+ ]
+}

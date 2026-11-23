@@ -1,0 +1,74 @@
+{
+ "name": "lowering-two-depths",
+ "status": "built and matches",
+ "note": "x = <<b q c>> and the lines quad(a, p, x), quad(a, p, <<a p x>>): the labelled set quad(a, p, <<b q c>>), quad(a, p, <<a p n_x>>) and record(P, [n_x, b, q, c]); the first line keeps x at depth one (P3-108)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lowering-two-depths.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190164810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820374fc66cbf9b8feb586ced56f6ed24e1c2f35dd8e683aa652f753e07f77274f7838b010b1886820201018101810180810180808b0218911861820202018101810180810180808b0318f2187282020e01810181018081028080808082025820374fc66cbf9b8feb586ced56f6ed24e1c2f35dd8e683aa652f753e07f77274f78201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "sha256": "b173eefc5e61af2e98c533511d0ce06a4b50de5b8135347874e86428dc65cdf4",
+    "bytes": 356,
+    "refusal": null,
+    "size": 3,
+    "content_digest": "374fc66cbf9b8feb586ced56f6ed24e1c2f35dd8e683aa652f753e07f77274f7",
+    "lines": 2,
+    "records": 0,
+    "nested_terms": 1,
+    "weight": 280,
+    "labelled": 3,
+    "max_depth_of_a_triple_term": 1,
+    "term_nodes": [
+     {
+      "node": "n#29fea6d0",
+      "K": [
+       "4d82016a687474703a2f2f652f62",
+       "4d82016a687474703a2f2f652f71",
+       "4d82016a687474703a2f2f652f63"
+      ],
+      "preimage": "834e4d82016a687474703a2f2f652f624e4d82016a687474703a2f2f652f714e4d82016a687474703a2f2f652f63",
+      "preimage_bytes": 46,
+      "d": "29fea6d08405881c4f32d24d662e2c5b9d54b7aec223600d668e54f9336a84a5",
+      "source_identifier": "81582029fea6d08405881c4f32d24d662e2c5b9d54b7aec223600d668e54f9336a84a5",
+      "position": 0
+     }
+    ],
+    "blank_positions": {},
+    "labelled_set": [
+     "quad(<a>, <p>, <<<b> <q> <c>>>, -)",
+     "quad(<a>, <p>, <<<a> <p> n#29fea6d0>>, -)",
+     "record(P8205848101810181018101, n#29fea6d0, <b>, <q>, <c>)"
+    ],
+    "guaranteed": true,
+    "walk": {
+     "total": 57,
+     "kinds": {
+      "START": 23,
+      "REFINE": 4,
+      "FIX-SUM": 30,
+      "SPLIT": 0,
+      "TWIN": 0
+     },
+     "allowance": 156,
+     "broken_by": 0
+    },
+    "oracle_guaranteed": true,
+    "oracle_digest": "374fc66cbf9b8feb586ced56f6ed24e1c2f35dd8e683aa652f753e07f77274f7",
+    "content_digest_of_two_depths": "374fc66cbf9b8feb586ced56f6ed24e1c2f35dd8e683aa652f753e07f77274f7"
+   }
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+{
+ "name": "parity-later-version-payload-damaged",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a segment of `registry_version` `2`, reader version `1`, `H T Q P` with `P` a parity frame whose `geometry` is of a later version, linked, and whose stored payload differs from its `payload_digest` in one bit: the payload state is no condition of the later-version case: `P` has `damaged_frame` `payload_digest`, no `unknown_enumeration_value` (its payload has not verified), no `parity_damaged`, opaque with `damaged`, not used (P1 3.1 THE EXCEPTION OF PARITY FRAMES clause (ii), P1-38, P7 the step CONTENT)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "parity-later-version-payload-damaged.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902fa8101820258203cf2458070a868d293d9daf5266129e819988dd9d36f2f615c87e58a03b6373582020282020181010103020000810385f4820205820205820205810182025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a15838b010b186782020101810181018081018081871181018101820201810181018202028b021872185f820202018101810180810180808b0318d11902298202100181028101808203018081870d82020c8101820203820218d1820219022981018187048101810181018101810181018082025820e4a3a328e71f12df46cb7ccdac4393a009acf5c9a2e28f83f80a7c6b1ea21a158201000401",
+   "note": "P (position 3) damaged_frame payload_digest alone; opaque damaged; not used; segment: unsupported_registry_version alone"
+  }
+ ]
+}

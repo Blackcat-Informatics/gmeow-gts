@@ -1,0 +1,26 @@
+{
+ "name": "resync-refused-position-where-begins",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "an unreadable header, a frame at position 1 (11..716) holding an occurrence with a true offset at 700, then an incomplete item: the run of the incomplete item holds the occurrence, the total refuses its charge, and the finding has the `position` of the item in which the occurrence begins (1), not that of the item whose run is scanned (P1 6.7 part 4, P2-82)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-refused-position-where-begins.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 600,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001902581a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902cc8101810181018101810103030000008085f48202058202058202058101810180828707820204810182020082020082020b8101871482021856810182020182021902bc8202191000820219100081870981018101810182021902cc820218f8810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000502",
+   "note": "segment 0: exceeds_capacity total_decoded position 1 offset 700 length 4096 count 4096; torn_tail 716/248"
+  }
+ ]
+}

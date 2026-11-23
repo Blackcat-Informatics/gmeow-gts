@@ -1,0 +1,53 @@
+{
+ "name": "container-export-state-sealed",
+ "status": "built and matches",
+ "note": "a valid export of registry version 2 whose observation stands in a sealed frame, read without the segment key and with it",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "container-export-state-sealed.bin",
+   "read_result": "870102818206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019056d810182025820895a2a370ac06ca0ec42a36a1209c16e8c9eea598664b55baebf643ec328dc5482020282020182020601030707008085f482020582020582020581018202582074a3369545d9df3a37749294a7388d8b6a27e7ffd53cab3b8553326130489b3d878b010c190237820201018101810180810180808b021902431881820211018101810180810180808b031902c418d5820212018101810180820309808187183181018101820203810181018202018b04190399187282020e018101810180810280808b0519040b1875820202018101810180810180808b06190480187b8202060181018101808101808187138202185881018202068101810181018b071904fb187282020e0181018101808102808080808202582074a3369545d9df3a37749294a7388d8b6a27e7ffd53cab3b8553326130489b3d84020001000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "keyless": {
+     "profile": [],
+     "core": [
+      [
+       "missing_dependency",
+       "state_unavailable"
+      ],
+      [
+       "segment_key_not_held",
+       null
+      ]
+     ],
+     "visible": [
+      2,
+      0,
+      1,
+      0
+     ]
+    },
+    "key": {
+     "profile": [],
+     "core": [],
+     "visible": [
+      1,
+      0
+     ]
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,24 @@
+{
+ "name": "locator-fallback",
+ "status": "built and matches",
+ "note": "the last 11 bytes are not a locator; the file is read from its start and the attempt gives no finding of its own",
+ "cases": [
+  {
+   "label": "last-bytes-not-a-locator",
+   "input_file": "locator-fallback.last-bytes-not-a-locator.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901bf810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030302008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b185f820202018101810180810180818716810181018202018101810181018b02186a187282020e018101810180810280808b0318dc18d282020f018101810180810280808287128202138101820204810181018101871282021781018202058101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

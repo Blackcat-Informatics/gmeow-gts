@@ -1,0 +1,41 @@
+{
+ "name": "state-chain-broken-names-nothing",
+ "status": "built and matches",
+ "note": "two files of 338 bytes (good, altered), one byte differing in the first frame: the final commit has one identifier and is valid in both; it names a state in the first file and none in the second",
+ "cases": [
+  {
+   "label": "good",
+   "input_file": "state-chain-broken-names-nothing.good.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190152810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820b9d7d34d8c7c32a1a3cea4cc400acb8e8e8d61ea0ddca454219ebff500f66ac4838b010b1876820201018101810180810180808b021881185f820202018101810180810180808b0318e0187282020e01810181018081028080808082025820b9d7d34d8c7c32a1a3cea4cc400acb8e8e8d61ea0ddca454219ebff500f66ac48201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  },
+  {
+   "label": "altered",
+   "input_file": "state-chain-broken-names-nothing.altered.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190152810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030003008085f482020582020582020581018101838b010b18768202010381018101808203068081870b8101810182020182020b8202187681018b021881185f82020201810181018081018081871819810181018202028101810181018b0318e0187282020e01810181018081028080808081018201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

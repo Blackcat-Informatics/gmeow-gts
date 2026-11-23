@@ -1,0 +1,16 @@
+{
+ "name": "append-foreign-incomplete",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a file of the two bytes 83 07: refused_generation (P1-87)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "append-foreign-incomplete.bin",
+   "append_outcome": {
+    "code": 3,
+    "outcome": "refused_generation"
+   }
+  }
+ ]
+}

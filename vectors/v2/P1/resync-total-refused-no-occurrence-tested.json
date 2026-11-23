@@ -1,0 +1,26 @@
+{
+ "name": "resync-total-refused-no-occurrence-tested",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "a header, a frame whose `decoded_length` 698 the total of 600 refuses and which fails the framing test, holding an occurrence with a true offset at 700, then an incomplete item whose run covers the occurrence again: once the total is refused no occurrence is tested and none gives a finding, in the run of the frame or in the next; the one `exceeds_capacity` is the frame's, `count` 698 (P1 6.7 part 4, P1-104)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "resync-total-refused-no-occurrence-tested.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 600,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001902581a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902cc810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030000008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b1902c18202090382030281018082030280838707820205810182020182020b82021902c18101871482021856810182020182020b82021902c182021902ba871181018101820201810181018202018081870981018101810182021902cc820218f8810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000502",
+   "note": "frame 1: exceeds_capacity total_decoded count 698; no exceeds_capacity in the segment's or the file's findings; torn_tail 716/248"
+  }
+ ]
+}

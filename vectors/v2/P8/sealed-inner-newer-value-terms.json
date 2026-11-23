@@ -1,0 +1,124 @@
+{
+ "name": "sealed-inner-newer-value-terms",
+ "status": "derived from the text",
+ "note": "a segment of registry version 3 read by a reader of version 2 that holds the key, a sealed frame whose inner terms frame has the order 9 and a clear blob frame after it: with one byte of the inner payload_digest changed the sealed frame has damaged_frame with payload_digest at step 9 and no unsupported_critical, and the blob frame is folded; without the change it gives unsupported_critical with the subject [2, 18], is opaque with unsupported_critical and counts in unopened_sealed, and the blob frame is opaque with stopped",
+ "section": "P8",
+ "cases": [
+  {
+   "label": "digest-changed",
+   "input_file": "sealed-inner-newer-value-terms.digest-changed.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 2,
+    "profiles": [
+     [
+      1,
+      5
+     ],
+     [
+      2,
+      8
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      5,
+      11
+     ],
+     [
+      6,
+      17
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null,
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
+   "read_result": "8701028682010582020882030282040582050b8206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901f28101820258205c2216fae2b497ee150b791298d8f05a44da828ce01bbef50ef0de41e730068d820203820201810103030300008085f482020582020582020581018202582026b55ed9fdaa6f18a74bbdcd2851bb683ebbe9bc4e637dcbeb99477233839864838b010b188182021101810181018081018081871181018101820201810181018202038b02188c18cd8202120181028101808203018081870d82020c81018202028202188c820218cd81018b03190159189982020901810181018081018080818704810181018101810181018101808202582026b55ed9fdaa6f18a74bbdcd2851bb683ebbe9bc4e637dcbeb9947723383986484020001000401"
+  },
+  {
+   "label": "digest-kept",
+   "input_file": "sealed-inner-newer-value-terms.digest-kept.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 2,
+    "profiles": [
+     [
+      1,
+      5
+     ],
+     [
+      2,
+      8
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      5,
+      11
+     ],
+     [
+      6,
+      17
+     ]
+    ],
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null,
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
+   "read_result": "8701028682010582020882030282040582050b8206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001901f28101820258205c2216fae2b497ee150b791298d8f05a44da828ce01bbef50ef0de41e730068d820203820201810101030300008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b188182021101810181018081018081871181018101820201810181018202038b02188c18cd82021201810181018082030480818706810182028202128202028101810181018b03190159189982020901810181018082030580808187048101810181018101810181018082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e84020001000402"
+  }
+ ]
+}

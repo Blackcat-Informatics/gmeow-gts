@@ -1,0 +1,41 @@
+{
+ "name": "annotations-triple-components-written-alike",
+ "status": "built and matches",
+ "note": "P3 3.3: two triple terms whose three components are written alike, component by component, are written alike although the ids differ: the two annotation rows differ only in the count of ids, so they are equal in every field other than the count",
+ "cases": [
+  {
+   "label": "components-written-alike",
+   "input_file": "annotations-triple-components-written-alike.components-written-alike.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190177810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030303008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e838b010b1897820201018101810180810180808b0218a21863820204018101810180820302808187078202088101820202820218a28202186381018b03190105187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  },
+  {
+   "label": "components-differ",
+   "input_file": "annotations-triple-components-written-alike.components-differ.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190177810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258201b78b5c1f846a8570b3af0b3696dfed8b48d8ec115f95d0129b0beb5b363a81e838b010b1897820201018101810180810180808b0218a21863820204018101810180810180808b03190105187282020e018101810180810280808080820258201b78b5c1f846a8570b3af0b3696dfed8b48d8ec115f95d0129b0beb5b363a81e8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

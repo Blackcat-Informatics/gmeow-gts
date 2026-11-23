@@ -1,0 +1,33 @@
+{
+ "name": "bindings-leaf-deep",
+ "status": "built and matches",
+ "note": "two segments, the first holding the blank term b, the second a binding whose leaf is of kind triple nested 100000 deep in its object, the innermost leaf the subject of kind blank naming b (read with labelled_bytes_per_read 1000, so that the labelling is refused by weight after the lowering has weighed the fold); and the same with the bottom leaf of kind term: the first read with no malformed_value, its term, in the fold of the file, the triple term of that depth, 99999 nested terms, size 1 + 99999; the second malformed_value/forbidden_combination",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "bindings-leaf-deep.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001903e801810182808087028292000018f4810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b1877820201018101810180810180808b021882187282020e0181018101808102808080920118f41a000dbd558101820258202c368eb5b66f4d01b109e9ce854e5cda7684210b4603989ed2912995e4fc4914820201820201810101030303008085f482020582020582020581018101838b01190123186d820201018101810180810180808b021901901a000dbc478202060181018101808101808187138202181b81018202028101810181018b031a000dbdd7187282020e018101810180810280808187181a8202185b810181018101810181018187181a8202185b8101810181018101810181018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 1000,
+    "access": "whole"
+   },
+   "result": {
+    "depth": 100000,
+    "nested_terms": 99999,
+    "size": 100000,
+    "named_sha256": "b778279a8f505de53a6b0df2a643d753628154763b0992553d629a55f89c3c27",
+    "ground_sha256": "7bb7dc0142cc53556a56304b99d1b1c2bd82435282f6956cde0b7f87ba60a643",
+    "named_bytes": 900681,
+    "ground_bytes": 900645
+   }
+  }
+ ]
+}

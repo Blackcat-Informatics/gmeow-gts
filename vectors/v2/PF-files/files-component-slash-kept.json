@@ -1,0 +1,28 @@
+{
+ "name": "files-component-slash-kept",
+ "status": "built and matches",
+ "note": "a path member 'a/b' and a path member holding the byte 00: no files_component, a component is one value whatever its bytes (PF-files 2.3)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "files-component-slash-kept.bin",
+   "read_result": "8701018182050b8a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001902a681018202582063dd72780ed65331f60bd390f6d241cc93bbd2965552dce186061c715e31837582020182020182020501030303008085f4820205820205820205810182025820922dc682cd8bb766ff8aeaf8bcac2c031c368383efbf569715d4228572287164838b010c19019a820201018101810180810180808b021901a6188e820202018101810180810180808b03190234187282020e01810181018081028080808082025820922dc682cd8bb766ff8aeaf8bcac2c031c368383efbf569715d42285722871648201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "profile": [],
+    "core": []
+   }
+  }
+ ]
+}

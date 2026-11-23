@@ -1,0 +1,44 @@
+{
+ "name": "finding/proof_malformed/length",
+ "status": "built and matches",
+ "note": "an inclusion proof whose path has two digests where the shape of 5 frames needs three",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__proof_malformed__length.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 37,
+    "reason": 45,
+    "severity": "error",
+    "readings": [
+     {
+      "input_hex": "830502825820ad80bde5d3ed0018bc94ba3666617340fe0351bd62ffffe6e0b54127b1cbcc4d5820a89d2f607f63d8263858ad28098689f7a55421d07619a75a969bfa10ecd4a8f6",
+      "input_length": 72,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "proof_malformed",
+        "reason": "length"
+       }
+      ],
+      "expected_finding_bytes": [
+       "8718258202182d81018101810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

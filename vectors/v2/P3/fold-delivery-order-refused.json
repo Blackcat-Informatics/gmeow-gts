@@ -1,0 +1,24 @@
+{
+ "name": "fold-delivery-order-refused",
+ "status": "built and matches",
+ "note": "the same kind of fold read with labelled_lines below its size: the blank nodes are compared bytewise on E([ordinal, label]) in the place of their positions",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "fold-delivery-order-refused.bin",
+   "read_result": "870101808a1a040000001a0400000000011b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000018101828080870281920000190157810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b1879820201018101810180810180808b0218841861820202018101810180810180808b0318e5187282020e018101810180810280808187181a82021855810181018101810181018187181a820218558101810181018101810181018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 1,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

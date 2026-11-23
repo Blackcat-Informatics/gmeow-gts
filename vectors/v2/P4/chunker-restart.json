@@ -1,0 +1,42 @@
+{
+ "name": "chunker-restart",
+ "status": "built and matches",
+ "note": "two strings of 150000 bytes, BLAKE3 extended output over 'P4 restart a' and over 'P4 restart b', and their concatenation: chunked as one string, a chunk spans the boundary, so the lengths of the concatenation are not those of a followed by those of b, and a writer that chunks each blob on its own restarts the cut at offset 0 of b (P4-12)",
+ "section": "P4 2.4",
+ "cases": [
+  {
+   "label": "a",
+   "input_file": "chunker-restart.a.bin",
+   "result": {
+    "lengths": [
+     79697,
+     70303
+    ]
+   }
+  },
+  {
+   "label": "b",
+   "input_file": "chunker-restart.b.bin",
+   "result": {
+    "lengths": [
+     66335,
+     18528,
+     65137
+    ]
+   }
+  },
+  {
+   "label": "concatenation",
+   "input_file": "chunker-restart.concatenation.bin",
+   "result": {
+    "lengths": [
+     79697,
+     70311,
+     66327,
+     18528,
+     65137
+    ]
+   }
+  }
+ ]
+}

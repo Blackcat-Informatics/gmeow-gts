@@ -1,0 +1,143 @@
+{
+ "name": "p8-members-layout-missing",
+ "status": "built and matches",
+ "note": "a sealed pack of 1048576 chunk members, Nr and so the most members one run holds (P8-45), read with its segment key: with no member index after it, index_claim_failed sealed_members at the pack (absent); with a clear terms frame and a clear quads frame between the pack and the member index that covers it, malformed_value unordered_or_repeated at the index, which is opaque malformed and counted in unopened_sealed, and index_claim_failed sealed_members at the pack (clear-between); followed by a sealed pack of one member and then one member index covering both, whose coverage holds 1048577 members of two packs: malformed_value unordered_or_repeated at the index and index_claim_failed sealed_members at the full pack, and none at the pack of one member, which the index that breaks the layout directly follows (after-next-pack); sealed packs of 1048575 and 1 members with one member index after the second covering both form one run and give neither finding (boundary-fits); every member is unreferenced_unit at its pack (P8-45, P8-62, P4-41) (the inputs, listed in ABSENT.md)",
+ "cases": [
+  {
+   "label": "absent",
+   "input_file": "p8-members-layout-missing.absent.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 2,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null,
+    "holds_reference_encoder": true,
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
+   "read_result_file": "p8-members-layout-missing.absent.result.bin"
+  },
+  {
+   "label": "clear-between",
+   "input_file": "p8-members-layout-missing.clear-between.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 2,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null,
+    "holds_reference_encoder": true,
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
+   "read_result_file": "p8-members-layout-missing.clear-between.result.bin"
+  },
+  {
+   "label": "after-next-pack",
+   "input_file": "p8-members-layout-missing.after-next-pack.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 2,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null,
+    "holds_reference_encoder": true,
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
+   "read_result_file": "p8-members-layout-missing.after-next-pack.result.bin"
+  },
+  {
+   "label": "boundary-fits",
+   "input_file": "p8-members-layout-missing.boundary-fits.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 2,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "marks": null,
+    "holds_reference_encoder": true,
+    "sealing_input": {
+     "segment_keys": [
+      {
+       "key_id": "1111111111111111111111111111111111111111111111111111111111111111",
+       "segment_key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+     ],
+     "recipient_keys": []
+    }
+   },
+   "read_result_file": "p8-members-layout-missing.boundary-fits.result.bin"
+  }
+ ]
+}

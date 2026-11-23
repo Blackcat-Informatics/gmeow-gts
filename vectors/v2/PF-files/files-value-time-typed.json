@@ -1,0 +1,28 @@
+{
+ "name": "files-value-time-typed",
+ "status": "built and matches",
+ "note": "",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "files-value-time-typed.bin",
+   "read_result": "8701018182050b8a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019029d81018202582063dd72780ed65331f60bd390f6d241cc93bbd2965552dce186061c715e31837582020182020182020501030303008085f4820205820205820205810182025820d0bccedd7bfe99e5cb59ed4416c07d0c86c49037c12ce5b582e19043b65b6a64838b010c1901a5820201018101810180810180808b021901b1187a820202018101810180810180808b0319022b187282020e01810181018081028080808082025820d0bccedd7bfe99e5cb59ed4416c07d0c86c49037c12ce5b582e19043b65b6a648201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "profile": [],
+    "core": []
+   }
+  }
+ ]
+}

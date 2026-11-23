@@ -1,0 +1,70 @@
+{
+ "name": "stream-before-first-item",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "a file whose first item is cut: end false: no segment and no finding; end true: torn_tail alone; a first-generation file: an empty listing at every point, end false the result for b 0, end true the result of whole but for capacity.access",
+ "cases": [
+  {
+   "label": "torn-first-item",
+   "input_file": "stream-before-first-item.torn-first-item.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b0000002000000000028101828080870280818709810181018101820200820206810181018201000501",
+   "note": "end false: no point, so no segment and no finding (result for b = 0); end true: torn_tail alone",
+   "empty_result_sha256": "215b6e6d99c4bd39fe6d992c78ac415ed95e5dc39fb459ba6530c7bf0ebf03e6"
+  },
+  {
+   "label": "first-generation",
+   "input_file": "stream-before-first-item.first-generation.bin",
+   "note": "empty listing at every point; end false the result for b = 0; end true the result of whole but for capacity.access",
+   "stream_points": [
+    {
+     "at": 72,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "1a9225c45c1e8bde6b5821dc1442110924f91144439a49a50a49e1d55927a61f",
+     "file_findings": [
+      [
+       "undelimitable_input",
+       null,
+       null,
+       null,
+       0,
+       72
+      ]
+     ],
+     "segments": [],
+     "listing": []
+    },
+    {
+     "at": 72,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "1a9225c45c1e8bde6b5821dc1442110924f91144439a49a50a49e1d55927a61f",
+     "file_findings": [
+      [
+       "undelimitable_input",
+       null,
+       null,
+       null,
+       0,
+       72
+      ]
+     ],
+     "segments": [],
+     "listing": []
+    }
+   ]
+  }
+ ]
+}

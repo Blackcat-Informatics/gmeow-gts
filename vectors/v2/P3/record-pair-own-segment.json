@@ -1,0 +1,24 @@
+{
+ "name": "record-pair-own-segment",
+ "status": "built and matches",
+ "note": "the entry names, by a frame of its own segment and a label that segment holds, a node of its own segment: the segment is excluded as holder (6.3), the pair is unnamed",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "record-pair-own-segment.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019016d810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f4820205820205820205810182025820b3b7fc7fc42f5c2324ba832c0f5efcddce645b5adbf0620135c3cc6bd414d773838b010b1874820201018101810180810180808b02187f187c8202070181018101808101808187181c8202181981018202028101810181018b0318fb187282020e01810181018081028080808082025820b3b7fc7fc42f5c2324ba832c0f5efcddce645b5adbf0620135c3cc6bd414d7738201010200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

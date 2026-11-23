@@ -1,0 +1,36 @@
+{
+ "name": "append-read-failed",
+ "section": "P1",
+ "status": "built and matches",
+ "note": "H T Q with a read that fails at offset 0 for 11 bytes, and at the offset after H for 11 bytes: refused_read, nothing written (P1-87)",
+ "cases": [
+  {
+   "label": "fail-at-0",
+   "input_file": "append-read-failed.fail-at-0.bin",
+   "read": {
+    "read_failure": {
+     "offset": 0,
+     "length": 11
+    }
+   },
+   "append_outcome": {
+    "code": 4,
+    "outcome": "refused_read"
+   }
+  },
+  {
+   "label": "fail-after-header",
+   "input_file": "append-read-failed.fail-after-header.bin",
+   "read": {
+    "read_failure": {
+     "offset": 11,
+     "length": 11
+    }
+   },
+   "append_outcome": {
+    "code": 4,
+    "outcome": "refused_read"
+   }
+  }
+ ]
+}

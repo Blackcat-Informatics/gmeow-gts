@@ -1,0 +1,45 @@
+{
+ "name": "finding/unreferenced_unit",
+ "status": "built and matches",
+ "note": "a chunk that no recipe, blob or value names",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "finding__unreferenced_unit.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019010a810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030202008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e828b010b188d8202080181018101808101808187182c810181018202018101810181018b021898187282020e01810181018081028080808082025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "code": 44,
+    "reason": null,
+    "severity": "information",
+    "readings": [
+     {
+      "input_hex": "87010201018101810181018b0208f5f48158201e55486afd5011afded067f07873f2df2d91bf865c0fb2509813cde4d9a0aed4181a5820f5fa2886fb003b8c26e306e67c9602c9ed527e8dd5b55364bb21de4c871c90d88101581a61206368756e6b2074686174206e6f7468696e67206e616d6573582075babff29d21a29be814e44f9cef4ded5a7d27d051f0fdd381f01cf7bbc67b2b808b020ef4f482015820dd32254a3cbfd5d34f28921962181c93e3332bf7a3aa16f801a5a7fbb10d89100058203509b2354ccb23077193aa8d11f579a6d31f8490068cb9663d801d449237925181014058201be8d1d903754272a80a26b1fa9685c258edb8b75f7020720b539084b754b99780",
+      "input_length": 266,
+      "reader_registry_version": 1,
+      "findings": [
+       {
+        "code": "unreferenced_unit",
+        "position": 1
+       }
+      ],
+      "expected_finding_bytes": [
+       "87182c81018101820201810181018101"
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

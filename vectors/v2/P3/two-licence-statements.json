@@ -1,0 +1,40 @@
+{
+ "name": "two-licence-statements",
+ "section": "P3 5.1",
+ "status": "built and matches",
+ "note": "a licence statement for a bound image, and an appended statement that replaces it, both signed by the curator: both statements stand in the fold and are visible, and no finding is reported",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "two-licence-statements.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018281582063a462a174b5ac178dcb62d29ad60e3e59bcc0fa78bd757819eebe6aed7c218e8183582063a462a174b5ac178dcb62d29ad60e3e59bcc0fa78bd757819eebe6aed7c218e015820dde3bccec7f3a66a1115f45d720f4dc135c3ae7c4e22dca38fdb1efd6a495ff88702829200001902ce810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101010505058085f4820205820205820205810182025820ea2a28f4f069ea22fe3c8846a2e2ee51ee1ffc17c71eae08fbb976f19c7ba4e8858b010b187d820201018101810180810180808b0218881892820209018101810180810180808b0319011a187d820206018101810180810180808b04190197185f820202018101810180810180808b051901f618d882020e0181018101818701810101582063a462a174b5ac178dcb62d29ad60e3e59bcc0fa78bd757819eebe6aed7c218e0005f5810280808092011902ce19020681018202582097a1b057a5d89d126de33c3e59fa0a1d30c6d6ffefb7f5cd62065351b1ce7c25820201820201810101010303038085f4820205820205820205810182025820d1bbd22bd979e9ccbbe3da8c0e0a1ff37774416e2fc6d4ac630160d7a61141dc838b011902fd1894820201018101810180810180808b02190391186b820202018101810180810180808b031903fc18d882020e0181018101818701810101582063a462a174b5ac178dcb62d29ad60e3e59bcc0fa78bd757819eebe6aed7c218e0003f5810280808080820258204d1b4cd1671978ea45df20cd76451482111af5bc43fdfb92c671d2fc6997da5e8201000100",
+   "result": {
+    "visible_lines": [
+     "quad(master, licence, lic1)",
+     "quad(master, licence, lic2)",
+     "quad(lic2, replaces, lic1)",
+     "quad(rel2, licence, lic2)"
+    ],
+    "bindings": [
+     "master -> blob"
+    ],
+    "segment_authenticity": [
+     "authenticated",
+     "authenticated"
+    ]
+   }
+  }
+ ]
+}

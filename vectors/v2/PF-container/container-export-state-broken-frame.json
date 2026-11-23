@@ -1,0 +1,37 @@
+{
+ "name": "container-export-state-broken-frame",
+ "status": "built and matches",
+ "note": "a valid export whose segment holds, before the commit, a frame with a broken link: the commit stands in the file and names no state",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "container-export-state-broken-frame.bin",
+   "read_result": "870101818206118a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019051d810182025820257e1dc4fa2709f0e0288c297314d2eb3ce49eb69d664801b4cc6eec1a9b00bb82020182020182020603030207008085f4820205820205820205810182025820e3f7942a5d680e22cf7db123339d70ff6cbfa76f833726ebef4d85ae019de91c878b010c190237820201018101810180810180808b021902431875820202018101810180810180808b031902b818918202090381018101808203068081870b8101810182020382021902b88202189181018b04190349187282020e018101810180810280808b051903bb1875820202018101810180810180808b06190430187b8202060181018101808101808187138202185881018202068101810181018b071904ab187282020e01810181018081028080808082025820e3f7942a5d680e22cf7db123339d70ff6cbfa76f833726ebef4d85ae019de91c8201000201",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "profile": [],
+    "core": [
+     [
+      "chain_break",
+      null
+     ],
+     [
+      "missing_dependency",
+      "state_unavailable"
+     ]
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,59 @@
+{
+ "name": "registry/tables",
+ "status": "built and matches",
+ "note": "the registry written as data (the input file, 28306 bytes): every enumeration of section 4 (64 tables), the severity of the 48 codes, the 92 reasons, the 15 contexts with the digest of 61 62 63, the reasons each code allows, the fields of 5.2 and the assignment log of 9a; the result records the number of rows compared with the tables of P2 and the values of registry version 2 listed apart",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "registry__tables.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "result": {
+    "data_bytes": 28306,
+    "compared": {
+     "enumeration_tables": 64,
+     "hash_contexts": 15,
+     "hash_context_digests_equal": 15,
+     "severities": 48,
+     "reasons": 92,
+     "allowed_lists": 48,
+     "field_rows": 48,
+     "opaque_precedence": 8,
+     "assignment_log_rows": 2
+    },
+    "values_of_registry_version_2": [
+     "4 opaque_reason: the data holds 9 `missing_key` (registry version 2, `P8`)",
+     "4.2 frame_type: the data holds 17 {'label': 'keys', 'critical': False, 'transparent': False} (registry version 2, `P8`)",
+     "4.2 frame_type: the data holds 18 {'label': 'sealed', 'critical': True, 'transparent': False} (registry version 2, `P8`)",
+     "4.6 context 16: the data holds `recipient_key_id` (registry version 2, `P8`)",
+     "5.1 finding 49: the data holds `segment_key_not_held` warning (registry version 2, `P8`)",
+     "5.1 finding 50: the data holds `unwrap_failed` warning (registry version 2, `P8`)",
+     "5.1 finding 51: the data holds `key_conflict` error (registry version 2, `P8`)",
+     "5.1 finding 52: the data holds `seal_failed` error (registry version 2, `P8`)",
+     "5.1 finding 53: the data holds `seal_scope_violated` warning (registry version 2, `P8`)",
+     "6.1 reason 93: the data holds `padding` (registry version 2, `P8`)",
+     "6.1 reason 94: the data holds `sealed_ordinal` (registry version 2, `P8`)",
+     "6.1 reason 95: the data holds `sealed_members` (registry version 2, `P8`)",
+     "6.1 reason 96: the data holds `failed_openings` (registry version 2, `P8`)",
+     "6.1 reason 97: the data holds `aead` (registry version 2, `P8`)",
+     "6.1 reason 98: the data holds `commitment` (registry version 2, `P8`)",
+     "5.1 allowed reasons of 7 `malformed_value`: the data adds ['padding', 'sealed_ordinal'] (registry version 2, `P8`)",
+     "5.1 allowed reasons of 18 `index_claim_failed`: the data adds ['sealed_members'] (registry version 2, `P8`)",
+     "5.1 allowed reasons of 20 `exceeds_capacity`: the data adds ['failed_openings'] (registry version 2, `P8`)",
+     "P2-30: the data places the opaque reason `missing_key` of registry version 2 in the order (P8)"
+    ],
+    "differences": 0
+   }
+  }
+ ]
+}

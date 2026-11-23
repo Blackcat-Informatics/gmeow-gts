@@ -1,0 +1,60 @@
+{
+ "name": "canonical-lang-literal-datatype-absent",
+ "status": "built and matches",
+ "note": "a segment with the quad whose object is the language literal x with the language en, and the canonical file of its fold: the terms frame of each file holds no IRI of rdf:langString, a language literal holding no datatype, and the content digest of both is that of the labelled line with the generated datatype",
+ "section": "P3 1.1, P3 11.1",
+ "cases": [
+  {
+   "label": "source",
+   "input_file": "canonical-lang-literal-datatype-absent.source.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000001810182808087028192000019015e810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f48202058202058202058101820258208c32084c7e4062c11b4601ab1e0ca36ad9be956ce3c77cf37633ec4a4da76f66838b010b1882820201018101810180810180808b02188d185f820202018101810180810180808b0318ec187282020e018101810180810280808080820258208c32084c7e4062c11b4601ab1e0ca36ad9be956ce3c77cf37633ec4a4da76f668201000200"
+  },
+  {
+   "label": "canonical",
+   "input_file": "canonical-lang-literal-datatype-absent.canonical.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   },
+   "read": {
+    "registry_version": 1,
+    "profiles": [],
+    "trusted_keys": [],
+    "held_keys": [],
+    "sealing_input": null,
+    "marks": null,
+    "holds_reference_encoder": true
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001904d18101820258206c19be0fed72079771f9c8e0006a1f2ef9050d710ba4ff5b5f8ac044ddf5acc082020182020181010103040300810585f58101810181018101820258208c32084c7e4062c11b4601ab1e0ca36ad9be956ce3c77cf37633ec4a4da76f66858b010c1883820201018101810180810180808b02188f185f820202018101810180810180808b0318ee187282020e018101810180810280808b0419016018d882020f018101810180810280808b0519023819027f820210018101810180810280808080820258208c32084c7e4062c11b4601ab1e0ca36ad9be956ce3c77cf37633ec4a4da76f668201000200"
+  }
+ ]
+}

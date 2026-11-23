@@ -1,0 +1,24 @@
+{
+ "name": "state-rebuild-refused-mixed",
+ "status": "built and matches",
+ "note": "P3 7.2 clause (4): two value frames of one value, equal total_length N, the first with a missing unit, the second complete: with allowance N the first is incomplete, the second refused, the term unreadable and the commit names no state; with 2N the term is readable and the commit names a state that holds the row",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "state-rebuild-refused-mixed.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a0400000018401b00000020000000001b0000002000000000018101828080870281920000190422810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810102030707008085f482020582020582020581018101878b010b1893820208018101810180810180808b02189e18c182020b018101810180810181828101820218188187138202181881018202028101810181018b0319015f18b3820208018101810180810180808b04190212189c82020b018101810180810181828101810381871482021859810182020482021902128202189c820218808b051902ae18a3820201018101810180810180808b06190351185f82020201810181018081018081871819810181018202068101810181018b071903b0187282020e01810181018081028080808081018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 64,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

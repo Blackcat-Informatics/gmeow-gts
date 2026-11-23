@@ -1,0 +1,75 @@
+{
+ "name": "lowering-deep",
+ "status": "built and matches",
+ "note": "the chain t(1) = <<a a a>>, t(k + 1) = <<a a t(k)>> of 1000 terms in one triple run and 1000 rows quad(a, a, t(k)): 999 term nodes and 999 nested_term records, size 1999, weight 172 n - 64 = 171936, no triple term of depth above one formed (6.2a, LOWERING); and the same file read with labelled_bytes_per_read 171935: both folds refused with refusal_weight, no record built (P3-105, P3-106)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "lowering-deep.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001a00029f9f018101828080870281920000191ba7810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030303008085f482020582020582020581018101838b010b1912ef820201018101810180810180808b021912fa19083b820202018101810180810180808b03191b35187282020e018101810180810280808187181a8202185b810181018101810181018187181a8202185b8101810181018101810181018201000200",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 171935,
+    "access": "whole"
+   },
+   "capacities_read": [
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 137438953472,
+     "access": "whole"
+    },
+    {
+     "stored_bytes_per_frame": 67108864,
+     "decoded_bytes_per_frame": 67108864,
+     "labelling_units": 0,
+     "labelled_lines": 67108864,
+     "decoded_bytes_per_read": 68719476736,
+     "items_per_read": 67108864,
+     "rebuilt_bytes_per_read": 137438953472,
+     "formed_bytes_per_read": 137438953472,
+     "labelled_bytes_per_read": 171935,
+     "access": "whole"
+    }
+   ],
+   "result": {
+    "n": 1000,
+    "size": 1999,
+    "weight": 171936,
+    "second_read": {
+     "labelled_bytes_per_read": 171935,
+     "own_fold": "refusal_weight",
+     "fold_of_the_file": "refusal_weight"
+    },
+    "nested_terms": 999,
+    "content_digest": "33cb993c0afe0776787280271464d32f1757017741e684fc858a73783708ffe4",
+    "sha256": "5500db71267edb708b60346d037b74802ddef79761c56ec98a43b981f5725f06",
+    "bytes": 7079,
+    "Ddeep": "33cb993c0afe0776787280271464d32f1757017741e684fc858a73783708ffe4",
+    "first_node": {
+     "d": "586ff2597692a5d5470ba978a5c7cdee091d5a3e75c8c8eda015a404864b7a13",
+     "preimage": "834e4d82016a687474703a2f2f652f614e4d82016a687474703a2f2f652f614e4d82016a687474703a2f2f652f61",
+     "position": 998
+    },
+    "last_node": {
+     "d": "1a1a25eea8f23ddb50b14add1d32f96664570bf7ee46581ae7851f87f24f2d72",
+     "preimage": "834e4d82016a687474703a2f2f652f614e4d82016a687474703a2f2f652f615823815820597f24edc3df000fe5d99f45a1262466a40f4290334ea784d3f2584a4ed01644",
+     "position": 0
+    }
+   }
+  }
+ ]
+}

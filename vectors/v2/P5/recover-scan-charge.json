@@ -1,0 +1,24 @@
+{
+ "name": "recover-scan-charge",
+ "status": "derived from the text",
+ "note": "bytes that cannot be delimited hold 8 parity candidates for the span [0, 1), each with the payload length 347 that 6.5 gives that span and a wrong payload digest, then a parity frame whose payload and table hold: with a decoded_bytes_per_read that admits 5 candidates after the frame before them, the sixth candidate is refused by the total and fails, the refusal is the one exceeds_capacity with total_decoded in the findings of the segment at the position that the next item would have, no later candidate passes, and undelimitable_input runs to the end of the input (P5-38)",
+ "cases": [
+  {
+   "label": "",
+   "input_file": "recover-scan-charge.bin",
+   "read_result": "870101808a1a040000001a04000000001a040000001906cb1a040000001b00000020000000001b00000020000000001b00000020000000000181018280808702819200001880810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810101030100008085f4820205820205820205810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e818b010b1875820208018101810180810180828711810181018202018101810182020187182c810181018202018101810181018187148202185681018202028202190a4a82021901f5820219082681870881018101810182021880820219119e810182025820bf4b40a613c1cc97ababeccefc1c1c810dde52818d8928603f2180376f06fb5e8201000600",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 1739,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "whole"
+   }
+  }
+ ]
+}

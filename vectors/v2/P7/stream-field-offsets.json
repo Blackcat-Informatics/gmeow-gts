@@ -1,0 +1,615 @@
+{
+ "name": "stream-field-offsets",
+ "section": "P7",
+ "status": "built and matches",
+ "note": "an offsets item with a wrong length then a frame: index_claim_failed index_offsets, then gone and malformed_value unordered_or_repeated at the offsets item; an offsets item whose claim holds then the opaque item 01: no finding at the third boundary, malformed_value unordered_or_repeated at the offsets item, malformed_value wrong_type at the opaque item, integrity damaged at the fourth",
+ "cases": [
+  {
+   "label": "wrong-length",
+   "input_file": "stream-field-offsets.wrong-length.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b000000200000000002810182808087028192000018d7810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030200008085f482020582020582020581018101828b010b186782020101810181018081018081871181018101820201810181018202028b031878185f8202020181018101808101808081870782020881018202028202187282020681018081018201000400",
+   "note": "index_claim_failed index_offsets at the first boundary after the offsets item; after the next frame that finding gone and malformed_value unordered_or_repeated at the offsets item",
+   "stream_points": [
+    {
+     "at": 120,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "65a688a092e7f09472f534acc1f69e4fa16f9fee25809229e7064bac8ed61a7e",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "index_claim_failed",
+         "index_offsets",
+         2,
+         null,
+         null,
+         null
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 215,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "c5832ba05b727687a39a21bb3ba907a048456b64e094f7a1e7734cba568b1d4c",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "malformed_value",
+         "unordered_or_repeated",
+         2,
+         null,
+         114,
+         6
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       3,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 215,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "c5832ba05b727687a39a21bb3ba907a048456b64e094f7a1e7734cba568b1d4c",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "malformed_value",
+         "unordered_or_repeated",
+         2,
+         null,
+         114,
+         6
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           2,
+           null,
+           null
+          ]
+         ]
+        },
+        {
+         "position": 3,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": []
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       8,
+       0,
+       3,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       2,
+       0,
+       3,
+       0,
+       1,
+       [
+        2,
+        [
+         3
+        ]
+       ]
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "label": "opaque-after",
+   "input_file": "stream-field-offsets.opaque-after.bin",
+   "capacity": {
+    "stored_bytes_per_frame": 67108864,
+    "decoded_bytes_per_frame": 67108864,
+    "labelling_units": 0,
+    "labelled_lines": 67108864,
+    "decoded_bytes_per_read": 68719476736,
+    "items_per_read": 67108864,
+    "rebuilt_bytes_per_read": 137438953472,
+    "formed_bytes_per_read": 137438953472,
+    "labelled_bytes_per_read": 137438953472,
+    "access": "forward"
+   },
+   "read_result": "870101808a1a040000001a04000000001a040000001b00000010000000001a040000001b00000020000000001b00000020000000001b00000020000000000281018280808702819200001879810182025820e9dc54662899695160ab279ede7b16ce9807b2d696e097645943288916e3fedc820201820201810103030100008085f482020582020582020581018101818b010b186782020101810181018081018081871181018101820201810181018202018287078202088101820202820218728202068101870782020481018202038202187882020181018081018201000401",
+   "note": "no finding at the third boundary; at the fourth malformed_value unordered_or_repeated at the offsets item, wrong_type at the opaque item, integrity damaged",
+   "stream_points": [
+    {
+     "at": 120,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "b95801e11b0fb4e05f47fa22ada349fdc2a21745b9df1da2a79c235a28e16d06",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 121,
+     "end": false,
+     "tag": "second_generation",
+     "result_sha256": "59df0e843398f86edf2458db08d95440309ef646f10e53caad44c1cf33a34d0a",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "malformed_value",
+         "unordered_or_repeated",
+         2,
+         null,
+         114,
+         6
+        ],
+        [
+         "malformed_value",
+         "wrong_type",
+         3,
+         null,
+         120,
+         1
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    },
+    {
+     "at": 121,
+     "end": true,
+     "tag": "second_generation",
+     "result_sha256": "59df0e843398f86edf2458db08d95440309ef646f10e53caad44c1cf33a34d0a",
+     "file_findings": [],
+     "segments": [
+      {
+       "ordinal": 0,
+       "findings": [
+        [
+         "malformed_value",
+         "unordered_or_repeated",
+         2,
+         null,
+         114,
+         6
+        ],
+        [
+         "malformed_value",
+         "wrong_type",
+         3,
+         null,
+         120,
+         1
+        ]
+       ],
+       "frames": [
+        {
+         "position": 1,
+         "link": "linked",
+         "fold": [
+          "folded"
+         ],
+         "findings": [
+          [
+           "uncommitted_tail",
+           null,
+           1,
+           1,
+           null,
+           null
+          ]
+         ]
+        }
+       ]
+      }
+     ],
+     "listing": [
+      [
+       8,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       [
+        1
+       ]
+      ],
+      [
+       1,
+       0,
+       1,
+       2,
+       1,
+       [
+        1
+       ]
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -74,7 +74,9 @@ GTS supports several application families without making any of them the project
 - **Evidence and custody chains:** append observations, signatures, and sealed payloads without
   rewriting prior history.
 - **Local-first graph synchronization:** concatenate independently produced segments and fold
-  the value-union.
+  them as one file. GTS is the exchanged artifact and not the synchronization protocol: the layer
+  above it filters replayed segments, orders segments that depend on one another and decides
+  concurrent revisions.
 - **Agent memory:** model belief revision with suppression frames while preserving the original
   signed history.
 - **Graph database interchange:** hand the folded graph state to N-Quads, SQLite, DuckDB, Parquet,

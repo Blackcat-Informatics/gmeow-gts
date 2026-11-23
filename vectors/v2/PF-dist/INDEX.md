@@ -1,0 +1,33 @@
+# Vectors of PF-dist
+
+| vector | outcome | notes |
+|---|---|---|
+| `dist-pass` | built and matches |  |
+| `dist-not-canonical` | built and matches |  |
+| `dist-not-canonical-claim-false` | built and matches | a distribution file cut at the first byte of its index frame, so that the index frame, the final parity frame, the offsets item and the locator are gone and the header still claims the canonical form: the structure level is failed with the first difference frame_sequence at position 4, where the index frame would stand, canonical_violated with frame_sequence stands in the segment's list at that position, and check 1, dist_not_canonical, gives profile_violation with no position and no count; REFUTED |
+| `dist-not-alone` | built and matches | a file of two distribution files, one after the other: each segment reports profile_violation of check 2, dist_not_alone, with no position and the count 2, the second segment reports lineage_begins before it, each segment alone is canonical with every level verified and integrity intact, and the file's content digest is present; REFUTED |
+| `dist-decoded-size` | built and matches |  |
+| `dist-decoded-size-pass` | built and matches |  |
+| `dist-stored-size` | built and matches |  |
+| `dist-storage-differs` | built and matches | a distribution file of 300 long IRIs whose terms frame and quads frame are stored compressed, with the canonical bytes and with the terms frame compressed at level 3, the quads frame having the same stored bytes at both levels, so that the parity frame, the offsets item and the locator differ too: the two files have the same header identifier, frame identifiers and content digest, neither has a finding, structure and labelling are verified in both, and the storage level is verified for the canonical bytes and differs for the other, which is no finding and no failure of check 1; each is a VERIFIED DISTRIBUTION |
+| `dist-sealed-frame` | built and matches |  |
+| `dist-not-implemented` | built and matches | a distribution file that passes every check, read by a reader that implements no profile: the segment is read in full, integrity is intact and the canonical check verified, no check of the profile runs, and the one finding is profile_not_checked in the segment's list with the subject [4, 1, absent]; there is no profile_violation; INCONCLUSIVE |
+| `dist-inconclusive-read-failed` | built and matches | dist-pass read through a source whose read fails at offset 12: read_failed in the file's findings, no segment, both content digests absent; INCONCLUSIVE, although the result has no segment; the same file with the read failing at offset 13: INCONCLUSIVE |
+| `dist-refuted-not-declared` | built and matches | PF-dist 6: the canonical file of the fold of dist-pass with profile absent, and the input of zero bytes: no profile_violation in either; REFUTED in both (the segment does not declare the profile; the file has no segment) |
+| `dist-verified` | built and matches | PF-dist 6: dist-pass is a VERIFIED DISTRIBUTION (PF-dist-10) |
+| `dist-verified-storage-differs` | built and matches | PF-dist 6: the case other-encoder of dist-storage-differs is a VERIFIED DISTRIBUTION (the storage level does not enter condition 1) |
+| `dist-refuted` | built and matches | PF-dist 6: dist-not-canonical-claim-false is REFUTED (PF-dist-11) |
+| `dist-inconclusive-labelling` | built and matches | PF-dist 6: dist-pass read with labelled_lines one below the size of its fold: no profile_violation, labelling unchecked with labelling_refused, both content digests absent; INCONCLUSIVE |
+| `dist-inconclusive-rebuilt` | built and matches | PF-dist 6: the canonical file of a fold with one multi-unit blob read with rebuilt_bytes_per_read one below the charge of its recipe member: exceeds_capacity with total_rebuilt, structure unchecked, integrity intact_unchecked; INCONCLUSIVE |
+| `dist-inconclusive-total` | built and matches | PF-dist 6: dist-pass read with decoded_bytes_per_read below its total decoded length: a frame unchecked with exceeds_capacity and total_decoded; INCONCLUSIVE |
+| `dist-inconclusive-not-implemented` | built and matches | PF-dist 6: dist-not-implemented is INCONCLUSIVE |
+| `dist-sealed-version-1` | built and matches | PF-dist 6: a dist segment of registry version 2 with a sealed frame read by a reader of version 1: unsupported_registry_version, dist_sealed_frame; REFUTED (PF-dist-6) |
+| `dist-sealed-version-2` | built and matches | PF-dist 6: the same file read by a reader of version 2 without the key: the sealed frame opaque, visible incomplete with unopened_sealed 1, dist_sealed_frame; REFUTED (PF-dist-6) |
+| `dist-inconclusive-checks-prefix` | built and matches | dist-pass read by a reader that runs 1, 2, 3 or 4 of the five checks: no finding and canonical verified, as with five, and profiles states the number; INCONCLUSIVE, since checks is below the number of the checks of the profile |
+| `dist-decoded-size-checks-prefix` | built and matches | dist-decoded-size read with decoded_bytes_per_frame 67108865 by a reader that runs 1 to 5 of the checks: the frame is decoded and canonical is verified; with 1 and 2 checks no profile_violation and INCONCLUSIVE, with 3, 4 and 5 dist_decoded_size at the terms frame with the count 67108865 and REFUTED |
+| `dist-inconclusive-not-implemented-decoded-size` | built and matches | dist-decoded-size read at the minimum capacity by a reader that does not implement the profile: exceeds_capacity with decoded_size at the terms frame, one profile_not_checked and no profile_violation; INCONCLUSIVE |
+| `dist-verified-external-blob` | built and matches | a distribution file whose fold declares one blob by an external frame, with its length and media type, and binds a term of the manifest to it: the bytes of the blob are not in the file, the binding resolves with no missing_dependency, integrity is intact; a VERIFIED DISTRIBUTION |
+| `dist-verified-capsule-manifests` | built and matches | a distribution file with two versions of a module, a schema and a permission document as six blobs: with two manifests, one of which binds the module of version 2, the schema of version 1 and the permissions of version 2, and with one manifest whose three parts agree, each read gives no finding and is a VERIFIED DISTRIBUTION; the profile reads no manifest |
+| `dist-other-profile-content` | built and matches | a canonical segment that declares dist and whose fold holds two file entries of equal paths gives no profile finding, since the checks of files do not run in it; a dist segment followed by an evidence segment gives dist_not_alone in the first segment and, in the second, lineage_begins with evidence_lineage |
+
+Totals: built and matches: 27 (27 entries).
