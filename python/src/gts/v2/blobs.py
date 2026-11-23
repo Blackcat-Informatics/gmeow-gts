@@ -11,7 +11,7 @@ import cbor2
 from ._content import ContentError, content_code
 from ._decode import _Decoder, _immutable_octets
 from .frame import Frame
-from .pack import MemberKind, PackMember, _media_type, decode_pack
+from .pack import MemberKind, PackMember, decode_pack
 from .rebuild import (
     IncompleteRebuild,
     RebuildBudget,
@@ -50,7 +50,7 @@ def decode_blob_content(
             algorithm = content_code(decoder, 1, registry_version)
             name = (algorithm, bytes(decoder.bytes(32)))
             return ExternalBlob(
-                name, decoder.uint(), _media_type(decoder, registry_version)
+                name, decoder.uint(), decoder.option(decoder.text_value)
             )
         case 13:
             decoder.record(2)
@@ -70,7 +70,7 @@ def decode_blob_content(
     is_rebuild = member_kind >= MemberKind.RECIPE
     length = decoder.uint() if is_rebuild else frame.decoded_length
     media = (
-        _media_type(decoder, registry_version)
+        decoder.option(decoder.text_value)
         if member_kind in (MemberKind.BLOB, MemberKind.RECIPE)
         else None
     )

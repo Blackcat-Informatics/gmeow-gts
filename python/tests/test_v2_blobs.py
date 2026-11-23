@@ -9,14 +9,29 @@ from pathlib import Path
 import cbor2
 import pytest
 
-from gts.v2 import PayloadBudget, decode_frame
+from gts.v2 import PayloadBudget, decode_frame, decode_header
+from gts.v2._content import ContentError
 from gts.v2.blobs import (
     BlobRead,
     blob_set,
     decode_blob_content,
 )
+from gts.v2.rebuild import unit_digest
+from gts.v2.writer import SegmentWriter
 
 _P4 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P4"
+
+
+def test_blob_media_option_tag_is_fixed_across_registries() -> None:
+    writer = SegmentWriter()
+    writer.append(9, [unit_digest(b""), [3]], b"")
+    raw = writer.to_bytes()
+    frame = decode_frame(raw, decode_header(raw).next_offset, registry_version=2)
+    with pytest.raises(ContentError) as error:
+        decode_blob_content(frame, b"", registry_version=2)
+    assert error.value.reason == "unregistered_value"
+
+
 _FINDINGS = {
     (13, 12): ("damaged_frame", "payload_digest"),
     (13, 14): ("damaged_frame", "blob_length"),
