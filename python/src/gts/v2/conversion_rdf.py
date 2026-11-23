@@ -54,6 +54,12 @@ class TermNote:
     keys: MapValue
 
 
+@dataclass(frozen=True, slots=True)
+class RdfContribution:
+    rows: tuple[Row, ...]
+    notes: tuple[TermNote, ...]
+
+
 def _fields(value: Value) -> dict[str, Value]:
     if isinstance(value, MapValue):
         return {key: field for key, field in value.entries if isinstance(key, str)}
@@ -276,8 +282,8 @@ class ConversionSegment:
         payload: Value,
         *,
         envelope: MapValue = _EMPTY_MAP,
-    ) -> tuple[TermNote, ...]:
-        """Project one decoded RDF payload and return its ignored term keys."""
+    ) -> RdfContribution:
+        """Project one decoded RDF payload and retain its frame contribution."""
         terms, groups = _rows_input(frame_type, payload)
         snapshot = ordinal if frame_type == "snapshot" else None
         _reference_check(
@@ -338,4 +344,4 @@ class ConversionSegment:
         mapped_rows = tuple(self._mapped_rows(groups, base, pending))
         self._lines.add(RowResolution(mapped_rows, frozenset()))
         self._refs.extend(pending)
-        return tuple(notes)
+        return RdfContribution(mapped_rows, tuple(notes))

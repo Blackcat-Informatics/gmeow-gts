@@ -246,9 +246,8 @@ class _Occurrences:
         return self._cache[term_id]
 
 
-def _line_targets(row: Row) -> tuple[tuple[int, ...], tuple[ResolvedSuppression, ...]]:
-    graph: tuple[int, ...] = () if row.graph is None else (row.graph,)
-    options = [ResolvedSuppression(SuppressionKind.GRAPH, graph)] if graph else []
+def exact_line_target(row: Row) -> ResolvedSuppression | None:
+    """Return the resolved entry that targets only this kind of line."""
     terms: tuple[int, ...]
     match row:
         case QuadRow(subject, predicate, object_id, _):
@@ -257,15 +256,26 @@ def _line_targets(row: Row) -> tuple[tuple[int, ...], tuple[ResolvedSuppression,
         case ReifierBindingRow(reifier, triple, _):
             kind = SuppressionKind.REIFIER_BINDING
             terms = (reifier, triple)
-            options.append(ResolvedSuppression(SuppressionKind.REIFIER, (reifier,)))
         case AnnotationRow(_, reifier, predicate, object_id, _):
             kind = SuppressionKind.ANNOTATION
             terms = (reifier, predicate, object_id)
-            options.append(ResolvedSuppression(SuppressionKind.REIFIER, (reifier,)))
         case EmptyGraphRow():
-            return graph, tuple(options)
-    options.append(ResolvedSuppression(kind, terms, graph=row.graph))
-    return (*terms, *graph), tuple(options)
+            return None
+    return ResolvedSuppression(kind, terms, graph=row.graph)
+
+
+def _line_targets(
+    row: Row,
+) -> tuple[tuple[ResolvedLeaf, ...], tuple[ResolvedSuppression, ...]]:
+    graph: tuple[int, ...] = () if row.graph is None else (row.graph,)
+    options = [ResolvedSuppression(SuppressionKind.GRAPH, graph)] if graph else []
+    exact = exact_line_target(row)
+    if exact is None:
+        return graph, tuple(options)
+    if isinstance(row, AnnotationRow | ReifierBindingRow):
+        options.append(ResolvedSuppression(SuppressionKind.REIFIER, (row.reifier,)))
+    options.append(exact)
+    return (*exact.terms, *graph), tuple(options)
 
 
 def _hidden(

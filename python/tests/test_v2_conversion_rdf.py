@@ -31,7 +31,10 @@ _NO_RECORDS = RecordFold(
 
 
 def _segments(name: str):
-    data = (_P9 / f"convert__{name}.bin").read_bytes()
+    return _parse_segments((_P9 / f"convert__{name}.bin").read_bytes())
+
+
+def _parse_segments(data: bytes):
     segments = []
     offset = 0
     while offset < len(data):
@@ -73,7 +76,9 @@ def _project(name: str) -> tuple[ConversionGraph, LineResult]:
             kind, payload = fields["t"], fields.get("d")
             assert "x" not in fields
             if kind in _RDF:
-                notes = rdf.add_frame(kind, frame_ordinal, payload, envelope=frame)
+                notes = rdf.add_frame(
+                    kind, frame_ordinal, payload, envelope=frame
+                ).notes
             else:
                 assert kind in ("index", "meta")
                 notes = ()
