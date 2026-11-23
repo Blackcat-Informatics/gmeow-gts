@@ -96,18 +96,24 @@ def test_pack_corpus(manifest: Path) -> None:
                         assert len(result.to_bytes()) == member.total_length
 
 
-@pytest.mark.parametrize("tag, media", [(5, None), (3, [4])])
-def test_new_registry_distinguishes_unknown_pack_code(
-    tag: int, media: list[int] | None
-) -> None:
-    content = [bytes(32), 2, media, 2] if media is not None else []
-    payload = cbor2.dumps([[[tag, content, 0]], b""])
+def test_new_registry_distinguishes_unknown_member_tag() -> None:
+    payload = cbor2.dumps([[[5, [], 0]], b""])
     with pytest.raises(PackError) as known:
         decode_pack(payload, member_count=1, unit_length=0)
     assert known.value.reason == "unregistered_value"
     with pytest.raises(UnknownContentCode) as newer:
         decode_pack(payload, member_count=1, unit_length=0, registry_version=2)
-    assert newer.value.code == (tag if media is None else media[0])
+    assert newer.value.code == 5
+
+
+def test_media_option_tag_is_fixed_across_registries() -> None:
+    payload = cbor2.dumps([[[3, [bytes(32), 2, [4], 2], 0]], b""])
+    for registry in (1, 2):
+        with pytest.raises(PackError) as error:
+            decode_pack(
+                payload, member_count=1, unit_length=0, registry_version=registry
+            )
+        assert error.value.reason == "unregistered_value"
 
 
 def test_pack_accepts_signed_view_and_owns_mutable_octets() -> None:
