@@ -69,9 +69,6 @@ agrees with the rules of `docs/v2/`. An entry whose `status` is `derived from th
 those rules by hand, because that program was written against an earlier text and gave another value. Where an entry and
 the text differ, the text governs.
 
-Two entries, `P2/registry/retired/signature-trust` and `P2/registry/retired/hash-trust`, do not state which registry table
-their recorded value was made with.
-
 ## What the corpus does not cover
 
 Each entry of `docs/v2/FIXTURES.md` names the corpus entry that holds its files, or says why none does: the entry states a
@@ -94,10 +91,10 @@ not with that program, and agree with the recorded values:
   X-Wing draft (`P8/xwing-kat`);
 - the lineage ordinals of every input of two or more segments, and the lineage findings of their reads.
 
-Not computed a second time: the parity bytes of `P5/parity-stale-equal` and `P5/parity-stale-geometry` before the rewrite
-that made them stale, whose earlier file the corpus does not hold; the recipient entries of `P7/stream-delivery-order` whose
-identifier is zero, which name no key; the refusal of `P3/labelling-width-and-limit`, which the fold decides before any
-labelling.
+Two kinds of bytes of an input were not computed a second time, and no recorded value depends on them: the parity bytes
+of the stale frames of `P5/parity-stale-equal` and `P5/parity-stale-geometry`, which protect data that the corpus does not
+hold and which no reader uses (`docs/v2/P5.md`, "Checking a parity frame"), and the recipient entries of
+`P7/stream-delivery-order` whose identifier is zero, which name no key and which no reader tries.
 
 Behaviour that no entry holds. A member index missing after a full-size sealed pack (`P8/p8-members-layout-missing-small`
 holds the rule at a small size), and a file before and after an append that keeps its parity frames (`P5-27`).

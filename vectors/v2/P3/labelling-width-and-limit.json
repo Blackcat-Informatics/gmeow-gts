@@ -1,7 +1,7 @@
 {
  "name": "labelling-width-and-limit",
  "status": "built and matches",
- "note": "a fold that meets the refusal width and the refusal limit for a not guaranteed input: one labelling_refused, refusal_width",
+ "note": "a fold whose two equal annotation lines have counts 2^64 - 1 and 1, so that their sum passes the refusal width (P3 3.3, P3-31): one labelling_refused with refusal_width; an input refused for its width has no walk (L1 8.3), so the labelling limit does not decide it",
  "cases": [
   {
    "label": "",

@@ -1,7 +1,7 @@
 {
  "name": "registry/retired/hash-trust",
  "status": "built and matches",
- "note": "a table that retires the hash from version 2, read as a reader of registry version 2: a segment with valid trusted signatures: authenticated false for each; links still checked, integrity unchanged",
+ "note": "read by a reader of registry version 2, whose table (P2 section 8) retires no hash algorithm: both valid signatures under trusted keys authenticate, coverage [0, 2), segment authenticity authenticated; a registry version that retires a hash algorithm is not defined, so no entry reads one",
  "cases": [
   {
    "label": "",
@@ -18,6 +18,9 @@
     "formed_bytes_per_read": 137438953472,
     "labelled_bytes_per_read": 137438953472,
     "access": "whole"
+   },
+   "read": {
+    "registry_version": 2
    },
    "expected": null,
    "result": {},
