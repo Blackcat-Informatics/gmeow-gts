@@ -19,6 +19,15 @@ type WireReason = Literal[
 ]
 
 
+def _immutable_octets(data: bytes | memoryview) -> bytes | memoryview:
+    """Retain octets independently of the caller's view and any mutable backing."""
+    if isinstance(data, bytes):
+        return data
+    if isinstance(data.obj, bytes) and data.c_contiguous:
+        return data.cast("B")
+    return bytes(data)
+
+
 class WireError(ValueError):
     """A malformed wire field and its position."""
 
@@ -31,7 +40,9 @@ class WireError(ValueError):
 class _Decoder:
     """A cursor over the deterministic GTS grammar, with checks in byte order."""
 
-    def __init__(self, data: bytes, offset: int, error: type[WireError]) -> None:
+    def __init__(
+        self, data: bytes | memoryview, offset: int, error: type[WireError]
+    ) -> None:
         self.error = error
         self.data = data
         self.offset = offset
@@ -42,7 +53,7 @@ class _Decoder:
         if end > len(self.data):
             raise self.error("wrong_length", start)
         self.offset = end
-        return self.data[start:end]
+        return bytes(self.data[start:end])
 
     def _head(self, major_type: int) -> int:
         start = self.offset

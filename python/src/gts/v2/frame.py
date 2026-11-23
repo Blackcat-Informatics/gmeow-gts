@@ -205,7 +205,7 @@ def _signatures(decoder: _Decoder, *, newer: bool) -> tuple[Signature, ...]:
         algorithm = _registry_code(decoder, 2, newer)
         key_id = bytes(decoder.bytes(32))
         value = decoder.bytes()
-        encoded = decoder.data[start : decoder.offset]
+        encoded = bytes(decoder.data[start : decoder.offset])
         if encoded <= previous:
             raise FrameError("unordered_or_repeated", start)
         previous = encoded

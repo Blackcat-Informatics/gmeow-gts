@@ -89,7 +89,7 @@ class _ResyncDecoder(_Decoder):
         if end <= self.limit:
             encoded = self._take(size)
         else:
-            encoded = self.data[body : self.limit]
+            encoded = bytes(self.data[body : self.limit])
         try:
             # A partial code point at the cap is not an earlier UTF-8 error.
             codecs.utf_8_decode(encoded, "strict", end <= self.limit)
@@ -169,7 +169,7 @@ def _read_marks(
 
         # Complete CBOR items cannot be proper prefixes of each other. The
         # earlier mark's length is enough to decide order and duplication.
-        prefix = decoder.data[start : start + len(previous)]
+        prefix = bytes(decoder.data[start : start + len(previous)])
         if previous and prefix <= previous:
             raise ResyncError("unordered_or_repeated", start)
 
@@ -177,7 +177,7 @@ def _read_marks(
             decoder.closed_item()
         if decoder.offset > decoder.limit:
             raise ResyncError("out_of_range", decoder.limit)
-        previous = decoder.data[start : decoder.offset]
+        previous = bytes(decoder.data[start : decoder.offset])
         mark = _applicable_mark(previous, stated_offset)
         if mark is not None:
             marks.append(mark)

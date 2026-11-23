@@ -7,7 +7,7 @@ from typing import Literal
 
 from blake3 import blake3
 
-from ._decode import WireError, _Decoder
+from ._decode import WireError, _Decoder, _immutable_octets
 
 _MAX_UINT = (1 << 64) - 1
 _UNIT_CONTEXT = "gts2 unit"
@@ -28,11 +28,16 @@ class Entry:
 
 
 def decode_entries(
-    payload: bytes, *, kind: RebuildKind, entry_count: int, total_length: int
+    payload: bytes | memoryview,
+    *,
+    kind: RebuildKind,
+    entry_count: int,
+    total_length: int,
 ) -> tuple[Entry, ...]:
     """Validate the decoded entry list against its enclosing declaration."""
     if entry_count < (2 if kind == "recipe" else 1):
         raise EntryListError("out_of_range", 0)
+    payload = _immutable_octets(payload)
     cursor = _Decoder(payload, 0, EntryListError)
     length = cursor.array()
     entries = []
@@ -77,11 +82,7 @@ class UnitIndex:
         result means the copy has the P4 payload_digest finding. Index all units
         of a pack before processing any declaration in that pack.
         """
-        if isinstance(data, memoryview):
-            if isinstance(data.obj, bytes) and data.c_contiguous:
-                data = data.cast("B")
-            else:
-                data = bytes(data)
+        data = _immutable_octets(data)
         if unit_digest(data) != digest:
             return False
         self._units.setdefault(digest, _VerifiedUnit(position, data))
