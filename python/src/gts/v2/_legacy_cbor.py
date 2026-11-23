@@ -135,7 +135,10 @@ def _simple(argument: int, additional: int) -> Value:
 
 def decode_legacy_item(data: bytes, offset: int = 0) -> LegacyItem:
     """Read one item without tag coercions, numeric key collisions or a depth cap."""
-    end = item_end(data, offset)
+    return _decode_framed_item(data, offset, item_end(data, offset))
+
+
+def _decode_framed_item(data: bytes, offset: int, end: int) -> LegacyItem:
     position = offset
     groups: list[_Group] = []
     while position < end:

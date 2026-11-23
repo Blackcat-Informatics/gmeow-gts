@@ -10,6 +10,7 @@ selected peak and aggregate root without reading the original GTS file.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -67,6 +68,20 @@ def _root_hash(count: int, peaks: tuple[MmrPeak, ...]) -> bytes:
     """Hash the aggregate root over count and ordered peak hashes."""
     peak_values = [[peak.height, peak.hash] for peak in peaks]
     return blake3_256(canonical([ROOT_DOMAIN, count, peak_values]))
+
+
+def root_for_ids(frame_ids: Iterable[bytes]) -> bytes:
+    """Compute the first-generation index root for an ordered frame prefix."""
+    peaks: list[MmrPeak] = []
+    count = 0
+    for count, identifier in enumerate(frame_ids, start=1):
+        peak = MmrPeak(0, _leaf_hash(count - 1, identifier))
+        while peaks and peaks[-1].height == peak.height:
+            left = peaks.pop()
+            height = peak.height + 1
+            peak = MmrPeak(height, _parent_hash(height, left.hash, peak.hash))
+        peaks.append(peak)
+    return _root_hash(count, tuple(peaks))
 
 
 def _expected_peak_heights(count: int) -> list[int]:
