@@ -8,6 +8,7 @@ use gmeow_gts::{
     v2::{
         decode_header,
         frame::{decode_frame, encode_plain_frame, Storage},
+        writer::{SegmentWriteError, SegmentWriter},
         MalformedReason,
     },
     wire,
@@ -49,6 +50,55 @@ fn frame_identifiers_and_plain_payloads_match_the_published_chain() {
         count += 1;
     }
     assert!(count >= 2);
+}
+
+#[test]
+fn segment_writer_reproduces_commit_prefixes_in_the_corpus() {
+    for name in [
+        "P5/commit-valid.bin",
+        "P5/range-transparent.no-parity.bin",
+        "P5/range-transparent.with-parity.bin",
+        "P3/state-prefix-fold.bin",
+    ] {
+        let data = vector(name);
+        let mut offset = 0;
+        while offset < data.len() {
+            let start = offset;
+            let header = decode_header(&data, offset).expect("header");
+            let mut writer = SegmentWriter::new(header.header).expect("write header");
+            offset = header.next_offset;
+            assert_eq!(
+                writer.head(),
+                &header.identifier.expect("header identifier")
+            );
+            assert_eq!(
+                writer.append(14, &[], &[]),
+                Err(SegmentWriteError::CommitRequired)
+            );
+            assert!(matches!(
+                writer.append(8, &[0x80], b"data"),
+                Err(SegmentWriteError::Frame(_))
+            ));
+
+            while data[offset..].starts_with(&[0x8b, 0x02]) {
+                let frame = decode_frame(&data, offset, 1).expect("frame");
+                let previous_head = *writer.head();
+                let identifier = if frame.frame_type == 14 {
+                    writer.commit().expect("write computed commit")
+                } else {
+                    writer
+                        .append(frame.frame_type, frame.content, frame.stored_payload)
+                        .expect("write frame")
+                };
+                assert_eq!(&identifier, frame.identifier);
+                if frame.transparent {
+                    assert_eq!(writer.head(), &previous_head);
+                }
+                offset = frame.next_offset;
+            }
+            assert_eq!(writer.as_bytes(), &data[start..offset], "{name}");
+        }
+    }
 }
 
 #[test]

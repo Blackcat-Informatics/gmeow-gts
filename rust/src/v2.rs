@@ -10,6 +10,7 @@ use ciborium::value::Value;
 use crate::wire;
 
 pub mod frame;
+pub mod writer;
 
 const REGISTRY_VERSION: u64 = 1;
 const BLAKE3_256: u64 = 1;
