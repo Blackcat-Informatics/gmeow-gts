@@ -1,0 +1,19 @@
+ghprsq source head backlink metadata
+
+parent_hashes: 19502cfdb5d418525d3481e7831f5200a78ad8f6
+
+GhpRsq-Schema: 1
+GhpRsq-Merge-Style: structured-squash-head-backlink
+GhpRsq-GitHub-Repo: Blackcat-Informatics/gmeow-gts
+GhpRsq-GitHub-Pull-Request: 551
+GhpRsq-GitHub-PR-URL: https://github.com/Blackcat-Informatics/gmeow-gts/pull/551
+GhpRsq-Base-Ref: main
+GhpRsq-Base-OID: f887abc40d4f0083569c4c6114f905dd388c3090
+GhpRsq-Head-Ref: paudley/v2-python-fold-labelling
+GhpRsq-Head-OID: 19502cfdb5d418525d3481e7831f5200a78ad8f6
+GhpRsq-Result-Tree: dda7f114fb34d00d5338ab5d2ffdab9b1280fda4
+GhpRsq-Result-Commit: 84ef9e5d10b649e01ede7532dd17b1f4fceed86c
+GhpRsq-Parent-Hashes: 19502cfdb5d418525d3481e7831f5200a78ad8f6
+GhpRsq-Squash-Notes-SHA256: e14f9aa53b578306b6512044d81f85305cf8f0244c6f987caf67acd8a2dd9f79
+GhpRsq-Defect-Class: none
+GhpRsq-Stage-Evidence: none
