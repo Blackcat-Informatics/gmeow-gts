@@ -10,10 +10,12 @@ import pytest
 from gts.v2 import PayloadBudget, decode_frame, decode_header
 from gts.v2.index_claims import IndexStatistics
 from gts.v2.items import classify_item
+from gts.v2.rebuild import unit_digest
 from gts.v2.rows import AnnotationRow, EmptyGraphRow, QuadRow, encode_rows
 from gts.v2.writer import SegmentWriter
 
 P5 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P5"
+P7 = P5.parent / "P7"
 
 
 @pytest.mark.parametrize(
@@ -47,10 +49,10 @@ def test_locator_without_index_cannot_be_written() -> None:
         SegmentWriter().to_bytes(locator=True)
 
 
-def test_build_index_reproduces_canonical_construction() -> None:
-    data = (P5.parent / "P7" / "canonical__construction.bin").read_bytes()
+def test_writer_reproduces_canonical_construction() -> None:
+    data = (P7 / "canonical__construction.bin").read_bytes()
     opener = decode_header(data)
-    writer = SegmentWriter(opener.header, collect_index=True)
+    writer = SegmentWriter(opener.header, collect_index=True, compress=True)
     budget = PayloadBudget(
         stored_bytes_per_frame=len(data),
         decoded_bytes_per_frame=len(data),
@@ -62,8 +64,6 @@ def test_build_index_reproduces_canonical_construction() -> None:
         decoded = budget.check(frame).decoded
         assert decoded is not None
         if frame.frame_type == 15:
-            expected_index = frame
-            expected_payload = decoded
             break
         if frame.frame_type == 14:
             identifier = writer.commit()
@@ -77,13 +77,44 @@ def test_build_index_reproduces_canonical_construction() -> None:
     digest = bytes.fromhex(
         "0f3a76a6062fb6d4dfd92ac4b3d432fe51f8cd98e3216815e706cfdc3fb2ebb8"
     )
-    index_offset = len(writer.to_bytes())
-    assert writer.append_index(IndexStatistics(3, 2, 1), content_digest=digest) == (
-        expected_index.identifier
+    assert (
+        writer.append_index(IndexStatistics(3, 2, 1), content_digest=digest)
+        == frame.identifier
     )
-    index = decode_frame(writer.to_bytes(), index_offset)
-    assert index.content == expected_index.content
-    assert index.stored_payload == expected_payload
+    assert writer.to_bytes(parity=True, offsets=True, locator=True) == data
+
+
+@pytest.mark.parametrize(
+    ("label", "compressed"),
+    [
+        ("zeros-63", False),
+        ("zeros-64", True),
+        ("incompressible-64", False),
+        ("saves-16", False),
+        ("saves-17", True),
+    ],
+)
+def test_storage_choice_keeps_identity(label: str, compressed: bool) -> None:
+    stem = f"canonical__constants__storage-choice.{label}"
+    payload = (P7 / f"{stem}.decoded.bin").read_bytes()
+    expected = (P7 / f"{stem}.stored.bin").read_bytes()
+    writer = SegmentWriter(compress=True)
+    offset = len(writer.to_bytes())
+    content = [unit_digest(payload)]
+    identifier = writer.append(8, content, payload)
+    assert SegmentWriter().append(8, content, payload) == identifier
+
+    frame = decode_frame(writer.to_bytes(), offset)
+    assert (frame.storage is not None) == compressed
+    assert frame.stored_payload == expected
+    budget = PayloadBudget(
+        stored_bytes_per_frame=128,
+        decoded_bytes_per_frame=128,
+        decoded_bytes_per_read=128,
+    )
+    checked = budget.check(frame)
+    assert checked.stored_matches is (True if compressed else None)
+    assert checked.decoded == payload
 
 
 def test_index_extends_graph_ranges_across_frames_of_the_same_type() -> None:

@@ -2,35 +2,53 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Write a header-led GTS v2 segment with its links and closing items."""
 
-from .frame import _COMMIT, _PARITY, _encode_plain_frame
+from zstandard import ZstdCompressionParameters, ZstdCompressor
+
+from .frame import _COMMIT, _PARITY, _encode_frame
 from .header import Header, decode_header, encode_header
 from .index_claims import IndexStatistics, _IndexClaims
 from .items import encode_locator, encode_offsets
+from .parity_write import _place_parity
 from .range import RangeAccumulator
 
 _INDEX = 15
 
 
 class SegmentWriter:
-    """Assemble a new segment of unsigned, uncompressed v2 frames.
+    """Assemble a new segment of unsigned v2 frames.
 
     The writer derives wire links, commit counts and roots, and byte offsets.
     The caller supplies the records and payloads defined by each frame type.
+    Enable compression to apply the P7 size threshold with the runtime's encoder.
+    The byte-for-byte reference form requires the encoder defined in P7.
     """
 
     def __init__(
-        self, header: Header | None = None, *, collect_index: bool = False
+        self,
+        header: Header | None = None,
+        *,
+        collect_index: bool = False,
+        compress: bool = False,
     ) -> None:
         encoded = encode_header(Header() if header is None else header)
         identifier = decode_header(encoded).identifier
         if identifier is None:
             raise ValueError("segment writer requires a supported hash algorithm")
         self._items = [encoded]
-        self._length = len(encoded)
+        self._opener = identifier
         self._head = identifier
         self._range = RangeAccumulator(identifier)
         self._last_index: int | None = None
         self._index_claims = _IndexClaims() if collect_index else None
+        self._compressor = (
+            ZstdCompressor(
+                compression_params=ZstdCompressionParameters(
+                    compression_level=12, window_log=26
+                )
+            )
+            if compress
+            else None
+        )
 
     @property
     def head(self) -> bytes:
@@ -38,8 +56,8 @@ class SegmentWriter:
         return self._head
 
     def _append(self, frame_type: int, content: list[object], payload: bytes) -> bytes:
-        encoded, identifier = _encode_plain_frame(
-            self._head, frame_type, content, payload
+        encoded, identifier = _encode_frame(
+            self._head, frame_type, content, payload, compressor=self._compressor
         )
         if frame_type != _PARITY:
             if self._index_claims is not None:
@@ -47,9 +65,8 @@ class SegmentWriter:
             self._range.append(identifier)
             self._head = identifier
         if frame_type == _INDEX:
-            self._last_index = self._length
+            self._last_index = len(self._items)
         self._items.append(encoded)
-        self._length += len(encoded)
         return identifier
 
     def append(self, frame_type: int, content: list[object], payload: bytes) -> bytes:
@@ -73,15 +90,26 @@ class SegmentWriter:
         payload = self._index_claims.payload(statistics, root.digest, content_digest)
         return self._append(_INDEX, [root.count - 1, self._head], payload)
 
-    def to_bytes(self, *, offsets: bool = False, locator: bool = False) -> bytes:
-        """Materialize the segment and any requested closing records."""
+    def to_bytes(
+        self, *, offsets: bool = False, locator: bool = False, parity: bool = False
+    ) -> bytes:
+        """Materialize a segment snapshot with optional parity and closing items.
+
+        Enable parity when writing a new segment or rewriting a whole segment.
+        For a persisted append, preserve the existing parity frames.
+        """
         if locator and self._last_index is None:
             raise ValueError("a locator requires an index frame")
+        items, index = (
+            _place_parity(self._items, self._opener, self._last_index)
+            if parity
+            else (self._items, self._last_index)
+        )
         closing = []
         if offsets:
-            closing.append(encode_offsets([len(item) for item in self._items]))
+            closing.append(encode_offsets([len(item) for item in items]))
         if locator:
-            assert self._last_index is not None
-            position = self._length + sum(map(len, closing))
-            closing.append(encode_locator(position - self._last_index))
-        return b"".join([*self._items, *closing])
+            assert index is not None
+            distance = sum(map(len, items[index:])) + sum(map(len, closing))
+            closing.append(encode_locator(distance))
+        return b"".join([*items, *closing])
