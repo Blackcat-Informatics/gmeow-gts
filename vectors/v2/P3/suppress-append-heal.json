@@ -1,7 +1,7 @@
 {
  "name": "suppress-append-heal",
  "status": "built and matches",
- "note": "the last frame's identifier field is damaged: it is broken (nothing follows) and the pair naming its computed identifier is unnamed; a frame appended heals it and the pair is named; the pair naming the stored identifier is unnamed in both; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
+ "note": "the last frame's identifier field is damaged: it is broken (nothing follows) and the pair naming its computed identifier is unnamed; a frame appended heals it and the pair is named; the pair naming the stored identifier is unnamed in both; a segment whose header names no lineage begins a lineage (P1 2.4, lineage_begins), a finding of P1 that the input gives",
  "cases": [
   {
    "label": "before",

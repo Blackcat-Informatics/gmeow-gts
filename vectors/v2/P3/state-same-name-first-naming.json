@@ -1,7 +1,7 @@
 {
  "name": "state-same-name-first-naming",
  "status": "built and matches",
- "note": "the first segment's broken frame keeps its stored identifier, so both commits have one identifier; the commit of the first names no state, the referent resolves to the state the commit of the second names; a segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives",
+ "note": "the first segment's broken frame keeps its stored identifier, so both commits have one identifier; the commit of the first names no state, the referent resolves to the state the commit of the second names; a segment whose header names no lineage begins a lineage (P1 2.4, lineage_begins), a finding of P1 that the input gives",
  "cases": [
   {
    "label": "",

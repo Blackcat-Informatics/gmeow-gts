@@ -1,7 +1,7 @@
 {
  "name": "bindings-referent-other-segment",
  "status": "built and matches",
- "note": "a second segment whose header names no lineage begins a lineage (P5 lineage_begins), a finding of P5 that the input gives; the later segment has a header without lineage, so that its identifiers are known before the earlier one is written",
+ "note": "a second segment whose header names no lineage begins a lineage (P1 2.4, lineage_begins), a finding of P1 that the input gives; the later segment has a header without lineage, so that its identifiers are known before the earlier one is written",
  "cases": [
   {
    "label": "",
