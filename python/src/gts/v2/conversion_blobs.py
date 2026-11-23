@@ -12,7 +12,7 @@ from ._legacy_cbor import InvalidText, MapValue, Value, encode_legacy_value
 from .blobs import BlobDeclaration, BlobLocation
 from .conversion_graph import ConversionGraph
 from .rebuild import unit_digest
-from .record_fold import ResolvedBinding
+from .record_fold import RecordLocation, ResolvedBinding
 from .records import BlobReference
 
 _EMPTY_MAP = MapValue(())
@@ -42,9 +42,17 @@ class _Declaration:
 
 
 @dataclass(frozen=True, slots=True)
+class BlobImage:
+    node: int | None
+    reference: BlobReference | None
+
+
+@dataclass(frozen=True, slots=True)
 class ConvertedBlobs:
     declarations: tuple[BlobDeclaration, ...]
     bindings: frozenset[ResolvedBinding]
+    images: dict[_Digest, BlobImage]
+    frames: dict[RecordLocation, list[BlobImage]]
 
 
 def _matches(value: Value, digest: bytes) -> bool:
@@ -102,6 +110,10 @@ class ConversionBlobs:
         """Remember a stored frame identifier or a digest in a digest position."""
         if isinstance(value, bytes) and len(value) == 32:
             self._held[_digest_text(value)] = value
+
+    def resolve_digest(self, value: _Digest) -> _Digest:
+        """Resolve a digest position against all digests held by the source."""
+        return self._held.get(value, value) if isinstance(value, str) else value
 
     def add_frame(
         self, frame: MapValue, payload: Value, location: BlobLocation
@@ -188,13 +200,13 @@ class ConversionBlobs:
         """Merge declarations and add their RDF and v2 blob bindings."""
         groups: dict[_Digest, list[_Declaration]] = {}
         for declaration in self._declarations:
-            digest = declaration.digest
-            if isinstance(digest, str):
-                digest = self._held.get(digest, digest)
+            digest = self.resolve_digest(declaration.digest)
             groups.setdefault(digest, []).append(declaration)
 
         declarations = []
         bindings = set()
+        images = {}
+        frames: dict[RecordLocation, list[BlobImage]] = {}
         stop = self._stop
         merged = []
         for digest, group in groups.items():
@@ -214,11 +226,16 @@ class ConversionBlobs:
             media_type = _blob_text(fields, "mt")
             representation = _blob_text(fields, "rep")
             extra = extensions(pub, _BLOB_FIELDS)
+            node = None
+            reference = None
             if held is None:
-                graph.add_blob(digest, media_type, representation, extra, external=True)
+                node = graph.add_blob(
+                    digest, media_type, representation, extra, external=True
+                )
             else:
                 assert held.body is not None
                 name = (1, unit_digest(held.body))
+                reference = BlobReference(*name)
                 declarations.append(
                     BlobDeclaration(
                         held.location,
@@ -233,8 +250,14 @@ class ConversionBlobs:
                     node = graph.add_blob(
                         digest, None, representation, extra, external=False
                     )
-                    bindings.add(ResolvedBinding(node, BlobReference(*name)))
-        return ConvertedBlobs(tuple(declarations), frozenset(bindings))
+                    bindings.add(ResolvedBinding(node, reference))
+            images[digest] = BlobImage(node, reference)
+            for item in groups[digest]:
+                location = RecordLocation(item.location.segment, item.location.position)
+                frames.setdefault(location, []).append(
+                    BlobImage(node, reference if item.body is not None else None)
+                )
+        return ConvertedBlobs(tuple(declarations), frozenset(bindings), images, frames)
 
 
 def _blob_text(fields: dict[str, Value], key: str) -> str | None:
