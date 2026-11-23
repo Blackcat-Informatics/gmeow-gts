@@ -10,8 +10,9 @@ from gts.v2._certificates import (
     compare_certificates,
     component_certificates,
 )
+from gts.v2._labelling_result import label_unlimited
 from gts.v2._twins import TwinIndex
-from gts.v2.labelling import Blank, Iri, LabellingInput, LabellingTerms
+from gts.v2.labelling import Blank, Iri, LabellingInput, LabellingTerms, RecordLine
 from gts.v2.rows import QuadRow
 
 
@@ -159,3 +160,88 @@ def test_nested_twin_class_counts_every_attaining_child() -> None:
     ]
     assert branch_sizes == [(0, 0), (6, 6), (5, 5), (4, 4), (3, 3), (2, 2)]
     assert list(canonical_map((component,))) == [b"hub", *nodes]
+
+
+def test_structural_record_counts_top_copies_and_repeated_failures() -> None:
+    # Section 12.2 has two isomorphic components that each fail the twin test.
+    source = _graph(
+        [
+            (b"a", b"b"),
+            (b"b", b"c"),
+            (b"c", b"a"),
+            (b"x", b"y"),
+            (b"y", b"z"),
+            (b"z", b"x"),
+        ]
+    )
+    result = label_unlimited(source)
+    stats = result.statistics
+    assert (stats.calls, stats.chosen_children) == ((0, 0, 2), (2, 0))
+    assert (stats.size_histogram, stats.top_multiplicities) == (((1, 2),), (2,))
+    assert stats.group_order == ((0, 3, 2), (1, 2, 1))
+    assert (stats.units, stats.allowance) == ((18, 40, 30, 30), 318)
+    assert stats.broken_by == ((0, 3, 3, 3), (0, 3, 3, 3))
+    assert result.diagnostic == (((0, 3, 3, 3), b"a", b"a"), ((0, 3, 3, 3), b"x", b"x"))
+    assert not stats.guaranteed
+    assert result.sequence.digest.hex() == (
+        "aad8fba9f3f9b55f69d2d2d7bdbc48f43f5164eaec2b947ce5870077c50501fd"
+    )
+
+
+def test_structural_record_counts_nested_symmetry_and_work_parts() -> None:
+    # Section 12.6 has a branching component and a forest, each with equal siblings.
+    arcs = list(product((b"a1", b"a2"), (b"b1", b"b2")))
+    arcs.extend([(b"u", b"c1"), (b"v1", b"c1"), (b"u", b"c2"), (b"v2", b"c2")])
+    result = label_unlimited(_graph(arcs))
+    first, second = result.components
+    assert first.dimensions.largest_cell == 2
+    assert not first.dimensions.forest
+    assert second.dimensions.forest
+    assert (second.dimensions.singled_out, second.dimensions.unsettled) == (1, 4)
+    assert [
+        (part.nestings, part.nesting_depth, part.branching_depth)
+        for part in result.components
+    ] == [
+        (((2,),), 1, 1),
+        (((2,),), 1, 0),
+    ]
+    assert (first.units, second.units) == ((12, 26, 19, 20), (12, 26, 21, 20))
+    stats = result.statistics
+    assert (stats.calls, stats.chosen_children) == ((4, 1, 1), (0, 1))
+    assert stats.group_order == ((0, 2, 1), (1, 2, 2))
+    assert (stats.units, stats.allowance) == ((24, 52, 48, 40), 476)
+    assert (stats.blank_bearing_lines, stats.blank_bearing_bytes) == (8, 112)
+    assert stats.guaranteed and not result.diagnostic
+
+
+def test_search_free_failures_use_path_positions_in_each_sibling() -> None:
+    cycles = [
+        (b"b", b"c"),
+        (b"c", b"d"),
+        (b"d", b"b"),
+        (b"e", b"f"),
+        (b"f", b"g"),
+        (b"g", b"e"),
+    ]
+    hub = [(b"a", node) for node, _ in cycles]
+    result = label_unlimited(_graph(cycles + hub))
+    failure = (1, 3, 7, 12)
+    assert result.diagnostic == ((failure, b"a", b"b"), (failure, b"a", b"e"))
+    assert result.statistics.broken_by == (failure, failure)
+
+
+def test_structural_record_distinguishes_incidences_from_occurrences() -> None:
+    terms = LabellingTerms()
+    blank = terms.add(Blank(b"b"))
+    source = LabellingInput(
+        terms, [RecordLine(b"", (blank, blank)), RecordLine(b"", ())]
+    )
+    result = label_unlimited(source)
+    (component,) = result.components
+    assert component.dimensions.label_elements == 2
+    assert component.dimensions.incidences == 1
+    assert component.dimensions.line_bytes == 19
+    assert component.dimensions.forest
+    assert result.statistics.units == (4, 4, 3, 6)
+    assert result.statistics.allowance == 39
+    assert len(result.sequence.encodings) == 2

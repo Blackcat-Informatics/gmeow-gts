@@ -27,7 +27,8 @@ class TwinIndex:
                 self._incident[node].add(line)
                 if node not in self._names:
                     self._names[node] = len(self._names)
-            self._charges[line] = 1 + (len(source.mask(line, {})) + 7) // 8
+            length, _ = source.free_shape(line)
+            self._charges[line] = 1 + (length + 7) // 8
         self._encoded.update(source.mask(line, self._names) for line in self._charges)
 
     def test(self, left: bytes, right: bytes) -> tuple[bool, int]:
