@@ -32,7 +32,7 @@ GtsV2GraphClaims >> observe: event position: position report: report [
 		on: GtsV2FramingError do: [ :error | GtsV2EnvelopeError signal: 'wrong_length' ] ]
 		on: GtsV2EnvelopeError do: [ :error |
 			self markUncompared.
-			report value: 'malformed_value (', error messageText, ')'.
+			report value: error messageText.
 			^ self ].
 	(type = 4 and: [ columns first size > 1 and: [ identity isComplete not ] ])
 		ifTrue: [ ^ self markUncompared ].
