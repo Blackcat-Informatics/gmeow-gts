@@ -1106,6 +1106,10 @@ def read_content(
 
     The result retains generation dispatch, damage, and graph states named by
     resolved bindings, and reports authentication and suppression separately.
+
+    ``first_and_second`` is passed to ``read_wire`` and defaults to true: a
+    first-generation input is reported as a ``first_generation`` decision for
+    the legacy reader. With false it is refused as ``unsupported_generation``.
     """
     wire = read_wire(
         data,

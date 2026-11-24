@@ -430,7 +430,13 @@ def read_wire(
     """Walk GTS v2 bytes and check openers, links, payloads and closing claims.
 
     A legacy dispatch is returned to the caller for the first-generation reader.
-    The wire observations are inputs to parity recovery, content folding and
+    With the default ``first_and_second=True``, input whose first item is a
+    first-generation record (``{"v": 1}``) opens as ``first_generation``, the
+    decision that hands the bytes to the legacy reader; readers keep reading
+    older generations. With ``first_and_second=False`` the same input opens as
+    ``unsupported_generation``, refused as a format generation the caller does
+    not read. Later or unknown generations are ``unsupported_generation`` either
+    way. The wire observations are inputs to parity recovery, content folding and
     construction of the typed read result.
     """
     if type(items_per_read) is not int or not 0 <= items_per_read < 1 << 64:
