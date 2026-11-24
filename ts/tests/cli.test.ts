@@ -195,6 +195,93 @@ test("CLI verify reports diagnostics for damaged vector", () => {
     assert.match(r.stdout + r.stderr, /DamagedFrame/);
 });
 
+test("CLI verify checks v2 commits and reports ordinary uncommitted frames", () => {
+    const p5 = join(vectorsDir, "v2", "P5");
+    const r = run([
+        "verify",
+        join(vectorsDir, "15-two-segment-union.gts"),
+        join(p5, "commit-valid.bin"),
+        join(p5, "commit-none.bin"),
+        join(p5, "commit-canonical-tail.bin"),
+    ]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /15-two-segment-union\.gts: 2 segment\(s\)/);
+    assert.match(
+        r.stdout,
+        /commit-valid\.bin:[^\n]*\n  segment 0: committed_frames 3, uncommitted_tail 1, index claims unchecked/,
+    );
+    assert.match(
+        r.stdout,
+        /commit-none\.bin:[^\n]*\n  segment 0: no_commit, uncommitted_tail 2/,
+    );
+    assert.match(
+        r.stdout,
+        /commit-canonical-tail\.bin:[^\n]*\n  segment 0: committed_frames 2, index claims unchecked/,
+    );
+});
+
+test("CLI verify refuses v2 wire damage and false commit claims", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const p5 = join(vectorsDir, "v2", "P5");
+    const r = run([
+        "verify",
+        join(p1, "link-healed.bin"),
+        join(p1, "zstd-trailing-byte.bin"),
+        join(p1, "torn-after-frames.bin"),
+        join(p5, "commit-count-mismatch.bin"),
+        join(p5, "commit-root-mismatch.bin"),
+        join(p5, "commit-payload-nonempty.bin"),
+        join(p5, "locator-closing-index.bin"),
+    ]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /link-healed\.bin: byte \d+: link healed/);
+    assert.match(
+        r.stderr,
+        /zstd-trailing-byte\.bin: byte \d+: payload decode_failed/,
+    );
+    assert.match(r.stderr, /torn-after-frames\.bin: byte \d+: torn_tail/);
+    assert.match(
+        r.stdout,
+        /torn-after-frames\.bin:[^\n]*\n  segment 0: no_commit, uncommitted_tail 3/,
+    );
+    assert.match(
+        r.stderr,
+        /commit-count-mismatch\.bin: byte \d+: commit_count_mismatch \(expected 2\)/,
+    );
+    assert.match(
+        r.stderr,
+        /commit-root-mismatch\.bin: byte \d+: commit_root_mismatch/,
+    );
+    assert.match(
+        r.stderr,
+        /commit-payload-nonempty\.bin: byte \d+: out_of_range/,
+    );
+    assert.match(
+        r.stderr,
+        /locator-closing-index\.bin: byte \d+: unsupported locator claim/,
+    );
+});
+
+test("CLI verify refuses unsupported v2 key verification and later generations", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const r = run([
+        "verify",
+        "--key",
+        `example:${"00".repeat(32)}`,
+        join(p1, "gen-record-two.bin"),
+        join(p1, "gen-record-three.bin"),
+    ]);
+    assert.equal(r.code, 1);
+    assert.match(
+        r.stderr,
+        /gen-record-two\.bin: --key is unsupported for GTS v2/,
+    );
+    assert.match(
+        r.stderr,
+        /gen-record-three\.bin: unsupported GTS generation 3/,
+    );
+});
+
 test("CLI verify-proof accepts the positive proof fixture", () => {
     const r = run([
         "verify-proof",

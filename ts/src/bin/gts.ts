@@ -34,6 +34,7 @@ import {
 import type { Graph, FileSegments } from "../reader.js";
 import { TermKind, type Quad, type Suppression } from "../model.js";
 import { printFramingInfo } from "./v2_info.js";
+import { verifyV2 } from "./v2_verify.js";
 import { inspectFraming } from "../v2_framing.js";
 import { projectRdf, rdfNQuads } from "../v2_rdf_projection.js";
 import { RdfProjectionError } from "../v2_rdf_cursor.js";
@@ -575,6 +576,11 @@ function cmdVerify(args: string[]): number {
     let problems = false;
     for (const path of paths) {
         const data = load(path);
+        const v2Clean = verifyV2(path, data, keys.size > 0);
+        if (v2Clean !== undefined) {
+            if (!v2Clean) problems = true;
+            continue;
+        }
         const fs = ReadFileSegments(data);
         printLedger(path, fs);
         if (hasProblems(fs)) problems = true;
