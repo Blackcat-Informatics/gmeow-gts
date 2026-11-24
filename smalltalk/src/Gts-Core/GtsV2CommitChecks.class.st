@@ -97,12 +97,17 @@ GtsV2CommitChecks >> observe: event findingsDo: aBlock [
 
 { #category : #validating }
 GtsV2CommitChecks >> observe: event classifiedFindingsDo: aBlock [
+	^ self observe: event rowsDo: [ :columns | ] classifiedFindingsDo: aBlock
+]
+
+{ #category : #validating }
+GtsV2CommitChecks >> observe: event rowsDo: rows classifiedFindingsDo: aBlock [
 	| identifier validCommit |
 	validCommit := false.
 	position := position + 1.
 	identifier := event effectiveIdentifier.
 	(checkIndexes and: [ event frameType isNotNil and: [ event frameType between: 1 and: 5 ] ]) ifTrue: [
-		graphs observe: event position: range leafCount - 1 report: [ :code :reason |
+		graphs observe: event position: range leafCount - 1 rowsDo: rows report: [ :code :reason |
 			aBlock value: code value: reason value: position value: nil ] ].
 	(checkIndexes and: [ identifier isNotNil and: [ event frameType = 13 ] ]) ifTrue: [
 		packs observe: event position: range leafCount - 1 report: [ :code :reason |

@@ -80,6 +80,9 @@ For registry version 1, it includes commit and structural index findings
 and exposes the committed frame count through `committedFramesAt:`.
 It checks declared canonical order for quads, reifier bindings, and
 annotations within a frame and across consecutive frames of its type.
+For registry version 1, it reports undefined, unreadable, and out-of-position
+term IDs in rows, including the whole-read rules for broken links and
+dictionary doubt. Rows that depend on rebuilding values require resolution.
 The report checks the content record and payload grammar of each eligible
 `terms` frame. It checks the run and block counts before forming texts and
 charges copied prefixes to the formed-byte budget. Valid runs reserve
