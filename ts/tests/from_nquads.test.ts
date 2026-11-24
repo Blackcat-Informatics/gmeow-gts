@@ -8,7 +8,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fromNQuads, NQuadsParseError } from "../src/from_nquads.js";
+import {
+    fromNQuads,
+    fromNQuadsV2,
+    NQuadsParseError,
+} from "../src/from_nquads.js";
 import { Read } from "../src/reader.js";
 import { toNQuads } from "../src/nquads.js";
 import { RDF_DIR_LANG_STRING, TermKind } from "../src/model.js";
@@ -143,7 +147,7 @@ test("fromNQuads rejects empty blank-node labels and language tags", () => {
     );
 });
 
-test("CLI from-nq writes a GTS that folds to the input N-Quads", () => {
+test("CLI from-nq writes the v2 import to the requested file", () => {
     const tmp = mkdtempSync(join(tmpdir(), "gts-from-nq-"));
     const src = readFileSync(join(vectorsDir, "11-datatype-defaulting.gts"));
     const nq = toNQuads(Read(src, false));
@@ -154,8 +158,5 @@ test("CLI from-nq writes a GTS that folds to the input N-Quads", () => {
         encoding: "utf8",
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(
-        sortedLines(toNQuads(Read(readFileSync(outPath), false))),
-        sortedLines(nq),
-    );
+    assert.deepEqual(readFileSync(outPath), Buffer.from(fromNQuadsV2(nq)));
 });
