@@ -383,13 +383,17 @@ GtsCLI class >> graphIsClean: graph [
 
 { #category : #private }
 GtsCLI class >> parseVerifyKey: spec [
-	| colon keyBytes |
+	| colon separator algorithm keyStart |
 	colon := spec findString: ':' startingAt: 1.
-	colon <= 1 ifTrue: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
-	keyBytes := GtsHex decode: (spec copyFrom: colon + 1 to: spec size).
-	keyBytes size = GtsSodium ed25519PublicKeyBytes
-		ifFalse: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
-	^ (spec copyFrom: 1 to: colon - 1) -> keyBytes
+	colon <= 1 ifTrue: [ GtsArchiveError signal: 'expected --key KEY_ID:PUBLIC_KEY or KEY_ID:ALGORITHM:PUBLIC_KEY' ].
+	separator := spec findString: ':' startingAt: colon + 1.
+	algorithm := 1.
+	keyStart := colon + 1.
+	separator > 0 ifTrue: [
+		algorithm := #('ed25519' 'mldsa65_ed25519') indexOf: (spec copyFrom: colon + 1 to: separator - 1).
+		algorithm = 0 ifTrue: [ GtsArchiveError signal: 'unknown --key signature algorithm' ].
+		keyStart := separator + 1 ].
+	^ { (spec copyFrom: 1 to: colon - 1). algorithm. (GtsHex decode: (spec copyFrom: keyStart to: spec size)) }
 ]
 
 { #category : #private }
@@ -562,19 +566,26 @@ GtsCLI class >> runUnpack: args [
 
 { #category : #commands }
 GtsCLI class >> runVerify: args [
-	| keys paths problems |
+	| keys trusted paths problems input |
 	args isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
-	keys := Dictionary new.
+	keys := OrderedCollection new.
+	trusted := Set new.
 	paths := OrderedCollection new.
-	1 to: args size do: [ :index |
-		(args at: index) = '--key'
-			ifTrue: [
-				| association |
-				association := self parseVerifyKey: (args at: index + 1 ifAbsent: [ ^ 2 ]).
-				keys at: association key put: association value ]
-			ifFalse: [
-				(index = 1 or: [ (args at: index - 1) ~= '--key' ])
-					ifTrue: [ paths add: (args at: index) ] ] ].
+	input := args readStream.
+	[ input atEnd ] whileFalse: [
+		| argument |
+		argument := input next.
+		argument caseOf: {
+			[ '--key' ] -> [
+				input atEnd ifTrue: [ ^ 2 ].
+				keys add: (self parseVerifyKey: input next) ].
+			[ '--trust' ] -> [
+				| kid |
+				input atEnd ifTrue: [ ^ 2 ].
+				kid := GtsHex decode: input next.
+				kid size = 32 ifFalse: [ GtsArchiveError signal: '--trust needs a 32-byte hexadecimal key identifier' ].
+				trusted add: kid ] }
+			otherwise: [ paths add: argument ] ].
 	paths isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
 	problems := false.
 	paths do: [ :path |
@@ -582,15 +593,22 @@ GtsCLI class >> runVerify: args [
 		bytes := self readFile: path.
 		wire := GtsV2Wire inspect: bytes.
 		clean := wire format = #legacy
-			ifTrue: [ self verifyLegacy: bytes path: path keys: keys ]
-			ifFalse: [ self verifyWire: wire path: path hasKeys: keys isNotEmpty ].
+			ifTrue: [
+				trusted isNotEmpty ifTrue: [ GtsArchiveError signal: '--trust requires GTS v2' ].
+				self verifyLegacy: bytes path: path keys: keys ]
+			ifFalse: [ self verifyWire: wire path: path keys: keys trusted: trusted ].
 		clean ifFalse: [ problems := true ] ].
 	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
 ]
 
 { #category : #private }
-GtsCLI class >> verifyLegacy: bytes path: path keys: keys [
-	| graph clean |
+GtsCLI class >> verifyLegacy: bytes path: path keys: entries [
+	| graph clean keys |
+	keys := Dictionary new.
+	entries do: [ :entry |
+		(entry second = 1 and: [ entry third size = GtsSodium ed25519PublicKeyBytes ]) ifFalse: [
+			GtsArchiveError signal: 'archived GTS --key needs a 32-byte Ed25519 public key' ].
+		keys at: entry first put: entry third ].
 	graph := GtsReader read: bytes.
 	self printLedgerFor: path graph: graph.
 	clean := graph diagnostics isEmpty.
@@ -609,8 +627,8 @@ GtsCLI class >> verifyLegacy: bytes path: path keys: keys [
 ]
 
 { #category : #private }
-GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
-	| format report clean ordinal checks |
+GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
+	| format report clean ordinal checks verifier header authentication |
 	format := wire format.
 	clean := true.
 	report := [ :message |
@@ -627,7 +645,7 @@ GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
 		report value: 'unsupported GTS generation ', wire generation printString.
 		^ false ].
 	format = #unknown ifTrue: [ report value: 'input does not identify a GTS generation'. ^ false ].
-	hasKeys ifTrue: [ report value: '--key is unsupported for GTS v2'. ^ false ].
+	verifier := GtsV2SignatureChecks held: keys.
 	self stdout: path, ': GTS v2 frame, closing record, commit and index prefix integrity', String lf.
 	ordinal := -1.
 	wire eventsDo: [ :event |
@@ -641,21 +659,40 @@ GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
 			ifFalse: [
 				event startsSegment
 					ifTrue: [
-						checks ifNotNil: [ self printCommitSummary: checks ordinal: ordinal ].
+						checks ifNotNil: [ self printCommitSummary: checks authentication: authentication ordinal: ordinal path: path ].
 						ordinal := ordinal + 1.
+						header := event effectiveIdentifier.
+						authentication := GtsV2Authentication trusted: trusted.
 						checks := self commitChecksFor: event report: [ :finding |
 							report value: location, ': ', finding ] ]
 					ifFalse: [
 						checks ifNotNil: [
+							| commitValid |
 							self reportIntegrityFor: event report: [ :finding |
 								report value: location, ': ', finding ].
-							checks observe: event findingsDo: [ :finding :position :expected |
+							commitValid := checks observe: event findingsDo: [ :finding :position :expected |
 								| detail |
 								detail := expected ifNil: [ '' ] ifNotNil: [
 									' (expected ', expected printString, ')' ].
-								report value: location, ', item ', position printString, ': ', finding, detail ] ] ] ] ]
+								report value: location, ', item ', position printString, ': ', finding, detail ].
+							authentication observe: event validCommit: commitValid.
+							verifier event: event header: header resultsDo: [ :algorithm :kid :status :reason |
+								| detail result |
+								detail := 'signature ', (GtsHex encode: kid), ' algorithm ', algorithm printString,
+									' at ', location, ': ', status.
+								reason ifNotNil: [ detail := detail, ' (', reason, ')' ].
+								status = 'invalid'
+									ifTrue: [ report value: detail ]
+									ifFalse: [ self stdout: '  ', detail, String lf ].
+								result := authentication coverageFor: status keyId: kid.
+								result at: 'offset' put: event offset.
+								result at: 'algorithm' put: algorithm.
+								result at: 'key_id' put: (GtsHex encode: kid).
+								result at: 'status' put: status.
+								result at: 'reason' put: reason.
+								self printAuthentication: result kind: 'signature' ordinal: ordinal path: path ] ] ] ] ]
 		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ].
-	checks ifNotNil: [ self printCommitSummary: checks ordinal: ordinal ].
+	checks ifNotNil: [ self printCommitSummary: checks authentication: authentication ordinal: ordinal path: path ].
 	^ clean
 ]
 
@@ -685,7 +722,7 @@ GtsCLI class >> reportIntegrityFor: event report: report [
 ]
 
 { #category : #printing }
-GtsCLI class >> printCommitSummary: checks ordinal: ordinal [
+GtsCLI class >> printCommitSummary: checks authentication: authentication ordinal: ordinal path: path [
 	| prefix tail index |
 	prefix := checks committedFrames = 0
 		ifTrue: [ 'no_commit' ]
@@ -694,7 +731,16 @@ GtsCLI class >> printCommitSummary: checks ordinal: ordinal [
 		', uncommitted_tail ', checks tailFrames printString, ' (item ', position printString, ')' ].
 	index := checks hasIndex ifTrue: [ ', index fold statistics and content digest unchecked' ] ifFalse: [ '' ].
 	checks uncomparedDirectories do: [ :directory | index := index, ', index ', directory, ' unchecked' ].
-	self stdout: '  segment ', ordinal printString, ': ', prefix, tail, index, String lf
+	self stdout: '  segment ', ordinal printString, ': ', prefix, tail, index, String lf.
+	self printAuthentication: authentication summary kind: 'segment' ordinal: ordinal path: path
+]
+
+{ #category : #printing }
+GtsCLI class >> printAuthentication: result kind: kind ordinal: ordinal path: path [
+	result at: 'kind' put: kind.
+	result at: 'segment' put: ordinal.
+	result at: 'path' put: path.
+	self stdout: (STONJSON toString: result), String lf
 ]
 
 { #category : #commands }

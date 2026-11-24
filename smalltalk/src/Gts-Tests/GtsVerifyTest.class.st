@@ -238,6 +238,155 @@ GtsVerifyTest >> testV2MalformedIndexDoesNotReportPartialClaims [
 ]
 
 { #category : #private }
+GtsVerifyTest >> v2SignatureResults: case [
+	| decoded held verifier bytes header results |
+	decoded := GtsCborReader decode: (GtsHex decode: (case at: 'read_result')).
+	held := (decoded at: 6) second collect: [ :entry |
+		{ (GtsHex encode: entry first). entry second. entry third } ].
+	verifier := GtsV2SignatureChecks held: held reversed, held.
+	bytes := ('/workspace/vectors/v2/P6/', (case at: 'input_file')) asFileReference
+		binaryReadStreamDo: [ :stream | stream upToEnd ].
+	results := OrderedCollection new.
+	(GtsV2Wire inspect: bytes) eventsDo: [ :event |
+		event startsSegment
+			ifTrue: [ header := event effectiveIdentifier ]
+			ifFalse: [
+				header ifNotNil: [
+					verifier event: event header: header resultsDo: [ :algorithm :kid :status :reason |
+						results add: { status. reason } ] ] ] ].
+	^ results asArray
+]
+
+{ #category : #private }
+GtsVerifyTest >> assertV2SignatureVector: name results: expected [
+	| json |
+	json := self jsonVectorAt: '/workspace/vectors/v2/P6/', name, '.json'.
+	(json at: 'cases') do: [ :case |
+		self assert: (self v2SignatureResults: case) = expected description: (case at: 'input_file') ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2Ed25519SignaturePolicy [
+	#(
+		('ed25519-honest' nil)
+		('ed25519-mixed-order-valid' nil)
+		('ed25519-mixed-order-cofactored-only' 'equation_failed')
+		('ed25519-key-non-canonical-sign' 'equation_failed')
+		('ed25519-key-non-canonical-y' 'equation_failed')
+		('ed25519-key-off-curve' 'equation_failed')
+		('ed25519-order-scalar-key' 'non_canonical_scalar')
+		('ed25519-order-key-nonce' 'small_order_key')
+		('ed25519-length-63' 'value_length')
+		('ed25519-length-65' 'value_length')
+	) do: [ :test |
+		self assertV2SignatureVector: test first
+			results: { { (test second ifNil: [ 'valid' ] ifNotNil: [ 'invalid' ]). test second } } ].
+	1 to: 8 do: [ :index |
+		self assertV2SignatureVector: 'ed25519-key-small-order-', index printString
+			results: #(('invalid' 'small_order_key')).
+		self assertV2SignatureVector: 'ed25519-nonce-small-order-', index printString
+			results: #(('invalid' 'small_order_nonce')) ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2SignatureKeysAndEffectiveSubjects [
+	#(
+		('key-held-order' 'valid' nil)
+		('key-mismatch-two-entries' 'valid' nil)
+		('key-mismatch-bytes' 'invalid' 'key_mismatch')
+		('key-mismatch-algorithm' 'invalid' 'key_mismatch')
+		('key-trusted-not-held' 'unverified' 'key_not_held')
+		('key-length-short' 'invalid' 'value_length')
+		('subject-healed-frame' 'valid' nil)
+		('cov-broken-signed-frame' 'valid' nil)
+	) do: [ :test | self assertV2SignatureVector: test first results: { test allButFirst } ].
+	self assertV2SignatureVector: 'sig-list-unordered' results: #()
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2CompositeSignaturePolicy [
+	| hedged |
+	self assertV2SignatureVector: 'composite-honest' results: #(('valid' nil)).
+	#(
+		('composite-length-3372' 'value_length')
+		('composite-length-3374' 'value_length')
+		('composite-key-1983' 'value_length')
+		('composite-key-1985' 'value_length')
+		('composite-classical-nonce' 'composite_classical_failed')
+		('composite-classical-scalar' 'composite_classical_failed')
+		('composite-classical-small-order' 'composite_classical_failed')
+		('composite-both' 'composite_classical_failed')
+		('composite-context-nonempty' 'composite_classical_failed')
+		('composite-prehash-wrong' 'composite_classical_failed')
+		('composite-label-wrong' 'composite_classical_failed')
+		('composite-post-quantum' 'composite_post_quantum_failed')
+		('composite-stripped-half' 'composite_post_quantum_failed')
+		('composite-mldsa-context' 'composite_post_quantum_failed')
+		('composite-hint-count-above-omega' 'composite_post_quantum_failed')
+		('composite-hint-count-decreasing' 'composite_post_quantum_failed')
+		('composite-hint-indices-unordered' 'composite_post_quantum_failed')
+		('composite-hint-padding-nonzero' 'composite_post_quantum_failed')
+	) do: [ :test |
+		self assertV2SignatureVector: test first results: { { 'invalid'. test second } } ].
+	hedged := self jsonVectorAt: '/workspace/vectors/v2/P6/composite-hedged.json'.
+	(hedged at: 'cases') do: [ :case |
+		| count |
+		count := ((case at: 'input_file') endsWith: '.both.bin') ifTrue: [ 2 ] ifFalse: [ 1 ].
+		self assert: (self v2SignatureResults: case) equals: (Array new: count withAll: #('valid' nil)) ]
+]
+
+{ #category : #private }
+GtsVerifyTest >> assertAuthenticationOf: case [
+	| decoded inputs held verifier bytes checks authentication header actual signatures expected |
+	decoded := GtsCborReader decode: (GtsHex decode: (case at: 'read_result')).
+	inputs := decoded at: 6.
+	held := inputs second collect: [ :entry | { (GtsHex encode: entry first). entry second. entry third } ].
+	verifier := GtsV2SignatureChecks held: held.
+	bytes := ('/workspace/vectors/v2/P6/', (case at: 'input_file')) asFileReference
+		binaryReadStreamDo: [ :stream | stream upToEnd ].
+	actual := OrderedCollection new.
+	(GtsV2Wire inspect: bytes) eventsDo: [ :event |
+		event startsSegment
+			ifTrue: [
+				authentication ifNotNil: [ actual add: { authentication summary. signatures asArray } ].
+				header := event effectiveIdentifier.
+				checks := GtsV2CommitChecks openedBy: header.
+				authentication := GtsV2Authentication trusted: inputs first.
+				signatures := OrderedCollection new ]
+			ifFalse: [
+				event kind ~= #stop ifTrue: [
+					authentication observe: event validCommit:
+						(checks observe: event findingsDo: [ :finding :position :detail | ]).
+					verifier event: event header: header resultsDo: [ :algorithm :kid :status :reason |
+						| coverage |
+						coverage := authentication coverageFor: status keyId: kid.
+						signatures add: { (coverage at: 'coverage_first'). (coverage at: 'coverage_end').
+							(coverage at: 'authenticated') } ] ] ] ].
+	actual add: { authentication summary. signatures asArray }.
+	expected := (decoded at: 7) second collect: [ :segment |
+		| expectedSignatures |
+		expectedSignatures := OrderedCollection new.
+		(segment at: 17) do: [ :frame |
+			(frame at: 8) do: [ :signature | expectedSignatures add: (signature copyFrom: 5 to: 7) ] ].
+		{ (Dictionary newFromPairs: { 'authenticity'. (segment at: 10).
+			'authenticated_frames'. (segment at: 13) }). expectedSignatures asArray } ].
+	self assert: actual asArray = expected description: (case at: 'input_file')
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2SignatureCoverageAndAuthentication [
+	#('cov-broken-signed-frame' 'cov-break-before' 'cov-break-after' 'cov-healed'
+		'cov-transparent-between' 'cov-not-valid' 'auth-commit-valid' 'auth-commit-bad-count'
+		'auth-commit-bad-root' 'auth-commit-malformed' 'auth-untrusted' 'auth-non-commit'
+		'auth-tail' 'auth-empty-segment-index' 'auth-canonical-end' 'auth-two-commits-two-signers'
+		'auth-broken-middle' 'auth-transparent-never' 'auth-payload-damaged' 'key-trusted-not-held')
+		do: [ :name |
+			| vector |
+			vector := self jsonVectorAt: '/workspace/vectors/v2/P6/', name, '.json'.
+			(vector at: 'cases') do: [ :case | self assertAuthenticationOf: case ] ]
+]
+
+{ #category : #private }
 GtsVerifyTest >> v2Vector: name [
 	^ ('/workspace/vectors/v2/P5/', name, '.bin') asFileReference
 		binaryReadStreamDo: [ :stream | stream upToEnd ]

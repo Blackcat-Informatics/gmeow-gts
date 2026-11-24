@@ -15,9 +15,9 @@ The development and CI runtime is pinned to:
 - Pharo image `13.1`
 - Pharo VM `10.3.9`
 
-The Dockerfile also provisions `libzstd`, `libsodium`, and pinned GTS-owned native
-shims for BLAKE3 and libsodium calls. The Smalltalk package binds BLAKE3, zstd,
-and libsodium through Pharo's Unified FFI surface.
+The Dockerfile provisions `libzstd`, `libsodium`, and OpenSSL 3.5.1 or later.
+The Smalltalk package uses Pharo Unified FFI for compression, hashing, and
+native cryptography.
 
 Build the local runtime image:
 
@@ -51,7 +51,21 @@ It validates index payloads and compares their frame count, head, type runs,
 and range root against the observed prefix. It compares graph and pack-member
 directories when their covered frames can be read. Graph directory comparison
 also requires written term identities for multi-row annotation frames.
-Index fold statistics, content digests, and v2 signatures require additional support.
+Index fold statistics and content digests require additional support.
+
+Verify Ed25519 signatures with `--key KEY_ID:PUBLIC_KEY` and composite
+ML-DSA-65 and Ed25519 signatures with `--key KEY_ID:mldsa65_ed25519:PUBLIC_KEY`.
+Supply the GTS v2 key identifier and the raw public key in hexadecimal.
+Invalid signatures fail verification. Signatures without a held key are
+reported as unverified. Use `--trust KEY_ID` to trust a v2 key explicitly.
+Use `--key` separately to supply its public bytes.
+
+The verifier emits JSON objects alongside its text diagnostics. Signature
+objects give the half-open ordinary-frame interval `coverage_first` to
+`coverage_end` and the boolean `authenticated`. Segment objects give
+`authenticated_frames` and the P2 `authenticity` code. A valid trusted
+commit can authenticate earlier linked frames across a break. Payload integrity
+is reported separately.
 
 `gts from-nq` writes a committed v2 segment. It preserves named graphs,
 language direction, and nested object triples, and uses value references
