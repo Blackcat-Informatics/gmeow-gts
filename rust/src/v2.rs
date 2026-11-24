@@ -12,6 +12,7 @@ use crate::wire;
 mod durability;
 pub mod frame;
 mod framing;
+mod index;
 mod payload;
 mod range;
 pub mod reader;

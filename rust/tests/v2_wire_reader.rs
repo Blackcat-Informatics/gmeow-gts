@@ -8,8 +8,8 @@ use gmeow_gts::{
     v2::{
         reader::{
             read_wire, ClosingFinding, CommitCheck, Dispatch, FramingFailure, FramingReason,
-            ItemKind, LinkState, Opener, PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity,
-            ReadStop, ResyncRefusal, UncommittedTail,
+            IndexOutcome, IndexWireClaims, ItemKind, LinkState, Opener, PayloadDamage,
+            PayloadRefusal, PayloadState, ReadCapacity, ReadStop, ResyncRefusal, UncommittedTail,
         },
         writer::SegmentWriter,
         Header, MalformedReason,
@@ -423,6 +423,115 @@ fn a_commit_needs_a_link_even_when_both_claims_hold() {
             count: 1
         })
     );
+}
+
+#[test]
+fn index_wire_claims_are_checked_independently_at_each_index() {
+    for (name, head_matches, root_matches, type_runs_match) in [
+        ("index-each-claim.head.bin", false, true, true),
+        ("index-each-claim.range_root.bin", true, false, true),
+        ("index-each-claim.type_runs.bin", true, true, false),
+        (
+            "index-not-last.structural-claim-false.bin",
+            false,
+            true,
+            true,
+        ),
+        ("index-nonterminal-claims.bin", true, true, true),
+        ("index-not-last.digest-claims-false.bin", true, true, true),
+    ] {
+        let data = vector_in("P5", name);
+        let read = read_wire(&data, ReadCapacity::default());
+        let [index] = read.segments[0].indexes.as_slice() else {
+            panic!("{name}: expected one checked index");
+        };
+        assert_eq!(
+            index.outcome,
+            IndexOutcome::Checked(IndexWireClaims {
+                head_matches,
+                root_matches,
+                type_runs_match
+            }),
+            "{name}",
+        );
+    }
+}
+
+#[test]
+fn covering_a_frame_without_a_type_rejects_the_type_runs() {
+    for name in [
+        "index-covers-frame-of-no-type.long-form-15-typed.bin",
+        "index-covers-frame-of-no-type.long-form-15-omitted.bin",
+    ] {
+        let data = vector_in("P5", name);
+        let read = read_wire(&data, ReadCapacity::default());
+        let segment = &read.segments[0];
+        assert!(segment.frames.iter().any(|frame| {
+            frame.frame_type.is_none() && frame.link.effective_identifier.is_some()
+        }));
+        assert_eq!(
+            segment.indexes[0].outcome,
+            IndexOutcome::Checked(IndexWireClaims {
+                head_matches: true,
+                root_matches: true,
+                type_runs_match: false,
+            }),
+            "{name}",
+        );
+    }
+}
+
+#[test]
+fn an_index_after_an_unknown_critical_frame_still_checks_the_wire_prefix() {
+    for (name, type_runs_match) in [
+        ("index-after-stop.exact.bin", true),
+        ("index-after-stop.wrong-type-runs.bin", false),
+    ] {
+        let data = vector_in("P5", name);
+        let read = read_wire(&data, ReadCapacity::default());
+        let segment = &read.segments[0];
+        assert!(segment
+            .frames
+            .iter()
+            .any(|frame| frame.unknown_type_stops_fold));
+        assert_eq!(
+            segment.indexes[0].outcome,
+            IndexOutcome::Checked(IndexWireClaims {
+                head_matches: true,
+                root_matches: true,
+                type_runs_match,
+            }),
+            "{name}",
+        );
+    }
+}
+
+#[test]
+fn an_index_with_bad_payload_grammar_is_not_compared() {
+    let mut writer = SegmentWriter::new(Header::default()).unwrap();
+    let content = wire::encode(&Value::Array(vec![
+        Value::from(99),
+        Value::Bytes(vec![0; 32]),
+    ]));
+    writer.append(15, &content, &[0x80]).unwrap();
+    let data = writer.into_bytes();
+    let read = read_wire(&data, ReadCapacity::default());
+    let segment = &read.segments[0];
+    assert!(matches!(
+        segment.frames[0].payload.state,
+        PayloadState::Verified(_)
+    ));
+    assert!(matches!(
+        segment.indexes[0].outcome,
+        IndexOutcome::MalformedPayload(error) if error.reason == MalformedReason::WrongLength
+    ));
+
+    let low = ReadCapacity {
+        decoded_bytes_per_frame: 0,
+        ..ReadCapacity::default()
+    };
+    let read = read_wire(&data, low);
+    assert!(read.segments[0].indexes.is_empty());
 }
 
 #[test]

@@ -7,9 +7,18 @@ use ciborium::value::Value;
 
 use crate::wire;
 
+use super::{Decoder, HeaderError};
+
 pub(super) type Digest = [u8; 32];
 
 pub(super) struct RangeFull;
+
+/// The ordinary position and digest in a commit or index content record.
+pub(super) fn decode_claim(content: &[u8]) -> Result<(u64, &Digest), HeaderError> {
+    let mut cursor = Decoder::new(content, 0);
+    cursor.record(2)?;
+    Ok((cursor.uint()?, cursor.fixed::<32>()?))
+}
 
 fn leaf(identifier: &Digest) -> Digest {
     let record = Value::Array(vec![Value::Bytes(identifier.to_vec())]);

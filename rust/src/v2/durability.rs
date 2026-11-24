@@ -5,7 +5,8 @@
 
 use super::{
     frame::{COMMIT, INDEX},
-    range::{Digest, Range},
+    index::{index_bytes, IndexCheck, IndexPrefix},
+    range::{decode_claim, Digest, Range},
     reader::{ItemKind, LinkState, WireFrame, WireItem},
     Decoder, HeaderError, MalformedReason,
 };
@@ -163,33 +164,34 @@ pub enum CommitReadError {
     RangeFull,
 }
 
-fn commit_claim(content: &[u8]) -> Result<(u64, &Digest), HeaderError> {
-    let mut cursor = Decoder::new(content, 0);
-    cursor.record(2)?;
-    Ok((cursor.uint()?, cursor.fixed::<32>()?))
-}
-
 fn commit_content<'a>(frame: &WireFrame<'a>, stored_limit: u64) -> Option<&'a [u8]> {
     let frame = frame.envelope.as_ref().ok()?;
     (frame.frame_type == COMMIT && frame.content.len() as u64 <= stored_limit)
         .then_some(frame.content)
 }
 
-pub(super) fn check_commits(
+pub(super) fn check_prefixes(
     opener: &Digest,
     frames: &[WireFrame<'_>],
     stored_limit: u64,
-) -> Result<CommitReport, CommitReadError> {
+    registry: u64,
+) -> Result<(CommitReport, Vec<IndexCheck>), CommitReadError> {
     let mut report = CommitReport::default();
-    // Leaves after the last checkable commit cannot contribute to a claim.
-    let last_claim = frames
+    let mut indexes = Vec::new();
+    let last_commit = frames
         .iter()
         .rposition(|frame| commit_content(frame, stored_limit).is_some());
+    let last_index = frames
+        .iter()
+        .rposition(|frame| index_bytes(frame).is_some());
+    // The same range covers both kinds of claim. Frames after them need no leaf.
+    let last_claim = last_commit.max(last_index);
+    let mut prefix = last_index.map(|_| IndexPrefix::new(registry, *opener));
     let mut range = Range::new(opener);
     for (index, frame) in frames.iter().enumerate() {
         let position = frame.position;
         if let Some(content) = commit_content(frame, stored_limit) {
-            let (count, root) = commit_claim(content)
+            let (count, root) = decode_claim(content)
                 .map_err(|error| CommitReadError::Content { position, error })?;
             let ordinary_position = range.ordinary_count();
             let count_matches = count == ordinary_position;
@@ -208,6 +210,17 @@ pub(super) fn check_commits(
                 report.uncommitted_tail = None;
             }
         }
+        if let Some(prefix) = &mut prefix {
+            if let Some((content, payload)) = index_bytes(frame) {
+                let check = prefix
+                    .check(position, content, payload, &range)
+                    .map_err(|error| CommitReadError::Content { position, error })?;
+                indexes.push(check);
+            }
+            if last_index.is_some_and(|last| index < last) {
+                prefix.observe(frame);
+            }
+        }
         if let Some(identifier) = frame.link.effective_identifier {
             if last_claim.is_some_and(|last| index < last) {
                 range
@@ -222,5 +235,5 @@ pub(super) fn check_commits(
             }
         }
     }
-    Ok(report)
+    Ok((report, indexes))
 }
