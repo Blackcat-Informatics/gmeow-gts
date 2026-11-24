@@ -118,6 +118,7 @@ GtsVerifyTest >> testV2IndexPrefixClaims [
 		('index-each-claim.head' 'index_head')
 		('index-each-claim.range_root' 'index_root')
 		('index-each-claim.type_runs' 'index_directory')
+		('index-each-claim.graph_directory' 'index_directory')
 		('index-each-claim.pack_members' 'index_members')
 		('index-covers-frame-of-no-type.long-form-15-typed' 'index_directory')
 		('index-covers-frame-of-no-type.long-form-15-omitted' 'index_directory')
@@ -126,6 +127,45 @@ GtsVerifyTest >> testV2IndexPrefixClaims [
 		findings := (self checkV2: (self v2Vector: entry first)) second collect: [ :finding | finding first ].
 		expected := entry second ifNil: [ #() ] ifNotNil: [ :reason | { 'index_claim_failed (', reason, ')' } ].
 		self assert: findings asArray = expected description: entry first ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2IndexGraphRangesCrossFramesOfTheSameType [
+	| expected |
+	expected := #(((1) ((2 0 0 1))) ((2 4) ((2 0 1 2) (5 1 0 1)))).
+	{ expected. #(((1) ((2 0 0 1))) ((2 4) ((2 0 1 1) (5 1 0 1) (2 2 0 1)))) }
+		withIndexDo: [ :claim :case |
+			| writer range head index findings |
+			writer := GtsV2SegmentWriter new.
+			writer appendType: 2 content: #(2 2)
+				payload: (GtsCborWriter encode: #((((1) 1) ((2 4) 1)) ((1 2)) (2 0) (0 0))).
+			writer writeType: 5 content: #(1) payload: (GtsCborWriter encode: #((4))).
+			writer appendType: 2 content: #(2 1)
+				payload: (GtsCborWriter encode: #((((2 4) 1)) ((1 1)) (2) (0))).
+			range := GtsV2Range new.
+			(GtsV2Wire inspect: writer bytes) eventsDo: [ :event |
+				head := event effectiveIdentifier.
+				range add: head ].
+			index := GtsCborWriter encode: { #((2 1) (5 1) (2 1)). claim. #(0 0 0 ()). range root. #(1). #() }.
+			writer writeType: 15 content: { 3. head } payload: index.
+			findings := (self checkV2: writer bytes) second asArray.
+			self assert: findings equals:
+				(case = 1 ifTrue: [ #() ] ifFalse: [ #(('index_claim_failed (index_directory)' 4 nil)) ]) ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2IndexCoverageChecksRowGrammar [
+	#(
+		('annotations-triple-components-written-alike.components-written-alike' 'unordered_or_repeated')
+		('annotations-triple-components-written-alike.components-differ' nil)
+		('rows-order-type-before-count' 'out_of_range')
+	) do: [ :test |
+		| bytes findings expected |
+		bytes := ('/workspace/vectors/v2/P3/', test first, '.bin') asFileReference
+			binaryReadStreamDo: [ :stream | stream upToEnd ].
+		findings := (self checkV2: bytes) second collect: [ :finding | finding first ].
+		expected := test second ifNil: [ #() ] ifNotNil: [ :reason | { 'malformed_value (', reason, ')' } ].
+		self assert: findings asArray equals: expected ]
 ]
 
 { #category : #tests }
@@ -165,7 +205,7 @@ GtsVerifyTest >> testV2IndexChecksDamagedMembersAndSkipsOpaquePacks [
 	expected := GtsCborWriter encode: { { 1. { digest }. 1 } }.
 	{ { expected. 'damaged_frame (payload_digest)'. true }.
 		{ #[128]. 'malformed_value (inconsistent_counts)'. false } } do: [ :test |
-		| writer bytes range head index findings |
+		| writer bytes range head index result findings |
 		writer := GtsV2SegmentWriter new.
 		bytes := #[130], test first, #[65 1].
 		writer writeType: 13 content: #(1 1) payload: bytes.
@@ -175,10 +215,13 @@ GtsVerifyTest >> testV2IndexChecksDamagedMembersAndSkipsOpaquePacks [
 			range add: head ].
 		index := GtsCborWriter encode: { #((13 1)). #(). #(0 0 0 ()). range root. #(1). #() }.
 		writer writeType: 15 content: { 1. head } payload: index.
-		findings := (self checkV2: writer bytes) second asArray.
+		result := self checkV2: writer bytes.
+		findings := result second asArray.
 		self assert: findings equals: (test third
 			ifTrue: [ { { test second. 1. nil }. { 'index_claim_failed (index_members)'. 2. nil } } ]
-			ifFalse: [ { { test second. 1. nil } } ]) ]
+			ifFalse: [ { { test second. 1. nil } } ]).
+		self assert: result first uncomparedDirectories asArray equals:
+			(test third ifTrue: [ #() ] ifFalse: [ #('pack-member directory') ]) ]
 ]
 
 { #category : #tests }
@@ -312,6 +355,6 @@ GtsVerifyTest >> checkV2: bytes [
 					checks observe: event findingsDo: [ :reason :position :expected |
 						findings add: { reason. position. expected } ] ] ] ]
 		budget: GtsV2PayloadBudget new
-		decodedWhen: [ :event | #(13 15) includes: event frameType ].
+		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ].
 	^ { checks. findings. events }
 ]

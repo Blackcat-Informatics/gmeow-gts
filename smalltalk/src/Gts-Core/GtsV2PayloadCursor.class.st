@@ -48,11 +48,28 @@ GtsV2PayloadCursor >> requireEnd [
 { #category : #parsing }
 GtsV2PayloadCursor >> readHead: major [
 	| head |
+	head := self nextHead.
+	head major = major ifFalse: [ GtsV2EnvelopeError signal: 'wrong_type' ].
+	^ head argument
+]
+
+{ #category : #parsing }
+GtsV2PayloadCursor >> readInteger [
+	| head |
+	head := self nextHead.
+	head major = 0 ifTrue: [ ^ head argument ].
+	head major = 1 ifTrue: [ ^ head argument negated - 1 ].
+	^ GtsV2EnvelopeError signal: 'wrong_type'
+]
+
+{ #category : #private }
+GtsV2PayloadCursor >> nextHead [
+	| head |
 	(offset < limit and: [ (walker bytes at: offset) = 255 ]) ifTrue: [
 		GtsV2EnvelopeError signal: 'wrong_length' ].
-	head := (GtsV2Field walker: walker from: offset to: limit) typedHead: major.
+	head := (GtsV2Field walker: walker from: offset to: limit) deterministicHead.
 	offset := head end.
-	^ head argument
+	^ head
 ]
 
 { #category : #parsing }
