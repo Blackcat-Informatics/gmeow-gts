@@ -138,6 +138,19 @@ func TestFramingKeepsCompleteItemsAndDistinguishesFailure(t *testing.T) {
 	}
 }
 
+func TestNonminimalFrameArrayHeadIsOpaque(t *testing.T) {
+	got := v2.ReadWire(vector(t, "frame-test-array-long-form"), v2.DefaultReadCapacity())
+	segment := got.Segments[0]
+	items := segment.Items
+	if len(items) != 2 || items[1].Kind != v2.OpaqueItem ||
+		items[1].Reason != v2.NotDeterministic || items[1].Frame != nil {
+		t.Fatalf("long-form frame item was not opaque: %+v", items)
+	}
+	if segment.Head == nil || segment.Opener.ID == nil || *segment.Head != *segment.Opener.ID {
+		t.Fatalf("opaque item changed the segment head: %+v", segment)
+	}
+}
+
 func links(segment v2.Segment) []v2.Link {
 	var states []v2.Link
 	for _, item := range segment.Items {

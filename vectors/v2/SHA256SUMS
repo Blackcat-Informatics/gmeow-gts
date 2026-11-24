@@ -1,4 +1,4 @@
-dc49deac4e61ff08a6b7637a732d517666fe7218b9ef3294b7c4ba8a5ff5bce5  P1/INDEX.md
+42f26556abc3eca42100ba7f106233d9eab71c93759b320db18d02a5f687df5a  P1/INDEX.md
 906659532300af15539ba21689b53f940b3a87966fc17d24eca95973bce4137b  P1/append-after-canonical.appended.bin
 51ff1e3024f2c24488091cce55b07475905758428f45f54353e20fded84a03e9  P1/append-after-canonical.canonical.bin
 bc517fd6cc4767ede863930b58c863a640e376a13f406d159b3d4ddb74d1e7b2  P1/append-after-canonical.json
@@ -202,6 +202,8 @@ e06bf88d6c93c48e3470c0c578a4d11619072680b27a63ab3217ac0243a62518  P1/frame-signa
 cd64eedd3843e34d4b63b2b49b19e7a624420c456ee47429f12a75ad4fef7554  P1/frame-signatures-unordered.json
 7a03d42b060c6047e6a619bb549450eba74ccf8b7fae9b51a7ba4309986fb2d2  P1/frame-storage-tag-newer.bin
 41225c0580d66f65675cbb66c41ca03525ef49c999bb2150981bfe29b50ead36  P1/frame-storage-tag-newer.json
+58eaddfd42271ab44e0b7f9a5c93ab7e108e319d35c7140b24b791cc6cf0c327  P1/frame-test-array-long-form.bin
+d7fa662c7f541578a3166012026da3323fc07d2dc2ede7a6c3b6b816bebc03b0  P1/frame-test-array-long-form.json
 cf8659d32d071b203a9e83bbe7ce809cbd9cb4ce6b2abd2c74087f300c01cc94  P1/frame-test-element-long-form.bin
 efa030ac6ccd84df2e9b4dbf65c94fffba41f68d2ba64cbd259e4746b42e51fb  P1/frame-test-element-long-form.json
 74ed952e059859b42428c0332e6dbf0bdd62537198bf0aa5ef871ba127239deb  P1/frame-test-length-ten.bin
