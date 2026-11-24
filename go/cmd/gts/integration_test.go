@@ -20,6 +20,7 @@ import (
 	"go.blackcatinformatics.ca/gts/nquads"
 	"go.blackcatinformatics.ca/gts/reader"
 	"go.blackcatinformatics.ca/gts/stream"
+	"go.blackcatinformatics.ca/gts/v2"
 	"go.blackcatinformatics.ca/gts/wire"
 	"go.blackcatinformatics.ca/gts/writer"
 )
@@ -230,7 +231,7 @@ func TestInfoRejectsEmptyFile(t *testing.T) {
 	}
 }
 
-func TestFromNQInvertsFold(t *testing.T) {
+func TestFromNQV2RoundTripsLegacyRDF(t *testing.T) {
 	tmp := t.TempDir()
 	src, err := os.ReadFile(vector(t, "11-datatype-defaulting.gts"))
 	if err != nil {
@@ -249,20 +250,56 @@ func TestFromNQInvertsFold(t *testing.T) {
 	if err := nqFile.Close(); err != nil {
 		t.Fatal(err)
 	}
-	cmd, _, stderr := run(t, "from-nq", nqPath, "-o", outPath)
-	if cmd.ProcessState.ExitCode() != 0 {
-		t.Fatalf("expected exit 0, got %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	cmd, stdout, stderr := run(t, "from-nq", nqPath, "-o", outPath)
+	if cmd.ProcessState.ExitCode() != 0 || stdout.Len() != 0 || stderr.Len() != 0 {
+		t.Fatalf("from-nq exit %d, stdout %q, stderr %q", cmd.ProcessState.ExitCode(), stdout, stderr)
 	}
 	out, err := os.ReadFile(outPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := strings.Split(strings.TrimSpace(nquads.ToNQuads(reader.Read(out, false, nil))), "\n")
+	if read := v2.ReadWire(out, v2.DefaultReadCapacity()); read.Dispatch != v2.SecondGeneration || read.Stop != "" {
+		t.Fatalf("expected a complete v2 file, got generation %s, stop %s", read.Dispatch, read.Stop)
+	}
+	cmd, stdout, stderr = run(t, "fold", outPath)
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("fold exit %d, stderr %q", cmd.ProcessState.ExitCode(), stderr)
+	}
+	got := strings.Split(strings.TrimSpace(stdout.String()), "\n")
 	want := strings.Split(strings.TrimSpace(nq), "\n")
 	sort.Strings(got)
 	sort.Strings(want)
 	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("fold mismatch\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestFromNQV2StdinAndWriteRefusal(t *testing.T) {
+	valid := "<urn:s> <urn:p> \"v\"@EN--rtl .\n"
+	cmd, stdout, stderr := runWithInput(t, valid, "from-nq", "-")
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("from-nq exit %d, stderr %q", cmd.ProcessState.ExitCode(), stderr)
+	}
+	projected, err := v2.ReadWire(stdout.Bytes(), v2.DefaultReadCapacity()).WholeRDFProjection()
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := projected.NQuads()
+	if err != nil || text != valid {
+		t.Fatalf("from-nq projected %q, error %v", text, err)
+	}
+
+	path := filepath.Join(t.TempDir(), "existing.gts")
+	if err := os.WriteFile(path, stdout.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd, rejected, stderr := runWithInput(t, valid+"<urn:x> <urn:p> <urn:y>\n", "from-nq", "-", "-o", path)
+	if cmd.ProcessState.ExitCode() != 1 || rejected.Len() != 0 || !strings.Contains(stderr.String(), "line 2: expected '.'") {
+		t.Fatalf("from-nq exit %d, stdout %q, stderr %q", cmd.ProcessState.ExitCode(), rejected, stderr)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(after, stdout.Bytes()) {
+		t.Fatalf("rejected import changed the existing destination, error %v", err)
 	}
 }
 

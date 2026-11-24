@@ -51,7 +51,7 @@ commands:
   unpack <archive> [-C dir] [--include-suppressed]
                             unpack a files-profile archive
   diff <archive> <dir>      compare archive to directory by digest
-  from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
+  from-nq <in.nq> [-o out]  import N-Quads as GTS v2; '-' reads stdin
   to-nt <file>              fold the default graph to N-Triples on stdout
   from-nt <in.nt> [-o out]  build a GTS from N-Triples; '-' reads stdin
   to-trig <file>            fold to TriG on stdout
@@ -87,7 +87,7 @@ emballe des fichiers en archive de profil files
   unpack <archive> [-C dir] [--include-suppressed]
 deballe une archive de profil files
   diff <archive> <dir>      compare une archive a un repertoire par digest
-  from-nq <in.nq> [-o out]  construit un GTS depuis N-Quads; '-' lit stdin
+  from-nq <in.nq> [-o out]  importe des N-Quads en GTS v2; '-' lit stdin
   to-nt <file>              plie le graphe par defaut vers N-Triples
   from-nt <in.nt> [-o out]  construit un GTS depuis N-Triples; '-' lit stdin
   to-trig <file>            plie vers TriG sur stdout
@@ -122,7 +122,7 @@ const usageZHHans = `用法: gts <command> [args]
   unpack <archive> [-C dir] [--include-suppressed]
 解包 files 配置文件归档
   diff <archive> <dir>      按摘要比较归档和目录
-  from-nq <in.nq> [-o out]  从 N-Quads 构建 GTS；'-' 读取 stdin
+  from-nq <in.nq> [-o out]  将 N-Quads 导入为 GTS v2；'-' 读取 stdin
   to-nt <file>              将默认图折叠为 N-Triples
   from-nt <in.nt> [-o out]  从 N-Triples 构建 GTS；'-' 读取 stdin
   to-trig <file>            将内容折叠为 TriG 并写到 stdout
