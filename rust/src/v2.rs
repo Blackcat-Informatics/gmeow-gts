@@ -11,9 +11,12 @@ use crate::wire;
 
 pub mod frame;
 mod framing;
+mod import;
 mod payload;
 pub mod reader;
 pub mod writer;
+
+pub use import::{from_nquads, ImportError};
 
 const REGISTRY_VERSION: u64 = 1;
 const BLAKE3_256: u64 = 1;
