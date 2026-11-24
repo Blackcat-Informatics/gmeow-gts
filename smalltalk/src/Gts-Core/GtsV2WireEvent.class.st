@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned' ],
 	#category : #'Gts-Core'
 }
 
@@ -89,6 +89,21 @@ GtsV2WireEvent >> storedMatches [
 { #category : #accessing }
 GtsV2WireEvent >> payload [
 	^ payload
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> scanned [
+	^ scanned = true
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> markScanned [
+	scanned := true
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> resyncRefusal: result [
+	payload := result
 ]
 
 { #category : #validation }

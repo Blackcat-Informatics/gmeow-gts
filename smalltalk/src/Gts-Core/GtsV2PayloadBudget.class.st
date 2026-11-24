@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2PayloadBudget,
 	#superclass : #Object,
-	#instVars : [ 'storedLimit', 'frameLimit', 'readLimit', 'total', 'exhausted' ],
+	#instVars : [ 'storedLimit', 'frameLimit', 'readLimit', 'itemLimit', 'total', 'exhausted' ],
 	#category : #'Gts-Core'
 }
 
@@ -18,6 +18,7 @@ GtsV2PayloadBudget >> initialize [
 	storedLimit := 1 bitShift: 26.
 	frameLimit := 1 bitShift: 26.
 	readLimit := 1 bitShift: 36.
+	itemLimit := 1 bitShift: 26.
 	total := 0.
 	exhausted := false
 ]
@@ -26,6 +27,27 @@ GtsV2PayloadBudget >> initialize [
 GtsV2PayloadBudget >> readLimit: bytes [
 	readLimit := bytes.
 	^ self
+]
+
+{ #category : #accessing }
+GtsV2PayloadBudget >> itemLimit [
+	^ itemLimit
+]
+
+{ #category : #initialization }
+GtsV2PayloadBudget >> itemLimit: limit [
+	itemLimit := limit.
+	^ self
+]
+
+{ #category : #validation }
+GtsV2PayloadBudget >> decodedExhausted [
+	^ exhausted
+]
+
+{ #category : #validation }
+GtsV2PayloadBudget >> admitResync [
+	^ self admit: 4096 stored: 0 content: 0 signatures: 0
 ]
 
 { #category : #validation }

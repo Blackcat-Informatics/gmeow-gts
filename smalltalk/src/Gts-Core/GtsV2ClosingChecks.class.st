@@ -58,7 +58,9 @@ GtsV2ClosingChecks >> checkLocator: event following: next [
 
 { #category : #private }
 GtsV2ClosingChecks >> endsSegment: event [
-	^ event isNil or: [ event kind = #stop or: [ event startsSegment ] ]
+	^ event isNil or: [ event startsSegment or: [
+		(#(stop resyncRefused) includes: event kind) or: [
+			event kind = #framingGap and: [ event problem = 'torn_tail' ] ] ] ]
 ]
 
 { #category : #private }
