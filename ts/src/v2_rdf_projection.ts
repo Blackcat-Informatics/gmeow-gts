@@ -19,24 +19,37 @@ import {
     RdfProjectionError,
     requireRdf,
 } from "./v2_rdf_cursor.js";
-import { readTypedValue, typedLiteral } from "./v2_rdf_values.js";
+import { hexDatatype, readTypedValue, typedLiteral } from "./v2_rdf_values.js";
+import { RdfRebuild, RebuiltValue } from "./v2_rdf_rebuild.js";
 
 const rdfReifies = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 const formedLimit = 1n << 37n;
 
+interface LiteralColumns {
+    forms: number[];
+    datatypes: bigint[];
+    languages: bigint[];
+}
+
 type Block =
-    | {
+    | ({
           kind: 1 | 2;
           prefixes: bigint[];
           lengths: bigint[];
           suffixes: Uint8Array;
-          forms: number[];
-          datatypes: bigint[];
-          languages: bigint[];
-      }
+      } & LiteralColumns)
     | { kind: 3; labels: Uint8Array[] }
     | { kind: 4; subjects: bigint[]; predicates: bigint[]; objects: bigint[] }
+    | ({ kind: 5 | 7; digests: string[]; lengths: bigint[] } & LiteralColumns)
     | { kind: 6; count: bigint; encoded: Uint8Array };
+
+function literalColumns(c: RdfCursor, present: boolean): LiteralColumns {
+    return {
+        forms: present ? c.list(() => c.code(4n)) : [],
+        datatypes: present ? c.list(() => c.uint()) : [],
+        languages: present ? c.list(() => c.uint()) : [],
+    };
+}
 
 function readBlock(c: RdfCursor): Block {
     const arity = c.array();
@@ -49,17 +62,12 @@ function readBlock(c: RdfCursor): Block {
             const prefixes = c.list(() => c.uint());
             const lengths = c.list(() => c.uint());
             const suffixes = c.body(2);
-            const forms = kind === 2 ? c.list(() => c.code(4n)) : [];
-            const datatypes = kind === 2 ? c.list(() => c.uint()) : [];
-            const languages = kind === 2 ? c.list(() => c.uint()) : [];
             return {
                 kind,
                 prefixes,
                 lengths,
                 suffixes,
-                forms,
-                datatypes,
-                languages,
+                ...literalColumns(c, kind === 2),
             };
         }
         case 3:
@@ -73,6 +81,13 @@ function readBlock(c: RdfCursor): Block {
                 predicates: c.list(() => c.uint()),
                 objects: c.list(() => c.uint()),
             };
+        case 5:
+        case 7: {
+            requireRdf(arity === (kind === 5 ? 6n : 3n), "wrong_length");
+            const digests = c.list(() => c.digest());
+            const lengths = c.list(() => c.uint());
+            return { kind, digests, lengths, ...literalColumns(c, kind === 5) };
+        }
         case 6: {
             requireRdf(arity === 2n, "wrong_length");
             const count = c.array();
@@ -97,15 +112,6 @@ function checkBlockCount(block: Block, count: bigint): void {
                 matches(block.prefixes.length, block.lengths.length),
                 "inconsistent_counts",
             );
-            if (block.kind === 2) {
-                const typed = block.forms.filter((form) => form === 1).length;
-                requireRdf(
-                    matches(block.forms.length) &&
-                        block.datatypes.length === typed &&
-                        block.languages.length === block.forms.length - typed,
-                    "inconsistent_counts",
-                );
-            }
             break;
         }
         case 3:
@@ -124,12 +130,28 @@ function checkBlockCount(block: Block, count: bigint): void {
         case 6:
             requireRdf(block.count === count, "inconsistent_counts");
             break;
+        case 5:
+        case 7:
+            requireRdf(
+                matches(block.digests.length, block.lengths.length),
+                "inconsistent_counts",
+            );
+            break;
+    }
+    if (block.kind === 2 || block.kind === 5) {
+        const typed = block.forms.filter((form) => form === 1).length;
+        requireRdf(
+            matches(block.forms.length) &&
+                block.datatypes.length === typed &&
+                block.languages.length === block.forms.length - typed,
+            "inconsistent_counts",
+        );
     }
 }
 
 function checkLanguages(blocks: Block[], languages: string[]): void {
     for (const block of blocks) {
-        if (block.kind !== 2) continue;
+        if (block.kind !== 2 && block.kind !== 5) continue;
         for (const id of block.languages) {
             requireRdf(id < BigInt(languages.length), "out_of_range");
         }
@@ -137,7 +159,7 @@ function checkLanguages(blocks: Block[], languages: string[]): void {
     let used = 0;
     const seen = new Set<string>();
     for (const block of blocks) {
-        if (block.kind !== 2) continue;
+        if (block.kind !== 2 && block.kind !== 5) continue;
         for (const id of block.languages) {
             requireRdf(id <= BigInt(used), "not_deterministic");
             if (id === BigInt(used)) {
@@ -236,6 +258,7 @@ interface Definition {
 
 class Projector {
     readonly result: RdfProjection = { terms: [], quads: [], emptyGraphs: [] };
+    readonly rebuild = new RdfRebuild();
     private dictionary: Definition[] = [];
     private readonly written = new Map<string, number>();
     private readonly interned = new Map<string, number>();
@@ -247,13 +270,13 @@ class Projector {
         this.scope++;
         this.dictionary = [];
         this.written.clear();
+        this.rebuild.open();
     }
 
     private intern(term: Term): number {
-        const key = JSON.stringify([
+        const metadata = JSON.stringify([
             term.kind,
-            term.value,
-            term.lang,
+            term.lang?.length,
             term.direction,
             term.datatype,
             term.triple?.s,
@@ -261,6 +284,8 @@ class Projector {
             term.triple?.o,
             term.kind === TermKind.Bnode ? this.scope : undefined,
         ]);
+        // Append the lexical text verbatim so interning never expands escapes.
+        const key = metadata + (term.lang ?? "") + term.value;
         const existing = this.interned.get(key);
         if (existing !== undefined) return existing;
         const id = this.result.terms.length;
@@ -289,13 +314,15 @@ class Projector {
     private add(
         term: Term,
         storageKind = term.kind + 1,
-        components?: readonly bigint[],
+        source?: string | readonly bigint[],
     ): void {
         const rdf = this.intern(term);
         const key =
-            components === undefined
+            source === undefined
                 ? `${storageKind}/${rdf}`
-                : `${storageKind}/${components.map((id) => this.dictionary[Number(id)].written).join("/")}`;
+                : typeof source === "string"
+                  ? `${storageKind}/${rdf}/${source}`
+                  : `${storageKind}/${source.map((id) => this.dictionary[Number(id)].written).join("/")}`;
         let written = this.written.get(key);
         if (written === undefined) {
             written = this.written.size;
@@ -405,29 +432,70 @@ class Projector {
             cursor.end();
             return;
         }
+        if ("digests" in block) {
+            this.addReferences(block, languages);
+            return;
+        }
 
         let column = 0;
-        let typed = 0;
-        let language = 0;
+        const next = { datatype: 0, language: 0 };
         for (const bytes of texts(block, restart)) {
             const value = decodeRdfText(bytes);
             if (block.kind === 1) {
                 this.add({ kind: TermKind.Iri, value });
                 continue;
             }
-            const form = block.forms[column++];
-            const term: Term = { kind: TermKind.Literal, value };
-            if (form === 1) {
-                term.datatype = this.resolve(
-                    block.datatypes[typed++],
-                    TermKind.Iri,
+            this.add(this.literal(block, column++, next, languages, value));
+        }
+    }
+
+    private literal(
+        block: LiteralColumns,
+        index: number,
+        next: { datatype: number; language: number },
+        languages: string[],
+        value: string,
+    ): Term {
+        const form = block.forms[index];
+        const term: Term = { kind: TermKind.Literal, value };
+        if (form === 1) {
+            term.datatype = this.resolve(
+                block.datatypes[next.datatype++],
+                TermKind.Iri,
+            );
+        } else {
+            term.lang = languages[Number(block.languages[next.language++])];
+            if (form === 3) term.direction = "ltr";
+            if (form === 4) term.direction = "rtl";
+        }
+        return term;
+    }
+
+    private addReferences(
+        block: Extract<Block, { digests: string[] }>,
+        languages: string[],
+    ): void {
+        const next = { datatype: 0, language: 0 };
+        const hex = block.kind === 7;
+        for (const [index, digest] of block.digests.entries()) {
+            const candidate = this.rebuild.value(digest, block.lengths[index]);
+            if (!hex && candidate instanceof RebuiltValue)
+                candidate.checkText();
+            const term: Term = hex
+                ? { kind: TermKind.Literal, value: "" }
+                : this.literal(block, index, next, languages, "");
+            if (!(candidate instanceof RebuiltValue)) {
+                throw new RdfProjectionError(
+                    candidate?.reason ?? "missing_value",
                 );
-            } else {
-                term.lang = languages[Number(block.languages[language++])];
-                if (form === 3) term.direction = "ltr";
-                if (form === 4) term.direction = "rtl";
             }
-            this.add(term);
+            term.value = this.rebuild.lexical(candidate, hex);
+            if (hex)
+                term.datatype = this.intern({
+                    kind: TermKind.Iri,
+                    value: hexDatatype,
+                });
+            this.add(term, block.kind, candidate.key);
         }
     }
 
@@ -589,6 +657,16 @@ export function projectRdf(
                     item.payload.decoded,
                 );
             }
+            if (
+                (item.frameType >= 8n && item.frameType <= 11n) ||
+                item.frameType === 13n
+            ) {
+                projector.rebuild.read(
+                    item.frameType,
+                    item.content,
+                    item.payload.decoded,
+                );
+            }
         } catch (error) {
             if (!(error instanceof RdfProjectionError)) throw error;
             throw new RdfProjectionError(
@@ -598,6 +676,43 @@ export function projectRdf(
         }
     }
     return projector.finish();
+}
+
+function formatLiteral(text: string, suffix: string): string {
+    const limit = constants.MAX_STRING_LENGTH - 2 - suffix.length;
+    let length = text.length;
+    requireRdf(
+        length <= limit,
+        "N-Quads output exceeds the JavaScript string limit",
+    );
+    for (
+        let index = 0;
+        text.length * 6 > limit && index < text.length;
+        index++
+    ) {
+        const code = text.charCodeAt(index);
+        if (
+            code === 34 ||
+            code === 92 ||
+            code === 9 ||
+            code === 10 ||
+            code === 13
+        )
+            length++;
+        else if (code < 32) length += 5;
+        requireRdf(
+            length <= limit,
+            "N-Quads output exceeds the JavaScript string limit",
+        );
+    }
+    // Escaping in slices also bounds the number of regular expression matches
+    // that the runtime has to retain at once.
+    let literal = '"';
+    const batch = 64 * 1024;
+    for (let offset = 0; offset < text.length; offset += batch) {
+        literal += escapeLiteral(text.slice(offset, offset + batch));
+    }
+    return literal + '"' + suffix;
 }
 
 export function rdfNQuads({
@@ -641,13 +756,13 @@ export function rdfNQuads({
             case TermKind.Bnode:
                 return `_:b${names.get(id)}`;
             case TermKind.Literal: {
-                const literal = `"${escapeLiteral(term.value)}"`;
                 if (term.lang !== undefined) {
                     requireRdf(
                         validLanguageTag(term.lang),
                         "invalid RDF language tag",
                     );
-                    return `${literal}@${term.lang}${term.direction === undefined ? "" : `--${term.direction}`}`;
+                    const suffix = `@${term.lang}${term.direction === undefined ? "" : `--${term.direction}`}`;
+                    return formatLiteral(term.value, suffix);
                 }
                 requireRdf(
                     term.datatype !== undefined,
@@ -659,9 +774,9 @@ export function rdfNQuads({
                         datatype !== RDF_DIR_LANG_STRING,
                     "RDF datatype requires a language",
                 );
-                return datatype === XSD_STRING
-                    ? literal
-                    : `${literal}^^${iri(datatype)}`;
+                const suffix =
+                    datatype === XSD_STRING ? "" : `^^${iri(datatype)}`;
+                return formatLiteral(term.value, suffix);
             }
             case TermKind.Triple:
                 throw new RdfProjectionError("invalid RDF term role");
