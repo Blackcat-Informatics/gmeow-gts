@@ -3,6 +3,7 @@
 """Exercise the combined P9 source read and fold."""
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import cbor2
@@ -120,7 +121,9 @@ def _encode_segment(parts, *, streamable=True, broken_at=None):
             body = {"count": body, "head": identifiers[body - 1] if body > 0 else prev}
         if not isinstance(body, MapValue):
             body = decode_legacy_item(cbor2.dumps(body)).value
-        fields = (("t", kind), ("d", body), ("prev", prev))
+        fields = (("t", kind), ("prev", prev))
+        if kind != "blob" or body is not None:
+            fields += (("d", body),)
         if extras:
             fields += (("pub", extras[0]),)
         if len(extras) > 1:
@@ -131,6 +134,70 @@ def _encode_segment(parts, *, streamable=True, broken_at=None):
         identifiers.append(prev)
         output.extend(encode_legacy_value(MapValue((*fields, ("id", prev)))))
     return bytes(output), offsets
+
+
+@pytest.mark.parametrize(
+    ("count", "target_kind", "expected"),
+    [
+        (1, "frame", None),
+        (2, "frame", ConversionStop("unrepresentable_term", 0)),
+        (2, "blob", None),
+    ],
+)
+def test_visibility_checks_each_blob_declaration_before_merging_its_digest(
+    count: int, target_kind: str, expected: ConversionStop | None
+) -> None:
+    body = b"repeated declaration"
+    prefix = [("blob", body, MapValue((("rep", "raw"),)))] * count
+    raw, offsets = _encode_segment(prefix, streamable=False)
+    item = decode_legacy_item(raw, offsets[0]).value
+    assert isinstance(item, MapValue)
+    frame_id = dict(item.entries)["id"]
+    target = (
+        {"kind": "frame", "id": frame_id}
+        if target_kind == "frame"
+        else {"kind": "blob", "digest": blake3_256(body)}
+    )
+    data, _ = _encode_segment(
+        [*prefix, ("suppress", {"targets": [target]})], streamable=False
+    )
+    fold = fold_source(lambda: data)
+    assert isinstance(fold, FoldedSource)
+    assert len(fold.declarations) == 1
+    assert fold.visibility_stop() == expected
+
+
+def test_visibility_compares_source_language_terms_to_the_projected_hiding() -> None:
+    data = (_P9 / "convert__language-case-suppressed.bin").read_bytes()
+    fold = fold_source(lambda: data)
+    assert isinstance(fold, FoldedSource)
+    assert len(fold.source_visibility.hidden_rows) == 1
+    assert fold.visibility_stop() is None
+    records = replace(fold.records, hidden_lines=frozenset())
+    assert replace(fold, records=records).visibility_stop() == ConversionStop(
+        "unrepresentable_term", 0
+    )
+
+
+@pytest.mark.parametrize("target_index", [0, 1])
+def test_visibility_checks_external_metadata_in_a_shared_blob_entry(
+    target_index: int,
+) -> None:
+    body = b"inline data"
+    metadata = MapValue((("digest", blake3_256(body)), ("mt", "text/plain")))
+    prefix = [("blob", body), ("blob", None, metadata)]
+    raw, offsets = _encode_segment(prefix, streamable=False)
+    item = decode_legacy_item(raw, offsets[target_index]).value
+    assert isinstance(item, MapValue)
+    frame_id = dict(item.entries)["id"]
+    data, _ = _encode_segment(
+        [*prefix, ("suppress", {"targets": [{"kind": "frame", "id": frame_id}]})],
+        streamable=False,
+    )
+    fold = fold_source(lambda: data)
+    assert isinstance(fold, FoldedSource)
+    assert fold.blobs.entries[0].media_types == ("text/plain",)
+    assert fold.visibility_stop() == ConversionStop("unrepresentable_term", 0)
 
 
 @pytest.mark.parametrize("announce", [True, False])

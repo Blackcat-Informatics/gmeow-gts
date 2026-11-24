@@ -13,15 +13,17 @@ from .conversion_blobs import BlobImage, ConversionBlobs, ConvertedBlobs
 from .conversion_graph import _NS, _RDF, ConversionGraph
 from .conversion_rdf import ConversionSegment, RdfSourceError
 from .dictionary import Triple
+from .labelling import _slots
 from .record_fold import (
     RecordFold,
     RecordLocation,
     ResolvedSuppression,
     _hidden,
+    _Occurrences,
     exact_line_target,
 )
 from .records import BlobReference, SuppressionKind
-from .rows import QuadRow, Row
+from .rows import AnnotationRow, QuadRow, ReifierBindingRow, Row, _key
 from .terms import TypedValue
 
 _EMPTY_MAP = MapValue(())
@@ -66,6 +68,39 @@ class _Directive:
             or self.author is not None
             or bool(self.extra.entries)
             or any(target.extra.entries for target in self.targets)
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class SourceVisibility:
+    """Source hiding by value and by declaration occurrence under P9 §5.8."""
+
+    hidden_rows: frozenset[Row]
+    blobs: tuple[tuple[BlobImage, bool], ...]
+
+    def agrees(self, rows: Iterable[Row], records: RecordFold, vocabulary: int) -> bool:
+        hidden = frozenset(
+            row for row in records.hidden_lines if row.graph != vocabulary
+        )
+        if hidden != self.hidden_rows:
+            return False
+        nodes: dict[int, bool] = {}
+        for image, was_hidden in self.blobs:
+            if image.reference is not None:
+                is_hidden = image.reference in records.hidden_blobs
+                if is_hidden != was_hidden:
+                    return False
+            if (
+                image.node is not None
+                and nodes.setdefault(image.node, was_hidden) != was_hidden
+            ):
+                return False
+        return all(
+            (row in records.hidden_lines) == nodes[row.subject]
+            for row in rows
+            if isinstance(row, QuadRow)
+            and row.graph == vocabulary
+            and row.subject in nodes
         )
 
 
@@ -268,8 +303,8 @@ class ConversionSuppression:
                         entry = exact_line_target(row)
                         if entry is not None:
                             yield entry
-                    for image in blobs.frames.get(location, ()):
-                        yield from _blob_targets(image)
+                    for occurrence in blobs.frames.get(location, ()):
+                        yield from _blob_targets(occurrence.image)
 
     def _describe(self, directive: _Directive, graph: ConversionGraph) -> None:
         node = graph._blank()
@@ -343,4 +378,55 @@ class ConversionSuppression:
             frozenset(hidden_lines),
             frozenset(hidden_bindings),
             frozenset(hidden_blobs),
+        )
+
+    def source_visibility(
+        self, graph: ConversionGraph, lines: Iterable[Row], blobs: ConvertedBlobs
+    ) -> SourceVisibility:
+        """Apply the legacy visibility conventions independently of the v2 entries."""
+        terms: set[int] = set()
+        reifiers: set[int] = set()
+        exact: set[tuple[type[Row], tuple[int, ...]]] = set()
+        frames: set[RecordLocation] = set()
+        digests: set[bytes | str] = set()
+        for directive in self._directives:
+            for target in directive.targets:
+                value = target.value
+                if isinstance(value, int):
+                    (terms if target.kind == "term" else reifiers).add(value)
+                elif isinstance(value, QuadRow):
+                    exact.add((QuadRow, _key(value)))
+                elif isinstance(value, bytes | str):
+                    digest = self._blobs.resolve_digest(value)
+                    if target.kind == "blob":
+                        digests.add(digest)
+                    elif isinstance(digest, bytes):
+                        for location, rows in self._frames.get(digest, ()):
+                            frames.add(location)
+                            exact.update((type(row), _key(row)) for row in rows)
+
+        occurrences = _Occurrences(graph.pool, (), terms)
+        hidden_rows = set()
+        for line in lines:
+            slots = _slots(line)
+            assert slots is not None
+            if (
+                (type(line), _key(line)) in exact
+                or isinstance(line, AnnotationRow | ReifierBindingRow)
+                and line.reifier in reifiers
+                or any(occurrences.contains(ref) for ref in slots.ordered_terms())
+            ):
+                hidden_rows.add(line)
+        return SourceVisibility(
+            frozenset(hidden_rows),
+            tuple(
+                # Declarations of one digest share the projected metadata
+                # and blob-set entry, including an external frame's metadata.
+                (
+                    blobs.images[item.digest],
+                    location in frames or item.digest in digests,
+                )
+                for location, declarations in blobs.frames.items()
+                for item in declarations
+            ),
         )
