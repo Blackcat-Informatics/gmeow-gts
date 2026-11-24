@@ -118,11 +118,11 @@ GtsV2ParityChecks >> readDigest: field [
 
 { #category : #validation }
 GtsV2ParityChecks >> checkedTable: table payload: bytes spanSize: size [
-	| shardSize dataCount parityCount walker limit fields data parity computed dataDigests parityDigests body |
-	shardSize := 64.
-	[ shardSize < 4096 and: [ shardSize * 64 < size ] ] whileTrue: [ shardSize := shardSize * 2 ].
-	dataCount := (size + shardSize - 1) // shardSize.
-	parityCount := ((dataCount + 63) // 64) * 4.
+	| layout shardSize dataCount parityCount walker limit fields data parity computed dataDigests parityDigests body |
+	layout := self layoutFor: size.
+	shardSize := layout first.
+	dataCount := layout second.
+	parityCount := layout third.
 	walker := GtsV2CborWalker on: bytes.
 	limit := bytes size + 1.
 	[
@@ -137,6 +137,31 @@ GtsV2ParityChecks >> checkedTable: table payload: bytes spanSize: size [
 	computed := GtsBlake3 deriveWith: 'gts2 parity table' prefix: #[131 88 32], header
 		bytes: bytes from: data start to: parity end.
 	^ computed = table ifTrue: [ { shardSize. dataDigests. parityDigests. body } ]
+]
+
+{ #category : #private }
+GtsV2ParityChecks >> layoutFor: size [
+	| shardSize dataCount |
+	shardSize := 64.
+	[ shardSize < 4096 and: [ shardSize * 64 < size ] ] whileTrue: [ shardSize := shardSize * 2 ].
+	dataCount := (size + shardSize - 1) // shardSize.
+	^ { shardSize. dataCount. ((dataCount + 63) // 64) * 4 }
+]
+
+{ #category : #resuming }
+GtsV2ParityChecks >> hasReadableOpener [
+	^ header notNil
+]
+
+{ #category : #resuming }
+GtsV2ParityChecks >> allowsCandidateFrom: first after: previous [
+	| content |
+	(seenShort or: [ seenStarts includes: first ]) ifTrue: [ ^ false ].
+	(previous frameType = 16 and: [ previous link ~= #broken ]) ifFalse: [ ^ true ].
+	content := self contentOf: previous frame.
+	content ifNil: [ ^ true ].
+	(content first > 1 and: [ registry > 1 and: [ previous problem isNil ] ]) ifTrue: [ ^ true ].
+	^ content second ~= first and: [ ((content third - content second) between: 1 and: 4194303) not ]
 ]
 
 { #category : #validation }

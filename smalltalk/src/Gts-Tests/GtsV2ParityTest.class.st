@@ -61,6 +61,73 @@ GtsV2ParityTest >> testRepairRecheckChargesTheBudgetBeforeTheNextSegment [
 	self assert: plan repairedBytes equals: (self bytesFor: 'recover-no-signature.signature-zero.repaired.bin'), input
 ]
 
+{ #category : #tests }
+GtsV2ParityTest >> testRepairResumesAtParityAfterFramingLoss [
+	| recoveredResync |
+	#('recover-length' 'recover-zeroed-range' 'recovery-parity-in-resync-segment') do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P5/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry |
+			| input repaired expected |
+			input := entry at: 'input_file'.
+			repaired := (GtsV2Wire inspect: (self bytesFor: input)) parityRepair.
+			expected := self repairFindingsOf: entry.
+			self assert: repaired findings = expected description: input.
+			expected ifNotEmpty: [
+				| parity |
+				self assert: repaired stop isNil description: input.
+				parity := (self parityIn: repaired repairedBytes) last.
+				self assert: parity parityShardFindings isEmpty description: input.
+				name = 'recovery-parity-in-resync-segment' ifTrue: [
+					recoveredResync
+						ifNil: [ recoveredResync := repaired repairedBytes ]
+						ifNotNil: [ self assert: repaired repairedBytes equals: recoveredResync ] ] ] ] ]
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testParityResumptionChargesTheCandidateBeforeItChecksPayload [
+	| input refused admitted |
+	input := self bytesFor: 'recover-length.with-parity.bin'.
+	refused := (GtsV2Wire inspect: input budget: (GtsV2PayloadBudget withReadLimit: 465)) parityRepair.
+	self assert: refused repairedBytes isNil.
+	self assert: refused stop problem equals: 'undelimitable_input'.
+	self assert: refused refusal offset equals: 481.
+	self assert: refused refusal end equals: 1103.
+	self assert: refused refusal payload reason equals: 'total_decoded'.
+	self assert: refused refusal payload count equals: 466.
+	admitted := (GtsV2Wire inspect: input budget: (GtsV2PayloadBudget withReadLimit: 466)) parityRepair.
+	self assert: admitted refusal isNil.
+	self assert: admitted stop isNil.
+	self assert: admitted findings equals: #(('repair_failed' 481 'verify_failed'))
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testOffsetsCountTheDamagedRegionAsOneItemAfterParityResumption [
+	| input offsets plan observed |
+	input := (self bytesFor: 'recover-length.with-parity.bin'),
+		#[130 4 131 11 25 1 214 25 2 110].
+	plan := GtsV2ParityRepair on: input.
+	observed := OrderedCollection new.
+	(GtsV2Wire inspect: input) eventsDo: [ :event | observed add: event ]
+		decodedWhen: [ :event | false ] unprotectedTailsDo: [ :offset :length | ] repairing: plan.
+	self assert: (observed collect: [ :event | event kind ]) asArray equals: #(header framingGap frame offsets).
+	offsets := observed last.
+	self assert: offsets problem isNil.
+	self assert: offsets closingClaimFailure isNil
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testParityResumptionRequiresRoomForTheDamagedRegionAndTheCandidate [
+	| input limited allowed |
+	input := self bytesFor: 'recovery-parity-in-resync-segment.incomplete-item.bin'.
+	limited := (GtsV2Wire inspect: input budget: (GtsV2PayloadBudget new itemLimit: 5)) parityRepair.
+	self assert: limited stop problem equals: 'torn_tail'.
+	self assert: limited repairedBytes isNil.
+	allowed := (GtsV2Wire inspect: input budget: (GtsV2PayloadBudget new itemLimit: 6)) parityRepair.
+	self assert: allowed stop isNil.
+	self assert: allowed findings equals: #(('repaired' 586 1))
+]
+
 { #category : #private }
 GtsV2ParityTest >> repairFindingsOf: entry [
 	| decoded expected |

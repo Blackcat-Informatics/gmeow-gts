@@ -6,12 +6,17 @@ Class {
 	#category : #'Gts-Core'
 }
 
+{ #category : #accessing }
+GtsV2ResyncScan class >> pattern [
+	^ #[139 5 2 80 252 243 235 50 162 240 38 125 209 106 83 240 155 255 135 146]
+]
+
 { #category : #scanning }
 GtsV2ResyncScan class >> on: walker from: start to: end budget: budget [
 	| bytes pattern matched scanEnd |
 	budget decodedExhausted ifTrue: [ ^ nil ].
 	bytes := walker bytes.
-	pattern := #[139 5 2 80 252 243 235 50 162 240 38 125 209 106 83 240 155 255 135 146].
+	pattern := self pattern.
 	matched := 0.
 	scanEnd := bytes size min: end + pattern size - 2.
 	start to: scanEnd do: [ :position |
