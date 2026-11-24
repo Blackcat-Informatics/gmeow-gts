@@ -31,7 +31,7 @@ internal fun printV2Info(path: String, data: ByteArray): Boolean? =
     }
 
 private fun printV2Ledger(path: String, wire: WireInspection.VersionTwo): Boolean {
-    println("$path: GTS v2 framing ledger (item boundaries)")
+    println("$path: GTS v2 framing ledger (item boundaries and envelopes)")
     var ordinal = 0
     var clean = true
     for (event in wire.events) {
@@ -47,9 +47,16 @@ private fun printV2Ledger(path: String, wire: WireInspection.VersionTwo): Boolea
                     } else {
                         "    "
                     }
-                val problem = event.problem?.let { ": $it" }.orEmpty()
-                println("$prefix${event.kind.name.lowercase()} bytes [${event.offset}, ${event.end})$problem")
+                val type = event.frameType?.let { " type $it" }.orEmpty()
+                val parameters = event.opener?.let { ", registry ${it.registry}, hash algorithm ${it.hashAlgorithm}" }.orEmpty()
+                val problem =
+                    event.problem?.let { if (event.frameType == 16uL) ": parity_damaged ($it)" else ": $it" }.orEmpty()
+                println("$prefix${event.kind.name.lowercase()}$type bytes [${event.offset}, ${event.end})$parameters$problem")
                 if (event.problem != null) clean = false
+                if (event.opener?.registry?.let { it > 1uL } == true) {
+                    println("    unsupported registry version ${event.opener.registry}")
+                    clean = false
+                }
             }
         }
     }

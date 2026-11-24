@@ -31,6 +31,8 @@ internal sealed interface WireEvent {
         val end: Int,
         val kind: ItemKind,
         val problem: String? = null,
+        val opener: OpenerEnvelope? = null,
+        val frameType: ULong? = null,
     ) : WireEvent
 
     data class Stop(val offset: Int, val reason: StopReason) : WireEvent, WireInspection
@@ -114,7 +116,7 @@ private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
     sequence {
         var offset = 0
         var count = 0
-        var openerPrefixValid = false
+        var registry: ULong? = null
         while (offset < data.size) {
             if (count == (1 shl 26)) {
                 yield(WireEvent.Stop(offset, StopReason.ITEMS_PER_READ))
@@ -127,9 +129,9 @@ private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
                     yield(WireEvent.Stop(offset, error.reason))
                     break
                 }
-            val item = classify(data, offset, end, openerPrefixValid)
+            val item = classify(data, offset, end, registry)
             if (item.kind == ItemKind.HEADER || item.kind == ItemKind.RESYNC) {
-                openerPrefixValid = item.problem == null
+                registry = item.opener?.takeIf { it.hashAlgorithm == 1uL }?.registry
             }
             yield(item)
             offset = end
@@ -137,7 +139,7 @@ private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
         }
     }
 
-private fun classify(data: ByteArray, offset: Int, end: Int, openerPrefixValid: Boolean): WireEvent.Item {
+private fun classify(data: ByteArray, offset: Int, end: Int, registry: ULong?): WireEvent.Item {
     val array = readHead(data, offset, end)
     val code = readKind(data, array, end)
     val kind =
@@ -149,29 +151,27 @@ private fun classify(data: ByteArray, offset: Int, end: Int, openerPrefixValid: 
             5uL -> ItemKind.RESYNC
             else -> ItemKind.OPAQUE
         }
-    if (code != null && (kind == ItemKind.HEADER || kind == ItemKind.RESYNC)) {
-        return WireEvent.Item(offset, end, kind, openerPrefixProblem(data, array, code, end, kind))
+    if (kind == ItemKind.HEADER || kind == ItemKind.RESYNC) {
+        return try {
+            val opener = readOpener(CborField(data, offset, end), kind == ItemKind.RESYNC)
+            WireEvent.Item(offset, end, kind, opener = opener)
+        } catch (error: EnvelopeFailure) {
+            WireEvent.Item(offset, end, kind, error.reason)
+        }
     }
     return when {
-        !openerPrefixValid -> WireEvent.Item(offset, end, ItemKind.UNCHECKED)
+        registry == null -> WireEvent.Item(offset, end, ItemKind.UNCHECKED)
         code == null -> WireEvent.Item(offset, end, ItemKind.OPAQUE, "wrong_type")
         !array.shortest || !code.shortest -> WireEvent.Item(offset, end, ItemKind.OPAQUE, "not_deterministic")
         kind == ItemKind.FRAME && array.argument != 11uL -> WireEvent.Item(offset, end, ItemKind.OPAQUE, "wrong_length")
-        kind == ItemKind.OPAQUE -> WireEvent.Item(offset, end, kind, "unknown item kind ${code.argument}")
+        kind == ItemKind.FRAME -> {
+            val frame = readFrame(CborField(data, offset, end), registry)
+            WireEvent.Item(offset, end, kind, frame.problem, frameType = frame.type)
+        }
+        kind == ItemKind.OPAQUE -> {
+            val reason = if (code.argument != 0uL && registry > 1uL) "unknown_item_kind" else "unregistered_value"
+            WireEvent.Item(offset, end, kind, reason)
+        }
         else -> WireEvent.Item(offset, end, kind)
-    }
-}
-
-private fun openerPrefixProblem(data: ByteArray, array: CborHead, code: CborHead, end: Int, kind: ItemKind): String? {
-    if (!array.shortest) return "not_deterministic"
-    val fields = if (kind == ItemKind.HEADER) 7uL else 11uL
-    if (array.argument != fields) return "wrong_length"
-    if (!code.shortest) return "not_deterministic"
-    val version = readHead(data, code.end, end)
-    return when {
-        version.major <= 4 && !version.shortest -> "not_deterministic"
-        version.major != 0 -> "wrong_type"
-        version.argument != 2uL -> "out_of_range"
-        else -> null
     }
 }
