@@ -160,21 +160,14 @@ impl<'a> Decoder<'a> {
         self.byte_string(Some(SIZE))?.try_into().map_err(|_| error)
     }
 
-    fn text(&mut self) -> Result<(), HeaderError> {
+    pub(super) fn text(&mut self) -> Result<&'a str, HeaderError> {
         let length_error = self.error(MalformedReason::WrongLength);
         let type_error = self.error(MalformedReason::WrongType);
         let size = usize::try_from(self.head(3)?).map_err(|_| length_error)?;
-        let available = &self.bytes[self.offset..];
-        if size > available.len()
-            && str::from_utf8(available).is_err_and(|error| error.error_len().is_some())
-        {
-            return Err(type_error);
-        }
-        str::from_utf8(self.take(size)?).map_err(|_| type_error)?;
-        Ok(())
+        str::from_utf8(self.take(size)?).map_err(|_| type_error)
     }
 
-    fn boolean(&mut self) -> Result<bool, HeaderError> {
+    pub(super) fn boolean(&mut self) -> Result<bool, HeaderError> {
         let error = self.error(MalformedReason::WrongType);
         let code = self.head(7)?;
         if self.offset - error.offset == 1 {
@@ -200,7 +193,9 @@ impl<'a> Decoder<'a> {
                 2 => {
                     self.byte_string(None)?;
                 }
-                3 => self.text()?,
+                3 => {
+                    self.text()?;
+                }
                 4 => pending = pending.saturating_add(self.head(4)?),
                 7 => {
                     self.boolean()?;
@@ -224,7 +219,9 @@ impl<'a> Decoder<'a> {
         let tag = self.uint()?;
         match tag {
             1 | 2 if size != tag => return Err(error),
-            2 => self.text()?,
+            2 => {
+                self.text()?;
+            }
             1 => {}
             _ => {
                 for _ in 1..size {
@@ -235,7 +232,7 @@ impl<'a> Decoder<'a> {
         Ok(())
     }
 
-    fn frame_content(&mut self, frame_type: u64) -> Result<(), HeaderError> {
+    pub(super) fn frame_content(&mut self, frame_type: u64) -> Result<(), HeaderError> {
         if frame_type == 1 {
             self.record(4)?;
             self.uint()?;

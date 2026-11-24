@@ -15,10 +15,12 @@ type trigParser struct {
 	text             string
 	pos              int
 	prefixes         map[string]string
-	nquads           []string
+	statements       []rdfStatement
+	graphNames       []rdfNode
 	baseIRI          string
 	bnodeCounter     int
 	allowNamedGraphs bool
+	rdf12            bool
 }
 
 func newTriGParser(text string, allowNamedGraphs bool) *trigParser {
@@ -29,7 +31,7 @@ func newTriGParser(text string, allowNamedGraphs bool) *trigParser {
 	}
 }
 
-func (p *trigParser) parse() (string, error) {
+func (p *trigParser) parse() error {
 	for !p.eof() {
 		p.skipWSAndComments()
 		if p.eof() {
@@ -37,71 +39,83 @@ func (p *trigParser) parse() (string, error) {
 		}
 		if p.consume("@prefix") {
 			if err := p.prefixDirective(true); err != nil {
-				return "", err
+				return err
 			}
 			continue
 		}
 		if p.consume("@base") {
 			if err := p.baseDirective(true); err != nil {
-				return "", err
+				return err
 			}
 			continue
 		}
 		if p.consumeKeyword("PREFIX") {
 			if err := p.prefixDirective(false); err != nil {
-				return "", err
+				return err
 			}
 			continue
 		}
 		if p.consumeKeyword("BASE") {
 			if err := p.baseDirective(false); err != nil {
-				return "", err
+				return err
 			}
 			continue
 		}
 		if p.consumeKeyword("GRAPH") {
 			if !p.allowNamedGraphs {
-				return "", codecError("Turtle input cannot contain GRAPH blocks")
+				return codecError("Turtle input cannot contain GRAPH blocks")
 			}
+			p.skipWSAndComments()
+			start, rows := p.pos, len(p.statements)
 			graph, err := p.term(nil)
 			if err != nil {
-				return "", err
+				return err
+			}
+			if !p.isGraphLabel(graph, start, rows) {
+				return codecError("graph block name must be an IRI or blank node label")
 			}
 			if err := p.graphBlock(graph); err != nil {
-				return "", err
+				return err
 			}
 			continue
 		}
 		if p.consumeChar('{') {
 			if !p.allowNamedGraphs {
-				return "", codecError("Turtle input cannot contain graph blocks")
+				return codecError("Turtle input cannot contain graph blocks")
 			}
 			if err := p.defaultGraphBlockAfterOpen(); err != nil {
-				return "", err
+				return err
 			}
 			continue
 		}
 
+		start, rows := p.pos, len(p.statements)
 		first, err := p.term(nil)
 		if err != nil {
-			return "", err
+			return err
 		}
 		p.skipWSAndComments()
 		if p.consumeChar('{') {
 			if !p.allowNamedGraphs {
-				return "", codecError("Turtle input cannot contain graph blocks")
+				return codecError("Turtle input cannot contain graph blocks")
+			}
+			if !p.isGraphLabel(first, start, rows) {
+				return codecError("graph block name must be an IRI or blank node label")
 			}
 			if err := p.graphBlockAfterOpen(first); err != nil {
-				return "", err
+				return err
 			}
-		} else if err := p.statementAfterSubject(first, nil); err != nil {
-			return "", err
+		} else if err := p.statementAfterSubject(first, nil, p.standaloneSubject(start, rows), false); err != nil {
+			return err
 		}
 	}
-	if len(p.nquads) == 0 {
-		return "", nil
-	}
-	return strings.Join(p.nquads, "\n") + "\n", nil
+	return nil
+}
+
+func (p *trigParser) isGraphLabel(name rdfNode, start, rowsBefore int) bool {
+	// An empty collection happens to yield an IRI, while a property list
+	// yields a blank node and contributes rows. Neither is a graph label.
+	return name.graphName() && p.text[start] != '(' && len(p.statements) == rowsBefore
 }
 
 func (p *trigParser) eof() bool {
@@ -121,7 +135,7 @@ func (p *trigParser) skipWSAndComments() {
 		if ch, ok := p.peekChar(); ok && ch == '#' {
 			for {
 				ch, ok := p.bumpChar()
-				if !ok || ch == '\n' {
+				if !ok || ch == '\n' || ch == '\r' {
 					break
 				}
 			}
@@ -213,6 +227,9 @@ func (p *trigParser) baseDirective(requireDot bool) error {
 	if err != nil {
 		return err
 	}
+	if p.rdf12 {
+		iri = p.resolveIRI(iri)
+	}
 	if !hasIRIScheme(iri) {
 		return codecError("base IRI must be absolute: %q", iri)
 	}
@@ -298,7 +315,7 @@ func (p *trigParser) booleanLiteral() (rdfNode, bool) {
 			continue
 		}
 		end := p.pos + len(token)
-		if end < len(p.text) && !isTriGTermDelimiterByte(p.text[end]) {
+		if end < len(p.text) && !p.termDelimiter(p.text[end]) {
 			continue
 		}
 		p.pos = end
@@ -344,7 +361,7 @@ func (p *trigParser) numericLiteral() (rdfNode, bool, error) {
 			return rdfNode{}, true, codecError("invalid numeric literal %q", p.text[start:pos])
 		}
 	}
-	if pos < len(p.text) && !isTriGTermDelimiterByte(p.text[pos]) {
+	if pos < len(p.text) && !p.termDelimiter(p.text[pos]) {
 		return rdfNode{}, false, nil
 	}
 	datatype := xsdNS + "integer"
@@ -366,10 +383,12 @@ func isASCIIHexDigit(ch byte) bool {
 	return isASCIIDigit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')
 }
 
-func isTriGTermDelimiterByte(ch byte) bool {
+func (p *trigParser) termDelimiter(ch byte) bool {
 	switch ch {
 	case '{', '}', '[', ']', '(', ')', '<', '>', ';', ',', '.':
 		return true
+	case '~':
+		return p.rdf12
 	default:
 		return ch <= ' '
 	}
@@ -379,7 +398,11 @@ func (p *trigParser) predicate() (rdfNode, error) {
 	if p.consumeKeyword("a") {
 		return iriNode(rdfType), nil
 	}
-	return p.term(nil)
+	predicate, err := p.quotedComponent(nil, false, false)
+	if err == nil && p.rdf12 && predicate.kind != nodeIRI {
+		return rdfNode{}, codecError("predicate must be an IRI")
+	}
+	return predicate, err
 }
 
 func (p *trigParser) iriRaw() (string, error) {
@@ -388,6 +411,8 @@ func (p *trigParser) iriRaw() (string, error) {
 		return "", codecError("expected IRI at byte %d", p.pos)
 	}
 	start := p.pos
+	segment := start
+	var decoded strings.Builder
 	for {
 		ch, ok := p.bumpChar()
 		if !ok {
@@ -395,13 +420,26 @@ func (p *trigParser) iriRaw() (string, error) {
 		}
 		if ch == '>' {
 			end := p.pos - 1
-			raw := p.text[start:end]
-			for _, ch := range raw {
-				if ch < 0x20 || unicode.IsSpace(ch) || strings.ContainsRune("<>\"{}|\\^`", ch) {
-					return "", codecError("invalid character in IRI starting at byte %d", start-1)
-				}
+			if segment == start {
+				return p.text[start:end], nil
 			}
-			return raw, nil
+			decoded.WriteString(p.text[segment:end])
+			return decoded.String(), nil
+		}
+		if ch == '\\' && p.rdf12 {
+			code, _ := p.peekChar()
+			if code != 'u' && code != 'U' {
+				return "", codecError("an IRI escape must use \\u or \\U")
+			}
+			decoded.WriteString(p.text[segment : p.pos-1])
+			value, err := p.escape()
+			if err != nil {
+				return "", err
+			}
+			decoded.WriteRune(value)
+			segment = p.pos
+		} else if ch <= 0x20 || strings.ContainsRune("<\"{}|\\^`", ch) {
+			return "", codecError("invalid character in IRI starting at byte %d", start-1)
 		}
 	}
 }
@@ -448,7 +486,7 @@ func (p *trigParser) bnode() (string, error) {
 func (p *trigParser) nextBNode() rdfNode {
 	id := p.bnodeCounter
 	p.bnodeCounter++
-	return bnodeNode(fmt.Sprintf("gts_%d", id))
+	return generatedBnode(fmt.Sprintf("gts_%d", id))
 }
 
 func (p *trigParser) literal() (rdfNode, error) {
@@ -473,6 +511,7 @@ func (p *trigParser) literal() (rdfNode, error) {
 			return rdfNode{}, codecError("raw newline in short string literal")
 		case '"':
 			lang := ""
+			direction := ""
 			datatype := ""
 			if got, ok := p.peekChar(); ok && got == '@' {
 				p.bumpChar()
@@ -489,6 +528,13 @@ func (p *trigParser) literal() (rdfNode, error) {
 					return rdfNode{}, codecError("empty language tag")
 				}
 				lang = p.text[start:p.pos]
+				if separator := strings.LastIndex(lang, "--"); separator >= 0 {
+					direction = lang[separator+2:]
+					lang = lang[:separator]
+					if lang == "" || (direction != "ltr" && direction != "rtl") {
+						return rdfNode{}, codecError("invalid literal language or direction")
+					}
+				}
 			} else if strings.HasPrefix(p.text[p.pos:], "^^") {
 				p.pos += 2
 				dt, err := p.datatypeIRI()
@@ -497,7 +543,7 @@ func (p *trigParser) literal() (rdfNode, error) {
 				}
 				datatype = dt
 			}
-			return literalNode(value.String(), lang, "", datatype), nil
+			return literalNode(value.String(), lang, direction, datatype), nil
 		default:
 			value.WriteRune(ch)
 		}
@@ -564,7 +610,7 @@ func (p *trigParser) escape() (rune, error) {
 
 func (p *trigParser) parenthesizedQuotedTriple(graph *rdfNode) (rdfNode, error) {
 	p.pos += 3
-	s, err := p.term(graph)
+	s, err := p.quotedComponent(graph, false, false)
 	if err != nil {
 		return rdfNode{}, err
 	}
@@ -572,7 +618,7 @@ func (p *trigParser) parenthesizedQuotedTriple(graph *rdfNode) (rdfNode, error) 
 	if err != nil {
 		return rdfNode{}, err
 	}
-	o, err := p.term(graph)
+	o, err := p.quotedComponent(graph, true, false)
 	if err != nil {
 		return rdfNode{}, err
 	}
@@ -586,7 +632,7 @@ func (p *trigParser) parenthesizedQuotedTriple(graph *rdfNode) (rdfNode, error) 
 
 func (p *trigParser) legacyQuotedTriple(graph *rdfNode) (rdfNode, error) {
 	p.pos += 2
-	s, err := p.term(graph)
+	s, err := p.quotedComponent(graph, false, true)
 	if err != nil {
 		return rdfNode{}, err
 	}
@@ -594,16 +640,63 @@ func (p *trigParser) legacyQuotedTriple(graph *rdfNode) (rdfNode, error) {
 	if err != nil {
 		return rdfNode{}, err
 	}
-	o, err := p.term(graph)
+	o, err := p.quotedComponent(graph, true, true)
 	if err != nil {
 		return rdfNode{}, err
+	}
+	var reifier *rdfNode
+	if p.rdf12 && p.consume("~") {
+		p.skipWSAndComments()
+		if !strings.HasPrefix(p.text[p.pos:], ">>") {
+			start, rows := p.pos, len(p.statements)
+			label, err := p.term(graph)
+			if err != nil {
+				return rdfNode{}, err
+			}
+			if !p.isGraphLabel(label, start, rows) {
+				return rdfNode{}, codecError("reifier must be an IRI or blank node")
+			}
+			reifier = &label
+		}
 	}
 	p.skipWSAndComments()
 	if !strings.HasPrefix(p.text[p.pos:], ">>") {
 		return rdfNode{}, codecError("unterminated quoted triple")
 	}
 	p.pos += 2
-	return tripleNode(s, pred, o), nil
+	quoted := tripleNode(s, pred, o)
+	if !p.rdf12 {
+		return quoted, nil
+	}
+	if reifier == nil {
+		label := p.nextBNode()
+		reifier = &label
+	}
+	predicate := iriNode(rdfReifies)
+	p.emitStatement(reifier, &predicate, &quoted, graph)
+	return *reifier, nil
+}
+
+func (p *trigParser) quotedComponent(graph *rdfNode, allowTriple, allowReified bool) (rdfNode, error) {
+	if !p.rdf12 {
+		return p.term(graph)
+	}
+	p.skipWSAndComments()
+	rest := p.text[p.pos:]
+	triple := strings.HasPrefix(rest, "<<(")
+	reified := !triple && strings.HasPrefix(rest, "<<")
+	if (!allowTriple && triple) || (!allowReified && reified) || strings.HasPrefix(rest, "(") {
+		return rdfNode{}, codecError("invalid term in this RDF position")
+	}
+	rows := len(p.statements)
+	node, err := p.term(graph)
+	if err != nil {
+		return rdfNode{}, err
+	}
+	if (!allowTriple && !node.graphName()) || (!reified && len(p.statements) != rows) {
+		return rdfNode{}, codecError("invalid term in this RDF position")
+	}
+	return node, nil
 }
 
 func (p *trigParser) prefixedName() (string, error) {
@@ -611,7 +704,7 @@ func (p *trigParser) prefixedName() (string, error) {
 	start := p.pos
 	for {
 		ch, ok := p.peekChar()
-		if !ok || unicode.IsSpace(ch) || strings.ContainsRune("{}[]()<>\n\t;,", ch) {
+		if !ok || unicode.IsSpace(ch) || strings.ContainsRune("{}[]()<>\n\t;,", ch) || p.rdf12 && ch == '~' {
 			break
 		}
 		if ch == '.' {
@@ -700,15 +793,17 @@ func (p *trigParser) graphBlockAfterOpen(graph rdfNode) error {
 	if !graph.graphName() {
 		return codecError("graph block name must be an IRI or blank node")
 	}
+	p.graphNames = append(p.graphNames, graph)
 	for !p.consumeChar('}') {
 		if p.eof() {
 			return codecError("unterminated graph block")
 		}
+		start, rows := p.pos, len(p.statements)
 		subject, err := p.term(&graph)
 		if err != nil {
 			return err
 		}
-		if err := p.statementAfterSubject(subject, &graph); err != nil {
+		if err := p.statementAfterSubject(subject, &graph, p.standaloneSubject(start, rows), true); err != nil {
 			return err
 		}
 	}
@@ -720,20 +815,40 @@ func (p *trigParser) defaultGraphBlockAfterOpen() error {
 		if p.eof() {
 			return codecError("unterminated graph block")
 		}
+		start, rows := p.pos, len(p.statements)
 		subject, err := p.term(nil)
 		if err != nil {
 			return err
 		}
-		if err := p.statementAfterSubject(subject, nil); err != nil {
+		if err := p.statementAfterSubject(subject, nil, p.standaloneSubject(start, rows), true); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (p *trigParser) statementAfterSubject(subject rdfNode, graph *rdfNode) error {
-	if err := p.predicateObjectList(&subject, graph); err != nil {
-		return err
+func (p *trigParser) standaloneSubject(start, rowsBefore int) bool {
+	if !p.rdf12 || len(p.statements) == rowsBefore {
+		return false
+	}
+	term := p.text[start:]
+	return strings.HasPrefix(term, "[") || strings.HasPrefix(term, "<<") && !strings.HasPrefix(term, "<<(")
+}
+
+func (p *trigParser) statementAfterSubject(subject rdfNode, graph *rdfNode, standalone, inBlock bool) error {
+	p.skipWSAndComments()
+	end, _ := p.peekChar()
+	atEnd := end == '.' || inBlock && end == '}'
+	// A standalone property list or reified triple can already have yielded
+	// all the statements for this subject.
+	if !standalone || !atEnd {
+		if err := p.predicateObjectList(&subject, graph); err != nil {
+			return err
+		}
+	}
+	p.skipWSAndComments()
+	if ch, _ := p.peekChar(); inBlock && ch == '}' {
+		return nil
 	}
 	return p.expectChar('.', "to terminate statement")
 }
@@ -768,9 +883,5 @@ func (p *trigParser) predicateObjectList(subject *rdfNode, graph *rdfNode) error
 }
 
 func (p *trigParser) emitStatement(subject, predicate, object, graph *rdfNode) {
-	line := fmt.Sprintf("%s %s %s", subject.token(), predicate.token(), object.token())
-	if graph != nil {
-		line += " " + graph.token()
-	}
-	p.nquads = append(p.nquads, line+" .")
+	p.statements = append(p.statements, rdfStatement{subject: *subject, predicate: *predicate, object: *object, graph: graph})
 }

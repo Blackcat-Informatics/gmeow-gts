@@ -45,6 +45,17 @@ GtsZstd class >> decompress: aByteArray expectedSize: expectedSize [
 	^ outputBytes copyFrom: 1 to: outputSize
 ]
 
+{ #category : #decompression }
+GtsZstd class >> decompressSingleFrame: input expectedSize: expectedSize [
+	| library consumed output written |
+	library := GtsZstdLibrary uniqueInstance.
+	consumed := library firstFrameSizeOf: input length: input size.
+	consumed = input size ifFalse: [ ^ nil ].
+	output := ByteArray new: expectedSize.
+	written := library decompressInto: output capacity: expectedSize from: input length: consumed.
+	^ written = expectedSize ifTrue: [ output ]
+]
+
 { #category : #private }
 GtsZstd class >> ensureOk: resultCode [
 	(GtsZstdLibrary uniqueInstance isError: resultCode) = 0

@@ -1342,6 +1342,58 @@ fn info_reports_accretive_tail() {
 }
 
 #[test]
+fn info_reports_v2_wire_frames_and_legacy_graphs() {
+    let v2 = vectors().join("v2/P3/project__round-trip-rdf.bin");
+    let displaced = vectors().join("v2/P1/resync-displaced-join.bin");
+    let v1 = vectors().join("01-minimal.gts");
+    let out = gts(&[
+        "info",
+        v2.to_str().unwrap(),
+        displaced.to_str().unwrap(),
+        v1.to_str().unwrap(),
+    ]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(text.contains("GTS v2 wire ledger, 1 segment(s)"), "{text}");
+    assert!(
+        text.contains(
+            "effective head 765d1fe33420524ba200368d9b9c4f5bc966e04451f1c7424a73e0179822a4e7"
+        ),
+        "{text}"
+    );
+    assert!(text.contains("    terms 1\n"), "{text}");
+    assert!(text.contains("    commit 1\n"), "{text}");
+    assert!(text.contains("resync displaced to byte "), "{text}");
+    assert!(text.contains(" quads 1 reifies "), "{text}");
+}
+
+#[test]
+fn info_reports_v2_damage_and_refuses_unknown_generations() {
+    let damaged = vectors().join("v2/P1/stored-mismatch.bin");
+    let unknown = vectors().join("v2/P1/gen-record-three.bin");
+    let torn = vectors().join("v2/P1/file-first-incomplete.bin");
+    let out = gts(&[
+        "info",
+        damaged.to_str().unwrap(),
+        unknown.to_str().unwrap(),
+        torn.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(stdout.contains("stored check mismatch"), "{stdout}");
+    assert!(
+        stdout.contains("framing stopped at byte 0: TornTail"),
+        "{stdout}"
+    );
+    assert!(stderr.contains("unsupported GTS generation 3"), "{stderr}");
+}
+
+#[test]
 fn verify_warns_on_stream_vocab_without_claim() {
     // §13.3: stream# provenance in an unclaimed segment is a warning, never
     // an error — it legitimately survives nq → gts round trips.

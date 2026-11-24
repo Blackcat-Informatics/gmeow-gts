@@ -13,8 +13,8 @@ import (
 
 const rdfReifies = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
 
-// escape returns an N-Quads safe lexical form (§14).
-func escape(lex string) string {
+// EscapeLiteral returns the escaped contents of an N-Quads string literal.
+func EscapeLiteral(lex string) string {
 	var out strings.Builder
 	for _, ch := range lex {
 		switch ch {
@@ -67,7 +67,7 @@ func renderNested(g *model.Graph, tid int, open []int) string {
 		}
 		return fmt.Sprintf("_:b%d", tid)
 	case model.Literal:
-		lit := fmt.Sprintf("\"%s\"", escape(t.Value))
+		lit := fmt.Sprintf("\"%s\"", EscapeLiteral(t.Value))
 		if t.Lang != "" {
 			if model.IsLiteralDirection(t.Direction) {
 				return fmt.Sprintf("%s@%s--%s", lit, t.Lang, t.Direction)

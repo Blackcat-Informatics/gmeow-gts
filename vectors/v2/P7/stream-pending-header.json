@@ -1,7 +1,7 @@
 {
  "name": "stream-pending-header",
  "section": "P7",
- "status": "built and matches",
+ "status": "derived from the text",
  "note": "a pending frame followed by an opener: broken and settled at the opener",
  "cases": [
   {
@@ -415,16 +415,6 @@
         [
          3
         ]
-       ]
-      ],
-      [
-       8,
-       0,
-       3,
-       0,
-       1,
-       [
-        1
        ]
       ]
      ]

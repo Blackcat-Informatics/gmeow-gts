@@ -10,6 +10,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Writer } from "../src/writer.js";
 import { TermKind } from "../src/model.js";
+import { inspectFraming } from "../src/v2_framing.js";
+import cbor from "cbor";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../../../");
@@ -64,6 +66,97 @@ test("CLI fold emits N-Quads for a clean vector", () => {
     assert.match(r.stdout, /<https:\/\/example.org\/Cat>/);
 });
 
+test("CLI fold projects v2 triples, scoped blanks, and RDF row aliases", () => {
+    const p3 = join(vectorsDir, "v2", "P3");
+    const nested = run(["fold", join(p3, "project__triple-term-nested.bin")]);
+    assert.equal(nested.code, 0, nested.stderr);
+    assert.equal(
+        nested.stdout,
+        "<http://e/o> <http://e/p> <<( <http://e/s> <http://e/p> <<( <http://e/a> <http://e/b> <http://e/c> )>> )>> .\n",
+    );
+    const blank = run(["fold", join(p3, "fold-blank-scope.bin")]);
+    assert.equal(blank.code, 0, blank.stderr);
+    assert.equal(
+        blank.stdout,
+        "_:b2 <http://e/p> <http://e/o> .\n_:b3 <http://e/p> <http://e/o> .\n",
+    );
+    const aliases = run([
+        "fold",
+        join(p3, "project__annotation-equals-quad.bin"),
+    ]);
+    assert.equal(aliases.code, 0, aliases.stderr);
+    assert.equal(
+        aliases.stdout,
+        "<http://e/r> <http://e/q> <http://e/v> <http://e/g> .\n",
+    );
+});
+
+test("CLI fold refuses malformed v2 projection input without output", () => {
+    const p3 = join(vectorsDir, "v2", "P3");
+    for (const [name, reason] of [
+        [
+            "annotations-triple-components-written-alike.components-written-alike",
+            "unordered_or_repeated",
+        ],
+        [
+            "terms-front-term-zero-prefix.prefix-5-at-term-0",
+            "forbidden_combination",
+        ],
+        ["project__not-rdf-texts", "invalid RDF IRI"],
+    ]) {
+        const result = run(["fold", join(p3, `${name}.bin`)]);
+        assert.equal(result.code, 1, name);
+        assert.equal(result.stdout, "", name);
+        assert.ok(result.stderr.includes(reason), result.stderr);
+    }
+});
+
+test("CLI from-nq writes a committed v2 segment and collapses duplicate RDF rows", () => {
+    const text = [
+        'VERSION "1.2"',
+        '<https://example.org/subject> <https://example.org/p> "value" .',
+        '<https://example.org/subject> <https://example.org/p> "value"^^<http://www.w3.org/2001/XMLSchema#string> .',
+        '<https://example.org/reifier> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> <<( _:café <https://example.org/p> "δ"@EN--rtl )>> _:graph . # comment',
+    ].join("\r");
+    const result = spawnSync("node", [cli, "from-nq", "-"], { input: text });
+    assert.equal(result.status, 0, result.stderr.toString());
+    const wire = inspectFraming(result.stdout);
+    assert.equal(wire.kind, "v2");
+    const frames = [...wire.records].flatMap((record) =>
+        record.kind === "frame" ? [record] : [],
+    );
+    assert.deepEqual(
+        frames.map((frame) => frame.frameType),
+        [1n, 2n, 14n],
+    );
+    assert.ok(
+        frames.every(
+            (frame) =>
+                frame.link?.state === "linked" &&
+                frame.payload?.state === "verified",
+        ),
+    );
+    const records = cbor.decodeAllSync(result.stdout) as unknown[][];
+    assert.deepEqual(records[2][4], [2, 2]);
+});
+
+test("CLI from-nq refuses invalid UTF-8 and incomplete statements before writing", () => {
+    for (const [input, message] of [
+        [Buffer.of(0xff), /invalid UTF-8|not valid UTF-8/],
+        [
+            Buffer.from(
+                "<https://example.org/s> <https://example.org/p> <https://example.org/o>",
+            ),
+            /expected '\.'/,
+        ],
+    ] as const) {
+        const result = spawnSync("node", [cli, "from-nq", "-"], { input });
+        assert.equal(result.status, 1);
+        assert.equal(result.stdout.length, 0);
+        assert.match(result.stderr.toString(), message);
+    }
+});
+
 test("CLI localizes help and unknown-command errors", () => {
     const cases = [
         {
@@ -100,6 +193,102 @@ test("CLI verify reports diagnostics for damaged vector", () => {
     const r = run(["verify", join(vectorsDir, "04-damaged-frame.gts")]);
     assert.equal(r.code, 1);
     assert.match(r.stdout + r.stderr, /DamagedFrame/);
+});
+
+test("CLI verify checks v2 commits and reports ordinary uncommitted frames", () => {
+    const p5 = join(vectorsDir, "v2", "P5");
+    const r = run([
+        "verify",
+        join(vectorsDir, "15-two-segment-union.gts"),
+        join(p5, "commit-valid.bin"),
+        join(p5, "commit-none.bin"),
+        join(p5, "commit-canonical-tail.bin"),
+        join(vectorsDir, "v2", "P1", "locator-last-index.second.bin"),
+    ]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /15-two-segment-union\.gts: 2 segment\(s\)/);
+    assert.match(
+        r.stdout,
+        /commit-valid\.bin:[^\n]*\n  segment 0: committed_frames 3, uncommitted_tail 1, index payload claims unchecked/,
+    );
+    assert.match(
+        r.stdout,
+        /commit-none\.bin:[^\n]*\n  segment 0: no_commit, uncommitted_tail 2/,
+    );
+    assert.match(
+        r.stdout,
+        /commit-canonical-tail\.bin:[^\n]*\n  segment 0: committed_frames 2, index payload claims unchecked/,
+    );
+});
+
+test("CLI verify refuses v2 wire damage and false commit claims", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const p5 = join(vectorsDir, "v2", "P5");
+    const r = run([
+        "verify",
+        join(p1, "link-healed.bin"),
+        join(p1, "zstd-trailing-byte.bin"),
+        join(p1, "torn-after-frames.bin"),
+        join(p5, "commit-count-mismatch.bin"),
+        join(p5, "commit-root-mismatch.bin"),
+        join(p5, "commit-payload-nonempty.bin"),
+    ]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /link-healed\.bin: byte \d+: link healed/);
+    assert.match(
+        r.stderr,
+        /zstd-trailing-byte\.bin: byte \d+: payload decode_failed/,
+    );
+    assert.match(r.stderr, /torn-after-frames\.bin: byte \d+: torn_tail/);
+    assert.match(
+        r.stdout,
+        /torn-after-frames\.bin:[^\n]*\n  segment 0: no_commit, uncommitted_tail 3/,
+    );
+    assert.match(
+        r.stderr,
+        /commit-count-mismatch\.bin: byte \d+: commit_count_mismatch \(expected 2\)/,
+    );
+    assert.match(
+        r.stderr,
+        /commit-root-mismatch\.bin: byte \d+: commit_root_mismatch/,
+    );
+    assert.match(
+        r.stderr,
+        /commit-payload-nonempty\.bin: byte \d+: out_of_range/,
+    );
+});
+
+test("CLI reports failed offsets and locator claims", () => {
+    const p5 = join(vectorsDir, "v2", "P5");
+    const offsets = join(p5, "accelerators-false.offsets.bin");
+    const locator = join(p5, "accelerators-false.locator.bin");
+    for (const command of ["info", "verify"]) {
+        const r = run([command, offsets, locator]);
+        assert.equal(r.code, 1);
+        const diagnostics = r.stdout + r.stderr;
+        assert.match(diagnostics, /index_claim_failed \(index_offsets\)/);
+        assert.match(diagnostics, /index_claim_failed \(index_locator\)/);
+    }
+});
+
+test("CLI verify refuses unsupported v2 key verification and later generations", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const r = run([
+        "verify",
+        "--key",
+        `example:${"00".repeat(32)}`,
+        join(p1, "gen-record-two.bin"),
+        join(p1, "gen-record-three.bin"),
+    ]);
+    assert.equal(r.code, 1);
+    assert.match(
+        r.stderr,
+        /gen-record-two\.bin: --key is unsupported for GTS v2/,
+    );
+    assert.match(
+        r.stderr,
+        /gen-record-three\.bin: unsupported GTS generation 3/,
+    );
 });
 
 test("CLI verify-proof accepts the positive proof fixture", () => {
@@ -213,6 +402,87 @@ test("CLI info prints segment ledger", () => {
     const r = run(["info", join(vectorsDir, "15-two-segment-union.gts")]);
     assert.equal(r.code, 0);
     assert.match(r.stdout, /2 segment\(s\)/);
+});
+
+test("CLI info dispatches mixed inputs from their first complete item", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const r = run([
+        "info",
+        join(p1, "gen-record-three.bin"),
+        join(p1, "gen-first-generation-v-twice.bin"),
+        join(p1, "file-first-incomplete.bin"),
+        join(vectorsDir, "15-two-segment-union.gts"),
+        join(p1, "gen-record-two.bin"),
+    ]);
+    assert.equal(r.code, 1);
+    assert.match(
+        r.stderr,
+        /gen-record-three\.bin: unsupported GTS generation 3/,
+    );
+    assert.match(
+        r.stderr,
+        /gen-first-generation-v-twice\.bin: input does not identify a GTS generation/,
+    );
+    assert.match(
+        r.stdout,
+        /file-first-incomplete\.bin: framing stopped at byte 0: torn_tail/,
+    );
+    assert.match(r.stdout, /15-two-segment-union\.gts: 2 segment\(s\)/);
+    assert.match(r.stdout, /gen-record-two\.bin: GTS v2 framing ledger/);
+    assert.match(
+        r.stdout,
+        /segment 0: header bytes \[0, 11\), registry 1, hash algorithm 1/,
+    );
+});
+
+test("CLI info distinguishes opaque envelopes, torn tails, and invalid framing", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const r = run([
+        "info",
+        join(p1, "frame-test-element-long-form.bin"),
+        join(p1, "frame-test-length-ten.bin"),
+        join(p1, "torn-after-frames.bin"),
+        join(p1, "undelimitable-odd-map.bin"),
+    ]);
+    assert.equal(r.code, 1);
+    assert.equal(r.stderr, "");
+    assert.match(r.stdout, /opaque bytes \[11, 126\): not_deterministic/);
+    assert.match(r.stdout, /opaque bytes \[11, 124\): wrong_length/);
+    assert.match(r.stdout, /frame type 14 bytes \[239, 353\)/);
+    assert.match(r.stdout, /framing stopped at byte 353: torn_tail/);
+    assert.match(r.stdout, /framing stopped at byte 11: undelimitable_input/);
+});
+
+test("CLI info reports a malformed parity envelope as parity damage", () => {
+    const input = join(vectorsDir, "v2", "P1", "parity-signature.bin");
+    const r = run(["info", input]);
+    assert.equal(r.code, 1);
+    assert.match(
+        r.stdout,
+        /frame type 16 bytes \[\d+, \d+\): parity_damaged \(forbidden_combination\)/,
+    );
+});
+
+test("CLI info reports v2 links and payload checks independently", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const clean = run(["info", join(p1, "zstd-ok.bin")]);
+    assert.equal(clean.code, 0, clean.stderr);
+    assert.match(
+        clean.stdout,
+        /link linked, stored check matches, payload verified/,
+    );
+
+    const damaged = run([
+        "info",
+        join(p1, "link-healed.bin"),
+        join(p1, "zstd-trailing-byte.bin"),
+    ]);
+    assert.equal(damaged.code, 1);
+    assert.match(damaged.stdout, /link healed, payload verified/);
+    assert.match(
+        damaged.stdout,
+        /link linked, stored check matches, payload damaged \(decode_failed\)/,
+    );
 });
 
 test("CLI pack and unpack round-trip", () => {

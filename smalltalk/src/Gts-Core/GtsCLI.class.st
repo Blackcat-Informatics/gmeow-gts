@@ -23,6 +23,7 @@ GtsCLI class >> run: args [
 		command = 'from-nq' ifTrue: [ ^ self runFromNQuads: args allButFirst ].
 		command = 'info' ifTrue: [ ^ self runInfo: args allButFirst ].
 		command = 'verify' ifTrue: [ ^ self runVerify: args allButFirst ].
+		command = 'repair' ifTrue: [ ^ self runRepair: args allButFirst ].
 		command = 'ls' ifTrue: [ ^ self runLs: args allButFirst ].
 		command = 'extract' ifTrue: [ ^ self runExtract: args allButFirst ].
 		command = 'cat' ifTrue: [ ^ self runCat: args allButFirst ].
@@ -33,6 +34,30 @@ GtsCLI class >> run: args [
 		do: [ :error |
 			self stderr: 'gts: ', error messageText, String lf.
 			^ 1 ]
+]
+
+{ #category : #commands }
+GtsCLI class >> runRepair: args [
+	| output repair failed |
+	(args size = 3 and: [ #('-o' '--out') includes: args second ]) ifFalse: [
+		self stderr: 'usage: gts repair INPUT -o OUTPUT', String lf.
+		^ 2 ].
+	output := args third asFileReference.
+	output exists ifTrue: [
+		self stderr: 'gts repair: output already exists', String lf.
+		^ 1 ].
+	repair := (GtsV2Wire inspect: (self readFile: args first)) parityRepair.
+	repair repairedBytes ifNotNil: [ :bytes | self writeFile: output bytes: bytes ].
+	failed := repair stop notNil.
+	repair findings do: [ :finding |
+		finding first = 'repair_failed' ifTrue: [ failed := true ].
+		self stderr: finding first, ' ', finding second printString, ' ', finding third asString, String lf ].
+	repair refusal ifNotNil: [ :event |
+		self stderr: 'gts repair: recovery candidate at ', event offset printString, ' ', event problem,
+			' (', event payload count printString, ' bytes)', String lf ].
+	repair stop ifNotNil: [ :event |
+		self stderr: 'gts repair: reading stopped at ', event offset printString, ' ', event problem, String lf ].
+	^ failed ifTrue: [ 1 ] ifFalse: [ 0 ]
 ]
 
 { #category : #commands }
@@ -189,9 +214,20 @@ GtsCLI class >> runExtractKey: args [
 
 { #category : #commands }
 GtsCLI class >> runFold: args [
-	| graph |
-	args size = 1 ifFalse: [ self stderr: self usage. ^ 2 ].
-	graph := GtsReader read: (self readFile: args first).
+	| graph bytes wire whole |
+	whole := args size = 2 and: [ args second = '--whole' ].
+	(args size = 1 or: [ whole ]) ifFalse: [ self stderr: self usage. ^ 2 ].
+	bytes := self readFile: args first.
+	wire := GtsV2Wire inspect: bytes.
+	wire format = #v2 ifTrue: [
+		graph := GtsV2RdfFold read: wire visible: whole not.
+		self stdout: (GtsNQuads toNQuads: graph).
+		^ 0 ].
+	wire format = #unsupported ifTrue: [
+		self stderr: 'gts fold: unsupported GTS generation ', wire generation printString, String lf.
+		^ 1 ].
+	whole ifTrue: [ self stderr: 'gts fold: --whole requires GTS v2', String lf. ^ 2 ].
+	graph := GtsReader read: bytes.
 	self stdout: (GtsNQuads toNQuads: graph).
 	^ (graph diagnostics isEmpty and: [ graph segmentHeads notEmpty ])
 		ifTrue: [ 0 ]
@@ -200,7 +236,7 @@ GtsCLI class >> runFold: args [
 
 { #category : #commands }
 GtsCLI class >> runFromNQuads: args [
-	| outPath paths text |
+	| outPath paths text bytes |
 	outPath := nil.
 	paths := OrderedCollection new.
 	1 to: args size do: [ :index |
@@ -211,9 +247,10 @@ GtsCLI class >> runFromNQuads: args [
 					ifTrue: [ paths add: (args at: index) ] ] ].
 	paths size = 1 ifFalse: [ self stderr: self usage. ^ 2 ].
 	text := self readText: paths first.
+	bytes := GtsFromNQuads v2FromString: text.
 	outPath
-		ifNil: [ self stdoutBytes: (GtsFromNQuads fromString: text) ]
-		ifNotNil: [ self writeFile: outPath bytes: (GtsFromNQuads fromString: text) ].
+		ifNil: [ self stdoutBytes: bytes ]
+		ifNotNil: [ self writeFile: outPath bytes: bytes ].
 	^ 0
 ]
 
@@ -233,11 +270,144 @@ GtsCLI class >> runInfo: args [
 	args isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
 	problems := false.
 	args do: [ :path |
-		| graph |
-		graph := GtsReader read: (self readFile: path).
-		self printLedgerFor: path graph: graph.
-		graph diagnostics isEmpty ifFalse: [ problems := true ] ].
+		| data wire clean |
+		data := self readFile: path.
+		wire := GtsV2Wire inspect: data.
+		clean := wire format = #legacy
+			ifTrue: [
+				| graph |
+				graph := GtsReader read: data.
+				self printLedgerFor: path graph: graph.
+				graph diagnostics isEmpty ]
+			ifFalse: [ self printWireInfoFor: path wire: wire ].
+		clean ifFalse: [ problems := true ] ].
 	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
+]
+
+{ #category : #printing }
+GtsCLI class >> printWireInfoFor: path wire: wire [
+	| format ordinal clean repair |
+	format := wire format.
+	format ~= #v2 ifTrue: [
+		wire initialResyncRefusal ifNotNil: [ :refusal |
+			self stderr: path, ': ', (self resyncRefusalMessageFor: refusal), String lf ] ].
+	format = #empty ifTrue: [
+		self stdout: path, ': empty input, 0 segments', String lf.
+		^ false ].
+	format = #framingError ifTrue: [
+		self stdout: path, ': framing stopped at byte 0: ', wire stopReason, String lf.
+		^ false ].
+	format = #unsupported ifTrue: [
+		self stderr: 'gts info: ', path, ': unsupported GTS generation ', wire generation printString, String lf.
+		^ false ].
+	format = #unknown ifTrue: [
+		self stderr: 'gts info: ', path, ': input does not identify a GTS generation', String lf.
+		^ false ].
+	self stdout: path, ': GTS v2 framing ledger (byte ranges, frame integrity and closing records)', String lf.
+	ordinal := 0.
+	clean := true.
+	repair := wire eventsDo: [ :event |
+		(event problem isNotNil or: [ event closingClaimFailure isNotNil ]) ifTrue: [ clean := false ].
+		event kind = #stop
+			ifTrue: [
+				self stdout: '  framing stopped at byte ', event offset printString, ': ', event problem, String lf ]
+			ifFalse: [
+				| prefix kind details diagnostic |
+				prefix := '    '.
+				event startsSegment ifTrue: [
+					prefix := '  segment ', ordinal printString, ': '.
+					ordinal := ordinal + 1 ].
+				kind := event frameType
+					ifNil: [ event kind asString ]
+					ifNotNil: [ :type | 'frame type ', type printString ].
+				details := event opener ifNil: [ '' ] ifNotNil: [ :opener |
+					', registry ', opener registry printString, ', hash algorithm ', opener hashAlgorithm printString ].
+				(event scanned or: [ event resumptionAnchor notNil ]) ifTrue: [
+					details := details, ', found by recovery scan' ].
+				event detached ifTrue: [ details := details, ', detached' ].
+				diagnostic := self wireDiagnosticFor: event.
+				diagnostic isNotEmpty ifTrue: [ clean := false ].
+				self stdout: prefix, kind, ' bytes [', event offset printString, ', ',
+					event end printString, ')', details, diagnostic, String lf.
+				event link ifNotNil: [
+					(self printWireIntegrityFor: event) ifFalse: [ clean := false ] ].
+				(event opener isNotNil and: [ event opener registry > 1 ]) ifTrue: [
+					clean := false.
+					self stdout: '    unsupported registry version ', event opener registry printString, String lf ] ] ]
+		decodedWhen: [ :event | false ]
+		unprotectedTailsDo: [ :offset :length |
+			self stdout: '    ', (self unprotectedTailAt: offset length: length), String lf ].
+	repair findings do: [ :finding |
+		finding first = 'repair_failed' ifTrue: [ clean := false ].
+		self stdout: '    ', (self repairFindingMessage: finding), String lf ].
+	^ clean
+]
+
+{ #category : #printing }
+GtsCLI class >> wireDiagnosticFor: event [
+	^ (self wireFindingFor: event) ifNil: [ '' ] ifNotNil: [ :finding | ': ', finding ]
+]
+
+{ #category : #printing }
+GtsCLI class >> unprotectedTailAt: offset length: length [
+	^ 'unprotected_tail at byte ', offset printString, ' (', length printString, ' bytes of the segment stream)'
+]
+
+{ #category : #printing }
+GtsCLI class >> wireFindingFor: event [
+	event kind = #resyncRefused ifTrue: [
+		^ self resyncRefusalMessageFor: event ].
+	event kind = #parityRefused ifTrue: [
+		^ 'parity ', event problem, ' (', event payload count printString, ' bytes)' ].
+	event frameType = 16 ifTrue: [ ^ self parityFindingFor: event ].
+	^ event problem ifNil: [
+		event closingClaimFailure ifNotNil: [ :reason | 'index_claim_failed (', reason, ')' ] ]
+]
+
+{ #category : #printing }
+GtsCLI class >> repairFindingMessage: finding [
+	^ finding first, ' at byte ', finding second printString, ' (', finding third asString,
+		(finding first = 'repaired'
+			ifTrue: [ finding third = 1 ifTrue: [ ' shard)' ] ifFalse: [ ' shards)' ] ]
+			ifFalse: [ ')' ])
+]
+
+{ #category : #printing }
+GtsCLI class >> parityFindingFor: event [
+	| messages |
+	messages := OrderedCollection new.
+	event isDamagedParity ifTrue: [ messages add: 'parity_damaged' ].
+	event parityShardFindings do: [ :finding |
+		| reason count noun |
+		count := finding third.
+		count
+			ifNil: [ messages add: finding first, ' (', finding second, ')' ]
+			ifNotNil: [
+				reason := finding second ifNil: [ '' ] ifNotNil: [ :name | name, ', ' ].
+				noun := count = 1 ifTrue: [ ' shard)' ] ifFalse: [ ' shards)' ].
+				messages add: finding first, ' (', reason, count printString, noun ] ].
+	event parityFinding ifNotNil: [ :finding | messages add: finding ].
+	^ messages isEmpty ifFalse: [
+		String streamContents: [ :output |
+			messages do: [ :message | output nextPutAll: message ] separatedBy: [ output nextPutAll: ', ' ] ] ]
+]
+
+{ #category : #printing }
+GtsCLI class >> resyncRefusalMessageFor: event [
+	^ 'resync ', event problem, ' (', event payload count printString, ' bytes)'
+]
+
+{ #category : #printing }
+GtsCLI class >> printWireIntegrityFor: event [
+	| stored payload reason count |
+	stored := event storedMatches ifNil: [ '' ] ifNotNil: [ :matches |
+		matches ifTrue: [ ', stored check matches' ] ifFalse: [ ', stored check mismatch' ] ].
+	payload := event payload.
+	count := payload count ifNil: [ '' ] ifNotNil: [ :size | ', ', size printString, ' bytes' ].
+	reason := payload reason ifNil: [ '' ] ifNotNil: [ :finding | ' (', finding, count, ')' ].
+	event isDamagedParity ifTrue: [ reason := ''. stored := '' ].
+	self stdout: '      link ', event link asString, stored, ', payload ', payload state asString, reason, String lf.
+	^ event link = #linked and: [ event storedMatches ~= false and: [ payload state = #verified ] ]
 ]
 
 { #category : #private }
@@ -281,13 +451,17 @@ GtsCLI class >> graphIsClean: graph [
 
 { #category : #private }
 GtsCLI class >> parseVerifyKey: spec [
-	| colon keyBytes |
+	| colon separator algorithm keyStart |
 	colon := spec findString: ':' startingAt: 1.
-	colon <= 1 ifTrue: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
-	keyBytes := GtsHex decode: (spec copyFrom: colon + 1 to: spec size).
-	keyBytes size = GtsSodium ed25519PublicKeyBytes
-		ifFalse: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
-	^ (spec copyFrom: 1 to: colon - 1) -> keyBytes
+	colon <= 1 ifTrue: [ GtsArchiveError signal: 'expected --key KEY_ID:PUBLIC_KEY or KEY_ID:ALGORITHM:PUBLIC_KEY' ].
+	separator := spec findString: ':' startingAt: colon + 1.
+	algorithm := 1.
+	keyStart := colon + 1.
+	separator > 0 ifTrue: [
+		algorithm := #('ed25519' 'mldsa65_ed25519') indexOf: (spec copyFrom: colon + 1 to: separator - 1).
+		algorithm = 0 ifTrue: [ GtsArchiveError signal: 'unknown --key signature algorithm' ].
+		keyStart := separator + 1 ].
+	^ { (spec copyFrom: 1 to: colon - 1). algorithm. (GtsHex decode: (spec copyFrom: keyStart to: spec size)) }
 ]
 
 { #category : #private }
@@ -460,38 +634,189 @@ GtsCLI class >> runUnpack: args [
 
 { #category : #commands }
 GtsCLI class >> runVerify: args [
-	| keys paths problems |
+	| keys trusted paths problems input |
 	args isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
-	keys := Dictionary new.
+	keys := OrderedCollection new.
+	trusted := Set new.
 	paths := OrderedCollection new.
-	1 to: args size do: [ :index |
-		(args at: index) = '--key'
-			ifTrue: [
-				| association |
-				association := self parseVerifyKey: (args at: index + 1 ifAbsent: [ ^ 2 ]).
-				keys at: association key put: association value ]
-			ifFalse: [
-				(index = 1 or: [ (args at: index - 1) ~= '--key' ])
-					ifTrue: [ paths add: (args at: index) ] ] ].
+	input := args readStream.
+	[ input atEnd ] whileFalse: [
+		| argument |
+		argument := input next.
+		argument caseOf: {
+			[ '--key' ] -> [
+				input atEnd ifTrue: [ ^ 2 ].
+				keys add: (self parseVerifyKey: input next) ].
+			[ '--trust' ] -> [
+				| kid |
+				input atEnd ifTrue: [ ^ 2 ].
+				kid := GtsHex decode: input next.
+				kid size = 32 ifFalse: [ GtsArchiveError signal: '--trust needs a 32-byte hexadecimal key identifier' ].
+				trusted add: kid ] }
+			otherwise: [ paths add: argument ] ].
 	paths isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
 	problems := false.
 	paths do: [ :path |
-		| graph |
-		graph := GtsReader read: (self readFile: path).
-		self printLedgerFor: path graph: graph.
-		graph diagnostics isEmpty ifFalse: [ problems := true ].
-		(self profileFindingsFor: graph) do: [ :finding |
-			self stderr: '  ', (finding at: 'severity'), ': ', (finding at: 'message'), String lf.
-			(finding at: 'severity') = 'error' ifTrue: [ problems := true ] ].
-		keys isEmpty ifFalse: [
-			graph signatures do: [ :signature |
-				| kid status |
-				kid := signature at: 'kid' ifAbsent: [ nil ].
-				status := self verifySignature: signature keys: keys.
-				signature at: 'status' put: status.
-				self stdout: '  signature ', (kid ifNil: [ '?' ]), ': ', status, String lf.
-				status = 'invalid' ifTrue: [ problems := true ] ] ] ].
+		| bytes wire clean |
+		bytes := self readFile: path.
+		wire := GtsV2Wire inspect: bytes.
+		clean := wire format = #legacy
+			ifTrue: [
+				trusted isNotEmpty ifTrue: [ GtsArchiveError signal: '--trust requires GTS v2' ].
+				self verifyLegacy: bytes path: path keys: keys ]
+			ifFalse: [ self verifyWire: wire path: path keys: keys trusted: trusted ].
+		clean ifFalse: [ problems := true ] ].
 	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
+]
+
+{ #category : #private }
+GtsCLI class >> verifyLegacy: bytes path: path keys: entries [
+	| graph clean keys |
+	keys := Dictionary new.
+	entries do: [ :entry |
+		(entry second = 1 and: [ entry third size = GtsSodium ed25519PublicKeyBytes ]) ifFalse: [
+			GtsArchiveError signal: 'archived GTS --key needs a 32-byte Ed25519 public key' ].
+		keys at: entry first put: entry third ].
+	graph := GtsReader read: bytes.
+	self printLedgerFor: path graph: graph.
+	clean := graph diagnostics isEmpty.
+	(self profileFindingsFor: graph) do: [ :finding |
+		self stderr: '  ', (finding at: 'severity'), ': ', (finding at: 'message'), String lf.
+		(finding at: 'severity') = 'error' ifTrue: [ clean := false ] ].
+	keys isEmpty ifFalse: [
+		graph signatures do: [ :signature |
+			| kid status |
+			kid := signature at: 'kid' ifAbsent: [ nil ].
+			status := self verifySignature: signature keys: keys.
+			signature at: 'status' put: status.
+			self stdout: '  signature ', (kid ifNil: [ '?' ]), ': ', status, String lf.
+			status = 'invalid' ifTrue: [ clean := false ] ] ].
+	^ clean
+]
+
+{ #category : #private }
+GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
+	| format report clean ordinal checks verifier header authentication repair |
+	format := wire format.
+	clean := true.
+	report := [ :message |
+		self stderr: 'gts verify: ', path, ': ', message, String lf.
+		clean := false ].
+	format ~= #v2 ifTrue: [
+		wire initialResyncRefusal ifNotNil: [ :refusal |
+			report value: (self resyncRefusalMessageFor: refusal) ] ].
+	format = #empty ifTrue: [ report value: 'empty input'. ^ false ].
+	format = #framingError ifTrue: [
+		report value: 'framing stopped at byte 0: ', wire stopReason.
+		^ false ].
+	format = #unsupported ifTrue: [
+		report value: 'unsupported GTS generation ', wire generation printString.
+		^ false ].
+	format = #unknown ifTrue: [ report value: 'input does not identify a GTS generation'. ^ false ].
+	verifier := GtsV2SignatureChecks held: keys.
+	self stdout: path, ': GTS v2 frame, closing record, commit and index prefix integrity', String lf.
+	ordinal := -1.
+	repair := wire eventsDo: [ :event |
+		| location |
+		location := 'byte ', event offset printString.
+		(#(stop framingGap resyncRefused parityRefused) includes: event kind)
+			ifTrue: [
+				(event isParityGap and: [ checks notNil ]) ifTrue: [
+					checks observeDamagedRegion ].
+				event kind = #stop
+					ifTrue: [ report value: 'framing stopped at ', location, ': ', event problem ]
+					ifFalse: [ report value: location, ': ', (self wireFindingFor: event) ] ]
+			ifFalse: [
+				event startsSegment
+					ifTrue: [
+						checks ifNotNil: [ self printCommitSummary: checks authentication: authentication ordinal: ordinal path: path ].
+						ordinal := ordinal + 1.
+						header := event effectiveIdentifier.
+						authentication := GtsV2Authentication trusted: trusted.
+						checks := self commitChecksFor: event report: [ :finding |
+							report value: location, ': ', finding ] ]
+					ifFalse: [
+						checks ifNotNil: [
+							| commitValid |
+							self reportIntegrityFor: event report: [ :finding |
+								report value: location, ': ', finding ].
+							commitValid := checks observe: event findingsDo: [ :finding :position :expected |
+								| detail |
+								detail := expected ifNil: [ '' ] ifNotNil: [
+									' (expected ', expected printString, ')' ].
+								report value: location, ', item ', position printString, ': ', finding, detail ].
+							authentication observe: event validCommit: commitValid.
+							verifier event: event header: header resultsDo: [ :algorithm :kid :status :reason |
+								| detail result |
+								detail := 'signature ', (GtsHex encode: kid), ' algorithm ', algorithm printString,
+									' at ', location, ': ', status.
+								reason ifNotNil: [ detail := detail, ' (', reason, ')' ].
+								status = 'invalid'
+									ifTrue: [ report value: detail ]
+									ifFalse: [ self stdout: '  ', detail, String lf ].
+								result := authentication coverageFor: status keyId: kid.
+								result at: 'offset' put: event offset.
+								result at: 'algorithm' put: algorithm.
+								result at: 'key_id' put: (GtsHex encode: kid).
+								result at: 'status' put: status.
+								result at: 'reason' put: reason.
+								self printAuthentication: result kind: 'signature' ordinal: ordinal path: path ] ] ] ] ]
+		decodedWhen: [ :event | GtsV2CommitChecks needsDecoded: event ]
+		unprotectedTailsDo: [ :offset :length |
+			self stdout: '  ', (self unprotectedTailAt: offset length: length), String lf ].
+	repair findings do: [ :finding |
+		finding first = 'repair_failed'
+			ifTrue: [ report value: (self repairFindingMessage: finding) ]
+			ifFalse: [ self stdout: '  ', (self repairFindingMessage: finding), String lf ] ].
+	checks ifNotNil: [ self printCommitSummary: checks authentication: authentication ordinal: ordinal path: path ].
+	^ clean
+]
+
+{ #category : #private }
+GtsCLI class >> commitChecksFor: event report: report [
+	event problem ifNotNil: [ :finding | report value: finding. ^ nil ].
+	(GtsV2CommitChecks supportsOpener: event) ifFalse: [
+		report value: 'unsupported registry version ', event opener registry printString.
+		^ nil ].
+	^ GtsV2CommitChecks openedBy: event effectiveIdentifier
+]
+
+{ #category : #private }
+GtsCLI class >> reportIntegrityFor: event report: report [
+	| payload |
+	(self wireFindingFor: event) ifNotNil: [ :finding | report value: finding ].
+	(event kind ~= #frame or: [ event isDamagedParity ]) ifTrue: [ ^ self ].
+	(event link = #healed or: [ event link = #broken and: [ event problem isNil ] ])
+		ifTrue: [ report value: 'link ', event link asString ].
+	event storedMatches = false ifTrue: [ report value: 'stored check mismatch' ].
+	payload := event payload.
+	(payload state ~= #verified and: [ payload reason isNotNil and: [ payload reason ~= 'codec_constraint' ] ])
+		ifTrue: [
+			| count |
+			count := payload count ifNil: [ '' ] ifNotNil: [ :size | ' (', size printString, ' bytes)' ].
+			report value: 'payload ', payload reason, count ]
+]
+
+{ #category : #printing }
+GtsCLI class >> printCommitSummary: checks authentication: authentication ordinal: ordinal path: path [
+	| prefix tail index |
+	prefix := checks committedFrames = 0
+		ifTrue: [ 'no_commit' ]
+		ifFalse: [ 'committed_frames ', checks committedFrames printString ].
+	tail := checks tailPosition ifNil: [ '' ] ifNotNil: [ :position |
+		', uncommitted_tail ', checks tailFrames printString, ' (item ', position printString, ')' ].
+	index := checks hasIndex ifTrue: [ ', index fold statistics and content digest unchecked' ] ifFalse: [ '' ].
+	checks uncomparedDirectories do: [ :directory | index := index, ', index ', directory, ' unchecked' ].
+	self stdout: '  segment ', ordinal printString, ': ', prefix, tail, index, String lf.
+	self printAuthentication: authentication summary kind: 'segment' ordinal: ordinal path: path
+]
+
+{ #category : #printing }
+GtsCLI class >> printAuthentication: result kind: kind ordinal: ordinal path: path [
+	result at: 'kind' put: kind.
+	result at: 'segment' put: ordinal.
+	result at: 'path' put: path.
+	self stdout: (STONJSON toString: result), String lf
 ]
 
 { #category : #commands }
@@ -608,16 +933,16 @@ GtsCLI class >> usageForLocale: locale [
 		^ 'utilisation: gts <command> [args]', String lf,
 			'commandes:', String lf,
 			'  info fold verify verify-proof heads segments missing resume extract-key', String lf,
-			'  ls extract cat compact pack unpack diff from-nq', String lf ].
+			'  ls extract cat compact pack unpack diff from-nq repair', String lf ].
 	locale = #zhHans ifTrue: [
 		^ '用法: gts <command> [args]', String lf,
 			'命令:', String lf,
 			'  info fold verify verify-proof heads segments missing resume extract-key', String lf,
-			'  ls extract cat compact pack unpack diff from-nq', String lf ].
+			'  ls extract cat compact pack unpack diff from-nq repair', String lf ].
 	^ 'usage: gts <command> [args]', String lf,
 		'commands:', String lf,
 		'  info fold verify verify-proof heads segments missing resume extract-key', String lf,
-		'  ls extract cat compact pack unpack diff from-nq', String lf
+		'  ls extract cat compact pack unpack diff from-nq repair', String lf
 ]
 
 { #category : #io }

@@ -26,6 +26,11 @@ GtsZstdLibrary >> decompressedSizeOf: inputBytes length: inputLength [
 ]
 
 { #category : #ffi }
+GtsZstdLibrary >> firstFrameSizeOf: inputBytes length: inputLength [
+	^ self ffiCall: #(size_t ZSTD_findFrameCompressedSize (const void * inputBytes, size_t inputLength))
+]
+
+{ #category : #ffi }
 GtsZstdLibrary >> isError: resultCode [
 	^ self ffiCall: #(#uint #ZSTD_isError #(#size_t #resultCode))
 ]

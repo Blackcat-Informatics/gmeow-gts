@@ -4,7 +4,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { Read, ReadFileSegments } from "../reader.js";
 import { toNQuads } from "../nquads.js";
-import { fromNQuads, NQuadsParseError } from "../from_nquads.js";
+import { fromNQuadsV2, NQuadsParseError } from "../from_nquads.js";
+import { RdfImportCapacityError } from "../v2_rdf_import.js";
 import { pack, unpack, diff, suppressedBlobDigests } from "../files.js";
 import { compactStreamable, CompactRefusedError } from "../compact.js";
 import { STREAM_NS } from "../stream.js";
@@ -32,6 +33,11 @@ import {
 } from "../wire.js";
 import type { Graph, FileSegments } from "../reader.js";
 import { TermKind, type Quad, type Suppression } from "../model.js";
+import { printFramingInfo } from "./v2_info.js";
+import { verifyV2 } from "./v2_verify.js";
+import { inspectFraming } from "../v2_framing.js";
+import { projectRdf, rdfNQuads } from "../v2_rdf_projection.js";
+import { RdfProjectionError } from "../v2_rdf_cursor.js";
 
 type CliLocale = "en" | "fr-CA" | "zh-Hans";
 
@@ -309,6 +315,11 @@ function cmdInfo(paths: string[]): number {
     let problems = false;
     for (const path of paths) {
         const data = load(path);
+        const framingClean = printFramingInfo(path, data);
+        if (framingClean !== undefined) {
+            if (!framingClean) problems = true;
+            continue;
+        }
         const fs = ReadFileSegments(data);
         printLedger(path, fs);
         if (hasProblems(fs)) problems = true;
@@ -321,7 +332,31 @@ function cmdFold(paths: string[]): number {
         console.error(usage);
         return 2;
     }
-    const g = Read(load(paths[0]), true);
+    const data = load(paths[0]);
+    const wire = inspectFraming(data, true);
+    if (wire.kind === "v2") {
+        try {
+            process.stdout.write(rdfNQuads(projectRdf(wire)));
+            return 0;
+        } catch (error) {
+            if (!(error instanceof RdfProjectionError)) throw error;
+            console.error(`gts fold: ${paths[0]}: ${error.message}`);
+            return 1;
+        }
+    }
+    if (wire.kind !== "v1") {
+        const reason =
+            wire.kind === "unsupported"
+                ? `unsupported GTS generation ${wire.generation}`
+                : wire.kind === "framing_error"
+                  ? `framing stopped at byte 0: ${wire.reason}`
+                  : wire.kind === "empty"
+                    ? "empty input"
+                    : "input does not identify a GTS generation";
+        console.error(`gts fold: ${paths[0]}: ${reason}`);
+        return 1;
+    }
+    const g = Read(data, true);
     for (const d of g.diagnostics) {
         console.error(`gts: diagnostic ${d.code}: ${d.detail}`);
     }
@@ -354,10 +389,9 @@ function cmdFromNQ(args: string[]): number {
     }
 
     const path = positional[0];
-    let text: string;
+    let input: Uint8Array;
     try {
-        text =
-            path === "-" ? readFileSync(0, "utf8") : readFileSync(path, "utf8");
+        input = readFileSync(path === "-" ? 0 : path);
     } catch (e) {
         const source = path === "-" ? "stdin" : path;
         console.error(
@@ -368,9 +402,31 @@ function cmdFromNQ(args: string[]): number {
 
     let data: Uint8Array;
     try {
-        data = fromNQuads(text);
+        let text: string;
+        try {
+            text = new TextDecoder("utf-8", {
+                fatal: true,
+                ignoreBOM: true,
+            }).decode(input);
+        } catch (error) {
+            if (
+                error instanceof Error &&
+                "code" in error &&
+                error.code === "ERR_STRING_TOO_LONG"
+            ) {
+                throw new RdfImportCapacityError(
+                    "N-Quads input exceeds the JavaScript string limit",
+                );
+            }
+            if (!(error instanceof TypeError)) throw error;
+            throw new NQuadsParseError("input is not valid UTF-8");
+        }
+        data = fromNQuadsV2(text);
     } catch (e) {
-        if (e instanceof NQuadsParseError) {
+        if (
+            e instanceof NQuadsParseError ||
+            e instanceof RdfImportCapacityError
+        ) {
             console.error(`gts from-nq: ${e.message}`);
             return 1;
         }
@@ -520,6 +576,11 @@ function cmdVerify(args: string[]): number {
     let problems = false;
     for (const path of paths) {
         const data = load(path);
+        const v2Clean = verifyV2(path, data, keys.size > 0);
+        if (v2Clean !== undefined) {
+            if (!v2Clean) problems = true;
+            continue;
+        }
         const fs = ReadFileSegments(data);
         printLedger(path, fs);
         if (hasProblems(fs)) problems = true;

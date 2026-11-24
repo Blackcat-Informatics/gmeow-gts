@@ -17,7 +17,6 @@ use ed25519_dalek::VerifyingKey;
 use gmeow_gts::cose::{unsupported_algorithm, verify_signatures};
 use gmeow_gts::emojihash::emojihash;
 use gmeow_gts::files::UnpackOptions;
-use gmeow_gts::from_nquads::from_nquads;
 #[cfg(feature = "okf")]
 use gmeow_gts::from_okf::{from_okf_with_options, FromOkfOptions};
 #[cfg(not(feature = "rdf-codecs"))]
@@ -36,6 +35,8 @@ use gmeow_gts::replication::{
 };
 #[cfg(not(feature = "rdf-codecs"))]
 use gmeow_gts::trig::to_trig;
+use gmeow_gts::v2::from_nquads;
+use gmeow_gts::v2::reader::{read_wire, Dispatch, ReadCapacity};
 use gmeow_gts::verify::{extract_transport_key, format_fingerprint};
 use gmeow_gts::wire::{digest_str, hex};
 #[cfg(feature = "yaml-ld")]
@@ -47,6 +48,9 @@ mod tar_cli;
 
 #[path = "gts/i18n.rs"]
 mod i18n;
+
+#[path = "gts/info_v2.rs"]
+mod info_v2;
 
 use i18n::{unknown_command_message, USAGE};
 
@@ -531,14 +535,19 @@ fn cmd_info(paths: &[String]) -> ExitCode {
     if paths.is_empty() {
         return usage_error();
     }
+    let mut clean = true;
     for path in paths {
         let data = match load(path) {
             Ok(d) => d,
             Err(code) => return code,
         };
-        print_ledger(path, &read_file_segments(&data));
+        if let Some(inspected) = info_v2::inspect(path, &data) {
+            clean &= inspected;
+        } else {
+            print_ledger(path, &read_file_segments(&data));
+        }
     }
-    ExitCode::SUCCESS
+    ExitCode::from(u8::from(!clean))
 }
 
 fn cmd_fold(paths: &[String]) -> ExitCode {
@@ -549,6 +558,26 @@ fn cmd_fold(paths: &[String]) -> ExitCode {
         Ok(d) => d,
         Err(code) => return code,
     };
+    let wire = read_wire(&data, ReadCapacity::default());
+    if matches!(
+        wire.dispatch,
+        Some(Dispatch::SecondGeneration | Dispatch::UnsupportedGeneration(_))
+    ) {
+        return match wire
+            .whole_rdf_projection()
+            .map_err(|error| error.to_string())
+            .and_then(|rdf| rdf.to_nquads().map_err(|error| error.to_string()))
+        {
+            Ok(text) => {
+                print!("{text}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("gts fold: {error}");
+                ExitCode::from(1)
+            }
+        };
+    }
     let g = read(&data, true, None);
     for d in &g.diagnostics {
         eprintln!("gts: diagnostic {}: {}", d.code, d.detail);

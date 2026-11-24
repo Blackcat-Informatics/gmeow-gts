@@ -3,6 +3,9 @@
 
 //! Write header-led segments with plain frames and P5 commits.
 
+mod index;
+pub use index::{IndexFold, IndexWriteError};
+
 use std::{error::Error, fmt};
 
 use ciborium::value::Value;
@@ -14,6 +17,10 @@ use super::{
     Header, HeaderWriteError, HEADER_CONTEXT,
 };
 use crate::wire;
+
+mod attachments;
+pub(super) use attachments::write_values;
+pub use attachments::{AttachmentWriteError, Blob};
 
 /// A segment append that cannot be represented.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -48,6 +55,8 @@ impl Error for SegmentWriteError {
 /// writer derives the head, frame identifiers and commit count and root.
 pub struct SegmentWriter {
     bytes: Vec<u8>,
+    header_len: usize,
+    opener: Digest,
     head: Digest,
     range: Range,
 }
@@ -58,7 +67,9 @@ impl SegmentWriter {
         let bytes = encode_header(header)?;
         let head = blake3::derive_key(HEADER_CONTEXT, &bytes);
         Ok(Self {
+            header_len: bytes.len(),
             bytes,
+            opener: head,
             head,
             range: Range::new(&head),
         })
@@ -122,3 +133,7 @@ impl SegmentWriter {
         Ok(identifier)
     }
 }
+
+mod finish;
+mod parity;
+pub use finish::SegmentFinishError;

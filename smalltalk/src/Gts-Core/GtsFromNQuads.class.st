@@ -73,23 +73,33 @@ GtsFromNQuads class >> node: node in: interner reifiers: reifiers [
 	term carrying its own (s p o) (§7.3). An unreified triple term is a value, not a
 	statement — it mints NO reifier and emits NO reifies row, so it round-trips as
 	itself."
-	| ids key object predicate subject termId terms |
 	(self isAtom: node) ifTrue: [ ^ self atom: node in: interner ].
-	subject := self node: (node at: 's') in: interner reifiers: reifiers.
-	predicate := self node: (node at: 'p') in: interner reifiers: reifiers.
-	object := self node: (node at: 'o') in: interner reifiers: reifiers.
+	^ self internTriple: {
+		(self node: (node at: 's') in: interner reifiers: reifiers).
+		(self node: (node at: 'p') in: interner reifiers: reifiers).
+		(self node: (node at: 'o') in: interner reifiers: reifiers) } in: interner
+]
+
+{ #category : #private }
+GtsFromNQuads class >> internTriple: components in: interner [
+	| ids key termId terms |
 	ids := interner at: 'ids'.
 	terms := interner at: 'terms'.
-	key := { 'triple'. subject. predicate. object }.
+	key := { 'triple' }, components.
 	ids at: key ifPresent: [ :existing | ^ existing ].
 	termId := terms size.
-	terms add: (GtsTerm tripleComponents: { subject. predicate. object }).
+	terms add: (GtsTerm tripleComponents: components).
 	ids at: key put: termId.
 	^ termId
 ]
 
 { #category : #parsing }
 GtsFromNQuads class >> parseStatements: text [
+	^ self parseStatements: text versionHints: false
+]
+
+{ #category : #parsing }
+GtsFromNQuads class >> parseStatements: text versionHints: versionHints [
 	| statements |
 	statements := OrderedCollection new.
 	text lines do: [ :raw |
@@ -97,13 +107,16 @@ GtsFromNQuads class >> parseStatements: text [
 		line := raw trimBoth.
 		(line isEmpty or: [ line beginsWith: '#' ]) ifFalse: [
 			tokenizer := GtsNQuadsTokenizer on: line.
-			nodes := OrderedCollection new.
-			[ tokenizer atEnd ] whileFalse: [ nodes add: tokenizer node ].
-			tokenizer consumeStatementTerminator.
-			(nodes size = 3 or: [ nodes size = 4 ])
-				ifFalse: [ self error: 'expected 3 or 4 terms, got ', nodes size asString, ': ', line ].
-			self validate: nodes asArray line: line.
-			statements add: nodes asArray ] ].
+			(versionHints and: [ line beginsWith: 'VERSION' ])
+				ifTrue: [ tokenizer consumeVersionHint ]
+				ifFalse: [
+					nodes := OrderedCollection new.
+					[ tokenizer atEnd ] whileFalse: [ nodes add: tokenizer node ].
+					tokenizer consumeStatementTerminator.
+					(nodes size = 3 or: [ nodes size = 4 ])
+						ifFalse: [ self error: 'expected 3 or 4 terms, got ', nodes size asString, ': ', line ].
+					self validate: nodes asArray line: line.
+					statements add: nodes asArray ] ] ].
 	^ statements asArray
 ]
 
@@ -173,6 +186,68 @@ GtsFromNQuads class >> fromString: text [
 	quads isEmpty ifFalse: [ writer addQuads: quads asArray ].
 	reifiers isEmpty ifFalse: [ writer addReifiers: reifiers asArray ].
 	^ writer bytes
+]
+
+{ #category : #converting }
+GtsFromNQuads class >> v2FromString: text [
+	| interner quads seen |
+	interner := self interner.
+	quads := OrderedCollection new.
+	seen := Set new.
+	(self parseStatements: text versionHints: true) do: [ :statement |
+		| quad |
+		self requireV2Subject: statement first.
+		quad := statement collect: [ :node | self v2Node: node in: interner ].
+		(seen includes: quad) ifFalse: [
+			seen add: quad.
+			quads add: quad ] ].
+	^ GtsV2RdfWriter terms: (interner at: 'terms') quads: quads
+]
+
+{ #category : #private }
+GtsFromNQuads class >> v2Node: node in: interner [
+	| kind datatype |
+	(self isTriple: node) ifTrue: [
+		self requireV2Subject: (node at: 's').
+		(self isAtom: (node at: 'p') kind: #iri) ifFalse: [
+			GtsParserError signal: 'a quoted triple predicate must be an IRI' ].
+		^ self internTriple: {
+			(self v2Node: (node at: 's') in: interner).
+			(self v2Node: (node at: 'p') in: interner).
+			(self v2Node: (node at: 'o') in: interner) } in: interner ].
+	kind := node at: 'kind'.
+	kind = #iri ifTrue: [ self requireAbsoluteIri: (node at: 'value') ].
+	(kind = #literal and: [ (node includesKey: 'language') not ]) ifTrue: [
+		datatype := node at: 'datatype' ifAbsent: [ GtsGraph xsdString ].
+		self requireAbsoluteIri: datatype.
+		^ self atom: (node copy at: 'datatype' put: datatype; yourself) in: interner ].
+	^ self atom: node in: interner
+]
+
+{ #category : #private }
+GtsFromNQuads class >> requireV2Subject: node [
+	((self isAtom: node kind: #iri) or: [ self isAtom: node kind: #blankNode ]) ifFalse: [
+		GtsParserError signal: 'a GTS v2 subject must be an IRI or a blank node' ]
+]
+
+{ #category : #private }
+GtsFromNQuads class >> requireAbsoluteIri: iri [
+	| colon scheme |
+	colon := iri indexOf: $:.
+	colon > 1 ifFalse: [ GtsParserError signal: 'N-Quads requires an absolute IRI' ].
+	scheme := iri copyFrom: 1 to: colon - 1.
+	((self isAsciiLetter: scheme first) and: [ scheme allSatisfy: [ :character |
+		(self isAsciiLetter: character) or: [
+			(character between: $0 and: $9) or: [ '+.-' includes: character ] ] ] ])
+		ifFalse: [ GtsParserError signal: 'invalid N-Quads IRI scheme' ].
+	(iri anySatisfy: [ :character |
+		character asciiValue <= 32 or: [ '<>"{}|^\`' includes: character ] ])
+		ifTrue: [ GtsParserError signal: 'invalid whitespace or delimiter in N-Quads IRI' ]
+]
+
+{ #category : #private }
+GtsFromNQuads class >> isAsciiLetter: character [
+	^ (character between: $A and: $Z) or: [ character between: $a and: $z ]
 ]
 
 { #category : #private }

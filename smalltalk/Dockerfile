@@ -46,10 +46,11 @@ RUN apt-get update \
         gcc \
         libc6-dev \
         libsodium-dev \
+        libssl-dev \
     && gcc -O3 -fPIC -shared \
         -o /usr/local/lib/libgts_sodium.so \
         /tmp/gts_sodium.c \
-        -lsodium \
+        -lsodium -lcrypto \
     && rm -rf /tmp/gts_sodium.c /var/lib/apt/lists/*
 
 FROM ghcr.io/ba-st/pharo:v13.1.2
@@ -62,6 +63,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         libsodium-dev \
+        libssl3t64 \
         libzstd-dev \
     && rm -rf /var/lib/apt/lists/*
 
