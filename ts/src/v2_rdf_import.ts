@@ -3,6 +3,8 @@
 
 import { Buffer } from "node:buffer";
 import { TermKind, type Quad, type Term } from "./model.js";
+import { valueProjectionBytes } from "./v2_rdf_values.js";
+import { writeValuePacks, type ValueReference } from "./v2_value_packs.js";
 import { V2SegmentWriter } from "./v2_writer.js";
 import { mustEncode } from "./wire.js";
 
@@ -13,14 +15,20 @@ const frameLimit = 2 ** 26;
 
 export class RdfImportCapacityError extends Error {}
 
-export function inlineTermBytes(value: string, language?: string): number {
-    const bytes = Buffer.byteLength(value) + Buffer.byteLength(language ?? "");
-    if (bytes >= frameLimit) {
+export function checkRdfAtomSize(
+    kind: TermKind,
+    value: string,
+    language?: string,
+): void {
+    const limit = kind === TermKind.Literal ? valueProjectionBytes : frameLimit;
+    if (
+        Buffer.byteLength(value) > limit ||
+        Buffer.byteLength(language ?? "") >= frameLimit
+    ) {
         throw new RdfImportCapacityError(
-            "RDF term exceeds the v2 inline payload limit",
+            "RDF term exceeds the v2 import capacity",
         );
     }
-    return bytes;
 }
 
 function runs<T, K>(
@@ -95,49 +103,88 @@ function literalColumns(
 function termFrame(
     base: number,
     terms: Term[],
+    references: ReadonlyMap<Term, ValueReference>,
 ): { content: Uint8Array; payload: Uint8Array; formed: number } {
     const languageIds = new Map<string, number>();
     const termRuns: [number, number][] = [];
     let formed = 0;
-    const blocks = runs(terms, (term) => term.kind).map(
-        ({ key, start, end }) => {
-            const code = key + 1;
-            termRuns.push([code, end - start]);
-            const block = terms.slice(start, end);
-            if (key === TermKind.Bnode)
-                return [
-                    code,
-                    block.map((term) => Buffer.from(term.value, "utf8")),
-                ];
-            if (key === TermKind.Triple) {
-                const triples = block.map((term) => {
-                    if (term.triple === undefined)
-                        throw new TypeError(
-                            "RDF import requires explicit triple terms",
-                        );
-                    return term.triple;
-                });
-                return [
-                    code,
-                    triples.map((term) => term.s),
-                    triples.map((term) => term.p),
-                    triples.map((term) => term.o),
-                ];
-            }
-            const coded = frontCode(block);
-            formed += coded.formed;
-            const literal =
-                key === TermKind.Literal
-                    ? literalColumns(block, languageIds)
-                    : [];
-            return [code, ...coded.fields, ...literal];
-        },
-    );
+    const blocks = runs(terms, (term) =>
+        references.has(term) ? 5 : term.kind + 1,
+    ).map(({ key: code, start, end }) => {
+        termRuns.push([code, end - start]);
+        const block = terms.slice(start, end);
+        if (code === 3)
+            return [code, block.map((term) => Buffer.from(term.value, "utf8"))];
+        if (code === 4) {
+            const triples = block.map((term) => {
+                if (term.triple === undefined)
+                    throw new TypeError(
+                        "RDF import requires explicit triple terms",
+                    );
+                return term.triple;
+            });
+            return [
+                code,
+                triples.map((term) => term.s),
+                triples.map((term) => term.p),
+                triples.map((term) => term.o),
+            ];
+        }
+        if (code === 5) {
+            const values = block.map((term) => {
+                const reference = references.get(term);
+                if (reference === undefined)
+                    throw new TypeError(
+                        "RDF import requires a packed literal value",
+                    );
+                return reference;
+            });
+            return [
+                code,
+                values.map((value) => value.digest),
+                values.map((value) => value.length),
+                ...literalColumns(block, languageIds),
+            ];
+        }
+        const coded = frontCode(block);
+        formed += coded.formed;
+        return [
+            code,
+            ...coded.fields,
+            ...(code === 2 ? literalColumns(block, languageIds) : []),
+        ];
+    });
     return {
         content: mustEncode([base, termRuns, 2, restart]),
         payload: mustEncode([blocks, [...languageIds.keys()]]),
         formed,
     };
+}
+
+const inlineOnly = new Map<Term, ValueReference>();
+
+function oversizedLiteral(
+    term: Term,
+    lexicalBytes: number,
+    languageBytes: number,
+): boolean {
+    if (lexicalBytes + languageBytes > frameLimit) return true;
+    // A singleton payload adds at most 64 bytes for its CBOR columns and heads.
+    if (lexicalBytes + languageBytes <= frameLimit - 64) return false;
+    const empty: Term = { ...term, value: "" };
+    if (empty.lang !== undefined) empty.lang = "";
+    const skeleton = termFrame(0, [empty], inlineOnly).payload.length;
+    // The same width appears in the suffix-length column and byte-string head.
+    const suffixHeadGrowth = mustEncode(lexicalBytes).length - 1;
+    const languageHeadGrowth = mustEncode(languageBytes).length - 1;
+    return (
+        skeleton +
+            lexicalBytes +
+            languageBytes +
+            2 * suffixHeadGrowth +
+            languageHeadGrowth >
+        frameLimit
+    );
 }
 
 function delta(rows: Quad[], column: "s" | "o"): number[] {
@@ -190,19 +237,63 @@ export function writeRdfSegment(terms: Term[], rows: Quad[]): Uint8Array {
         items++;
     };
 
+    const packedTerms: Term[] = [];
+    const values = new Set<string>();
+    let projectionBytes = 0;
+    for (const term of terms) {
+        if (term.kind !== TermKind.Literal) continue;
+        const bytes = Buffer.byteLength(term.value);
+        const languageBytes = Buffer.byteLength(term.lang ?? "");
+        if (!oversizedLiteral(term, bytes, languageBytes)) continue;
+        const empty: Term = { ...term, value: "" };
+        if (empty.lang !== undefined) empty.lang = "";
+        const probe = new Map([
+            [empty, { digest: new Uint8Array(32), length: bytes }],
+        ]);
+        const skeleton = termFrame(0, [empty], probe).payload.length;
+        if (
+            bytes === 0 ||
+            skeleton + languageBytes + mustEncode(languageBytes).length - 1 >
+                frameLimit
+        ) {
+            throw new RdfImportCapacityError(
+                "RDF literal metadata exceeds the v2 terms payload limit",
+            );
+        }
+        packedTerms.push(term);
+        if (values.has(term.value)) continue;
+        projectionBytes += bytes;
+        if (projectionBytes > valueProjectionBytes) {
+            throw new RdfImportCapacityError(
+                "RDF import exceeds the v2 literal projection capacity",
+            );
+        }
+        values.add(term.value);
+    }
+    const packed = writeValuePacks(values, (content, payload) =>
+        append(13, content, payload),
+    );
+    const references = new Map<Term, ValueReference>();
+    for (const term of packedTerms) {
+        const value = packed.get(term.value);
+        if (value === undefined)
+            throw new TypeError("RDF import requires a packed literal value");
+        references.set(term, value);
+    }
+
     // Bound each initial batch before encoding. Assembly then checks the exact
     // payload size, splitting a batch without renumbering its terms when needed.
     let base = 0;
     let budget = 0;
     const writeTerms = (start: number, end: number): void => {
-        const frame = termFrame(start, terms.slice(start, end));
+        const frame = termFrame(start, terms.slice(start, end), references);
         if (frame.payload.length <= frameLimit) {
             append(1, frame.content, frame.payload, frame.formed);
             return;
         }
         if (end - start === 1) {
             throw new RdfImportCapacityError(
-                `RDF term ${start} exceeds the v2 inline payload limit`,
+                `RDF term ${start} exceeds the v2 terms payload limit`,
             );
         }
         const middle = start + Math.floor((end - start) / 2);
@@ -210,7 +301,10 @@ export function writeRdfSegment(terms: Term[], rows: Quad[]): Uint8Array {
         writeTerms(middle, end);
     };
     for (const [index, term] of terms.entries()) {
-        const size = inlineTermBytes(term.value, term.lang);
+        const packed = references.has(term);
+        const size =
+            (packed ? 0 : Buffer.byteLength(term.value)) +
+            Buffer.byteLength(term.lang ?? "");
         if (
             index > base &&
             (index - base === termsPerFrame || budget + size > frameLimit)
