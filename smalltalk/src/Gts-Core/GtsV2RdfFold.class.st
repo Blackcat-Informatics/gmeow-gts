@@ -82,6 +82,15 @@ GtsV2RdfFold >> chargeText: length [
 ]
 
 { #category : #terms }
+GtsV2RdfFold >> resolveReference: digest length: length octets: octets values: store [
+	octets ifTrue: [
+		self chargeText: length * 2.
+		^ store octetsFor: digest length: length ].
+	self chargeText: length.
+	^ store textFor: digest length: length
+]
+
+{ #category : #terms }
 GtsV2RdfFold >> addBlank: label [
 	dictionary add: (blanks at: label ifAbsentPut: [
 		| identifier |

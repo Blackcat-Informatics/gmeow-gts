@@ -8,20 +8,20 @@ Class {
 }
 
 { #category : #validation }
-GtsV2IndexChecks class >> check: content bytes: bytes head: head range: range runs: expectedRuns packs: packs [
-	^ self new check: content bytes: bytes head: head range: range runs: expectedRuns packs: packs
+GtsV2IndexChecks class >> check: content bytes: bytes head: head range: range runs: expectedRuns packs: packs graphs: graphs [
+	^ self new check: content bytes: bytes head: head range: range runs: expectedRuns packs: packs graphs: graphs
 ]
 
 { #category : #validation }
-GtsV2IndexChecks >> check: content bytes: bytes head: head range: range runs: expectedRuns packs: packs [
-	| header frameCount claimedHead directoryMatches rootStart membersMatch failures |
+GtsV2IndexChecks >> check: content bytes: bytes head: head range: range runs: expectedRuns packs: packs graphs: graphs [
+	| header frameCount claimedHead typeRunsMatch graphDirectoryMatches rootStart membersMatch failures |
 	header := content fields: 2.
 	frameCount := header next uint.
 	claimedHead := GtsV2RdfColumns body: header next size: 32.
 	cursor := GtsV2PayloadCursor on: bytes.
 	cursor requireArray: 6.
-	directoryMatches := self matchesRuns: expectedRuns.
-	self checkGraphDirectory.
+	typeRunsMatch := self matchesRuns: expectedRuns.
+	graphDirectoryMatches := self matchesGraphDirectory: graphs.
 	self checkStatistics.
 	rootStart := cursor readDigest.
 	cursor readOptionDo: [ cursor readDigest ].
@@ -32,7 +32,8 @@ GtsV2IndexChecks >> check: content bytes: bytes head: head range: range runs: ex
 		ifFalse: [ failures add: 'index_head' ].
 	(bytes copyFrom: rootStart to: rootStart + 31) = range root
 		ifFalse: [ failures add: 'index_root' ].
-	directoryMatches ifFalse: [ failures add: 'index_directory' ].
+	(typeRunsMatch not or: [ graphs isComparable and: [ graphDirectoryMatches not ] ])
+		ifTrue: [ failures add: 'index_directory' ].
 	(packs isComparable and: [ membersMatch not ]) ifTrue: [ failures add: 'index_members' ].
 	^ failures
 ]
@@ -60,14 +61,31 @@ GtsV2IndexChecks >> matchesRuns: expected [
 ]
 
 { #category : #private }
-GtsV2IndexChecks >> checkGraphDirectory [
-	(cursor readHead: 4) timesRepeat: [
+GtsV2IndexChecks >> matchesGraphDirectory: graphs [
+	| count expected matches |
+	count := cursor readHead: 4.
+	expected := graphs expectedNames: count.
+	matches := expected isNotNil.
+	1 to: count do: [ :index |
+		| graph ranges rangeCount |
 		cursor requireArray: 2.
-		cursor readOptionDo: [ cursor readHead: 0 ].
-		(cursor readHead: 4) timesRepeat: [
+		graph := -1.
+		cursor readOptionDo: [ graph := cursor readHead: 0 ].
+		rangeCount := cursor readHead: 4.
+		(matches and: [ (expected at: index) = graph ])
+			ifTrue: [
+				ranges := graphs rangesOf: graph.
+				matches := ranges size = rangeCount ]
+			ifFalse: [ matches := false ].
+		1 to: rangeCount do: [ :rangeIndex |
+			| type position row length |
 			cursor requireArray: 4.
-			self readFrameType.
-			3 timesRepeat: [ cursor readHead: 0 ] ] ]
+			type := self readFrameType.
+			position := cursor readHead: 0.
+			row := cursor readHead: 0.
+			length := cursor readHead: 0.
+			matches ifTrue: [ matches := (ranges at: rangeIndex) = { type. position. row. length } ] ] ].
+	^ matches
 ]
 
 { #category : #private }
@@ -102,5 +120,8 @@ GtsV2IndexChecks >> matchesMembers: packs [
 
 { #category : #private }
 GtsV2IndexChecks >> readFrameType [
-	((cursor readHead: 0) between: 1 and: 16) ifFalse: [ GtsV2EnvelopeError signal: 'unregistered_value' ]
+	| type |
+	type := cursor readHead: 0.
+	(type between: 1 and: 16) ifFalse: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
+	^ type
 ]

@@ -43,9 +43,16 @@ GtsV2Field >> deriveWith: context prefix: prefix from: first to: finish [
 { #category : #parsing }
 GtsV2Field >> typedHead: major [
 	| head |
+	head := self deterministicHead.
+	head major = major ifFalse: [ GtsV2EnvelopeError signal: 'wrong_type' ].
+	^ head
+]
+
+{ #category : #parsing }
+GtsV2Field >> deterministicHead [
+	| head |
 	head := walker headAt: start limit: end.
 	self checkHead: head.
-	head major = major ifFalse: [ GtsV2EnvelopeError signal: 'wrong_type' ].
 	^ head
 ]
 
