@@ -9,7 +9,10 @@ import (
 	"github.com/zeebo/blake3"
 )
 
-const parityType = 16
+const (
+	commitType = 14
+	parityType = 16
+)
 
 // Digest is a GTS v2 BLAKE3 identifier.
 type Digest [32]byte
@@ -90,7 +93,7 @@ func decodeFrame(item []byte, newer bool) frameFields {
 		typeReason = UnregisteredValue
 	}
 	if f.Type > 0 && f.Type <= parityType {
-		if criticalReason == "" && f.Critical != (f.Type < 14) {
+		if criticalReason == "" && f.Critical != (f.Type < commitType) {
 			criticalReason = ForbiddenCombination
 		}
 		if transparentReason == "" && f.Transparent != (f.Type == parityType) {
@@ -116,11 +119,18 @@ func decodeFrame(item []byte, newer bool) frameFields {
 	}
 	f.Malformed = firstReason(typeReason, criticalReason, transparentReason, contentReason, lengthReason,
 		digestReason, storageReason, payloadReason, identifierReason, signatureReason)
-	if f.Malformed == "" && ((f.Type == 8 && f.DecodedLength == 0) ||
-		((f.Type == 12 || f.Type == 14) && f.DecodedLength != 0)) {
-		f.Malformed = OutOfRange
+	if f.Malformed == "" {
+		f.Malformed = checkPayloadLength(f.Type, f.DecodedLength)
 	}
 	return f
+}
+
+func checkPayloadLength(frameType, length uint64) Reason {
+	if (frameType == 8 && length == 0) ||
+		((frameType == 12 || frameType == commitType) && length != 0) {
+		return OutOfRange
+	}
+	return ""
 }
 
 func firstReason(reasons ...Reason) Reason {
@@ -171,8 +181,12 @@ func (f *frameFields) computeID(pred Digest) *Digest {
 	if f.identity == nil {
 		return nil
 	}
-	id := hash("gts2 frame", []byte{0x87, 0x58, 0x20}, pred[:], f.identity)
+	id := frameID(pred, f.identity)
 	return &id
+}
+
+func frameID(predecessor Digest, identity []byte) Digest {
+	return hash("gts2 frame", []byte{0x87, 0x58, 0x20}, predecessor[:], identity)
 }
 
 func (f *frameFields) checkLink(pred Digest, witness *frameFields) {
@@ -215,7 +229,7 @@ func checkContent(frameType uint64, item []byte) Reason {
 		return checkRecord(item, checkDigest, checkUint, checkUint)
 	case 12:
 		return checkRecord(item, checkQualifiedName, checkUint, checkTextOption)
-	case 14, 15:
+	case commitType, 15:
 		return checkRecord(item, checkUint, checkDigest)
 	case parityType:
 		return checkRecord(item, checkUint, checkUint, checkUint, checkDigest, checkDigest)
