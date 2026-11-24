@@ -71,8 +71,10 @@ func verifySegmentV2(path string, ordinal int, segment v2.Segment) bool {
 				clean = false
 			}
 		case item.Kind == v2.OffsetsItem || item.Kind == v2.LocatorItem:
-			problem(item.Offset, fmt.Sprintf("unsupported %s claim", item.Kind))
-			clean = false
+			if reason := itemProblemV2(item); reason != "" {
+				problem(item.Offset, reason)
+				clean = false
+			}
 		default:
 			problem(item.Offset, fmt.Sprintf("%s item %s", item.Kind, item.Reason))
 			clean = false
@@ -97,7 +99,7 @@ func verifySegmentV2(path string, ordinal int, segment v2.Segment) bool {
 		fmt.Printf(", uncommitted_tail %d", summary.TailFrames)
 	}
 	if summary.HasIndex {
-		fmt.Print(", index claims unchecked")
+		fmt.Print(", index payload claims unchecked")
 	}
 	fmt.Println()
 	return clean && len(summary.Mismatches) == 0

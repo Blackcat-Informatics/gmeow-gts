@@ -111,8 +111,8 @@ func printSegmentV2(ordinal int, segment v2.Segment) bool {
 		}
 	}
 	for _, item := range segment.Items[1:] {
-		if item.Reason != "" {
-			fmt.Printf("    %s item at byte %d: %s\n", item.Kind, item.Offset, item.Reason)
+		if reason := itemProblemV2(item); reason != "" {
+			fmt.Printf("    %s item at byte %d: %s\n", item.Kind, item.Offset, reason)
 			clean = false
 		}
 		if item.Frame != nil && !reportFrameProblemsV2(item.Frame, func(reason string) {
@@ -122,6 +122,13 @@ func printSegmentV2(ordinal int, segment v2.Segment) bool {
 		}
 	}
 	return clean
+}
+
+func itemProblemV2(item v2.Item) string {
+	if item.ClosingClaimFailure != "" {
+		return fmt.Sprintf("index_claim_failed (%s)", item.ClosingClaimFailure)
+	}
+	return string(item.Reason)
 }
 
 func reportFrameProblemsV2(frame *v2.Frame, report func(string)) bool {

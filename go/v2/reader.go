@@ -74,6 +74,8 @@ type Item struct {
 	Kind   Kind
 	Reason Reason
 	Frame  *Frame
+	// ClosingClaimFailure is separate from malformed item grammar or placement.
+	ClosingClaimFailure Reason
 }
 
 // Segment begins with one opener, followed by all its delimited items in
@@ -99,13 +101,13 @@ type WireResult struct {
 type WireInspection WireResult
 
 // ReadWire walks a byte input through the first incomplete or undelimitable
-// item, or the item limit. It checks frame links and stored and decoded payloads
-// in that prefix. The input buffer must remain unchanged while the result is
+// item, or the item limit. It checks frame links, stored and decoded payloads,
+// and offsets and locator claims in that prefix. The input buffer must remain unchanged while the result is
 // in use because encoded content and plain payloads borrow slices of it.
 //
 // ReadWire reports a first generation input for the legacy reader to process.
-// Content folding, signature verification, offset claims, and recovery after
-// framing loss belong to layers above this function.
+// Content folding, signature verification, and recovery after framing loss
+// belong to layers above this function.
 func ReadWire(data []byte, capacity ReadCapacity) WireResult {
 	return readWire(data, capacity, true)
 }
@@ -164,6 +166,7 @@ func readWire(data []byte, capacity ReadCapacity, retainPayload bool) WireResult
 	budget := payloadBudget{capacity: capacity}
 	for i := range result.Segments {
 		result.Segments[i].checkFrames(data, &budget, retainPayload)
+		result.Segments[i].checkClosing(data)
 	}
 	return result
 }
