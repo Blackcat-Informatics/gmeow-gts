@@ -36,6 +36,7 @@ internal sealed interface WireEvent {
         val link: FrameLink? = null,
         val storedMatches: Boolean? = null,
         val payload: PayloadObservation? = null,
+        val closingClaimFailure: ClosingClaimFailure? = null,
     ) : WireEvent
 
     data class Stop(val offset: Int, val reason: StopReason) : WireEvent, WireInspection
@@ -124,17 +125,27 @@ private data class ScannedItem(
 private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
     sequence {
         val source = scanItems(data, firstEnd).iterator()
+        fun advance(): ScannedItem? = if (source.hasNext()) source.next() else null
+
         val budget = PayloadBudget()
+        val closing = ClosingClaims(data)
         var predecessor: ByteArray? = null
-        var current = if (source.hasNext()) source.next() else null
+        var current = advance()
+        var next = advance()
         while (current != null) {
-            val next = if (source.hasNext()) source.next() else null
-            val event = current.event
-            if (event is WireEvent.Item && (event.kind == ItemKind.HEADER || event.kind == ItemKind.RESYNC)) {
+            val item = current.event
+            if (item !is WireEvent.Item) {
+                yield(item)
+                break
+            }
+            if (item.kind == ItemKind.HEADER || item.kind == ItemKind.RESYNC) {
                 predecessor = current.openerId
             }
+            val following = next?.event
+            val afterLocator = if (item.kind == ItemKind.OFFSETS && (following as? WireEvent.Item)?.kind == ItemKind.LOCATOR) advance() else null
+            val event = closing.observe(item, following, afterLocator?.event)
             val frame = current.frame
-            if (event is WireEvent.Item && frame != null && predecessor != null) {
+            if (frame != null && predecessor != null) {
                 val link = checkLink(frame, predecessor, next?.frame)
                 predecessor = link.effective ?: predecessor
                 val storedMatches = checkStored(frame.payload)
@@ -151,6 +162,7 @@ private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
                 yield(event)
             }
             current = next
+            next = afterLocator ?: advance()
         }
     }
 

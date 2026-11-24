@@ -60,6 +60,7 @@ private fun printV2Ledger(path: String, wire: WireInspection.VersionTwo): Boolea
                         event.frameType == 16uL && event.problem != null -> ": parity_damaged (${event.problem})"
                         event.frameType == 16uL && integrityFailed -> ": parity_damaged"
                         event.problem != null -> ": ${event.problem}"
+                        event.closingClaimFailure != null -> ": index_claim_failed (${event.closingClaimFailure.name.lowercase()})"
                         else -> ""
                     }
                 println("$prefix${event.kind.name.lowercase()}$type bytes [${event.offset}, ${event.end})$parameters$problem")
@@ -74,7 +75,7 @@ private fun printV2Ledger(path: String, wire: WireInspection.VersionTwo): Boolea
                     val reason = payload.reason?.let { " ($it$count)" }.orEmpty()
                     println("      link ${link.name.lowercase()}$stored, payload ${payload.state.name.lowercase()}$reason")
                 }
-                if (event.problem != null || integrityFailed || payload?.state == PayloadState.UNCHECKED) clean = false
+                if (problem.isNotEmpty() || integrityFailed || payload?.state == PayloadState.UNCHECKED) clean = false
                 if (event.opener?.registry?.let { it > 1uL } == true) {
                     println("    unsupported registry version ${event.opener.registry}")
                     clean = false
