@@ -11,6 +11,7 @@ from ._decode import WireError, _Decoder
 from ._fold_record_lines import record_bodies
 from ._labelling_result import ComponentStatistics, InputStatistics
 from ._labelling_structure import Diagnostic
+from ._parity_verify import check_parity
 from ._read_coverage import SegmentCoverage, file_coverage
 from .authentication import (
     AuthenticationFrame,
@@ -106,6 +107,8 @@ class ContentFinding:
     code: str
     reason: str | None = None
     count: int | None = None
+    offset: int | None = None
+    length: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -451,6 +454,7 @@ def _read_segment_content(
     formed: FormedBudget,
     stored_limit: int,
     last_commit: int,
+    future_parity: set[int],
     findings: list[ContentFinding],
 ) -> _SegmentContent:
     opener = segment.opener.value
@@ -491,24 +495,17 @@ def _read_segment_content(
             else None
         )
         if kind == 16:
-            if (
-                registry > 1
-                and isinstance(frame.envelope, Frame)
-                and frame.link.state != "broken"
-            ):
-                decoder = _Decoder(frame.envelope.content, 0, WireError)
-                decoder.record(5)
-                if decoder.uint() > 1:
-                    opaque_positions.add(position)
-                    if not stopped and decoded is not None:
-                        findings.append(
-                            ContentFinding(
-                                ordinal,
-                                position,
-                                "unknown_enumeration_value",
-                                "unknown_frame_type",
-                            )
+            if position in future_parity:
+                opaque_positions.add(position)
+                if not stopped and decoded is not None:
+                    findings.append(
+                        ContentFinding(
+                            ordinal,
+                            position,
+                            "unknown_enumeration_value",
+                            "unknown_frame_type",
                         )
+                    )
             continue
         opaque_positions.add(position)
         if kind is None or kind == 0:
@@ -1151,6 +1148,19 @@ def read_content(
             capacity.stored_bytes_per_frame,
             findings,
         )
+        parity_findings, future_parity = check_parity(data, segment)
+        findings.extend(
+            ContentFinding(
+                ordinal,
+                note.position,
+                note.code,
+                note.reason,
+                note.count,
+                note.offset,
+                note.length,
+            )
+            for note in parity_findings
+        )
         segment_content = _read_segment_content(
             data,
             segment,
@@ -1158,6 +1168,7 @@ def read_content(
             formed,
             capacity.stored_bytes_per_frame,
             last_commit,
+            future_parity,
             findings,
         )
         registry = opener.header.registry_version

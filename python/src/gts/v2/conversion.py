@@ -7,7 +7,6 @@ from collections.abc import Callable
 from ._conversion_output import _DEFAULT_CAPACITY, ConversionCapacity
 from ._conversion_result import Converted, ResultRead, ResultSegment, _convert
 from ._decode import WireError
-from ._parity_verify import parity_mismatch
 from .blobs import BlobLocation
 from .content import ContentCapacity, ContentRead, read_content
 from .conversion_fold import ConversionStop
@@ -28,6 +27,7 @@ _ERROR_FINDINGS = frozenset(
         "position_constraint",
         "ill_formed_term",
         "canonical_violated",
+        "parity_mismatch",
         "conflicting_declaration",
     )
 )
@@ -147,8 +147,6 @@ def _read_result(data: bytes, capacity: ConversionCapacity) -> ResultRead:
     ):
         intact = _intact(read, segment, ordinal)
         verified = canonical.structure.state == "verified"
-        if intact and verified:
-            error |= parity_mismatch(data, segment)
         segments.append(
             ResultSegment(
                 canonical_claimed=canonical.claimed,

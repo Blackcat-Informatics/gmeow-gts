@@ -246,6 +246,79 @@ def test_closing_index_checks_digest_claims_after_a_transparent_stop() -> None:
     } == {(2, "index_directory"), (2, "index_digest")}
 
 
+_PARITY_CODES = {
+    30: "parity_damaged",
+    31: "parity_mismatch",
+    32: "parity_unexplained",
+    33: "parity_stale",
+    36: "unprotected_tail",
+}
+
+
+@pytest.mark.parametrize(
+    "part, name",
+    [
+        ("P1", "parity-later-version-payload-damaged"),
+        ("P5", "parity-above-capacity-and-damaged"),
+        ("P5", "parity-above-capacity-wrong-table"),
+        ("P5", "parity-condition-six-first-by-case"),
+        ("P5", "parity-damaged-shard"),
+        ("P5", "parity-unexplained"),
+        ("P5", "recovery-parity-in-resync-segment"),
+        ("P5", "commit-count-mismatch"),
+    ],
+)
+def test_reader_matches_parity_diagnostics(part: str, name: str) -> None:
+    def value(option: list) -> int | None:
+        return option[1] if option[0] == 2 else None
+
+    reasons = {
+        None: None,
+        12: "payload_digest",
+        30: "decoded_size",
+        40: "data",
+        41: "parity",
+    }
+    codes = {13: "damaged_frame", 20: "exceeds_capacity", **_PARITY_CODES}
+    for raw, segments, capacity in _contents(part, name):
+        expected = Counter()
+        for segment in segments:
+            report = [
+                *segment[-1],
+                *(f for frame in segment[-2] if frame[3] == [2, 16] for f in frame[-1]),
+            ]
+            for code, reason, _, position, offset, length, count in report:
+                if code in codes:
+                    expected[
+                        (
+                            segment[0],
+                            codes[code],
+                            value(position),
+                            reasons[value(reason)],
+                            value(count),
+                            value(offset),
+                            value(length),
+                        )
+                    ] += 1
+        result = read_content(raw, capacity)
+        parity_positions = {
+            (ordinal, frame.position)
+            for ordinal, segment in enumerate(result.wire.segments)
+            for frame in segment.frames
+            if frame.frame_type == 16
+        }
+        assert (
+            Counter(
+                (f.segment, f.code, f.position, f.reason, f.count, f.offset, f.length)
+                for f in result.findings
+                if f.code in _PARITY_CODES.values()
+                or f.code in ("damaged_frame", "exceeds_capacity")
+                and (f.segment, f.position) in parity_positions
+            )
+            == expected
+        )
+
+
 @pytest.mark.parametrize(
     "part, name",
     [
@@ -358,7 +431,9 @@ def test_whole_content_findings(part: str, name: str) -> None:
                     )
                 ] += 1
         actual = Counter(
-            (f.segment, f.position, f.code, f.reason, f.count) for f in result.findings
+            (f.segment, f.position, f.code, f.reason, f.count)
+            for f in result.findings
+            if f.code not in _PARITY_CODES.values()
         )
         assert actual == expected
 
