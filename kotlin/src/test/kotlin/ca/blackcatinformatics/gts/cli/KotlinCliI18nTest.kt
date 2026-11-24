@@ -57,6 +57,20 @@ class KotlinCliI18nTest {
         assertEquals(1, result.code)
         assertTrue(result.stdout.contains("frame type 16"), result.stdout)
         assertTrue(result.stdout.contains("parity_damaged (forbidden_combination)"), result.stdout)
+        val brokenLink = captureCli("en", "info", "../vectors/v2/P1/parity-damaged-link.bin")
+        assertEquals(1, brokenLink.code)
+        assertTrue(brokenLink.stdout.contains("parity_damaged"), brokenLink.stdout)
+        assertTrue(brokenLink.stdout.contains("link broken"), brokenLink.stdout)
+    }
+
+    @Test
+    fun exitsOnAnIntegrityFindingAndPrintsTheIndependentChecks() {
+        val clean = captureCli("en", "info", "../vectors/v2/P1/zstd-ok.bin")
+        assertEquals(0, clean.code)
+        assertTrue(clean.stdout.contains("link linked, stored check matches, payload verified"), clean.stdout)
+        val mismatch = captureCli("en", "info", "../vectors/v2/P1/stored-mismatch.bin")
+        assertEquals(1, mismatch.code)
+        assertTrue(mismatch.stdout.contains("link linked, stored check mismatch, payload damaged (decode_failed)"), mismatch.stdout)
     }
 
     private data class CliCapture(

@@ -44,7 +44,18 @@ class WireInspectionTest {
         val torn = assertIs<WireInspection.VersionTwo>(inspectWire(vector("torn-after-frames")))
         val events = torn.events.toList()
         assertEquals(WireEvent.Stop(353, StopReason.TORN_TAIL), events.last())
-        assertEquals(WireEvent.Item(239, 353, ItemKind.FRAME, frameType = 14uL), events[events.lastIndex - 1])
+        val lastFrame = assertIs<WireEvent.Item>(events[events.lastIndex - 1])
+        assertEquals(
+            WireEvent.Item(
+                239,
+                353,
+                ItemKind.FRAME,
+                frameType = 14uL,
+                link = FrameLink.LINKED,
+                payload = PayloadObservation(PayloadState.VERIFIED),
+            ),
+            lastFrame,
+        )
 
         val header = vector("gen-record-two")
         val cases =
@@ -133,4 +144,59 @@ class WireInspectionTest {
         assertEquals("out_of_range", commit.problem)
     }
 
+    @Test
+    fun usesOnlyTheImmediateFrameAsAHealingWitness() {
+        val witnessed = frames("link-healed-before-transparent")
+        assertEquals(listOf(FrameLink.HEALED, FrameLink.LINKED), witnessed.map { it.link })
+        assertEquals(16uL, witnessed[1].frameType)
+        val interrupted = frames("link-heal-opaque-between")
+        assertEquals(listOf(FrameLink.LINKED, FrameLink.BROKEN, FrameLink.BROKEN, FrameLink.LINKED), interrupted.map { it.link })
+
+        val resync = frames("resync-identifier-field-differs")
+        assertEquals(List(4) { FrameLink.LINKED }, resync.map { it.link })
+    }
+
+    @Test
+    fun observesStoredAndDecodedChecksIndependently() {
+        val mismatch = frames("stored-mismatch").single()
+        assertEquals(FrameLink.LINKED, mismatch.link)
+        assertEquals(false, mismatch.storedMatches)
+        assertEquals(PayloadObservation(PayloadState.DAMAGED, "decode_failed"), mismatch.payload)
+
+        val malformed = frames("payload-fields-ill-typed").first()
+        assertEquals(PayloadState.DAMAGED, malformed.payload?.state)
+
+        val cases =
+            listOf(
+                "zstd-ok" to PayloadObservation(PayloadState.VERIFIED),
+                "zstd-header-short" to PayloadObservation(PayloadState.DAMAGED, "codec_constraint"),
+                "zstd-trailing-byte" to PayloadObservation(PayloadState.DAMAGED, "decode_failed"),
+                "zstd-two-frames" to PayloadObservation(PayloadState.DAMAGED, "decode_failed"),
+                "zstd-output-short" to PayloadObservation(PayloadState.DAMAGED, "decode_failed"),
+            )
+        for ((name, expected) in cases) {
+            val frame = frames(name).single()
+            assertEquals(true, frame.storedMatches, name)
+            assertEquals(expected, frame.payload, name)
+        }
+    }
+
+    @Test
+    fun latchesTheTotalDecodedRefusalAcrossLaterFrames() {
+        val data = vector("zstd-ok")
+        val start = itemEnd(data, 0)
+        val frame = readFrame(CborField(data, start, itemEnd(data, start)), 1uL)
+        val budget = PayloadBudget(readCapacity = 599uL)
+        assertEquals(PayloadObservation(PayloadState.VERIFIED), budget.check(frame.payload))
+        val refused = PayloadObservation(PayloadState.UNCHECKED, "total_decoded", 600uL)
+        assertEquals(refused, budget.check(frame.payload))
+        val empty = frame.payload.copy(length = 0uL)
+        assertEquals(refused.copy(count = 300uL), budget.check(empty))
+    }
+
+    private fun frames(name: String): List<WireEvent.Item> =
+        assertIs<WireInspection.VersionTwo>(inspectWire(vector(name)), name).events
+            .filterIsInstance<WireEvent.Item>()
+            .filter { it.kind == ItemKind.FRAME }
+            .toList()
 }

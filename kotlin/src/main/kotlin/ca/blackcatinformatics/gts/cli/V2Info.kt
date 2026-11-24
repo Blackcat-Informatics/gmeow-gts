@@ -3,7 +3,9 @@
 
 package ca.blackcatinformatics.gts.cli
 
+import ca.blackcatinformatics.gts.v2.FrameLink
 import ca.blackcatinformatics.gts.v2.ItemKind
+import ca.blackcatinformatics.gts.v2.PayloadState
 import ca.blackcatinformatics.gts.v2.WireEvent
 import ca.blackcatinformatics.gts.v2.WireInspection
 import ca.blackcatinformatics.gts.v2.inspectWire
@@ -31,7 +33,7 @@ internal fun printV2Info(path: String, data: ByteArray): Boolean? =
     }
 
 private fun printV2Ledger(path: String, wire: WireInspection.VersionTwo): Boolean {
-    println("$path: GTS v2 framing ledger (item boundaries and envelopes)")
+    println("$path: GTS v2 framing ledger (byte ranges and frame integrity)")
     var ordinal = 0
     var clean = true
     for (event in wire.events) {
@@ -49,10 +51,30 @@ private fun printV2Ledger(path: String, wire: WireInspection.VersionTwo): Boolea
                     }
                 val type = event.frameType?.let { " type $it" }.orEmpty()
                 val parameters = event.opener?.let { ", registry ${it.registry}, hash algorithm ${it.hashAlgorithm}" }.orEmpty()
+                val link = event.link
+                val payload = event.payload
+                val linkFailed = link != null && link != FrameLink.LINKED
+                val integrityFailed = linkFailed || event.storedMatches == false || payload?.state == PayloadState.DAMAGED
                 val problem =
-                    event.problem?.let { if (event.frameType == 16uL) ": parity_damaged ($it)" else ": $it" }.orEmpty()
+                    when {
+                        event.frameType == 16uL && event.problem != null -> ": parity_damaged (${event.problem})"
+                        event.frameType == 16uL && integrityFailed -> ": parity_damaged"
+                        event.problem != null -> ": ${event.problem}"
+                        else -> ""
+                    }
                 println("$prefix${event.kind.name.lowercase()}$type bytes [${event.offset}, ${event.end})$parameters$problem")
-                if (event.problem != null) clean = false
+                if (link != null && payload != null) {
+                    val stored =
+                        when (event.storedMatches) {
+                            null -> ""
+                            true -> ", stored check matches"
+                            false -> ", stored check mismatch"
+                        }
+                    val count = payload.count?.let { ", $it bytes" }.orEmpty()
+                    val reason = payload.reason?.let { " ($it$count)" }.orEmpty()
+                    println("      link ${link.name.lowercase()}$stored, payload ${payload.state.name.lowercase()}$reason")
+                }
+                if (event.problem != null || integrityFailed || payload?.state == PayloadState.UNCHECKED) clean = false
                 if (event.opener?.registry?.let { it > 1uL } == true) {
                     println("    unsupported registry version ${event.opener.registry}")
                     clean = false
