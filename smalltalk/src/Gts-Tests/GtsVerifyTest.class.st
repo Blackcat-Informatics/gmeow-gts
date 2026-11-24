@@ -392,6 +392,61 @@ GtsVerifyTest >> v2Vector: name [
 		binaryReadStreamDo: [ :stream | stream upToEnd ]
 ]
 
+{ #category : #tests }
+GtsVerifyTest >> testTypedCommitAndIndexFindingsMatchP5Records [
+	#('commit-valid' 'commit-root-mismatch' 'commit-count-mismatch' 'commit-payload-nonempty'
+		'commit-canonical-tail' 'commit-none' 'uncommitted-tail-unregistered-option'
+		'index-intact' 'index-each-claim' 'index-nonterminal-claims' 'index-opaque-covered') do: [ :name |
+		| fixture |
+		fixture := self jsonVectorAt: '/workspace/vectors/v2/P5/', name, '.json'.
+		(fixture at: 'cases') do: [ :entry |
+			(name ~= 'index-each-claim' or: [
+				#('head' 'range_root' 'type_runs' 'graph_directory' 'pack_members') includes: (entry at: 'label') ])
+				ifTrue: [ self assertTypedClaimsOf: entry ] ] ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testDetachedPrefixClaimsRequireACheckedIndex [
+	| bytes findings |
+	bytes := self v2Vector: 'index-intact'.
+	findings := { GtsV2PayloadBudget new. GtsV2PayloadBudget withReadLimit: 0 } collect: [ :budget |
+		| checks reasons |
+		reasons := OrderedCollection new.
+		(GtsV2Wire inspect: bytes budget: budget) eventsDo: [ :event |
+			event startsSegment
+				ifTrue: [ checks := GtsV2CommitChecks openedBy: event effectiveIdentifier ]
+				ifFalse: [
+					event frameType = 15 ifTrue: [ checks observeDetachedFrame ].
+					checks observe: event classifiedFindingsDo: [ :code :reason :at :count |
+						code = #index_claim_failed ifTrue: [ reasons add: reason ] ] ] ]
+			decodedWhen: [ :event | GtsV2CommitChecks needsDecoded: event ].
+		reasons asArray ].
+	self assert: findings first equals: #('index_head' 'index_root' 'index_directory').
+	self assert: findings second isEmpty
+]
+
+{ #category : #private }
+GtsVerifyTest >> assertTypedClaimsOf: entry [
+	| input report result claim |
+	input := entry at: 'input_file'.
+	report := (GtsV2Wire inspect: (self v2Vector: (input allButLast: 4))) typedWireFindings.
+	result := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	claim := [ :finding |
+		(finding first between: 15 and: 17) or: [
+			finding first = 18 and: [ #(17 18 21 22) includes: finding second second ] ] ].
+	result second do: [ :segment |
+		| expected actual |
+		self assert: (report committedFramesAt: segment first) = (segment at: 12) description: input.
+		expected := ((segment at: 18) select: claim) asArray.
+		actual := (report segmentFindingsAt: segment first) select: claim.
+		self assert: actual = expected description: input, ' segment ', actual printString, ' expected ', expected printString.
+		(segment at: 17) do: [ :frame |
+			expected := ((frame at: 11) select: claim) asArray.
+			actual := (report frameFindingsAt: frame second) select: claim.
+			self assert: actual = expected description: input, ' frame ', frame first printString,
+				' ', actual printString, ' expected ', expected printString ] ]
+]
+
 { #category : #private }
 GtsVerifyTest >> checkV2: bytes [
 	| checks findings events |

@@ -133,8 +133,10 @@ GtsV2Wire >> typedWireFindings [
 	report := GtsV2WireFindings inputLength: bytes size
 		itemLimit: (initialBudget ifNil: [ 0 ] ifNotNil: [ initialBudget itemLimit ]).
 	format = #v2 ifTrue: [
-		repair := self eventsDo: [ :event | report observe: event ] decodedWhen: [ :event | false ]
+		repair := self eventsDo: [ :event | report observe: event ]
+			decodedWhen: [ :event | GtsV2CommitChecks needsDecoded: event ]
 			unprotectedTailsDo: [ :offset :length | report tailAt: offset length: length ].
+		report finishSegment.
 		repair findings do: [ :finding | report addRepair: finding ].
 		^ report ].
 	format = #framingError

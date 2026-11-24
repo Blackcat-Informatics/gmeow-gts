@@ -24,14 +24,14 @@ GtsV2PackClaims >> observe: event position: position report: report [
 		on: GtsV2FramingError do: [ :error | GtsV2EnvelopeError signal: 'wrong_length' ] ]
 		on: GtsV2EnvelopeError do: [ :error |
 			self markUncompared.
-			report value: 'malformed_value (', error messageText, ')'.
+			report value: #malformed_value value: error messageText.
 			^ self ].
 	pack membersDo: [ :type :content :start :size :index |
 		type <= 9 ifTrue: [
 			| digest |
 			digest := GtsV2RdfColumns body: content list next size: 32.
 			(GtsBlake3 deriveWith: 'gts2 unit' prefix: #[] bytes: bytes from: start to: start + size) = digest
-				ifFalse: [ report value: 'damaged_frame (payload_digest)' ].
+				ifFalse: [ report value: #damaged_frame value: 'payload_digest' ].
 			self add: digest position: position index: index ] ]
 ]
 

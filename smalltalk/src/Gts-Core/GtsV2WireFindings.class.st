@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts' ],
 	#category : #'Gts-Core'
 }
 
@@ -20,6 +20,8 @@ GtsV2WireFindings >> initializeLength: length itemLimit: limit [
 	segmentFindings := OrderedCollection new.
 	frameFindings := Dictionary new.
 	positions := Dictionary new.
+	claimSteps := IdentityDictionary new.
+	committedCounts := OrderedCollection new.
 	fileEnd := 4.
 	leftOut := 0.
 	^ self
@@ -38,6 +40,11 @@ GtsV2WireFindings >> segmentFindingsAt: ordinal [
 { #category : #accessing }
 GtsV2WireFindings >> frameFindingsAt: offset [
 	^ self ordered: (frameFindings at: offset ifAbsent: [ #() ]) parity: (positions includesKey: offset)
+]
+
+{ #category : #accessing }
+GtsV2WireFindings >> committedFramesAt: ordinal [
+	^ committedCounts at: ordinal + 1
 ]
 
 { #category : #accessing }
@@ -69,9 +76,12 @@ GtsV2WireFindings >> framingStoppedAt: offset reason: reason [
 { #category : #observing }
 GtsV2WireFindings >> observe: event [
 	event startsSegment ifTrue: [
+		self finishSegment.
 		position := 0.
 		segment := OrderedCollection new.
 		segmentFindings add: segment.
+		claimChecks := (GtsV2CommitChecks supportsOpener: event) ifTrue: [
+			GtsV2CommitChecks openedBy: event effectiveIdentifier ].
 		self remember: event.
 		^ self recordOpener: event ].
 	event kind = #stop ifTrue: [ ^ self framingStoppedAt: event offset reason: event problem ].
@@ -84,7 +94,46 @@ GtsV2WireFindings >> observe: event [
 	self remember: event.
 	event frame
 		ifNil: [ self recordNonFrame: event ]
-		ifNotNil: [ self recordFrame: event ]
+		ifNotNil: [ self recordFrame: event ].
+	claimChecks ifNotNil: [ self checkClaimsOf: event ]
+]
+
+{ #category : #observing }
+GtsV2WireFindings >> finishSegment [
+	segment ifNil: [ ^ self ].
+	committedCounts add: (claimChecks
+		ifNil: [ head ifNil: [ 0 ] ]
+		ifNotNil: [ claimChecks committedFrames ]).
+	claimChecks ifNotNil: [
+		claimChecks tailOffset ifNotNil: [ :offset |
+			(frameFindings at: offset ifAbsentPut: [ OrderedCollection new ]) add:
+				(self positionalCode: 17 reason: nil position: claimChecks tailPosition count: claimChecks tailFrames) ] ].
+	segment := nil
+]
+
+{ #category : #private }
+GtsV2WireFindings >> checkClaimsOf: event [
+	(event kind = #framingGap and: [ event problem = 'undelimitable_input' ]) ifTrue: [
+		^ claimChecks observeDamagedRegion ].
+	event detached ifTrue: [ claimChecks observeDetachedFrame ].
+	claimChecks observe: event classifiedFindingsDo: [ :code :reason :at :count |
+		| record |
+		record := code caseOf: {
+			[ #commit_count_mismatch ] -> [ self positionalCode: 15 reason: nil position: at count: count ].
+			[ #commit_root_mismatch ] -> [ self positionalCode: 16 reason: nil position: at count: nil ].
+			[ #index_claim_failed ] -> [
+				| reasonCode |
+				reasonCode := #('index_head' 'index_root' 'index_offsets' 'index_digest'
+					'index_members' 'index_directory' 'index_locator') indexOf: reason.
+				self positionalCode: 18 reason: reasonCode + 16 position: at count: nil ].
+			[ #malformed_value ] -> [
+				self rangedCode: 7 reason: (self malformedReason: reason) event: event count: nil ].
+			[ #damaged_frame ] -> [
+				self rangedCode: 13 reason: 12 event: event count: nil ] }.
+		code = #malformed_value ifTrue: [ claimSteps at: record put: 11 ].
+		code = #damaged_frame ifTrue: [ claimSteps at: record put: 14 ].
+		code = #index_claim_failed ifTrue: [ claimSteps at: record put: 19 ].
+		(frameFindings at: event offset ifAbsentPut: [ OrderedCollection new ]) add: record ]
 ]
 
 { #category : #private }
@@ -153,10 +202,17 @@ GtsV2WireFindings >> recordUnknownFrame: event into: records [
 GtsV2WireFindings >> recordProblem: event into: records [
 	| reason |
 	event problem ifNil: [ ^ self ].
-	reason := #('not_deterministic' 'wrong_type' 'wrong_length' 'out_of_range' 'unregistered_value'
+	reason := self malformedReason: event problem.
+	reason ifNotNil: [ records add: (self rangedCode: 7 reason: reason event: event count: nil) ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> malformedReason: problem [
+	| index |
+	index := #('not_deterministic' 'wrong_type' 'wrong_length' 'out_of_range' 'unregistered_value'
 		'unordered_or_repeated' 'inconsistent_counts' 'forbidden_combination' 'codec_constraint')
-		indexOf: event problem.
-	reason > 0 ifTrue: [ records add: (self rangedCode: 7 reason: reason + 2 event: event count: nil) ]
+		indexOf: problem.
+	^ index > 0 ifTrue: [ index + 2 ]
 ]
 
 { #category : #private }
@@ -296,6 +352,7 @@ GtsV2WireFindings >> ordered: findings parity: parity [
 { #category : #private }
 GtsV2WireFindings >> stepOf: finding parity: parity [
 	| code |
+	claimSteps at: finding ifPresent: [ :step | ^ step ].
 	code := finding first.
 	code <= 3 ifTrue: [ ^ 1 ].
 	(#(8 9) includes: code) ifTrue: [ ^ 2 ].
@@ -310,6 +367,7 @@ GtsV2WireFindings >> stepOf: finding parity: parity [
 	(#(11 12) includes: code) ifTrue: [ ^ 5 ].
 	code = 14 ifTrue: [ ^ 6 ].
 	code = 13 ifTrue: [ ^ 7 ].
+	(code between: 15 and: 17) ifTrue: [ ^ 13 ].
 	code = 20 ifTrue: [ ^ finding second second = 87 ifTrue: [ 2 ] ifFalse: [ 7 ] ].
 	code <= 33 ifTrue: [ ^ 8 ].
 	code <= 35 ifTrue: [ ^ 9 ].

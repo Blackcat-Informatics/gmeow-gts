@@ -764,7 +764,7 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 								result at: 'status' put: status.
 								result at: 'reason' put: reason.
 								self printAuthentication: result kind: 'signature' ordinal: ordinal path: path ] ] ] ] ]
-		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ]
+		decodedWhen: [ :event | GtsV2CommitChecks needsDecoded: event ]
 		unprotectedTailsDo: [ :offset :length |
 			self stdout: '  ', (self unprotectedTailAt: offset length: length), String lf ].
 	repair findings do: [ :finding |
@@ -778,7 +778,7 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 { #category : #private }
 GtsCLI class >> commitChecksFor: event report: report [
 	event problem ifNotNil: [ :finding | report value: finding. ^ nil ].
-	(event opener registry ~= 1 or: [ event effectiveIdentifier isNil ]) ifTrue: [
+	(GtsV2CommitChecks supportsOpener: event) ifFalse: [
 		report value: 'unsupported registry version ', event opener registry printString.
 		^ nil ].
 	^ GtsV2CommitChecks openedBy: event effectiveIdentifier

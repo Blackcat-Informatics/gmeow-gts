@@ -3,13 +3,23 @@
 Class {
 	#name : #GtsV2CommitChecks,
 	#superclass : #Object,
-	#instVars : [ 'range', 'head', 'typeRuns', 'runType', 'runLength', 'packs', 'graphs', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'hasIndex', 'uncomparedDirectories', 'incompletePrefix', 'dictionaryInDoubt' ],
+	#instVars : [ 'range', 'head', 'typeRuns', 'runType', 'runLength', 'packs', 'graphs', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'tailOffset', 'hasIndex', 'uncomparedDirectories', 'incompletePrefix', 'dictionaryInDoubt' ],
 	#category : #'Gts-Core'
 }
 
 { #category : #'instance creation' }
 GtsV2CommitChecks class >> openedBy: identifier [
 	^ self new initializeOpener: identifier
+]
+
+{ #category : #testing }
+GtsV2CommitChecks class >> needsDecoded: event [
+	^ #(1 2 3 4 5 13 15) includes: event frameType
+]
+
+{ #category : #testing }
+GtsV2CommitChecks class >> supportsOpener: event [
+	^ event effectiveIdentifier notNil and: [ event opener registry = 1 ]
 ]
 
 { #category : #initialization }
@@ -60,6 +70,11 @@ GtsV2CommitChecks >> tailPosition [
 ]
 
 { #category : #accessing }
+GtsV2CommitChecks >> tailOffset [
+	^ tailOffset
+]
+
+{ #category : #accessing }
 GtsV2CommitChecks >> hasIndex [
 	^ hasIndex
 ]
@@ -71,6 +86,15 @@ GtsV2CommitChecks >> uncomparedDirectories [
 
 { #category : #validating }
 GtsV2CommitChecks >> observe: event findingsDo: aBlock [
+	^ self observe: event classifiedFindingsDo: [ :code :reason :at :count |
+		| message |
+		message := code asString.
+		reason ifNotNil: [ message := message, ' (', reason, ')' ].
+		aBlock value: message value: at value: count ]
+]
+
+{ #category : #validating }
+GtsV2CommitChecks >> observe: event classifiedFindingsDo: aBlock [
 	| identifier validCommit |
 	validCommit := false.
 	position := position + 1.
@@ -78,22 +102,21 @@ GtsV2CommitChecks >> observe: event findingsDo: aBlock [
 	(dictionaryInDoubt not and: [ identifier isNotNil and: [
 		event frameType isNotNil and: [ event frameType between: 1 and: 5 ] ] ]) ifTrue: [
 		graphs observe: event position: range leafCount - 1 report: [ :reason |
-			aBlock value: reason value: position value: nil ] ].
+			aBlock value: #malformed_value value: reason value: position value: nil ] ].
 	(incompletePrefix not and: [ identifier isNotNil and: [ event frameType = 13 ] ]) ifTrue: [
-		packs observe: event position: range leafCount - 1 report: [ :reason |
-			aBlock value: reason value: position value: nil ] ].
+		packs observe: event position: range leafCount - 1 report: [ :code :reason |
+			aBlock value: code value: reason value: position value: nil ] ].
 	event frameType = 15
 		ifTrue: [
 			hasIndex := true.
-			(incompletePrefix and: [ event problem isNil ]) ifTrue: [
-				#('index_head' 'index_root' 'index_directory') do: [ :reason |
-					aBlock value: 'index_claim_failed (', reason, ')' value: position value: nil ] ].
 			(event problem isNil and: [ (#(linked healed) includes: event link) and: [
 				event payload state = #verified and: [ event payload decoded isNotNil ] ] ]) ifTrue: [
 				self checkIndex: event findingsDo: aBlock ] ]
 		ifFalse: [
 			identifier ifNotNil: [
-				tailFrames = 0 ifTrue: [ tailPosition := position ].
+				tailFrames = 0 ifTrue: [
+					tailPosition := position.
+					tailOffset := event offset ].
 				tailFrames := tailFrames + 1 ] ].
 	(event frameType = 14 and: [ event problem isNil and: [ event frame content size <= (1 bitShift: 26) ] ]) ifTrue: [
 		validCommit := self check: event frame content link: event link findingsDo: aBlock ].
@@ -133,7 +156,7 @@ GtsV2CommitChecks >> checkIndex: event findingsDo: aBlock [
 			head: head range: range runs: self expectedTypeRuns packs: packs graphs: graphs ]
 		on: GtsV2FramingError do: [ :error | GtsV2EnvelopeError signal: 'wrong_length' ] ]
 		on: GtsV2EnvelopeError do: [ :error |
-			aBlock value: 'malformed_value (', error messageText, ')' value: position value: nil.
+			aBlock value: #malformed_value value: error messageText value: position value: nil.
 			^ self ].
 	graphs isComparable ifFalse: [
 		(uncomparedDirectories includes: 'graph directory') ifFalse: [ uncomparedDirectories add: 'graph directory' ] ].
@@ -141,8 +164,10 @@ GtsV2CommitChecks >> checkIndex: event findingsDo: aBlock [
 		(uncomparedDirectories includes: 'pack-member directory') ifFalse: [
 			uncomparedDirectories add: 'pack-member directory' ] ].
 	incompletePrefix ifTrue: [
-		reasons := reasons reject: [ :reason | #('index_head' 'index_root' 'index_directory') includes: reason ] ].
-	reasons do: [ :reason | aBlock value: 'index_claim_failed (', reason, ')' value: position value: nil ]
+		reasons := reasons asOrderedCollection.
+		#('index_head' 'index_root' 'index_directory') do: [ :reason |
+			(reasons includes: reason) ifFalse: [ reasons add: reason ] ] ].
+	reasons do: [ :reason | aBlock value: #index_claim_failed value: reason value: position value: nil ]
 ]
 
 { #category : #validating }
@@ -153,11 +178,12 @@ GtsV2CommitChecks >> check: content link: link findingsDo: aBlock [
 	countMatches := fields next uint = expected.
 	root := fields next.
 	rootMatches := incompletePrefix not and: [ (root bytesStartingAt: (root byteBodyOfSize: 32)) = range root ].
-	countMatches ifFalse: [ aBlock value: 'commit_count_mismatch' value: position value: expected ].
-	rootMatches ifFalse: [ aBlock value: 'commit_root_mismatch' value: position value: nil ].
+	countMatches ifFalse: [ aBlock value: #commit_count_mismatch value: nil value: position value: expected ].
+	rootMatches ifFalse: [ aBlock value: #commit_root_mismatch value: nil value: position value: nil ].
 	(countMatches and: [ rootMatches and: [ #(linked healed) includes: link ] ]) ifFalse: [ ^ false ].
 	committedFrames := range leafCount.
 	tailFrames := 0.
 	tailPosition := nil.
+	tailOffset := nil.
 	^ true
 ]
