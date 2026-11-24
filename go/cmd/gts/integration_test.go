@@ -234,6 +234,21 @@ func TestInfoReportsClosingClaimFailures(t *testing.T) {
 	}
 }
 
+func TestCLIReportsRecoveryAndChecksResumedSegment(t *testing.T) {
+	path := vector(t, "v2/P1/resync-after-undelimitable.whole.bin")
+	cmd, stdout, stderr := run(t, "info", path)
+	if cmd.ProcessState.ExitCode() != 1 || stderr.Len() != 0 ||
+		!strings.Contains(stdout.String(), "resync found by scan at byte 210") ||
+		!strings.Contains(stdout.String(), "byte 209: undelimitable_input") {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	cmd, stdout, stderr = run(t, "verify", path)
+	if cmd.ProcessState.ExitCode() != 1 || !strings.Contains(stderr.String(), "byte 209: undelimitable_input") ||
+		!strings.Contains(stdout.String(), "segment 1: ") {
+		t.Fatalf("verify exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+}
+
 func TestInfoRejectsEmptyFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "empty.gts")
 	if err := os.WriteFile(path, nil, 0o600); err != nil {

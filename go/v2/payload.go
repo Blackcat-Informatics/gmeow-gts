@@ -129,7 +129,11 @@ func (b *payloadBudget) admit(f *frameFields) (Reason, uint64) {
 		}
 	}
 
-	next := b.total + f.DecodedLength
+	return b.charge(f.DecodedLength)
+}
+
+func (b *payloadBudget) charge(length uint64) (Reason, uint64) {
+	next := b.total + length
 	if next < b.total {
 		next = math.MaxUint64
 		b.exhausted = true
