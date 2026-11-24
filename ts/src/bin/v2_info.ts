@@ -33,7 +33,7 @@ export function printFramingInfo(
     }
 
     console.log(
-        `${path}: GTS v2 framing ledger (frame fields and byte ranges)`,
+        `${path}: GTS v2 framing ledger (byte ranges and frame integrity)`,
     );
     let clean = true;
     let segment = 0;
@@ -45,14 +45,22 @@ export function printFramingInfo(
             return false;
         }
         const range = `bytes [${record.offset}, ${record.end})`;
-        let diagnostic = "";
-        if (record.reason !== undefined) {
-            clean = false;
-            diagnostic =
-                record.kind === "frame" && record.frameType === 16n
-                    ? `: parity_damaged (${record.reason})`
-                    : `: ${record.reason}`;
-        }
+        const { link, payload, storedMatches } = record;
+        const broken = link !== undefined && link.state !== "linked";
+        const payloadUnverified =
+            payload !== undefined && payload.state !== "verified";
+        const damaged =
+            record.reason !== undefined ||
+            broken ||
+            storedMatches === false ||
+            payloadUnverified;
+        if (damaged) clean = false;
+        const diagnostic =
+            record.reason === undefined
+                ? ""
+                : record.frameType === 16n
+                  ? `: parity_damaged (${record.reason})`
+                  : `: ${record.reason}`;
         if (record.kind === "header" || record.kind === "resync") {
             const registry =
                 record.registry === undefined
@@ -72,6 +80,21 @@ export function printFramingInfo(
         const frameType =
             record.frameType === undefined ? "" : ` type ${record.frameType}`;
         console.log(`    ${record.kind}${frameType} ${range}${diagnostic}`);
+        if (link !== undefined && payload !== undefined) {
+            const stored =
+                storedMatches === undefined
+                    ? ""
+                    : storedMatches
+                      ? ", stored check matches"
+                      : ", stored check mismatch";
+            const reason =
+                payload.state === "verified" || payload.reason === undefined
+                    ? ""
+                    : ` (${payload.reason}${payload.count === undefined ? "" : `, ${payload.count} bytes`})`;
+            console.log(
+                `      link ${link.state}${stored}, payload ${payload.state}${reason}`,
+            );
+        }
     }
     return clean;
 }

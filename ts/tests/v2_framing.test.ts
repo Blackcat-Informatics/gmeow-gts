@@ -89,3 +89,44 @@ test("an unreadable opener leaves its frames unchecked until the next opener", (
         ],
     );
 });
+
+test("only the adjacent frame can witness healing, including a transparent frame", () => {
+    const cases = [
+        ["link-healed-before-transparent", ["healed", "linked"]],
+        ["link-heal-opaque-between", ["linked", "broken", "broken", "linked"]],
+    ] as const;
+    for (const [name, expected] of cases) {
+        const input = readFileSync(
+            new URL(`../../../vectors/v2/P1/${name}.bin`, import.meta.url),
+        );
+        const result = inspectFraming(input);
+        assert.equal(result.kind, "v2");
+        assert.deepEqual(
+            [...result.records].flatMap((record) =>
+                record.kind === "frame" ? [record.link?.state] : [],
+            ),
+            expected,
+        );
+    }
+});
+
+test("an empty indefinite stored byte string still gets its stored check", () => {
+    const input = readFileSync(
+        new URL("../../../vectors/v2/P1/zstd-ok.bin", import.meta.url),
+    );
+    // Replace only the definite byte string holding the 275 codec bytes.
+    assert.deepEqual(input.subarray(0x6e, 0x71), Buffer.of(0x59, 0x01, 0x13));
+    const changed = Buffer.concat([
+        input.subarray(0, 0x6e),
+        Buffer.of(0x5f, 0xff),
+        input.subarray(0x71 + 275),
+    ]);
+    const result = inspectFraming(changed);
+    assert.equal(result.kind, "v2");
+    const frame = [...result.records].at(-1);
+    assert.equal(frame?.kind, "frame");
+    assert.equal(frame.reason, "not_deterministic");
+    assert.equal(frame.link?.state, "linked");
+    assert.equal(frame.storedMatches, false);
+    assert.deepEqual(frame.payload, { state: "damaged" });
+});
