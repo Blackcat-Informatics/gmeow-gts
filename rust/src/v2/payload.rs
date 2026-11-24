@@ -146,12 +146,14 @@ impl PayloadBudget {
             }
         }
         let next = self.total.checked_add(fields.decoded_length);
-        if self.refused || next.is_none_or(|value| value > self.capacity.decoded_bytes_per_read) {
-            self.refused = true;
-            return Err(PayloadRefusal::TotalDecoded(next.unwrap_or(u64::MAX)));
+        if let Some(admitted) =
+            next.filter(|&value| !self.refused && value <= self.capacity.decoded_bytes_per_read)
+        {
+            self.total = admitted;
+            return Ok(());
         }
-        self.total = next.expect("admitted sum");
-        Ok(())
+        self.refused = true;
+        Err(PayloadRefusal::TotalDecoded(next.unwrap_or(u64::MAX)))
     }
 
     pub(super) fn check<'a>(

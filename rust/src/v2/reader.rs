@@ -273,16 +273,12 @@ fn opener(data: &[u8], item: WireItem) -> WireSegment<'_> {
     }
 }
 
-fn field_offsets(data: &[u8], offset: usize) -> [usize; 11] {
-    let mut cursor = offset + 2;
-    std::array::from_fn(|index| {
-        let start = cursor;
-        // The eleven-element envelope was delimited before field inspection.
-        if index < 10 {
-            cursor = item_end(data, start).expect("delimited frame field");
-        }
-        start
-    })
+fn field_offsets(data: &[u8], offset: usize) -> Result<[usize; 11], FramingReason> {
+    let mut offsets = [offset + 2; 11];
+    for index in 1..offsets.len() {
+        offsets[index] = item_end(data, offsets[index - 1])?;
+    }
+    Ok(offsets)
 }
 
 fn stored_identifier(data: &[u8], offset: usize) -> Option<[u8; 32]> {
@@ -333,7 +329,7 @@ fn read_frame<'a>(
     predecessor: &[u8; 32],
     can_peek: bool,
     budget: &mut PayloadBudget,
-) -> WireFrame<'a> {
+) -> Result<WireFrame<'a>, FramingReason> {
     let (registry, _) = segment.opener.state();
     let envelope = decode_frame(data, item.offset, registry);
     let mut offsets = None;
@@ -347,7 +343,7 @@ fn read_frame<'a>(
             },
         )
     } else {
-        let offsets = offsets.insert(field_offsets(data, item.offset));
+        let offsets = offsets.insert(field_offsets(data, item.offset)?);
         let frame_type = Decoder::new(data, offsets[0]).uint().ok();
         (frame_type, LinkFields::inspect(data, offsets))
     };
@@ -360,7 +356,7 @@ fn read_frame<'a>(
         let next = &data[item.end..];
         if next.starts_with(&[0x8b, 0x02])
             && item_end(data, item.end).is_ok()
-            && LinkFields::inspect(data, &field_offsets(data, item.end)).matches(&identifier)
+            && LinkFields::inspect(data, &field_offsets(data, item.end)?).matches(&identifier)
         {
             LinkState::Healed
         } else {
@@ -379,7 +375,7 @@ fn read_frame<'a>(
     let payload = match &envelope {
         Ok(frame) => budget.check(frame.into(), frame.check_storage()),
         Err(_) => {
-            let offsets = offsets.expect("malformed frame fields");
+            let offsets = offsets.ok_or(FramingReason::UndelimitableInput)?;
             let (stored_matches, input) =
                 malformed_payload(data, &offsets, registry > REGISTRY_VERSION);
             match input {
@@ -391,7 +387,7 @@ fn read_frame<'a>(
             }
         }
     };
-    WireFrame {
+    Ok(WireFrame {
         position: segment.items.len(),
         frame_type,
         transparent: fields.transparent,
@@ -402,7 +398,7 @@ fn read_frame<'a>(
             effective_identifier,
         },
         payload,
-    }
+    })
 }
 
 /// Read the item boundaries, openers and frame observations of a byte input.
@@ -465,14 +461,24 @@ pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
         } else if let Some(segment) = result.segments.last_mut() {
             if let Some(predecessor) = segment.head {
                 if kind == ItemKind::Frame {
-                    let frame = read_frame(
+                    let frame = match read_frame(
                         data,
                         item,
                         segment,
                         &predecessor,
                         count < capacity.items_per_read,
                         &mut budget,
-                    );
+                    ) {
+                        Ok(frame) => frame,
+                        Err(reason) => {
+                            result.stop = Some(ReadStop::Framing(FramingFailure {
+                                reason,
+                                offset: item.offset,
+                                length: data.len() - item.offset,
+                            }));
+                            break;
+                        }
+                    };
                     if let Some(identifier) = frame.link.effective_identifier {
                         segment.head = Some(identifier);
                     }
