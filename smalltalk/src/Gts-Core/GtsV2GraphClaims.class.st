@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2GraphClaims,
 	#superclass : #Object,
-	#instVars : [ 'graphs', 'lastRanges', 'lastGraphs', 'rangeCount', 'comparable', 'identity' ],
+	#instVars : [ 'graphs', 'lastRanges', 'lastGraphs', 'rangeCount', 'comparable', 'identity', 'lastCanonicalRows' ],
 	#category : #'Gts-Core'
 }
 
@@ -13,6 +13,7 @@ GtsV2GraphClaims >> initialize [
 	graphs := Dictionary new.
 	lastRanges := Array new: 5.
 	lastGraphs := Array new: 5.
+	lastCanonicalRows := Array new: 4.
 	rangeCount := 0.
 	comparable := true.
 	identity := GtsV2TermIdentity new
@@ -20,9 +21,12 @@ GtsV2GraphClaims >> initialize [
 
 { #category : #recording }
 GtsV2GraphClaims >> observe: event position: position report: report [
-	| type bytes columns |
+	| type bytes columns previous |
 	type := event frameType.
 	type = 1 ifTrue: [ ^ identity observe: event ].
+	type <= 4 ifTrue: [
+		previous := lastCanonicalRows at: type.
+		lastCanonicalRows at: type put: nil ].
 	bytes := event payload decoded.
 	(event problem isNotNil or: [ (#(linked healed) includes: event link) not or: [ bytes isNil ] ])
 		ifTrue: [ ^ self markUncompared ].
@@ -32,13 +36,48 @@ GtsV2GraphClaims >> observe: event position: position report: report [
 		on: GtsV2FramingError do: [ :error | GtsV2EnvelopeError signal: 'wrong_length' ] ]
 		on: GtsV2EnvelopeError do: [ :error |
 			self markUncompared.
-			report value: error messageText.
+			report value: #malformed_value value: error messageText.
 			^ self ].
+	(type <= 4 and: [ event frame content list next uint = 1 ]) ifTrue: [
+		self checkCanonical: columns type: type after: previous report: report ].
 	(type = 4 and: [ columns first size > 1 and: [ identity isComplete not ] ])
 		ifTrue: [ ^ self markUncompared ].
 	graphs ifNotNil: [
 		columns first withIndexDo: [ :graph :row |
 			self add: (graph ifNil: [ -1 ]) type: type position: position row: row - 1 ] ]
+]
+
+{ #category : #validation }
+GtsV2GraphClaims >> checkCanonical: columns type: type after: prior report: report [
+	| keyOrder previous violated |
+	keyOrder := #((1 3 4 2) (1 2 4) (1 2 3 4)) at: type - 1.
+	previous := prior.
+	violated := false.
+	1 to: columns first size do: [ :index |
+		| row |
+		row := keyOrder collect: [ :column |
+			((columns at: column) at: index) ifNil: [ -1 ] ].
+		(previous isNotNil and: [ (self row: previous strictlyPrecedes: row) not ])
+			ifTrue: [ violated := true ].
+		previous := row ].
+	lastCanonicalRows at: type put: previous.
+	violated ifTrue: [ report value: #declared_order_violated value: nil ]
+]
+
+{ #category : #private }
+GtsV2GraphClaims >> row: previous strictlyPrecedes: row [
+	1 to: row size do: [ :index |
+		| left right |
+		left := previous at: index.
+		right := row at: index.
+		left = right ifFalse: [ ^ left < right ] ].
+	^ false
+]
+
+{ #category : #recording }
+GtsV2GraphClaims >> observeDamagedRegion [
+	identity abandon.
+	self markUncompared
 ]
 
 { #category : #private }

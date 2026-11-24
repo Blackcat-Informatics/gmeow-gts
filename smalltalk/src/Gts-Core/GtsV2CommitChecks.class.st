@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2CommitChecks,
 	#superclass : #Object,
-	#instVars : [ 'range', 'head', 'typeRuns', 'runType', 'runLength', 'packs', 'graphs', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'tailOffset', 'hasIndex', 'uncomparedDirectories', 'checkIndexes', 'dictionaryInDoubt' ],
+	#instVars : [ 'range', 'head', 'typeRuns', 'runType', 'runLength', 'packs', 'graphs', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'tailOffset', 'hasIndex', 'uncomparedDirectories', 'checkIndexes' ],
 	#category : #'Gts-Core'
 }
 
@@ -42,15 +42,13 @@ GtsV2CommitChecks >> initializeOpener: identifier checkingIndexes: indexes [
 	tailFrames := 0.
 	hasIndex := false.
 	checkIndexes := indexes.
-	dictionaryInDoubt := false.
 	^ self
 ]
 
 { #category : #validating }
 GtsV2CommitChecks >> observeDamagedRegion [
 	position := position + 1.
-	dictionaryInDoubt := true.
-	graphs markUncompared
+	graphs observeDamagedRegion
 ]
 
 { #category : #accessing }
@@ -98,10 +96,9 @@ GtsV2CommitChecks >> observe: event classifiedFindingsDo: aBlock [
 	validCommit := false.
 	position := position + 1.
 	identifier := event effectiveIdentifier.
-	(checkIndexes and: [ dictionaryInDoubt not and: [ identifier isNotNil and: [
-		event frameType isNotNil and: [ event frameType between: 1 and: 5 ] ] ] ]) ifTrue: [
-		graphs observe: event position: range leafCount - 1 report: [ :reason |
-			aBlock value: #malformed_value value: reason value: position value: nil ] ].
+	(checkIndexes and: [ event frameType isNotNil and: [ event frameType between: 1 and: 5 ] ]) ifTrue: [
+		graphs observe: event position: range leafCount - 1 report: [ :code :reason |
+			aBlock value: code value: reason value: position value: nil ] ].
 	(checkIndexes and: [ identifier isNotNil and: [ event frameType = 13 ] ]) ifTrue: [
 		packs observe: event position: range leafCount - 1 report: [ :code :reason |
 			aBlock value: code value: reason value: position value: nil ] ].
