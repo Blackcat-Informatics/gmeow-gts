@@ -233,11 +233,54 @@ GtsCLI class >> runInfo: args [
 	args isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
 	problems := false.
 	args do: [ :path |
-		| graph |
-		graph := GtsReader read: (self readFile: path).
-		self printLedgerFor: path graph: graph.
-		graph diagnostics isEmpty ifFalse: [ problems := true ] ].
+		| data wire clean |
+		data := self readFile: path.
+		wire := GtsV2Wire inspect: data.
+		clean := wire format = #legacy
+			ifTrue: [
+				| graph |
+				graph := GtsReader read: data.
+				self printLedgerFor: path graph: graph.
+				graph diagnostics isEmpty ]
+			ifFalse: [ self printWireInfoFor: path wire: wire ].
+		clean ifFalse: [ problems := true ] ].
 	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
+]
+
+{ #category : #printing }
+GtsCLI class >> printWireInfoFor: path wire: wire [
+	| format ordinal clean |
+	format := wire format.
+	format = #empty ifTrue: [
+		self stdout: path, ': empty input, 0 segments', String lf.
+		^ false ].
+	format = #framingError ifTrue: [
+		self stdout: path, ': framing stopped at byte 0: ', wire stopReason, String lf.
+		^ false ].
+	format = #unsupported ifTrue: [
+		self stderr: 'gts info: ', path, ': unsupported GTS generation ', wire generation printString, String lf.
+		^ false ].
+	format = #unknown ifTrue: [
+		self stderr: 'gts info: ', path, ': input does not identify a GTS generation', String lf.
+		^ false ].
+	self stdout: path, ': GTS v2 framing ledger (item boundaries)', String lf.
+	ordinal := 0.
+	clean := true.
+	wire eventsDo: [ :event |
+		event problem ifNotNil: [ clean := false ].
+		event kind = #stop
+			ifTrue: [
+				self stdout: '  framing stopped at byte ', event offset printString, ': ', event problem, String lf ]
+			ifFalse: [
+				| prefix diagnostic |
+				prefix := '    '.
+				event startsSegment ifTrue: [
+					prefix := '  segment ', ordinal printString, ': '.
+					ordinal := ordinal + 1 ].
+				diagnostic := event problem ifNil: [ '' ] ifNotNil: [ ': ', event problem ].
+				self stdout: prefix, event kind asString, ' bytes [', event offset printString, ', ',
+					event end printString, ')', diagnostic, String lf ] ].
+	^ clean
 ]
 
 { #category : #private }
