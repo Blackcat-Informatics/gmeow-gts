@@ -201,6 +201,7 @@ private fun cmdInfo(paths: List<String>): Int {
 private fun cmdFold(paths: List<String>): Int {
     if (paths.size != 1) return dieUsage()
     val data = load(paths[0]) ?: return 2
+    foldV2(paths[0], data)?.let { return if (it) 0 else 1 }
     val graph = read(data, true)
     graph.diagnostics.forEach { System.err.println("gts: diagnostic ${it.code}: ${it.detail}") }
     print(toNQuads(graph))
