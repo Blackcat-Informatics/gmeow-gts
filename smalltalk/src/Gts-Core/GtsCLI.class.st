@@ -376,8 +376,6 @@ GtsCLI class >> parseVerifyKey: spec [
 	colon := spec findString: ':' startingAt: 1.
 	colon <= 1 ifTrue: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
 	keyBytes := GtsHex decode: (spec copyFrom: colon + 1 to: spec size).
-	keyBytes size = GtsSodium ed25519PublicKeyBytes
-		ifFalse: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
 	^ (spec copyFrom: 1 to: colon - 1) -> keyBytes
 ]
 
@@ -553,14 +551,14 @@ GtsCLI class >> runUnpack: args [
 GtsCLI class >> runVerify: args [
 	| keys paths problems |
 	args isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
-	keys := Dictionary new.
+	keys := OrderedCollection new.
 	paths := OrderedCollection new.
 	1 to: args size do: [ :index |
 		(args at: index) = '--key'
 			ifTrue: [
 				| association |
 				association := self parseVerifyKey: (args at: index + 1 ifAbsent: [ ^ 2 ]).
-				keys at: association key put: association value ]
+				keys add: association ]
 			ifFalse: [
 				(index = 1 or: [ (args at: index - 1) ~= '--key' ])
 					ifTrue: [ paths add: (args at: index) ] ] ].
@@ -572,14 +570,19 @@ GtsCLI class >> runVerify: args [
 		wire := GtsV2Wire inspect: bytes.
 		clean := wire format = #legacy
 			ifTrue: [ self verifyLegacy: bytes path: path keys: keys ]
-			ifFalse: [ self verifyWire: wire path: path hasKeys: keys isNotEmpty ].
+			ifFalse: [ self verifyWire: wire path: path keys: keys ].
 		clean ifFalse: [ problems := true ] ].
 	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
 ]
 
 { #category : #private }
-GtsCLI class >> verifyLegacy: bytes path: path keys: keys [
-	| graph clean |
+GtsCLI class >> verifyLegacy: bytes path: path keys: entries [
+	| graph clean keys |
+	keys := Dictionary new.
+	entries do: [ :entry |
+		entry value size = GtsSodium ed25519PublicKeyBytes ifFalse: [
+			GtsArchiveError signal: 'archived GTS --key needs a 32-byte Ed25519 public key' ].
+		keys at: entry key put: entry value ].
 	graph := GtsReader read: bytes.
 	self printLedgerFor: path graph: graph.
 	clean := graph diagnostics isEmpty.
@@ -598,8 +601,8 @@ GtsCLI class >> verifyLegacy: bytes path: path keys: keys [
 ]
 
 { #category : #private }
-GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
-	| format report clean ordinal checks |
+GtsCLI class >> verifyWire: wire path: path keys: keys [
+	| format report clean ordinal checks verifier header |
 	format := wire format.
 	clean := true.
 	report := [ :message |
@@ -613,7 +616,7 @@ GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
 		report value: 'unsupported GTS generation ', wire generation printString.
 		^ false ].
 	format = #unknown ifTrue: [ report value: 'input does not identify a GTS generation'. ^ false ].
-	hasKeys ifTrue: [ report value: '--key is unsupported for GTS v2'. ^ false ].
+	verifier := GtsV2SignatureChecks held: keys.
 	self stdout: path, ': GTS v2 frame, closing record, commit and index prefix integrity', String lf.
 	ordinal := -1.
 	wire eventsDo: [ :event |
@@ -626,10 +629,19 @@ GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
 					ifTrue: [
 						checks ifNotNil: [ self printCommitSummary: checks ordinal: ordinal ].
 						ordinal := ordinal + 1.
+						header := event effectiveIdentifier.
 						checks := self commitChecksFor: event report: [ :finding |
 							report value: location, ': ', finding ] ]
 					ifFalse: [
 						checks ifNotNil: [
+							verifier event: event header: header resultsDo: [ :algorithm :kid :status :reason |
+								| detail |
+								detail := 'signature ', (GtsHex encode: kid), ' algorithm ', algorithm printString,
+									' at ', location, ': ', status.
+								reason ifNotNil: [ detail := detail, ' (', reason, ')' ].
+								status = 'invalid'
+									ifTrue: [ report value: detail ]
+									ifFalse: [ self stdout: '  ', detail, String lf ] ].
 							self reportIntegrityFor: event report: [ :finding |
 								report value: location, ': ', finding ].
 							checks observe: event findingsDo: [ :finding :position :expected |

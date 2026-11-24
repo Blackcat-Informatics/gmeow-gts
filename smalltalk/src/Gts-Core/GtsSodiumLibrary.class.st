@@ -69,6 +69,11 @@ GtsSodiumLibrary >> initializeSodium [
 	^ self ffiCall: #(#int #gts_sodium_init #())
 ]
 
+{ #category : #ffi }
+GtsSodiumLibrary >> sha512: message length: messageLength output: digest [
+	^ self ffiCall: #(#int #gts_sha512 #(#const #void #* #message #, #size_t #messageLength #, #void #* #digest))
+]
+
 { #category : #'accessing platform' }
 GtsSodiumLibrary >> macLibraryName [
 	^ 'libgts_sodium.dylib'
