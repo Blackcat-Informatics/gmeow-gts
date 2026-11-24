@@ -66,6 +66,51 @@ test("CLI fold emits N-Quads for a clean vector", () => {
     assert.match(r.stdout, /<https:\/\/example.org\/Cat>/);
 });
 
+test("CLI fold projects v2 triples, scoped blanks, and RDF row aliases", () => {
+    const p3 = join(vectorsDir, "v2", "P3");
+    const nested = run(["fold", join(p3, "project__triple-term-nested.bin")]);
+    assert.equal(nested.code, 0, nested.stderr);
+    assert.equal(
+        nested.stdout,
+        "<http://e/o> <http://e/p> <<( <http://e/s> <http://e/p> <<( <http://e/a> <http://e/b> <http://e/c> )>> )>> .\n",
+    );
+    const blank = run(["fold", join(p3, "fold-blank-scope.bin")]);
+    assert.equal(blank.code, 0, blank.stderr);
+    assert.equal(
+        blank.stdout,
+        "_:b2 <http://e/p> <http://e/o> .\n_:b3 <http://e/p> <http://e/o> .\n",
+    );
+    const aliases = run([
+        "fold",
+        join(p3, "project__annotation-equals-quad.bin"),
+    ]);
+    assert.equal(aliases.code, 0, aliases.stderr);
+    assert.equal(
+        aliases.stdout,
+        "<http://e/r> <http://e/q> <http://e/v> <http://e/g> .\n",
+    );
+});
+
+test("CLI fold refuses malformed v2 projection input without output", () => {
+    const p3 = join(vectorsDir, "v2", "P3");
+    for (const [name, reason] of [
+        [
+            "annotations-triple-components-written-alike.components-written-alike",
+            "unordered_or_repeated",
+        ],
+        [
+            "terms-front-term-zero-prefix.prefix-5-at-term-0",
+            "forbidden_combination",
+        ],
+        ["project__not-rdf-texts", "invalid RDF IRI"],
+    ]) {
+        const result = run(["fold", join(p3, `${name}.bin`)]);
+        assert.equal(result.code, 1, name);
+        assert.equal(result.stdout, "", name);
+        assert.ok(result.stderr.includes(reason), result.stderr);
+    }
+});
+
 test("CLI from-nq writes a committed v2 segment and collapses duplicate RDF rows", () => {
     const text = [
         'VERSION "1.2"',

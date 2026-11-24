@@ -44,7 +44,7 @@ const resyncMarker = Uint8Array.of(
     0x92,
 );
 
-class FramingError extends Error {
+export class FramingError extends Error {
     constructor(readonly reason: FramingReason) {
         super(reason);
     }
@@ -58,7 +58,7 @@ interface Head {
     shortest: boolean;
 }
 
-function head(data: Uint8Array, offset: number): Head {
+export function head(data: Uint8Array, offset: number): Head {
     if (offset >= data.length) throw new FramingError("torn_tail");
     const first = data[offset];
     const major = first >> 5;
@@ -221,6 +221,7 @@ interface RecordEnvelope {
     link?: FrameLink;
     storedMatches?: boolean;
     payload?: PayloadCheck;
+    content?: Uint8Array;
 }
 
 interface WireRecord extends RecordEnvelope {
@@ -766,7 +767,7 @@ function checkFrame(
             storedPayload: payloadBytes.value,
             payloadChunks:
                 payload[0] >> 5 === 2 ? () => byteChunks(payload) : undefined,
-            contentSize: content.length,
+            content,
             signaturesSize: signatures.length,
         },
     };
@@ -810,6 +811,7 @@ type InspectionEvent = (RecordEnvelope & ByteRange) | FramingStop;
 
 export function inspectFraming(
     data: Uint8Array,
+    includeDecoded = false,
 ): OtherDispatch | { kind: "v2"; records: Iterable<InspectionEvent> } {
     if (data.length === 0) return { kind: "empty" };
     let end: number;
@@ -821,7 +823,7 @@ export function inspectFraming(
     }
     const format = dispatch(data.subarray(0, end));
     return format.kind === "v2"
-        ? { kind: "v2", records: records(data, end) }
+        ? { kind: "v2", records: records(data, end, includeDecoded) }
         : format;
 }
 
@@ -856,6 +858,7 @@ function* delimitedRecords(
 function* records(
     data: Uint8Array,
     end: number,
+    includeDecoded: boolean,
 ): IterableIterator<InspectionEvent> {
     const delimited = delimitedRecords(data, end);
     const budget = new PayloadBudget();
@@ -878,7 +881,8 @@ function* records(
             record.link = checkLink(frame, predecessor, witness);
             predecessor = record.link.effective ?? predecessor;
             record.storedMatches = checkStored(frame);
-            record.payload = budget.check(frame);
+            record.payload = budget.check(frame, includeDecoded);
+            if (includeDecoded) record.content = frame.content;
             if (
                 record.payload.state === "damaged" &&
                 record.payload.reason === "codec_constraint"

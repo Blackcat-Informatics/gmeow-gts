@@ -5,7 +5,7 @@ import { Graph, TermKind } from "./model.js";
 
 const RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
-function escape(lex: string): string {
+export function escapeLiteral(lex: string): string {
     let out = "";
     for (const ch of lex) {
         switch (ch) {
@@ -55,7 +55,7 @@ function render(g: Graph, tid: number, open: readonly number[] = []): string {
             if (t.value !== "") return `_:${t.value}`;
             return `_:b${tid}`;
         case TermKind.Literal: {
-            let lit = `"${escape(t.value)}"`;
+            let lit = `"${escapeLiteral(t.value)}"`;
             if (t.lang) {
                 lit += `@${t.lang}`;
                 if (t.direction === "ltr" || t.direction === "rtl") {
