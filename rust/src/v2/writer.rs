@@ -3,6 +3,9 @@
 
 //! Write header-led segments with plain frames and P5 commits.
 
+mod index;
+pub use index::{IndexFold, IndexWriteError};
+
 use std::{error::Error, fmt};
 
 use ciborium::value::Value;
