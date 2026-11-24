@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2TermChecks,
 	#superclass : #Object,
-	#instVars : [ 'runs', 'nextId' ],
+	#instVars : [ 'runs', 'nextId', 'availability' ],
 	#category : #'Gts-Core'
 }
 
@@ -11,6 +11,7 @@ Class {
 GtsV2TermChecks >> initialize [
 	super initialize.
 	runs := OrderedCollection new.
+	availability := OrderedCollection new.
 	nextId := 0
 ]
 
@@ -31,56 +32,110 @@ GtsV2TermChecks >> reserve: content [
 
 { #category : #validation }
 GtsV2TermChecks >> findingsOf: payload from: base [
-	| findings datatypeIndex start |
+	| findings invalidText id |
 	findings := Set new.
+	invalidText := Set new.
 	payload validateChargingText: [ :length | ] textDo: [ :block :relativeBase :index :octets |
-		| datatype reason |
-		index = 1 ifTrue: [ datatypeIndex := 0 ].
-		datatype := nil.
-		(block first = 2 and: [ (block second fourth at: index) = 1 ]) ifTrue: [
-			datatypeIndex := datatypeIndex + 1.
-			datatype := (block second at: 5) at: datatypeIndex ].
-		reason := self checkText: octets datatype: datatype at: base + relativeBase + index - 1.
-		reason ifNotNil: [ findings add: reason ] ].
-	start := base.
+		(GtsCborText isValidUtf8: octets from: 1 to: octets size + 1)
+			ifFalse: [ invalidText add: base + relativeBase + index - 1 ] ].
+	id := base.
 	payload blocks do: [ :block |
-		block first = 4 ifTrue: [ self checkTriples: block second from: start findings: findings ].
-		start := start + block second first size ].
+		| kind columns datatypeOffset |
+		kind := block first.
+		columns := block second.
+		datatypeOffset := 0.
+		1 to: columns first size do: [ :index |
+			| reason sources status |
+			reason := (invalidText includes: id) ifTrue: [ 24 ].
+			sources := #().
+			(kind = 2 and: [ (columns fourth at: index) = 1 ]) ifTrue: [
+				datatypeOffset := datatypeOffset + 1.
+				sources := { (columns at: 5) at: datatypeOffset }.
+				reason ifNil: [ reason := self problemInDatatype: sources first at: id ] ].
+			kind = 4 ifTrue: [
+				sources := columns collect: [ :column | column at: index ].
+				reason := self problemInTriple: sources at: id ].
+			reason ifNotNil: [ findings add: reason ].
+			status := reason
+				ifNil: [ self availabilityOf: sources pending: (#(5 7) includes: kind) ]
+				ifNotNil: [ #unreadable ].
+			id := id + 1.
+			self appendAvailability: status through: id ] ].
 	^ findings
 ]
 
 { #category : #private }
-GtsV2TermChecks >> checkText: octets datatype: datatype at: id [
-	(GtsCborText isValidUtf8: octets from: 1 to: octets size + 1) ifFalse: [ ^ 24 ].
-	datatype ifNil: [ ^ nil ].
+GtsV2TermChecks >> problemInDatatype: datatype at: id [
 	datatype >= id ifTrue: [ ^ 22 ].
 	^ (self id: datatype hasAnyKindOf: #(1)) ifFalse: [ 23 ]
 ]
 
 { #category : #private }
-GtsV2TermChecks >> checkTriples: columns from: base findings: findings [
-	columns first withIndexDo: [ :subject :index |
-		| id predicate object |
-		id := base + index - 1.
-		predicate := columns second at: index.
-		object := columns third at: index.
-		(subject >= id or: [ predicate >= id or: [ object >= id ] ])
-			ifTrue: [ findings add: 22 ]
-			ifFalse: [
-				((self id: subject hasAnyKindOf: #(1 3)) and: [
-					self id: predicate hasAnyKindOf: #(1) ]) ifFalse: [ findings add: 23 ] ] ]
+GtsV2TermChecks >> problemInTriple: sources at: id [
+	(sources anySatisfy: [ :source | source >= id ]) ifTrue: [ ^ 22 ].
+	^ ((self id: sources first hasAnyKindOf: #(1 3)) and: [
+		self id: sources second hasAnyKindOf: #(1) ]) ifFalse: [ 23 ]
 ]
 
 { #category : #private }
 GtsV2TermChecks >> id: id hasAnyKindOf: allowed [
-	| first last middle kind |
+	| kind |
+	kind := self entryFor: id in: runs.
+	^ kind > 7 or: [ allowed includes: kind ]
+]
+
+{ #category : #private }
+GtsV2TermChecks >> entryFor: id in: intervals [
+	| first last middle |
 	first := 1.
-	last := runs size.
+	last := intervals size.
 	[ first < last ] whileTrue: [
 		middle := (first + last) // 2.
-		id < (runs at: middle) first
+		id < (intervals at: middle) first
 			ifTrue: [ last := middle ]
 			ifFalse: [ first := middle + 1 ] ].
-	kind := (runs at: first) second.
-	^ kind > 7 or: [ allowed includes: kind ]
+	^ (intervals at: first) second
+]
+
+{ #category : #observing }
+GtsV2TermChecks >> markReservedUnreadable [
+	(availability isEmpty and: [ nextId = 0 ]) ifTrue: [ ^ self ].
+	(availability isNotEmpty and: [ availability last first = nextId ]) ifTrue: [ ^ self ].
+	self appendAvailability: #unreadable through: nextId
+]
+
+{ #category : #private }
+GtsV2TermChecks >> appendAvailability: state through: end [
+	(availability isNotEmpty and: [ availability last second = state ])
+		ifTrue: [ availability last at: 1 put: end ]
+		ifFalse: [ availability add: { end. state } ]
+]
+
+{ #category : #private }
+GtsV2TermChecks >> availabilityOf: sources pending: pending [
+	| uncertain |
+	uncertain := pending.
+	sources do: [ :source |
+		| state |
+		state := self entryFor: source in: availability.
+		state = #unreadable ifTrue: [ ^ #unreadable ].
+		state = #pending ifTrue: [ uncertain := true ] ].
+	^ uncertain ifTrue: [ #pending ] ifFalse: [ #readable ]
+]
+
+{ #category : #validation }
+GtsV2TermChecks >> row: ids kinds: kinds hiddenBefore: hiddenBefore inDoubt: inDoubt [
+	| state present |
+	present := ids reject: [ :id | id isNil ].
+	(present anySatisfy: [ :id | id >= nextId ]) ifTrue: [ ^ 22 ].
+	(inDoubt or: [ present anySatisfy: [ :id | id < hiddenBefore ] ]) ifTrue: [ ^ 25 ].
+	state := self availabilityOf: present pending: false.
+	state = #unreadable ifTrue: [ ^ 25 ].
+	state = #pending ifTrue: [ ^ nil ].
+	ids withIndexDo: [ :id :index |
+		| allowed |
+		allowed := kinds at: index.
+		(id notNil and: [ allowed isNotEmpty and: [ (self id: id hasAnyKindOf: allowed) not ] ])
+			ifTrue: [ ^ 23 ] ].
+	^ nil
 ]

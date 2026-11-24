@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut', 'frameFoldStates', 'foldStopped', 'termChecks', 'termBudget' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut', 'frameFoldStates', 'foldStopped', 'termChecks', 'termBudget', 'dictionaryInDoubt', 'hiddenTermsBefore', 'rowsAwaitingCommit' ],
 	#category : #'Gts-Core'
 }
 
@@ -169,6 +169,9 @@ GtsV2WireFindings >> observe: event [
 		fileEnd := 4.
 		foldStopped := false.
 		termChecks := GtsV2TermChecks new.
+		dictionaryInDoubt := false.
+		hiddenTermsBefore := 0.
+		rowsAwaitingCommit := OrderedCollection new.
 		position := 0.
 		segment := OrderedCollection new.
 		segmentFindings add: segment.
@@ -190,6 +193,7 @@ GtsV2WireFindings >> observe: event [
 			segmentCut := event offset.
 			^ self ] ].
 	segment ifNil: [ ^ self ].
+	(#(opaque framingGap) includes: event kind) ifTrue: [ dictionaryInDoubt := true ].
 	position := position + 1.
 	self remember: event.
 	event frame
@@ -197,8 +201,13 @@ GtsV2WireFindings >> observe: event [
 			(#(opaque unchecked) includes: event kind) ifTrue: [ leftOut := leftOut + 1 ].
 			self recordNonFrame: event ]
 		ifNotNil: [ self recordFrame: event ].
-	event frameType = 1 ifTrue: [ self recordTermsOf: event ].
+	(event frame notNil and: [ event link = #broken and: [ event frame isTransparent not ] ])
+		ifTrue: [ hiddenTermsBefore := termChecks nextId ].
+	event frameType = 1 ifTrue: [
+		self recordTermsOf: event.
+		termChecks markReservedUnreadable ].
 	validCommit := claimChecks ifNil: [ false ] ifNotNil: [ self checkClaimsOf: event ].
+	validCommit ifTrue: [ self finishRowFindingsCommitted: true ].
 	event frame ifNotNil: [ self recordWireFoldStateOf: event ].
 	self observeEndAt: event validCommit: validCommit.
 	authentication ifNotNil: [ self checkSignaturesOf: event validCommit: validCommit ]
@@ -213,6 +222,7 @@ GtsV2WireFindings >> finishSegment [
 GtsV2WireFindings >> finishSegmentAt: boundary [
 	| segmentEnd |
 	segment ifNil: [ ^ self ].
+	self finishRowFindingsCommitted: false.
 	segmentEnd := segmentCut ifNil: [ boundary ].
 	segmentRanges add: { segmentStart. segmentEnd - segmentStart }.
 	segmentFrameResults add: { frames asArray. anchoredCount. transparentPositions asArray }.
@@ -313,7 +323,8 @@ GtsV2WireFindings >> checkClaimsOf: event [
 	(event kind = #framingGap and: [ event problem = 'undelimitable_input' ]) ifTrue: [
 		claimChecks observeDamagedRegion.
 		^ false ].
-	^ claimChecks observe: event classifiedFindingsDo: [ :code :reason :at :count |
+	^ claimChecks observe: event rowsDo: [ :columns | self recordRowsOf: event columns: columns ]
+		classifiedFindingsDo: [ :code :reason :at :count |
 		| record |
 		record := code caseOf: {
 			[ #commit_count_mismatch ] -> [ self positionalCode: 15 reason: nil position: at count: count ].
@@ -333,6 +344,43 @@ GtsV2WireFindings >> checkClaimsOf: event [
 		code = #damaged_frame ifTrue: [ claimSteps at: record put: 14 ].
 		code = #index_claim_failed ifTrue: [ claimSteps at: record put: 19 ].
 		(frameFindings at: event offset ifAbsentPut: [ OrderedCollection new ]) add: record ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> recordRowsOf: event columns: columns [
+	| kinds ordinary exempt |
+	foldStopped ifTrue: [ ^ self ].
+	kinds := #(((1 3) (1 3) (1) ()) ((1 3) (1 3) () (4)) ((1 3) (1 3) (1) ()) ((1 3)))
+		at: event frameType - 1.
+	ordinary := Set new.
+	exempt := Set new.
+	1 to: columns first size do: [ :index |
+		| ids reason withoutBreak |
+		ids := columns collect: [ :column | column ifNotNil: [ column at: index ] ].
+		reason := termChecks row: ids kinds: kinds hiddenBefore: hiddenTermsBefore inDoubt: dictionaryInDoubt.
+		withoutBreak := hiddenTermsBefore > 0
+			ifTrue: [ termChecks row: ids kinds: kinds hiddenBefore: 0 inDoubt: dictionaryInDoubt ]
+			ifFalse: [ reason ].
+		reason ifNotNil: [ ordinary add: reason ].
+		withoutBreak ifNotNil: [ exempt add: withoutBreak ] ].
+	ordinary = exempt
+		ifTrue: [ self addRowFindings: ordinary at: position offset: event offset ]
+		ifFalse: [ rowsAwaitingCommit add: { position. event offset. ordinary. exempt } ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> finishRowFindingsCommitted: committed [
+	rowsAwaitingCommit do: [ :entry |
+		self addRowFindings: (committed ifTrue: [ entry fourth ] ifFalse: [ entry third ])
+			at: entry first offset: entry second ].
+	rowsAwaitingCommit removeAll
+]
+
+{ #category : #private }
+GtsV2WireFindings >> addRowFindings: codes at: at offset: offset [
+	codes do: [ :code |
+		(frameFindings at: offset ifAbsentPut: [ OrderedCollection new ]) add:
+			(self positionalCode: code reason: nil position: at count: nil) ]
 ]
 
 { #category : #private }

@@ -7,6 +7,45 @@ Class {
 }
 
 { #category : #tests }
+GtsV2WireTest >> testTypedRowReferenceFindingsMatchP3 [
+	#(
+		'rows-forward-reference' 'rows-opaque-term-held'
+		'rows-position-subject-literal' 'rows-position-reifier-literal'
+		'rows-position-predicate-blank' 'rows-position-graph-literal'
+		'broken-link-commit-ends' 'broken-link-commit-doubt-stays'
+		'broken-link-doubt' 'broken-link-no-effective-identifier'
+		'terms-formed-row-held' 'terms-text-not-utf8' 'terms-triple-component-unreadable'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P3/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry |
+			((entry at: 'capacity') at: 'access') = 'whole' ifTrue: [ self assertTypedRowReferencesOf: entry ] ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> assertTypedRowReferencesOf: entry [
+	| name input capacity budget report file isReference |
+	name := entry at: 'input_file'.
+	input := self p3Vector: name.
+	capacity := entry at: 'capacity'.
+	budget := (GtsV2PayloadBudget withReadLimit: (capacity at: 'decoded_bytes_per_read'))
+		itemLimit: (capacity at: 'items_per_read');
+		formedLimit: (capacity at: 'formed_bytes_per_read').
+	report := (GtsV2Wire inspect: input budget: budget) typedWireFindings.
+	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	isReference := [ :finding | #(22 23 25) includes: finding first ].
+	file second do: [ :segment |
+		(segment at: 17) do: [ :frame |
+			| type actual expected |
+			type := frame fourth.
+			(type first = 2 and: [ type second between: 2 and: 5 ]) ifTrue: [
+				actual := (report frameFindingsAt: frame second) select: isReference.
+				expected := ((frame at: 11) select: isReference) asArray.
+				self assert: actual = expected description: name, ' at ', frame second printString,
+					' ', actual printString, ' expected ', expected printString ] ] ]
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testTypedIntrinsicTermFindingsMatchP3 [
 	#(
 		'terms-text-not-utf8' 'terms-datatype-not-iri' 'terms-datatype-forward'
