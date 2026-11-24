@@ -77,6 +77,43 @@ GtsV2Field >> byteBodyOfSize: expected [
 	^ head end
 ]
 
+{ #category : #accessing }
+GtsV2Field >> encodedBytes [
+	^ walker bytes copyFrom: start to: end - 1
+]
+
+{ #category : #accessing }
+GtsV2Field >> bytesStartingAt: first [
+	^ walker bytes copyFrom: first to: end - 1
+]
+
+{ #category : #testing }
+GtsV2Field >> bytesStartingAt: first beginWith: prefix [
+	end - first < prefix size ifTrue: [ ^ false ].
+	1 to: prefix size do: [ :index |
+		(walker bytes at: first + index - 1) = (prefix at: index) ifFalse: [ ^ false ] ].
+	^ true
+]
+
+{ #category : #hashing }
+GtsV2Field >> storedHashWithPrefix: prefix [
+	| head bytes |
+	head := walker headAt: start limit: end.
+	head major = 2 ifFalse: [ ^ nil ].
+	bytes := walker bytes.
+	head argument ifNotNil: [
+		^ self deriveWith: 'gts2 stored' prefix: prefix from: head end to: end ].
+	^ GtsBlake3 deriveWith: 'gts2 stored' updatingWith: [ :update |
+		| offset limit chunk |
+		update value: prefix value: 1 value: prefix size + 1.
+		offset := head end.
+		limit := end - 1.
+		[ offset < limit ] whileTrue: [
+			chunk := walker headAt: offset limit: limit.
+			offset := chunk end + chunk argument.
+			update value: bytes value: chunk end value: offset ] ]
+]
+
 { #category : #parsing }
 GtsV2Field >> observedIdentifier [
 	| head offset limit chunk length identifier cursor bytes |

@@ -110,16 +110,23 @@ GtsV2Wire >> isVersionKeyAt: start limit: limit [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock [
+	self eventsDo: aBlock budget: GtsV2PayloadBudget new
+]
+
+{ #category : #enumerating }
+GtsV2Wire >> eventsDo: aBlock budget: budget [
 	| pending predecessor |
 	self scanEventsDo: [ :next |
 		pending ifNotNil: [
 			| effective |
 			effective := self check: pending witness: next frame predecessor: predecessor.
 			effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
+			pending checkPayloadWith: budget.
 			aBlock value: pending ].
 		pending := next ].
 	pending ifNotNil: [
 		self check: pending witness: nil predecessor: predecessor.
+		pending checkPayloadWith: budget.
 		aBlock value: pending ]
 ]
 

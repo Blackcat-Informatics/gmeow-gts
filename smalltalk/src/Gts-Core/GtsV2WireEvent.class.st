@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload' ],
 	#category : #'Gts-Core'
 }
 
@@ -64,6 +64,35 @@ GtsV2WireEvent >> link [
 { #category : #accessing }
 GtsV2WireEvent >> effectiveIdentifier [
 	^ effectiveIdentifier
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> storedMatches [
+	^ storedMatches
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> payload [
+	^ payload
+]
+
+{ #category : #validation }
+GtsV2WireEvent >> checkPayloadWith: budget [
+	| raw |
+	frame ifNil: [ ^ self ].
+	raw := frame payload.
+	storedMatches := raw storedMatches.
+	payload := raw checkWith: budget.
+	payload reason = 'codec_constraint' ifTrue: [
+		problem
+			ifNil: [ problem := payload reason ]
+			ifNotNil: [ payload := GtsV2PayloadResult state: #damaged reason: nil count: nil ] ]
+]
+
+{ #category : #testing }
+GtsV2WireEvent >> isDamagedParity [
+	^ self frameType = 16 and: [ problem isNotNil or: [
+		link ~= #linked or: [ storedMatches = false or: [ payload state = #damaged ] ] ] ]
 ]
 
 { #category : #initialization }

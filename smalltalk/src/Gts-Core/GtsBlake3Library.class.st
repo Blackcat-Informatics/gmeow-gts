@@ -16,6 +16,26 @@ GtsBlake3Library >> deriveWith: context contextLength: contextLength prefix: pre
 		const void * input, size_t start, size_t length, void * output))
 ]
 
+{ #category : #ffi }
+GtsBlake3Library >> deriveStateFor: context length: contextLength [
+	^ self ffiCall: #(void * gts_blake3_derive_new (const void * context, size_t contextLength))
+]
+
+{ #category : #ffi }
+GtsBlake3Library >> update: state input: input start: start length: length [
+	^ self ffiCall: #(void gts_blake3_derive_update (void * state, const void * input, size_t start, size_t length))
+]
+
+{ #category : #ffi }
+GtsBlake3Library >> finish: state output: output [
+	^ self ffiCall: #(void gts_blake3_derive_finish (const void * state, void * output))
+]
+
+{ #category : #ffi }
+GtsBlake3Library >> free: state [
+	^ self ffiCall: #(void gts_blake3_derive_free (void * state))
+]
+
 { #category : #'accessing platform' }
 GtsBlake3Library >> macLibraryName [
 	^ 'libblake3.dylib'

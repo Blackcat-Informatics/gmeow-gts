@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2FrameEnvelope,
 	#superclass : #Object,
-	#instVars : [ 'frameType', 'problem', 'identityStart', 'identityEnd', 'transparent', 'storedIdentifier' ],
+	#instVars : [ 'frameType', 'problem', 'identityStart', 'identityEnd', 'transparent', 'storedIdentifier', 'payload' ],
 	#category : #'Gts-Core'
 }
 
@@ -25,6 +25,11 @@ GtsV2FrameEnvelope >> problem [
 { #category : #accessing }
 GtsV2FrameEnvelope >> storedIdentifier [
 	^ storedIdentifier
+]
+
+{ #category : #accessing }
+GtsV2FrameEnvelope >> payload [
+	^ payload
 ]
 
 { #category : #testing }
@@ -51,7 +56,7 @@ GtsV2FrameEnvelope >> read: item registry: registry [
 
 { #category : #validation }
 GtsV2FrameEnvelope >> check: fields newer: newer [
-	| known parity critical contentWellTyped length digest storage identifier |
+	| known parity critical content contentWellTyped length digest storage stored bodyStart identifier signatures |
 	fields next uint.
 	identityStart := fields offset.
 	frameType := self observe: [ fields next uint ].
@@ -65,24 +70,32 @@ GtsV2FrameEnvelope >> check: fields newer: newer [
 	transparent := self observe: [ fields next flag ].
 	(known and: [ transparent ~= parity ])
 		ifTrue: [ self recordProblem: 'forbidden_combination' ].
-	contentWellTyped := self observe: [ self checkContent: fields next. true ].
+	content := fields next.
+	contentWellTyped := self observe: [ self checkContent: content. true ].
 	length := self observe: [ fields next uint ].
-	digest := self observe: [ fields next byteBodyOfSize: 32 ].
+	digest := self observe: [
+		| field |
+		field := fields next.
+		field bytesStartingAt: (field byteBodyOfSize: 32) ].
 	(frameType isNotNil and: [ critical isNotNil and: [ transparent isNotNil and: [
 		contentWellTyped = true and: [ length isNotNil and: [ digest isNotNil ] ] ] ] ])
 		ifTrue: [ identityEnd := fields offset ].
-	storage := self observe: [ self storage: fields next newer: newer ].
+	storage := self observe: [ GtsV2Storage read: fields next newer: newer ].
 	(storage isNotNil and: [
-		(storage = 2 and: [ length = 0 ]) or: [ parity and: [ storage ~= 1 ] ] ])
+		(storage tag = 2 and: [ length = 0 ]) or: [ parity and: [ storage tag ~= 1 ] ] ])
 		ifTrue: [ self recordProblem: 'forbidden_combination' ].
-	self observe: [ fields next byteBodyOfSize: nil ].
+	stored := fields next.
+	bodyStart := self observe: [ stored byteBodyOfSize: nil ].
 	identifier := fields next.
 	self observe: [ identifier byteBodyOfSize: 32 ].
 	storedIdentifier := identifier observedIdentifier.
-	self observe: [ self checkSignatures: fields next newer: newer parity: parity ].
+	signatures := fields next.
+	self observe: [ self checkSignatures: signatures newer: newer parity: parity ].
 	(length isNotNil and: [ (frameType = 8 and: [ length = 0 ])
 		or: [ (#(12 14) includes: frameType) and: [ length ~= 0 ] ] ])
-		ifTrue: [ self recordProblem: 'out_of_range' ]
+		ifTrue: [ self recordProblem: 'out_of_range' ].
+	payload := GtsV2FramePayload length: length digest: digest storage: storage stored: stored
+		bodyStart: bodyStart contentSize: content size signaturesSize: signatures size
 ]
 
 { #category : #validation }
@@ -147,29 +160,6 @@ GtsV2FrameEnvelope >> checkMediaOption: field [
 		tag = head argument ifFalse: [ GtsV2EnvelopeError signal: 'wrong_length' ].
 		tag = 2 ifTrue: [ fields next typedHead: 3 ] ].
 	field checkGrammarUpTo: field end
-]
-
-{ #category : #validation }
-GtsV2FrameEnvelope >> storage: field newer: newer [
-	| head fields tag codec |
-	head := field typedHead: 4.
-	head argument = 0 ifTrue: [ GtsV2EnvelopeError signal: 'wrong_length' ].
-	fields := field list.
-	tag := fields next uint.
-	(tag = 0 or: [ newer not and: [ tag > 2 ] ])
-		ifTrue: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
-	tag = 1 ifTrue: [
-		head argument = 1 ifFalse: [ GtsV2EnvelopeError signal: 'wrong_length' ].
-		^ tag ].
-	tag = 2 ifTrue: [
-		head argument = 3 ifFalse: [ GtsV2EnvelopeError signal: 'wrong_length' ].
-		codec := fields next uint.
-		(codec = 0 or: [ newer not and: [ codec ~= 1 ] ])
-			ifTrue: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
-		fields next byteBodyOfSize: 16.
-		^ tag ].
-	field checkGrammarUpTo: field end.
-	^ tag
 ]
 
 { #category : #validation }

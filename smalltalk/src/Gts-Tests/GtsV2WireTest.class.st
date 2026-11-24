@@ -14,9 +14,14 @@ GtsV2WireTest >> vector: name [
 
 { #category : #private }
 GtsV2WireTest >> events: bytes [
+	^ self events: bytes budget: GtsV2PayloadBudget new
+]
+
+{ #category : #private }
+GtsV2WireTest >> events: bytes budget: budget [
 	| events |
 	events := OrderedCollection new.
-	(GtsV2Wire inspect: bytes) eventsDo: [ :event | events add: event ].
+	(GtsV2Wire inspect: bytes) eventsDo: [ :event | events add: event ] budget: budget.
 	^ events
 ]
 
@@ -198,4 +203,69 @@ GtsV2WireTest >> linksIn: bytes [
 	| frames |
 	frames := (self events: bytes) select: [ :event | event kind = #frame ].
 	^ (frames collect: [ :event | event link ]) asArray
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testStoredCheckAndPayloadFindingAreIndependent [
+	#(
+		('stored-mismatch' false damaged 'decode_failed')
+		('zstd-ok' true verified nil)
+		('zstd-header-short' true damaged 'codec_constraint')
+		('zstd-two-frames' true damaged 'decode_failed')
+		('zstd-reserved-block' true damaged 'decode_failed')
+		('zstd-output-short' true damaged 'decode_failed')
+		('payload-length' nil damaged 'decoded_length')
+		('payload-digest' nil damaged 'payload_digest')
+		('payload-unknown-codec' true unchecked 'unknown_codec')
+	) do: [ :entry |
+		| frame |
+		frame := (self events: (self vector: entry first)) detect: [ :event | event kind = #frame ].
+		self assert: frame storedMatches = entry second description: entry first.
+		self assert: frame payload state = entry third description: entry first.
+		self assert: frame payload reason = entry fourth description: entry first ].
+	(self events: (self vector: 'payload-codec-constraint-twice')) do: [ :event |
+		event kind = #frame ifTrue: [
+			self assert: event problem equals: 'forbidden_combination'.
+			self assert: event payload state equals: #damaged.
+			self assert: event payload reason isNil ] ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testStoredCheckHashesTheBytesOfAnIndefinitePayload [
+	| bytes frame walker fields stored chunked first changed |
+	bytes := self vector: 'zstd-ok'.
+	frame := (self events: bytes) second.
+	walker := GtsV2CborWalker on: bytes.
+	fields := (GtsV2Field walker: walker from: frame offset + 1 to: frame end + 1) fields: 11.
+	8 timesRepeat: [ fields next ].
+	stored := fields next.
+	first := stored byteBodyOfSize: nil.
+	chunked := ByteArray streamContents: [ :stream |
+		stream nextPut: 95.
+		first to: stored end - 1 do: [ :index |
+			stream nextPut: 65.
+			stream nextPut: (bytes at: index) ].
+		stream nextPut: 255 ].
+	changed := (bytes copyFrom: 1 to: stored start - 1), chunked,
+		(bytes copyFrom: stored end to: bytes size).
+	frame := (self events: changed) second.
+	self assert: frame problem equals: 'not_deterministic'.
+	self assert: frame storedMatches equals: true.
+	self assert: frame payload state equals: #damaged.
+	self assert: frame payload reason isNil
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTotalDecodedRefusalRemainsAcrossSegments [
+	| compressed events frames |
+	compressed := self vector: 'zstd-ok'.
+	events := self events: compressed, compressed, (self vector: 'link-ok')
+		budget: (GtsV2PayloadBudget withReadLimit: 599).
+	frames := events select: [ :event | event kind = #frame ].
+	self assert: frames first payload state equals: #verified.
+	self assert: frames second storedMatches equals: true.
+	self assert: frames second payload reason equals: 'total_decoded'.
+	self assert: frames second payload count equals: 600.
+	self assert: frames third payload reason equals: 'total_decoded'.
+	self assert: frames third payload count equals: 300
 ]

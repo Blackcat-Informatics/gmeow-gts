@@ -263,7 +263,7 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 	format = #unknown ifTrue: [
 		self stderr: 'gts info: ', path, ': input does not identify a GTS generation', String lf.
 		^ false ].
-	self stdout: path, ': GTS v2 framing ledger (item boundaries, envelopes and links)', String lf.
+	self stdout: path, ': GTS v2 framing ledger (byte ranges and frame integrity)', String lf.
 	ordinal := 0.
 	clean := true.
 	wire eventsDo: [ :event |
@@ -285,9 +285,8 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 				diagnostic := self wireDiagnosticFor: event.
 				self stdout: prefix, kind, ' bytes [', event offset printString, ', ',
 					event end printString, ')', details, diagnostic, String lf.
-				event link ifNotNil: [ :link |
-					link ~= #linked ifTrue: [ clean := false ].
-					self stdout: '      link ', link asString, String lf ].
+				event link ifNotNil: [
+					(self printWireIntegrityFor: event) ifFalse: [ clean := false ] ].
 				(event opener isNotNil and: [ event opener registry > 1 ]) ifTrue: [
 					clean := false.
 					self stdout: '    unsupported registry version ', event opener registry printString, String lf ] ] ].
@@ -296,10 +295,22 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 
 { #category : #printing }
 GtsCLI class >> wireDiagnosticFor: event [
-	event frameType = 16 ifTrue: [
-		event problem ifNotNil: [ :reason | ^ ': parity_damaged (', reason, ')' ].
-		event link = #broken ifTrue: [ ^ ': parity_damaged' ] ].
+	event isDamagedParity ifTrue: [
+		^ event problem ifNil: [ ': parity_damaged' ] ifNotNil: [ :reason | ': parity_damaged (', reason, ')' ] ].
 	^ event problem ifNil: [ '' ] ifNotNil: [ :reason | ': ', reason ]
+]
+
+{ #category : #printing }
+GtsCLI class >> printWireIntegrityFor: event [
+	| stored payload reason count |
+	stored := event storedMatches ifNil: [ '' ] ifNotNil: [ :matches |
+		matches ifTrue: [ ', stored check matches' ] ifFalse: [ ', stored check mismatch' ] ].
+	payload := event payload.
+	count := payload count ifNil: [ '' ] ifNotNil: [ :size | ', ', size printString, ' bytes' ].
+	reason := payload reason ifNil: [ '' ] ifNotNil: [ :finding | ' (', finding, count, ')' ].
+	event isDamagedParity ifTrue: [ reason := '' ].
+	self stdout: '      link ', event link asString, stored, ', payload ', payload state asString, reason, String lf.
+	^ event link = #linked and: [ event storedMatches ~= false and: [ payload state = #verified ] ]
 ]
 
 { #category : #private }
