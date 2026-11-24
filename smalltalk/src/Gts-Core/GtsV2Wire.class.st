@@ -120,6 +120,12 @@ GtsV2Wire >> eventsDo: aBlock budget: budget [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock budget: budget retainDecoded: retain [
+	self eventsDo: aBlock budget: budget decodedWhen: [ :event |
+		retain and: [ event frameType isNotNil and: [ event frameType between: 1 and: 13 ] ] ]
+]
+
+{ #category : #enumerating }
+GtsV2Wire >> eventsDo: aBlock budget: budget decodedWhen: predicate [
 	| pending pendingOffsets predecessor closing deliver |
 	closing := GtsV2ClosingChecks on: walker.
 	deliver := [ :event :next :afterLocator |
@@ -127,7 +133,7 @@ GtsV2Wire >> eventsDo: aBlock budget: budget retainDecoded: retain [
 		closing observe: event following: next afterLocator: afterLocator.
 		effective := self check: event witness: (next ifNotNil: [ next frame ]) predecessor: predecessor.
 		effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
-		event checkPayloadWith: budget retainDecoded: retain.
+		event checkPayloadWith: budget retainDecoded: (predicate value: event).
 		aBlock value: event ].
 	self scanEventsDo: [ :next |
 		pendingOffsets ifNotNil: [

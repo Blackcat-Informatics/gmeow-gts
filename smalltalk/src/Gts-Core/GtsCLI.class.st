@@ -612,7 +612,7 @@ GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
 		^ false ].
 	format = #unknown ifTrue: [ report value: 'input does not identify a GTS generation'. ^ false ].
 	hasKeys ifTrue: [ report value: '--key is unsupported for GTS v2'. ^ false ].
-	self stdout: path, ': GTS v2 frame, closing record and commit integrity', String lf.
+	self stdout: path, ': GTS v2 frame, closing record, commit and index prefix integrity', String lf.
 	ordinal := -1.
 	wire eventsDo: [ :event |
 		| location |
@@ -634,7 +634,9 @@ GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
 								| detail |
 								detail := expected ifNil: [ '' ] ifNotNil: [
 									' (expected ', expected printString, ')' ].
-								report value: location, ', item ', position printString, ': ', finding, detail ] ] ] ] ].
+								report value: location, ', item ', position printString, ': ', finding, detail ] ] ] ] ]
+		budget: GtsV2PayloadBudget new
+		decodedWhen: [ :event | event frameType = 15 ].
 	checks ifNotNil: [ self printCommitSummary: checks ordinal: ordinal ].
 	^ clean
 ]
@@ -672,7 +674,7 @@ GtsCLI class >> printCommitSummary: checks ordinal: ordinal [
 		ifFalse: [ 'committed_frames ', checks committedFrames printString ].
 	tail := checks tailPosition ifNil: [ '' ] ifNotNil: [ :position |
 		', uncommitted_tail ', checks tailFrames printString, ' (item ', position printString, ')' ].
-	index := checks hasIndex ifTrue: [ ', index payload claims unchecked' ] ifFalse: [ '' ].
+	index := checks hasIndex ifTrue: [ ', index graph, pack and fold claims unchecked' ] ifFalse: [ '' ].
 	self stdout: '  segment ', ordinal printString, ': ', prefix, tail, index, String lf
 ]
 

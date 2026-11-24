@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2CommitChecks,
 	#superclass : #Object,
-	#instVars : [ 'range', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'hasIndex' ],
+	#instVars : [ 'range', 'head', 'typeRuns', 'runType', 'runLength', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'hasIndex' ],
 	#category : #'Gts-Core'
 }
 
@@ -16,6 +16,9 @@ GtsV2CommitChecks class >> openedBy: identifier [
 GtsV2CommitChecks >> initializeOpener: identifier [
 	range := GtsV2Range new.
 	range add: identifier.
+	head := identifier.
+	typeRuns := ByteArray new writeStream.
+	runLength := 0.
 	position := 0.
 	committedFrames := 0.
 	tailFrames := 0.
@@ -49,14 +52,55 @@ GtsV2CommitChecks >> observe: event findingsDo: aBlock [
 	position := position + 1.
 	identifier := event effectiveIdentifier.
 	event frameType = 15
-		ifTrue: [ hasIndex := true ]
+		ifTrue: [
+			hasIndex := true.
+			(event problem isNil and: [ (#(linked healed) includes: event link) and: [
+				event payload state = #verified and: [ event payload decoded isNotNil ] ] ]) ifTrue: [
+				self checkIndex: event findingsDo: aBlock ] ]
 		ifFalse: [
 			identifier ifNotNil: [
 				tailFrames = 0 ifTrue: [ tailPosition := position ].
 				tailFrames := tailFrames + 1 ] ].
 	(event frameType = 14 and: [ event problem isNil ]) ifTrue: [
 		self check: event frame content link: event link findingsDo: aBlock ].
-	identifier ifNotNil: [ range add: identifier ]
+	identifier ifNotNil: [
+		range add: identifier.
+		head := identifier.
+		self recordType: event frameType ]
+]
+
+{ #category : #private }
+GtsV2CommitChecks >> recordType: type [
+	typeRuns ifNil: [ ^ self ].
+	(type isNil or: [ (type between: 1 and: 16) not ]) ifTrue: [
+		typeRuns := nil.
+		^ self ].
+	type = runType ifTrue: [ runLength := runLength + 1. ^ self ].
+	runLength > 0 ifTrue: [
+		GtsCborWriter write: { runType. runLength } on: typeRuns.
+		"A larger run list cannot fit in a verified index payload."
+		typeRuns position >= (1 bitShift: 26) ifTrue: [ typeRuns := nil ] ].
+	runType := type.
+	runLength := 1
+]
+
+{ #category : #private }
+GtsV2CommitChecks >> expectedTypeRuns [
+	^ typeRuns ifNotNil: [
+		{ typeRuns originalContents. typeRuns position.
+			(runLength = 0 ifTrue: [ #[] ] ifFalse: [ GtsCborWriter encode: { runType. runLength } ]) } ]
+]
+
+{ #category : #validating }
+GtsV2CommitChecks >> checkIndex: event findingsDo: aBlock [
+	| reasons |
+	[ [ reasons := GtsV2IndexChecks check: event frame content bytes: event payload decoded
+			head: head range: range runs: self expectedTypeRuns ]
+		on: GtsV2FramingError do: [ :error | GtsV2EnvelopeError signal: 'wrong_length' ] ]
+		on: GtsV2EnvelopeError do: [ :error |
+			aBlock value: 'malformed_value (', error messageText, ')' value: position value: nil.
+			^ self ].
+	reasons do: [ :reason | aBlock value: 'index_claim_failed (', reason, ')' value: position value: nil ]
 ]
 
 { #category : #validating }
