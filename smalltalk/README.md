@@ -78,6 +78,18 @@ payload, and stored state. Use `anchoredFramesAt:` and `transparentFramesAt:`
 for the anchored prefix count and transparent frame positions by segment.
 For registry version 1, it includes commit and structural index findings
 and exposes the committed frame count through `committedFramesAt:`.
+It checks declared canonical order for quads, reifier bindings, and
+annotations within a frame and across consecutive frames of its type.
+For registry version 1, it reports undefined, unreadable, and out-of-position
+term IDs in rows, including the whole-read rules for broken links and
+dictionary doubt. Rows that depend on rebuilding values require resolution.
+The report checks the content record and payload grammar of each eligible
+`terms` frame. It checks the run and block counts before forming texts and
+charges copied prefixes to the formed-byte budget. Valid runs reserve
+their term IDs even when the frame cannot be folded.
+For `terms` frames with valid grammar, the report checks reconstructed text,
+datatype positions, and triple components. Individual unreadable terms
+leave the frame's fold state as folded.
 Pass P6 held-key records and trusted key identifiers to
 `typedWireFindingsHeld:trusted:`. The report exposes the ordered sets
 through `verificationInputs`, signature records through `signaturesAt:`
