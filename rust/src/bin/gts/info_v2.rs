@@ -7,8 +7,8 @@ use std::collections::BTreeMap;
 
 use gmeow_gts::{
     v2::reader::{
-        read_wire, Dispatch, ItemKind, LinkState, Opener, PayloadState, ReadCapacity, ReadStop,
-        WireFrame, WireSegment,
+        read_wire, Dispatch, FramingFailure, ItemKind, LinkState, Opener, PayloadState,
+        ReadCapacity, ReadStop, ResyncRefusal, WireFrame, WireSegment,
     },
     wire::hex,
 };
@@ -62,6 +62,14 @@ pub(super) fn inspect(path: &str, bytes: &[u8]) -> Option<bool> {
         wire.segments.len()
     );
     let mut clean = true;
+    if let Some(failure) = wire.prefix_failure {
+        print_damage("bytes before the first segment", failure);
+        clean = false;
+    }
+    if let Some(refusal) = wire.resync_refusal {
+        print_refusal(refusal);
+        clean = false;
+    }
     for (ordinal, segment) in wire.segments.iter().enumerate() {
         clean &= print_segment(ordinal, segment);
     }
@@ -82,6 +90,20 @@ fn print_stop(stop: ReadStop) {
         }
         ReadStop::ItemLimit { offset } => println!("  item limit reached at byte {offset}"),
     }
+}
+
+fn print_damage(place: &str, failure: FramingFailure) {
+    println!(
+        "  damaged framing in {place} at byte {}, {} byte(s): {:?}",
+        failure.offset, failure.length, failure.reason
+    );
+}
+
+fn print_refusal(refusal: ResyncRefusal) {
+    println!(
+        "  resync candidate refused at byte {}, {} byte(s), item count {}",
+        refusal.offset, refusal.length, refusal.count
+    );
 }
 
 fn print_segment(ordinal: usize, segment: &WireSegment<'_>) -> bool {
@@ -166,8 +188,24 @@ fn print_segment(ordinal: usize, segment: &WireSegment<'_>) -> bool {
         }
     }
 
+    if let Some(failure) = segment.framing_failure {
+        print_damage("segment", failure);
+        clean = false;
+    }
+    if let Some(refusal) = segment.resync_refusal {
+        print_refusal(refusal);
+        clean = false;
+    }
     for item in &segment.items {
         match item.kind {
+            ItemKind::DamagedRegion => {
+                println!(
+                    "    damaged region at byte {}, {} byte(s)",
+                    item.offset,
+                    item.end - item.offset
+                );
+                clean = false;
+            }
             ItemKind::Malformed(reason) => {
                 println!("    malformed item at byte {}: {reason:?}", item.offset);
                 clean = false;
@@ -176,7 +214,12 @@ fn print_segment(ordinal: usize, segment: &WireSegment<'_>) -> bool {
                 println!("    unknown item type {kind} at byte {}", item.offset);
                 clean = false;
             }
-            _ => {}
+            ItemKind::Header
+            | ItemKind::Resync
+            | ItemKind::Frame
+            | ItemKind::Locator
+            | ItemKind::Offsets
+            | ItemKind::Unchecked => {}
         }
     }
     for frame in &segment.frames {

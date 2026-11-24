@@ -4,7 +4,7 @@
 
 from bisect import bisect_left
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Literal
 
 import cbor2
@@ -14,6 +14,7 @@ from ._decode import _Decoder, _immutable_octets
 from .frame import Frame
 from .pack import MemberKind, PackMember, decode_pack
 from .rebuild import (
+    Entry,
     IncompleteRebuild,
     RebuildBudget,
     RebuildResult,
@@ -142,6 +143,17 @@ class ValueSelection:
 
 
 @dataclass(frozen=True, slots=True)
+class StateValueScope:
+    """Reuse projected value outcomes across the terms of one graph state."""
+
+    first_segment: int
+    commit: tuple[int, int]
+    _first_refused: dict[tuple[bytes, int], BlobLocation | None] = field(
+        default_factory=dict, init=False, compare=False, repr=False
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class _ValueCandidate:
     location: BlobLocation
     outcome: RebuildResult
@@ -159,7 +171,7 @@ class _ValueCandidates:
         if isinstance(outcome, VerifiedRebuild):
             self._append_first(self.verified, candidate)
         elif isinstance(outcome, RefusedRebuild):
-            self._append_first(self.refused, candidate)
+            self.refused.append(candidate)
 
     @staticmethod
     def _append_first(
@@ -192,6 +204,52 @@ class BlobRead:
         self._whole = whole
         self._budget = RebuildBudget(rebuilt_bytes_per_read, enabled=whole)
         self._values: dict[tuple[bytes, int], _ValueCandidates] = {}
+        self._refused_units: dict[
+            BlobLocation, tuple[UnitIndex, tuple[Entry, ...]]
+        ] = {}
+        self._state_unit_end: dict[BlobLocation, int | None] = {}
+
+    def _refused_in_state(
+        self, location: BlobLocation, commit: tuple[int, int]
+    ) -> bool:
+        if location not in self._state_unit_end:
+            units, entries = self._refused_units[location]
+            end = 0
+            for entry in entries:
+                position = units.first_position(entry.digest)
+                if position is None:
+                    self._state_unit_end[location] = None
+                    return False
+                end = max(end, position)
+            self._state_unit_end[location] = end
+        last_unit = self._state_unit_end[location]
+        return last_unit is not None and (location.segment, last_unit) < commit
+
+    def state_declaration(
+        self, declaration: BlobDeclaration, *, commit: tuple[int, int]
+    ) -> BlobDeclaration:
+        """Project an included blob declaration onto a committed prefix."""
+        location = declaration.location
+        if location in self._refused_units and not self._refused_in_state(
+            location, commit
+        ):
+            return replace(declaration, state="incomplete")
+        return declaration
+
+    def _first_state_refusal(
+        self, candidates: _ValueCandidates, state: StateValueScope
+    ) -> BlobLocation | None:
+        index = bisect_left(
+            candidates.refused, state.first_segment, key=lambda c: c.location.segment
+        )
+        while index < len(candidates.refused):
+            location = candidates.refused[index].location
+            if (location.segment, location.position) >= state.commit:
+                break
+            if self._refused_in_state(location, state.commit):
+                return location
+            index += 1
+        return None
 
     def value_before(
         self,
@@ -201,23 +259,39 @@ class BlobRead:
         segment: int,
         position: int,
         first_segment: int = 0,
+        state: StateValueScope | None = None,
     ) -> ValueSelection:
         """Select an already rebuilt value in the requested segment run.
 
         Report whether any candidate was declared and whether any of their
-        rebuilds was refused in the whole-file read. The first eligible
-        segment defaults to the start of the file.
+        rebuilds was refused. In a graph state a refusal with missing units
+        becomes incomplete. The first eligible segment defaults to the start
+        of the file.
         """
-        candidates = self._values.get((digest, length))
+        key = (digest, length)
+        candidates = self._values.get(key)
         if candidates is None:
             return ValueSelection(False, None)
         before = (segment, position)
+        if state is not None:
+            first_segment = state.first_segment
         declared = candidates.before(candidates.declared, first_segment, before)
         verified = candidates.before(candidates.verified, first_segment, before)
-        refused = candidates.before(candidates.refused, first_segment, before)
         rebuilt = None if verified is None else verified.outcome
         assert rebuilt is None or isinstance(rebuilt, VerifiedRebuild)
-        return ValueSelection(declared is not None, rebuilt, refused is not None)
+        if state is None:
+            refused = (
+                candidates.before(candidates.refused, first_segment, before) is not None
+            )
+        else:
+            if key not in state._first_refused:
+                state._first_refused[key] = self._first_state_refusal(candidates, state)
+            first_refused = state._first_refused[key]
+            refused = (
+                first_refused is not None
+                and (first_refused.segment, first_refused.position) < before
+            )
+        return ValueSelection(declared is not None, rebuilt, refused)
 
     def fold_segment(
         self,
@@ -299,6 +373,8 @@ class BlobRead:
                 kind="recipe" if record.kind == MemberKind.RECIPE else "value",
             )
             rebuilds.append((location, outcome))
+            if isinstance(outcome, RefusedRebuild):
+                self._refused_units[location] = (units, record.entries)
             state = _rebuild_state(location, outcome, findings)
             if record.kind == MemberKind.RECIPE:
                 declarations.append(

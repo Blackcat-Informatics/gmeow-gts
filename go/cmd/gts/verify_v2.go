@@ -11,6 +11,9 @@ import (
 )
 
 func verifyWireV2(path string, wire v2.WireInspection, hasKeys bool) bool {
+	recoveryClean := reportRecoveryV2(wire.PrefixGap, wire.ResyncRefusal, func(offset int, message string) {
+		fmt.Fprintf(os.Stderr, "gts verify: %s: byte %d: %s\n", path, offset, message)
+	})
 	switch wire.Dispatch {
 	case v2.SecondGeneration:
 		if hasKeys {
@@ -32,6 +35,7 @@ func verifyWireV2(path string, wire v2.WireInspection, hasKeys bool) bool {
 	if clean {
 		fmt.Printf("%s: GTS v2 wire and commit integrity\n", path)
 	}
+	clean = clean && recoveryClean
 	for ordinal, segment := range wire.Segments {
 		if !verifySegmentV2(path, ordinal, segment) {
 			clean = false
@@ -48,20 +52,17 @@ func verifySegmentV2(path string, ordinal int, segment v2.Segment) bool {
 	problem := func(offset int, reason string) {
 		fmt.Fprintf(os.Stderr, "gts verify: %s: byte %d: %s\n", path, offset, reason)
 	}
+	clean := reportRecoveryV2(segment.FramingGap, segment.ResyncRefusal, problem)
 	opener := segment.Items[0]
 	switch {
 	case opener.Reason != "":
 		problem(opener.Offset, string(opener.Reason))
-		return false
-	case opener.Kind == v2.ResyncItem:
-		problem(opener.Offset, "unsupported resync opener")
 		return false
 	case segment.Opener.Registry != 1 || segment.Opener.ID == nil:
 		problem(opener.Offset, fmt.Sprintf("unsupported registry version %d", segment.Opener.Registry))
 		return false
 	}
 
-	clean := true
 	for _, item := range segment.Items[1:] {
 		switch {
 		case item.Frame != nil:
@@ -75,6 +76,8 @@ func verifySegmentV2(path string, ordinal int, segment v2.Segment) bool {
 				problem(item.Offset, reason)
 				clean = false
 			}
+		case item.Kind == v2.DamagedRegion:
+			// The framing gap already covers this item.
 		default:
 			problem(item.Offset, fmt.Sprintf("%s item %s", item.Kind, item.Reason))
 			clean = false

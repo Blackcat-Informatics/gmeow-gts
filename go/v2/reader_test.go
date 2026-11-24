@@ -22,6 +22,107 @@ func vector(t *testing.T, name string) []byte {
 	return data
 }
 
+func TestResyncScanKeepsOriginalBoundaries(t *testing.T) {
+	capacity := v2.DefaultReadCapacity()
+	for _, tc := range []struct {
+		name                        string
+		previousEnd, opener, length int
+		gap                         v2.Reason
+	}{
+		{"resync-after-undelimitable.whole", 210, 210, 1, v2.UndelimitableInput},
+		{"resync-after-torn-swallowed-failing.whole", 114, 206, 92, v2.TornTail},
+		{"resync-after-torn-swallowed-passing.whole", 306, 306, 0, ""},
+		{"resync-first-item-torn.whole", 0, 10, 10, v2.TornTail},
+		{"resync-first-byte-foreign.whole", 0, 2, 2, v2.UndelimitableInput},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data := vector(t, tc.name)
+			result := v2.ReadWire(data, capacity)
+			if result.Stop != "" || result.Dispatch != v2.SecondGeneration || len(result.Segments) == 0 {
+				t.Fatalf("dispatch %s, stopped %s, segments %d", result.Dispatch, result.Stop, len(result.Segments))
+			}
+			segments := result.Segments
+			resumed := segments[len(segments)-1]
+			if !resumed.Scanned || resumed.Items[0].Offset != tc.opener || resumed.End != len(data) {
+				t.Fatalf("resumed at %d, scanned %t, end %d", resumed.Items[0].Offset, resumed.Scanned, resumed.End)
+			}
+			gotGap := result.PrefixGap
+			if tc.previousEnd != 0 {
+				if len(segments) != 2 || segments[0].End != tc.previousEnd {
+					t.Fatalf("previous segment extent: %+v", segments[0])
+				}
+				gotGap = segments[0].FramingGap
+				last := segments[0].Items[len(segments[0].Items)-1]
+				if (last.Kind == v2.DamagedRegion) != (tc.gap == v2.UndelimitableInput) {
+					t.Fatalf("last item before recovery: %+v", last)
+				}
+			}
+			if tc.gap == "" {
+				if gotGap != nil {
+					t.Fatalf("unexpected gap: %+v", gotGap)
+				}
+			} else if gotGap == nil || *gotGap != (v2.FramingGap{Offset: tc.opener - tc.length, Length: tc.length, Reason: tc.gap}) {
+				t.Fatalf("gap: %+v", gotGap)
+			}
+			for _, item := range resumed.Items[1:] {
+				if item.Frame != nil && item.Frame.Link != v2.Linked {
+					t.Fatalf("resumed frame link: %s", item.Frame.Link)
+				}
+			}
+		})
+	}
+}
+
+func TestResyncScanChargesBeforeReadingCandidateTail(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		budget, count uint64
+		offset        int
+	}{
+		{"resync-charge-before-read.whole", 4000, 4127, 210},
+		{"resync-charge-refused-in-region.whole", 4000, 4127, 210},
+		{"resync-flood-true-offsets", 20511, 24607, 539},
+	} {
+		capacity := v2.DefaultReadCapacity()
+		capacity.DecodedBytesPerRead = tc.budget
+		result := v2.ReadWire(vector(t, tc.name), capacity)
+		want := v2.ResyncRefusal{Position: 3, Offset: tc.offset, Length: 4096, Count: tc.count}
+		if got := result.Segments[0].ResyncRefusal; got == nil || *got != want {
+			t.Fatalf("%s: refusal = %+v, want %+v", tc.name, got, want)
+		}
+		if len(result.Segments) != 1 || result.Stop != v2.UndelimitableInput {
+			t.Fatalf("%s: recovered despite refusal", tc.name)
+		}
+	}
+}
+
+func TestResyncScanKeepsWitnessOnlyWhenRecoveryKeepsItsItem(t *testing.T) {
+	capacity := v2.DefaultReadCapacity()
+	accepted := v2.ReadWire(vector(t, "resync-heal-witness-removed.ample-whole"), capacity)
+	capacity.DecodedBytesPerRead = 4114
+	refused := v2.ReadWire(vector(t, "resync-heal-witness-removed.low-whole"), capacity)
+	if got := accepted.Segments[0].Items[2].Frame.Link; got != v2.Broken {
+		t.Fatalf("link with removed witness: %s", got)
+	}
+	if got := refused.Segments[0].Items[2].Frame.Link; got != v2.Healed {
+		t.Fatalf("link with retained witness: %s", got)
+	}
+}
+
+func TestResyncScanCountsHeldItemsBeforeAdmittingCandidate(t *testing.T) {
+	capacity := v2.DefaultReadCapacity()
+	capacity.ItemsPerRead = 5
+	result := v2.ReadWire(vector(t, "item-limit-region-candidate-untested"), capacity)
+	if result.Stop != v2.UndelimitableInput || result.StopOffset != 271 || len(result.Segments) != 2 {
+		t.Fatalf("stop %s at %d, segments %d", result.Stop, result.StopOffset, len(result.Segments))
+	}
+	for _, segment := range result.Segments {
+		if segment.Scanned || segment.ResyncRefusal != nil {
+			t.Fatalf("candidate was tested at the item limit: %+v", segment)
+		}
+	}
+}
+
 func TestInspectWireChecksCompressedPayloadWithoutRetainingIt(t *testing.T) {
 	data := vector(t, "zstd-ok")
 	capacity := v2.DefaultReadCapacity()

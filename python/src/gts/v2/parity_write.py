@@ -3,59 +3,14 @@
 """Encode and place P5 geometry-1 parity frames over stored items."""
 
 from collections.abc import Sequence
-from functools import cache
 
 import cbor2
 from blake3 import blake3
 
+from ._parity_shards import _DATA_COLUMNS, _parity_shards, _shard_digest
 from .frame import _PARITY, decode_frame, encode_plain_frame
 
 _SPAN_LENGTH = 1 << 22
-_DATA_COLUMNS = 64
-_PARITY_ROWS = 4
-
-
-def _field_tables() -> tuple[tuple[int, ...], tuple[int, ...]]:
-    powers = []
-    logs = [0] * 256
-    value = 1
-    for exponent in range(255):
-        powers.append(value)
-        logs[value] = exponent
-        value <<= 1
-        if value >= 256:
-            value ^= 0x11D
-    return tuple(powers), tuple(logs)
-
-
-_POWERS, _LOGS = _field_tables()
-
-
-@cache
-def _products(coefficient: int) -> bytes:
-    power = _LOGS[coefficient]
-    return bytes([0]) + bytes(
-        _POWERS[(power + _LOGS[value]) % 255] for value in range(1, 256)
-    )
-
-
-def _parity_shards(data: list[bytearray], size: int) -> list[bytes]:
-    depth = (len(data) + _DATA_COLUMNS - 1) // _DATA_COLUMNS
-    result = []
-    for stripe in range(depth):
-        columns = data[stripe::depth]
-        for row in range(_PARITY_ROWS):
-            shard = 0
-            for column, block in enumerate(columns):
-                # Multiply every byte by the Cauchy entry, then XOR in bulk.
-                coefficient = _POWERS[-_LOGS[(255 - row) ^ column] % 255]
-                shard ^= int.from_bytes(block.translate(_products(coefficient)))
-            result.append(shard.to_bytes(size))
-    return result
-
-
-def _shard_digest(shard: bytes | bytearray) -> bytes:
-    return blake3(shard, derive_key_context="gts2 shard").digest(length=16)
 
 
 def _encode_span(span: bytearray, first: int, opener: bytes, anchor: bytes) -> bytes:

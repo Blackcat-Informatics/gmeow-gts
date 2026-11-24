@@ -4,7 +4,7 @@ go 1.26.6
 
 require (
 	github.com/fxamacker/cbor/v2 v2.10.0
-	github.com/klauspost/compress v1.20.4
+	github.com/klauspost/compress v1.20.5
 	github.com/zeebo/blake3 v0.2.4
 )
 

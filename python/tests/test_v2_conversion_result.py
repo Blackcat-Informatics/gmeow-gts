@@ -102,7 +102,7 @@ def test_oversized_canonical_frame_is_judged_after_the_result_read() -> None:
         nonlocal admitted
         assert raw and given == capacity
         admitted = True
-        return _verified(bytes(32))
+        return replace(_verified(bytes(32)), capacity_refused=True)
 
     # The index decodes to 3773 bytes. The source fits within the limit.
     assert _convert(lambda: source, read_result, capacity) == ConversionStop(

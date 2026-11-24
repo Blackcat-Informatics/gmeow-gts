@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """CBOR item boundaries and the first-item generation field (P1 §§2.3, 6)."""
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Literal
 
@@ -20,9 +21,12 @@ _TEXT = -5
 class ItemFramingError(ValueError):
     """A framing failure with the offset of the first byte of the item."""
 
-    def __init__(self, reason: FramingReason, offset: int) -> None:
+    def __init__(
+        self, reason: FramingReason, offset: int, examined_end: int | None = None
+    ) -> None:
         self.reason = reason
         self.offset = offset
+        self.examined_end = offset if examined_end is None else examined_end
         super().__init__(f"{reason} at offset {offset}")
 
 
@@ -37,7 +41,7 @@ def _head(
 ) -> tuple[int, int | None, int]:
     """Read a CBOR head without applying the deterministic GTS grammar."""
     if offset == len(data):
-        raise ItemFramingError("torn_tail", item_start)
+        raise ItemFramingError("torn_tail", item_start, offset)
     major, additional = divmod(data[offset], 32)
     offset += 1
     if additional < 24:
@@ -45,14 +49,14 @@ def _head(
     if additional <= 27:
         end = offset + (1 << (additional - 24))
         if end > len(data):
-            raise ItemFramingError("torn_tail", item_start)
+            raise ItemFramingError("torn_tail", item_start, len(data))
         argument = int.from_bytes(data[offset:end], "big")
         if major == 7 and additional == 24 and argument < 32:
-            raise ItemFramingError("undelimitable_input", item_start)
+            raise ItemFramingError("undelimitable_input", item_start, end)
         return major, argument, end
     if additional == 31 and major in (2, 3, 4, 5, 7):
         return major, None, offset
-    raise ItemFramingError("undelimitable_input", item_start)
+    raise ItemFramingError("undelimitable_input", item_start, offset)
 
 
 def item_end(data: bytes | memoryview, offset: int = 0) -> int:
@@ -73,12 +77,12 @@ def item_end(data: bytes | memoryview, offset: int = 0) -> int:
             major, additional = divmod(data[offset], 32)
             chunk_major = 2 if parent == _BYTES else 3
             if data[offset] != 0xFF and (major != chunk_major or additional == 31):
-                raise ItemFramingError("undelimitable_input", item_start)
+                raise ItemFramingError("undelimitable_input", item_start, offset + 1)
 
         major, argument, offset = _head(data, offset, item_start)
         if major == 7 and argument is None:
             if parent >= 0 or parent == _MAP_VALUE:
-                raise ItemFramingError("undelimitable_input", item_start)
+                raise ItemFramingError("undelimitable_input", item_start, offset)
             parents.pop()
         else:
             if parent > 0:
@@ -89,9 +93,9 @@ def item_end(data: bytes | memoryview, offset: int = 0) -> int:
             if argument is None:
                 parents.append((_BYTES, _TEXT, _ARRAY, _MAP_KEY)[major - 2])
             elif major in (2, 3):
+                if offset + argument > len(data):
+                    raise ItemFramingError("torn_tail", item_start, offset)
                 offset += argument
-                if offset > len(data):
-                    raise ItemFramingError("torn_tail", item_start)
             elif major in (4, 5) and argument:
                 parents.append(argument if major == 4 else 2 * argument)
             elif major == 6:
@@ -100,6 +104,21 @@ def item_end(data: bytes | memoryview, offset: int = 0) -> int:
         while parents and parents[-1] == 0:
             parents.pop()
     return offset
+
+
+def _byte_string_chunks(data: bytes, offset: int) -> Iterator[memoryview]:
+    """Yield the bytes of an already delimited byte string in chunk order."""
+    view = memoryview(data)
+    _, length, start = _head(data, offset, offset)
+    if length is not None:
+        yield view[start : start + length]
+        return
+    while data[start] != 0xFF:
+        _, length, start = _head(data, start, offset)
+        assert length is not None
+        end = start + length
+        yield view[start:end]
+        start = end
 
 
 def _is_version_key(data: bytes, offset: int) -> bool:
@@ -128,7 +147,10 @@ def generation_field(data: bytes) -> GenerationField | None:
     """
     if not data:
         return None
-    end = item_end(data)
+    return _generation_field(data, item_end(data))
+
+
+def _generation_field(data: bytes, end: int) -> GenerationField | None:
     major, count, position = _head(data, 0, 0)
     if major == 4 and (count is None or count >= 2):
         kind_major, kind, position = _head(data, position, 0)
