@@ -45,6 +45,11 @@ For frame payloads, use one `gts.v2.PayloadBudget` per read. Check frames in
 reader order after checking their links. The budget guards zstd decoding and
 reports the stored check independently of payload acceptance.
 
+Use `gts.v2.read_wire` for whole-input framing, link, payload, closing, and
+parity results. Use `gts.v2.read_content` for the content fold and canonical
+checks. When parity repair succeeds, `repaired_copy` contains the repaired
+bytes and the findings describe the original input.
+
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.
 
 ## Convert to v2
