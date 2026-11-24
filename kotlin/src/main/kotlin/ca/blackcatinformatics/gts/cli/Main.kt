@@ -165,6 +165,11 @@ private fun cmdInfo(paths: List<String>): Int {
     var problems = false
     for (path in paths) {
         val data = load(path) ?: return 2
+        val framed = printV2Info(path, data)
+        if (framed != null) {
+            if (!framed) problems = true
+            continue
+        }
         val fs = readFileSegments(data)
         val tornSuffix = if (fs.torn >= 0) ", TORN at byte ${fs.torn}" else ""
         println("$path: ${fs.segments.size} segment(s)$tornSuffix")
