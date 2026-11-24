@@ -26,7 +26,7 @@ const usageEN = `usage: gts <command> [args]
 
 commands:
   info <file>...            show the ledger for each segment (wire checks in v2)
-  fold <file>               fold to N-Quads on stdout
+  fold <file>               write N-Quads (whole RDF projection for v2)
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
   verify-proof <proof.json>  verify detached MMR proof JSON without the GTS file
   heads <file>              JSON segment heads and aggregate comparison digest
@@ -65,7 +65,7 @@ const usageFRCA = `utilisation: gts <command> [args]
 
 commandes:
   info <file>...            affiche le registre par segment (contrôles filaires en v2)
-  fold <file>               plie vers N-Quads sur stdout
+  fold <file>               écrit des N-Quads (projection RDF intégrale en v2)
   verify <file>...          verifie les chaines, le registre et les diagnostics
   verify-proof <proof.json>  verifie une preuve MMR detachee sans fichier GTS
   heads <file>              emet les tetes de segments et le digest agrege en JSON
@@ -101,7 +101,7 @@ const usageZHHans = `用法: gts <command> [args]
 
 命令:
   info <file>...            显示每个段的账本（v2 显示线格式检查）
-  fold <file>               将内容折叠为 N-Quads 并写到 stdout
+  fold <file>               输出 N-Quads（v2 使用完整 RDF 投影）
   verify <file>...          验证链、账本和诊断；发现问题时退出 1
   verify-proof <proof.json>  在没有 GTS 文件时验证分离的 MMR 证明
   heads <file>              输出段头和聚合比较摘要的 JSON
