@@ -158,103 +158,99 @@ fn decode_resync<'a>(
 ) -> Result<DecodedResync<'a>, HeaderError> {
     use MalformedReason::{OutOfRange, UnorderedOrRepeated, WrongLength, WrongType};
     let limit = offset.saturating_add(4096);
-    let mut cursor = Decoder::new(&data[..end.min(limit)], offset);
-    let decode = |cursor: &mut Decoder<'a>| {
-        cursor.record(11)?;
-        cursor.code(5)?;
-        let error = cursor.error(OutOfRange);
-        if cursor.uint()? != 2 {
-            return Err(error);
+    // The limit applies to field starts, so a head that begins before it
+    // can use its full argument when the grammar decides the first error.
+    let mut cursor = Decoder::new(&data[..end], offset);
+    cursor.field_start_limit = Some(limit);
+    cursor.record(11)?;
+    cursor.code(5)?;
+    let error = cursor.error(OutOfRange);
+    if cursor.uint()? != 2 {
+        return Err(error);
+    }
+    let error = cursor.error(OutOfRange);
+    if cursor.byte_string(None)? != RESYNC_MARKER {
+        return Err(error);
+    }
+    let (registry_version, hash_algorithm, profile) = cursor.opener_fields()?;
+    let known = hash_algorithm == 1;
+    let lineage = cursor.option(|cursor| cursor.lineage(known))?;
+    let claimed_offset = cursor.uint()?;
+    let digest_size = known.then_some(32);
+    let past = cursor.option(|cursor| cursor.byte_string(digest_size))?;
+    let marks_at = cursor.offset;
+    let count = cursor.head(4)?;
+    let mut last: &[u8] = &[];
+    for index in 0..count {
+        let mark_at = cursor.offset;
+        let elements = cursor.head(4)?;
+        if elements == 0 {
+            return Err(HeaderError {
+                reason: WrongType,
+                offset: mark_at,
+            });
         }
-        let error = cursor.error(OutOfRange);
-        if cursor.byte_string(None)? != RESYNC_MARKER {
-            return Err(error);
+        // The first element must be a uint by shape before count and order.
+        let Some(tag) = cursor.bytes.get(cursor.offset) else {
+            return Err(cursor.error(WrongLength));
+        };
+        if tag >> 5 != 0 {
+            return Err(HeaderError {
+                reason: WrongType,
+                offset: mark_at,
+            });
         }
-        let (registry_version, hash_algorithm, profile) = cursor.opener_fields()?;
-        let known = hash_algorithm == 1;
-        let lineage = cursor.option(|cursor| cursor.lineage(known))?;
-        let claimed_offset = cursor.uint()?;
-        let digest_size = known.then_some(32);
-        let past = cursor.option(|cursor| cursor.byte_string(digest_size))?;
-        let marks_at = cursor.offset;
-        let count = cursor.head(4)?;
-        let mut last: &[u8] = &[];
-        for index in 0..count {
-            let mark_at = cursor.offset;
-            let elements = cursor.head(4)?;
-            if elements == 0 {
-                return Err(HeaderError {
-                    reason: WrongType,
-                    offset: mark_at,
-                });
-            }
-            // The first element must be a uint by shape before count and order.
-            let Some(tag) = cursor.bytes.get(cursor.offset) else {
-                cursor.exhausted = true;
-                return Err(cursor.error(WrongLength));
-            };
-            if tag >> 5 != 0 {
-                return Err(HeaderError {
-                    reason: WrongType,
-                    offset: mark_at,
-                });
-            }
-            if index >= 64 {
-                return Err(HeaderError {
-                    reason: OutOfRange,
-                    offset: mark_at,
-                });
-            }
-            // A complete item cannot be a proper prefix of another complete item.
-            let available = &cursor.bytes[mark_at..];
-            let prefix = &available[..available.len().min(last.len())];
-            if !last.is_empty()
-                && prefix <= last
-                && (prefix.len() == last.len() || !last.starts_with(prefix))
-            {
-                return Err(HeaderError {
-                    reason: UnorderedOrRepeated,
-                    offset: mark_at,
-                });
-            }
-            for _ in 0..elements {
-                cursor.closed_item()?;
-            }
-            last = &cursor.bytes[mark_at..cursor.offset];
-        }
-        let marks = &cursor.bytes[marks_at..cursor.offset];
-        let body = &cursor.bytes[offset + 1..cursor.offset];
-        let stored_identifier = cursor.byte_string(digest_size)?;
-        let identifier = known.then(|| {
-            let mut hash = blake3::Hasher::new_derive_key(HEADER_CONTEXT);
-            hash.update(&[0x8a]);
-            hash.update(body);
-            *hash.finalize().as_bytes()
-        });
-        Ok(DecodedResync {
-            header: Header {
-                registry_version,
-                hash_algorithm,
-                profile,
-                canonical: None,
-                lineage,
-            },
-            claimed_offset,
-            past,
-            marks,
-            stored_identifier,
-            identifier,
-        })
-    };
-    decode(&mut cursor).map_err(|error| {
-        if end > limit && cursor.exhausted {
-            HeaderError {
+        if index >= 64 {
+            return Err(HeaderError {
                 reason: OutOfRange,
-                offset: limit,
-            }
-        } else {
-            error
+                offset: mark_at,
+            });
         }
+        // A complete item cannot be a proper prefix of another complete item.
+        let available = &cursor.bytes[mark_at..];
+        let prefix = &available[..available.len().min(last.len())];
+        if !last.is_empty()
+            && prefix <= last
+            && (prefix.len() == last.len() || !last.starts_with(prefix))
+        {
+            return Err(HeaderError {
+                reason: UnorderedOrRepeated,
+                offset: mark_at,
+            });
+        }
+        for _ in 0..elements {
+            cursor.closed_item()?;
+        }
+        last = &cursor.bytes[mark_at..cursor.offset];
+    }
+    let marks = &cursor.bytes[marks_at..cursor.offset];
+    let body = &cursor.bytes[offset + 1..cursor.offset];
+    let stored_identifier = cursor.byte_string(digest_size)?;
+    if cursor.offset > limit {
+        return Err(HeaderError {
+            reason: OutOfRange,
+            offset: limit,
+        });
+    }
+    let identifier = known.then(|| {
+        let mut hash = blake3::Hasher::new_derive_key(HEADER_CONTEXT);
+        hash.update(&[0x8a]);
+        hash.update(body);
+        *hash.finalize().as_bytes()
+    });
+    Ok(DecodedResync {
+        header: Header {
+            registry_version,
+            hash_algorithm,
+            profile,
+            canonical: None,
+            lineage,
+        },
+        claimed_offset,
+        past,
+        marks,
+        stored_identifier,
+        identifier,
     })
 }
 

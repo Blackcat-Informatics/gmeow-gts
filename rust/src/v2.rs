@@ -125,7 +125,7 @@ impl Error for HeaderWriteError {}
 struct Decoder<'a> {
     bytes: &'a [u8],
     offset: usize,
-    exhausted: bool,
+    field_start_limit: Option<usize>,
 }
 
 impl<'a> Decoder<'a> {
@@ -133,7 +133,7 @@ impl<'a> Decoder<'a> {
         Self {
             bytes,
             offset,
-            exhausted: false,
+            field_start_limit: None,
         }
     }
 
@@ -151,7 +151,6 @@ impl<'a> Decoder<'a> {
             .checked_add(size)
             .filter(|&end| end <= self.bytes.len())
         else {
-            self.exhausted = true;
             return Err(error);
         };
         let value = &self.bytes[self.offset..end];
@@ -160,6 +159,12 @@ impl<'a> Decoder<'a> {
     }
 
     fn head(&mut self, expected: u8) -> Result<u64, HeaderError> {
+        if let Some(limit) = self.field_start_limit.filter(|limit| self.offset >= *limit) {
+            return Err(HeaderError {
+                reason: MalformedReason::OutOfRange,
+                offset: limit,
+            });
+        }
         let start = self.offset;
         let first = self.take(1)?[0];
         let major = first >> 5;
