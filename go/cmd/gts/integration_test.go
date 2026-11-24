@@ -469,6 +469,63 @@ func TestVerifyFlagsDamageWithExit1(t *testing.T) {
 	}
 }
 
+func TestVerifyV2ChecksCommitsAndKeepsLegacyDispatch(t *testing.T) {
+	cmd, stdout, stderr := run(t, "verify",
+		vector(t, "01-minimal.gts"),
+		vector(t, "v2/P5/commit-valid.bin"),
+		vector(t, "v2/P5/commit-none.bin"),
+		vector(t, "v2/P5/commit-canonical-tail.bin"))
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("verify exit %d: %s", cmd.ProcessState.ExitCode(), stderr)
+	}
+	for _, part := range []string{
+		"01-minimal.gts: 1 segment(s)",
+		"committed_frames 3, uncommitted_tail 1, index claims unchecked",
+		"no_commit, uncommitted_tail 2",
+		"committed_frames 2, index claims unchecked",
+	} {
+		if !strings.Contains(stdout.String(), part) {
+			t.Errorf("missing %q in ledger:\n%s", part, stdout)
+		}
+	}
+}
+
+func TestVerifyV2RejectsDamageAndFalseClaims(t *testing.T) {
+	cmd, stdout, stderr := run(t, "verify",
+		vector(t, "v2/P1/stored-mismatch.bin"),
+		vector(t, "v2/P1/torn-after-frames.bin"),
+		vector(t, "v2/P5/commit-count-mismatch.bin"),
+		vector(t, "v2/P5/commit-root-mismatch.bin"),
+		vector(t, "v2/P5/locator-closing-index.bin"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("verify exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	for _, part := range []string{
+		"stored check mismatch", "torn_tail",
+		"commit-count-mismatch.bin: byte 810: commit_count_mismatch (expected 2)",
+		"commit-root-mismatch.bin: byte 810: commit_root_mismatch",
+		"unsupported offsets claim", "unsupported locator claim",
+	} {
+		if !strings.Contains(stderr.String(), part) {
+			t.Errorf("missing %q in diagnostics:\n%s", part, stderr)
+		}
+	}
+}
+
+func TestVerifyV2RejectsUnsupportedKeysAndGeneration(t *testing.T) {
+	cmd, _, stderr := run(t, "verify", "--key", "example:"+strings.Repeat("00", 32),
+		vector(t, "v2/P5/commit-valid.bin"),
+		vector(t, "v2/P1/gen-record-three.bin"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("verify exit %d: %s", cmd.ProcessState.ExitCode(), stderr)
+	}
+	for _, part := range []string{"--key is unsupported for GTS v2", "unsupported GTS generation 3"} {
+		if !strings.Contains(stderr.String(), part) {
+			t.Errorf("missing %q in diagnostics:\n%s", part, stderr)
+		}
+	}
+}
+
 func TestVerifyProofFixture(t *testing.T) {
 	cmd, stdout, stderr := run(t, "verify-proof", proofVector(t, "mmr-basic-proof.json"))
 	if cmd.ProcessState.ExitCode() != 0 {

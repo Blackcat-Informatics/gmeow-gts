@@ -51,7 +51,8 @@ type Frame struct {
 	StoredMatches *bool
 	Payload       Payload
 	// Malformed is the first envelope field violation or codec constraint.
-	Malformed Reason
+	Malformed             Reason
+	contentWithinCapacity bool
 }
 
 type frameFields struct {

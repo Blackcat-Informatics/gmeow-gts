@@ -22,7 +22,7 @@ var frameNamesV2 = [...]string{
 }
 
 func inspectFile(path string, data []byte) bool {
-	result := v2.ReadWire(data, v2.DefaultReadCapacity())
+	result := v2.InspectWire(data, v2.DefaultReadCapacity())
 	switch result.Dispatch {
 	case v2.FirstGeneration:
 		fs := reader.ReadFileSegments(data)
@@ -115,29 +115,31 @@ func printSegmentV2(ordinal int, segment v2.Segment) bool {
 			fmt.Printf("    %s item at byte %d: %s\n", item.Kind, item.Offset, item.Reason)
 			clean = false
 		}
-		if item.Frame != nil && !printFrameV2(item.Offset, item.Frame) {
+		if item.Frame != nil && !reportFrameProblemsV2(item.Frame, func(reason string) {
+			fmt.Printf("    frame at byte %d: %s\n", item.Offset, reason)
+		}) {
 			clean = false
 		}
 	}
 	return clean
 }
 
-func printFrameV2(offset int, frame *v2.Frame) bool {
+func reportFrameProblemsV2(frame *v2.Frame, report func(string)) bool {
 	clean := true
 	if frame.Malformed != "" {
-		fmt.Printf("    frame at byte %d: malformed envelope: %s\n", offset, frame.Malformed)
+		report(fmt.Sprintf("malformed envelope: %s", frame.Malformed))
 		clean = false
 	}
 	if frame.Link != v2.Linked {
-		fmt.Printf("    frame at byte %d: link %s\n", offset, frame.Link)
+		report(fmt.Sprintf("link %s", frame.Link))
 		clean = false
 	}
 	if frame.StoredMatches != nil && !*frame.StoredMatches {
-		fmt.Printf("    frame at byte %d: stored check mismatch\n", offset)
+		report("stored check mismatch")
 		clean = false
 	}
 	if frame.Payload.State != v2.Verified {
-		fmt.Printf("    frame at byte %d: %s payload: %s\n", offset, frame.Payload.State, frame.Payload.Reason)
+		report(fmt.Sprintf("%s payload: %s", frame.Payload.State, frame.Payload.Reason))
 		clean = false
 	}
 	return clean

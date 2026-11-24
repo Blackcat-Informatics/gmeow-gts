@@ -22,6 +22,43 @@ func vector(t *testing.T, name string) []byte {
 	return data
 }
 
+func TestInspectWireChecksCompressedPayloadWithoutRetainingIt(t *testing.T) {
+	data := vector(t, "zstd-ok")
+	capacity := v2.DefaultReadCapacity()
+	inspected := v2.InspectWire(data, capacity).Segments[0].Items[1].Frame.Payload
+	read := v2.ReadWire(data, capacity).Segments[0].Items[1].Frame.Payload
+	if inspected.State != v2.Verified || inspected.Decoded != nil {
+		t.Fatalf("inspection payload = %+v", inspected)
+	}
+	if read.State != v2.Verified || len(read.Decoded) == 0 {
+		t.Fatalf("reader payload = %+v", read)
+	}
+}
+
+func TestCommitClaimsRequireContentWithinStoredCapacity(t *testing.T) {
+	path := filepath.Join("..", "..", "vectors", "v2", "P5", "commit-root-mismatch.bin")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	capacity := v2.DefaultReadCapacity()
+	segment := v2.InspectWire(data, capacity).Segments[0]
+	check := segment.CheckCommits()
+	if len(check.Mismatches) != 1 || !check.Mismatches[0].RootMismatch {
+		t.Fatalf("readable commit: %+v", check)
+	}
+	for _, item := range segment.Items {
+		if item.Offset == check.Mismatches[0].Offset {
+			capacity.StoredBytesPerFrame = uint64(len(item.Frame.Content)) - 1
+			break
+		}
+	}
+	check = v2.InspectWire(data, capacity).Segments[0].CheckCommits()
+	if len(check.Mismatches) != 0 || check.CommittedFrames != 0 {
+		t.Fatalf("commit with content beyond capacity: %+v", check)
+	}
+}
+
 func TestDispatchUsesFirstTypedGeneration(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
