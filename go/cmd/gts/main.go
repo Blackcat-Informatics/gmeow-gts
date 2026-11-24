@@ -25,8 +25,8 @@ var usage = usageText(resolveLocale())
 const usageEN = `usage: gts <command> [args]
 
 commands:
-  info <file>...            per-segment composition ledger
-  fold <file>               fold to N-Quads on stdout
+  info <file>...            show the ledger for each segment (wire checks in v2)
+  fold <file>               write N-Quads (whole RDF projection for v2)
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
   verify-proof <proof.json>  verify detached MMR proof JSON without the GTS file
   heads <file>              JSON segment heads and aggregate comparison digest
@@ -51,21 +51,21 @@ commands:
   unpack <archive> [-C dir] [--include-suppressed]
                             unpack a files-profile archive
   diff <archive> <dir>      compare archive to directory by digest
-  from-nq <in.nq> [-o out]  build a GTS from N-Quads; '-' reads stdin
+  from-nq <in.nq> [-o out]  import N-Quads as GTS v2; '-' reads stdin
   to-nt <file>              fold the default graph to N-Triples on stdout
-  from-nt <in.nt> [-o out]  build a GTS from N-Triples; '-' reads stdin
+  from-nt <in.nt> [-o out]  import N-Triples as GTS v2 (use '-' for stdin)
   to-trig <file>            fold to TriG on stdout
-  from-trig <in.trig> [-o out] build a GTS from TriG; '-' reads stdin
+  from-trig <in.trig> [-o out] import TriG as GTS v2 (use '-' for stdin)
   to-turtle <file>          fold the default graph to Turtle on stdout
-  from-turtle <in.ttl> [-o out] build a GTS from Turtle; '-' reads stdin
+  from-turtle <in.ttl> [-o out] import Turtle as GTS v2 (use '-' for stdin)
   to-rdfxml <file>          fold the default graph to RDF/XML on stdout
-  from-rdfxml <in.rdf> [-o out] build a GTS from RDF/XML; '-' reads stdin`
+  from-rdfxml <in.rdf> [-o out] import RDF/XML as GTS v2 (use '-' for stdin)`
 
 const usageFRCA = `utilisation: gts <command> [args]
 
 commandes:
-  info <file>...            affiche le registre de composition par segment
-  fold <file>               plie vers N-Quads sur stdout
+  info <file>...            affiche le registre par segment (contrôles filaires en v2)
+  fold <file>               écrit des N-Quads (projection RDF intégrale en v2)
   verify <file>...          verifie les chaines, le registre et les diagnostics
   verify-proof <proof.json>  verifie une preuve MMR detachee sans fichier GTS
   heads <file>              emet les tetes de segments et le digest agrege en JSON
@@ -87,21 +87,21 @@ emballe des fichiers en archive de profil files
   unpack <archive> [-C dir] [--include-suppressed]
 deballe une archive de profil files
   diff <archive> <dir>      compare une archive a un repertoire par digest
-  from-nq <in.nq> [-o out]  construit un GTS depuis N-Quads; '-' lit stdin
+  from-nq <in.nq> [-o out]  importe des N-Quads en GTS v2; '-' lit stdin
   to-nt <file>              plie le graphe par defaut vers N-Triples
-  from-nt <in.nt> [-o out]  construit un GTS depuis N-Triples; '-' lit stdin
+  from-nt <in.nt> [-o out]  importe des N-Triples en GTS v2 (« - » lit stdin)
   to-trig <file>            plie vers TriG sur stdout
-  from-trig <in.trig> [-o out] construit un GTS depuis TriG; '-' lit stdin
+  from-trig <in.trig> [-o out] importe du TriG en GTS v2 (« - » lit stdin)
   to-turtle <file>          plie le graphe par defaut vers Turtle
-  from-turtle <in.ttl> [-o out] construit un GTS depuis Turtle; '-' lit stdin
+  from-turtle <in.ttl> [-o out] importe du Turtle en GTS v2 (« - » lit stdin)
   to-rdfxml <file>          plie le graphe par defaut vers RDF/XML
-  from-rdfxml <in.rdf> [-o out] construit un GTS depuis RDF/XML; '-' lit stdin`
+  from-rdfxml <in.rdf> [-o out] importe du RDF/XML en GTS v2 (« - » lit stdin)`
 
 const usageZHHans = `用法: gts <command> [args]
 
 命令:
-  info <file>...            显示每个段的组合账本
-  fold <file>               将内容折叠为 N-Quads 并写到 stdout
+  info <file>...            显示每个段的账本（v2 显示线格式检查）
+  fold <file>               输出 N-Quads（v2 使用完整 RDF 投影）
   verify <file>...          验证链、账本和诊断；发现问题时退出 1
   verify-proof <proof.json>  在没有 GTS 文件时验证分离的 MMR 证明
   heads <file>              输出段头和聚合比较摘要的 JSON
@@ -122,15 +122,15 @@ const usageZHHans = `用法: gts <command> [args]
   unpack <archive> [-C dir] [--include-suppressed]
 解包 files 配置文件归档
   diff <archive> <dir>      按摘要比较归档和目录
-  from-nq <in.nq> [-o out]  从 N-Quads 构建 GTS；'-' 读取 stdin
+  from-nq <in.nq> [-o out]  将 N-Quads 导入为 GTS v2；'-' 读取 stdin
   to-nt <file>              将默认图折叠为 N-Triples
-  from-nt <in.nt> [-o out]  从 N-Triples 构建 GTS；'-' 读取 stdin
+  from-nt <in.nt> [-o out]  将 N-Triples 导入为 GTS v2（'-' 读取 stdin）
   to-trig <file>            将内容折叠为 TriG 并写到 stdout
-  from-trig <in.trig> [-o out] 从 TriG 构建 GTS；'-' 读取 stdin
+  from-trig <in.trig> [-o out] 将 TriG 导入为 GTS v2（'-' 读取 stdin）
   to-turtle <file>          将默认图折叠为 Turtle
-  from-turtle <in.ttl> [-o out] 从 Turtle 构建 GTS；'-' 读取 stdin
+  from-turtle <in.ttl> [-o out] 将 Turtle 导入为 GTS v2（'-' 读取 stdin）
   to-rdfxml <file>          将默认图折叠为 RDF/XML
-  from-rdfxml <in.rdf> [-o out] 从 RDF/XML 构建 GTS；'-' 读取 stdin`
+  from-rdfxml <in.rdf> [-o out] 将 RDF/XML 导入为 GTS v2（'-' 读取 stdin）`
 
 func resolveLocale() cliLocale {
 	for _, key := range []string{"GTS_LANG", "LC_ALL", "LC_MESSAGES", "LANG"} {

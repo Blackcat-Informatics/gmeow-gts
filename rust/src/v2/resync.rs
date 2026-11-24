@@ -119,6 +119,15 @@ fn decode_tail<'a>(
     let marks = read_marks(cursor)?;
     let body = &cursor.bytes[offset + 1..cursor.offset];
     let stored_identifier = cursor.byte_string(digest_size)?;
+    if let Some(limit) = cursor
+        .field_start_limit
+        .filter(|&limit| cursor.offset > limit)
+    {
+        return Err(HeaderError {
+            reason: MalformedReason::OutOfRange,
+            offset: limit,
+        });
+    }
     let identifier = known.then(|| {
         let mut hash = blake3::Hasher::new_derive_key(HEADER_CONTEXT);
         hash.update(&[0x8a]);
@@ -142,19 +151,11 @@ pub(super) fn decode_resync(
     end: usize,
 ) -> Result<DecodedResync<'_>, HeaderError> {
     let limit = offset.saturating_add(RESYNC_MAX);
-    let mut cursor = Decoder::new(&data[..end.min(limit)], offset);
+    // Walked items use the complete head when its first byte is within the cap.
+    let mut cursor = Decoder::new(&data[..end], offset);
+    cursor.field_start_limit = Some(limit);
     decode_prefix(&mut cursor, false)
         .and_then(|(header, claimed)| decode_tail(&mut cursor, offset, header, claimed))
-        .map_err(|error| {
-            if end > limit && cursor.exhausted {
-                HeaderError {
-                    reason: MalformedReason::OutOfRange,
-                    offset: limit,
-                }
-            } else {
-                error
-            }
-        })
 }
 
 pub(super) enum Candidate<'a> {

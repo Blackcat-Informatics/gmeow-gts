@@ -3,6 +3,9 @@
 
 import {
     TermKind,
+    RDF_DIR_LANG_STRING,
+    RDF_LANG_STRING,
+    XSD_STRING,
     type AnnotationEntry,
     type LiteralDirection,
     type Quad,
@@ -10,6 +13,12 @@ import {
     type Term,
 } from "./model.js";
 import { Writer } from "./writer.js";
+import {
+    blankLabelLength,
+    validIri,
+    validLanguageTag,
+} from "./rdf12_syntax.js";
+import { checkRdfAtomSize, writeRdfSegment } from "./v2_rdf_import.js";
 
 const RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
@@ -74,7 +83,10 @@ function isLangChar(ch: string): boolean {
 class Tokenizer {
     private i = 0;
 
-    constructor(private readonly s: string) {}
+    constructor(
+        private readonly s: string,
+        private readonly rdf12 = false,
+    ) {}
 
     private skipWs(): void {
         while (this.i < this.s.length && /[ \t]/.test(this.s[this.i])) {
@@ -87,13 +99,40 @@ class Tokenizer {
         return this.i >= this.s.length || this.s[this.i] === ".";
     }
 
+    finishStatement(): void {
+        this.skipWs();
+        if (this.s[this.i++] !== ".")
+            throw new NQuadsParseError("expected '.' at end of statement");
+        this.finishLine();
+    }
+
+    versionHint(): void {
+        this.i = "VERSION".length;
+        this.skipWs();
+        if (this.s[this.i] !== '"')
+            throw new NQuadsParseError("expected a VERSION string");
+        this.literal(false);
+        this.finishLine();
+    }
+
+    private finishLine(): void {
+        this.skipWs();
+        if (this.i < this.s.length && this.s[this.i] !== "#") {
+            throw new NQuadsParseError(
+                "unexpected text after the N-Quads item",
+            );
+        }
+    }
+
     node(): Node {
         this.skipWs();
         if (this.i >= this.s.length) {
             throw new NQuadsParseError(`unexpected end of line: ${this.s}`);
         }
         if (this.s.startsWith("<<(", this.i))
-            return { triple: this.quotedTriple() };
+            return this.rdf12
+                ? this.rdfTriple()
+                : { triple: this.quotedTriple() };
         switch (this.s[this.i]) {
             case "<":
                 return atom(TermKind.Iri, this.iri());
@@ -118,7 +157,26 @@ class Tokenizer {
         }
         const value = this.s.slice(this.i + 1, end);
         this.i = end + 1;
-        return value;
+        if (!this.rdf12) return value;
+        const escaped = new Tokenizer(value, true);
+        let iri = "";
+        while (escaped.i < value.length) {
+            const slash = value.indexOf("\\", escaped.i);
+            if (slash === -1) {
+                iri += value.slice(escaped.i);
+                break;
+            }
+            iri += value.slice(escaped.i, slash);
+            escaped.i = slash + 1;
+            if (value[escaped.i] !== "u" && value[escaped.i] !== "U") {
+                throw new NQuadsParseError(
+                    "IRI escapes must use Unicode scalar notation",
+                );
+            }
+            iri += escaped.escape();
+        }
+        if (!validIri(iri)) throw new NQuadsParseError("invalid RDF IRI");
+        return iri;
     }
 
     private bnode(): string {
@@ -127,6 +185,12 @@ class Tokenizer {
         }
         this.i += 2;
         const start = this.i;
+        if (this.rdf12) {
+            this.i += blankLabelLength(this.s.slice(start));
+            if (this.i === start)
+                throw new NQuadsParseError("invalid blank node label");
+            return this.s.slice(start, this.i);
+        }
         while (this.i < this.s.length && isBNodeChar(this.s[this.i])) {
             this.i++;
         }
@@ -139,16 +203,24 @@ class Tokenizer {
         return this.s.slice(start, this.i);
     }
 
-    private literal(): Atom {
+    private literal(suffix = true): Atom {
         this.i++;
         let value = "";
+        const boundary = /["\\]/g;
         while (this.i < this.s.length) {
-            const ch = this.s[this.i++];
+            boundary.lastIndex = this.i;
+            const match = boundary.exec(this.s);
+            if (match === null) break;
+            value += this.s.slice(this.i, match.index);
+            this.i = boundary.lastIndex;
+            const ch = match[0];
             if (ch === "\\") {
                 value += this.escape();
                 continue;
             }
             if (ch === '"') {
+                if (!suffix) return { kind: TermKind.Literal, value };
+                if (this.rdf12) this.skipWs();
                 let lang: string | undefined;
                 let direction: LiteralDirection | undefined;
                 let datatype: string | undefined;
@@ -184,10 +256,22 @@ class Tokenizer {
                         lang = language;
                         direction = rawDirection;
                     }
+                    if (this.rdf12 && !validLanguageTag(lang)) {
+                        throw new NQuadsParseError("invalid RDF language tag");
+                    }
                 } else if (this.s.startsWith("^^", this.i)) {
                     this.i += 2;
                     this.skipWs();
                     datatype = this.iri();
+                    if (
+                        this.rdf12 &&
+                        (datatype === RDF_LANG_STRING ||
+                            datatype === RDF_DIR_LANG_STRING)
+                    ) {
+                        throw new NQuadsParseError(
+                            "the RDF datatype requires a language tag",
+                        );
+                    }
                 }
                 return {
                     kind: TermKind.Literal,
@@ -197,7 +281,6 @@ class Tokenizer {
                     datatype,
                 };
             }
-            value += ch;
         }
         throw new NQuadsParseError(`unterminated literal in ${this.s}`);
     }
@@ -207,6 +290,7 @@ class Tokenizer {
             throw new NQuadsParseError(`bad escape at end of ${this.s}`);
         }
         const ch = this.s[this.i++];
+        if (this.rdf12 && ch === "'") return "'";
         switch (ch) {
             case "\\":
                 return "\\";
@@ -233,6 +317,11 @@ class Tokenizer {
                 }
                 this.i += width;
                 const code = Number.parseInt(raw, 16);
+                if (this.rdf12 && code >= 0xd800 && code <= 0xdfff) {
+                    throw new NQuadsParseError(
+                        "Unicode escapes require a scalar value",
+                    );
+                }
                 try {
                     return String.fromCodePoint(code);
                 } catch {
@@ -262,6 +351,40 @@ class Tokenizer {
         this.i += 3;
         return { s, p, o };
     }
+
+    private rdfTriple(): Node {
+        const parents: { s: Node; p: Node }[] = [];
+        while (this.s.startsWith("<<(", this.i)) {
+            this.i += 3;
+            this.skipWs();
+            if (this.s.startsWith("<<(", this.i))
+                throw new NQuadsParseError("invalid triple term subject");
+            const s = this.node();
+            this.skipWs();
+            if (this.s.startsWith("<<(", this.i))
+                throw new NQuadsParseError("invalid triple term predicate");
+            const p = this.node();
+            if (
+                !(isAtom(s, TermKind.Iri) || isAtom(s, TermKind.Bnode)) ||
+                !isAtom(p, TermKind.Iri)
+            ) {
+                throw new NQuadsParseError(
+                    "invalid triple term subject or predicate",
+                );
+            }
+            parents.push({ s, p });
+            this.skipWs();
+        }
+        let object = this.node();
+        for (let index = parents.length - 1; index >= 0; index--) {
+            this.skipWs();
+            if (!this.s.startsWith(")>>", this.i))
+                throw new NQuadsParseError("unterminated triple term");
+            this.i += 3;
+            object = { triple: { ...parents[index], o: object } };
+        }
+        return object;
+    }
 }
 
 class Interner {
@@ -269,14 +392,18 @@ class Interner {
     readonly terms: Term[] = [];
 
     atom(a: Atom): number {
-        const key = JSON.stringify([
-            "atom",
-            a.kind,
-            a.value,
-            a.lang ?? null,
-            a.direction ?? null,
-            a.datatype ?? null,
-        ]);
+        // Lengths delimit the raw strings without escaping a potentially large value.
+        const key =
+            JSON.stringify([
+                "atom",
+                a.kind,
+                a.lang?.length ?? null,
+                a.direction ?? null,
+                a.datatype?.length ?? null,
+            ]) +
+            (a.lang ?? "") +
+            (a.datatype ?? "") +
+            a.value;
         const existing = this.ids.get(key);
         if (existing !== undefined) return existing;
 
@@ -307,6 +434,38 @@ class Interner {
         const s = this.node(n.triple.s, reifiers);
         const p = this.node(n.triple.p, reifiers);
         const o = this.node(n.triple.o, reifiers);
+        return this.triple(s, p, o);
+    }
+
+    nodeV2(node: Node): number {
+        const parents: { s: number; p: number }[] = [];
+        while (isTriple(node)) {
+            const { s, p, o } = node.triple;
+            if (!isAtom(s) || !isAtom(p))
+                throw new NQuadsParseError("invalid triple term roles");
+            parents.push({ s: this.rdfAtom(s.atom), p: this.rdfAtom(p.atom) });
+            node = o;
+        }
+        let id = this.rdfAtom(node.atom);
+        for (let index = parents.length - 1; index >= 0; index--) {
+            const { s, p } = parents[index];
+            id = this.triple(s, p, id);
+        }
+        return id;
+    }
+
+    private rdfAtom(atom: Atom): number {
+        checkRdfAtomSize(atom.kind, atom.value, atom.lang);
+        if (atom.datatype !== undefined)
+            checkRdfAtomSize(TermKind.Iri, atom.datatype);
+        return this.atom(
+            atom.kind === TermKind.Literal && atom.lang === undefined
+                ? { ...atom, datatype: atom.datatype ?? XSD_STRING }
+                : atom,
+        );
+    }
+
+    private triple(s: number, p: number, o: number): number {
         const key = JSON.stringify(["triple", s, p, o]);
         const existing = this.ids.get(key);
         if (existing !== undefined) return existing;
@@ -347,27 +506,23 @@ function setReifier(
     reifiers.push({ rid, spo, ...(g !== undefined ? { g } : {}) });
 }
 
-function validateStatement(nodes: Node[], line: string): void {
-    if (
-        !(
-            isAtom(nodes[0], TermKind.Iri) ||
-            isAtom(nodes[0], TermKind.Bnode) ||
-            isTriple(nodes[0])
-        )
-    ) {
+function validateStatement(nodes: Node[], line: string, rdf12: boolean): void {
+    if (!(
+        isAtom(nodes[0], TermKind.Iri) ||
+        isAtom(nodes[0], TermKind.Bnode) ||
+        (!rdf12 && isTriple(nodes[0]))
+    )) {
         throw new NQuadsParseError(`invalid subject term: ${line}`);
     }
     if (!isAtom(nodes[1], TermKind.Iri)) {
         throw new NQuadsParseError(`predicate must be IRI: ${line}`);
     }
-    if (
-        !(
-            isAtom(nodes[2], TermKind.Iri) ||
-            isAtom(nodes[2], TermKind.Bnode) ||
-            isAtom(nodes[2], TermKind.Literal) ||
-            isTriple(nodes[2])
-        )
-    ) {
+    if (!(
+        isAtom(nodes[2], TermKind.Iri) ||
+        isAtom(nodes[2], TermKind.Bnode) ||
+        isAtom(nodes[2], TermKind.Literal) ||
+        isTriple(nodes[2])
+    )) {
         throw new NQuadsParseError(`invalid object term: ${line}`);
     }
     if (
@@ -378,13 +533,15 @@ function validateStatement(nodes: Node[], line: string): void {
     }
 }
 
-/** Parse N-Quads(-star) text into a canonical GTS file. */
-export function fromNQuads(text: string): Uint8Array {
-    const statements: Node[][] = [];
-    for (const raw of text.split(/\r?\n/)) {
-        const line = raw.trim();
+function* statements(text: string, rdf12 = false): IterableIterator<Node[]> {
+    for (const raw of text.split(rdf12 ? /\r\n|\r|\n/ : /\r?\n/)) {
+        const line = rdf12 ? raw.replace(/^[ \t]+/, "") : raw.trim();
         if (line === "" || line.startsWith("#")) continue;
-        const tok = new Tokenizer(line);
+        const tok = new Tokenizer(line, rdf12);
+        if (rdf12 && line.startsWith("VERSION")) {
+            tok.versionHint();
+            continue;
+        }
         const nodes: Node[] = [];
         while (!tok.atEnd()) nodes.push(tok.node());
         if (nodes.length !== 3 && nodes.length !== 4) {
@@ -392,15 +549,19 @@ export function fromNQuads(text: string): Uint8Array {
                 `expected 3 or 4 terms, got ${nodes.length}: ${line}`,
             );
         }
-        validateStatement(nodes, line);
-        statements.push(nodes);
+        validateStatement(nodes, line, rdf12);
+        if (rdf12) tok.finishStatement();
+        yield nodes;
     }
+}
 
+/** Parse N-Quads(-star) text into a canonical GTS file. */
+export function fromNQuads(text: string): Uint8Array {
     const interner = new Interner();
     const reifiers: ReifierEntry[] = [];
     const pendingQuads: Quad[] = [];
 
-    for (const nodes of statements) {
+    for (const nodes of statements(text)) {
         const [s, p, o, gname] = nodes;
         if (
             isAtom(s) &&
@@ -452,4 +613,24 @@ export function fromNQuads(text: string): Uint8Array {
     if (reifiers.length > 0) w.addReifies(reifiers);
     if (annotations.length > 0) w.addAnnot(annotations);
     return w.toBytes();
+}
+
+/** Import RDF 1.2 N-Quads into a committed GTS v2 segment. */
+export function fromNQuadsV2(text: string): Uint8Array {
+    if (/[\uD800-\uDFFF]/u.test(text))
+        throw new NQuadsParseError("input contains a non-scalar Unicode value");
+    const interner = new Interner();
+    const rows: Quad[] = [];
+    const seen = new Set<string>();
+    for (const [subject, predicate, object, graph] of statements(text, true)) {
+        const s = interner.nodeV2(subject);
+        const p = interner.nodeV2(predicate);
+        const o = interner.nodeV2(object);
+        const g = graph === undefined ? undefined : interner.nodeV2(graph);
+        const key = `${s}/${p}/${o}/${g ?? ""}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        rows.push({ s, p, o, g });
+    }
+    return writeRdfSegment(interner.terms, rows);
 }

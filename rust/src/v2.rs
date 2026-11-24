@@ -9,20 +9,27 @@ use ciborium::value::Value;
 
 use crate::wire;
 
+mod attachments;
 mod durability;
 pub mod frame;
 mod framing;
+mod import;
 mod payload;
 mod range;
+pub mod rdf;
 pub mod reader;
 mod resync;
 pub mod writer;
+
+pub use import::{from_nquads, ImportError};
 
 const REGISTRY_VERSION: u64 = 1;
 const BLAKE3_256: u64 = 1;
 const CANONICAL_FORM: u64 = 1;
 const LAST_PROFILE: u64 = 6;
 const HEADER_CONTEXT: &str = "gts2 header";
+const FORMED_BYTES_PER_READ: u64 = 1 << 37;
+const DEFAULT_VALUE_TEXT_LIMIT: u64 = 256 << 20;
 
 /// A claimed previous segment head and lineage ordinal.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -72,6 +79,7 @@ pub enum MalformedReason {
     UnregisteredValue,
     ForbiddenCombination,
     UnorderedOrRepeated,
+    InconsistentCounts,
 }
 
 /// The first malformed header field and its absolute input offset.
@@ -120,7 +128,7 @@ impl Error for HeaderWriteError {}
 struct Decoder<'a> {
     bytes: &'a [u8],
     offset: usize,
-    exhausted: bool,
+    field_start_limit: Option<usize>,
 }
 
 impl<'a> Decoder<'a> {
@@ -128,7 +136,7 @@ impl<'a> Decoder<'a> {
         Self {
             bytes,
             offset,
-            exhausted: false,
+            field_start_limit: None,
         }
     }
 
@@ -146,7 +154,6 @@ impl<'a> Decoder<'a> {
             .checked_add(size)
             .filter(|&end| end <= self.bytes.len())
         else {
-            self.exhausted = true;
             return Err(error);
         };
         let value = &self.bytes[self.offset..end];
@@ -162,6 +169,12 @@ impl<'a> Decoder<'a> {
     }
 
     fn head(&mut self, expected: u8) -> Result<u64, HeaderError> {
+        if let Some(limit) = self.field_start_limit.filter(|limit| self.offset >= *limit) {
+            return Err(HeaderError {
+                reason: MalformedReason::OutOfRange,
+                offset: limit,
+            });
+        }
         let start = self.offset;
         let first = self.take(1)?[0];
         let major = first >> 5;
@@ -209,6 +222,94 @@ impl<'a> Decoder<'a> {
 
     fn uint(&mut self) -> Result<u64, HeaderError> {
         self.head(0)
+    }
+
+    fn int(&mut self) -> Result<i128, HeaderError> {
+        let negative = self
+            .bytes
+            .get(self.offset)
+            .is_some_and(|first| first >> 5 == 1);
+        let argument = i128::from(self.head(u8::from(negative))?);
+        Ok(if negative { -1 - argument } else { argument })
+    }
+
+    fn delta(&mut self, previous: u64) -> Result<u64, HeaderError> {
+        let error = self.error(MalformedReason::OutOfRange);
+        u64::try_from(i128::from(previous) + self.int()?).map_err(|_| error)
+    }
+
+    fn column_len(&mut self, count: u64) -> Result<(), HeaderError> {
+        let error = self.error(MalformedReason::InconsistentCounts);
+        if self.head(4)? == count {
+            Ok(())
+        } else {
+            Err(error)
+        }
+    }
+
+    fn list_len(&mut self) -> Result<usize, HeaderError> {
+        let error = self.error(MalformedReason::WrongLength);
+        let count = usize::try_from(self.head(4)?).map_err(|_| error)?;
+        if count > self.bytes.len() - self.offset {
+            return Err(error);
+        }
+        Ok(count)
+    }
+
+    fn list<T>(
+        &mut self,
+        mut read: impl FnMut(&mut Self) -> Result<T, HeaderError>,
+    ) -> Result<Vec<T>, HeaderError> {
+        let count = self.list_len()?;
+        (0..count).map(|_| read(self)).collect()
+    }
+
+    fn column<T>(
+        &mut self,
+        count: u64,
+        mut read: impl FnMut(&mut Self) -> Result<T, HeaderError>,
+    ) -> Result<Vec<T>, HeaderError> {
+        self.column_len(count)?;
+        if count > (self.bytes.len() - self.offset) as u64 {
+            return Err(self.error(MalformedReason::WrongLength));
+        }
+        (0..count).map(|_| read(self)).collect()
+    }
+
+    fn runs<T: Copy + Eq>(
+        &mut self,
+        count: u64,
+        mut value: impl FnMut(&mut Self) -> Result<T, HeaderError>,
+        mut add: impl FnMut(&Self, T, u64, u64) -> Result<(), HeaderError>,
+    ) -> Result<(), HeaderError> {
+        let mut first = 0_u64;
+        let mut previous = None;
+        for _ in 0..self.list_len()? {
+            self.record(2)?;
+            let value = value(self)?;
+            let size = self.positive()?;
+            if previous == Some(value) {
+                return Err(self.error(MalformedReason::NotDeterministic));
+            }
+            let end = first
+                .checked_add(size)
+                .ok_or_else(|| self.error(MalformedReason::OutOfRange))?;
+            add(self, value, first, size)?;
+            first = end;
+            previous = Some(value);
+        }
+        if first != count {
+            return Err(self.error(MalformedReason::InconsistentCounts));
+        }
+        Ok(())
+    }
+
+    fn end(&self) -> Result<(), HeaderError> {
+        if self.offset == self.bytes.len() {
+            Ok(())
+        } else {
+            Err(self.error(MalformedReason::WrongLength))
+        }
     }
 
     fn positive(&mut self) -> Result<u64, HeaderError> {

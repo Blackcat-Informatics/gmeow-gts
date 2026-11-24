@@ -20,6 +20,7 @@ import (
 	"go.blackcatinformatics.ca/gts/nquads"
 	"go.blackcatinformatics.ca/gts/reader"
 	"go.blackcatinformatics.ca/gts/stream"
+	"go.blackcatinformatics.ca/gts/v2"
 	"go.blackcatinformatics.ca/gts/wire"
 	"go.blackcatinformatics.ca/gts/writer"
 )
@@ -179,7 +180,72 @@ func TestFoldEmitsNQuads(t *testing.T) {
 	}
 }
 
-func TestFromNQInvertsFold(t *testing.T) {
+func TestInfoDispatchesV2AndLegacy(t *testing.T) {
+	cmd, stdout, stderr := run(t, "info",
+		vector(t, "v2/P3/project__round-trip-rdf.bin"),
+		vector(t, "v2/P1/resync-displaced-join.bin"),
+		vector(t, "01-minimal.gts"))
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	for _, part := range []string{
+		"GTS v2 wire ledger, 1 segment(s)",
+		"effective head 765d1fe33420524ba200368d9b9c4f5bc966e04451f1c7424a73e0179822a4e7",
+		"    terms 1\n",
+		"    commit 1\n",
+		"resync displaced to byte ",
+		" quads 1 reifies ",
+	} {
+		if !strings.Contains(stdout.String(), part) {
+			t.Errorf("missing %q in ledger:\n%s", part, stdout)
+		}
+	}
+}
+
+func TestInfoReportsWireFailures(t *testing.T) {
+	cmd, stdout, stderr := run(t, "info",
+		vector(t, "v2/P1/stored-mismatch.bin"),
+		vector(t, "v2/P1/gen-record-three.bin"),
+		vector(t, "v2/P1/file-first-incomplete.bin"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	for _, part := range []string{"stored check mismatch", "framing stopped at byte 0: torn_tail"} {
+		if !strings.Contains(stdout.String(), part) {
+			t.Errorf("missing %q in ledger:\n%s", part, stdout)
+		}
+	}
+	if !strings.Contains(stderr.String(), "unsupported GTS generation 3") {
+		t.Errorf("missing unsupported-generation diagnostic:\n%s", stderr)
+	}
+}
+
+func TestInfoReportsClosingClaimFailures(t *testing.T) {
+	cmd, stdout, stderr := run(t, "info",
+		vector(t, "v2/P5/accelerators-false.offsets.bin"),
+		vector(t, "v2/P5/accelerators-false.locator.bin"))
+	if cmd.ProcessState.ExitCode() != 1 || stderr.Len() != 0 {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	for _, reason := range []string{"index_offsets", "index_locator"} {
+		if !strings.Contains(stdout.String(), "index_claim_failed ("+reason+")") {
+			t.Errorf("missing closing claim %q in ledger:\n%s", reason, stdout)
+		}
+	}
+}
+
+func TestInfoRejectsEmptyFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "empty.gts")
+	if err := os.WriteFile(path, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd, stdout, stderr := run(t, "info", path)
+	if cmd.ProcessState.ExitCode() != 1 || !strings.Contains(stdout.String(), "empty input, 0 segments") {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+}
+
+func TestFromNQV2RoundTripsLegacyRDF(t *testing.T) {
 	tmp := t.TempDir()
 	src, err := os.ReadFile(vector(t, "11-datatype-defaulting.gts"))
 	if err != nil {
@@ -198,20 +264,56 @@ func TestFromNQInvertsFold(t *testing.T) {
 	if err := nqFile.Close(); err != nil {
 		t.Fatal(err)
 	}
-	cmd, _, stderr := run(t, "from-nq", nqPath, "-o", outPath)
-	if cmd.ProcessState.ExitCode() != 0 {
-		t.Fatalf("expected exit 0, got %d: %s", cmd.ProcessState.ExitCode(), stderr.String())
+	cmd, stdout, stderr := run(t, "from-nq", nqPath, "-o", outPath)
+	if cmd.ProcessState.ExitCode() != 0 || stdout.Len() != 0 || stderr.Len() != 0 {
+		t.Fatalf("from-nq exit %d, stdout %q, stderr %q", cmd.ProcessState.ExitCode(), stdout, stderr)
 	}
 	out, err := os.ReadFile(outPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := strings.Split(strings.TrimSpace(nquads.ToNQuads(reader.Read(out, false, nil))), "\n")
+	if read := v2.ReadWire(out, v2.DefaultReadCapacity()); read.Dispatch != v2.SecondGeneration || read.Stop != "" {
+		t.Fatalf("expected a complete v2 file, got generation %s, stop %s", read.Dispatch, read.Stop)
+	}
+	cmd, stdout, stderr = run(t, "fold", outPath)
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("fold exit %d, stderr %q", cmd.ProcessState.ExitCode(), stderr)
+	}
+	got := strings.Split(strings.TrimSpace(stdout.String()), "\n")
 	want := strings.Split(strings.TrimSpace(nq), "\n")
 	sort.Strings(got)
 	sort.Strings(want)
 	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("fold mismatch\ngot:  %v\nwant: %v", got, want)
+	}
+}
+
+func TestFromNQV2StdinAndWriteRefusal(t *testing.T) {
+	valid := "<urn:s> <urn:p> \"v\"@EN--rtl .\n"
+	cmd, stdout, stderr := runWithInput(t, valid, "from-nq", "-")
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("from-nq exit %d, stderr %q", cmd.ProcessState.ExitCode(), stderr)
+	}
+	projected, err := v2.ReadWire(stdout.Bytes(), v2.DefaultReadCapacity()).WholeRDFProjection()
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := projected.NQuads()
+	if err != nil || text != valid {
+		t.Fatalf("from-nq projected %q, error %v", text, err)
+	}
+
+	path := filepath.Join(t.TempDir(), "existing.gts")
+	if err := os.WriteFile(path, stdout.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd, rejected, stderr := runWithInput(t, valid+"<urn:x> <urn:p> <urn:y>\n", "from-nq", "-", "-o", path)
+	if cmd.ProcessState.ExitCode() != 1 || rejected.Len() != 0 || !strings.Contains(stderr.String(), "line 2: expected '.'") {
+		t.Fatalf("from-nq exit %d, stdout %q, stderr %q", cmd.ProcessState.ExitCode(), rejected, stderr)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(after, stdout.Bytes()) {
+		t.Fatalf("rejected import changed the existing destination, error %v", err)
 	}
 }
 
@@ -287,6 +389,56 @@ func TestRDFTextCodecCLIRoundTrips(t *testing.T) {
 	if got := stdout.String(); !strings.Contains(got, "<https://ex/g> {") || !strings.Contains(got, "<https://ex/q> <https://ex/r> .") {
 		t.Fatalf("to-trig output mismatch:\n%s", got)
 	}
+	for _, path := range []string{ntGTS, turtleGTS, rdfXMLGTS, trigGTS} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result := v2.ReadWire(data, v2.DefaultReadCapacity())
+		if result.Dispatch != v2.SecondGeneration || result.Stop != "" {
+			t.Errorf("%s produced generation %s, stop %s", filepath.Base(path), result.Dispatch, result.Stop)
+		}
+	}
+}
+
+func TestRDFTextCodecCLIRefusesEmptyNamedGraphsInGraphFormats(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "empty-named.gts")
+	cmd, stdout, stderr := runWithInput(t, "<urn:empty> {}", "from-trig", "-", "-o", path)
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("from-trig exit %d, stdout %q, stderr %q", cmd.ProcessState.ExitCode(), stdout, stderr)
+	}
+	cmd, stdout, stderr = run(t, "to-trig", path)
+	if cmd.ProcessState.ExitCode() != 0 || stdout.String() != "<urn:empty> {}\n" {
+		t.Fatalf("to-trig exit %d, stdout %q, stderr %q", cmd.ProcessState.ExitCode(), stdout, stderr)
+	}
+	for _, verb := range []string{"to-nt", "to-turtle", "to-rdfxml"} {
+		cmd, stdout, stderr = run(t, verb, path)
+		if cmd.ProcessState.ExitCode() != 1 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "named graph") {
+			t.Errorf("%s exit %d, stdout %q, stderr %q", verb, cmd.ProcessState.ExitCode(), stdout, stderr)
+		}
+	}
+}
+
+func TestRDFTextCodecCLIResolvesFileRelativeIRIs(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "source file.rdf")
+	data := []byte("<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:ex=\"urn:\">" +
+		"<rdf:Description rdf:about=\"item\"><ex:p rdf:resource=\"#object\"/></rdf:Description></rdf:RDF>")
+	if err := os.WriteFile(source, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd, stdout, stderr := run(t, "from-rdfxml", source)
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("from-rdfxml exit %d, stderr %q", cmd.ProcessState.ExitCode(), stderr)
+	}
+	result, err := v2.ReadWire(stdout.Bytes(), v2.DefaultReadCapacity()).WholeRDFProjection()
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := result.NQuads()
+	if err != nil || !strings.HasPrefix(text, "<file:") ||
+		!strings.Contains(text, "/item> <urn:p> <file:") || !strings.Contains(text, "/source%20file.rdf#object>") {
+		t.Fatalf("projection = %q, error %v", text, err)
+	}
 }
 
 func TestRDFTextCodecCLIRefusalsAndMalformedInput(t *testing.T) {
@@ -328,6 +480,65 @@ func TestVerifyFlagsDamageWithExit1(t *testing.T) {
 	}
 	if !bytes.Contains(stdout.Bytes(), []byte("DamagedFrame")) {
 		t.Fatalf("ledger did not list DamagedFrame")
+	}
+}
+
+func TestVerifyV2ChecksCommitsAndKeepsLegacyDispatch(t *testing.T) {
+	cmd, stdout, stderr := run(t, "verify",
+		vector(t, "01-minimal.gts"),
+		vector(t, "v2/P5/commit-valid.bin"),
+		vector(t, "v2/P5/commit-none.bin"),
+		vector(t, "v2/P5/commit-canonical-tail.bin"),
+		vector(t, "v2/P1/locator-last-index.second.bin"))
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("verify exit %d: %s", cmd.ProcessState.ExitCode(), stderr)
+	}
+	for _, part := range []string{
+		"01-minimal.gts: 1 segment(s)",
+		"committed_frames 3, uncommitted_tail 1, index payload claims unchecked",
+		"no_commit, uncommitted_tail 2",
+		"committed_frames 2, index payload claims unchecked",
+	} {
+		if !strings.Contains(stdout.String(), part) {
+			t.Errorf("missing %q in ledger:\n%s", part, stdout)
+		}
+	}
+}
+
+func TestVerifyV2RejectsDamageAndFalseClaims(t *testing.T) {
+	cmd, stdout, stderr := run(t, "verify",
+		vector(t, "v2/P1/stored-mismatch.bin"),
+		vector(t, "v2/P1/torn-after-frames.bin"),
+		vector(t, "v2/P5/commit-count-mismatch.bin"),
+		vector(t, "v2/P5/commit-root-mismatch.bin"),
+		vector(t, "v2/P5/accelerators-false.offsets.bin"),
+		vector(t, "v2/P5/accelerators-false.locator.bin"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("verify exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	for _, part := range []string{
+		"stored check mismatch", "torn_tail",
+		"commit-count-mismatch.bin: byte 810: commit_count_mismatch (expected 2)",
+		"commit-root-mismatch.bin: byte 810: commit_root_mismatch",
+		"index_claim_failed (index_offsets)", "index_claim_failed (index_locator)",
+	} {
+		if !strings.Contains(stderr.String(), part) {
+			t.Errorf("missing %q in diagnostics:\n%s", part, stderr)
+		}
+	}
+}
+
+func TestVerifyV2RejectsUnsupportedKeysAndGeneration(t *testing.T) {
+	cmd, _, stderr := run(t, "verify", "--key", "example:"+strings.Repeat("00", 32),
+		vector(t, "v2/P5/commit-valid.bin"),
+		vector(t, "v2/P1/gen-record-three.bin"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("verify exit %d: %s", cmd.ProcessState.ExitCode(), stderr)
+	}
+	for _, part := range []string{"--key is unsupported for GTS v2", "unsupported GTS generation 3"} {
+		if !strings.Contains(stderr.String(), part) {
+			t.Errorf("missing %q in diagnostics:\n%s", part, stderr)
+		}
 	}
 }
 
