@@ -21,4 +21,8 @@ version 1 and reports each segment's committed prefix and uncommitted tail.
 RDF projection, index payload claims, signature verification, and resync
 recovery require separate v2 support.
 
+Use `V2SegmentWriter` to write header-led segments with plain frames and
+generate commits. The caller supplies the encoded payload and values for
+the frame type. Use `head` when starting a subsequent segment with lineage.
+
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.

@@ -105,7 +105,7 @@ private fun hashExcluding(map: CborMap, excluded: Set<String>): ByteArray {
     return blake3_256(encode(filtered))
 }
 
-private fun encodeInto(out: ByteArrayOutputStream, value: CborValue) {
+internal fun encodeInto(out: ByteArrayOutputStream, value: CborValue) {
     when (value) {
         is CborUInt -> encodeMajor(out, 0, value.value)
         is CborNInt -> encodeMajor(out, 1, -1L - value.value)
@@ -168,27 +168,29 @@ private fun compareCborKeys(a: ByteArray, b: ByteArray): Int {
 
 private fun encodeMajor(out: ByteArrayOutputStream, major: Int, value: Long) {
     require(value >= 0) { "negative CBOR length" }
+    encodeUnsignedHead(out, major, value.toULong())
+}
+
+internal fun encodeUnsignedHead(out: ByteArrayOutputStream, major: Int, value: ULong) {
     val prefix = major shl 5
     when {
-        value <= 23L -> out.write(prefix or value.toInt())
-        value <= 0xffL -> {
+        value <= 23uL -> out.write(prefix or value.toInt())
+        value <= 0xffuL -> {
             out.write(prefix or 24)
             out.write(value.toInt())
         }
-        value <= 0xffffL -> {
+        value <= 0xffffuL -> {
             out.write(prefix or 25)
-            out.write(((value ushr 8) and 0xff).toInt())
-            out.write((value and 0xff).toInt())
+            out.write((value shr 8).toInt())
+            out.write(value.toInt())
         }
-        value <= 0xffffffffL -> {
+        value <= 0xffffffffuL -> {
             out.write(prefix or 26)
-            for (shift in listOf(24, 16, 8, 0)) out.write(((value ushr shift) and 0xff).toInt())
+            for (shift in 24 downTo 0 step 8) out.write((value shr shift).toInt())
         }
         else -> {
             out.write(prefix or 27)
-            for (shift in listOf(56, 48, 40, 32, 24, 16, 8, 0)) {
-                out.write(((value ushr shift) and 0xff).toInt())
-            }
+            for (shift in 56 downTo 0 step 8) out.write((value shr shift).toInt())
         }
     }
 }

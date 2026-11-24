@@ -48,7 +48,7 @@ internal fun openerIdentifier(item: CborField, resync: Boolean): ByteArray =
         }
     }
 
-private fun frameIdentifier(predecessor: ByteArray, identity: CborField): ByteArray =
+internal fun frameIdentifier(predecessor: ByteArray, identity: CborField): ByteArray =
     contextHash("gts2 frame") {
         update(framePrefix, 0, framePrefix.size)
         update(predecessor, 0, predecessor.size)

@@ -56,7 +56,7 @@ internal fun readFrame(item: CborField, registry: ULong): FrameEnvelope {
     val signatures = fields.next()
     problems.observe { checkSignatures(signatures, newer, parity) }
     problems.record(
-        (code == 8uL && length == 0uL) || ((code == 12uL || code == 14uL) && length != null && length != 0uL),
+        invalidPayloadLength(code, length),
         "out_of_range",
     )
     val framePayload =
@@ -84,7 +84,10 @@ private class FrameProblems {
         }
 }
 
-private fun checkContent(type: ULong, item: CborField) {
+internal fun invalidPayloadLength(type: ULong?, length: ULong?): Boolean =
+    (type == 8uL && length == 0uL) || ((type == 12uL || type == 14uL) && length != null && length != 0uL)
+
+internal fun checkContent(type: ULong, item: CborField) {
     when (type) {
         1uL -> {
             val fields = item.fields(4)
