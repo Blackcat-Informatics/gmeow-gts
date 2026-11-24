@@ -39,6 +39,7 @@ GtsV2Authentication >> observeDetachedFrame [
 { #category : #observing }
 GtsV2Authentication >> observe: event validCommit: valid [
 	(event kind = #frame and: [ event frame isTransparent not ]) ifFalse: [ ^ self ].
+	event detached ifTrue: [ self observeDetachedFrame ].
 	event effectiveIdentifier ifNil: [ ^ self beginRunAt: position + 1 ].
 	position := position + 1.
 	frameType := event frameType.
@@ -54,6 +55,16 @@ GtsV2Authentication >> observe: event validCommit: valid [
 
 { #category : #authentication }
 GtsV2Authentication >> coverageFor: status keyId: kid [
+	| fields |
+	fields := self coverageFieldsFor: status keyId: kid.
+	^ Dictionary newFromPairs: {
+		'coverage_first'. fields first.
+		'coverage_end'. fields second.
+		'authenticated'. fields third }
+]
+
+{ #category : #authentication }
+GtsV2Authentication >> coverageFieldsFor: status keyId: kid [
 	| covered authenticating |
 	covered := status = 'valid' and: [ holds ].
 	authenticating := covered and: [ (trusted includes: kid) and: [ frameType ~= 14 or: [ commitValid ] ] ].
@@ -62,17 +73,23 @@ GtsV2Authentication >> coverageFor: status keyId: kid [
 			ifTrue: [ linkedCount ]
 			ifFalse: [ authenticatedCount + runCount - authenticatedRunCount ].
 		authenticatedRunCount := runCount ].
-	^ Dictionary newFromPairs: {
-		'coverage_first'. (covered ifTrue: [ runFirst ] ifFalse: [ position ]).
-		'coverage_end'. (covered ifTrue: [ position + 1 ] ifFalse: [ position ]).
-		'authenticated'. authenticating }
+	^ { covered ifTrue: [ runFirst ] ifFalse: [ position ].
+		covered ifTrue: [ position + 1 ] ifFalse: [ position ].
+		authenticating }
 ]
 
 { #category : #authentication }
 GtsV2Authentication >> summary [
+	| fields |
+	fields := self summaryFields.
+	^ Dictionary newFromPairs: { 'authenticity'. fields first. 'authenticated_frames'. fields second }
+]
+
+{ #category : #authentication }
+GtsV2Authentication >> summaryFields [
 	| authenticity |
 	authenticity := authenticatedCount = 0
 		ifTrue: [ 3 ]
 		ifFalse: [ authenticatedCount = counted ifTrue: [ 1 ] ifFalse: [ 2 ] ].
-	^ Dictionary newFromPairs: { 'authenticity'. authenticity. 'authenticated_frames'. authenticatedCount }
+	^ { authenticity. authenticatedCount }
 ]

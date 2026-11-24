@@ -186,7 +186,6 @@ GtsV2ParityTest >> testWholeReadReportsRecoveryAndKeepsDetachedRowsOutOfTheFold 
 		event isParityGap
 			ifTrue: [ checks observeDamagedRegion ]
 			ifFalse: [
-				event detached ifTrue: [ checks observeDetachedFrame ].
 				checks observe: event findingsDo: [ :reason :position :expected | failures add: { reason. position } ] ] ].
 	self assert: failures asArray equals: #(('commit_root_mismatch' 5)).
 	self assert: checks committedFrames equals: 0.
