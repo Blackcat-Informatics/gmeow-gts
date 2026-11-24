@@ -1,0 +1,18 @@
+ghprsq source head backlink metadata
+
+parent_hashes: 0afcb3413ec437b8949dff712952b1e9d812e043
+
+GhpRsq-Schema: 1
+GhpRsq-Merge-Style: structured-squash-head-backlink
+GhpRsq-GitHub-Repo: Blackcat-Informatics/gmeow-gts
+GhpRsq-GitHub-Pull-Request: 682
+GhpRsq-GitHub-PR-URL: https://github.com/Blackcat-Informatics/gmeow-gts/pull/682
+GhpRsq-Base-Ref: main
+GhpRsq-Base-OID: 24ad52e36a12a0415a14855ee30ccd32e1f807d3
+GhpRsq-Head-Ref: paudley/678-cover-remaining-v2-wire-fixtures
+GhpRsq-Head-OID: 0afcb3413ec437b8949dff712952b1e9d812e043
+GhpRsq-Result-Tree: fee9cace13babe835311293bc494c4e6debaad77
+GhpRsq-Result-Commit: 742d4bb95b60952a2ff64798ea6f0812d7641bd9
+GhpRsq-Parent-Hashes: 0afcb3413ec437b8949dff712952b1e9d812e043
+GhpRsq-Squash-Notes-SHA256: 3f409137e46287220a3bfd0ad047b55d2d1198366e790d1afb6bad5c6e6b1d72
+GhpRsq-Stage-Evidence: none
