@@ -3,6 +3,11 @@
 
 package ca.blackcatinformatics.gts
 
+import ca.blackcatinformatics.gts.v2.rdfBlankEnd
+import ca.blackcatinformatics.gts.v2.validRdfIri
+import ca.blackcatinformatics.gts.v2.validRdfLanguage
+import ca.blackcatinformatics.gts.v2.writeRdfSegment
+
 private const val RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
 
 class NQuadsParseException(message: String) : RuntimeException(message)
@@ -21,7 +26,7 @@ private data class AtomNode(val atom: Atom) : Node
 
 private data class TripleNode(val s: Node, val p: Node, val o: Node) : Node
 
-private class Tokenizer(private val line: String) {
+private class Tokenizer(private val line: String, private val rdf12: Boolean = false) {
     private var i = 0
 
     fun atEnd(): Boolean {
@@ -34,13 +39,29 @@ private class Tokenizer(private val line: String) {
         if (i >= line.length || line[i] != '.') throw NQuadsParseException("missing statement terminator: $line")
         i++
         skipWs()
-        if (i != line.length) throw NQuadsParseException("trailing tokens after statement terminator: $line")
+        if (i != line.length && (!rdf12 || line[i] != '#')) {
+            throw NQuadsParseException("trailing tokens after statement terminator: $line")
+        }
+    }
+
+    fun versionHint() {
+        i = "VERSION".length
+        skipWs()
+        if (i >= line.length || line[i] != '"') throw NQuadsParseException("expected a VERSION string")
+        literal(suffix = false)
+        skipWs()
+        if (i != line.length && line[i] != '#') throw NQuadsParseException("trailing tokens after VERSION")
     }
 
     fun node(): Node {
         skipWs()
+        if (line.startsWith("<<(", i)) return if (rdf12) rdfTriple() else quotedTriple()
+        return atomNode()
+    }
+
+    private fun atomNode(): AtomNode {
+        skipWs()
         if (i >= line.length) throw NQuadsParseException("unexpected end of line: $line")
-        if (line.startsWith("<<(", i)) return quotedTriple()
         return when (line[i]) {
             '<' -> AtomNode(Atom(TermKind.IRI, iri()))
             '_' -> AtomNode(Atom(TermKind.BNODE, bnode()))
@@ -59,20 +80,40 @@ private class Tokenizer(private val line: String) {
         if (end < 0) throw NQuadsParseException("unterminated IRI in $line")
         val value = line.substring(i + 1, end)
         i = end + 1
-        return value
+        if (!rdf12) return value
+        val escaped = Tokenizer(value, true)
+        val decoded = StringBuilder()
+        while (escaped.i < value.length) {
+            val slash = value.indexOf('\\', escaped.i)
+            if (slash < 0) {
+                decoded.append(value, escaped.i, value.length)
+                break
+            }
+            decoded.append(value, escaped.i, slash)
+            escaped.i = slash + 1
+            if (value.getOrNull(escaped.i) !in listOf('u', 'U')) throw NQuadsParseException("invalid IRI escape")
+            decoded.appendCodePoint(escaped.escape())
+        }
+        val iri = decoded.toString()
+        if (!validRdfIri(iri)) throw NQuadsParseException("invalid RDF IRI")
+        return iri
     }
 
     private fun bnode(): String {
         if (!line.startsWith("_:", i)) throw NQuadsParseException("bad blank node in $line")
         i += 2
         val start = i
-        while (i < line.length && isBNodeChar(line[i])) i++
-        if (i > start && line[i - 1] == '.') i--
+        if (rdf12) {
+            i = rdfBlankEnd(line, i)
+        } else {
+            while (i < line.length && isBNodeChar(line[i])) i++
+            if (i > start && line[i - 1] == '.') i--
+        }
         if (i == start) throw NQuadsParseException("empty blank node label in $line")
         return line.substring(start, i)
     }
 
-    private fun literal(): Atom {
+    private fun literal(suffix: Boolean = true): Atom {
         i++
         val value = StringBuilder()
         while (i < line.length) {
@@ -82,6 +123,8 @@ private class Tokenizer(private val line: String) {
                 continue
             }
             if (ch == '"') {
+                if (!suffix) return Atom(TermKind.LITERAL, value.toString())
+                if (rdf12) skipWs()
                 var lang: String? = null
                 var direction: String? = null
                 var datatype: String? = null
@@ -102,10 +145,14 @@ private class Tokenizer(private val line: String) {
                         lang = language
                         direction = rawDirection
                     }
+                    if (rdf12 && !validRdfLanguage(lang)) throw NQuadsParseException("invalid RDF language tag")
                 } else if (line.startsWith("^^", i)) {
                     i += 2
                     skipWs()
                     datatype = iri()
+                    if (rdf12 && datatype in setOf(RDF_LANG_STRING, RDF_DIR_LANG_STRING)) {
+                        throw NQuadsParseException("the RDF datatype requires a language tag")
+                    }
                 }
                 return Atom(TermKind.LITERAL, value.toString(), lang, direction, datatype)
             }
@@ -116,7 +163,9 @@ private class Tokenizer(private val line: String) {
 
     private fun escape(): Int {
         if (i >= line.length) throw NQuadsParseException("bad escape at end of $line")
-        return when (val ch = line[i++]) {
+        val ch = line[i++]
+        if (rdf12 && ch == '\'') return ch.code
+        return when (ch) {
             '\\' -> '\\'.code
             '"' -> '"'.code
             'b' -> '\b'.code
@@ -127,18 +176,42 @@ private class Tokenizer(private val line: String) {
             'u', 'U' -> {
                 val width = if (ch == 'u') 4 else 8
                 val raw = line.substring(i, (i + width).coerceAtMost(line.length))
-                if (raw.length != width || !raw.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }) {
+                val validDigits = raw.all { it in '0'..'9' || it.lowercaseChar() in 'a'..'f' || (!rdf12 && it.isDigit()) }
+                if (raw.length != width || !validDigits) {
                     throw NQuadsParseException("bad unicode escape \\$ch$raw in $line")
                 }
                 i += width
-                val codePoint = raw.toInt(16)
-                if (!Character.isValidCodePoint(codePoint)) {
+                val points = if (rdf12) raw.toLong(16) else raw.toInt(16).toLong()
+                val codePoint = points.toInt()
+                if (points > 0x10ffffL || (rdf12 && codePoint in 0xd800..0xdfff)) {
                     throw NQuadsParseException("bad unicode escape \\$ch$raw in $line")
                 }
                 codePoint
             }
             else -> throw NQuadsParseException("unsupported escape \\$ch in $line")
         }
+    }
+
+    private fun rdfTriple(): TripleNode {
+        val parents = mutableListOf<Pair<AtomNode, AtomNode>>()
+        while (line.startsWith("<<(", i)) {
+            i += 3
+            val subject = atomNode()
+            val predicate = atomNode()
+            if (subject.atom.kind !in setOf(TermKind.IRI, TermKind.BNODE) || predicate.atom.kind != TermKind.IRI) {
+                throw NQuadsParseException("invalid RDF triple term roles")
+            }
+            parents += subject to predicate
+            skipWs()
+        }
+        var objectNode: Node = atomNode()
+        for ((subject, predicate) in parents.asReversed()) {
+            skipWs()
+            if (!line.startsWith(")>>", i)) throw NQuadsParseException("unterminated RDF triple term")
+            i += 3
+            objectNode = TripleNode(subject, predicate, objectNode)
+        }
+        return objectNode as TripleNode
     }
 
     private fun quotedTriple(): TripleNode {
@@ -178,31 +251,74 @@ private class Interner {
                 val s = node(node.s, reifiers)
                 val p = node(node.p, reifiers)
                 val o = node(node.o, reifiers)
-                val key = listOf("triple", s, p, o)
-                ids[key]?.let { return it }
-                val id = terms.size
-                terms += Term(TermKind.TRIPLE, "", triple = Triple(s, p, o))
-                ids[key] = id
-                id
+                triple(s, p, o)
             }
         }
+
+    fun nodeV2(first: Node): Int {
+        val parents = mutableListOf<Pair<Int, Int>>()
+        var node = first
+        while (node is TripleNode) {
+            parents += rdfAtom((node.s as AtomNode).atom) to rdfAtom((node.p as AtomNode).atom)
+            node = node.o
+        }
+        var id = rdfAtom((node as AtomNode).atom)
+        for ((subject, predicate) in parents.asReversed()) id = triple(subject, predicate, id)
+        return id
+    }
+
+    private fun rdfAtom(value: Atom): Int =
+        atom(if (value.kind == TermKind.LITERAL && value.lang == null) value.copy(datatype = value.datatype ?: XSD_STRING) else value)
+
+    private fun triple(s: Int, p: Int, o: Int): Int {
+        val key = listOf("triple", s, p, o)
+        ids[key]?.let { return it }
+        val id = terms.size
+        terms += Term(TermKind.TRIPLE, "", triple = Triple(s, p, o))
+        ids[key] = id
+        return id
+    }
+}
+
+private fun statements(input: String, rdf12: Boolean = false): Sequence<List<Node>> =
+    sequence {
+        for (raw in input.lineSequence()) {
+            val line = if (rdf12) raw.trimStart(' ', '\t') else raw.trim()
+            if (line.isEmpty() || line.startsWith("#")) continue
+            val tokenizer = Tokenizer(line, rdf12)
+            if (rdf12 && line.startsWith("VERSION")) {
+                tokenizer.versionHint()
+                continue
+            }
+            val nodes = mutableListOf<Node>()
+            while (!tokenizer.atEnd()) nodes += tokenizer.node()
+            tokenizer.requireTerminator()
+            if (nodes.size != 3 && nodes.size != 4) {
+                throw NQuadsParseException("expected 3 or 4 terms, got " + nodes.size + ": " + line)
+            }
+            validateStatement(nodes, line, rdf12)
+            yield(nodes)
+        }
+    }
+
+/** Import RDF N-Quads into a committed GTS v2 segment. */
+fun fromNQuadsV2(input: String): ByteArray {
+    if (input.codePoints().anyMatch { it in 0xd800..0xdfff }) {
+        throw NQuadsParseException("input contains a non-scalar Unicode value")
+    }
+    val interner = Interner()
+    val rows = linkedSetOf<Quad>()
+    for (nodes in statements(input, rdf12 = true)) {
+        rows += Quad(
+            interner.nodeV2(nodes[0]), interner.nodeV2(nodes[1]), interner.nodeV2(nodes[2]),
+            nodes.getOrNull(3)?.let(interner::nodeV2),
+        )
+    }
+    return writeRdfSegment(interner.terms, rows.toList())
 }
 
 fun fromNQuads(input: String): ByteArray {
-    val statements = mutableListOf<List<Node>>()
-    for (raw in input.lineSequence()) {
-        val line = raw.trim()
-        if (line.isEmpty() || line.startsWith("#")) continue
-        val tokenizer = Tokenizer(line)
-        val nodes = mutableListOf<Node>()
-        while (!tokenizer.atEnd()) nodes += tokenizer.node()
-        tokenizer.requireTerminator()
-        if (nodes.size != 3 && nodes.size != 4) {
-            throw NQuadsParseException("expected 3 or 4 terms, got ${nodes.size}: $line")
-        }
-        validateStatement(nodes, line)
-        statements += nodes
-    }
+    val statements = statements(input).toList()
     val interner = Interner()
     val reifiers = mutableListOf<ReifierEntry>()
     val pendingQuads = mutableListOf<Quad>()
@@ -253,10 +369,10 @@ private fun setReifier(reifiers: MutableList<ReifierEntry>, rid: Int, spo: Tripl
     if (reifiers.none { it == row }) reifiers += row
 }
 
-private fun validateStatement(nodes: List<Node>, line: String) {
+private fun validateStatement(nodes: List<Node>, line: String, rdf12: Boolean) {
     fun atom(node: Node, kind: TermKind? = null): Boolean = node is AtomNode && (kind == null || node.atom.kind == kind)
     fun triple(node: Node): Boolean = node is TripleNode
-    if (!(atom(nodes[0], TermKind.IRI) || atom(nodes[0], TermKind.BNODE) || triple(nodes[0]))) {
+    if (!(atom(nodes[0], TermKind.IRI) || atom(nodes[0], TermKind.BNODE) || (!rdf12 && triple(nodes[0])))) {
         throw NQuadsParseException("invalid subject term: $line")
     }
     if (!atom(nodes[1], TermKind.IRI)) throw NQuadsParseException("predicate must be IRI: $line")

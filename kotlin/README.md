@@ -21,6 +21,9 @@ version 1 and reports each segment's committed prefix and uncommitted tail.
 RDF projection, index payload claims, signature verification, and resync
 recovery require separate v2 support.
 
+`gts from-nq` imports RDF N-Quads into a committed v2 segment. It uses
+value packs for large lexical forms.
+
 Use `V2SegmentWriter` to write header-led segments with plain frames and
 generate commits. The caller supplies the encoded payload and values for
 the frame type. Use `head` when starting a subsequent segment with lineage.
