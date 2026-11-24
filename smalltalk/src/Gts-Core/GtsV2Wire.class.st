@@ -190,20 +190,28 @@ GtsV2Wire >> eventsDo: aBlock retainDecoded: retain [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
-	| pending pendingOffsets predecessor closing parity deliver flush budget refusalAfter pendingRefusal |
+	| pending pendingOffsets predecessor closing parity deliver flush budget refusalAfter pendingRefusal heldForParity emit |
 	format = #v2 ifFalse: [ ^ self ].
 	budget := initialBudget copy.
 	closing := GtsV2ClosingChecks on: walker.
-	parity := GtsV2ParityChecks new.
+	parity := GtsV2ParityChecks on: bytes.
+	emit := [ :event |
+		parity awaitsOpenerLink
+			ifTrue: [
+				heldForParity ifNil: [ heldForParity := OrderedCollection new ].
+				heldForParity add: event ]
+			ifFalse: [
+				heldForParity ifNotNil: [ heldForParity do: aBlock. heldForParity := nil ].
+				aBlock value: event ] ].
 	deliver := [ :event :next :afterLocator |
 		| effective |
 		closing observe: event following: next afterLocator: afterLocator.
 		effective := self finalize: event following: next predecessor: predecessor.
 		parity observe: event predecessor: predecessor.
 		effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
-		aBlock value: event.
+		emit value: event.
 		event == refusalAfter ifTrue: [
-			aBlock value: pendingRefusal.
+			emit value: pendingRefusal.
 			refusalAfter := nil.
 			pendingRefusal := nil ] ].
 	flush := [
@@ -235,7 +243,9 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
 		onRefusal: [ :retained :refusal |
 			refusalAfter := retained.
 			pendingRefusal := refusal ].
-	flush value
+	flush value.
+	parity finishOpenerLink: false.
+	heldForParity ifNotNil: [ heldForParity do: aBlock ]
 ]
 
 { #category : #enumerating }

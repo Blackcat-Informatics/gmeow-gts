@@ -319,11 +319,26 @@ GtsCLI class >> wireDiagnosticFor: event [
 GtsCLI class >> wireFindingFor: event [
 	event kind = #resyncRefused ifTrue: [
 		^ self resyncRefusalMessageFor: event ].
-	event isDamagedParity ifTrue: [
-		^ 'parity_damaged', (event parityFinding ifNil: [ '' ] ifNotNil: [ :finding | ', ', finding ]) ].
-	event parityFinding ifNotNil: [ :finding | ^ finding ].
+	event frameType = 16 ifTrue: [ ^ self parityFindingFor: event ].
 	^ event problem ifNil: [
 		event closingClaimFailure ifNotNil: [ :reason | 'index_claim_failed (', reason, ')' ] ]
+]
+
+{ #category : #printing }
+GtsCLI class >> parityFindingFor: event [
+	| messages |
+	messages := OrderedCollection new.
+	event isDamagedParity ifTrue: [ messages add: 'parity_damaged' ].
+	event parityShardFindings do: [ :finding |
+		| reason count noun |
+		reason := finding second ifNil: [ '' ] ifNotNil: [ :name | name, ', ' ].
+		count := finding third.
+		noun := count = 1 ifTrue: [ ' shard)' ] ifFalse: [ ' shards)' ].
+		messages add: finding first, ' (', reason, count printString, noun ].
+	event parityFinding ifNotNil: [ :finding | messages add: finding ].
+	^ messages isEmpty ifFalse: [
+		String streamContents: [ :output |
+			messages do: [ :message | output nextPutAll: message ] separatedBy: [ output nextPutAll: ', ' ] ] ]
 ]
 
 { #category : #printing }

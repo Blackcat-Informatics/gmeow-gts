@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding', 'parityShardFindings' ],
 	#category : #'Gts-Core'
 }
 
@@ -155,6 +155,16 @@ GtsV2WireEvent >> parityFinding [
 { #category : #initialization }
 GtsV2WireEvent >> parityFinding: aFinding [
 	parityFinding := aFinding
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> parityShardFindings [
+	^ parityShardFindings ifNil: [ #() ]
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> parityShardFindings: findings [
+	parityShardFindings := findings
 ]
 
 { #category : #initialization }
