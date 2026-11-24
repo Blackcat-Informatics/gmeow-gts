@@ -8,7 +8,7 @@ use gmeow_gts::{
     v2::{
         reader::{
             read_wire, Dispatch, FramingFailure, FramingReason, ItemKind, LinkState, Opener,
-            PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity, ReadStop,
+            PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity, ReadStop, ResyncRefusal,
         },
         MalformedReason,
     },
@@ -130,6 +130,164 @@ fn a_walked_resync_opens_a_segment_using_the_computed_identifier() {
 }
 
 #[test]
+fn resync_distinguishes_a_damaged_region_from_a_torn_prefix() {
+    for (name, reason, damaged_at, recovered_at, old_end) in [
+        (
+            "resync-after-undelimitable.whole.bin",
+            FramingReason::UndelimitableInput,
+            209,
+            210,
+            210,
+        ),
+        (
+            "resync-after-damaged-length-head.whole.bin",
+            FramingReason::TornTail,
+            114,
+            535,
+            114,
+        ),
+    ] {
+        let input = vector(name);
+        let result = read_wire(&input, ReadCapacity::default());
+        let [before, resumed] = result.segments.as_slice() else {
+            panic!("{name}: expected two segments");
+        };
+        assert_eq!(before.end_offset, old_end, "{name}");
+        assert_eq!(
+            before.framing_failure,
+            Some(FramingFailure {
+                reason,
+                offset: damaged_at,
+                length: recovered_at - damaged_at,
+            })
+        );
+        assert_eq!(
+            before.items.last().unwrap().kind == ItemKind::DamagedRegion,
+            reason == FramingReason::UndelimitableInput,
+        );
+        assert!(resumed.scanned);
+        assert_eq!(resumed.items[0].offset, recovered_at);
+        assert!(resumed
+            .frames
+            .iter()
+            .all(|frame| frame.link.state == LinkState::Linked));
+        assert!(result.stop.is_none());
+    }
+}
+
+#[test]
+fn the_complete_item_before_lost_framing_keeps_its_wire_extent() {
+    let input = vector("resync-after-torn-swallowed.passing-whole.bin");
+    let result = read_wire(&input, ReadCapacity::default());
+    let [before, resumed] = result.segments.as_slice() else {
+        panic!("expected two segments");
+    };
+    assert_eq!(before.end_offset, 306);
+    let locator = before.items.last().unwrap();
+    assert_eq!(locator.kind, ItemKind::Locator);
+    assert_eq!(locator.end, 311);
+    assert!(before.framing_failure.is_none());
+    assert_eq!(before.frames.len(), 1);
+    assert!(before.closing_grammar.is_empty());
+    assert!(resumed.scanned);
+    assert_eq!(resumed.items[0].offset, 306);
+}
+
+#[test]
+fn a_scanned_opener_can_establish_the_generation_after_foreign_bytes() {
+    let input = vector("resync-first-byte-foreign.whole.bin");
+    let result = read_wire(&input, ReadCapacity::default());
+    assert_eq!(result.dispatch, Some(Dispatch::SecondGeneration));
+    assert_eq!(
+        result.prefix_failure,
+        Some(FramingFailure {
+            reason: FramingReason::UndelimitableInput,
+            offset: 0,
+            length: 2,
+        })
+    );
+    assert!(result.segments[0].scanned);
+    assert_eq!(result.segments[0].items[0].offset, 2);
+    assert!(result.stop.is_none());
+}
+
+#[test]
+fn a_removed_witness_does_not_heal_the_preceding_frame() {
+    let ample = vector("resync-heal-witness-removed.ample-whole.bin");
+    let result = read_wire(&ample, ReadCapacity::default());
+    let [prior, resumed] = result.segments.as_slice() else {
+        panic!("expected a recovered segment");
+    };
+    assert_eq!(prior.frames[1].link.state, LinkState::Broken);
+    assert_eq!(prior.head, prior.frames[1].link.effective_identifier);
+    assert_eq!(resumed.items[0].offset, 316);
+
+    let low = vector("resync-heal-witness-removed.low-whole.bin");
+    let capacity = ReadCapacity {
+        decoded_bytes_per_read: 4114,
+        ..ReadCapacity::default()
+    };
+    let result = read_wire(&low, capacity);
+    let [segment] = result.segments.as_slice() else {
+        panic!("expected refusal to retain the witness");
+    };
+    assert_eq!(segment.frames[1].link.state, LinkState::Healed);
+    assert_eq!(segment.frames[2].link.state, LinkState::Linked);
+    assert_eq!(
+        segment.resync_refusal,
+        Some(ResyncRefusal {
+            position: 3,
+            offset: 316,
+            length: 4096,
+            count: 4184,
+        })
+    );
+}
+
+#[test]
+fn charges_scan_candidates_after_place_and_before_tail_grammar() {
+    let capacity = ReadCapacity {
+        decoded_bytes_per_read: 4000,
+        ..ReadCapacity::default()
+    };
+    let input = vector("resync-charge-before-read.whole.bin");
+    let result = read_wire(&input, capacity);
+    assert_eq!(
+        result.segments[0].resync_refusal,
+        Some(ResyncRefusal {
+            position: 3,
+            offset: 210,
+            length: 4096,
+            count: 4127,
+        })
+    );
+    let foreign = vector("resync-offset-false.whole.bin");
+    let result = read_wire(&foreign, capacity);
+    assert_eq!(result.segments.len(), 1);
+    assert!(result.segments[0].resync_refusal.is_none());
+}
+
+#[test]
+fn items_held_before_the_scan_decision_count_toward_the_limit() {
+    let mut input = vector("resync-candidate-untested-at-limit.ends-at-third.bin");
+    let cap = ReadCapacity {
+        items_per_read: 3,
+        ..ReadCapacity::default()
+    };
+    let read = read_wire(&input, cap);
+    let [prior] = read.segments.as_slice() else {
+        panic!("the item limit should exclude the candidate");
+    };
+    assert_eq!(prior.end_offset, 299);
+    assert!(prior.resync_refusal.is_none());
+    assert!(read.stop.is_none());
+    input.push(0);
+    let read = read_wire(&input, cap);
+    assert_eq!(read.segments.len(), 1);
+    assert_eq!(read.stop, Some(ReadStop::ItemLimit { offset: 299 }));
+}
+
+#[test]
 fn a_walked_resync_reports_the_byte_cap_where_it_is_reached() {
     let input = vector("resync-too-long.walked.bin");
     let result = read_wire(&input, ReadCapacity::default());
@@ -186,13 +344,9 @@ fn a_walked_resync_decides_each_nested_field_at_its_start() {
     }
 }
 
-#[test]
-fn malformed_mark_shape_precedes_a_later_mark_limit() {
-    let marker = blake3::derive_key("gts2 header", &[0x81, 5])[..16].to_vec();
+fn bare_resync(marker: Vec<u8>, marks: Vec<Value>) -> Vec<u8> {
     let absent = Value::Array(vec![Value::from(1)]);
-    let mut marks = vec![Value::Array(vec![])];
-    marks.extend((1..=64).map(|tag| Value::Array(vec![Value::from(tag)])));
-    let input = wire::encode(&Value::Array(vec![
+    wire::encode(&Value::Array(vec![
         Value::from(5),
         Value::from(2),
         Value::Bytes(marker),
@@ -204,13 +358,44 @@ fn malformed_mark_shape_precedes_a_later_mark_limit() {
         absent,
         Value::Array(marks),
         Value::Bytes(vec![0; 32]),
-    ]));
+    ]))
+}
+
+#[test]
+fn malformed_mark_shape_precedes_a_later_mark_limit() {
+    let marker = blake3::derive_key("gts2 header", &[0x81, 5])[..16].to_vec();
+    let mut marks = vec![Value::Array(vec![])];
+    marks.extend((1..=64).map(|tag| Value::Array(vec![Value::from(tag)])));
+    let input = bare_resync(marker, marks);
     let result = read_wire(&input, ReadCapacity::default());
     let Opener::Resync(Err(error)) = result.segments[0].opener else {
         panic!("expected malformed mark");
     };
     assert_eq!(error.reason, MalformedReason::WrongType);
     assert_eq!(input[error.offset], 0x80);
+}
+
+#[test]
+fn violations_before_a_resync_byte_limit_keep_their_first_offset() {
+    let oversized_marker = bare_resync(vec![0; 5000], vec![]);
+    let result = read_wire(&oversized_marker, ReadCapacity::default());
+    let Opener::Resync(Err(error)) = result.segments[0].opener else {
+        panic!("expected malformed marker");
+    };
+    assert_eq!(error.reason, MalformedReason::OutOfRange);
+    assert_eq!(error.offset, 3);
+
+    let marker = blake3::derive_key("gts2 header", &[0x81, 5])[..16].to_vec();
+    let text = Value::Text("abcd".repeat(1250));
+    let mut input = bare_resync(marker, vec![Value::Array(vec![Value::from(9), text])]);
+    let body = input.windows(4).position(|part| part == b"abcd").unwrap();
+    input[body] = 0xff;
+    let result = read_wire(&input, ReadCapacity::default());
+    let Opener::Resync(Err(error)) = result.segments[0].opener else {
+        panic!("expected invalid text inside the mark");
+    };
+    assert_eq!(error.reason, MalformedReason::WrongType);
+    assert_eq!(error.offset, body - 3);
 }
 
 #[test]

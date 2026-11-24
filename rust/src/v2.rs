@@ -16,6 +16,7 @@ mod import;
 mod payload;
 pub mod rdf;
 pub mod reader;
+mod resync;
 pub mod writer;
 
 pub use import::{from_nquads, ImportError};
@@ -156,6 +157,13 @@ impl<'a> Decoder<'a> {
         let value = &self.bytes[self.offset..end];
         self.offset = end;
         Ok(value)
+    }
+
+    fn peek_byte(&mut self) -> Result<u8, HeaderError> {
+        self.take(1).map(|byte| {
+            self.offset -= 1;
+            byte[0]
+        })
     }
 
     fn head(&mut self, expected: u8) -> Result<u64, HeaderError> {
@@ -354,9 +362,12 @@ impl<'a> Decoder<'a> {
         })
     }
 
-    fn opener_fields(&mut self) -> Result<(u64, u64, Option<u64>), HeaderError> {
+    fn opener_fields(
+        &mut self,
+        known_hash_only: bool,
+    ) -> Result<(u64, u64, Option<u64>), HeaderError> {
         let registry = self.positive()?;
-        let hash = self.code(if registry == REGISTRY_VERSION {
+        let hash = self.code(if known_hash_only || registry == REGISTRY_VERSION {
             BLAKE3_256
         } else {
             u64::MAX
@@ -378,7 +389,7 @@ pub fn decode_header(data: &[u8], offset: usize) -> Result<DecodedHeader<'_>, He
     if decoder.uint()? != 2 {
         return Err(generation_error);
     }
-    let (registry_version, hash_algorithm, profile) = decoder.opener_fields()?;
+    let (registry_version, hash_algorithm, profile) = decoder.opener_fields(false)?;
     let last_known = |last| {
         if registry_version > REGISTRY_VERSION {
             u64::MAX

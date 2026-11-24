@@ -182,10 +182,7 @@ impl<'a> Decoder<'a> {
     pub(super) fn closed_item(&mut self) -> Result<(), HeaderError> {
         let mut pending = 1_u64;
         while pending != 0 {
-            let first = self
-                .bytes
-                .get(self.offset)
-                .ok_or_else(|| self.error(MalformedReason::WrongLength))?;
+            let first = self.peek_byte()?;
             let major = first >> 5;
             pending -= 1;
             match major {
@@ -403,6 +400,25 @@ pub fn decode_frame(
     offset: usize,
     registry_version: u64,
 ) -> Result<Frame<'_>, FrameError> {
+    let (frame, length_offset) = decode_frame_envelope(data, offset, registry_version)?;
+    check_type_length(frame, length_offset)
+}
+
+pub(super) fn check_type_length(frame: Frame<'_>, offset: usize) -> Result<Frame<'_>, FrameError> {
+    if !valid_decoded_length(frame.frame_type, frame.decoded_length) {
+        return Err(FrameError {
+            reason: MalformedReason::OutOfRange,
+            offset,
+        });
+    }
+    Ok(frame)
+}
+
+pub(super) fn decode_frame_envelope(
+    data: &[u8],
+    offset: usize,
+    registry_version: u64,
+) -> Result<(Frame<'_>, usize), FrameError> {
     let mut decoder = Decoder::new(data, offset);
     let newer = registry_version > REGISTRY_VERSION;
     decoder.record(11)?;
@@ -433,28 +449,24 @@ pub fn decode_frame(
     if frame_type == PARITY && !signatures.is_empty() {
         return Err(error.into());
     }
-    if !valid_decoded_length(frame_type, decoded_length) {
-        return Err(FrameError {
-            reason: MalformedReason::OutOfRange,
-            offset: length_offset,
-        });
-    }
-
-    Ok(Frame {
-        frame_type,
-        critical,
-        transparent,
-        content,
-        decoded_length,
-        payload_digest,
-        storage,
-        stored_payload,
-        identifier,
-        signatures,
-        encoded_signatures_size: decoder.offset - error.offset,
-        identity_fields,
-        next_offset: decoder.offset,
-    })
+    Ok((
+        Frame {
+            frame_type,
+            critical,
+            transparent,
+            content,
+            decoded_length,
+            payload_digest,
+            storage,
+            stored_payload,
+            identifier,
+            signatures,
+            encoded_signatures_size: decoder.offset - error.offset,
+            identity_fields,
+            next_offset: decoder.offset,
+        },
+        length_offset,
+    ))
 }
 
 /// Write a registry 1 frame with plain storage and no signatures.
