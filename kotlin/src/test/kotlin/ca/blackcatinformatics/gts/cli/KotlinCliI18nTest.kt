@@ -32,6 +32,25 @@ class KotlinCliI18nTest {
         }
     }
 
+    @Test
+    fun reportsV2FramingAndStillInspectsLegacyInputs() {
+        val result =
+            captureCli(
+                "en",
+                "info",
+                "../vectors/v2/P1/gen-record-three.bin",
+                "../vectors/v2/P1/torn-after-frames.bin",
+                "../vectors/01-minimal.gts",
+                "../vectors/v2/P1/gen-record-two.bin",
+            )
+        assertEquals(1, result.code)
+        assertTrue(result.stderr.contains("unsupported GTS generation 3"), result.stderr)
+        assertTrue(result.stdout.contains("framing stopped at byte 353: torn_tail"), result.stdout)
+        assertTrue(result.stdout.contains("01-minimal.gts: 1 segment(s)"), result.stdout)
+        assertTrue(result.stdout.contains("gen-record-two.bin: GTS v2 framing ledger"), result.stdout)
+        assertTrue(result.stdout.contains("segment 0: header bytes [0, 11)"), result.stdout)
+    }
+
     private data class CliCapture(
         val code: Int,
         val stdout: String,
