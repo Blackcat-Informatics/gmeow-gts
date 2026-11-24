@@ -339,10 +339,13 @@ GtsCLI class >> parityFindingFor: event [
 	event isDamagedParity ifTrue: [ messages add: 'parity_damaged' ].
 	event parityShardFindings do: [ :finding |
 		| reason count noun |
-		reason := finding second ifNil: [ '' ] ifNotNil: [ :name | name, ', ' ].
 		count := finding third.
-		noun := count = 1 ifTrue: [ ' shard)' ] ifFalse: [ ' shards)' ].
-		messages add: finding first, ' (', reason, count printString, noun ].
+		count
+			ifNil: [ messages add: finding first, ' (', finding second, ')' ]
+			ifNotNil: [
+				reason := finding second ifNil: [ '' ] ifNotNil: [ :name | name, ', ' ].
+				noun := count = 1 ifTrue: [ ' shard)' ] ifFalse: [ ' shards)' ].
+				messages add: finding first, ' (', reason, count printString, noun ] ].
 	event parityFinding ifNotNil: [ :finding | messages add: finding ].
 	^ messages isEmpty ifFalse: [
 		String streamContents: [ :output |

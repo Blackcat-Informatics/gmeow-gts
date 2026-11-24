@@ -99,21 +99,27 @@ GtsV2ParityTest >> testParityShardFindingsMatchP5Vectors [
 
 { #category : #private }
 GtsV2ParityTest >> assertShardFindingsOf: entry [
-	| input decoded expected actual |
+	| input decoded expected actual recoveredOffsets |
 	input := entry at: 'input_file'.
 	decoded := GtsCborReader decode: (GtsHex decode: (entry at: 'read_result')).
 	expected := OrderedCollection new.
+	recoveredOffsets := Set new.
 	(decoded at: 7) second do: [ :segment |
 		(segment at: 17) do: [ :frame |
 			(frame at: 4) = #(2 16) ifTrue: [
 				| findings |
 				findings := frame at: 11.
+				(findings anySatisfy: [ :finding | finding first = 35 ])
+					ifTrue: [ recoveredOffsets add: frame second ].
 				expected add: { frame second.
 					((findings select: [ :finding | #(31 32) includes: finding first ])
 						collect: [ :finding | self shardFindingFrom: finding ]) asArray.
 					(findings anySatisfy: [ :finding | finding first = 33 ]) } ] ] ].
 	actual := (self parityIn: (self bytesFor: input)) collect: [ :event |
-		{ event offset. event parityShardFindings asArray. (event parityFinding = 'parity_stale') } ].
+		(recoveredOffsets includes: event offset) ifTrue: [
+			self deny: (event parityShardFindings anySatisfy: [ :finding | finding first = 'repair_failed' ]) ].
+		{ event offset. (event parityShardFindings reject: [ :finding | finding first = 'repair_failed' ]) asArray.
+			(event parityFinding = 'parity_stale') } ].
 	self assert: actual = expected description: input, ': ', actual printString, ' expected ', expected printString
 ]
 
@@ -161,16 +167,21 @@ GtsV2ParityTest >> testOpenerShardExplanationWaitsForTheFirstOrdinaryLink [
 
 { #category : #private }
 GtsV2ParityTest >> mismatchingParityForHeader: header identifier: identifier [
-	| data parity digests table payload identity encoded frameId |
+	| data parity digests table payload |
 	data := { ByteArray new: 16 }.
 	parity := ByteArray new: 256.
 	digests := Array new: 4 withAll: ((GtsBlake3 deriveWith: 'gts2 shard' bytes: (ByteArray new: 64)) first: 16).
 	table := GtsBlake3 deriveWith: 'gts2 parity table' bytes: (GtsCborWriter encode: { identifier. data. digests }).
 	payload := GtsCborWriter encode: { data. digests. parity }.
-	identity := { 16. false. true. { 1. 0. header size. identifier. table }.
-		payload size. (GtsBlake3 deriveWith: 'gts2 payload' bytes: payload) }.
+	^ self encodeParity: { 1. 0. header size. identifier. table } payload: payload
+]
+
+{ #category : #private }
+GtsV2ParityTest >> encodeParity: content payload: payload [
+	| identity encoded frameId |
+	identity := { 16. false. true. content. payload size. (GtsBlake3 deriveWith: 'gts2 payload' bytes: payload) }.
 	encoded := (GtsCborWriter encode: identity) allButFirst.
-	frameId := GtsBlake3 deriveWith: 'gts2 frame' prefix: #[135 88 32], identifier
+	frameId := GtsBlake3 deriveWith: 'gts2 frame' prefix: #[135 88 32], content fourth
 		bytes: encoded from: 1 to: encoded size + 1.
 	^ GtsCborWriter encode: { 2 }, identity, { #(1). payload. frameId. #() }
 ]
@@ -231,4 +242,105 @@ GtsV2ParityTest >> testEachSegmentReportsItsOwnTailAtAnAbsoluteOffset [
 		decodedWhen: [ :event | false ]
 		unprotectedTailsDo: [ :offset :length | order add: { offset. length } ].
 	self assert: order asArray equals: { 0. firstTail. segment size. secondTail }
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testSolveDataAndParityErasuresFromThePublishedStripe [
+	| bytes parityEvent payload fields parityBytes data parity damagedData damagedParity solved |
+	bytes := self bytesFor: 'parity-base.bin'.
+	parityEvent := (self parityIn: bytes) first.
+	payload := parityEvent frame payload plainStoredBytesUpTo: 280651.
+	fields := (GtsV2Field walker: (GtsV2CborWalker on: payload) from: 1 to: payload size + 1) fields: 3.
+	fields next.
+	fields next.
+	parityBytes := fields next.
+	parityBytes := parityBytes bytesStartingAt: (parityBytes byteBodyOfSize: 256).
+	parity := (1 to: 256 by: 64) collect: [ :start | parityBytes copyFrom: start to: start + 63 ].
+	data := (1 to: parityEvent offset by: 64) collect: [ :start |
+		| shard finish |
+		shard := ByteArray new: 64.
+		finish := (start + 63) min: parityEvent offset.
+		shard replaceFrom: 1 to: finish - start + 1 with: bytes startingAt: start.
+		shard ].
+	damagedData := data copy.
+	damagedData at: 1 put: nil.
+	damagedData at: data size put: nil.
+	damagedParity := parity copy.
+	damagedParity at: 1 put: nil.
+	damagedParity at: 3 put: nil.
+	solved := GtsV2ParityCodec new solveData: damagedData parity: damagedParity shardSize: 64.
+	self assert: solved first equals: data.
+	self assert: solved second equals: parity
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testReconstructingEveryParityRowMatchesThePublishedMatrix [
+	| fixture rows data solved |
+	fixture := STONJSON fromString: '/workspace/vectors/v2/P5/parity-matrix.json' asFileReference contents.
+	rows := ((((fixture at: 'cases') first at: 'result') at: 'rows') collect: [ :row | row asByteArray ]) asArray.
+	data := (1 to: 64) collect: [ :index |
+		(ByteArray new: 64) at: index put: 1; yourself ].
+	solved := GtsV2ParityCodec new solveData: data parity: (Array new: 4) shardSize: 64.
+	self assert: solved second equals: rows
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testRepairFailureWhenOneStripeHasFiveErasures [
+	| bytes dataStart parityFrame parityStart field fields finding |
+	bytes := self bytesFor: 'parity-base.bin'.
+	parityFrame := (self parityIn: bytes) first.
+	dataStart := (self storedFieldIn: bytes frameAt: 11) byteBodyOfSize: nil.
+	field := self storedFieldIn: bytes frameAt: parityFrame offset.
+	fields := (GtsV2Field walker: (GtsV2CborWalker on: bytes)
+		from: (field byteBodyOfSize: nil) to: field end) fields: 3.
+	fields next.
+	fields next.
+	parityStart := fields next byteBodyOfSize: 256.
+	bytes at: dataStart put: ((bytes at: dataStart) bitXor: 1).
+	parityStart to: parityStart + 192 by: 64 do: [ :offset |
+		bytes at: offset put: ((bytes at: offset) bitXor: 1) ].
+	parityFrame := (self parityIn: bytes) first.
+	finding := parityFrame parityShardFindings.
+	self assert: finding asArray equals: #(
+		('parity_mismatch' 'data' 1)
+		('parity_mismatch' 'parity' 4)
+		('repair_failed' 'too_many_erasures' nil)).
+	self assert: ((GtsCLI parityFindingFor: parityFrame) includesSubstring: 'repair_failed (too_many_erasures)').
+	bytes at: parityStart put: ((bytes at: parityStart) bitXor: 1).
+	self assert: (self parityIn: bytes) first parityShardFindings asArray equals: #(
+		('parity_mismatch' 'data' 1)
+		('parity_mismatch' 'parity' 3))
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testReconstructionRejectsSolvedBytesWithTheWrongDigest [
+	| bytes parity payload content header dataStart column modified result |
+	bytes := self bytesFor: 'parity-base.bin'.
+	parity := (self parityIn: bytes) first.
+	payload := GtsCborReader decode: (parity frame payload plainStoredBytesUpTo: 280651).
+	content := GtsCborReader decode: parity frame content encodedBytes.
+	header := GtsBlake3 deriveWith: 'gts2 header' bytes: (bytes first: 11).
+	dataStart := (self storedFieldIn: bytes frameAt: 11) byteBodyOfSize: nil.
+	column := ((dataStart - 1) // 64) + 1.
+	payload first at: column put: (ByteArray new: 16).
+	content at: 5 put: (GtsBlake3 deriveWith: 'gts2 parity table'
+		bytes: (GtsCborWriter encode: { header. payload first. payload second })).
+	bytes at: dataStart put: ((bytes at: dataStart) bitXor: 1).
+	modified := (bytes first: parity offset), (self encodeParity: content payload: (GtsCborWriter encode: payload)).
+	result := (self parityIn: modified) first.
+	self deny: result isDamagedParity.
+	self assert: result parityShardFindings asArray equals: #(
+		('parity_mismatch' 'data' 1)
+		('repair_failed' 'verify_failed' nil))
+]
+
+{ #category : #private }
+GtsV2ParityTest >> storedFieldIn: bytes frameAt: offset [
+	| walker fields start end |
+	walker := GtsV2CborWalker on: bytes.
+	start := offset + 1.
+	end := walker itemEndAt: start limit: bytes size + 1.
+	fields := (GtsV2Field walker: walker from: start to: end) fields: 11.
+	8 timesRepeat: [ fields next ].
+	^ fields next
 ]

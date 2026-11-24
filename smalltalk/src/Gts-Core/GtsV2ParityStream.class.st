@@ -98,14 +98,28 @@ GtsV2ParityStream >> unprotectedTailDo: report [
 
 { #category : #validation }
 GtsV2ParityStream >> compareFrom: first to: end shardSize: shardSize digests: digests [
-	| rangeIndex data position failed unexplained pendingOpener |
+	| failed unexplained pendingOpener index |
+	failed := OrderedCollection new.
+	unexplained := 0.
+	pendingOpener := 0.
+	index := 0.
+	self shardsFrom: first to: end size: shardSize do: [ :data :passes :shardEnd |
+		index := index + 1.
+		((GtsBlake3 deriveWith: 'gts2 shard' bytes: data) first: 16) = (digests at: index) ifFalse: [
+			failed add: index.
+			passes ifTrue: [ unexplained := unexplained + 1 ].
+			(openerRange notNil and: [ shardEnd <= openerRange second ])
+				ifTrue: [ pendingOpener := pendingOpener + 1 ] ] ].
+	^ { failed. unexplained. pendingOpener }
+]
+
+{ #category : #enumerating }
+GtsV2ParityStream >> shardsFrom: first to: end size: shardSize do: consume [
+	| rangeIndex data position |
 	rangeIndex := self rangeIndexAt: first.
 	data := ByteArray new: shardSize.
 	position := first.
-	failed := 0.
-	unexplained := 0.
-	pendingOpener := 0.
-	digests do: [ :expected |
+	[ position < end ] whileTrue: [
 		| shardStart shardEnd passes |
 		shardStart := position.
 		shardEnd := (position + shardSize) min: end.
@@ -120,12 +134,7 @@ GtsV2ParityStream >> compareFrom: first to: end shardSize: shardSize digests: di
 			position := finish.
 			position = range second ifTrue: [ rangeIndex := rangeIndex + 1 ] ].
 		shardEnd - shardStart + 1 to: shardSize do: [ :index | data at: index put: 0 ].
-		((GtsBlake3 deriveWith: 'gts2 shard' bytes: data) first: 16) = expected ifFalse: [
-			failed := failed + 1.
-			passes ifTrue: [ unexplained := unexplained + 1 ].
-			(openerRange notNil and: [ shardEnd <= openerRange second ])
-				ifTrue: [ pendingOpener := pendingOpener + 1 ] ] ].
-	^ { failed. unexplained. pendingOpener }
+		consume value: data value: passes value: shardEnd ]
 ]
 
 { #category : #private }
