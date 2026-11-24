@@ -1,0 +1,18 @@
+ghprsq structured squash audit metadata
+
+parent_hashes: 8c85183ce1e11657dc5b6e7bf94d7d3c72de99b2
+
+GhpRsq-Schema: 1
+GhpRsq-Merge-Style: structured-squash
+GhpRsq-GitHub-Repo: Blackcat-Informatics/gmeow-gts
+GhpRsq-GitHub-Pull-Request: 657
+GhpRsq-GitHub-PR-URL: https://github.com/Blackcat-Informatics/gmeow-gts/pull/657
+GhpRsq-Base-Ref: main
+GhpRsq-Base-OID: 2b86eb76593890f6850e09561e5c167fd49f4ef6
+GhpRsq-Head-Ref: paudley/v2-smalltalk-typed-findings
+GhpRsq-Head-OID: 8c85183ce1e11657dc5b6e7bf94d7d3c72de99b2
+GhpRsq-Result-Tree: 8387265704d27af6b2be7308282d87b78b16b4da
+GhpRsq-Result-Commit: e7d0f1c8afc002463268e37e60b6c89d308ecb38
+GhpRsq-Parent-Hashes: 8c85183ce1e11657dc5b6e7bf94d7d3c72de99b2
+GhpRsq-Squash-Notes-SHA256: 3386f5859d8e3d5551a655198224f4ecb1d2d8e0e0969fbd24d2eaf30a125fc5
+GhpRsq-Stage-Evidence: none
