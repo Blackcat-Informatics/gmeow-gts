@@ -14,6 +14,7 @@ testClasses := {
   Smalltalk globals at: #GtsConformanceTest.
   Smalltalk globals at: #GtsCborReaderTest.
   Smalltalk globals at: #GtsV2WireTest.
+  Smalltalk globals at: #GtsV2ParityTest.
   Smalltalk globals at: #GtsCborWriterTest.
   Smalltalk globals at: #GtsReaderTest.
   Smalltalk globals at: #GtsBlake3Test.

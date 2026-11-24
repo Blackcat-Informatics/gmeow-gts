@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2FrameEnvelope,
 	#superclass : #Object,
-	#instVars : [ 'frameType', 'problem', 'identityStart', 'identityEnd', 'transparent', 'storedIdentifier', 'payload', 'content', 'signatureRecords' ],
+	#instVars : [ 'frameType', 'problem', 'identityStart', 'identityEnd', 'critical', 'transparent', 'storedIdentifier', 'payload', 'content', 'signatureRecords' ],
 	#category : #'Gts-Core'
 }
 
@@ -47,6 +47,11 @@ GtsV2FrameEnvelope >> isTransparent [
 	^ transparent = true
 ]
 
+{ #category : #testing }
+GtsV2FrameEnvelope >> hasUnknownCriticalType [
+	^ frameType notNil and: [ frameType > 16 and: [ critical = true and: [ transparent notNil ] ] ]
+]
+
 { #category : #hashing }
 GtsV2FrameEnvelope >> identifierOn: bytes predecessor: predecessor [
 	identityEnd ifNil: [ ^ nil ].
@@ -66,7 +71,7 @@ GtsV2FrameEnvelope >> read: item registry: registry [
 
 { #category : #validation }
 GtsV2FrameEnvelope >> check: fields newer: newer [
-	| known parity critical contentWellTyped length digest storage stored bodyStart identifier signatures |
+	| known parity contentWellTyped length digest storage stored bodyStart identifier signatures |
 	fields next uint.
 	identityStart := fields offset.
 	frameType := self observe: [ fields next uint ].

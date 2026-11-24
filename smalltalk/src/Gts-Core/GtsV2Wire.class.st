@@ -190,14 +190,16 @@ GtsV2Wire >> eventsDo: aBlock retainDecoded: retain [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
-	| pending pendingOffsets predecessor closing deliver flush budget refusalAfter pendingRefusal |
+	| pending pendingOffsets predecessor closing parity deliver flush budget refusalAfter pendingRefusal |
 	format = #v2 ifFalse: [ ^ self ].
 	budget := initialBudget copy.
 	closing := GtsV2ClosingChecks on: walker.
+	parity := GtsV2ParityChecks new.
 	deliver := [ :event :next :afterLocator |
 		| effective |
 		closing observe: event following: next afterLocator: afterLocator.
 		effective := self finalize: event following: next predecessor: predecessor.
+		parity observe: event predecessor: predecessor.
 		effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
 		aBlock value: event.
 		event == refusalAfter ifTrue: [

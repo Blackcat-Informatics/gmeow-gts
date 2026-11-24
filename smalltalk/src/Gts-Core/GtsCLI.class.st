@@ -299,6 +299,7 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 					', registry ', opener registry printString, ', hash algorithm ', opener hashAlgorithm printString ].
 				event scanned ifTrue: [ details := details, ', found by recovery scan' ].
 				diagnostic := self wireDiagnosticFor: event.
+				diagnostic isNotEmpty ifTrue: [ clean := false ].
 				self stdout: prefix, kind, ' bytes [', event offset printString, ', ',
 					event end printString, ')', details, diagnostic, String lf.
 				event link ifNotNil: [
@@ -319,7 +320,8 @@ GtsCLI class >> wireFindingFor: event [
 	event kind = #resyncRefused ifTrue: [
 		^ self resyncRefusalMessageFor: event ].
 	event isDamagedParity ifTrue: [
-		^ event problem ifNil: [ 'parity_damaged' ] ifNotNil: [ :reason | 'parity_damaged (', reason, ')' ] ].
+		^ 'parity_damaged', (event parityFinding ifNil: [ '' ] ifNotNil: [ :finding | ', ', finding ]) ].
+	event parityFinding ifNotNil: [ :finding | ^ finding ].
 	^ event problem ifNil: [
 		event closingClaimFailure ifNotNil: [ :reason | 'index_claim_failed (', reason, ')' ] ]
 ]
@@ -337,7 +339,7 @@ GtsCLI class >> printWireIntegrityFor: event [
 	payload := event payload.
 	count := payload count ifNil: [ '' ] ifNotNil: [ :size | ', ', size printString, ' bytes' ].
 	reason := payload reason ifNil: [ '' ] ifNotNil: [ :finding | ' (', finding, count, ')' ].
-	event isDamagedParity ifTrue: [ reason := '' ].
+	event isDamagedParity ifTrue: [ reason := ''. stored := '' ].
 	self stdout: '      link ', event link asString, stored, ', payload ', payload state asString, reason, String lf.
 	^ event link = #linked and: [ event storedMatches ~= false and: [ payload state = #verified ] ]
 ]
