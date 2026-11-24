@@ -53,7 +53,7 @@ GtsNQuads class >> renderTermId: termId in: graph open: open [
 	recurse blindly: a self-reaching term degrades to the same blank node an unbound
 	triple term already produces."
 	| spo term |
-	((termId isInteger not) or: [ termId < 0 or: [ termId >= graph terms size ] ])
+	((termId isInteger not) or: [ termId < 0 or: [ termId >= graph termCount ] ])
 		ifTrue: [ ^ '_:out_of_range_', termId asString ].
 	(open includes: termId) ifTrue: [ ^ '_:unbound_triple_', termId asString ].
 	term := graph termAtId: termId.

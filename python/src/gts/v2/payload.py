@@ -7,11 +7,10 @@ from typing import Literal
 
 import zstandard
 
+from ._zstd import ZSTD_CODEC, zstd_header
 from .frame import CompressedStorage, Frame, UnknownStorage
 
 _UINT_MAX = (1 << 64) - 1
-_ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
-_ZSTD_CODEC = 1
 
 type PayloadReason = Literal[
     "stored_size",
@@ -104,9 +103,9 @@ class PayloadBudget:
         if isinstance(storage, UnknownStorage):
             return PayloadCheck("unchecked", stored, "unknown_codec")
         if isinstance(storage, CompressedStorage):
-            if storage.codec != _ZSTD_CODEC:
+            if storage.codec != ZSTD_CODEC:
                 return PayloadCheck("unchecked", stored, "unknown_codec")
-            header = _zstd_header(length)
+            header = zstd_header(length)
             if payload[: len(header)] != header:
                 return PayloadCheck("damaged", stored, "codec_constraint")
             try:
@@ -130,18 +129,3 @@ class PayloadBudget:
         if not frame.check_decoded_payload(decoded):
             return PayloadCheck("damaged", stored, "payload_digest")
         return PayloadCheck("verified", stored, decoded=decoded)
-
-
-def _zstd_header(length: int) -> bytes:
-    """Generate the sole compressed frame header assigned to a decoded length."""
-    if not 1 <= length <= _UINT_MAX:
-        raise ValueError("compressed payload length must be a positive uint")
-    if length <= 255:
-        return _ZSTD_MAGIC + b"\x20" + length.to_bytes(1, "little")
-    if length <= 65791:
-        return _ZSTD_MAGIC + b"\x60" + (length - 256).to_bytes(2, "little")
-    if length <= 1 << 26:
-        return _ZSTD_MAGIC + b"\xa0" + length.to_bytes(4, "little")
-    if length < (1 << 32) - 1:
-        return _ZSTD_MAGIC + b"\x80\x80" + length.to_bytes(4, "little")
-    return _ZSTD_MAGIC + b"\xc0\x80" + length.to_bytes(8, "little")

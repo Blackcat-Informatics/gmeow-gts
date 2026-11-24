@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 # `@blackcatinformatics/gmeow-gts` — TypeScript GTS Engine
 
-The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format. This package predates v2.
+The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format.
 
 ## Installation
 
@@ -36,5 +36,16 @@ Requires Node.js ≥ 22.16.0.
 ---
 
 ## Format and conformance
+
+`gts from-nq` writes a committed v2 RDF segment. `gts fold` reads supported v2 RDF
+terms and emits N-Quads. `gts verify` checks v2 frame envelopes, identifiers, decoded
+payload integrity, offsets and locator claims, and each commit's count and root.
+It reports the ordinary frame counts of the committed prefix and uncommitted
+tail for each segment, or indicates when there is no valid commit.
+
+This verification covers wire and commit integrity. RDF and archive semantics,
+index payload claims, parity claims and repair, cross-segment lineage, and
+signature authentication require separate support. The command reports resync
+openers as unsupported. The `--key` option is unavailable for v2 files.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.

@@ -316,6 +316,11 @@ GtsGraph >> termAtId: termId [
 ]
 
 { #category : #accessing }
+GtsGraph >> termCount [
+	^ terms size
+]
+
+{ #category : #accessing }
 GtsGraph >> terms [
 	^ terms asArray
 ]

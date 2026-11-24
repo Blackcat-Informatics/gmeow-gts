@@ -6,10 +6,81 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <openssl/core_names.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/evperr.h>
+#include <openssl/params.h>
 #include <sodium.h>
+
+#if OPENSSL_VERSION_NUMBER < 0x30500010L
+#error "OpenSSL 3.5.1 or later is required for ML-DSA-65 verification"
+#endif
 
 int gts_sodium_init(void) {
     return sodium_init();
+}
+
+int gts_sha512(const uint8_t *message, size_t message_len, uint8_t *digest) {
+    return crypto_hash_sha512(digest, message, (unsigned long long)message_len);
+}
+
+int gts_mldsa65_verify(
+    const uint8_t *signature,
+    const uint8_t *message,
+    size_t message_len,
+    const uint8_t *public_key,
+    const uint8_t *context,
+    size_t context_len
+) {
+    EVP_PKEY_CTX *import = NULL;
+    EVP_PKEY_CTX *verify = NULL;
+    EVP_PKEY *key = NULL;
+    EVP_SIGNATURE *algorithm = NULL;
+    int result = -1;
+    unsigned long error;
+    OSSL_PARAM public_params[] = {
+        OSSL_PARAM_octet_string(OSSL_PKEY_PARAM_PUB_KEY, (void *)public_key, 1952),
+        OSSL_PARAM_END
+    };
+    OSSL_PARAM signature_params[] = {
+        OSSL_PARAM_octet_string(OSSL_SIGNATURE_PARAM_CONTEXT_STRING, (void *)context, context_len),
+        OSSL_PARAM_END
+    };
+
+    /* This shim owns the OpenSSL error queue for the duration of the call. */
+    ERR_clear_error();
+    import = EVP_PKEY_CTX_new_from_name(NULL, "ML-DSA-65", NULL);
+    if (import == NULL || EVP_PKEY_fromdata_init(import) <= 0 ||
+        EVP_PKEY_fromdata(import, &key, EVP_PKEY_PUBLIC_KEY, public_params) <= 0) {
+        goto cleanup;
+    }
+
+    algorithm = EVP_SIGNATURE_fetch(NULL, "ML-DSA-65", NULL);
+    verify = EVP_PKEY_CTX_new_from_pkey(NULL, key, NULL);
+    if (algorithm == NULL || verify == NULL ||
+        EVP_PKEY_verify_message_init(verify, algorithm, signature_params) <= 0) {
+        goto cleanup;
+    }
+
+    ERR_clear_error();
+    result = EVP_PKEY_verify(verify, signature, 3309, message, message_len);
+    /* EVP also queues a generic provider failure for an ordinary rejection.
+     * A specific underlying error instead means the verification failed to run. */
+    while ((error = ERR_get_error()) != 0) {
+        if (result == 0 &&
+            (ERR_GET_LIB(error) != ERR_LIB_EVP || ERR_GET_REASON(error) != EVP_R_PROVIDER_SIGNATURE_FAILURE)) {
+            result = -1;
+        }
+    }
+
+cleanup:
+    EVP_PKEY_CTX_free(verify);
+    EVP_SIGNATURE_free(algorithm);
+    EVP_PKEY_free(key);
+    EVP_PKEY_CTX_free(import);
+    ERR_clear_error();
+    return result;
 }
 
 size_t gts_ed25519_publickeybytes(void) {

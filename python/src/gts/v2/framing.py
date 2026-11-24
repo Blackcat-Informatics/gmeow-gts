@@ -32,7 +32,9 @@ class GenerationField:
     value: int
 
 
-def _head(data: bytes, offset: int, item_start: int) -> tuple[int, int | None, int]:
+def _head(
+    data: bytes | memoryview, offset: int, item_start: int
+) -> tuple[int, int | None, int]:
     """Read a CBOR head without applying the deterministic GTS grammar."""
     if offset == len(data):
         raise ItemFramingError("torn_tail", item_start)
@@ -53,7 +55,7 @@ def _head(data: bytes, offset: int, item_start: int) -> tuple[int, int | None, i
     raise ItemFramingError("undelimitable_input", item_start)
 
 
-def item_end(data: bytes, offset: int = 0) -> int:
+def item_end(data: bytes | memoryview, offset: int = 0) -> int:
     """Walk one CBOR item at a known boundary and return its exclusive end.
 
     This walk checks well-formedness without allocating decoded values. The

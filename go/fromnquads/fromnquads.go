@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"go.blackcatinformatics.ca/gts/model"
+	"go.blackcatinformatics.ca/gts/nquads"
 	"go.blackcatinformatics.ca/gts/writer"
 	"go.blackcatinformatics.ca/gts/xsd"
 )
@@ -44,10 +45,6 @@ type node struct {
 	triple *tripleNode
 }
 
-func atomNode(kind model.TermKind, value string) node {
-	return node{atom: &atom{kind: kind, value: value}}
-}
-
 func isAtom(n node, kind model.TermKind) bool {
 	return n.atom != nil && n.atom.kind == kind
 }
@@ -69,8 +66,9 @@ func isHexDigit(b byte) bool {
 }
 
 type tokenizer struct {
-	text string
-	pos  int
+	text  string
+	pos   int
+	rdf12 bool
 }
 
 func newTokenizer(text string) *tokenizer {
@@ -90,9 +88,6 @@ func (t *tokenizer) atEnd() bool {
 
 func (t *tokenizer) node() (node, error) {
 	t.skipWS()
-	if t.pos >= len(t.text) {
-		return node{}, ParseError{fmt.Sprintf("unexpected end of line: %q", t.text)}
-	}
 	if strings.HasPrefix(t.text[t.pos:], "<<(") {
 		triple, err := t.quotedTriple()
 		if err != nil {
@@ -100,27 +95,29 @@ func (t *tokenizer) node() (node, error) {
 		}
 		return node{triple: &triple}, nil
 	}
+	a, err := t.atom()
+	if err != nil {
+		return node{}, err
+	}
+	return node{atom: &a}, nil
+}
+
+func (t *tokenizer) atom() (atom, error) {
+	t.skipWS()
+	if t.pos >= len(t.text) {
+		return atom{}, ParseError{fmt.Sprintf("unexpected end of line: %q", t.text)}
+	}
 	switch t.text[t.pos] {
 	case '<':
 		value, err := t.iri()
-		if err != nil {
-			return node{}, err
-		}
-		return atomNode(model.Iri, value), nil
+		return atom{kind: model.Iri, value: value}, err
 	case '_':
 		value, err := t.bnode()
-		if err != nil {
-			return node{}, err
-		}
-		return atomNode(model.Bnode, value), nil
+		return atom{kind: model.Bnode, value: value}, err
 	case '"':
-		a, err := t.literal()
-		if err != nil {
-			return node{}, err
-		}
-		return node{atom: &a}, nil
+		return t.literal()
 	default:
-		return node{}, ParseError{fmt.Sprintf("unexpected token at %d in %q", t.pos, t.text)}
+		return atom{}, ParseError{fmt.Sprintf("unexpected token at %d in %q", t.pos, t.text)}
 	}
 }
 
@@ -135,7 +132,11 @@ func (t *tokenizer) iri() (string, error) {
 	}
 	end := start + rel
 	t.pos = end + 1
-	return t.text[start:end], nil
+	value := t.text[start:end]
+	if t.rdf12 {
+		return rdfIRI(value)
+	}
+	return value, nil
 }
 
 func (t *tokenizer) bnode() (string, error) {
@@ -143,6 +144,9 @@ func (t *tokenizer) bnode() (string, error) {
 		return "", ParseError{fmt.Sprintf("bad blank node in %q", t.text)}
 	}
 	t.pos += 2
+	if t.rdf12 {
+		return t.rdfBlankLabel()
+	}
 	start := t.pos
 	for t.pos < len(t.text) && isBNodeChar(t.text[t.pos]) {
 		t.pos++
@@ -169,59 +173,89 @@ func (t *tokenizer) bumpRune() (rune, bool) {
 }
 
 func (t *tokenizer) literal() (atom, error) {
+	value, err := t.stringLiteral()
+	if err != nil {
+		return atom{}, err
+	}
+	a := atom{kind: model.Literal, value: value}
+	if t.rdf12 {
+		t.skipWS()
+	}
+	if t.pos < len(t.text) && t.text[t.pos] == '@' {
+		return t.languageLiteral(a)
+	}
+	if strings.HasPrefix(t.text[t.pos:], "^^") {
+		t.pos += 2
+		t.skipWS()
+		datatype, err := t.iri()
+		if err != nil {
+			return atom{}, err
+		}
+		if t.rdf12 && (datatype == model.RDFLangString || datatype == model.RDFDirLangString) {
+			return atom{}, ParseError{fmt.Sprintf("datatype %q requires a language", datatype)}
+		}
+		a.datatype = datatype
+		a.hasDType = true
+	}
+	return a, nil
+}
+
+func (t *tokenizer) languageLiteral(a atom) (atom, error) {
+	t.pos++
+	start := t.pos
+	for t.pos < len(t.text) && isLangChar(t.text[t.pos]) {
+		t.pos++
+	}
+	a.lang = t.text[start:t.pos]
+	if sep := strings.LastIndex(a.lang, "--"); sep >= 0 {
+		direction := a.lang[sep+2:]
+		if !model.IsLiteralDirection(direction) {
+			return atom{}, ParseError{fmt.Sprintf("invalid literal direction in %q", t.text)}
+		}
+		a.lang = a.lang[:sep]
+		a.direction = direction
+		a.hasDirection = true
+	}
+	if a.lang == "" {
+		return atom{}, ParseError{fmt.Sprintf("empty language tag in %q", t.text)}
+	}
+	if t.rdf12 && !nquads.WellFormedLanguageTag(a.lang) {
+		return atom{}, ParseError{fmt.Sprintf("invalid RDF language tag %q", a.lang)}
+	}
+	a.hasLang = true
+	return a, nil
+}
+
+func (t *tokenizer) stringLiteral() (string, error) {
 	if ch, ok := t.bumpRune(); !ok || ch != '"' {
-		return atom{}, ParseError{fmt.Sprintf("bad literal in %q", t.text)}
+		return "", ParseError{fmt.Sprintf("bad literal in %q", t.text)}
+	}
+	if t.rdf12 {
+		end := strings.IndexAny(t.text[t.pos:], "\"\\")
+		if end < 0 {
+			return "", ParseError{"unterminated literal"}
+		}
+		if t.text[t.pos+end] == '"' {
+			value := t.text[t.pos : t.pos+end]
+			t.pos += end + 1
+			return value, nil
+		}
 	}
 	var value strings.Builder
 	for {
 		ch, ok := t.bumpRune()
 		if !ok {
-			return atom{}, ParseError{fmt.Sprintf("unterminated literal in %q", t.text)}
+			return "", ParseError{fmt.Sprintf("unterminated literal in %q", t.text)}
 		}
 		switch ch {
 		case '\\':
 			escaped, err := t.escape()
 			if err != nil {
-				return atom{}, err
+				return "", err
 			}
 			value.WriteRune(escaped)
 		case '"':
-			a := atom{kind: model.Literal, value: value.String()}
-			if t.pos < len(t.text) && t.text[t.pos] == '@' {
-				t.pos++
-				start := t.pos
-				for t.pos < len(t.text) && isLangChar(t.text[t.pos]) {
-					t.pos++
-				}
-				a.lang = t.text[start:t.pos]
-				if a.lang == "" {
-					return atom{}, ParseError{fmt.Sprintf("empty language tag in %q", t.text)}
-				}
-				if sep := strings.LastIndex(a.lang, "--"); sep >= 0 {
-					rawDirection := a.lang[sep+2:]
-					if rawDirection != "ltr" && rawDirection != "rtl" {
-						return atom{}, ParseError{fmt.Sprintf("invalid literal direction in %q", t.text)}
-					}
-					language := a.lang[:sep]
-					if language == "" {
-						return atom{}, ParseError{fmt.Sprintf("empty language tag in %q", t.text)}
-					}
-					a.lang = language
-					a.direction = rawDirection
-					a.hasDirection = true
-				}
-				a.hasLang = true
-			} else if strings.HasPrefix(t.text[t.pos:], "^^") {
-				t.pos += 2
-				t.skipWS()
-				datatype, err := t.iri()
-				if err != nil {
-					return atom{}, err
-				}
-				a.datatype = datatype
-				a.hasDType = true
-			}
-			return a, nil
+			return value.String(), nil
 		default:
 			value.WriteRune(ch)
 		}
@@ -232,6 +266,9 @@ func (t *tokenizer) escape() (rune, error) {
 	ch, ok := t.bumpRune()
 	if !ok {
 		return 0, ParseError{fmt.Sprintf("bad escape at end of %q", t.text)}
+	}
+	if ch == '\'' && t.rdf12 {
+		return '\'', nil
 	}
 	switch ch {
 	case '\\':
@@ -365,6 +402,10 @@ func (i *interner) node(n node, reifiers *[]model.ReifierEntry) int {
 	s := i.node(n.triple.s, reifiers)
 	p := i.node(n.triple.p, reifiers)
 	o := i.node(n.triple.o, reifiers)
+	return i.triple(s, p, o)
+}
+
+func (i *interner) triple(s, p, o int) int {
 	key := termKey{tag: "triple", s: s, p: p, o: o}
 	if id, ok := i.ids[key]; ok {
 		return id
