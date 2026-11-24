@@ -9,9 +9,11 @@ use ciborium::value::Value;
 
 use crate::wire;
 
+mod durability;
 pub mod frame;
 mod framing;
 mod payload;
+mod range;
 pub mod reader;
 mod resync;
 pub mod writer;

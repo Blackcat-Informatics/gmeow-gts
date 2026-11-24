@@ -10,11 +10,10 @@ use ciborium::value::Value;
 use super::{
     encode_header,
     frame::{encode_plain_frame_with_identifier, FrameError, COMMIT, PARITY},
+    range::{Digest, Range},
     Header, HeaderWriteError, HEADER_CONTEXT,
 };
 use crate::wire;
-
-type Digest = [u8; 32];
 
 /// A segment append that cannot be represented.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -40,63 +39,6 @@ impl Error for SegmentWriteError {
             Self::Frame(error) => Some(error),
             Self::CommitRequired | Self::RangeFull => None,
         }
-    }
-}
-
-fn leaf(identifier: &Digest) -> Digest {
-    let record = Value::Array(vec![Value::Bytes(identifier.to_vec())]);
-    blake3::derive_key("gts2 range leaf", &wire::encode(&record))
-}
-
-fn parent(left: &Digest, right: &Digest) -> Digest {
-    let record = Value::Array(vec![
-        Value::Bytes(left.to_vec()),
-        Value::Bytes(right.to_vec()),
-    ]);
-    blake3::derive_key("gts2 range node", &wire::encode(&record))
-}
-
-struct Range {
-    count: u64,
-    peaks: Vec<(u8, Digest)>,
-}
-
-impl Range {
-    fn new(opener: &Digest) -> Self {
-        Self {
-            count: 1,
-            peaks: vec![(0, leaf(opener))],
-        }
-    }
-
-    fn append(&mut self, identifier: &Digest) -> Result<(), SegmentWriteError> {
-        let next = self
-            .count
-            .checked_add(1)
-            .ok_or(SegmentWriteError::RangeFull)?;
-        let mut height = 0;
-        let mut digest = leaf(identifier);
-        while let Some((left_height, left)) = self.peaks.last().copied() {
-            if left_height != height {
-                break;
-            }
-            self.peaks.pop();
-            digest = parent(&left, &digest);
-            height += 1;
-        }
-        self.peaks.push((height, digest));
-        self.count = next;
-        Ok(())
-    }
-
-    fn root(&self) -> Digest {
-        let peaks = self
-            .peaks
-            .iter()
-            .map(|(_, digest)| Value::Bytes(digest.to_vec()))
-            .collect();
-        let record = Value::Array(vec![Value::from(self.count), Value::Array(peaks)]);
-        blake3::derive_key("gts2 range root", &wire::encode(&record))
     }
 }
 
@@ -145,7 +87,7 @@ impl SegmentWriter {
     /// Append the commit over the opener and the preceding ordinary frames.
     pub fn commit(&mut self) -> Result<Digest, SegmentWriteError> {
         let content = wire::encode(&Value::Array(vec![
-            Value::from(self.range.count - 1),
+            Value::from(self.range.ordinary_count()),
             Value::Bytes(self.range.root().to_vec()),
         ]));
         self.append_frame(COMMIT, &content, &[])
@@ -171,7 +113,9 @@ impl SegmentWriter {
             encode_plain_frame_with_identifier(&self.head, frame_type, content, payload)
                 .map_err(SegmentWriteError::Frame)?;
         if frame_type != PARITY {
-            self.range.append(&identifier)?;
+            self.range
+                .append(&identifier)
+                .map_err(|_| SegmentWriteError::RangeFull)?;
             self.head = identifier;
         }
         self.bytes.extend(encoded);

@@ -7,17 +7,24 @@ use ciborium::Value;
 use gmeow_gts::{
     v2::{
         reader::{
-            read_wire, Dispatch, FramingFailure, FramingReason, ItemKind, LinkState, Opener,
-            PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity, ReadStop, ResyncRefusal,
+            read_wire, ClosingFinding, CommitCheck, Dispatch, FramingFailure, FramingReason,
+            ItemKind, LinkState, Opener, PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity,
+            ReadStop, ResyncRefusal, UncommittedTail,
         },
-        MalformedReason,
+        writer::SegmentWriter,
+        Header, MalformedReason,
     },
     wire,
 };
 
 fn vector(name: &str) -> Vec<u8> {
+    vector_in("P1", name)
+}
+
+fn vector_in(part: &str, name: &str) -> Vec<u8> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../vectors/v2/P1")
+        .join("../vectors/v2")
+        .join(part)
         .join(name);
     fs::read(&path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()))
 }
@@ -189,8 +196,233 @@ fn the_complete_item_before_lost_framing_keeps_its_wire_extent() {
     assert!(before.framing_failure.is_none());
     assert_eq!(before.frames.len(), 1);
     assert!(before.closing_grammar.is_empty());
+    assert_eq!(
+        before.closing_findings,
+        [ClosingFinding::IndexLocator { position: 2 }]
+    );
     assert!(resumed.scanned);
     assert_eq!(resumed.items[0].offset, 306);
+}
+
+#[test]
+fn offsets_check_every_retained_item_and_report_count_or_length_disagreement() {
+    use ClosingFinding::IndexOffsets;
+    for (name, mismatch) in [
+        ("offsets-holds.bin", false),
+        ("offsets-counts-opaque.bin", false),
+        ("offsets-length-differs.bin", true),
+        ("offsets-count-short.bin", true),
+        ("offsets-count-long.bin", true),
+    ] {
+        let data = vector(name);
+        let read = read_wire(&data, ReadCapacity::default());
+        let findings = &read.segments[0].closing_findings;
+        if mismatch {
+            assert_eq!(findings, &[IndexOffsets { position: 3 }], "{name}");
+        } else {
+            assert!(findings.is_empty(), "{name}");
+        }
+    }
+}
+
+#[test]
+fn locator_claim_names_the_last_well_typed_index_frame_type() {
+    use ClosingFinding::IndexLocator;
+    for (part, name, expected) in [
+        ("P1", "locator-last-index.first.bin", Some(6)),
+        ("P1", "locator-last-index.second.bin", None),
+        ("P1", "locator-index-type-long-form.bin", Some(8)),
+        ("P5", "locator-closing-index.bin", Some(6)),
+    ] {
+        let data = vector_in(part, name);
+        let read = read_wire(&data, ReadCapacity::default());
+        let findings = &read.segments[0].closing_findings;
+        assert_eq!(
+            findings,
+            &expected
+                .into_iter()
+                .map(|position| IndexLocator { position })
+                .collect::<Vec<_>>(),
+            "{name}",
+        );
+    }
+}
+
+#[test]
+fn misplaced_closing_items_report_placement_before_grammar_or_claims() {
+    for (name, expected) in [
+        ("segment-two-offsets.bin", &[1, 2][..]),
+        ("segment-two-locators.bin", &[1, 2][..]),
+        ("segment-locator-before-offsets.bin", &[1, 2][..]),
+        ("segment-offsets-then-frame.bin", &[1][..]),
+        ("segment-locator-then-frame.bin", &[1][..]),
+    ] {
+        let data = vector(name);
+        let read = read_wire(&data, ReadCapacity::default());
+        let findings = &read.segments[0].closing_findings;
+        let positions: Vec<_> = findings
+            .iter()
+            .map(|finding| match finding {
+                ClosingFinding::Malformed { position, error } => {
+                    assert_eq!(error.reason, MalformedReason::UnorderedOrRepeated, "{name}");
+                    *position
+                }
+                _ => panic!("{name}: expected placement finding, got {finding:?}"),
+            })
+            .collect();
+        assert_eq!(positions, expected, "{name}");
+    }
+    let data = vector("locator-short-form.bin");
+    let read = read_wire(&data, ReadCapacity::default());
+    assert!(matches!(
+        read.segments[0].closing_findings.as_slice(),
+        [ClosingFinding::Malformed { position: 2, error }] if error.reason == MalformedReason::NotDeterministic
+    ));
+}
+
+#[test]
+fn commit_prefix_checks_count_and_root_independently_of_transparent_frames() {
+    for (name, count_matches, root_matches) in [
+        ("commit-valid.bin", true, true),
+        ("commit-count-mismatch.bin", false, true),
+        ("commit-root-mismatch.bin", true, false),
+    ] {
+        let data = vector_in("P5", name);
+        let read = read_wire(&data, ReadCapacity::default());
+        let report = read.segments[0].commits.as_ref().unwrap();
+        let valid = count_matches && root_matches;
+        assert_eq!(
+            report.checks,
+            [CommitCheck {
+                position: 4,
+                ordinary_position: 2,
+                count_matches,
+                root_matches,
+                valid,
+            }],
+            "{name}"
+        );
+        assert_eq!(report.last_valid_position, valid.then_some(4), "{name}");
+        assert_eq!(report.committed_frames, if valid { 3 } else { 0 }, "{name}");
+        assert_eq!(
+            report.uncommitted_tail,
+            Some(if valid {
+                UncommittedTail {
+                    position: 5,
+                    count: 1,
+                }
+            } else {
+                UncommittedTail {
+                    position: 1,
+                    count: 4,
+                }
+            }),
+            "{name}"
+        );
+    }
+    let data = vector_in("P5", "commit-canonical-tail.bin");
+    let read = read_wire(&data, ReadCapacity::default());
+    let report = read.segments[0].commits.as_ref().unwrap();
+    assert_eq!(report.committed_frames, 2);
+    assert!(report.uncommitted_tail.is_none());
+}
+
+#[test]
+fn malformed_or_unread_commit_content_checks_no_claims() {
+    let bytes = vector_in("P5", "commit-payload-nonempty.bin");
+    let read = read_wire(&bytes, ReadCapacity::default());
+    let report = read.segments[0].commits.as_ref().unwrap();
+    assert!(report.checks.is_empty());
+    assert_eq!(
+        report.uncommitted_tail,
+        Some(UncommittedTail {
+            position: 1,
+            count: 2
+        })
+    );
+
+    let bytes = vector_in("P5", "commit-valid.bin");
+    let capacity = ReadCapacity {
+        stored_bytes_per_frame: 0,
+        ..ReadCapacity::default()
+    };
+    let read = read_wire(&bytes, capacity);
+    assert!(read.segments[0].commits.as_ref().unwrap().checks.is_empty());
+
+    let capacity = ReadCapacity {
+        decoded_bytes_per_read: 0,
+        ..ReadCapacity::default()
+    };
+    let read = read_wire(&bytes, capacity);
+    assert_eq!(
+        read.segments[0].commits.as_ref().unwrap().committed_frames,
+        3
+    );
+}
+
+#[test]
+fn a_frame_without_an_effective_identifier_creates_no_commit_leaf() {
+    let mut writer = SegmentWriter::new(Header::default()).unwrap();
+    let offset = writer.as_bytes().len();
+    writer.commit().unwrap();
+    let mut bytes = writer.into_bytes();
+    let malformed = wire::encode(&Value::Array(vec![
+        Value::from(2),
+        Value::from(8),
+        Value::Bool(true),
+        Value::Bool(false),
+        Value::Array(vec![Value::from(0)]),
+        Value::from(0),
+        Value::Bytes(vec![0; 32]),
+        Value::Array(vec![Value::from(1)]),
+        Value::Bytes(Vec::new()),
+        Value::from(0),
+        Value::Array(Vec::new()),
+    ]));
+    bytes.splice(offset..offset, malformed);
+    let read = read_wire(&bytes, ReadCapacity::default());
+    let segment = &read.segments[0];
+    assert_eq!(segment.frames[0].link.effective_identifier, None);
+    let report = segment.commits.as_ref().unwrap();
+    assert_eq!(report.checks[0].ordinary_position, 0);
+    assert_eq!(report.last_valid_position, Some(2));
+    assert_eq!(report.committed_frames, 1);
+    assert!(report.uncommitted_tail.is_none());
+}
+
+#[test]
+fn a_commit_needs_a_link_even_when_both_claims_hold() {
+    let mut writer = SegmentWriter::new(Header::default()).unwrap();
+    writer.commit().unwrap();
+    let first_identifier_end = writer.as_bytes().len() - 2;
+    writer.commit().unwrap();
+    let second_identifier_end = writer.as_bytes().len() - 2;
+    let bytes = writer.into_bytes();
+
+    let mut healed = bytes.clone();
+    healed[first_identifier_end] ^= 1;
+    let read = read_wire(&healed, ReadCapacity::default());
+    let segment = &read.segments[0];
+    assert_eq!(segment.frames[0].link.state, LinkState::Healed);
+    assert_eq!(segment.commits.as_ref().unwrap().committed_frames, 2);
+
+    let mut broken = bytes;
+    broken[second_identifier_end] ^= 1;
+    let read = read_wire(&broken, ReadCapacity::default());
+    let segment = &read.segments[0];
+    assert_eq!(segment.frames[1].link.state, LinkState::Broken);
+    let report = segment.commits.as_ref().unwrap();
+    let last = report.checks[1];
+    assert!(last.count_matches && last.root_matches);
+    assert!(!last.valid);
+    assert_eq!(report.last_valid_position, Some(1));
+    assert_eq!(
+        report.uncommitted_tail,
+        Some(UncommittedTail {
+            position: 2,
+            count: 1
+        })
+    );
 }
 
 #[test]
