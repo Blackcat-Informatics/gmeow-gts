@@ -30,7 +30,7 @@ GtsV2RdfFold >> read: wire visible: visible [
 			GtsV2EnvelopeError signal: 'invalid decoded RDF record' ] ]
 			on: GtsV2EnvelopeError
 			do: [ :error | GtsArchiveError signal: 'byte ', event offset printString, ': ', error messageText ] ]
-		budget: GtsV2PayloadBudget new retainDecoded: true.
+		retainDecoded: true.
 	self projectLinesVisible: visible.
 	self validateReachableTerms.
 	^ graph

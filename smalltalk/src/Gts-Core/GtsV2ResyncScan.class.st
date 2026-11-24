@@ -7,18 +7,20 @@ Class {
 }
 
 { #category : #scanning }
-GtsV2ResyncScan class >> on: walker from: start budget: budget [
-	| bytes pattern matched |
+GtsV2ResyncScan class >> on: walker from: start to: end budget: budget [
+	| bytes pattern matched scanEnd |
 	budget decodedExhausted ifTrue: [ ^ nil ].
 	bytes := walker bytes.
 	pattern := #[139 5 2 80 252 243 235 50 162 240 38 125 209 106 83 240 155 255 135 146].
 	matched := 0.
-	start to: bytes size do: [ :position |
+	scanEnd := bytes size min: end + pattern size - 2.
+	start to: scanEnd do: [ :position |
 		| octet candidate |
+		(position >= end and: [ matched = 0 ]) ifTrue: [ ^ nil ].
 		octet := bytes at: position.
 		matched := octet = (pattern at: matched + 1)
 			ifTrue: [ matched + 1 ]
-			ifFalse: [ octet = pattern first ifTrue: [ 1 ] ifFalse: [ 0 ] ].
+			ifFalse: [ (position < end and: [ octet = pattern first ]) ifTrue: [ 1 ] ifFalse: [ 0 ] ].
 		matched = pattern size ifTrue: [
 			candidate := self candidateOn: walker at: position + 1 - matched budget: budget.
 			candidate ifNotNil: [ ^ candidate ].

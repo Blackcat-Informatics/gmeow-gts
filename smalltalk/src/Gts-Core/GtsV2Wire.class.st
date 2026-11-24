@@ -3,27 +3,43 @@
 Class {
 	#name : #GtsV2Wire,
 	#superclass : #Object,
-	#instVars : [ 'bytes', 'walker', 'firstEnd', 'format', 'generation', 'stopReason' ],
+	#instVars : [ 'bytes', 'walker', 'format', 'generation', 'stopReason',
+		'initialBudget', 'firstOpener', 'initialGap', 'initialItemCount', 'initialResyncRefusal', 'firstScanEnd' ],
 	#category : #'Gts-Core'
 }
 
 { #category : #'instance creation' }
 GtsV2Wire class >> inspect: aByteArray [
-	^ self new initializeOn: aByteArray
+	^ self inspect: aByteArray budget: GtsV2PayloadBudget new
+]
+
+{ #category : #'instance creation' }
+GtsV2Wire class >> inspect: aByteArray budget: budget [
+	^ self new initializeOn: aByteArray budget: budget
 ]
 
 { #category : #initialization }
-GtsV2Wire >> initializeOn: aByteArray [
-	| top kind version |
+GtsV2Wire >> initializeOn: aByteArray budget: budget [
+	| firstEnd top kind version |
 	bytes := aByteArray.
 	bytes isEmpty ifTrue: [ format := #empty. ^ self ].
+	initialBudget := budget copy.
+	initialItemCount := 0.
+	firstScanEnd := 1.
 	walker := GtsV2CborWalker on: bytes.
+	initialBudget itemLimit = 0 ifTrue: [
+		format := #framingError.
+		stopReason := 'items_per_read'.
+		^ self ].
 	[ firstEnd := walker itemEndAt: 1 limit: bytes size + 1 ]
 		on: GtsV2FramingError
 		do: [ :error |
 			format := #framingError.
 			stopReason := error messageText.
+			stopReason = 'undelimitable_input' ifTrue: [ initialItemCount := 1 ].
+			self recoverFirstBefore: bytes size + 1.
 			^ self ].
+	initialItemCount := 1.
 	top := walker headAt: 1 limit: firstEnd.
 	kind := self recordKind: top limit: firstEnd.
 	(kind isNotNil and: [ #(1 5) includes: kind argument ]) ifTrue: [
@@ -31,14 +47,52 @@ GtsV2Wire >> initializeOn: aByteArray [
 		format := #unknown.
 		version ifNotNil: [
 			generation := version argument.
-			generation = 2 ifTrue: [ format := #v2 ].
+			generation = 2 ifTrue: [
+				format := #v2.
+				firstOpener := self classifyAt: 1 limit: firstEnd registry: nil ].
 			generation > 2 ifTrue: [ format := #unsupported ] ].
+		(format = #unknown or: [ firstOpener notNil and: [ firstOpener problem notNil ] ])
+			ifTrue: [ self recoverFirstBefore: firstEnd ].
 		^ self ].
 	generation := self legacyGeneration: top limit: firstEnd.
 	format := generation
 		ifNil: [ #unknown ]
 		ifNotNil: [ generation = 1 ifTrue: [ #legacy ] ifFalse: [ #unsupported ] ].
+	format = #unknown ifTrue: [ self recoverFirstBefore: firstEnd ].
 	^ self
+]
+
+{ #category : #dispatching }
+GtsV2Wire >> recoverFirstBefore: limit [
+	| recovery delimited |
+	delimited := self countItemsAtFirstScanDecisionFrom: limit.
+	delimited >= initialBudget itemLimit ifTrue: [ ^ self ].
+	recovery := GtsV2ResyncScan on: walker from: 1 to: limit budget: initialBudget.
+	recovery ifNil: [ firstScanEnd := limit. ^ self ].
+	recovery kind = #resyncRefused ifTrue: [ initialResyncRefusal := recovery. ^ self ].
+	recovery offset > 0 ifTrue: [ initialGap := self framingGapFrom: 1 to: recovery offset + 1 ].
+	firstOpener := recovery.
+	initialItemCount := delimited.
+	format := #v2.
+	generation := 2.
+	stopReason := nil
+]
+
+{ #category : #dispatching }
+GtsV2Wire >> countItemsAtFirstScanDecisionFrom: start [
+	| count offset end decisionEnd limit |
+	count := initialItemCount.
+	offset := start.
+	end := bytes size + 1.
+	decisionEnd := (start + 4096) min: end.
+	[ offset < decisionEnd and: [ count < initialBudget itemLimit ] ] whileTrue: [
+		limit := offset = start ifTrue: [ end ] ifFalse: [ decisionEnd ].
+		[ offset := walker itemEndAt: offset limit: limit ]
+			on: GtsV2FramingError
+			do: [ :error |
+				^ count + (error messageText = 'undelimitable_input' ifTrue: [ 1 ] ifFalse: [ 0 ]) ].
+		count := count + 1 ].
+	^ count
 ]
 
 { #category : #accessing }
@@ -54,6 +108,11 @@ GtsV2Wire >> generation [
 { #category : #accessing }
 GtsV2Wire >> stopReason [
 	^ stopReason
+]
+
+{ #category : #accessing }
+GtsV2Wire >> initialResyncRefusal [
+	^ initialResyncRefusal
 ]
 
 { #category : #dispatching }
@@ -110,23 +169,20 @@ GtsV2Wire >> isVersionKeyAt: start limit: limit [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock [
-	self eventsDo: aBlock budget: GtsV2PayloadBudget new
+	self eventsDo: aBlock decodedWhen: [ :event | false ]
 ]
 
 { #category : #enumerating }
-GtsV2Wire >> eventsDo: aBlock budget: budget [
-	self eventsDo: aBlock budget: budget retainDecoded: false
-]
-
-{ #category : #enumerating }
-GtsV2Wire >> eventsDo: aBlock budget: budget retainDecoded: retain [
-	self eventsDo: aBlock budget: budget decodedWhen: [ :event |
+GtsV2Wire >> eventsDo: aBlock retainDecoded: retain [
+	self eventsDo: aBlock decodedWhen: [ :event |
 		retain and: [ event frameType isNotNil and: [ event frameType between: 1 and: 13 ] ] ]
 ]
 
 { #category : #enumerating }
-GtsV2Wire >> eventsDo: aBlock budget: budget decodedWhen: predicate [
-	| pending pendingOffsets predecessor closing deliver flush |
+GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
+	| pending pendingOffsets predecessor closing deliver flush budget |
+	format = #v2 ifFalse: [ ^ self ].
+	budget := initialBudget copy.
 	closing := GtsV2ClosingChecks on: walker.
 	deliver := [ :event :next :afterLocator |
 		| effective |
@@ -156,25 +212,27 @@ GtsV2Wire >> eventsDo: aBlock budget: budget decodedWhen: predicate [
 			start := (previous notNil and: [ previous link ~= #healed ])
 				ifTrue: [ previous offset + 2 ]
 				ifFalse: [ offset ].
-			GtsV2ResyncScan on: walker from: start budget: budget ].
+			GtsV2ResyncScan on: walker from: (start max: firstScanEnd) to: bytes size + 1 budget: budget ].
 	flush value
 ]
 
 { #category : #enumerating }
 GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit onFramingLoss: recover [
 	| offset limit count registry finish event previous |
-	format = #v2 ifFalse: [ ^ self ].
-	offset := 1.
+	initialGap ifNotNil: [ aBlock value: initialGap copy ].
+	previous := firstOpener copy.
+	aBlock value: previous.
+	initialResyncRefusal ifNotNil: [ aBlock value: initialResyncRefusal copy ].
+	offset := firstOpener end + 1.
+	registry := previous effectiveIdentifier ifNotNil: [ previous opener registry ].
 	limit := bytes size + 1.
-	count := 0.
+	count := initialItemCount + (previous scanned ifTrue: [ 1 ] ifFalse: [ 0 ]).
 	[ offset < limit ] whileTrue: [
 		count >= itemLimit ifTrue: [
 			aBlock value: (self stopAt: offset reason: 'items_per_read').
 			^ self ].
 		event := nil.
-		[ finish := offset = 1
-			ifTrue: [ firstEnd ]
-			ifFalse: [ walker itemEndAt: offset limit: limit ] ]
+		[ finish := walker itemEndAt: offset limit: limit ]
 			on: GtsV2FramingError
 			do: [ :error |
 				(error messageText = 'undelimitable_input' and: [ count + 1 = itemLimit ]) ifTrue: [

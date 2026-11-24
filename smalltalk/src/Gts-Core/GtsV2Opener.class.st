@@ -17,6 +17,12 @@ GtsV2Opener class >> candidate: item charging: charge [
 	^ self new readCandidate: item charging: charge
 ]
 
+{ #category : #copying }
+GtsV2Opener >> postCopy [
+	super postCopy.
+	identifier ifNotNil: [ identifier := identifier copy ]
+]
+
 { #category : #accessing }
 GtsV2Opener >> end [
 	^ end

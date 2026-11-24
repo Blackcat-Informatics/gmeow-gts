@@ -186,7 +186,7 @@ GtsFromNQuadsTest >> testV2FoldUsesTheFirstOtherHolderForSuppression [
 	holder := origin bytes.
 	(GtsV2Wire inspect: holder) eventsDo: [ :event |
 		event frameType = 1 ifTrue: [ digest := event effectiveIdentifier ] ]
-		budget: GtsV2PayloadBudget new retainDecoded: false.
+		retainDecoded: false.
 	origin writeType: 7 content: #(1)
 		payload: (GtsCborWriter encode: { { 1. { 2. { digest. 'b' utf8Encoded } } } }).
 	origin commit.

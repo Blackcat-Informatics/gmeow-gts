@@ -21,6 +21,14 @@ GtsV2WireEvent >> initializeKind: aKind from: start to: finish problem: aProblem
 	^ self
 ]
 
+{ #category : #copying }
+GtsV2WireEvent >> postCopy [
+	super postCopy.
+	opener ifNotNil: [
+		opener := opener copy.
+		effectiveIdentifier := opener identifier ]
+]
+
 { #category : #accessing }
 GtsV2WireEvent >> kind [
 	^ kind
