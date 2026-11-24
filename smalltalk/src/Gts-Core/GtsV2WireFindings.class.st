@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut' ],
 	#category : #'Gts-Core'
 }
 
@@ -19,6 +19,7 @@ GtsV2WireFindings >> initializeOn: bytes budget: budget held: held trusted: trus
 	openers := GtsV2OpenerResults on: bytes limit: (budget ifNil: [ 0 ] ifNotNil: [ budget readLimit ]).
 	fileFindings := OrderedCollection new.
 	segmentFindings := OrderedCollection new.
+	segmentRanges := OrderedCollection new.
 	frameFindings := Dictionary new.
 	positions := Dictionary new.
 	claimSteps := IdentityDictionary new.
@@ -101,6 +102,17 @@ GtsV2WireFindings >> openerFieldsAt: ordinal [
 	^ openers at: ordinal
 ]
 
+{ #category : #accessing }
+GtsV2WireFindings >> segmentRangeAt: ordinal [
+	"The offset and length of the segment in the input."
+	^ segmentRanges at: ordinal + 1
+]
+
+{ #category : #accessing }
+GtsV2WireFindings >> fileEnd [
+	^ fileEnd
+]
+
 { #category : #observing }
 GtsV2WireFindings >> finishOpeners [
 	openers finish
@@ -123,6 +135,7 @@ GtsV2WireFindings >> rejectedGeneration: format firstLength: length [
 
 { #category : #observing }
 GtsV2WireFindings >> framingStoppedAt: offset reason: reason [
+	segmentCut := offset.
 	reason = 'items_per_read' ifTrue: [
 		fileEnd := 7.
 		fileFindings add: (self code: 20 reason: 87 position: nil offset: offset
@@ -136,7 +149,10 @@ GtsV2WireFindings >> framingStoppedAt: offset reason: reason [
 GtsV2WireFindings >> observe: event [
 	| validCommit |
 	event startsSegment ifTrue: [
-		self finishSegment.
+		self finishSegmentAt: event offset.
+		segmentStart := event offset.
+		segmentCut := nil.
+		fileEnd := 4.
 		position := 0.
 		segment := OrderedCollection new.
 		segmentFindings add: segment.
@@ -154,7 +170,9 @@ GtsV2WireFindings >> observe: event [
 	(#(parityRefused resyncRefused) includes: event kind) ifTrue: [ ^ self recordRefusal: event ].
 	event kind = #framingGap ifTrue: [
 		self recordGapAt: event offset to: event end reason: event problem.
-		event problem = 'torn_tail' ifTrue: [ ^ self ] ].
+		event problem = 'torn_tail' ifTrue: [
+			segmentCut := event offset.
+			^ self ] ].
 	segment ifNil: [ ^ self ].
 	position := position + 1.
 	self remember: event.
@@ -162,12 +180,21 @@ GtsV2WireFindings >> observe: event [
 		ifNil: [ self recordNonFrame: event ]
 		ifNotNil: [ self recordFrame: event ].
 	validCommit := claimChecks ifNil: [ false ] ifNotNil: [ self checkClaimsOf: event ].
+	self observeEndAt: event validCommit: validCommit.
 	authentication ifNotNil: [ self checkSignaturesOf: event validCommit: validCommit ]
 ]
 
 { #category : #observing }
 GtsV2WireFindings >> finishSegment [
+	self finishSegmentAt: inputLength
+]
+
+{ #category : #private }
+GtsV2WireFindings >> finishSegmentAt: boundary [
+	| segmentEnd |
 	segment ifNil: [ ^ self ].
+	segmentEnd := segmentCut ifNil: [ boundary ].
+	segmentRanges add: { segmentStart. segmentEnd - segmentStart }.
 	segmentFrameResults add: { frames asArray. anchoredCount. transparentPositions asArray }.
 	committedCounts add: (claimChecks ifNil: [ 0 ] ifNotNil: [ claimChecks committedFrames ]).
 	segmentAuthentication add: (authentication ifNil: [ #(3 0) ] ifNotNil: [ authentication summaryFields ]).
@@ -176,6 +203,19 @@ GtsV2WireFindings >> finishSegment [
 			(frameFindings at: offset ifAbsentPut: [ OrderedCollection new ]) add:
 				(self positionalCode: 17 reason: nil position: claimChecks tailPosition count: claimChecks tailFrames) ] ].
 	segment := nil
+]
+
+{ #category : #private }
+GtsV2WireFindings >> observeEndAt: event validCommit: validCommit [
+	validCommit ifTrue: [
+		fileEnd := 2.
+		^ self ].
+	fileEnd <= 2 ifFalse: [ ^ self ].
+	event frame
+		ifNil: [
+			(#(opaque framingGap) includes: event kind) ifTrue: [ fileEnd := 3 ] ]
+		ifNotNil: [ :frame |
+			(frame isTransparent not and: [ frame frameType ~= 15 ]) ifTrue: [ fileEnd := 3 ] ]
 ]
 
 { #category : #private }
@@ -212,6 +252,7 @@ GtsV2WireFindings >> checkSignaturesOf: event validCommit: validCommit [
 		statusCode := #('valid' 'invalid' 'unverified') indexOf: status.
 		reasonCode := reason ifNotNil: [ self signatureReason: reason ].
 		coverage := authentication coverageFieldsFor: status keyId: kid.
+		(validCommit and: [ coverage third ]) ifTrue: [ fileEnd := 1 ].
 		results ifNil: [ results := OrderedCollection new ].
 		results add: { statusCode. self option: reasonCode. algorithm. kid }, coverage.
 		reasonCode ifNotNil: [

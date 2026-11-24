@@ -63,6 +63,8 @@ envelope, link, stored check, payload, capacity, and parity findings in
 their P2 record form. The report provides file, segment, and frame
 findings at their P7 locations and produces the P7 file record when the
 input has no segment.
+Use `segmentRangeAt:` for a segment's input offset and length, and
+`fileEnd` for the P2 file-end code, including stops and commit status.
 Use `openerFieldsAt:` for the opener, header identifier, registry version,
 hash algorithm, and profile fields by segment. On resync openers the report
 checks the preceding bytes named by `past` using the whole-read access rules
