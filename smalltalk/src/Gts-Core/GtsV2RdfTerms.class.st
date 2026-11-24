@@ -118,16 +118,15 @@ GtsV2RdfTerms >> readReferences: fields count: count octets: octets [
 	GtsV2RdfColumns requireCount: count in: lengths.
 	octets ifFalse: [ literal := self literalsFrom: fields count: count ].
 	1 to: count do: [ :index |
-		| digest length |
+		| digest length value |
 		digest := digests at: index.
 		length := lengths at: index.
+		value := fold resolveReference: digest length: length octets: octets values: values.
 		octets
 			ifTrue: [
-				fold chargeText: length * 2.
-				fold addLiteral: (values octetsFor: digest length: length) datatypeIri: GtsV2RdfTypedValue hexBinary ]
+				fold addLiteral: value datatypeIri: GtsV2RdfTypedValue hexBinary ]
 			ifFalse: [
-				fold chargeText: length.
-				literal value: index value: (values textFor: digest length: length) ] ]
+				literal value: index value: value ] ]
 ]
 
 { #category : #private }

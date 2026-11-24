@@ -49,19 +49,6 @@ GtsV2RdfColumns class >> utf8: bytes [
 	^ bytes utf8Decoded
 ]
 
-{ #category : #decoding }
-GtsV2RdfColumns class >> deltas: field count: count minimum: minimum [
-	| current values |
-	current := 0.
-	values := self read: field with: [ :item |
-		current := current + item signedInteger.
-		(current between: minimum and: 18446744073709551615)
-			ifFalse: [ GtsV2EnvelopeError signal: 'out_of_range' ].
-		current ].
-	self requireCount: count in: values.
-	^ values
-]
-
 { #category : #validation }
 GtsV2RdfColumns class >> requireCount: count in: collection [
 	collection size = count ifFalse: [ GtsV2EnvelopeError signal: 'inconsistent_counts' ]
