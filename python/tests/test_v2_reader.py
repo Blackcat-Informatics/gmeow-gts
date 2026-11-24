@@ -103,6 +103,28 @@ def test_generation_dispatch_does_not_select_later_opener(
     assert opened.refusal is None
 
 
+def test_first_generation_input_defaults_to_the_legacy_decision() -> None:
+    """Readers keep reading older generations, so the default admits them."""
+    data = cbor2.dumps({"v": 1})
+    opened = read_wire(
+        data,
+        items_per_read=8,
+        stored_bytes_per_frame=0,
+        decoded_bytes_per_frame=0,
+        decoded_bytes_per_read=0,
+    )
+    assert opened.opening.decision == "first_generation"
+    refused = read_wire(
+        data,
+        items_per_read=8,
+        stored_bytes_per_frame=0,
+        decoded_bytes_per_frame=0,
+        decoded_bytes_per_read=0,
+        first_and_second=False,
+    )
+    assert refused.opening.decision == "unsupported_generation"
+
+
 def test_walked_header_has_absolute_item_boundary() -> None:
     header = encode_header(Header())
     data = header + b"\xff"
