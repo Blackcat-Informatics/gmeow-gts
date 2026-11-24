@@ -92,8 +92,16 @@ GtsV2RdfFold >> internIri: text [
 
 { #category : #terms }
 GtsV2RdfFold >> addLiteral: text datatype: local [
-	| datatype |
-	datatype := self resolve: local kinds: #(iri).
+	self addTypedLiteral: text datatypeId: (self resolve: local kinds: #(iri))
+]
+
+{ #category : #terms }
+GtsV2RdfFold >> addLiteral: text datatypeIri: iri [
+	self addTypedLiteral: text datatypeId: (self internIri: iri)
+]
+
+{ #category : #private }
+GtsV2RdfFold >> addTypedLiteral: text datatypeId: datatype [
 	dictionary add: (self intern: { #literal. text. datatype } term: [
 		GtsTerm literal: text language: nil datatype: (
 			(graph termAtId: datatype) value = GtsGraph xsdString ifFalse: [ datatype ]) ])

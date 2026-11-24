@@ -96,6 +96,59 @@ GtsFromNQuadsTest >> testV2FoldRebuildsAValueFromAnEarlierSegment [
 ]
 
 { #category : #tests }
+GtsFromNQuadsTest >> testV2FoldProjectsCanonicalTypedValues [
+	| writer value first second firstDigest secondDigest digest prefix hexIri dictionary rows graph expected |
+	writer := GtsV2SegmentWriter new.
+	first := #[255].
+	second := #[0 65].
+	value := first, second.
+	firstDigest := GtsBlake3 deriveWith: 'gts2 unit' bytes: first.
+	secondDigest := GtsBlake3 deriveWith: 'gts2 unit' bytes: second.
+	digest := GtsBlake3 deriveWith: 'gts2 unit' bytes: value.
+	writer appendType: 8 content: { firstDigest } payload: first.
+	writer appendType: 8 content: { secondDigest } payload: second.
+	writer appendType: 11 content: { digest. 3. 2 }
+		payload: (GtsCborWriter encode: { { firstDigest. 1 }. { secondDigest. 2 } }).
+	prefix := 'http://www.w3.org/2001/XMLSchema#'.
+	hexIri := prefix, 'hexBinary'.
+	dictionary := GtsCborWriter encode: {
+		{ { 1. #(0 0 0). { 5. 5. hexIri size }. ('urn:surn:p', hexIri) utf8Encoded }.
+		{ 6. { #(1 false). #(2 18446744073709551615). #(3 -18446744073709551616).
+			#(4 -62135596800 1002000). #(4 253402300799 0). { 5. value }. { 5. #[] } } }.
+		{ 7. { digest }. #(3) }.
+		{ 2. #(0). #(6). 'FF0041' utf8Encoded. #(1). #(2). #() } }. #() }.
+	writer appendType: 1 content: #(0 ((1 3) (6 7) (7 1) (2 1)) 2 1) payload: dictionary.
+	rows := GtsCborWriter encode: #((((1) 9)) ((1 9)) (3 1 1 1 1 1 1 1 1) (0 0 0 0 0 0 0 0 0)).
+	writer appendType: 2 content: #(2 9) payload: rows.
+	writer commit.
+	graph := GtsV2RdfFold read: (GtsV2Wire inspect: writer bytes).
+	expected := #(
+		('false' 'boolean')
+		('18446744073709551615' 'nonNegativeInteger')
+		('-18446744073709551616' 'integer')
+		('0001-01-01T00:00:00.001002Z' 'dateTime')
+		('9999-12-31T23:59:59Z' 'dateTime')
+		('FF0041' 'hexBinary')
+		('' 'hexBinary')) collect: [ :pair |
+			'<urn:s> <urn:p> "', pair first, '"^^<', prefix, pair second, '> .' ].
+	self assert: (self sortedLines: (GtsNQuads toNQuads: graph)) equals: expected sorted
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2FoldRejectsOutOfRangeTypedTimestamps [
+	#(#(4 -62135596801 0) #(4 253402300800 0) #(4 0 1000000000)) do: [ :value |
+		| writer dictionary |
+		writer := GtsV2SegmentWriter new.
+		dictionary := GtsCborWriter encode: { { { 6. { value } } }. #() }.
+		writer appendType: 1 content: #(0 ((6 1)) 2 1) payload: dictionary.
+		writer commit.
+		self
+			should: [ GtsV2RdfFold read: (GtsV2Wire inspect: writer bytes) ]
+			raise: GtsArchiveError
+			withExceptionDo: [ :error | self assert: (error messageText endsWith: ': out_of_range') ] ]
+]
+
+{ #category : #tests }
 GtsFromNQuadsTest >> testFromNQuadsInvertsFoldOutputForCorpusVector [
 	| graph nquads roundTripped |
 	graph := GtsReader read: ('/workspace/vectors/11-datatype-defaulting.gts' asFileReference
