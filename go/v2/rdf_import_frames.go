@@ -4,6 +4,7 @@
 package v2
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -24,44 +25,72 @@ const (
 )
 
 type rdfSegmentWriter struct {
-	segment  *SegmentWriter
-	capacity ReadCapacity
-	items    uint64
-	decoded  uint64
-	formed   uint64
+	segment            *SegmentWriter
+	capacity           ReadCapacity
+	items              uint64
+	decoded            uint64
+	formed             uint64
+	valueTextRemaining uint64
+	lexicalValues      map[string]Digest
+	valueUnits         map[Digest]struct{}
+	wroteOptionalValue bool
 }
 
+type rdfImportCapacityError string
+
+func (e rdfImportCapacityError) Error() string { return string(e) }
+
 func writeRDF(terms []rdfTerm, quads []rdfQuad, empty []int) ([]byte, error) {
+	return writeRDFSegment(terms, quads, empty, DefaultReadCapacity(), rdfValueTextLimit, true)
+}
+
+func writeRDFSegment(
+	terms []rdfTerm, quads []rdfQuad, empty []int, capacity ReadCapacity, valueTextLimit uint64, allowOptional bool,
+) ([]byte, error) {
 	segment, err := NewSegmentWriter(SegmentOptions{})
 	if err != nil {
 		return nil, err
 	}
 	writer := rdfSegmentWriter{
-		segment: segment, capacity: DefaultReadCapacity(),
+		segment: segment, capacity: capacity, valueTextRemaining: valueTextLimit,
 		items: 2, // Include the opener and the closing commit.
+	}
+	data, err := writer.dataset(terms, quads, empty, allowOptional)
+	var limit rdfImportCapacityError
+	if writer.wroteOptionalValue && errors.As(err, &limit) {
+		// A fitting inline import may need the space occupied by optional
+		// attachments. Retry privately with the mandatory references only.
+		return writeRDFSegment(terms, quads, empty, capacity, valueTextLimit, false)
+	}
+	return data, err
+}
+
+func (w *rdfSegmentWriter) dataset(terms []rdfTerm, quads []rdfQuad, empty []int, allowOptional bool) ([]byte, error) {
+	if err := w.writeLiteralValues(terms, allowOptional); err != nil {
+		return nil, err
 	}
 	base := 0
 	for batch := range slices.Chunk(terms, termsPerFrame) {
-		if err := writer.terms(base, batch); err != nil {
+		if err := w.terms(base, batch); err != nil {
 			return nil, err
 		}
 		base += len(batch)
 	}
 	for batch := range slices.Chunk(quads, rowsPerFrame) {
-		if err := writer.quads(batch); err != nil {
+		if err := w.quads(batch); err != nil {
 			return nil, err
 		}
 	}
 	for batch := range slices.Chunk(empty, rowsPerFrame) {
 		payload := [][]int{deltaColumn(len(batch), func(i int) int { return batch[i] })}
-		if err := writer.appendRecord(emptyGraphFrameType, []int{len(batch)}, payload); err != nil {
+		if err := w.appendRecord(emptyGraphFrameType, []int{len(batch)}, payload); err != nil {
 			return nil, err
 		}
 	}
-	if _, err := segment.Commit(); err != nil {
+	if _, err := w.segment.Commit(); err != nil {
 		return nil, err
 	}
-	return segment.Bytes(), nil
+	return w.segment.Bytes(), nil
 }
 
 func (w *rdfSegmentWriter) payloadLimit() uint64 {
@@ -80,7 +109,7 @@ func (w *rdfSegmentWriter) append(frameType uint64, content, payload []byte, for
 		{w.items + 1, w.capacity.ItemsPerRead, "items per read"},
 	} {
 		if limit.used > limit.capacity {
-			return fmt.Errorf("RDF import needs %d %s, limit %d", limit.used, limit.resource, limit.capacity)
+			return rdfImportCapacityError(fmt.Sprintf("RDF import needs %d %s, limit %d", limit.used, limit.resource, limit.capacity))
 		}
 	}
 	if _, err := w.segment.Append(frameType, content, payload); err != nil {
@@ -105,12 +134,17 @@ func (w *rdfSegmentWriter) appendRecord(frameType uint64, record, rows any) erro
 }
 
 func (w *rdfSegmentWriter) terms(base int, terms []rdfTerm) error {
-	content, payload, formed, err := encodeRDFTerms(base, terms)
-	if err != nil {
-		return err
+	if w.termDataFits(terms) {
+		content, payload, formed, err := encodeRDFTerms(base, terms, w.lexicalValues)
+		if err != nil {
+			return err
+		}
+		if len(terms) == 1 || uint64(len(payload)) <= w.payloadLimit() && uint64(len(content)) <= w.capacity.StoredBytesPerFrame {
+			return w.append(termsFrameType, content, payload, formed)
+		}
 	}
-	if uint64(len(payload)) <= w.payloadLimit() || len(terms) == 1 {
-		return w.append(termsFrameType, content, payload, formed)
+	if len(terms) == 1 {
+		return rdfImportCapacityError(fmt.Sprintf("RDF import term %d exceeds the limit of %d payload bytes per frame", base, w.payloadLimit()))
 	}
 
 	// Split a dictionary batch without renumbering its terms. Each half
@@ -125,19 +159,20 @@ func (w *rdfSegmentWriter) terms(base int, terms []rdfTerm) error {
 type termsPayload struct {
 	languages   []string
 	languageIDs map[string]int
+	values      map[string]Digest
 	formed      uint64
 }
 
-func encodeRDFTerms(base int, terms []rdfTerm) ([]byte, []byte, uint64, error) {
-	body := termsPayload{languages: []string{}, languageIDs: make(map[string]int)}
+func encodeRDFTerms(base int, terms []rdfTerm, values map[string]Digest) ([]byte, []byte, uint64, error) {
+	body := termsPayload{languages: []string{}, languageIDs: make(map[string]int), values: values}
 	var runs [][2]int
 	var blocks []any
 	for len(terms) > 0 {
 		end := 1
-		for end < len(terms) && terms[end].kind == terms[0].kind {
+		kind := body.storageKind(terms[0])
+		for end < len(terms) && body.storageKind(terms[end]) == kind {
 			end++
 		}
-		kind := int(terms[0].kind) + 1
 		runs = append(runs, [2]int{kind, end})
 		blocks = append(blocks, body.block(kind, terms[:end]))
 		terms = terms[end:]
@@ -150,7 +185,26 @@ func encodeRDFTerms(base int, terms []rdfTerm) ([]byte, []byte, uint64, error) {
 	return content, payload, body.formed, err
 }
 
+func (b *termsPayload) storageKind(term rdfTerm) int {
+	if term.kind == model.Literal {
+		if _, exists := b.values[term.text]; exists {
+			return literalRefBlock
+		}
+	}
+	return int(term.kind) + 1
+}
+
 func (b *termsPayload) block(code int, terms []rdfTerm) []any {
+	if code == literalRefBlock {
+		digests := make([][]byte, 0, len(terms))
+		lengths := make([]int, 0, len(terms))
+		for _, term := range terms {
+			digest := b.values[term.text]
+			digests = append(digests, digest[:])
+			lengths = append(lengths, len(term.text))
+		}
+		return b.literalFields([]any{code, digests, lengths}, terms)
+	}
 	switch terms[0].kind {
 	case model.Bnode:
 		labels := make([][]byte, 0, len(terms))
@@ -179,12 +233,7 @@ func (b *termsPayload) frontCodedBlock(code int, terms []rdfTerm) []any {
 	suffixes := []byte{}
 	var previous string
 	for index, term := range terms {
-		prefix := 0
-		if index%restartGroup != 0 {
-			for prefix < min(len(previous), len(term.text)) && previous[prefix] == term.text[prefix] {
-				prefix++
-			}
-		}
+		prefix := frontCodedPrefix(previous, term.text, index)
 		prefixes = append(prefixes, prefix)
 		lengths = append(lengths, len(term.text)-prefix)
 		suffixes = append(suffixes, term.text[prefix:]...)
@@ -195,6 +244,20 @@ func (b *termsPayload) frontCodedBlock(code int, terms []rdfTerm) []any {
 	if terms[0].kind != model.Literal {
 		return block
 	}
+	return b.literalFields(block, terms)
+}
+
+func frontCodedPrefix(previous, text string, index int) int {
+	prefix := 0
+	if index%restartGroup != 0 {
+		for prefix < min(len(previous), len(text)) && previous[prefix] == text[prefix] {
+			prefix++
+		}
+	}
+	return prefix
+}
+
+func (b *termsPayload) literalFields(block []any, terms []rdfTerm) []any {
 	forms := make([]int, 0, len(terms))
 	datatypes := []int{}
 	languages := []int{}

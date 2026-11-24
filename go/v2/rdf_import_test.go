@@ -120,3 +120,79 @@ func TestImportRDFPreservesExplicitEmptyLanguage(t *testing.T) {
 		t.Fatalf("expected one empty language, got %q, error %v", languages, err)
 	}
 }
+
+func TestImportRDFWritesSharedLargeLiteralValues(t *testing.T) {
+	shared := strings.Repeat("é", 1<<19)
+	other := shared + "!"
+	inline := strings.Repeat("x", (1<<20)-1)
+	datatype, language := 2, "EN"
+	terms := []v2.RDFTerm{
+		{Kind: model.Iri, Value: "urn:s"},
+		{Kind: model.Iri, Value: "urn:p"},
+		{Kind: model.Iri, Value: "urn:datatype"},
+		{Kind: model.Literal, Value: shared, Datatype: &datatype},
+		{Kind: model.Literal, Value: shared, Lang: &language, Direction: "rtl"},
+		{Kind: model.Literal, Value: other, Datatype: &datatype},
+		{Kind: model.Literal, Value: inline},
+	}
+	quads := []model.Quad{{S: 0, P: 1, O: 3}, {S: 0, P: 1, O: 4}, {S: 0, P: 1, O: 5}, {S: 0, P: 1, O: 6}}
+	data, err := v2.ImportRDF(terms, quads, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	read := v2.ReadWire(data, v2.DefaultReadCapacity())
+	projection, err := read.WholeRDFProjection()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var frameTypes []uint64
+	storageCounts := make(map[int]int)
+	for _, item := range read.Segments[0].Items[1:] {
+		frame := item.Frame
+		frameTypes = append(frameTypes, frame.Type)
+		if frame.Type == 1 {
+			var fields []cbor.RawMessage
+			if err := cbor.Unmarshal(frame.Content, &fields); err != nil || len(fields) != 4 {
+				t.Fatalf("terms content error %v", err)
+			}
+			var runs [][2]int
+			if err := cbor.Unmarshal(fields[1], &runs); err != nil {
+				t.Fatal(err)
+			}
+			for _, run := range runs {
+				storageCounts[run[0]] += run[1]
+			}
+		}
+	}
+	// One shared full-size unit, its two value declarations, and one tail unit.
+	if !slices.Equal(frameTypes, []uint64{8, 11, 8, 11, 1, 2, 14}) {
+		t.Fatalf("frame types %v", frameTypes)
+	}
+	if storageCounts[2] != 1 || storageCounts[5] != 3 {
+		t.Fatalf("unexpected literal storage counts %v", storageCounts)
+	}
+
+	folded, rows, _ := projection.Dataset()
+	if len(rows) != len(quads) {
+		t.Fatalf("projected %d quads, want %d", len(rows), len(quads))
+	}
+	for index, row := range rows {
+		got, want := folded[row.O], terms[quads[index].O]
+		if got.Value != want.Value || got.Direction != want.Direction {
+			t.Fatalf("literal %d changed during round trip", index)
+		}
+		if want.Lang != nil {
+			if got.Lang == nil || *got.Lang != *want.Lang || got.Datatype != nil {
+				t.Fatalf("literal %d changed language form", index)
+			}
+		} else {
+			datatypeIRI := model.XSDString
+			if want.Datatype != nil {
+				datatypeIRI = terms[*want.Datatype].Value
+			}
+			if got.Datatype == nil || folded[*got.Datatype].Value != datatypeIRI || got.Lang != nil {
+				t.Fatalf("literal %d changed datatype", index)
+			}
+		}
+	}
+}
