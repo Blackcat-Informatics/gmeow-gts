@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2ParityChecks,
 	#superclass : #Object,
-	#instVars : [ 'bytes', 'stream', 'header', 'registry', 'seenStarts', 'seenShort', 'foldStopped', 'pendingOpenerParity' ],
+	#instVars : [ 'bytes', 'stream', 'header', 'registry', 'seenStarts', 'seenShort', 'foldStopped', 'pendingOpenerParity', 'parityJudged' ],
 	#category : #'Gts-Core'
 }
 
@@ -21,20 +21,23 @@ GtsV2ParityChecks >> initializeOn: aByteArray [
 { #category : #observing }
 GtsV2ParityChecks >> observe: event predecessor: predecessor [
 	event startsSegment ifTrue: [
-		self finishOpenerLink: false.
 		header := event effectiveIdentifier ifNotNil: [ :digest | digest copy ].
 		registry := event opener ifNotNil: [ :opener | opener registry ].
 		stream := GtsV2ParityStream on: bytes.
 		seenStarts := Set new.
 		seenShort := false.
+		parityJudged := false.
 		foldStopped := false ].
 	header ifNil: [ ^ self ].
-	(event kind = #frame and: [ event frame isTransparent not ]) ifTrue: [
-		self finishOpenerLink: (#(linked healed) includes: event link) ].
 	(registry > 1 and: [ event frame notNil and: [ event frame hasUnknownCriticalType ] ])
 		ifTrue: [ foldStopped := true ].
 	event frameType = 16 ifTrue: [ self check: event predecessor: predecessor ].
-	stream observe: event
+	stream observe: event.
+	pendingOpenerParity ifNotNil: [
+		(pendingOpenerParity at: 6) ifNil: [
+			pendingOpenerParity at: 6 put: (stream inputOffsetAt: (pendingOpenerParity at: 5)) ].
+		(event kind = #frame and: [ event frame isTransparent not ]) ifTrue: [
+			self finishOpenerLink: (#(linked healed) includes: event link) ] ]
 ]
 
 { #category : #testing }
@@ -49,20 +52,27 @@ GtsV2ParityChecks >> finishOpenerLink: passes [
 	event := pendingOpenerParity first.
 	unexplained := pendingOpenerParity third + (passes ifTrue: [ pendingOpenerParity fourth ] ifFalse: [ 0 ]).
 	self recordUnexplained: unexplained of: pendingOpenerParity second for: event.
+	event parityFinding = 'parity_stale' ifFalse: [
+		stream protectThrough: (pendingOpenerParity at: 5) at: (pendingOpenerParity at: 6) ].
 	pendingOpenerParity := nil
+]
+
+{ #category : #enumerating }
+GtsV2ParityChecks >> unprotectedTailDo: report [
+	parityJudged = true ifTrue: [ stream unprotectedTailDo: report ]
 ]
 
 { #category : #validation }
 GtsV2ParityChecks >> check: event predecessor: predecessor [
 	| content geometry first end size anchor table repeated payload shardTable |
-	event link = #broken ifTrue: [ ^ event markParityDamaged ].
-	content := self contentOf: event frame.
-	content ifNil: [ ^ event markParityDamaged ].
-	geometry := content first.
-	(geometry > 1 and: [ registry > 1 and: [ event problem isNil ] ]) ifTrue: [
+	content := event link ~= #broken ifTrue: [ self contentOf: event frame ].
+	(content notNil and: [ content first > 1 and: [ registry > 1 and: [ event problem isNil ] ] ]) ifTrue: [
 		(foldStopped not and: [ event payload state = #verified ])
 			ifTrue: [ event parityFinding: 'unknown_frame_type' ].
 		^ self ].
+	parityJudged := true.
+	content ifNil: [ ^ event markParityDamaged ].
+	geometry := content first.
 	first := content second.
 	end := content third.
 	size := end - first.
@@ -152,8 +162,15 @@ GtsV2ParityChecks >> checkShardsFor: event table: table payload: payload from: f
 	parityFailed > 0 ifTrue: [ findings add: { 'parity_mismatch'. 'parity'. parityFailed } ].
 	event parityShardFindings: findings.
 	dataCounts third > 0
-		ifTrue: [ pendingOpenerParity := { event. dataFailed. unexplained. dataCounts third } ]
-		ifFalse: [ self recordUnexplained: unexplained of: dataFailed for: event ]
+		ifTrue: [ pendingOpenerParity := { event. dataFailed. unexplained. dataCounts third. end. nil } ]
+		ifFalse: [
+			self recordUnexplained: unexplained of: dataFailed for: event.
+			self protectThrough: end for: event ]
+]
+
+{ #category : #private }
+GtsV2ParityChecks >> protectThrough: end for: event [
+	event parityFinding = 'parity_stale' ifFalse: [ stream protectThrough: end ]
 ]
 
 { #category : #validation }

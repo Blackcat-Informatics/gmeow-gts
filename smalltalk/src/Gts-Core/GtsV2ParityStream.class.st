@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2ParityStream,
 	#superclass : #Object,
-	#instVars : [ 'bytes', 'ranges', 'size', 'lastStart', 'openerRange' ],
+	#instVars : [ 'bytes', 'ranges', 'size', 'lastStart', 'openerRange', 'tailStart', 'tailOffset' ],
 	#category : #'Gts-Core'
 }
 
@@ -18,6 +18,7 @@ GtsV2ParityStream >> initializeOn: aByteArray [
 	ranges := OrderedCollection new.
 	size := 0.
 	lastStart := 0.
+	tailStart := 0.
 	^ self
 ]
 
@@ -31,6 +32,7 @@ GtsV2ParityStream >> observe: event [
 	event startsSegment ifTrue: [
 		self append: event passes: false.
 		openerRange := ranges last.
+		self protectThrough: size.
 		^ self ].
 	event kind = #frame ifTrue: [
 		event frame isTransparent ifTrue: [ ^ self ].
@@ -57,6 +59,8 @@ GtsV2ParityStream >> append: event passes: passes [
 	lastStart := size.
 	size := size + event end - event offset.
 	inputStart := event offset + 1.
+	(tailOffset isNil and: [ tailStart < size ]) ifTrue: [
+		tailOffset := inputStart + tailStart - lastStart - 1 ].
 	previous := ranges isEmpty ifFalse: [ ranges last ].
 	(previous notNil and: [ previous ~~ openerRange and: [ previous fourth = passes and: [
 		previous third + previous second - previous first = inputStart ] ] ])
@@ -64,6 +68,32 @@ GtsV2ParityStream >> append: event passes: passes [
 		ifFalse: [ ranges add: { lastStart. size. inputStart. passes } ].
 	cutoff := lastStart - (lastStart \\ 4194304).
 	[ ranges first second <= cutoff ] whileTrue: [ ranges removeFirst ]
+]
+
+{ #category : #observing }
+GtsV2ParityStream >> protectThrough: position [
+	position <= tailStart ifTrue: [ ^ self ].
+	self protectThrough: position at: (self inputOffsetAt: position)
+]
+
+{ #category : #observing }
+GtsV2ParityStream >> protectThrough: position at: inputOffset [
+	position <= tailStart ifTrue: [ ^ self ].
+	tailStart := position.
+	tailOffset := inputOffset
+]
+
+{ #category : #private }
+GtsV2ParityStream >> inputOffsetAt: position [
+	^ position < size ifTrue: [
+		| range |
+		range := ranges at: (self rangeIndexAt: position).
+		range third + position - range first - 1 ]
+]
+
+{ #category : #enumerating }
+GtsV2ParityStream >> unprotectedTailDo: report [
+	tailOffset ifNotNil: [ report value: tailOffset value: size - tailStart ]
 ]
 
 { #category : #validation }

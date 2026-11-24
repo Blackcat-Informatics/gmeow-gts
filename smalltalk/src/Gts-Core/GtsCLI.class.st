@@ -306,13 +306,21 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 					(self printWireIntegrityFor: event) ifFalse: [ clean := false ] ].
 				(event opener isNotNil and: [ event opener registry > 1 ]) ifTrue: [
 					clean := false.
-					self stdout: '    unsupported registry version ', event opener registry printString, String lf ] ] ].
+					self stdout: '    unsupported registry version ', event opener registry printString, String lf ] ] ]
+		decodedWhen: [ :event | false ]
+		unprotectedTailsDo: [ :offset :length |
+			self stdout: '    ', (self unprotectedTailAt: offset length: length), String lf ].
 	^ clean
 ]
 
 { #category : #printing }
 GtsCLI class >> wireDiagnosticFor: event [
 	^ (self wireFindingFor: event) ifNil: [ '' ] ifNotNil: [ :finding | ': ', finding ]
+]
+
+{ #category : #printing }
+GtsCLI class >> unprotectedTailAt: offset length: length [
+	^ 'unprotected_tail at byte ', offset printString, ' (', length printString, ' bytes of the segment stream)'
 ]
 
 { #category : #printing }
@@ -708,7 +716,9 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 								result at: 'status' put: status.
 								result at: 'reason' put: reason.
 								self printAuthentication: result kind: 'signature' ordinal: ordinal path: path ] ] ] ] ]
-		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ].
+		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ]
+		unprotectedTailsDo: [ :offset :length |
+			self stdout: '  ', (self unprotectedTailAt: offset length: length), String lf ].
 	checks ifNotNil: [ self printCommitSummary: checks authentication: authentication ordinal: ordinal path: path ].
 	^ clean
 ]
