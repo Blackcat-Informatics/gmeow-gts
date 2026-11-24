@@ -176,6 +176,76 @@ def test_bad_index_prefix_claim_precedes_a_later_opaque_index() -> None:
     assert (difference.check, difference.position) == ("index", 2)
 
 
+_INDEX_REASONS = {
+    17: "index_head",
+    18: "index_root",
+    20: "index_digest",
+    21: "index_members",
+    22: "index_directory",
+}
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "index-each-claim",
+        "index-nonterminal-claims",
+        "index-opaque-covered",
+        "index-labelling-refused",
+        "index-after-stop",
+        "index-last-unfolded",
+        "index-absent-equal",
+        "index-covers-frame-of-no-type",
+    ],
+)
+def test_read_index_claims_match_p5_findings(name: str) -> None:
+    for raw, segments, capacity in _contents("P5", name):
+        expected = Counter(
+            (segment[0], finding[3][1], _INDEX_REASONS[finding[1][1]])
+            for segment in segments
+            for frame in segment[-2]
+            for finding in frame[-1]
+            if finding[0] == 18 and finding[1][1] in _INDEX_REASONS
+        )
+        result = read_content(raw, capacity)
+        assert (
+            Counter(
+                (finding.segment, finding.position, finding.reason)
+                for finding in result.findings
+                if finding.code == "index_claim_failed"
+            )
+            == expected
+        )
+
+
+def test_index_statistics_count_predicates_of_held_quads() -> None:
+    # P5 counts rows in their decoded frames even when the fold holds them.
+    for raw, _, capacity in _contents("P5", "index-digest-absent"):
+        result = read_content(raw, capacity)
+        assert result.fold is not None
+        assert not result.fold.lines.lines
+        assert result.fold.content_digest is None
+        assert any(
+            (finding.code, finding.reason, finding.position)
+            == ("index_claim_failed", "index_directory", 3)
+            for finding in result.findings
+        )
+
+
+def test_closing_index_checks_digest_claims_after_a_transparent_stop() -> None:
+    opener, head, transparent = _transparent_stop()
+    root = RangeAccumulator(head).root().digest
+    payload = cbor2.dumps([[], [], [1, 0, 0, []], root, [2, bytes(32)], []])
+    index = encode_plain_frame(head, 15, [0, head], payload)
+    result = read_content(opener + transparent + index)
+    assert any(finding.code == "unsupported_critical" for finding in result.findings)
+    assert {
+        (finding.position, finding.reason)
+        for finding in result.findings
+        if finding.code == "index_claim_failed"
+    } == {(2, "index_directory"), (2, "index_digest")}
+
+
 @pytest.mark.parametrize(
     "part, name",
     [
@@ -537,10 +607,7 @@ def test_malformed_index_in_a_commit_prefix_prevents_a_state() -> None:
     }
 
 
-@pytest.mark.parametrize("ordinary_after_stop", [False, True])
-def test_transparent_stop_blocks_state_via_a_stopped_ordinary_frame(
-    ordinary_after_stop: bool,
-) -> None:
+def _transparent_stop() -> tuple[bytes, bytes, bytes]:
     first_header = cbor2.dumps([1, 2, 2, 1, [1], [1], [1]])
     first_head = decode_header(first_header).identifier
     assert first_head is not None
@@ -549,6 +616,14 @@ def test_transparent_stop_blocks_state_via_a_stopped_ordinary_frame(
     transparent = cbor2.dumps(
         [2, *identity, [1], b"", _identifier(first_head, fields), []]
     )
+    return first_header, first_head, transparent
+
+
+@pytest.mark.parametrize("ordinary_after_stop", [False, True])
+def test_transparent_stop_blocks_state_via_a_stopped_ordinary_frame(
+    ordinary_after_stop: bool,
+) -> None:
+    first_header, first_head, transparent = _transparent_stop()
     stopped_frame = b""
     if ordinary_after_stop:
         root = RangeAccumulator(first_head).root().digest

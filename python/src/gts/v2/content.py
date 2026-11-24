@@ -8,6 +8,7 @@ from typing import cast
 
 from ._content import UnknownContentCode
 from ._decode import WireError, _Decoder
+from ._fold_record_lines import record_bodies
 from ._labelling_result import ComponentStatistics, InputStatistics
 from ._labelling_structure import Diagnostic
 from ._read_coverage import SegmentCoverage, file_coverage
@@ -49,7 +50,8 @@ from .fold_labelling import (
 )
 from .frame import Frame, FrameError, Signature, _frame_field_offsets, _signatures
 from .graph import GraphContent, GraphFold, GraphFrame
-from .index import IndexPayload, check_index_payload, check_prefix_claims
+from .index import ClosingIndex, IndexPayload, check_index_payload, check_prefix_claims
+from .index_claims import IndexStatistics
 from .lineage import SegmentLineage, check_lineages
 from .lines import LineFold, LineResult
 from .range import RangeAccumulator
@@ -253,6 +255,7 @@ class _SegmentContent:
     first_ineligible: int | None
     opaque_positions: set[int]
     index_digests: dict[int, bytes | None]
+    closing_index: ClosingIndex | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -626,12 +629,28 @@ def _read_segment_content(
             else:
                 blob_frames.append((position, blob_content))
                 opaque_positions.remove(position)
-    findings.extend(
-        ContentFinding(ordinal, position, "index_claim_failed", reason)
-        for position, reason in check_prefix_claims(
-            opener.identifier, segment.frames, checked_indexes
+    closing_index = None
+    if checked_indexes:
+        prefix_findings, closing_index = check_prefix_claims(
+            opener.identifier,
+            segment.frames,
+            checked_indexes,
+            {
+                event.position: batch.rows
+                for event in graph_frames
+                if isinstance(batch := event.frame.contribution, DecodedRows)
+            },
+            {
+                position: blob
+                for position, blob in blob_frames
+                if isinstance(blob, tuple)
+            },
+            opaque_positions,
         )
-    )
+        findings.extend(
+            ContentFinding(ordinal, position, "index_claim_failed", reason)
+            for position, reason in prefix_findings
+        )
     return _SegmentContent(
         graph_frames,
         blob_frames,
@@ -639,6 +658,7 @@ def _read_segment_content(
         first_ineligible,
         opaque_positions,
         index_digests,
+        closing_index,
     )
 
 
@@ -1045,6 +1065,17 @@ def _own_labelling(
         else None
     )
     report = None if labelled is None else _labelling_report(labelled)
+    closing = segment.closing_index
+    if labelled is not None and closing is not None:
+        statistics = IndexStatistics(
+            len(graph.lines.lines),
+            sum(1 for _ in record_bodies(records, blobs, graph.values)),
+            len(labelled.blank_positions),
+        )
+        findings.extend(
+            ContentFinding(ordinal, closing.position, "index_claim_failed", reason)
+            for reason in closing.disagrees(statistics, labelled.content_digest)
+        )
     if not claimed:
         return report, NOT_CLAIMED
     own_findings.extend(findings[segment_findings_at:])
