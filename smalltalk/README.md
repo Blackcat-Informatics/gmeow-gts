@@ -84,6 +84,9 @@ The report checks the content record and payload grammar of each eligible
 `terms` frame. It checks the run and block counts before forming texts and
 charges copied prefixes to the formed-byte budget. Valid runs reserve
 their term IDs even when the frame cannot be folded.
+For `terms` frames with valid grammar, the report checks reconstructed text,
+datatype positions, and triple components. Individual unreadable terms
+leave the frame's fold state as folded.
 Pass P6 held-key records and trusted key identifiers to
 `typedWireFindingsHeld:trusted:`. The report exposes the ordered sets
 through `verificationInputs`, signature records through `signaturesAt:`

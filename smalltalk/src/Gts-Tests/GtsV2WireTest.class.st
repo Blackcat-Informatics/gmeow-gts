@@ -7,6 +7,18 @@ Class {
 }
 
 { #category : #tests }
+GtsV2WireTest >> testTypedIntrinsicTermFindingsMatchP3 [
+	#(
+		'terms-text-not-utf8' 'terms-datatype-not-iri' 'terms-datatype-forward'
+		'terms-triple-subject-literal' 'terms-triple-predicate-not-iri' 'terms-triple-forward'
+		'terms-triple-component-unreadable' 'terms-datatype-text-equals-generated'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P3/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTypedTermRecordsOf: entry ] ]
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testTypedTermRecordsReserveIdsIndependentlyOfFold [
 	#(
 		'terms-id-base-mismatch' 'terms-id-base-ill-typed-reserves' 'terms-id-base-after-opaque'
@@ -50,7 +62,7 @@ GtsV2WireTest >> assertTypedTermRecordsOf: entry [
 		storedLimit: (capacity at: 'stored_bytes_per_frame') frameLimit: (capacity at: 'decoded_bytes_per_frame');
 		formedLimit: (capacity at: 'formed_bytes_per_read').
 	report := (GtsV2Wire inspect: input budget: budget) typedWireFindings.
-	termFinding := [ :finding | (#(6 7) includes: finding first) or: [
+	termFinding := [ :finding | (#(6 7 22 23 24) includes: finding first) or: [
 		finding first = 20 and: [ finding second second = 90 ] ] ].
 	file second do: [ :segment |
 		(segment at: 17) do: [ :frame |
@@ -61,8 +73,7 @@ GtsV2WireTest >> assertTypedTermRecordsOf: entry [
 				self assert: actual = expected description: name, ' at ', frame second printString,
 					' ', actual printString, ' expected ', expected printString.
 				fold := frame ninth.
-				self assert: (report wireFoldStateAt: frame second) = (fold first = 1 ifFalse: [ fold ])
-					description: name ] ] ]
+				self assert: (report wireFoldStateAt: frame second) = fold description: name ] ] ]
 ]
 
 { #category : #private }
@@ -138,7 +149,7 @@ GtsV2WireTest >> assertWireFoldOf: entry root: root [
 			| actual expected |
 			actual := report wireFoldStateAt: frame second.
 			expected := frame at: 9.
-			expected first = 1 ifTrue: [ expected := nil ].
+			(expected first = 1 and: [ frame fourth ~= #(2 1) ]) ifTrue: [ expected := nil ].
 			self assert: actual = expected description: fileName, ' fold state at ', frame second printString, ' ',
 				actual printString, ' expected ', expected printString ] ]
 ]
