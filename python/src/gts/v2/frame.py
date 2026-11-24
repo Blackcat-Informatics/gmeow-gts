@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Frame envelope, identity and stored bytes (P1 §§3.1–3.3, 4.2, 5.3)."""
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import cbor2
@@ -10,7 +11,7 @@ from zstandard import ZstdCompressor
 
 from ._decode import WireError, _Decoder
 from ._zstd import ZSTD_CODEC, compressed_payload
-from .framing import item_end
+from .framing import _byte_string_chunks, item_end
 
 _LAST_FRAME_TYPE = 16
 _CHUNK = 8
@@ -43,6 +44,16 @@ class Signature:
 
 
 @dataclass(frozen=True, slots=True)
+class _PayloadFields:
+    content: memoryview
+    decoded_length: int
+    payload_digest: bytes
+    storage: CompressedStorage | UnknownStorage | None
+    stored_payload: memoryview
+    encoded_signatures_size: int
+
+
+@dataclass(frozen=True, slots=True)
 class Frame:
     frame_type: int
     critical: bool
@@ -64,11 +75,7 @@ class Frame:
 
     def check_storage(self) -> bool | None:
         """Check a compressed frame's stored bytes when its storage tag is known."""
-        if isinstance(self.storage, CompressedStorage):
-            return _stored_check(self.storage.codec, self.stored_payload) == (
-                self.storage.check
-            )
-        return None
+        return _storage_matches(self.storage, self.stored_payload)
 
     def check_decoded_payload(self, decoded: bytes | memoryview) -> bool:
         """Check the length and digest of bytes already decoded by the caller."""
@@ -92,9 +99,22 @@ def _payload_digest(decoded: bytes | memoryview) -> bytes:
 
 
 def _stored_check(codec: int, payload: bytes | memoryview) -> bytes:
+    return _stored_check_chunks(codec, (payload,))
+
+
+def _stored_check_chunks(codec: int, chunks: Iterable[bytes | memoryview]) -> bytes:
     hasher = blake3(cbor2.dumps([codec]), derive_key_context="gts2 stored")
-    hasher.update(payload)
+    for chunk in chunks:
+        hasher.update(chunk)
     return hasher.digest(length=16)
+
+
+def _storage_matches(
+    storage: CompressedStorage | UnknownStorage | None, payload: memoryview
+) -> bool | None:
+    if isinstance(storage, CompressedStorage):
+        return _stored_check(storage.codec, payload) == storage.check
+    return None
 
 
 def _registry_code(decoder: _Decoder, last: int, newer: bool) -> int:
@@ -175,7 +195,7 @@ def _media_type_shape(decoder: _Decoder) -> None:
 
 
 def _storage(
-    decoder: _Decoder, *, newer: bool, decoded_length: int
+    decoder: _Decoder, *, newer: bool
 ) -> CompressedStorage | UnknownStorage | None:
     start = decoder.offset
     size = decoder.array()
@@ -193,8 +213,6 @@ def _storage(
         return None
     codec = _registry_code(decoder, 1, newer)
     check = bytes(decoder.bytes(16))
-    if decoded_length == 0:
-        raise FrameError("forbidden_combination", start)
     return CompressedStorage(codec, check)
 
 
@@ -264,11 +282,14 @@ def decode_frame(data: bytes, offset: int = 0, *, registry_version: int = 1) -> 
     if registry_version < 1:
         raise ValueError("registry version must be positive")
     item_end(data, offset)
+    return _decode_frame_at(data, offset, newer=registry_version > 1)
+
+
+def _decode_frame_at(data: bytes | memoryview, offset: int, *, newer: bool) -> Frame:
     decoder = _Decoder(data, offset, FrameError)
     decoder.record(11)
     decoder.uint(minimum=2, maximum=2, reason="unregistered_value")
     identity_start = decoder.offset
-    newer = registry_version > 1
     (
         frame_type,
         critical,
@@ -281,8 +302,11 @@ def decode_frame(data: bytes, offset: int = 0, *, registry_version: int = 1) -> 
     identity = memoryview(data)[identity_start : decoder.offset]
 
     offset = decoder.offset
-    storage = _storage(decoder, newer=newer, decoded_length=decoded_length)
-    if frame_type == _PARITY and storage is not None:
+    storage = _storage(decoder, newer=newer)
+    if storage is not None and (
+        frame_type == _PARITY
+        or (isinstance(storage, CompressedStorage) and decoded_length == 0)
+    ):
         raise FrameError("forbidden_combination", offset)
     payload = decoder.bytes()
     identifier = bytes(decoder.bytes(32))
@@ -294,7 +318,6 @@ def decode_frame(data: bytes, offset: int = 0, *, registry_version: int = 1) -> 
         frame_type == _CHUNK and not decoded_length
     ):
         raise FrameError("out_of_range", decoded_length_offset)
-
     return Frame(
         frame_type,
         critical,
@@ -310,6 +333,51 @@ def decode_frame(data: bytes, offset: int = 0, *, registry_version: int = 1) -> 
         identity,
         decoder.offset,
     )
+
+
+def _frame_field_offsets(data: bytes, offset: int) -> tuple[int, ...]:
+    """Find the ten remaining fields of a frame and its exclusive end."""
+    starts = [offset + 2]
+    for _ in range(10):
+        starts.append(item_end(data, starts[-1]))
+    return tuple(starts)
+
+
+def _read_payload_fields(
+    data: bytes, starts: tuple[int, ...], *, newer: bool
+) -> tuple[_PayloadFields | None, bool | None]:
+    """Read the payload inputs independently of earlier envelope errors."""
+    decoded = _Decoder(data, starts[4], FrameError)
+    stored = _Decoder(data, starts[6], FrameError)
+    try:
+        storage = _storage(stored, newer=newer)
+    except FrameError:
+        return None, None
+    try:
+        payload = stored.bytes()
+    except FrameError:
+        stored_matches = None
+        if isinstance(storage, CompressedStorage) and data[starts[7]] >> 5 == 2:
+            stored_matches = (
+                _stored_check_chunks(
+                    storage.codec, _byte_string_chunks(data, starts[7])
+                )
+                == storage.check
+            )
+        return None, stored_matches
+    try:
+        length = decoded.uint()
+        digest = bytes(decoded.bytes(32))
+    except FrameError:
+        return None, _storage_matches(storage, payload)
+    return _PayloadFields(
+        memoryview(data)[starts[3] : starts[4]],
+        length,
+        digest,
+        storage,
+        payload,
+        starts[10] - starts[9],
+    ), None
 
 
 def encode_plain_frame(

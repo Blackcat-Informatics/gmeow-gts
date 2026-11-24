@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """P1 item classification, offsets, and locators (§§2.1, 2.2, 2.5–2.6)."""
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -36,6 +36,13 @@ class Item:
 
 
 @dataclass(frozen=True, slots=True)
+class DamagedRegion:
+    offset: int
+    end: int
+    kind: Literal["damaged_region"] = "damaged_region"
+
+
+@dataclass(frozen=True, slots=True)
 class ClosingFinding:
     position: int
     reason: ClosingReason
@@ -58,7 +65,12 @@ def classify_item(data: bytes, offset: int = 0, *, registry_version: int = 1) ->
     This implements P1 §2.2 with a registry version 1 reader. The file reader
     decides the first item and the outcome of each opener separately.
     """
-    end = item_end(data, offset)
+    return _classify_item_at(data, offset, item_end(data, offset), registry_version)
+
+
+def _classify_item_at(
+    data: bytes, offset: int, end: int, registry_version: int
+) -> Item:
     major, count, tag_at = _head(data, offset, offset)
     if major != 4 or count == 0:
         return Item("opaque", offset, end, "wrong_type")
@@ -122,17 +134,23 @@ def recognize_locator(data: bytes) -> int | None:
     return index_at if end <= offset else None
 
 
-def _offsets_hold(data: bytes, items: Sequence[Item], position: int) -> bool:
-    decoder = _Decoder(data, items[position].offset, WireError)
+def _offset_lengths(data: bytes, offset: int) -> Iterator[int]:
+    decoder = _Decoder(data, offset, WireError)
     decoder.record(2)
     decoder.uint(minimum=4, maximum=4)
-    count = decoder.array()
-    holds = count == position
-    for i in range(count):
-        length = decoder.uint()
-        if holds and length != items[i].end - items[i].offset:
+    for _ in range(decoder.array()):
+        yield decoder.uint()
+
+
+def _offsets_hold(
+    data: bytes, items: Sequence[Item | DamagedRegion], position: int
+) -> bool:
+    count = 0
+    holds = True
+    for count, length in enumerate(_offset_lengths(data, items[position].offset), 1):
+        if count > position or length != items[count - 1].end - items[count - 1].offset:
             holds = False
-    return holds
+    return holds and count == position
 
 
 def _locator_distance(data: bytes, item: Item) -> int:
@@ -147,7 +165,17 @@ def _locator_distance(data: bytes, item: Item) -> int:
     return int.from_bytes(data[offset + 1 : item.end], "big")
 
 
-def check_closing_items(data: bytes, items: Sequence[Item]) -> list[ClosingFinding]:
+def _check_closing_grammar(data: bytes, item: Item) -> None:
+    if item.kind == "offsets":
+        for _ in _offset_lengths(data, item.offset):
+            pass
+    elif item.kind == "locator":
+        _locator_distance(data, item)
+
+
+def check_closing_items(
+    data: bytes, items: Sequence[Item | DamagedRegion]
+) -> list[ClosingFinding]:
     """Check closing items against one segment's observed item sequence.
 
     The sequence starts with the opener and includes opaque and transparent

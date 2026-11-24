@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2PayloadBudget,
 	#superclass : #Object,
-	#instVars : [ 'storedLimit', 'frameLimit', 'readLimit', 'itemLimit', 'total', 'exhausted' ],
+	#instVars : [ 'storedLimit', 'frameLimit', 'readLimit', 'itemLimit', 'total', 'exhausted', 'formedLimit', 'formed', 'formedExhausted' ],
 	#category : #'Gts-Core'
 }
 
@@ -20,7 +20,10 @@ GtsV2PayloadBudget >> initialize [
 	readLimit := 1 bitShift: 36.
 	itemLimit := 1 bitShift: 26.
 	total := 0.
-	exhausted := false
+	exhausted := false.
+	formedLimit := 1 bitShift: 37.
+	formed := 0.
+	formedExhausted := false
 ]
 
 { #category : #initialization }
@@ -50,6 +53,23 @@ GtsV2PayloadBudget >> storedLimit: stored frameLimit: decoded [
 	storedLimit := stored.
 	frameLimit := decoded.
 	^ self
+]
+
+{ #category : #initialization }
+GtsV2PayloadBudget >> formedLimit: limit [
+	formedLimit := limit.
+	^ self
+]
+
+{ #category : #validation }
+GtsV2PayloadBudget >> admitFormed: charge [
+	| sum |
+	sum := formed + charge.
+	(formedExhausted or: [ sum > formedLimit ]) ifTrue: [
+		formedExhausted := true.
+		^ sum min: 18446744073709551615 ].
+	formed := sum.
+	^ nil
 ]
 
 { #category : #validation }

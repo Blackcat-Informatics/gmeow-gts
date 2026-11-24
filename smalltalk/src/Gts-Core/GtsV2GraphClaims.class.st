@@ -20,7 +20,7 @@ GtsV2GraphClaims >> initialize [
 ]
 
 { #category : #recording }
-GtsV2GraphClaims >> observe: event position: position report: report [
+GtsV2GraphClaims >> observe: event position: position rowsDo: rows report: report [
 	| type bytes columns previous |
 	type := event frameType.
 	type = 1 ifTrue: [ ^ identity observe: event ].
@@ -40,6 +40,7 @@ GtsV2GraphClaims >> observe: event position: position report: report [
 			^ self ].
 	(type <= 4 and: [ event frame content list next uint = 1 ]) ifTrue: [
 		self checkCanonical: columns type: type after: previous report: report ].
+	rows value: columns.
 	(type = 4 and: [ columns first size > 1 and: [ identity isComplete not ] ])
 		ifTrue: [ ^ self markUncompared ].
 	graphs ifNotNil: [
@@ -76,8 +77,13 @@ GtsV2GraphClaims >> row: previous strictlyPrecedes: row [
 
 { #category : #recording }
 GtsV2GraphClaims >> observeDamagedRegion [
-	identity abandon.
+	self abandonTermIdentity.
 	self markUncompared
+]
+
+{ #category : #recording }
+GtsV2GraphClaims >> abandonTermIdentity [
+	identity abandon
 ]
 
 { #category : #private }

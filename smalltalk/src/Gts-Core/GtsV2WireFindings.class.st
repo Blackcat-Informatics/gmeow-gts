@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut', 'frameFoldStates', 'foldStopped' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut', 'frameFoldStates', 'foldStopped', 'termChecks', 'termBudget', 'dictionaryInDoubt', 'hiddenTermsBefore', 'rowsAwaitingCommit' ],
 	#category : #'Gts-Core'
 }
 
@@ -16,6 +16,7 @@ GtsV2WireFindings class >> on: bytes budget: budget held: held trusted: trusted 
 GtsV2WireFindings >> initializeOn: bytes budget: budget held: held trusted: trusted [
 	inputLength := bytes size.
 	itemLimit := budget ifNil: [ 0 ] ifNotNil: [ budget itemLimit ].
+	termBudget := budget copy.
 	openers := GtsV2OpenerResults on: bytes limit: (budget ifNil: [ 0 ] ifNotNil: [ budget readLimit ]).
 	fileFindings := OrderedCollection new.
 	segmentFindings := OrderedCollection new.
@@ -167,6 +168,10 @@ GtsV2WireFindings >> observe: event [
 		segmentCut := nil.
 		fileEnd := 4.
 		foldStopped := false.
+		termChecks := GtsV2TermChecks new.
+		dictionaryInDoubt := false.
+		hiddenTermsBefore := 0.
+		rowsAwaitingCommit := OrderedCollection new.
 		position := 0.
 		segment := OrderedCollection new.
 		segmentFindings add: segment.
@@ -188,6 +193,7 @@ GtsV2WireFindings >> observe: event [
 			segmentCut := event offset.
 			^ self ] ].
 	segment ifNil: [ ^ self ].
+	(#(opaque framingGap) includes: event kind) ifTrue: [ dictionaryInDoubt := true ].
 	position := position + 1.
 	self remember: event.
 	event frame
@@ -195,7 +201,13 @@ GtsV2WireFindings >> observe: event [
 			(#(opaque unchecked) includes: event kind) ifTrue: [ leftOut := leftOut + 1 ].
 			self recordNonFrame: event ]
 		ifNotNil: [ self recordFrame: event ].
+	(event frame notNil and: [ event link = #broken and: [ event frame isTransparent not ] ])
+		ifTrue: [ hiddenTermsBefore := termChecks nextId ].
+	event frameType = 1 ifTrue: [
+		self recordTermsOf: event.
+		termChecks markReservedUnreadable ].
 	validCommit := claimChecks ifNil: [ false ] ifNotNil: [ self checkClaimsOf: event ].
+	validCommit ifTrue: [ self finishRowFindingsCommitted: true ].
 	event frame ifNotNil: [ self recordWireFoldStateOf: event ].
 	self observeEndAt: event validCommit: validCommit.
 	authentication ifNotNil: [ self checkSignaturesOf: event validCommit: validCommit ]
@@ -210,6 +222,7 @@ GtsV2WireFindings >> finishSegment [
 GtsV2WireFindings >> finishSegmentAt: boundary [
 	| segmentEnd |
 	segment ifNil: [ ^ self ].
+	self finishRowFindingsCommitted: false.
 	segmentEnd := segmentCut ifNil: [ boundary ].
 	segmentRanges add: { segmentStart. segmentEnd - segmentStart }.
 	segmentFrameResults add: { frames asArray. anchoredCount. transparentPositions asArray }.
@@ -248,6 +261,44 @@ GtsV2WireFindings >> recordWireFoldStateOf: event [
 ]
 
 { #category : #private }
+GtsV2WireFindings >> recordTermsOf: event [
+	| base terms reason finding refused termFindings |
+	base := termChecks nextId.
+	terms := GtsV2TermsContent read: event frame content expecting: base newer: newerRegistry.
+	termChecks reserve: terms.
+	(foldStopped or: [ event problem notNil or: [ event link = #broken or: [
+		event payload state ~= #verified ] ] ]) ifTrue: [ ^ self ].
+	reason := terms problem.
+	reason ifNil: [
+		[
+			| payload |
+			payload := GtsV2TermsPayload read: event payload decoded content: terms newer: newerRegistry.
+			refused := termBudget admitFormed: payload formedCost.
+			refused ifNil: [ termFindings := termChecks findingsOf: payload from: base ]
+		] on: GtsV2EnvelopeError do: [ :error | reason := error messageText ] ].
+	refused ifNotNil: [
+		self addContentFinding: (self rangedCode: 20 reason: 90 event: event count: refused) to: event.
+		claimChecks observeUnreadableTerms.
+		^ self ].
+	reason ifNil: [
+		frameFoldStates at: event offset put: #(1).
+		termFindings do: [ :code |
+			(frameFindings at: event offset ifAbsentPut: [ OrderedCollection new ]) add:
+				(self positionalCode: code reason: nil position: position count: nil) ].
+		^ self ].
+	finding := reason asSymbol = #unsupported_critical
+		ifTrue: [ self unsupportedCritical: 1 ]
+		ifFalse: [ self rangedCode: 7 reason: (self malformedReason: reason) event: event count: nil ].
+	self addContentFinding: finding to: event
+]
+
+{ #category : #private }
+GtsV2WireFindings >> addContentFinding: finding to: event [
+	claimSteps at: finding put: 11.
+	(frameFindings at: event offset ifAbsentPut: [ OrderedCollection new ]) add: finding
+]
+
+{ #category : #private }
 GtsV2WireFindings >> wireFoldStateOf: event findings: findings unsupported: unsupported [
 	| payload |
 	(event frameType = 16 and: [ event hasUnknownParityGeometry not ]) ifTrue: [ ^ #(2) ].
@@ -259,6 +310,8 @@ GtsV2WireFindings >> wireFoldStateOf: event findings: findings unsupported: unsu
 	unsupported ifTrue: [ ^ #(3 4) ].
 	payload state = #unchecked ifTrue: [
 		^ payload reason = 'unknown_codec' ifTrue: [ #(3 8) ] ifFalse: [ #(3 7) ] ].
+	(findings anySatisfy: [ :finding | finding first = 20 and: [ finding second second = 90 ] ])
+		ifTrue: [ ^ #(3 7) ].
 	(event hasUnknownParityGeometry or: [ findings anySatisfy: [ :finding |
 		finding first = 5 and: [ finding second second = 2 ] ] ]) ifTrue: [ ^ #(3 3) ].
 	(event frameType = 14 or: [ event frameType = 15 and: [ newerRegistry not ] ]) ifTrue: [ ^ #(2) ].
@@ -270,7 +323,8 @@ GtsV2WireFindings >> checkClaimsOf: event [
 	(event kind = #framingGap and: [ event problem = 'undelimitable_input' ]) ifTrue: [
 		claimChecks observeDamagedRegion.
 		^ false ].
-	^ claimChecks observe: event classifiedFindingsDo: [ :code :reason :at :count |
+	^ claimChecks observe: event rowsDo: [ :columns | self recordRowsOf: event columns: columns ]
+		classifiedFindingsDo: [ :code :reason :at :count |
 		| record |
 		record := code caseOf: {
 			[ #commit_count_mismatch ] -> [ self positionalCode: 15 reason: nil position: at count: count ].
@@ -290,6 +344,43 @@ GtsV2WireFindings >> checkClaimsOf: event [
 		code = #damaged_frame ifTrue: [ claimSteps at: record put: 14 ].
 		code = #index_claim_failed ifTrue: [ claimSteps at: record put: 19 ].
 		(frameFindings at: event offset ifAbsentPut: [ OrderedCollection new ]) add: record ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> recordRowsOf: event columns: columns [
+	| kinds ordinary exempt |
+	foldStopped ifTrue: [ ^ self ].
+	kinds := #(((1 3) (1 3) (1) ()) ((1 3) (1 3) () (4)) ((1 3) (1 3) (1) ()) ((1 3)))
+		at: event frameType - 1.
+	ordinary := Set new.
+	exempt := Set new.
+	1 to: columns first size do: [ :index |
+		| ids reason withoutBreak |
+		ids := columns collect: [ :column | column ifNotNil: [ column at: index ] ].
+		reason := termChecks row: ids kinds: kinds hiddenBefore: hiddenTermsBefore inDoubt: dictionaryInDoubt.
+		withoutBreak := hiddenTermsBefore > 0
+			ifTrue: [ termChecks row: ids kinds: kinds hiddenBefore: 0 inDoubt: dictionaryInDoubt ]
+			ifFalse: [ reason ].
+		reason ifNotNil: [ ordinary add: reason ].
+		withoutBreak ifNotNil: [ exempt add: withoutBreak ] ].
+	ordinary = exempt
+		ifTrue: [ self addRowFindings: ordinary at: position offset: event offset ]
+		ifFalse: [ rowsAwaitingCommit add: { position. event offset. ordinary. exempt } ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> finishRowFindingsCommitted: committed [
+	rowsAwaitingCommit do: [ :entry |
+		self addRowFindings: (committed ifTrue: [ entry fourth ] ifFalse: [ entry third ])
+			at: entry first offset: entry second ].
+	rowsAwaitingCommit removeAll
+]
+
+{ #category : #private }
+GtsV2WireFindings >> addRowFindings: codes at: at offset: offset [
+	codes do: [ :code |
+		(frameFindings at: offset ifAbsentPut: [ OrderedCollection new ]) add:
+			(self positionalCode: code reason: nil position: at count: nil) ]
 ]
 
 { #category : #private }
@@ -408,8 +499,13 @@ GtsV2WireFindings >> typedPayload: result [
 GtsV2WireFindings >> recordUnknownFrame: event into: records [
 	(newerRegistry and: [ event frame hasUnknownType ]) ifFalse: [ ^ self ].
 	event frame hasUnknownCriticalType
-		ifTrue: [ records add: { 6. #(1). { 2. { 2. event frameType } }. { 2. position }. #(1). #(1). #(1) } ]
+		ifTrue: [ records add: (self unsupportedCritical: event frameType) ]
 		ifFalse: [ records add: (self unknown: 2 subject: { 2. event frameType }) ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> unsupportedCritical: type [
+	^ { 6. #(1). { 2. { 2. type } }. { 2. position }. #(1). #(1). #(1) }
 ]
 
 { #category : #private }
@@ -490,7 +586,7 @@ GtsV2WireFindings >> recordParity: event into: records [
 		ifTrue: [ records add: (self positionalCode: 30 reason: nil position: position count: nil) ]
 		ifFalse: [
 			self recordPayload: event into: records.
-			event parityFinding = 'unknown_frame_type' ifTrue: [
+			(event parityFinding = 'unknown_frame_type' and: [ foldStopped not ]) ifTrue: [
 				records add: (self unknown: 2 subject: #(2 16)) ] ].
 	event parityShardFindings do: [ :finding |
 		| mismatch reason |
@@ -582,6 +678,7 @@ GtsV2WireFindings >> stepOf: finding parity: parity [
 	code = 14 ifTrue: [ ^ 6 ].
 	code = 13 ifTrue: [ ^ 7 ].
 	code = 21 ifTrue: [ ^ 11 ].
+	(code between: 22 and: 25) ifTrue: [ ^ 16 ].
 	(code between: 15 and: 17) ifTrue: [ ^ 13 ].
 	(#(40 41) includes: code) ifTrue: [ ^ 20 ].
 	code = 48 ifTrue: [ ^ 21 ].
