@@ -33,7 +33,7 @@ export function printFramingInfo(
     }
 
     console.log(
-        `${path}: GTS v2 framing ledger (record prefixes and byte ranges)`,
+        `${path}: GTS v2 framing ledger (frame fields and byte ranges)`,
     );
     let clean = true;
     let segment = 0;
@@ -45,9 +45,14 @@ export function printFramingInfo(
             return false;
         }
         const range = `bytes [${record.offset}, ${record.end})`;
-        const diagnostic =
-            record.reason === undefined ? "" : `: ${record.reason}`;
-        if (record.reason !== undefined) clean = false;
+        let diagnostic = "";
+        if (record.reason !== undefined) {
+            clean = false;
+            diagnostic =
+                record.kind === "frame" && record.frameType === 16n
+                    ? `: parity_damaged (${record.reason})`
+                    : `: ${record.reason}`;
+        }
         if (record.kind === "header" || record.kind === "resync") {
             const registry =
                 record.registry === undefined
