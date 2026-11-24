@@ -96,6 +96,11 @@ class UnitIndex:
             return None
         return unit.data
 
+    def first_position(self, digest: bytes) -> int | None:
+        """Return the first verified copy's position, if there is one."""
+        unit = self._units.get(digest)
+        return None if unit is None else unit.position
+
 
 @dataclass(frozen=True, slots=True)
 class VerifiedRebuild:

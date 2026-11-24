@@ -74,6 +74,7 @@ class WireFrame:
     envelope: Frame | FrameError
     link: FrameLink
     payload: PayloadCheck
+    detached: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -402,7 +403,13 @@ def _read_frame(
         payload = budget.check(decoded)
         frame_type = decoded.frame_type
     frame = WireFrame(
-        len(segment.items), frame_type, fields.transparent, envelope, link, payload
+        len(segment.items),
+        frame_type,
+        fields.transparent,
+        envelope,
+        link,
+        payload,
+        detached=not fields.transparent and predecessor != segment.head,
     )
     return frame, without_witness
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Fold bindings and suppression over resolved GTS v2 graph content."""
 
-from collections.abc import Iterable, Mapping, Sequence, Set
+from collections.abc import Callable, Iterable, Mapping, Sequence, Set
 from dataclasses import dataclass
 from typing import Literal
 
@@ -194,12 +194,18 @@ def _suppression(
     return ResolvedSuppression(entry.kind, leaves)
 
 
-def _unresolved(referent: Referent, scope: RecordScope) -> str | None:
+def _unresolved(
+    referent: Referent,
+    scope: RecordScope,
+    resolve_state: Callable[[bytes], bool] | None,
+) -> str | None:
     if isinstance(referent, BlobReference):
         return None if referent in scope.blobs else "blob"
     if isinstance(referent, FrameReference):
         return None if referent.identifier in scope.frames else "frame"
-    if referent.identifier in scope.states:
+    if referent.identifier in scope.states or (
+        resolve_state is not None and resolve_state(referent.identifier)
+    ):
         return None
     return "state_unavailable" if referent.identifier in scope.commits else "state"
 
@@ -334,6 +340,9 @@ def fold_records(
     scope: RecordScope,
     pool: TermPool,
     lines: Iterable[Row],
+    *,
+    resolve_state: Callable[[bytes], bool] | None = None,
+    check_referents: bool = True,
 ) -> RecordFold:
     """Resolve file-order records against the final graph and declared referents."""
     resolver = _LeafResolver(pool, scope)
@@ -368,7 +377,11 @@ def fold_records(
                 bindings.add(ResolvedBinding(term, record.referent))
                 if isinstance(term, GroundRef):
                     once_per_frame[RecordFinding(where, "binding_unanchored")] = None
-                reason = _unresolved(record.referent, scope)
+                reason = (
+                    _unresolved(record.referent, scope, resolve_state)
+                    if check_referents
+                    else None
+                )
                 if reason is not None:
                     missing.setdefault(
                         record.referent,
