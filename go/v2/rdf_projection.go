@@ -78,6 +78,33 @@ type scopedRDFTerm struct {
 	scope int
 }
 
+type rdfDefinition struct {
+	rdf     int
+	written int
+}
+
+type rdfWrittenKey struct {
+	kind       uint64
+	rdf        int
+	components model.Triple3
+}
+
+// The wire dictionary keeps both RDF equality and the storage identity used
+// to check repeated annotations before projection.
+type rdfReadDictionary struct {
+	entries []rdfDefinition
+	written map[rdfWrittenKey]int
+}
+
+func (d *rdfReadDictionary) append(key rdfWrittenKey) {
+	id, ok := d.written[key]
+	if !ok {
+		id = len(d.written)
+		d.written[key] = id
+	}
+	d.entries = append(d.entries, rdfDefinition{rdf: key.rdf, written: id})
+}
+
 type rdfProjector struct {
 	result   RDFProjection
 	interned map[scopedRDFTerm]int
@@ -114,7 +141,7 @@ func (p *rdfProjector) segment(segment Segment) error {
 		segment.Opener.ID == nil || segment.Opener.Registry != 1 {
 		return fmt.Errorf("RDF projection requires a readable registry version 1 header")
 	}
-	var dictionary []int
+	dictionary := rdfReadDictionary{written: make(map[rdfWrittenKey]int)}
 	for _, item := range segment.Items[1:] {
 		if item.Kind == LocatorItem || item.Kind == OffsetsItem {
 			continue
@@ -129,7 +156,7 @@ func (p *rdfProjector) segment(segment Segment) error {
 	return nil
 }
 
-func (p *rdfProjector) frame(frame *Frame, dictionary *[]int) Reason {
+func (p *rdfProjector) frame(frame *Frame, dictionary *rdfReadDictionary) Reason {
 	switch {
 	case frame.Malformed != "":
 		return frame.Malformed
@@ -150,7 +177,7 @@ func (p *rdfProjector) frame(frame *Frame, dictionary *[]int) Reason {
 	case termsFrameType:
 		return p.readTerms(dictionary, frame.Content, frame.Payload.Decoded)
 	case quadsFrameType, reifierFrameType, annotationFrameType, emptyGraphFrameType:
-		return p.readRows(*dictionary, frame.Type, frame.Content, frame.Payload.Decoded)
+		return p.readRows(dictionary.entries, frame.Type, frame.Content, frame.Payload.Decoded)
 	case 6, 7, 8, 9, 10, 11, 12, 13, commitType, 15, parityType:
 		// No RDF row comes from these frame types in a whole projection.
 		return ""
@@ -173,7 +200,7 @@ func (p *rdfProjector) intern(term rdfTerm) int {
 	return id
 }
 
-func (p *rdfProjector) resolve(c *rdfCursor, dictionary []int, id uint64, kinds ...model.TermKind) int {
+func (p *rdfProjector) resolve(c *rdfCursor, dictionary []rdfDefinition, id uint64, kinds ...model.TermKind) int {
 	if c.reason != "" {
 		return 0
 	}
@@ -181,12 +208,12 @@ func (p *rdfProjector) resolve(c *rdfCursor, dictionary []int, id uint64, kinds 
 		c.reason = OutOfRange
 		return 0
 	}
-	value := dictionary[id]
+	value := dictionary[id].rdf
 	c.check(len(kinds) == 0 || slices.Contains(kinds, p.result.terms[value].kind), ForbiddenCombination)
 	return value
 }
 
-func (p *rdfProjector) node(c *rdfCursor, dictionary []int, id uint64) int {
+func (p *rdfProjector) node(c *rdfCursor, dictionary []rdfDefinition, id uint64) int {
 	return p.resolve(c, dictionary, id, model.Iri, model.Bnode)
 }
 

@@ -121,7 +121,7 @@ func (c *rdfRowColumns) matchesCount(kind, count uint64) bool {
 	}
 }
 
-func (p *rdfProjector) readRows(dictionary []int, frameType uint64, content, payload []byte) Reason {
+func (p *rdfProjector) readRows(dictionary []rdfDefinition, frameType uint64, content, payload []byte) Reason {
 	fields := rdfCursor{data: content}
 	if frameType == emptyGraphFrameType {
 		fields.record(1)
@@ -167,7 +167,7 @@ func (p *rdfProjector) readRows(dictionary []int, frameType uint64, content, pay
 
 // Annotation rows are checked for written-alike terms before testing whether
 // their IDs and term kinds are valid in each position.
-func (c *rdfRowColumns) hasDuplicateAnnotation(dictionary []int) bool {
+func (c *rdfRowColumns) hasDuplicateAnnotation(dictionary []rdfDefinition) bool {
 	type termKey struct {
 		id      uint64
 		defined bool
@@ -178,7 +178,7 @@ func (c *rdfRowColumns) hasDuplicateAnnotation(dictionary []int) bool {
 	}
 	key := func(id uint64) termKey {
 		if id < uint64(len(dictionary)) {
-			return termKey{id: uint64(dictionary[id]), defined: true}
+			return termKey{id: uint64(dictionary[id].written), defined: true}
 		}
 		return termKey{id: id}
 	}
@@ -197,7 +197,7 @@ func (c *rdfRowColumns) hasDuplicateAnnotation(dictionary []int) bool {
 	return false
 }
 
-func (p *rdfProjector) projectRows(c *rdfCursor, dictionary []int, kind uint64, cols *rdfRowColumns) Reason {
+func (p *rdfProjector) projectRows(c *rdfCursor, dictionary []rdfDefinition, kind uint64, cols *rdfRowColumns) Reason {
 	var reifies int
 	if kind == reifierFrameType {
 		reifies = p.intern(rdfTerm{kind: model.Iri, text: rdfReifies})
