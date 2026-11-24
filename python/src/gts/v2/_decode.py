@@ -15,7 +15,17 @@ type WireReason = Literal[
     "unregistered_value",
     "forbidden_combination",
     "unordered_or_repeated",
+    "inconsistent_counts",
 ]
+
+
+def _immutable_octets(data: bytes | memoryview) -> bytes | memoryview:
+    """Retain octets independently of the caller's view and any mutable backing."""
+    if isinstance(data, bytes):
+        return data
+    if isinstance(data.obj, bytes) and data.c_contiguous:
+        return data.cast("B")
+    return bytes(data)
 
 
 class WireError(ValueError):
@@ -30,7 +40,9 @@ class WireError(ValueError):
 class _Decoder:
     """A cursor over the deterministic GTS grammar, with checks in byte order."""
 
-    def __init__(self, data: bytes, offset: int, error: type[WireError]) -> None:
+    def __init__(
+        self, data: bytes | memoryview, offset: int, error: type[WireError]
+    ) -> None:
         self.error = error
         self.data = data
         self.offset = offset
@@ -41,7 +53,7 @@ class _Decoder:
         if end > len(self.data):
             raise self.error("wrong_length", start)
         self.offset = end
-        return self.data[start:end]
+        return bytes(self.data[start:end])
 
     def _head(self, major_type: int) -> int:
         start = self.offset
@@ -85,6 +97,11 @@ class _Decoder:
             raise self.error(reason, start)
         return value
 
+    def integer(self) -> int:
+        if self.offset < len(self.data) and self.data[self.offset] >> 5 == 1:
+            return -1 - self._head(1)
+        return self._head(0)
+
     def option[T](self, decode: Callable[[], T]) -> T | None:
         start = self.offset
         length = self._head(4)
@@ -114,10 +131,13 @@ class _Decoder:
         return memoryview(self.data)[body : self.offset]
 
     def text(self) -> None:
+        self.text_value()
+
+    def text_value(self) -> str:
         start = self.offset
         size = self._head(3)
         try:
-            self._take(size).decode("utf-8")
+            return self._take(size).decode("utf-8")
         except UnicodeDecodeError as error:
             raise self.error("wrong_type", start) from error
 
