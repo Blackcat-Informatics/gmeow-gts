@@ -10,6 +10,9 @@ use ciborium::value::Value;
 use crate::wire;
 
 pub mod frame;
+mod framing;
+mod payload;
+pub mod reader;
 pub mod writer;
 
 const REGISTRY_VERSION: u64 = 1;
@@ -114,9 +117,18 @@ impl Error for HeaderWriteError {}
 struct Decoder<'a> {
     bytes: &'a [u8],
     offset: usize,
+    exhausted: bool,
 }
 
 impl<'a> Decoder<'a> {
+    fn new(bytes: &'a [u8], offset: usize) -> Self {
+        Self {
+            bytes,
+            offset,
+            exhausted: false,
+        }
+    }
+
     fn error(&self, reason: MalformedReason) -> HeaderError {
         HeaderError {
             reason,
@@ -126,8 +138,15 @@ impl<'a> Decoder<'a> {
 
     fn take(&mut self, size: usize) -> Result<&'a [u8], HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
-        let end = self.offset.checked_add(size).ok_or(error)?;
-        let value = self.bytes.get(self.offset..end).ok_or(error)?;
+        let Some(end) = self
+            .offset
+            .checked_add(size)
+            .filter(|&end| end <= self.bytes.len())
+        else {
+            self.exhausted = true;
+            return Err(error);
+        };
+        let value = &self.bytes[self.offset..end];
         self.offset = end;
         Ok(value)
     }
@@ -233,6 +252,17 @@ impl<'a> Decoder<'a> {
             ordinal: self.positive()?,
         })
     }
+
+    fn opener_fields(&mut self) -> Result<(u64, u64, Option<u64>), HeaderError> {
+        let registry = self.positive()?;
+        let hash = self.code(if registry == REGISTRY_VERSION {
+            BLAKE3_256
+        } else {
+            u64::MAX
+        })?;
+        let profile = self.option(|decoder| decoder.code(u64::MAX))?;
+        Ok((registry, hash, profile))
+    }
 }
 
 /// Decode a header at an established item boundary (P1 §2.4).
@@ -240,17 +270,14 @@ impl<'a> Decoder<'a> {
 /// The first malformed field determines the error. A readable header's identifier
 /// uses the original bytes. A higher registry with an unknown hash retains its fields.
 pub fn decode_header(data: &[u8], offset: usize) -> Result<DecodedHeader<'_>, HeaderError> {
-    let mut decoder = Decoder {
-        bytes: data,
-        offset,
-    };
+    let mut decoder = Decoder::new(data, offset);
     decoder.record(7)?;
     decoder.code(1)?;
     let generation_error = decoder.error(MalformedReason::OutOfRange);
     if decoder.uint()? != 2 {
         return Err(generation_error);
     }
-    let registry_version = decoder.positive()?;
+    let (registry_version, hash_algorithm, profile) = decoder.opener_fields()?;
     let last_known = |last| {
         if registry_version > REGISTRY_VERSION {
             u64::MAX
@@ -258,9 +285,7 @@ pub fn decode_header(data: &[u8], offset: usize) -> Result<DecodedHeader<'_>, He
             last
         }
     };
-    let hash_algorithm = decoder.code(last_known(BLAKE3_256))?;
     let known_hash = hash_algorithm == BLAKE3_256;
-    let profile = decoder.option(|decoder| decoder.code(u64::MAX))?;
     let canonical = decoder.option(|decoder| decoder.code(last_known(CANONICAL_FORM)))?;
     let lineage = decoder.option(|decoder| decoder.lineage(known_hash))?;
     let next_offset = decoder.offset;
