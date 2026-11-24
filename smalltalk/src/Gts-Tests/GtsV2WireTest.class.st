@@ -7,6 +7,120 @@ Class {
 }
 
 { #category : #tests }
+GtsV2WireTest >> testTypedRowReferenceFindingsMatchP3 [
+	#(
+		'rows-forward-reference' 'rows-opaque-term-held'
+		'rows-position-subject-literal' 'rows-position-reifier-literal'
+		'rows-position-predicate-blank' 'rows-position-graph-literal'
+		'broken-link-commit-ends' 'broken-link-commit-doubt-stays'
+		'broken-link-doubt' 'broken-link-no-effective-identifier'
+		'terms-formed-row-held' 'terms-text-not-utf8' 'terms-triple-component-unreadable'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P3/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry |
+			((entry at: 'capacity') at: 'access') = 'whole' ifTrue: [ self assertTypedRowReferencesOf: entry ] ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> assertTypedRowReferencesOf: entry [
+	| name input capacity budget report file isReference |
+	name := entry at: 'input_file'.
+	input := self p3Vector: name.
+	capacity := entry at: 'capacity'.
+	budget := (GtsV2PayloadBudget withReadLimit: (capacity at: 'decoded_bytes_per_read'))
+		itemLimit: (capacity at: 'items_per_read');
+		formedLimit: (capacity at: 'formed_bytes_per_read').
+	report := (GtsV2Wire inspect: input budget: budget) typedWireFindings.
+	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	isReference := [ :finding | #(22 23 25) includes: finding first ].
+	file second do: [ :segment |
+		(segment at: 17) do: [ :frame |
+			| type actual expected |
+			type := frame fourth.
+			(type first = 2 and: [ type second between: 2 and: 5 ]) ifTrue: [
+				actual := (report frameFindingsAt: frame second) select: isReference.
+				expected := ((frame at: 11) select: isReference) asArray.
+				self assert: actual = expected description: name, ' at ', frame second printString,
+					' ', actual printString, ' expected ', expected printString ] ] ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTypedIntrinsicTermFindingsMatchP3 [
+	#(
+		'terms-text-not-utf8' 'terms-datatype-not-iri' 'terms-datatype-forward'
+		'terms-triple-subject-literal' 'terms-triple-predicate-not-iri' 'terms-triple-forward'
+		'terms-triple-component-unreadable' 'terms-datatype-text-equals-generated'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P3/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTypedTermRecordsOf: entry ] ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTypedTermRecordsReserveIdsIndependentlyOfFold [
+	#(
+		'terms-id-base-mismatch' 'terms-id-base-ill-typed-reserves' 'terms-id-base-after-opaque'
+		'terms-record-field-order' 'terms-record-field-order-newer-version'
+		'terms-runs-order' 'terms-runs-empty' 'terms-run-kind-unregistered' 'terms-run-count-zero'
+		'terms-runs-adjacent-same-kind' 'terms-restart-group-zero'
+		'broken-link-content-value-not-judged' 'broken-link-newer-value-not-interpreted'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P3/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTypedTermRecordsOf: entry ] ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTypedTermPayloadGrammarAndFormedCapacityMatchP3 [
+	#(
+		'terms-blocks-count' 'terms-block-list-length' 'terms-block-wrong-tag-counts'
+		'terms-block-tag-kind' 'terms-block-tag-unregistered' 'terms-form-unregistered'
+		'terms-form-list-counts' 'terms-value-kind-unregistered' 'terms-value-time-range'
+		'terms-suffix-total' 'terms-prefix-too-long' 'terms-prefix-not-maximal'
+		'terms-prefix-at-restart' 'terms-prefix-splits-character'
+		'terms-language-index-range' 'terms-language-table-order' 'terms-language-table-unused'
+		'terms-language-table-repeat' 'terms-language-table-both-blocks'
+		'terms-formed-copy' 'terms-formed-order' 'terms-formed-malformed-first'
+		'terms-formed-then-small' 'terms-formed-ids-reserved' 'terms-id-above-uint'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P3/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTypedTermRecordsOf: entry ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> assertTypedTermRecordsOf: entry [
+	| name input file report termFinding capacity budget |
+	name := entry at: 'input_file'.
+	input := self p3Vector: name.
+	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	capacity := entry at: 'capacity'.
+	budget := (GtsV2PayloadBudget withReadLimit: (capacity at: 'decoded_bytes_per_read'))
+		itemLimit: (capacity at: 'items_per_read');
+		storedLimit: (capacity at: 'stored_bytes_per_frame') frameLimit: (capacity at: 'decoded_bytes_per_frame');
+		formedLimit: (capacity at: 'formed_bytes_per_read').
+	report := (GtsV2Wire inspect: input budget: budget) typedWireFindings.
+	termFinding := [ :finding | (#(6 7 22 23 24) includes: finding first) or: [
+		finding first = 20 and: [ finding second second = 90 ] ] ].
+	file second do: [ :segment |
+		(segment at: 17) do: [ :frame |
+			frame fourth = #(2 1) ifTrue: [
+				| expected actual fold |
+				expected := ((frame at: 11) select: termFinding) asArray.
+				actual := (report frameFindingsAt: frame second) select: termFinding.
+				self assert: actual = expected description: name, ' at ', frame second printString,
+					' ', actual printString, ' expected ', expected printString.
+				fold := frame ninth.
+				self assert: (report wireFoldStateAt: frame second) = fold description: name ] ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> p3Vector: name [
+	^ ('/workspace/vectors/v2/P3/', name) asFileReference binaryReadStreamDo: [ :stream | stream upToEnd ]
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testTypedRowOrderAndGrammarFindingsMatchP3 [
 	#(
 		'rows-order-canonical-ok' 'rows-order-canonical-two-runs'
@@ -74,7 +188,7 @@ GtsV2WireTest >> assertWireFoldOf: entry root: root [
 			| actual expected |
 			actual := report wireFoldStateAt: frame second.
 			expected := frame at: 9.
-			expected first = 1 ifTrue: [ expected := nil ].
+			(expected first = 1 and: [ frame fourth ~= #(2 1) ]) ifTrue: [ expected := nil ].
 			self assert: actual = expected description: fileName, ' fold state at ', frame second printString, ' ',
 				actual printString, ' expected ', expected printString ] ]
 ]
