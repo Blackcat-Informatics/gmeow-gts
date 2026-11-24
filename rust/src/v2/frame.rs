@@ -231,7 +231,7 @@ impl<'a> Decoder<'a> {
         Ok(())
     }
 
-    fn frame_content(&mut self, frame_type: u64) -> Result<(), HeaderError> {
+    pub(super) fn frame_content(&mut self, frame_type: u64) -> Result<(), HeaderError> {
         if frame_type == 1 {
             self.record(4)?;
             self.uint()?;

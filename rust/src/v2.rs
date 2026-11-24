@@ -69,6 +69,7 @@ pub enum MalformedReason {
     UnregisteredValue,
     ForbiddenCombination,
     UnorderedOrRepeated,
+    InconsistentCounts,
 }
 
 /// The first malformed header field and its absolute input offset.
