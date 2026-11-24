@@ -108,9 +108,7 @@ func cmdInfo(paths []string) int {
 		if code != 0 {
 			return code
 		}
-		fs := reader.ReadFileSegments(data)
-		printLedger(path, fs)
-		if hasProblems(fs) {
+		if !inspectFile(path, data) {
 			problems = true
 		}
 	}

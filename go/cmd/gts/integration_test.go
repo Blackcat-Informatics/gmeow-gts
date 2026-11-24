@@ -179,6 +179,57 @@ func TestFoldEmitsNQuads(t *testing.T) {
 	}
 }
 
+func TestInfoDispatchesV2AndLegacy(t *testing.T) {
+	cmd, stdout, stderr := run(t, "info",
+		vector(t, "v2/P3/project__round-trip-rdf.bin"),
+		vector(t, "v2/P1/resync-displaced-join.bin"),
+		vector(t, "01-minimal.gts"))
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	for _, part := range []string{
+		"GTS v2 wire ledger, 1 segment(s)",
+		"effective head 765d1fe33420524ba200368d9b9c4f5bc966e04451f1c7424a73e0179822a4e7",
+		"    terms 1\n",
+		"    commit 1\n",
+		"resync displaced to byte ",
+		" quads 1 reifies ",
+	} {
+		if !strings.Contains(stdout.String(), part) {
+			t.Errorf("missing %q in ledger:\n%s", part, stdout)
+		}
+	}
+}
+
+func TestInfoReportsWireFailures(t *testing.T) {
+	cmd, stdout, stderr := run(t, "info",
+		vector(t, "v2/P1/stored-mismatch.bin"),
+		vector(t, "v2/P1/gen-record-three.bin"),
+		vector(t, "v2/P1/file-first-incomplete.bin"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	for _, part := range []string{"stored check mismatch", "framing stopped at byte 0: torn_tail"} {
+		if !strings.Contains(stdout.String(), part) {
+			t.Errorf("missing %q in ledger:\n%s", part, stdout)
+		}
+	}
+	if !strings.Contains(stderr.String(), "unsupported GTS generation 3") {
+		t.Errorf("missing unsupported-generation diagnostic:\n%s", stderr)
+	}
+}
+
+func TestInfoRejectsEmptyFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "empty.gts")
+	if err := os.WriteFile(path, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd, stdout, stderr := run(t, "info", path)
+	if cmd.ProcessState.ExitCode() != 1 || !strings.Contains(stdout.String(), "empty input, 0 segments") {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+}
+
 func TestFromNQInvertsFold(t *testing.T) {
 	tmp := t.TempDir()
 	src, err := os.ReadFile(vector(t, "11-datatype-defaulting.gts"))
