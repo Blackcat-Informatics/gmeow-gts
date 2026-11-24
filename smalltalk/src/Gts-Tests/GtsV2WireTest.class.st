@@ -7,6 +7,47 @@ Class {
 }
 
 { #category : #tests }
+GtsV2WireTest >> testTypedFileEndAndSegmentRangesMatchPublishedRecords [
+	#(
+		'P7/file-end-no-commit' 'P7/file-end-at-valid-commit' 'P7/file-end-at-authenticated-commit'
+		'P7/file-end-opaque-after-commit' 'P7/file-end-region-after-commit'
+		'P7/file-end-torn' 'P7/file-end-undelimitable' 'P7/file-end-not-read'
+		'P7/end-locator-own-grammar' 'P7/end-frame-no-effective-identifier'
+		'P1/resync-after-torn-swallowed-failing' 'P1/resync-after-torn-staying'
+		'P1/resync-after-torn-header' 'P1/resync-after-undelimitable'
+		'P1/resync-first-item-torn' 'P1/resync-past-displaced-join'
+	) do: [ :name |
+		| root fixture |
+		root := '/workspace/vectors/v2/', (name copyUpTo: $/), '/'.
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry |
+			((entry at: 'capacity') at: 'access') = 'whole' ifTrue: [ self assertTypedFileEndOf: entry root: root ] ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> assertTypedFileEndOf: entry root: root [
+	| fileName input budget read inputs report file capacity |
+	fileName := entry at: 'input_file'.
+	input := (root, fileName) asFileReference binaryReadStreamDo: [ :stream | stream upToEnd ].
+	capacity := entry at: 'capacity'.
+	budget := (GtsV2PayloadBudget withReadLimit: (capacity at: 'decoded_bytes_per_read'))
+		itemLimit: (capacity at: 'items_per_read').
+	read := GtsCborReader decode: (GtsHex decode: (entry at: 'read_result')).
+	inputs := read sixth.
+	report := (GtsV2Wire inspect: input budget: budget)
+		typedWireFindingsHeld: inputs second trusted: inputs first.
+	file := read seventh.
+	self assert: report fileEnd = file sixth
+		description: fileName, ' end ', report fileEnd printString, ' expected ', file sixth printString.
+	file second do: [ :segment |
+		| extent expected |
+		extent := report segmentRangeAt: segment first.
+		expected := segment copyFrom: 2 to: 3.
+		self assert: extent = expected description: fileName, ' range ', extent printString,
+			' expected ', expected printString ]
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testTypedOpenersMatchP1Records [
 	#(
 		'header-profile-zero' 'header-profile-unknown' 'lineage-begins-links-unavailable'
