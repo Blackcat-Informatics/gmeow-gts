@@ -16,6 +16,188 @@ GtsFromNQuadsTest >> roundTrip: nquads [
 ]
 
 { #category : #tests }
+GtsFromNQuadsTest >> testV2ImportCommitsAndDeduplicatesSimpleLiterals [
+	| line duplicate bytes checks types |
+	line := '<https://e/s> <https://e/p> "value" .', String lf.
+	duplicate := '<https://e/s> <https://e/p> "value"^^<http://www.w3.org/2001/XMLSchema#string> .', String lf.
+	bytes := GtsFromNQuads v2FromString: line.
+	self assert: (GtsFromNQuads v2FromString: line, duplicate, line) equals: bytes.
+	types := OrderedCollection new.
+	(GtsV2Wire inspect: bytes) eventsDo: [ :event |
+		event startsSegment
+			ifTrue: [ checks := GtsV2CommitChecks openedBy: event effectiveIdentifier ]
+			ifFalse: [
+				self assert: event link equals: #linked.
+				self assert: event payload state equals: #verified.
+				types add: event frameType.
+				checks observe: event findingsDo: [ :reason :position :count | self fail: reason ] ] ].
+	self assert: types asArray equals: #(1 2 14).
+	self assert: checks committedFrames equals: 3
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2ImportChecksQuotedTripleRolesAndUnicodeEscapes [
+	self
+		should: [ GtsFromNQuads v2FromString:
+			'<https://e/s> <https://e/p> <<( "literal" <https://e/p> <https://e/o> )>> .' ]
+		raise: GtsParserError.
+	self
+		should: [ GtsFromNQuads v2FromString: '<https://e/s> <https://e/p> "\uD800" .' ]
+		raise: GtsParserError.
+	self assert: (GtsFromNQuads v2FromString: '<https://e/\u0073> <https://e/p> "v" . # comment')
+		equals: (GtsFromNQuads v2FromString: '<https://e/s> <https://e/p> "v" .')
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2VersionHintAllowsUnicodeBlankNodesAndChecksLanguage [
+	| source |
+	source := '_:é <https://e/p> "text"@en-US--rtl .'.
+	self assert: (GtsFromNQuads v2FromString: 'VERSION "1.2"', String lf, source)
+		equals: (GtsFromNQuads v2FromString: source).
+	self should: [ GtsFromNQuads v2FromString: '_:é <https://e/p> "text"@9 .' ] raise: GtsParserError.
+	self should: [ GtsFromNQuads v2FromString: '_:é <https://e/p> "text"@en--extra--rtl .' ] raise: GtsParserError
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2FoldPreservesImportedRowsAndScopesBlanksPerSegment [
+	| source bytes graph |
+	source := '<https://e/s> <https://e/p> <<( <https://e/a> <https://e/p> "v"@en--rtl )>> <https://e/g> .', String lf.
+	bytes := GtsFromNQuads v2FromString: source.
+	self assert: (GtsNQuads toNQuads: (GtsV2RdfFold read: (GtsV2Wire inspect: bytes))) equals: source.
+	bytes := GtsFromNQuads v2FromString: '_:a <https://e/p> "v" .'.
+	graph := GtsV2RdfFold read: (GtsV2Wire inspect: bytes, bytes).
+	self assert: graph quads size equals: 2.
+	self deny: graph quads first first = graph quads second first
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2FoldRebuildsAValueFromAnEarlierSegment [
+	| writer value digest dictionary rows wire graph valueSegment |
+	writer := GtsV2SegmentWriter new.
+	value := 'word' utf8Encoded.
+	digest := GtsBlake3 deriveWith: 'gts2 unit' bytes: value.
+	writer appendType: 8 content: { digest } payload: value.
+	writer appendType: 11 content: { digest. 4. 1 } payload: (GtsCborWriter encode: { { digest. 4 } }).
+	writer commit.
+	valueSegment := writer bytes.
+	writer := GtsV2SegmentWriter new.
+	dictionary := GtsCborWriter encode: {
+		{ { 1. #(0 0 0). { 5. 5. GtsGraph xsdString size }.
+			('urn:surn:p', GtsGraph xsdString) utf8Encoded }.
+		{ 5. { digest }. #(4). #(1). #(2). #() } }. #() }.
+	writer appendType: 1 content: #(0 ((1 3) (5 1)) 2 1) payload: dictionary.
+	rows := GtsCborWriter encode: #((((1) 1)) ((1 1)) (3) (0)).
+	writer appendType: 2 content: #(2 1) payload: rows.
+	writer commit.
+	wire := GtsV2Wire inspect: valueSegment, writer bytes.
+	graph := GtsV2RdfFold read: wire.
+	self assert: (GtsNQuads toNQuads: graph) equals: '<urn:s> <urn:p> "word" .', String lf.
+	self should: [ GtsV2RdfFold read: (GtsV2Wire inspect: writer bytes) ] raise: GtsArchiveError
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2FoldProjectsCanonicalTypedValues [
+	| writer value first second firstDigest secondDigest digest prefix hexIri dictionary rows graph expected |
+	writer := GtsV2SegmentWriter new.
+	first := #[255].
+	second := #[0 65].
+	value := first, second.
+	firstDigest := GtsBlake3 deriveWith: 'gts2 unit' bytes: first.
+	secondDigest := GtsBlake3 deriveWith: 'gts2 unit' bytes: second.
+	digest := GtsBlake3 deriveWith: 'gts2 unit' bytes: value.
+	writer appendType: 8 content: { firstDigest } payload: first.
+	writer appendType: 8 content: { secondDigest } payload: second.
+	writer appendType: 11 content: { digest. 3. 2 }
+		payload: (GtsCborWriter encode: { { firstDigest. 1 }. { secondDigest. 2 } }).
+	prefix := 'http://www.w3.org/2001/XMLSchema#'.
+	hexIri := prefix, 'hexBinary'.
+	dictionary := GtsCborWriter encode: {
+		{ { 1. #(0 0 0). { 5. 5. hexIri size }. ('urn:surn:p', hexIri) utf8Encoded }.
+		{ 6. { #(1 false). #(2 18446744073709551615). #(3 -18446744073709551616).
+			#(4 -62135596800 1002000). #(4 253402300799 0). { 5. value }. { 5. #[] } } }.
+		{ 7. { digest }. #(3) }.
+		{ 2. #(0). #(6). 'FF0041' utf8Encoded. #(1). #(2). #() } }. #() }.
+	writer appendType: 1 content: #(0 ((1 3) (6 7) (7 1) (2 1)) 2 1) payload: dictionary.
+	rows := GtsCborWriter encode: #((((1) 9)) ((1 9)) (3 1 1 1 1 1 1 1 1) (0 0 0 0 0 0 0 0 0)).
+	writer appendType: 2 content: #(2 9) payload: rows.
+	writer commit.
+	graph := GtsV2RdfFold read: (GtsV2Wire inspect: writer bytes).
+	expected := #(
+		('false' 'boolean')
+		('18446744073709551615' 'nonNegativeInteger')
+		('-18446744073709551616' 'integer')
+		('0001-01-01T00:00:00.001002Z' 'dateTime')
+		('9999-12-31T23:59:59Z' 'dateTime')
+		('FF0041' 'hexBinary')
+		('' 'hexBinary')) collect: [ :pair |
+			'<urn:s> <urn:p> "', pair first, '"^^<', prefix, pair second, '> .' ].
+	self assert: (self sortedLines: (GtsNQuads toNQuads: graph)) equals: expected sorted
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2FoldRejectsOutOfRangeTypedTimestamps [
+	#(#(4 -62135596801 0) #(4 253402300800 0) #(4 0 1000000000)) do: [ :value |
+		| writer dictionary |
+		writer := GtsV2SegmentWriter new.
+		dictionary := GtsCborWriter encode: { { { 6. { value } } }. #() }.
+		writer appendType: 1 content: #(0 ((6 1)) 2 1) payload: dictionary.
+		writer commit.
+		self
+			should: [ GtsV2RdfFold read: (GtsV2Wire inspect: writer bytes) ]
+			raise: GtsArchiveError
+			withExceptionDo: [ :error | self assert: (error messageText endsWith: ': out_of_range') ] ]
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2FoldSuppressesLineKindsBeforeProjection [
+	| writer dictionary rows wire visible whole |
+	writer := GtsV2SegmentWriter new.
+	dictionary := GtsCborWriter encode: {
+		{ { 1. #(0 0 0). #(5 5 5). 'urn:rurn:purn:o' utf8Encoded } }. #() }.
+	writer appendType: 1 content: #(0 ((1 3)) 2 1) payload: dictionary.
+	writer writeType: 7 content: #(1)
+		payload: (GtsCborWriter encode: #((2 ((1 0) (1 1) (1 2) (1))))).
+	rows := GtsCborWriter encode: #((((1) 1)) ((1 1)) (2) (0)).
+	writer appendType: 2 content: #(2 1) payload: rows.
+	rows := GtsCborWriter encode: #((((1) 1)) (0) (1) (2) (3)).
+	writer writeType: 4 content: #(2 1) payload: rows.
+	writer commit.
+	wire := GtsV2Wire inspect: writer bytes.
+	visible := GtsNQuads toNQuads: (GtsV2RdfFold read: wire).
+	self assert: visible equals: '<urn:r> <urn:p> <urn:o> .', String lf.
+	writer writeType: 7 content: #(1) payload: (GtsCborWriter encode: #((3 (1 0)))).
+	writer commit.
+	wire := GtsV2Wire inspect: writer bytes.
+	self assert: (GtsNQuads toNQuads: (GtsV2RdfFold read: wire)) isEmpty.
+	whole := GtsNQuads toNQuads: (GtsV2RdfFold read: wire visible: false).
+	self assert: whole equals: visible
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2FoldUsesTheFirstOtherHolderForSuppression [
+	| holder origin dictionary rows digest wire visible whole |
+	origin := GtsV2SegmentWriter new.
+	dictionary := GtsCborWriter encode: {
+		{ { 3. { #[98] } }. { 1. #(0 0). #(5 5). 'urn:purn:o' utf8Encoded } }. #() }.
+	origin appendType: 1 content: #(0 ((3 1) (1 2)) 2 1) payload: dictionary.
+	rows := GtsCborWriter encode: #((((1) 1)) ((1 1)) (2) (0)).
+	origin appendType: 2 content: #(2 1) payload: rows.
+	origin commit.
+	holder := origin bytes.
+	(GtsV2Wire inspect: holder) eventsDo: [ :event |
+		event frameType = 1 ifTrue: [ digest := event effectiveIdentifier ] ]
+		retainDecoded: false.
+	origin writeType: 7 content: #(1)
+		payload: (GtsCborWriter encode: { { 1. { 2. { digest. 'b' utf8Encoded } } } }).
+	origin commit.
+	wire := GtsV2Wire inspect: origin bytes, holder, holder.
+	visible := (GtsNQuads toNQuads: (GtsV2RdfFold read: wire)) lines.
+	whole := (GtsNQuads toNQuads: (GtsV2RdfFold read: wire visible: false)) lines.
+	self assert: whole size equals: 3.
+	self assert: visible equals: { whole first. whole third }
+]
+
+{ #category : #tests }
 GtsFromNQuadsTest >> testFromNQuadsInvertsFoldOutputForCorpusVector [
 	| graph nquads roundTripped |
 	graph := GtsReader read: ('/workspace/vectors/11-datatype-defaulting.gts' asFileReference

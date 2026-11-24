@@ -91,17 +91,7 @@ impl Frame<'_> {
     /// Compare the stored check of a compressed frame, including a future codec.
     #[must_use]
     pub fn check_storage(&self) -> Option<bool> {
-        let Storage::Compressed {
-            codec,
-            stored_check,
-        } = self.storage
-        else {
-            return None;
-        };
-        let mut hash = blake3::Hasher::new_derive_key("gts2 stored");
-        hash.update(&wire::encode(&Value::Array(vec![Value::from(codec)])));
-        hash.update(self.stored_payload);
-        Some(hash.finalize().as_bytes()[..16] == stored_check[..])
+        check_stored_chunks(self.storage, std::iter::once(self.stored_payload))
     }
 
     /// Compare the decoded bytes with the envelope length and payload digest.
@@ -114,7 +104,26 @@ impl Frame<'_> {
     }
 }
 
-fn frame_identifier(predecessor: &[u8; 32], fields: &[u8]) -> [u8; 32] {
+pub(super) fn check_stored_chunks<'a>(
+    storage: Storage<'_>,
+    chunks: impl IntoIterator<Item = &'a [u8]>,
+) -> Option<bool> {
+    let Storage::Compressed {
+        codec,
+        stored_check,
+    } = storage
+    else {
+        return None;
+    };
+    let mut hash = blake3::Hasher::new_derive_key("gts2 stored");
+    hash.update(&wire::encode(&Value::Array(vec![Value::from(codec)])));
+    for chunk in chunks {
+        hash.update(chunk);
+    }
+    Some(hash.finalize().as_bytes()[..16] == stored_check[..])
+}
+
+pub(super) fn frame_identifier(predecessor: &[u8; 32], fields: &[u8]) -> [u8; 32] {
     let mut hash = blake3::Hasher::new_derive_key("gts2 frame");
     hash.update(&[0x87]);
     hash.update(&DIGEST_HEAD);
@@ -123,7 +132,7 @@ fn frame_identifier(predecessor: &[u8; 32], fields: &[u8]) -> [u8; 32] {
     *hash.finalize().as_bytes()
 }
 
-fn payload_digest(decoded: &[u8]) -> [u8; 32] {
+pub(super) fn payload_digest(decoded: &[u8]) -> [u8; 32] {
     blake3::derive_key("gts2 payload", decoded)
 }
 
@@ -136,7 +145,7 @@ fn valid_decoded_length(frame_type: u64, length: u64) -> bool {
 }
 
 impl<'a> Decoder<'a> {
-    fn byte_string(&mut self, expected: Option<usize>) -> Result<&'a [u8], HeaderError> {
+    pub(super) fn byte_string(&mut self, expected: Option<usize>) -> Result<&'a [u8], HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
         let length = usize::try_from(self.head(2)?).map_err(|_| error)?;
         if expected.is_some_and(|value| value != length) {
@@ -145,20 +154,19 @@ impl<'a> Decoder<'a> {
         self.take(length)
     }
 
-    fn fixed<const SIZE: usize>(&mut self) -> Result<&'a [u8; SIZE], HeaderError> {
+    pub(super) fn fixed<const SIZE: usize>(&mut self) -> Result<&'a [u8; SIZE], HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
         self.byte_string(Some(SIZE))?.try_into().map_err(|_| error)
     }
 
-    fn text(&mut self) -> Result<(), HeaderError> {
+    pub(super) fn text(&mut self) -> Result<&'a str, HeaderError> {
         let length_error = self.error(MalformedReason::WrongLength);
         let type_error = self.error(MalformedReason::WrongType);
         let size = usize::try_from(self.head(3)?).map_err(|_| length_error)?;
-        str::from_utf8(self.take(size)?).map_err(|_| type_error)?;
-        Ok(())
+        str::from_utf8(self.take(size)?).map_err(|_| type_error)
     }
 
-    fn boolean(&mut self) -> Result<bool, HeaderError> {
+    pub(super) fn boolean(&mut self) -> Result<bool, HeaderError> {
         let error = self.error(MalformedReason::WrongType);
         let code = self.head(7)?;
         if self.offset - error.offset == 1 {
@@ -171,7 +179,7 @@ impl<'a> Decoder<'a> {
         Err(error)
     }
 
-    fn closed_item(&mut self) -> Result<(), HeaderError> {
+    pub(super) fn closed_item(&mut self) -> Result<(), HeaderError> {
         let mut pending = 1_u64;
         while pending != 0 {
             let first = self
@@ -187,7 +195,9 @@ impl<'a> Decoder<'a> {
                 2 => {
                     self.byte_string(None)?;
                 }
-                3 => self.text()?,
+                3 => {
+                    self.text()?;
+                }
                 4 => pending = pending.saturating_add(self.head(4)?),
                 7 => {
                     self.boolean()?;
@@ -211,7 +221,9 @@ impl<'a> Decoder<'a> {
         let tag = self.uint()?;
         match tag {
             1 | 2 if size != tag => return Err(error),
-            2 => self.text()?,
+            2 => {
+                self.text()?;
+            }
             1 => {}
             _ => {
                 for _ in 1..size {
@@ -222,7 +234,7 @@ impl<'a> Decoder<'a> {
         Ok(())
     }
 
-    fn frame_content(&mut self, frame_type: u64) -> Result<(), HeaderError> {
+    pub(super) fn frame_content(&mut self, frame_type: u64) -> Result<(), HeaderError> {
         if frame_type == 1 {
             self.record(4)?;
             self.uint()?;
@@ -269,7 +281,11 @@ impl<'a> Decoder<'a> {
         Ok(())
     }
 
-    fn storage(&mut self, newer: bool, decoded_length: u64) -> Result<Storage<'a>, HeaderError> {
+    pub(super) fn storage(
+        &mut self,
+        newer: bool,
+        decoded_length: u64,
+    ) -> Result<Storage<'a>, HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
         let size = self.head(4)?;
         if size == 0 {
@@ -305,7 +321,7 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    fn signatures(&mut self, newer: bool) -> Result<Vec<Signature<'a>>, HeaderError> {
+    pub(super) fn signatures(&mut self, newer: bool) -> Result<Vec<Signature<'a>>, HeaderError> {
         let mut previous: &[u8] = &[];
         let mut signatures = Vec::new();
         for _ in 0..self.head(4)? {
@@ -327,6 +343,55 @@ impl<'a> Decoder<'a> {
         }
         Ok(signatures)
     }
+
+    pub(super) fn frame_identity(
+        &mut self,
+        newer: Option<bool>,
+    ) -> Result<Identity<'a>, HeaderError> {
+        let start = self.offset;
+        let frame_type = match newer {
+            Some(newer) => self.registry_code(PARITY, newer)?,
+            None => self.uint()?,
+        };
+        let check_flags = newer.is_some() && frame_type <= PARITY;
+        let error = self.error(MalformedReason::ForbiddenCombination);
+        let critical = self.boolean()?;
+        if check_flags && critical != (frame_type < COMMIT) {
+            return Err(error);
+        }
+        let error = self.error(MalformedReason::ForbiddenCombination);
+        let transparent = self.boolean()?;
+        if check_flags && transparent != (frame_type == PARITY) {
+            return Err(error);
+        }
+        let content_start = self.offset;
+        self.frame_content(frame_type)?;
+        let content = &self.bytes[content_start..self.offset];
+        let length_offset = self.offset;
+        let decoded_length = self.uint()?;
+        let payload_digest = self.fixed::<32>()?;
+        Ok(Identity {
+            frame_type,
+            critical,
+            transparent,
+            content,
+            length_offset,
+            decoded_length,
+            payload_digest,
+            encoded: &self.bytes[start..self.offset],
+        })
+    }
+}
+
+pub(super) struct Identity<'a> {
+    frame_type: u64,
+    critical: bool,
+    transparent: bool,
+    content: &'a [u8],
+    length_offset: usize,
+    decoded_length: u64,
+    payload_digest: &'a [u8; 32],
+    pub encoded: &'a [u8],
 }
 
 /// Read one deterministic frame envelope at a known item boundary.
@@ -338,36 +403,23 @@ pub fn decode_frame(
     offset: usize,
     registry_version: u64,
 ) -> Result<Frame<'_>, FrameError> {
-    let mut decoder = Decoder {
-        bytes: data,
-        offset,
-    };
+    let mut decoder = Decoder::new(data, offset);
     let newer = registry_version > REGISTRY_VERSION;
     decoder.record(11)?;
     let kind_error = decoder.error(MalformedReason::UnregisteredValue);
     if decoder.uint()? != FRAME {
         return Err(kind_error.into());
     }
-    let identity_start = decoder.offset;
-    let frame_type = decoder.registry_code(PARITY, newer)?;
-    let known_type = frame_type <= PARITY;
-    let error = decoder.error(MalformedReason::ForbiddenCombination);
-    let critical = decoder.boolean()?;
-    if known_type && critical != (frame_type < COMMIT) {
-        return Err(error.into());
-    }
-    let error = decoder.error(MalformedReason::ForbiddenCombination);
-    let transparent = decoder.boolean()?;
-    if known_type && transparent != (frame_type == PARITY) {
-        return Err(error.into());
-    }
-    let content_start = decoder.offset;
-    decoder.frame_content(frame_type)?;
-    let content = &data[content_start..decoder.offset];
-    let length_error = decoder.error(MalformedReason::OutOfRange);
-    let decoded_length = decoder.uint()?;
-    let payload_digest = decoder.fixed::<32>()?;
-    let identity_fields = &data[identity_start..decoder.offset];
+    let Identity {
+        frame_type,
+        critical,
+        transparent,
+        content,
+        length_offset,
+        decoded_length,
+        payload_digest,
+        encoded: identity_fields,
+    } = decoder.frame_identity(Some(newer))?;
 
     let error = decoder.error(MalformedReason::ForbiddenCombination);
     let storage = decoder.storage(newer, decoded_length)?;
@@ -382,7 +434,10 @@ pub fn decode_frame(
         return Err(error.into());
     }
     if !valid_decoded_length(frame_type, decoded_length) {
-        return Err(length_error.into());
+        return Err(FrameError {
+            reason: MalformedReason::OutOfRange,
+            offset: length_offset,
+        });
     }
 
     Ok(Frame {
@@ -433,10 +488,7 @@ pub(super) fn encode_plain_frame_with_identifier(
     encoded.push(if frame_type < COMMIT { 0xf5 } else { 0xf4 });
     encoded.push(if frame_type == PARITY { 0xf5 } else { 0xf4 });
     let offset = encoded.len();
-    let mut decoder = Decoder {
-        bytes: content,
-        offset: 0,
-    };
+    let mut decoder = Decoder::new(content, 0);
     decoder
         .frame_content(frame_type)
         .map_err(|error| FrameError {

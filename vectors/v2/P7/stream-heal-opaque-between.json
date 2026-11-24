@@ -1,7 +1,7 @@
 {
  "name": "stream-heal-opaque-between",
  "section": "P7",
- "status": "built and matches",
+ "status": "derived from the text",
  "note": "an opaque item between the pending frame and the next frame: the frame broken with chain_break and settled at the boundary after the opaque item, no item of it in any listing",
  "cases": [
   {
@@ -573,16 +573,6 @@
         [
          3
         ]
-       ]
-      ],
-      [
-       8,
-       0,
-       3,
-       0,
-       1,
-       [
-        1
        ]
       ]
      ]

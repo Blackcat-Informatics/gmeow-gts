@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"unicode"
 
 	"go.blackcatinformatics.ca/gts/fromnquads"
 	"go.blackcatinformatics.ca/gts/model"
@@ -27,23 +26,27 @@ func FromRDFXML(text string) ([]byte, error) {
 
 // FromRDFXMLWithBaseIRI parses RDF/XML text using an explicit document base IRI.
 func FromRDFXMLWithBaseIRI(text, baseIRI string) ([]byte, error) {
-	root, err := parseXMLDOM(text)
+	statements, err := parseRDFXMLStatements(text, baseIRI, false)
 	if err != nil {
 		return nil, err
 	}
-	parser := &rdfXMLParser{baseContext: rdfXMLContext{baseIRI: baseIRI}}
-	if err := parser.parseDocument(root, parser.baseContext); err != nil {
-		return nil, err
-	}
-	nq := ""
-	if len(parser.nquads) > 0 {
-		nq = strings.Join(parser.nquads, "\n") + "\n"
-	}
-	out, err := fromnquads.FromNQuads(nq)
+	out, err := fromnquads.FromNQuads(statementsNQuads(statements))
 	if err != nil {
 		return nil, codecError("RDF/XML parse error: %v", err)
 	}
 	return out, nil
+}
+
+func parseRDFXMLStatements(text, baseIRI string, rdf12 bool) ([]rdfStatement, error) {
+	root, err := parseXMLDOM(text)
+	if err != nil {
+		return nil, err
+	}
+	parser := &rdfXMLParser{baseContext: rdfXMLContext{baseIRI: baseIRI}, rdf12: rdf12}
+	if err := parser.parseDocument(root, parser.baseContext); err != nil {
+		return nil, err
+	}
+	return parser.statements, nil
 }
 
 // ToRDFXML serializes a folded default graph to RDF/XML.
@@ -134,6 +137,10 @@ func ToRDFXML(g *model.Graph) (string, error) {
 		}
 	}
 
+	return writeRDFXMLDocument(subjects, subjectNodes, false)
+}
+
+func writeRDFXMLDocument(subjects map[string][]property, subjectNodes map[string]rdfNode, rdf12 bool) (string, error) {
 	namespaces := rdfXMLNamespaces(subjects)
 	var out strings.Builder
 	out.WriteString("<?xml version=\"1.0\"?>\n")
@@ -142,6 +149,9 @@ func ToRDFXML(g *model.Graph) (string, error) {
 	out.WriteString("\" xmlns:xsd=\"")
 	out.WriteString(xsdNS)
 	out.WriteString("\"")
+	if rdf12 {
+		fmt.Fprintf(&out, " rdf:version=\"1.2\" xmlns:its=\"%s\" its:version=\"2.0\"", itsNS)
+	}
 	for _, ns := range sortedKeys(namespaces) {
 		prefix := namespaces[ns]
 		if prefix == "rdf" || prefix == "xsd" {
@@ -161,7 +171,7 @@ func ToRDFXML(g *model.Graph) (string, error) {
 		}
 		out.WriteString(">\n")
 		for _, prop := range subjects[key] {
-			if err := writeRDFXMLProperty(&out, "    ", prop.predicate, prop.object, namespaces); err != nil {
+			if err := writeRDFXMLProperty(&out, "    ", prop.predicate, prop.object, namespaces, rdf12); err != nil {
 				return "", err
 			}
 		}
@@ -393,13 +403,16 @@ func (e *xmlElement) attrITS(local string) (string, bool) {
 	return "", false
 }
 
-func (e *xmlElement) propertyAttrs() []xmlAttr {
+func (e *xmlElement) propertyAttrs(rdf12 bool) []xmlAttr {
 	var out []xmlAttr
 	for _, attr := range e.attrs {
 		if attr.name.space == xmlNS || attr.name.space == itsNS || attr.name.space == "xmlns" {
 			continue
 		}
 		if attr.name.space == rdfNS {
+			if rdf12 && attr.name.local == "annotationNodeID" {
+				continue
+			}
 			switch attr.name.local {
 			case "about", "ID", "nodeID", "resource", "datatype", "parseType", "type", "version", "annotation":
 				continue
@@ -412,12 +425,17 @@ func (e *xmlElement) propertyAttrs() []xmlAttr {
 
 type rdfXMLParser struct {
 	baseContext       rdfXMLContext
-	nquads            []string
+	statements        []rdfStatement
 	bnodeCounter      int
 	collectionCounter int
+	rdf12             bool
 }
 
 func (p *rdfXMLParser) parseDocument(root *xmlElement, context rdfXMLContext) error {
+	if p.rdf12 && !root.name.isRDF("RDF") {
+		_, err := p.parseNodeElement(root, context)
+		return err
+	}
 	next, err := context.child(root)
 	if err != nil {
 		return err
@@ -449,23 +467,35 @@ func (p *rdfXMLParser) parseNodeElement(element *xmlElement, parent rdfXMLContex
 	if typeIRI, ok := element.attrRDF("type"); ok {
 		p.insertStatement(subject, iriNode(rdfType), iriNode(p.iriRef(typeIRI, context)), nil, nil)
 	}
-	for _, attr := range element.propertyAttrs() {
+	for _, attr := range element.propertyAttrs(p.rdf12) {
 		p.insertStatement(subject, iriNode(attr.name.iri()), p.contextLiteral(attr.value, "", context), nil, nil)
 	}
-	for _, child := range elementChildren(element) {
-		if err := p.parsePropertyElement(subject, child, context); err != nil {
-			return rdfNode{}, err
-		}
+	if err := p.parsePropertyElements(subject, element, context); err != nil {
+		return rdfNode{}, err
 	}
 	return subject, nil
 }
 
-func (p *rdfXMLParser) parsePropertyElement(subject rdfNode, element *xmlElement, parent rdfXMLContext) error {
+func (p *rdfXMLParser) parsePropertyElements(subject rdfNode, owner *xmlElement, context rdfXMLContext) error {
+	membership := 0
+	for _, child := range elementChildren(owner) {
+		predicate := child.name.iri()
+		if p.rdf12 && child.name.isRDF("li") {
+			membership++
+			predicate = fmt.Sprintf("%s_%d", rdfNS, membership)
+		}
+		if err := p.parsePropertyElement(subject, iriNode(predicate), child, context); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *rdfXMLParser) parsePropertyElement(subject, predicate rdfNode, element *xmlElement, parent rdfXMLContext) error {
 	context, err := parent.child(element)
 	if err != nil {
 		return err
 	}
-	predicate := iriNode(element.name.iri())
 	reifier, err := p.optionalReifier(element, context)
 	if err != nil {
 		return err
@@ -503,12 +533,7 @@ func (p *rdfXMLParser) parsePropertyElement(subject rdfNode, element *xmlElement
 			object := p.freshBNode()
 			p.insertStatement(subject, predicate, object, reifier, annotation)
 			p.insertPropertyAttributeStatements(object, element, context)
-			for _, child := range elementChildren(element) {
-				if err := p.parsePropertyElement(object, child, context); err != nil {
-					return err
-				}
-			}
-			return nil
+			return p.parsePropertyElements(object, element, context)
 		case "Collection":
 			if hasNonWhitespaceText(element) {
 				return codecError("RDF/XML parse error: rdf:parseType=\"Collection\" cannot contain text")
@@ -556,7 +581,7 @@ func (p *rdfXMLParser) parsePropertyElement(subject rdfNode, element *xmlElement
 	if len(children) > 1 {
 		return codecError("RDF/XML parse error: property element contains more than one node element")
 	}
-	if len(element.propertyAttrs()) > 0 {
+	if len(element.propertyAttrs(p.rdf12)) > 0 {
 		if hasNonWhitespaceText(element) {
 			return codecError("RDF/XML parse error: property attributes cannot be mixed with text")
 		}
@@ -570,7 +595,7 @@ func (p *rdfXMLParser) parsePropertyElement(subject rdfNode, element *xmlElement
 }
 
 func (p *rdfXMLParser) insertPropertyAttributeStatements(subject rdfNode, element *xmlElement, context rdfXMLContext) {
-	for _, attr := range element.propertyAttrs() {
+	for _, attr := range element.propertyAttrs(p.rdf12) {
 		p.insertStatement(subject, iriNode(attr.name.iri()), p.contextLiteral(attr.value, "", context), nil, nil)
 	}
 }
@@ -607,6 +632,13 @@ func (p *rdfXMLParser) parseTripleElement(element *xmlElement, context rdfXMLCon
 	if len(nodes) != 1 {
 		return rdfNode{}, codecError("RDF/XML parse error: rdf:parseType=\"Triple\" requires one node element")
 	}
+	if p.rdf12 {
+		var err error
+		context, err = context.child(nodes[0])
+		if err != nil {
+			return rdfNode{}, err
+		}
+	}
 	tripleSubject, err := p.subjectForNode(nodes[0], context)
 	if err != nil {
 		return rdfNode{}, err
@@ -616,6 +648,9 @@ func (p *rdfXMLParser) parseTripleElement(element *xmlElement, context rdfXMLCon
 		return rdfNode{}, codecError("RDF/XML parse error: rdf:parseType=\"Triple\" requires exactly one predicate/object")
 	}
 	predicate := iriNode(properties[0].name.iri())
+	if p.rdf12 && properties[0].name.isRDF("li") {
+		predicate = iriNode(rdfNS + "_1")
+	}
 	object, err := p.tripleObject(properties[0], context)
 	if err != nil {
 		return rdfNode{}, err
@@ -647,6 +682,12 @@ func (p *rdfXMLParser) tripleObject(property *xmlElement, parent rdfXMLContext) 
 	if len(nodes) == 1 {
 		if hasNonWhitespaceText(property) {
 			return rdfNode{}, codecError("RDF/XML parse error: node-valued property cannot contain text")
+		}
+		if p.rdf12 {
+			context, err = context.child(nodes[0])
+			if err != nil {
+				return rdfNode{}, err
+			}
 		}
 		return p.subjectForNode(nodes[0], context)
 	}
@@ -690,6 +731,13 @@ func (p *rdfXMLParser) optionalReifier(element *xmlElement, context rdfXMLContex
 
 func (p *rdfXMLParser) optionalAnnotation(element *xmlElement, context rdfXMLContext) (*rdfNode, error) {
 	annotation, ok := element.attrRDF("annotation")
+	if label, present := element.attrRDF("annotationNodeID"); p.rdf12 && present {
+		if ok || !isXMLName(label) {
+			return nil, codecError("RDF/XML parse error: invalid rdf:annotationNodeID %q", label)
+		}
+		node := bnodeNode(label)
+		return &node, nil
+	}
 	if !ok {
 		return nil, nil
 	}
@@ -728,20 +776,29 @@ func (p *rdfXMLParser) rdfIDIRI(value string, context rdfXMLContext) string {
 func (p *rdfXMLParser) freshBNode() rdfNode {
 	id := p.bnodeCounter
 	p.bnodeCounter++
-	return bnodeNode(fmt.Sprintf("rdfxml_%d", id))
+	return generatedBnode(fmt.Sprintf("rdfxml_%d", id))
 }
 
 func (p *rdfXMLParser) freshCollectionBNode() rdfNode {
 	id := p.collectionCounter
 	p.collectionCounter++
-	return bnodeNode(fmt.Sprintf("rdfxml_list_%d", id))
+	return generatedBnode(fmt.Sprintf("rdfxml_list_%d", id))
 }
 
 func (p *rdfXMLParser) insertStatement(subject, predicate, object rdfNode, reifier, annotation *rdfNode) {
-	line := fmt.Sprintf("%s %s %s .", subject.token(), predicate.token(), object.token())
-	p.nquads = append(p.nquads, line)
+	p.statements = append(p.statements, rdfStatement{subject: subject, predicate: predicate, object: object})
 	if reifier != nil {
-		p.insertReifier(*reifier, subject, predicate, object)
+		if p.rdf12 {
+			// A property rdf:ID uses RDF statement reification.
+			p.statements = append(p.statements,
+				rdfStatement{subject: *reifier, predicate: iriNode(rdfType), object: iriNode(rdfNS + "Statement")},
+				rdfStatement{subject: *reifier, predicate: iriNode(rdfNS + "subject"), object: subject},
+				rdfStatement{subject: *reifier, predicate: iriNode(rdfNS + "predicate"), object: predicate},
+				rdfStatement{subject: *reifier, predicate: iriNode(rdfNS + "object"), object: object},
+			)
+		} else {
+			p.insertReifier(*reifier, subject, predicate, object)
+		}
 	}
 	if annotation != nil {
 		p.insertReifier(*annotation, subject, predicate, object)
@@ -750,7 +807,7 @@ func (p *rdfXMLParser) insertStatement(subject, predicate, object rdfNode, reifi
 
 func (p *rdfXMLParser) insertReifier(reifier, subject, predicate, object rdfNode) {
 	quoted := tripleNode(subject, predicate, object)
-	p.nquads = append(p.nquads, fmt.Sprintf("%s <%s> %s .", reifier.token(), rdfReifies, quoted.token()))
+	p.statements = append(p.statements, rdfStatement{subject: reifier, predicate: iriNode(rdfReifies), object: quoted})
 }
 
 func elementChildren(element *xmlElement) []*xmlElement {
@@ -839,32 +896,20 @@ func rdfXMLNamespaces(subjects map[string][]property) map[string]string {
 		namespaces[ns] = fmt.Sprintf("ns%d", next)
 		next++
 	}
-	var collectNode func(node rdfNode)
-	collectNode = func(node rdfNode) {
-		switch node.kind {
-		case nodeLiteral:
-			if node.datatype != "" {
-				addIRI(node.datatype)
-			}
-		case nodeTriple:
-			if node.s != nil {
-				collectNode(*node.s)
-			}
-			if node.p != nil {
+	for _, subject := range sortedKeys(subjects) {
+		props := subjects[subject]
+		for _, prop := range props {
+			addIRI(prop.predicate)
+			node := prop.object
+			for node.kind == nodeTriple {
 				if node.p.kind == nodeIRI {
 					addIRI(node.p.value)
 				}
-				collectNode(*node.p)
+				node = *node.o
 			}
-			if node.o != nil {
-				collectNode(*node.o)
+			if node.kind == nodeLiteral && node.datatype != "" {
+				addIRI(node.datatype)
 			}
-		}
-	}
-	for _, props := range subjects {
-		for _, prop := range props {
-			addIRI(prop.predicate)
-			collectNode(prop.object)
 		}
 	}
 	return namespaces
@@ -875,11 +920,44 @@ type property struct {
 	object    rdfNode
 }
 
-func writeRDFXMLProperty(out *strings.Builder, indent, predicate string, object rdfNode, namespaces map[string]string) error {
+func writeRDFXMLProperty(out *strings.Builder, indent, predicate string, object rdfNode, namespaces map[string]string, compact bool) error {
+	var parents []string
+	lineIndent := indent
+	for object.kind == nodeTriple {
+		name, err := serializerQName(predicate, namespaces)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "%s<%s rdf:parseType=\"Triple\">\n", lineIndent, name)
+		if err := writeRDFXMLTripleSubject(out, lineIndent+"  ", *object.s); err != nil {
+			return err
+		}
+		if object.p.kind != nodeIRI {
+			return codecError("RDF/XML cannot serialize triple predicate %s", object.p.token())
+		}
+		parents = append(parents, name)
+		predicate, object = object.p.value, *object.o
+		if !compact {
+			lineIndent += "    "
+		}
+	}
 	name, err := serializerQName(predicate, namespaces)
 	if err != nil {
 		return err
 	}
+	if err := writeRDFXMLLeaf(out, lineIndent, name, object); err != nil {
+		return err
+	}
+	for i := len(parents) - 1; i >= 0; i-- {
+		if !compact {
+			lineIndent = lineIndent[:len(lineIndent)-4]
+		}
+		fmt.Fprintf(out, "%s  </rdf:Description>\n%s</%s>\n", lineIndent, lineIndent, parents[i])
+	}
+	return nil
+}
+
+func writeRDFXMLLeaf(out *strings.Builder, indent, name string, object rdfNode) error {
 	switch object.kind {
 	case nodeIRI:
 		fmt.Fprintf(out, "%s<%s rdf:resource=\"%s\"/>\n", indent, name, escapeXMLAttr(object.value))
@@ -899,39 +977,23 @@ func writeRDFXMLProperty(out *strings.Builder, indent, predicate string, object 
 		out.WriteString(">")
 		out.WriteString(escapeXMLText(object.value))
 		fmt.Fprintf(out, "</%s>\n", name)
-	case nodeTriple:
-		fmt.Fprintf(out, "%s<%s rdf:parseType=\"Triple\">\n", indent, name)
-		if err := writeRDFXMLTripleNode(out, indent+"  ", object, namespaces); err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "%s</%s>\n", indent, name)
 	default:
 		return codecError("RDF/XML cannot serialize object %s", object.token())
 	}
 	return nil
 }
 
-func writeRDFXMLTripleNode(out *strings.Builder, indent string, triple rdfNode, namespaces map[string]string) error {
-	if triple.kind != nodeTriple {
-		return codecError("RDF/XML expected triple node")
-	}
+func writeRDFXMLTripleSubject(out *strings.Builder, indent string, subject rdfNode) error {
 	out.WriteString(indent + "<rdf:Description")
-	switch triple.s.kind {
+	switch subject.kind {
 	case nodeIRI:
-		fmt.Fprintf(out, " rdf:about=\"%s\"", escapeXMLAttr(triple.s.value))
+		fmt.Fprintf(out, " rdf:about=\"%s\"", escapeXMLAttr(subject.value))
 	case nodeBNode:
-		fmt.Fprintf(out, " rdf:nodeID=\"%s\"", escapeXMLAttr(triple.s.value))
+		fmt.Fprintf(out, " rdf:nodeID=\"%s\"", escapeXMLAttr(subject.value))
 	default:
-		return codecError("RDF/XML cannot serialize triple subject %s", triple.s.token())
+		return codecError("RDF/XML cannot serialize triple subject %s", subject.token())
 	}
 	out.WriteString(">\n")
-	if triple.p.kind != nodeIRI {
-		return codecError("RDF/XML cannot serialize triple predicate %s", triple.p.token())
-	}
-	if err := writeRDFXMLProperty(out, indent+"  ", triple.p.value, *triple.o, namespaces); err != nil {
-		return err
-	}
-	out.WriteString(indent + "</rdf:Description>\n")
 	return nil
 }
 
@@ -981,11 +1043,16 @@ func isXMLName(value string) bool {
 }
 
 func isXMLNameStart(ch rune) bool {
-	return ch == '_' || unicode.IsLetter(ch)
+	return ch == '_' || ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z' ||
+		ch >= 0x00c0 && ch <= 0x00d6 || ch >= 0x00d8 && ch <= 0x00f6 || ch >= 0x00f8 && ch <= 0x02ff ||
+		ch >= 0x0370 && ch <= 0x037d || ch >= 0x037f && ch <= 0x1fff || ch >= 0x200c && ch <= 0x200d ||
+		ch >= 0x2070 && ch <= 0x218f || ch >= 0x2c00 && ch <= 0x2fef || ch >= 0x3001 && ch <= 0xd7ff ||
+		ch >= 0xf900 && ch <= 0xfdcf || ch >= 0xfdf0 && ch <= 0xfffd || ch >= 0x10000 && ch <= 0xeffff
 }
 
 func isXMLNameContinue(ch rune) bool {
-	return isXMLNameStart(ch) || ch == '-' || ch == '.' || unicode.IsDigit(ch)
+	return isXMLNameStart(ch) || ch == '-' || ch == '.' || ch >= '0' && ch <= '9' || ch == 0x00b7 ||
+		ch >= 0x0300 && ch <= 0x036f || ch >= 0x203f && ch <= 0x2040
 }
 
 func escapeXMLText(value string) string {

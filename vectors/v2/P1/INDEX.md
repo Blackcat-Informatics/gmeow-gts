@@ -107,6 +107,7 @@ The reader's typed result is in the `.json` beside each `.bin`.
 | `frame-overhead-compressed` | built and matches | a blob frame and a quads frame, stored_compressed; the storage element is 20 bytes against 2 |
 | `frame-test-length-ten` | built and matches |  |
 | `frame-test-length-twelve` | built and matches |  |
+| `frame-test-array-long-form` | built and matches | `98 0b 02` in place of `8b 02` is opaque with `not_deterministic`. The segment head stays the opener identifier. |
 | `frame-test-element-long-form` | built and matches |  |
 | `frame-test-tagged` | built and matches |  |
 | `frame-flags-critical` | built and matches |  |

@@ -3,6 +3,9 @@
 
 //! Write header-led segments with plain frames and P5 commits.
 
+mod index;
+pub use index::{IndexFold, IndexWriteError};
+
 use std::{error::Error, fmt};
 
 use ciborium::value::Value;
@@ -13,6 +16,10 @@ use super::{
     Header, HeaderWriteError, HEADER_CONTEXT,
 };
 use crate::wire;
+
+mod attachments;
+pub(super) use attachments::write_values;
+pub use attachments::{AttachmentWriteError, Blob};
 
 type Digest = [u8; 32];
 
@@ -56,6 +63,7 @@ fn parent(left: &Digest, right: &Digest) -> Digest {
     blake3::derive_key("gts2 range node", &wire::encode(&record))
 }
 
+#[derive(Clone)]
 struct Range {
     count: u64,
     peaks: Vec<(u8, Digest)>,
@@ -106,6 +114,8 @@ impl Range {
 /// writer derives the head, frame identifiers and commit count and root.
 pub struct SegmentWriter {
     bytes: Vec<u8>,
+    header_len: usize,
+    opener: Digest,
     head: Digest,
     range: Range,
 }
@@ -116,7 +126,9 @@ impl SegmentWriter {
         let bytes = encode_header(header)?;
         let head = blake3::derive_key(HEADER_CONTEXT, &bytes);
         Ok(Self {
+            header_len: bytes.len(),
             bytes,
+            opener: head,
             head,
             range: Range::new(&head),
         })
@@ -178,3 +190,7 @@ impl SegmentWriter {
         Ok(identifier)
     }
 }
+
+mod finish;
+mod parity;
+pub use finish::SegmentFinishError;
