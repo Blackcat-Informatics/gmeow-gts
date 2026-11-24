@@ -3,17 +3,17 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier' ],
 	#category : #'Gts-Core'
 }
 
 { #category : #'instance creation' }
-GtsV2WireFindings class >> inputLength: inputLength itemLimit: itemLimit [
-	^ self new initializeLength: inputLength itemLimit: itemLimit
+GtsV2WireFindings class >> inputLength: inputLength itemLimit: itemLimit held: held trusted: trusted [
+	^ self new initializeLength: inputLength itemLimit: itemLimit held: held trusted: trusted
 ]
 
 { #category : #initialization }
-GtsV2WireFindings >> initializeLength: length itemLimit: limit [
+GtsV2WireFindings >> initializeLength: length itemLimit: limit held: held trusted: trusted [
 	inputLength := length.
 	itemLimit := limit.
 	fileFindings := OrderedCollection new.
@@ -22,9 +22,40 @@ GtsV2WireFindings >> initializeLength: length itemLimit: limit [
 	positions := Dictionary new.
 	claimSteps := IdentityDictionary new.
 	committedCounts := OrderedCollection new.
+	inputs := {
+		self orderedSet: (trusted collect: [ :kid | kid copy ]).
+		self orderedSet: (held collect: [ :entry | { entry first copy. entry second. entry third copy } ]) }.
+	signatureChecks := GtsV2SignatureChecks held: (inputs second collect: [ :entry |
+		{ GtsHex encode: entry first. entry second. entry third } ]).
+	signatureResults := Dictionary new.
+	segmentAuthentication := OrderedCollection new.
 	fileEnd := 4.
 	leftOut := 0.
 	^ self
+]
+
+{ #category : #accessing }
+GtsV2WireFindings >> verificationInputs [
+	^ inputs
+]
+
+{ #category : #accessing }
+GtsV2WireFindings >> signaturesAt: offset [
+	^ signatureResults at: offset ifAbsent: [ #() ]
+]
+
+{ #category : #accessing }
+GtsV2WireFindings >> authenticationAt: ordinal [
+	"The authenticity code and the number of authenticated counted frames."
+	^ segmentAuthentication at: ordinal + 1
+]
+
+{ #category : #private }
+GtsV2WireFindings >> orderedSet: values [
+	| keyed |
+	keyed := values asSet asArray collect: [ :value | { GtsCborWriter encode: value. value } ].
+	keyed sort: [ :left :right | (GtsCose compareBytes: left first with: right first) <= 0 ].
+	^ keyed collect: [ :entry | entry second ]
 ]
 
 { #category : #accessing }
@@ -75,13 +106,16 @@ GtsV2WireFindings >> framingStoppedAt: offset reason: reason [
 
 { #category : #observing }
 GtsV2WireFindings >> observe: event [
+	| validCommit |
 	event startsSegment ifTrue: [
 		self finishSegment.
 		position := 0.
 		segment := OrderedCollection new.
 		segmentFindings add: segment.
-		claimChecks := (GtsV2CommitChecks supportsOpener: event) ifTrue: [
-			GtsV2CommitChecks openedBy: event effectiveIdentifier ].
+		headerIdentifier := event effectiveIdentifier.
+		claimChecks := headerIdentifier ifNotNil: [
+			GtsV2CommitChecks openedBy: headerIdentifier checkingIndexes: (GtsV2CommitChecks supportsOpener: event) ].
+		authentication := headerIdentifier ifNotNil: [ GtsV2Authentication trusted: inputs first ].
 		self remember: event.
 		^ self recordOpener: event ].
 	event kind = #stop ifTrue: [ ^ self framingStoppedAt: event offset reason: event problem ].
@@ -95,15 +129,15 @@ GtsV2WireFindings >> observe: event [
 	event frame
 		ifNil: [ self recordNonFrame: event ]
 		ifNotNil: [ self recordFrame: event ].
-	claimChecks ifNotNil: [ self checkClaimsOf: event ]
+	validCommit := claimChecks ifNil: [ false ] ifNotNil: [ self checkClaimsOf: event ].
+	authentication ifNotNil: [ self checkSignaturesOf: event validCommit: validCommit ]
 ]
 
 { #category : #observing }
 GtsV2WireFindings >> finishSegment [
 	segment ifNil: [ ^ self ].
-	committedCounts add: (claimChecks
-		ifNil: [ head ifNil: [ 0 ] ]
-		ifNotNil: [ claimChecks committedFrames ]).
+	committedCounts add: (claimChecks ifNil: [ 0 ] ifNotNil: [ claimChecks committedFrames ]).
+	segmentAuthentication add: (authentication ifNil: [ #(3 0) ] ifNotNil: [ authentication summaryFields ]).
 	claimChecks ifNotNil: [
 		claimChecks tailOffset ifNotNil: [ :offset |
 			(frameFindings at: offset ifAbsentPut: [ OrderedCollection new ]) add:
@@ -114,9 +148,9 @@ GtsV2WireFindings >> finishSegment [
 { #category : #private }
 GtsV2WireFindings >> checkClaimsOf: event [
 	(event kind = #framingGap and: [ event problem = 'undelimitable_input' ]) ifTrue: [
-		^ claimChecks observeDamagedRegion ].
-	event detached ifTrue: [ claimChecks observeDetachedFrame ].
-	claimChecks observe: event classifiedFindingsDo: [ :code :reason :at :count |
+		claimChecks observeDamagedRegion.
+		^ false ].
+	^ claimChecks observe: event classifiedFindingsDo: [ :code :reason :at :count |
 		| record |
 		record := code caseOf: {
 			[ #commit_count_mismatch ] -> [ self positionalCode: 15 reason: nil position: at count: count ].
@@ -134,6 +168,34 @@ GtsV2WireFindings >> checkClaimsOf: event [
 		code = #damaged_frame ifTrue: [ claimSteps at: record put: 14 ].
 		code = #index_claim_failed ifTrue: [ claimSteps at: record put: 19 ].
 		(frameFindings at: event offset ifAbsentPut: [ OrderedCollection new ]) add: record ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> checkSignaturesOf: event validCommit: validCommit [
+	| results |
+	authentication observe: event validCommit: validCommit.
+	signatureChecks event: event header: headerIdentifier resultsDo: [ :algorithm :kid :status :reason |
+		| statusCode reasonCode coverage |
+		statusCode := #('valid' 'invalid' 'unverified') indexOf: status.
+		reasonCode := reason ifNotNil: [ self signatureReason: reason ].
+		coverage := authentication coverageFieldsFor: status keyId: kid.
+		results ifNil: [ results := OrderedCollection new ].
+		results add: { statusCode. self option: reasonCode. algorithm. kid }, coverage.
+		reasonCode ifNotNil: [
+			(frameFindings at: event offset ifAbsentPut: [ OrderedCollection new ]) add:
+				{ statusCode = 2 ifTrue: [ 40 ] ifFalse: [ 41 ].
+					{ 2. reasonCode }. { 2. { 3. algorithm } }. { 2. position }. #(1). #(1). #(1) } ] ].
+	results ifNotNil: [ signatureResults at: event offset put: results asArray ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> signatureReason: reason [
+	| index |
+	index := #('unknown_signature_algorithm' 'key_not_held' 'key_mismatch' 'value_length'
+		'non_canonical_scalar' 'small_order_key' 'small_order_nonce' 'equation_failed'
+		'composite_classical_failed' 'composite_post_quantum_failed') indexOf: reason.
+	index = 0 ifTrue: [ GtsV2EnvelopeError signal: 'unknown signature outcome' ].
+	^ index <= 2 ifTrue: [ index + 52 ] ifFalse: [ index + 54 ]
 ]
 
 { #category : #private }
@@ -368,6 +430,7 @@ GtsV2WireFindings >> stepOf: finding parity: parity [
 	code = 14 ifTrue: [ ^ 6 ].
 	code = 13 ifTrue: [ ^ 7 ].
 	(code between: 15 and: 17) ifTrue: [ ^ 13 ].
+	(#(40 41) includes: code) ifTrue: [ ^ 20 ].
 	code = 20 ifTrue: [ ^ finding second second = 87 ifTrue: [ 2 ] ifFalse: [ 7 ] ].
 	code <= 33 ifTrue: [ ^ 8 ].
 	code <= 35 ifTrue: [ ^ 9 ].

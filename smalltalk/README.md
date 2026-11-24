@@ -65,10 +65,16 @@ findings at their P7 locations and produces the P7 file record when the
 input has no segment.
 For registry version 1, it includes commit and structural index findings
 and exposes the committed frame count through `committedFramesAt:`.
+Pass P6 held-key records and trusted key identifiers to
+`typedWireFindingsHeld:trusted:`. The report exposes the ordered sets
+through `verificationInputs`, signature records through `signaturesAt:`
+by frame byte offset, and the authenticity code and authenticated frame
+count through `authenticationAt:` by segment ordinal.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.
-After a detached frame, prefix claims that depend on lost frames fail verification.
+It checks commit roots against the observed ordinary prefix and starts a new
+signature coverage run at a detached frame.
 It validates index payloads and compares their frame count, head, type runs,
 and range root against the observed prefix. It compares graph and pack-member
 directories when their covered frames can be read. Graph directory comparison

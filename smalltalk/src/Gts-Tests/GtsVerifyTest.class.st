@@ -386,6 +386,66 @@ GtsVerifyTest >> testV2SignatureCoverageAndAuthentication [
 			(vector at: 'cases') do: [ :case | self assertAuthenticationOf: case ] ]
 ]
 
+{ #category : #tests }
+GtsVerifyTest >> testTypedSignatureResultsMatchP6Records [
+	#('key-held-order' 'key-trusted-not-held' 'proc-key-mismatch' 'proc-value-length'
+		'proc-unknown-algorithm' 'proc-no-hash' 'cov-break-before' 'cov-healed'
+		'auth-commit-malformed' 'auth-two-commits-two-signers' 'auth-transparent-never'
+		'sig-detached-frame' 'sig-two-after-detached-frame' 'sig-resumed-frame-anchor-true'
+		'sig-commit-after-detached-frame'
+		'composite-honest' 'composite-classical-scalar' 'composite-post-quantum') do: [ :name |
+		| fixture |
+		fixture := self jsonVectorAt: '/workspace/vectors/v2/P6/', name, '.json'.
+		(fixture at: 'cases') do: [ :entry | self assertTypedSignaturesOf: entry ] ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testKnownSignedCommitAuthenticatesUnderALaterRegistry [
+	| header h0 range identity encoded identifier keys key kid message signature frame report |
+	header := GtsCborWriter encode: #(1 2 2 1 (1) (1) (1)).
+	h0 := GtsBlake3 deriveWith: 'gts2 header' bytes: header.
+	range := GtsV2Range new.
+	range add: h0.
+	identity := { 14. false. false. { 0. range root }. 0. GtsBlake3 deriveWith: 'gts2 payload' bytes: #[] }.
+	encoded := (GtsCborWriter encode: identity) allButFirst.
+	identifier := GtsBlake3 deriveWith: 'gts2 frame' prefix: #[135 88 32], h0
+		bytes: encoded from: 1 to: encoded size + 1.
+	keys := GtsSodium seedKeyPairFrom: (ByteArray new: 32).
+	key := keys at: 'publicKey'.
+	kid := GtsBlake3 deriveWith: 'gts2 key id' bytes: (GtsCborWriter encode: { 1. key }).
+	message := GtsBlake3 deriveWith: 'gts2 signature subject'
+		bytes: (GtsCborWriter encode: { 1. kid. h0. identifier }).
+	signature := GtsSodium sign: message secretKey: (keys at: 'secretKey').
+	frame := GtsCborWriter encode: { 2 }, identity, { #(1). #[]. identifier. { { 1. kid. signature } } }.
+	report := (GtsV2Wire inspect: header, frame) typedWireFindingsHeld: { { kid. 1. key } } trusted: { kid }.
+	self assert: (report committedFramesAt: 0) equals: 1.
+	self assert: (report authenticationAt: 0) equals: #(1 1).
+	self assert: (report signaturesAt: header size) equals: { { 1. #(1). 1. kid. 0. 1. true } }
+]
+
+{ #category : #private }
+GtsVerifyTest >> assertTypedSignaturesOf: entry [
+	| name read inputs bytes report |
+	name := entry at: 'input_file'.
+	read := GtsCborReader decode: (GtsHex decode: (entry at: 'read_result')).
+	inputs := read sixth.
+	bytes := ('/workspace/vectors/v2/P6/', name) asFileReference
+		binaryReadStreamDo: [ :stream | stream upToEnd ].
+	report := (GtsV2Wire inspect: bytes)
+		typedWireFindingsHeld: inputs second reversed, inputs second trusted: inputs first reversed, inputs first.
+	self assert: report verificationInputs = inputs description: name.
+	read seventh second do: [ :segment |
+		self assert: (report authenticationAt: segment first) = { (segment at: 10). (segment at: 13) }
+			description: name.
+		(segment at: 17) do: [ :frame |
+			| actual expected |
+			actual := report signaturesAt: frame second.
+			self assert: actual = (frame at: 8) asArray description: name, ' signatures ', actual printString.
+			expected := ((frame at: 11) select: [ :finding | #(40 41) includes: finding first ]) asArray.
+			actual := (report frameFindingsAt: frame second) select: [ :finding | #(40 41) includes: finding first ].
+			self assert: actual = expected description: name, ' findings ', actual printString ] ]
+]
+
 { #category : #private }
 GtsVerifyTest >> v2Vector: name [
 	^ ('/workspace/vectors/v2/P5/', name, '.bin') asFileReference
@@ -406,9 +466,9 @@ GtsVerifyTest >> testTypedCommitAndIndexFindingsMatchP5Records [
 ]
 
 { #category : #tests }
-GtsVerifyTest >> testDetachedPrefixClaimsRequireACheckedIndex [
+GtsVerifyTest >> testIndexClaimsRequireACheckedIndex [
 	| bytes findings |
-	bytes := self v2Vector: 'index-intact'.
+	bytes := self v2Vector: 'index-each-claim.range_root'.
 	findings := { GtsV2PayloadBudget new. GtsV2PayloadBudget withReadLimit: 0 } collect: [ :budget |
 		| checks reasons |
 		reasons := OrderedCollection new.
@@ -416,12 +476,11 @@ GtsVerifyTest >> testDetachedPrefixClaimsRequireACheckedIndex [
 			event startsSegment
 				ifTrue: [ checks := GtsV2CommitChecks openedBy: event effectiveIdentifier ]
 				ifFalse: [
-					event frameType = 15 ifTrue: [ checks observeDetachedFrame ].
 					checks observe: event classifiedFindingsDo: [ :code :reason :at :count |
 						code = #index_claim_failed ifTrue: [ reasons add: reason ] ] ] ]
 			decodedWhen: [ :event | GtsV2CommitChecks needsDecoded: event ].
 		reasons asArray ].
-	self assert: findings first equals: #('index_head' 'index_root' 'index_directory').
+	self assert: findings first equals: #('index_root').
 	self assert: findings second isEmpty
 ]
 

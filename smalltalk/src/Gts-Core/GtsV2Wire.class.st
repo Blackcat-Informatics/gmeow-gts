@@ -128,10 +128,16 @@ GtsV2Wire >> initialResyncRefusal [
 
 { #category : #accessing }
 GtsV2Wire >> typedWireFindings [
+	^ self typedWireFindingsHeld: #() trusted: #()
+]
+
+{ #category : #accessing }
+GtsV2Wire >> typedWireFindingsHeld: held trusted: trusted [
 	| report repair |
 	format = #legacy ifTrue: [ GtsV2EnvelopeError signal: 'the legacy reader has a separate result' ].
 	report := GtsV2WireFindings inputLength: bytes size
-		itemLimit: (initialBudget ifNil: [ 0 ] ifNotNil: [ initialBudget itemLimit ]).
+		itemLimit: (initialBudget ifNil: [ 0 ] ifNotNil: [ initialBudget itemLimit ])
+		held: held trusted: trusted.
 	format = #v2 ifTrue: [
 		repair := self eventsDo: [ :event | report observe: event ]
 			decodedWhen: [ :event | GtsV2CommitChecks needsDecoded: event ]

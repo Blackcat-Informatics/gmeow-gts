@@ -738,9 +738,6 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 					ifFalse: [
 						checks ifNotNil: [
 							| commitValid |
-							event detached ifTrue: [
-								checks observeDetachedFrame.
-								authentication observeDetachedFrame ].
 							self reportIntegrityFor: event report: [ :finding |
 								report value: location, ': ', finding ].
 							commitValid := checks observe: event findingsDo: [ :finding :position :expected |
