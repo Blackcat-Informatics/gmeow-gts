@@ -3,6 +3,7 @@
 """Exercise recovery look-ahead and its share of the item count."""
 
 import json
+from collections import Counter
 from pathlib import Path
 
 import cbor2
@@ -26,6 +27,7 @@ from gts.v2.resync import (
     ResyncScanner,
     encode_resync,
 )
+from test_v2_content import _PARITY_CODES, _REASONS
 
 P1 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P1"
 
@@ -238,3 +240,153 @@ def test_stored_check_reads_bytes_with_non_deterministic_head(indefinite: bool) 
     assert frame.link.state == "linked"
     assert frame.payload.state == "damaged"
     assert frame.payload.stored_matches is True
+
+
+_CLOSING_REASONS = {**_REASONS, 19: "index_offsets", 23: "index_locator"}
+_PARITY_REASONS = {
+    40: "data",
+    41: "parity",
+    42: "too_many_erasures",
+    43: "verify_failed",
+}
+_PARITY_FRAME = 16
+_INDEX_CLAIM_FAILED = 18
+
+
+def _option(value: list) -> int | None:
+    return value[1] if value[0] == 2 else None
+
+
+def _parity_findings(segment: list) -> Counter:
+    reports = [
+        *segment[-1],
+        *(
+            f
+            for frame in segment[-2]
+            if frame[3] == [2, _PARITY_FRAME]
+            for f in frame[-1]
+        ),
+    ]
+    return Counter(
+        (
+            _PARITY_CODES[code],
+            _option(position),
+            _PARITY_REASONS.get(_option(reason)),
+            _option(count),
+            _option(offset),
+            _option(length),
+        )
+        for code, reason, _, position, offset, length, count in reports
+        if code in _PARITY_CODES
+    )
+
+
+@pytest.mark.parametrize(
+    ("part", "name"),
+    [
+        *(
+            ("P1", name)
+            for name in [
+                "file-first-incomplete",
+                "file-first-undelimitable",
+                "resync-first-item",
+                "resync-first-item-fails",
+                "resync-first-item-torn",
+                "resync-first-byte-foreign",
+                "resync-resync-first",
+                "first-item-five-alone",
+                "frame-identifier-type",
+                "frame-unknown-transparent-not-bool",
+                "parity-codec-newer",
+                "links-unavailable-lineage-not-compared",
+                "resync-after-torn-swallowed-passing",
+                "resync-heal-no-witness-past-region",
+                "resync-other-generation-scanned",
+                "resync-newer-kind-not-scanned",
+            ]
+        ),
+        *(
+            ("P5", name)
+            for name in [
+                "parity-wrong-transparent",
+                "parity-damaged-each",
+                "parity-signed",
+                "parity-frame-type-second-form",
+                "parity-unexplained-two-stripes",
+                "range-transparent",
+            ]
+        ),
+        ("P2", "finding__parity_stale"),
+        ("P7", "read__empty"),
+        ("P7", "read__not-this-format"),
+        ("P7", "read__generation-three"),
+    ],
+)
+def test_read_wire_matches_corpus_read_result_for_remaining_fixtures(
+    part: str, name: str
+) -> None:
+    """Guard the wire reader against corpus fixtures not asserted elsewhere.
+
+    Each fixture's whole-input cases are read with `read_wire` and compared with
+    the recorded `read_result` on the dispatch of the first item, segment offset,
+    length and scanned flag, frame link, payload and stored state, closing
+    findings, and parity findings with the unprotected tail.
+    """
+    folder = P1.parent / part
+    entry = json.loads((folder / f"{name}.json").read_text())
+    checked = 0
+    for case in entry["cases"]:
+        capacity = case["capacity"]
+        if capacity["access"] != "whole":
+            continue
+        report = cbor2.loads(bytes.fromhex(case["read_result"]))
+        result = read_wire(
+            (folder / case["input_file"]).read_bytes(),
+            items_per_read=capacity["items_per_read"],
+            stored_bytes_per_frame=capacity["stored_bytes_per_frame"],
+            decoded_bytes_per_frame=capacity["decoded_bytes_per_frame"],
+            decoded_bytes_per_read=capacity["decoded_bytes_per_read"],
+            first_and_second=report[0] == 2,
+        )
+        file_result = report[-1]
+        assert (file_result[0] == 1) == (result.opening.decision == "first_generation")
+        reports = file_result[1] if file_result[0] == 2 else []
+        for segment, record in zip(result.segments, reports, strict=True):
+            _, offset, length, opener, *_ = record
+            assert segment.opener.item.offset == offset
+            assert segment.end_offset == offset + length
+            assert segment.opener.scanned == (opener[0] == 2 and opener[1] == 2)
+            for frame, expected in zip(segment.frames, record[-2], strict=True):
+                assert frame.position == expected[0]
+                assert segment.items[frame.position].offset == expected[1]
+                assert (
+                    frame.link.state == ("linked", "healed", "broken")[expected[4] - 1]
+                )
+                assert (
+                    frame.payload.state
+                    == ("verified", "damaged", "unchecked")[expected[5][0] - 1]
+                )
+                assert frame.payload.stored_matches == (
+                    None if (stored := _option(expected[6])) is None else stored == 1
+                )
+            assert [
+                (finding.position, finding.reason) for finding in segment.closing
+            ] == [
+                (_option(finding[3]), _CLOSING_REASONS[_option(finding[1])])
+                for finding in record[-1]
+                if finding[0] == _INDEX_CLAIM_FAILED
+            ]
+            assert Counter(
+                (
+                    finding.code,
+                    finding.position,
+                    finding.reason,
+                    finding.count,
+                    finding.offset,
+                    finding.length,
+                )
+                for finding in segment.parity.findings
+                if finding.code in _PARITY_CODES.values()
+            ) == _parity_findings(record)
+        checked += 1
+    assert checked
