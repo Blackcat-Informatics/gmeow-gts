@@ -7,26 +7,41 @@ use std::{
     sync::Arc,
 };
 
-use super::values::InlineValues;
+use super::{
+    rebuild::Rebuild,
+    values::{InlineValues, OCTETS},
+    ValueIssue,
+};
 use super::{Direction, FrameIssue, Projector, Term};
+use crate::v2::attachments::Reference;
 use crate::v2::{Decoder, HeaderError, MalformedReason::*, FORMED_BYTES_PER_READ};
+
+fn read_list<'a, T>(
+    cursor: &mut Decoder<'a>,
+    mut read: impl FnMut(&mut Decoder<'a>) -> Result<T, HeaderError>,
+) -> Result<Vec<T>, HeaderError> {
+    let count = cursor.head(4)?;
+    (0..count).map(|_| read(cursor)).collect()
+}
 
 struct FrontCoded<'a> {
     prefixes: Vec<u64>,
     lengths: Vec<u64>,
     suffixes: &'a [u8],
+    formed: Vec<(usize, Vec<u8>)>,
 }
 
 impl<'a> FrontCoded<'a> {
     fn read(cursor: &mut Decoder<'a>) -> Result<Self, HeaderError> {
         Ok(Self {
-            prefixes: cursor.list(Decoder::uint)?,
-            lengths: cursor.list(Decoder::uint)?,
+            prefixes: read_list(cursor, Decoder::uint)?,
+            lengths: read_list(cursor, Decoder::uint)?,
             suffixes: cursor.byte_string(None)?,
+            formed: Vec::new(),
         })
     }
 
-    fn texts(self, restart: u64) -> Result<Vec<Arc<str>>, HeaderError> {
+    fn form(&mut self, restart: u64) -> Result<(), HeaderError> {
         let length = self
             .lengths
             .iter()
@@ -38,17 +53,19 @@ impl<'a> FrontCoded<'a> {
             });
         }
         let mut suffixes = self.suffixes;
-        let mut texts: Vec<Arc<str>> = Vec::new();
-        for (index, (prefix, length)) in self.prefixes.into_iter().zip(self.lengths).enumerate() {
+        for (index, (&prefix, &length)) in self.prefixes.iter().zip(&self.lengths).enumerate() {
             let error = |reason| HeaderError {
                 reason,
                 offset: self.suffixes.len() - suffixes.len(),
             };
             let is_restart = (index as u64).is_multiple_of(restart);
+            let previous = self.formed.last().map_or(&[][..], |(_, bytes)| bytes);
+            if index != 0 && prefix > previous.len() as u64 {
+                return Err(error(OutOfRange));
+            }
             if is_restart && prefix != 0 {
                 return Err(error(ForbiddenCombination));
             }
-            let previous = texts.last().map_or(&[][..], |text| text.as_bytes());
             let prefix = usize::try_from(prefix).map_err(|_| error(OutOfRange))?;
             let head = previous.get(..prefix).ok_or_else(|| error(OutOfRange))?;
             let length = usize::try_from(length).map_err(|_| error(InconsistentCounts))?;
@@ -66,17 +83,45 @@ impl<'a> FrontCoded<'a> {
             let mut bytes = Vec::with_capacity(prefix + length);
             bytes.extend_from_slice(head);
             bytes.extend_from_slice(tail);
-            let text = str::from_utf8(&bytes).map_err(|_| error(WrongType))?;
-            texts.push(Arc::from(text));
+            self.formed.push((error(WrongType).offset, bytes));
             suffixes = rest;
         }
-        Ok(texts)
+        Ok(())
+    }
+
+    fn texts(self) -> impl Iterator<Item = Result<Arc<str>, HeaderError>> {
+        self.formed.into_iter().map(|(offset, bytes)| {
+            str::from_utf8(&bytes)
+                .map(Arc::from)
+                .map_err(|_| HeaderError {
+                    reason: WrongType,
+                    offset,
+                })
+        })
     }
 }
 
 enum LiteralForm {
     Typed(u64),
     Language(u64, Option<Direction>),
+}
+
+enum LiteralStyle {
+    Typed(usize),
+    Language(Arc<str>, Option<Direction>),
+}
+
+impl LiteralStyle {
+    fn term(self, lexical: Arc<str>) -> Term {
+        match self {
+            Self::Typed(datatype) => Term::Literal { lexical, datatype },
+            Self::Language(language, direction) => Term::Language {
+                lexical,
+                language,
+                direction,
+            },
+        }
+    }
 }
 
 struct LiteralColumns {
@@ -88,9 +133,9 @@ struct LiteralColumns {
 impl LiteralColumns {
     fn read(cursor: &mut Decoder<'_>) -> Result<Self, HeaderError> {
         Ok(Self {
-            forms: cursor.list(|cursor| cursor.code(4))?,
-            datatypes: cursor.list(Decoder::uint)?,
-            languages: cursor.list(Decoder::uint)?,
+            forms: read_list(cursor, |cursor| cursor.code(4))?,
+            datatypes: read_list(cursor, Decoder::uint)?,
+            languages: read_list(cursor, Decoder::uint)?,
         })
     }
 
@@ -108,6 +153,13 @@ enum Block<'a> {
     Blank(Vec<&'a [u8]>),
     Triple([Vec<u64>; 3]),
     Inline(InlineValues<'a>),
+    Reference(ReferenceColumns),
+}
+
+struct ReferenceColumns {
+    digests: Vec<[u8; 32]>,
+    lengths: Vec<u64>,
+    forms: Option<LiteralColumns>,
 }
 
 impl<'a> Block<'a> {
@@ -122,6 +174,8 @@ impl<'a> Block<'a> {
             1 | 4 => 4,
             2 => 7,
             3 | 6 => 2,
+            5 => 6,
+            7 => 3,
             kind => return Err(FrameIssue::UnsupportedTermKind(kind)),
         };
         if actual_arity != arity {
@@ -130,12 +184,19 @@ impl<'a> Block<'a> {
         let block = match tag {
             1 => Self::Iri(FrontCoded::read(cursor)?),
             2 => Self::Literal(FrontCoded::read(cursor)?, LiteralColumns::read(cursor)?),
-            3 => Self::Blank(cursor.list(|cursor| cursor.byte_string(None))?),
+            3 => Self::Blank(read_list(cursor, |cursor| cursor.byte_string(None))?),
             6 => Self::Inline(InlineValues::read(cursor)?),
+            5 | 7 => Self::Reference(ReferenceColumns {
+                digests: read_list(cursor, |cursor| cursor.fixed::<32>().copied())?,
+                lengths: read_list(cursor, Decoder::uint)?,
+                forms: (tag == 5)
+                    .then(|| LiteralColumns::read(cursor))
+                    .transpose()?,
+            }),
             _ => Self::Triple([
-                cursor.list(Decoder::uint)?,
-                cursor.list(Decoder::uint)?,
-                cursor.list(Decoder::uint)?,
+                read_list(cursor, Decoder::uint)?,
+                read_list(cursor, Decoder::uint)?,
+                read_list(cursor, Decoder::uint)?,
             ]),
         };
         Ok((tag, block))
@@ -158,6 +219,14 @@ impl<'a> Block<'a> {
             Self::Blank(labels) => same(labels.len()),
             Self::Triple(columns) => columns.iter().all(|column| same(column.len())),
             Self::Inline(values) => values.count_matches(count),
+            Self::Reference(references) => {
+                same(references.digests.len())
+                    && same(references.lengths.len())
+                    && references
+                        .forms
+                        .as_ref()
+                        .is_none_or(|forms| forms.count_matches(count))
+            }
         }
     }
 }
@@ -183,34 +252,56 @@ fn literal_forms(columns: LiteralColumns) -> impl Iterator<Item = Option<Literal
 
 struct Languages {
     entries: Vec<Arc<str>>,
-    used: usize,
 }
 
 impl Languages {
     fn read(cursor: &mut Decoder<'_>) -> Result<Self, HeaderError> {
         Ok(Self {
-            entries: cursor
-                .list(Decoder::text)?
+            entries: read_list(cursor, Decoder::text)?
                 .into_iter()
                 .map(Arc::from)
                 .collect(),
-            used: 0,
         })
     }
 
-    fn get(&mut self, id: u64, cursor: &Decoder<'_>) -> Result<Arc<str>, HeaderError> {
+    fn get(&self, id: u64, cursor: &Decoder<'_>) -> Result<Arc<str>, HeaderError> {
         let index = usize::try_from(id).map_err(|_| cursor.error(OutOfRange))?;
         let text = self
             .entries
             .get(index)
             .ok_or_else(|| cursor.error(OutOfRange))?;
-        if index > self.used {
+        Ok(Arc::clone(text))
+    }
+
+    fn check(&self, blocks: &[(u64, Block<'_>)], cursor: &Decoder<'_>) -> Result<(), HeaderError> {
+        let indexes = || {
+            blocks
+                .iter()
+                .filter_map(|(_, block)| match block {
+                    Block::Literal(_, forms) => Some(forms),
+                    Block::Reference(references) => references.forms.as_ref(),
+                    _ => None,
+                })
+                .flat_map(|forms| forms.languages.iter().copied())
+        };
+        if indexes().any(|id| id >= self.entries.len() as u64) {
+            return Err(cursor.error(OutOfRange));
+        }
+        let mut used = 0_u64;
+        for id in indexes() {
+            if id > used {
+                return Err(cursor.error(NotDeterministic));
+            }
+            if id == used {
+                used += 1;
+            }
+        }
+        if used != self.entries.len() as u64
+            || self.entries.iter().collect::<HashSet<_>>().len() != self.entries.len()
+        {
             return Err(cursor.error(NotDeterministic));
         }
-        if index == self.used {
-            self.used += 1;
-        }
-        Ok(Arc::clone(text))
+        Ok(())
     }
 }
 
@@ -225,6 +316,7 @@ struct WrittenKey {
     kind: u64,
     rdf: usize,
     components: Option<[usize; 3]>,
+    value: Option<usize>,
 }
 
 #[derive(Default)]
@@ -235,15 +327,18 @@ pub(super) struct Dictionary {
 
 impl Dictionary {
     fn push(&mut self, kind: u64, rdf: usize, components: Option<[usize; 3]>) {
+        self.push_key(WrittenKey {
+            kind,
+            rdf,
+            components,
+            value: None,
+        });
+    }
+
+    fn push_key(&mut self, key: WrittenKey) {
         let next = self.written.len();
-        let written = *self
-            .written
-            .entry(WrittenKey {
-                kind,
-                rdf,
-                components,
-            })
-            .or_insert(next);
+        let rdf = key.rdf;
+        let written = *self.written.entry(key).or_insert(next);
         self.entries.push(Definition { rdf, written });
     }
 
@@ -276,6 +371,7 @@ impl Projector {
         segment: usize,
         content: &[u8],
         bytes: &[u8],
+        rebuild: &mut Rebuild<'_>,
     ) -> Result<(), FrameIssue> {
         let mut fields = Decoder::new(content, 0);
         fields.record(4)?;
@@ -299,10 +395,10 @@ impl Projector {
         let mut cursor = Decoder::new(bytes, 0);
         cursor.record(2)?;
         let count = cursor.head(4)?;
-        let blocks = (0..count)
+        let mut blocks = (0..count)
             .map(|_| Block::read(&mut cursor))
             .collect::<Result<Vec<_>, _>>()?;
-        let mut languages = Languages::read(&mut cursor)?;
+        let languages = Languages::read(&mut cursor)?;
         cursor.end()?;
         if blocks.len() != runs.len()
             || blocks
@@ -328,30 +424,25 @@ impl Projector {
                     .filter(|&next| next <= FORMED_BYTES_PER_READ)
             })
             .ok_or(FrameIssue::FormedCapacity)?;
+        for (_, block) in &mut blocks {
+            if let Block::Iri(texts) | Block::Literal(texts, _) = block {
+                texts.form(restart)?;
+            }
+        }
+        languages.check(&blocks, &cursor)?;
 
         for (kind, block) in blocks {
             match block {
                 Block::Iri(texts) => {
-                    for text in texts.texts(restart)? {
-                        dictionary.push(kind, self.intern(Term::Iri(text)), None);
+                    for text in texts.texts() {
+                        dictionary.push(kind, self.intern(Term::Iri(text?)), None);
                     }
                 }
                 Block::Literal(texts, forms) => {
-                    for (lexical, form) in
-                        texts.texts(restart)?.into_iter().zip(literal_forms(forms))
-                    {
-                        let term = match form.ok_or_else(|| cursor.error(InconsistentCounts))? {
-                            LiteralForm::Typed(id) => Term::Literal {
-                                lexical,
-                                datatype: self.iri(dictionary, id, &cursor)?,
-                            },
-                            LiteralForm::Language(id, direction) => Term::Language {
-                                lexical,
-                                language: languages.get(id, &cursor)?,
-                                direction,
-                            },
-                        };
-                        dictionary.push(kind, self.intern(term), None);
+                    for (lexical, form) in texts.texts().zip(literal_forms(forms)) {
+                        let lexical = lexical?;
+                        let style = self.literal_style(dictionary, &languages, &cursor, form)?;
+                        dictionary.push(kind, self.intern(style.term(lexical)), None);
                     }
                 }
                 Block::Blank(labels) => {
@@ -398,12 +489,62 @@ impl Projector {
                         );
                     }
                 }
+                Block::Reference(columns) => {
+                    self.add_references(dictionary, &languages, &cursor, rebuild, columns)?;
+                }
             }
         }
-        if languages.used != languages.entries.len()
-            || languages.entries.iter().collect::<HashSet<_>>().len() != languages.entries.len()
-        {
-            return Err(cursor.error(NotDeterministic).into());
+        Ok(())
+    }
+
+    fn literal_style(
+        &self,
+        dictionary: &Dictionary,
+        languages: &Languages,
+        cursor: &Decoder<'_>,
+        form: Option<LiteralForm>,
+    ) -> Result<LiteralStyle, HeaderError> {
+        match form.ok_or_else(|| cursor.error(InconsistentCounts))? {
+            LiteralForm::Typed(id) => Ok(LiteralStyle::Typed(self.iri(dictionary, id, cursor)?)),
+            LiteralForm::Language(id, direction) => Ok(LiteralStyle::Language(
+                languages.get(id, cursor)?,
+                direction,
+            )),
+        }
+    }
+
+    fn add_references(
+        &mut self,
+        dictionary: &mut Dictionary,
+        languages: &Languages,
+        cursor: &Decoder<'_>,
+        rebuild: &mut Rebuild<'_>,
+        columns: ReferenceColumns,
+    ) -> Result<(), FrameIssue> {
+        let mut forms = columns.forms.map(literal_forms);
+        let octets = forms.is_none();
+        for (digest, length) in columns.digests.into_iter().zip(columns.lengths) {
+            let reference = Reference { digest, length };
+            let style = if let Some(forms) = &mut forms {
+                let checked = rebuild.check_text(reference);
+                if checked == Err(ValueIssue::InvalidUtf8) {
+                    return Err(ValueIssue::InvalidUtf8.into());
+                }
+                let style =
+                    self.literal_style(dictionary, languages, cursor, forms.next().flatten())?;
+                checked?;
+                style
+            } else {
+                LiteralStyle::Typed(self.intern(Term::Iri(Arc::from(OCTETS))))
+            };
+            let (value, lexical) = rebuild.lexical(reference, octets)?;
+            let rdf = self.intern(style.term(lexical));
+            dictionary.push_key(WrittenKey {
+                kind: if octets { 7 } else { 5 },
+                rdf,
+                components: None,
+                value: Some(value),
+            });
         }
         Ok(())
     }

@@ -12,6 +12,7 @@ use ciborium::value::Value;
 use super::{Digest, SegmentWriteError, SegmentWriter};
 use crate::{
     v2::{
+        attachments::{decode_pack, BLOB, PACK},
         decode_header,
         frame::{decode_frame, Frame, FrameError, Storage},
         Decoder, HeaderError, MalformedReason, REGISTRY_VERSION,
@@ -20,7 +21,6 @@ use crate::{
 };
 
 const INDEX: u64 = 15;
-const PACK: u64 = 13;
 
 /// The labelled fold's counts and content digest, used by the closing index.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -207,39 +207,14 @@ impl IndexPrefix {
     }
 
     fn add_pack(&mut self, frame: &Frame<'_>) -> Result<(), HeaderError> {
-        let mut content = Decoder::new(frame.content, 0);
-        content.record(2)?;
-        let member_count = content.positive()?;
-        let unit_length = content.uint()?;
-
-        let mut cursor = Decoder::new(frame.stored_payload, 0);
-        cursor.record(2)?;
-        if cursor.head(4)? != member_count {
-            return Err(cursor.error(MalformedReason::InconsistentCounts));
-        }
-        let mut all_bytes = 0_u64;
-        let mut unit_bytes = 0_u64;
-        for index in 0..member_count {
-            cursor.record(3)?;
-            let kind = cursor.code(4)?;
-            let start = cursor.offset;
-            cursor.frame_content(7 + kind)?;
-            let length = cursor.uint()?;
-            all_bytes = checked_sum(&cursor, all_bytes, length)?;
-            if kind <= 2 {
-                if kind == 1 && length == 0 {
-                    return Err(cursor.error(MalformedReason::OutOfRange));
-                }
-                let mut unit = Decoder::new(frame.stored_payload, start);
-                unit.record(kind)?;
-                self.members.push((*unit.fixed::<32>()?, self.count, index));
-                unit_bytes = checked_sum(&cursor, unit_bytes, length)?;
+        for (index, member) in decode_pack(frame.content, frame.stored_payload)?
+            .into_iter()
+            .enumerate()
+        {
+            if member.kind <= BLOB {
+                self.members
+                    .push((member.reference.digest, self.count, index as u64));
             }
-        }
-        let bodies = cursor.byte_string(None)?;
-        require_end(&cursor)?;
-        if bodies.len() as u64 != all_bytes || unit_bytes != unit_length {
-            return Err(cursor.error(MalformedReason::InconsistentCounts));
         }
         Ok(())
     }

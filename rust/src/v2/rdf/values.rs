@@ -11,7 +11,15 @@ const BOOLEAN: &str = "http://www.w3.org/2001/XMLSchema#boolean";
 const UINT: &str = "http://www.w3.org/2001/XMLSchema#nonNegativeInteger";
 const INT: &str = "http://www.w3.org/2001/XMLSchema#integer";
 const TIME: &str = "http://www.w3.org/2001/XMLSchema#dateTime";
-const OCTETS: &str = "http://www.w3.org/2001/XMLSchema#hexBinary";
+pub(super) const OCTETS: &str = "http://www.w3.org/2001/XMLSchema#hexBinary";
+
+pub(super) fn append_hex(lexical: &mut String, bytes: &[u8]) {
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    for &octet in bytes {
+        lexical.push(char::from(HEX[usize::from(octet >> 4)]));
+        lexical.push(char::from(HEX[usize::from(octet & 15)]));
+    }
+}
 
 pub(super) struct InlineValues<'a> {
     bytes: &'a [u8],
@@ -98,17 +106,13 @@ impl<'a> InlineValue<'a> {
             Self::Int(value) => (Arc::from(value.to_string()), INT),
             Self::Time(value) => (Arc::from(value.format(&Rfc3339).map_err(|_| error)?), TIME),
             Self::Octets(value) => {
-                const HEX: &[u8; 16] = b"0123456789ABCDEF";
                 let capacity = value
                     .len()
                     .checked_mul(2)
                     .filter(|&size| isize::try_from(size).is_ok())
                     .ok_or(error)?;
                 let mut lexical = String::with_capacity(capacity);
-                for &octet in value {
-                    lexical.push(char::from(HEX[usize::from(octet >> 4)]));
-                    lexical.push(char::from(HEX[usize::from(octet & 15)]));
-                }
+                append_hex(&mut lexical, value);
                 (Arc::from(lexical), OCTETS)
             }
         };
