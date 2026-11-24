@@ -21,7 +21,7 @@ dependencies = [
     "cbor2>=6.1.2",
     "blake3>=1.0.8",
     "zstandard>=0.25.0",
-    "cryptography>=44",
+    "cryptography>=47",
 ]
 
 [project.optional-dependencies]
