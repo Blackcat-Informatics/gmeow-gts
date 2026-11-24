@@ -264,6 +264,16 @@ test("CLI info distinguishes opaque envelopes, torn tails, and invalid framing",
     assert.match(r.stdout, /framing stopped at byte 11: undelimitable_input/);
 });
 
+test("CLI info reports a malformed parity envelope as parity damage", () => {
+    const input = join(vectorsDir, "v2", "P1", "parity-signature.bin");
+    const r = run(["info", input]);
+    assert.equal(r.code, 1);
+    assert.match(
+        r.stdout,
+        /frame type 16 bytes \[\d+, \d+\): parity_damaged \(forbidden_combination\)/,
+    );
+});
+
 test("CLI pack and unpack round-trip", () => {
     const tmp = mkdtempSync(join(tmpdir(), "gts-cli-"));
     const src = join(tmp, "src");

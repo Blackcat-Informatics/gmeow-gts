@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+import { isUtf8 } from "node:buffer";
+
 type FramingReason = "torn_tail" | "undelimitable_input";
 type EnvelopeReason =
     | "wrong_type"
@@ -8,7 +10,9 @@ type EnvelopeReason =
     | "not_deterministic"
     | "out_of_range"
     | "unknown_item_kind"
-    | "unregistered_value";
+    | "unregistered_value"
+    | "forbidden_combination"
+    | "unordered_or_repeated";
 
 const resyncMarker = Uint8Array.of(
     0xfc,
@@ -250,10 +254,371 @@ function opener(
         if (hash.value === 0n || (registry.value === 1n && hash.value !== 1n)) {
             throw new EnvelopeError("unregistered_value");
         }
+        checkOpenerFields(
+            item,
+            hash.end,
+            hash.value === 1n ? 32n : undefined,
+            registry.value > 1n,
+            resync,
+        );
         return { kind, registry: registry.value, hash: hash.value };
     } catch (err) {
         if (!(err instanceof EnvelopeError)) throw err;
         return { kind, reason: err.reason };
+    }
+}
+
+// Deterministic field checks operate only on complete, delimited records.
+function uintField(item: Uint8Array): bigint {
+    return typedHead(item, 0, 0).value;
+}
+
+function bytesField(item: Uint8Array, length?: bigint): void {
+    const h = typedHead(item, 0, 2);
+    if (length !== undefined && h.value !== length) {
+        throw new EnvelopeError("wrong_length");
+    }
+}
+
+function digestField(item: Uint8Array): void {
+    bytesField(item, 32n);
+}
+
+function flagField(item: Uint8Array, expected: boolean | undefined): void {
+    typedHead(item, 0, 7);
+    const octet = item[0];
+    if (octet !== 0xf4 && octet !== 0xf5) throw new EnvelopeError("wrong_type");
+    if (expected !== undefined && expected !== (octet === 0xf5)) {
+        throw new EnvelopeError("forbidden_combination");
+    }
+}
+
+function* children(
+    item: Uint8Array,
+    offset: number,
+): IterableIterator<Uint8Array> {
+    while (offset < item.length) {
+        const end = itemEnd(item, offset);
+        yield item.subarray(offset, end);
+        offset = end;
+    }
+}
+
+type CheckField = (item: Uint8Array) => void;
+
+function checkRecord(item: Uint8Array, ...fields: CheckField[]): void {
+    const h = typedHead(item, 0, 4);
+    if (h.value !== BigInt(fields.length))
+        throw new EnvelopeError("wrong_length");
+    let index = 0;
+    for (const field of children(item, h.end)) fields[index++](field);
+}
+
+function checkGrammar(item: Uint8Array, limit = item.length): void {
+    for (let offset = 0; offset < item.length;) {
+        if (offset >= limit) throw new EnvelopeError("out_of_range");
+        const h = head(item, offset);
+        if (h.major <= 4 && !h.shortest)
+            throw new EnvelopeError("not_deterministic");
+        if (
+            h.major === 5 ||
+            h.major === 6 ||
+            (h.major === 7 && item[offset] !== 0xf4 && item[offset] !== 0xf5)
+        ) {
+            throw new EnvelopeError("wrong_type");
+        }
+        offset = h.end;
+        if (h.major === 2 || h.major === 3) {
+            offset += Number(h.value);
+            if (h.major === 3 && !isUtf8(item.subarray(h.end, offset))) {
+                throw new EnvelopeError("wrong_type");
+            }
+        }
+    }
+}
+
+function checkOption(item: Uint8Array, check: CheckField): void {
+    const h = typedHead(item, 0, 4);
+    if (h.value === 0n) throw new EnvelopeError("wrong_length");
+    const tag = typedHead(item, h.end, 0);
+    if (tag.value !== 1n && tag.value !== 2n)
+        throw new EnvelopeError("unregistered_value");
+    if (h.value !== tag.value) throw new EnvelopeError("wrong_length");
+    if (tag.value === 2n) check(item.subarray(tag.end));
+}
+
+function checkMarks(item: Uint8Array, limit: number): void {
+    const h = typedHead(item, 0, 4);
+    let offset = h.end;
+    let count = 0;
+    let previous: Uint8Array | undefined;
+    for (const mark of children(item, offset)) {
+        if (offset >= limit) throw new EnvelopeError("out_of_range");
+        const array = typedHead(mark, 0, 4);
+        if (array.value === 0n || head(mark, array.end).major !== 0) {
+            throw new EnvelopeError("wrong_type");
+        }
+        if (count === 64) throw new EnvelopeError("out_of_range");
+        if (previous !== undefined && compareBytes(previous, mark) >= 0) {
+            throw new EnvelopeError("unordered_or_repeated");
+        }
+        checkGrammar(mark, limit - offset);
+        count++;
+        offset += mark.length;
+        previous = mark;
+    }
+}
+
+function checkOpenerFields(
+    item: Uint8Array,
+    offset: number,
+    digestLength: bigint | undefined,
+    newer: boolean,
+    resync: boolean,
+): void {
+    const fields = children(item, offset);
+    const bound = resync ? 4096 : item.length;
+    // The opener's preceding arity check guarantees these fields exist.
+    const next = (): Uint8Array => {
+        if (offset >= bound) throw new EnvelopeError("out_of_range");
+        const field = fields.next().value;
+        if (field === undefined) {
+            throw new RangeError(
+                `missing delimited opener field at byte ${offset}`,
+            );
+        }
+        offset += field.length;
+        return field;
+    };
+    const digest: CheckField = (field) => bytesField(field, digestLength);
+    checkOption(next(), (field) => {
+        if (uintField(field) === 0n)
+            throw new EnvelopeError("unregistered_value");
+    });
+    if (!resync) {
+        checkOption(next(), (field) => {
+            const value = uintField(field);
+            if (value === 0n || (!newer && value > 1n)) {
+                throw new EnvelopeError("unregistered_value");
+            }
+        });
+    }
+    checkOption(next(), (lineage) => {
+        const h = typedHead(lineage, 0, 4);
+        if (h.value !== 2n) throw new EnvelopeError("wrong_length");
+        const [previousHead, ordinal] = children(lineage, h.end);
+        digest(previousHead);
+        if (offset - ordinal.length >= bound || uintField(ordinal) === 0n) {
+            throw new EnvelopeError("out_of_range");
+        }
+    });
+    if (!resync) return;
+    uintField(next());
+    checkOption(next(), digest);
+    const marksLimit = bound - offset;
+    checkMarks(next(), marksLimit);
+    digest(next());
+    if (offset > bound) throw new EnvelopeError("out_of_range");
+}
+
+function checkTextOption(item: Uint8Array): void {
+    const h = typedHead(item, 0, 4);
+    if (h.value === 0n) throw new EnvelopeError("wrong_length");
+    const tag = typedHead(item, h.end, 0);
+    if ((tag.value === 1n || tag.value === 2n) && h.value !== tag.value) {
+        throw new EnvelopeError("wrong_length");
+    }
+    if (tag.value === 2n) typedHead(item, tag.end, 3);
+    checkGrammar(item);
+}
+
+function checkRuns(item: Uint8Array): void {
+    const h = typedHead(item, 0, 4);
+    for (const run of children(item, h.end))
+        checkRecord(run, uintField, uintField);
+}
+
+function checkQualifiedName(item: Uint8Array): void {
+    let algorithm: bigint;
+    checkRecord(
+        item,
+        (field) => {
+            algorithm = uintField(field);
+        },
+        (field) => bytesField(field, algorithm === 1n ? 32n : undefined),
+    );
+}
+
+function checkContent(type: bigint, item: Uint8Array): void {
+    switch (type) {
+        case 1n:
+            return checkRecord(
+                item,
+                uintField,
+                checkRuns,
+                uintField,
+                uintField,
+            );
+        case 2n:
+        case 3n:
+        case 4n:
+        case 13n:
+            return checkRecord(item, uintField, uintField);
+        case 5n:
+        case 6n:
+        case 7n:
+            return checkRecord(item, uintField);
+        case 8n:
+            return checkRecord(item, digestField);
+        case 9n:
+            return checkRecord(item, digestField, checkTextOption);
+        case 10n:
+            return checkRecord(
+                item,
+                digestField,
+                uintField,
+                checkTextOption,
+                uintField,
+            );
+        case 11n:
+            return checkRecord(item, digestField, uintField, uintField);
+        case 12n:
+            return checkRecord(
+                item,
+                checkQualifiedName,
+                uintField,
+                checkTextOption,
+            );
+        case 14n:
+        case 15n:
+            return checkRecord(item, uintField, digestField);
+        case 16n:
+            return checkRecord(
+                item,
+                uintField,
+                uintField,
+                uintField,
+                digestField,
+                digestField,
+            );
+        default:
+            return checkGrammar(item);
+    }
+}
+
+function checkStorage(
+    item: Uint8Array,
+    newer: boolean,
+    length: bigint,
+    parity: boolean,
+): void {
+    const h = typedHead(item, 0, 4);
+    if (h.value === 0n) throw new EnvelopeError("wrong_length");
+    const tag = typedHead(item, h.end, 0);
+    if (tag.value === 0n || (!newer && tag.value > 2n)) {
+        throw new EnvelopeError("unregistered_value");
+    }
+    if (
+        (tag.value === 1n && h.value !== 1n) ||
+        (tag.value === 2n && h.value !== 3n)
+    ) {
+        throw new EnvelopeError("wrong_length");
+    }
+    if (tag.value === 2n) {
+        const codec = typedHead(item, tag.end, 0);
+        if (codec.value === 0n || (!newer && codec.value !== 1n)) {
+            throw new EnvelopeError("unregistered_value");
+        }
+        bytesField(item.subarray(codec.end), 16n);
+    } else if (tag.value > 2n) {
+        checkGrammar(item);
+    }
+    if ((tag.value === 2n && length === 0n) || (parity && tag.value !== 1n)) {
+        throw new EnvelopeError("forbidden_combination");
+    }
+}
+
+function compareBytes(left: Uint8Array, right: Uint8Array): number {
+    const length = Math.min(left.length, right.length);
+    for (let index = 0; index < length; index++) {
+        if (left[index] !== right[index]) return left[index] - right[index];
+    }
+    return left.length - right.length;
+}
+
+function checkSignatures(
+    item: Uint8Array,
+    newer: boolean,
+    parity: boolean,
+): void {
+    const h = typedHead(item, 0, 4);
+    let previous: Uint8Array | undefined;
+    for (const signature of children(item, h.end)) {
+        checkRecord(
+            signature,
+            (field) => {
+                const algorithm = uintField(field);
+                if (algorithm === 0n || (!newer && algorithm > 2n)) {
+                    throw new EnvelopeError("unregistered_value");
+                }
+            },
+            digestField,
+            bytesField,
+        );
+        if (previous !== undefined && compareBytes(previous, signature) >= 0) {
+            throw new EnvelopeError("unordered_or_repeated");
+        }
+        previous = signature;
+    }
+    if (parity && h.value !== 0n)
+        throw new EnvelopeError("forbidden_combination");
+}
+
+function checkFrame(
+    item: Uint8Array,
+    offset: number,
+    registry: bigint,
+): RecordEnvelope {
+    let frameType: bigint | undefined;
+    try {
+        const [
+            type,
+            critical,
+            transparent,
+            content,
+            length,
+            digest,
+            storage,
+            payload,
+            identifier,
+            signatures,
+        ] = children(item, offset);
+        const newer = registry > 1n;
+        frameType = uintField(type);
+        if (frameType === 0n || (!newer && frameType > 16n)) {
+            throw new EnvelopeError("unregistered_value");
+        }
+        const known = frameType <= 16n;
+        const parity = frameType === 16n;
+        flagField(critical, known ? frameType < 14n : undefined);
+        flagField(transparent, known ? parity : undefined);
+        checkContent(frameType, content);
+        const decodedLength = uintField(length);
+        digestField(digest);
+        checkStorage(storage, newer, decodedLength, parity);
+        bytesField(payload);
+        digestField(identifier);
+        checkSignatures(signatures, newer, parity);
+        if (
+            (frameType === 8n && decodedLength === 0n) ||
+            ((frameType === 12n || frameType === 14n) && decodedLength !== 0n)
+        ) {
+            throw new EnvelopeError("out_of_range");
+        }
+        return { kind: "frame", frameType };
+    } catch (err) {
+        if (!(err instanceof EnvelopeError)) throw err;
+        return { kind: "frame", frameType, reason: err.reason };
     }
 }
 
@@ -272,17 +637,7 @@ function envelope(
     if (kind.value === 2n) {
         if (array.value !== 11n)
             return { kind: "opaque", reason: "wrong_length" };
-        try {
-            const frameType = typedHead(item, kind.end, 0).value;
-            const reason =
-                frameType === 0n || (registry === 1n && frameType > 16n)
-                    ? "unregistered_value"
-                    : undefined;
-            return { kind: "frame", frameType, reason };
-        } catch (err) {
-            if (!(err instanceof EnvelopeError)) throw err;
-            return { kind: "frame", reason: err.reason };
-        }
+        return checkFrame(item, kind.end, registry);
     }
     if (kind.value === 3n) return { kind: "locator" };
     if (kind.value === 4n) return { kind: "offsets" };
@@ -331,7 +686,7 @@ function* records(
         }
         const record = envelope(data.subarray(offset, end), registry);
         if (record.kind === "header" || record.kind === "resync")
-            registry = record.registry;
+            registry = record.hash === 1n ? record.registry : undefined;
         yield { ...record, offset, end };
     }
 }
