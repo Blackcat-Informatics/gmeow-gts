@@ -174,9 +174,9 @@ def canonical_graph(
     rows: Iterable[Row],
     records: RecordFold,
     values: Iterable[tuple[int, TypedValue]],
-    blank_positions: Mapping[int, int],
+    blank_positions: Mapping[int, int] | None,
 ) -> CanonicalGraph:
-    """Build dictionary and row frames from an admitted fold's real blank positions."""
+    """Build dictionary and row frames using positions or the stored blank names."""
     original_rows = tuple(rows)
     typed_values = dict(values)
     terms = dictionary_terms(pool, original_rows, records, typed_values)
@@ -196,7 +196,12 @@ def canonical_graph(
     for ref, term in terms.items():
         wire: WireTerm
         if isinstance(term, Blank):
-            wire = BlankTerm(cbor2.dumps(blank_positions[ref]))
+            label = (
+                term.label
+                if blank_positions is None
+                else cbor2.dumps(blank_positions[ref])
+            )
+            wire = BlankTerm(label)
         elif isinstance(term, TypedLiteral | LanguageLiteral):
             wire = _literal(term, typed_values.get(ref), iris, stored)
         else:
