@@ -4,6 +4,8 @@
 import { Buffer } from "node:buffer";
 import { RdfCursor, RdfProjectionError, requireRdf } from "./v2_rdf_cursor.js";
 
+export const valueProjectionBytes = 2 ** 28;
+
 type TypedValue =
     | [kind: 1, value: boolean]
     | [kind: 2 | 3, value: bigint]

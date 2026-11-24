@@ -4,7 +4,7 @@
 import { Buffer, isUtf8 } from "node:buffer";
 import { contextHash, contextHashParts } from "./v2_integrity.js";
 import { RdfCursor, requireRdf } from "./v2_rdf_cursor.js";
-import { hexLexical } from "./v2_rdf_values.js";
+import { hexLexical, valueProjectionBytes } from "./v2_rdf_values.js";
 
 const contentContext = "gts2 unit";
 const rebuiltLimit = 1n << 37n;
@@ -147,7 +147,7 @@ export class RdfRebuild {
     private readonly values = new Map<string, Candidate>();
     private charged = 0n;
     private refused = false;
-    private textRemaining = 1n << 28n;
+    private textRemaining = BigInt(valueProjectionBytes);
 
     open(): void {
         this.units.clear();

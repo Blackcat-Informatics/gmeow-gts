@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { inspectFraming } from "../src/v2_framing.js";
 import { contextHash } from "../src/v2_integrity.js";
 import { projectRdf, rdfNQuads } from "../src/v2_rdf_projection.js";
+import { writeValuePacks } from "../src/v2_value_packs.js";
 import { V2SegmentWriter } from "../src/v2_writer.js";
 import { mustEncode } from "../src/wire.js";
 
@@ -114,6 +115,26 @@ test("a pack can rebuild a value before its units in the directory", () => {
         '<http://e/s> <http://e/s> "🐈"^^<http://e/dt> .\n' +
             '<http://e/s> <http://e/s> "F09F9088"^^<http://www.w3.org/2001/XMLSchema#hexBinary> .\n',
     );
+});
+
+test("packed writer reuses units and preserves UTF-8 split across a boundary", () => {
+    const writer = new V2SegmentWriter();
+    const unitBytes = 256 * 1024;
+    const value = "x".repeat(3 * unitBytes - 1) + "🐈";
+    const references = writeValuePacks([value, value], (content, payload) =>
+        writer.append(13, content, payload),
+    );
+    assert.equal(references.size, 1);
+    const reference = references.get(value);
+    assert.ok(reference);
+    assert.equal(reference.length, Buffer.byteLength(value));
+    appendReferences(writer, reference.digest, reference.length);
+    const data = writer.bytes();
+    // Two of the three full units are identical.
+    assert.ok(data.length < 3 * unitBytes);
+    const wire = inspectFraming(data, true);
+    assert.equal(wire.kind, "v2");
+    assert.ok(projectRdf(wire).terms.some((term) => term.value === value));
 });
 
 test("recipe declarations charge the rebuild budget even when units are missing", () => {

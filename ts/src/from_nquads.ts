@@ -18,7 +18,7 @@ import {
     validIri,
     validLanguageTag,
 } from "./rdf12_syntax.js";
-import { inlineTermBytes, writeRdfSegment } from "./v2_rdf_import.js";
+import { checkRdfAtomSize, writeRdfSegment } from "./v2_rdf_import.js";
 
 const RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
@@ -392,14 +392,18 @@ class Interner {
     readonly terms: Term[] = [];
 
     atom(a: Atom): number {
-        const key = JSON.stringify([
-            "atom",
-            a.kind,
-            a.value,
-            a.lang ?? null,
-            a.direction ?? null,
-            a.datatype ?? null,
-        ]);
+        // Lengths delimit the raw strings without escaping a potentially large value.
+        const key =
+            JSON.stringify([
+                "atom",
+                a.kind,
+                a.lang?.length ?? null,
+                a.direction ?? null,
+                a.datatype?.length ?? null,
+            ]) +
+            (a.lang ?? "") +
+            (a.datatype ?? "") +
+            a.value;
         const existing = this.ids.get(key);
         if (existing !== undefined) return existing;
 
@@ -451,8 +455,9 @@ class Interner {
     }
 
     private rdfAtom(atom: Atom): number {
-        inlineTermBytes(atom.value, atom.lang);
-        if (atom.datatype !== undefined) inlineTermBytes(atom.datatype);
+        checkRdfAtomSize(atom.kind, atom.value, atom.lang);
+        if (atom.datatype !== undefined)
+            checkRdfAtomSize(TermKind.Iri, atom.datatype);
         return this.atom(
             atom.kind === TermKind.Literal && atom.lang === undefined
                 ? { ...atom, datatype: atom.datatype ?? XSD_STRING }
