@@ -11,7 +11,6 @@ from ._decode import WireError, _Decoder
 from ._fold_record_lines import record_bodies
 from ._labelling_result import ComponentStatistics, InputStatistics
 from ._labelling_structure import Diagnostic
-from ._parity_verify import check_parity
 from ._read_coverage import SegmentCoverage, file_coverage
 from .authentication import (
     AuthenticationFrame,
@@ -193,6 +192,11 @@ class ContentRead:
     own_labelling: tuple[LabellingReport | None, ...] = ()
     coverage: ReadCoverage | None = None
     canonical: tuple[CanonicalResult, ...] = ()
+
+    @property
+    def repaired_copy(self) -> bytes | None:
+        """Return the input with every accepted parity repair applied."""
+        return self.wire.repaired_copy
 
     def compact(self, profile: int | None = None) -> CompactionResult:
         """Compact this whole read's fold with its source observations."""
@@ -454,7 +458,6 @@ def _read_segment_content(
     formed: FormedBudget,
     stored_limit: int,
     last_commit: int,
-    future_parity: set[int],
     findings: list[ContentFinding],
 ) -> _SegmentContent:
     opener = segment.opener.value
@@ -495,7 +498,7 @@ def _read_segment_content(
             else None
         )
         if kind == 16:
-            if position in future_parity:
+            if position in segment.parity.future_geometry:
                 opaque_positions.add(position)
                 if not stopped and decoded is not None:
                     findings.append(
@@ -1148,7 +1151,6 @@ def read_content(
             capacity.stored_bytes_per_frame,
             findings,
         )
-        parity_findings, future_parity = check_parity(data, segment)
         findings.extend(
             ContentFinding(
                 ordinal,
@@ -1159,7 +1161,7 @@ def read_content(
                 note.offset,
                 note.length,
             )
-            for note in parity_findings
+            for note in segment.parity.findings
         )
         segment_content = _read_segment_content(
             data,
@@ -1168,7 +1170,6 @@ def read_content(
             formed,
             capacity.stored_bytes_per_frame,
             last_commit,
-            future_parity,
             findings,
         )
         registry = opener.header.registry_version

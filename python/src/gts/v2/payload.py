@@ -92,7 +92,18 @@ class PayloadBudget:
 
     def check(self, frame: Frame) -> PayloadCheck:
         """Check a frame whose payload fields have passed envelope validation."""
-        return self._check(frame)
+        return self._check(frame, frame.check_storage())
+
+    def recheck(self, frame: Frame) -> bool:
+        """Require a matching stored check before charging a repair's payload."""
+        stored = frame.check_storage()
+        if frame.storage is not None and stored is not True:
+            return False
+        checked = self._check(frame, stored)
+        return checked.state == "verified" or (
+            isinstance(frame.storage, CompressedStorage)
+            and checked.state == "unchecked"
+        )
 
     def _check_invalid_envelope(
         self, data: bytes, starts: tuple[int, ...], *, newer: bool
@@ -100,13 +111,16 @@ class PayloadBudget:
         fields, stored = _read_payload_fields(data, starts, newer=newer)
         if fields is None:
             return PayloadCheck("damaged", stored)
-        result = self._check(fields)
+        result = self._check(
+            fields, _storage_matches(fields.storage, fields.stored_payload)
+        )
         if result.reason == "codec_constraint":
             return PayloadCheck(result.state, result.stored_matches)
         return result
 
-    def _check(self, frame: Frame | _PayloadFields) -> PayloadCheck:
-        stored = _storage_matches(frame.storage, frame.stored_payload)
+    def _check(
+        self, frame: Frame | _PayloadFields, stored: bool | None
+    ) -> PayloadCheck:
         length = frame.decoded_length
         if not self._total_refused:
             for size in (

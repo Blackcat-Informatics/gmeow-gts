@@ -7,6 +7,8 @@ from dataclasses import InitVar, dataclass, field, replace
 from typing import Literal
 
 from ._decode import WireError, _Decoder
+from ._parity_repair import _Patch
+from ._parity_verify import SegmentParity, check_parity
 from .frame import _PARITY, Frame, FrameError, _decode_frame_at, _frame_field_offsets
 from .framing import FramingReason, ItemFramingError, _generation_field, _head, item_end
 from .header import DecodedHeader, decode_header
@@ -90,6 +92,7 @@ class WireSegment:
     framing_failure: _Boundary | None
     resync_refusals: tuple[ResyncRefusal, ...]
     parity_refusals: tuple[ParityRefusal, ...]
+    parity: SegmentParity = SegmentParity()
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,6 +102,7 @@ class WireRead:
     opening: _Opening
     segments: tuple[WireSegment, ...] = ()
     item_limit_offset: int | None = None
+    repaired_copy: bytes | None = None
 
 
 @dataclass(slots=True)
@@ -445,6 +449,13 @@ def read_wire(
         )
 
     segments: list[WireSegment] = []
+    repairs: list[_Patch] = []
+
+    def record_segment(complete: WireSegment) -> None:
+        parity, patches = check_parity(data, complete, budget)
+        segments.append(replace(complete, parity=parity))
+        repairs.extend(patches)
+
     segment = _Segment(opening.decision, data, budget)
     if opening.refusal is not None:
         segment.refusals.append(opening.refusal)
@@ -492,7 +503,7 @@ def read_wire(
                         segment.items.append(DamagedRegion(failure.offset, failure.end))
                     else:
                         end = failure.offset
-                segments.append(segment.finish(data, end, failure))
+                record_segment(segment.finish(data, end, failure))
                 segment = _Segment(_scanned_opener(recovered), data, budget)
                 previous = segment.opener.item
                 continue
@@ -507,10 +518,10 @@ def read_wire(
 
         segment.settle_witness(kept=True)
         if boundary.failure is not None:
-            segments.append(segment.finish(data, boundary.offset, boundary))
+            record_segment(segment.finish(data, boundary.offset, boundary))
             break
         if opener is not None:
-            segments.append(segment.finish(data, boundary.offset))
+            record_segment(segment.finish(data, boundary.offset))
             segment = _Segment(opener, data, budget)
         elif item is not None:
             segment.items.append(item)
@@ -519,5 +530,11 @@ def read_wire(
         previous = boundary
     else:
         segment.settle_witness(kept=True)
-        segments.append(segment.finish(data, previous.end))
-    return WireRead(opening, tuple(segments), walk.stopped_at)
+        record_segment(segment.finish(data, previous.end))
+    repaired = None
+    if repairs:
+        output = bytearray(data)
+        for patch in repairs:
+            patch.apply(output)
+        repaired = bytes(output)
+    return WireRead(opening, tuple(segments), walk.stopped_at, repaired)

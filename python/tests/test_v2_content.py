@@ -9,11 +9,18 @@ from pathlib import Path
 
 import cbor2
 import pytest
+import zstandard
 
 from gts.v2._content import ContentError
 from gts.v2.content import ContentCapacity, read_content
 from gts.v2.dictionary import Blank
-from gts.v2.frame import _identifier, _payload_digest, decode_frame, encode_plain_frame
+from gts.v2.frame import (
+    Frame,
+    _identifier,
+    _payload_digest,
+    decode_frame,
+    encode_plain_frame,
+)
 from gts.v2.header import Header, Lineage, decode_header
 from gts.v2.index import check_index_payload
 from gts.v2.range import RangeAccumulator
@@ -76,7 +83,14 @@ _REASONS = {
 def _read_results(part: str, name: str):
     folder = _VECTORS / part
     for case in json.loads((folder / f"{name}.json").read_text())["cases"]:
-        raw = (folder / case["input_file"]).read_bytes()
+        source = folder / case["input_file"]
+        raw = (
+            source.read_bytes()
+            if source.is_file()
+            else zstandard.ZstdDecompressor().decompress(
+                source.with_suffix(".bin.zst").read_bytes()
+            )
+        )
         report = cbor2.loads(bytes.fromhex(case["read_result"]))
         (
             stored,
@@ -251,6 +265,8 @@ _PARITY_CODES = {
     31: "parity_mismatch",
     32: "parity_unexplained",
     33: "parity_stale",
+    34: "repair_failed",
+    35: "repaired",
     36: "unprotected_tail",
 }
 
@@ -263,7 +279,10 @@ _PARITY_CODES = {
         ("P5", "parity-above-capacity-wrong-table"),
         ("P5", "parity-condition-six-first-by-case"),
         ("P5", "parity-damaged-shard"),
+        ("P5", "parity-short-run"),
         ("P5", "parity-unexplained"),
+        ("P5", "recover-predecessor"),
+        ("P5", "recover-straddle-propagate"),
         ("P5", "recovery-parity-in-resync-segment"),
         ("P5", "commit-count-mismatch"),
     ],
@@ -278,6 +297,8 @@ def test_reader_matches_parity_diagnostics(part: str, name: str) -> None:
         30: "decoded_size",
         40: "data",
         41: "parity",
+        42: "too_many_erasures",
+        43: "verify_failed",
     }
     codes = {13: "damaged_frame", 20: "exceeds_capacity", **_PARITY_CODES}
     for raw, segments, capacity in _contents(part, name):
@@ -317,6 +338,53 @@ def test_reader_matches_parity_diagnostics(part: str, name: str) -> None:
             )
             == expected
         )
+        assert (result.repaired_copy is not None) == any(
+            key[1] == "repaired" for key in expected
+        )
+
+
+@pytest.mark.parametrize(
+    "damaged, original",
+    [
+        ("parity-short-run.193-bytes", "parity-short-run.intact"),
+        ("parity-damaged-shard", "parity-base"),
+        ("recover-length.with-parity", "parity-base"),
+        (
+            "recover-no-signature.signature-zero",
+            "recover-no-signature.signature-zero.repaired",
+        ),
+    ],
+)
+def test_whole_reader_returns_exact_repaired_copy(damaged: str, original: str) -> None:
+    folder = _VECTORS / "P5"
+    data = (folder / f"{damaged}.bin").read_bytes()
+    expected = (folder / f"{original}.bin").read_bytes()
+    result = read_content(data)
+    assert result.repaired_copy == expected
+    assert any(note.code == "parity_mismatch" for note in result.findings)
+    assert read_content(expected).repaired_copy is None
+
+
+def test_plain_repair_uses_the_total_budget_before_next_segment() -> None:
+    folder = _VECTORS / "P5"
+    damaged = (folder / "parity-short-run.193-bytes.bin").read_bytes()
+    intact = (folder / "parity-short-run.intact.bin").read_bytes()
+    subsequent = (folder / "parity-base.bin").read_bytes()
+    blob, parity = read_content(intact).wire.segments[0].frames
+    assert isinstance(blob.envelope, Frame) and isinstance(parity.envelope, Frame)
+    total = blob.envelope.decoded_length * 2 + parity.envelope.decoded_length
+
+    exact = read_content(
+        damaged + subsequent, ContentCapacity(decoded_bytes_per_read=total)
+    )
+    assert exact.repaired_copy == intact + subsequent
+    assert exact.wire.segments[1].frames[0].payload.reason == "total_decoded"
+
+    below = read_content(
+        damaged + subsequent, ContentCapacity(decoded_bytes_per_read=total - 1)
+    )
+    assert below.repaired_copy is None
+    assert below.wire.segments[1].frames[0].payload.reason == "total_decoded"
 
 
 @pytest.mark.parametrize(

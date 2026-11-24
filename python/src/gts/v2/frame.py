@@ -285,7 +285,7 @@ def decode_frame(data: bytes, offset: int = 0, *, registry_version: int = 1) -> 
     return _decode_frame_at(data, offset, newer=registry_version > 1)
 
 
-def _decode_frame_at(data: bytes, offset: int, *, newer: bool) -> Frame:
+def _decode_frame_at(data: bytes | memoryview, offset: int, *, newer: bool) -> Frame:
     decoder = _Decoder(data, offset, FrameError)
     decoder.record(11)
     decoder.uint(minimum=2, maximum=2, reason="unregistered_value")

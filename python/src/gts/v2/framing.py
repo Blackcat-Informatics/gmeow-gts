@@ -21,9 +21,12 @@ _TEXT = -5
 class ItemFramingError(ValueError):
     """A framing failure with the offset of the first byte of the item."""
 
-    def __init__(self, reason: FramingReason, offset: int) -> None:
+    def __init__(
+        self, reason: FramingReason, offset: int, examined_end: int | None = None
+    ) -> None:
         self.reason = reason
         self.offset = offset
+        self.examined_end = offset if examined_end is None else examined_end
         super().__init__(f"{reason} at offset {offset}")
 
 
@@ -38,7 +41,7 @@ def _head(
 ) -> tuple[int, int | None, int]:
     """Read a CBOR head without applying the deterministic GTS grammar."""
     if offset == len(data):
-        raise ItemFramingError("torn_tail", item_start)
+        raise ItemFramingError("torn_tail", item_start, offset)
     major, additional = divmod(data[offset], 32)
     offset += 1
     if additional < 24:
@@ -46,14 +49,14 @@ def _head(
     if additional <= 27:
         end = offset + (1 << (additional - 24))
         if end > len(data):
-            raise ItemFramingError("torn_tail", item_start)
+            raise ItemFramingError("torn_tail", item_start, len(data))
         argument = int.from_bytes(data[offset:end], "big")
         if major == 7 and additional == 24 and argument < 32:
-            raise ItemFramingError("undelimitable_input", item_start)
+            raise ItemFramingError("undelimitable_input", item_start, end)
         return major, argument, end
     if additional == 31 and major in (2, 3, 4, 5, 7):
         return major, None, offset
-    raise ItemFramingError("undelimitable_input", item_start)
+    raise ItemFramingError("undelimitable_input", item_start, offset)
 
 
 def item_end(data: bytes | memoryview, offset: int = 0) -> int:
@@ -74,12 +77,12 @@ def item_end(data: bytes | memoryview, offset: int = 0) -> int:
             major, additional = divmod(data[offset], 32)
             chunk_major = 2 if parent == _BYTES else 3
             if data[offset] != 0xFF and (major != chunk_major or additional == 31):
-                raise ItemFramingError("undelimitable_input", item_start)
+                raise ItemFramingError("undelimitable_input", item_start, offset + 1)
 
         major, argument, offset = _head(data, offset, item_start)
         if major == 7 and argument is None:
             if parent >= 0 or parent == _MAP_VALUE:
-                raise ItemFramingError("undelimitable_input", item_start)
+                raise ItemFramingError("undelimitable_input", item_start, offset)
             parents.pop()
         else:
             if parent > 0:
@@ -90,9 +93,9 @@ def item_end(data: bytes | memoryview, offset: int = 0) -> int:
             if argument is None:
                 parents.append((_BYTES, _TEXT, _ARRAY, _MAP_KEY)[major - 2])
             elif major in (2, 3):
+                if offset + argument > len(data):
+                    raise ItemFramingError("torn_tail", item_start, offset)
                 offset += argument
-                if offset > len(data):
-                    raise ItemFramingError("torn_tail", item_start)
             elif major in (4, 5) and argument:
                 parents.append(argument if major == 4 else 2 * argument)
             elif major == 6:

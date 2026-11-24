@@ -59,7 +59,7 @@ def inspect_link_item(
     try:
         starts = _frame_field_offsets(data, offset)
     except ItemFramingError as error:
-        raise ItemFramingError(error.reason, offset) from error
+        raise ItemFramingError(error.reason, offset, error.examined_end) from error
     return _inspect_frame_link(data, offset, starts), starts[-1]
 
 
