@@ -30,6 +30,11 @@ GtsV2PayloadBudget >> readLimit: bytes [
 ]
 
 { #category : #accessing }
+GtsV2PayloadBudget >> readLimit [
+	^ readLimit
+]
+
+{ #category : #accessing }
 GtsV2PayloadBudget >> itemLimit [
 	^ itemLimit
 ]

@@ -3,19 +3,20 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers' ],
 	#category : #'Gts-Core'
 }
 
 { #category : #'instance creation' }
-GtsV2WireFindings class >> inputLength: inputLength itemLimit: itemLimit held: held trusted: trusted [
-	^ self new initializeLength: inputLength itemLimit: itemLimit held: held trusted: trusted
+GtsV2WireFindings class >> on: bytes budget: budget held: held trusted: trusted [
+	^ self new initializeOn: bytes budget: budget held: held trusted: trusted
 ]
 
 { #category : #initialization }
-GtsV2WireFindings >> initializeLength: length itemLimit: limit held: held trusted: trusted [
-	inputLength := length.
-	itemLimit := limit.
+GtsV2WireFindings >> initializeOn: bytes budget: budget held: held trusted: trusted [
+	inputLength := bytes size.
+	itemLimit := budget ifNil: [ 0 ] ifNotNil: [ budget itemLimit ].
+	openers := GtsV2OpenerResults on: bytes limit: (budget ifNil: [ 0 ] ifNotNil: [ budget readLimit ]).
 	fileFindings := OrderedCollection new.
 	segmentFindings := OrderedCollection new.
 	frameFindings := Dictionary new.
@@ -93,6 +94,16 @@ GtsV2WireFindings >> anchoredFramesAt: ordinal [
 { #category : #accessing }
 GtsV2WireFindings >> transparentFramesAt: ordinal [
 	^ (segmentFrameResults at: ordinal + 1) third
+]
+
+{ #category : #accessing }
+GtsV2WireFindings >> openerFieldsAt: ordinal [
+	^ openers at: ordinal
+]
+
+{ #category : #observing }
+GtsV2WireFindings >> finishOpeners [
+	openers finish
 ]
 
 { #category : #accessing }
@@ -223,6 +234,7 @@ GtsV2WireFindings >> signatureReason: reason [
 { #category : #private }
 GtsV2WireFindings >> recordOpener: event [
 	| previousHead previousOrdinal lineage |
+	openers observe: event.
 	previousHead := head.
 	previousOrdinal := lineageOrdinal.
 	head := event effectiveIdentifier.
@@ -232,6 +244,9 @@ GtsV2WireFindings >> recordOpener: event [
 	newerRegistry := event opener registry > 1.
 	newerRegistry ifTrue: [
 		segment add: (self positionalCode: 4 reason: nil position: nil count: nil) ].
+	head ifNotNil: [
+		event opener profile ifNotNil: [ :profile |
+			segment add: { 48. #(1). { 2. { 4. profile. #(1) } }. #(1). #(1). #(1). #(1) } ] ].
 	lineage := event opener lineage.
 	lineage ifNil: [
 		segmentFindings size > 1 ifTrue: [
@@ -478,6 +493,7 @@ GtsV2WireFindings >> stepOf: finding parity: parity [
 	code = 13 ifTrue: [ ^ 7 ].
 	(code between: 15 and: 17) ifTrue: [ ^ 13 ].
 	(#(40 41) includes: code) ifTrue: [ ^ 20 ].
+	code = 48 ifTrue: [ ^ 21 ].
 	code = 20 ifTrue: [ ^ finding second second = 87 ifTrue: [ 2 ] ifFalse: [ 7 ] ].
 	code <= 33 ifTrue: [ ^ 8 ].
 	code <= 35 ifTrue: [ ^ 9 ].

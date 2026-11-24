@@ -7,6 +7,72 @@ Class {
 }
 
 { #category : #tests }
+GtsV2WireTest >> testTypedOpenersMatchP1Records [
+	#(
+		'header-profile-zero' 'header-profile-unknown' 'lineage-begins-links-unavailable'
+		'resync-past-absent' 'resync-past-matches' 'resync-past-differs'
+		'resync-past-not-checked-count' 'resync-past-not-checked-cut' 'resync-past-displaced-join'
+		'resync-past-unit-equal' 'resync-profile-after-torn-signature' 'resync-field-head-not-shortest'
+		'marks-none' 'marks-unknown-tag' 'marks-code-zero' 'marks-range-after-item' 'marks-range-empty'
+		'marks-future-finding-code' 'marks-outside-grammar' 'marks-order-at-one-byte'
+		'marks-filler-on-scope' 'marks-observed-on-scope' 'marks-registry-version-not-raised'
+		'marks-hostile-displaced'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P1/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry |
+			((entry at: 'capacity') at: 'access') = 'whole' ifTrue: [ self assertTypedOpenerOf: entry ] ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> assertTypedOpenerOf: entry [
+	| fileName input capacity budget report file |
+	fileName := entry at: 'input_file'.
+	input := ('/workspace/vectors/v2/P1/', fileName) asFileReference
+		binaryReadStreamDo: [ :stream | stream upToEnd ].
+	capacity := entry at: 'capacity'.
+	budget := (GtsV2PayloadBudget withReadLimit: (capacity at: 'decoded_bytes_per_read'))
+		itemLimit: (capacity at: 'items_per_read').
+	report := (GtsV2Wire inspect: input budget: budget) typedWireFindings.
+	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	file second do: [ :segment |
+		| actual expected ordinal |
+		ordinal := segment first.
+		actual := report openerFieldsAt: ordinal.
+		expected := segment copyFrom: 4 to: 8.
+		self assert: actual = expected description: fileName, ' ', actual printString, ' expected ', expected printString.
+		actual := (report segmentFindingsAt: ordinal) select: [ :finding | finding first = 48 ].
+		expected := ((segment at: 18) select: [ :finding | finding first = 48 ]) asArray.
+		self assert: actual = expected description: fileName ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTypedResyncPastChargesSharedPrefixOnce [
+	| header first second input limit report |
+	header := #[135 1 2 1 1 129 1 129 1 129 1].
+	first := header, (self resyncWithPastOf: header).
+	second := first, (self resyncWithPastOf: first).
+	input := second, (self resyncWithPastOf: second).
+	limit := second size.
+	report := (GtsV2Wire inspect: input budget: (GtsV2PayloadBudget withReadLimit: limit)) typedWireFindings.
+	1 to: 3 do: [ :ordinal | self assert: (report openerFieldsAt: ordinal) first equals: #(2 1 false 2 0) ].
+	report := (GtsV2Wire inspect: input budget: (GtsV2PayloadBudget withReadLimit: limit - 1)) typedWireFindings.
+	1 to: 2 do: [ :ordinal | self assert: (report openerFieldsAt: ordinal) first equals: #(2 1 false 2 0) ].
+	self assert: (report openerFieldsAt: 3) first equals: #(2 1 false 4 0)
+]
+
+{ #category : #private }
+GtsV2WireTest >> resyncWithPastOf: prefix [
+	| marker body identifier |
+	marker := #[252 243 235 50 162 240 38 125 209 106 83 240 155 255 135 146].
+	body := GtsCborWriter encode: { 5. 2. marker. 1. 1. #(1). #(1). prefix size.
+		{ 2. GtsBlake3 deriveWith: 'gts2 unit' bytes: prefix }. #() }.
+	identifier := GtsBlake3 deriveWith: 'gts2 header' bytes: body.
+	body at: 1 put: 139.
+	^ body, (GtsCborWriter encode: identifier)
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testTypedFileResultForInputWithoutSegments [
 	#(
 		'P7/read__empty'
