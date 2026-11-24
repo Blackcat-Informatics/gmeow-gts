@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2ParityChecks,
 	#superclass : #Object,
-	#instVars : [ 'bytes', 'stream', 'header', 'registry', 'seenStarts', 'seenShort', 'foldStopped', 'pendingOpenerParity', 'parityJudged' ],
+	#instVars : [ 'bytes', 'stream', 'header', 'registry', 'seenStarts', 'seenShort', 'foldStopped', 'pendingOpenerParity', 'parityJudged', 'codec' ],
 	#category : #'Gts-Core'
 }
 
@@ -53,7 +53,8 @@ GtsV2ParityChecks >> finishOpenerLink: passes [
 	unexplained := pendingOpenerParity third + (passes ifTrue: [ pendingOpenerParity fourth ] ifFalse: [ 0 ]).
 	self recordUnexplained: unexplained of: pendingOpenerParity second for: event.
 	event parityFinding = 'parity_stale' ifFalse: [
-		stream protectThrough: (pendingOpenerParity at: 5) at: (pendingOpenerParity at: 6) ].
+		stream protectThrough: (pendingOpenerParity at: 5) at: (pendingOpenerParity at: 6).
+		self recordReconstructionFailure: (pendingOpenerParity at: 7) for: event ].
 	pendingOpenerParity := nil
 ]
 
@@ -145,27 +146,104 @@ GtsV2ParityChecks >> readDigestList: list count: count [
 
 { #category : #validation }
 GtsV2ParityChecks >> checkShardsFor: event table: table payload: payload from: first to: end [
-	| shardSize dataCounts dataFailed unexplained parityFailed offset findings |
+	| shardSize dataCounts dataFailed unexplained parityFailed offset findings failure |
 	shardSize := table first.
 	dataCounts := stream compareFrom: first to: end shardSize: shardSize digests: table second.
-	dataFailed := dataCounts first.
+	dataFailed := dataCounts first size.
 	unexplained := dataCounts second.
 	offset := table fourth.
-	parityFailed := 0.
-	table third do: [ :digest |
+	parityFailed := OrderedCollection new.
+	table third withIndexDo: [ :digest :index |
 		| computed |
 		computed := GtsBlake3 deriveWith: 'gts2 shard' prefix: #[] bytes: payload from: offset to: offset + shardSize.
-		(computed first: 16) = digest ifFalse: [ parityFailed := parityFailed + 1 ].
+		(computed first: 16) = digest ifFalse: [ parityFailed add: index ].
 		offset := offset + shardSize ].
 	findings := OrderedCollection new.
 	dataFailed > 0 ifTrue: [ findings add: { 'parity_mismatch'. 'data'. dataFailed } ].
-	parityFailed > 0 ifTrue: [ findings add: { 'parity_mismatch'. 'parity'. parityFailed } ].
+	parityFailed isNotEmpty ifTrue: [ findings add: { 'parity_mismatch'. 'parity'. parityFailed size } ].
 	event parityShardFindings: findings.
+	(dataFailed > unexplained or: [ dataFailed = 0 and: [ parityFailed isNotEmpty ] ]) ifTrue: [
+		failure := self reconstructionFailureFor: table payload: payload from: first to: end
+			erasures: { dataCounts first. parityFailed } ].
 	dataCounts third > 0
-		ifTrue: [ pendingOpenerParity := { event. dataFailed. unexplained. dataCounts third. end. nil } ]
+		ifTrue: [ pendingOpenerParity := { event. dataFailed. unexplained. dataCounts third. end. nil. failure } ]
 		ifFalse: [
 			self recordUnexplained: unexplained of: dataFailed for: event.
-			self protectThrough: end for: event ]
+			self protectThrough: end for: event.
+			self recordReconstructionFailure: failure for: event ]
+]
+
+{ #category : #validation }
+GtsV2ParityChecks >> recordReconstructionFailure: reason for: event [
+	reason ifNotNil: [ event parityShardFindings add: { 'repair_failed'. reason. nil } ]
+]
+
+{ #category : #validation }
+GtsV2ParityChecks >> reconstructionFailureFor: table payload: payload from: first to: end erasures: erasures [
+	| dataMissing parityMissing dataDigests depth counts data shardSize valid |
+	dataMissing := erasures first asSet.
+	parityMissing := erasures second asSet.
+	dataDigests := table second.
+	depth := table third size // 4.
+	counts := Array new: depth withAll: 0.
+	dataMissing do: [ :column |
+		| stripe |
+		stripe := ((column - 1) \\ depth) + 1.
+		counts at: stripe put: (counts at: stripe) + 1 ].
+	parityMissing do: [ :row |
+		| stripe |
+		stripe := ((row - 1) // 4) + 1.
+		counts at: stripe put: (counts at: stripe) + 1 ].
+	(counts anySatisfy: [ :count | count > 4 ]) ifTrue: [ ^ 'too_many_erasures' ].
+	shardSize := table first.
+	data := Array new: dataDigests size.
+	self streamShardsFrom: first to: end size: shardSize into: data ignoring: dataMissing.
+	codec ifNil: [ codec := GtsV2ParityCodec new ].
+	valid := true.
+	counts withIndexDo: [ :count :stripe |
+		count > 0 ifTrue: [
+			(self checksStripe: stripe depth: depth table: table payload: payload data: data missingParity: parityMissing)
+				ifFalse: [ valid := false ] ] ].
+	^ valid ifFalse: [ 'verify_failed' ]
+]
+
+{ #category : #private }
+GtsV2ParityChecks >> streamShardsFrom: first to: end size: shardSize into: data ignoring: erased [
+	| index |
+	index := 0.
+	stream shardsFrom: first to: end size: shardSize do: [ :shard :passes :shardEnd |
+		index := index + 1.
+		(erased includes: index) ifFalse: [ data at: index put: shard copy ] ]
+]
+
+{ #category : #validation }
+GtsV2ParityChecks >> checksStripe: stripe depth: depth table: table payload: payload data: data missingParity: parityMissing [
+	| columns rows shardSize knownData knownParity solution dataMatches parityMatches |
+	columns := stripe to: data size by: depth.
+	rows := ((stripe - 1) * 4 + 1) to: stripe * 4.
+	shardSize := table first.
+	knownData := columns collect: [ :column | data at: column ].
+	knownParity := rows collect: [ :row |
+		(parityMissing includes: row) ifFalse: [
+			| start |
+			start := table fourth + ((row - 1) * shardSize).
+			payload copyFrom: start to: start + shardSize - 1 ] ].
+	solution := codec solveData: knownData parity: knownParity shardSize: shardSize.
+	dataMatches := self checksSolved: solution first original: knownData slots: columns digests: table second.
+	parityMatches := self checksSolved: solution second original: knownParity slots: rows digests: table third.
+	^ dataMatches and: [ parityMatches ]
+]
+
+{ #category : #validation }
+GtsV2ParityChecks >> checksSolved: solved original: known slots: slots digests: digests [
+	| valid |
+	valid := true.
+	known withIndexDo: [ :shard :index |
+		shard ifNil: [
+			| actual |
+			actual := (GtsBlake3 deriveWith: 'gts2 shard' bytes: (solved at: index)) first: 16.
+			actual = (digests at: (slots at: index)) ifFalse: [ valid := false ] ] ].
+	^ valid
 ]
 
 { #category : #private }
