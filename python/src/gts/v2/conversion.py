@@ -32,8 +32,9 @@ _ERROR_FINDINGS = frozenset(
         "conflicting_declaration",
     )
 )
-# Error-severity codes of the P2 finding table that admission does not check; proof
-# verification is a pending contract requirement (P9-7).
+# Error-severity codes of the P2 finding table that result admission does not emit.
+# The proof codes belong to range and consistency proofs; the P9 proof is checked by
+# comparing the content digest of the result read with the expected digest.
 _UNCHECKED_ERROR_CODES = frozenset(
     (
         "chain_break",
