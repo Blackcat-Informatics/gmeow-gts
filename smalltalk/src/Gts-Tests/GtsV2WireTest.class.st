@@ -7,6 +7,44 @@ Class {
 }
 
 { #category : #tests }
+GtsV2WireTest >> testWireFoldStatesMatchPublishedRecords [
+	#(
+		'P7/read__fold-precedence-each'
+		'P7/left-out-zero' 'P7/left-out-unreadable-segment' 'P7/left-out-unknown-type' 'P7/left-out-stopped'
+		'P7/left-out-region' 'P7/left-out-refused' 'P7/left-out-torn-end' 'P7/left-out-torn-mid-file'
+		'P1/parity-codec-newer' 'P1/parity-later-version-payload-damaged' 'P1/parity-later-version-after-stop'
+	) do: [ :name |
+		| root fixture |
+		root := '/workspace/vectors/v2/', (name copyUpTo: $/), '/'.
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry |
+			((entry at: 'capacity') at: 'access') = 'whole' ifTrue: [ self assertWireFoldOf: entry root: root ] ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> assertWireFoldOf: entry root: root [
+	| fileName input capacity budget report file |
+	fileName := entry at: 'input_file'.
+	input := (root, fileName) asFileReference binaryReadStreamDo: [ :stream | stream upToEnd ].
+	capacity := entry at: 'capacity'.
+	budget := (GtsV2PayloadBudget withReadLimit: (capacity at: 'decoded_bytes_per_read'))
+		itemLimit: (capacity at: 'items_per_read');
+		storedLimit: (capacity at: 'stored_bytes_per_frame') frameLimit: (capacity at: 'decoded_bytes_per_frame').
+	report := (GtsV2Wire inspect: input budget: budget) typedWireFindings.
+	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	self assert: report wireLeftOut = file seventh description: fileName, ' left out ', report wireLeftOut printString,
+		' expected ', file seventh printString.
+	file second do: [ :segment |
+		(segment at: 17) do: [ :frame |
+			| actual expected |
+			actual := report wireFoldStateAt: frame second.
+			expected := frame at: 9.
+			expected first = 1 ifTrue: [ expected := nil ].
+			self assert: actual = expected description: fileName, ' fold state at ', frame second printString, ' ',
+				actual printString, ' expected ', expected printString ] ]
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testTypedFileEndAndSegmentRangesMatchPublishedRecords [
 	#(
 		'P7/file-end-no-commit' 'P7/file-end-at-valid-commit' 'P7/file-end-at-authenticated-commit'

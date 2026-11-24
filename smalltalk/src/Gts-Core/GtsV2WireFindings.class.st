@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut', 'frameFoldStates', 'foldStopped' ],
 	#category : #'Gts-Core'
 }
 
@@ -21,6 +21,7 @@ GtsV2WireFindings >> initializeOn: bytes budget: budget held: held trusted: trus
 	segmentFindings := OrderedCollection new.
 	segmentRanges := OrderedCollection new.
 	frameFindings := Dictionary new.
+	frameFoldStates := Dictionary new.
 	positions := Dictionary new.
 	claimSteps := IdentityDictionary new.
 	committedCounts := OrderedCollection new.
@@ -113,6 +114,18 @@ GtsV2WireFindings >> fileEnd [
 	^ fileEnd
 ]
 
+{ #category : #accessing }
+GtsV2WireFindings >> wireFoldStateAt: offset [
+	"Nil when the wire checks leave the frame eligible for content processing."
+	^ frameFoldStates at: offset ifAbsent: [ nil ]
+]
+
+{ #category : #accessing }
+GtsV2WireFindings >> wireLeftOut [
+	"Items already known to be left out, before completing content processing."
+	^ leftOut
+]
+
 { #category : #observing }
 GtsV2WireFindings >> finishOpeners [
 	openers finish
@@ -153,6 +166,7 @@ GtsV2WireFindings >> observe: event [
 		segmentStart := event offset.
 		segmentCut := nil.
 		fileEnd := 4.
+		foldStopped := false.
 		position := 0.
 		segment := OrderedCollection new.
 		segmentFindings add: segment.
@@ -177,9 +191,12 @@ GtsV2WireFindings >> observe: event [
 	position := position + 1.
 	self remember: event.
 	event frame
-		ifNil: [ self recordNonFrame: event ]
+		ifNil: [
+			(#(opaque unchecked) includes: event kind) ifTrue: [ leftOut := leftOut + 1 ].
+			self recordNonFrame: event ]
 		ifNotNil: [ self recordFrame: event ].
 	validCommit := claimChecks ifNil: [ false ] ifNotNil: [ self checkClaimsOf: event ].
+	event frame ifNotNil: [ self recordWireFoldStateOf: event ].
 	self observeEndAt: event validCommit: validCommit.
 	authentication ifNotNil: [ self checkSignaturesOf: event validCommit: validCommit ]
 ]
@@ -216,6 +233,36 @@ GtsV2WireFindings >> observeEndAt: event validCommit: validCommit [
 			(#(opaque framingGap) includes: event kind) ifTrue: [ fileEnd := 3 ] ]
 		ifNotNil: [ :frame |
 			(frame isTransparent not and: [ frame frameType ~= 15 ]) ifTrue: [ fileEnd := 3 ] ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> recordWireFoldStateOf: event [
+	| findings unsupported state |
+	findings := frameFindings at: event offset ifAbsent: [ #() ].
+	unsupported := findings anySatisfy: [ :finding | finding first = 6 ].
+	state := self wireFoldStateOf: event findings: findings unsupported: unsupported.
+	unsupported ifTrue: [ foldStopped := true ].
+	state ifNotNil: [
+		frameFoldStates at: event offset put: state.
+		state first = 3 ifTrue: [ leftOut := leftOut + 1 ] ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> wireFoldStateOf: event findings: findings unsupported: unsupported [
+	| payload |
+	(event frameType = 16 and: [ event hasUnknownParityGeometry not ]) ifTrue: [ ^ #(2) ].
+	(findings anySatisfy: [ :finding | finding first = 7 ]) ifTrue: [ ^ #(3 2) ].
+	(event link = #broken and: [ event frame isTransparent not ]) ifTrue: [ ^ #(3 6) ].
+	foldStopped ifTrue: [ ^ #(3 5) ].
+	payload := event payload.
+	payload state = #damaged ifTrue: [ ^ #(3 1) ].
+	unsupported ifTrue: [ ^ #(3 4) ].
+	payload state = #unchecked ifTrue: [
+		^ payload reason = 'unknown_codec' ifTrue: [ #(3 8) ] ifFalse: [ #(3 7) ] ].
+	(event hasUnknownParityGeometry or: [ findings anySatisfy: [ :finding |
+		finding first = 5 and: [ finding second second = 2 ] ] ]) ifTrue: [ ^ #(3 3) ].
+	(event frameType = 14 or: [ event frameType = 15 and: [ newerRegistry not ] ]) ifTrue: [ ^ #(2) ].
+	^ nil
 ]
 
 { #category : #private }
