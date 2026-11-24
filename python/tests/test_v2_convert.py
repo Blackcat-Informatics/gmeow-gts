@@ -13,7 +13,7 @@ import pytest
 from gts.v2 import ConversionCapacity, ConversionStop, Converted, convert, read_content
 from gts.v2.__main__ import main
 from gts.v2._conversion_output import ConversionCandidate, prepare_conversion
-from gts.v2.conversion import _ERROR_FINDINGS, _SEPARATE_ERROR_CHECKS
+from gts.v2.conversion import _ERROR_FINDINGS, _UNCHECKED_ERROR_CODES
 
 _P9 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P9"
 
@@ -116,14 +116,16 @@ def test_convert_command_writes_both_outputs_and_preserves_existing_paths(
     assert not extra_proof.exists()
 
 
-def test_error_severity_codes_are_admitted_or_checked_separately() -> None:
-    """Every error-severity code of the P2 table is in the admission set or checked."""
+def test_error_severity_codes_are_classified() -> None:
+    """Every error-severity P2 code is exactly one of admitted or unchecked.
+
+    A new error-severity code in the table must be consciously classified.
+    """
     table = (_P9.parents[2] / "docs" / "v2" / "P2.md").read_text(encoding="utf-8")
     section = table.split("### 5.1 Codes, severities")[1].split("\n\n")[1]
     rows = re.findall(r"^\| \d+ \| `(\w+)` \| (\w+) \|", section, re.MULTILINE)
     errors = {code for code, severity in rows if severity == "error"}
     assert len(rows) == 48
-    covered = _ERROR_FINDINGS | _SEPARATE_ERROR_CHECKS.keys()
-    assert errors <= covered, sorted(errors - covered)
-    assert covered <= errors, sorted(covered - errors)
-    assert not _ERROR_FINDINGS & _SEPARATE_ERROR_CHECKS.keys()
+    assert not _ERROR_FINDINGS & _UNCHECKED_ERROR_CODES
+    classified = _ERROR_FINDINGS | _UNCHECKED_ERROR_CODES
+    assert errors == classified, sorted(errors ^ classified)
