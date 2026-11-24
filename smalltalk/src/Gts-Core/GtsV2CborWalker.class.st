@@ -80,3 +80,8 @@ GtsV2CborWalker >> itemEndAt: start limit: limit [
 									position := position + argument ] ] ] ] ].
 	^ position
 ]
+
+{ #category : #accessing }
+GtsV2CborWalker >> bytes [
+	^ bytes
+]

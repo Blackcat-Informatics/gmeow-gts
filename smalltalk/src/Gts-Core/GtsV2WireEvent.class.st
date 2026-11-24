@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frameType' ],
 	#category : #'Gts-Core'
 }
 
@@ -39,6 +39,23 @@ GtsV2WireEvent >> end [
 { #category : #accessing }
 GtsV2WireEvent >> problem [
 	^ problem
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> opener [
+	^ opener
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> frameType [
+	^ frameType
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> opener: anOpener frameType: aFrameType [
+	opener := anOpener.
+	frameType := aFrameType.
+	^ self
 ]
 
 { #category : #testing }
