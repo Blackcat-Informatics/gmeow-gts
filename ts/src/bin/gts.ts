@@ -34,6 +34,9 @@ import {
 import type { Graph, FileSegments } from "../reader.js";
 import { TermKind, type Quad, type Suppression } from "../model.js";
 import { printFramingInfo } from "./v2_info.js";
+import { inspectFraming } from "../v2_framing.js";
+import { projectRdf, rdfNQuads } from "../v2_rdf_projection.js";
+import { RdfProjectionError } from "../v2_rdf_cursor.js";
 
 type CliLocale = "en" | "fr-CA" | "zh-Hans";
 
@@ -328,7 +331,31 @@ function cmdFold(paths: string[]): number {
         console.error(usage);
         return 2;
     }
-    const g = Read(load(paths[0]), true);
+    const data = load(paths[0]);
+    const wire = inspectFraming(data, true);
+    if (wire.kind === "v2") {
+        try {
+            process.stdout.write(rdfNQuads(projectRdf(wire)));
+            return 0;
+        } catch (error) {
+            if (!(error instanceof RdfProjectionError)) throw error;
+            console.error(`gts fold: ${paths[0]}: ${error.message}`);
+            return 1;
+        }
+    }
+    if (wire.kind !== "v1") {
+        const reason =
+            wire.kind === "unsupported"
+                ? `unsupported GTS generation ${wire.generation}`
+                : wire.kind === "framing_error"
+                  ? `framing stopped at byte 0: ${wire.reason}`
+                  : wire.kind === "empty"
+                    ? "empty input"
+                    : "input does not identify a GTS generation";
+        console.error(`gts fold: ${paths[0]}: ${reason}`);
+        return 1;
+    }
+    const g = Read(data, true);
     for (const d of g.diagnostics) {
         console.error(`gts: diagnostic ${d.code}: ${d.detail}`);
     }

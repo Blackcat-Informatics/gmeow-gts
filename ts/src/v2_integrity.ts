@@ -43,7 +43,7 @@ export interface FrameBytes {
     storage?: Storage;
     storedPayload?: Uint8Array;
     payloadChunks?: () => Iterable<Uint8Array>;
-    contentSize: number;
+    content: Uint8Array;
     signaturesSize: number;
 }
 
@@ -122,7 +122,7 @@ type PayloadReason =
     | "payload_digest";
 
 export type PayloadCheck =
-    | { state: "verified" }
+    | { state: "verified"; decoded?: Uint8Array }
     | {
           state: "damaged" | "unchecked";
           reason?: PayloadReason;
@@ -133,7 +133,7 @@ export class PayloadBudget {
     private total = 0n;
     private exhausted = false;
 
-    check(frame: FrameBytes): PayloadCheck {
+    check(frame: FrameBytes, includeDecoded = false): PayloadCheck {
         const { decodedLength, payloadDigest, storage, storedPayload } = frame;
         if (
             decodedLength === undefined ||
@@ -168,7 +168,9 @@ export class PayloadBudget {
         if (!equals(contextHash("gts2 payload", decoded), payloadDigest)) {
             return { state: "damaged", reason: "payload_digest" };
         }
-        return { state: "verified" };
+        return includeDecoded
+            ? { state: "verified", decoded }
+            : { state: "verified" };
     }
 
     private admit(
@@ -179,7 +181,7 @@ export class PayloadBudget {
         if (!this.exhausted) {
             for (const size of [
                 storedSize,
-                frame.contentSize,
+                frame.content.length,
                 frame.signaturesSize,
             ]) {
                 if (BigInt(size) > frameCapacity) {

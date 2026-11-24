@@ -159,4 +159,9 @@ test("CLI from-nq writes the v2 import to the requested file", () => {
     });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(readFileSync(outPath), Buffer.from(fromNQuadsV2(nq)));
+    const folded = spawnSync("node", [cli, "fold", outPath], {
+        encoding: "utf8",
+    });
+    assert.equal(folded.status, 0, folded.stderr);
+    assert.deepEqual(sortedLines(folded.stdout), sortedLines(nq));
 });
