@@ -27,6 +27,11 @@ GtsBlake3 class >> hash: aByteArray [
 ]
 
 { #category : #hashing }
+GtsBlake3 class >> deriveWith: context bytes: input [
+	^ self deriveWith: context prefix: #[] bytes: input from: 1 to: input size + 1
+]
+
+{ #category : #hashing }
 GtsBlake3 class >> deriveWith: context prefix: prefix bytes: input from: start to: finish [
 	| digest contextBytes |
 	self checkRangeOf: input from: start to: finish.

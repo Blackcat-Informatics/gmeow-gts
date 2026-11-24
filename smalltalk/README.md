@@ -45,4 +45,8 @@ RDF folding and recovery require additional v2 support.
 version 1. It reports each segment's committed prefix and uncommitted tail.
 Index payload claims and v2 signature verification require additional support.
 
+`gts from-nq` writes a committed v2 segment. It preserves named graphs,
+language direction, and nested object triples, and uses value references
+for large literals. Folding the resulting v2 segment requires a v2 RDF reader.
+
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.

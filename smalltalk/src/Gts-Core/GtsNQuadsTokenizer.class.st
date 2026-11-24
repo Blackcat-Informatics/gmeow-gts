@@ -49,16 +49,19 @@ GtsNQuadsTokenizer >> atomKind: kind value: value language: language direction: 
 
 { #category : #private }
 GtsNQuadsTokenizer >> bnode [
-	| start |
+	| start finish |
 	(self startsWith: '_:') ifFalse: [ GtsParserError signal: 'bad blank node in ', source ].
 	position := position + 2.
 	start := position.
+	(position <= source size and: [ self isBlankNodeStart: (source at: position) ])
+		ifFalse: [ GtsParserError signal: 'invalid blank node label in ', source ].
+	finish := position.
 	[ position <= source size and: [ self isBlankNodeCharacter: (source at: position) ] ]
-		whileTrue: [ position := position + 1 ].
-	(position > start and: [ (source at: position - 1) = $. ])
-		ifTrue: [ position := position - 1 ].
-	position = start ifTrue: [ GtsParserError signal: 'empty blank node label in ', source ].
-	^ source copyFrom: start to: position - 1
+		whileTrue: [
+			(source at: position) = $. ifFalse: [ finish := position ].
+			position := position + 1 ].
+	position := finish + 1.
+	^ source copyFrom: start to: finish
 ]
 
 { #category : #private }
@@ -67,8 +70,26 @@ GtsNQuadsTokenizer >> consumeStatementTerminator [
 	(position <= source size and: [ (source at: position) = $. ])
 		ifFalse: [ GtsParserError signal: 'expected statement terminator in ', source ].
 	position := position + 1.
+	self consumeCommentOrEnd
+]
+
+{ #category : #parsing }
+GtsNQuadsTokenizer >> consumeVersionHint [
+	| hint |
+	self expect: 'VERSION'.
 	self skipWhitespace.
-	position <= source size
+	(position <= source size and: [ (source at: position) = $" ])
+		ifFalse: [ GtsParserError signal: 'expected a VERSION string' ].
+	hint := self literal.
+	((hint includesKey: 'datatype') or: [ hint includesKey: 'language' ]) ifTrue: [
+		GtsParserError signal: 'VERSION requires a plain string' ].
+	self consumeCommentOrEnd
+]
+
+{ #category : #private }
+GtsNQuadsTokenizer >> consumeCommentOrEnd [
+	self skipWhitespace.
+	(position <= source size and: [ (source at: position) ~= $# ])
 		ifTrue: [ GtsParserError signal: 'unexpected trailing tokens in ', source ]
 ]
 
@@ -80,6 +101,7 @@ GtsNQuadsTokenizer >> escape [
 	position := position + 1.
 	character = $\ ifTrue: [ ^ '\' ].
 	character = $" ifTrue: [ ^ '"' ].
+	character = $' ifTrue: [ ^ '''' ].
 	character = $b ifTrue: [ ^ (String with: (Character value: 8)) ].
 	character = $f ifTrue: [ ^ (String with: (Character value: 12)) ].
 	character = $n ifTrue: [ ^ String lf ].
@@ -94,6 +116,8 @@ GtsNQuadsTokenizer >> escape [
 			ifFalse: [ GtsParserError signal: 'bad unicode escape in ', source ].
 		position := position + width.
 		code := self integerFromHex: raw.
+		(code > 16r10FFFF or: [ code between: 16rD800 and: 16rDFFF ]) ifTrue: [
+			GtsParserError signal: 'N-Quads escape is outside the Unicode scalar range' ].
 		^ String with: (Character value: code) ].
 	GtsParserError signal: 'unsupported escape \', character asString, ' in ', source
 ]
@@ -135,16 +159,22 @@ GtsNQuadsTokenizer >> integerFromHex: text [
 
 { #category : #private }
 GtsNQuadsTokenizer >> iri [
-	| end start |
+	| character |
 	(position <= source size and: [ (source at: position) = $< ])
 		ifFalse: [ GtsParserError signal: 'bad IRI in ', source ].
-	start := position + 1.
-	end := start.
-	[ end <= source size and: [ (source at: end) ~= $> ] ]
-		whileTrue: [ end := end + 1 ].
-	end > source size ifTrue: [ GtsParserError signal: 'unterminated IRI in ', source ].
-	position := end + 1.
-	^ source copyFrom: start to: end - 1
+	position := position + 1.
+	String streamContents: [ :stream |
+		[ position <= source size ] whileTrue: [
+			character := source at: position.
+			position := position + 1.
+			character = $> ifTrue: [ ^ stream contents ].
+			character = $\
+				ifTrue: [
+					(position <= source size and: [ 'uU' includes: (source at: position) ])
+						ifFalse: [ GtsParserError signal: 'N-Quads IRI escapes require a Unicode value' ].
+					stream nextPutAll: self escape ]
+				ifFalse: [ stream nextPut: character ] ] ].
+	GtsParserError signal: 'unterminated IRI in ', source
 ]
 
 { #category : #private }
@@ -158,8 +188,23 @@ GtsNQuadsTokenizer >> isAsciiLetterOrDigit: character [
 
 { #category : #private }
 GtsNQuadsTokenizer >> isBlankNodeCharacter: character [
-	^ (self isAsciiLetterOrDigit: character)
-		or: [ character = $_ or: [ character = $- or: [ character = $. ] ] ]
+	| code |
+	code := character asciiValue.
+	^ (self isBlankNodeStart: character) or: [
+		character = $- or: [ character = $. or: [ code = 16rB7 or: [
+			(code between: 16r300 and: 16r36F) or: [ code between: 16r203F and: 16r2040 ] ] ] ] ]
+]
+
+{ #category : #private }
+GtsNQuadsTokenizer >> isBlankNodeStart: character [
+	| code |
+	((self isAsciiLetterOrDigit: character) or: [ character = $_ ]) ifTrue: [ ^ true ].
+	code := character asciiValue.
+	^ #(
+		(16rC0 16rD6) (16rD8 16rF6) (16rF8 16r2FF) (16r370 16r37D)
+		(16r37F 16r1FFF) (16r200C 16r200D) (16r2070 16r218F) (16r2C00 16r2FEF)
+		(16r3001 16rD7FF) (16rF900 16rFDCF) (16rFDF0 16rFFFD) (16r10000 16rEFFFF)
+	) anySatisfy: [ :range | code between: range first and: range second ]
 ]
 
 { #category : #private }
@@ -209,9 +254,7 @@ GtsNQuadsTokenizer >> literal [
 								language := language size = 5
 									ifTrue: [ '' ]
 									ifFalse: [ language copyFrom: 1 to: language size - 5 ] ].
-						language isEmpty ifTrue: [ GtsParserError signal: 'empty language tag in ', source ].
-						((direction isNil and: [ language includesSubstring: '--' ]))
-							ifTrue: [ GtsParserError signal: 'invalid literal direction in ', source ] ]
+						self validateLanguage: language ]
 					ifFalse: [
 						(self startsWith: '^^') ifTrue: [
 							position := position + 2.
@@ -225,6 +268,18 @@ GtsNQuadsTokenizer >> literal [
 					datatype: datatype ].
 			stream nextPut: character ] ] ].
 	GtsParserError signal: 'unterminated literal in ', source
+]
+
+{ #category : #private }
+GtsNQuadsTokenizer >> validateLanguage: language [
+	| primaryEnd primary |
+	(language isEmpty or: [ language last = $- or: [ language includesSubstring: '--' ] ])
+		ifTrue: [ GtsParserError signal: 'invalid N-Quads language tag' ].
+	primaryEnd := language indexOf: $- ifAbsent: [ language size + 1 ].
+	primary := language copyFrom: 1 to: primaryEnd - 1.
+	(primary isNotEmpty and: [ primary allSatisfy: [ :character |
+		(character between: $A and: $Z) or: [ character between: $a and: $z ] ] ])
+		ifFalse: [ GtsParserError signal: 'invalid N-Quads language tag' ]
 ]
 
 { #category : #parsing }
