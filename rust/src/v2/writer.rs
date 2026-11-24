@@ -110,6 +110,8 @@ impl Range {
 /// writer derives the head, frame identifiers and commit count and root.
 pub struct SegmentWriter {
     bytes: Vec<u8>,
+    header_len: usize,
+    opener: Digest,
     head: Digest,
     range: Range,
 }
@@ -120,7 +122,9 @@ impl SegmentWriter {
         let bytes = encode_header(header)?;
         let head = blake3::derive_key(HEADER_CONTEXT, &bytes);
         Ok(Self {
+            header_len: bytes.len(),
             bytes,
+            opener: head,
             head,
             range: Range::new(&head),
         })
@@ -182,3 +186,7 @@ impl SegmentWriter {
         Ok(identifier)
     }
 }
+
+mod finish;
+mod parity;
+pub use finish::SegmentFinishError;
