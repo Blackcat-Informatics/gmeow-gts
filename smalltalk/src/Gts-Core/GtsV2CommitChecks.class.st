@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2CommitChecks,
 	#superclass : #Object,
-	#instVars : [ 'range', 'head', 'typeRuns', 'runType', 'runLength', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'hasIndex' ],
+	#instVars : [ 'range', 'head', 'typeRuns', 'runType', 'runLength', 'packs', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'hasIndex' ],
 	#category : #'Gts-Core'
 }
 
@@ -19,6 +19,7 @@ GtsV2CommitChecks >> initializeOpener: identifier [
 	head := identifier.
 	typeRuns := ByteArray new writeStream.
 	runLength := 0.
+	packs := GtsV2PackClaims new.
 	position := 0.
 	committedFrames := 0.
 	tailFrames := 0.
@@ -51,6 +52,9 @@ GtsV2CommitChecks >> observe: event findingsDo: aBlock [
 	| identifier |
 	position := position + 1.
 	identifier := event effectiveIdentifier.
+	(identifier isNotNil and: [ event frameType = 13 ]) ifTrue: [
+		packs observe: event position: range leafCount - 1 report: [ :reason |
+			aBlock value: reason value: position value: nil ] ].
 	event frameType = 15
 		ifTrue: [
 			hasIndex := true.
@@ -95,7 +99,7 @@ GtsV2CommitChecks >> expectedTypeRuns [
 GtsV2CommitChecks >> checkIndex: event findingsDo: aBlock [
 	| reasons |
 	[ [ reasons := GtsV2IndexChecks check: event frame content bytes: event payload decoded
-			head: head range: range runs: self expectedTypeRuns ]
+			head: head range: range runs: self expectedTypeRuns packs: packs ]
 		on: GtsV2FramingError do: [ :error | GtsV2EnvelopeError signal: 'wrong_length' ] ]
 		on: GtsV2EnvelopeError do: [ :error |
 			aBlock value: 'malformed_value (', error messageText, ')' value: position value: nil.

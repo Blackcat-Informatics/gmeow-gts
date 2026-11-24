@@ -44,9 +44,10 @@ Recovery requires additional v2 support.
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.
 It validates index payloads and compares their frame count, head, type runs,
-and range root against the observed prefix. Index graph directories, pack
-member directories, fold statistics and content digests require additional
-support.
+and range root against the observed prefix. It compares each pack-member
+directory when all covered packs can be read. Index graph directories, fold
+statistics and content digests require additional support.
+
 Signatures using Ed25519 can be verified with `--key KEY_ID:PUBLIC_KEY`.
 Supply the GTS v2 key identifier and the raw public key in hexadecimal.
 The verifier reports invalid signatures as errors and reports signatures
