@@ -7,8 +7,8 @@ use std::collections::BTreeMap;
 
 use gmeow_gts::{
     v2::reader::{
-        read_wire, Dispatch, ItemKind, LinkState, Opener, PayloadState, ReadCapacity,
-        FramingFailure, ReadStop, ResyncRefusal, WireFrame, WireSegment,
+        read_wire, Dispatch, FramingFailure, ItemKind, LinkState, Opener, PayloadState,
+        ReadCapacity, ReadStop, ResyncRefusal, WireFrame, WireSegment,
     },
     wire::hex,
 };

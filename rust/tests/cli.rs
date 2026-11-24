@@ -1402,7 +1402,10 @@ fn info_reports_damage_healed_by_resync_as_not_clean() {
     let out = gts(&["info", damaged.to_str().unwrap()]);
     assert_eq!(out.status.code(), Some(1));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("damaged framing in segment at byte "), "{stdout}");
+    assert!(
+        stdout.contains("damaged framing in segment at byte "),
+        "{stdout}"
+    );
     assert!(stdout.contains("damaged region at byte "), "{stdout}");
 }
 
