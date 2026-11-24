@@ -3,38 +3,84 @@
 
 package ca.blackcatinformatics.gts.v2
 
-internal data class FrameEnvelope(val type: ULong?, val problem: String?)
+internal data class FrameEnvelope(
+    val type: ULong?,
+    val problem: String?,
+    val identity: CborField?,
+    val transparent: Boolean,
+    val storedId: ByteArray?,
+    val payload: FramePayload,
+)
+
+internal data class FramePayload(
+    val length: ULong?,
+    val digest: CborField?,
+    val storage: FrameStorage?,
+    val stored: CborField,
+    val deterministicBytes: Boolean,
+    val contentSize: Int,
+    val signaturesSize: Int,
+)
+
+internal data class FrameStorage(val tag: ULong, val codec: CborField? = null, val check: CborField? = null)
 
 internal fun readFrame(item: CborField, registry: ULong): FrameEnvelope {
-    var type: ULong? = null
+    val problems = FrameProblems()
     val newer = registry > 1uL
-    return try {
-        val fields = item.fields(11)
-        fields.next().uint()
-        val code = fields.next().uint()
-        type = code
-        if (code == 0uL || (!newer && code > 16uL)) malformed("unregistered_value")
-        val critical = fields.next().flag()
-        val known = code <= 16uL
-        if (known && critical != (code < 14uL)) malformed("forbidden_combination")
-        val transparent = fields.next().flag()
-        val parity = code == 16uL
-        if (known && transparent != parity) malformed("forbidden_combination")
-        checkContent(code, fields.next())
-        val length = fields.next().uint()
-        fields.next().bytes(32)
-        val storage = storageTag(fields.next(), newer)
-        if ((storage == 2uL && length == 0uL) || (parity && storage != 1uL)) malformed("forbidden_combination")
-        fields.next().bytes()
-        fields.next().bytes(32)
-        checkSignatures(fields.next(), newer, parity)
-        if ((code == 8uL && length == 0uL) || ((code == 12uL || code == 14uL) && length != 0uL)) {
-            malformed("out_of_range")
-        }
-        FrameEnvelope(code, null)
-    } catch (error: EnvelopeFailure) {
-        FrameEnvelope(type, error.reason)
+    val fields = item.fields(11)
+    fields.next()
+    val identityStart = fields.offset
+    val code = problems.observe { fields.next().uint() }
+    problems.record(code == 0uL || (!newer && code != null && code > 16uL), "unregistered_value")
+    val known = code != null && code in 1uL..16uL
+    val critical = problems.observe { fields.next().flag() }
+    problems.record(known && critical != (checkNotNull(code) < 14uL), "forbidden_combination")
+    val transparent = problems.observe { fields.next().flag() }
+    val parity = code == 16uL
+    problems.record(known && transparent != parity, "forbidden_combination")
+    val content = fields.next()
+    problems.observe { checkContent(code ?: 0uL, content) }
+    val length = problems.observe { fields.next().uint() }
+    val digest = problems.observe { fields.next().also { it.bytes(32) } }
+    val identity = if (problems.fieldFailed) null else CborField(item.data, identityStart, fields.offset)
+    val storage = problems.observe { readStorage(fields.next(), newer) }
+    problems.record(
+        storage != null && ((storage.tag == 2uL && length == 0uL) || (parity && storage.tag != 1uL)),
+        "forbidden_combination",
+    )
+    val payload = fields.next()
+    val deterministicBytes = problems.observe { payload.bytes() } != null
+    val identifier = fields.next()
+    problems.observe { identifier.bytes(32) }
+    val signatures = fields.next()
+    problems.observe { checkSignatures(signatures, newer, parity) }
+    problems.record(
+        (code == 8uL && length == 0uL) || ((code == 12uL || code == 14uL) && length != null && length != 0uL),
+        "out_of_range",
+    )
+    val framePayload =
+        FramePayload(length, digest, storage, payload, deterministicBytes, content.end - content.start, signatures.end - signatures.start)
+    return FrameEnvelope(code, problems.first, identity, transparent == true, identifier.observedIdentifier(), framePayload)
+}
+
+private class FrameProblems {
+    var first: String? = null
+        private set
+    var fieldFailed = false
+        private set
+
+    fun record(failed: Boolean, reason: String) {
+        if (failed && first == null) first = reason
     }
+
+    fun <T> observe(read: () -> T): T? =
+        try {
+            read()
+        } catch (error: EnvelopeFailure) {
+            fieldFailed = true
+            record(true, error.reason)
+            null
+        }
 }
 
 private fun checkContent(type: ULong, item: CborField) {
@@ -106,7 +152,7 @@ private fun textOption(item: CborField) {
     item.grammar()
 }
 
-private fun storageTag(item: CborField, newer: Boolean): ULong {
+private fun readStorage(item: CborField, newer: Boolean): FrameStorage {
     val array = item.typed(4)
     if (array.argument == 0uL) malformed("wrong_length")
     val fields = item.list()
@@ -116,13 +162,15 @@ private fun storageTag(item: CborField, newer: Boolean): ULong {
         1uL -> if (array.argument != 1uL) malformed("wrong_length")
         2uL -> {
             if (array.argument != 3uL) malformed("wrong_length")
-            val codec = fields.next().uint()
-            if (codec == 0uL || (!newer && codec != 1uL)) malformed("unregistered_value")
-            fields.next().bytes(16)
+            val codec = fields.next()
+            val algorithm = codec.uint()
+            if (algorithm == 0uL || (!newer && algorithm != 1uL)) malformed("unregistered_value")
+            val check = fields.next().also { it.bytes(16) }
+            return FrameStorage(tag, codec, check)
         }
         else -> item.grammar()
     }
-    return tag
+    return FrameStorage(tag)
 }
 
 private fun checkSignatures(item: CborField, newer: Boolean, parity: Boolean) {

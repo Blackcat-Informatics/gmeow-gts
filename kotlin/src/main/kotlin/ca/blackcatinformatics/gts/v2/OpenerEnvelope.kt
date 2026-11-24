@@ -7,7 +7,9 @@ private val resyncMarker = "fcf3eb32a2f0267dd16a53f09bff8792".hexToByteArray()
 
 internal data class OpenerEnvelope(val registry: ULong, val hashAlgorithm: ULong)
 
-internal fun readOpener(item: CborField, resync: Boolean): OpenerEnvelope {
+internal data class ParsedOpener(val envelope: OpenerEnvelope, val identifier: ByteArray?)
+
+internal fun readOpener(item: CborField, resync: Boolean): ParsedOpener {
     val bound = if (resync) item.start + minOf(4096, item.end - item.start) else item.end
     val fields = item.fields(if (resync) 11 else 7, bound)
     fields.next().uint()
@@ -38,14 +40,17 @@ internal fun readOpener(item: CborField, resync: Boolean): OpenerEnvelope {
         lineage.next().bytes(digestLength)
         if (lineage.next().uint() == 0uL) malformed("out_of_range")
     }
+    var identityEnd = item.end
     if (resync) {
         fields.next().uint()
         fields.next().option(bound) { it.bytes(digestLength) }
         checkMarks(fields.next(), bound)
+        identityEnd = fields.offset
         fields.next().bytes(digestLength)
         if (item.end > bound) malformed("out_of_range")
     }
-    return OpenerEnvelope(registry, hash)
+    val identifier = if (hash == 1uL) openerIdentifier(CborField(item.data, item.start, identityEnd), resync) else null
+    return ParsedOpener(OpenerEnvelope(registry, hash), identifier)
 }
 
 private fun checkMarks(field: CborField, bound: Int) {

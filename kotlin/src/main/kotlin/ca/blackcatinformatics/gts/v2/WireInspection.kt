@@ -33,6 +33,9 @@ internal sealed interface WireEvent {
         val problem: String? = null,
         val opener: OpenerEnvelope? = null,
         val frameType: ULong? = null,
+        val link: FrameLink? = null,
+        val storedMatches: Boolean? = null,
+        val payload: PayloadObservation? = null,
     ) : WireEvent
 
     data class Stop(val offset: Int, val reason: StopReason) : WireEvent, WireInspection
@@ -112,26 +115,66 @@ private fun isVersionKey(data: ByteArray, start: Int, end: Int): Boolean {
     return found
 }
 
+private data class ScannedItem(
+    val event: WireEvent,
+    val frame: FrameEnvelope? = null,
+    val openerId: ByteArray? = null,
+)
+
 private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
+    sequence {
+        val source = scanItems(data, firstEnd).iterator()
+        val budget = PayloadBudget()
+        var predecessor: ByteArray? = null
+        var current = if (source.hasNext()) source.next() else null
+        while (current != null) {
+            val next = if (source.hasNext()) source.next() else null
+            val event = current.event
+            if (event is WireEvent.Item && (event.kind == ItemKind.HEADER || event.kind == ItemKind.RESYNC)) {
+                predecessor = current.openerId
+            }
+            val frame = current.frame
+            if (event is WireEvent.Item && frame != null && predecessor != null) {
+                val link = checkLink(frame, predecessor, next?.frame)
+                predecessor = link.effective ?: predecessor
+                val storedMatches = checkStored(frame.payload)
+                val payload = budget.check(frame.payload)
+                yield(
+                    event.copy(
+                        problem = event.problem ?: payload.reason?.takeIf { it == "codec_constraint" },
+                        link = link.state,
+                        storedMatches = storedMatches,
+                        payload = payload,
+                    ),
+                )
+            } else {
+                yield(event)
+            }
+            current = next
+        }
+    }
+
+private fun scanItems(data: ByteArray, firstEnd: Int): Sequence<ScannedItem> =
     sequence {
         var offset = 0
         var count = 0
         var registry: ULong? = null
         while (offset < data.size) {
             if (count == (1 shl 26)) {
-                yield(WireEvent.Stop(offset, StopReason.ITEMS_PER_READ))
+                yield(ScannedItem(WireEvent.Stop(offset, StopReason.ITEMS_PER_READ)))
                 break
             }
             val end =
                 try {
                     if (offset == 0) firstEnd else itemEnd(data, offset)
                 } catch (error: FramingException) {
-                    yield(WireEvent.Stop(offset, error.reason))
+                    yield(ScannedItem(WireEvent.Stop(offset, error.reason)))
                     break
                 }
             val item = classify(data, offset, end, registry)
-            if (item.kind == ItemKind.HEADER || item.kind == ItemKind.RESYNC) {
-                registry = item.opener?.takeIf { it.hashAlgorithm == 1uL }?.registry
+            val event = item.event as WireEvent.Item
+            if (event.kind == ItemKind.HEADER || event.kind == ItemKind.RESYNC) {
+                registry = event.opener?.takeIf { item.openerId != null }?.registry
             }
             yield(item)
             offset = end
@@ -139,7 +182,7 @@ private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
         }
     }
 
-private fun classify(data: ByteArray, offset: Int, end: Int, registry: ULong?): WireEvent.Item {
+private fun classify(data: ByteArray, offset: Int, end: Int, registry: ULong?): ScannedItem {
     val array = readHead(data, offset, end)
     val code = readKind(data, array, end)
     val kind =
@@ -154,24 +197,24 @@ private fun classify(data: ByteArray, offset: Int, end: Int, registry: ULong?): 
     if (kind == ItemKind.HEADER || kind == ItemKind.RESYNC) {
         return try {
             val opener = readOpener(CborField(data, offset, end), kind == ItemKind.RESYNC)
-            WireEvent.Item(offset, end, kind, opener = opener)
+            ScannedItem(WireEvent.Item(offset, end, kind, opener = opener.envelope), openerId = opener.identifier)
         } catch (error: EnvelopeFailure) {
-            WireEvent.Item(offset, end, kind, error.reason)
+            ScannedItem(WireEvent.Item(offset, end, kind, error.reason))
         }
     }
     return when {
-        registry == null -> WireEvent.Item(offset, end, ItemKind.UNCHECKED)
-        code == null -> WireEvent.Item(offset, end, ItemKind.OPAQUE, "wrong_type")
-        !array.shortest || !code.shortest -> WireEvent.Item(offset, end, ItemKind.OPAQUE, "not_deterministic")
-        kind == ItemKind.FRAME && array.argument != 11uL -> WireEvent.Item(offset, end, ItemKind.OPAQUE, "wrong_length")
+        registry == null -> ScannedItem(WireEvent.Item(offset, end, ItemKind.UNCHECKED))
+        code == null -> ScannedItem(WireEvent.Item(offset, end, ItemKind.OPAQUE, "wrong_type"))
+        !array.shortest || !code.shortest -> ScannedItem(WireEvent.Item(offset, end, ItemKind.OPAQUE, "not_deterministic"))
+        kind == ItemKind.FRAME && array.argument != 11uL -> ScannedItem(WireEvent.Item(offset, end, ItemKind.OPAQUE, "wrong_length"))
         kind == ItemKind.FRAME -> {
             val frame = readFrame(CborField(data, offset, end), registry)
-            WireEvent.Item(offset, end, kind, frame.problem, frameType = frame.type)
+            ScannedItem(WireEvent.Item(offset, end, kind, frame.problem, frameType = frame.type), frame)
         }
         kind == ItemKind.OPAQUE -> {
             val reason = if (code.argument != 0uL && registry > 1uL) "unknown_item_kind" else "unregistered_value"
-            WireEvent.Item(offset, end, kind, reason)
+            ScannedItem(WireEvent.Item(offset, end, kind, reason))
         }
-        else -> WireEvent.Item(offset, end, kind)
+        else -> ScannedItem(WireEvent.Item(offset, end, kind))
     }
 }
