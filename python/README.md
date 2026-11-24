@@ -37,6 +37,10 @@ the hash algorithm is supported. `gts.v2.encode_header(header)` writes the
 registry version 1 header record for a segment writer.
 Use `gts.v2.item_end(data, offset=0)` to walk a CBOR item at a known boundary and
 `gts.v2.generation_field(data)` to identify the first item's generation prefix.
+Use `gts.v2.dispatch_file(data, budget)` to decide the first opener, recover
+a resync at the file start, or obtain the initial framing finding. The
+result gives the offset at which the caller can continue after an opener.
+`first_and_second=True` also enables selection of the legacy reader.
 `gts.v2.decode_frame(data, offset=0)` reads a frame envelope, preserves its exact
 identity fields and exposes separate checks for stored and decoded payloads.
 `gts.v2.encode_plain_frame(predecessor, frame_type, content, payload)` builds an

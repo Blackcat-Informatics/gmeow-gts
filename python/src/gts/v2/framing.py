@@ -128,7 +128,10 @@ def generation_field(data: bytes) -> GenerationField | None:
     """
     if not data:
         return None
-    end = item_end(data)
+    return _generation_field(data, item_end(data))
+
+
+def _generation_field(data: bytes, end: int) -> GenerationField | None:
     major, count, position = _head(data, 0, 0)
     if major == 4 and (count is None or count >= 2):
         kind_major, kind, position = _head(data, position, 0)
