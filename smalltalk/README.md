@@ -41,4 +41,9 @@ validates opener and frame envelope grammar, and checks frame links and
 stored and decoded payload integrity. RDF folding and recovery require
 additional v2 support.
 
+`gts verify` also checks v2 commit counts and Merkle range roots for registry
+version 1. It reports each segment's committed prefix and uncommitted tail.
+Offsets, locators, index payload claims, and v2 signature verification require
+additional support.
+
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.

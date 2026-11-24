@@ -295,9 +295,14 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 
 { #category : #printing }
 GtsCLI class >> wireDiagnosticFor: event [
+	^ (self wireFindingFor: event) ifNil: [ '' ] ifNotNil: [ :finding | ': ', finding ]
+]
+
+{ #category : #printing }
+GtsCLI class >> wireFindingFor: event [
 	event isDamagedParity ifTrue: [
-		^ event problem ifNil: [ ': parity_damaged' ] ifNotNil: [ :reason | ': parity_damaged (', reason, ')' ] ].
-	^ event problem ifNil: [ '' ] ifNotNil: [ :reason | ': ', reason ]
+		^ event problem ifNil: [ 'parity_damaged' ] ifNotNil: [ :reason | 'parity_damaged (', reason, ')' ] ].
+	^ event problem
 ]
 
 { #category : #printing }
@@ -549,22 +554,116 @@ GtsCLI class >> runVerify: args [
 	paths isEmpty ifTrue: [ self stderr: self usage. ^ 2 ].
 	problems := false.
 	paths do: [ :path |
-		| graph |
-		graph := GtsReader read: (self readFile: path).
-		self printLedgerFor: path graph: graph.
-		graph diagnostics isEmpty ifFalse: [ problems := true ].
-		(self profileFindingsFor: graph) do: [ :finding |
-			self stderr: '  ', (finding at: 'severity'), ': ', (finding at: 'message'), String lf.
-			(finding at: 'severity') = 'error' ifTrue: [ problems := true ] ].
-		keys isEmpty ifFalse: [
-			graph signatures do: [ :signature |
-				| kid status |
-				kid := signature at: 'kid' ifAbsent: [ nil ].
-				status := self verifySignature: signature keys: keys.
-				signature at: 'status' put: status.
-				self stdout: '  signature ', (kid ifNil: [ '?' ]), ': ', status, String lf.
-				status = 'invalid' ifTrue: [ problems := true ] ] ] ].
+		| bytes wire clean |
+		bytes := self readFile: path.
+		wire := GtsV2Wire inspect: bytes.
+		clean := wire format = #legacy
+			ifTrue: [ self verifyLegacy: bytes path: path keys: keys ]
+			ifFalse: [ self verifyWire: wire path: path hasKeys: keys isNotEmpty ].
+		clean ifFalse: [ problems := true ] ].
 	^ problems ifTrue: [ 1 ] ifFalse: [ 0 ]
+]
+
+{ #category : #private }
+GtsCLI class >> verifyLegacy: bytes path: path keys: keys [
+	| graph clean |
+	graph := GtsReader read: bytes.
+	self printLedgerFor: path graph: graph.
+	clean := graph diagnostics isEmpty.
+	(self profileFindingsFor: graph) do: [ :finding |
+		self stderr: '  ', (finding at: 'severity'), ': ', (finding at: 'message'), String lf.
+		(finding at: 'severity') = 'error' ifTrue: [ clean := false ] ].
+	keys isEmpty ifFalse: [
+		graph signatures do: [ :signature |
+			| kid status |
+			kid := signature at: 'kid' ifAbsent: [ nil ].
+			status := self verifySignature: signature keys: keys.
+			signature at: 'status' put: status.
+			self stdout: '  signature ', (kid ifNil: [ '?' ]), ': ', status, String lf.
+			status = 'invalid' ifTrue: [ clean := false ] ] ].
+	^ clean
+]
+
+{ #category : #private }
+GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
+	| format report clean ordinal checks |
+	format := wire format.
+	clean := true.
+	report := [ :message |
+		self stderr: 'gts verify: ', path, ': ', message, String lf.
+		clean := false ].
+	format = #empty ifTrue: [ report value: 'empty input'. ^ false ].
+	format = #framingError ifTrue: [
+		report value: 'framing stopped at byte 0: ', wire stopReason.
+		^ false ].
+	format = #unsupported ifTrue: [
+		report value: 'unsupported GTS generation ', wire generation printString.
+		^ false ].
+	format = #unknown ifTrue: [ report value: 'input does not identify a GTS generation'. ^ false ].
+	hasKeys ifTrue: [ report value: '--key is unsupported for GTS v2'. ^ false ].
+	self stdout: path, ': GTS v2 frame and commit integrity', String lf.
+	ordinal := -1.
+	wire eventsDo: [ :event |
+		| location |
+		location := 'byte ', event offset printString.
+		event kind = #stop
+			ifTrue: [ report value: 'framing stopped at ', location, ': ', event problem ]
+			ifFalse: [
+				event startsSegment
+					ifTrue: [
+						checks ifNotNil: [ self printCommitSummary: checks ordinal: ordinal ].
+						ordinal := ordinal + 1.
+						checks := self commitChecksFor: event report: [ :finding |
+							report value: location, ': ', finding ] ]
+					ifFalse: [
+						checks ifNotNil: [
+							self reportIntegrityFor: event report: [ :finding |
+								report value: location, ': ', finding ].
+							checks observe: event findingsDo: [ :finding :position :expected |
+								| detail |
+								detail := expected ifNil: [ '' ] ifNotNil: [
+									' (expected ', expected printString, ')' ].
+								report value: location, ', item ', position printString, ': ', finding, detail ] ] ] ] ].
+	checks ifNotNil: [ self printCommitSummary: checks ordinal: ordinal ].
+	^ clean
+]
+
+{ #category : #private }
+GtsCLI class >> commitChecksFor: event report: report [
+	event problem ifNotNil: [ :finding | report value: finding. ^ nil ].
+	(event opener registry ~= 1 or: [ event effectiveIdentifier isNil ]) ifTrue: [
+		report value: 'unsupported registry version ', event opener registry printString.
+		^ nil ].
+	^ GtsV2CommitChecks openedBy: event effectiveIdentifier
+]
+
+{ #category : #private }
+GtsCLI class >> reportIntegrityFor: event report: report [
+	| payload |
+	(self wireFindingFor: event) ifNotNil: [ :finding | report value: finding ].
+	(event kind ~= #frame or: [ event isDamagedParity ]) ifTrue: [ ^ self ].
+	(event link = #healed or: [ event link = #broken and: [ event problem isNil ] ])
+		ifTrue: [ report value: 'link ', event link asString ].
+	event storedMatches = false ifTrue: [ report value: 'stored check mismatch' ].
+	payload := event payload.
+	(payload state ~= #verified and: [ payload reason isNotNil and: [ payload reason ~= 'codec_constraint' ] ])
+		ifTrue: [
+			| count |
+			count := payload count ifNil: [ '' ] ifNotNil: [ :size | ' (', size printString, ' bytes)' ].
+			report value: 'payload ', payload reason, count ]
+]
+
+{ #category : #printing }
+GtsCLI class >> printCommitSummary: checks ordinal: ordinal [
+	| prefix tail index closing |
+	prefix := checks committedFrames = 0
+		ifTrue: [ 'no_commit' ]
+		ifFalse: [ 'committed_frames ', checks committedFrames printString ].
+	tail := checks tailPosition ifNil: [ '' ] ifNotNil: [ :position |
+		', uncommitted_tail ', checks tailFrames printString, ' (item ', position printString, ')' ].
+	index := checks hasIndex ifTrue: [ ', index payload claims unchecked' ] ifFalse: [ '' ].
+	closing := checks hasClosingItems ifTrue: [ ', offsets and locator unchecked' ] ifFalse: [ '' ].
+	self stdout: '  segment ', ordinal printString, ': ', prefix, tail, index, closing, String lf
 ]
 
 { #category : #commands }
