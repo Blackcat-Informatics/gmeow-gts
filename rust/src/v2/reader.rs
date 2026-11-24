@@ -587,6 +587,11 @@ fn framing_stop(
 /// A scanned opener is admitted by the same decoded byte budget as frames.
 /// The original item positions are held even when a candidate starts inside
 /// the complete item before the failure.
+///
+/// Framing damage before an accepted resync opener is not in `stop`. It is
+/// reported on the segment (`framing_failure`, with a `DamagedRegion` item) or,
+/// before the first segment, in `prefix_failure`. Refused candidates are in
+/// `resync_refusal`. `stop` is set only when no candidate resumes the read.
 #[must_use]
 pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
     let mut result = WireRead::default();
