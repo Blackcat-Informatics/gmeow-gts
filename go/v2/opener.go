@@ -122,13 +122,16 @@ func readOpener(item []byte, offset int, resync bool) (Opener, Reason) {
 }
 
 func readLineage(item []byte, digestLen, limit int) (*Lineage, Reason) {
-	value, reason := option(item)
+	value, reason := optionBefore(item, limit)
 	if value == nil || reason != "" {
 		return nil, reason
 	}
 	fields, reason := array(value, 2)
 	if reason != "" {
 		return nil, reason
+	}
+	if len(item)-len(fields.remaining) >= limit {
+		return nil, OutOfRange
 	}
 	previousHead, reason := byteValue(fields.next(), digestLen)
 	if reason != "" {
@@ -158,10 +161,11 @@ func readResync(values *itemValues, size, offset, digestLen int) (*Resync, Reaso
 		return nil, reason
 	}
 	r.Displaced = r.Offset != uint64(offset)
-	if size-len(values.remaining) >= resyncMax {
+	pastLimit := resyncMax - (size - len(values.remaining))
+	if pastLimit <= 0 {
 		return nil, OutOfRange
 	}
-	past, reason := option(values.next())
+	past, reason := optionBefore(values.next(), pastLimit)
 	if reason != "" {
 		return nil, reason
 	}

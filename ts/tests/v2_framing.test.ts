@@ -42,6 +42,33 @@ test("a resync prefix requires the fixed marker before exposing its registry", (
     );
 });
 
+test("resync size is checked at the first byte of nested option fields", () => {
+    const prefix = Buffer.from(
+        "8b050250fcf3eb32a2f0267dd16a53f09bff879202098101820282",
+        "hex",
+    );
+    const cases = [
+        [4061, [0x82, 2, 0], "wrong_type"],
+        [4062, [0x82, 2, 0], "out_of_range"],
+        [4062, [0x81, 0], "unregistered_value"],
+        [4063, [0x81, 0], "out_of_range"],
+        [4061, [0x82, 2, 0x18, 0], "not_deterministic"],
+    ] as const;
+    for (const [size, past, reason] of cases) {
+        const data = Buffer.concat([
+            prefix,
+            Buffer.of(0x59, size >> 8, size & 0xff),
+            Buffer.alloc(size),
+            Buffer.of(1, 0, ...past, 0x80, 0x40),
+        ]);
+        const result = inspectFraming(data);
+        assert.equal(result.kind, "v2");
+        const [opener] = result.records;
+        assert.equal(opener.kind, "resync");
+        assert.equal(opener.reason, reason);
+    }
+});
+
 test("frame envelope validation preserves the first field error", () => {
     const cases = [
         ["P1/frame-flags-order", "forbidden_combination"],

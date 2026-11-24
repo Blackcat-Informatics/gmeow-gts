@@ -136,6 +136,37 @@ func TestOpenerHashesAndSegmentIsolation(t *testing.T) {
 	}
 }
 
+func TestResyncSizeChecksNestedOptionFieldStarts(t *testing.T) {
+	prefix, err := hex.DecodeString("8b050250fcf3eb32a2f0267dd16a53f09bff879202098101820282")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		size   int
+		past   []byte
+		reason v2.Reason
+	}{
+		{4061, []byte{0x82, 2, 0}, v2.WrongType},
+		{4062, []byte{0x82, 2, 0}, v2.OutOfRange},
+		{4062, []byte{0x81, 0}, v2.UnregisteredValue},
+		{4063, []byte{0x81, 0}, v2.OutOfRange},
+		{4061, []byte{0x82, 2, 0x18, 0}, v2.NotDeterministic},
+	} {
+		data := slices.Concat(
+			prefix, []byte{0x59, byte(tc.size >> 8), byte(tc.size)},
+			make([]byte, tc.size), []byte{1, 0}, tc.past, []byte{0x80, 0x40},
+		)
+		wire := v2.InspectWire(data, v2.DefaultReadCapacity())
+		if wire.Stop != "" || len(wire.Segments) != 1 {
+			t.Fatalf("size %d and past %x: unexpected framing: %+v", tc.size, tc.past, wire)
+		}
+		opener := wire.Segments[0].Items[0]
+		if opener.Kind != v2.ResyncItem || opener.Reason != tc.reason {
+			t.Fatalf("size %d and past %x: got %+v, want %s", tc.size, tc.past, opener, tc.reason)
+		}
+	}
+}
+
 func TestFramingKeepsCompleteItemsAndDistinguishesFailure(t *testing.T) {
 	for _, tc := range []struct {
 		name string

@@ -367,14 +367,22 @@ function checkGrammar(item: Uint8Array, limit = item.length): void {
     }
 }
 
-function checkOption(item: Uint8Array, check: CheckField): void {
+function checkOption(
+    item: Uint8Array,
+    limit: number,
+    check: (field: Uint8Array, limit: number) => void,
+): void {
     const h = typedHead(item, 0, 4);
     if (h.value === 0n) throw new EnvelopeError("wrong_length");
+    if (h.end >= limit) throw new EnvelopeError("out_of_range");
     const tag = typedHead(item, h.end, 0);
     if (tag.value !== 1n && tag.value !== 2n)
         throw new EnvelopeError("unregistered_value");
     if (h.value !== tag.value) throw new EnvelopeError("wrong_length");
-    if (tag.value === 2n) check(item.subarray(tag.end));
+    if (tag.value === 2n) {
+        if (tag.end >= limit) throw new EnvelopeError("out_of_range");
+        check(item.subarray(tag.end), limit - tag.end);
+    }
 }
 
 function checkMarks(item: Uint8Array, limit: number): void {
@@ -421,30 +429,38 @@ function checkOpenerFields(
         return field;
     };
     const digest: CheckField = (field) => bytesField(field, digestLength);
-    checkOption(next(), (field) => {
+    // Check the first byte of each field without truncating the head itself.
+    const nextOption = (
+        check: (field: Uint8Array, limit: number) => void,
+    ): void => {
+        const limit = bound - offset;
+        checkOption(next(), limit, check);
+    };
+    nextOption((field) => {
         if (uintField(field) === 0n)
             throw new EnvelopeError("unregistered_value");
     });
     if (!resync) {
-        checkOption(next(), (field) => {
+        nextOption((field) => {
             const value = uintField(field);
             if (value === 0n || (!newer && value > 1n)) {
                 throw new EnvelopeError("unregistered_value");
             }
         });
     }
-    checkOption(next(), (lineage) => {
+    nextOption((lineage, limit) => {
         const h = typedHead(lineage, 0, 4);
         if (h.value !== 2n) throw new EnvelopeError("wrong_length");
+        if (h.end >= limit) throw new EnvelopeError("out_of_range");
         const [previousHead, ordinal] = children(lineage, h.end);
         digest(previousHead);
-        if (offset - ordinal.length >= bound || uintField(ordinal) === 0n) {
+        if (h.end + previousHead.length >= limit || uintField(ordinal) === 0n) {
             throw new EnvelopeError("out_of_range");
         }
     });
     if (!resync) return offset;
     uintField(next());
-    checkOption(next(), digest);
+    nextOption(digest);
     const marksLimit = bound - offset;
     checkMarks(next(), marksLimit);
     const identityEnd = offset;

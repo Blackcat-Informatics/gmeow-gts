@@ -62,12 +62,24 @@ func byteValue(item []byte, length int) ([]byte, Reason) {
 }
 
 func option(item []byte) ([]byte, Reason) {
+	return optionBefore(item, len(item))
+}
+
+// Only field starts are bounded. A head that starts before the limit is read
+// in full, even when its argument extends beyond the limit.
+func optionBefore(item []byte, limit int) ([]byte, Reason) {
+	if limit <= 0 {
+		return nil, OutOfRange
+	}
 	h, reason := typedHead(item, 4)
 	if reason != "" {
 		return nil, reason
 	}
 	if h.value == 0 {
 		return nil, WrongLength
+	}
+	if h.end >= limit {
+		return nil, OutOfRange
 	}
 	v := itemValues{remaining: item[h.end:]}
 	tag, reason := uintValue(v.next())
@@ -80,6 +92,8 @@ func option(item []byte) ([]byte, Reason) {
 		return nil, WrongLength
 	case tag == 1:
 		return nil, ""
+	case len(item)-len(v.remaining) >= limit:
+		return nil, OutOfRange
 	default:
 		return v.next(), ""
 	}
