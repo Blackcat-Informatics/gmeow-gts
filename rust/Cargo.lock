@@ -302,9 +302,9 @@ checksum = "64cd1e32ddd350061ae6edb1b082d7c54915b5c672c389143b9a63403a109f24"
 
 [[package]]
 name = "filetime"
-version = "0.2.29"
+version = "0.2.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c287a33c7f0a620c38e641e7f60827713987b3c0f26e8ddc9462cc69cf75759"
+checksum = "e1255e7a9f1902190d4c10a75f2f7f495d3d3ce13e9ba26e6c48683a0f4dbed7"
 dependencies = [
  "cfg-if",
  "libc",
@@ -355,7 +355,6 @@ dependencies = [
  "blake3",
  "ciborium",
  "ed25519-dalek",
- "filetime",
  "flate2",
  "getrandom",
  "libc",
@@ -667,9 +666,9 @@ checksum = "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea"
 
 [[package]]
 name = "structured-zstd"
-version = "0.3.0"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6cb50e4c8b14fa51e7e494dbe0a4a308fd881676b89a9c738dd9d41b2fca8c9"
+checksum = "87a5e0ddb9be2f63b2e8ef3d83c5b0a7ac13587ae253d1ac6cdbf1a6aa157a99"
 dependencies = [
  "fastrand",
  "twox-hash",
