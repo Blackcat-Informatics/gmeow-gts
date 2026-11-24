@@ -514,6 +514,7 @@ GtsV2Wire >> classifyAt: offset limit: limit registry: registry [
 						problem := frame problem ] ] ].
 	^ (GtsV2WireEvent kind: kind from: offset - 1 to: limit - 1 problem: problem)
 		opener: opener frame: frame;
+		unknownItemKind: (problem = 'unknown_item_kind' ifTrue: [ code argument ]);
 		framingFailure: framingFailure
 ]
 

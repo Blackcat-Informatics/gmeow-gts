@@ -41,6 +41,11 @@ GtsV2FramePayload >> storedBodyStart [
 	^ bodyStart
 ]
 
+{ #category : #accessing }
+GtsV2FramePayload >> codecCode [
+	^ storage ifNotNil: [ storage codecCode ]
+]
+
 { #category : #validation }
 GtsV2FramePayload >> checkWith: budget retainDecoded: retain [
 	| storedSize refusal computed |

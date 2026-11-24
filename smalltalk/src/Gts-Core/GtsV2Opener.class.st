@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2Opener,
 	#superclass : #Object,
-	#instVars : [ 'registry', 'hashAlgorithm', 'identifier', 'digestLength', 'statedOffset', 'end' ],
+	#instVars : [ 'registry', 'hashAlgorithm', 'identifier', 'digestLength', 'statedOffset', 'end', 'lineage' ],
 	#category : #'Gts-Core'
 }
 
@@ -41,6 +41,11 @@ GtsV2Opener >> hashAlgorithm [
 { #category : #accessing }
 GtsV2Opener >> identifier [
 	^ identifier
+]
+
+{ #category : #accessing }
+GtsV2Opener >> lineage [
+	^ lineage ifNotNil: [ { lineage first ifNotNil: [ :digest | digest copy ]. lineage second } ]
 ]
 
 { #category : #parsing }
@@ -88,11 +93,14 @@ GtsV2Opener >> readPrefix: fields resync: isResync bound: bound candidate: isCan
 			code := claim uint.
 			(code = 0 or: [ registry = 1 and: [ code ~= 1 ] ])
 				ifTrue: [ GtsV2EnvelopeError signal: 'unregistered_value' ] ] ].
-	fields next optionUpTo: bound do: [ :lineage |
-		| pair |
-		pair := lineage fields: 2 bound: bound.
-		pair next byteBodyOfSize: digestLength.
-		pair next uint = 0 ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ] ].
+	fields next optionUpTo: bound do: [ :encodedLineage |
+		| pair previous body ordinal |
+		pair := encodedLineage fields: 2 bound: bound.
+		previous := pair next.
+		body := previous byteBodyOfSize: digestLength.
+		ordinal := pair next uint.
+		ordinal = 0 ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
+		lineage := { digestLength ifNotNil: [ previous bytesStartingAt: body ]. ordinal } ].
 	isResync ifTrue: [ statedOffset := fields next uint ]
 ]
 

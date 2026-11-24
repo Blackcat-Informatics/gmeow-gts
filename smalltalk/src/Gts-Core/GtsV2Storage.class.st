@@ -42,6 +42,11 @@ GtsV2Storage >> tag [
 	^ tag
 ]
 
+{ #category : #accessing }
+GtsV2Storage >> codecCode [
+	^ tag = 2 ifTrue: [ codec ] ifFalse: [ tag ]
+]
+
 { #category : #testing }
 GtsV2Storage >> isZstd [
 	^ codec = 1

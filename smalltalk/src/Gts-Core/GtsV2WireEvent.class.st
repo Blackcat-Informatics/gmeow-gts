@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding', 'parityShardFindings', 'resumptionAnchor', 'parityGap', 'detached' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding', 'parityShardFindings', 'resumptionAnchor', 'parityGap', 'detached', 'unknownItemKind' ],
 	#category : #'Gts-Core'
 }
 
@@ -47,6 +47,16 @@ GtsV2WireEvent >> end [
 { #category : #accessing }
 GtsV2WireEvent >> problem [
 	^ problem
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> unknownItemKind [
+	^ unknownItemKind
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> unknownItemKind: code [
+	unknownItemKind := code
 ]
 
 { #category : #accessing }
