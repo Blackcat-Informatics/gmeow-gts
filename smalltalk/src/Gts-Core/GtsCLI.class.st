@@ -294,6 +294,7 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 					ifNotNil: [ :type | 'frame type ', type printString ].
 				details := event opener ifNil: [ '' ] ifNotNil: [ :opener |
 					', registry ', opener registry printString, ', hash algorithm ', opener hashAlgorithm printString ].
+				event scanned ifTrue: [ details := details, ', found by recovery scan' ].
 				diagnostic := self wireDiagnosticFor: event.
 				self stdout: prefix, kind, ' bytes [', event offset printString, ', ',
 					event end printString, ')', details, diagnostic, String lf.
@@ -312,6 +313,8 @@ GtsCLI class >> wireDiagnosticFor: event [
 
 { #category : #printing }
 GtsCLI class >> wireFindingFor: event [
+	event kind = #resyncRefused ifTrue: [
+		^ 'resync ', event problem, ' (', event payload count printString, ' bytes)' ].
 	event isDamagedParity ifTrue: [
 		^ event problem ifNil: [ 'parity_damaged' ] ifNotNil: [ :reason | 'parity_damaged (', reason, ')' ] ].
 	^ event problem ifNil: [

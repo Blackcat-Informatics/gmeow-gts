@@ -166,7 +166,17 @@ GtsV2Field >> observedIdentifier [
 
 { #category : #parsing }
 GtsV2Field >> cursor [
-	^ GtsV2Fields walker: walker from: start to: end bound: end
+	^ self cursorFrom: start
+]
+
+{ #category : #parsing }
+GtsV2Field >> cursorFrom: first [
+	^ GtsV2Fields walker: walker from: first to: end bound: end
+]
+
+{ #category : #parsing }
+GtsV2Field >> cappedAt: limit [
+	^ GtsV2Field walker: walker from: start to: (end min: limit)
 ]
 
 { #category : #parsing }

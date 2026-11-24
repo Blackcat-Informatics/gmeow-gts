@@ -3,13 +3,23 @@
 Class {
 	#name : #GtsV2Opener,
 	#superclass : #Object,
-	#instVars : [ 'registry', 'hashAlgorithm', 'identifier' ],
+	#instVars : [ 'registry', 'hashAlgorithm', 'identifier', 'digestLength', 'statedOffset', 'end' ],
 	#category : #'Gts-Core'
 }
 
 { #category : #'instance creation' }
 GtsV2Opener class >> read: item resync: isResync [
 	^ self new read: item resync: isResync
+]
+
+{ #category : #'instance creation' }
+GtsV2Opener class >> candidate: item charging: charge [
+	^ self new readCandidate: item charging: charge
+]
+
+{ #category : #accessing }
+GtsV2Opener >> end [
+	^ end
 ]
 
 { #category : #accessing }
@@ -29,16 +39,39 @@ GtsV2Opener >> identifier [
 
 { #category : #parsing }
 GtsV2Opener >> read: item resync: isResync [
-	| bound fields digestLength bodyEnd |
+	| bound fields |
 	bound := isResync ifTrue: [ item end min: item start + 4096 ] ifFalse: [ item end ].
 	fields := item fields: (isResync ifTrue: [ 11 ] ifFalse: [ 7 ]) bound: bound.
+	self readPrefix: fields resync: isResync bound: bound candidate: false.
+	isResync
+		ifTrue: [ self readResyncSuffix: fields item: item bound: bound ]
+		ifFalse: [
+			hashAlgorithm = 1 ifTrue: [
+				identifier := item deriveWith: 'gts2 header' prefix: #[] from: item start to: item end ] ].
+	^ self
+]
+
+{ #category : #parsing }
+GtsV2Opener >> readCandidate: item charging: charge [
+	| prefix fields stored |
+	prefix := item cappedAt: item start + 104.
+	fields := prefix fields: 11.
+	self readPrefix: fields resync: true bound: prefix end candidate: true.
+	statedOffset = (item start - 1) ifFalse: [ ^ nil ].
+	charge value ifFalse: [ ^ nil ].
+	stored := self readResyncSuffix: (item cursorFrom: fields offset) item: item bound: item end.
+	^ identifier = stored ifTrue: [ self ]
+]
+
+{ #category : #parsing }
+GtsV2Opener >> readPrefix: fields resync: isResync bound: bound candidate: isCandidate [
 	fields next uint.
 	fields next uint = 2 ifFalse: [ GtsV2EnvelopeError signal: 'out_of_range' ].
 	isResync ifTrue: [ self checkMarker: fields next ].
 	registry := fields next uint.
 	registry = 0 ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
 	hashAlgorithm := fields next uint.
-	(hashAlgorithm = 0 or: [ registry = 1 and: [ hashAlgorithm ~= 1 ] ])
+	(hashAlgorithm = 0 or: [ (isCandidate or: [ registry = 1 ]) and: [ hashAlgorithm ~= 1 ] ])
 		ifTrue: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
 	digestLength := hashAlgorithm = 1 ifTrue: [ 32 ] ifFalse: [ nil ].
 	fields next optionUpTo: bound do: [ :profile |
@@ -54,20 +87,27 @@ GtsV2Opener >> read: item resync: isResync [
 		pair := lineage fields: 2 bound: bound.
 		pair next byteBodyOfSize: digestLength.
 		pair next uint = 0 ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ] ].
-	isResync ifTrue: [
-		fields next uint.
-		fields next optionUpTo: bound do: [ :past | past byteBodyOfSize: digestLength ].
-		self checkMarks: fields next bound: bound.
-		bodyEnd := fields offset.
-		fields next byteBodyOfSize: digestLength.
-		item end > bound ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ] ].
+	isResync ifTrue: [ statedOffset := fields next uint ]
+]
+
+{ #category : #parsing }
+GtsV2Opener >> readResyncSuffix: fields item: item bound: bound [
+	| bodyEnd stored first |
+	fields next optionUpTo: bound do: [ :past | past byteBodyOfSize: digestLength ].
+	self checkMarks: fields next bound: bound.
+	bodyEnd := fields offset.
+	stored := fields next.
+	first := stored byteBodyOfSize: digestLength.
+	end := fields offset.
+	end > bound ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
 	hashAlgorithm = 1 ifTrue: [
 		identifier := item
 			deriveWith: 'gts2 header'
-			prefix: (isResync ifTrue: [ #[138] ] ifFalse: [ #[] ])
-			from: (isResync ifTrue: [ item start + 1 ] ifFalse: [ item start ])
-			to: (isResync ifTrue: [ bodyEnd ] ifFalse: [ item end ]) ].
-	^ self
+			prefix: #[138]
+			from: item start + 1
+			to: bodyEnd.
+		^ stored bytesStartingAt: first ].
+	^ nil
 ]
 
 { #category : #validation }

@@ -39,7 +39,11 @@ The `.smalltalk.ston` file is the smalltalkCI entry point for GitHub Actions.
 `gts info` detects v2 from the first complete item, reports item byte ranges,
 validates opener and frame envelope grammar, and checks frame links,
 stored and decoded payload integrity, and offsets and locator claims.
-Recovery requires additional v2 support.
+When the item walk encounters incomplete or undelimitable bytes after the
+opener, it scans for a resync item and resumes at the first candidate whose
+offset and identifier match. The ledger reports the gap and the recovered
+opener. Recovery from a complete item that fails its checks, first-item
+recovery, and parity recovery require additional support.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.

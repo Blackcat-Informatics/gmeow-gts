@@ -51,6 +51,94 @@ GtsV2WireTest >> testWalkRetainsZeroBasedRangesBeforeTornTail [
 ]
 
 { #category : #tests }
+GtsV2WireTest >> testResyncResumesAfterAnUndelimitableOrIncompleteItem [
+	#(
+		('resync-after-undelimitable.whole' 210 'undelimitable_input')
+		('resync-after-torn-staying.whole' 130 'torn_tail')
+	) do: [ :entry |
+		| events opener gap following |
+		events := self events: (self vector: entry first).
+		opener := events detect: [ :event | event scanned ].
+		gap := events detect: [ :event | event kind = #framingGap ].
+		self assert: opener kind equals: #resync.
+		self assert: opener offset equals: entry second.
+		self assert: gap problem equals: entry third.
+		self assert: gap end equals: opener offset.
+		following := events allButFirst: (events indexOf: opener).
+		self deny: following isEmpty.
+		self assert: (following allSatisfy: [ :event | event link = #linked ]) ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testResyncChecksPlaceBeforeChargingAndShapeAfterCharging [
+	| bytes events refusal |
+	events := self
+		events: (self vector: 'resync-offset-false.whole')
+		budget: (GtsV2PayloadBudget withReadLimit: 4095).
+	self deny: (events anySatisfy: [ :event | event scanned or: [ event kind = #resyncRefused ] ]).
+	self assert: events last kind equals: #stop.
+
+	bytes := self vector: 'resync-candidate-marks-unordered.whole'.
+	events := self events: bytes.
+	self deny: (events anySatisfy: [ :event | event scanned ]).
+	self assert: events last kind equals: #stop.
+
+	events := self events: bytes budget: (GtsV2PayloadBudget withReadLimit: 4095).
+	refusal := events detect: [ :event | event kind = #resyncRefused ].
+	self assert: refusal offset equals: 210.
+	self assert: refusal end - refusal offset equals: 4096.
+	self assert: refusal problem equals: 'total_decoded'.
+	self assert: refusal payload count >= 4096.
+	self assert: events last kind equals: #stop
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testResyncRequiresTheStoredIdentifierToMatchWhenScanned [
+	| bytes opener events |
+	bytes := self vector: 'resync-after-undelimitable.whole'.
+	opener := (self events: bytes) detect: [ :event | event scanned ].
+	bytes at: opener end put: ((bytes at: opener end) bitXor: 1).
+	events := self events: bytes.
+	self deny: (events anySatisfy: [ :event | event scanned ]).
+	self assert: events last problem equals: 'undelimitable_input'
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testResyncCountsAnUndelimitableRegionAgainstTheItemLimit [
+	| events bytes opener |
+	events := self
+		events: (self vector: 'resync-after-undelimitable.whole')
+		budget: ((GtsV2PayloadBudget withReadLimit: 4095) itemLimit: 4).
+	self deny: (events anySatisfy: [ :event | event scanned or: [ event kind = #resyncRefused ] ]).
+	self assert: events last problem equals: 'undelimitable_input'.
+
+	bytes := self vector: 'resync-after-torn-staying.whole'.
+	events := self
+		events: bytes
+		budget: (GtsV2PayloadBudget new itemLimit: 3).
+	opener := events detect: [ :event | event scanned ].
+	self assert: opener offset equals: 130.
+	self assert: events last problem equals: 'items_per_read'
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testRecoveredUndelimitableRegionFollowsClosingOffsets [
+	| bytes prefix offsets events |
+	bytes := self vector: 'resync-after-undelimitable.whole'.
+	prefix := (bytes first: 114), #[88 85], (ByteArray new: 85),
+		#[130 4 131 11 24 103 24 87].
+	offsets := (self events: prefix) last.
+	self assert: offsets kind equals: #offsets.
+	self assert: offsets problem isNil.
+	self assert: offsets closingClaimFailure isNil.
+
+	events := self events: prefix, (bytes copyFrom: 210 to: bytes size).
+	self assert: (events anySatisfy: [ :event | event scanned ]).
+	offsets := events detect: [ :event | event kind = #offsets ].
+	self assert: offsets problem equals: 'unordered_or_repeated'
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testMalformedPrefixKeepsItemsUncheckedUntilNextOpener [
 	| events opener |
 	opener := self vector: 'gen-record-two'.
