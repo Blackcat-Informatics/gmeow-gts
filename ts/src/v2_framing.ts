@@ -602,6 +602,34 @@ function checkSignatures(
         throw new EnvelopeError("forbidden_combination");
 }
 
+export function frameContentProblem(
+    type: bigint,
+    content: Uint8Array,
+): string | undefined {
+    try {
+        if (itemEnd(content, 0) !== content.length) return "wrong_length";
+        checkGrammar(content);
+        checkContent(type, content);
+    } catch (error) {
+        if (!(error instanceof EnvelopeError || error instanceof FramingError))
+            throw error;
+        return error.reason;
+    }
+}
+
+export function framePayloadLengthProblem(
+    type: bigint | undefined,
+    length: bigint | undefined,
+): "out_of_range" | undefined {
+    if (
+        (type === 8n && length === 0n) ||
+        ((type === 12n || type === 14n) &&
+            length !== undefined &&
+            length !== 0n)
+    )
+        return "out_of_range";
+}
+
 function readField<T>(read: () => T): { value?: T; reason?: EnvelopeReason } {
     try {
         return { value: read() };
@@ -707,13 +735,7 @@ function checkFrame(
             (parity && storageTag !== 1n))
             ? "forbidden_combination"
             : undefined;
-    const lengthRule =
-        lengthField.value !== undefined &&
-        ((frameType === 8n && lengthField.value === 0n) ||
-            ((frameType === 12n || frameType === 14n) &&
-                lengthField.value !== 0n))
-            ? "out_of_range"
-            : undefined;
+    const lengthRule = framePayloadLengthProblem(frameType, lengthField.value);
     const reason =
         kindField.reason ??
         typeRule ??
