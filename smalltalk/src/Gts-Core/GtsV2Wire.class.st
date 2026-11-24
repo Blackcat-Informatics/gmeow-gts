@@ -110,6 +110,21 @@ GtsV2Wire >> isVersionKeyAt: start limit: limit [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock [
+	| pending predecessor |
+	self scanEventsDo: [ :next |
+		pending ifNotNil: [
+			| effective |
+			effective := self check: pending witness: next frame predecessor: predecessor.
+			effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
+			aBlock value: pending ].
+		pending := next ].
+	pending ifNotNil: [
+		self check: pending witness: nil predecessor: predecessor.
+		aBlock value: pending ]
+]
+
+{ #category : #enumerating }
+GtsV2Wire >> scanEventsDo: aBlock [
 	| offset limit count registry finish event |
 	format = #v2 ifFalse: [ ^ self ].
 	offset := 1.
@@ -128,11 +143,33 @@ GtsV2Wire >> eventsDo: aBlock [
 				^ self ].
 		event := self classifyAt: offset limit: finish registry: registry.
 		event startsSegment ifTrue: [
-			registry := event opener ifNotNil: [ :opener |
-				opener hashAlgorithm = 1 ifTrue: [ opener registry ] ] ].
+			registry := event effectiveIdentifier ifNotNil: [ event opener registry ] ].
 		aBlock value: event.
 		offset := finish.
 		count := count + 1 ]
+]
+
+{ #category : #validation }
+GtsV2Wire >> check: event witness: witness predecessor: predecessor [
+	| frame computed stored state effective |
+	event startsSegment ifTrue: [ ^ event effectiveIdentifier ].
+	frame := event frame.
+	frame ifNil: [ ^ predecessor ].
+	computed := frame identifierOn: bytes predecessor: predecessor.
+	stored := frame storedIdentifier.
+	state := #broken.
+	(computed isNotNil and: [ stored isNotNil ]) ifTrue: [
+		computed = stored
+			ifTrue: [ state := #linked ]
+			ifFalse: [
+				(frame isTransparent not and: [ witness isNotNil and: [
+					witness storedIdentifier isNotNil and: [
+						(witness identifierOn: bytes predecessor: computed) = witness storedIdentifier ] ] ])
+					ifTrue: [ state := #healed ] ] ].
+	effective := frame isTransparent ifFalse: [
+		state = #healed ifTrue: [ computed ] ifFalse: [ stored ifNil: [ computed ] ] ].
+	event link: state effectiveIdentifier: effective.
+	^ effective ifNil: [ predecessor ]
 ]
 
 { #category : #classifying }
@@ -159,7 +196,7 @@ GtsV2Wire >> classifyAt: offset limit: limit registry: registry [
 						frame := GtsV2FrameEnvelope read: field registry: registry.
 						problem := frame problem ] ] ].
 	^ (GtsV2WireEvent kind: kind from: offset - 1 to: limit - 1 problem: problem)
-		opener: opener frameType: (frame ifNotNil: [ frame frameType ])
+		opener: opener frame: frame
 ]
 
 { #category : #classifying }

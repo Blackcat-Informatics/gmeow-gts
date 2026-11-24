@@ -25,3 +25,13 @@ GtsBlake3Test >> testHashMatchesKnownVectors [
 GtsBlake3Test >> testNativeDigestSize [
 	self assert: GtsBlake3 digestSize equals: 32
 ]
+
+{ #category : #tests }
+GtsBlake3Test >> testDerivedHashRejectsRangesOutsideTheInput [
+	#((0 1) (2 1) (1 3)) do: [ :range |
+		self
+			should: [
+				GtsBlake3 deriveWith: 'gts2 frame' prefix: #[] bytes: #[0]
+					from: range first to: range second ]
+			raise: GtsCryptoError ]
+]
