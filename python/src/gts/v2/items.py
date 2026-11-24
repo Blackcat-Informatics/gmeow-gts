@@ -16,7 +16,16 @@ _INDEX_PREFIX = b"\x8b\x02\x0f"
 _LOCATOR_SIZE = 11
 _UINT_MAX = (1 << 64) - 1
 
-type ItemKind = Literal["header", "resync", "frame", "offsets", "locator", "opaque"]
+type ItemKind = Literal[
+    "header",
+    "resync",
+    "frame",
+    "offsets",
+    "locator",
+    "opaque",
+    "unchecked",
+    "damaged_region",
+]
 type ItemReason = Literal[
     "wrong_type",
     "not_deterministic",
@@ -58,18 +67,25 @@ def classify_item(data: bytes, offset: int = 0, *, registry_version: int = 1) ->
     This implements P1 §2.2 with a registry version 1 reader. The file reader
     decides the first item and the outcome of each opener separately.
     """
-    end = item_end(data, offset)
+    return _classify_framed_item(data, offset, item_end(data, offset), registry_version)
+
+
+def _classify_framed_item(
+    data: bytes, offset: int, end: int, registry_version: int | None
+) -> Item:
     major, count, tag_at = _head(data, offset, offset)
     if major != 4 or count == 0:
-        return Item("opaque", offset, end, "wrong_type")
+        return _unclassified(offset, end, registry_version)
     major, tag, after_tag = _head(data, tag_at, offset)
     if major != 0 or tag is None:
-        return Item("opaque", offset, end, "wrong_type")
+        return _unclassified(offset, end, registry_version)
     if tag == 1:
         return Item("header", offset, end)
     if tag == 5:
         return Item("resync", offset, end)
 
+    if registry_version is None:
+        return Item("unchecked", offset, end)
     if tag_at - offset != _shortest_head_size(count) or (
         after_tag - tag_at != _shortest_head_size(tag)
     ):
@@ -85,6 +101,12 @@ def classify_item(data: bytes, offset: int = 0, *, registry_version: int = 1) ->
     if tag == 0 or registry_version <= 1:
         return Item("opaque", offset, end, "unregistered_value")
     return Item("opaque", offset, end, "unknown_item_kind")
+
+
+def _unclassified(offset: int, end: int, registry_version: int | None) -> Item:
+    if registry_version is None:
+        return Item("unchecked", offset, end)
+    return Item("opaque", offset, end, "wrong_type")
 
 
 def encode_offsets(item_lengths: Sequence[int]) -> bytes:

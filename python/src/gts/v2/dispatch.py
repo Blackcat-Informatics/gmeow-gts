@@ -5,11 +5,11 @@
 from dataclasses import dataclass, replace
 from typing import Literal
 
+from ._item_walk import ItemCountReached, ItemWalk
 from .framing import FramingReason, ItemFramingError, _generation_field, _head, item_end
 from .header import DecodedHeader, HeaderError, decode_header
 from .payload import PayloadBudget
 from .resync import (
-    RESYNC_MAX,
     DecodedResync,
     ResyncError,
     ResyncRefusal,
@@ -57,28 +57,36 @@ def dispatch_file(
     The caller owns the budget so recovery charges carry into later checks.
     On generation 1, pass the original input to the legacy reader.
     """
-    if type(items_per_read) is not int or not 0 <= items_per_read < 1 << 64:
-        raise ValueError("items_per_read must be a uint")
+    return _dispatch(
+        data,
+        ItemWalk(data, items_per_read),
+        ResyncScanner(data, budget),
+        first_and_second=first_and_second,
+    )
+
+
+def _dispatch(
+    data: bytes, walk: ItemWalk, scanner: ResyncScanner, *, first_and_second: bool
+) -> FileDispatch:
     if not data:
         return FileDispatch(None, 0, finding=DispatchFinding("empty_input"))
-    if items_per_read == 0:
+
+    try:
+        first_end = walk.take(0)
+    except ItemCountReached:
         return FileDispatch(
             None, 0, finding=DispatchFinding("item_count", 0, len(data), 1)
         )
-
-    try:
-        first_end = item_end(data)
     except ItemFramingError as error:
         failed = FileDispatch(
             None, 0, finding=DispatchFinding(error.reason, 0, len(data))
         )
         return _recover(
             data,
-            budget,
+            walk,
+            scanner,
             failed,
             len(data),
-            int(error.reason == "undelimitable_input"),
-            items_per_read,
         )
 
     generation = _generation_field(data, first_end)
@@ -91,16 +99,23 @@ def dispatch_file(
     if generation is not None and generation.value == 2:
         _, _, kind_offset = _head(data, 0, 0)
         _, kind, _ = _head(data, kind_offset, 0)
-        decoder = decode_header if kind == 1 else decode_resync
-        try:
-            return FileDispatch(2, first_end, opener=decoder(data), opener_offset=0)
-        except (HeaderError, ResyncError) as error:
-            failed = FileDispatch(2, first_end, opener=error, opener_offset=0)
+        opener = _decode_opener(data, 0, resync=kind == 5)
+        failed = FileDispatch(2, first_end, opener=opener, opener_offset=0)
+        if not isinstance(opener, HeaderError | ResyncError):
+            return failed
     else:
         failed = FileDispatch(
             None, 0, finding=DispatchFinding("not_this_format", 0, first_end)
         )
-    return _recover(data, budget, failed, first_end, 1, items_per_read)
+    return _recover(data, walk, scanner, failed, first_end)
+
+
+def _decode_opener(data: bytes, offset: int, *, resync: bool) -> Opener:
+    decoder = decode_resync if resync else decode_header
+    try:
+        return decoder(data, offset)
+    except (HeaderError, ResyncError) as error:
+        return error
 
 
 def _unsupported(first_end: int) -> FileDispatch:
@@ -111,45 +126,35 @@ def _unsupported(first_end: int) -> FileDispatch:
 
 def _recover(
     data: bytes,
-    budget: PayloadBudget,
+    walk: ItemWalk,
+    scanner: ResyncScanner,
     failed: FileDispatch,
     first_end: int,
-    delimited: int,
-    limit: int,
 ) -> FileDispatch:
-    if not _scan_admitted(data, first_end, delimited, limit):
+    if not walk.scan_admitted(first_end):
         return failed
 
-    result = ResyncScanner(data, budget).scan(0, first_end)
+    result = scanner.scan(0, first_end)
     if result is None:
         return failed
     if isinstance(result, ResyncRefusal):
         return replace(failed, scan_refusal=result)
 
-    gap = None
-    if result.offset > 0:
-        prefix = memoryview(data)[: result.offset]
-        try:
-            item_end(prefix)
-        except ItemFramingError as error:
-            gap = DispatchFinding(error.reason, 0, result.offset)
+    walk.accept_resync()
     return FileDispatch(
-        2, result.next_offset, result, result.offset, scanned=True, finding=gap
+        2,
+        result.next_offset,
+        result,
+        result.offset,
+        scanned=True,
+        finding=_gap_finding(data, 0, result.offset),
     )
 
 
-def _scan_admitted(data: bytes, after: int, count: int, limit: int) -> bool:
-    """Count items delimited by the initial run's framing-only lookahead."""
-    stop = min(len(data), after + RESYNC_MAX)
-    view = memoryview(data)
-    position = after
-    while position < stop and count < limit:
-        # The item immediately after a complete failure is held whole.
-        bound = len(data) if position == after else stop
+def _gap_finding(data: bytes, start: int, end: int) -> DispatchFinding | None:
+    if end > start:
         try:
-            position = item_end(view[:bound], position)
+            item_end(memoryview(data)[:end], start)
         except ItemFramingError as error:
-            count += int(error.reason == "undelimitable_input")
-            break
-        count += 1
-    return count < limit
+            return DispatchFinding(error.reason, start, end - start)
+    return None

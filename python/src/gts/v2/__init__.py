@@ -14,6 +14,7 @@ from .header import (
     encode_header,
 )
 from .payload import PayloadBudget, PayloadCheck
+from .walk import WireRead, walk_file
 
 __all__ = [
     "DecodedHeader",
@@ -28,6 +29,7 @@ __all__ = [
     "Lineage",
     "PayloadBudget",
     "PayloadCheck",
+    "WireRead",
     "decode_frame",
     "decode_header",
     "dispatch_file",
@@ -35,4 +37,5 @@ __all__ = [
     "encode_plain_frame",
     "generation_field",
     "item_end",
+    "walk_file",
 ]

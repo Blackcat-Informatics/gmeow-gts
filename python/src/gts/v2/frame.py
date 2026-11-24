@@ -264,6 +264,10 @@ def decode_frame(data: bytes, offset: int = 0, *, registry_version: int = 1) -> 
     if registry_version < 1:
         raise ValueError("registry version must be positive")
     item_end(data, offset)
+    return _decode_framed(data, offset, registry_version)
+
+
+def _decode_framed(data: bytes, offset: int, registry_version: int) -> Frame:
     decoder = _Decoder(data, offset, FrameError)
     decoder.record(11)
     decoder.uint(minimum=2, maximum=2, reason="unregistered_value")
