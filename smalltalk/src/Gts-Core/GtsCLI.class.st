@@ -263,11 +263,11 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 	format = #unknown ifTrue: [
 		self stderr: 'gts info: ', path, ': input does not identify a GTS generation', String lf.
 		^ false ].
-	self stdout: path, ': GTS v2 framing ledger (byte ranges and frame integrity)', String lf.
+	self stdout: path, ': GTS v2 framing ledger (byte ranges, frame integrity and closing records)', String lf.
 	ordinal := 0.
 	clean := true.
 	wire eventsDo: [ :event |
-		event problem ifNotNil: [ clean := false ].
+		(event problem isNotNil or: [ event closingClaimFailure isNotNil ]) ifTrue: [ clean := false ].
 		event kind = #stop
 			ifTrue: [
 				self stdout: '  framing stopped at byte ', event offset printString, ': ', event problem, String lf ]
@@ -302,7 +302,8 @@ GtsCLI class >> wireDiagnosticFor: event [
 GtsCLI class >> wireFindingFor: event [
 	event isDamagedParity ifTrue: [
 		^ event problem ifNil: [ 'parity_damaged' ] ifNotNil: [ :reason | 'parity_damaged (', reason, ')' ] ].
-	^ event problem
+	^ event problem ifNil: [
+		event closingClaimFailure ifNotNil: [ :reason | 'index_claim_failed (', reason, ')' ] ]
 ]
 
 { #category : #printing }
@@ -601,7 +602,7 @@ GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
 		^ false ].
 	format = #unknown ifTrue: [ report value: 'input does not identify a GTS generation'. ^ false ].
 	hasKeys ifTrue: [ report value: '--key is unsupported for GTS v2'. ^ false ].
-	self stdout: path, ': GTS v2 frame and commit integrity', String lf.
+	self stdout: path, ': GTS v2 frame, closing record and commit integrity', String lf.
 	ordinal := -1.
 	wire eventsDo: [ :event |
 		| location |
@@ -655,15 +656,14 @@ GtsCLI class >> reportIntegrityFor: event report: report [
 
 { #category : #printing }
 GtsCLI class >> printCommitSummary: checks ordinal: ordinal [
-	| prefix tail index closing |
+	| prefix tail index |
 	prefix := checks committedFrames = 0
 		ifTrue: [ 'no_commit' ]
 		ifFalse: [ 'committed_frames ', checks committedFrames printString ].
 	tail := checks tailPosition ifNil: [ '' ] ifNotNil: [ :position |
 		', uncommitted_tail ', checks tailFrames printString, ' (item ', position printString, ')' ].
 	index := checks hasIndex ifTrue: [ ', index payload claims unchecked' ] ifFalse: [ '' ].
-	closing := checks hasClosingItems ifTrue: [ ', offsets and locator unchecked' ] ifFalse: [ '' ].
-	self stdout: '  segment ', ordinal printString, ': ', prefix, tail, index, closing, String lf
+	self stdout: '  segment ', ordinal printString, ': ', prefix, tail, index, String lf
 ]
 
 { #category : #commands }

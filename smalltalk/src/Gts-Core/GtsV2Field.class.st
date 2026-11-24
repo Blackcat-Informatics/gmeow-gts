@@ -61,6 +61,15 @@ GtsV2Field >> uint [
 ]
 
 { #category : #parsing }
+GtsV2Field >> locatorDistance [
+	| head |
+	head := walker headAt: start limit: end.
+	head major = 0 ifFalse: [ self typedHead: 0 ].
+	(self octetAt: 0) = 27 ifFalse: [ GtsV2EnvelopeError signal: 'not_deterministic' ].
+	^ head argument
+]
+
+{ #category : #parsing }
 GtsV2Field >> flag [
 	self typedHead: 7.
 	(walker bytes at: start) = 244 ifTrue: [ ^ false ].

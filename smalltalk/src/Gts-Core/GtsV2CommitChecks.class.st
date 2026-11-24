@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2CommitChecks,
 	#superclass : #Object,
-	#instVars : [ 'range', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'hasIndex', 'hasClosingItems' ],
+	#instVars : [ 'range', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'hasIndex' ],
 	#category : #'Gts-Core'
 }
 
@@ -20,7 +20,6 @@ GtsV2CommitChecks >> initializeOpener: identifier [
 	committedFrames := 0.
 	tailFrames := 0.
 	hasIndex := false.
-	hasClosingItems := false.
 	^ self
 ]
 
@@ -44,17 +43,11 @@ GtsV2CommitChecks >> hasIndex [
 	^ hasIndex
 ]
 
-{ #category : #accessing }
-GtsV2CommitChecks >> hasClosingItems [
-	^ hasClosingItems
-]
-
 { #category : #validating }
 GtsV2CommitChecks >> observe: event findingsDo: aBlock [
 	| identifier |
 	position := position + 1.
 	identifier := event effectiveIdentifier.
-	(#(offsets locator) includes: event kind) ifTrue: [ hasClosingItems := true ].
 	event frameType = 15
 		ifTrue: [ hasIndex := true ]
 		ifFalse: [
