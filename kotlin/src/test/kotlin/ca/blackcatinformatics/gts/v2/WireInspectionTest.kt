@@ -194,6 +194,42 @@ class WireInspectionTest {
         assertEquals(refused.copy(count = 300uL), budget.check(empty))
     }
 
+    @Test
+    fun checksClosingClaimsAgainstTheObservedItemBoundaries() {
+        val cases =
+            listOf(
+                Triple("offsets-counts-opaque", null, null),
+                Triple("offsets-count-short", null, ClosingClaimFailure.INDEX_OFFSETS),
+                Triple("offsets-count-long", null, ClosingClaimFailure.INDEX_OFFSETS),
+                Triple("offsets-length-differs", null, ClosingClaimFailure.INDEX_OFFSETS),
+                Triple("locator-last-index.first", null, ClosingClaimFailure.INDEX_LOCATOR),
+                Triple("locator-last-index.second", null, null),
+                Triple("locator-index-type-long-form", null, ClosingClaimFailure.INDEX_LOCATOR),
+                Triple("locator-short-form", "not_deterministic", null),
+            )
+        for ((name, problem, failure) in cases) {
+            val wire = assertIs<WireInspection.VersionTwo>(inspectWire(vector(name)), name)
+            val closing = assertIs<WireEvent.Item>(wire.events.last(), name)
+            assertEquals(problem, closing.problem, name)
+            assertEquals(failure, closing.closingClaimFailure, name)
+        }
+    }
+
+    @Test
+    fun checksPlacementBeforeClaimsAndResetsAtTheNextOpener() {
+        val opener = vector("gen-record-two")
+        val offsets = "8204810b".hexToByteArray()
+        val locator = "820300".hexToByteArray()
+        val torn = "82".hexToByteArray()
+        val data = opener + offsets + locator + locator + opener + offsets + torn
+        val wire = assertIs<WireInspection.VersionTwo>(inspectWire(data))
+        val events = wire.events.toList()
+        val closing = events.filterIsInstance<WireEvent.Item>().filter { it.kind in setOf(ItemKind.OFFSETS, ItemKind.LOCATOR) }
+        assertEquals(List(3) { "unordered_or_repeated" } + listOf(null), closing.map { it.problem })
+        assertEquals(List(4) { null }, closing.map { it.closingClaimFailure })
+        assertEquals(WireEvent.Stop(data.size - torn.size, StopReason.TORN_TAIL), events.last())
+    }
+
     private fun frames(name: String): List<WireEvent.Item> =
         assertIs<WireInspection.VersionTwo>(inspectWire(vector(name)), name).events
             .filterIsInstance<WireEvent.Item>()

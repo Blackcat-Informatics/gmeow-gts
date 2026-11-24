@@ -73,6 +73,14 @@ class KotlinCliI18nTest {
         assertTrue(mismatch.stdout.contains("link linked, stored check mismatch, payload damaged (decode_failed)"), mismatch.stdout)
     }
 
+    @Test
+    fun failsInfoWhenAnOffsetsClaimDisagreesWithTheObservedLengths() {
+        assertEquals(0, captureCli("en", "info", "../vectors/v2/P1/offsets-holds.bin").code)
+        val failed = captureCli("en", "info", "../vectors/v2/P1/offsets-count-short.bin")
+        assertEquals(1, failed.code)
+        assertTrue(failed.stdout.contains("index_claim_failed (index_offsets)"), failed.stdout)
+    }
+
     private data class CliCapture(
         val code: Int,
         val stdout: String,
