@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2FrameEnvelope,
 	#superclass : #Object,
-	#instVars : [ 'frameType', 'problem', 'identityStart', 'identityEnd', 'transparent', 'storedIdentifier', 'payload' ],
+	#instVars : [ 'frameType', 'problem', 'identityStart', 'identityEnd', 'transparent', 'storedIdentifier', 'payload', 'commitContent' ],
 	#category : #'Gts-Core'
 }
 
@@ -30,6 +30,11 @@ GtsV2FrameEnvelope >> storedIdentifier [
 { #category : #accessing }
 GtsV2FrameEnvelope >> payload [
 	^ payload
+]
+
+{ #category : #accessing }
+GtsV2FrameEnvelope >> commitContent [
+	^ commitContent
 ]
 
 { #category : #testing }
@@ -72,6 +77,7 @@ GtsV2FrameEnvelope >> check: fields newer: newer [
 		ifTrue: [ self recordProblem: 'forbidden_combination' ].
 	content := fields next.
 	contentWellTyped := self observe: [ self checkContent: content. true ].
+	(frameType = 14 and: [ contentWellTyped = true ]) ifTrue: [ commitContent := content ].
 	length := self observe: [ fields next uint ].
 	digest := self observe: [
 		| field |
