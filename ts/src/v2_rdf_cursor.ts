@@ -63,6 +63,23 @@ export class RdfCursor {
         return this.head(0);
     }
 
+    int(): bigint {
+        return this.head(0, true);
+    }
+
+    bool(): boolean {
+        const octet = this.data[this.offset];
+        this.head(7);
+        requireRdf(octet === 0xf4 || octet === 0xf5, "wrong_type");
+        return octet === 0xf5;
+    }
+
+    span(read: () => void): Uint8Array {
+        const start = this.offset;
+        read();
+        return this.data.subarray(start, this.offset);
+    }
+
     positive(): bigint {
         const value = this.uint();
         requireRdf(value > 0n, "out_of_range");
@@ -96,7 +113,7 @@ export class RdfCursor {
     deltas(minimum = 0n): bigint[] {
         let previous = 0n;
         return this.list(() => {
-            previous += this.head(0, true);
+            previous += this.int();
             requireRdf(
                 previous >= minimum && previous <= maxUint64,
                 "out_of_range",
