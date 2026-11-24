@@ -11,6 +11,7 @@ import (
 	"go.blackcatinformatics.ca/gts/fromnquads"
 	"go.blackcatinformatics.ca/gts/nquads"
 	"go.blackcatinformatics.ca/gts/reader"
+	"go.blackcatinformatics.ca/gts/v2"
 	"go.blackcatinformatics.ca/gts/wire"
 )
 
@@ -127,6 +128,10 @@ func cmdFold(paths []string) int {
 	if code != 0 {
 		return code
 	}
+	result := v2.ReadWire(data, v2.DefaultReadCapacity())
+	if result.Dispatch != v2.FirstGeneration {
+		return foldV2(paths[0], result)
+	}
 	g := reader.Read(data, true, nil)
 	for _, d := range g.Diagnostics {
 		fmt.Fprintf(os.Stderr, "gts: diagnostic %s: %s\n", d.Code, d.Detail)
@@ -134,6 +139,23 @@ func cmdFold(paths []string) int {
 	fmt.Print(nquads.ToNQuads(g))
 	if len(g.Diagnostics) > 0 || len(g.SegmentHeads) == 0 {
 		return 1
+	}
+	return 0
+}
+
+func foldV2(path string, result v2.WireResult) int {
+	graph, err := result.WholeRDFProjection()
+	var text string
+	if err == nil {
+		text, err = graph.NQuads()
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gts fold: %s: %v\n", path, err)
+		return 1
+	}
+	if _, err := io.WriteString(os.Stdout, text); err != nil {
+		fmt.Fprintf(os.Stderr, "gts fold: cannot write stdout: %v\n", err)
+		return 2
 	}
 	return 0
 }
