@@ -96,19 +96,10 @@ GtsV2Wire >> scanDecisionFrom: start lookahead: frontier held: held itemLimit: i
 	decisionEnd := (start + 4096) min: end.
 	[ offset < decisionEnd and: [ count < itemLimit ] ] whileTrue: [
 		limit := offset = start ifTrue: [ end ] ifFalse: [ decisionEnd ].
-		[ finish := held at: offset ifAbsent: [ walker itemEndAt: offset limit: limit ].
-		finish isString ifTrue: [ GtsV2FramingError signal: finish ] ]
-			on: GtsV2FramingError
-			do: [ :error |
-				error messageText = 'undelimitable_input' ifTrue: [
-					held at: offset put: error messageText.
-					^ { end. count + 1 } ].
-				limit = end ifTrue: [
-					held at: offset put: error messageText.
-					^ { end. count } ].
-				^ { offset. count } ].
+		finish := self heldEndAt: offset limit: limit held: held.
+		finish isString ifTrue: [ ^ { end. count + 1 } ].
+		finish ifNil: [ ^ { (limit = end ifTrue: [ end ] ifFalse: [ offset ]). count } ].
 		finish > limit ifTrue: [ ^ { offset. count } ].
-		held at: offset put: finish.
 		offset := finish.
 		count := count + 1 ].
 	^ { offset. count }
@@ -258,7 +249,8 @@ GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit prepareFrame: prepare on
 	count := initialItemCount + (previous scanned ifTrue: [ 1 ] ifFalse: [ 0 ]).
 	scannedThrough := firstScanEnd.
 	frontier := initialLookahead.
-	held := initialHeldItems copy.
+	held := Dictionary new: initialHeldItems size.
+	initialHeldItems keysAndValuesDo: [ :start :state | held at: start put: state copy ].
 	[ offset < limit ] whileTrue: [
 		count >= itemLimit ifTrue: [
 			aBlock value: (self stopAt: offset reason: 'items_per_read').
@@ -321,10 +313,8 @@ GtsV2Wire >> frameWitnessAt: offset registry: registry held: held [
 	| limit finish array code item |
 	limit := bytes size + 1.
 	offset >= limit ifTrue: [ ^ nil ].
-	finish := held at: offset ifAbsentPut: [
-		[ walker itemEndAt: offset limit: limit ]
-			on: GtsV2FramingError do: [ :error | error messageText ] ].
-	finish isString ifTrue: [ ^ nil ].
+	finish := self heldEndAt: offset limit: limit held: held.
+	(finish isNil or: [ finish isString ]) ifTrue: [ ^ nil ].
 	array := walker headAt: offset limit: finish.
 	code := self recordKind: array limit: finish.
 	(array isShortest and: [ array argument = 11 and: [
@@ -351,8 +341,22 @@ GtsV2Wire >> finalize: event following: next predecessor: predecessor [
 { #category : #enumerating }
 GtsV2Wire >> endAt: offset limit: limit held: held [
 	| finish |
-	finish := held removeKey: offset ifAbsent: [ ^ walker itemEndAt: offset limit: limit ].
+	held at: offset ifAbsent: [ ^ walker itemEndAt: offset limit: limit ].
+	finish := self heldEndAt: offset limit: limit held: held.
+	held removeKey: offset.
 	finish isString ifTrue: [ GtsV2FramingError signal: finish ].
+	^ finish ifNil: [ GtsV2FramingError signal: 'torn_tail' ]
+]
+
+{ #category : #enumerating }
+GtsV2Wire >> heldEndAt: offset limit: limit held: held [
+	| state finish |
+	state := held at: offset ifAbsentPut: [ walker itemAt: offset ].
+	(state isInteger or: [ state isString ]) ifTrue: [ ^ state ].
+	finish := [ state endUpTo: limit ]
+		on: GtsV2FramingError
+		do: [ :error | error messageText ].
+	finish ifNotNil: [ held at: offset put: finish ].
 	^ finish
 ]
 
