@@ -118,6 +118,7 @@ GtsVerifyTest >> testV2IndexPrefixClaims [
 		('index-each-claim.head' 'index_head')
 		('index-each-claim.range_root' 'index_root')
 		('index-each-claim.type_runs' 'index_directory')
+		('index-each-claim.pack_members' 'index_members')
 		('index-covers-frame-of-no-type.long-form-15-typed' 'index_directory')
 		('index-covers-frame-of-no-type.long-form-15-omitted' 'index_directory')
 	) do: [ :entry |
@@ -125,6 +126,59 @@ GtsVerifyTest >> testV2IndexPrefixClaims [
 		findings := (self checkV2: (self v2Vector: entry first)) second collect: [ :finding | finding first ].
 		expected := entry second ifNil: [ #() ] ifNotNil: [ :reason | { 'index_claim_failed (', reason, ')' } ].
 		self assert: findings asArray = expected description: entry first ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2IndexComparesPackMemberIdentityAndOrder [
+	| units first second value directory packed expected |
+	units := #(#[1] #[2]) collect: [ :bytes | { (GtsBlake3 deriveWith: 'gts2 unit' bytes: bytes). bytes } ].
+	units sort: [ :left :right | (GtsCose compareBytes: left first with: right first) < 0 ].
+	first := units first.
+	second := units second.
+	value := GtsCborWriter encode: { { first first. 1 } }.
+	directory := { { 4. { first first. 1. 1 }. value size }.
+		{ 2. { second first. #(1) }. 1 }.
+		{ 1. { first first }. 1 } }.
+	packed := GtsCborWriter encode: { directory. value, second second, first second }.
+	expected := { { first first. 1. 2 }. { second first. 1. 1 } }.
+	{ expected. { { first first. 0. 2 }. expected second }.
+		{ { first first. 1. 0 }. expected second }.
+		{ expected first. { first first. 1. 1 } }. expected reversed } withIndexDo: [ :claim :case |
+		| writer range head index findings |
+		writer := GtsV2SegmentWriter new.
+		writer appendType: 8 content: { first first } payload: first second.
+		writer writeType: 13 content: #(3 2) payload: packed.
+		range := GtsV2Range new.
+		(GtsV2Wire inspect: writer bytes) eventsDo: [ :event |
+			head := event effectiveIdentifier.
+			range add: head ].
+		index := GtsCborWriter encode: { #((8 1) (13 1)). #(). #(0 0 0 ()). range root. #(1). claim }.
+		writer writeType: 15 content: { 2. head } payload: index.
+		findings := (self checkV2: writer bytes) second asArray.
+		self assert: findings equals: (case = 1 ifTrue: [ #() ] ifFalse: [ #(('index_claim_failed (index_members)' 3 nil)) ]) ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2IndexChecksDamagedMembersAndSkipsOpaquePacks [
+	| digest expected |
+	digest := ByteArray new: 32.
+	expected := GtsCborWriter encode: { { 1. { digest }. 1 } }.
+	{ { expected. 'damaged_frame (payload_digest)'. true }.
+		{ #[128]. 'malformed_value (inconsistent_counts)'. false } } do: [ :test |
+		| writer bytes range head index findings |
+		writer := GtsV2SegmentWriter new.
+		bytes := #[130], test first, #[65 1].
+		writer writeType: 13 content: #(1 1) payload: bytes.
+		range := GtsV2Range new.
+		(GtsV2Wire inspect: writer bytes) eventsDo: [ :event |
+			head := event effectiveIdentifier.
+			range add: head ].
+		index := GtsCborWriter encode: { #((13 1)). #(). #(0 0 0 ()). range root. #(1). #() }.
+		writer writeType: 15 content: { 1. head } payload: index.
+		findings := (self checkV2: writer bytes) second asArray.
+		self assert: findings equals: (test third
+			ifTrue: [ { { test second. 1. nil }. { 'index_claim_failed (index_members)'. 2. nil } } ]
+			ifFalse: [ { { test second. 1. nil } } ]) ]
 ]
 
 { #category : #tests }
@@ -160,6 +214,6 @@ GtsVerifyTest >> checkV2: bytes [
 					checks observe: event findingsDo: [ :reason :position :expected |
 						findings add: { reason. position. expected } ] ] ] ]
 		budget: GtsV2PayloadBudget new
-		decodedWhen: [ :event | event frameType = 15 ].
+		decodedWhen: [ :event | #(13 15) includes: event frameType ].
 	^ { checks. findings. events }
 ]
