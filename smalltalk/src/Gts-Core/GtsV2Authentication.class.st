@@ -32,6 +32,11 @@ GtsV2Authentication >> beginRunAt: start [
 ]
 
 { #category : #observing }
+GtsV2Authentication >> observeDetachedFrame [
+	self beginRunAt: position + 1
+]
+
+{ #category : #observing }
 GtsV2Authentication >> observe: event validCommit: valid [
 	(event kind = #frame and: [ event frame isTransparent not ]) ifFalse: [ ^ self ].
 	event effectiveIdentifier ifNil: [ ^ self beginRunAt: position + 1 ].

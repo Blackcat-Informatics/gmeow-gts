@@ -55,8 +55,7 @@ GtsV2ParityChecks >> finishOpenerLink: passes [
 	self recordUnexplained: unexplained of: pendingOpenerParity second for: event.
 	event parityFinding = 'parity_stale' ifFalse: [
 		stream protectThrough: (pendingOpenerParity at: 5) at: (pendingOpenerParity at: 6).
-		self recordReconstructionFailure: (pendingOpenerParity at: 7) for: event.
-		proposal := pendingOpenerParity at: 8.
+		proposal := pendingOpenerParity at: 7.
 		proposal ifNotNil: [
 			proposal finishOpenerLink: passes.
 			repairing addSpan: proposal ] ].
@@ -193,19 +192,17 @@ GtsV2ParityChecks >> checkShardsFor: event table: table payload: payload from: f
 	parityFailed isNotEmpty ifTrue: [ findings add: { 'parity_mismatch'. 'parity'. parityFailed size } ].
 	event parityShardFindings: findings.
 	(dataFailed > unexplained or: [ dataFailed = 0 and: [ parityFailed isNotEmpty ] ]) ifTrue: [
-		repairing ifNotNil: [
-			proposal := GtsV2ParityRepairSpan at: event offset.
-			capture := self repairCaptureFor: proposal frame: event frame table: table
-				from: first to: end mismatches: dataCounts ].
+		proposal := GtsV2ParityRepairSpan at: event offset.
+		capture := self repairCaptureFor: proposal frame: event frame table: table
+			from: first to: end mismatches: dataCounts.
 		failure := self reconstructionFailureFor: table payload: payload from: first to: end
 			erasures: { dataCounts first. parityFailed } capture: capture.
-		proposal ifNotNil: [ proposal failure: failure ] ].
+		proposal failure: failure ].
 	dataCounts third isNotEmpty
-		ifTrue: [ pendingOpenerParity := { event. dataFailed. unexplained. dataCounts third size. end. nil. failure. proposal } ]
+		ifTrue: [ pendingOpenerParity := { event. dataFailed. unexplained. dataCounts third size. end. nil. proposal } ]
 		ifFalse: [
 			self recordUnexplained: unexplained of: dataFailed for: event.
 			self protectThrough: end for: event.
-			self recordReconstructionFailure: failure for: event.
 			proposal ifNotNil: [ repairing addSpan: proposal ] ]
 ]
 
@@ -224,11 +221,6 @@ GtsV2ParityChecks >> repairCaptureFor: proposal frame: frame table: table from: 
 					proposal addData: (stream patchesFor: shard from: start to: finish)
 						conditional: (dataCounts third includes: slot) ] ]
 			ifFalse: [ proposal addParity: shard at: parityStart + ((slot - 1) * shardSize) ] ]
-]
-
-{ #category : #validation }
-GtsV2ParityChecks >> recordReconstructionFailure: reason for: event [
-	reason ifNotNil: [ event parityShardFindings add: { 'repair_failed'. reason. nil } ]
 ]
 
 { #category : #validation }
@@ -301,7 +293,7 @@ GtsV2ParityChecks >> checksSolved: solved original: known slots: slots digests: 
 			slot := slots at: index.
 			actual := (GtsBlake3 deriveWith: 'gts2 shard' bytes: restored) first: 16.
 			actual = (digests at: slot) ifFalse: [ valid := false ].
-			capture ifNotNil: [ capture value: kind value: slot value: restored ] ] ].
+			capture value: kind value: slot value: restored ] ].
 	^ valid
 ]
 

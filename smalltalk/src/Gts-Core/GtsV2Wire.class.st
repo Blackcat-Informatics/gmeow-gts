@@ -195,22 +195,27 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report [
-	self eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report repairing: nil
+	| plan |
+	plan := GtsV2ParityRepair on: bytes keepingCopy: false.
+	self eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report repairing: plan.
+	plan finish.
+	^ plan
 ]
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report repairing: plan [
-	| pending pendingOffsets predecessor closing parity deliver flush budget refusalAfter pendingRefusal heldForParity emit finishSegment releaseHeld |
+	| pending pendingOffsets predecessor closing parity deliver flush budget refusalAfter pendingRefusal heldForParity emit finishSegment releaseHeld detached lastOrdinary |
 	format = #v2 ifFalse: [ ^ self ].
 	budget := initialBudget copy.
 	closing := GtsV2ClosingChecks on: walker.
 	parity := GtsV2ParityChecks on: bytes repairing: plan.
+	detached := false.
 	releaseHeld := [ heldForParity ifNotNil: [ heldForParity do: aBlock. heldForParity := nil ] ].
 	finishSegment := [
 		parity finishOpenerLink: false.
 		releaseHeld value.
 		parity unprotectedTailDo: report.
-		plan ifNotNil: [ plan finishSegmentWith: budget ] ].
+		plan finishSegmentWith: budget ].
 	emit := [ :event |
 		parity awaitsOpenerLink
 			ifTrue: [
@@ -222,10 +227,20 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report 
 	deliver := [ :event :next :afterLocator |
 		| effective |
 		closing observe: event following: next afterLocator: afterLocator.
-		event resumptionAnchor ifNotNil: [ :anchor | predecessor := anchor ].
+		event startsSegment ifTrue: [
+			detached := false.
+			lastOrdinary := event effectiveIdentifier ifNotNil: [ :digest | digest copy ] ].
+		event resumptionAnchor ifNotNil: [ :anchor |
+			detached := anchor ~= lastOrdinary.
+			predecessor := anchor copy ].
 		effective := self finalize: event following: next predecessor: predecessor.
+		(event frame notNil and: [ event frame isTransparent not ]) ifTrue: [
+			detached ifTrue: [ event markDetached ].
+			event effectiveIdentifier ifNotNil: [ :identifier |
+				lastOrdinary := identifier copy.
+				detached := false ] ].
 		parity observe: event predecessor: predecessor.
-		plan ifNotNil: [ plan observe: event ].
+		plan observe: event.
 		effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
 		emit value: event.
 		event == refusalAfter ifTrue: [
@@ -264,7 +279,7 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report 
 				ifTrue: [ previous offset + 2 ]
 				ifFalse: [ offset ].
 			start := start max: scannedThrough.
-			(incomplete and: [ plan notNil and: [ parity hasReadableOpener ] ])
+			(incomplete and: [ parity hasReadableOpener ])
 				ifTrue: [
 					GtsV2ParityCandidate scan: walker resyncFrom: start parityFrom: offset
 						checks: parity previous: previous budget: budget ]
@@ -322,8 +337,11 @@ GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit prepareFrame: prepare on
 				event offset > (offset - 1) ifTrue: [
 					aBlock value: (event resumptionAnchor
 						ifNil: [ self framingGapFrom: offset to: event offset + 1 ]
-						ifNotNil: [ GtsV2WireEvent kind: #framingGap from: offset - 1
-							to: event offset problem: 'undelimitable_input' ]) ].
+						ifNotNil: [
+							(GtsV2WireEvent kind: #framingGap from: offset - 1
+								to: event offset problem: 'undelimitable_input')
+								markParityGap;
+								yourself ]) ].
 				(error messageText = 'undelimitable_input' or: [ event resumptionAnchor notNil ])
 					ifTrue: [ count := count + 1 ].
 				finish := event end + 1 ].

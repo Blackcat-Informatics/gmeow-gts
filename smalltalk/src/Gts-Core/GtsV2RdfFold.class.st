@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2RdfFold,
 	#superclass : #Object,
-	#instVars : [ 'graph', 'pool', 'dictionary', 'blanks', 'values', 'lines', 'suppression', 'textBytes' ],
+	#instVars : [ 'graph', 'pool', 'dictionary', 'blanks', 'values', 'lines', 'suppression', 'textBytes', 'dictionaryInDoubt' ],
 	#category : #'Gts-Core'
 }
 
@@ -39,6 +39,7 @@ GtsV2RdfFold >> read: wire visible: visible [
 { #category : #private }
 GtsV2RdfFold >> observe: event [
 	| type content bytes |
+	event isParityGap ifTrue: [ dictionaryInDoubt := true. ^ self ].
 	event kind = #stop ifTrue: [
 		GtsV2EnvelopeError signal: event problem ].
 	(#(offsets locator) includes: event kind) ifTrue: [ ^ self ].
@@ -53,6 +54,7 @@ GtsV2RdfFold >> observe: event [
 		(event effectiveIdentifier isNil or: [ event opener registry ~= 1 ])
 			ifTrue: [ GtsV2EnvelopeError signal: 'unsupported opener' ].
 		dictionary := OrderedCollection new.
+		dictionaryInDoubt := false.
 		blanks := Dictionary new.
 		values beginSegment.
 		^ self ].
@@ -63,13 +65,15 @@ GtsV2RdfFold >> observe: event [
 	event payload state = #verified ifFalse: [
 		GtsV2EnvelopeError signal: (event payload reason ifNil: [ 'payload_unavailable' ]) ].
 	type := event frameType.
+	(dictionaryInDoubt and: [ type between: 1 and: 5 ]) ifTrue: [ ^ self ].
 	content := event frame content.
 	bytes := event payload decoded.
 	type = 1 ifTrue: [ ^ GtsV2RdfTerms new read: content bytes: bytes fold: self values: values ].
 	(type between: 2 and: 5) ifTrue: [
 		^ GtsV2RdfRows readType: type content: content bytes: bytes into: self ].
 	type = 7 ifTrue: [
-		^ suppression read: content bytes: bytes dictionary: dictionary segment: blanks ].
+		^ suppression read: content bytes: bytes
+			dictionary: (dictionaryInDoubt ifTrue: [ #() ] ifFalse: [ dictionary ]) segment: blanks ].
 	(#(8 9 10 11 13) includes: type) ifTrue: [
 		^ values readType: type content: content bytes: bytes ].
 	(#(6 12 14 15) includes: type) ifTrue: [ ^ self ].

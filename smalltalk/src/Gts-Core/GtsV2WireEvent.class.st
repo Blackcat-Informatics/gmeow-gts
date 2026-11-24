@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding', 'parityShardFindings', 'resumptionAnchor' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding', 'parityShardFindings', 'resumptionAnchor', 'parityGap', 'detached' ],
 	#category : #'Gts-Core'
 }
 
@@ -127,6 +127,26 @@ GtsV2WireEvent >> resyncRefusal: result [
 { #category : #accessing }
 GtsV2WireEvent >> resumptionAnchor [
 	^ resumptionAnchor
+]
+
+{ #category : #testing }
+GtsV2WireEvent >> isParityGap [
+	^ parityGap = true
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> markParityGap [
+	parityGap := true
+]
+
+{ #category : #testing }
+GtsV2WireEvent >> detached [
+	^ detached = true
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> markDetached [
+	detached := true
 ]
 
 { #category : #initialization }

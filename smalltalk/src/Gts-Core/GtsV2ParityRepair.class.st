@@ -3,18 +3,24 @@
 Class {
 	#name : #GtsV2ParityRepair,
 	#superclass : #Object,
-	#instVars : [ 'input', 'working', 'output', 'items', 'spans', 'findings', 'stop', 'refusal' ],
+	#instVars : [ 'input', 'working', 'output', 'items', 'spans', 'findings', 'stop', 'refusal', 'keepCopy' ],
 	#category : #'Gts-Core'
 }
 
 { #category : #'instance creation' }
 GtsV2ParityRepair class >> on: bytes [
-	^ self new initializeOn: bytes
+	^ self on: bytes keepingCopy: true
+]
+
+{ #category : #'instance creation' }
+GtsV2ParityRepair class >> on: bytes keepingCopy: keepCopy [
+	^ self new initializeOn: bytes keepingCopy: keepCopy
 ]
 
 { #category : #initialization }
-GtsV2ParityRepair >> initializeOn: bytes [
+GtsV2ParityRepair >> initializeOn: bytes keepingCopy: keep [
 	input := bytes.
+	keepCopy := keep.
 	items := OrderedCollection new.
 	spans := OrderedCollection new.
 	findings := OrderedCollection new.
@@ -49,13 +55,18 @@ GtsV2ParityRepair >> finish [
 
 { #category : #observing }
 GtsV2ParityRepair >> observe: event [
+	| identifier |
 	event kind = #stop ifTrue: [ stop := event. ^ self ].
 	(#(parityRefused resyncRefused) includes: event kind) ifTrue: [ refusal := event. ^ self ].
-	event startsSegment ifTrue: [ items add: event. ^ self ].
+	identifier := event effectiveIdentifier ifNotNil: [ :digest | digest copy ].
+	event startsSegment ifTrue: [
+		items add: { event offset. event end. identifier.
+			event opener ifNotNil: [ :opener | opener registry ] }.
+		^ self ].
 	items isEmpty ifTrue: [ ^ self ].
 	((#(frame opaque offsets locator unchecked) includes: event kind) or: [
 		event kind = #framingGap and: [ event problem = 'undelimitable_input' ] ])
-		ifTrue: [ items add: event ]
+		ifTrue: [ items add: { event offset. event end. identifier } ]
 ]
 
 { #category : #observing }
@@ -73,7 +84,7 @@ GtsV2ParityRepair >> finishSegmentWith: budget [
 { #category : #private }
 GtsV2ParityRepair >> repairSegmentWith: budget [
 	| limit owners dependents |
-	limit := items last end.
+	limit := items last second.
 	owners := self stageSpans.
 	dependents := IdentityDictionary new.
 	self checkRunsWith: budget before: limit owners: owners dependents: dependents.
@@ -82,8 +93,9 @@ GtsV2ParityRepair >> repairSegmentWith: budget [
 		span failure
 			ifNil: [
 				span shardCount > 0 ifTrue: [
-					output ifNil: [ output := input copy ].
-					span patchesDo: [ :patch | self apply: patch to: output ].
+					keepCopy ifTrue: [
+						output ifNil: [ output := input copy ].
+						span patchesDo: [ :patch | self apply: patch to: output ] ].
 					findings add: { 'repaired'. span offset. span shardCount } ] ]
 			ifNotNil: [ :reason | findings add: { 'repair_failed'. span offset. reason } ].
 		span patchesDo: [ :patch |
@@ -117,7 +129,7 @@ GtsV2ParityRepair >> itemContaining: offset [
 	[ first < last ] whileTrue: [
 		| middle |
 		middle := (first + last) // 2.
-		offset < (items at: middle) end
+		offset < (items at: middle) second
 			ifTrue: [ last := middle ]
 			ifFalse: [ first := middle + 1 ] ].
 	^ first
@@ -134,12 +146,12 @@ GtsV2ParityRepair >> checkRunsWith: budget before: limit owners: owners dependen
 	| opener predecessor registry predecessorRun failedRun index walker |
 	owners ifEmpty: [ ^ self ].
 	opener := items first.
-	predecessor := opener effectiveIdentifier.
-	registry := opener opener registry.
+	predecessor := opener third.
+	registry := opener fourth.
 	walker := GtsV2CborWalker on: working.
 	index := 1.
 	failedRun := false.
-	[ index <= items size and: [ (items at: index) offset < limit ] ] whileTrue: [
+	[ index <= items size and: [ (items at: index) first < limit ] ] whileTrue: [
 		| event |
 		event := items at: index.
 		(owners includesKey: index)
@@ -165,8 +177,8 @@ GtsV2ParityRepair >> checkRunsWith: budget before: limit owners: owners dependen
 					ifFalse: [ failedRun := true ].
 				index := last + 1 ]
 			ifFalse: [
-				(event frame notNil and: [ event effectiveIdentifier notNil ]) ifTrue: [
-					predecessor := event effectiveIdentifier.
+				event third ifNotNil: [ :identifier |
+					predecessor := identifier.
 					predecessorRun := nil.
 					failedRun := false ].
 				index := index + 1 ] ]
@@ -175,7 +187,7 @@ GtsV2ParityRepair >> checkRunsWith: budget before: limit owners: owners dependen
 { #category : #private }
 GtsV2ParityRepair >> walkFromItem: index to: limit on: walker predecessor: predecessor opener: opener registry: registry budget: budget [
 	| position current produced last |
-	position := (items at: index) offset.
+	position := (items at: index) first.
 	current := predecessor.
 	last := index.
 	[
@@ -184,10 +196,10 @@ GtsV2ParityRepair >> walkFromItem: index to: limit on: walker predecessor: prede
 		[ end := item endUpTo: limit + 1 ] on: GtsV2FramingError do: [ :error | end := nil ].
 		end ifNil: [ ^ { self itemContaining: item examinedEnd - 2. false. nil } ].
 		end := end - 1.
-		[ (items at: last) end < end ] whileTrue: [ last := last + 1 ].
-		position = opener offset
+		[ (items at: last) second < end ] whileTrue: [ last := last + 1 ].
+		position = opener first
 			ifTrue: [
-				(end = opener end and: [
+				(end = opener second and: [
 					(position + 1 to: end) allSatisfy: [ :byte | (working at: byte) = (input at: byte) ] ])
 					ifFalse: [ ^ { last. false. nil } ] ]
 			ifFalse: [
@@ -198,8 +210,8 @@ GtsV2ParityRepair >> walkFromItem: index to: limit on: walker predecessor: prede
 					current := frame storedIdentifier.
 					produced := current ] ].
 		position := end.
-		position = limit or: [ position = (items at: last) end and: [
-			(items at: last + 1) offset = position ] ]
+		position = limit or: [ position = (items at: last) second and: [
+			(items at: last + 1) first = position ] ]
 	] whileFalse.
 	^ { last. true. produced }
 ]

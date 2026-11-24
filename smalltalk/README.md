@@ -48,18 +48,19 @@ grammar, or has a broken frame link after checking its immediate successor.
 The reader checks parity-frame anchors, digest tables, placement, and shard
 digests. It distinguishes damaged shards from stale parity over changed
 bytes whose items still pass verification. It reports any unprotected
-tail of a segment that carries parity. It reconstructs missing shards for
-digest validation and reports spans that exceed the stripe erasure limit
-or produce invalid shard digests. Use `gts repair INPUT -o OUTPUT` to write
+tail of a segment that carries parity. It reconstructs missing shards,
+rechecks the affected frames, and reports accepted and failed repairs.
+Use `gts repair INPUT -o OUTPUT` to write
 a new copy with accepted repairs. The command reports the parity frame offset
 and the shard count or failure reason. It creates a copy only when at least
 one span passes rechecking. The command returns status 1 when a repair fails
 or the item walk stops before the end of the input. If framing is lost,
-the repair command looks for a usable parity frame or resync item and
+the reader looks for a usable parity frame or resync item and
 continues at the first candidate that passes its checks.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.
+After a detached frame, prefix claims that depend on lost frames fail verification.
 It validates index payloads and compares their frame count, head, type runs,
 and range root against the observed prefix. It compares graph and pack-member
 directories when their covered frames can be read. Graph directory comparison
