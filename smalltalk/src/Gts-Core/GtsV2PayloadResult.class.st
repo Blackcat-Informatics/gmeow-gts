@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2PayloadResult,
 	#superclass : #Object,
-	#instVars : [ 'state', 'reason', 'count' ],
+	#instVars : [ 'state', 'reason', 'count', 'decoded' ],
 	#category : #'Gts-Core'
 }
 
@@ -33,4 +33,15 @@ GtsV2PayloadResult >> reason [
 { #category : #accessing }
 GtsV2PayloadResult >> count [
 	^ count
+]
+
+{ #category : #accessing }
+GtsV2PayloadResult >> decoded [
+	^ decoded
+]
+
+{ #category : #accessing }
+GtsV2PayloadResult >> keepDecoded: bytes [
+	decoded := bytes.
+	^ self
 ]

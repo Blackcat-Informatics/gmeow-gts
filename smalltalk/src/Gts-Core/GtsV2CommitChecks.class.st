@@ -55,7 +55,7 @@ GtsV2CommitChecks >> observe: event findingsDo: aBlock [
 				tailFrames = 0 ifTrue: [ tailPosition := position ].
 				tailFrames := tailFrames + 1 ] ].
 	(event frameType = 14 and: [ event problem isNil ]) ifTrue: [
-		self check: event frame commitContent link: event link findingsDo: aBlock ].
+		self check: event frame content link: event link findingsDo: aBlock ].
 	identifier ifNotNil: [ range add: identifier ]
 ]
 
