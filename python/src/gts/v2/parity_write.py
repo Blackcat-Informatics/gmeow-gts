@@ -8,11 +8,8 @@ from functools import cache
 import cbor2
 from blake3 import blake3
 
+from ._parity import _DATA_COLUMNS, _PARITY_ROWS, _SPAN_LENGTH, _shard_size
 from .frame import _PARITY, decode_frame, encode_plain_frame
-
-_SPAN_LENGTH = 1 << 22
-_DATA_COLUMNS = 64
-_PARITY_ROWS = 4
 
 
 def _field_tables() -> tuple[tuple[int, ...], tuple[int, ...]]:
@@ -60,7 +57,7 @@ def _shard_digest(shard: bytes | bytearray) -> bytes:
 
 def _encode_span(span: bytearray, first: int, opener: bytes, anchor: bytes) -> bytes:
     length = len(span)
-    size = max(64, min(4096, 1 << ((length - 1) // _DATA_COLUMNS).bit_length()))
+    size = _shard_size(length)
     data = [span[offset : offset + size] for offset in range(0, length, size)]
     data[-1] = data[-1].ljust(size, b"\x00")
     parity = _parity_shards(data, size)

@@ -5,6 +5,7 @@
 from dataclasses import dataclass, replace
 
 from ._item_walk import ItemCountReached, ItemWalk
+from ._parity import ParityCheck, _ParityFrames
 from .dispatch import (
     DispatchFinding,
     FileDispatch,
@@ -13,7 +14,7 @@ from .dispatch import (
     _dispatch,
     _gap_finding,
 )
-from .frame import Frame, FrameError, _decode_framed
+from .frame import Frame, FrameError, _decode_framed, _frame_field_offsets
 from .framing import ItemFramingError
 from .header import DecodedHeader, HeaderError
 from .items import (
@@ -35,6 +36,7 @@ class WireFrame:
     frame: Frame | FrameError
     link: FrameLink
     payload: PayloadCheck
+    parity: ParityCheck | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +125,10 @@ class _Segment:
         closing: tuple[ClosingFinding, ...] = ()
         if self.identifier is not None:
             closing = tuple(check_closing_items(data, self.items))
+            assert self.registry is not None
+            _check_parity_frames(
+                data, self.items, self.frames, self.identifier, self.registry
+            )
         return WireSegment(
             start,
             end - start,
@@ -132,6 +138,42 @@ class _Segment:
             tuple(self.frames),
             closing,
         )
+
+
+def _check_parity_frames(
+    data: bytes,
+    items: list[Item],
+    frames: list[WireFrame],
+    opener: bytes,
+    registry: int,
+) -> None:
+    checks = _ParityFrames(opener, registry)
+    predecessor = opener
+    frame_index = 0
+    for item in items:
+        if item.kind != "frame":
+            if item.kind not in ("offsets", "locator"):
+                checks.advance(item.end - item.offset)
+            continue
+        event = frames[frame_index]
+        if isinstance(event.frame, Frame):
+            content = event.frame.content
+            transparent = event.frame.transparent
+        else:
+            starts = _frame_field_offsets(data, item.offset)
+            content = memoryview(data)[starts[3] : starts[4]]
+            transparent = data[starts[2]] == 0xF5
+        # Type 16 is known only when the frame_type item is deterministic.
+        if data[item.offset + 2] == 0x10:
+            parity = checks.check(
+                content, event.frame, event.link.state, predecessor, event.payload
+            )
+            frames[frame_index] = replace(event, parity=parity)
+        if not transparent:
+            checks.advance(item.end - item.offset)
+        if event.link.effective_identifier is not None:
+            predecessor = event.link.effective_identifier
+        frame_index += 1
 
 
 def walk_file(
@@ -144,8 +186,8 @@ def walk_file(
     """Walk items and recover at failed items or lost CBOR boundaries.
 
     Frame events expose independent link, envelope, and payload checks.
-    Closing records use observed item boundaries. This wire pass does not
-    perform parity recovery.
+    Closing records use observed item boundaries. Parity checks cover the
+    frame, digest table and placement within the segment stream.
     """
     walk = ItemWalk(data, items_per_read)
     scanner = ResyncScanner(data, budget)

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import cbor2
 import pytest
-from zstandard import ZstdCompressor
+from zstandard import ZstdCompressor, ZstdDecompressor
 
 from gts.v2 import (
     FrameError,
@@ -22,6 +22,7 @@ from gts.v2.frame import _encode_frame
 from gts.v2.items import ClosingFinding
 
 _P1 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P1"
+_P5 = _P1.with_name("P5")
 _LINK = {"linked": 1, "healed": 2, "broken": 3}
 _PAYLOAD = {"verified": 1, "damaged": 2, "unchecked": 3}
 
@@ -165,3 +166,88 @@ def test_rejected_indefinite_payload_preserves_its_stored_check() -> None:
     assert isinstance(frame.frame, FrameError)
     assert frame.payload.state == "damaged"
     assert frame.payload.stored_matches is True
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        "parity-base",
+        "parity-wrong-transparent",
+        "parity-damaged-each",
+        "parity-damaged-shard",
+        "parity-signed",
+        "parity-later-version",
+        "parity-above-capacity",
+        "parity-above-capacity-wrong-table",
+        "parity-above-capacity-and-damaged",
+        "parity-frame-type-second-form",
+        "parity-placement",
+    ],
+)
+def test_walk_checks_parity_frames_and_tables(fixture: str) -> None:
+    manifest = json.loads((_P5 / f"{fixture}.json").read_text())
+    for case in manifest["cases"]:
+        capacity = case["capacity"]
+        if capacity["access"] != "whole":
+            continue
+        path = _P5 / case["input_file"]
+        if path.is_file():
+            data = path.read_bytes()
+        else:
+            with (
+                path.with_suffix(".bin.zst").open("rb") as archive,
+                ZstdDecompressor().stream_reader(archive) as decoded,
+            ):
+                data = decoded.read()
+        result = walk_file(
+            data,
+            PayloadBudget(
+                stored_bytes_per_frame=capacity["stored_bytes_per_frame"],
+                decoded_bytes_per_frame=capacity["decoded_bytes_per_frame"],
+                decoded_bytes_per_read=capacity["decoded_bytes_per_read"],
+            ),
+            items_per_read=capacity["items_per_read"],
+        )
+        expected = cbor2.loads(bytes.fromhex(case["read_result"]))[-1][1]
+        for segment, reference in zip(result.segments, expected, strict=True):
+            for frame, record in zip(segment.frames, reference[16], strict=True):
+                assert frame.item.offset == record[1]
+                findings = record[-1]
+                damaged = any(finding[0] == 30 for finding in findings)
+                newer_geometry = any(
+                    finding[:3] == [5, [2, 2], [2, [2, 16]]] for finding in findings
+                )
+                if data[frame.item.offset + 2] != 16:
+                    assert frame.parity is None
+                    continue
+                assert frame.parity is not None
+                assert frame.parity.damaged == damaged
+                if frame.payload.state == "verified":
+                    assert frame.parity.newer_geometry == newer_geometry
+                if fixture in (
+                    "parity-base",
+                    "parity-placement",
+                    "parity-damaged-shard",
+                ):
+                    assert frame.parity.placement == "placed"
+
+
+def test_short_parity_span_with_intervening_opaque_item_is_stale() -> None:
+    manifest = json.loads((_P5 / "parity-base.json").read_text())
+    data = (_P5 / manifest["cases"][0]["input_file"]).read_bytes()
+    limits = {
+        "stored_bytes_per_frame": 4096,
+        "decoded_bytes_per_frame": 4096,
+        "decoded_bytes_per_read": 4096,
+    }
+    clean = walk_file(data, PayloadBudget(**limits))
+    (parity,) = (frame for frame in clean.segments[0].frames if frame.parity)
+    offset = parity.item.offset
+    rewritten = data[:offset] + cbor2.dumps([0]) + data[offset:]
+
+    result = walk_file(rewritten, PayloadBudget(**limits))
+
+    (parity,) = (frame for frame in result.segments[0].frames if frame.parity)
+    assert parity.parity is not None
+    assert parity.parity.placement == "stale"
+    assert not parity.parity.damaged

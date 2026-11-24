@@ -47,6 +47,8 @@ walk shares limits across segments and scans for resync after framing
 loss, including complete items that fail the framing test. A healing
 witness remains provisional until the reader decides whether recovery
 replaces it.
+For parity frames the walk verifies envelope rules, span geometry, digest
+table and placement against the segment's non-transparent bytes.
 `gts.v2.decode_frame(data, offset=0)` reads a frame envelope, preserves its exact
 identity fields and exposes separate checks for stored and decoded payloads.
 `gts.v2.encode_plain_frame(predecessor, frame_type, content, payload)` builds an
