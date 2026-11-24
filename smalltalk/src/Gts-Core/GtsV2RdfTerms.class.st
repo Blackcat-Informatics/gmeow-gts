@@ -47,12 +47,13 @@ GtsV2RdfTerms >> readRun: field [
 { #category : #private }
 GtsV2RdfTerms >> readBlock: field kind: kind count: count [
 	| fields labelColumn |
-	kind > 5 ifTrue: [ GtsV2EnvelopeError signal: 'unsupported typed value block' ].
-	fields := field fields: (#(4 7 2 4 6) at: kind).
+	fields := field fields: (#(4 7 2 4 6 2 3) at: kind).
 	fields next uint = kind ifFalse: [ GtsV2EnvelopeError signal: 'forbidden_combination' ].
 	kind <= 2 ifTrue: [ ^ self readFrontCoded: fields kind: kind count: count ].
 	kind = 4 ifTrue: [ ^ self readTriples: fields count: count ].
-	kind = 5 ifTrue: [ ^ self readReferences: fields count: count ].
+	(kind = 5 or: [ kind = 7 ]) ifTrue: [
+		^ self readReferences: fields count: count octets: kind = 7 ].
+	kind = 6 ifTrue: [ ^ self readTypedValues: fields next count: count ].
 	labelColumn := GtsV2RdfColumns read: fields next with: [ :item | GtsV2RdfColumns body: item size: nil ].
 	GtsV2RdfColumns requireCount: count in: labelColumn.
 	labelColumn do: [ :label | fold addBlank: label ]
@@ -101,16 +102,32 @@ GtsV2RdfTerms >> readTriples: fields count: count [
 ]
 
 { #category : #private }
-GtsV2RdfTerms >> readReferences: fields count: count [
+GtsV2RdfTerms >> readTypedValues: field count: count [
+	| entries |
+	entries := GtsV2RdfColumns read: field with: [ :item | item ].
+	GtsV2RdfColumns requireCount: count in: entries.
+	entries do: [ :item | GtsV2RdfTypedValue read: item into: fold ]
+]
+
+{ #category : #private }
+GtsV2RdfTerms >> readReferences: fields count: count octets: octets [
 	| digests lengths literal |
 	digests := GtsV2RdfColumns read: fields next with: [ :digest | GtsV2RdfColumns body: digest size: 32 ].
 	lengths := GtsV2RdfColumns uints: fields next.
 	GtsV2RdfColumns requireCount: count in: digests.
 	GtsV2RdfColumns requireCount: count in: lengths.
-	literal := self literalsFrom: fields count: count.
+	octets ifFalse: [ literal := self literalsFrom: fields count: count ].
 	1 to: count do: [ :index |
-		fold chargeText: (lengths at: index).
-		literal value: index value: (values textFor: (digests at: index) length: (lengths at: index)) ]
+		| digest length |
+		digest := digests at: index.
+		length := lengths at: index.
+		octets
+			ifTrue: [
+				fold chargeText: length * 2.
+				fold addLiteral: (values octetsFor: digest length: length) datatypeIri: GtsV2RdfTypedValue hexBinary ]
+			ifFalse: [
+				fold chargeText: length.
+				literal value: index value: (values textFor: digest length: length) ] ]
 ]
 
 { #category : #private }
