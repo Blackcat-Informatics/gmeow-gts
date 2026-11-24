@@ -282,6 +282,8 @@ GtsV2WireFindings >> checkClaimsOf: event [
 				self positionalCode: 18 reason: reasonCode + 16 position: at count: nil ].
 			[ #malformed_value ] -> [
 				self rangedCode: 7 reason: (self malformedReason: reason) event: event count: nil ].
+			[ #declared_order_violated ] -> [
+				self positionalCode: 21 reason: nil position: at count: nil ].
 			[ #damaged_frame ] -> [
 				self rangedCode: 13 reason: 12 event: event count: nil ] }.
 		code = #malformed_value ifTrue: [ claimSteps at: record put: 11 ].
@@ -579,6 +581,7 @@ GtsV2WireFindings >> stepOf: finding parity: parity [
 	(#(11 12) includes: code) ifTrue: [ ^ 5 ].
 	code = 14 ifTrue: [ ^ 6 ].
 	code = 13 ifTrue: [ ^ 7 ].
+	code = 21 ifTrue: [ ^ 11 ].
 	(code between: 15 and: 17) ifTrue: [ ^ 13 ].
 	(#(40 41) includes: code) ifTrue: [ ^ 20 ].
 	code = 48 ifTrue: [ ^ 21 ].

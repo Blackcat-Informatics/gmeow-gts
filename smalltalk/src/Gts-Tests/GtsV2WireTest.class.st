@@ -7,6 +7,41 @@ Class {
 }
 
 { #category : #tests }
+GtsV2WireTest >> testTypedRowOrderAndGrammarFindingsMatchP3 [
+	#(
+		'rows-order-canonical-ok' 'rows-order-canonical-two-runs'
+		'rows-order-canonical-violated' 'rows-order-canonical-across-frames'
+		'rows-canonical-follows-opaque' 'rows-record-field-order'
+		'rows-column-length' 'rows-graph-runs-sum' 'rows-graph-runs-adjacent-equal'
+		'rows-graph-run-zero' 'annotations-count-zero'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P3/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTypedRowFindingsOf: entry ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> assertTypedRowFindingsOf: entry [
+	| name input file report contentFinding |
+	name := entry at: 'input_file'.
+	input := ('/workspace/vectors/v2/P3/', name) asFileReference binaryReadStreamDo: [ :stream | stream upToEnd ].
+	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	report := (GtsV2Wire inspect: input) typedWireFindings.
+	contentFinding := [ :finding | #(7 21) includes: finding first ].
+	file second do: [ :segment |
+		(segment at: 17) do: [ :frame |
+			| type expected actual |
+			type := frame fourth.
+			(type first = 2 and: [ type second between: 2 and: 5 ]) ifTrue: [
+				expected := ((frame at: 11) select: contentFinding) asArray.
+				actual := (report frameFindingsAt: frame second) select: contentFinding.
+				self assert: actual = expected description: name, ' at ', frame second printString,
+					' ', actual printString, ' expected ', expected printString.
+				frame ninth first = 1 ifTrue: [
+					self assert: (report wireFoldStateAt: frame second) isNil description: name ] ] ] ]
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testWireFoldStatesMatchPublishedRecords [
 	#(
 		'P7/read__fold-precedence-each'
