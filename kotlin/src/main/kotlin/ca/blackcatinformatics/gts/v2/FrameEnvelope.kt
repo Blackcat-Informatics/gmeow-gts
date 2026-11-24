@@ -9,6 +9,7 @@ internal data class FrameEnvelope(
     val identity: CborField?,
     val transparent: Boolean,
     val storedId: ByteArray?,
+    val content: CborField,
     val payload: FramePayload,
 )
 
@@ -60,7 +61,7 @@ internal fun readFrame(item: CborField, registry: ULong): FrameEnvelope {
     )
     val framePayload =
         FramePayload(length, digest, storage, payload, deterministicBytes, content.end - content.start, signatures.end - signatures.start)
-    return FrameEnvelope(code, problems.first, identity, transparent == true, identifier.observedIdentifier(), framePayload)
+    return FrameEnvelope(code, problems.first, identity, transparent == true, identifier.observedIdentifier(), content, framePayload)
 }
 
 private class FrameProblems {

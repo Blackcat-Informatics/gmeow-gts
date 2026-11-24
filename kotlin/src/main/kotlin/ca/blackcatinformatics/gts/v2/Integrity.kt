@@ -71,7 +71,7 @@ internal fun checkStored(payload: FramePayload): Boolean? {
 internal fun payloadDigest(data: ByteArray, start: Int, end: Int): ByteArray =
     contextHash("gts2 payload") { update(data, start, end - start) }
 
-private fun contextHash(context: String, visit: Blake3Digest.() -> Unit): ByteArray {
+internal fun contextHash(context: String, visit: Blake3Digest.() -> Unit): ByteArray {
     val digest = Blake3Digest(256)
     digest.init(Blake3Parameters.context(context.encodeToByteArray()))
     digest.visit()
