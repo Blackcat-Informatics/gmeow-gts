@@ -26,6 +26,7 @@ const CANONICAL_FORM: u64 = 1;
 const LAST_PROFILE: u64 = 6;
 const HEADER_CONTEXT: &str = "gts2 header";
 const FORMED_BYTES_PER_READ: u64 = 1 << 37;
+const DEFAULT_VALUE_TEXT_LIMIT: u64 = 256 << 20;
 
 /// A claimed previous segment head and lineage ordinal.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -25,12 +25,11 @@ use super::{
         Dispatch, ItemKind, LinkState, Opener, PayloadDamage, PayloadRefusal, PayloadState,
         ReadStop, WireRead,
     },
-    HeaderError, REGISTRY_VERSION,
+    HeaderError, DEFAULT_VALUE_TEXT_LIMIT, REGISTRY_VERSION,
 };
 use crate::model::{Quad, Triple3};
 
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
-const DEFAULT_VALUE_TEXT_LIMIT: u64 = 256 << 20;
 
 /// The direction of a GTS language literal.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

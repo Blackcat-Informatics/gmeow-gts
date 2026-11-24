@@ -105,8 +105,10 @@ impl SegmentWriter {
         let start = self.bytes.len();
         let head = self.head;
         let range = self.range.clone();
-        let result =
-            write_values(self, sorted_values).and_then(|()| write_blobs(self, sorted_blobs));
+        let result = write_values(sorted_values, |content, payload| {
+            self.append(PACK, content, payload).map(|_| ())
+        })
+        .and_then(|()| write_blobs(self, sorted_blobs));
         if result.is_err() {
             self.bytes.truncate(start);
             self.head = head;
@@ -227,17 +229,17 @@ struct Pack {
 }
 
 impl Pack {
-    fn push(
+    fn push<E>(
         &mut self,
-        writer: &mut SegmentWriter,
+        append: &mut impl FnMut(&[u8], &[u8]) -> Result<(), E>,
         kind: MemberKind,
         content: Vec<Value>,
         body: &[u8],
-    ) -> Result<(), SegmentWriteError> {
+    ) -> Result<(), E> {
         if !self.directory.is_empty()
             && (self.bodies.len() > PACK_BYTES || body.len() > PACK_BYTES - self.bodies.len())
         {
-            self.flush(writer)?;
+            self.flush(append)?;
         }
         if matches!(kind, MemberKind::Chunk | MemberKind::Blob) {
             self.unit_length += body.len();
@@ -251,12 +253,12 @@ impl Pack {
         Ok(())
     }
 
-    fn push_unit(
+    fn push_unit<E>(
         &mut self,
-        writer: &mut SegmentWriter,
+        append: &mut impl FnMut(&[u8], &[u8]) -> Result<(), E>,
         unit: Unit<'_>,
         one_unit_blob: Option<&PlannedBlob<'_>>,
-    ) -> Result<(), SegmentWriteError> {
+    ) -> Result<(), E> {
         let mut content = vec![digest_value(&unit.digest)];
         let kind = if let Some(blob) = one_unit_blob {
             content.push(media_value(blob.media_types[0]));
@@ -264,10 +266,13 @@ impl Pack {
         } else {
             MemberKind::Chunk
         };
-        self.push(writer, kind, content, unit.bytes)
+        self.push(append, kind, content, unit.bytes)
     }
 
-    fn flush(&mut self, writer: &mut SegmentWriter) -> Result<(), SegmentWriteError> {
+    fn flush<E>(
+        &mut self,
+        append: &mut impl FnMut(&[u8], &[u8]) -> Result<(), E>,
+    ) -> Result<(), E> {
         if self.directory.is_empty() {
             return Ok(());
         }
@@ -279,32 +284,31 @@ impl Pack {
             Value::Array(mem::take(&mut self.directory)),
             Value::Bytes(mem::take(&mut self.bodies)),
         ]));
-        writer.append(PACK, &content, &payload)?;
-        Ok(())
+        append(&content, &payload)
     }
 }
 
-fn write_values(
-    writer: &mut SegmentWriter,
+pub(in crate::v2) fn write_values<E>(
     values: BTreeMap<Digest, &[u8]>,
-) -> Result<(), SegmentWriteError> {
+    mut append: impl FnMut(&[u8], &[u8]) -> Result<(), E>,
+) -> Result<(), E> {
     let mut pack = Pack::default();
     let mut emitted = BTreeSet::new();
     for (digest, bytes) in values {
         let parts = units(bytes);
         for &part in &parts {
             if emitted.insert(part.digest) {
-                pack.push_unit(writer, part, None)?;
+                pack.push_unit(&mut append, part, None)?;
             }
         }
         pack.push(
-            writer,
+            &mut append,
             MemberKind::Value,
             vec![digest_value(&digest), uint(bytes.len()), uint(parts.len())],
             &entries(&parts),
         )?;
     }
-    pack.flush(writer)
+    pack.flush(&mut append)
 }
 
 fn write_blobs(
@@ -312,6 +316,8 @@ fn write_blobs(
     blobs: BTreeMap<Digest, PlannedBlob<'_>>,
 ) -> Result<(), SegmentWriteError> {
     let mut pack = Pack::default();
+    let mut append =
+        |content: &[u8], payload: &[u8]| writer.append(PACK, content, payload).map(|_| ());
     let mut emitted = BTreeSet::new();
     for (digest, blob) in &blobs {
         for &part in &blob.units {
@@ -319,12 +325,12 @@ fn write_blobs(
                 let single = blobs
                     .get(&part.digest)
                     .filter(|candidate| candidate.units.len() == 1);
-                pack.push_unit(writer, part, single)?;
+                pack.push_unit(&mut append, part, single)?;
             }
         }
         if blob.units.len() > 1 {
             pack.push(
-                writer,
+                &mut append,
                 MemberKind::Recipe,
                 vec![
                     digest_value(digest),
@@ -336,7 +342,7 @@ fn write_blobs(
             )?;
         }
     }
-    pack.flush(writer)?;
+    pack.flush(&mut append)?;
 
     for (digest, blob) in blobs {
         let stored_media = usize::from(!blob.units.is_empty());

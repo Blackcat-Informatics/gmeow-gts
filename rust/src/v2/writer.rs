@@ -18,6 +18,7 @@ use super::{
 use crate::wire;
 
 mod attachments;
+pub(super) use attachments::write_values;
 pub use attachments::{AttachmentWriteError, Blob};
 
 type Digest = [u8; 32];
