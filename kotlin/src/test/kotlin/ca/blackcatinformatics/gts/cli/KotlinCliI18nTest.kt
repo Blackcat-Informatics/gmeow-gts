@@ -51,6 +51,14 @@ class KotlinCliI18nTest {
         assertTrue(result.stdout.contains("segment 0: header bytes [0, 11)"), result.stdout)
     }
 
+    @Test
+    fun reportsMalformedParityWithoutLosingTheFrameKind() {
+        val result = captureCli("en", "info", "../vectors/v2/P1/parity-signature.bin")
+        assertEquals(1, result.code)
+        assertTrue(result.stdout.contains("frame type 16"), result.stdout)
+        assertTrue(result.stdout.contains("parity_damaged (forbidden_combination)"), result.stdout)
+    }
+
     private data class CliCapture(
         val code: Int,
         val stdout: String,
