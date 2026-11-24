@@ -32,6 +32,16 @@ GtsV2Fields >> offset [
 ]
 
 { #category : #parsing }
+GtsV2Fields >> openArray: count [
+	| field head |
+	offset >= bound ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
+	field := GtsV2Field walker: walker from: offset to: end.
+	head := field typedHead: 4.
+	head argument = count ifFalse: [ GtsV2EnvelopeError signal: 'wrong_length' ].
+	offset := head end
+]
+
+{ #category : #parsing }
 GtsV2Fields >> next [
 	| start |
 	start := offset.

@@ -149,6 +149,55 @@ GtsFromNQuadsTest >> testV2FoldRejectsOutOfRangeTypedTimestamps [
 ]
 
 { #category : #tests }
+GtsFromNQuadsTest >> testV2FoldSuppressesLineKindsBeforeProjection [
+	| writer dictionary rows wire visible whole |
+	writer := GtsV2SegmentWriter new.
+	dictionary := GtsCborWriter encode: {
+		{ { 1. #(0 0 0). #(5 5 5). 'urn:rurn:purn:o' utf8Encoded } }. #() }.
+	writer appendType: 1 content: #(0 ((1 3)) 2 1) payload: dictionary.
+	writer writeType: 7 content: #(1)
+		payload: (GtsCborWriter encode: #((2 ((1 0) (1 1) (1 2) (1))))).
+	rows := GtsCborWriter encode: #((((1) 1)) ((1 1)) (2) (0)).
+	writer appendType: 2 content: #(2 1) payload: rows.
+	rows := GtsCborWriter encode: #((((1) 1)) (0) (1) (2) (3)).
+	writer writeType: 4 content: #(2 1) payload: rows.
+	writer commit.
+	wire := GtsV2Wire inspect: writer bytes.
+	visible := GtsNQuads toNQuads: (GtsV2RdfFold read: wire).
+	self assert: visible equals: '<urn:r> <urn:p> <urn:o> .', String lf.
+	writer writeType: 7 content: #(1) payload: (GtsCborWriter encode: #((3 (1 0)))).
+	writer commit.
+	wire := GtsV2Wire inspect: writer bytes.
+	self assert: (GtsNQuads toNQuads: (GtsV2RdfFold read: wire)) isEmpty.
+	whole := GtsNQuads toNQuads: (GtsV2RdfFold read: wire visible: false).
+	self assert: whole equals: visible
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2FoldUsesTheFirstOtherHolderForSuppression [
+	| holder origin dictionary rows digest wire visible whole |
+	origin := GtsV2SegmentWriter new.
+	dictionary := GtsCborWriter encode: {
+		{ { 3. { #[98] } }. { 1. #(0 0). #(5 5). 'urn:purn:o' utf8Encoded } }. #() }.
+	origin appendType: 1 content: #(0 ((3 1) (1 2)) 2 1) payload: dictionary.
+	rows := GtsCborWriter encode: #((((1) 1)) ((1 1)) (2) (0)).
+	origin appendType: 2 content: #(2 1) payload: rows.
+	origin commit.
+	holder := origin bytes.
+	(GtsV2Wire inspect: holder) eventsDo: [ :event |
+		event frameType = 1 ifTrue: [ digest := event effectiveIdentifier ] ]
+		budget: GtsV2PayloadBudget new retainDecoded: false.
+	origin writeType: 7 content: #(1)
+		payload: (GtsCborWriter encode: { { 1. { 2. { digest. 'b' utf8Encoded } } } }).
+	origin commit.
+	wire := GtsV2Wire inspect: origin bytes, holder, holder.
+	visible := (GtsNQuads toNQuads: (GtsV2RdfFold read: wire)) lines.
+	whole := (GtsNQuads toNQuads: (GtsV2RdfFold read: wire visible: false)) lines.
+	self assert: whole size equals: 3.
+	self assert: visible equals: { whole first. whole third }
+]
+
+{ #category : #tests }
 GtsFromNQuadsTest >> testFromNQuadsInvertsFoldOutputForCorpusVector [
 	| graph nquads roundTripped |
 	graph := GtsReader read: ('/workspace/vectors/11-datatype-defaulting.gts' asFileReference
