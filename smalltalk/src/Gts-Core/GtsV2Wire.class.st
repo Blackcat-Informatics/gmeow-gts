@@ -110,12 +110,11 @@ GtsV2Wire >> isVersionKeyAt: start limit: limit [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock [
-	| offset limit count prefixValid finish event |
+	| offset limit count registry finish event |
 	format = #v2 ifFalse: [ ^ self ].
 	offset := 1.
 	limit := bytes size + 1.
 	count := 0.
-	prefixValid := false.
 	[ offset < limit ] whileTrue: [
 		count = 67108864 ifTrue: [
 			aBlock value: (self stopAt: offset reason: 'items_per_read').
@@ -127,51 +126,50 @@ GtsV2Wire >> eventsDo: aBlock [
 			do: [ :error |
 				aBlock value: (self stopAt: offset reason: error messageText).
 				^ self ].
-		event := self classifyAt: offset limit: finish prefixValid: prefixValid.
-		event startsSegment ifTrue: [ prefixValid := event problem isNil ].
+		event := self classifyAt: offset limit: finish registry: registry.
+		event startsSegment ifTrue: [
+			registry := event opener ifNotNil: [ :opener |
+				opener hashAlgorithm = 1 ifTrue: [ opener registry ] ] ].
 		aBlock value: event.
 		offset := finish.
 		count := count + 1 ]
 ]
 
 { #category : #classifying }
-GtsV2Wire >> classifyAt: offset limit: limit prefixValid: prefixValid [
-	| array code kind problem |
+GtsV2Wire >> classifyAt: offset limit: limit registry: registry [
+	| array code kind problem field opener frame |
 	array := walker headAt: offset limit: limit.
 	code := self recordKind: array limit: limit.
 	kind := #opaque.
 	code ifNotNil: [
 		kind := #(header frame locator offsets resync) at: code argument ifAbsent: [ #opaque ] ].
+	field := GtsV2Field walker: walker from: offset to: limit.
 	(kind = #header or: [ kind = #resync ])
-		ifTrue: [ problem := self openerProblemFor: array code: code kind: kind limit: limit ]
+		ifTrue: [
+			[ opener := GtsV2Opener read: field resync: kind = #resync ]
+				on: GtsV2EnvelopeError
+				do: [ :error | problem := error messageText ] ]
 		ifFalse: [
-			prefixValid
-				ifTrue: [ problem := self itemProblemFor: array code: code kind: kind.
-					problem ifNotNil: [ kind := #opaque ] ]
-				ifFalse: [ kind := #unchecked ] ].
-	^ GtsV2WireEvent kind: kind from: offset - 1 to: limit - 1 problem: problem
+			registry
+				ifNil: [ kind := #unchecked ]
+				ifNotNil: [
+					problem := self itemProblemFor: array code: code kind: kind registry: registry.
+					problem ifNotNil: [ kind := #opaque ].
+					kind = #frame ifTrue: [
+						frame := GtsV2FrameEnvelope read: field registry: registry.
+						problem := frame problem ] ] ].
+	^ (GtsV2WireEvent kind: kind from: offset - 1 to: limit - 1 problem: problem)
+		opener: opener frameType: (frame ifNotNil: [ frame frameType ])
 ]
 
 { #category : #classifying }
-GtsV2Wire >> openerProblemFor: array code: code kind: kind limit: limit [
-	| version |
-	array isShortest ifFalse: [ ^ 'not_deterministic' ].
-	array argument = (kind = #header ifTrue: [ 7 ] ifFalse: [ 11 ]) ifFalse: [ ^ 'wrong_length' ].
-	code isShortest ifFalse: [ ^ 'not_deterministic' ].
-	version := walker headAt: code end limit: limit.
-	(version major <= 4 and: [ version isShortest not ]) ifTrue: [ ^ 'not_deterministic' ].
-	version major = 0 ifFalse: [ ^ 'wrong_type' ].
-	version argument = 2 ifFalse: [ ^ 'out_of_range' ].
-	^ nil
-]
-
-{ #category : #classifying }
-GtsV2Wire >> itemProblemFor: array code: code kind: kind [
+GtsV2Wire >> itemProblemFor: array code: code kind: kind registry: registry [
 	code ifNil: [ ^ 'wrong_type' ].
 	(array isShortest and: [ code isShortest ]) ifFalse: [ ^ 'not_deterministic' ].
 	(kind = #frame and: [ array argument ~= 11 ]) ifTrue: [ ^ 'wrong_length' ].
 	code argument = 0 ifTrue: [ ^ 'unregistered_value' ].
-	kind = #opaque ifTrue: [ ^ 'unknown item kind ', code argument printString ].
+	kind = #opaque ifTrue: [
+		^ registry = 1 ifTrue: [ 'unregistered_value' ] ifFalse: [ 'unknown_item_kind' ] ].
 	^ nil
 ]
 

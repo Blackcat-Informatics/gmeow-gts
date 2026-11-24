@@ -88,3 +88,58 @@ GtsV2WireTest >> testWalksNestedAndChunkedItemsWithoutRecursiveDecoding [
 	self assert: (events collect: [ :event | event kind ]) asArray equals: #(header opaque opaque header).
 	self assert: events last offset equals: opener size + nested size + 4
 ]
+
+{ #category : #tests }
+GtsV2WireTest >> testOpenerRegistryAndResyncGrammar [
+	| events |
+	events := self events: (self vector: 'header-hash-newer').
+	self assert: events first opener registry equals: 2.
+	self assert: events first opener hashAlgorithm equals: 9.
+	self assert: events last kind equals: #unchecked.
+	self assert: (self events: (self vector: 'header-hash-unregistered')) first problem
+		equals: 'unregistered_value'.
+	#(
+		('marks-order-at-one-byte.head-before-order' 'not_deterministic')
+		('marks-order-at-one-byte.65th-and-below' 'out_of_range')
+		('marks-order-at-one-byte.order-before-deeper-head' 'unordered_or_repeated')
+		('marks-order-at-one-byte.text-first-below' 'wrong_type')
+		('resync-too-long.walked' 'out_of_range')
+		('resync-too-long.exactly-4096' nil)
+	) do: [ :entry |
+		| resync |
+		resync := (self events: (self vector: entry first)) detect: [ :event | event kind = #resync ].
+		self assert: resync problem = entry second description: entry first ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testResyncLimitChecksTheStartOfNestedFields [
+	| prefix |
+	prefix := GtsHex decode: '8b050250fcf3eb32a2f0267dd16a53f09bff879202098101820282'.
+	#((4061 'wrong_type') (4062 'out_of_range')) do: [ :entry |
+		| size digest bytes |
+		size := entry first.
+		digest := (ByteArray with: 89 with: size // 256 with: size \\ 256), (ByteArray new: size).
+		bytes := prefix, digest, #[1 0 130 2 0 128 64].
+		self assert: (self events: bytes) first problem equals: entry second ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testFrameEnvelopeReportsFirstProblemInWireOrder [
+	| parity |
+	#(
+		('frame-flags-order' 'forbidden_combination')
+		('envelope-field-before-content-value' 'wrong_type')
+		('frame-compressed-empty' 'forbidden_combination')
+		('stored-check-short' 'wrong_length')
+		('frame-unknown-content-map' 'wrong_type')
+		('frame-unknown-content-bad-utf8' 'wrong_type')
+		('frame-signatures-unordered' 'unordered_or_repeated')
+		('frame-storage-tag-newer' nil)
+	) do: [ :entry |
+		| frame |
+		frame := (self events: (self vector: entry first)) last.
+		self assert: frame kind equals: #frame.
+		self assert: frame problem = entry second description: entry first ].
+	parity := (self events: (self vector: 'parity-signature')) detect: [ :event | event frameType = 16 ].
+	self assert: parity problem equals: 'forbidden_combination'
+]
