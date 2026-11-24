@@ -37,11 +37,11 @@ go test ./...        # unit + conformance against ../vectors/
 `gts from-nq` writes committed v2 RDF segments. `gts fold` reads supported v2 RDF
 terms and emits N-Quads. `gts verify` checks v2 frame envelopes, links, decoded
 payload integrity, offsets and locator claims, and each commit's count and root. It reports committed and
-uncommitted ordinary frame counts for each segment.
+uncommitted ordinary frame counts for each segment. The wire reader resumes at
+valid resync openers after framing loss and reports the skipped bytes.
 
 RDF and archive semantics, index payload claims, parity checks and repair,
 cross-segment lineage, and signature authentication require separate support.
-Verification reports resync openers as unsupported.
 The `--key` option is unavailable for v2 files.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.

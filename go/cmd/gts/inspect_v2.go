@@ -23,6 +23,9 @@ var frameNamesV2 = [...]string{
 
 func inspectFile(path string, data []byte) bool {
 	result := v2.InspectWire(data, v2.DefaultReadCapacity())
+	recoveryClean := reportRecoveryV2(result.PrefixGap, result.ResyncRefusal, func(offset int, message string) {
+		fmt.Printf("  byte %d: %s\n", offset, message)
+	})
 	switch result.Dispatch {
 	case v2.FirstGeneration:
 		fs := reader.ReadFileSegments(data)
@@ -42,7 +45,7 @@ func inspectFile(path string, data []byte) bool {
 	default:
 		fmt.Printf("%s: GTS generation unavailable\n", path)
 	}
-	clean := result.Dispatch == v2.SecondGeneration && result.Stop == ""
+	clean := result.Dispatch == v2.SecondGeneration && result.Stop == "" && recoveryClean
 	for ordinal, segment := range result.Segments {
 		if !printSegmentV2(ordinal, segment) {
 			clean = false
@@ -75,6 +78,9 @@ func printOpenerV2(ordinal int, segment v2.Segment) bool {
 		fmt.Printf("    canonical claim %d\n", opener.Canonical)
 	}
 	if opener.Resync != nil {
+		if segment.Scanned {
+			fmt.Printf("    resync found by scan at byte %d\n", item.Offset)
+		}
 		fmt.Printf("    resync claimed offset %d\n", opener.Resync.Offset)
 		if opener.Resync.Displaced {
 			fmt.Printf("    resync displaced to byte %d\n", item.Offset)
@@ -91,6 +97,11 @@ func printOpenerV2(ordinal int, segment v2.Segment) bool {
 
 func printSegmentV2(ordinal int, segment v2.Segment) bool {
 	clean := printOpenerV2(ordinal, segment)
+	if !reportRecoveryV2(segment.FramingGap, segment.ResyncRefusal, func(offset int, message string) {
+		fmt.Printf("    byte %d: %s\n", offset, message)
+	}) {
+		clean = false
+	}
 	counts := make(map[uint64]int)
 	frames := 0
 	for _, item := range segment.Items {
@@ -122,6 +133,16 @@ func printSegmentV2(ordinal int, segment v2.Segment) bool {
 		}
 	}
 	return clean
+}
+
+func reportRecoveryV2(gap *v2.FramingGap, refusal *v2.ResyncRefusal, report func(int, string)) bool {
+	if gap != nil {
+		report(gap.Offset, fmt.Sprintf("%s (%d bytes before resync)", gap.Reason, gap.Length))
+	}
+	if refusal != nil {
+		report(refusal.Offset, fmt.Sprintf("exceeds_capacity (%s, count %d)", v2.TotalDecoded, refusal.Count))
+	}
+	return gap == nil && refusal == nil
 }
 
 func itemProblemV2(item v2.Item) string {
