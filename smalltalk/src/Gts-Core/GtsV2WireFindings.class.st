@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions' ],
 	#category : #'Gts-Core'
 }
 
@@ -29,6 +29,7 @@ GtsV2WireFindings >> initializeLength: length itemLimit: limit held: held truste
 		{ GtsHex encode: entry first. entry second. entry third } ]).
 	signatureResults := Dictionary new.
 	segmentAuthentication := OrderedCollection new.
+	segmentFrameResults := OrderedCollection new.
 	fileEnd := 4.
 	leftOut := 0.
 	^ self
@@ -79,6 +80,22 @@ GtsV2WireFindings >> committedFramesAt: ordinal [
 ]
 
 { #category : #accessing }
+GtsV2WireFindings >> frameWireFieldsAt: ordinal [
+	"The first seven fields of each P7 frame result, in item order."
+	^ (segmentFrameResults at: ordinal + 1) first
+]
+
+{ #category : #accessing }
+GtsV2WireFindings >> anchoredFramesAt: ordinal [
+	^ (segmentFrameResults at: ordinal + 1) second
+]
+
+{ #category : #accessing }
+GtsV2WireFindings >> transparentFramesAt: ordinal [
+	^ (segmentFrameResults at: ordinal + 1) third
+]
+
+{ #category : #accessing }
 GtsV2WireFindings >> fileResultWithoutSegments [
 	segmentFindings ifNotEmpty: [ GtsV2EnvelopeError signal: 'the file result requires segment records' ].
 	^ { 2. #(). self fileFindings. #(1). #(1 0). fileEnd. leftOut }
@@ -112,6 +129,10 @@ GtsV2WireFindings >> observe: event [
 		position := 0.
 		segment := OrderedCollection new.
 		segmentFindings add: segment.
+		frames := OrderedCollection new.
+		anchoredCount := 0.
+		anchorLost := false.
+		transparentPositions := OrderedCollection new.
 		headerIdentifier := event effectiveIdentifier.
 		claimChecks := headerIdentifier ifNotNil: [
 			GtsV2CommitChecks openedBy: headerIdentifier checkingIndexes: (GtsV2CommitChecks supportsOpener: event) ].
@@ -136,6 +157,7 @@ GtsV2WireFindings >> observe: event [
 { #category : #observing }
 GtsV2WireFindings >> finishSegment [
 	segment ifNil: [ ^ self ].
+	segmentFrameResults add: { frames asArray. anchoredCount. transparentPositions asArray }.
 	committedCounts add: (claimChecks ifNil: [ 0 ] ifNotNil: [ claimChecks committedFrames ]).
 	segmentAuthentication add: (authentication ifNil: [ #(3 0) ] ifNotNil: [ authentication summaryFields ]).
 	claimChecks ifNotNil: [
@@ -236,6 +258,7 @@ GtsV2WireFindings >> recordNonFrame: event [
 { #category : #private }
 GtsV2WireFindings >> recordFrame: event [
 	| records |
+	self recordFrameWireFields: event.
 	event effectiveIdentifier ifNotNil: [ :identifier | head := identifier ].
 	records := OrderedCollection new.
 	event frameType = 16
@@ -250,6 +273,30 @@ GtsV2WireFindings >> recordFrame: event [
 				records add: (self rangedCode: 14 reason: nil event: event count: nil) ].
 			self recordPayload: event into: records ].
 	records ifNotEmpty: [ frameFindings at: event offset put: records ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> recordFrameWireFields: event [
+	| linkCode storedCode |
+	linkCode := #(linked healed broken) indexOf: event link.
+	storedCode := event storedMatches ifNotNil: [ :matches | matches ifTrue: [ 1 ] ifFalse: [ 2 ] ].
+	frames add: { position. event offset. event end - event offset.
+		self option: event frameType. linkCode. self typedPayload: event payload. self option: storedCode }.
+	event frame isTransparent ifTrue: [
+		transparentPositions add: position.
+		^ self ].
+	event effectiveIdentifier ifNil: [ ^ self ].
+	(anchorLost or: [ event detached or: [ event link = #broken ] ])
+		ifTrue: [ anchorLost := true ]
+		ifFalse: [ anchoredCount := anchoredCount + 1 ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> typedPayload: result [
+	^ result state caseOf: {
+		[ #verified ] -> [ #(1) ].
+		[ #damaged ] -> [ #(2) ].
+		[ #unchecked ] -> [ { 3. result reason = 'unknown_codec' ifTrue: [ 1 ] ifFalse: [ 2 ] } ] }
 ]
 
 { #category : #private }

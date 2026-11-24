@@ -63,6 +63,9 @@ envelope, link, stored check, payload, capacity, and parity findings in
 their P2 record form. The report provides file, segment, and frame
 findings at their P7 locations and produces the P7 file record when the
 input has no segment.
+Use `frameWireFieldsAt:` for each frame's position, byte range, type, link,
+payload, and stored state. Use `anchoredFramesAt:` and `transparentFramesAt:`
+for the anchored prefix count and transparent frame positions by segment.
 For registry version 1, it includes commit and structural index findings
 and exposes the committed frame count through `committedFramesAt:`.
 Pass P6 held-key records and trusted key identifiers to
