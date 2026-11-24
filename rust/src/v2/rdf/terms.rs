@@ -3,8 +3,8 @@
 
 use std::{collections::HashSet, str, sync::Arc};
 
-use super::{Direction, FrameIssue, Projector, Term, FORMED_BYTES_PER_READ};
-use crate::v2::{Decoder, HeaderError, MalformedReason::*};
+use super::{Direction, FrameIssue, Projector, Term};
+use crate::v2::{Decoder, HeaderError, MalformedReason::*, FORMED_BYTES_PER_READ};
 
 struct FrontCoded<'a> {
     prefixes: Vec<u64>,

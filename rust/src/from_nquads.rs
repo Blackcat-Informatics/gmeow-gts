@@ -316,7 +316,7 @@ impl<'a> Tokenizer<'a> {
             let raw_lang = &self.text[start..self.pos];
             if let Some((base, dir)) = raw_lang.rsplit_once("--") {
                 if matches!(dir, "ltr" | "rtl") && !base.is_empty() {
-                    validate_language_tag(base, self.text)?;
+                    self.language_tag(base)?;
                     lang = Some(base.to_string());
                     direction = Some(dir.to_string());
                 } else {
@@ -326,7 +326,7 @@ impl<'a> Tokenizer<'a> {
                     )));
                 }
             } else {
-                validate_language_tag(raw_lang, self.text)?;
+                self.language_tag(raw_lang)?;
                 lang = Some(raw_lang.to_string());
             }
         } else if self.text[self.pos..].starts_with("^^") {
@@ -349,6 +349,17 @@ impl<'a> Tokenizer<'a> {
             direction,
             datatype,
         })
+    }
+
+    fn language_tag(&self, language: &str) -> Result<(), NQuadsParseError> {
+        if self.rdf12 {
+            oxilangtag::LanguageTag::parse(language).map_err(|error| {
+                NQuadsParseError::new(format!("invalid language tag {language:?}: {error}"))
+            })?;
+            Ok(())
+        } else {
+            validate_language_tag(language, self.text)
+        }
     }
 
     fn escape(&mut self) -> Result<char, NQuadsParseError> {

@@ -148,6 +148,8 @@ fn preserves_carriage_return_separated_statements_and_escaped_terms() {
         "<https://e/s> <https://e/p> <https://e/o>",
         "<https://e/s> <https://e/p> <https://e/o> . undiscarded",
         "<https://e/%ZZ> <https://e/p> <https://e/o> .",
+        "<https://[]> <https://e/p> <https://e/o> .",
+        "<https://e/s> <https://e/p> \"value\"@x .",
     ] {
         assert!(matches!(from_nquads(bad), Err(ImportError::Syntax(_))));
     }
@@ -180,4 +182,6 @@ fn deep_triple_objects_use_earlier_ids_without_recursive_parsing() {
         }
     }
     assert_eq!(terms, DEPTH);
+    let rdf = read.whole_rdf_projection().unwrap();
+    assert_eq!(rdf.to_nquads().unwrap().trim_end(), source);
 }

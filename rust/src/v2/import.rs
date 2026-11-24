@@ -8,8 +8,9 @@ use std::{collections::HashMap, error::Error, fmt};
 use ciborium::Value;
 
 use super::{
+    reader::ReadCapacity,
     writer::{SegmentWriteError, SegmentWriter},
-    Header, HeaderWriteError,
+    Header, HeaderWriteError, FORMED_BYTES_PER_READ,
 };
 use crate::{
     from_nquads::{parse_v2_quads, NQuadsParseError},
@@ -31,7 +32,14 @@ pub enum ImportError {
     Syntax(NQuadsParseError),
     Header(HeaderWriteError),
     Write(SegmentWriteError),
-    IncompleteTerm { index: usize },
+    IncompleteTerm {
+        index: usize,
+    },
+    Capacity {
+        resource: &'static str,
+        required: u64,
+        limit: u64,
+    },
 }
 
 impl fmt::Display for ImportError {
@@ -46,6 +54,16 @@ impl fmt::Display for ImportError {
                     "parsed N-Quads term {index} is missing required fields"
                 )
             }
+            Self::Capacity {
+                resource,
+                required,
+                limit,
+            } => {
+                write!(
+                    formatter,
+                    "N-Quads import requires {required} {resource}, limit {limit}"
+                )
+            }
         }
     }
 }
@@ -56,7 +74,7 @@ impl Error for ImportError {
             Self::Syntax(error) => Some(error),
             Self::Header(error) => Some(error),
             Self::Write(error) => Some(error),
-            Self::IncompleteTerm { .. } => None,
+            Self::IncompleteTerm { .. } | Self::Capacity { .. } => None,
         }
     }
 }
@@ -72,9 +90,17 @@ impl From<SegmentWriteError> for ImportError {
 /// Stores RDF statements as quad lines, including statements whose predicate
 /// is `rdf:reifies`. The segment's dictionary uses arrival order. Quoted
 /// triples are accepted in object position, as in the P3 term model.
+/// Batches fit the default wire and RDF projection capacities. Import fails
+/// when a single term exceeds the payload capacity.
 pub fn from_nquads(text: &str) -> Result<Vec<u8>, ImportError> {
     let (terms, mut quads) = parse_v2_quads(text).map_err(ImportError::Syntax)?;
-    let mut writer = SegmentWriter::new(Header::default()).map_err(ImportError::Header)?;
+    let mut writer = ImportWriter {
+        segment: SegmentWriter::new(Header::default()).map_err(ImportError::Header)?,
+        capacity: ReadCapacity::default(),
+        items: 2, // The header and the closing commit.
+        decoded: 0,
+        formed: 0,
+    };
     for (batch, terms) in terms.chunks(TERMS_PER_FRAME).enumerate() {
         append_terms(&mut writer, batch * TERMS_PER_FRAME, terms)?;
     }
@@ -86,8 +112,68 @@ pub fn from_nquads(text: &str) -> Result<Vec<u8>, ImportError> {
     for rows in quads.chunks(ROWS_PER_FRAME) {
         append_quads(&mut writer, rows)?;
     }
-    writer.commit()?;
-    Ok(writer.into_bytes())
+    writer.segment.commit()?;
+    Ok(writer.segment.into_bytes())
+}
+
+struct ImportWriter {
+    segment: SegmentWriter,
+    capacity: ReadCapacity,
+    items: u64,
+    decoded: u64,
+    formed: u64,
+}
+
+impl ImportWriter {
+    fn payload_limit(&self) -> u64 {
+        self.capacity
+            .stored_bytes_per_frame
+            .min(self.capacity.decoded_bytes_per_frame)
+    }
+
+    fn append(
+        &mut self,
+        kind: u64,
+        content: &[u8],
+        payload: &[u8],
+        formed: u64,
+    ) -> Result<(), ImportError> {
+        let decoded = self.decoded.saturating_add(payload.len() as u64);
+        let formed = self.formed.saturating_add(formed);
+        let items = self.items + 1;
+        for (required, limit, resource) in [
+            (
+                content.len() as u64,
+                self.capacity.stored_bytes_per_frame,
+                "content bytes in one frame",
+            ),
+            (
+                payload.len() as u64,
+                self.payload_limit(),
+                "payload bytes in one frame",
+            ),
+            (
+                decoded,
+                self.capacity.decoded_bytes_per_read,
+                "decoded bytes",
+            ),
+            (formed, FORMED_BYTES_PER_READ, "formed prefix bytes"),
+            (items, self.capacity.items_per_read, "items"),
+        ] {
+            if required > limit {
+                return Err(ImportError::Capacity {
+                    resource,
+                    required,
+                    limit,
+                });
+            }
+        }
+        self.segment.append(kind, content, payload)?;
+        self.items = items;
+        self.decoded = decoded;
+        self.formed = formed;
+        Ok(())
+    }
 }
 
 fn uint(value: usize) -> Value {
@@ -111,6 +197,7 @@ fn kind_code(kind: TermKind) -> u64 {
 struct TermBlocks<'a> {
     languages: Vec<Value>,
     language_ids: HashMap<&'a str, usize>,
+    formed: u64,
 }
 
 impl<'a> TermBlocks<'a> {
@@ -182,6 +269,7 @@ impl<'a> TermBlocks<'a> {
                     .count()
             };
             prefixes.push(uint(prefix));
+            self.formed = self.formed.saturating_add(prefix as u64);
             let suffix = &text[prefix..];
             lengths.push(uint(suffix.len()));
             suffixes.extend_from_slice(suffix);
@@ -236,11 +324,19 @@ fn term_text(term: &Term, index: usize) -> Result<&str, ImportError> {
         .ok_or(ImportError::IncompleteTerm { index })
 }
 
-fn append_terms(
-    writer: &mut SegmentWriter,
-    base: usize,
-    terms: &[Term],
-) -> Result<(), ImportError> {
+fn append_terms(writer: &mut ImportWriter, base: usize, terms: &[Term]) -> Result<(), ImportError> {
+    let (content, payload, formed) = encode_terms(base, terms)?;
+    if payload.len() as u64 > writer.payload_limit() && terms.len() > 1 {
+        drop(payload);
+        let middle = terms.len() / 2;
+        let (left, right) = terms.split_at(middle);
+        append_terms(writer, base, left)?;
+        return append_terms(writer, base + middle, right);
+    }
+    writer.append(TERMS, &content, &payload, formed)
+}
+
+fn encode_terms(base: usize, terms: &[Term]) -> Result<(Vec<u8>, Vec<u8>, u64), ImportError> {
     let mut tables = TermBlocks::default();
     let mut runs = Vec::new();
     let mut blocks = Vec::new();
@@ -260,8 +356,11 @@ fn append_terms(
         uint(RESTART_GROUP),
     ]);
     let payload = record([Value::Array(blocks), Value::Array(tables.languages)]);
-    writer.append(TERMS, &wire::encode(&content), &wire::encode(&payload))?;
-    Ok(())
+    Ok((
+        wire::encode(&content),
+        wire::encode(&payload),
+        tables.formed,
+    ))
 }
 
 fn delta_column(values: impl Iterator<Item = usize>) -> Value {
@@ -279,7 +378,7 @@ fn delta_column(values: impl Iterator<Item = usize>) -> Value {
     )
 }
 
-fn append_quads(writer: &mut SegmentWriter, rows: &[Quad]) -> Result<(), ImportError> {
+fn append_quads(writer: &mut ImportWriter, rows: &[Quad]) -> Result<(), ImportError> {
     let graphs = rows.chunk_by(|a, b| a.3 == b.3).map(|run| {
         let name = run[0].3.map_or_else(
             || record([Value::from(1)]),
@@ -297,6 +396,5 @@ fn append_quads(writer: &mut SegmentWriter, rows: &[Quad]) -> Result<(), ImportE
         delta_column(rows.iter().map(|row| row.2)),
         delta_column(rows.iter().map(|row| row.0)),
     ]);
-    writer.append(QUADS, &wire::encode(&content), &wire::encode(&payload))?;
-    Ok(())
+    writer.append(QUADS, &wire::encode(&content), &wire::encode(&payload), 0)
 }

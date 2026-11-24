@@ -27,7 +27,6 @@ use super::{
 use crate::model::{Quad, Triple3};
 
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
-const FORMED_BYTES_PER_READ: u64 = 1 << 37;
 
 /// The direction of a GTS language literal.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
