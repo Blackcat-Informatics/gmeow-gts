@@ -95,6 +95,9 @@ type WireResult struct {
 	StopOffset int
 }
 
+// WireInspection holds wire observations without retaining decoded payloads.
+type WireInspection WireResult
+
 // ReadWire walks a byte input through the first incomplete or undelimitable
 // item, or the item limit. It checks frame links and stored and decoded payloads
 // in that prefix. The input buffer must remain unchanged while the result is
@@ -104,6 +107,17 @@ type WireResult struct {
 // Content folding, signature verification, offset claims, and recovery after
 // framing loss belong to layers above this function.
 func ReadWire(data []byte, capacity ReadCapacity) WireResult {
+	return readWire(data, capacity, true)
+}
+
+// InspectWire performs the same wire checks as ReadWire and releases each
+// decoded payload after verification. Its result carries the payload statuses
+// and encoded frame content, which borrows the input buffer.
+func InspectWire(data []byte, capacity ReadCapacity) WireInspection {
+	return WireInspection(readWire(data, capacity, false))
+}
+
+func readWire(data []byte, capacity ReadCapacity, retainPayload bool) WireResult {
 	var result WireResult
 	if len(data) == 0 {
 		result.Dispatch = Empty
@@ -149,7 +163,7 @@ func ReadWire(data []byte, capacity ReadCapacity) WireResult {
 
 	budget := payloadBudget{capacity: capacity}
 	for i := range result.Segments {
-		result.Segments[i].checkFrames(data, &budget)
+		result.Segments[i].checkFrames(data, &budget, retainPayload)
 	}
 	return result
 }
@@ -210,7 +224,7 @@ func classifyItem(body []byte, segment *Segment) Item {
 	return item
 }
 
-func (s *Segment) checkFrames(data []byte, budget *payloadBudget) {
+func (s *Segment) checkFrames(data []byte, budget *payloadBudget, retainPayload bool) {
 	if s.Head == nil {
 		return
 	}
@@ -241,6 +255,10 @@ func (s *Segment) checkFrames(data []byte, budget *payloadBudget) {
 			s.Head = fields.EffectiveID
 		}
 		fields.Payload = budget.check(fields)
+		if !retainPayload {
+			fields.Payload.Decoded = nil
+		}
+		fields.contentWithinCapacity = uint64(len(fields.Content)) <= budget.capacity.StoredBytesPerFrame
 		frame := fields.Frame
 		item.Frame = &frame
 	}

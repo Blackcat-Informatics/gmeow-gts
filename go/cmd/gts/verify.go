@@ -16,6 +16,7 @@ import (
 	"go.blackcatinformatics.ca/gts/model"
 	"go.blackcatinformatics.ca/gts/openpgp"
 	"go.blackcatinformatics.ca/gts/reader"
+	"go.blackcatinformatics.ca/gts/v2"
 	"go.blackcatinformatics.ca/gts/wire"
 )
 
@@ -55,11 +56,23 @@ func cmdVerify(args []string) int {
 		fmt.Fprintln(os.Stderr, usage)
 		return 2
 	}
+	capacity := v2.DefaultReadCapacity()
+	if len(keys) > 0 {
+		// Key verification only needs generation dispatch before the legacy read.
+		capacity.ItemsPerRead = 1
+	}
 	problems := false
 	for _, path := range paths {
 		data, code := load(path)
 		if code != 0 {
 			return code
+		}
+		wireResult := v2.InspectWire(data, capacity)
+		if wireResult.Dispatch != v2.FirstGeneration {
+			if !verifyWireV2(path, wireResult, len(keys) > 0) {
+				problems = true
+			}
+			continue
 		}
 		fs := reader.ReadFileSegments(data)
 		printLedger(path, fs)
