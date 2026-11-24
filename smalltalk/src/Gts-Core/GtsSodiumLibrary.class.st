@@ -74,6 +74,11 @@ GtsSodiumLibrary >> sha512: message length: messageLength output: digest [
 	^ self ffiCall: #(#int #gts_sha512 #(#const #void #* #message #, #size_t #messageLength #, #void #* #digest))
 ]
 
+{ #category : #ffi }
+GtsSodiumLibrary >> mldsa65Verify: signature message: message length: messageLength publicKey: publicKey context: context length: contextLength [
+	^ self ffiCall: #(#int #gts_mldsa65_verify #(#const #void #* #signature #, #const #void #* #message #, #size_t #messageLength #, #const #void #* #publicKey #, #const #void #* #context #, #size_t #contextLength))
+]
+
 { #category : #'accessing platform' }
 GtsSodiumLibrary >> macLibraryName [
 	^ 'libgts_sodium.dylib'

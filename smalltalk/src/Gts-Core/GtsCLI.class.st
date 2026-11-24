@@ -372,11 +372,17 @@ GtsCLI class >> graphIsClean: graph [
 
 { #category : #private }
 GtsCLI class >> parseVerifyKey: spec [
-	| colon keyBytes |
+	| colon separator algorithm keyStart |
 	colon := spec findString: ':' startingAt: 1.
-	colon <= 1 ifTrue: [ self error: 'bad --key ', spec, ' (want kid:hexpubkey)' ].
-	keyBytes := GtsHex decode: (spec copyFrom: colon + 1 to: spec size).
-	^ (spec copyFrom: 1 to: colon - 1) -> keyBytes
+	colon <= 1 ifTrue: [ GtsArchiveError signal: 'expected --key KEY_ID:PUBLIC_KEY or KEY_ID:ALGORITHM:PUBLIC_KEY' ].
+	separator := spec findString: ':' startingAt: colon + 1.
+	algorithm := 1.
+	keyStart := colon + 1.
+	separator > 0 ifTrue: [
+		algorithm := #('ed25519' 'mldsa65_ed25519') indexOf: (spec copyFrom: colon + 1 to: separator - 1).
+		algorithm = 0 ifTrue: [ GtsArchiveError signal: 'unknown --key signature algorithm' ].
+		keyStart := separator + 1 ].
+	^ { (spec copyFrom: 1 to: colon - 1). algorithm. (GtsHex decode: (spec copyFrom: keyStart to: spec size)) }
 ]
 
 { #category : #private }
@@ -556,9 +562,7 @@ GtsCLI class >> runVerify: args [
 	1 to: args size do: [ :index |
 		(args at: index) = '--key'
 			ifTrue: [
-				| association |
-				association := self parseVerifyKey: (args at: index + 1 ifAbsent: [ ^ 2 ]).
-				keys add: association ]
+				keys add: (self parseVerifyKey: (args at: index + 1 ifAbsent: [ ^ 2 ])) ]
 			ifFalse: [
 				(index = 1 or: [ (args at: index - 1) ~= '--key' ])
 					ifTrue: [ paths add: (args at: index) ] ] ].
@@ -580,9 +584,9 @@ GtsCLI class >> verifyLegacy: bytes path: path keys: entries [
 	| graph clean keys |
 	keys := Dictionary new.
 	entries do: [ :entry |
-		entry value size = GtsSodium ed25519PublicKeyBytes ifFalse: [
+		(entry second = 1 and: [ entry third size = GtsSodium ed25519PublicKeyBytes ]) ifFalse: [
 			GtsArchiveError signal: 'archived GTS --key needs a 32-byte Ed25519 public key' ].
-		keys at: entry key put: entry value ].
+		keys at: entry first put: entry third ].
 	graph := GtsReader read: bytes.
 	self printLedgerFor: path graph: graph.
 	clean := graph diagnostics isEmpty.

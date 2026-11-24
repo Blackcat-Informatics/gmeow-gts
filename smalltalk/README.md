@@ -15,9 +15,9 @@ The development and CI runtime is pinned to:
 - Pharo image `13.1`
 - Pharo VM `10.3.9`
 
-The Dockerfile also provisions `libzstd`, `libsodium`, and pinned GTS-owned native
-shims for BLAKE3 and libsodium calls. The Smalltalk package binds BLAKE3, zstd,
-and libsodium through Pharo's Unified FFI surface.
+The Dockerfile provisions `libzstd`, `libsodium`, and OpenSSL 3.5.1 or later.
+The Smalltalk package uses Pharo Unified FFI for compression, hashing, and
+native cryptography.
 
 Build the local runtime image:
 
@@ -49,11 +49,11 @@ directories when their covered frames can be read. Graph directory comparison
 also requires written term identities for multi-row annotation frames.
 Index fold statistics and content digests require additional support.
 
-Signatures using Ed25519 can be verified with `--key KEY_ID:PUBLIC_KEY`.
+Verify Ed25519 signatures with `--key KEY_ID:PUBLIC_KEY` and composite
+ML-DSA-65 and Ed25519 signatures with `--key KEY_ID:mldsa65_ed25519:PUBLIC_KEY`.
 Supply the GTS v2 key identifier and the raw public key in hexadecimal.
-The verifier reports invalid signatures as errors and reports signatures
-without a held key as unverified. Composite signature verification and
-authentication coverage require additional support.
+Invalid signatures fail verification. Signatures without a held key are
+reported as unverified. Authentication coverage requires additional support.
 
 `gts from-nq` writes a committed v2 segment. It preserves named graphs,
 language direction, and nested object triples, and uses value references
