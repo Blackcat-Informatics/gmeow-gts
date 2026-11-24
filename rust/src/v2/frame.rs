@@ -159,12 +159,11 @@ impl<'a> Decoder<'a> {
         self.byte_string(Some(SIZE))?.try_into().map_err(|_| error)
     }
 
-    fn text(&mut self) -> Result<(), HeaderError> {
+    pub(super) fn text(&mut self) -> Result<&'a str, HeaderError> {
         let length_error = self.error(MalformedReason::WrongLength);
         let type_error = self.error(MalformedReason::WrongType);
         let size = usize::try_from(self.head(3)?).map_err(|_| length_error)?;
-        str::from_utf8(self.take(size)?).map_err(|_| type_error)?;
-        Ok(())
+        str::from_utf8(self.take(size)?).map_err(|_| type_error)
     }
 
     fn boolean(&mut self) -> Result<bool, HeaderError> {
@@ -196,7 +195,9 @@ impl<'a> Decoder<'a> {
                 2 => {
                     self.byte_string(None)?;
                 }
-                3 => self.text()?,
+                3 => {
+                    self.text()?;
+                }
                 4 => pending = pending.saturating_add(self.head(4)?),
                 7 => {
                     self.boolean()?;
@@ -220,7 +221,9 @@ impl<'a> Decoder<'a> {
         let tag = self.uint()?;
         match tag {
             1 | 2 if size != tag => return Err(error),
-            2 => self.text()?,
+            2 => {
+                self.text()?;
+            }
             1 => {}
             _ => {
                 for _ in 1..size {
