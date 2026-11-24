@@ -198,8 +198,8 @@ GtsVerifyTest >> testV2MalformedIndexDoesNotReportPartialClaims [
 GtsVerifyTest >> v2SignatureResults: case [
 	| decoded held verifier bytes header results |
 	decoded := GtsCborReader decode: (GtsHex decode: (case at: 'read_result')).
-	held := ((decoded at: 6) second select: [ :entry | entry second = 1 ])
-		collect: [ :entry | (GtsHex encode: entry first) -> entry third ].
+	held := (decoded at: 6) second collect: [ :entry |
+		{ (GtsHex encode: entry first). entry second. entry third } ].
 	verifier := GtsV2SignatureChecks held: held reversed, held.
 	bytes := ('/workspace/vectors/v2/P6/', (case at: 'input_file')) asFileReference
 		binaryReadStreamDo: [ :stream | stream upToEnd ].
@@ -251,12 +251,45 @@ GtsVerifyTest >> testV2SignatureKeysAndEffectiveSubjects [
 		('key-held-order' 'valid' nil)
 		('key-mismatch-two-entries' 'valid' nil)
 		('key-mismatch-bytes' 'invalid' 'key_mismatch')
+		('key-mismatch-algorithm' 'invalid' 'key_mismatch')
 		('key-trusted-not-held' 'unverified' 'key_not_held')
 		('key-length-short' 'invalid' 'value_length')
 		('subject-healed-frame' 'valid' nil)
 		('cov-broken-signed-frame' 'valid' nil)
 	) do: [ :test | self assertV2SignatureVector: test first results: { test allButFirst } ].
 	self assertV2SignatureVector: 'sig-list-unordered' results: #()
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2CompositeSignaturePolicy [
+	| hedged |
+	self assertV2SignatureVector: 'composite-honest' results: #(('valid' nil)).
+	#(
+		('composite-length-3372' 'value_length')
+		('composite-length-3374' 'value_length')
+		('composite-key-1983' 'value_length')
+		('composite-key-1985' 'value_length')
+		('composite-classical-nonce' 'composite_classical_failed')
+		('composite-classical-scalar' 'composite_classical_failed')
+		('composite-classical-small-order' 'composite_classical_failed')
+		('composite-both' 'composite_classical_failed')
+		('composite-context-nonempty' 'composite_classical_failed')
+		('composite-prehash-wrong' 'composite_classical_failed')
+		('composite-label-wrong' 'composite_classical_failed')
+		('composite-post-quantum' 'composite_post_quantum_failed')
+		('composite-stripped-half' 'composite_post_quantum_failed')
+		('composite-mldsa-context' 'composite_post_quantum_failed')
+		('composite-hint-count-above-omega' 'composite_post_quantum_failed')
+		('composite-hint-count-decreasing' 'composite_post_quantum_failed')
+		('composite-hint-indices-unordered' 'composite_post_quantum_failed')
+		('composite-hint-padding-nonzero' 'composite_post_quantum_failed')
+	) do: [ :test |
+		self assertV2SignatureVector: test first results: { { 'invalid'. test second } } ].
+	hedged := self jsonVectorAt: '/workspace/vectors/v2/P6/composite-hedged.json'.
+	(hedged at: 'cases') do: [ :case |
+		| count |
+		count := ((case at: 'input_file') endsWith: '.both.bin') ifTrue: [ 2 ] ifFalse: [ 1 ].
+		self assert: (self v2SignatureResults: case) equals: (Array new: count withAll: #('valid' nil)) ]
 ]
 
 { #category : #private }

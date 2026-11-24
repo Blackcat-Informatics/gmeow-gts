@@ -171,3 +171,14 @@ GtsSodium class >> sha512: message [
 	self requireSuccess: result.
 	^ digest
 ]
+
+{ #category : #verification }
+GtsSodium class >> verifyMlDsa65: signature message: message publicKey: key context: context [
+	| result |
+	self requireBytes: signature named: 'ML-DSA-65 signature' size: 3309.
+	self requireBytes: key named: 'ML-DSA-65 public key' size: 1952.
+	result := GtsSodiumLibrary uniqueInstance mldsa65Verify: signature message: message length: message size
+		publicKey: key context: context length: context size.
+	(#(0 1) includes: result) ifFalse: [ GtsArchiveError signal: 'OpenSSL ML-DSA-65 verification backend failed' ].
+	^ result = 1
+]
