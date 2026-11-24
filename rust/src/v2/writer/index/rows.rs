@@ -16,10 +16,10 @@ impl IndexPrefix {
             content.record(1)?;
             let count = content.positive()?;
             cursor.record(1)?;
-            require_count(&mut cursor, count)?;
+            cursor.column_len(count)?;
             let mut previous = 0;
             for row in 0..count {
-                previous = decode_delta(&mut cursor, previous)?;
+                previous = cursor.delta(previous)?;
                 self.add_graph(&cursor, frame_type, Some(previous), row, 1)?;
             }
             return require_end(&cursor);
@@ -35,10 +35,10 @@ impl IndexPrefix {
             self.add_predicate_runs(&mut cursor, count)?;
         }
         for column in 0..delta_columns {
-            require_count(&mut cursor, count)?;
+            cursor.column_len(count)?;
             let mut previous = 0;
             for _ in 0..count {
-                previous = decode_delta(&mut cursor, previous)?;
+                previous = cursor.delta(previous)?;
                 if frame_type == 4 && column == 3 && previous == 0 {
                     return Err(cursor.error(MalformedReason::OutOfRange));
                 }
@@ -53,23 +53,11 @@ impl IndexPrefix {
         frame_type: u64,
         count: u64,
     ) -> Result<(), HeaderError> {
-        let mut first = 0;
-        let mut previous = None;
-        for _ in 0..cursor.head(4)? {
-            cursor.record(2)?;
-            let graph = cursor.option(Decoder::uint)?;
-            let rows = cursor.positive()?;
-            if previous == Some(graph) {
-                return Err(cursor.error(MalformedReason::NotDeterministic));
-            }
-            self.add_graph(cursor, frame_type, graph, first, rows)?;
-            first = checked_sum(cursor, first, rows)?;
-            previous = Some(graph);
-        }
-        if first != count {
-            return Err(cursor.error(MalformedReason::InconsistentCounts));
-        }
-        Ok(())
+        cursor.runs(
+            count,
+            |cursor| cursor.option(Decoder::uint),
+            |cursor, graph, first, rows| self.add_graph(cursor, frame_type, graph, first, rows),
+        )
     }
 
     fn add_graph(
@@ -104,42 +92,10 @@ impl IndexPrefix {
         cursor: &mut Decoder<'_>,
         count: u64,
     ) -> Result<(), HeaderError> {
-        let mut total = 0;
-        let mut previous = None;
-        for _ in 0..cursor.head(4)? {
-            cursor.record(2)?;
-            let predicate = cursor.uint()?;
-            let rows = cursor.positive()?;
-            if previous == Some(predicate) {
-                return Err(cursor.error(MalformedReason::NotDeterministic));
-            }
+        cursor.runs(count, Decoder::uint, |cursor, predicate, _, rows| {
             let aggregate = self.predicates.entry(predicate).or_default();
             *aggregate = checked_sum(cursor, *aggregate, rows)?;
-            total = checked_sum(cursor, total, rows)?;
-            previous = Some(predicate);
-        }
-        if total != count {
-            return Err(cursor.error(MalformedReason::InconsistentCounts));
-        }
-        Ok(())
+            Ok(())
+        })
     }
-}
-
-fn require_count(cursor: &mut Decoder<'_>, count: u64) -> Result<(), HeaderError> {
-    if cursor.head(4)? == count {
-        Ok(())
-    } else {
-        Err(cursor.error(MalformedReason::InconsistentCounts))
-    }
-}
-
-fn decode_delta(cursor: &mut Decoder<'_>, previous: u64) -> Result<u64, HeaderError> {
-    let negative = cursor
-        .bytes
-        .get(cursor.offset)
-        .is_some_and(|first| first >> 5 == 1);
-    let argument = i128::from(cursor.head(u8::from(negative))?);
-    let delta = if negative { -1 - argument } else { argument };
-    u64::try_from(i128::from(previous) + delta)
-        .map_err(|_| cursor.error(MalformedReason::OutOfRange))
 }

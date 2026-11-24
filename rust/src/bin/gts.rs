@@ -36,6 +36,7 @@ use gmeow_gts::replication::{
 };
 #[cfg(not(feature = "rdf-codecs"))]
 use gmeow_gts::trig::to_trig;
+use gmeow_gts::v2::reader::{read_wire, Dispatch, ReadCapacity};
 use gmeow_gts::verify::{extract_transport_key, format_fingerprint};
 use gmeow_gts::wire::{digest_str, hex};
 #[cfg(feature = "yaml-ld")]
@@ -549,6 +550,26 @@ fn cmd_fold(paths: &[String]) -> ExitCode {
         Ok(d) => d,
         Err(code) => return code,
     };
+    let wire = read_wire(&data, ReadCapacity::default());
+    if matches!(
+        wire.dispatch,
+        Some(Dispatch::SecondGeneration | Dispatch::UnsupportedGeneration(_))
+    ) {
+        return match wire
+            .whole_rdf_projection()
+            .map_err(|error| error.to_string())
+            .and_then(|rdf| rdf.to_nquads().map_err(|error| error.to_string()))
+        {
+            Ok(text) => {
+                print!("{text}");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("gts fold: {error}");
+                ExitCode::from(1)
+            }
+        };
+    }
     let g = read(&data, true, None);
     for d in &g.diagnostics {
         eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
