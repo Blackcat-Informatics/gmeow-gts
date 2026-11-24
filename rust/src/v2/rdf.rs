@@ -6,6 +6,7 @@
 mod nquads;
 mod rows;
 mod terms;
+mod values;
 
 pub use nquads::NQuadsExportError;
 
@@ -177,9 +178,9 @@ impl WireRead<'_> {
     /// Compute the whole RDF projection of header-led registry version 1
     /// segments with intact wire checks.
     ///
-    /// Handles inline dictionaries and all four RDF row types. A suppression
-    /// frame, a value-backed dictionary or an unreadable frame causes refusal
-    /// before the caller gets any quads. This operation projects data and
+    /// Handles inline dictionaries, including typed values, and all four RDF
+    /// row types. A suppression frame, a literal reference or an unreadable
+    /// frame causes refusal before the caller gets quads. This operation projects data and
     /// makes no signature, canonicality, profile or committed-prefix claim.
     pub fn whole_rdf_projection(&self) -> Result<RdfProjection, ProjectionError> {
         if self.dispatch != Some(Dispatch::SecondGeneration) {
@@ -208,7 +209,7 @@ impl WireRead<'_> {
                     kind: item.kind,
                 });
             }
-            let mut dictionary = Vec::new();
+            let mut dictionary = terms::Dictionary::default();
             for observed in &wire.frames {
                 let at = |issue| ProjectionError::Frame {
                     segment,

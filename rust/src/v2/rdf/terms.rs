@@ -1,8 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-use std::{collections::HashSet, str, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    str,
+    sync::Arc,
+};
 
+use super::values::InlineValues;
 use super::{Direction, FrameIssue, Projector, Term};
 use crate::v2::{Decoder, HeaderError, MalformedReason::*, FORMED_BYTES_PER_READ};
 
@@ -13,10 +18,10 @@ struct FrontCoded<'a> {
 }
 
 impl<'a> FrontCoded<'a> {
-    fn read(cursor: &mut Decoder<'a>, count: u64) -> Result<Self, HeaderError> {
+    fn read(cursor: &mut Decoder<'a>) -> Result<Self, HeaderError> {
         Ok(Self {
-            prefixes: cursor.column(count, Decoder::uint)?,
-            lengths: cursor.column(count, Decoder::uint)?,
+            prefixes: cursor.list(Decoder::uint)?,
+            lengths: cursor.list(Decoder::uint)?,
             suffixes: cursor.byte_string(None)?,
         })
     }
@@ -74,15 +79,39 @@ enum LiteralForm {
     Language(u64, Option<Direction>),
 }
 
+struct LiteralColumns {
+    forms: Vec<u64>,
+    datatypes: Vec<u64>,
+    languages: Vec<u64>,
+}
+
+impl LiteralColumns {
+    fn read(cursor: &mut Decoder<'_>) -> Result<Self, HeaderError> {
+        Ok(Self {
+            forms: cursor.list(|cursor| cursor.code(4))?,
+            datatypes: cursor.list(Decoder::uint)?,
+            languages: cursor.list(Decoder::uint)?,
+        })
+    }
+
+    fn count_matches(&self, count: u64) -> bool {
+        let typed = self.forms.iter().filter(|&&form| form == 1).count();
+        self.forms.len() as u64 == count
+            && self.datatypes.len() == typed
+            && self.languages.len() == self.forms.len() - typed
+    }
+}
+
 enum Block<'a> {
     Iri(FrontCoded<'a>),
-    Literal(FrontCoded<'a>, Vec<LiteralForm>),
+    Literal(FrontCoded<'a>, LiteralColumns),
     Blank(Vec<&'a [u8]>),
     Triple([Vec<u64>; 3]),
+    Inline(InlineValues<'a>),
 }
 
 impl<'a> Block<'a> {
-    fn read(cursor: &mut Decoder<'a>, count: u64) -> Result<(u64, Self), FrameIssue> {
+    fn read(cursor: &mut Decoder<'a>) -> Result<(u64, Self), FrameIssue> {
         let length_error = cursor.error(WrongLength);
         let actual_arity = cursor.head(4)?;
         if actual_arity == 0 {
@@ -92,20 +121,21 @@ impl<'a> Block<'a> {
         let arity = match tag {
             1 | 4 => 4,
             2 => 7,
-            3 => 2,
+            3 | 6 => 2,
             kind => return Err(FrameIssue::UnsupportedTermKind(kind)),
         };
         if actual_arity != arity {
             return Err(length_error.into());
         }
         let block = match tag {
-            1 => Self::Iri(FrontCoded::read(cursor, count)?),
-            2 => Self::Literal(FrontCoded::read(cursor, count)?, read_forms(cursor, count)?),
-            3 => Self::Blank(cursor.column(count, |cursor| cursor.byte_string(None))?),
+            1 => Self::Iri(FrontCoded::read(cursor)?),
+            2 => Self::Literal(FrontCoded::read(cursor)?, LiteralColumns::read(cursor)?),
+            3 => Self::Blank(cursor.list(|cursor| cursor.byte_string(None))?),
+            6 => Self::Inline(InlineValues::read(cursor)?),
             _ => Self::Triple([
-                cursor.column(count, Decoder::uint)?,
-                cursor.column(count, Decoder::uint)?,
-                cursor.column(count, Decoder::uint)?,
+                cursor.list(Decoder::uint)?,
+                cursor.list(Decoder::uint)?,
+                cursor.list(Decoder::uint)?,
             ]),
         };
         Ok((tag, block))
@@ -117,32 +147,38 @@ impl<'a> Block<'a> {
             _ => &[],
         }
     }
+
+    fn count_matches(&self, count: u64) -> bool {
+        let same = |length: usize| length as u64 == count;
+        let front =
+            |codes: &FrontCoded<'_>| same(codes.prefixes.len()) && same(codes.lengths.len());
+        match self {
+            Self::Iri(codes) => front(codes),
+            Self::Literal(codes, forms) => front(codes) && forms.count_matches(count),
+            Self::Blank(labels) => same(labels.len()),
+            Self::Triple(columns) => columns.iter().all(|column| same(column.len())),
+            Self::Inline(values) => values.count_matches(count),
+        }
+    }
 }
 
-fn read_forms(cursor: &mut Decoder<'_>, count: u64) -> Result<Vec<LiteralForm>, HeaderError> {
-    let forms = cursor.column(count, |cursor| cursor.code(4))?;
-    let typed = forms.iter().filter(|&&form| form == 1).count() as u64;
-    let mut datatypes = cursor.column(typed, Decoder::uint)?.into_iter();
-    let mut languages = cursor.column(count - typed, Decoder::uint)?.into_iter();
-    let missing = cursor.error(InconsistentCounts);
-    forms
-        .into_iter()
-        .map(|form| {
-            if form == 1 {
-                datatypes.next().map(LiteralForm::Typed).ok_or(missing)
-            } else {
-                let direction = match form {
-                    3 => Some(Direction::Ltr),
-                    4 => Some(Direction::Rtl),
-                    _ => None,
-                };
-                languages
-                    .next()
-                    .map(|id| LiteralForm::Language(id, direction))
-                    .ok_or(missing)
-            }
-        })
-        .collect()
+fn literal_forms(columns: LiteralColumns) -> impl Iterator<Item = Option<LiteralForm>> {
+    let mut datatypes = columns.datatypes.into_iter();
+    let mut languages = columns.languages.into_iter();
+    columns.forms.into_iter().map(move |form| {
+        if form == 1 {
+            datatypes.next().map(LiteralForm::Typed)
+        } else {
+            let direction = match form {
+                3 => Some(Direction::Ltr),
+                4 => Some(Direction::Rtl),
+                _ => None,
+            };
+            languages
+                .next()
+                .map(|id| LiteralForm::Language(id, direction))
+        }
+    })
 }
 
 struct Languages {
@@ -178,28 +214,72 @@ impl Languages {
     }
 }
 
+#[derive(Clone, Copy)]
+struct Definition {
+    rdf: usize,
+    written: usize,
+}
+
+#[derive(Hash, PartialEq, Eq)]
+struct WrittenKey {
+    kind: u64,
+    rdf: usize,
+    components: Option<[usize; 3]>,
+}
+
+#[derive(Default)]
+pub(super) struct Dictionary {
+    entries: Vec<Definition>,
+    written: HashMap<WrittenKey, usize>,
+}
+
+impl Dictionary {
+    fn push(&mut self, kind: u64, rdf: usize, components: Option<[usize; 3]>) {
+        let next = self.written.len();
+        let written = *self
+            .written
+            .entry(WrittenKey {
+                kind,
+                rdf,
+                components,
+            })
+            .or_insert(next);
+        self.entries.push(Definition { rdf, written });
+    }
+
+    fn get(&self, id: u64) -> Option<Definition> {
+        usize::try_from(id)
+            .ok()
+            .and_then(|id| self.entries.get(id).copied())
+    }
+
+    pub(super) fn written(&self, id: u64) -> Result<usize, u64> {
+        self.get(id).map(|term| term.written).ok_or(id)
+    }
+}
+
 pub(super) fn resolve(
-    dictionary: &[usize],
+    dictionary: &Dictionary,
     id: u64,
     cursor: &Decoder<'_>,
 ) -> Result<usize, HeaderError> {
-    usize::try_from(id)
-        .ok()
-        .and_then(|index| dictionary.get(index).copied())
+    dictionary
+        .get(id)
+        .map(|term| term.rdf)
         .ok_or_else(|| cursor.error(OutOfRange))
 }
 
 impl Projector {
     pub(super) fn read_terms(
         &mut self,
-        dictionary: &mut Vec<usize>,
+        dictionary: &mut Dictionary,
         segment: usize,
         content: &[u8],
         bytes: &[u8],
     ) -> Result<(), FrameIssue> {
         let mut fields = Decoder::new(content, 0);
         fields.record(4)?;
-        if fields.uint()? != dictionary.len() as u64 {
+        if fields.uint()? != dictionary.entries.len() as u64 {
             return Err(fields.error(InconsistentCounts).into());
         }
         let runs = fields.list(|cursor| {
@@ -218,13 +298,20 @@ impl Projector {
 
         let mut cursor = Decoder::new(bytes, 0);
         cursor.record(2)?;
-        cursor.column_len(runs.len() as u64)?;
-        let blocks = runs
-            .iter()
-            .map(|&(_, count)| Block::read(&mut cursor, count))
+        let count = cursor.head(4)?;
+        let blocks = (0..count)
+            .map(|_| Block::read(&mut cursor))
             .collect::<Result<Vec<_>, _>>()?;
         let mut languages = Languages::read(&mut cursor)?;
         cursor.end()?;
+        if blocks.len() != runs.len()
+            || blocks
+                .iter()
+                .zip(&runs)
+                .any(|((_, block), &(_, count))| !block.count_matches(count))
+        {
+            return Err(cursor.error(InconsistentCounts).into());
+        }
         if blocks
             .iter()
             .zip(runs)
@@ -242,16 +329,18 @@ impl Projector {
             })
             .ok_or(FrameIssue::FormedCapacity)?;
 
-        for (_, block) in blocks {
+        for (kind, block) in blocks {
             match block {
                 Block::Iri(texts) => {
                     for text in texts.texts(restart)? {
-                        dictionary.push(self.intern(Term::Iri(text)));
+                        dictionary.push(kind, self.intern(Term::Iri(text)), None);
                     }
                 }
                 Block::Literal(texts, forms) => {
-                    for (lexical, form) in texts.texts(restart)?.into_iter().zip(forms) {
-                        let term = match form {
+                    for (lexical, form) in
+                        texts.texts(restart)?.into_iter().zip(literal_forms(forms))
+                    {
+                        let term = match form.ok_or_else(|| cursor.error(InconsistentCounts))? {
                             LiteralForm::Typed(id) => Term::Literal {
                                 lexical,
                                 datatype: self.iri(dictionary, id, &cursor)?,
@@ -262,25 +351,51 @@ impl Projector {
                                 direction,
                             },
                         };
-                        dictionary.push(self.intern(term));
+                        dictionary.push(kind, self.intern(term), None);
                     }
                 }
                 Block::Blank(labels) => {
                     for label in labels {
-                        dictionary.push(self.intern(Term::Blank {
-                            segment,
-                            label: Arc::from(label),
-                        }));
+                        dictionary.push(
+                            kind,
+                            self.intern(Term::Blank {
+                                segment,
+                                label: Arc::from(label),
+                            }),
+                            None,
+                        );
                     }
                 }
                 Block::Triple([subjects, predicates, objects]) => {
                     for ((subject, predicate), object) in
                         subjects.into_iter().zip(predicates).zip(objects)
                     {
-                        let subject = self.node(dictionary, subject, &cursor)?;
-                        let predicate = self.iri(dictionary, predicate, &cursor)?;
-                        let object = resolve(dictionary, object, &cursor)?;
-                        dictionary.push(self.intern(Term::Triple((subject, predicate, object))));
+                        let triple = (
+                            self.node(dictionary, subject, &cursor)?,
+                            self.iri(dictionary, predicate, &cursor)?,
+                            resolve(dictionary, object, &cursor)?,
+                        );
+                        let components =
+                            [subject, predicate, object].map(|id| dictionary.written(id));
+                        let [Ok(subject), Ok(predicate), Ok(object)] = components else {
+                            return Err(cursor.error(OutOfRange).into());
+                        };
+                        dictionary.push(
+                            kind,
+                            self.intern(Term::Triple(triple)),
+                            Some([subject, predicate, object]),
+                        );
+                    }
+                }
+                Block::Inline(values) => {
+                    for value in values.project() {
+                        let (lexical, datatype) = value?;
+                        let datatype = self.intern(Term::Iri(Arc::from(datatype)));
+                        dictionary.push(
+                            kind,
+                            self.intern(Term::Literal { lexical, datatype }),
+                            None,
+                        );
                     }
                 }
             }
@@ -295,7 +410,7 @@ impl Projector {
 
     pub(super) fn iri(
         &self,
-        dictionary: &[usize],
+        dictionary: &Dictionary,
         id: u64,
         cursor: &Decoder<'_>,
     ) -> Result<usize, HeaderError> {
@@ -304,7 +419,7 @@ impl Projector {
 
     pub(super) fn node(
         &self,
-        dictionary: &[usize],
+        dictionary: &Dictionary,
         id: u64,
         cursor: &Decoder<'_>,
     ) -> Result<usize, HeaderError> {
@@ -315,7 +430,7 @@ impl Projector {
 
     pub(super) fn position(
         &self,
-        dictionary: &[usize],
+        dictionary: &Dictionary,
         id: u64,
         cursor: &Decoder<'_>,
         valid: impl FnOnce(&Term) -> bool,

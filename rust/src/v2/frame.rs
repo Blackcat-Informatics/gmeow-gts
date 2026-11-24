@@ -166,7 +166,7 @@ impl<'a> Decoder<'a> {
         str::from_utf8(self.take(size)?).map_err(|_| type_error)
     }
 
-    fn boolean(&mut self) -> Result<bool, HeaderError> {
+    pub(super) fn boolean(&mut self) -> Result<bool, HeaderError> {
         let error = self.error(MalformedReason::WrongType);
         let code = self.head(7)?;
         if self.offset - error.offset == 1 {
