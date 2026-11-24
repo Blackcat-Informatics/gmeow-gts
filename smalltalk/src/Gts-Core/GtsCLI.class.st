@@ -286,7 +286,7 @@ GtsCLI class >> runInfo: args [
 
 { #category : #printing }
 GtsCLI class >> printWireInfoFor: path wire: wire [
-	| format ordinal clean |
+	| format ordinal clean repair |
 	format := wire format.
 	format ~= #v2 ifTrue: [
 		wire initialResyncRefusal ifNotNil: [ :refusal |
@@ -306,7 +306,7 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 	self stdout: path, ': GTS v2 framing ledger (byte ranges, frame integrity and closing records)', String lf.
 	ordinal := 0.
 	clean := true.
-	wire eventsDo: [ :event |
+	repair := wire eventsDo: [ :event |
 		(event problem isNotNil or: [ event closingClaimFailure isNotNil ]) ifTrue: [ clean := false ].
 		event kind = #stop
 			ifTrue: [
@@ -322,7 +322,9 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 					ifNotNil: [ :type | 'frame type ', type printString ].
 				details := event opener ifNil: [ '' ] ifNotNil: [ :opener |
 					', registry ', opener registry printString, ', hash algorithm ', opener hashAlgorithm printString ].
-				event scanned ifTrue: [ details := details, ', found by recovery scan' ].
+				(event scanned or: [ event resumptionAnchor notNil ]) ifTrue: [
+					details := details, ', found by recovery scan' ].
+				event detached ifTrue: [ details := details, ', detached' ].
 				diagnostic := self wireDiagnosticFor: event.
 				diagnostic isNotEmpty ifTrue: [ clean := false ].
 				self stdout: prefix, kind, ' bytes [', event offset printString, ', ',
@@ -335,6 +337,9 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 		decodedWhen: [ :event | false ]
 		unprotectedTailsDo: [ :offset :length |
 			self stdout: '    ', (self unprotectedTailAt: offset length: length), String lf ].
+	repair findings do: [ :finding |
+		finding first = 'repair_failed' ifTrue: [ clean := false ].
+		self stdout: '    ', (self repairFindingMessage: finding), String lf ].
 	^ clean
 ]
 
@@ -352,9 +357,19 @@ GtsCLI class >> unprotectedTailAt: offset length: length [
 GtsCLI class >> wireFindingFor: event [
 	event kind = #resyncRefused ifTrue: [
 		^ self resyncRefusalMessageFor: event ].
+	event kind = #parityRefused ifTrue: [
+		^ 'parity ', event problem, ' (', event payload count printString, ' bytes)' ].
 	event frameType = 16 ifTrue: [ ^ self parityFindingFor: event ].
 	^ event problem ifNil: [
 		event closingClaimFailure ifNotNil: [ :reason | 'index_claim_failed (', reason, ')' ] ]
+]
+
+{ #category : #printing }
+GtsCLI class >> repairFindingMessage: finding [
+	^ finding first, ' at byte ', finding second printString, ' (', finding third asString,
+		(finding first = 'repaired'
+			ifTrue: [ finding third = 1 ifTrue: [ ' shard)' ] ifFalse: [ ' shards)' ] ]
+			ifFalse: [ ')' ])
 ]
 
 { #category : #printing }
@@ -681,7 +696,7 @@ GtsCLI class >> verifyLegacy: bytes path: path keys: entries [
 
 { #category : #private }
 GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
-	| format report clean ordinal checks verifier header authentication |
+	| format report clean ordinal checks verifier header authentication repair |
 	format := wire format.
 	clean := true.
 	report := [ :message |
@@ -701,11 +716,13 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 	verifier := GtsV2SignatureChecks held: keys.
 	self stdout: path, ': GTS v2 frame, closing record, commit and index prefix integrity', String lf.
 	ordinal := -1.
-	wire eventsDo: [ :event |
+	repair := wire eventsDo: [ :event |
 		| location |
 		location := 'byte ', event offset printString.
-		(#(stop framingGap resyncRefused) includes: event kind)
+		(#(stop framingGap resyncRefused parityRefused) includes: event kind)
 			ifTrue: [
+				(event isParityGap and: [ checks notNil ]) ifTrue: [
+					checks observeDamagedRegion ].
 				event kind = #stop
 					ifTrue: [ report value: 'framing stopped at ', location, ': ', event problem ]
 					ifFalse: [ report value: location, ': ', (self wireFindingFor: event) ] ]
@@ -721,6 +738,9 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 					ifFalse: [
 						checks ifNotNil: [
 							| commitValid |
+							event detached ifTrue: [
+								checks observeDetachedFrame.
+								authentication observeDetachedFrame ].
 							self reportIntegrityFor: event report: [ :finding |
 								report value: location, ': ', finding ].
 							commitValid := checks observe: event findingsDo: [ :finding :position :expected |
@@ -747,6 +767,10 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ]
 		unprotectedTailsDo: [ :offset :length |
 			self stdout: '  ', (self unprotectedTailAt: offset length: length), String lf ].
+	repair findings do: [ :finding |
+		finding first = 'repair_failed'
+			ifTrue: [ report value: (self repairFindingMessage: finding) ]
+			ifFalse: [ self stdout: '  ', (self repairFindingMessage: finding), String lf ] ].
 	checks ifNotNil: [ self printCommitSummary: checks authentication: authentication ordinal: ordinal path: path ].
 	^ clean
 ]

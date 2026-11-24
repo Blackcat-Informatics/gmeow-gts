@@ -45,20 +45,17 @@ GtsV2ParityTest >> testRepairFailurePropagatesAcrossAnItemThatSpansTwoParityRang
 
 { #category : #tests }
 GtsV2ParityTest >> testRepairRecheckChargesTheBudgetBeforeTheNextSegment [
-	| input bytes wire plan chunks withoutRepair |
+	| input bytes wire plan chunks |
 	input := self bytesFor: 'recover-no-signature.signature-zero.bin'.
 	bytes := input, input.
 	wire := GtsV2Wire inspect: bytes budget: (GtsV2PayloadBudget withReadLimit: 25000).
-	withoutRepair := OrderedCollection new.
-	wire eventsDo: [ :event | event frameType = 8 ifTrue: [ withoutRepair add: event payload state ] ].
-	self assert: withoutRepair asArray equals: #(damaged damaged).
 	chunks := OrderedCollection new.
-	plan := GtsV2ParityRepair on: bytes.
-	wire eventsDo: [ :event | event frameType = 8 ifTrue: [ chunks add: event payload ] ]
-		decodedWhen: [ :event | false ] unprotectedTailsDo: [ :offset :length | ] repairing: plan.
+	plan := wire eventsDo: [ :event | event frameType = 8 ifTrue: [ chunks add: event payload ] ]
+		decodedWhen: [ :event | false ] unprotectedTailsDo: [ :offset :length | ].
 	self assert: chunks size equals: 2.
 	self assert: chunks last reason equals: 'total_decoded'.
-	self assert: plan repairedBytes equals: (self bytesFor: 'recover-no-signature.signature-zero.repaired.bin'), input
+	self assert: plan repairedBytes isNil.
+	self assert: plan findings equals: #(('repaired' 9456 4))
 ]
 
 { #category : #tests }
@@ -126,6 +123,67 @@ GtsV2ParityTest >> testParityResumptionRequiresRoomForTheDamagedRegionAndTheCand
 	allowed := (GtsV2Wire inspect: input budget: (GtsV2PayloadBudget new itemLimit: 6)) parityRepair.
 	self assert: allowed stop isNil.
 	self assert: allowed findings equals: #(('repaired' 586 1))
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testWholeReadReportsRecoveryAndKeepsDetachedRowsOutOfTheFold [
+	| damaged suffix sound source frame events report rows repair checks failures |
+	damaged := self bytesFor: 'recover-length.with-parity.bin'.
+	frame := (self parityIn: damaged) first.
+	source := '<https://e/s> <https://e/p> "detached" .', String lf.
+	suffix := self rdfFramesFor: source startingAt: frame resumptionAnchor.
+	rows := '<https://e/s> <https://e/p> "separate segment" .', String lf.
+	sound := GtsFromNQuads v2FromString: rows.
+	events := OrderedCollection new.
+	report := (GtsV2Wire inspect: damaged, suffix, sound)
+		eventsDo: [ :event | events add: event ]
+		decodedWhen: [ :event | false ] unprotectedTailsDo: [ :offset :length | ].
+	self assert: report repairedBytes isNil.
+	self assert: report findings equals: #(('repaired' 481 1)).
+	self assert: (events select: [ :event | event isParityGap ]) size equals: 1.
+	self assert: ((events select: [ :event | event detached ]) collect: [ :event | event frameType ]) asArray
+		equals: #(1).
+	checks := GtsV2CommitChecks openedBy: events first effectiveIdentifier.
+	failures := OrderedCollection new.
+	(events allButFirst first: 5) do: [ :event |
+		event isParityGap
+			ifTrue: [ checks observeDamagedRegion ]
+			ifFalse: [
+				event detached ifTrue: [ checks observeDetachedFrame ].
+				checks observe: event findingsDo: [ :reason :position :expected | failures add: { reason. position } ] ] ].
+	self assert: failures asArray equals: #(('commit_root_mismatch' 5)).
+	self assert: checks committedFrames equals: 0.
+	self assert: (GtsNQuads toNQuads: (GtsV2RdfFold read: (GtsV2Wire inspect: damaged, suffix, sound))) equals: rows.
+	repair := (GtsV2Wire inspect: damaged, suffix, sound) parityRepair.
+	self assert: repair findings equals: report findings
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testRepairKeepsItsOpenerIdentifierWhenTheVisitorEditsTheEvent [
+	| report |
+	report := (GtsV2Wire inspect: (self bytesFor: 'recover-length.with-parity.bin'))
+		eventsDo: [ :event |
+			event startsSegment ifTrue: [ event effectiveIdentifier at: 1 put: ((event effectiveIdentifier first) bitXor: 1) ] ]
+		decodedWhen: [ :event | false ] unprotectedTailsDo: [ :offset :length | ].
+	self assert: report findings equals: #(('repaired' 481 1))
+]
+
+{ #category : #private }
+GtsV2ParityTest >> rdfFramesFor: source startingAt: predecessor [
+	| current |
+	current := predecessor.
+	^ ByteArray streamContents: [ :stream |
+		(GtsV2Wire inspect: (GtsFromNQuads v2FromString: source)) eventsDo: [ :event |
+			(#(1 2 14) includes: event frameType) ifTrue: [
+				| payload content identity encoded |
+				payload := event frame payload plainStoredBytesUpTo: 4096.
+				content := GtsCborReader decode: event frame content encodedBytes.
+				identity := { event frameType. event frameType < 14. false. content. payload size.
+					GtsBlake3 deriveWith: 'gts2 payload' bytes: payload }.
+				encoded := (GtsCborWriter encode: identity) allButFirst.
+				current := GtsBlake3 deriveWith: 'gts2 frame' prefix: #[135 88 32], current
+					bytes: encoded from: 1 to: encoded size + 1.
+				stream nextPutAll: (GtsCborWriter encode: { 2 }, identity, { #(1). payload. current. #() }) ] ] ]
 ]
 
 { #category : #private }
@@ -435,9 +493,9 @@ GtsV2ParityTest >> testRepairFailureWhenOneStripeHasFiveErasures [
 	finding := parityFrame parityShardFindings.
 	self assert: finding asArray equals: #(
 		('parity_mismatch' 'data' 1)
-		('parity_mismatch' 'parity' 4)
-		('repair_failed' 'too_many_erasures' nil)).
-	self assert: ((GtsCLI parityFindingFor: parityFrame) includesSubstring: 'repair_failed (too_many_erasures)').
+		('parity_mismatch' 'parity' 4)).
+	self assert: (GtsV2Wire inspect: bytes) parityRepair findings equals:
+		{ { 'repair_failed'. parityFrame offset. 'too_many_erasures' } }.
 	bytes at: parityStart put: ((bytes at: parityStart) bitXor: 1).
 	self assert: (self parityIn: bytes) first parityShardFindings asArray equals: #(
 		('parity_mismatch' 'data' 1)
@@ -461,9 +519,9 @@ GtsV2ParityTest >> testReconstructionRejectsSolvedBytesWithTheWrongDigest [
 	modified := (bytes first: parity offset), (self encodeParity: content payload: (GtsCborWriter encode: payload)).
 	result := (self parityIn: modified) first.
 	self deny: result isDamagedParity.
-	self assert: result parityShardFindings asArray equals: #(
-		('parity_mismatch' 'data' 1)
-		('repair_failed' 'verify_failed' nil))
+	self assert: result parityShardFindings asArray equals: #(('parity_mismatch' 'data' 1)).
+	self assert: (GtsV2Wire inspect: modified) parityRepair findings equals:
+		{ { 'repair_failed'. parity offset. 'verify_failed' } }
 ]
 
 { #category : #private }

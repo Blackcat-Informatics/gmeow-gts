@@ -37,6 +37,7 @@ identifies the first review snapshot. Cite the commit when reporting a finding a
 The released packages predate v2. The repository contains **six interoperable full engines** (Rust, Python, Go, TypeScript,
 Smalltalk/Pharo, Kotlin/JVM) for the earlier format. Their test results apply to that release line.
 Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.6.
+The [command availability matrix](docs/CLI-COMMANDS.md) lists the current engine commands.
 
 [Contributing](CONTRIBUTING.md) · [Project governance](docs/GTS-GOVERNANCE.md) · [Security reports](SECURITY.md) ·
 [Licensing](LICENSING.md) · [Français canadien / 简体中文](docs/i18n/README.md) · [Documentation archive](archive/README.md)
