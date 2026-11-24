@@ -385,6 +385,42 @@ GtsV2WireTest >> testWalksNestedAndChunkedItemsWithoutRecursiveDecoding [
 ]
 
 { #category : #tests }
+GtsV2WireTest >> testResumableItemDelimitsAcrossEverySplit [
+	| walker cursor fork |
+	walker := GtsV2CborWalker on: #[159 191 97 107 95 88 3 1 2 3 255 255 25 0 1 255 42].
+	cursor := walker itemAt: 1.
+	1 to: 16 do: [ :limit |
+		self assert: (cursor endUpTo: limit) isNil.
+		limit = 8 ifTrue: [ fork := cursor copy ] ].
+	self assert: (cursor endUpTo: 17) equals: 17.
+	self assert: (fork endUpTo: 12) isNil.
+	self assert: (fork endUpTo: 18) equals: 17.
+
+	cursor := (GtsV2CborWalker on: #[191 0 255]) itemAt: 1.
+	self assert: (cursor endUpTo: 3) isNil.
+	self should: [ cursor endUpTo: 4 ] raise: GtsV2FramingError
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testRecoveryLookaheadRetainsANestedItemAcrossDecisionBoundaries [
+	| opener failures nested wire |
+	opener := #[130 1 2].
+	failures := ByteArray new: 64.
+	nested := (ByteArray new: 8192 withAll: 129), #[0].
+	wire := GtsV2Wire
+		inspect: opener, failures, nested
+		budget: (GtsV2PayloadBudget new itemLimit: 66).
+	2 timesRepeat: [
+		| events |
+		events := OrderedCollection new.
+		wire eventsDo: [ :event | events add: event ].
+		self assert: events size equals: 66.
+		self assert: events last kind equals: #unchecked.
+		self assert: events last offset equals: opener size + failures size.
+		self assert: events last end equals: opener size + failures size + nested size ]
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testOpenerRegistryAndResyncGrammar [
 	| events |
 	events := self events: (self vector: 'header-hash-newer').

@@ -20,8 +20,14 @@ GtsV2CborWalker >> initializeOn: aByteArray [
 
 { #category : #parsing }
 GtsV2CborWalker >> headAt: start limit: limit [
+	^ (self headIfCompleteAt: start limit: limit)
+		ifNil: [ GtsV2FramingError signal: 'torn_tail' ]
+]
+
+{ #category : #parsing }
+GtsV2CborWalker >> headIfCompleteAt: start limit: limit [
 	| first major additional position width value minimum |
-	start >= limit ifTrue: [ GtsV2FramingError signal: 'torn_tail' ].
+	start >= limit ifTrue: [ ^ nil ].
 	first := bytes at: start.
 	major := first // 32.
 	additional := first bitAnd: 31.
@@ -30,7 +36,7 @@ GtsV2CborWalker >> headAt: start limit: limit [
 		^ GtsV2CborHead major: major argument: additional end: position shortest: true ].
 	additional <= 27 ifTrue: [
 		width := 1 bitShift: additional - 24.
-		position + width > limit ifTrue: [ GtsV2FramingError signal: 'torn_tail' ].
+		position + width > limit ifTrue: [ ^ nil ].
 		value := 0.
 		position to: position + width - 1 do: [ :index |
 			value := (value bitShift: 8) + (bytes at: index) ].
@@ -45,40 +51,13 @@ GtsV2CborWalker >> headAt: start limit: limit [
 
 { #category : #parsing }
 GtsV2CborWalker >> itemEndAt: start limit: limit [
-	"Positions are one-based, and the limit and returned item end are exclusive."
-	| pending position parent octet head major argument |
-	pending := OrderedCollection with: (GtsV2CborContext major: 4 remaining: 1).
-	position := start.
-	[ pending notEmpty ] whileTrue: [
-		parent := pending last.
-		parent isComplete
-			ifTrue: [ pending removeLast ]
-			ifFalse: [
-				position >= limit ifTrue: [ GtsV2FramingError signal: 'torn_tail' ].
-				octet := bytes at: position.
-				octet = 255
-					ifTrue: [
-						parent acceptsBreak ifFalse: [ GtsV2FramingError signal: 'undelimitable_input' ].
-						pending removeLast.
-						position := position + 1 ]
-					ifFalse: [
-						(parent acceptsHeadByte: octet)
-							ifFalse: [ GtsV2FramingError signal: 'undelimitable_input' ].
-						head := self headAt: position limit: limit.
-						position := head end.
-						parent acceptChild.
-						major := head major.
-						argument := head argument.
-						(argument isNil or: [ major between: 4 and: 6 ])
-							ifTrue: [
-								pending add: (GtsV2CborContext
-									major: major
-									remaining: (major = 6 ifTrue: [ 1 ] ifFalse: [ argument ])) ]
-							ifFalse: [
-								(major between: 2 and: 3) ifTrue: [
-									argument > (limit - position) ifTrue: [ GtsV2FramingError signal: 'torn_tail' ].
-									position := position + argument ] ] ] ] ].
-	^ position
+	^ ((self itemAt: start) endUpTo: limit)
+		ifNil: [ GtsV2FramingError signal: 'torn_tail' ]
+]
+
+{ #category : #parsing }
+GtsV2CborWalker >> itemAt: start [
+	^ GtsV2CborItem walker: self at: start
 ]
 
 { #category : #accessing }
