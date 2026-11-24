@@ -34,7 +34,7 @@ class WireFrame:
     item: Item
     frame: Frame | FrameError
     link: FrameLink
-    payload: PayloadCheck | None
+    payload: PayloadCheck
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,14 +86,6 @@ class _Segment:
         assert (
             fields is not None and self.registry is not None and predecessor is not None
         )
-        frame: Frame | FrameError
-        try:
-            frame = _decode_framed(data, item.offset, self.registry)
-        except FrameError as error:
-            frame = error
-            payload = None
-        else:
-            payload = budget.check(frame)
         link = check_frame_link(fields, predecessor)
         if (
             link.state == "broken"
@@ -104,6 +96,14 @@ class _Segment:
         ):
             witness, _ = inspect_link_item(data, item.end)
             link = check_frame_link(fields, predecessor, witness)
+        frame: Frame | FrameError
+        try:
+            frame = _decode_framed(data, item.offset, self.registry)
+        except FrameError as error:
+            frame = error
+            payload = budget._check_rejected_envelope(data, item.offset, self.registry)
+        else:
+            payload = budget.check(frame)
         provisional = (fields, predecessor) if link.state == "healed" else None
         return WireFrame(item, frame, link, payload), provisional
 
@@ -143,7 +143,7 @@ def walk_file(
 ) -> WireRead:
     """Walk items and recover at failed items or lost CBOR boundaries.
 
-    Frame events expose link checks and payload checks for decoded envelopes.
+    Frame events expose independent link, envelope, and payload checks.
     Closing records use observed item boundaries. This wire pass does not
     perform parity recovery.
     """

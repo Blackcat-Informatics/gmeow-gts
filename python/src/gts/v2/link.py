@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ._decode import _Decoder
-from .frame import FrameError, _identifier, _identity
-from .framing import ItemFramingError, _head, item_end
+from .frame import FrameError, _frame_field_offsets, _identifier, _identity
+from .framing import _head, item_end
 
 type LinkState = Literal["linked", "healed", "broken"]
 
@@ -61,12 +61,7 @@ def inspect_link_item(
     if not data.startswith(b"\x8b\x02", offset):
         return None, item_end(data, offset)
 
-    starts = [offset + 2]
-    try:
-        for _ in range(10):
-            starts.append(item_end(data, starts[-1]))
-    except ItemFramingError as error:
-        raise ItemFramingError(error.reason, offset) from error
+    starts = _frame_field_offsets(data, offset)
 
     # Elements one through six are exactly the identity field run.
     identity_start, identity_end = starts[0], starts[6]

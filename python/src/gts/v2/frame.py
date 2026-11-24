@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Frame envelope, identity and stored bytes (P1 §§3.1–3.3, 4.2, 5.3)."""
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import cbor2
@@ -10,7 +11,7 @@ from zstandard import ZstdCompressor
 
 from ._decode import WireError, _Decoder
 from ._zstd import ZSTD_CODEC, compressed_payload
-from .framing import item_end
+from .framing import ItemFramingError, item_end
 
 _LAST_FRAME_TYPE = 16
 _CHUNK = 8
@@ -92,9 +93,25 @@ def _payload_digest(decoded: bytes | memoryview) -> bytes:
 
 
 def _stored_check(codec: int, payload: bytes | memoryview) -> bytes:
+    return _stored_check_parts(codec, (payload,))
+
+
+def _stored_check_parts(codec: int, parts: Iterable[bytes | memoryview]) -> bytes:
     hasher = blake3(cbor2.dumps([codec]), derive_key_context="gts2 stored")
-    hasher.update(payload)
+    for part in parts:
+        hasher.update(part)
     return hasher.digest(length=16)
+
+
+def _frame_field_offsets(data: bytes, offset: int) -> list[int]:
+    """Get absolute field boundaries after the frame envelope head."""
+    starts = [offset + 2]
+    try:
+        for _ in range(10):
+            starts.append(item_end(data, starts[-1]))
+    except ItemFramingError as error:
+        raise ItemFramingError(error.reason, offset) from error
+    return starts
 
 
 def _registry_code(decoder: _Decoder, last: int, newer: bool) -> int:
@@ -175,7 +192,7 @@ def _media_type_shape(decoder: _Decoder) -> None:
 
 
 def _storage(
-    decoder: _Decoder, *, newer: bool, decoded_length: int
+    decoder: _Decoder, *, newer: bool
 ) -> CompressedStorage | UnknownStorage | None:
     start = decoder.offset
     size = decoder.array()
@@ -193,8 +210,6 @@ def _storage(
         return None
     codec = _registry_code(decoder, 1, newer)
     check = bytes(decoder.bytes(16))
-    if decoded_length == 0:
-        raise FrameError("forbidden_combination", start)
     return CompressedStorage(codec, check)
 
 
@@ -285,8 +300,10 @@ def _decode_framed(data: bytes, offset: int, registry_version: int) -> Frame:
     identity = memoryview(data)[identity_start : decoder.offset]
 
     offset = decoder.offset
-    storage = _storage(decoder, newer=newer, decoded_length=decoded_length)
-    if frame_type == _PARITY and storage is not None:
+    storage = _storage(decoder, newer=newer)
+    if (frame_type == _PARITY and storage is not None) or (
+        isinstance(storage, CompressedStorage) and decoded_length == 0
+    ):
         raise FrameError("forbidden_combination", offset)
     payload = decoder.bytes()
     identifier = bytes(decoder.bytes(32))

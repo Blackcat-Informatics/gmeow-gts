@@ -42,7 +42,7 @@ a resync at the file start, or obtain the initial framing finding. The
 result gives the offset at which the caller can continue after an opener.
 `first_and_second=True` also enables selection of the legacy reader.
 Use `gts.v2.walk_file(data, budget)` to inspect segment byte ranges, frame
-links, payload checks on decoded envelopes, and closing item claims. The
+links, payload checks on framed envelopes, and closing item claims. The
 walk shares limits across segments and scans for resync after framing
 loss, including complete items that fail the framing test. A healing
 witness remains provisional until the reader decides whether recovery

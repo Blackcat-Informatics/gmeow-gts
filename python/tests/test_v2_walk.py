@@ -7,8 +7,18 @@ from pathlib import Path
 
 import cbor2
 import pytest
+from zstandard import ZstdCompressor
 
-from gts.v2 import Header, PayloadBudget, encode_header, walk_file
+from gts.v2 import (
+    FrameError,
+    Header,
+    PayloadBudget,
+    decode_header,
+    encode_header,
+    encode_plain_frame,
+    walk_file,
+)
+from gts.v2.frame import _encode_frame
 from gts.v2.items import ClosingFinding
 
 _P1 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P1"
@@ -25,6 +35,10 @@ _PAYLOAD = {"verified": 1, "damaged": 2, "unchecked": 3}
         "payload-total-order",
         "payload-digest",
         "stored-mismatch",
+        "stored-check-short",
+        "frame-identifier-type",
+        "frame-unknown-transparent-not-bool",
+        "parity-codec-newer",
         "offsets-counts-opaque",
         "locator-not-index-item",
         "lineage-previous-unreadable",
@@ -66,12 +80,9 @@ def test_walk_matches_segment_and_frame_boundaries(fixture: str) -> None:
                     record[1:3]
                 )
                 assert _LINK[frame.link.state] == record[4]
-                if frame.payload is not None:
-                    assert _PAYLOAD[frame.payload.state] == record[5][0]
-                    stored = frame.payload.stored_matches
-                    assert (
-                        [1] if stored is None else [2, 1 if stored else 2]
-                    ) == record[6]
+                assert _PAYLOAD[frame.payload.state] == record[5][0]
+                stored = frame.payload.stored_matches
+                assert ([1] if stored is None else [2, 1 if stored else 2]) == record[6]
             expected_closing = [
                 ClosingFinding(
                     finding[3][1],
@@ -104,3 +115,53 @@ def test_walk_stops_at_unread_item_boundary() -> None:
         len(header),
         2,
     )
+
+
+def test_rejected_envelope_still_charges_its_valid_payload() -> None:
+    header = encode_header(Header())
+    predecessor = decode_header(header).identifier
+    assert predecessor is not None
+    first = cbor2.loads(encode_plain_frame(predecessor, 8, [bytes(32)], b"abc"))
+    first[-1] = 0
+    second = encode_plain_frame(first[-2], 8, [bytes(32)], b"d")
+    budget = PayloadBudget(
+        stored_bytes_per_frame=1024,
+        decoded_bytes_per_frame=16,
+        decoded_bytes_per_read=3,
+    )
+
+    result = walk_file(header + cbor2.dumps(first) + second, budget)
+
+    rejected, accepted = result.segments[0].frames
+    assert isinstance(rejected.frame, FrameError)
+    assert rejected.payload.state == "verified"
+    assert accepted.payload.state == "unchecked"
+    assert (accepted.payload.reason, accepted.payload.count) == ("total_decoded", 4)
+
+
+def test_rejected_indefinite_payload_preserves_its_stored_check() -> None:
+    header = encode_header(Header())
+    predecessor = decode_header(header).identifier
+    assert predecessor is not None
+    encoded, _ = _encode_frame(
+        predecessor, 8, [bytes(32)], b"abc" * 200, compressor=ZstdCompressor()
+    )
+    fields = cbor2.loads(encoded)
+    stored = fields[8]
+    split = len(stored) // 2
+    encoded_fields = [cbor2.dumps(field) for field in fields]
+    encoded_fields[8] = (
+        b"\x5f" + cbor2.dumps(stored[:split]) + cbor2.dumps(stored[split:]) + b"\xff"
+    )
+    budget = PayloadBudget(
+        stored_bytes_per_frame=1024,
+        decoded_bytes_per_frame=1024,
+        decoded_bytes_per_read=1024,
+    )
+
+    result = walk_file(header + b"\x8b" + b"".join(encoded_fields), budget)
+
+    (frame,) = result.segments[0].frames
+    assert isinstance(frame.frame, FrameError)
+    assert frame.payload.state == "damaged"
+    assert frame.payload.stored_matches is True
