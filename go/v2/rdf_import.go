@@ -30,8 +30,10 @@ type RDFTerm struct {
 // labels belong to one segment. A literal without language or datatype means
 // xsd:string. Triple terms carry their three components explicitly.
 //
-// The result is one committed segment with inline terms and plain storage.
-// Frames fit the default reader capacities. An oversized term returns an error.
+// The result is one committed segment with plain storage. Literal text of at
+// least 1 MiB can use a value reference, and references also carry text that
+// cannot fit an inline frame. The segment fits the default reader and projection
+// limits. Unrepresentable terms return an error.
 func ImportRDF(terms []RDFTerm, quads []model.Quad, emptyGraphs []int) ([]byte, error) {
 	dict := rdfDictionary{
 		source: terms, resolved: make([]int, len(terms)), visiting: make([]bool, len(terms)),
