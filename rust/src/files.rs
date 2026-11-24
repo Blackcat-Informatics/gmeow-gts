@@ -1672,13 +1672,14 @@ fn restore_path_metadata(
 
     if let Some(modified) = &entry.modified {
         let (seconds, nanos) = parse_datetime(modified)?;
-        let timestamp = filetime::FileTime::from_unix_time(seconds, nanos);
+        let timestamp = unix_system_time(seconds, nanos)
+            .ok_or_else(|| format!("modified time out of range for {target:?}: {modified}"))?;
+        let times = fs::FileTimes::new().set_modified(timestamp);
         if entry.kind == FileEntryKind::Symlink {
-            filetime::set_symlink_file_times(target, timestamp, timestamp)
+            fs::set_times_nofollow(target, times)
                 .map_err(|e| format!("set symlink mtime for {target:?}: {e}"))?;
         } else {
-            filetime::set_file_mtime(target, timestamp)
-                .map_err(|e| format!("set mtime for {target:?}: {e}"))?;
+            fs::set_times(target, times).map_err(|e| format!("set mtime for {target:?}: {e}"))?;
         }
     }
     Ok(())
@@ -1730,6 +1731,17 @@ fn restore_owner(_target: &Path, entry: &FileEntry, options: &UnpackOptions) -> 
         ));
     }
     Ok(())
+}
+
+/// Converts a floored Unix `(seconds, nanoseconds)` pair, with `nanoseconds` below one
+/// second, to a [`std::time::SystemTime`]. Returns `None` when the value is not representable.
+fn unix_system_time(seconds: i64, nanos: u32) -> Option<std::time::SystemTime> {
+    let base = if seconds >= 0 {
+        std::time::UNIX_EPOCH.checked_add(std::time::Duration::from_secs(seconds.unsigned_abs()))?
+    } else {
+        std::time::UNIX_EPOCH.checked_sub(std::time::Duration::from_secs(seconds.unsigned_abs()))?
+    };
+    base.checked_add(std::time::Duration::from_nanos(u64::from(nanos)))
 }
 
 fn parse_datetime(text: &str) -> Result<(i64, u32), String> {

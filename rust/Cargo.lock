@@ -355,7 +355,6 @@ dependencies = [
  "blake3",
  "ciborium",
  "ed25519-dalek",
- "filetime",
  "flate2",
  "getrandom",
  "libc",
