@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2CommitChecks,
 	#superclass : #Object,
-	#instVars : [ 'range', 'head', 'typeRuns', 'runType', 'runLength', 'packs', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'hasIndex' ],
+	#instVars : [ 'range', 'head', 'typeRuns', 'runType', 'runLength', 'packs', 'graphs', 'position', 'committedFrames', 'tailFrames', 'tailPosition', 'hasIndex', 'uncomparedDirectories' ],
 	#category : #'Gts-Core'
 }
 
@@ -20,6 +20,8 @@ GtsV2CommitChecks >> initializeOpener: identifier [
 	typeRuns := ByteArray new writeStream.
 	runLength := 0.
 	packs := GtsV2PackClaims new.
+	graphs := GtsV2GraphClaims new.
+	uncomparedDirectories := OrderedCollection new.
 	position := 0.
 	committedFrames := 0.
 	tailFrames := 0.
@@ -47,12 +49,20 @@ GtsV2CommitChecks >> hasIndex [
 	^ hasIndex
 ]
 
+{ #category : #accessing }
+GtsV2CommitChecks >> uncomparedDirectories [
+	^ uncomparedDirectories
+]
+
 { #category : #validating }
 GtsV2CommitChecks >> observe: event findingsDo: aBlock [
 	| identifier validCommit |
 	validCommit := false.
 	position := position + 1.
 	identifier := event effectiveIdentifier.
+	(identifier isNotNil and: [ event frameType isNotNil and: [ event frameType between: 1 and: 5 ] ]) ifTrue: [
+		graphs observe: event position: range leafCount - 1 report: [ :reason |
+			aBlock value: reason value: position value: nil ] ].
 	(identifier isNotNil and: [ event frameType = 13 ]) ifTrue: [
 		packs observe: event position: range leafCount - 1 report: [ :reason |
 			aBlock value: reason value: position value: nil ] ].
@@ -101,11 +111,16 @@ GtsV2CommitChecks >> expectedTypeRuns [
 GtsV2CommitChecks >> checkIndex: event findingsDo: aBlock [
 	| reasons |
 	[ [ reasons := GtsV2IndexChecks check: event frame content bytes: event payload decoded
-			head: head range: range runs: self expectedTypeRuns packs: packs ]
+			head: head range: range runs: self expectedTypeRuns packs: packs graphs: graphs ]
 		on: GtsV2FramingError do: [ :error | GtsV2EnvelopeError signal: 'wrong_length' ] ]
 		on: GtsV2EnvelopeError do: [ :error |
 			aBlock value: 'malformed_value (', error messageText, ')' value: position value: nil.
 			^ self ].
+	graphs isComparable ifFalse: [
+		(uncomparedDirectories includes: 'graph directory') ifFalse: [ uncomparedDirectories add: 'graph directory' ] ].
+	packs isComparable ifFalse: [
+		(uncomparedDirectories includes: 'pack-member directory') ifFalse: [
+			uncomparedDirectories add: 'pack-member directory' ] ].
 	reasons do: [ :reason | aBlock value: 'index_claim_failed (', reason, ')' value: position value: nil ]
 ]
 

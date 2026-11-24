@@ -675,7 +675,7 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 								result at: 'reason' put: reason.
 								self printAuthentication: result kind: 'signature' ordinal: ordinal path: path ] ] ] ] ]
 		budget: GtsV2PayloadBudget new
-		decodedWhen: [ :event | #(13 15) includes: event frameType ].
+		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ].
 	checks ifNotNil: [ self printCommitSummary: checks authentication: authentication ordinal: ordinal path: path ].
 	^ clean
 ]
@@ -713,7 +713,8 @@ GtsCLI class >> printCommitSummary: checks authentication: authentication ordina
 		ifFalse: [ 'committed_frames ', checks committedFrames printString ].
 	tail := checks tailPosition ifNil: [ '' ] ifNotNil: [ :position |
 		', uncommitted_tail ', checks tailFrames printString, ' (item ', position printString, ')' ].
-	index := checks hasIndex ifTrue: [ ', index graph and fold claims unchecked' ] ifFalse: [ '' ].
+	index := checks hasIndex ifTrue: [ ', index fold statistics and content digest unchecked' ] ifFalse: [ '' ].
+	checks uncomparedDirectories do: [ :directory | index := index, ', index ', directory, ' unchecked' ].
 	self stdout: '  segment ', ordinal printString, ': ', prefix, tail, index, String lf.
 	self printAuthentication: authentication summary kind: 'segment' ordinal: ordinal path: path
 ]
