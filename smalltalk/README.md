@@ -47,8 +47,9 @@ fails item classification, violates opener, frame-envelope or closing-record
 grammar, or has a broken frame link after checking its immediate successor.
 The reader checks parity-frame anchors, digest tables, placement, and shard
 digests. It distinguishes damaged shards from stale parity over changed
-bytes whose items still pass verification. Parity recovery requires
-additional support.
+bytes whose items still pass verification. It reports any unprotected
+tail of a segment that carries parity. Parity recovery requires additional
+support.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.

@@ -174,3 +174,61 @@ GtsV2ParityTest >> mismatchingParityForHeader: header identifier: identifier [
 		bytes: encoded from: 1 to: encoded size + 1.
 	^ GtsCborWriter encode: { 2 }, identity, { #(1). payload. frameId. #() }
 ]
+
+{ #category : #tests }
+GtsV2ParityTest >> testUnprotectedTailsMatchP5Vectors [
+	#(
+		('range-transparent' false)
+		('tail-none' false)
+		('parity-above-capacity' false)
+		('parity-condition-six-first-by-case' false)
+		('parity-append-keeps-frames' true)
+	) do: [ :test |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P5/', test first, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTailsOf: entry compressed: test second ] ]
+]
+
+{ #category : #private }
+GtsV2ParityTest >> assertTailsOf: entry compressed: compressed [
+	| input decoded segments expected bytes actual |
+	input := entry at: 'input_file'.
+	decoded := GtsCborReader decode: (GtsHex decode: (entry at: 'read_result')).
+	segments := (decoded at: 7) second.
+	expected := OrderedCollection new.
+	segments do: [ :segment |
+		(segment at: 18) do: [ :finding |
+			finding first = 36 ifTrue: [
+				expected add: { (finding at: 5) second. (finding at: 6) second } ] ] ].
+	bytes := compressed
+		ifFalse: [ self bytesFor: input ]
+		ifTrue: [ GtsZstd decompressSingleFrame: (self bytesFor: input, '.zst') expectedSize: segments first third ].
+	self assert: bytes notNil description: input.
+	actual := self tailsOf: bytes.
+	self assert: actual = expected description: input, ': ', actual printString, ' expected ', expected printString
+]
+
+{ #category : #private }
+GtsV2ParityTest >> tailsOf: bytes [
+	| tails |
+	tails := OrderedCollection new.
+	(GtsV2Wire inspect: bytes)
+		eventsDo: [ :event | ]
+		decodedWhen: [ :event | false ]
+		unprotectedTailsDo: [ :offset :length | tails add: { offset. length } ].
+	^ tails
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testEachSegmentReportsItsOwnTailAtAnAbsoluteOffset [
+	| segment firstTail secondTail order |
+	segment := self bytesFor: 'range-transparent.with-parity.bin'.
+	firstTail := (self tailsOf: segment) first.
+	secondTail := { firstTail first + segment size. firstTail second }.
+	order := OrderedCollection new.
+	(GtsV2Wire inspect: segment, segment)
+		eventsDo: [ :event | event startsSegment ifTrue: [ order add: event offset ] ]
+		decodedWhen: [ :event | false ]
+		unprotectedTailsDo: [ :offset :length | order add: { offset. length } ].
+	self assert: order asArray equals: { 0. firstTail. segment size. secondTail }
+]

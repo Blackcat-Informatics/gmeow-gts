@@ -190,21 +190,32 @@ GtsV2Wire >> eventsDo: aBlock retainDecoded: retain [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
-	| pending pendingOffsets predecessor closing parity deliver flush budget refusalAfter pendingRefusal heldForParity emit |
+	self eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: [ :offset :length | ]
+]
+
+{ #category : #enumerating }
+GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report [
+	| pending pendingOffsets predecessor closing parity deliver flush budget refusalAfter pendingRefusal heldForParity emit finishSegment releaseHeld |
 	format = #v2 ifFalse: [ ^ self ].
 	budget := initialBudget copy.
 	closing := GtsV2ClosingChecks on: walker.
 	parity := GtsV2ParityChecks on: bytes.
+	releaseHeld := [ heldForParity ifNotNil: [ heldForParity do: aBlock. heldForParity := nil ] ].
+	finishSegment := [
+		parity finishOpenerLink: false.
+		releaseHeld value.
+		parity unprotectedTailDo: report ].
 	emit := [ :event |
 		parity awaitsOpenerLink
 			ifTrue: [
 				heldForParity ifNil: [ heldForParity := OrderedCollection new ].
 				heldForParity add: event ]
 			ifFalse: [
-				heldForParity ifNotNil: [ heldForParity do: aBlock. heldForParity := nil ].
+				releaseHeld value.
 				aBlock value: event ] ].
 	deliver := [ :event :next :afterLocator |
 		| effective |
+		event startsSegment ifTrue: [ finishSegment value ].
 		closing observe: event following: next afterLocator: afterLocator.
 		effective := self finalize: event following: next predecessor: predecessor.
 		parity observe: event predecessor: predecessor.
@@ -244,8 +255,7 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
 			refusalAfter := retained.
 			pendingRefusal := refusal ].
 	flush value.
-	parity finishOpenerLink: false.
-	heldForParity ifNotNil: [ heldForParity do: aBlock ]
+	finishSegment value
 ]
 
 { #category : #enumerating }
