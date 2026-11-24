@@ -8,7 +8,7 @@ Class {
 
 { #category : #decoding }
 GtsV2RdfRows class >> readType: type content: content bytes: bytes into: fold [
-	| head count body graphs graphColumn subjects predicates objects reifies order |
+	| head count body graphs graphColumn subjects predicates objects order |
 	body := (GtsV2RdfColumns item: bytes) fields: (#(4 3 5 1) at: type - 1).
 	type = 5 ifTrue: [
 		count := (content fields: 1) next uint.
@@ -38,12 +38,14 @@ GtsV2RdfRows class >> readType: type content: content bytes: bytes into: fold [
 		field optionUpTo: field end do: [ :id | name := id uint ].
 		name ].
 	type = 4 ifTrue: [ self checkAnnotations: subjects predicates: predicates objects: objects graphs: graphs ].
-	type = 3 ifTrue: [ reifies := fold internIri: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies' ].
 	1 to: count do: [ :index |
-		fold addSubject: (fold node: (subjects at: index))
-			predicate: (reifies ifNil: [ fold resolve: (predicates at: index) kinds: #(iri) ])
-			object: (fold resolve: (objects at: index) kinds: (type = 3 ifTrue: [ #(triple) ]))
-			graph: (graphs at: index) ]
+		| subject object terms |
+		subject := fold node: (subjects at: index).
+		object := fold resolve: (objects at: index) kinds: (type = 3 ifTrue: [ #(triple) ]).
+		terms := type = 3
+			ifTrue: [ { subject. object } ]
+			ifFalse: [ { subject. (fold resolve: (predicates at: index) kinds: #(iri)). object } ].
+		fold addLine: type terms: terms graph: (graphs at: index) ]
 ]
 
 { #category : #private }
