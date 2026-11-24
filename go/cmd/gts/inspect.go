@@ -199,7 +199,7 @@ func cmdFromNQ(args []string) int {
 		return 2
 	}
 
-	out, err := fromnquads.FromNQuads(string(data))
+	out, err := fromnquads.ImportV2(string(data))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "gts from-nq: %v\n", err)
 		return 1
