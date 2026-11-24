@@ -7,6 +7,28 @@ Class {
 	#category : #'Gts-Core'
 }
 
+{ #category : #testing }
+GtsV2ClosingChecks class >> framingFailsFor: kind item: item [
+	[
+		| content entries |
+		content := self contentOf: item.
+		kind = #locator
+			ifTrue: [ content locatorDistance ]
+			ifFalse: [
+				entries := content list.
+				[ entries hasNext ] whileTrue: [ entries next uint ] ]
+	] on: GtsV2EnvelopeError do: [ :error | ^ true ].
+	^ false
+]
+
+{ #category : #private }
+GtsV2ClosingChecks class >> contentOf: item [
+	| fields |
+	fields := item fields: 2.
+	fields next.
+	^ fields next
+]
+
 { #category : #'instance creation' }
 GtsV2ClosingChecks class >> on: walker [
 	^ self new initializeOn: walker
@@ -66,11 +88,9 @@ GtsV2ClosingChecks >> endsSegment: event [
 { #category : #private }
 GtsV2ClosingChecks >> check: event reason: reason if: aBlock [
 	[
-		| item fields |
+		| item |
 		item := GtsV2Field walker: walker from: event offset + 1 to: event end + 1.
-		fields := item fields: 2.
-		fields next.
-		(aBlock value: fields next) ifFalse: [ event closingClaimFailure: reason ]
+		(aBlock value: (self class contentOf: item)) ifFalse: [ event closingClaimFailure: reason ]
 	] on: GtsV2EnvelopeError do: [ :error | event closingProblem: error messageText ]
 ]
 

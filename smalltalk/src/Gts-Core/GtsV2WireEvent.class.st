@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure' ],
 	#category : #'Gts-Core'
 }
 
@@ -102,6 +102,16 @@ GtsV2WireEvent >> payload [
 { #category : #accessing }
 GtsV2WireEvent >> scanned [
 	^ scanned = true
+]
+
+{ #category : #testing }
+GtsV2WireEvent >> failsFraming [
+	^ framingFailure = true
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> framingFailure: failed [
+	framingFailure := failed
 ]
 
 { #category : #initialization }

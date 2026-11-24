@@ -42,8 +42,9 @@ stored and decoded payload integrity, and offsets and locator claims.
 When the item walk encounters incomplete or undelimitable bytes, or the first
 item fails the framing test, it scans for a resync item and resumes at the
 first candidate whose offset and identifier match. The ledger reports the
-gap and the recovered opener. Recovery after other complete framing
-failures and parity recovery require additional support.
+gap and the recovered opener. A complete item also triggers a scan when it
+fails item classification or violates opener or closing-record grammar.
+Recovery after failed frame checks and parity recovery require additional support.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.

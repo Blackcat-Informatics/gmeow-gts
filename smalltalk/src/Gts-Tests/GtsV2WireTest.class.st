@@ -141,6 +141,58 @@ GtsV2WireTest >> testFirstScanCountsItemsDelimitedThroughItsDecisionPoint [
 ]
 
 { #category : #tests }
+GtsV2WireTest >> testMidFileClassificationScansOnePrecedingItemForRegistryOne [
+	| events kept recovered higher |
+	events := self events: (self vector: 'resync-limit-torn-signature-at-new-kind.v1').
+	kept := events second.
+	recovered := events third.
+	self assert: kept frameType equals: 14.
+	self assert: kept link equals: #linked.
+	self assert: kept end equals: 3537.
+	self assert: recovered scanned.
+	self assert: recovered offset equals: 3379.
+	self assert: events last link equals: #linked.
+	self deny: (events anySatisfy: [ :event | event kind = #framingGap ]).
+
+	higher := self events: (self vector: 'resync-limit-torn-signature-at-new-kind.v2').
+	self deny: (higher anySatisfy: [ :event | event scanned ]).
+	self assert: higher third problem equals: 'unknown_item_kind'
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testMidFileOpenerAndClosingGrammarFailuresCanContainAResync [
+	| bytes originalPrefix tail |
+	bytes := self vector: 'resync-after-undelimitable.whole'.
+	originalPrefix := bytes first: 114.
+	tail := bytes copyFrom: 211 to: bytes size.
+	{ #[131 1 2 88 65]. #[130 3 88 65]. #[130 4 88 65] } do: [ :badItemHead |
+		| padding events gap opener |
+		padding := 210 - originalPrefix size - badItemHead size - 2.
+		events := self events: originalPrefix, (ByteArray with: 88 with: padding),
+			(ByteArray new: padding), badItemHead, tail.
+		gap := events detect: [ :event | event kind = #framingGap ].
+		opener := events detect: [ :event | event scanned ].
+		self assert: gap problem equals: 'torn_tail'.
+		self assert: gap offset equals: 210 - badItemHead size.
+		self assert: gap end equals: 210.
+		self assert: opener offset equals: 210.
+		self assert: events last link equals: #linked ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testOverlappingCompleteItemScanDoesNotRetestAnOccurrence [
+	| events refusals |
+	events := self
+		events: (self vector: 'resync-occurrence-tested-once')
+		budget: (GtsV2PayloadBudget withReadLimit: 4626).
+	refusals := events select: [ :event | event kind = #resyncRefused ].
+	self assert: refusals size equals: 1.
+	self assert: refusals first offset equals: 900.
+	self assert: refusals first payload count equals: 8192.
+	self deny: (events anySatisfy: [ :event | event scanned ])
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testResyncResumesAfterAnUndelimitableOrIncompleteItem [
 	#(
 		('resync-after-undelimitable.whole' 210 'undelimitable_input')
