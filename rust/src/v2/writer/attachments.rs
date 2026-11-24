@@ -14,9 +14,14 @@ use std::{
 use ciborium::value::Value;
 
 use super::{Digest, SegmentWriteError, SegmentWriter};
-use crate::{v2::BLAKE3_256, wire};
+use crate::{
+    v2::{
+        attachments::{unit_digest, PACK},
+        BLAKE3_256,
+    },
+    wire,
+};
 
-const PACK: u64 = 13;
 const EXTERNAL: u64 = 12;
 const PACK_BYTES: usize = 1 << 24;
 
@@ -121,10 +126,6 @@ struct PlannedBlob<'a> {
     length: u64,
     units: Vec<Unit<'a>>,
     media_types: Vec<Option<&'a str>>,
-}
-
-fn unit_digest(bytes: &[u8]) -> Digest {
-    blake3::derive_key("gts2 unit", bytes)
 }
 
 fn units(bytes: &[u8]) -> Vec<Unit<'_>> {

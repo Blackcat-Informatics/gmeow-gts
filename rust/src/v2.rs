@@ -9,6 +9,7 @@ use ciborium::value::Value;
 
 use crate::wire;
 
+mod attachments;
 pub mod frame;
 mod framing;
 mod import;
