@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2ParityRepair,
 	#superclass : #Object,
-	#instVars : [ 'input', 'working', 'output', 'items', 'spans', 'findings', 'stop' ],
+	#instVars : [ 'input', 'working', 'output', 'items', 'spans', 'findings', 'stop', 'refusal' ],
 	#category : #'Gts-Core'
 }
 
@@ -36,6 +36,11 @@ GtsV2ParityRepair >> stop [
 	^ stop
 ]
 
+{ #category : #accessing }
+GtsV2ParityRepair >> refusal [
+	^ refusal
+]
+
 { #category : #private }
 GtsV2ParityRepair >> finish [
 	working := nil.
@@ -45,6 +50,7 @@ GtsV2ParityRepair >> finish [
 { #category : #observing }
 GtsV2ParityRepair >> observe: event [
 	event kind = #stop ifTrue: [ stop := event. ^ self ].
+	(#(parityRefused resyncRefused) includes: event kind) ifTrue: [ refusal := event. ^ self ].
 	event startsSegment ifTrue: [ items add: event. ^ self ].
 	items isEmpty ifTrue: [ ^ self ].
 	((#(frame opaque offsets locator unchecked) includes: event kind) or: [

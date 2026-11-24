@@ -222,6 +222,7 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report 
 	deliver := [ :event :next :afterLocator |
 		| effective |
 		closing observe: event following: next afterLocator: afterLocator.
+		event resumptionAnchor ifNotNil: [ :anchor | predecessor := anchor ].
 		effective := self finalize: event following: next predecessor: predecessor.
 		parity observe: event predecessor: predecessor.
 		plan ifNotNil: [ plan observe: event ].
@@ -244,20 +245,30 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report 
 			(pending kind = #offsets and: [ next kind = #locator ])
 				ifTrue: [ pendingOffsets := pending ]
 				ifFalse: [ deliver value: pending value: next value: nil ] ].
-		next startsSegment ifTrue: [ finishSegment value ].
-		pending := next ]
+		next startsSegment
+			ifTrue: [
+				finishSegment value.
+				deliver value: next value: nil value: nil.
+				pending := nil ]
+			ifFalse: [ pending := next ] ]
 		limitItems: budget itemLimit
 		prepareFrame: [ :event :witness |
 			| effective |
-			effective := (pending ifNotNil: [ pending effectiveIdentifier ]) ifNil: [ predecessor ].
+			effective := (pending ifNotNil: [
+				pending resumptionAnchor ifNil: [ pending effectiveIdentifier ] ]) ifNil: [ predecessor ].
 			self prepare: event predecessor: effective witness: witness.
 			event checkPayloadWith: budget retainDecoded: (predicate value: event) ]
-		onFramingLoss: [ :offset :previous :finish :scannedThrough |
+		onFramingLoss: [ :offset :previous :finish :scannedThrough :incomplete |
 			| start |
 			start := (previous notNil and: [ previous link ~= #healed ])
 				ifTrue: [ previous offset + 2 ]
 				ifFalse: [ offset ].
-			GtsV2ResyncScan on: walker from: (start max: scannedThrough) to: finish budget: budget ]
+			start := start max: scannedThrough.
+			(incomplete and: [ plan notNil and: [ parity hasReadableOpener ] ])
+				ifTrue: [
+					GtsV2ParityCandidate scan: walker resyncFrom: start parityFrom: offset
+						checks: parity previous: previous budget: budget ]
+				ifFalse: [ GtsV2ResyncScan on: walker from: start to: finish budget: budget ] ]
 		onRefusal: [ :retained :refusal |
 			refusalAfter := retained.
 			pendingRefusal := refusal ].
@@ -303,14 +314,18 @@ GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit prepareFrame: prepare on
 				(error messageText = 'undelimitable_input' and: [ count + 1 = itemLimit ]) ifTrue: [
 					aBlock value: (self stopAt: offset reason: error messageText).
 					^ self ].
-				event := recover value: offset value: previous value: limit value: scannedThrough.
-				(event isNil or: [ event kind = #resyncRefused ]) ifTrue: [
+				event := recover valueWithArguments: { offset. previous. limit. scannedThrough. count + 1 < itemLimit }.
+				(event isNil or: [ #(resyncRefused parityRefused) includes: event kind ]) ifTrue: [
 					event ifNotNil: [ aBlock value: event ].
 					aBlock value: (self stopAt: offset reason: error messageText).
 					^ self ].
 				event offset > (offset - 1) ifTrue: [
-					aBlock value: (self framingGapFrom: offset to: event offset + 1) ].
-				error messageText = 'undelimitable_input' ifTrue: [ count := count + 1 ].
+					aBlock value: (event resumptionAnchor
+						ifNil: [ self framingGapFrom: offset to: event offset + 1 ]
+						ifNotNil: [ GtsV2WireEvent kind: #framingGap from: offset - 1
+							to: event offset problem: 'undelimitable_input' ]) ].
+				(error messageText = 'undelimitable_input' or: [ event resumptionAnchor notNil ])
+					ifTrue: [ count := count + 1 ].
 				finish := event end + 1 ].
 		event ifNil: [
 			event := self classifyAt: offset limit: finish registry: registry.
@@ -323,7 +338,7 @@ GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit prepareFrame: prepare on
 				(frontier isNil or: [ frontier first <= finish ]) ifTrue: [ frontier := { finish. count + 1 } ].
 				frontier := self scanDecisionFrom: finish lookahead: frontier held: held itemLimit: itemLimit.
 				frontier second < itemLimit ifTrue: [
-					recovery := recover value: offset value: previous value: finish value: scannedThrough.
+					recovery := recover valueWithArguments: { offset. previous. finish. scannedThrough. false }.
 					(recovery notNil and: [ recovery scanned ])
 						ifTrue: [
 							recovery offset > event offset ifTrue: [
@@ -337,6 +352,9 @@ GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit prepareFrame: prepare on
 		event scanned ifTrue: [
 			"Keep the count charged for held items. Rewalk their bytes from the recovered opener."
 			scannedThrough := event offset + 2.
+			frontier := nil.
+			held removeAll ].
+		event resumptionAnchor ifNotNil: [
 			frontier := nil.
 			held removeAll ].
 		event startsSegment ifTrue: [

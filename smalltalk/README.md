@@ -54,9 +54,9 @@ or produce invalid shard digests. Use `gts repair INPUT -o OUTPUT` to write
 a new copy with accepted repairs. The command reports the parity frame offset
 and the shard count or failure reason. It creates a copy only when at least
 one span passes rechecking. The command returns status 1 when a repair fails
-or the item walk stops before the end of the input.
-Recovery that resumes from a parity frame after framing loss requires
-additional support.
+or the item walk stops before the end of the input. If framing is lost,
+the repair command looks for a usable parity frame or resync item and
+continues at the first candidate that passes its checks.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.

@@ -52,6 +52,9 @@ GtsCLI class >> runRepair: args [
 	repair findings do: [ :finding |
 		finding first = 'repair_failed' ifTrue: [ failed := true ].
 		self stderr: finding first, ' ', finding second printString, ' ', finding third asString, String lf ].
+	repair refusal ifNotNil: [ :event |
+		self stderr: 'gts repair: recovery candidate at ', event offset printString, ' ', event problem,
+			' (', event payload count printString, ' bytes)', String lf ].
 	repair stop ifNotNil: [ :event |
 		self stderr: 'gts repair: reading stopped at ', event offset printString, ' ', event problem, String lf ].
 	^ failed ifTrue: [ 1 ] ifFalse: [ 0 ]

@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2ClosingChecks,
 	#superclass : #Object,
-	#instVars : [ 'walker', 'segmentStart', 'indexOffset', 'offsetsSeen', 'locatorSeen' ],
+	#instVars : [ 'walker', 'segmentStart', 'indexOffset', 'offsetsSeen', 'locatorSeen', 'damagedRegions' ],
 	#category : #'Gts-Core'
 }
 
@@ -47,7 +47,10 @@ GtsV2ClosingChecks >> observe: event following: next afterLocator: afterLocator 
 		indexOffset := nil.
 		offsetsSeen := false.
 		locatorSeen := false.
+		damagedRegions := Dictionary new.
 		^ self ].
+	(segmentStart notNil and: [ event kind = #framingGap and: [ event problem = 'undelimitable_input' ] ]) ifTrue: [
+		damagedRegions at: event offset + 1 put: event end + 1 ].
 	event frameType = 15 ifTrue: [ indexOffset := event offset ].
 	event kind = #offsets ifTrue: [
 		^ self checkOffsets: event following: next afterLocator: afterLocator ].
@@ -81,7 +84,7 @@ GtsV2ClosingChecks >> checkLocator: event following: next [
 { #category : #private }
 GtsV2ClosingChecks >> endsSegment: event [
 	^ event isNil or: [ event startsSegment or: [
-		(#(stop resyncRefused) includes: event kind) or: [
+		(#(stop resyncRefused parityRefused) includes: event kind) or: [
 			event kind = #framingGap and: [ event problem = 'torn_tail' ] ] ] ]
 ]
 
@@ -107,7 +110,7 @@ GtsV2ClosingChecks >> lengths: field matchPrefixEndingAt: limit [
 			ifTrue: [ matches := false ]
 			ifFalse: [
 				| finish |
-				finish := walker itemEndAt: observed limit: limit.
+				finish := damagedRegions at: observed ifAbsent: [ walker itemEndAt: observed limit: limit ].
 				claimed = (finish - observed) ifFalse: [ matches := false ].
 				observed := finish ] ].
 	^ matches and: [ observed = limit ]
