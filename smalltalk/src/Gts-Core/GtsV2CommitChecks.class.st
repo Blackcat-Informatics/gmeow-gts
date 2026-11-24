@@ -49,7 +49,8 @@ GtsV2CommitChecks >> hasIndex [
 
 { #category : #validating }
 GtsV2CommitChecks >> observe: event findingsDo: aBlock [
-	| identifier |
+	| identifier validCommit |
+	validCommit := false.
 	position := position + 1.
 	identifier := event effectiveIdentifier.
 	(identifier isNotNil and: [ event frameType = 13 ]) ifTrue: [
@@ -65,12 +66,13 @@ GtsV2CommitChecks >> observe: event findingsDo: aBlock [
 			identifier ifNotNil: [
 				tailFrames = 0 ifTrue: [ tailPosition := position ].
 				tailFrames := tailFrames + 1 ] ].
-	(event frameType = 14 and: [ event problem isNil ]) ifTrue: [
-		self check: event frame content link: event link findingsDo: aBlock ].
+	(event frameType = 14 and: [ event problem isNil and: [ event frame content size <= (1 bitShift: 26) ] ]) ifTrue: [
+		validCommit := self check: event frame content link: event link findingsDo: aBlock ].
 	identifier ifNotNil: [
 		range add: identifier.
 		head := identifier.
-		self recordType: event frameType ]
+		self recordType: event frameType ].
+	^ validCommit
 ]
 
 { #category : #private }
@@ -117,8 +119,9 @@ GtsV2CommitChecks >> check: content link: link findingsDo: aBlock [
 	rootMatches := (root bytesStartingAt: (root byteBodyOfSize: 32)) = range root.
 	countMatches ifFalse: [ aBlock value: 'commit_count_mismatch' value: position value: expected ].
 	rootMatches ifFalse: [ aBlock value: 'commit_root_mismatch' value: position value: nil ].
-	(countMatches and: [ rootMatches and: [ link = #linked or: [ link = #healed ] ] ]) ifTrue: [
-		committedFrames := range leafCount.
-		tailFrames := 0.
-		tailPosition := nil ]
+	(countMatches and: [ rootMatches and: [ #(linked healed) includes: link ] ]) ifFalse: [ ^ false ].
+	committedFrames := range leafCount.
+	tailFrames := 0.
+	tailPosition := nil.
+	^ true
 ]

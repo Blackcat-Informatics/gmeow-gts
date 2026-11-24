@@ -293,6 +293,57 @@ GtsVerifyTest >> testV2CompositeSignaturePolicy [
 ]
 
 { #category : #private }
+GtsVerifyTest >> assertAuthenticationOf: case [
+	| decoded inputs held verifier bytes checks authentication header actual signatures expected |
+	decoded := GtsCborReader decode: (GtsHex decode: (case at: 'read_result')).
+	inputs := decoded at: 6.
+	held := inputs second collect: [ :entry | { (GtsHex encode: entry first). entry second. entry third } ].
+	verifier := GtsV2SignatureChecks held: held.
+	bytes := ('/workspace/vectors/v2/P6/', (case at: 'input_file')) asFileReference
+		binaryReadStreamDo: [ :stream | stream upToEnd ].
+	actual := OrderedCollection new.
+	(GtsV2Wire inspect: bytes) eventsDo: [ :event |
+		event startsSegment
+			ifTrue: [
+				authentication ifNotNil: [ actual add: { authentication summary. signatures asArray } ].
+				header := event effectiveIdentifier.
+				checks := GtsV2CommitChecks openedBy: header.
+				authentication := GtsV2Authentication trusted: inputs first.
+				signatures := OrderedCollection new ]
+			ifFalse: [
+				event kind ~= #stop ifTrue: [
+					authentication observe: event validCommit:
+						(checks observe: event findingsDo: [ :finding :position :detail | ]).
+					verifier event: event header: header resultsDo: [ :algorithm :kid :status :reason |
+						| coverage |
+						coverage := authentication coverageFor: status keyId: kid.
+						signatures add: { (coverage at: 'coverage_first'). (coverage at: 'coverage_end').
+							(coverage at: 'authenticated') } ] ] ] ].
+	actual add: { authentication summary. signatures asArray }.
+	expected := (decoded at: 7) second collect: [ :segment |
+		| expectedSignatures |
+		expectedSignatures := OrderedCollection new.
+		(segment at: 17) do: [ :frame |
+			(frame at: 8) do: [ :signature | expectedSignatures add: (signature copyFrom: 5 to: 7) ] ].
+		{ (Dictionary newFromPairs: { 'authenticity'. (segment at: 10).
+			'authenticated_frames'. (segment at: 13) }). expectedSignatures asArray } ].
+	self assert: actual asArray = expected description: (case at: 'input_file')
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2SignatureCoverageAndAuthentication [
+	#('cov-broken-signed-frame' 'cov-break-before' 'cov-break-after' 'cov-healed'
+		'cov-transparent-between' 'cov-not-valid' 'auth-commit-valid' 'auth-commit-bad-count'
+		'auth-commit-bad-root' 'auth-commit-malformed' 'auth-untrusted' 'auth-non-commit'
+		'auth-tail' 'auth-empty-segment-index' 'auth-canonical-end' 'auth-two-commits-two-signers'
+		'auth-broken-middle' 'auth-transparent-never' 'auth-payload-damaged' 'key-trusted-not-held')
+		do: [ :name |
+			| vector |
+			vector := self jsonVectorAt: '/workspace/vectors/v2/P6/', name, '.json'.
+			(vector at: 'cases') do: [ :case | self assertAuthenticationOf: case ] ]
+]
+
+{ #category : #private }
 GtsVerifyTest >> v2Vector: name [
 	^ ('/workspace/vectors/v2/P5/', name, '.bin') asFileReference
 		binaryReadStreamDo: [ :stream | stream upToEnd ]
