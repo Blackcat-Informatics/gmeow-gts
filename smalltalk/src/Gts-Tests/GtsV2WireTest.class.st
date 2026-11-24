@@ -21,7 +21,7 @@ GtsV2WireTest >> events: bytes [
 GtsV2WireTest >> events: bytes budget: budget [
 	| events |
 	events := OrderedCollection new.
-	(GtsV2Wire inspect: bytes) eventsDo: [ :event | events add: event ] budget: budget.
+	(GtsV2Wire inspect: bytes budget: budget) eventsDo: [ :event | events add: event ].
 	^ events
 ]
 
@@ -48,6 +48,96 @@ GtsV2WireTest >> testWalkRetainsZeroBasedRangesBeforeTornTail [
 	self assert: (events at: 4) end equals: 353.
 	self assert: events last offset equals: 353.
 	self assert: events last problem equals: 'torn_tail'
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testDispatchRecoversFromForeignTornAndCompleteFirstItems [
+	#(
+		('resync-first-byte-foreign.whole' 2 'undelimitable_input')
+		('resync-first-item-torn.whole' 10 'torn_tail')
+		('resync-first-item-fails.whole' 5 'torn_tail')
+	) do: [ :entry |
+		| wire events |
+		wire := GtsV2Wire inspect: (self vector: entry first).
+		self assert: wire format equals: #v2.
+		self assert: wire generation equals: 2.
+		events := OrderedCollection new.
+		wire eventsDo: [ :event | events add: event ].
+		self assert: events first kind equals: #framingGap.
+		self assert: events first problem equals: entry third.
+		self assert: events first offset equals: 0.
+		self assert: events first end equals: entry second.
+		self assert: events second scanned.
+		self assert: events second offset equals: entry second.
+		self assert: ((events allButFirst: 2) allSatisfy: [ :event | event link = #linked ]) ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testDispatchSearchStartsOnlyInsideTheFailedFirstItem [
+	| bytes wire events |
+	bytes := self vector: 'resync-first-byte-foreign.whole'.
+	bytes at: 1 put: 0.
+	wire := GtsV2Wire inspect: bytes.
+	self assert: wire format equals: #unknown.
+	self assert: wire generation isNil.
+
+	events := self events: (self vector: 'resync-first-item.whole').
+	self assert: events first kind equals: #resync.
+	self assert: events first offset equals: 0.
+	self deny: events first scanned
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testInitialResyncSharesTheDecodedBudgetAndEnumerationCanRepeat [
+	| wire snapshots |
+	wire := GtsV2Wire
+		inspect: (self vector: 'resync-charge-kept-first-item-lost')
+		budget: (GtsV2PayloadBudget withReadLimit: 4626).
+	self assert: wire format equals: #v2.
+	snapshots := (1 to: 2) collect: [ :pass |
+		| events refusal |
+		events := OrderedCollection new.
+		wire eventsDo: [ :event | events add: event ].
+		self assert: (events count: [ :event | event scanned ]) equals: 1.
+		refusal := events detect: [ :event | event kind = #resyncRefused ].
+		self assert: refusal offset equals: 900.
+		self assert: refusal problem equals: 'total_decoded'.
+		self assert: refusal payload count equals: 8692.
+		events collect: [ :event | { event kind. event offset. event link } ] ].
+	self assert: snapshots first equals: snapshots second
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testInitialResyncRefusalKeepsTheDispatchedOutcome [
+	| bytes wire refusal events |
+	bytes := self vector: 'resync-first-byte-foreign.whole'.
+	wire := GtsV2Wire inspect: bytes budget: (GtsV2PayloadBudget withReadLimit: 4095).
+	self assert: wire format equals: #framingError.
+	self assert: wire stopReason equals: 'undelimitable_input'.
+	refusal := wire initialResyncRefusal.
+	self assert: refusal offset equals: 2.
+	self assert: refusal payload count equals: 4096.
+
+	events := self
+		events: (self vector: 'resync-refused-in-first-opener-once')
+		budget: (GtsV2PayloadBudget withReadLimit: 600).
+	self assert: events first kind equals: #header.
+	self assert: events first problem isNotNil.
+	self assert: (events count: [ :event | event kind = #resyncRefused ]) equals: 1.
+	self assert: events second offset equals: 700
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testFirstScanCountsItemsDelimitedThroughItsDecisionPoint [
+	| events bytes |
+	bytes := self vector: 'item-limit-region-candidate-untested'.
+	events := self events: bytes budget: ((GtsV2PayloadBudget withReadLimit: 4095) itemLimit: 5).
+	self deny: (events anySatisfy: [ :event | event scanned or: [ event kind = #resyncRefused ] ]).
+	self assert: events first kind equals: #header.
+	self assert: events first problem isNotNil.
+	self assert: events last kind equals: #stop.
+	self assert: events last offset equals: 271.
+	self assert: events last problem equals: 'undelimitable_input'
 ]
 
 { #category : #tests }

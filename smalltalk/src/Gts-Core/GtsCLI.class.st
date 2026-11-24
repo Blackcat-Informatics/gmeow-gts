@@ -263,6 +263,9 @@ GtsCLI class >> runInfo: args [
 GtsCLI class >> printWireInfoFor: path wire: wire [
 	| format ordinal clean |
 	format := wire format.
+	format ~= #v2 ifTrue: [
+		wire initialResyncRefusal ifNotNil: [ :refusal |
+			self stderr: path, ': ', (self resyncRefusalMessageFor: refusal), String lf ] ].
 	format = #empty ifTrue: [
 		self stdout: path, ': empty input, 0 segments', String lf.
 		^ false ].
@@ -314,11 +317,16 @@ GtsCLI class >> wireDiagnosticFor: event [
 { #category : #printing }
 GtsCLI class >> wireFindingFor: event [
 	event kind = #resyncRefused ifTrue: [
-		^ 'resync ', event problem, ' (', event payload count printString, ' bytes)' ].
+		^ self resyncRefusalMessageFor: event ].
 	event isDamagedParity ifTrue: [
 		^ event problem ifNil: [ 'parity_damaged' ] ifNotNil: [ :reason | 'parity_damaged (', reason, ')' ] ].
 	^ event problem ifNil: [
 		event closingClaimFailure ifNotNil: [ :reason | 'index_claim_failed (', reason, ')' ] ]
+]
+
+{ #category : #printing }
+GtsCLI class >> resyncRefusalMessageFor: event [
+	^ 'resync ', event problem, ' (', event payload count printString, ' bytes)'
 ]
 
 { #category : #printing }
@@ -626,6 +634,9 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 	report := [ :message |
 		self stderr: 'gts verify: ', path, ': ', message, String lf.
 		clean := false ].
+	format ~= #v2 ifTrue: [
+		wire initialResyncRefusal ifNotNil: [ :refusal |
+			report value: (self resyncRefusalMessageFor: refusal) ] ].
 	format = #empty ifTrue: [ report value: 'empty input'. ^ false ].
 	format = #framingError ifTrue: [
 		report value: 'framing stopped at byte 0: ', wire stopReason.
@@ -640,8 +651,11 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 	wire eventsDo: [ :event |
 		| location |
 		location := 'byte ', event offset printString.
-		event kind = #stop
-			ifTrue: [ report value: 'framing stopped at ', location, ': ', event problem ]
+		(#(stop framingGap resyncRefused) includes: event kind)
+			ifTrue: [
+				event kind = #stop
+					ifTrue: [ report value: 'framing stopped at ', location, ': ', event problem ]
+					ifFalse: [ report value: location, ': ', (self wireFindingFor: event) ] ]
 			ifFalse: [
 				event startsSegment
 					ifTrue: [
@@ -677,7 +691,6 @@ GtsCLI class >> verifyWire: wire path: path keys: keys trusted: trusted [
 								result at: 'status' put: status.
 								result at: 'reason' put: reason.
 								self printAuthentication: result kind: 'signature' ordinal: ordinal path: path ] ] ] ] ]
-		budget: GtsV2PayloadBudget new
 		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ].
 	checks ifNotNil: [ self printCommitSummary: checks authentication: authentication ordinal: ordinal path: path ].
 	^ clean

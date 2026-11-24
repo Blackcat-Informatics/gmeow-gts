@@ -405,7 +405,6 @@ GtsVerifyTest >> checkV2: bytes [
 				event kind = #stop ifFalse: [
 					checks observe: event findingsDo: [ :reason :position :expected |
 						findings add: { reason. position. expected } ] ] ] ]
-		budget: GtsV2PayloadBudget new
 		decodedWhen: [ :event | #(1 2 3 4 5 13 15) includes: event frameType ].
 	^ { checks. findings. events }
 ]
