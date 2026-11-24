@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 # GTS - Smalltalk/Pharo engine
 
-The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format. This package predates v2.
+The [GTS v2 specification](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/GTS-SPEC.md) defines the current format.
 
 ## Runtime
 
@@ -35,5 +35,9 @@ docker run --rm -v "$PWD:/workspace" -w /workspace gmeow-gts-smalltalk \
 The `.smalltalk.ston` file is the smalltalkCI entry point for GitHub Actions.
 
 ## Format and conformance
+
+`gts info` detects v2 from the first complete item and reports the byte
+ranges of observed items. It checks opener prefixes and frame boundaries.
+Frame integrity, RDF folding, and recovery require additional v2 support.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.
