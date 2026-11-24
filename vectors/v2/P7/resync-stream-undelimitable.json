@@ -1,8 +1,8 @@
 {
  "name": "resync-stream-undelimitable",
  "section": "P7",
- "status": "built and matches",
- "note": "bytes that cannot be delimited, then a resync item with a true offset and its scope: the item accepted as the bytes arrive, the bytes before it undelimitable_input or torn_tail as the whole read gives them",
+ "status": "derived from the text",
+ "note": "resync after framing loss. Undelimitable input allows streaming recovery. For the torn prefix, the declared end reports a recovered scope with the same arrival listing.",
  "cases": [
   {
    "label": "undelimitable",
@@ -2799,69 +2799,6 @@
        1,
        [
         1
-       ]
-      ],
-      [
-       8,
-       1,
-       1,
-       0,
-       1,
-       [
-        1
-       ]
-      ],
-      [
-       1,
-       1,
-       1,
-       0,
-       1,
-       [
-        1
-       ]
-      ],
-      [
-       1,
-       1,
-       1,
-       1,
-       1,
-       [
-        1
-       ]
-      ],
-      [
-       1,
-       1,
-       1,
-       2,
-       1,
-       [
-        1
-       ]
-      ],
-      [
-       8,
-       1,
-       2,
-       0,
-       1,
-       [
-        1
-       ]
-      ],
-      [
-       2,
-       1,
-       2,
-       0,
-       1,
-       [
-        2,
-        [
-         3
-        ]
        ]
       ]
      ]

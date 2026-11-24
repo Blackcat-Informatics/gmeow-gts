@@ -5,36 +5,27 @@ import { Graph, TermKind } from "./model.js";
 
 const RDF_REIFIES = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
-function escape(lex: string): string {
-    let out = "";
-    for (const ch of lex) {
+export function escapeLiteral(lex: string): string {
+    return lex.replace(/["\\\p{Cc}]/gu, (ch) => {
         switch (ch) {
             case "\\":
-                out += "\\\\";
-                break;
+                return "\\\\";
             case '"':
-                out += '\\"';
-                break;
+                return '\\"';
             case "\n":
-                out += "\\n";
-                break;
+                return "\\n";
             case "\r":
-                out += "\\r";
-                break;
+                return "\\r";
             case "\t":
-                out += "\\t";
-                break;
+                return "\\t";
             default: {
                 const code = ch.codePointAt(0) ?? 0;
-                if (code < 0x20) {
-                    out += `\\u${code.toString(16).padStart(4, "0").toUpperCase()}`;
-                } else {
-                    out += ch;
-                }
+                return code < 0x20
+                    ? `\\u${code.toString(16).padStart(4, "0").toUpperCase()}`
+                    : ch;
             }
         }
-    }
-    return out;
+    });
 }
 
 function render(g: Graph, tid: number, open: readonly number[] = []): string {
@@ -55,7 +46,7 @@ function render(g: Graph, tid: number, open: readonly number[] = []): string {
             if (t.value !== "") return `_:${t.value}`;
             return `_:b${tid}`;
         case TermKind.Literal: {
-            let lit = `"${escape(t.value)}"`;
+            let lit = `"${escapeLiteral(t.value)}"`;
             if (t.lang) {
                 lit += `@${t.lang}`;
                 if (t.direction === "ltr" || t.direction === "rtl") {

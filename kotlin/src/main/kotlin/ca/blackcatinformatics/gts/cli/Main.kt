@@ -15,7 +15,7 @@ import ca.blackcatinformatics.gts.digestStr
 import ca.blackcatinformatics.gts.emojihash
 import ca.blackcatinformatics.gts.foldSummaryJson
 import ca.blackcatinformatics.gts.formatFingerprint
-import ca.blackcatinformatics.gts.fromNQuads
+import ca.blackcatinformatics.gts.fromNQuadsV2
 import ca.blackcatinformatics.gts.getTextKey
 import ca.blackcatinformatics.gts.headsJson
 import ca.blackcatinformatics.gts.hex
@@ -165,6 +165,11 @@ private fun cmdInfo(paths: List<String>): Int {
     var problems = false
     for (path in paths) {
         val data = load(path) ?: return 2
+        val framed = printV2Info(path, data)
+        if (framed != null) {
+            if (!framed) problems = true
+            continue
+        }
         val fs = readFileSegments(data)
         val tornSuffix = if (fs.torn >= 0) ", TORN at byte ${fs.torn}" else ""
         println("$path: ${fs.segments.size} segment(s)$tornSuffix")
@@ -196,6 +201,7 @@ private fun cmdInfo(paths: List<String>): Int {
 private fun cmdFold(paths: List<String>): Int {
     if (paths.size != 1) return dieUsage()
     val data = load(paths[0]) ?: return 2
+    foldV2(paths[0], data)?.let { return if (it) 0 else 1 }
     val graph = read(data, true)
     graph.diagnostics.forEach { System.err.println("gts: diagnostic ${it.code}: ${it.detail}") }
     print(toNQuads(graph))
@@ -228,6 +234,11 @@ private fun cmdVerify(args: List<String>): Int {
     var problems = false
     for (path in paths) {
         val data = load(path) ?: return 2
+        val wireVerified = verifyV2(path, data, keys.isNotEmpty())
+        if (wireVerified != null) {
+            if (!wireVerified) problems = true
+            continue
+        }
         val graph = read(data, true)
         if (keys.isNotEmpty()) {
             verifySignatures(graph.signatures) { kid -> keys[kid] }
@@ -282,7 +293,7 @@ private fun cmdFromNq(args: List<String>): Int {
     val text =
         try {
             if (positional[0] == "-") {
-                System.`in`.readBytes().decodeToString()
+                System.`in`.readBytes().decodeToString(throwOnInvalidSequence = true)
             } else {
                 Files.readString(Path.of(positional[0]))
             }
@@ -292,7 +303,7 @@ private fun cmdFromNq(args: List<String>): Int {
         }
     val bytes =
         try {
-            fromNQuads(text)
+            fromNQuadsV2(text)
         } catch (err: Exception) {
             System.err.println("gts from-nq: ${err.message}")
             return 1

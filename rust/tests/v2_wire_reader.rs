@@ -306,6 +306,44 @@ fn a_walked_resync_reports_the_byte_cap_where_it_is_reached() {
     ));
 }
 
+#[test]
+fn a_walked_resync_decides_each_nested_field_at_its_start() {
+    let marker = blake3::derive_key("gts2 header", &[0x81, 5]);
+    for (size, past, reason, error_offset) in [
+        (
+            4061_u16,
+            &[0x82, 2, 0][..],
+            MalformedReason::WrongType,
+            4095,
+        ),
+        (4062, &[0x82, 2, 0], MalformedReason::OutOfRange, 4096),
+        (4062, &[0x81, 0], MalformedReason::UnregisteredValue, 4095),
+        (4063, &[0x81, 0], MalformedReason::OutOfRange, 4096),
+        (
+            4061,
+            &[0x82, 2, 0x18, 0],
+            MalformedReason::NotDeterministic,
+            4095,
+        ),
+    ] {
+        let mut input = vec![0x8b, 5, 2, 0x50];
+        input.extend_from_slice(&marker[..16]);
+        // A later registry and unknown hash permit the long lineage digest.
+        input.extend_from_slice(&[2, 9, 0x81, 1, 0x82, 2, 0x82, 0x59]);
+        input.extend_from_slice(&size.to_be_bytes());
+        input.resize(input.len() + usize::from(size), 0);
+        input.extend_from_slice(&[1, 0]);
+        input.extend_from_slice(past);
+        input.extend_from_slice(&[0x80, 0x40]);
+
+        let read = read_wire(&input, ReadCapacity::default());
+        let Opener::Resync(Err(error)) = read.segments[0].opener else {
+            panic!("expected an unreadable resync for lineage size {size} and past {past:?}");
+        };
+        assert_eq!((error.reason, error.offset), (reason, error_offset));
+    }
+}
+
 fn bare_resync(marker: Vec<u8>, marks: Vec<Value>) -> Vec<u8> {
     let absent = Value::Array(vec![Value::from(1)]);
     wire::encode(&Value::Array(vec![
