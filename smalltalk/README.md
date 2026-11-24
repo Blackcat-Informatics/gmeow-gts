@@ -43,7 +43,10 @@ Recovery requires additional v2 support.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.
-Index payload claims and v2 signature verification require additional support.
+It validates index payloads and compares their frame count, head, type runs,
+and range root against the observed prefix. Index graph directories, pack
+member directories, fold statistics and content digests require additional
+support, as does v2 signature verification.
 
 `gts from-nq` writes a committed v2 segment. It preserves named graphs,
 language direction, and nested object triples, and uses value references

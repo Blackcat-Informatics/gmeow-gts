@@ -110,6 +110,36 @@ GtsVerifyTest >> testV2CommitFindingsSurvivePayloadDamageAndFramingStop [
 	self assert: result first committedFrames equals: 3
 ]
 
+{ #category : #tests }
+GtsVerifyTest >> testV2IndexPrefixClaims [
+	#(
+		('index-intact' nil)
+		('index-nonterminal-claims' nil)
+		('index-each-claim.head' 'index_head')
+		('index-each-claim.range_root' 'index_root')
+		('index-each-claim.type_runs' 'index_directory')
+		('index-covers-frame-of-no-type.long-form-15-typed' 'index_directory')
+		('index-covers-frame-of-no-type.long-form-15-omitted' 'index_directory')
+	) do: [ :entry |
+		| findings expected |
+		findings := (self checkV2: (self v2Vector: entry first)) second collect: [ :finding | finding first ].
+		expected := entry second ifNil: [ #() ] ifNotNil: [ :reason | { 'index_claim_failed (', reason, ')' } ].
+		self assert: findings asArray = expected description: entry first ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2MalformedIndexDoesNotReportPartialClaims [
+	| shortDigest |
+	shortDigest := GtsCborWriter encode: { #(). #(). #(0 0 0 ()). (ByteArray new: 31). #(1). #() }.
+	{ { #[]. 'wrong_length' }. { shortDigest. 'wrong_length' }. { #[134 101]. 'wrong_type' } } do: [ :test |
+		| writer findings expected |
+		writer := GtsV2SegmentWriter new.
+		writer writeType: 15 content: { 2. (ByteArray new: 32) } payload: test first.
+		findings := (self checkV2: writer bytes) second.
+		expected := 'malformed_value (', test second, ')'.
+		self assert: findings asArray equals: { { expected. 1. nil } } ]
+]
+
 { #category : #private }
 GtsVerifyTest >> v2Vector: name [
 	^ ('/workspace/vectors/v2/P5/', name, '.bin') asFileReference
@@ -128,6 +158,8 @@ GtsVerifyTest >> checkV2: bytes [
 			ifFalse: [
 				event kind = #stop ifFalse: [
 					checks observe: event findingsDo: [ :reason :position :expected |
-						findings add: { reason. position. expected } ] ] ] ].
+						findings add: { reason. position. expected } ] ] ] ]
+		budget: GtsV2PayloadBudget new
+		decodedWhen: [ :event | event frameType = 15 ].
 	^ { checks. findings. events }
 ]
