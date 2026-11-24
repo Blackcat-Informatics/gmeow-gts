@@ -17,21 +17,65 @@ import (
 func (p *RDFProjection) NQuads() (string, error) {
 	var output strings.Builder
 	for index, row := range p.quads {
-		ids := [4]int{row.subject, row.predicate, row.object, row.graph}
-		for position, id := range ids {
-			if id < 0 {
-				break
-			}
-			if position > 0 {
-				output.WriteByte(' ')
-			}
-			if err := p.writeTerm(&output, id); err != nil {
-				return "", fmt.Errorf("quad %d: %w", index, err)
-			}
+		if err := p.writeRDFLine(&output, row, true); err != nil {
+			return "", fmt.Errorf("quad %d: %w", index, err)
 		}
-		output.WriteString(" .\n")
 	}
 	return output.String(), nil
+}
+
+// TriG renders the whole dataset, including empty named graphs.
+func (p *RDFProjection) TriG() (string, error) {
+	var output strings.Builder
+	open := -1
+	for index, row := range p.quads {
+		if row.graph != open {
+			if open >= 0 {
+				output.WriteString("}\n")
+			}
+			open = row.graph
+			if open >= 0 {
+				if err := p.writeAtom(&output, open); err != nil {
+					return "", fmt.Errorf("named graph: %w", err)
+				}
+				output.WriteString(" {\n")
+			}
+		}
+		if open >= 0 {
+			output.WriteString("  ")
+		}
+		if err := p.writeRDFLine(&output, row, false); err != nil {
+			return "", fmt.Errorf("quad %d: %w", index, err)
+		}
+	}
+	if open >= 0 {
+		output.WriteString("}\n")
+	}
+	for _, id := range p.emptyGraphs {
+		if err := p.writeAtom(&output, id); err != nil {
+			return "", fmt.Errorf("empty named graph: %w", err)
+		}
+		output.WriteString(" {}\n")
+	}
+	return output.String(), nil
+}
+
+func (p *RDFProjection) writeRDFLine(output *strings.Builder, row rdfQuad, includeGraph bool) error {
+	ids := [4]int{row.subject, row.predicate, row.object, row.graph}
+	count := 3
+	if includeGraph && row.graph >= 0 {
+		count++
+	}
+	for position, id := range ids[:count] {
+		if position > 0 {
+			output.WriteByte(' ')
+		}
+		if err := p.writeTerm(output, id); err != nil {
+			return err
+		}
+	}
+	output.WriteString(" .\n")
+	return nil
 }
 
 func (p *RDFProjection) writeTerm(out *strings.Builder, id int) error {

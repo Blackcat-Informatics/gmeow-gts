@@ -375,6 +375,56 @@ func TestRDFTextCodecCLIRoundTrips(t *testing.T) {
 	if got := stdout.String(); !strings.Contains(got, "<https://ex/g> {") || !strings.Contains(got, "<https://ex/q> <https://ex/r> .") {
 		t.Fatalf("to-trig output mismatch:\n%s", got)
 	}
+	for _, path := range []string{ntGTS, turtleGTS, rdfXMLGTS, trigGTS} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result := v2.ReadWire(data, v2.DefaultReadCapacity())
+		if result.Dispatch != v2.SecondGeneration || result.Stop != "" {
+			t.Errorf("%s produced generation %s, stop %s", filepath.Base(path), result.Dispatch, result.Stop)
+		}
+	}
+}
+
+func TestRDFTextCodecCLIRefusesEmptyNamedGraphsInGraphFormats(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "empty-named.gts")
+	cmd, stdout, stderr := runWithInput(t, "<urn:empty> {}", "from-trig", "-", "-o", path)
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("from-trig exit %d, stdout %q, stderr %q", cmd.ProcessState.ExitCode(), stdout, stderr)
+	}
+	cmd, stdout, stderr = run(t, "to-trig", path)
+	if cmd.ProcessState.ExitCode() != 0 || stdout.String() != "<urn:empty> {}\n" {
+		t.Fatalf("to-trig exit %d, stdout %q, stderr %q", cmd.ProcessState.ExitCode(), stdout, stderr)
+	}
+	for _, verb := range []string{"to-nt", "to-turtle", "to-rdfxml"} {
+		cmd, stdout, stderr = run(t, verb, path)
+		if cmd.ProcessState.ExitCode() != 1 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "named graph") {
+			t.Errorf("%s exit %d, stdout %q, stderr %q", verb, cmd.ProcessState.ExitCode(), stdout, stderr)
+		}
+	}
+}
+
+func TestRDFTextCodecCLIResolvesFileRelativeIRIs(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "source file.rdf")
+	data := []byte("<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:ex=\"urn:\">" +
+		"<rdf:Description rdf:about=\"item\"><ex:p rdf:resource=\"#object\"/></rdf:Description></rdf:RDF>")
+	if err := os.WriteFile(source, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd, stdout, stderr := run(t, "from-rdfxml", source)
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("from-rdfxml exit %d, stderr %q", cmd.ProcessState.ExitCode(), stderr)
+	}
+	result, err := v2.ReadWire(stdout.Bytes(), v2.DefaultReadCapacity()).WholeRDFProjection()
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := result.NQuads()
+	if err != nil || !strings.HasPrefix(text, "<file:") ||
+		!strings.Contains(text, "/item> <urn:p> <file:") || !strings.Contains(text, "/source%20file.rdf#object>") {
+		t.Fatalf("projection = %q, error %v", text, err)
+	}
 }
 
 func TestRDFTextCodecCLIRefusalsAndMalformedInput(t *testing.T) {

@@ -16,6 +16,16 @@ import (
 // Equal statements collapse and quoted triple terms remain RDF values.
 // Version directives are syntax hints. An error returns no output bytes.
 func ImportV2(text string) ([]byte, error) {
+	return importV2(text, true)
+}
+
+// ImportTriplesV2 imports RDF 1.2 N-Triples as a committed GTS v2 segment.
+// A statement with a named graph is invalid N-Triples input.
+func ImportTriplesV2(text string) ([]byte, error) {
+	return importV2(text, false)
+}
+
+func importV2(text string, allowNamedGraphs bool) ([]byte, error) {
 	if !utf8.ValidString(text) {
 		return nil, ParseError{"input is not valid UTF-8"}
 	}
@@ -38,6 +48,9 @@ func ImportV2(text string) ([]byte, error) {
 		quad, err := parser.rdfQuad(interner)
 		if err != nil {
 			return nil, fmt.Errorf("line %d: %w", lineNumber, err)
+		}
+		if !allowNamedGraphs && quad.G != nil {
+			return nil, ParseError{fmt.Sprintf("line %d: N-Triples input cannot contain a named graph", lineNumber)}
 		}
 		quads = append(quads, quad)
 	}

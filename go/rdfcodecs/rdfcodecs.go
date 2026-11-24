@@ -3,9 +3,8 @@
 
 // Package rdfcodecs provides Go RDF text-codec helpers for folded GTS graphs.
 //
-// N-Triples, Turtle, TriG, and RDF/XML conversions keep the GTS wire format
-// unchanged. Text imports lower into the existing N-Quads importer so term
-// interning, RDF 1.2 quoted-triple handling, and XSD diagnostics stay shared.
+// N-Triples, Turtle, TriG, and RDF/XML conversions support RDF import and
+// projection for GTS v2 and the original graph APIs.
 package rdfcodecs
 
 import (
@@ -60,11 +59,11 @@ func FromNTriples(text string) ([]byte, error) {
 
 // FromTurtle parses Turtle text into canonical GTS bytes.
 func FromTurtle(text string) ([]byte, error) {
-	nq, err := newTriGParser(text, false).parse()
-	if err != nil {
+	p := newTriGParser(text, false)
+	if err := p.parse(); err != nil {
 		return nil, err
 	}
-	out, err := fromnquads.FromNQuads(nq)
+	out, err := fromnquads.FromNQuads(statementsNQuads(p.statements))
 	if err != nil {
 		return nil, codecError("%s syntax error: %v", errPrefixRDF, err)
 	}
@@ -73,11 +72,11 @@ func FromTurtle(text string) ([]byte, error) {
 
 // FromTriG parses TriG text into canonical GTS bytes.
 func FromTriG(text string) ([]byte, error) {
-	nq, err := newTriGParser(text, true).parse()
-	if err != nil {
+	p := newTriGParser(text, true)
+	if err := p.parse(); err != nil {
 		return nil, err
 	}
-	out, err := fromnquads.FromNQuads(nq)
+	out, err := fromnquads.FromNQuads(statementsNQuads(p.statements))
 	if err != nil {
 		return nil, codecError("%s syntax error: %v", errPrefixRDF, err)
 	}
@@ -97,11 +96,14 @@ func ToTurtle(g *model.Graph) (string, error) {
 	if err := ensureDefaultGraph(g, "Turtle"); err != nil {
 		return "", err
 	}
-	body := nquads.ToNQuads(g)
+	return turtleDocument(nquads.ToNQuads(g)), nil
+}
+
+func turtleDocument(body string) string {
 	if body == "" {
-		return "", nil
+		return ""
 	}
-	return fmt.Sprintf("@prefix rdf: <%s> .\n@prefix xsd: <%s> .\n\n%s", rdfNS, xsdNS, body), nil
+	return fmt.Sprintf("@prefix rdf: <%s> .\n@prefix xsd: <%s> .\n\n%s", rdfNS, xsdNS, body)
 }
 
 // ToTriG serializes a folded graph to TriG, preserving named graph quads.
@@ -195,6 +197,7 @@ type rdfNode struct {
 	lang      string
 	direction string
 	datatype  string
+	generated bool
 	s         *rdfNode
 	p         *rdfNode
 	o         *rdfNode
@@ -206,6 +209,28 @@ func iriNode(value string) rdfNode {
 
 func bnodeNode(value string) rdfNode {
 	return rdfNode{kind: nodeBNode, value: value}
+}
+
+func generatedBnode(value string) rdfNode {
+	return rdfNode{kind: nodeBNode, value: value, generated: true}
+}
+
+type rdfStatement struct {
+	subject, predicate, object rdfNode
+	graph                      *rdfNode
+}
+
+func statementsNQuads(statements []rdfStatement) string {
+	var text strings.Builder
+	for _, statement := range statements {
+		fmt.Fprintf(&text, "%s %s %s", statement.subject.token(), statement.predicate.token(), statement.object.token())
+		if statement.graph != nil {
+			text.WriteByte(' ')
+			text.WriteString(statement.graph.token())
+		}
+		text.WriteString(" .\n")
+	}
+	return text.String()
 }
 
 func literalNode(value, lang, direction, datatype string) rdfNode {

@@ -53,13 +53,13 @@ commands:
   diff <archive> <dir>      compare archive to directory by digest
   from-nq <in.nq> [-o out]  import N-Quads as GTS v2; '-' reads stdin
   to-nt <file>              fold the default graph to N-Triples on stdout
-  from-nt <in.nt> [-o out]  build a GTS from N-Triples; '-' reads stdin
+  from-nt <in.nt> [-o out]  import N-Triples as GTS v2 (use '-' for stdin)
   to-trig <file>            fold to TriG on stdout
-  from-trig <in.trig> [-o out] build a GTS from TriG; '-' reads stdin
+  from-trig <in.trig> [-o out] import TriG as GTS v2 (use '-' for stdin)
   to-turtle <file>          fold the default graph to Turtle on stdout
-  from-turtle <in.ttl> [-o out] build a GTS from Turtle; '-' reads stdin
+  from-turtle <in.ttl> [-o out] import Turtle as GTS v2 (use '-' for stdin)
   to-rdfxml <file>          fold the default graph to RDF/XML on stdout
-  from-rdfxml <in.rdf> [-o out] build a GTS from RDF/XML; '-' reads stdin`
+  from-rdfxml <in.rdf> [-o out] import RDF/XML as GTS v2 (use '-' for stdin)`
 
 const usageFRCA = `utilisation: gts <command> [args]
 
@@ -89,13 +89,13 @@ deballe une archive de profil files
   diff <archive> <dir>      compare une archive a un repertoire par digest
   from-nq <in.nq> [-o out]  importe des N-Quads en GTS v2; '-' lit stdin
   to-nt <file>              plie le graphe par defaut vers N-Triples
-  from-nt <in.nt> [-o out]  construit un GTS depuis N-Triples; '-' lit stdin
+  from-nt <in.nt> [-o out]  importe des N-Triples en GTS v2 (« - » lit stdin)
   to-trig <file>            plie vers TriG sur stdout
-  from-trig <in.trig> [-o out] construit un GTS depuis TriG; '-' lit stdin
+  from-trig <in.trig> [-o out] importe du TriG en GTS v2 (« - » lit stdin)
   to-turtle <file>          plie le graphe par defaut vers Turtle
-  from-turtle <in.ttl> [-o out] construit un GTS depuis Turtle; '-' lit stdin
+  from-turtle <in.ttl> [-o out] importe du Turtle en GTS v2 (« - » lit stdin)
   to-rdfxml <file>          plie le graphe par defaut vers RDF/XML
-  from-rdfxml <in.rdf> [-o out] construit un GTS depuis RDF/XML; '-' lit stdin`
+  from-rdfxml <in.rdf> [-o out] importe du RDF/XML en GTS v2 (« - » lit stdin)`
 
 const usageZHHans = `用法: gts <command> [args]
 
@@ -124,13 +124,13 @@ const usageZHHans = `用法: gts <command> [args]
   diff <archive> <dir>      按摘要比较归档和目录
   from-nq <in.nq> [-o out]  将 N-Quads 导入为 GTS v2；'-' 读取 stdin
   to-nt <file>              将默认图折叠为 N-Triples
-  from-nt <in.nt> [-o out]  从 N-Triples 构建 GTS；'-' 读取 stdin
+  from-nt <in.nt> [-o out]  将 N-Triples 导入为 GTS v2（'-' 读取 stdin）
   to-trig <file>            将内容折叠为 TriG 并写到 stdout
-  from-trig <in.trig> [-o out] 从 TriG 构建 GTS；'-' 读取 stdin
+  from-trig <in.trig> [-o out] 将 TriG 导入为 GTS v2（'-' 读取 stdin）
   to-turtle <file>          将默认图折叠为 Turtle
-  from-turtle <in.ttl> [-o out] 从 Turtle 构建 GTS；'-' 读取 stdin
+  from-turtle <in.ttl> [-o out] 将 Turtle 导入为 GTS v2（'-' 读取 stdin）
   to-rdfxml <file>          将默认图折叠为 RDF/XML
-  from-rdfxml <in.rdf> [-o out] 从 RDF/XML 构建 GTS；'-' 读取 stdin`
+  from-rdfxml <in.rdf> [-o out] 将 RDF/XML 导入为 GTS v2（'-' 读取 stdin）`
 
 func resolveLocale() cliLocale {
 	for _, key := range []string{"GTS_LANG", "LC_ALL", "LC_MESSAGES", "LANG"} {

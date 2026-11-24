@@ -24,6 +24,20 @@ type RDFProjection struct {
 	emptyGraphs []int
 }
 
+// HasNamedGraphs reports whether the projection has any named graph, including
+// a named graph with no statements.
+func (p *RDFProjection) HasNamedGraphs() bool {
+	if len(p.emptyGraphs) > 0 {
+		return true
+	}
+	for _, row := range p.quads {
+		if row.graph >= 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // Dataset returns a detached term table, quad set, and empty graph names
 // suitable for ImportRDF. Blank labels are assigned within this projection.
 func (p *RDFProjection) Dataset() ([]RDFTerm, []model.Quad, []int) {
