@@ -1,6 +1,14 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
-"""Convert first-generation GTS to canonical v2 with a detached P9 proof."""
+"""Convert first-generation GTS to canonical v2 with a detached P9 proof.
+
+Result admission reads two places. ``ContentRead.findings`` carries content-level
+findings only. Wire-level outcomes (a torn tail, undelimitable input, scan refusals
+and a broken link) stay in the wire read structures of ``ContentRead.wire``: the
+opening decision and damaged prefix, each segment's framing failure and items, and
+each frame's link and payload states. Admission consults both, so a caller that
+inspects a read does the same.
+"""
 
 from collections.abc import Callable
 
@@ -19,6 +27,7 @@ _ERROR_FINDINGS = frozenset(
         "unsupported_registry_version",
         "unsupported_critical",
         "malformed_value",
+        "chain_break",
         "damaged_frame",
         "commit_count_mismatch",
         "commit_root_mismatch",
@@ -28,9 +37,18 @@ _ERROR_FINDINGS = frozenset(
         "ill_formed_term",
         "canonical_violated",
         "parity_mismatch",
+        "repair_failed",
         "conflicting_declaration",
+        "profile_violation",
     )
 )
+# Error-severity codes of the P2 finding table that admission checks elsewhere, with
+# the check. A test compares this table and ``_ERROR_FINDINGS`` with ``docs/v2/P2.md``.
+_SEPARATE_ERROR_CHECKS = {
+    "proof_malformed": "detached proof checks in gts.v2.range",
+    "proof_failed": "detached proof checks in gts.v2.range",
+    "signature_invalid": "signature outcomes in _read_result",
+}
 _CAPACITY_REASONS = ("stored_size", "decoded_size", "total_decoded")
 
 
