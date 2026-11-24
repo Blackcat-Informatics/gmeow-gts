@@ -10,10 +10,12 @@ use ciborium::value::Value;
 use crate::wire;
 
 mod attachments;
+mod durability;
 pub mod frame;
 mod framing;
 mod import;
 mod payload;
+mod range;
 pub mod rdf;
 pub mod reader;
 mod resync;

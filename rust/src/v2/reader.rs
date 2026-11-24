@@ -7,6 +7,7 @@ use std::collections::VecDeque;
 
 use super::{
     decode_header,
+    durability::{check_closing, check_closing_grammar, check_commits},
     frame::{check_type_length, decode_frame_envelope, frame_identifier, Frame, FrameError},
     framing::{byte_chunks, generation, item_end, read_head, Generation},
     payload::{malformed_payload, PayloadBudget},
@@ -15,6 +16,7 @@ use super::{
 };
 
 pub use super::{
+    durability::{ClosingFinding, CommitCheck, CommitReadError, CommitReport, UncommittedTail},
     framing::{FramingFailure, FramingReason},
     payload::{PayloadCheck, PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity},
 };
@@ -108,7 +110,11 @@ pub struct WireSegment<'a> {
     pub scanned: bool,
     pub framing_failure: Option<FramingFailure>,
     pub resync_refusal: Option<ResyncRefusal>,
+    /// Grammar errors observed during the framing test.
     pub closing_grammar: Vec<(usize, HeaderError)>,
+    /// Closing findings after placement and claims are checked over retained items.
+    pub closing_findings: Vec<ClosingFinding>,
+    pub commits: Result<CommitReport, CommitReadError>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -181,6 +187,8 @@ fn segment_at(opener: Opener<'_>, item: WireItem, scanned: bool) -> WireSegment<
         framing_failure: None,
         resync_refusal: None,
         closing_grammar: Vec::new(),
+        closing_findings: Vec::new(),
+        commits: Ok(CommitReport::default()),
     }
 }
 
@@ -196,20 +204,14 @@ fn recovered_segment(offset: usize, value: DecodedResync<'_>) -> WireSegment<'_>
     )
 }
 
-fn check_closing_grammar(data: &[u8], item: WireItem) -> Result<(), HeaderError> {
-    let mut cursor = Decoder::new(&data[..item.end], item.offset);
-    cursor.record(2)?;
-    cursor.uint()?;
-    if item.kind == ItemKind::Offsets {
-        for _ in 0..cursor.head(4)? {
-            cursor.uint()?;
+impl<'a> WireSegment<'a> {
+    fn with_claims(mut self, data: &[u8], stored_limit: u64) -> Self {
+        if let Some(identifier) = self.opener.state().1 {
+            self.closing_findings = check_closing(data, &self.items, &self.frames);
+            self.commits = check_commits(&identifier, &self.frames, stored_limit);
         }
-    } else if data.get(cursor.offset) != Some(&0x1b) {
-        let error = cursor.error(MalformedReason::NotDeterministic);
-        cursor.uint()?;
-        return Err(error);
+        self
     }
-    Ok(())
 }
 
 #[derive(Clone, Copy)]
@@ -679,7 +681,9 @@ pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
                         ));
                         break;
                     }
-                    result.segments.push(segment);
+                    result
+                        .segments
+                        .push(segment.with_claims(data, capacity.stored_bytes_per_frame));
                     segment = recovered_segment(offset, value);
                     continue;
                 }
@@ -706,7 +710,9 @@ pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
         }
         if let Some(next) = begins {
             segment.end_offset = item.offset;
-            result.segments.push(segment);
+            result
+                .segments
+                .push(segment.with_claims(data, capacity.stored_bytes_per_frame));
             segment = next;
             continue;
         }
@@ -726,6 +732,8 @@ pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
         segment.items.push(item);
     }
     result.stop = result.stop.or_else(|| walk.item_limit());
-    result.segments.push(segment);
+    result
+        .segments
+        .push(segment.with_claims(data, capacity.stored_bytes_per_frame));
     result
 }

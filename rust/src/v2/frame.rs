@@ -14,6 +14,7 @@ const FRAME: u64 = 2;
 const CHUNK: u64 = 8;
 const EXTERNAL: u64 = 12;
 pub(super) const COMMIT: u64 = 14;
+pub(super) const INDEX: u64 = 15;
 pub(super) const PARITY: u64 = 16;
 const DIGEST_HEAD: [u8; 2] = [0x58, 0x20];
 
