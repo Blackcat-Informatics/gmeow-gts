@@ -24,6 +24,7 @@ type rdfBlock struct {
 	languages         []uint64
 	labels            [][]byte
 	triples           [3][]uint64
+	digests           []Digest
 	valueCount        uint64
 	values            []byte
 	texts             []string
@@ -73,8 +74,11 @@ func (p *rdfProjector) readTerms(dictionary *rdfReadDictionary, content, payload
 	}
 	p.formed = formed
 	for index := range blocks {
-		if reason := blocks[index].formTexts(restart); reason != "" {
-			return reason
+		block := &blocks[index]
+		if block.kind == 1 || block.kind == 2 {
+			if reason := block.formTexts(restart); reason != "" {
+				return reason
+			}
 		}
 	}
 	if reason := checkRDFLanguages(blocks, languages); reason != "" {
@@ -129,9 +133,7 @@ func readRDFBlock(c *rdfCursor) rdfBlock {
 		block.lengths = rdfColumn(c, c.uint)
 		block.suffixes = c.body(2)
 		if block.kind == 2 {
-			block.forms = rdfColumn(c, func() uint64 { return c.code(4) })
-			block.datatypes = rdfColumn(c, c.uint)
-			block.languages = rdfColumn(c, c.uint)
+			block.readForms(c)
 		}
 	case 3:
 		c.check(length == 2, WrongLength)
@@ -140,6 +142,17 @@ func readRDFBlock(c *rdfCursor) rdfBlock {
 		c.check(length == 4, WrongLength)
 		for i := range block.triples {
 			block.triples[i] = rdfColumn(c, c.uint)
+		}
+	case 5, 7:
+		arity := uint64(3)
+		if block.kind == 5 {
+			arity = 6
+		}
+		c.check(length == arity, WrongLength)
+		block.digests = rdfColumn(c, c.digest)
+		block.lengths = rdfColumn(c, c.uint)
+		if block.kind == 5 {
+			block.readForms(c)
 		}
 	case 6:
 		c.check(length == 2, WrongLength)
@@ -151,10 +164,14 @@ func readRDFBlock(c *rdfCursor) rdfBlock {
 		// Keep the validated bytes for projection after admission. The
 		// smallest values use three bytes each on the wire.
 		block.values = c.data[start:c.pos]
-	default:
-		c.check(false, "unsupported_term_kind")
 	}
 	return block
+}
+
+func (b *rdfBlock) readForms(c *rdfCursor) {
+	b.forms = rdfColumn(c, func() uint64 { return c.code(4) })
+	b.datatypes = rdfColumn(c, c.uint)
+	b.languages = rdfColumn(c, c.uint)
 }
 
 func (b *rdfBlock) matchesCount(count uint64) bool {
@@ -162,25 +179,31 @@ func (b *rdfBlock) matchesCount(count uint64) bool {
 	case 1:
 		return uint64(len(b.prefixes)) == count && uint64(len(b.lengths)) == count
 	case 2:
-		if uint64(len(b.prefixes)) != count || uint64(len(b.lengths)) != count || uint64(len(b.forms)) != count {
-			return false
-		}
-		typed := 0
-		for _, form := range b.forms {
-			if form == 1 {
-				typed++
-			}
-		}
-		return len(b.datatypes) == typed && len(b.languages) == len(b.forms)-typed
+		return uint64(len(b.prefixes)) == count && uint64(len(b.lengths)) == count && b.formsMatch(count)
 	case 3:
 		return uint64(len(b.labels)) == count
 	case 4:
 		return uint64(len(b.triples[0])) == count && uint64(len(b.triples[1])) == count && uint64(len(b.triples[2])) == count
+	case 5, 7:
+		return uint64(len(b.digests)) == count && uint64(len(b.lengths)) == count && (b.kind == 7 || b.formsMatch(count))
 	case 6:
 		return b.valueCount == count
 	default:
 		return false
 	}
+}
+
+func (b *rdfBlock) formsMatch(count uint64) bool {
+	if uint64(len(b.forms)) != count {
+		return false
+	}
+	typed := 0
+	for _, form := range b.forms {
+		if form == 1 {
+			typed++
+		}
+	}
+	return len(b.datatypes) == typed && len(b.languages) == len(b.forms)-typed
 }
 
 func checkRDFLanguages(blocks []rdfBlock, languages []string) Reason {
@@ -241,6 +264,8 @@ func (p *rdfProjector) addBlock(c *rdfCursor, dictionary *rdfReadDictionary, blo
 		}
 	case 6:
 		c.reason = p.addInlineValues(dictionary, block)
+	case 5, 7:
+		c.reason = p.addReferenceBlock(dictionary, block, languages)
 	}
 }
 
@@ -286,19 +311,25 @@ func (p *rdfProjector) addTextBlock(c *rdfCursor, dictionary *rdfReadDictionary,
 		c.check(utf8.ValidString(text), WrongType)
 		term := rdfTerm{kind: model.Iri, text: text}
 		if block.kind == 2 {
-			term.kind = model.Literal
-			term.form = int(block.forms[index])
-			if term.form == 1 {
-				term.datatype = p.resolve(c, dictionary.entries, block.datatypes[0], model.Iri)
-				block.datatypes = block.datatypes[1:]
-			} else {
-				term.lang = languages[block.languages[0]]
-				block.languages = block.languages[1:]
-			}
+			term = p.literalFromBlock(c, dictionary.entries, &block, languages, index, text)
 		}
 		if c.reason != "" {
 			return
 		}
 		dictionary.append(rdfWrittenKey{kind: block.kind, rdf: p.intern(term)})
 	}
+}
+
+func (p *rdfProjector) literalFromBlock(
+	c *rdfCursor, dictionary []rdfDefinition, block *rdfBlock, languages []string, index int, text string,
+) rdfTerm {
+	term := rdfTerm{kind: model.Literal, text: text, form: int(block.forms[index])}
+	if term.form == 1 {
+		term.datatype = p.resolve(c, dictionary, block.datatypes[0], model.Iri)
+		block.datatypes = block.datatypes[1:]
+	} else {
+		term.lang = languages[block.languages[0]]
+		block.languages = block.languages[1:]
+	}
+	return term
 }

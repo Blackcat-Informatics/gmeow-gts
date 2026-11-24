@@ -109,16 +109,20 @@ func (v rdfInlineValue) literal() (lexical, datatype string, reason Reason) {
 		instant := time.Unix(seconds, int64(v.nanoseconds)).UTC()
 		return instant.Format(time.RFC3339Nano), rdfValueDatatype + "dateTime", ""
 	case rdfValueOctets:
-		const digits = "0123456789ABCDEF"
 		var text strings.Builder
 		text.Grow(len(v.octets) * 2)
-		for _, octet := range v.octets {
-			text.WriteByte(digits[octet>>4])
-			text.WriteByte(digits[octet&15])
-		}
+		writeRDFHex(&text, v.octets)
 		return text.String(), rdfValueDatatype + "hexBinary", ""
 	default:
 		return "", "", UnregisteredValue
+	}
+}
+
+func writeRDFHex(text *strings.Builder, octets []byte) {
+	const digits = "0123456789ABCDEF"
+	for _, octet := range octets {
+		text.WriteByte(digits[octet>>4])
+		text.WriteByte(digits[octet&15])
 	}
 }
 
