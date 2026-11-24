@@ -13,6 +13,42 @@ GtsV2ParityTest >> bytesFor: name [
 ]
 
 { #category : #tests }
+GtsV2ParityTest >> testTypedDurabilityFindingsMatchTheP5Records [
+	#('recover-no-signature' 'recover-length' 'recover-verify-failed'
+		'parity-unexplained' 'range-transparent' 'recovery-parity-in-resync-segment') do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P5/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTypedDurabilityOf: entry ] ]
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testTypedResumptionRefusalBelongsToTheSegment [
+	| report |
+	report := (GtsV2Wire inspect: (self bytesFor: 'recover-length.with-parity.bin')
+		budget: (GtsV2PayloadBudget withReadLimit: 465)) typedWireFindings.
+	self assert: report fileFindings equals: #((8 (1) (1) (1) (2 11) (2 1092) (1))).
+	self assert: (report segmentFindingsAt: 0) equals: #((20 (2 86) (1) (2 1) (2 481) (2 622) (2 466))).
+	self assert: (report frameFindingsAt: 481) isEmpty
+]
+
+{ #category : #private }
+GtsV2ParityTest >> assertTypedDurabilityOf: entry [
+	| report file input |
+	input := entry at: 'input_file'.
+	report := (GtsV2Wire inspect: (self bytesFor: input)) typedWireFindings.
+	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	self assert: (report fileFindings select: [ :finding | #(8 9) includes: finding first ])
+		equals: (file third select: [ :finding | #(8 9) includes: finding first ]) asArray.
+	file second do: [ :segment |
+		self assert: ((report segmentFindingsAt: segment first) select: [ :finding | finding first = 36 ])
+			equals: ((segment at: 18) select: [ :finding | finding first = 36 ]) asArray.
+		(segment at: 17) do: [ :frame |
+			| expected |
+			expected := ((frame at: 11) select: [ :finding | finding first between: 30 and: 35 ]) asArray.
+			self assert: (report frameFindingsAt: frame second) = expected description: input ] ]
+]
+
+{ #category : #tests }
 GtsV2ParityTest >> testVerifiedParityRepairMatchesPublishedCopies [
 	#('recover-no-signature' 'parity-damaged-shard' 'recover-verify-failed') do: [ :name |
 		| fixture |

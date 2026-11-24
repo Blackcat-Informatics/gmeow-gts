@@ -5,7 +5,7 @@ Class {
 	#superclass : #Object,
 	#instVars : [ 'bytes', 'walker', 'format', 'generation', 'stopReason',
 		'initialBudget', 'firstOpener', 'initialGap', 'initialItemCount', 'initialResyncRefusal', 'firstScanEnd',
-		'initialLookahead', 'initialHeldItems' ],
+		'initialLookahead', 'initialHeldItems', 'dispatchEnd' ],
 	#category : #'Gts-Core'
 }
 
@@ -42,6 +42,7 @@ GtsV2Wire >> initializeOn: aByteArray budget: budget [
 			self recoverFirstBefore: bytes size + 1.
 			^ self ].
 	initialItemCount := 1.
+	dispatchEnd := firstEnd - 1.
 	top := walker headAt: 1 limit: firstEnd.
 	kind := self recordKind: top limit: firstEnd.
 	(kind isNotNil and: [ #(1 5) includes: kind argument ]) ifTrue: [
@@ -123,6 +124,24 @@ GtsV2Wire >> stopReason [
 { #category : #accessing }
 GtsV2Wire >> initialResyncRefusal [
 	^ initialResyncRefusal
+]
+
+{ #category : #accessing }
+GtsV2Wire >> typedWireFindings [
+	| report repair |
+	format = #legacy ifTrue: [ GtsV2EnvelopeError signal: 'the legacy reader has a separate result' ].
+	report := GtsV2WireFindings inputLength: bytes size
+		itemLimit: (initialBudget ifNil: [ 0 ] ifNotNil: [ initialBudget itemLimit ]).
+	format = #v2 ifTrue: [
+		repair := self eventsDo: [ :event | report observe: event ] decodedWhen: [ :event | false ]
+			unprotectedTailsDo: [ :offset :length | report tailAt: offset length: length ].
+		repair findings do: [ :finding | report addRepair: finding ].
+		^ report ].
+	format = #framingError
+		ifTrue: [ report framingStoppedAt: 0 reason: stopReason ]
+		ifFalse: [ report rejectedGeneration: format firstLength: dispatchEnd ].
+	initialResyncRefusal ifNotNil: [ report observe: initialResyncRefusal ].
+	^ report
 ]
 
 { #category : #dispatching }
