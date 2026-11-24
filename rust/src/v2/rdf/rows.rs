@@ -1,9 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-use std::{collections::BTreeSet, sync::Arc};
+use std::{collections::HashSet, sync::Arc};
 
-use super::{terms::resolve, Projector, Term, RDF_REIFIES};
+use super::{
+    terms::{resolve, Dictionary},
+    Projector, Term, RDF_REIFIES,
+};
 use crate::v2::{Decoder, HeaderError, MalformedReason};
 
 const QUADS: u64 = 2;
@@ -15,15 +18,18 @@ fn run_values<'a, T: Copy + Eq>(
     cursor: &mut Decoder<'a>,
     count: u64,
     value: impl FnMut(&mut Decoder<'a>) -> Result<T, HeaderError>,
-) -> Result<impl Iterator<Item = T>, HeaderError> {
+) -> Result<Vec<(T, u64)>, HeaderError> {
     let mut runs = Vec::new();
     cursor.runs(count, value, |_, value, _, rows| {
         runs.push((value, rows));
         Ok(())
     })?;
-    Ok(runs
-        .into_iter()
-        .flat_map(|(value, rows)| (0..rows).map(move |_| value)))
+    Ok(runs)
+}
+
+fn expand_runs<T: Copy>(runs: &[(T, u64)]) -> impl Iterator<Item = T> + '_ {
+    runs.iter()
+        .flat_map(|&(value, rows)| (0..rows).map(move |_| value))
 }
 
 fn delta_column(cursor: &mut Decoder<'_>, count: u64) -> Result<Vec<u64>, HeaderError> {
@@ -37,7 +43,7 @@ fn delta_column(cursor: &mut Decoder<'_>, count: u64) -> Result<Vec<u64>, Header
 impl Projector {
     pub(super) fn read_rows(
         &mut self,
-        dictionary: &[usize],
+        dictionary: &Dictionary,
         kind: u64,
         content: &[u8],
         bytes: &[u8],
@@ -76,7 +82,10 @@ impl Projector {
                 let objects = delta_column(&mut cursor, count)?;
                 let subjects = delta_column(&mut cursor, count)?;
                 cursor.end()?;
-                let rows = graphs.zip(predicates).zip(objects).zip(subjects);
+                let rows = expand_runs(&graphs)
+                    .zip(expand_runs(&predicates))
+                    .zip(objects)
+                    .zip(subjects);
                 for (((graph, predicate), object), subject) in rows {
                     let graph = self.resolve_graph(dictionary, graph, &cursor)?;
                     let subject = self.node(dictionary, subject, &cursor)?;
@@ -92,7 +101,7 @@ impl Projector {
                 let triples = delta_column(&mut cursor, count)?;
                 cursor.end()?;
                 let predicate = self.intern(Term::Iri(Arc::from(RDF_REIFIES)));
-                for ((graph, reifier), triple) in graphs.zip(reifiers).zip(triples) {
+                for ((graph, reifier), triple) in expand_runs(&graphs).zip(reifiers).zip(triples) {
                     let graph = self.resolve_graph(dictionary, graph, &cursor)?;
                     let subject = self.node(dictionary, reifier, &cursor)?;
                     let object = self.position(dictionary, triple, &cursor, |term| {
@@ -112,19 +121,35 @@ impl Projector {
                 if counts.contains(&0) {
                     return Err(cursor.error(MalformedReason::OutOfRange));
                 }
-                let mut annotations = BTreeSet::new();
-                for (((graph, reifier), predicate), object) in
-                    graphs.zip(reifiers).zip(predicates).zip(objects)
+                let mut annotations = HashSet::new();
+                let written = |id| dictionary.written(id);
+                for (((graph, &reifier), &predicate), &object) in expand_runs(&graphs)
+                    .zip(&reifiers)
+                    .zip(&predicates)
+                    .zip(&objects)
+                {
+                    if !annotations.insert((
+                        written(reifier),
+                        written(predicate),
+                        written(object),
+                        graph.map(written),
+                    )) {
+                        return Err(cursor.error(MalformedReason::UnorderedOrRepeated));
+                    }
+                }
+                for (((graph, reifier), predicate), object) in expand_runs(&graphs)
+                    .zip(reifiers)
+                    .zip(predicates)
+                    .zip(objects)
                 {
                     let graph = self.resolve_graph(dictionary, graph, &cursor)?;
                     let subject = self.node(dictionary, reifier, &cursor)?;
                     let predicate = self.iri(dictionary, predicate, &cursor)?;
                     let object = resolve(dictionary, object, &cursor)?;
-                    if !annotations.insert((subject, predicate, object, graph)) {
-                        return Err(cursor.error(MalformedReason::UnorderedOrRepeated));
-                    }
+                    self.projection
+                        .quads
+                        .insert((subject, predicate, object, graph));
                 }
-                self.projection.quads.extend(annotations);
             }
         }
         Ok(())
@@ -132,7 +157,7 @@ impl Projector {
 
     fn resolve_graph(
         &self,
-        dictionary: &[usize],
+        dictionary: &Dictionary,
         graph: Option<u64>,
         cursor: &Decoder<'_>,
     ) -> Result<Option<usize>, HeaderError> {
