@@ -40,7 +40,7 @@ macro_rules! usage_text {
             "usage: gts <command> [args]
 
 commands:
-  info <file>...            per-segment composition ledger (§14.1)
+  info <file>...            show the ledger for each segment (wire checks in v2)
   fold <file>               write N-Quads on stdout (whole projection for v2)
   from-nq <in.nq> [-o out]  build GTS v2 from N-Quads. '-' reads stdin
   to-trig <file>            fold to TriG on stdout
@@ -230,7 +230,7 @@ optional:
 const USAGE_FR_CA: &str = r#"utilisation: gts <command> [args]
 
 commandes:
-  info <file>...            affiche le registre de composition par segment
+  info <file>...            affiche le registre par segment (contrôles filaires en v2)
   fold <file>               écrit en N-Quads sur stdout (projection entière en v2)
   from-nq <in.nq> [-o out]  produit un GTS v2 à partir de N-Quads. '-' lit stdin
   to-trig <file>            plie vers TriG sur stdout
@@ -264,7 +264,7 @@ commandes:
 const USAGE_ZH_HANS: &str = r#"用法: gts <command> [args]
 
 命令:
-  info <file>...            显示每个段的组合账本
+  info <file>...            显示每个段的账本（v2 显示线格式检查）
   fold <file>               将 N-Quads 写到 stdout（v2 使用完整投影）
   from-nq <in.nq> [-o out]  从 N-Quads 构建 GTS v2。'-' 读取 stdin
   to-trig <file>            将内容折叠为 TriG 并写到 stdout

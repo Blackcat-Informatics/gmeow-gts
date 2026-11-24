@@ -49,6 +49,9 @@ mod tar_cli;
 #[path = "gts/i18n.rs"]
 mod i18n;
 
+#[path = "gts/info_v2.rs"]
+mod info_v2;
+
 use i18n::{unknown_command_message, USAGE};
 
 /// Print usage and exit 2 — the CLI's uniform "bad invocation" response.
@@ -532,14 +535,19 @@ fn cmd_info(paths: &[String]) -> ExitCode {
     if paths.is_empty() {
         return usage_error();
     }
+    let mut clean = true;
     for path in paths {
         let data = match load(path) {
             Ok(d) => d,
             Err(code) => return code,
         };
-        print_ledger(path, &read_file_segments(&data));
+        if let Some(inspected) = info_v2::inspect(path, &data) {
+            clean &= inspected;
+        } else {
+            print_ledger(path, &read_file_segments(&data));
+        }
     }
-    ExitCode::SUCCESS
+    ExitCode::from(u8::from(!clean))
 }
 
 fn cmd_fold(paths: &[String]) -> ExitCode {
