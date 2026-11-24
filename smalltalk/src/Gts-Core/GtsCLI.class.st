@@ -189,9 +189,18 @@ GtsCLI class >> runExtractKey: args [
 
 { #category : #commands }
 GtsCLI class >> runFold: args [
-	| graph |
+	| graph bytes wire |
 	args size = 1 ifFalse: [ self stderr: self usage. ^ 2 ].
-	graph := GtsReader read: (self readFile: args first).
+	bytes := self readFile: args first.
+	wire := GtsV2Wire inspect: bytes.
+	wire format = #v2 ifTrue: [
+		graph := GtsV2RdfFold read: wire.
+		self stdout: (GtsNQuads toNQuads: graph).
+		^ 0 ].
+	wire format = #unsupported ifTrue: [
+		self stderr: 'gts fold: unsupported GTS generation ', wire generation printString, String lf.
+		^ 1 ].
+	graph := GtsReader read: bytes.
 	self stdout: (GtsNQuads toNQuads: graph).
 	^ (graph diagnostics isEmpty and: [ graph segmentHeads notEmpty ])
 		ifTrue: [ 0 ]

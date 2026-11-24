@@ -61,6 +61,16 @@ GtsV2Field >> uint [
 ]
 
 { #category : #parsing }
+GtsV2Field >> signedInteger [
+	| head |
+	head := walker headAt: start limit: end.
+	self checkHead: head.
+	head major = 0 ifTrue: [ ^ head argument ].
+	head major = 1 ifTrue: [ ^ head argument negated - 1 ].
+	^ GtsV2EnvelopeError signal: 'wrong_type'
+]
+
+{ #category : #parsing }
 GtsV2Field >> locatorDistance [
 	| head |
 	head := walker headAt: start limit: end.

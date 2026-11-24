@@ -92,12 +92,13 @@ GtsV2WireEvent >> payload [
 ]
 
 { #category : #validation }
-GtsV2WireEvent >> checkPayloadWith: budget [
+GtsV2WireEvent >> checkPayloadWith: budget retainDecoded: retain [
 	| raw |
 	frame ifNil: [ ^ self ].
 	raw := frame payload.
 	storedMatches := raw storedMatches.
-	payload := raw checkWith: budget.
+	payload := raw checkWith: budget retainDecoded: (retain and: [
+		self frameType isNotNil and: [ self frameType between: 1 and: 13 ] ]).
 	payload reason = 'codec_constraint' ifTrue: [
 		problem
 			ifNil: [ problem := payload reason ]

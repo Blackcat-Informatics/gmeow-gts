@@ -30,7 +30,7 @@ GtsV2FramePayload >> storedMatches [
 ]
 
 { #category : #validation }
-GtsV2FramePayload >> checkWith: budget [
+GtsV2FramePayload >> checkWith: budget retainDecoded: retain [
 	| storedSize refusal computed |
 	(decodedLength isNil or: [ digest isNil or: [ storage isNil or: [ bodyStart isNil ] ] ])
 		ifTrue: [ ^ self damaged: nil ].
@@ -40,13 +40,14 @@ GtsV2FramePayload >> checkWith: budget [
 	storage tag = 1 ifTrue: [
 		storedSize = decodedLength ifFalse: [ ^ self damaged: 'decoded_length' ].
 		computed := stored deriveWith: 'gts2 payload' prefix: #[] from: bodyStart to: stored end.
-		^ self resultForDigest: computed ].
-	storage isZstd ifTrue: [ ^ self checkZstd ].
+		^ self resultForDigest: computed decoded: [
+			retain ifTrue: [ stored bytesStartingAt: bodyStart ] ] ].
+	storage isZstd ifTrue: [ ^ self checkZstdRetaining: retain ].
 	^ GtsV2PayloadResult state: #unchecked reason: 'unknown_codec' count: nil
 ]
 
 { #category : #validation }
-GtsV2FramePayload >> checkZstd [
+GtsV2FramePayload >> checkZstdRetaining: retain [
 	| header decoded computed |
 	decodedLength = 0 ifTrue: [ ^ self damaged: 'codec_constraint' ].
 	header := self zstdHeader.
@@ -55,7 +56,7 @@ GtsV2FramePayload >> checkZstd [
 	decoded := GtsZstd decompressSingleFrame: (stored bytesStartingAt: bodyStart) expectedSize: decodedLength.
 	decoded ifNil: [ ^ self damaged: 'decode_failed' ].
 	computed := GtsBlake3 deriveWith: 'gts2 payload' prefix: #[] bytes: decoded from: 1 to: decoded size + 1.
-	^ self resultForDigest: computed
+	^ self resultForDigest: computed decoded: [ retain ifTrue: [ decoded ] ]
 ]
 
 { #category : #private }
@@ -81,7 +82,7 @@ GtsV2FramePayload >> damaged: reason [
 ]
 
 { #category : #private }
-GtsV2FramePayload >> resultForDigest: computed [
+GtsV2FramePayload >> resultForDigest: computed decoded: aBlock [
 	computed = digest ifFalse: [ ^ self damaged: 'payload_digest' ].
-	^ GtsV2PayloadResult state: #verified reason: nil count: nil
+	^ (GtsV2PayloadResult state: #verified reason: nil count: nil) keepDecoded: aBlock value
 ]

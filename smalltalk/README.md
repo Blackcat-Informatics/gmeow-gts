@@ -39,7 +39,7 @@ The `.smalltalk.ston` file is the smalltalkCI entry point for GitHub Actions.
 `gts info` detects v2 from the first complete item, reports item byte ranges,
 validates opener and frame envelope grammar, and checks frame links,
 stored and decoded payload integrity, and offsets and locator claims.
-RDF folding and recovery require additional v2 support.
+Recovery requires additional v2 support.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.
@@ -47,6 +47,12 @@ Index payload claims and v2 signature verification require additional support.
 
 `gts from-nq` writes a committed v2 segment. It preserves named graphs,
 language direction, and nested object triples, and uses value references
-for large literals. Folding the resulting v2 segment requires a v2 RDF reader.
+for large literals.
+
+`gts fold` projects registry version 1 v2 RDF into N-Quads. It reads inline
+and value-referenced text, preserves segment-scoped blank nodes and nested
+object triples, and projects reifier bindings and annotations as RDF quads.
+It reports unreadable inputs and unsupported content frames as errors.
+Typed-value term blocks and suppression frames require additional support.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.

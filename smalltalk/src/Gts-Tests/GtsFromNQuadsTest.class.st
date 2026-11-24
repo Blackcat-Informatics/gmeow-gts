@@ -59,6 +59,43 @@ GtsFromNQuadsTest >> testV2VersionHintAllowsUnicodeBlankNodesAndChecksLanguage [
 ]
 
 { #category : #tests }
+GtsFromNQuadsTest >> testV2FoldPreservesImportedRowsAndScopesBlanksPerSegment [
+	| source bytes graph |
+	source := '<https://e/s> <https://e/p> <<( <https://e/a> <https://e/p> "v"@en--rtl )>> <https://e/g> .', String lf.
+	bytes := GtsFromNQuads v2FromString: source.
+	self assert: (GtsNQuads toNQuads: (GtsV2RdfFold read: (GtsV2Wire inspect: bytes))) equals: source.
+	bytes := GtsFromNQuads v2FromString: '_:a <https://e/p> "v" .'.
+	graph := GtsV2RdfFold read: (GtsV2Wire inspect: bytes, bytes).
+	self assert: graph quads size equals: 2.
+	self deny: graph quads first first = graph quads second first
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2FoldRebuildsAValueFromAnEarlierSegment [
+	| writer value digest dictionary rows wire graph valueSegment |
+	writer := GtsV2SegmentWriter new.
+	value := 'word' utf8Encoded.
+	digest := GtsBlake3 deriveWith: 'gts2 unit' bytes: value.
+	writer appendType: 8 content: { digest } payload: value.
+	writer appendType: 11 content: { digest. 4. 1 } payload: (GtsCborWriter encode: { { digest. 4 } }).
+	writer commit.
+	valueSegment := writer bytes.
+	writer := GtsV2SegmentWriter new.
+	dictionary := GtsCborWriter encode: {
+		{ { 1. #(0 0 0). { 5. 5. GtsGraph xsdString size }.
+			('urn:surn:p', GtsGraph xsdString) utf8Encoded }.
+		{ 5. { digest }. #(4). #(1). #(2). #() } }. #() }.
+	writer appendType: 1 content: #(0 ((1 3) (5 1)) 2 1) payload: dictionary.
+	rows := GtsCborWriter encode: #((((1) 1)) ((1 1)) (3) (0)).
+	writer appendType: 2 content: #(2 1) payload: rows.
+	writer commit.
+	wire := GtsV2Wire inspect: valueSegment, writer bytes.
+	graph := GtsV2RdfFold read: wire.
+	self assert: (GtsNQuads toNQuads: graph) equals: '<urn:s> <urn:p> "word" .', String lf.
+	self should: [ GtsV2RdfFold read: (GtsV2Wire inspect: writer bytes) ] raise: GtsArchiveError
+]
+
+{ #category : #tests }
 GtsFromNQuadsTest >> testFromNQuadsInvertsFoldOutputForCorpusVector [
 	| graph nquads roundTripped |
 	graph := GtsReader read: ('/workspace/vectors/11-datatype-defaulting.gts' asFileReference

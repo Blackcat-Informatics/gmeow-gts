@@ -275,6 +275,8 @@ GtsNQuadsTokenizer >> validateLanguage: language [
 	| primaryEnd primary |
 	(language isEmpty or: [ language last = $- or: [ language includesSubstring: '--' ] ])
 		ifTrue: [ GtsParserError signal: 'invalid N-Quads language tag' ].
+	(language allSatisfy: [ :character | self isLanguageCharacter: character ])
+		ifFalse: [ GtsParserError signal: 'invalid N-Quads language tag' ].
 	primaryEnd := language indexOf: $- ifAbsent: [ language size + 1 ].
 	primary := language copyFrom: 1 to: primaryEnd - 1.
 	(primary isNotEmpty and: [ primary allSatisfy: [ :character |
