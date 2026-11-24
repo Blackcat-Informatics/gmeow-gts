@@ -12,18 +12,25 @@ from .conversion_fold import ConversionStop, FoldedSource, fold_source
 from .conversion_source import SourceCapacity
 from .dictionary import Triple
 from .fold_labelling import FoldLabellingBudget, FoldLabellingRefused
-from .frame import decode_frame
-from .items import classify_item
 
 
 @dataclass(frozen=True, slots=True)
 class ConversionCapacity(SourceCapacity):
     labelled_lines: int = 1 << 26
     labelled_bytes_per_read: int = 1 << 37
+    rebuilt_bytes_per_read: int = 1 << 37
+    formed_bytes_per_read: int = 1 << 37
+    labelling_units: int = 0
 
     def __post_init__(self) -> None:
         SourceCapacity.__post_init__(self)
-        for limit in (self.labelled_lines, self.labelled_bytes_per_read):
+        for limit in (
+            self.labelled_lines,
+            self.labelled_bytes_per_read,
+            self.rebuilt_bytes_per_read,
+            self.formed_bytes_per_read,
+            self.labelling_units,
+        ):
             if type(limit) is not int or not 0 <= limit <= UINT_MAX:
                 raise ValueError("conversion capacity limits must be uint64 values")
 
@@ -60,23 +67,6 @@ def _canonical_folded_size(source: FoldedSource) -> int:
         + len(source.values)
         + nested
     )
-
-
-def _frame_limit_exceeded(data: bytes, capacity: ConversionCapacity) -> bool:
-    """Check the stored content, payload, and decoded length of written frames."""
-    offset = 0
-    while offset < len(data):
-        item = classify_item(data, offset)
-        if item.kind == "frame":
-            frame = decode_frame(data, offset)
-            if (
-                len(frame.content) > capacity.stored_bytes_per_frame
-                or len(frame.stored_payload) > capacity.stored_bytes_per_frame
-                or frame.decoded_length > capacity.decoded_bytes_per_frame
-            ):
-                return True
-        offset = item.end
-    return False
 
 
 def prepare_conversion(
@@ -120,7 +110,5 @@ def prepare_conversion(
         if outcome.code == "labelling_refused":
             return ConversionStop("source_exceeds_capacity", 0)
         return ConversionStop("content_mismatch", 0)
-    if _frame_limit_exceeded(outcome.file, capacity):
-        return ConversionStop("source_exceeds_capacity", 0)
     assert labelled.content_digest is not None
     return ConversionCandidate(outcome.file, labelled.content_digest, source)
