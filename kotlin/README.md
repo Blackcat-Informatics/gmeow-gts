@@ -18,8 +18,14 @@ storage, and offsets and locator claims.
 
 The `gts verify` command also checks commit counts and roots for registry
 version 1 and reports each segment's committed prefix and uncommitted tail.
-RDF projection, index payload claims, signature verification, and resync
-recovery require separate v2 support.
+Index payload claims, signature verification, and resync recovery require
+separate v2 support.
+
+`gts fold` projects whole RDF rows from v2 dictionaries, including nested
+triple terms and lexical forms backed by verified values. It validates the
+N-Quads terms before writing output. Empty graph names are kept in the
+projection without a corresponding N-Quads statement. Typed-value term
+blocks require separate support.
 
 `gts from-nq` imports RDF N-Quads into a committed v2 segment. It uses
 value packs for large lexical forms.

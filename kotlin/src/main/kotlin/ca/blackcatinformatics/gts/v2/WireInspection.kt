@@ -41,12 +41,13 @@ internal sealed interface WireEvent {
         val closingClaimFailure: ClosingClaimFailure? = null,
         val effectiveId: ByteString? = null,
         val commitClaim: CommitClaim? = null,
+        val content: CborField? = null,
     ) : WireEvent
 
     data class Stop(val offset: Int, val reason: StopReason) : WireEvent, WireInspection
 }
 
-internal fun inspectWire(data: ByteArray): WireInspection {
+internal fun inspectWire(data: ByteArray, retainDecoded: Boolean = false): WireInspection {
     if (data.isEmpty()) return WireInspection.Empty
     val end =
         try {
@@ -60,7 +61,7 @@ internal fun inspectWire(data: ByteArray): WireInspection {
         val version = nextHead(data, kind.end, end)
         return when {
             version?.major != 0 -> WireInspection.Unknown
-            version.argument == 2uL -> WireInspection.VersionTwo(items(data, end))
+            version.argument == 2uL -> WireInspection.VersionTwo(items(data, end, retainDecoded))
             version.argument != null && version.argument > 2uL -> WireInspection.Unsupported(version.argument)
             else -> WireInspection.Unknown
         }
@@ -125,7 +126,7 @@ private data class ScannedItem(
     val frame: FrameEnvelope? = null,
 )
 
-private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
+private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean): Sequence<WireEvent> =
     sequence {
         val source = scanItems(data, firstEnd).iterator()
         fun advance(): ScannedItem? = if (source.hasNext()) source.next() else null
@@ -152,7 +153,7 @@ private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
                 val link = checkLink(frame, predecessor, next?.frame)
                 predecessor = link.effective ?: predecessor
                 val storedMatches = checkStored(frame.payload)
-                val payload = budget.check(frame.payload)
+                val payload = budget.check(frame.payload, retainDecoded)
                 val problem = event.problem ?: payload.reason?.takeIf { it == "codec_constraint" }
                 val claim =
                     frame.content.takeIf { event.frameType == 14uL && problem == null && frame.payload.contentSize.toULong() <= frameCapacity }
@@ -165,6 +166,7 @@ private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
                         payload = payload,
                         effectiveId = link.effective?.let(::ByteString),
                         commitClaim = claim,
+                        content = frame.content.takeIf { retainDecoded },
                     ),
                 )
             } else {

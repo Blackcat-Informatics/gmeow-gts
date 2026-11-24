@@ -138,6 +138,32 @@ class KotlinCliI18nTest {
         assertTrue(result.stderr.contains("unsupported GTS generation 3"), result.stderr)
     }
 
+    @Test
+    fun foldsV2AndRefusesBeforeOutputWhenARequiredValueIsMissing() {
+        val folded = captureCli("en", "fold", "../vectors/v2/P3/project__triple-term-nested.bin")
+        assertEquals(0, folded.code, folded.stderr)
+        assertTrue(folded.stdout.contains("<<( <http://e/s> <http://e/p> <<("), folded.stdout)
+        val missing = captureCli("en", "fold", "../vectors/v2/P3/terms-literal-ref-value-after.same-segment-after.bin")
+        assertEquals(1, missing.code)
+        assertEquals("", missing.stdout)
+        assertTrue(missing.stderr.contains("missing_value"), missing.stderr)
+    }
+
+    @Test
+    fun v2FoldWritesUtf8DespiteThePrintStreamCharset() {
+        val original = System.out
+        val bytes = ByteArrayOutputStream()
+        val source = "<urn:s> <urn:p> \"été\" .\n"
+        try {
+            System.setOut(PrintStream(bytes, true, Charsets.US_ASCII))
+            val data = ca.blackcatinformatics.gts.fromNQuadsV2(source)
+            assertEquals(true, foldV2("unicode", data))
+        } finally {
+            System.setOut(original)
+        }
+        assertEquals(source, bytes.toByteArray().decodeToString())
+    }
+
     private data class CliCapture(
         val code: Int,
         val stdout: String,

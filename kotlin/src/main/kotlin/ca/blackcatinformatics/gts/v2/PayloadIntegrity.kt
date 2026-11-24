@@ -8,7 +8,12 @@ import com.github.luben.zstd.ZstdException
 
 internal enum class PayloadState { VERIFIED, DAMAGED, UNCHECKED }
 
-internal data class PayloadObservation(val state: PayloadState, val reason: String? = null, val count: ULong? = null)
+internal data class PayloadObservation(
+    val state: PayloadState,
+    val reason: String? = null,
+    val count: ULong? = null,
+    val decoded: CborField? = null,
+)
 
 internal val frameCapacity = 1uL shl 26
 
@@ -16,7 +21,7 @@ internal class PayloadBudget(private val readCapacity: ULong = 1uL shl 36) {
     private var total = 0uL
     private var exhausted = false
 
-    fun check(payload: FramePayload): PayloadObservation {
+    fun check(payload: FramePayload, retainDecoded: Boolean = false): PayloadObservation {
         val length = payload.length ?: return damaged()
         val digest = payload.digest ?: return damaged()
         val storage = payload.storage ?: return damaged()
@@ -28,9 +33,9 @@ internal class PayloadBudget(private val readCapacity: ULong = 1uL shl 36) {
         return when {
             storage.tag == 1uL -> {
                 if (size.toULong() != length) damaged("decoded_length")
-                else checkDigest(digest, stored.data, start, stored.end)
+                else checkDigest(digest, CborField(stored.data, start, stored.end), retainDecoded)
             }
-            storage.codec?.uint() == 1uL -> checkZstd(digest, stored, start, length.toInt())
+            storage.codec?.uint() == 1uL -> checkZstd(digest, stored, start, length.toInt(), retainDecoded)
             else -> PayloadObservation(PayloadState.UNCHECKED, "unknown_codec")
         }
     }
@@ -54,11 +59,14 @@ internal class PayloadBudget(private val readCapacity: ULong = 1uL shl 36) {
 
 private fun damaged(reason: String? = null) = PayloadObservation(PayloadState.DAMAGED, reason)
 
-private fun checkDigest(digest: CborField, data: ByteArray, start: Int, end: Int): PayloadObservation =
-    if (digest.matchesBytes(payloadDigest(data, start, end))) PayloadObservation(PayloadState.VERIFIED)
-    else damaged("payload_digest")
+private fun checkDigest(digest: CborField, decoded: CborField, retainDecoded: Boolean): PayloadObservation =
+    if (digest.matchesBytes(payloadDigest(decoded.data, decoded.start, decoded.end))) {
+        PayloadObservation(PayloadState.VERIFIED, decoded = decoded.takeIf { retainDecoded })
+    } else {
+        damaged("payload_digest")
+    }
 
-private fun checkZstd(digest: CborField, stored: CborField, start: Int, length: Int): PayloadObservation {
+private fun checkZstd(digest: CborField, stored: CborField, start: Int, length: Int, retainDecoded: Boolean): PayloadObservation {
     val header = zstdHeader(length)
     if (length == 0 || stored.end - start < header.size || header.indices.any { stored.data[start + it] != header[it] }) {
         return damaged("codec_constraint")
@@ -72,7 +80,7 @@ private fun checkZstd(digest: CborField, stored: CborField, start: Int, length: 
             return damaged("decode_failed")
         }
     if (Zstd.isError(written) || written != length.toLong()) return damaged("decode_failed")
-    return checkDigest(digest, decoded, 0, length)
+    return checkDigest(digest, CborField(decoded, 0, length), retainDecoded)
 }
 
 private fun zstdHeader(length: Int): ByteArray {
