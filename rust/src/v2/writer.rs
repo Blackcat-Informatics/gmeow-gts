@@ -14,6 +14,9 @@ use super::{
 };
 use crate::wire;
 
+mod attachments;
+pub use attachments::{AttachmentWriteError, Blob};
+
 type Digest = [u8; 32];
 
 /// A segment append that cannot be represented.
@@ -56,6 +59,7 @@ fn parent(left: &Digest, right: &Digest) -> Digest {
     blake3::derive_key("gts2 range node", &wire::encode(&record))
 }
 
+#[derive(Clone)]
 struct Range {
     count: u64,
     peaks: Vec<(u8, Digest)>,
