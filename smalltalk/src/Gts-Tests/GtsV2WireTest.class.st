@@ -21,27 +21,37 @@ GtsV2WireTest >> testTypedTermRecordsReserveIdsIndependentlyOfFold [
 ]
 
 { #category : #tests }
-GtsV2WireTest >> testTypedTermReservationAtUintBoundary [
-	| report fixture file frames |
-	fixture := STONJSON fromString: '/workspace/vectors/v2/P3/terms-id-above-uint.json' asFileReference contents.
-	file := (GtsCborReader decode: (GtsHex decode: ((fixture at: 'cases') first at: 'read_result'))) seventh.
-	frames := file second first at: 17.
-	report := (GtsV2Wire inspect: (self p3Vector: 'terms-id-above-uint.bin')) typedWireFindings.
-	"The first frame's payload fails the block count after its runs reserve their IDs."
-	2 to: 3 do: [ :index |
-		| frame |
-		frame := frames at: index.
-		self assert: (report frameFindingsAt: frame second) equals: (frame at: 11) asArray ]
+GtsV2WireTest >> testTypedTermPayloadGrammarAndFormedCapacityMatchP3 [
+	#(
+		'terms-blocks-count' 'terms-block-list-length' 'terms-block-wrong-tag-counts'
+		'terms-block-tag-kind' 'terms-block-tag-unregistered' 'terms-form-unregistered'
+		'terms-form-list-counts' 'terms-value-kind-unregistered' 'terms-value-time-range'
+		'terms-suffix-total' 'terms-prefix-too-long' 'terms-prefix-not-maximal'
+		'terms-prefix-at-restart' 'terms-prefix-splits-character'
+		'terms-language-index-range' 'terms-language-table-order' 'terms-language-table-unused'
+		'terms-language-table-repeat' 'terms-language-table-both-blocks'
+		'terms-formed-copy' 'terms-formed-order' 'terms-formed-malformed-first'
+		'terms-formed-then-small' 'terms-formed-ids-reserved' 'terms-id-above-uint'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P3/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTypedTermRecordsOf: entry ] ]
 ]
 
 { #category : #private }
 GtsV2WireTest >> assertTypedTermRecordsOf: entry [
-	| name input file report termFinding |
+	| name input file report termFinding capacity budget |
 	name := entry at: 'input_file'.
 	input := self p3Vector: name.
 	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
-	report := (GtsV2Wire inspect: input) typedWireFindings.
-	termFinding := [ :finding | #(6 7) includes: finding first ].
+	capacity := entry at: 'capacity'.
+	budget := (GtsV2PayloadBudget withReadLimit: (capacity at: 'decoded_bytes_per_read'))
+		itemLimit: (capacity at: 'items_per_read');
+		storedLimit: (capacity at: 'stored_bytes_per_frame') frameLimit: (capacity at: 'decoded_bytes_per_frame');
+		formedLimit: (capacity at: 'formed_bytes_per_read').
+	report := (GtsV2Wire inspect: input budget: budget) typedWireFindings.
+	termFinding := [ :finding | (#(6 7) includes: finding first) or: [
+		finding first = 20 and: [ finding second second = 90 ] ] ].
 	file second do: [ :segment |
 		(segment at: 17) do: [ :frame |
 			frame fourth = #(2 1) ifTrue: [

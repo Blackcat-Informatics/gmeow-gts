@@ -51,6 +51,11 @@ GtsV2CommitChecks >> observeDamagedRegion [
 	graphs observeDamagedRegion
 ]
 
+{ #category : #validating }
+GtsV2CommitChecks >> observeUnreadableTerms [
+	graphs abandonTermIdentity
+]
+
 { #category : #accessing }
 GtsV2CommitChecks >> committedFrames [
 	^ committedFrames

@@ -76,8 +76,13 @@ GtsV2GraphClaims >> row: previous strictlyPrecedes: row [
 
 { #category : #recording }
 GtsV2GraphClaims >> observeDamagedRegion [
-	identity abandon.
+	self abandonTermIdentity.
 	self markUncompared
+]
+
+{ #category : #recording }
+GtsV2GraphClaims >> abandonTermIdentity [
+	identity abandon
 ]
 
 { #category : #private }
