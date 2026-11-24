@@ -15,7 +15,7 @@ import ca.blackcatinformatics.gts.digestStr
 import ca.blackcatinformatics.gts.emojihash
 import ca.blackcatinformatics.gts.foldSummaryJson
 import ca.blackcatinformatics.gts.formatFingerprint
-import ca.blackcatinformatics.gts.fromNQuads
+import ca.blackcatinformatics.gts.fromNQuadsV2
 import ca.blackcatinformatics.gts.getTextKey
 import ca.blackcatinformatics.gts.headsJson
 import ca.blackcatinformatics.gts.hex
@@ -292,7 +292,7 @@ private fun cmdFromNq(args: List<String>): Int {
     val text =
         try {
             if (positional[0] == "-") {
-                System.`in`.readBytes().decodeToString()
+                System.`in`.readBytes().decodeToString(throwOnInvalidSequence = true)
             } else {
                 Files.readString(Path.of(positional[0]))
             }
@@ -302,7 +302,7 @@ private fun cmdFromNq(args: List<String>): Int {
         }
     val bytes =
         try {
-            fromNQuads(text)
+            fromNQuadsV2(text)
         } catch (err: Exception) {
             System.err.println("gts from-nq: ${err.message}")
             return 1
