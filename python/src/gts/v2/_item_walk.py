@@ -28,6 +28,25 @@ class ItemWalk:
             return known
         return self._delimit(offset, len(self._data))
 
+    def peek(self, offset: int) -> int | None:
+        """Hold the following item for a potential healing witness."""
+        if offset >= len(self._data):
+            return None
+        known = self._held.get(offset)
+        if isinstance(known, ItemFramingError):
+            return None
+        if known is not None:
+            return known
+        try:
+            end = self._delimit(offset, len(self._data))
+        except ItemCountReached:
+            return None
+        except ItemFramingError as error:
+            self._held[offset] = error
+            return None
+        self._held[offset] = end
+        return end
+
     def _delimit(self, offset: int, bound: int) -> int:
         if self._count >= self._limit:
             raise ItemCountReached

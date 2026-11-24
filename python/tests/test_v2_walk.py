@@ -30,6 +30,11 @@ _PAYLOAD = {"verified": 1, "damaged": 2, "unchecked": 3}
         "lineage-previous-unreadable",
         "links-unavailable-lineage-not-compared",
         "resync-after-undelimitable",
+        "resync-after-torn-swallowed-failing",
+        "resync-after-torn-swallowed-passing",
+        "resync-heal-no-witness-past-region",
+        "resync-other-generation-scanned",
+        "resync-newer-kind-not-scanned",
         "resync-first-item-torn",
     ],
 )

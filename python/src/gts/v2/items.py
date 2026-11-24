@@ -71,21 +71,19 @@ def classify_item(data: bytes, offset: int = 0, *, registry_version: int = 1) ->
 
 
 def _classify_framed_item(
-    data: bytes, offset: int, end: int, registry_version: int | None
+    data: bytes, offset: int, end: int, registry_version: int
 ) -> Item:
     major, count, tag_at = _head(data, offset, offset)
     if major != 4 or count == 0:
-        return _unclassified(offset, end, registry_version)
+        return Item("opaque", offset, end, "wrong_type")
     major, tag, after_tag = _head(data, tag_at, offset)
     if major != 0 or tag is None:
-        return _unclassified(offset, end, registry_version)
+        return Item("opaque", offset, end, "wrong_type")
     if tag == 1:
         return Item("header", offset, end)
     if tag == 5:
         return Item("resync", offset, end)
 
-    if registry_version is None:
-        return Item("unchecked", offset, end)
     if tag_at - offset != _shortest_head_size(count) or (
         after_tag - tag_at != _shortest_head_size(tag)
     ):
@@ -101,12 +99,6 @@ def _classify_framed_item(
     if tag == 0 or registry_version <= 1:
         return Item("opaque", offset, end, "unregistered_value")
     return Item("opaque", offset, end, "unknown_item_kind")
-
-
-def _unclassified(offset: int, end: int, registry_version: int | None) -> Item:
-    if registry_version is None:
-        return Item("unchecked", offset, end)
-    return Item("opaque", offset, end, "wrong_type")
 
 
 def encode_offsets(item_lengths: Sequence[int]) -> bytes:
@@ -144,8 +136,10 @@ def recognize_locator(data: bytes) -> int | None:
     return index_at if end <= offset else None
 
 
-def _offsets_hold(data: bytes, items: Sequence[Item], position: int) -> bool:
-    decoder = _Decoder(data, items[position].offset, WireError)
+def _offsets_hold(
+    data: bytes, item: Item, items: Sequence[Item] = (), position: int = 0
+) -> bool:
+    decoder = _Decoder(data, item.offset, WireError)
     decoder.record(2)
     decoder.uint(minimum=4, maximum=4)
     count = decoder.array()
@@ -167,6 +161,17 @@ def _locator_distance(data: bytes, item: Item) -> int:
         raise WireError("not_deterministic", offset)
     # A framed uint with this head has exactly eight argument bytes.
     return int.from_bytes(data[offset + 1 : item.end], "big")
+
+
+def _closing_grammar_failed(data: bytes, item: Item) -> bool:
+    try:
+        if item.kind == "offsets":
+            _offsets_hold(data, item)
+        elif item.kind == "locator":
+            _locator_distance(data, item)
+    except WireError:
+        return True
+    return False
 
 
 def check_closing_items(data: bytes, items: Sequence[Item]) -> list[ClosingFinding]:
@@ -196,7 +201,7 @@ def check_closing_items(data: bytes, items: Sequence[Item]) -> list[ClosingFindi
                 results.append(ClosingFinding(position, "unordered_or_repeated"))
                 continue
             try:
-                holds = _offsets_hold(data, items, position)
+                holds = _offsets_hold(data, item, items, position)
             except WireError as error:
                 results.append(ClosingFinding(position, error.reason))
             else:

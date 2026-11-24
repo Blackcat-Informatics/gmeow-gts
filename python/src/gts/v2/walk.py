@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Walk segment boundaries and check the wire fields of Python v2 input."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ._item_walk import ItemCountReached, ItemWalk
 from .dispatch import (
@@ -15,12 +15,13 @@ from .dispatch import (
 )
 from .frame import Frame, FrameError, _decode_framed
 from .framing import ItemFramingError
-from .header import DecodedHeader
+from .header import DecodedHeader, HeaderError
 from .items import (
     ClosingFinding,
     Item,
     ItemKind,
     _classify_framed_item,
+    _closing_grammar_failed,
     check_closing_items,
 )
 from .link import FrameLink, FrameLinkFields, check_frame_link, inspect_link_item
@@ -55,32 +56,36 @@ class WireRead:
     scan_refusals: tuple[ResyncRefusal, ...]
 
 
-@dataclass(frozen=True, slots=True)
-class _PendingFrame:
-    fields: FrameLinkFields
-    frame: Frame | FrameError
-    payload: PayloadCheck | None
-
-
 class _Segment:
     def __init__(self, item: Item, opener: Opener, *, scanned: bool) -> None:
         self.items = [item]
         self.opener = opener
         self.scanned = scanned
-        self.frames: dict[int, _PendingFrame] = {}
+        self.frames: list[WireFrame] = []
+        self.provisional: tuple[FrameLinkFields, bytes] | None = None
         self.identifier = None
         self.registry = None
         if isinstance(opener, DecodedHeader | DecodedResync):
             self.identifier = opener.identifier
             if self.identifier is not None:
                 self.registry = opener.header.registry_version
+        self.predecessor = self.identifier
 
-    def add(self, data: bytes, item: Item, budget: PayloadBudget) -> None:
+    def add(self, item: Item, frame: WireFrame | None = None) -> None:
         self.items.append(item)
-        if item.kind != "frame":
-            return
+        if frame is not None:
+            self.frames.append(frame)
+            if frame.link.effective_identifier is not None:
+                self.predecessor = frame.link.effective_identifier
+
+    def inspect(
+        self, data: bytes, item: Item, budget: PayloadBudget, walk: ItemWalk
+    ) -> tuple[WireFrame, tuple[FrameLinkFields, bytes] | None]:
         fields, _ = inspect_link_item(data, item.offset)
-        assert fields is not None and self.registry is not None
+        predecessor = self.predecessor
+        assert (
+            fields is not None and self.registry is not None and predecessor is not None
+        )
         frame: Frame | FrameError
         try:
             frame = _decode_framed(data, item.offset, self.registry)
@@ -89,29 +94,34 @@ class _Segment:
             payload = None
         else:
             payload = budget.check(frame)
-        self.frames[item.offset] = _PendingFrame(fields, frame, payload)
+        link = check_frame_link(fields, predecessor)
+        if (
+            link.state == "broken"
+            and not fields.transparent
+            and fields.stored_identifier is not None
+            and link.computed_identifier is not None
+            and walk.peek(item.end) is not None
+        ):
+            witness, _ = inspect_link_item(data, item.end)
+            link = check_frame_link(fields, predecessor, witness)
+        provisional = (fields, predecessor) if link.state == "healed" else None
+        return WireFrame(item, frame, link, payload), provisional
+
+    def scan_start(self, failure: int) -> int:
+        return failure if self.provisional is not None else self.items[-1].offset + 1
+
+    def reject_witness(self) -> None:
+        if self.provisional is not None:
+            fields, predecessor = self.provisional
+            self.frames[-1] = replace(
+                self.frames[-1], link=check_frame_link(fields, predecessor)
+            )
+            self.provisional = None
 
     def finish(self, data: bytes, end: int) -> WireSegment:
         start = self.items[0].offset
-        predecessor = self.identifier
-        frames = []
         closing: tuple[ClosingFinding, ...] = ()
-        if predecessor is not None:
-            for position, item in enumerate(self.items):
-                current = self.frames.get(item.offset)
-                if current is None:
-                    continue
-                following = (
-                    self.frames.get(self.items[position + 1].offset)
-                    if position + 1 < len(self.items)
-                    else None
-                )
-                link = check_frame_link(
-                    current.fields, predecessor, following.fields if following else None
-                )
-                if link.effective_identifier is not None:
-                    predecessor = link.effective_identifier
-                frames.append(WireFrame(item, current.frame, link, current.payload))
+        if self.identifier is not None:
             closing = tuple(check_closing_items(data, self.items))
         return WireSegment(
             start,
@@ -119,7 +129,7 @@ class _Segment:
             self.opener,
             self.scanned,
             tuple(self.items),
-            tuple(frames),
+            tuple(self.frames),
             closing,
         )
 
@@ -131,11 +141,11 @@ def walk_file(
     items_per_read: int = 1 << 26,
     first_and_second: bool = False,
 ) -> WireRead:
-    """Walk complete items and resync at a loss of CBOR item boundaries.
+    """Walk items and recover at failed items or lost CBOR boundaries.
 
     Frame events expose link checks and payload checks for decoded envelopes.
     Closing records use observed item boundaries. This wire pass does not
-    perform parity recovery or scans triggered by a bad complete frame.
+    perform parity recovery.
     """
     walk = ItemWalk(data, items_per_read)
     scanner = ResyncScanner(data, budget)
@@ -159,6 +169,11 @@ def walk_file(
     )
     segments = []
     while offset < len(data):
+        framing_error = None
+        item = None
+        opener = None
+        frame = None
+        provisional = None
         try:
             end = walk.take(offset)
         except ItemCountReached:
@@ -169,19 +184,39 @@ def walk_file(
             )
             break
         except ItemFramingError as error:
-            candidate = (
-                scanner.scan(segment.items[-1].offset + 1, len(data))
-                if walk.scan_admitted(len(data))
-                else None
-            )
-            if not isinstance(candidate, DecodedResync):
-                if isinstance(candidate, ResyncRefusal):
-                    refusals.append(candidate)
-                findings.append(
-                    DispatchFinding(error.reason, offset, len(data) - offset)
+            framing_error = error
+            end = len(data)
+            failed = True
+        else:
+            # Outside a readable segment, a newer registry admits otherwise
+            # unknown kinds for the framing test, but only openers are reported.
+            item = _classify_framed_item(data, offset, end, segment.registry or 2)
+            if item.kind in ("header", "resync"):
+                opener = _decode_opener(data, offset, resync=item.kind == "resync")
+                failed = isinstance(opener, HeaderError | ResyncError)
+            elif segment.registry is None:
+                failed = _classification_failed(item)
+                item = Item("unchecked", offset, end)
+            elif item.kind == "frame":
+                frame, provisional = segment.inspect(data, item, budget, walk)
+                failed = (
+                    isinstance(frame.frame, FrameError) or frame.link.state == "broken"
                 )
-                break
+            else:
+                failed = _classification_failed(item) or _closing_grammar_failed(
+                    data, item
+                )
+
+        candidate = None
+        if failed and walk.scan_admitted(end):
+            result = scanner.scan(segment.scan_start(offset), end)
+            if isinstance(result, ResyncRefusal):
+                refusals.append(result)
+            else:
+                candidate = result
+        if candidate is not None:
             walk.accept_resync()
+            segment.reject_witness()
             gap = _gap_finding(data, offset, candidate.offset)
             boundary = candidate.offset
             if gap is not None:
@@ -197,13 +232,23 @@ def walk_file(
             )
             continue
 
-        item = _classify_framed_item(data, offset, end, segment.registry)
-        if item.kind in ("header", "resync"):
+        if framing_error is not None:
+            findings.append(
+                DispatchFinding(framing_error.reason, offset, len(data) - offset)
+            )
+            break
+
+        assert item is not None
+        if opener is not None:
             segments.append(segment.finish(data, offset))
-            opener = _decode_opener(data, offset, resync=item.kind == "resync")
             segment = _Segment(item, opener, scanned=False)
         else:
-            segment.add(data, item, budget)
+            segment.add(item, frame)
+            segment.provisional = provisional
         offset = end
     segments.append(segment.finish(data, offset))
     return WireRead(dispatch, tuple(segments), tuple(findings), tuple(refusals))
+
+
+def _classification_failed(item: Item) -> bool:
+    return item.kind == "opaque" and item.reason != "unknown_item_kind"

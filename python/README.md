@@ -43,8 +43,10 @@ result gives the offset at which the caller can continue after an opener.
 `first_and_second=True` also enables selection of the legacy reader.
 Use `gts.v2.walk_file(data, budget)` to inspect segment byte ranges, frame
 links, payload checks on decoded envelopes, and closing item claims. The
-walk shares limits across segments and scans for resync after a loss of
-CBOR item boundaries.
+walk shares limits across segments and scans for resync after framing
+loss, including complete items that fail the framing test. A healing
+witness remains provisional until the reader decides whether recovery
+replaces it.
 `gts.v2.decode_frame(data, offset=0)` reads a frame envelope, preserves its exact
 identity fields and exposes separate checks for stored and decoded payloads.
 `gts.v2.encode_plain_frame(predecessor, frame_type, content, payload)` builds an
