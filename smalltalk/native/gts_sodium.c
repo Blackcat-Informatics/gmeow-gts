@@ -12,6 +12,10 @@ int gts_sodium_init(void) {
     return sodium_init();
 }
 
+int gts_sha512(const uint8_t *message, size_t message_len, uint8_t *digest) {
+    return crypto_hash_sha512(digest, message, (unsigned long long)message_len);
+}
+
 size_t gts_ed25519_publickeybytes(void) {
     return crypto_sign_ed25519_PUBLICKEYBYTES;
 }

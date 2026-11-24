@@ -161,3 +161,13 @@ GtsSodium class >> verify: signature message: message publicKey: publicKey [
 		length: messageBytes size
 		publicKey: publicKeyBytes) = 0
 ]
+
+{ #category : #hashing }
+GtsSodium class >> sha512: message [
+	| digest result |
+	self ensureInitialized.
+	digest := ByteArray new: 64.
+	result := GtsSodiumLibrary uniqueInstance sha512: message length: message size output: digest.
+	self requireSuccess: result.
+	^ digest
+]

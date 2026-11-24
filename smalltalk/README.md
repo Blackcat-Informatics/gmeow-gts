@@ -47,7 +47,13 @@ It validates index payloads and compares their frame count, head, type runs,
 and range root against the observed prefix. It compares graph and pack-member
 directories when their covered frames can be read. Graph directory comparison
 also requires written term identities for multi-row annotation frames.
-Index fold statistics, content digests, and v2 signatures require additional support.
+Index fold statistics and content digests require additional support.
+
+Signatures using Ed25519 can be verified with `--key KEY_ID:PUBLIC_KEY`.
+Supply the GTS v2 key identifier and the raw public key in hexadecimal.
+The verifier reports invalid signatures as errors and reports signatures
+without a held key as unverified. Composite signature verification and
+authentication coverage require additional support.
 
 `gts from-nq` writes a committed v2 segment. It preserves named graphs,
 language direction, and nested object triples, and uses value references

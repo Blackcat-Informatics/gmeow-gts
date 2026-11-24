@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2FrameEnvelope,
 	#superclass : #Object,
-	#instVars : [ 'frameType', 'problem', 'identityStart', 'identityEnd', 'transparent', 'storedIdentifier', 'payload', 'content' ],
+	#instVars : [ 'frameType', 'problem', 'identityStart', 'identityEnd', 'transparent', 'storedIdentifier', 'payload', 'content', 'signatureRecords' ],
 	#category : #'Gts-Core'
 }
 
@@ -35,6 +35,11 @@ GtsV2FrameEnvelope >> payload [
 { #category : #accessing }
 GtsV2FrameEnvelope >> content [
 	^ content
+]
+
+{ #category : #accessing }
+GtsV2FrameEnvelope >> signatureRecords [
+	^ signatureRecords
 ]
 
 { #category : #testing }
@@ -95,7 +100,9 @@ GtsV2FrameEnvelope >> check: fields newer: newer [
 	self observe: [ identifier byteBodyOfSize: 32 ].
 	storedIdentifier := identifier observedIdentifier.
 	signatures := fields next.
-	self observe: [ self checkSignatures: signatures newer: newer parity: parity ].
+	signatureRecords := self observe: [
+		self checkSignatures: signatures newer: newer parity: parity.
+		signatures size <= (1 bitShift: 26) ifTrue: [ signatures ] ].
 	(length isNotNil and: [ (frameType = 8 and: [ length = 0 ])
 		or: [ (#(12 14) includes: frameType) and: [ length ~= 0 ] ] ])
 		ifTrue: [ self recordProblem: 'out_of_range' ].

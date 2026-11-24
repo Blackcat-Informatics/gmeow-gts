@@ -238,6 +238,71 @@ GtsVerifyTest >> testV2MalformedIndexDoesNotReportPartialClaims [
 ]
 
 { #category : #private }
+GtsVerifyTest >> v2SignatureResults: case [
+	| decoded held verifier bytes header results |
+	decoded := GtsCborReader decode: (GtsHex decode: (case at: 'read_result')).
+	held := ((decoded at: 6) second select: [ :entry | entry second = 1 ])
+		collect: [ :entry | (GtsHex encode: entry first) -> entry third ].
+	verifier := GtsV2SignatureChecks held: held reversed, held.
+	bytes := ('/workspace/vectors/v2/P6/', (case at: 'input_file')) asFileReference
+		binaryReadStreamDo: [ :stream | stream upToEnd ].
+	results := OrderedCollection new.
+	(GtsV2Wire inspect: bytes) eventsDo: [ :event |
+		event startsSegment
+			ifTrue: [ header := event effectiveIdentifier ]
+			ifFalse: [
+				header ifNotNil: [
+					verifier event: event header: header resultsDo: [ :algorithm :kid :status :reason |
+						results add: { status. reason } ] ] ] ].
+	^ results asArray
+]
+
+{ #category : #private }
+GtsVerifyTest >> assertV2SignatureVector: name results: expected [
+	| json |
+	json := self jsonVectorAt: '/workspace/vectors/v2/P6/', name, '.json'.
+	(json at: 'cases') do: [ :case |
+		self assert: (self v2SignatureResults: case) = expected description: (case at: 'input_file') ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2Ed25519SignaturePolicy [
+	#(
+		('ed25519-honest' nil)
+		('ed25519-mixed-order-valid' nil)
+		('ed25519-mixed-order-cofactored-only' 'equation_failed')
+		('ed25519-key-non-canonical-sign' 'equation_failed')
+		('ed25519-key-non-canonical-y' 'equation_failed')
+		('ed25519-key-off-curve' 'equation_failed')
+		('ed25519-order-scalar-key' 'non_canonical_scalar')
+		('ed25519-order-key-nonce' 'small_order_key')
+		('ed25519-length-63' 'value_length')
+		('ed25519-length-65' 'value_length')
+	) do: [ :test |
+		self assertV2SignatureVector: test first
+			results: { { (test second ifNil: [ 'valid' ] ifNotNil: [ 'invalid' ]). test second } } ].
+	1 to: 8 do: [ :index |
+		self assertV2SignatureVector: 'ed25519-key-small-order-', index printString
+			results: #(('invalid' 'small_order_key')).
+		self assertV2SignatureVector: 'ed25519-nonce-small-order-', index printString
+			results: #(('invalid' 'small_order_nonce')) ]
+]
+
+{ #category : #tests }
+GtsVerifyTest >> testV2SignatureKeysAndEffectiveSubjects [
+	#(
+		('key-held-order' 'valid' nil)
+		('key-mismatch-two-entries' 'valid' nil)
+		('key-mismatch-bytes' 'invalid' 'key_mismatch')
+		('key-trusted-not-held' 'unverified' 'key_not_held')
+		('key-length-short' 'invalid' 'value_length')
+		('subject-healed-frame' 'valid' nil)
+		('cov-broken-signed-frame' 'valid' nil)
+	) do: [ :test | self assertV2SignatureVector: test first results: { test allButFirst } ].
+	self assertV2SignatureVector: 'sig-list-unordered' results: #()
+]
+
+{ #category : #private }
 GtsVerifyTest >> v2Vector: name [
 	^ ('/workspace/vectors/v2/P5/', name, '.bin') asFileReference
 		binaryReadStreamDo: [ :stream | stream upToEnd ]
