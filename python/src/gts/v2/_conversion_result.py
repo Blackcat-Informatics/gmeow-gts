@@ -16,8 +16,6 @@ from ._conversion_output import (
 )
 from ._decode import WireError, _Decoder
 from .conversion_fold import ConversionStop
-from .frame import decode_frame
-from .items import classify_item
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -121,23 +119,6 @@ class Converted:
     proof: ConversionProof
 
 
-def _frame_limit_exceeded(data: bytes, capacity: ConversionCapacity) -> bool:
-    """Check the stored content, payload, and decoded length of written frames."""
-    offset = 0
-    while offset < len(data):
-        item = classify_item(data, offset)
-        if item.kind == "frame":
-            frame = decode_frame(data, offset)
-            if (
-                len(frame.content) > capacity.stored_bytes_per_frame
-                or len(frame.stored_payload) > capacity.stored_bytes_per_frame
-                or frame.decoded_length > capacity.decoded_bytes_per_frame
-            ):
-                return True
-        offset = item.end
-    return False
-
-
 def _convert(
     read: Callable[[], bytes],
     read_result: Callable[[bytes, ConversionCapacity], ResultRead],
@@ -148,7 +129,7 @@ def _convert(
     if isinstance(candidate, ConversionStop):
         return candidate
     observed = read_result(candidate.file, capacity)
-    if observed.capacity_refused or _frame_limit_exceeded(candidate.file, capacity):
+    if observed.capacity_refused:
         return ConversionStop("source_exceeds_capacity", 0)
     if observed.admitted_digest() != candidate.expected_digest:
         return ConversionStop("content_mismatch", 0)
