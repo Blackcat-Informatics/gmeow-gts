@@ -636,7 +636,7 @@ GtsCLI class >> verifyWire: wire path: path hasKeys: hasKeys [
 									' (expected ', expected printString, ')' ].
 								report value: location, ', item ', position printString, ': ', finding, detail ] ] ] ] ]
 		budget: GtsV2PayloadBudget new
-		decodedWhen: [ :event | event frameType = 15 ].
+		decodedWhen: [ :event | #(13 15) includes: event frameType ].
 	checks ifNotNil: [ self printCommitSummary: checks ordinal: ordinal ].
 	^ clean
 ]
@@ -674,7 +674,7 @@ GtsCLI class >> printCommitSummary: checks ordinal: ordinal [
 		ifFalse: [ 'committed_frames ', checks committedFrames printString ].
 	tail := checks tailPosition ifNil: [ '' ] ifNotNil: [ :position |
 		', uncommitted_tail ', checks tailFrames printString, ' (item ', position printString, ')' ].
-	index := checks hasIndex ifTrue: [ ', index graph, pack and fold claims unchecked' ] ifFalse: [ '' ].
+	index := checks hasIndex ifTrue: [ ', index graph and fold claims unchecked' ] ifFalse: [ '' ].
 	self stdout: '  segment ', ordinal printString, ': ', prefix, tail, index, String lf
 ]
 

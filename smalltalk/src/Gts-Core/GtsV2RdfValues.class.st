@@ -90,38 +90,12 @@ GtsV2RdfValues >> declare: type digest: digest size: length count: count bytes: 
 
 { #category : #private }
 GtsV2RdfValues >> readPack: content bytes: bytes [
-	| head count expectedUnits body directory packed offset unitLength members |
-	head := content fields: 2.
-	count := head next uint.
-	expectedUnits := head next uint.
-	count = 0 ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
-	body := (GtsV2RdfColumns item: bytes) fields: 2.
-	directory := GtsV2RdfColumns read: body next with: [ :record |
-		| fields kind |
-		fields := record fields: 3.
-		kind := fields next uint.
-		(kind between: 1 and: 4) ifFalse: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
-		{ kind + 7. fields next. fields next uint } ].
-	GtsV2RdfColumns requireCount: count in: directory.
-	packed := GtsV2RdfColumns body: body next size: nil.
-	offset := 1.
-	unitLength := 0.
-	members := directory collect: [ :record |
-		| size end member |
-		size := record third.
-		end := offset + size - 1.
-		end > packed size ifTrue: [ GtsV2EnvelopeError signal: 'inconsistent_counts' ].
-		record first <= 9 ifTrue: [ unitLength := unitLength + size ].
-		(record first = 8 and: [ size = 0 ]) ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
-		member := { record first. record second. (packed copyFrom: offset to: end) }.
-		offset := end + 1.
-		member ].
-	(offset = (packed size + 1) and: [ unitLength = expectedUnits ])
-		ifFalse: [ GtsV2EnvelopeError signal: 'inconsistent_counts' ].
-	members do: [ :member | member first <= 9 ifTrue: [
-		self readType: member first content: member second bytes: member third ] ].
-	members do: [ :member | member first >= 10 ifTrue: [
-		self readType: member first content: member second bytes: member third ] ]
+	| pack |
+	pack := GtsV2Pack read: content bytes: bytes.
+	pack membersDo: [ :type :fields :start :size :index |
+		type <= 9 ifTrue: [ self readType: type content: fields bytes: (bytes copyFrom: start to: start + size - 1) ] ].
+	pack membersDo: [ :type :fields :start :size :index |
+		type >= 10 ifTrue: [ self readType: type content: fields bytes: (bytes copyFrom: start to: start + size - 1) ] ]
 ]
 
 { #category : #accessing }
