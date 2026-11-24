@@ -17,7 +17,6 @@ use ed25519_dalek::VerifyingKey;
 use gmeow_gts::cose::{unsupported_algorithm, verify_signatures};
 use gmeow_gts::emojihash::emojihash;
 use gmeow_gts::files::UnpackOptions;
-use gmeow_gts::from_nquads::from_nquads;
 #[cfg(feature = "okf")]
 use gmeow_gts::from_okf::{from_okf_with_options, FromOkfOptions};
 #[cfg(not(feature = "rdf-codecs"))]
@@ -36,6 +35,7 @@ use gmeow_gts::replication::{
 };
 #[cfg(not(feature = "rdf-codecs"))]
 use gmeow_gts::trig::to_trig;
+use gmeow_gts::v2::from_nquads;
 use gmeow_gts::v2::reader::{read_wire, Dispatch, ReadCapacity};
 use gmeow_gts::verify::{extract_transport_key, format_fingerprint};
 use gmeow_gts::wire::{digest_str, hex};

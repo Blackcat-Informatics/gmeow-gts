@@ -10,6 +10,7 @@ use gmeow_gts::from_nquads::from_nquads;
 use gmeow_gts::model::{Term, TermKind, RDF_DIR_LANG_STRING};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::read;
+use gmeow_gts::v2::reader::{read_wire, Dispatch, ReadCapacity};
 use gmeow_gts::writer::Writer;
 
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
@@ -391,9 +392,11 @@ fn cli_from_nq_writes_stdout_when_no_out_path() {
         "stderr: {}",
         String::from_utf8_lossy(&out.stderr)
     );
-    let graph = read(&out.stdout, true, None);
+    let wire = read_wire(&out.stdout, ReadCapacity::default());
+    assert_eq!(wire.dispatch, Some(Dispatch::SecondGeneration));
+    let rdf = wire.whole_rdf_projection().unwrap();
     assert_eq!(
-        sorted_lines(&to_nquads(&graph)),
+        sorted_lines(&rdf.to_nquads().unwrap()),
         vec!["<https://ex/s> <https://ex/p> \"value\" .".to_string()]
     );
 }

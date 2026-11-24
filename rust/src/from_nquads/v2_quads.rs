@@ -3,7 +3,7 @@
 
 //! Intern N-Quads statements for the v2 RDF import mapping.
 
-use super::{has_iri_scheme, is_forbidden_iri_char, Interner, NQuadsParseError, Tokenizer};
+use super::{Interner, NQuadsParseError, Tokenizer};
 use crate::model::{Quad, Term, TermKind, XSD_STRING};
 
 pub(crate) fn parse_v2_quads(text: &str) -> Result<(Vec<Term>, Vec<Quad>), NQuadsParseError> {
@@ -121,7 +121,12 @@ impl Tokenizer<'_> {
         while let Some(ch) = self.bump_char() {
             match ch {
                 '>' => {
-                    validate_iri_text(&text, self.text)?;
+                    oxiri::Iri::parse(text.as_str()).map_err(|error| {
+                        NQuadsParseError::new(format!(
+                            "invalid RDF IRI in {:?}: {error}",
+                            self.text
+                        ))
+                    })?;
                     return Ok(text);
                 }
                 '\\' => match self.bump_char() {
@@ -165,48 +170,6 @@ impl Tokenizer<'_> {
         self.pos = end;
         Ok(self.text[start..end].to_owned())
     }
-}
-
-fn validate_iri_text(text: &str, line: &str) -> Result<(), NQuadsParseError> {
-    if !has_iri_scheme(text) {
-        return Err(NQuadsParseError::new(format!(
-            "IRI must be absolute: {line:?}"
-        )));
-    }
-    let mut chars = text.chars();
-    let mut query = false;
-    let mut fragment = false;
-    while let Some(ch) = chars.next() {
-        let usable = match ch {
-            '%' => (0..2).all(|_| chars.next().is_some_and(|item| item.is_ascii_hexdigit())),
-            '?' if !fragment => {
-                query = true;
-                true
-            }
-            '#' if !fragment => {
-                query = false;
-                fragment = true;
-                true
-            }
-            '#' => false,
-            ascii if ascii.is_ascii() => !is_forbidden_iri_char(ascii),
-            unicode => iri_unicode(unicode, query),
-        };
-        if !usable {
-            return Err(NQuadsParseError::new(format!(
-                "invalid character or percent escape in IRI: {line:?}"
-            )));
-        }
-    }
-    Ok(())
-}
-
-fn iri_unicode(ch: char, query: bool) -> bool {
-    let code = u32::from(ch);
-    // RFC 3987 permits private code points in the query alone.
-    matches!(code, 0xa0..=0xd7ff | 0xf900..=0xfdcf | 0xfdf0..=0xffef | 0xe1000..=0xefffd)
-        || ((0x10000..=0xdfffd).contains(&code) && (code & 0xffff) <= 0xfffd)
-        || (query && matches!(code, 0xe000..=0xf8ff | 0xf0000..=0xffffd | 0x100000..=0x10fffd))
 }
 
 fn blank_start(ch: char) -> bool {
