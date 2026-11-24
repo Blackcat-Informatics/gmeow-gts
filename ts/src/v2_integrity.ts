@@ -15,6 +15,13 @@ export function contextHash(
     context: string,
     ...parts: Uint8Array[]
 ): Uint8Array {
+    return contextHashParts(context, parts);
+}
+
+export function contextHashParts(
+    context: string,
+    parts: Iterable<Uint8Array>,
+): Uint8Array {
     const digest = blake3.create({ context: encoder.encode(context) });
     for (const part of parts) digest.update(part);
     return digest.digest();

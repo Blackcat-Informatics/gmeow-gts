@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-import { isUtf8 } from "node:buffer";
+import { Buffer, isUtf8 } from "node:buffer";
 import { FramingError, head } from "./v2_framing.js";
 
 export class RdfProjectionError extends Error {}
@@ -108,6 +108,16 @@ export class RdfCursor {
 
     text(): string {
         return decodeRdfText(this.body(3));
+    }
+
+    digest(): string {
+        const bytes = this.body(2);
+        requireRdf(bytes.length === 32, "wrong_length");
+        return Buffer.from(
+            bytes.buffer,
+            bytes.byteOffset,
+            bytes.byteLength,
+        ).toString("hex");
     }
 
     deltas(minimum = 0n): bigint[] {

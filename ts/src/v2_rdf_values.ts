@@ -40,6 +40,13 @@ export function readTypedValue(cursor: RdfCursor): TypedValue {
 }
 
 const xsd = "http://www.w3.org/2001/XMLSchema#";
+export const hexDatatype = xsd + "hexBinary";
+
+export function hexLexical(octets: Uint8Array): string {
+    return Buffer.from(octets.buffer, octets.byteOffset, octets.byteLength)
+        .toString("hex")
+        .toUpperCase();
+}
 
 export function typedLiteral(value: TypedValue): {
     lexical: string;
@@ -72,15 +79,7 @@ export function typedLiteral(value: TypedValue): {
             };
         }
         case 5: {
-            const octets = value[1];
-            const lexical = Buffer.from(
-                octets.buffer,
-                octets.byteOffset,
-                octets.byteLength,
-            )
-                .toString("hex")
-                .toUpperCase();
-            return { lexical, datatype: xsd + "hexBinary" };
+            return { lexical: hexLexical(value[1]), datatype: hexDatatype };
         }
     }
 }
