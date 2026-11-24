@@ -53,17 +53,19 @@ export interface FrameLink {
     effective?: Uint8Array;
 }
 
+export function frameIdentifier(
+    predecessor: Uint8Array,
+    identity: Uint8Array,
+): Uint8Array {
+    return contextHash("gts2 frame", framePrefix, predecessor, identity);
+}
+
 function frameId(
     current: FrameBytes,
     predecessor: Uint8Array,
 ): Uint8Array | undefined {
     if (current.identity === undefined) return;
-    return contextHash(
-        "gts2 frame",
-        framePrefix,
-        predecessor,
-        current.identity,
-    );
+    return frameIdentifier(predecessor, current.identity);
 }
 
 export function checkLink(

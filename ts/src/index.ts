@@ -5,6 +5,7 @@ export { Graph, Term, Quad, Triple, TermKind } from "./model.js";
 export type { StreamableInfo } from "./model.js";
 export { Read, ReadFileSegments } from "./reader.js";
 export { Writer, digestString } from "./writer.js";
+export { V2SegmentWriter, type V2SegmentOptions } from "./v2_writer.js";
 export { toNQuads } from "./nquads.js";
 export { fromNQuads, NQuadsParseError } from "./from_nquads.js";
 export { pack, unpack, diff } from "./files.js";
