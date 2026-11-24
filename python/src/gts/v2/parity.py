@@ -90,7 +90,7 @@ def _read_content(decoder: _Decoder) -> tuple[int, int, int, bytes, bytes]:
 
 
 def _valid_table(
-    data: bytes,
+    data: bytes | memoryview,
     payload_at: int,
     payload_end: int,
     layout: _Layout,

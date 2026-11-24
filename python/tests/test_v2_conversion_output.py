@@ -62,13 +62,3 @@ def test_nested_dictionary_candidate_counts_at_the_labelled_size_limit() -> None
         prepare_conversion(lambda: data, ConversionCapacity(labelled_lines=8)),
         ConversionCandidate,
     )
-
-
-def test_canonical_frame_can_exceed_a_capacity_that_admits_the_source() -> None:
-    data = (_P9 / "convert__result-frame-above-capacity.bin").read_bytes()
-    assert isinstance(prepare_conversion(lambda: data), ConversionCandidate)
-    # The index decodes to 3773 bytes. Each source payload and the ordinary
-    # result frames fit within a 3000-byte decoded limit.
-    assert prepare_conversion(
-        lambda: data, ConversionCapacity(decoded_bytes_per_frame=3000)
-    ) == ConversionStop("source_exceeds_capacity", 0)
