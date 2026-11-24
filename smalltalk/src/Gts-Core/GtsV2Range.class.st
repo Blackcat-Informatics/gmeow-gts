@@ -40,5 +40,5 @@ GtsV2Range >> root [
 GtsV2Range >> hash: elements context: context [
 	| encoded |
 	encoded := GtsCborWriter encode: elements.
-	^ GtsBlake3 deriveWith: context prefix: #[] bytes: encoded from: 1 to: encoded size + 1
+	^ GtsBlake3 deriveWith: context bytes: encoded
 ]

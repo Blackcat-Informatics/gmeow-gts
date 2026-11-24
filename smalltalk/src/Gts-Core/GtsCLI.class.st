@@ -200,7 +200,7 @@ GtsCLI class >> runFold: args [
 
 { #category : #commands }
 GtsCLI class >> runFromNQuads: args [
-	| outPath paths text |
+	| outPath paths text bytes |
 	outPath := nil.
 	paths := OrderedCollection new.
 	1 to: args size do: [ :index |
@@ -211,9 +211,10 @@ GtsCLI class >> runFromNQuads: args [
 					ifTrue: [ paths add: (args at: index) ] ] ].
 	paths size = 1 ifFalse: [ self stderr: self usage. ^ 2 ].
 	text := self readText: paths first.
+	bytes := GtsFromNQuads v2FromString: text.
 	outPath
-		ifNil: [ self stdoutBytes: (GtsFromNQuads fromString: text) ]
-		ifNotNil: [ self writeFile: outPath bytes: (GtsFromNQuads fromString: text) ].
+		ifNil: [ self stdoutBytes: bytes ]
+		ifNotNil: [ self writeFile: outPath bytes: bytes ].
 	^ 0
 ]
 

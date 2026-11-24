@@ -16,6 +16,49 @@ GtsFromNQuadsTest >> roundTrip: nquads [
 ]
 
 { #category : #tests }
+GtsFromNQuadsTest >> testV2ImportCommitsAndDeduplicatesSimpleLiterals [
+	| line duplicate bytes checks types |
+	line := '<https://e/s> <https://e/p> "value" .', String lf.
+	duplicate := '<https://e/s> <https://e/p> "value"^^<http://www.w3.org/2001/XMLSchema#string> .', String lf.
+	bytes := GtsFromNQuads v2FromString: line.
+	self assert: (GtsFromNQuads v2FromString: line, duplicate, line) equals: bytes.
+	types := OrderedCollection new.
+	(GtsV2Wire inspect: bytes) eventsDo: [ :event |
+		event startsSegment
+			ifTrue: [ checks := GtsV2CommitChecks openedBy: event effectiveIdentifier ]
+			ifFalse: [
+				self assert: event link equals: #linked.
+				self assert: event payload state equals: #verified.
+				types add: event frameType.
+				checks observe: event findingsDo: [ :reason :position :count | self fail: reason ] ] ].
+	self assert: types asArray equals: #(1 2 14).
+	self assert: checks committedFrames equals: 3
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2ImportChecksQuotedTripleRolesAndUnicodeEscapes [
+	self
+		should: [ GtsFromNQuads v2FromString:
+			'<https://e/s> <https://e/p> <<( "literal" <https://e/p> <https://e/o> )>> .' ]
+		raise: GtsParserError.
+	self
+		should: [ GtsFromNQuads v2FromString: '<https://e/s> <https://e/p> "\uD800" .' ]
+		raise: GtsParserError.
+	self assert: (GtsFromNQuads v2FromString: '<https://e/\u0073> <https://e/p> "v" . # comment')
+		equals: (GtsFromNQuads v2FromString: '<https://e/s> <https://e/p> "v" .')
+]
+
+{ #category : #tests }
+GtsFromNQuadsTest >> testV2VersionHintAllowsUnicodeBlankNodesAndChecksLanguage [
+	| source |
+	source := '_:é <https://e/p> "text"@en-US--rtl .'.
+	self assert: (GtsFromNQuads v2FromString: 'VERSION "1.2"', String lf, source)
+		equals: (GtsFromNQuads v2FromString: source).
+	self should: [ GtsFromNQuads v2FromString: '_:é <https://e/p> "text"@9 .' ] raise: GtsParserError.
+	self should: [ GtsFromNQuads v2FromString: '_:é <https://e/p> "text"@en--extra--rtl .' ] raise: GtsParserError
+]
+
+{ #category : #tests }
 GtsFromNQuadsTest >> testFromNQuadsInvertsFoldOutputForCorpusVector [
 	| graph nquads roundTripped |
 	graph := GtsReader read: ('/workspace/vectors/11-datatype-defaulting.gts' asFileReference
