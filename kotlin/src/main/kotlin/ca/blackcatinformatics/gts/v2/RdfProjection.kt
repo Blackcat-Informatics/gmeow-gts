@@ -21,8 +21,8 @@ private class RdfProjector {
     private val graph = Graph()
     private val pool = mutableMapOf<Term, Int>()
     private val rows = RdfRows()
-    private val values = RdfValueIndex()
     private val termBudget = RdfTermBudget()
+    private val values = RdfValueIndex(termBudget)
     private var dictionary = RdfDictionary(graph, pool)
 
     fun project(events: Sequence<WireEvent>): RdfProjection {
@@ -96,6 +96,11 @@ internal class RdfDictionary(private val graph: Graph, private val pool: Mutable
     fun add(kind: Int, term: Term, reference: RdfValueId? = null) =
         append(WrittenTerm(kind, intern(term), reference, null))
 
+    fun addGenerated(kind: Int, lexical: String, datatype: String, reference: RdfValueId? = null) {
+        val iri = intern(Term(TermKind.IRI, datatype))
+        add(kind, Term(TermKind.LITERAL, lexical, datatype = iri), reference)
+    }
+
     fun addBlank(label: ByteString) {
         val id = blanks.getOrPut(label) { intern(Term(TermKind.BNODE, "b${graph.terms.size}")) }
         append(WrittenTerm(3, id, null, null))
@@ -125,11 +130,20 @@ internal class RdfDictionary(private val graph: Graph, private val pool: Mutable
 
 internal class RdfTermBudget {
     private var remaining = 1uL shl 37
-    private var remainingText = 1 shl 28
+    private var remainingText = 1uL shl 28
 
     fun admitText(length: Int) {
-        rdfRequire(length <= remainingText, "projection_text_limit")
-        remainingText -= length
+        admit(length.toULong(), 1uL, "projection_text_limit")
+    }
+
+    fun admitReference(length: ULong, expansion: ULong): Int =
+        admit(length, expansion, "projection_value_limit")
+
+    private fun admit(length: ULong, expansion: ULong, reason: String): Int {
+        rdfRequire(length <= remainingText / expansion, reason)
+        val used = length * expansion
+        remainingText -= used
+        return used.toInt()
     }
 
     fun charge(prefixes: List<ULong>) {

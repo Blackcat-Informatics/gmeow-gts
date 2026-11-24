@@ -133,14 +133,29 @@ private sealed interface TermBlock {
         }
     }
 
-    data class References(val ids: List<RdfValueId>, val forms: LiteralForms) : TermBlock {
-        override val kind = 5
+    data class Values(val column: CborField, override val count: Int) : TermBlock {
+        override val kind = 6
+
+        override fun add(dictionary: RdfDictionary, languages: LanguageTable, values: RdfValueIndex, restart: ULong, budget: RdfTermBudget) {
+            val fields = column.list()
+            while (fields.hasNext()) {
+                val value = readRdfTypedValue(fields.next())
+                dictionary.addGenerated(kind, value.lexical(budget), value.datatype)
+            }
+        }
+    }
+
+    data class References(val ids: List<RdfValueId>, val forms: LiteralForms?) : TermBlock {
+        override val kind = if (forms == null) 7 else 5
         override val count: Int get() = ids.size
 
         override fun add(dictionary: RdfDictionary, languages: LanguageTable, values: RdfValueIndex, restart: ULong, budget: RdfTermBudget) {
             for ((index, id) in ids.withIndex()) {
-                val lexical = values.lexical(id)
-                dictionary.add(kind, forms.literal(index, lexical, dictionary, languages), id)
+                if (forms == null) {
+                    dictionary.addGenerated(kind, values.octets(id), XSD_HEX_BINARY, id)
+                } else {
+                    dictionary.add(kind, forms.literal(index, values.lexical(id), dictionary, languages), id)
+                }
             }
         }
     }
@@ -187,9 +202,9 @@ private fun readBlock(field: CborField): TermBlock {
     val arity = when (kind) {
         1, 4 -> 4
         2 -> 7
-        3 -> 2
+        3, 6 -> 2
         5 -> 6
-        else -> malformed("unsupported_term_kind")
+        else -> 3
     }
     val fields = field.fields(arity)
     fields.next()
@@ -202,11 +217,21 @@ private fun readBlock(field: CborField): TermBlock {
         }
         3 -> TermBlock.Blanks(fields.next().readColumn(CborField::body))
         4 -> TermBlock.Triples(fields.next().uColumn(), fields.next().uColumn(), fields.next().uColumn())
+        6 -> {
+            val column = fields.next()
+            val items = column.list()
+            var count = 0
+            while (items.hasNext()) {
+                readRdfTypedValue(items.next())
+                count++
+            }
+            TermBlock.Values(column, count)
+        }
         else -> {
             val digests = fields.next().readColumn(CborField::digest)
             val lengths = fields.next().uColumn()
             rdfRequire(digests.size == lengths.size, "inconsistent_counts")
-            TermBlock.References(digests.zip(lengths, ::RdfValueId), fields.forms(digests.size))
+            TermBlock.References(digests.zip(lengths, ::RdfValueId), if (kind == 5) fields.forms(digests.size) else null)
         }
     }
 }

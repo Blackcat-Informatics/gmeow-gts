@@ -52,6 +52,24 @@ class RdfProjectionTest {
         assertEquals("byte 11: wrong_length", invalid.message)
     }
 
+    @Test
+    fun projectsTypedStorageAndCoalescesEqualRdfLiterals() {
+        val xsd = "http://www.w3.org/2001/XMLSchema#"
+        assertEquals(
+            "<http://e/s> <http://e/p> \"7\"^^<" + xsd + "nonNegativeInteger> .\n",
+            renderRdfProjection(fixture("terms-value-equals-text")),
+        )
+        val text = renderRdfProjection(fixture("terms-value-not-read-from-text"))
+        assertEquals(2, text.lineSequence().count { it.isNotEmpty() })
+        assertTrue(text.contains("\"07\"^^<"))
+        assertTrue(text.contains("\"7\"^^<"))
+        assertTrue(renderRdfProjection(fixture("terms-literal-value-ref")).contains("\"FF0041\"^^<" + xsd + "hexBinary>"))
+        for (suffix in listOf("before", "after", "nanoseconds")) {
+            val outOfRange = assertFailsWith<RdfProjectionFailure> { fixture("terms-value-time-range." + suffix) }
+            assertTrue(outOfRange.message.orEmpty().contains("out_of_range"))
+        }
+    }
+
     private fun fixture(name: String): RdfProjection {
         val bytes = Path("../vectors/v2/P3/$name.bin").readBytes()
         val wire = assertIs<WireInspection.VersionTwo>(inspectWire(bytes, retainDecoded = true))

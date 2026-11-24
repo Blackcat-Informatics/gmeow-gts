@@ -11,13 +11,13 @@ private data class ValueDeclaration(val type: Int, val id: RdfValueId, val count
 
 private data class PackMember(val declaration: ValueDeclaration, val size: ULong)
 
-internal class RdfValueIndex {
+internal class RdfValueIndex(private val budget: RdfTermBudget) {
     private val units = mutableMapOf<ByteString, CborField>()
     private val candidates = mutableMapOf<RdfValueId, List<CborField>>()
     private val texts = mutableMapOf<RdfValueId, String>()
+    private val hexadecimal = mutableMapOf<RdfValueId, String>()
     private var rebuilt = 0uL
     private var refused = false
-    private var remainingText = 1uL shl 28
 
     fun beginSegment() = units.clear()
 
@@ -38,15 +38,21 @@ internal class RdfValueIndex {
     fun lexical(id: RdfValueId): String =
         texts.getOrPut(id) {
             val parts = candidates[id] ?: malformed("missing_value")
-            rdfRequire(id.length <= remainingText, "projection_value_limit")
-            remainingText -= id.length
-            val text = ByteArray(id.length.toInt())
+            val length = budget.admitReference(id.length, 1uL)
+            val text = ByteArray(length)
             var offset = 0
             for (part in parts) {
                 part.data.copyInto(text, offset, part.start, part.end)
                 offset += part.size
             }
             CborField(text, 0, text.size).decodeRdfText()
+        }
+
+    fun octets(id: RdfValueId): String =
+        hexadecimal.getOrPut(id) {
+            val parts = candidates[id] ?: malformed("missing_value")
+            val length = budget.admitReference(id.length, 2uL)
+            buildString(length) { for (part in parts) appendHex(part) }
         }
 
     private fun readUnit(digest: ByteString, body: CborField) {
