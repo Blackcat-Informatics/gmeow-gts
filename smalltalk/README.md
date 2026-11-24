@@ -58,6 +58,11 @@ or the item walk stops before the end of the input. If framing is lost,
 the reader looks for a usable parity frame or resync item and
 continues at the first candidate that passes its checks.
 
+Use `GtsV2Wire>>typedWireFindings` to consume generation, framing, recovery
+scan capacity, and parity findings in their P2 record form. The report
+provides file, segment, and frame findings at their P7 locations and
+produces the P7 file record when the input has no segment.
+
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.
 After a detached frame, prefix claims that depend on lost frames fail verification.

@@ -6,6 +6,44 @@ Class {
 	#category : #'Gts-Tests'
 }
 
+{ #category : #tests }
+GtsV2WireTest >> testTypedFileResultForInputWithoutSegments [
+	#(
+		'P7/read__empty'
+		'P7/read__not-this-format'
+		'P7/read__generation-three'
+		'P1/file-first-undelimitable'
+	) do: [ :name |
+		| root fixture |
+		root := '/workspace/vectors/v2/' asFileReference / (name copyUpTo: $/).
+		fixture := STONJSON fromString: (('/workspace/vectors/v2/', name, '.json') asFileReference contents).
+		(fixture at: 'cases') do: [ :entry |
+			| input expected report |
+			input := (root / (entry at: 'input_file')) binaryReadStreamDo: [ :stream | stream upToEnd ].
+			expected := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+			report := (GtsV2Wire inspect: input) typedWireFindings.
+			self assert: (GtsCborWriter encode: report fileResultWithoutSegments)
+				equals: (GtsCborWriter encode: expected) ] ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTypedItemCountFindingUsesUnreadRangeAndNextCount [
+	| bytes report |
+	bytes := self vector: 'append-empty-file.after'.
+	report := (GtsV2Wire inspect: bytes budget: (GtsV2PayloadBudget new itemLimit: 0)) typedWireFindings.
+	self assert: report fileResultWithoutSegments equals:
+		{ 2. #(). { { 20. #(2 87). #(1). #(1). #(2 0). { 2. bytes size }. #(2 1) } }. #(1). #(1 0). 7. 0 }
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTypedRefusalNamesTheItemThatContainsTheCandidate [
+	| input report |
+	input := self vector: 'resync-limit-torn-signature-at-new-kind.v1'.
+	report := (GtsV2Wire inspect: input budget: (GtsV2PayloadBudget withReadLimit: 4095)) typedWireFindings.
+	self assert: (report segmentFindingsAt: 0)
+		equals: #((20 (2 86) (1) (2 1) (2 3379) (2 4096) (2 4096)))
+]
+
 { #category : #private }
 GtsV2WireTest >> vector: name [
 	^ ('/workspace/vectors/v2/P1/', name, '.bin') asFileReference
