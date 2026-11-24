@@ -3,21 +3,27 @@
 Class {
 	#name : #GtsV2RdfFold,
 	#superclass : #Object,
-	#instVars : [ 'graph', 'pool', 'dictionary', 'blanks', 'values', 'rows', 'textBytes' ],
+	#instVars : [ 'graph', 'pool', 'dictionary', 'blanks', 'values', 'lines', 'suppression', 'textBytes' ],
 	#category : #'Gts-Core'
 }
 
 { #category : #folding }
 GtsV2RdfFold class >> read: wire [
-	^ self new read: wire
+	^ self read: wire visible: true
 ]
 
 { #category : #folding }
-GtsV2RdfFold >> read: wire [
+GtsV2RdfFold class >> read: wire visible: visible [
+	^ self new read: wire visible: visible
+]
+
+{ #category : #folding }
+GtsV2RdfFold >> read: wire visible: visible [
 	graph := GtsGraph new.
 	pool := Dictionary new.
 	values := GtsV2RdfValues new.
-	rows := Set new.
+	lines := OrderedDictionary new.
+	suppression := GtsV2RdfSuppression new.
 	textBytes := 0.
 	wire eventsDo: [ :event |
 		[ [ self observe: event ] on: GtsV2FramingError do: [ :error |
@@ -25,6 +31,7 @@ GtsV2RdfFold >> read: wire [
 			on: GtsV2EnvelopeError
 			do: [ :error | GtsArchiveError signal: 'byte ', event offset printString, ': ', error messageText ] ]
 		budget: GtsV2PayloadBudget new retainDecoded: true.
+	self projectLinesVisible: visible.
 	self validateReachableTerms.
 	^ graph
 ]
@@ -45,6 +52,7 @@ GtsV2RdfFold >> observe: event [
 		^ self ].
 	event kind = #frame ifFalse: [ GtsV2EnvelopeError signal: 'unreadable item' ].
 	(#(linked healed) includes: event link) ifFalse: [ GtsV2EnvelopeError signal: 'broken_link' ].
+	event effectiveIdentifier ifNotNil: [ :identifier | suppression record: identifier segment: blanks ].
 	event storedMatches = false ifTrue: [ GtsV2EnvelopeError signal: 'stored_check_mismatch' ].
 	event payload state = #verified ifFalse: [
 		GtsV2EnvelopeError signal: (event payload reason ifNil: [ 'payload_unavailable' ]) ].
@@ -54,6 +62,8 @@ GtsV2RdfFold >> observe: event [
 	type = 1 ifTrue: [ ^ GtsV2RdfTerms new read: content bytes: bytes fold: self values: values ].
 	(type between: 2 and: 5) ifTrue: [
 		^ GtsV2RdfRows readType: type content: content bytes: bytes into: self ].
+	type = 7 ifTrue: [
+		^ suppression read: content bytes: bytes dictionary: dictionary segment: blanks ].
 	(#(8 9 10 11 13) includes: type) ifTrue: [
 		^ values readType: type content: content bytes: bytes ].
 	(#(6 12 14 15 16) includes: type) ifTrue: [ ^ self ].
@@ -92,8 +102,16 @@ GtsV2RdfFold >> internIri: text [
 
 { #category : #terms }
 GtsV2RdfFold >> addLiteral: text datatype: local [
-	| datatype |
-	datatype := self resolve: local kinds: #(iri).
+	self addTypedLiteral: text datatypeId: (self resolve: local kinds: #(iri))
+]
+
+{ #category : #terms }
+GtsV2RdfFold >> addLiteral: text datatypeIri: iri [
+	self addTypedLiteral: text datatypeId: (self internIri: iri)
+]
+
+{ #category : #private }
+GtsV2RdfFold >> addTypedLiteral: text datatypeId: datatype [
 	dictionary add: (self intern: { #literal. text. datatype } term: [
 		GtsTerm literal: text language: nil datatype: (
 			(graph termAtId: datatype) value = GtsGraph xsdString ifFalse: [ datatype ]) ])
@@ -107,9 +125,18 @@ GtsV2RdfFold >> addLiteral: text language: language direction: direction [
 
 { #category : #terms }
 GtsV2RdfFold >> addTripleSubject: subject predicate: predicate object: object [
-	| components |
-	components := { (self node: subject). (self resolve: predicate kinds: #(iri)). (self resolve: object kinds: nil) }.
-	dictionary add: (self intern: { #triple. components } term: [ GtsTerm tripleComponents: components ])
+	dictionary add: (self internTriple:
+		{ (self node: subject). (self resolve: predicate kinds: #(iri)). (self resolve: object kinds: nil) })
+]
+
+{ #category : #terms }
+GtsV2RdfFold >> internTriple: components [
+	^ self intern: { #triple. components } term: [ GtsTerm tripleComponents: components ]
+]
+
+{ #category : #accessing }
+GtsV2RdfFold >> kindOf: identifier [
+	^ (graph termAtId: identifier) kind
 ]
 
 { #category : #private }
@@ -136,13 +163,25 @@ GtsV2RdfFold >> resolve: local kinds: kinds [
 ]
 
 { #category : #rows }
-GtsV2RdfFold >> addSubject: subject predicate: predicate object: object graph: name [
-	| row |
-	row := { subject. predicate. object }.
-	name ifNotNil: [ row := row copyWith: (self node: name) ].
-	(rows includes: row) ifFalse: [
-		rows add: row.
-		graph addQuad: row ]
+GtsV2RdfFold >> addLine: type terms: terms graph: name [
+	lines at: { type. (name ifNil: [ terms ] ifNotNil: [ terms copyWith: (self node: name) ]) } put: nil
+]
+
+{ #category : #private }
+GtsV2RdfFold >> projectLinesVisible: visible [
+	| rows |
+	suppression resolveWith: self graph: graph.
+	rows := Set new.
+	lines keysDo: [ :line |
+		(visible not or: [ (suppression hides: line first terms: line second) not ]) ifTrue: [
+			| row |
+			row := line second.
+			line first = 3 ifTrue: [
+				row := { row first. (self internIri: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies') },
+					(row allButFirst) ].
+			(rows includes: row) ifFalse: [
+				rows add: row.
+				graph addQuad: row ] ] ]
 ]
 
 { #category : #validation }

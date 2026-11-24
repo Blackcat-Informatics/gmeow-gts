@@ -57,6 +57,9 @@ for large literals.
 and value-referenced text, preserves segment-scoped blank nodes and nested
 object triples, and projects reifier bindings and annotations as RDF quads.
 It reports unreadable inputs and unsupported content frames as errors.
-Typed-value term blocks and suppression frames require additional support.
+The fold projects typed-value term blocks, including referenced octets, to their canonical RDF literals.
+The v2 command writes visible quads by default. Use `gts fold FILE --whole` to
+include hidden quads. Suppression applies to each source line before the fold
+deduplicates the projected quads.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.

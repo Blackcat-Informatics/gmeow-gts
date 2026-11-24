@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2RdfValues,
 	#superclass : #Object,
-	#instVars : [ 'units', 'values', 'texts', 'rebuilt', 'retainedBytes', 'pinned' ],
+	#instVars : [ 'units', 'values', 'texts', 'octets', 'rebuilt', 'retainedBytes', 'pinned' ],
 	#category : #'Gts-Core'
 }
 
@@ -13,6 +13,7 @@ GtsV2RdfValues >> initialize [
 	units := Dictionary new.
 	values := Dictionary new.
 	texts := Dictionary new.
+	octets := Dictionary new.
 	rebuilt := 0.
 	retainedBytes := 0.
 	pinned := IdentitySet new
@@ -108,4 +109,14 @@ GtsV2RdfValues >> textFor: digest length: length [
 		length > 268435456 ifTrue: [ GtsV2EnvelopeError signal: 'referenced text exceeds projection capacity' ].
 		bytes := ByteArray streamContents: [ :stream | parts do: [ :part | stream nextPutAll: part ] ].
 		GtsV2RdfColumns utf8: bytes ]
+]
+
+{ #category : #accessing }
+GtsV2RdfValues >> octetsFor: digest length: length [
+	| key |
+	key := { digest. length }.
+	^ octets at: key ifAbsentPut: [
+		| parts |
+		parts := values at: key ifAbsent: [ GtsV2EnvelopeError signal: 'missing_value' ].
+		GtsV2RdfTypedValue hexOf: parts length: length ]
 ]

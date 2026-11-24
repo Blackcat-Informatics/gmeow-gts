@@ -158,6 +158,11 @@ GtsV2Field >> observedIdentifier [
 ]
 
 { #category : #parsing }
+GtsV2Field >> cursor [
+	^ GtsV2Fields walker: walker from: start to: end bound: end
+]
+
+{ #category : #parsing }
 GtsV2Field >> list [
 	| head |
 	head := self typedHead: 4.
