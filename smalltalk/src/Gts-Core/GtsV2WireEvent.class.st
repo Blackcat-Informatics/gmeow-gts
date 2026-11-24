@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding', 'parityShardFindings', 'resumptionAnchor', 'parityGap', 'detached', 'unknownItemKind' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding', 'parityShardFindings', 'resumptionAnchor', 'parityGap', 'detached', 'unknownItemKind', 'unreadableOpenerOffset' ],
 	#category : #'Gts-Core'
 }
 
@@ -77,6 +77,17 @@ GtsV2WireEvent >> closingClaimFailure: reason [
 { #category : #accessing }
 GtsV2WireEvent >> opener [
 	^ opener
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> statedOpenerOffset [
+	^ opener ifNil: [ unreadableOpenerOffset ] ifNotNil: [ opener statedOffset ]
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> unreadableOpenerOffset: value [
+	unreadableOpenerOffset := value.
+	^ self
 ]
 
 { #category : #accessing }

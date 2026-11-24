@@ -3,14 +3,9 @@
 Class {
 	#name : #GtsV2Opener,
 	#superclass : #Object,
-	#instVars : [ 'registry', 'hashAlgorithm', 'identifier', 'digestLength', 'statedOffset', 'end', 'lineage' ],
+	#instVars : [ 'registry', 'hashAlgorithm', 'identifier', 'digestLength', 'statedOffset', 'end', 'lineage', 'profile', 'past', 'marksIgnored' ],
 	#category : #'Gts-Core'
 }
-
-{ #category : #'instance creation' }
-GtsV2Opener class >> read: item resync: isResync [
-	^ self new read: item resync: isResync
-]
 
 { #category : #'instance creation' }
 GtsV2Opener class >> candidate: item charging: charge [
@@ -41,6 +36,26 @@ GtsV2Opener >> hashAlgorithm [
 { #category : #accessing }
 GtsV2Opener >> identifier [
 	^ identifier
+]
+
+{ #category : #accessing }
+GtsV2Opener >> profile [
+	^ profile
+]
+
+{ #category : #accessing }
+GtsV2Opener >> statedOffset [
+	^ statedOffset
+]
+
+{ #category : #accessing }
+GtsV2Opener >> past [
+	^ past
+]
+
+{ #category : #accessing }
+GtsV2Opener >> marksIgnored [
+	^ marksIgnored
 ]
 
 { #category : #accessing }
@@ -85,8 +100,9 @@ GtsV2Opener >> readPrefix: fields resync: isResync bound: bound candidate: isCan
 	(hashAlgorithm = 0 or: [ (isCandidate or: [ registry = 1 ]) and: [ hashAlgorithm ~= 1 ] ])
 		ifTrue: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
 	digestLength := hashAlgorithm = 1 ifTrue: [ 32 ] ifFalse: [ nil ].
-	fields next optionUpTo: bound do: [ :profile |
-		profile uint = 0 ifTrue: [ GtsV2EnvelopeError signal: 'unregistered_value' ] ].
+	fields next optionUpTo: bound do: [ :value |
+		profile := value uint.
+		profile = 0 ifTrue: [ GtsV2EnvelopeError signal: 'unregistered_value' ] ].
 	isResync ifFalse: [
 		fields next optionUpTo: bound do: [ :claim |
 			| code |
@@ -107,7 +123,8 @@ GtsV2Opener >> readPrefix: fields resync: isResync bound: bound candidate: isCan
 { #category : #parsing }
 GtsV2Opener >> readResyncSuffix: fields item: item bound: bound [
 	| bodyEnd stored first |
-	fields next optionUpTo: bound do: [ :past | past byteBodyOfSize: digestLength ].
+	fields next optionUpTo: bound do: [ :value |
+		past := value bytesStartingAt: (value byteBodyOfSize: digestLength) ].
 	self checkMarks: fields next bound: bound.
 	bodyEnd := fields offset.
 	stored := fields next.
@@ -139,6 +156,7 @@ GtsV2Opener >> checkMarker: field [
 GtsV2Opener >> checkMarks: field bound: bound [
 	| marks count previous mark |
 	marks := field list.
+	marksIgnored := 0.
 	count := 0.
 	[ marks hasNext ] whileTrue: [
 		mark := marks next.
@@ -148,6 +166,64 @@ GtsV2Opener >> checkMarks: field bound: bound [
 		(previous isNotNil and: [ (previous compare: mark) >= 0 ])
 			ifTrue: [ GtsV2EnvelopeError signal: 'unordered_or_repeated' ].
 		mark checkGrammarUpTo: bound.
+		([ self appliesMark: mark ] on: GtsV2EnvelopeError do: [ :error | false ])
+			ifFalse: [ marksIgnored := marksIgnored + 1 ].
 		previous := mark.
 		count := count + 1 ]
+]
+
+{ #category : #validation }
+GtsV2Opener >> appliesMark: mark [
+	| count fields code |
+	count := (mark typedHead: 4) argument.
+	fields := mark list.
+	code := fields next uint.
+	^ code caseOf: {
+		[ 1 ] -> [ count = 4 and: [ self appliesHostileMark: fields ] ].
+		[ 2 ] -> [ count = 5 and: [ self appliesObservedMark: fields ] ].
+		[ 3 ] -> [ count = 2 and: [ self appliesTarget: fields next allowScope: false ] ] }
+		otherwise: [ false ]
+]
+
+{ #category : #validation }
+GtsV2Opener >> appliesTarget: field allowScope: allowScope [
+	| fields code start length count |
+	count := (field typedHead: 4) argument.
+	count = 0 ifTrue: [ ^ false ].
+	fields := field list.
+	code := fields next uint.
+	(code = 1 and: [ count = 1 ]) ifTrue: [ ^ allowScope ].
+	(code = 2 and: [ count = 3 ]) ifFalse: [ ^ false ].
+	start := fields next uint.
+	length := fields next uint.
+	^ length > 0 and: [ start + length <= statedOffset ]
+]
+
+{ #category : #validation }
+GtsV2Opener >> appliesHostileMark: fields [
+	| measures previous |
+	(self appliesTarget: fields next allowScope: true) ifFalse: [ ^ false ].
+	(fields next uint between: 1 and: 9) ifFalse: [ ^ false ].
+	measures := fields next list.
+	previous := 0.
+	[ measures hasNext ] whileTrue: [
+		| pair field |
+		pair := measures next fields: 2.
+		field := pair next uint.
+		(field <= previous or: [ field > 9 ]) ifTrue: [ ^ false ].
+		pair next uint.
+		previous := field ].
+	^ true
+]
+
+{ #category : #validation }
+GtsV2Opener >> appliesObservedMark: fields [
+	| reason |
+	(self appliesTarget: fields next allowScope: false) ifFalse: [ ^ false ].
+	(fields next uint between: 1 and: 48) ifFalse: [ ^ false ].
+	reason := fields next.
+	reason optionUpTo: reason end do: [ :value |
+		(value uint between: 1 and: 92) ifFalse: [ ^ false ] ].
+	fields next uint.
+	^ true
 ]

@@ -135,20 +135,20 @@ GtsV2Wire >> typedWireFindings [
 GtsV2Wire >> typedWireFindingsHeld: held trusted: trusted [
 	| report repair |
 	format = #legacy ifTrue: [ GtsV2EnvelopeError signal: 'the legacy reader has a separate result' ].
-	report := GtsV2WireFindings inputLength: bytes size
-		itemLimit: (initialBudget ifNil: [ 0 ] ifNotNil: [ initialBudget itemLimit ])
-		held: held trusted: trusted.
+	report := GtsV2WireFindings on: bytes budget: initialBudget held: held trusted: trusted.
 	format = #v2 ifTrue: [
 		repair := self eventsDo: [ :event | report observe: event ]
 			decodedWhen: [ :event | GtsV2CommitChecks needsDecoded: event ]
 			unprotectedTailsDo: [ :offset :length | report tailAt: offset length: length ].
 		report finishSegment.
 		repair findings do: [ :finding | report addRepair: finding ].
+		report finishOpeners.
 		^ report ].
 	format = #framingError
 		ifTrue: [ report framingStoppedAt: 0 reason: stopReason ]
 		ifFalse: [ report rejectedGeneration: format firstLength: dispatchEnd ].
 	initialResyncRefusal ifNotNil: [ report observe: initialResyncRefusal ].
+	report finishOpeners.
 	^ report
 ]
 
@@ -495,7 +495,7 @@ GtsV2Wire >> check: event witness: peek predecessor: predecessor [
 
 { #category : #classifying }
 GtsV2Wire >> classifyAt: offset limit: limit registry: registry [
-	| array code kind problem field opener frame framingFailure |
+	| array code kind problem field opener frame framingFailure unreadableOpenerOffset |
 	array := walker headAt: offset limit: limit.
 	code := self recordKind: array limit: limit.
 	kind := #opaque.
@@ -504,9 +504,13 @@ GtsV2Wire >> classifyAt: offset limit: limit registry: registry [
 	field := GtsV2Field walker: walker from: offset to: limit.
 	(kind = #header or: [ kind = #resync ])
 		ifTrue: [
-			[ opener := GtsV2Opener read: field resync: kind = #resync ]
+			opener := GtsV2Opener new.
+			[ opener read: field resync: kind = #resync ]
 				on: GtsV2EnvelopeError
-				do: [ :error | problem := error messageText ].
+				do: [ :error |
+					problem := error messageText.
+					unreadableOpenerOffset := opener statedOffset.
+					opener := nil ].
 			framingFailure := opener isNil ]
 		ifFalse: [
 			problem := self itemProblemFor: array code: code kind: kind registry: (registry ifNil: [ 2 ]).
@@ -522,6 +526,7 @@ GtsV2Wire >> classifyAt: offset limit: limit registry: registry [
 						problem := frame problem ] ] ].
 	^ (GtsV2WireEvent kind: kind from: offset - 1 to: limit - 1 problem: problem)
 		opener: opener frame: frame;
+		unreadableOpenerOffset: unreadableOpenerOffset;
 		unknownItemKind: (problem = 'unknown_item_kind' ifTrue: [ code argument ]);
 		framingFailure: framingFailure
 ]

@@ -51,24 +51,34 @@ GtsBlake3 class >> deriveWith: context prefix: prefix bytes: input from: start t
 
 { #category : #hashing }
 GtsBlake3 class >> deriveWith: context updatingWith: aBlock [
-	| library contextBytes state digest |
+	^ self deriveWith: context snapshottingWith: [ :update :snapshot |
+		aBlock value: update.
+		snapshot value ]
+]
+
+{ #category : #hashing }
+GtsBlake3 class >> deriveWith: context snapshottingWith: aBlock [
+	| library contextBytes state |
 	library := GtsBlake3Library uniqueInstance.
 	contextBytes := context asByteArray.
-	digest := ByteArray new: self digestSize.
 	state := library deriveStateFor: contextBytes length: contextBytes size.
 	(state isNil or: [ state isNull ]) ifTrue: [ GtsCryptoError signal: 'cannot allocate BLAKE3 state' ].
 	[
-		aBlock value: [ :input :start :finish |
+		^ aBlock value: [ :input :start :finish |
 			state ifNil: [ GtsCryptoError signal: 'BLAKE3 state has been released' ].
 			self checkRangeOf: input from: start to: finish.
-			library update: state input: input start: start - 1 length: finish - start ].
-		library finish: state output: digest
+			library update: state input: input start: start - 1 length: finish - start ]
+			value: [
+				| digest |
+				state ifNil: [ GtsCryptoError signal: 'BLAKE3 state has been released' ].
+				digest := ByteArray new: self digestSize.
+				library finish: state output: digest.
+				digest ]
 	] ensure: [
 		| released |
 		released := state.
 		state := nil.
-		library free: released ].
-	^ digest
+		library free: released ]
 ]
 
 { #category : #private }
