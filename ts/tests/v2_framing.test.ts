@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { inspectFraming } from "../src/v2_framing.js";
+import { projectRdf, rdfNQuads } from "../src/v2_rdf_projection.js";
 
 test("framing reports unsupported wire generations without rounding", () => {
     const firstItem = Buffer.from("82011bffffffffffffffff", "hex");
@@ -129,4 +130,85 @@ test("an empty indefinite stored byte string still gets its stored check", () =>
     assert.equal(frame.link?.state, "linked");
     assert.equal(frame.storedMatches, false);
     assert.deepEqual(frame.payload, { state: "damaged" });
+});
+
+test("closing claims use observed item lengths and the last typed index", () => {
+    const cases = [
+        ["offsets-counts-opaque", undefined, undefined],
+        ["offsets-count-short", undefined, "index_offsets"],
+        ["offsets-count-long", undefined, "index_offsets"],
+        ["offsets-length-differs", undefined, "index_offsets"],
+        ["locator-last-index.first", undefined, "index_locator"],
+        ["locator-last-index.second", undefined, undefined],
+        ["locator-index-type-long-form", undefined, "index_locator"],
+        ["locator-short-form", "not_deterministic", undefined],
+    ] as const;
+    for (const [fixture, reason, claim] of cases) {
+        const file = readFileSync(
+            new URL(`../../../vectors/v2/P1/${fixture}.bin`, import.meta.url),
+        );
+        const result = inspectFraming(file);
+        assert.equal(result.kind, "v2", fixture);
+        const last = [...result.records].at(-1);
+        assert.ok(
+            last?.kind === "offsets" || last?.kind === "locator",
+            fixture,
+        );
+        assert.equal(last.reason, reason, fixture);
+        assert.equal(last.closingClaimFailure, claim, fixture);
+    }
+});
+
+test("closing placement takes precedence and resets at the next opener", () => {
+    const opener = Buffer.from("8701020101810181018101", "hex");
+    const offsets = Buffer.of(0x82, 4, 0x81, opener.length);
+    const locator = Buffer.of(0x82, 3, 0);
+    const file = Buffer.concat([
+        opener,
+        offsets,
+        locator,
+        locator,
+        opener,
+        offsets,
+    ]);
+    const result = inspectFraming(file);
+    assert.equal(result.kind, "v2");
+    const claims = [...result.records].filter(
+        (item) => item.kind === "offsets" || item.kind === "locator",
+    );
+    assert.deepEqual(
+        claims.map((item) => item.reason),
+        [
+            "unordered_or_repeated",
+            "unordered_or_repeated",
+            "unordered_or_repeated",
+            undefined,
+        ],
+    );
+    assert.ok(
+        claims.every(
+            (item) =>
+                item.kind !== "stop" && item.closingClaimFailure === undefined,
+        ),
+    );
+});
+
+test("RDF projection keeps its fold when closing grammar or claims fail", () => {
+    const original = readFileSync(
+        new URL(
+            "../../../vectors/v2/P3/project__round-trip-rdf.bin",
+            import.meta.url,
+        ),
+    );
+    const valid = inspectFraming(original, true);
+    assert.equal(valid.kind, "v2");
+    const expected = rdfNQuads(projectRdf(valid));
+    for (const closing of [Buffer.of(0x82, 4, 0x80), Buffer.of(0x82, 3, 0)]) {
+        const damaged = inspectFraming(
+            Buffer.concat([original, closing]),
+            true,
+        );
+        assert.equal(damaged.kind, "v2");
+        assert.equal(rdfNQuads(projectRdf(damaged)), expected);
+    }
 });
