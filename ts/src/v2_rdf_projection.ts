@@ -551,6 +551,7 @@ export function projectRdf(
             throw new RdfProjectionError(
                 `${item.reason} at byte ${item.offset}`,
             );
+        if (item.kind === "offsets" || item.kind === "locator") continue;
         try {
             requireRdf(
                 item.reason === undefined,
@@ -564,7 +565,6 @@ export function projectRdf(
                 projector.open();
                 continue;
             }
-            if (item.kind === "offsets" || item.kind === "locator") continue;
             requireRdf(
                 item.kind === "frame" && item.frameType !== undefined,
                 `unreadable ${item.kind} item`,

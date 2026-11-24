@@ -203,12 +203,13 @@ test("CLI verify checks v2 commits and reports ordinary uncommitted frames", () 
         join(p5, "commit-valid.bin"),
         join(p5, "commit-none.bin"),
         join(p5, "commit-canonical-tail.bin"),
+        join(vectorsDir, "v2", "P1", "locator-last-index.second.bin"),
     ]);
     assert.equal(r.code, 0, r.stderr);
     assert.match(r.stdout, /15-two-segment-union\.gts: 2 segment\(s\)/);
     assert.match(
         r.stdout,
-        /commit-valid\.bin:[^\n]*\n  segment 0: committed_frames 3, uncommitted_tail 1, index claims unchecked/,
+        /commit-valid\.bin:[^\n]*\n  segment 0: committed_frames 3, uncommitted_tail 1, index payload claims unchecked/,
     );
     assert.match(
         r.stdout,
@@ -216,7 +217,7 @@ test("CLI verify checks v2 commits and reports ordinary uncommitted frames", () 
     );
     assert.match(
         r.stdout,
-        /commit-canonical-tail\.bin:[^\n]*\n  segment 0: committed_frames 2, index claims unchecked/,
+        /commit-canonical-tail\.bin:[^\n]*\n  segment 0: committed_frames 2, index payload claims unchecked/,
     );
 });
 
@@ -231,7 +232,6 @@ test("CLI verify refuses v2 wire damage and false commit claims", () => {
         join(p5, "commit-count-mismatch.bin"),
         join(p5, "commit-root-mismatch.bin"),
         join(p5, "commit-payload-nonempty.bin"),
-        join(p5, "locator-closing-index.bin"),
     ]);
     assert.equal(r.code, 1);
     assert.match(r.stderr, /link-healed\.bin: byte \d+: link healed/);
@@ -256,10 +256,19 @@ test("CLI verify refuses v2 wire damage and false commit claims", () => {
         r.stderr,
         /commit-payload-nonempty\.bin: byte \d+: out_of_range/,
     );
-    assert.match(
-        r.stderr,
-        /locator-closing-index\.bin: byte \d+: unsupported locator claim/,
-    );
+});
+
+test("CLI reports failed offsets and locator claims", () => {
+    const p5 = join(vectorsDir, "v2", "P5");
+    const offsets = join(p5, "accelerators-false.offsets.bin");
+    const locator = join(p5, "accelerators-false.locator.bin");
+    for (const command of ["info", "verify"]) {
+        const r = run([command, offsets, locator]);
+        assert.equal(r.code, 1);
+        const diagnostics = r.stdout + r.stderr;
+        assert.match(diagnostics, /index_claim_failed \(index_offsets\)/);
+        assert.match(diagnostics, /index_claim_failed \(index_locator\)/);
+    }
 });
 
 test("CLI verify refuses unsupported v2 key verification and later generations", () => {

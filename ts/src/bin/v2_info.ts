@@ -45,19 +45,22 @@ export function printFramingInfo(
             return false;
         }
         const range = `bytes [${record.offset}, ${record.end})`;
-        const { link, payload, storedMatches } = record;
+        const { link, payload, storedMatches, closingClaimFailure } = record;
         const broken = link !== undefined && link.state !== "linked";
         const payloadUnverified =
             payload !== undefined && payload.state !== "verified";
         const damaged =
             record.reason !== undefined ||
+            closingClaimFailure !== undefined ||
             broken ||
             storedMatches === false ||
             payloadUnverified;
         if (damaged) clean = false;
         const diagnostic =
             record.reason === undefined
-                ? ""
+                ? closingClaimFailure === undefined
+                    ? ""
+                    : `: index_claim_failed (${closingClaimFailure})`
                 : record.frameType === 16n
                   ? `: parity_damaged (${record.reason})`
                   : `: ${record.reason}`;

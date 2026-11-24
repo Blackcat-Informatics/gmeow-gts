@@ -220,6 +220,7 @@ interface RecordEnvelope {
     openerId?: Uint8Array;
     link?: FrameLink;
     storedMatches?: boolean;
+    closingClaimFailure?: "index_offsets" | "index_locator";
     payload?: PayloadCheck;
     content?: Uint8Array;
 }
@@ -855,6 +856,61 @@ function* delimitedRecords(
     }
 }
 
+function offsetsHold(
+    data: Uint8Array,
+    start: number,
+    item: ByteRange,
+    body: Uint8Array,
+    argument: number,
+): boolean {
+    const list = typedHead(body, argument, 4);
+    const prefix = data.subarray(0, item.offset);
+    let observed = start;
+    let matches = true;
+    for (const length of children(body, list.end)) {
+        const claimed = uintField(length);
+        if (observed === item.offset) {
+            matches = false;
+            continue;
+        }
+        const end = itemEnd(prefix, observed);
+        matches = BigInt(end - observed) === claimed && matches;
+        observed = end;
+    }
+    return matches && observed === item.offset;
+}
+
+function closingClaimHolds(
+    data: Uint8Array,
+    kind: "offsets" | "locator",
+    item: ByteRange,
+    segmentStart: number,
+    lastIndex: number | undefined,
+): boolean {
+    const body = data.subarray(item.offset, item.end);
+    const array = head(body, 0);
+    if (array.value !== 2n) throw new EnvelopeError("wrong_length");
+    const argument = head(body, array.end).end;
+    if (kind === "offsets")
+        return offsetsHold(data, segmentStart, item, body, argument);
+    const distance = head(body, argument);
+    if (distance.major !== 0) typedHead(body, argument, 0);
+    if (body[argument] !== 0x1b) throw new EnvelopeError("not_deterministic");
+    return (
+        lastIndex !== undefined &&
+        distance.value === BigInt(item.offset - lastIndex)
+    );
+}
+
+function segmentBoundary(record: InspectionEvent | undefined): boolean {
+    return (
+        record === undefined ||
+        record.kind === "stop" ||
+        record.kind === "header" ||
+        record.kind === "resync"
+    );
+}
+
 function* records(
     data: Uint8Array,
     end: number,
@@ -863,16 +919,62 @@ function* records(
     const delimited = delimitedRecords(data, end);
     const budget = new PayloadBudget();
     let predecessor: Uint8Array | undefined;
+    let segmentStart = 0;
+    let lastIndex: number | undefined;
+    let offsetsSeen = false;
+    let locatorSeen = false;
     let current = delimited.next();
+    let next = delimited.next();
     while (!current.done) {
-        const next = delimited.next();
         if (current.value.kind === "stop") {
             yield current.value;
             return;
         }
         const { frame, ...record } = current.value;
-        if (record.kind === "header" || record.kind === "resync")
+        if (record.kind === "header" || record.kind === "resync") {
             predecessor = record.openerId;
+            segmentStart = record.offset;
+            lastIndex = undefined;
+            offsetsSeen = false;
+            locatorSeen = false;
+        }
+        let afterNext: typeof next | undefined;
+        if (record.kind === "offsets" || record.kind === "locator") {
+            const following = next.done ? undefined : next.value;
+            if (record.kind === "offsets" && following?.kind === "locator")
+                afterNext = delimited.next();
+            const final = segmentBoundary(following);
+            const followedByFinalLocator =
+                afterNext !== undefined &&
+                segmentBoundary(afterNext.done ? undefined : afterNext.value);
+            const misplaced =
+                record.kind === "offsets"
+                    ? offsetsSeen ||
+                      locatorSeen ||
+                      !(final || followedByFinalLocator)
+                    : locatorSeen || !final;
+            if (misplaced) {
+                record.reason = "unordered_or_repeated";
+            } else {
+                const kind = record.kind;
+                const claim = readField(() =>
+                    closingClaimHolds(
+                        data,
+                        kind,
+                        record,
+                        segmentStart,
+                        lastIndex,
+                    ),
+                );
+                record.reason = claim.reason;
+                if (claim.value === false)
+                    record.closingClaimFailure =
+                        kind === "offsets" ? "index_offsets" : "index_locator";
+            }
+            if (record.kind === "offsets") offsetsSeen = true;
+            else locatorSeen = true;
+        }
+        if (record.frameType === 15n) lastIndex = record.offset;
         if (frame !== undefined && predecessor !== undefined) {
             const witness =
                 !next.done && next.value.kind !== "stop"
@@ -892,5 +994,6 @@ function* records(
         }
         yield record;
         current = next;
+        next = afterNext ?? delimited.next();
     }
 }

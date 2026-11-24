@@ -23,7 +23,7 @@ function verifyRecords(path: string, { records }: V2Inspection): boolean {
         const prefix =
             committed === 0n ? "no_commit" : `committed_frames ${committed}`;
         const uncommitted = tail === 0n ? "" : `, uncommitted_tail ${tail}`;
-        const index = indexSeen ? ", index claims unchecked" : "";
+        const index = indexSeen ? ", index payload claims unchecked" : "";
         console.log(`  segment ${segment}: ${prefix}${uncommitted}${index}`);
     };
 
@@ -58,7 +58,11 @@ function verifyRecords(path: string, { records }: V2Inspection): boolean {
         if (range === undefined) continue;
         if (reason !== undefined) problem(offset, reason);
         if (kind === "locator" || kind === "offsets") {
-            problem(offset, `unsupported ${kind} claim`);
+            if (record.closingClaimFailure !== undefined)
+                problem(
+                    offset,
+                    `index_claim_failed (${record.closingClaimFailure})`,
+                );
             continue;
         }
         const { link, storedMatches, payload, frameType, content } = record;
