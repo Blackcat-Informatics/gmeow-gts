@@ -50,10 +50,12 @@ GtsV2WireTest >> testTypedWireIntegrityFindingsMatchP1Records [
 		'lineage-ordinal-mismatch' 'lineage-matches' 'lineage-head-mismatch' 'lineage-first-present'
 		'lineage-begins-links-unavailable' 'links-unavailable-lineage-not-compared'
 		'lineage-previous-unreadable'
-		'link-healed' 'frame-unknown-critical' 'frame-unknown-noncritical' 'frame-unknown-transparent-not-bool'
+		'link-healed' 'link-heal-opaque-between' 'frame-unknown-critical' 'frame-unknown-noncritical'
+		'frame-unknown-transparent' 'frame-unknown-transparent-not-bool'
+		'identifier-ill-typed-identity-well-typed' 'identifier-ill-typed-identity-ill-typed'
 		'payload-digest' 'payload-length' 'payload-unknown-codec' 'payload-total-order'
 		'chain-break-withheld-codec-constraint' 'locator-not-index-item' 'item-kind-newer'
-		'stored-mismatch' 'frame-storage-tag-newer' 'parity-codec-newer'
+		'stored-matches' 'stored-mismatch' 'stored-check-short' 'frame-storage-tag-newer' 'parity-codec-newer'
 		'parity-later-version-payload-damaged' 'parity-later-version-after-stop'
 	) do: [ :name |
 		| fixture |
@@ -76,7 +78,12 @@ GtsV2WireTest >> assertTypedWireIntegrityOf: entry [
 		(#(4 5 6 7 11 12 13 14 20 30 42 43) includes: finding first) or: [
 			finding first = 18 and: [ #(19 23) includes: finding second second ] ] ].
 	file second do: [ :segment |
-		| actual expected |
+		| actual expected ordinal |
+		ordinal := segment first.
+		self assert: (report anchoredFramesAt: ordinal) = (segment at: 11) description: name.
+		self assert: (report transparentFramesAt: ordinal) = (segment at: 14) asArray description: name.
+		expected := (segment at: 17) collect: [ :frame | frame copyFrom: 1 to: 7 ].
+		self assert: (report frameWireFieldsAt: ordinal) = expected asArray description: name.
 		actual := (report segmentFindingsAt: segment first) select: wireFinding.
 		expected := ((segment at: 18) select: wireFinding) asArray.
 		self assert: actual = expected description: name, ' segment ', segment first printString,

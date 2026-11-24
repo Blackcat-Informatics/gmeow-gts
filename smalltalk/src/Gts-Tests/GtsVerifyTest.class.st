@@ -435,6 +435,11 @@ GtsVerifyTest >> assertTypedSignaturesOf: entry [
 		typedWireFindingsHeld: inputs second reversed, inputs second trusted: inputs first reversed, inputs first.
 	self assert: report verificationInputs = inputs description: name.
 	read seventh second do: [ :segment |
+		| expectedWire |
+		expectedWire := (segment at: 17) collect: [ :frame | frame copyFrom: 1 to: 7 ].
+		self assert: (report frameWireFieldsAt: segment first) = expectedWire asArray description: name.
+		self assert: (report anchoredFramesAt: segment first) = (segment at: 11) description: name.
+		self assert: (report transparentFramesAt: segment first) = (segment at: 14) asArray description: name.
 		self assert: (report authenticationAt: segment first) = { (segment at: 10). (segment at: 13) }
 			description: name.
 		(segment at: 17) do: [ :frame |
