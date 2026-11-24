@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2CborItem,
 	#superclass : #Object,
-	#instVars : [ 'walker', 'pending', 'position' ],
+	#instVars : [ 'walker', 'pending', 'position', 'examinedEnd' ],
 	#category : #'Gts-Core'
 }
 
@@ -17,6 +17,7 @@ GtsV2CborItem >> initializeWalker: aWalker at: start [
 	walker := aWalker.
 	pending := OrderedCollection with: (GtsV2CborContext major: 4 remaining: 1).
 	position := start.
+	examinedEnd := start.
 	^ self
 ]
 
@@ -36,8 +37,9 @@ GtsV2CborItem >> endUpTo: limit [
 		parent isComplete
 			ifTrue: [ pending removeLast ]
 			ifFalse: [
-				position = limit ifTrue: [ ^ nil ].
+				position = limit ifTrue: [ examinedEnd := limit. ^ nil ].
 				octet := bytes at: position.
+				examinedEnd := position + 1.
 				octet = 255
 					ifTrue: [
 						parent acceptsBreak ifFalse: [ GtsV2FramingError signal: 'undelimitable_input' ].
@@ -46,16 +48,24 @@ GtsV2CborItem >> endUpTo: limit [
 					ifFalse: [
 						(parent acceptsHeadByte: octet)
 							ifFalse: [ GtsV2FramingError signal: 'undelimitable_input' ].
-						(self readChildOf: parent limit: limit) ifFalse: [ ^ nil ] ] ] ].
+						(self readChildOf: parent headByte: octet limit: limit) ifFalse: [ ^ nil ] ] ] ].
 	^ (pending isEmpty and: [ position <= limit ]) ifTrue: [ position ]
 ]
 
+{ #category : #accessing }
+GtsV2CborItem >> examinedEnd [
+	^ examinedEnd
+]
+
 { #category : #private }
-GtsV2CborItem >> readChildOf: parent limit: limit [
+GtsV2CborItem >> readChildOf: parent headByte: octet limit: limit [
 	| head major argument |
+	"The invalid two-byte simple value is the only head error after an argument read."
+	octet = 248 ifTrue: [ examinedEnd := (position + 2) min: limit ].
 	head := walker headIfCompleteAt: position limit: limit.
-	head ifNil: [ ^ false ].
+	head ifNil: [ examinedEnd := limit. ^ false ].
 	position := head end.
+	examinedEnd := position.
 	parent acceptChild.
 	major := head major.
 	argument := head argument.

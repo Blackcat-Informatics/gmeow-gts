@@ -100,17 +100,34 @@ GtsV2ParityStream >> unprotectedTailDo: report [
 GtsV2ParityStream >> compareFrom: first to: end shardSize: shardSize digests: digests [
 	| failed unexplained pendingOpener index |
 	failed := OrderedCollection new.
-	unexplained := 0.
-	pendingOpener := 0.
+	unexplained := Set new.
+	pendingOpener := Set new.
 	index := 0.
 	self shardsFrom: first to: end size: shardSize do: [ :data :passes :shardEnd |
 		index := index + 1.
 		((GtsBlake3 deriveWith: 'gts2 shard' bytes: data) first: 16) = (digests at: index) ifFalse: [
 			failed add: index.
-			passes ifTrue: [ unexplained := unexplained + 1 ].
+			passes ifTrue: [ unexplained add: index ].
 			(openerRange notNil and: [ shardEnd <= openerRange second ])
-				ifTrue: [ pendingOpener := pendingOpener + 1 ] ] ].
+				ifTrue: [ pendingOpener add: index ] ] ].
 	^ { failed. unexplained. pendingOpener }
+]
+
+{ #category : #enumerating }
+GtsV2ParityStream >> patchesFor: shard from: first to: end [
+	| index position patches |
+	index := self rangeIndexAt: first.
+	position := first.
+	patches := OrderedCollection new.
+	[ position < end ] whileTrue: [
+		| range finish input |
+		range := ranges at: index.
+		finish := end min: range second.
+		input := range third + position - range first.
+		patches add: { input. (shard copyFrom: position - first + 1 to: finish - first) }.
+		position := finish.
+		index := index + 1 ].
+	^ patches
 ]
 
 { #category : #enumerating }

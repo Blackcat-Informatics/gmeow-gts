@@ -23,6 +23,7 @@ GtsCLI class >> run: args [
 		command = 'from-nq' ifTrue: [ ^ self runFromNQuads: args allButFirst ].
 		command = 'info' ifTrue: [ ^ self runInfo: args allButFirst ].
 		command = 'verify' ifTrue: [ ^ self runVerify: args allButFirst ].
+		command = 'repair' ifTrue: [ ^ self runRepair: args allButFirst ].
 		command = 'ls' ifTrue: [ ^ self runLs: args allButFirst ].
 		command = 'extract' ifTrue: [ ^ self runExtract: args allButFirst ].
 		command = 'cat' ifTrue: [ ^ self runCat: args allButFirst ].
@@ -33,6 +34,27 @@ GtsCLI class >> run: args [
 		do: [ :error |
 			self stderr: 'gts: ', error messageText, String lf.
 			^ 1 ]
+]
+
+{ #category : #commands }
+GtsCLI class >> runRepair: args [
+	| output repair failed |
+	(args size = 3 and: [ #('-o' '--out') includes: args second ]) ifFalse: [
+		self stderr: 'usage: gts repair INPUT -o OUTPUT', String lf.
+		^ 2 ].
+	output := args third asFileReference.
+	output exists ifTrue: [
+		self stderr: 'gts repair: output already exists', String lf.
+		^ 1 ].
+	repair := (GtsV2Wire inspect: (self readFile: args first)) parityRepair.
+	repair repairedBytes ifNotNil: [ :bytes | self writeFile: output bytes: bytes ].
+	failed := repair stop notNil.
+	repair findings do: [ :finding |
+		finding first = 'repair_failed' ifTrue: [ failed := true ].
+		self stderr: finding first, ' ', finding second printString, ' ', finding third asString, String lf ].
+	repair stop ifNotNil: [ :event |
+		self stderr: 'gts repair: reading stopped at ', event offset printString, ' ', event problem, String lf ].
+	^ failed ifTrue: [ 1 ] ifFalse: [ 0 ]
 ]
 
 { #category : #commands }
@@ -887,16 +909,16 @@ GtsCLI class >> usageForLocale: locale [
 		^ 'utilisation: gts <command> [args]', String lf,
 			'commandes:', String lf,
 			'  info fold verify verify-proof heads segments missing resume extract-key', String lf,
-			'  ls extract cat compact pack unpack diff from-nq', String lf ].
+			'  ls extract cat compact pack unpack diff from-nq repair', String lf ].
 	locale = #zhHans ifTrue: [
 		^ '用法: gts <command> [args]', String lf,
 			'命令:', String lf,
 			'  info fold verify verify-proof heads segments missing resume extract-key', String lf,
-			'  ls extract cat compact pack unpack diff from-nq', String lf ].
+			'  ls extract cat compact pack unpack diff from-nq repair', String lf ].
 	^ 'usage: gts <command> [args]', String lf,
 		'commands:', String lf,
 		'  info fold verify verify-proof heads segments missing resume extract-key', String lf,
-		'  ls extract cat compact pack unpack diff from-nq', String lf
+		'  ls extract cat compact pack unpack diff from-nq repair', String lf
 ]
 
 { #category : #io }

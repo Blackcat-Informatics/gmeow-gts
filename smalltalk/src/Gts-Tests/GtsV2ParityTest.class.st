@@ -12,6 +12,71 @@ GtsV2ParityTest >> bytesFor: name [
 		binaryReadStreamDo: [ :stream | stream upToEnd ]
 ]
 
+{ #category : #tests }
+GtsV2ParityTest >> testVerifiedParityRepairMatchesPublishedCopies [
+	#('recover-no-signature' 'parity-damaged-shard' 'recover-verify-failed') do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P5/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry |
+			| input repaired oracle expected |
+			input := entry at: 'input_file'.
+			repaired := (GtsV2Wire inspect: (self bytesFor: input)) parityRepair.
+			oracle := entry at: 'repaired_copy_file' ifAbsent: [
+				input = 'parity-damaged-shard.bin' ifTrue: [ 'parity-base.bin' ] ].
+			self assert: repaired repairedBytes = (oracle ifNotNil: [ self bytesFor: oracle ]) description: input.
+			expected := self repairFindingsOf: entry.
+			self assert: repaired findings = expected
+				description: input, ' ', repaired findings printString, ' expected ', expected printString ] ]
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testRepairFailurePropagatesAcrossAnItemThatSpansTwoParityRanges [
+	| manifest entry decoded fileSize input repair |
+	manifest := STONJSON fromString: '/workspace/vectors/v2/P5/recover-straddle-propagate.json' asFileReference contents.
+	entry := (manifest at: 'cases') first.
+	decoded := GtsCborReader decode: (GtsHex decode: (entry at: 'read_result')).
+	fileSize := (decoded at: 7) second last at: 3.
+	input := GtsZstd decompressSingleFrame: (self bytesFor: (entry at: 'input_file'), '.zst') expectedSize: fileSize.
+	self assert: input notNil.
+	repair := (GtsV2Wire inspect: input) parityRepair.
+	self assert: repair repairedBytes isNil.
+	self assert: repair findings equals: (self repairFindingsOf: entry)
+]
+
+{ #category : #tests }
+GtsV2ParityTest >> testRepairRecheckChargesTheBudgetBeforeTheNextSegment [
+	| input bytes wire plan chunks withoutRepair |
+	input := self bytesFor: 'recover-no-signature.signature-zero.bin'.
+	bytes := input, input.
+	wire := GtsV2Wire inspect: bytes budget: (GtsV2PayloadBudget withReadLimit: 25000).
+	withoutRepair := OrderedCollection new.
+	wire eventsDo: [ :event | event frameType = 8 ifTrue: [ withoutRepair add: event payload state ] ].
+	self assert: withoutRepair asArray equals: #(damaged damaged).
+	chunks := OrderedCollection new.
+	plan := GtsV2ParityRepair on: bytes.
+	wire eventsDo: [ :event | event frameType = 8 ifTrue: [ chunks add: event payload ] ]
+		decodedWhen: [ :event | false ] unprotectedTailsDo: [ :offset :length | ] repairing: plan.
+	self assert: chunks size equals: 2.
+	self assert: chunks last reason equals: 'total_decoded'.
+	self assert: plan repairedBytes equals: (self bytesFor: 'recover-no-signature.signature-zero.repaired.bin'), input
+]
+
+{ #category : #private }
+GtsV2ParityTest >> repairFindingsOf: entry [
+	| decoded expected |
+	decoded := GtsCborReader decode: (GtsHex decode: (entry at: 'read_result')).
+	expected := OrderedCollection new.
+	(decoded at: 7) second do: [ :segment |
+		(segment at: 17) do: [ :frame |
+			(frame at: 11) do: [ :finding |
+				finding first = 34 ifTrue: [
+					expected add: { 'repair_failed'. frame second.
+						(finding second second = 42 ifTrue: [ 'too_many_erasures' ] ifFalse: [ 'verify_failed' ]) } ].
+				finding first = 35 ifTrue: [
+					expected add: { 'repaired'. frame second. (finding at: 7) second } ] ] ] ].
+	^ expected asArray
+]
+
 { #category : #private }
 GtsV2ParityTest >> parityIn: bytes [
 	| events |

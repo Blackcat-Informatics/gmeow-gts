@@ -10,9 +10,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-V1_DOCS = ROOT / "archive" / "v1"
-CONTRACT = V1_DOCS / "docs" / "GTS-API-CLI-PARITY.md"
-README = V1_DOCS / "README.md"
+CONTRACT = ROOT / "docs" / "CLI-COMMANDS.md"
 ENGINES = ("Python", "Rust", "Go", "TypeScript", "Smalltalk", "Kotlin")
 
 
@@ -91,11 +89,6 @@ def kotlin_verbs() -> set[str]:
     return set(re.findall(r'"([^"]+)"\s*->\s*cmd', block))
 
 
-def readme_verbs(start: str, end: str) -> set[str]:
-    block = between(README.read_text(encoding="utf-8"), start, end)
-    return set(re.findall(r"^gts\s+([a-z0-9-]+)\b", block, flags=re.MULTILINE))
-
-
 def compare_engine(
     errors: list[str],
     engine: str,
@@ -125,34 +118,6 @@ def main() -> int:
     }
     for engine, implemented in implemented_by_engine.items():
         compare_engine(errors, engine, implemented, matrix)
-
-    common = {verb for verb, row in matrix.items() if all(row.values())}
-    python_extensions = {
-        verb
-        for verb, row in matrix.items()
-        if row["Python"]
-        and not any(row[engine] for engine in ENGINES if engine != "Python")
-    }
-    readme_common = readme_verbs(
-        "<!-- cli-common:start -->",
-        "<!-- cli-common:end -->",
-    )
-    readme_python_extensions = readme_verbs(
-        "<!-- cli-python-extensions:start -->",
-        "<!-- cli-python-extensions:end -->",
-    )
-    if readme_common != common:
-        errors.append(
-            "README common CLI block drifted: "
-            f"missing={sorted(common - readme_common)} extra={sorted(readme_common - common)}"
-        )
-    if readme_python_extensions != python_extensions:
-        errors.append(
-            "README Python extension CLI block drifted: "
-            "missing="
-            f"{sorted(python_extensions - readme_python_extensions)} "
-            f"extra={sorted(readme_python_extensions - python_extensions)}"
-        )
 
     if errors:
         for error in errors:

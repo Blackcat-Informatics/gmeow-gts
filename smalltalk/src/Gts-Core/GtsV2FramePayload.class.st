@@ -36,6 +36,11 @@ GtsV2FramePayload >> plainStoredBytesUpTo: limit [
 	^ stored bytesStartingAt: bodyStart
 ]
 
+{ #category : #accessing }
+GtsV2FramePayload >> storedBodyStart [
+	^ bodyStart
+]
+
 { #category : #validation }
 GtsV2FramePayload >> checkWith: budget retainDecoded: retain [
 	| storedSize refusal computed |
