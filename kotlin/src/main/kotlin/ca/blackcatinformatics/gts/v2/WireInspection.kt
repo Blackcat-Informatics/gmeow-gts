@@ -3,6 +3,8 @@
 
 package ca.blackcatinformatics.gts.v2
 
+import ca.blackcatinformatics.gts.ByteString
+
 internal sealed interface WireInspection {
     data object Legacy : WireInspection
 
@@ -37,6 +39,8 @@ internal sealed interface WireEvent {
         val storedMatches: Boolean? = null,
         val payload: PayloadObservation? = null,
         val closingClaimFailure: ClosingClaimFailure? = null,
+        val effectiveId: ByteString? = null,
+        val commitClaim: CommitClaim? = null,
     ) : WireEvent
 
     data class Stop(val offset: Int, val reason: StopReason) : WireEvent, WireInspection
@@ -119,7 +123,6 @@ private fun isVersionKey(data: ByteArray, start: Int, end: Int): Boolean {
 private data class ScannedItem(
     val event: WireEvent,
     val frame: FrameEnvelope? = null,
-    val openerId: ByteArray? = null,
 )
 
 private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
@@ -139,7 +142,7 @@ private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
                 break
             }
             if (item.kind == ItemKind.HEADER || item.kind == ItemKind.RESYNC) {
-                predecessor = current.openerId
+                predecessor = item.effectiveId?.bytes
             }
             val following = next?.event
             val afterLocator = if (item.kind == ItemKind.OFFSETS && (following as? WireEvent.Item)?.kind == ItemKind.LOCATOR) advance() else null
@@ -150,12 +153,18 @@ private fun items(data: ByteArray, firstEnd: Int): Sequence<WireEvent> =
                 predecessor = link.effective ?: predecessor
                 val storedMatches = checkStored(frame.payload)
                 val payload = budget.check(frame.payload)
+                val problem = event.problem ?: payload.reason?.takeIf { it == "codec_constraint" }
+                val claim =
+                    frame.content.takeIf { event.frameType == 14uL && problem == null && frame.payload.contentSize.toULong() <= frameCapacity }
+                        ?.readCommitClaim()
                 yield(
                     event.copy(
-                        problem = event.problem ?: payload.reason?.takeIf { it == "codec_constraint" },
+                        problem = problem,
                         link = link.state,
                         storedMatches = storedMatches,
                         payload = payload,
+                        effectiveId = link.effective?.let(::ByteString),
+                        commitClaim = claim,
                     ),
                 )
             } else {
@@ -186,7 +195,7 @@ private fun scanItems(data: ByteArray, firstEnd: Int): Sequence<ScannedItem> =
             val item = classify(data, offset, end, registry)
             val event = item.event as WireEvent.Item
             if (event.kind == ItemKind.HEADER || event.kind == ItemKind.RESYNC) {
-                registry = event.opener?.takeIf { item.openerId != null }?.registry
+                registry = event.opener?.takeIf { event.effectiveId != null }?.registry
             }
             yield(item)
             offset = end
@@ -209,7 +218,9 @@ private fun classify(data: ByteArray, offset: Int, end: Int, registry: ULong?): 
     if (kind == ItemKind.HEADER || kind == ItemKind.RESYNC) {
         return try {
             val opener = readOpener(CborField(data, offset, end), kind == ItemKind.RESYNC)
-            ScannedItem(WireEvent.Item(offset, end, kind, opener = opener.envelope), openerId = opener.identifier)
+            ScannedItem(
+                WireEvent.Item(offset, end, kind, opener = opener.envelope, effectiveId = opener.identifier?.let(::ByteString)),
+            )
         } catch (error: EnvelopeFailure) {
             ScannedItem(WireEvent.Item(offset, end, kind, error.reason))
         }

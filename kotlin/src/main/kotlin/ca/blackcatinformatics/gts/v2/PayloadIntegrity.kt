@@ -10,7 +10,7 @@ internal enum class PayloadState { VERIFIED, DAMAGED, UNCHECKED }
 
 internal data class PayloadObservation(val state: PayloadState, val reason: String? = null, val count: ULong? = null)
 
-private val frameCapacity = 1uL shl 26
+internal val frameCapacity = 1uL shl 26
 
 internal class PayloadBudget(private val readCapacity: ULong = 1uL shl 36) {
     private var total = 0uL

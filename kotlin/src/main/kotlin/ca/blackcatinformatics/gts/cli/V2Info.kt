@@ -53,17 +53,9 @@ private fun printV2Ledger(path: String, wire: WireInspection.VersionTwo): Boolea
                 val parameters = event.opener?.let { ", registry ${it.registry}, hash algorithm ${it.hashAlgorithm}" }.orEmpty()
                 val link = event.link
                 val payload = event.payload
-                val linkFailed = link != null && link != FrameLink.LINKED
-                val integrityFailed = linkFailed || event.storedMatches == false || payload?.state == PayloadState.DAMAGED
-                val problem =
-                    when {
-                        event.frameType == 16uL && event.problem != null -> ": parity_damaged (${event.problem})"
-                        event.frameType == 16uL && integrityFailed -> ": parity_damaged"
-                        event.problem != null -> ": ${event.problem}"
-                        event.closingClaimFailure != null -> ": index_claim_failed (${event.closingClaimFailure.name.lowercase()})"
-                        else -> ""
-                    }
-                println("$prefix${event.kind.name.lowercase()}$type bytes [${event.offset}, ${event.end})$parameters$problem")
+                val finding = event.primaryWireFinding()
+                val diagnostic = finding?.let { ": $it" }.orEmpty()
+                println("$prefix${event.kind.name.lowercase()}$type bytes [${event.offset}, ${event.end})$parameters$diagnostic")
                 if (link != null && payload != null) {
                     val stored =
                         when (event.storedMatches) {
@@ -75,7 +67,11 @@ private fun printV2Ledger(path: String, wire: WireInspection.VersionTwo): Boolea
                     val reason = payload.reason?.let { " ($it$count)" }.orEmpty()
                     println("      link ${link.name.lowercase()}$stored, payload ${payload.state.name.lowercase()}$reason")
                 }
-                if (problem.isNotEmpty() || integrityFailed || payload?.state == PayloadState.UNCHECKED) clean = false
+                if (finding != null || link?.let { it != FrameLink.LINKED } == true ||
+                    event.storedMatches == false || payload?.let { it.state != PayloadState.VERIFIED } == true
+                ) {
+                    clean = false
+                }
                 if (event.opener?.registry?.let { it > 1uL } == true) {
                     println("    unsupported registry version ${event.opener.registry}")
                     clean = false
@@ -85,3 +81,14 @@ private fun printV2Ledger(path: String, wire: WireInspection.VersionTwo): Boolea
     }
     return clean
 }
+
+
+internal fun WireEvent.Item.primaryWireFinding(): String? =
+    when {
+        frameType == 16uL && problem != null -> "parity_damaged ($problem)"
+        frameType == 16uL && (link?.let { it != FrameLink.LINKED } == true ||
+            storedMatches == false || payload?.state == PayloadState.DAMAGED) -> "parity_damaged"
+        problem != null -> problem
+        closingClaimFailure != null -> "index_claim_failed (${closingClaimFailure.name.lowercase()})"
+        else -> null
+    }

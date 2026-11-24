@@ -233,6 +233,11 @@ private fun cmdVerify(args: List<String>): Int {
     var problems = false
     for (path in paths) {
         val data = load(path) ?: return 2
+        val wireVerified = verifyV2(path, data, keys.isNotEmpty())
+        if (wireVerified != null) {
+            if (!wireVerified) problems = true
+            continue
+        }
         val graph = read(data, true)
         if (keys.isNotEmpty()) {
             verifySignatures(graph.signatures) { kid -> keys[kid] }

@@ -8,6 +8,7 @@ import kotlin.io.path.readBytes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 
 class WireInspectionTest {
     private fun vector(name: String): ByteArray = Path("../vectors/v2/P1/$name.bin").readBytes()
@@ -35,7 +36,9 @@ class WireInspectionTest {
         val events = result.events.toList()
         assertEquals(WireEvent.Item(0, 3, ItemKind.HEADER, "wrong_length"), events[0])
         assertEquals(WireEvent.Item(3, 4, ItemKind.UNCHECKED), events[1])
-        assertEquals(WireEvent.Item(4, 4 + next.size, ItemKind.HEADER, opener = OpenerEnvelope(1uL, 1uL)), events[2])
+        val header = assertIs<WireEvent.Item>(events[2])
+        assertNotNull(header.effectiveId)
+        assertEquals(WireEvent.Item(4, 4 + next.size, ItemKind.HEADER, opener = OpenerEnvelope(1uL, 1uL)), header.copy(effectiveId = null))
         assertEquals(WireEvent.Item(4 + next.size, 5 + next.size, ItemKind.OPAQUE, "wrong_type"), events[3])
     }
 
@@ -54,8 +57,10 @@ class WireInspectionTest {
                 link = FrameLink.LINKED,
                 payload = PayloadObservation(PayloadState.VERIFIED),
             ),
-            lastFrame,
+            lastFrame.copy(effectiveId = null, commitClaim = null),
         )
+        assertNotNull(lastFrame.effectiveId)
+        assertNotNull(lastFrame.commitClaim)
 
         val header = vector("gen-record-two")
         val cases =
