@@ -263,7 +263,7 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 	format = #unknown ifTrue: [
 		self stderr: 'gts info: ', path, ': input does not identify a GTS generation', String lf.
 		^ false ].
-	self stdout: path, ': GTS v2 framing ledger (item boundaries and envelopes)', String lf.
+	self stdout: path, ': GTS v2 framing ledger (item boundaries, envelopes and links)', String lf.
 	ordinal := 0.
 	clean := true.
 	wire eventsDo: [ :event |
@@ -282,16 +282,24 @@ GtsCLI class >> printWireInfoFor: path wire: wire [
 					ifNotNil: [ :type | 'frame type ', type printString ].
 				details := event opener ifNil: [ '' ] ifNotNil: [ :opener |
 					', registry ', opener registry printString, ', hash algorithm ', opener hashAlgorithm printString ].
-				diagnostic := event problem ifNil: [ '' ] ifNotNil: [ :reason |
-					event frameType = 16
-						ifTrue: [ ': parity_damaged (', reason, ')' ]
-						ifFalse: [ ': ', reason ] ].
+				diagnostic := self wireDiagnosticFor: event.
 				self stdout: prefix, kind, ' bytes [', event offset printString, ', ',
 					event end printString, ')', details, diagnostic, String lf.
+				event link ifNotNil: [ :link |
+					link ~= #linked ifTrue: [ clean := false ].
+					self stdout: '      link ', link asString, String lf ].
 				(event opener isNotNil and: [ event opener registry > 1 ]) ifTrue: [
 					clean := false.
 					self stdout: '    unsupported registry version ', event opener registry printString, String lf ] ] ].
 	^ clean
+]
+
+{ #category : #printing }
+GtsCLI class >> wireDiagnosticFor: event [
+	event frameType = 16 ifTrue: [
+		event problem ifNotNil: [ :reason | ^ ': parity_damaged (', reason, ')' ].
+		event link = #broken ifTrue: [ ^ ': parity_damaged' ] ].
+	^ event problem ifNil: [ '' ] ifNotNil: [ :reason | ': ', reason ]
 ]
 
 { #category : #private }

@@ -9,6 +9,13 @@ GtsBlake3Library >> hashInput: inputBytes length: inputLength output: outputByte
 	^ self ffiCall: #(#void #gts_blake3_hash #(#const #void #* #inputBytes #, #size_t #inputLength #, #void #* #outputBytes))
 ]
 
+{ #category : #ffi }
+GtsBlake3Library >> deriveWith: context contextLength: contextLength prefix: prefix prefixLength: prefixLength input: input start: start length: length output: output [
+	^ self ffiCall: #(void gts_blake3_derive (
+		const void * context, size_t contextLength, const void * prefix, size_t prefixLength,
+		const void * input, size_t start, size_t length, void * output))
+]
+
 { #category : #'accessing platform' }
 GtsBlake3Library >> macLibraryName [
 	^ 'libblake3.dylib'

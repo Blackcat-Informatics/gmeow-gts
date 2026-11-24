@@ -26,6 +26,11 @@ GtsV2Fields >> hasNext [
 	^ offset < end
 ]
 
+{ #category : #accessing }
+GtsV2Fields >> offset [
+	^ offset
+]
+
 { #category : #parsing }
 GtsV2Fields >> next [
 	| start |

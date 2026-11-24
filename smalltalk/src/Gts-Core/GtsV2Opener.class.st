@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2Opener,
 	#superclass : #Object,
-	#instVars : [ 'registry', 'hashAlgorithm' ],
+	#instVars : [ 'registry', 'hashAlgorithm', 'identifier' ],
 	#category : #'Gts-Core'
 }
 
@@ -22,9 +22,14 @@ GtsV2Opener >> hashAlgorithm [
 	^ hashAlgorithm
 ]
 
+{ #category : #accessing }
+GtsV2Opener >> identifier [
+	^ identifier
+]
+
 { #category : #parsing }
 GtsV2Opener >> read: item resync: isResync [
-	| bound fields digestLength |
+	| bound fields digestLength bodyEnd |
 	bound := isResync ifTrue: [ item end min: item start + 4096 ] ifFalse: [ item end ].
 	fields := item fields: (isResync ifTrue: [ 11 ] ifFalse: [ 7 ]) bound: bound.
 	fields next uint.
@@ -53,8 +58,15 @@ GtsV2Opener >> read: item resync: isResync [
 		fields next uint.
 		fields next optionUpTo: bound do: [ :past | past byteBodyOfSize: digestLength ].
 		self checkMarks: fields next bound: bound.
+		bodyEnd := fields offset.
 		fields next byteBodyOfSize: digestLength.
 		item end > bound ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ] ].
+	hashAlgorithm = 1 ifTrue: [
+		identifier := item
+			deriveWith: 'gts2 header'
+			prefix: (isResync ifTrue: [ #[138] ] ifFalse: [ #[] ])
+			from: (isResync ifTrue: [ item start + 1 ] ifFalse: [ item start ])
+			to: (isResync ifTrue: [ bodyEnd ] ifFalse: [ item end ]) ].
 	^ self
 ]
 

@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2FrameEnvelope,
 	#superclass : #Object,
-	#instVars : [ 'frameType', 'problem' ],
+	#instVars : [ 'frameType', 'problem', 'identityStart', 'identityEnd', 'transparent', 'storedIdentifier' ],
 	#category : #'Gts-Core'
 }
 
@@ -22,46 +22,85 @@ GtsV2FrameEnvelope >> problem [
 	^ problem
 ]
 
+{ #category : #accessing }
+GtsV2FrameEnvelope >> storedIdentifier [
+	^ storedIdentifier
+]
+
+{ #category : #testing }
+GtsV2FrameEnvelope >> isTransparent [
+	^ transparent = true
+]
+
+{ #category : #hashing }
+GtsV2FrameEnvelope >> identifierOn: bytes predecessor: predecessor [
+	identityEnd ifNil: [ ^ nil ].
+	^ GtsBlake3
+		deriveWith: 'gts2 frame'
+		prefix: #[135 88 32], predecessor
+		bytes: bytes
+		from: identityStart
+		to: identityEnd
+]
+
 { #category : #parsing }
 GtsV2FrameEnvelope >> read: item registry: registry [
-	[ self check: (item fields: 11) newer: registry > 1 ]
-		on: GtsV2EnvelopeError
-		do: [ :error | problem := error messageText ].
+	self check: (item fields: 11) newer: registry > 1.
 	^ self
 ]
 
 { #category : #validation }
 GtsV2FrameEnvelope >> check: fields newer: newer [
-	| known parity critical transparent length storage |
+	| known parity critical contentWellTyped length digest storage identifier |
 	fields next uint.
-	frameType := fields next uint.
-	(frameType = 0 or: [ newer not and: [ frameType > 16 ] ])
-		ifTrue: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
-	known := frameType <= 16.
+	identityStart := fields offset.
+	frameType := self observe: [ fields next uint ].
+	(frameType isNotNil and: [ frameType = 0 or: [ newer not and: [ frameType > 16 ] ] ])
+		ifTrue: [ self recordProblem: 'unregistered_value' ].
+	known := frameType isNotNil and: [ frameType between: 1 and: 16 ].
 	parity := frameType = 16.
-	critical := fields next flag.
+	critical := self observe: [ fields next flag ].
 	(known and: [ critical ~= (frameType < 14) ])
-		ifTrue: [ GtsV2EnvelopeError signal: 'forbidden_combination' ].
-	transparent := fields next flag.
+		ifTrue: [ self recordProblem: 'forbidden_combination' ].
+	transparent := self observe: [ fields next flag ].
 	(known and: [ transparent ~= parity ])
-		ifTrue: [ GtsV2EnvelopeError signal: 'forbidden_combination' ].
-	self checkContent: fields next.
-	length := fields next uint.
-	fields next byteBodyOfSize: 32.
-	storage := self storage: fields next newer: newer.
-	((storage = 2 and: [ length = 0 ]) or: [ parity and: [ storage ~= 1 ] ])
-		ifTrue: [ GtsV2EnvelopeError signal: 'forbidden_combination' ].
-	fields next byteBodyOfSize: nil.
-	fields next byteBodyOfSize: 32.
-	self checkSignatures: fields next newer: newer parity: parity.
-	((frameType = 8 and: [ length = 0 ])
-		or: [ (#(12 14) includes: frameType) and: [ length ~= 0 ] ])
-		ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ]
+		ifTrue: [ self recordProblem: 'forbidden_combination' ].
+	contentWellTyped := self observe: [ self checkContent: fields next. true ].
+	length := self observe: [ fields next uint ].
+	digest := self observe: [ fields next byteBodyOfSize: 32 ].
+	(frameType isNotNil and: [ critical isNotNil and: [ transparent isNotNil and: [
+		contentWellTyped = true and: [ length isNotNil and: [ digest isNotNil ] ] ] ] ])
+		ifTrue: [ identityEnd := fields offset ].
+	storage := self observe: [ self storage: fields next newer: newer ].
+	(storage isNotNil and: [
+		(storage = 2 and: [ length = 0 ]) or: [ parity and: [ storage ~= 1 ] ] ])
+		ifTrue: [ self recordProblem: 'forbidden_combination' ].
+	self observe: [ fields next byteBodyOfSize: nil ].
+	identifier := fields next.
+	self observe: [ identifier byteBodyOfSize: 32 ].
+	storedIdentifier := identifier observedIdentifier.
+	self observe: [ self checkSignatures: fields next newer: newer parity: parity ].
+	(length isNotNil and: [ (frameType = 8 and: [ length = 0 ])
+		or: [ (#(12 14) includes: frameType) and: [ length ~= 0 ] ] ])
+		ifTrue: [ self recordProblem: 'out_of_range' ]
+]
+
+{ #category : #validation }
+GtsV2FrameEnvelope >> observe: aBlock [
+	^ aBlock on: GtsV2EnvelopeError do: [ :error |
+		self recordProblem: error messageText.
+		nil ]
+]
+
+{ #category : #validation }
+GtsV2FrameEnvelope >> recordProblem: reason [
+	problem ifNil: [ problem := reason ]
 ]
 
 { #category : #validation }
 GtsV2FrameEnvelope >> checkContent: item [
 	| shape fields |
+	frameType ifNil: [ ^ item checkGrammarUpTo: item end ].
 	shape := #(
 		(uint runs uint uint)
 		(uint uint) (uint uint) (uint uint)

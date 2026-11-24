@@ -143,3 +143,59 @@ GtsV2WireTest >> testFrameEnvelopeReportsFirstProblemInWireOrder [
 	parity := (self events: (self vector: 'parity-signature')) detect: [ :event | event frameType = 16 ].
 	self assert: parity problem equals: 'forbidden_combination'
 ]
+
+{ #category : #tests }
+GtsV2WireTest >> testLinkUsesOnlyTheNextItemAndKeepsTransparentFramesOutOfTheChain [
+	#(
+		('link-healed-effective' (healed linked))
+		('link-healed-before-transparent' (healed linked))
+		('link-heal-opaque-between' (linked broken broken linked))
+		('link-transparent-damaged' (linked linked linked broken linked))
+		('resync-identifier-field-differs' (linked linked linked linked))
+	) do: [ :entry |
+		| links |
+		links := self linksIn: (self vector: entry first).
+		self assert: links = entry second description: entry first ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testMissingStoredIdentifierFallsBackOnlyToAWellTypedIdentity [
+	self assert: (self linksIn: (self vector: 'identifier-ill-typed-identity-well-typed'))
+		equals: #(broken linked linked linked).
+	self assert: (self linksIn: (self vector: 'identifier-ill-typed-identity-ill-typed'))
+		equals: #(broken broken linked linked)
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testLinkUsesBytesOfIndefiniteIdentifierDespiteEnvelopeFinding [
+	| bytes firstFrame body modified frames |
+	bytes := self vector: 'link-ok'.
+	firstFrame := (self events: bytes) second.
+	body := firstFrame end - 32.
+	modified := (bytes copyFrom: 1 to: body - 3), #[95 80],
+		(bytes copyFrom: body to: body + 15), #[80],
+		(bytes copyFrom: body + 16 to: body + 31), #[255],
+		(bytes copyFrom: firstFrame end to: bytes size).
+	frames := self events: modified.
+	self assert: frames second problem equals: 'not_deterministic'.
+	self assert: (self linksIn: modified) equals: #(linked linked linked linked)
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testEventsCannotAlterThePredecessorForLaterFrames [
+	| links wire |
+	links := OrderedCollection new.
+	wire := GtsV2Wire inspect: (self vector: 'link-ok').
+	wire eventsDo: [ :event |
+		event link ifNotNil: [ :link | links add: link ].
+		event effectiveIdentifier ifNotNil: [ :identifier |
+			identifier at: 1 put: ((identifier at: 1) bitXor: 255) ] ].
+	self assert: links asArray equals: #(linked linked linked linked)
+]
+
+{ #category : #private }
+GtsV2WireTest >> linksIn: bytes [
+	| frames |
+	frames := (self events: bytes) select: [ :event | event kind = #frame ].
+	^ (frames collect: [ :event | event link ]) asArray
+]

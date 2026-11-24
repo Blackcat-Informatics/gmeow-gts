@@ -35,6 +35,11 @@ GtsV2Field >> size [
 	^ end - start
 ]
 
+{ #category : #hashing }
+GtsV2Field >> deriveWith: context prefix: prefix from: first to: finish [
+	^ GtsBlake3 deriveWith: context prefix: prefix bytes: walker bytes from: first to: finish
+]
+
 { #category : #parsing }
 GtsV2Field >> typedHead: major [
 	| head |
@@ -70,6 +75,30 @@ GtsV2Field >> byteBodyOfSize: expected [
 	(expected isNotNil and: [ head argument ~= expected ])
 		ifTrue: [ GtsV2EnvelopeError signal: 'wrong_length' ].
 	^ head end
+]
+
+{ #category : #parsing }
+GtsV2Field >> observedIdentifier [
+	| head offset limit chunk length identifier cursor bytes |
+	head := walker headAt: start limit: end.
+	head major = 2 ifFalse: [ ^ nil ].
+	bytes := walker bytes.
+	head argument ifNotNil: [
+		head argument = 32 ifFalse: [ ^ nil ].
+		^ bytes copyFrom: head end to: end - 1 ].
+	identifier := ByteArray new: 32.
+	offset := head end.
+	limit := end - 1.
+	cursor := 1.
+	[ offset < limit ] whileTrue: [
+		chunk := walker headAt: offset limit: limit.
+		length := chunk argument.
+		length > (33 - cursor) ifTrue: [ ^ nil ].
+		length > 0 ifTrue: [
+			identifier replaceFrom: cursor to: cursor + length - 1 with: bytes startingAt: chunk end ].
+		cursor := cursor + length.
+		offset := chunk end + length ].
+	^ cursor = 33 ifTrue: [ identifier ]
 ]
 
 { #category : #parsing }
