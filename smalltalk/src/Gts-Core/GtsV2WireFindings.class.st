@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut', 'frameFoldStates', 'foldStopped' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut', 'frameFoldStates', 'foldStopped', 'expectedTermBase' ],
 	#category : #'Gts-Core'
 }
 
@@ -167,6 +167,7 @@ GtsV2WireFindings >> observe: event [
 		segmentCut := nil.
 		fileEnd := 4.
 		foldStopped := false.
+		expectedTermBase := 0.
 		position := 0.
 		segment := OrderedCollection new.
 		segmentFindings add: segment.
@@ -195,6 +196,7 @@ GtsV2WireFindings >> observe: event [
 			(#(opaque unchecked) includes: event kind) ifTrue: [ leftOut := leftOut + 1 ].
 			self recordNonFrame: event ]
 		ifNotNil: [ self recordFrame: event ].
+	event frameType = 1 ifTrue: [ self recordTermsOf: event ].
 	validCommit := claimChecks ifNil: [ false ] ifNotNil: [ self checkClaimsOf: event ].
 	event frame ifNotNil: [ self recordWireFoldStateOf: event ].
 	self observeEndAt: event validCommit: validCommit.
@@ -245,6 +247,22 @@ GtsV2WireFindings >> recordWireFoldStateOf: event [
 	state ifNotNil: [
 		frameFoldStates at: event offset put: state.
 		state first = 3 ifTrue: [ leftOut := leftOut + 1 ] ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> recordTermsOf: event [
+	| terms reason finding |
+	terms := GtsV2TermsContent read: event frame content expecting: expectedTermBase newer: newerRegistry.
+	expectedTermBase := expectedTermBase + terms reservedCount.
+	(foldStopped or: [ event problem notNil or: [ event link = #broken or: [
+		event payload state ~= #verified ] ] ]) ifTrue: [ ^ self ].
+	reason := terms problem.
+	reason ifNil: [ ^ self ].
+	finding := reason = #unsupported_critical
+		ifTrue: [ self unsupportedCritical: 1 ]
+		ifFalse: [ self rangedCode: 7 reason: (self malformedReason: reason) event: event count: nil ].
+	claimSteps at: finding put: 11.
+	(frameFindings at: event offset ifAbsentPut: [ OrderedCollection new ]) add: finding
 ]
 
 { #category : #private }
@@ -408,8 +426,13 @@ GtsV2WireFindings >> typedPayload: result [
 GtsV2WireFindings >> recordUnknownFrame: event into: records [
 	(newerRegistry and: [ event frame hasUnknownType ]) ifFalse: [ ^ self ].
 	event frame hasUnknownCriticalType
-		ifTrue: [ records add: { 6. #(1). { 2. { 2. event frameType } }. { 2. position }. #(1). #(1). #(1) } ]
+		ifTrue: [ records add: (self unsupportedCritical: event frameType) ]
 		ifFalse: [ records add: (self unknown: 2 subject: { 2. event frameType }) ]
+]
+
+{ #category : #private }
+GtsV2WireFindings >> unsupportedCritical: type [
+	^ { 6. #(1). { 2. { 2. type } }. { 2. position }. #(1). #(1). #(1) }
 ]
 
 { #category : #private }
@@ -490,7 +513,7 @@ GtsV2WireFindings >> recordParity: event into: records [
 		ifTrue: [ records add: (self positionalCode: 30 reason: nil position: position count: nil) ]
 		ifFalse: [
 			self recordPayload: event into: records.
-			event parityFinding = 'unknown_frame_type' ifTrue: [
+			(event parityFinding = 'unknown_frame_type' and: [ foldStopped not ]) ifTrue: [
 				records add: (self unknown: 2 subject: #(2 16)) ] ].
 	event parityShardFindings do: [ :finding |
 		| mismatch reason |

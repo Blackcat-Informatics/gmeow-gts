@@ -187,6 +187,17 @@ GtsV2Field >> list [
 ]
 
 { #category : #parsing }
+GtsV2Field >> arrayPrefix: count [
+	| head limit |
+	head := walker headAt: start limit: end.
+	head major = 4 ifFalse: [ GtsV2EnvelopeError signal: 'wrong_type' ].
+	head argument ifNotNil: [ :size |
+		size < count ifTrue: [ GtsV2EnvelopeError signal: 'wrong_length' ] ].
+	limit := head argument ifNil: [ end - 1 ] ifNotNil: [ end ].
+	^ GtsV2Fields walker: walker from: head end to: limit bound: limit
+]
+
+{ #category : #parsing }
 GtsV2Field >> fields: count [
 	^ self fields: count bound: end
 ]
