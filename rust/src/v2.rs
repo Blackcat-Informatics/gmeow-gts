@@ -14,6 +14,7 @@ mod durability;
 pub mod frame;
 mod framing;
 mod import;
+mod index;
 mod payload;
 mod range;
 pub mod rdf;

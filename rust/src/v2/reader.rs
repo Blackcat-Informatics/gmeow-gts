@@ -7,8 +7,10 @@ use std::collections::VecDeque;
 
 use super::{
     decode_header,
-    durability::{check_closing, check_closing_grammar, check_commits},
-    frame::{check_type_length, decode_frame_envelope, frame_identifier, Frame, FrameError},
+    durability::{check_closing, check_closing_grammar, check_prefixes},
+    frame::{
+        check_type_length, decode_frame_envelope, frame_identifier, Frame, FrameError, PARITY,
+    },
     framing::{byte_chunks, generation, item_end, read_head, Generation},
     payload::{malformed_payload, PayloadBudget},
     resync::{decode_resync, Candidate, ResyncScanner, RESYNC_MAX},
@@ -18,6 +20,7 @@ use super::{
 pub use super::{
     durability::{ClosingFinding, CommitCheck, CommitReadError, CommitReport, UncommittedTail},
     framing::{FramingFailure, FramingReason},
+    index::{IndexCheck, IndexOutcome, IndexWireClaims},
     payload::{PayloadCheck, PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity},
 };
 
@@ -97,6 +100,8 @@ pub struct WireFrame<'a> {
     pub envelope: Result<Frame<'a>, FrameError>,
     pub link: FrameLink,
     pub payload: PayloadCheck<'a>,
+    /// A later frame type with well-typed flags that stops content folding.
+    pub unknown_type_stops_fold: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -115,6 +120,7 @@ pub struct WireSegment<'a> {
     /// Closing findings after placement and claims are checked over retained items.
     pub closing_findings: Vec<ClosingFinding>,
     pub commits: Result<CommitReport, CommitReadError>,
+    pub indexes: Vec<IndexCheck>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -189,6 +195,7 @@ fn segment_at(opener: Opener<'_>, item: WireItem, scanned: bool) -> WireSegment<
         closing_grammar: Vec::new(),
         closing_findings: Vec::new(),
         commits: Ok(CommitReport::default()),
+        indexes: Vec::new(),
     }
 }
 
@@ -206,9 +213,16 @@ fn recovered_segment(offset: usize, value: DecodedResync<'_>) -> WireSegment<'_>
 
 impl<'a> WireSegment<'a> {
     fn with_claims(mut self, data: &[u8], stored_limit: u64) -> Self {
-        if let Some(identifier) = self.opener.state().1 {
+        let (registry, identifier) = self.opener.state();
+        if let Some(identifier) = identifier {
             self.closing_findings = check_closing(data, &self.items, &self.frames);
-            self.commits = check_commits(&identifier, &self.frames, stored_limit);
+            match check_prefixes(&identifier, &self.frames, stored_limit, registry) {
+                Ok((commits, indexes)) => {
+                    self.commits = Ok(commits);
+                    self.indexes = indexes;
+                }
+                Err(error) => self.commits = Err(error),
+            }
         }
         self
     }
@@ -426,6 +440,13 @@ fn read_frame<'a>(
             }
         }
     };
+    let unknown_type_stops_fold = registry > REGISTRY_VERSION
+        && frame_type.is_some_and(|kind| kind > PARITY)
+        && match &envelope {
+            Ok((frame, _)) => frame.critical,
+            Err(_) => offsets
+                .is_some_and(|raw| data[raw[1]] == 0xf5 && matches!(data[raw[2]], 0xf4 | 0xf5)),
+        };
     let envelope =
         envelope.and_then(|(frame, length_offset)| check_type_length(frame, length_offset));
     Ok((
@@ -440,6 +461,7 @@ fn read_frame<'a>(
                 effective_identifier,
             },
             payload,
+            unknown_type_stops_fold,
         },
         malformed_grammar || state == LinkState::Broken,
     ))
