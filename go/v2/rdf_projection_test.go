@@ -16,7 +16,12 @@ import (
 
 func projectFixture(t *testing.T, name string) (*v2.RDFProjection, error) {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "vectors", "v2", "P3", name+".bin"))
+	return projectCorpus(t, "P3", name)
+}
+
+func projectCorpus(t *testing.T, part, name string) (*v2.RDFProjection, error) {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "vectors", "v2", part, name+".bin"))
 	if err != nil {
 		t.Fatal(err)
 	}

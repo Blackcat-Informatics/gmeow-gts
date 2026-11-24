@@ -15,6 +15,7 @@ const (
 	reifierFrameType    = 3
 	annotationFrameType = 4
 	rdfReifies          = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies"
+	rdfValueTextLimit   = 256 << 20
 )
 
 // RDFProjection holds the quads and empty named graphs from a whole RDF projection.
@@ -100,6 +101,7 @@ type rdfDefinition struct {
 type rdfWrittenKey struct {
 	kind       uint64
 	rdf        int
+	value      *rebuiltValue
 	components model.Triple3
 }
 
@@ -120,17 +122,27 @@ func (d *rdfReadDictionary) append(key rdfWrittenKey) {
 }
 
 type rdfProjector struct {
-	result   RDFProjection
-	interned map[scopedRDFTerm]int
-	scope    int
-	formed   uint64
+	result             RDFProjection
+	interned           map[scopedRDFTerm]int
+	rebuild            rdfRebuild
+	scope              int
+	formed             uint64
+	valueTextRemaining uint64
 }
 
 // WholeRDFProjection projects the RDF rows of wire-checked, header-led registry
-// version 1 segments with inline dictionaries. It includes hidden rows.
-// Unreadable items or unsupported term storage cause refusal. This operation
-// makes no signature, profile, canonicality, or committed-prefix claim.
+// version 1 segments, including hidden rows and literals backed by values.
+// Unreadable items or terms cause refusal. The default limit on materialized
+// value text is 256 MiB. The result covers RDF and empty graph names only.
 func (result WireResult) WholeRDFProjection() (*RDFProjection, error) {
+	return result.WholeRDFProjectionWithValueLimit(rdfValueTextLimit)
+}
+
+// WholeRDFProjectionWithValueLimit uses a caller-supplied limit on the total
+// bytes of generated text for referenced literals. Repeated uses of a cached
+// lexical or hex value consume the limit only once. The P4 rebuild budget
+// still applies independently, including for recipe declarations.
+func (result WireResult) WholeRDFProjectionWithValueLimit(valueTextBytes uint64) (*RDFProjection, error) {
 	if result.Stop != "" {
 		return nil, fmt.Errorf("GTS v2 framing stopped at byte %d: %s", result.StopOffset, result.Stop)
 	}
@@ -140,7 +152,10 @@ func (result WireResult) WholeRDFProjection() (*RDFProjection, error) {
 	if result.Dispatch != SecondGeneration {
 		return nil, fmt.Errorf("expected GTS generation 2, found %q", result.Dispatch)
 	}
-	p := rdfProjector{interned: make(map[scopedRDFTerm]int)}
+	p := rdfProjector{
+		interned:           make(map[scopedRDFTerm]int),
+		valueTextRemaining: valueTextBytes,
+	}
 	for ordinal, segment := range result.Segments {
 		p.scope = ordinal
 		if err := p.segment(segment); err != nil {
@@ -156,6 +171,7 @@ func (p *rdfProjector) segment(segment Segment) error {
 		return fmt.Errorf("RDF projection requires a readable registry version 1 header")
 	}
 	dictionary := rdfReadDictionary{written: make(map[rdfWrittenKey]int)}
+	p.rebuild.units = nil
 	for _, item := range segment.Items[1:] {
 		if item.Kind == LocatorItem || item.Kind == OffsetsItem {
 			continue
@@ -192,7 +208,9 @@ func (p *rdfProjector) frame(frame *Frame, dictionary *rdfReadDictionary) Reason
 		return p.readTerms(dictionary, frame.Content, frame.Payload.Decoded)
 	case quadsFrameType, reifierFrameType, annotationFrameType, emptyGraphFrameType:
 		return p.readRows(dictionary.entries, frame.Type, frame.Content, frame.Payload.Decoded)
-	case 6, 7, 8, 9, 10, 11, 12, 13, commitType, 15, parityType:
+	case chunkFrameType, blobFrameType, recipeFrameType, valueFrameType, packFrameType:
+		return p.rebuild.frame(frame)
+	case 6, 7, 12, commitType, 15, parityType:
 		// No RDF row comes from these frame types in a whole projection.
 		return ""
 	default:
