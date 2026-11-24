@@ -7,6 +7,60 @@ Class {
 }
 
 { #category : #tests }
+GtsV2WireTest >> testTypedTermRecordsReserveIdsIndependentlyOfFold [
+	#(
+		'terms-id-base-mismatch' 'terms-id-base-ill-typed-reserves' 'terms-id-base-after-opaque'
+		'terms-record-field-order' 'terms-record-field-order-newer-version'
+		'terms-runs-order' 'terms-runs-empty' 'terms-run-kind-unregistered' 'terms-run-count-zero'
+		'terms-runs-adjacent-same-kind' 'terms-restart-group-zero'
+		'broken-link-content-value-not-judged' 'broken-link-newer-value-not-interpreted'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P3/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTypedTermRecordsOf: entry ] ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTypedTermReservationAtUintBoundary [
+	| report fixture file frames |
+	fixture := STONJSON fromString: '/workspace/vectors/v2/P3/terms-id-above-uint.json' asFileReference contents.
+	file := (GtsCborReader decode: (GtsHex decode: ((fixture at: 'cases') first at: 'read_result'))) seventh.
+	frames := file second first at: 17.
+	report := (GtsV2Wire inspect: (self p3Vector: 'terms-id-above-uint.bin')) typedWireFindings.
+	"The first frame's payload fails the block count after its runs reserve their IDs."
+	2 to: 3 do: [ :index |
+		| frame |
+		frame := frames at: index.
+		self assert: (report frameFindingsAt: frame second) equals: (frame at: 11) asArray ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> assertTypedTermRecordsOf: entry [
+	| name input file report termFinding |
+	name := entry at: 'input_file'.
+	input := self p3Vector: name.
+	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	report := (GtsV2Wire inspect: input) typedWireFindings.
+	termFinding := [ :finding | #(6 7) includes: finding first ].
+	file second do: [ :segment |
+		(segment at: 17) do: [ :frame |
+			frame fourth = #(2 1) ifTrue: [
+				| expected actual fold |
+				expected := ((frame at: 11) select: termFinding) asArray.
+				actual := (report frameFindingsAt: frame second) select: termFinding.
+				self assert: actual = expected description: name, ' at ', frame second printString,
+					' ', actual printString, ' expected ', expected printString.
+				fold := frame ninth.
+				self assert: (report wireFoldStateAt: frame second) = (fold first = 1 ifFalse: [ fold ])
+					description: name ] ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> p3Vector: name [
+	^ ('/workspace/vectors/v2/P3/', name) asFileReference binaryReadStreamDo: [ :stream | stream upToEnd ]
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testTypedRowOrderAndGrammarFindingsMatchP3 [
 	#(
 		'rows-order-canonical-ok' 'rows-order-canonical-two-runs'

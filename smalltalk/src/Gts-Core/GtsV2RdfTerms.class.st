@@ -3,24 +3,19 @@
 Class {
 	#name : #GtsV2RdfTerms,
 	#superclass : #Object,
-	#instVars : [ 'fold', 'values', 'languages', 'usedLanguages', 'restart', 'priorKind' ],
+	#instVars : [ 'fold', 'values', 'languages', 'usedLanguages', 'restart' ],
 	#category : #'Gts-Core'
 }
 
 { #category : #decoding }
 GtsV2RdfTerms >> read: content bytes: bytes fold: aFold values: aStore [
-	| head base runs order body blocks |
+	| header runs body blocks |
 	fold := aFold.
 	values := aStore.
-	head := content fields: 4.
-	base := head next uint.
-	base = fold dictionarySize ifFalse: [ GtsV2EnvelopeError signal: 'inconsistent_counts' ].
-	runs := GtsV2RdfColumns read: head next with: [ :run | self readRun: run ].
-	runs isEmpty ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
-	order := head next uint.
-	(order between: 1 and: 2) ifFalse: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
-	restart := head next uint.
-	restart = 0 ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
+	header := GtsV2TermsContent read: content expecting: fold dictionarySize newer: false.
+	header problem ifNotNil: [ :reason | GtsV2EnvelopeError signal: reason ].
+	runs := header runs.
+	restart := header restart.
 	body := (GtsV2RdfColumns item: bytes) fields: 2.
 	blocks := GtsV2RdfColumns read: body next with: [ :block | block ].
 	GtsV2RdfColumns requireCount: runs size in: blocks.
@@ -29,19 +24,6 @@ GtsV2RdfTerms >> read: content bytes: bytes fold: aFold values: aStore [
 	languages asSet size = languages size ifFalse: [ GtsV2EnvelopeError signal: 'not_deterministic' ].
 	runs withIndexDo: [ :run :index | self readBlock: (blocks at: index) kind: run first count: run second ].
 	usedLanguages = languages size ifFalse: [ GtsV2EnvelopeError signal: 'not_deterministic' ]
-]
-
-{ #category : #private }
-GtsV2RdfTerms >> readRun: field [
-	| fields kind count |
-	fields := field fields: 2.
-	kind := fields next uint.
-	(kind between: 1 and: 7) ifFalse: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
-	kind = priorKind ifTrue: [ GtsV2EnvelopeError signal: 'not_deterministic' ].
-	priorKind := kind.
-	count := fields next uint.
-	count = 0 ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
-	^ { kind. count }
 ]
 
 { #category : #private }
