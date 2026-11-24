@@ -19,6 +19,7 @@ import {
     RdfProjectionError,
     requireRdf,
 } from "./v2_rdf_cursor.js";
+import { readTypedValue, typedLiteral } from "./v2_rdf_values.js";
 
 const rdfReifies = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 const formedLimit = 1n << 37n;
@@ -34,7 +35,8 @@ type Block =
           languages: bigint[];
       }
     | { kind: 3; labels: Uint8Array[] }
-    | { kind: 4; subjects: bigint[]; predicates: bigint[]; objects: bigint[] };
+    | { kind: 4; subjects: bigint[]; predicates: bigint[]; objects: bigint[] }
+    | { kind: 6; count: bigint; encoded: Uint8Array };
 
 function readBlock(c: RdfCursor): Block {
     const arity = c.array();
@@ -71,6 +73,15 @@ function readBlock(c: RdfCursor): Block {
                 predicates: c.list(() => c.uint()),
                 objects: c.list(() => c.uint()),
             };
+        case 6: {
+            requireRdf(arity === 2n, "wrong_length");
+            const count = c.array();
+            // Keep the validated span instead of allocating one object per value.
+            const encoded = c.span(() => {
+                for (let i = 0n; i < count; i++) readTypedValue(c);
+            });
+            return { kind, count, encoded };
+        }
         default:
             throw new RdfProjectionError("unsupported_term_kind");
     }
@@ -109,6 +120,9 @@ function checkBlockCount(block: Block, count: bigint): void {
                 ),
                 "inconsistent_counts",
             );
+            break;
+        case 6:
+            requireRdf(block.count === count, "inconsistent_counts");
             break;
     }
 }
@@ -215,9 +229,15 @@ export interface RdfProjection {
     emptyGraphs: number[];
 }
 
+interface Definition {
+    rdf: number;
+    written: number;
+}
+
 class Projector {
     readonly result: RdfProjection = { terms: [], quads: [], emptyGraphs: [] };
-    private dictionary: number[] = [];
+    private dictionary: Definition[] = [];
+    private readonly written = new Map<string, number>();
     private readonly interned = new Map<string, number>();
     private readonly rows = new Set<string>();
     private scope = -1;
@@ -226,6 +246,7 @@ class Projector {
     open(): void {
         this.scope++;
         this.dictionary = [];
+        this.written.clear();
     }
 
     private intern(term: Term): number {
@@ -253,7 +274,7 @@ class Projector {
             wireId >= 0n && wireId < BigInt(this.dictionary.length),
             "out_of_range",
         );
-        const id = this.dictionary[Number(wireId)];
+        const { rdf: id } = this.dictionary[Number(wireId)];
         requireRdf(
             kinds.length === 0 || kinds.includes(this.result.terms[id].kind),
             "forbidden_combination",
@@ -265,8 +286,22 @@ class Projector {
         return this.resolve(wireId, TermKind.Iri, TermKind.Bnode);
     }
 
-    private add(term: Term): void {
-        this.dictionary.push(this.intern(term));
+    private add(
+        term: Term,
+        storageKind = term.kind + 1,
+        components?: readonly bigint[],
+    ): void {
+        const rdf = this.intern(term);
+        const key =
+            components === undefined
+                ? `${storageKind}/${rdf}`
+                : `${storageKind}/${components.map((id) => this.dictionary[Number(id)].written).join("/")}`;
+        let written = this.written.get(key);
+        if (written === undefined) {
+            written = this.written.size;
+            this.written.set(key, written);
+        }
+        this.dictionary.push({ rdf, written });
     }
 
     terms(content: Uint8Array, payload: Uint8Array): void {
@@ -330,16 +365,44 @@ class Projector {
         }
         if (block.kind === 4) {
             for (const [index, subject] of block.subjects.entries()) {
-                this.add({
-                    kind: TermKind.Triple,
-                    value: "",
-                    triple: {
-                        s: this.node(subject),
-                        p: this.resolve(block.predicates[index], TermKind.Iri),
-                        o: this.resolve(block.objects[index]),
+                const predicate = block.predicates[index];
+                const object = block.objects[index];
+                this.add(
+                    {
+                        kind: TermKind.Triple,
+                        value: "",
+                        triple: {
+                            s: this.node(subject),
+                            p: this.resolve(predicate, TermKind.Iri),
+                            o: this.resolve(object),
+                        },
                     },
-                });
+                    block.kind,
+                    [subject, predicate, object],
+                );
             }
+            return;
+        }
+        if (block.kind === 6) {
+            const cursor = new RdfCursor(block.encoded);
+            for (let index = 0n; index < block.count; index++) {
+                const { lexical, datatype } = typedLiteral(
+                    readTypedValue(cursor),
+                );
+                const datatypeId = this.intern({
+                    kind: TermKind.Iri,
+                    value: datatype,
+                });
+                this.add(
+                    {
+                        kind: TermKind.Literal,
+                        value: lexical,
+                        datatype: datatypeId,
+                    },
+                    block.kind,
+                );
+            }
+            cursor.end();
             return;
         }
 
@@ -451,7 +514,7 @@ class Projector {
         const seen = new Set<string>();
         const graph = expand(graphs);
         const key = (id: bigint): number | string =>
-            this.dictionary[Number(id)] ?? `wire-${id}`;
+            this.dictionary[Number(id)]?.written ?? `wire-${id}`;
         for (const [index, subject] of subjects.entries()) {
             const graphId = graph.next().value;
             requireRdf(graphId !== undefined, "inconsistent_counts");
