@@ -29,6 +29,13 @@ GtsV2FramePayload >> storedMatches [
 	^ storage ifNotNil: [ storage storedMatches: stored ]
 ]
 
+{ #category : #accessing }
+GtsV2FramePayload >> plainStoredBytesUpTo: limit [
+	(storage isNil or: [ storage tag ~= 1 or: [ bodyStart isNil or: [ stored end - bodyStart > limit ] ] ])
+		ifTrue: [ ^ nil ].
+	^ stored bytesStartingAt: bodyStart
+]
+
 { #category : #validation }
 GtsV2FramePayload >> checkWith: budget retainDecoded: retain [
 	| storedSize refusal computed |

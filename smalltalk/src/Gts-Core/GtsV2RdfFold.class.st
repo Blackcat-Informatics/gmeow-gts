@@ -42,6 +42,12 @@ GtsV2RdfFold >> observe: event [
 	event kind = #stop ifTrue: [
 		GtsV2EnvelopeError signal: event problem ].
 	(#(offsets locator) includes: event kind) ifTrue: [ ^ self ].
+	event frameType = 16 ifTrue: [
+		(event frame isTransparent not and: [ event link = #broken ])
+			ifTrue: [ GtsV2EnvelopeError signal: 'broken_link' ].
+		(#(linked healed) includes: event link) ifTrue: [
+			event effectiveIdentifier ifNotNil: [ :identifier | suppression record: identifier segment: blanks ] ].
+		^ self ].
 	event problem ifNotNil: [ :problem | GtsV2EnvelopeError signal: problem ].
 	event startsSegment ifTrue: [
 		(event effectiveIdentifier isNil or: [ event opener registry ~= 1 ])
@@ -66,7 +72,7 @@ GtsV2RdfFold >> observe: event [
 		^ suppression read: content bytes: bytes dictionary: dictionary segment: blanks ].
 	(#(8 9 10 11 13) includes: type) ifTrue: [
 		^ values readType: type content: content bytes: bytes ].
-	(#(6 12 14 15 16) includes: type) ifTrue: [ ^ self ].
+	(#(6 12 14 15) includes: type) ifTrue: [ ^ self ].
 	GtsV2EnvelopeError signal: 'unsupported RDF frame type ', type printString
 ]
 

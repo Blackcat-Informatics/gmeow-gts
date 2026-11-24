@@ -45,7 +45,8 @@ first candidate whose offset and identifier match. The ledger reports the
 gap and the recovered opener. A complete item also triggers a scan when it
 fails item classification, violates opener, frame-envelope or closing-record
 grammar, or has a broken frame link after checking its immediate successor.
-Parity recovery requires additional support.
+The reader checks parity-frame anchors, digest tables and placement.
+Shard checking and parity recovery require additional support.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry
 version 1. It reports each segment's committed prefix and uncommitted tail.

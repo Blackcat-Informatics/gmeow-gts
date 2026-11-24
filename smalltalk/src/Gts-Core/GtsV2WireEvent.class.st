@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding' ],
 	#category : #'Gts-Core'
 }
 
@@ -139,8 +139,22 @@ GtsV2WireEvent >> checkPayloadWith: budget retainDecoded: retain [
 
 { #category : #testing }
 GtsV2WireEvent >> isDamagedParity [
-	^ self frameType = 16 and: [ problem isNotNil or: [
-		link ~= #linked or: [ storedMatches = false or: [ payload state = #damaged ] ] ] ]
+	^ parityDamaged = true
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> markParityDamaged [
+	parityDamaged := true
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> parityFinding [
+	^ parityFinding
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> parityFinding: aFinding [
+	parityFinding := aFinding
 ]
 
 { #category : #initialization }
