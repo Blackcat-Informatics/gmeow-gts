@@ -193,6 +193,66 @@ GtsV2WireTest >> testOverlappingCompleteItemScanDoesNotRetestAnOccurrence [
 ]
 
 { #category : #tests }
+GtsV2WireTest >> testRecoveredOpenerCanRemoveAHealingWitness [
+	| events frame refusal |
+	events := self events: (self vector: 'resync-heal-witness-removed.ample-whole').
+	frame := events detect: [ :event | event offset = 114 ].
+	self assert: frame link equals: #broken.
+	self assert: (events detect: [ :event | event scanned ]) offset equals: 316.
+	self deny: (events anySatisfy: [ :event | event kind = #frame and: [ event offset = 231 ] ]).
+
+	events := self
+		events: (self vector: 'resync-heal-witness-removed.low-whole')
+		budget: (GtsV2PayloadBudget withReadLimit: 4114).
+	frame := events detect: [ :event | event offset = 114 ].
+	refusal := events detect: [ :event | event kind = #resyncRefused ].
+	self assert: frame link equals: #healed.
+	self assert: refusal offset equals: 316.
+	self deny: (events anySatisfy: [ :event | event scanned ])
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testFailedFrameScansOnlyAfterTheImmediateWitnessIsDecided [
+	| events |
+	events := self events: (self vector: 'resync-healed-not-scanned.whole').
+	self assert: events third link equals: #healed.
+	self deny: (events anySatisfy: [ :event | event scanned ]).
+
+	events := self events: (self vector: 'resync-heal-next-item-only.i-whole').
+	self assert: (events detect: [ :event | event scanned ]) offset equals: 199.
+
+	events := self
+		events: (self vector: 'resync-heal-at-item-limit.whole')
+		budget: (GtsV2PayloadBudget new itemLimit: 3).
+	self assert: events third link equals: #broken.
+	self assert: events last problem equals: 'items_per_read'.
+	self deny: (events anySatisfy: [ :event | event scanned ])
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testFailedFrameChargesItsPayloadBeforeTestingTheCandidate [
+	| bytes events frame |
+	bytes := self vector: 'resync-total-refused-no-occurrence-tested'.
+	events := self events: bytes.
+	self assert: (events detect: [ :event | event scanned ]) offset equals: 700.
+
+	events := self events: bytes budget: (GtsV2PayloadBudget withReadLimit: 600).
+	frame := events detect: [ :event | event kind = #frame ].
+	self assert: frame payload reason equals: 'total_decoded'.
+	self assert: frame payload count equals: 698.
+	self deny: (events anySatisfy: [ :event | event scanned or: [ event kind = #resyncRefused ] ])
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTypeSpecificContentValueDoesNotTriggerAFramingScan [
+	| events |
+	events := self events: (self vector: 'framing-test-content-value').
+	self assert: events last frameType equals: 9.
+	self assert: events last link equals: #linked.
+	self deny: (events anySatisfy: [ :event | event scanned ])
+]
+
+{ #category : #tests }
 GtsV2WireTest >> testResyncResumesAfterAnUndelimitableOrIncompleteItem [
 	#(
 		('resync-after-undelimitable.whole' 210 'undelimitable_input')

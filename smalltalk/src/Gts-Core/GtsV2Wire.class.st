@@ -96,7 +96,8 @@ GtsV2Wire >> scanDecisionFrom: start lookahead: frontier held: held itemLimit: i
 	decisionEnd := (start + 4096) min: end.
 	[ offset < decisionEnd and: [ count < itemLimit ] ] whileTrue: [
 		limit := offset = start ifTrue: [ end ] ifFalse: [ decisionEnd ].
-		[ finish := walker itemEndAt: offset limit: limit ]
+		[ finish := held at: offset ifAbsent: [ walker itemEndAt: offset limit: limit ].
+		finish isString ifTrue: [ GtsV2FramingError signal: finish ] ]
 			on: GtsV2FramingError
 			do: [ :error |
 				error messageText = 'undelimitable_input' ifTrue: [
@@ -106,6 +107,7 @@ GtsV2Wire >> scanDecisionFrom: start lookahead: frontier held: held itemLimit: i
 					held at: offset put: error messageText.
 					^ { end. count } ].
 				^ { offset. count } ].
+		finish > limit ifTrue: [ ^ { offset. count } ].
 		held at: offset put: finish.
 		offset := finish.
 		count := count + 1 ].
@@ -204,9 +206,8 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
 	deliver := [ :event :next :afterLocator |
 		| effective |
 		closing observe: event following: next afterLocator: afterLocator.
-		effective := self check: event witness: (next ifNotNil: [ next frame ]) predecessor: predecessor.
+		effective := self finalize: event following: next predecessor: predecessor.
 		effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
-		event checkPayloadWith: budget retainDecoded: (predicate value: event).
 		aBlock value: event.
 		event == refusalAfter ifTrue: [
 			aBlock value: pendingRefusal.
@@ -227,9 +228,13 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
 				ifFalse: [ deliver value: pending value: next value: nil ] ].
 		pending := next ]
 		limitItems: budget itemLimit
+		prepareFrame: [ :event :witness |
+			| effective |
+			effective := (pending ifNotNil: [ pending effectiveIdentifier ]) ifNil: [ predecessor ].
+			self prepare: event predecessor: effective witness: witness.
+			event checkPayloadWith: budget retainDecoded: (predicate value: event) ]
 		onFramingLoss: [ :offset :previous :finish :scannedThrough |
 			| start |
-			(pending isNil or: [ (#(offsets locator) includes: pending kind) not ]) ifTrue: [ flush value ].
 			start := (previous notNil and: [ previous link ~= #healed ])
 				ifTrue: [ previous offset + 2 ]
 				ifFalse: [ offset ].
@@ -241,7 +246,7 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
 ]
 
 { #category : #enumerating }
-GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit onFramingLoss: recover onRefusal: report [
+GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit prepareFrame: prepare onFramingLoss: recover onRefusal: report [
 	| offset limit count registry finish event previous scannedThrough frontier held refusal |
 	initialGap ifNotNil: [ aBlock value: initialGap copy ].
 	previous := firstOpener copy.
@@ -277,6 +282,10 @@ GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit onFramingLoss: recover o
 				finish := event end + 1 ].
 		event ifNil: [
 			event := self classifyAt: offset limit: finish registry: registry.
+			event frame ifNotNil: [
+				prepare value: event value: [
+					count + 1 < itemLimit ifTrue: [
+						self frameWitnessAt: finish registry: registry held: held ] ] ].
 			event failsFraming ifTrue: [
 				| recovery |
 				(frontier isNil or: [ frontier first <= finish ]) ifTrue: [ frontier := { finish. count + 1 } ].
@@ -308,6 +317,38 @@ GtsV2Wire >> scanEventsDo: aBlock limitItems: itemLimit onFramingLoss: recover o
 ]
 
 { #category : #enumerating }
+GtsV2Wire >> frameWitnessAt: offset registry: registry held: held [
+	| limit finish array code item |
+	limit := bytes size + 1.
+	offset >= limit ifTrue: [ ^ nil ].
+	finish := held at: offset ifAbsentPut: [
+		[ walker itemEndAt: offset limit: limit ]
+			on: GtsV2FramingError do: [ :error | error messageText ] ].
+	finish isString ifTrue: [ ^ nil ].
+	array := walker headAt: offset limit: finish.
+	code := self recordKind: array limit: finish.
+	(array isShortest and: [ array argument = 11 and: [
+		code notNil and: [ code isShortest and: [ code argument = 2 ] ] ] ]) ifFalse: [ ^ nil ].
+	item := GtsV2Field walker: walker from: offset to: finish.
+	^ GtsV2FrameEnvelope read: item registry: registry
+]
+
+{ #category : #validation }
+GtsV2Wire >> prepare: event predecessor: predecessor witness: peek [
+	self check: event witness: peek predecessor: predecessor.
+	event framingFailure: (event problem notNil or: [ event link = #broken ])
+]
+
+{ #category : #validation }
+GtsV2Wire >> finalize: event following: next predecessor: predecessor [
+	"A scanned opener can remove the item that tentatively witnessed this frame."
+	event link = #healed ifTrue: [
+		(next isNil or: [ next frame isNil or: [ next offset ~= event end ] ])
+			ifTrue: [ ^ self check: event witness: [ nil ] predecessor: predecessor ] ].
+	^ event effectiveIdentifier ifNil: [ event startsSegment ifFalse: [ predecessor ] ]
+]
+
+{ #category : #enumerating }
 GtsV2Wire >> endAt: offset limit: limit held: held [
 	| finish |
 	finish := held removeKey: offset ifAbsent: [ ^ walker itemEndAt: offset limit: limit ].
@@ -325,11 +366,9 @@ GtsV2Wire >> framingGapFrom: start to: limit [
 ]
 
 { #category : #validation }
-GtsV2Wire >> check: event witness: witness predecessor: predecessor [
-	| frame computed stored state effective |
-	event startsSegment ifTrue: [ ^ event effectiveIdentifier ].
+GtsV2Wire >> check: event witness: peek predecessor: predecessor [
+	| frame computed stored state effective witness |
 	frame := event frame.
-	frame ifNil: [ ^ predecessor ].
 	computed := frame identifierOn: bytes predecessor: predecessor.
 	stored := frame storedIdentifier.
 	state := #broken.
@@ -337,7 +376,7 @@ GtsV2Wire >> check: event witness: witness predecessor: predecessor [
 		computed = stored
 			ifTrue: [ state := #linked ]
 			ifFalse: [
-				(frame isTransparent not and: [ witness isNotNil and: [
+				(frame isTransparent not and: [ (witness := peek value) isNotNil and: [
 					witness storedIdentifier isNotNil and: [
 						(witness identifierOn: bytes predecessor: computed) = witness storedIdentifier ] ] ])
 					ifTrue: [ state := #healed ] ] ].
