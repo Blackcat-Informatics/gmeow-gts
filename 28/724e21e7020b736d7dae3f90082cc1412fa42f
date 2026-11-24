@@ -1,0 +1,19 @@
+ghprsq source head backlink metadata
+
+parent_hashes: 28724e21e7020b736d7dae3f90082cc1412fa42f
+
+GhpRsq-Schema: 1
+GhpRsq-Merge-Style: structured-squash-head-backlink
+GhpRsq-GitHub-Repo: Blackcat-Informatics/gmeow-gts
+GhpRsq-GitHub-Pull-Request: 585
+GhpRsq-GitHub-PR-URL: https://github.com/Blackcat-Informatics/gmeow-gts/pull/585
+GhpRsq-Base-Ref: main
+GhpRsq-Base-OID: 0856f5ca26cd989a5cd0e3296ced51a99957778a
+GhpRsq-Head-Ref: paudley/v2-rust-rdf-projection
+GhpRsq-Head-OID: 28724e21e7020b736d7dae3f90082cc1412fa42f
+GhpRsq-Result-Tree: 17133ab303ede78a9457d7f2f13d7c5e808e52d6
+GhpRsq-Result-Commit: f83ba160376c50d02d92dfbf12efd47ab976b35c
+GhpRsq-Parent-Hashes: 28724e21e7020b736d7dae3f90082cc1412fa42f
+GhpRsq-Squash-Notes-SHA256: 04e5b3a9a887783a346a6fdaed8ab73ef833147fd6da3b66b0406abb100adc5a
+GhpRsq-Defect-Class: none
+GhpRsq-Stage-Evidence: none
