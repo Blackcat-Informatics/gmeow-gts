@@ -65,6 +65,10 @@ findings at their P7 locations and produces the P7 file record when the
 input has no segment.
 Use `segmentRangeAt:` for a segment's input offset and length, and
 `fileEnd` for the P2 file-end code, including stops and commit status.
+Use `wireFoldStateAt:` for fold states determined by the wire checks. It
+returns `nil` when the frame needs further content processing.
+`wireLeftOut` counts exclusions determined so far, including opaque frames
+and items, damaged regions, torn tails, and items under unreadable openers.
 Use `openerFieldsAt:` for the opener, header identifier, registry version,
 hash algorithm, and profile fields by segment. On resync openers the report
 checks the preceding bytes named by `past` using the whole-read access rules

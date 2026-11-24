@@ -72,6 +72,7 @@ GtsV2ParityChecks >> check: event predecessor: predecessor [
 	| content geometry first end size anchor table repeated payload shardTable |
 	content := event link ~= #broken ifTrue: [ self contentOf: event frame ].
 	(content notNil and: [ content first > 1 and: [ registry > 1 and: [ event problem isNil ] ] ]) ifTrue: [
+		event markUnknownParityGeometry.
 		(foldStopped not and: [ event payload state = #verified ])
 			ifTrue: [ event parityFinding: 'unknown_frame_type' ].
 		^ self ].

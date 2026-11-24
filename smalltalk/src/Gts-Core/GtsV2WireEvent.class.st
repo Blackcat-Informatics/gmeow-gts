@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding', 'parityShardFindings', 'resumptionAnchor', 'parityGap', 'detached', 'unknownItemKind', 'unreadableOpenerOffset' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure', 'scanned', 'framingFailure', 'parityDamaged', 'parityFinding', 'parityShardFindings', 'resumptionAnchor', 'parityGap', 'detached', 'unknownItemKind', 'unreadableOpenerOffset', 'unknownParityGeometry' ],
 	#category : #'Gts-Core'
 }
 
@@ -193,6 +193,16 @@ GtsV2WireEvent >> checkPayloadWith: budget retainDecoded: retain [
 { #category : #testing }
 GtsV2WireEvent >> isDamagedParity [
 	^ parityDamaged = true
+]
+
+{ #category : #testing }
+GtsV2WireEvent >> hasUnknownParityGeometry [
+	^ unknownParityGeometry = true
+]
+
+{ #category : #initialization }
+GtsV2WireEvent >> markUnknownParityGeometry [
+	unknownParityGeometry := true
 ]
 
 { #category : #initialization }

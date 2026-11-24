@@ -45,6 +45,13 @@ GtsV2PayloadBudget >> itemLimit: limit [
 	^ self
 ]
 
+{ #category : #initialization }
+GtsV2PayloadBudget >> storedLimit: stored frameLimit: decoded [
+	storedLimit := stored.
+	frameLimit := decoded.
+	^ self
+]
+
 { #category : #validation }
 GtsV2PayloadBudget >> decodedExhausted [
 	^ exhausted
