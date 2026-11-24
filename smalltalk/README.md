@@ -37,8 +37,8 @@ The `.smalltalk.ston` file is the smalltalkCI entry point for GitHub Actions.
 ## Format and conformance
 
 `gts info` detects v2 from the first complete item, reports item byte ranges,
-validates opener and frame envelope grammar, and checks frame links.
-Stored and decoded payload checks, RDF folding, and recovery require
+validates opener and frame envelope grammar, and checks frame links and
+stored and decoded payload integrity. RDF folding and recovery require
 additional v2 support.
 
 Use the [v2 reader requirements](https://github.com/Blackcat-Informatics/gmeow-gts/blob/main/docs/v2/P7.md) and the [v2 conformance corpus](https://github.com/Blackcat-Informatics/gmeow-gts/tree/main/vectors/v2) when implementing the current format.
