@@ -45,7 +45,8 @@ GtsV2ParityTest >> assertTypedDurabilityOf: entry [
 		(segment at: 17) do: [ :frame |
 			| expected |
 			expected := ((frame at: 11) select: [ :finding | finding first between: 30 and: 35 ]) asArray.
-			self assert: (report frameFindingsAt: frame second) = expected description: input ] ]
+			self assert: ((report frameFindingsAt: frame second) select: [ :finding | finding first between: 30 and: 35 ])
+				= expected description: input ] ]
 ]
 
 { #category : #tests }

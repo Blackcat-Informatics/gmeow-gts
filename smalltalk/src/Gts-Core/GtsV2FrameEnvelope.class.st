@@ -49,7 +49,12 @@ GtsV2FrameEnvelope >> isTransparent [
 
 { #category : #testing }
 GtsV2FrameEnvelope >> hasUnknownCriticalType [
-	^ frameType notNil and: [ frameType > 16 and: [ critical = true and: [ transparent notNil ] ] ]
+	^ self hasUnknownType and: [ critical ]
+]
+
+{ #category : #testing }
+GtsV2FrameEnvelope >> hasUnknownType [
+	^ frameType notNil and: [ frameType > 16 and: [ critical notNil and: [ transparent notNil ] ] ]
 ]
 
 { #category : #hashing }

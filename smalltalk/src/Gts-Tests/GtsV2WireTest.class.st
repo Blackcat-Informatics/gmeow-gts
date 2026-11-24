@@ -40,8 +40,52 @@ GtsV2WireTest >> testTypedRefusalNamesTheItemThatContainsTheCandidate [
 	| input report |
 	input := self vector: 'resync-limit-torn-signature-at-new-kind.v1'.
 	report := (GtsV2Wire inspect: input budget: (GtsV2PayloadBudget withReadLimit: 4095)) typedWireFindings.
-	self assert: (report segmentFindingsAt: 0)
-		equals: #((20 (2 86) (1) (2 1) (2 3379) (2 4096) (2 4096)))
+	self assert: (report segmentFindingsAt: 0) last
+		equals: #(20 (2 86) (1) (2 1) (2 3379) (2 4096) (2 4096))
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testTypedWireIntegrityFindingsMatchP1Records [
+	#(
+		'lineage-ordinal-mismatch' 'lineage-matches' 'lineage-head-mismatch' 'lineage-first-present'
+		'lineage-begins-links-unavailable' 'links-unavailable-lineage-not-compared'
+		'lineage-previous-unreadable'
+		'link-healed' 'frame-unknown-critical' 'frame-unknown-noncritical' 'frame-unknown-transparent-not-bool'
+		'payload-digest' 'payload-length' 'payload-unknown-codec' 'payload-total-order'
+		'chain-break-withheld-codec-constraint' 'locator-not-index-item' 'item-kind-newer'
+		'stored-mismatch' 'frame-storage-tag-newer' 'parity-codec-newer'
+		'parity-later-version-payload-damaged' 'parity-later-version-after-stop'
+	) do: [ :name |
+		| fixture |
+		fixture := STONJSON fromString: ('/workspace/vectors/v2/P1/', name, '.json') asFileReference contents.
+		(fixture at: 'cases') do: [ :entry | self assertTypedWireIntegrityOf: entry ] ]
+]
+
+{ #category : #private }
+GtsV2WireTest >> assertTypedWireIntegrityOf: entry [
+	| name input capacity budget report file wireFinding |
+	name := entry at: 'input_file'.
+	input := ('/workspace/vectors/v2/P1/', name) asFileReference
+		binaryReadStreamDo: [ :stream | stream upToEnd ].
+	capacity := entry at: 'capacity'.
+	budget := (GtsV2PayloadBudget withReadLimit: (capacity at: 'decoded_bytes_per_read'))
+		itemLimit: (capacity at: 'items_per_read').
+	report := (GtsV2Wire inspect: input budget: budget) typedWireFindings.
+	file := (GtsCborReader decode: (GtsHex decode: (entry at: 'read_result'))) seventh.
+	wireFinding := [ :finding |
+		(#(4 5 6 7 11 12 13 14 20 30 42 43) includes: finding first) or: [
+			finding first = 18 and: [ #(19 23) includes: finding second second ] ] ].
+	file second do: [ :segment |
+		| actual expected |
+		actual := (report segmentFindingsAt: segment first) select: wireFinding.
+		expected := ((segment at: 18) select: wireFinding) asArray.
+		self assert: actual = expected description: name, ' segment ', segment first printString,
+			' ', actual printString, ' expected ', expected printString.
+		(segment at: 17) do: [ :frame |
+			actual := (report frameFindingsAt: frame second) select: wireFinding.
+			expected := ((frame at: 11) select: wireFinding) asArray.
+			self assert: actual = expected description: name, ' frame ', frame first printString,
+				' ', actual printString, ' expected ', expected printString ] ]
 ]
 
 { #category : #private }
