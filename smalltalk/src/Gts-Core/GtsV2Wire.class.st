@@ -115,19 +115,26 @@ GtsV2Wire >> eventsDo: aBlock [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock budget: budget [
-	| pending predecessor |
+	| pending pendingOffsets predecessor closing deliver |
+	closing := GtsV2ClosingChecks on: walker.
+	deliver := [ :event :next :afterLocator |
+		| effective |
+		closing observe: event following: next afterLocator: afterLocator.
+		effective := self check: event witness: (next ifNotNil: [ next frame ]) predecessor: predecessor.
+		effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
+		event checkPayloadWith: budget.
+		aBlock value: event ].
 	self scanEventsDo: [ :next |
+		pendingOffsets ifNotNil: [
+			deliver value: pendingOffsets value: pending value: next.
+			pendingOffsets := nil ].
 		pending ifNotNil: [
-			| effective |
-			effective := self check: pending witness: next frame predecessor: predecessor.
-			effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
-			pending checkPayloadWith: budget.
-			aBlock value: pending ].
+			(pending kind = #offsets and: [ next kind = #locator ])
+				ifTrue: [ pendingOffsets := pending ]
+				ifFalse: [ deliver value: pending value: next value: nil ] ].
 		pending := next ].
-	pending ifNotNil: [
-		self check: pending witness: nil predecessor: predecessor.
-		pending checkPayloadWith: budget.
-		aBlock value: pending ]
+	pendingOffsets ifNotNil: [ deliver value: pendingOffsets value: pending value: nil ].
+	pending ifNotNil: [ deliver value: pending value: nil value: nil ]
 ]
 
 { #category : #enumerating }

@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireEvent,
 	#superclass : #Object,
-	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload' ],
+	#instVars : [ 'kind', 'offset', 'end', 'problem', 'opener', 'frame', 'link', 'effectiveIdentifier', 'storedMatches', 'payload', 'closingClaimFailure' ],
 	#category : #'Gts-Core'
 }
 
@@ -39,6 +39,21 @@ GtsV2WireEvent >> end [
 { #category : #accessing }
 GtsV2WireEvent >> problem [
 	^ problem
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> closingProblem: reason [
+	problem := reason
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> closingClaimFailure [
+	^ closingClaimFailure
+]
+
+{ #category : #accessing }
+GtsV2WireEvent >> closingClaimFailure: reason [
+	closingClaimFailure := reason
 ]
 
 { #category : #accessing }

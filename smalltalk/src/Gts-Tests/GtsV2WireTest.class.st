@@ -269,3 +269,48 @@ GtsV2WireTest >> testTotalDecodedRefusalRemainsAcrossSegments [
 	self assert: frames third payload reason equals: 'total_decoded'.
 	self assert: frames third payload count equals: 300
 ]
+
+{ #category : #tests }
+GtsV2WireTest >> testClosingClaimsUseObservedItemsAndTheLastTypedIndex [
+	#(
+		('offsets-counts-opaque' offsets nil nil)
+		('offsets-count-short' offsets nil 'index_offsets')
+		('offsets-count-long' offsets nil 'index_offsets')
+		('offsets-length-differs' offsets nil 'index_offsets')
+		('locator-last-index.first' locator nil 'index_locator')
+		('locator-last-index.second' locator nil nil)
+		('locator-index-type-long-form' locator nil 'index_locator')
+		('locator-short-form' locator 'not_deterministic' nil)
+	) do: [ :entry |
+		| event |
+		event := (self events: (self vector: entry first)) last.
+		self assert: event kind = entry second description: entry first.
+		self assert: event problem = entry third description: entry first.
+		self assert: event closingClaimFailure = entry fourth description: entry first ]
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testClosingPlacementComesBeforeClaimsAndResetsAtAnOpener [
+	| header offsets locator events |
+	header := self vector: 'gen-record-two'.
+	offsets := #[130 4 129 11].
+	locator := #[130 3 27 0 0 0 0 0 0 0 1].
+	events := self events: header, offsets, locator, locator, header, offsets.
+	self assert: (events collect: [ :event | event kind ]) asArray
+		equals: #(header offsets locator locator header offsets).
+	self assert: (events collect: [ :event | event problem ]) asArray
+		equals: #(nil 'unordered_or_repeated' 'unordered_or_repeated' 'unordered_or_repeated' nil nil).
+	self assert: (events allSatisfy: [ :event | event closingClaimFailure isNil ]).
+	events := self events: header, offsets, locator, #[27].
+	self assert: (events at: 2) closingClaimFailure isNil.
+	self assert: (events at: 3) closingClaimFailure equals: 'index_locator'.
+	self assert: events last problem equals: 'torn_tail'
+]
+
+{ #category : #tests }
+GtsV2WireTest >> testMalformedLengthAfterMismatchStillReportsGrammarError [
+	| event |
+	event := (self events: (self vector: 'gen-record-two'), #[130 4 130 0 96]) last.
+	self assert: event closingClaimFailure isNil.
+	self assert: event problem equals: 'wrong_type'
+]
