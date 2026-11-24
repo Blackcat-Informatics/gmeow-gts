@@ -65,41 +65,7 @@ func readOpener(item []byte, offset int, resync bool) (Opener, Reason) {
 			return o, OutOfRange
 		}
 	}
-	o.Registry, reason = uintValue(values.next())
-	if reason != "" {
-		return o, reason
-	}
-	if o.Registry == 0 {
-		return o, OutOfRange
-	}
-	newer := o.Registry > 1
-	o.HashAlgorithm, reason = uintValue(values.next())
-	if reason != "" {
-		return o, reason
-	}
-	if o.HashAlgorithm == 0 || (!newer && o.HashAlgorithm != 1) {
-		return o, UnregisteredValue
-	}
-	digestLen := -1
-	if o.HashAlgorithm == 1 {
-		digestLen = 32
-	}
-	o.Profile, reason = optionEnum(values.next(), 0, true)
-	if reason != "" {
-		return o, reason
-	}
-	if !resync {
-		o.Canonical, reason = optionEnum(values.next(), 1, newer)
-		if reason != "" {
-			return o, reason
-		}
-	}
-	lineage := values.next()
-	lineageLimit := len(lineage)
-	if resync {
-		lineageLimit = resyncMax - (len(item) - len(values.remaining) - len(lineage))
-	}
-	o.Lineage, reason = readLineage(lineage, digestLen, lineageLimit)
+	digestLen, reason := readOpenerMetadata(&o, &values, len(item), resync)
 	if reason != "" {
 		return o, reason
 	}
@@ -121,14 +87,57 @@ func readOpener(item []byte, offset int, resync bool) (Opener, Reason) {
 	return o, ""
 }
 
+func readOpenerMetadata(o *Opener, values *itemValues, size int, resync bool) (int, Reason) {
+	var reason Reason
+	o.Registry, reason = uintValue(values.next())
+	if reason != "" {
+		return 0, reason
+	}
+	if o.Registry == 0 {
+		return 0, OutOfRange
+	}
+	newer := o.Registry > 1
+	o.HashAlgorithm, reason = uintValue(values.next())
+	if reason != "" {
+		return 0, reason
+	}
+	if o.HashAlgorithm == 0 || (!newer && o.HashAlgorithm != 1) {
+		return 0, UnregisteredValue
+	}
+	digestLen := -1
+	if o.HashAlgorithm == 1 {
+		digestLen = 32
+	}
+	o.Profile, reason = optionEnum(values.next(), 0, true)
+	if reason != "" {
+		return 0, reason
+	}
+	if !resync {
+		o.Canonical, reason = optionEnum(values.next(), 1, newer)
+		if reason != "" {
+			return 0, reason
+		}
+	}
+	lineage := values.next()
+	lineageLimit := len(lineage)
+	if resync {
+		lineageLimit = resyncMax - (size - len(values.remaining) - len(lineage))
+	}
+	o.Lineage, reason = readLineage(lineage, digestLen, lineageLimit)
+	return digestLen, reason
+}
+
 func readLineage(item []byte, digestLen, limit int) (*Lineage, Reason) {
-	value, reason := option(item)
+	value, reason := optionBefore(item, limit)
 	if value == nil || reason != "" {
 		return nil, reason
 	}
 	fields, reason := array(value, 2)
 	if reason != "" {
 		return nil, reason
+	}
+	if len(item)-len(fields.remaining) >= limit {
+		return nil, OutOfRange
 	}
 	previousHead, reason := byteValue(fields.next(), digestLen)
 	if reason != "" {
@@ -158,10 +167,11 @@ func readResync(values *itemValues, size, offset, digestLen int) (*Resync, Reaso
 		return nil, reason
 	}
 	r.Displaced = r.Offset != uint64(offset)
-	if size-len(values.remaining) >= resyncMax {
+	pastLimit := resyncMax - (size - len(values.remaining))
+	if pastLimit <= 0 {
 		return nil, OutOfRange
 	}
-	past, reason := option(values.next())
+	past, reason := optionBefore(values.next(), pastLimit)
 	if reason != "" {
 		return nil, reason
 	}

@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ._decode import _Decoder
-from .frame import FrameError, _identifier, _identity
-from .framing import ItemFramingError, _head, item_end
+from .frame import FrameError, _frame_field_offsets, _identifier, _identity
+from .framing import ItemFramingError, _byte_string_chunks, item_end
 
 type LinkState = Literal["linked", "healed", "broken"]
 
@@ -31,18 +31,13 @@ class FrameLink:
 def _stored_digest(data: bytes, offset: int) -> bytes | None:
     # P1 §3.4 compares a 32-byte value even when its encoding is malformed.
     # The item walk has already checked the bounds and the chunk heads.
-    major, length, start = _head(data, offset, offset)
-    if major != 2:
+    if data[offset] >> 5 != 2:
         return None
-    if length is not None:
-        return data[start : start + 32] if length == 32 else None
     digest = bytearray()
-    while data[start] != 0xFF:
-        _, length, start = _head(data, start, offset)
-        if length is None or len(digest) + length > 32:
+    for chunk in _byte_string_chunks(data, offset):
+        if len(digest) + len(chunk) > 32:
             return None
-        digest.extend(data[start : start + length])
-        start += length
+        digest.extend(chunk)
     return bytes(digest) if len(digest) == 32 else None
 
 
@@ -61,13 +56,16 @@ def inspect_link_item(
     if not data.startswith(b"\x8b\x02", offset):
         return None, item_end(data, offset)
 
-    starts = [offset + 2]
     try:
-        for _ in range(10):
-            starts.append(item_end(data, starts[-1]))
+        starts = _frame_field_offsets(data, offset)
     except ItemFramingError as error:
-        raise ItemFramingError(error.reason, offset) from error
+        raise ItemFramingError(error.reason, offset, error.examined_end) from error
+    return _inspect_frame_link(data, offset, starts), starts[-1]
 
+
+def _inspect_frame_link(
+    data: bytes, offset: int, starts: tuple[int, ...]
+) -> FrameLinkFields:
     # Elements one through six are exactly the identity field run.
     identity_start, identity_end = starts[0], starts[6]
     decoder = _Decoder(data, identity_start, FrameError)
@@ -86,7 +84,7 @@ def inspect_link_item(
         transparent=data[starts[2]] == 0xF5,
         identity_fields=identity,
         stored_identifier=_stored_digest(data, starts[8]),
-    ), next_offset
+    )
 
 
 def check_frame_link(

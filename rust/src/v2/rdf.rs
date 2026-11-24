@@ -4,8 +4,10 @@
 //! Project checked GTS v2 RDF rows and their segment dictionaries (P3 §10a).
 
 mod nquads;
+mod rebuild;
 mod rows;
 mod terms;
+mod values;
 
 pub use nquads::NQuadsExportError;
 
@@ -17,12 +19,13 @@ use std::{
 };
 
 use super::{
+    attachments::{BLOB, CHUNK, PACK, RECIPE, VALUE},
     frame::{FrameError, COMMIT, PARITY},
     reader::{
         Dispatch, ItemKind, LinkState, Opener, PayloadDamage, PayloadRefusal, PayloadState,
         ReadStop, WireRead,
     },
-    HeaderError, REGISTRY_VERSION,
+    HeaderError, DEFAULT_VALUE_TEXT_LIMIT, REGISTRY_VERSION,
 };
 use crate::model::{Quad, Triple3};
 
@@ -93,6 +96,25 @@ pub enum FrameIssue {
     UnsupportedFrameType(u64),
     UnsupportedTermKind(u64),
     FormedCapacity,
+    Value(ValueIssue),
+}
+
+/// A value reference that the RDF projection cannot represent.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ValueIssue {
+    MissingValue,
+    MissingUnit,
+    UnitLength,
+    ValueDigest,
+    InvalidUtf8,
+    RebuiltCapacity,
+    MaterializedCapacity,
+}
+
+impl From<ValueIssue> for FrameIssue {
+    fn from(issue: ValueIssue) -> Self {
+        Self::Value(issue)
+    }
 }
 
 impl From<HeaderError> for FrameIssue {
@@ -177,11 +199,20 @@ impl WireRead<'_> {
     /// Compute the whole RDF projection of header-led registry version 1
     /// segments with intact wire checks.
     ///
-    /// Handles inline dictionaries and all four RDF row types. A suppression
-    /// frame, a value-backed dictionary or an unreadable frame causes refusal
-    /// before the caller gets any quads. This operation projects data and
-    /// makes no signature, canonicality, profile or committed-prefix claim.
+    /// Supports inline and value-backed literals and all four RDF row types.
+    /// A suppression frame or unreadable term causes refusal. The projection
+    /// returns RDF only and defaults to 256 MiB of materialized reference text.
     pub fn whole_rdf_projection(&self) -> Result<RdfProjection, ProjectionError> {
+        self.whole_rdf_projection_with_value_limit(DEFAULT_VALUE_TEXT_LIMIT)
+    }
+
+    /// Project RDF with a caller-supplied aggregate limit on materialized
+    /// reference text. Repeated use of cached lexical or hex text costs only
+    /// once per representation. The P4 rebuild budget applies independently.
+    pub fn whole_rdf_projection_with_value_limit(
+        &self,
+        value_text_bytes: u64,
+    ) -> Result<RdfProjection, ProjectionError> {
         if self.dispatch != Some(Dispatch::SecondGeneration) {
             return Err(ProjectionError::Generation(self.dispatch));
         }
@@ -189,6 +220,7 @@ impl WireRead<'_> {
             return Err(ProjectionError::Framing(stop));
         }
         let mut projector = Projector::default();
+        let mut rebuild = rebuild::Rebuild::new(value_text_bytes);
         for (segment, wire) in self.segments.iter().enumerate() {
             let Opener::Header(Ok(opener)) = wire.opener else {
                 return Err(ProjectionError::Opener { segment });
@@ -208,7 +240,8 @@ impl WireRead<'_> {
                     kind: item.kind,
                 });
             }
-            let mut dictionary = Vec::new();
+            let mut dictionary = terms::Dictionary::default();
+            rebuild.start_segment();
             for observed in &wire.frames {
                 let at = |issue| ProjectionError::Frame {
                     segment,
@@ -236,12 +269,15 @@ impl WireRead<'_> {
                 };
                 match frame.frame_type {
                     1 => projector
-                        .read_terms(&mut dictionary, segment, frame.content, bytes)
+                        .read_terms(&mut dictionary, segment, frame.content, bytes, &mut rebuild)
                         .map_err(at)?,
                     2..=5 => projector
                         .read_rows(&dictionary, frame.frame_type, frame.content, bytes)
                         .map_err(|error| at(error.into()))?,
-                    6 | 8..=COMMIT | 15 | PARITY => {}
+                    CHUNK | BLOB | RECIPE | VALUE | PACK => rebuild
+                        .frame(frame.frame_type, frame.content, bytes)
+                        .map_err(|error| at(error.into()))?,
+                    6 | 12 | COMMIT | 15 | PARITY => {}
                     kind => return Err(at(FrameIssue::UnsupportedFrameType(kind))),
                 }
             }

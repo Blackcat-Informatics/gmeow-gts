@@ -3,22 +3,28 @@
 
 //! Whole-input framing and frame observations for the GTS v2 reader.
 
+use std::collections::VecDeque;
+
 use super::{
     decode_header,
-    frame::{decode_frame, frame_identifier, Frame, FrameError},
+    durability::{check_closing, check_closing_grammar, check_prefixes},
+    frame::{
+        check_type_length, decode_frame_envelope, frame_identifier, Frame, FrameError, PARITY,
+    },
     framing::{byte_chunks, generation, item_end, read_head, Generation},
     payload::{malformed_payload, PayloadBudget},
-    DecodedHeader, Decoder, Header, HeaderError, MalformedReason, HEADER_CONTEXT, REGISTRY_VERSION,
+    resync::{decode_resync, Candidate, ResyncScanner, RESYNC_MAX},
+    DecodedHeader, Decoder, HeaderError, MalformedReason, REGISTRY_VERSION,
 };
 
 pub use super::{
+    durability::{ClosingFinding, CommitCheck, CommitReadError, CommitReport, UncommittedTail},
     framing::{FramingFailure, FramingReason},
+    index::{IndexCheck, IndexOutcome, IndexWireClaims},
     payload::{PayloadCheck, PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity},
 };
 
-const RESYNC_MARKER: [u8; 16] = [
-    0xfc, 0xf3, 0xeb, 0x32, 0xa2, 0xf0, 0x26, 0x7d, 0xd1, 0x6a, 0x53, 0xf0, 0x9b, 0xff, 0x87, 0x92,
-];
+pub use super::resync::DecodedResync;
 
 /// The first item determines which generation reads the file.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -46,6 +52,7 @@ pub enum ItemKind {
     Malformed(MalformedReason),
     Unknown(u64),
     Unchecked,
+    DamagedRegion,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -53,17 +60,6 @@ pub struct WireItem {
     pub kind: ItemKind,
     pub offset: usize,
     pub end: usize,
-}
-
-/// A resync opener reached by walking from an established item boundary.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct DecodedResync<'a> {
-    pub header: Header<'a>,
-    pub claimed_offset: u64,
-    pub past: Option<&'a [u8]>,
-    pub marks: &'a [u8],
-    pub stored_identifier: &'a [u8],
-    pub identifier: Option<[u8; 32]>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -104,6 +100,8 @@ pub struct WireFrame<'a> {
     pub envelope: Result<Frame<'a>, FrameError>,
     pub link: FrameLink,
     pub payload: PayloadCheck<'a>,
+    /// A later frame type with well-typed flags that stops content folding.
+    pub unknown_type_stops_fold: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -112,14 +110,37 @@ pub struct WireSegment<'a> {
     pub items: Vec<WireItem>,
     pub frames: Vec<WireFrame<'a>>,
     pub head: Option<[u8; 32]>,
+    /// The declared segment boundary can fall inside its last item after recovery.
+    pub end_offset: usize,
+    pub scanned: bool,
+    pub framing_failure: Option<FramingFailure>,
+    pub resync_refusal: Option<ResyncRefusal>,
+    /// Grammar errors observed during the framing test.
+    pub closing_grammar: Vec<(usize, HeaderError)>,
+    /// Closing findings after placement and claims are checked over retained items.
+    pub closing_findings: Vec<ClosingFinding>,
+    pub commits: Result<CommitReport, CommitReadError>,
+    pub indexes: Vec<IndexCheck>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ResyncRefusal {
+    pub position: usize,
+    pub offset: usize,
+    pub length: usize,
+    pub count: u64,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct WireRead<'a> {
-    /// No generation is dispatched when the first item cannot be read.
+    /// Generation dispatch after checking for a resync opener in the first item.
     pub dispatch: Option<Dispatch>,
     pub segments: Vec<WireSegment<'a>>,
     pub stop: Option<ReadStop>,
+    /// Framing failure before the first accepted opener.
+    pub prefix_failure: Option<FramingFailure>,
+    /// First candidate refused before the read has a segment.
+    pub resync_refusal: Option<ResyncRefusal>,
 }
 
 fn classify(data: &[u8], offset: usize, newer: bool) -> ItemKind {
@@ -151,125 +172,153 @@ fn classify(data: &[u8], offset: usize, newer: bool) -> ItemKind {
     }
 }
 
-fn decode_resync<'a>(
-    data: &'a [u8],
-    offset: usize,
-    end: usize,
-) -> Result<DecodedResync<'a>, HeaderError> {
-    use MalformedReason::{OutOfRange, UnorderedOrRepeated, WrongLength, WrongType};
-    let limit = offset.saturating_add(4096);
-    let mut cursor = Decoder::new(&data[..end.min(limit)], offset);
-    let decode = |cursor: &mut Decoder<'a>| {
-        cursor.record(11)?;
-        cursor.code(5)?;
-        let error = cursor.error(OutOfRange);
-        if cursor.uint()? != 2 {
-            return Err(error);
-        }
-        let error = cursor.error(OutOfRange);
-        if cursor.byte_string(None)? != RESYNC_MARKER {
-            return Err(error);
-        }
-        let (registry_version, hash_algorithm, profile) = cursor.opener_fields()?;
-        let known = hash_algorithm == 1;
-        let lineage = cursor.option(|cursor| cursor.lineage(known))?;
-        let claimed_offset = cursor.uint()?;
-        let digest_size = known.then_some(32);
-        let past = cursor.option(|cursor| cursor.byte_string(digest_size))?;
-        let marks_at = cursor.offset;
-        let count = cursor.head(4)?;
-        let mut last: &[u8] = &[];
-        for index in 0..count {
-            let mark_at = cursor.offset;
-            let elements = cursor.head(4)?;
-            if elements == 0 {
-                return Err(HeaderError {
-                    reason: WrongType,
-                    offset: mark_at,
-                });
-            }
-            // The first element must be a uint by shape before count and order.
-            let Some(tag) = cursor.bytes.get(cursor.offset) else {
-                cursor.exhausted = true;
-                return Err(cursor.error(WrongLength));
-            };
-            if tag >> 5 != 0 {
-                return Err(HeaderError {
-                    reason: WrongType,
-                    offset: mark_at,
-                });
-            }
-            if index >= 64 {
-                return Err(HeaderError {
-                    reason: OutOfRange,
-                    offset: mark_at,
-                });
-            }
-            // A complete item cannot be a proper prefix of another complete item.
-            let available = &cursor.bytes[mark_at..];
-            let prefix = &available[..available.len().min(last.len())];
-            if !last.is_empty()
-                && prefix <= last
-                && (prefix.len() == last.len() || !last.starts_with(prefix))
-            {
-                return Err(HeaderError {
-                    reason: UnorderedOrRepeated,
-                    offset: mark_at,
-                });
-            }
-            for _ in 0..elements {
-                cursor.closed_item()?;
-            }
-            last = &cursor.bytes[mark_at..cursor.offset];
-        }
-        let marks = &cursor.bytes[marks_at..cursor.offset];
-        let body = &cursor.bytes[offset + 1..cursor.offset];
-        let stored_identifier = cursor.byte_string(digest_size)?;
-        let identifier = known.then(|| {
-            let mut hash = blake3::Hasher::new_derive_key(HEADER_CONTEXT);
-            hash.update(&[0x8a]);
-            hash.update(body);
-            *hash.finalize().as_bytes()
-        });
-        Ok(DecodedResync {
-            header: Header {
-                registry_version,
-                hash_algorithm,
-                profile,
-                canonical: None,
-                lineage,
-            },
-            claimed_offset,
-            past,
-            marks,
-            stored_identifier,
-            identifier,
-        })
-    };
-    decode(&mut cursor).map_err(|error| {
-        if end > limit && cursor.exhausted {
-            HeaderError {
-                reason: OutOfRange,
-                offset: limit,
-            }
-        } else {
-            error
-        }
-    })
-}
-
 fn opener(data: &[u8], item: WireItem) -> WireSegment<'_> {
     let opener = if item.kind == ItemKind::Header {
         Opener::Header(decode_header(&data[..item.end], item.offset))
     } else {
         Opener::Resync(decode_resync(data, item.offset, item.end))
     };
+    segment_at(opener, item, false)
+}
+
+fn segment_at(opener: Opener<'_>, item: WireItem, scanned: bool) -> WireSegment<'_> {
     let (_, head) = opener.state();
     WireSegment {
         opener,
         items: vec![item],
         frames: Vec::new(),
         head,
+        end_offset: item.end,
+        scanned,
+        framing_failure: None,
+        resync_refusal: None,
+        closing_grammar: Vec::new(),
+        closing_findings: Vec::new(),
+        commits: Ok(CommitReport::default()),
+        indexes: Vec::new(),
+    }
+}
+
+fn recovered_segment(offset: usize, value: DecodedResync<'_>) -> WireSegment<'_> {
+    segment_at(
+        Opener::Resync(Ok(value)),
+        WireItem {
+            kind: ItemKind::Resync,
+            offset,
+            end: value.next_offset,
+        },
+        true,
+    )
+}
+
+impl<'a> WireSegment<'a> {
+    fn with_claims(mut self, data: &[u8], stored_limit: u64) -> Self {
+        let (registry, identifier) = self.opener.state();
+        if let Some(identifier) = identifier {
+            self.closing_findings = check_closing(data, &self.items, &self.frames);
+            match check_prefixes(&identifier, &self.frames, stored_limit, registry) {
+                Ok((commits, indexes)) => {
+                    self.commits = Ok(commits);
+                    self.indexes = indexes;
+                }
+                Err(error) => self.commits = Err(error),
+            }
+        }
+        self
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Boundary {
+    offset: usize,
+    end: usize,
+    failure: Option<FramingReason>,
+}
+
+struct ItemWalk<'a> {
+    data: &'a [u8],
+    offset: usize,
+    count: u64,
+    limit: u64,
+    held: VecDeque<Boundary>,
+}
+
+impl<'a> ItemWalk<'a> {
+    fn new(data: &'a [u8], limit: u64) -> Self {
+        Self {
+            data,
+            offset: 0,
+            count: 0,
+            limit,
+            held: VecDeque::new(),
+        }
+    }
+
+    fn delimit_to(&mut self, end: usize) -> Option<Boundary> {
+        let offset = self.offset;
+        if offset >= end || self.count == self.limit {
+            return None;
+        }
+        let (end, failure) = match item_end(&self.data[..end], offset) {
+            Ok(next) => (next, None),
+            Err(FramingReason::TornTail) if end < self.data.len() => return None,
+            Err(reason) => (self.data.len(), Some(reason)),
+        };
+        if failure != Some(FramingReason::TornTail) {
+            self.count += 1;
+        }
+        self.offset = end;
+        Some(Boundary {
+            offset,
+            end,
+            failure,
+        })
+    }
+
+    fn take(&mut self) -> Option<Boundary> {
+        self.held
+            .pop_front()
+            .or_else(|| self.delimit_to(self.data.len()))
+    }
+
+    fn peek(&mut self) -> Option<Boundary> {
+        if self.held.is_empty() {
+            if let Some(next) = self.delimit_to(self.data.len()) {
+                self.held.push_back(next);
+            }
+        }
+        self.held.front().copied()
+    }
+
+    fn recover(
+        &mut self,
+        scanner: &mut ResyncScanner<'a>,
+        start: usize,
+        lost: Boundary,
+        budget: &mut PayloadBudget,
+    ) -> Option<Candidate<'a>> {
+        if lost.failure.is_none() && self.peek().is_some() {
+            let end = lost.end.saturating_add(RESYNC_MAX).min(self.data.len());
+            while let Some(boundary) = self.delimit_to(end) {
+                self.held.push_back(boundary);
+            }
+        }
+        if self.count == self.limit {
+            return None;
+        }
+        let scanned = scanner.scan(start, lost.end, budget);
+        if let Some(Candidate::Accepted { value, .. }) = scanned.as_ref() {
+            self.count += 1;
+            self.held.clear();
+            self.offset = value.next_offset;
+        }
+        scanned
+    }
+
+    fn item_limit(&self) -> Option<ReadStop> {
+        (self.count == self.limit && self.offset < self.data.len()).then_some(ReadStop::ItemLimit {
+            offset: self.offset,
+        })
     }
 }
 
@@ -327,13 +376,14 @@ fn read_frame<'a>(
     item: WireItem,
     segment: &WireSegment<'_>,
     predecessor: &[u8; 32],
-    can_peek: bool,
+    walk: &mut ItemWalk<'a>,
     budget: &mut PayloadBudget,
-) -> Result<WireFrame<'a>, FramingReason> {
+) -> Result<(WireFrame<'a>, bool), FramingReason> {
     let (registry, _) = segment.opener.state();
-    let envelope = decode_frame(data, item.offset, registry);
+    let envelope = decode_frame_envelope(data, item.offset, registry);
+    let malformed_grammar = envelope.is_err();
     let mut offsets = None;
-    let (frame_type, fields) = if let Ok(frame) = &envelope {
+    let (frame_type, fields) = if let Ok((frame, _)) = &envelope {
         (
             Some(frame.frame_type),
             LinkFields {
@@ -351,16 +401,19 @@ fn read_frame<'a>(
     let state = if computed.is_some() && computed == fields.stored {
         LinkState::Linked
     } else if let Some(identifier) =
-        computed.filter(|_| can_peek && !fields.transparent && fields.stored.is_some())
+        computed.filter(|_| !fields.transparent && fields.stored.is_some())
     {
-        let next = &data[item.end..];
-        if next.starts_with(&[0x8b, 0x02])
-            && item_end(data, item.end).is_ok()
-            && LinkFields::inspect(data, &field_offsets(data, item.end)?).matches(&identifier)
-        {
-            LinkState::Healed
-        } else {
-            LinkState::Broken
+        let following = walk.peek().filter(|next| {
+            next.failure.is_none() && data[next.offset..next.end].starts_with(&[0x8b, 0x02])
+        });
+        match following {
+            Some(next)
+                if LinkFields::inspect(data, &field_offsets(data, next.offset)?)
+                    .matches(&identifier) =>
+            {
+                LinkState::Healed
+            }
+            _ => LinkState::Broken,
         }
     } else {
         LinkState::Broken
@@ -373,7 +426,7 @@ fn read_frame<'a>(
         fields.stored.or(computed)
     };
     let payload = match &envelope {
-        Ok(frame) => budget.check(frame.into(), frame.check_storage()),
+        Ok((frame, _)) => budget.check(frame.into(), frame.check_storage()),
         Err(_) => {
             let offsets = offsets.ok_or(FramingReason::UndelimitableInput)?;
             let (stored_matches, input) =
@@ -387,109 +440,322 @@ fn read_frame<'a>(
             }
         }
     };
-    Ok(WireFrame {
-        position: segment.items.len(),
-        frame_type,
-        transparent: fields.transparent,
-        envelope,
-        link: FrameLink {
-            state,
-            computed_identifier: computed,
-            effective_identifier,
+    let unknown_type_stops_fold = registry > REGISTRY_VERSION
+        && frame_type.is_some_and(|kind| kind > PARITY)
+        && match &envelope {
+            Ok((frame, _)) => frame.critical,
+            Err(_) => offsets
+                .is_some_and(|raw| data[raw[1]] == 0xf5 && matches!(data[raw[2]], 0xf4 | 0xf5)),
+        };
+    let envelope =
+        envelope.and_then(|(frame, length_offset)| check_type_length(frame, length_offset));
+    Ok((
+        WireFrame {
+            position: segment.items.len(),
+            frame_type,
+            transparent: fields.transparent,
+            envelope,
+            link: FrameLink {
+                state,
+                computed_identifier: computed,
+                effective_identifier,
+            },
+            payload,
+            unknown_type_stops_fold,
         },
-        payload,
-    })
+        malformed_grammar || state == LinkState::Broken,
+    ))
 }
 
-/// Read the item boundaries, openers and frame observations of a byte input.
-///
-/// Framing stops at the first incomplete or undelimitable item. This layer
-/// supplies the inputs for resumption, content folding, and typed results.
-#[must_use]
-pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
-    let mut result = WireRead {
-        dispatch: None,
-        segments: Vec::new(),
-        stop: None,
-    };
+fn damage_before(data: &[u8], start: usize, end: usize) -> Option<FramingFailure> {
+    if start >= end {
+        return None;
+    }
+    item_end(&data[..end], start)
+        .err()
+        .map(|reason| FramingFailure {
+            reason,
+            offset: start,
+            length: end - start,
+        })
+}
+
+fn first_segment<'a>(
+    data: &'a [u8],
+    walk: &mut ItemWalk<'a>,
+    scanner: &mut ResyncScanner<'a>,
+    budget: &mut PayloadBudget,
+    result: &mut WireRead<'a>,
+) -> Option<WireSegment<'a>> {
     if data.is_empty() {
         result.dispatch = Some(Dispatch::Empty);
-        return result;
+        return None;
     }
+    let Some(first) = walk.take() else {
+        result.stop = walk.item_limit();
+        return None;
+    };
+    let mut scope = None;
+    if let Some(reason) = first.failure {
+        result.stop = Some(ReadStop::Framing(FramingFailure {
+            reason,
+            offset: 0,
+            length: first.end,
+        }));
+    } else {
+        let dispatch = match generation(&data[..first.end]) {
+            Some(Generation::Record(2)) => Dispatch::SecondGeneration,
+            Some(Generation::Legacy(1)) => Dispatch::FirstGeneration,
+            Some(Generation::Legacy(version) | Generation::Record(version @ 3..)) => {
+                Dispatch::UnsupportedGeneration(version)
+            }
+            _ => Dispatch::NotThisFormat,
+        };
+        result.dispatch = Some(dispatch);
+        match dispatch {
+            Dispatch::SecondGeneration => {
+                let kind = classify(&data[..first.end], 0, false);
+                let segment = opener(
+                    data,
+                    WireItem {
+                        kind,
+                        offset: 0,
+                        end: first.end,
+                    },
+                );
+                if !unreadable(segment.opener) {
+                    return Some(segment);
+                }
+                scope = Some(segment);
+            }
+            Dispatch::NotThisFormat => {}
+            _ => return None,
+        }
+    }
+    match walk.recover(scanner, 0, first, budget) {
+        Some(Candidate::Accepted { offset, value }) => {
+            result.dispatch = Some(Dispatch::SecondGeneration);
+            result.stop = None;
+            result.prefix_failure = damage_before(data, 0, offset);
+            return Some(recovered_segment(offset, value));
+        }
+        Some(Candidate::Refused { offset, count }) => {
+            let refusal = ResyncRefusal {
+                position: 0,
+                offset,
+                length: RESYNC_MAX,
+                count,
+            };
+            if let Some(segment) = &mut scope {
+                segment.resync_refusal = Some(refusal);
+            } else {
+                result.resync_refusal = Some(refusal);
+            }
+        }
+        None => {}
+    }
+    scope
+}
+
+fn unreadable(opener: Opener<'_>) -> bool {
+    matches!(opener, Opener::Header(Err(_)) | Opener::Resync(Err(_)))
+}
+
+fn end_at_resync(
+    segment: &mut WireSegment<'_>,
+    data: &[u8],
+    lost: Boundary,
+    offset: usize,
+) -> Result<(), FramingReason> {
+    if let Some(frame) = segment.frames.last_mut().filter(|frame| {
+        frame.position + 1 == segment.items.len() && frame.link.state == LinkState::Healed
+    }) {
+        let last = segment.items[frame.position];
+        let stored = stored_identifier(data, field_offsets(data, last.offset)?[8]);
+        frame.link.state = LinkState::Broken;
+        frame.link.effective_identifier = stored;
+        segment.head = stored;
+    }
+    segment.end_offset = offset;
+    segment.framing_failure = damage_before(data, lost.offset, offset);
+    if let Some(failure) = segment.framing_failure {
+        match failure.reason {
+            FramingReason::TornTail => segment.end_offset = failure.offset,
+            FramingReason::UndelimitableInput => segment.items.push(WireItem {
+                kind: ItemKind::DamagedRegion,
+                offset: failure.offset,
+                end: offset,
+            }),
+        }
+    }
+    Ok(())
+}
+
+fn framing_stop(
+    segment: &mut WireSegment<'_>,
+    reason: FramingReason,
+    offset: usize,
+    end: usize,
+) -> ReadStop {
+    let failure = FramingFailure {
+        reason,
+        offset,
+        length: end - offset,
+    };
+    segment.framing_failure = Some(failure);
+    ReadStop::Framing(failure)
+}
+
+/// Read whole-input wire observations, including resync at lost framing.
+///
+/// A scanned opener is admitted by the same decoded byte budget as frames.
+/// The original item positions are held even when a candidate starts inside
+/// the complete item before the failure.
+///
+/// Framing damage before an accepted resync opener is not in `stop`. It is
+/// reported on the segment (`framing_failure`, with a `DamagedRegion` item) or,
+/// before the first segment, in `prefix_failure`. Refused candidates are in
+/// `resync_refusal`. `stop` is set only when no candidate resumes the read.
+#[must_use]
+pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
+    let mut result = WireRead::default();
+    let mut walk = ItemWalk::new(data, capacity.items_per_read);
+    let mut scanner = ResyncScanner::new(data);
     let mut budget = PayloadBudget::new(capacity);
-    let mut offset = 0;
-    let mut count = 0;
-    while offset < data.len() {
-        if count == capacity.items_per_read {
-            result.stop = Some(ReadStop::ItemLimit { offset });
+    let Some(mut segment) = first_segment(data, &mut walk, &mut scanner, &mut budget, &mut result)
+    else {
+        return result;
+    };
+    while let Some(boundary) = walk.take() {
+        let mut begins = None;
+        let mut observed = None;
+        let mut closing_error = None;
+        let mut item = WireItem {
+            kind: ItemKind::Unchecked,
+            offset: boundary.offset,
+            end: boundary.end,
+        };
+        let mut lost = boundary.failure.is_some();
+        if !lost {
+            let newer = segment.head.is_none() || segment.opener.state().0 > REGISTRY_VERSION;
+            item.kind = classify(&data[..item.end], item.offset, newer);
+            lost = match item.kind {
+                ItemKind::Header | ItemKind::Resync => {
+                    let next = begins.insert(opener(data, item));
+                    unreadable(next.opener)
+                }
+                ItemKind::Malformed(_) => true,
+                ItemKind::Frame | ItemKind::Offsets | ItemKind::Locator => {
+                    if let Some(head) = segment.head {
+                        if item.kind == ItemKind::Frame {
+                            let (frame, failed) = match read_frame(
+                                data,
+                                item,
+                                &segment,
+                                &head,
+                                &mut walk,
+                                &mut budget,
+                            ) {
+                                Ok(observed) => observed,
+                                Err(reason) => {
+                                    result.stop = Some(framing_stop(
+                                        &mut segment,
+                                        reason,
+                                        item.offset,
+                                        data.len(),
+                                    ));
+                                    break;
+                                }
+                            };
+                            observed = Some(frame);
+                            failed
+                        } else {
+                            closing_error = check_closing_grammar(data, item).err();
+                            closing_error.is_some()
+                        }
+                    } else {
+                        false
+                    }
+                }
+                _ => false,
+            };
+        }
+        if lost {
+            let previous_healed = segment.frames.last().is_some_and(|frame| {
+                frame.position + 1 == segment.items.len() && frame.link.state == LinkState::Healed
+            });
+            let start = if previous_healed {
+                boundary.offset
+            } else {
+                segment
+                    .items
+                    .last()
+                    .map_or(boundary.offset, |item| item.offset + 1)
+            };
+            match walk.recover(&mut scanner, start, boundary, &mut budget) {
+                Some(Candidate::Accepted { offset, value }) => {
+                    if let Err(reason) = end_at_resync(&mut segment, data, boundary, offset) {
+                        result.stop = Some(framing_stop(
+                            &mut segment,
+                            reason,
+                            boundary.offset,
+                            data.len(),
+                        ));
+                        break;
+                    }
+                    result
+                        .segments
+                        .push(segment.with_claims(data, capacity.stored_bytes_per_frame));
+                    segment = recovered_segment(offset, value);
+                    continue;
+                }
+                Some(Candidate::Refused { offset, count }) => {
+                    let position = segment.items.len() - usize::from(offset < boundary.offset);
+                    segment.resync_refusal = Some(ResyncRefusal {
+                        position,
+                        offset,
+                        length: RESYNC_MAX,
+                        count,
+                    });
+                }
+                None => {}
+            }
+        }
+        if let Some(reason) = boundary.failure {
+            result.stop = Some(framing_stop(
+                &mut segment,
+                reason,
+                boundary.offset,
+                boundary.end,
+            ));
             break;
         }
-        let end = match item_end(data, offset) {
-            Ok(end) => end,
-            Err(reason) => {
-                result.stop = Some(ReadStop::Framing(FramingFailure {
-                    reason,
-                    offset,
-                    length: data.len() - offset,
-                }));
-                break;
-            }
-        };
-        count += 1;
-        if offset == 0 {
-            let dispatch = match generation(&data[..end]) {
-                Some(Generation::Record(2)) => Dispatch::SecondGeneration,
-                Some(Generation::Legacy(1)) => Dispatch::FirstGeneration,
-                Some(Generation::Legacy(version) | Generation::Record(version @ 3..)) => {
-                    Dispatch::UnsupportedGeneration(version)
-                }
-                _ => Dispatch::NotThisFormat,
-            };
-            result.dispatch = Some(dispatch);
-            if dispatch != Dispatch::SecondGeneration {
-                break;
-            }
+        if let Some(next) = begins {
+            segment.end_offset = item.offset;
+            result
+                .segments
+                .push(segment.with_claims(data, capacity.stored_bytes_per_frame));
+            segment = next;
+            continue;
         }
-        let newer = result
-            .segments
-            .last()
-            .is_some_and(|segment| segment.opener.state().0 > REGISTRY_VERSION);
-        let kind = classify(&data[..end], offset, newer);
-        let mut item = WireItem { kind, offset, end };
-        if matches!(kind, ItemKind::Header | ItemKind::Resync) {
-            result.segments.push(opener(data, item));
-        } else if let Some(segment) = result.segments.last_mut() {
-            if let Some(predecessor) = segment.head {
-                if kind == ItemKind::Frame {
-                    let frame = match read_frame(
-                        data,
-                        item,
-                        segment,
-                        &predecessor,
-                        count < capacity.items_per_read,
-                        &mut budget,
-                    ) {
-                        Ok(frame) => frame,
-                        Err(reason) => {
-                            result.stop = Some(ReadStop::Framing(FramingFailure {
-                                reason,
-                                offset: item.offset,
-                                length: data.len() - item.offset,
-                            }));
-                            break;
-                        }
-                    };
-                    if let Some(identifier) = frame.link.effective_identifier {
-                        segment.head = Some(identifier);
-                    }
-                    segment.frames.push(frame);
-                }
-            } else {
-                item.kind = ItemKind::Unchecked;
+        if let Some(frame) = observed {
+            if let Some(identifier) = frame.link.effective_identifier {
+                segment.head = Some(identifier);
             }
-            segment.items.push(item);
+            segment.frames.push(frame);
         }
-        offset = end;
+        if let Some(error) = closing_error {
+            segment.closing_grammar.push((segment.items.len(), error));
+        }
+        if segment.opener.state().1.is_none() {
+            item.kind = ItemKind::Unchecked;
+        }
+        segment.end_offset = item.end;
+        segment.items.push(item);
     }
+    result.stop = result.stop.or_else(|| walk.item_limit());
+    result
+        .segments
+        .push(segment.with_claims(data, capacity.stored_bytes_per_frame));
     result
 }

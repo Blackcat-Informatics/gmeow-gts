@@ -1393,6 +1393,22 @@ fn info_reports_v2_damage_and_refuses_unknown_generations() {
     assert!(stderr.contains("unsupported GTS generation 3"), "{stderr}");
 }
 
+/// Info must not report a damaged file as clean: a resync that resumes the read
+/// moves the undelimitable bytes out of `stop` into the segment, and the exit
+/// status and report still have to carry the damage.
+#[test]
+fn info_reports_damage_healed_by_resync_as_not_clean() {
+    let damaged = vectors().join("v2/P1/resync-after-undelimitable.whole.bin");
+    let out = gts(&["info", damaged.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(
+        stdout.contains("damaged framing in segment at byte "),
+        "{stdout}"
+    );
+    assert!(stdout.contains("damaged region at byte "), "{stdout}");
+}
+
 #[test]
 fn verify_warns_on_stream_vocab_without_claim() {
     // §13.3: stream# provenance in an unclaimed segment is a warning, never

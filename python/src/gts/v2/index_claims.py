@@ -10,7 +10,7 @@ from operator import attrgetter
 import cbor2
 
 from ._content import UINT_MAX
-from .pack import MemberKind, decode_pack
+from .pack import MemberKind, PackMember, decode_pack
 from .rows import _PAYLOAD_SIZES, QuadRow, Row, decode_rows
 
 _PACK = 13
@@ -31,6 +31,11 @@ class IndexStatistics:
         ):
             raise ValueError("index statistics must be uint counts")
 
+    def record(
+        self, predicates: tuple[tuple[int, int], ...]
+    ) -> tuple[int, int, int, tuple[tuple[int, int], ...]]:
+        return self.lines, self.records, self.blank_nodes, predicates
+
 
 @dataclass(slots=True)
 class _GraphRange:
@@ -44,8 +49,9 @@ class _GraphRange:
 class _IndexClaims:
     def __init__(self) -> None:
         self._position = 0
-        self._types: list[tuple[int, int]] = []
+        self.type_runs: list[tuple[int | None, int]] = []
         self._graphs: dict[int | None, list[_GraphRange]] = defaultdict(list)
+        self._range_count = 0
         self._last_range: dict[int, _GraphRange] = {}
         self._predicates: Counter[int] = Counter()
         self._members: list[tuple[bytes, int, int]] = []
@@ -61,6 +67,7 @@ class _IndexClaims:
                 entry = _GraphRange(graph, frame_type, self._position, first_row, count)
                 self._graphs[graph].append(entry)
                 self._last_range[frame_type] = entry
+                self._range_count += 1
             first_row += count
         self._predicates.update(
             row.predicate for row in rows if isinstance(row, QuadRow)
@@ -68,34 +75,44 @@ class _IndexClaims:
 
     def add(self, frame_type: int, content: list[object], payload: bytes) -> None:
         """Observe one encoded ordinary frame's content and decoded payload."""
+        rows: tuple[Row, ...] = ()
+        members: tuple[PackMember, ...] = ()
         if frame_type in _PAYLOAD_SIZES:
-            decoded = decode_rows(frame_type, cbor2.dumps(content), payload)
-            self._add_rows(frame_type, decoded.rows)
+            rows = decode_rows(frame_type, cbor2.dumps(content), payload).rows
         elif frame_type == _PACK:
             member_count, unit_length = content
             assert isinstance(member_count, int) and isinstance(unit_length, int)
             members = decode_pack(
                 payload, member_count=member_count, unit_length=unit_length
             )
-            self._members.extend(
-                (member.digest, self._position, index)
-                for index, member in enumerate(members)
-                if member.kind in (MemberKind.CHUNK, MemberKind.BLOB)
-            )
-        if self._types and self._types[-1][0] == frame_type:
-            self._types[-1] = frame_type, self._types[-1][1] + 1
+        self.observe(frame_type, rows, members)
+
+    def observe(
+        self,
+        frame_type: int | None,
+        rows: tuple[Row, ...] = (),
+        members: tuple[PackMember, ...] = (),
+    ) -> None:
+        """Count a covered frame and use its decoded rows or members when held."""
+        if frame_type is not None and rows:
+            self._add_rows(frame_type, rows)
+        self._members.extend(
+            (member.digest, self._position, index)
+            for index, member in enumerate(members)
+            if member.kind in (MemberKind.CHUNK, MemberKind.BLOB)
+        )
+        if self.type_runs and self.type_runs[-1][0] == frame_type:
+            self.type_runs[-1] = frame_type, self.type_runs[-1][1] + 1
         else:
-            self._types.append((frame_type, 1))
+            self.type_runs.append((frame_type, 1))
         self._position += 1
 
-    def payload(
-        self, statistics: IndexStatistics, root: bytes, content_digest: bytes | None
-    ) -> bytes:
-        if content_digest is not None and (
-            not isinstance(content_digest, bytes) or len(content_digest) != 32
-        ):
-            raise ValueError("index content digest must be a 32-byte digest")
-        directory = [
+    @property
+    def graph_directory_size(self) -> tuple[int, int]:
+        return len(self._graphs), self._range_count
+
+    def graph_directory(self) -> list[list[object]]:
+        return [
             [
                 [1] if graph is None else [2, graph],
                 [
@@ -107,18 +124,31 @@ class _IndexClaims:
                 self._graphs, key=lambda graph: -1 if graph is None else graph
             )
         ]
+
+    def predicates(self) -> tuple[tuple[int, int], ...]:
+        return tuple(sorted(self._predicates.items()))
+
+    @property
+    def pack_member_count(self) -> int:
+        return len(self._members)
+
+    def pack_members(self) -> list[tuple[bytes, int, int]]:
+        return sorted(self._members)
+
+    def payload(
+        self, statistics: IndexStatistics, root: bytes, content_digest: bytes | None
+    ) -> bytes:
+        if content_digest is not None and (
+            not isinstance(content_digest, bytes) or len(content_digest) != 32
+        ):
+            raise ValueError("index content digest must be a 32-byte digest")
         return cbor2.dumps(
             [
-                self._types,
-                directory,
-                [
-                    statistics.lines,
-                    statistics.records,
-                    statistics.blank_nodes,
-                    sorted(self._predicates.items()),
-                ],
+                self.type_runs,
+                self.graph_directory(),
+                statistics.record(self.predicates()),
                 root,
                 [1] if content_digest is None else [2, content_digest],
-                sorted(self._members),
+                self.pack_members(),
             ]
         )

@@ -220,6 +220,35 @@ func TestInfoReportsWireFailures(t *testing.T) {
 	}
 }
 
+func TestInfoReportsClosingClaimFailures(t *testing.T) {
+	cmd, stdout, stderr := run(t, "info",
+		vector(t, "v2/P5/accelerators-false.offsets.bin"),
+		vector(t, "v2/P5/accelerators-false.locator.bin"))
+	if cmd.ProcessState.ExitCode() != 1 || stderr.Len() != 0 {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	for _, reason := range []string{"index_offsets", "index_locator"} {
+		if !strings.Contains(stdout.String(), "index_claim_failed ("+reason+")") {
+			t.Errorf("missing closing claim %q in ledger:\n%s", reason, stdout)
+		}
+	}
+}
+
+func TestCLIReportsRecoveryAndChecksResumedSegment(t *testing.T) {
+	path := vector(t, "v2/P1/resync-after-undelimitable.whole.bin")
+	cmd, stdout, stderr := run(t, "info", path)
+	if cmd.ProcessState.ExitCode() != 1 || stderr.Len() != 0 ||
+		!strings.Contains(stdout.String(), "resync found by scan at byte 210") ||
+		!strings.Contains(stdout.String(), "byte 209: undelimitable_input") {
+		t.Fatalf("info exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	cmd, stdout, stderr = run(t, "verify", path)
+	if cmd.ProcessState.ExitCode() != 1 || !strings.Contains(stderr.String(), "byte 209: undelimitable_input") ||
+		!strings.Contains(stdout.String(), "segment 1: ") {
+		t.Fatalf("verify exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+}
+
 func TestInfoRejectsEmptyFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "empty.gts")
 	if err := os.WriteFile(path, nil, 0o600); err != nil {
@@ -466,6 +495,65 @@ func TestVerifyFlagsDamageWithExit1(t *testing.T) {
 	}
 	if !bytes.Contains(stdout.Bytes(), []byte("DamagedFrame")) {
 		t.Fatalf("ledger did not list DamagedFrame")
+	}
+}
+
+func TestVerifyV2ChecksCommitsAndKeepsLegacyDispatch(t *testing.T) {
+	cmd, stdout, stderr := run(t, "verify",
+		vector(t, "01-minimal.gts"),
+		vector(t, "v2/P5/commit-valid.bin"),
+		vector(t, "v2/P5/commit-none.bin"),
+		vector(t, "v2/P5/commit-canonical-tail.bin"),
+		vector(t, "v2/P1/locator-last-index.second.bin"))
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 {
+		t.Fatalf("verify exit %d: %s", cmd.ProcessState.ExitCode(), stderr)
+	}
+	for _, part := range []string{
+		"01-minimal.gts: 1 segment(s)",
+		"committed_frames 3, uncommitted_tail 1, index payload claims unchecked",
+		"no_commit, uncommitted_tail 2",
+		"committed_frames 2, index payload claims unchecked",
+	} {
+		if !strings.Contains(stdout.String(), part) {
+			t.Errorf("missing %q in ledger:\n%s", part, stdout)
+		}
+	}
+}
+
+func TestVerifyV2RejectsDamageAndFalseClaims(t *testing.T) {
+	cmd, stdout, stderr := run(t, "verify",
+		vector(t, "v2/P1/stored-mismatch.bin"),
+		vector(t, "v2/P1/torn-after-frames.bin"),
+		vector(t, "v2/P5/commit-count-mismatch.bin"),
+		vector(t, "v2/P5/commit-root-mismatch.bin"),
+		vector(t, "v2/P5/accelerators-false.offsets.bin"),
+		vector(t, "v2/P5/accelerators-false.locator.bin"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("verify exit %d: %s\n%s", cmd.ProcessState.ExitCode(), stderr, stdout)
+	}
+	for _, part := range []string{
+		"stored check mismatch", "torn_tail",
+		"commit-count-mismatch.bin: byte 810: commit_count_mismatch (expected 2)",
+		"commit-root-mismatch.bin: byte 810: commit_root_mismatch",
+		"index_claim_failed (index_offsets)", "index_claim_failed (index_locator)",
+	} {
+		if !strings.Contains(stderr.String(), part) {
+			t.Errorf("missing %q in diagnostics:\n%s", part, stderr)
+		}
+	}
+}
+
+func TestVerifyV2RejectsUnsupportedKeysAndGeneration(t *testing.T) {
+	cmd, _, stderr := run(t, "verify", "--key", "example:"+strings.Repeat("00", 32),
+		vector(t, "v2/P5/commit-valid.bin"),
+		vector(t, "v2/P1/gen-record-three.bin"))
+	if cmd.ProcessState.ExitCode() != 1 {
+		t.Fatalf("verify exit %d: %s", cmd.ProcessState.ExitCode(), stderr)
+	}
+	for _, part := range []string{"--key is unsupported for GTS v2", "unsupported GTS generation 3"} {
+		if !strings.Contains(stderr.String(), part) {
+			t.Errorf("missing %q in diagnostics:\n%s", part, stderr)
+		}
 	}
 }
 

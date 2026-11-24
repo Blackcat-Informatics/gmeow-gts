@@ -9,12 +9,17 @@ use ciborium::value::Value;
 
 use crate::wire;
 
+mod attachments;
+mod durability;
 pub mod frame;
 mod framing;
 mod import;
+mod index;
 mod payload;
+mod range;
 pub mod rdf;
 pub mod reader;
+mod resync;
 pub mod writer;
 
 pub use import::{from_nquads, ImportError};
@@ -25,6 +30,7 @@ const CANONICAL_FORM: u64 = 1;
 const LAST_PROFILE: u64 = 6;
 const HEADER_CONTEXT: &str = "gts2 header";
 const FORMED_BYTES_PER_READ: u64 = 1 << 37;
+const DEFAULT_VALUE_TEXT_LIMIT: u64 = 256 << 20;
 
 /// A claimed previous segment head and lineage ordinal.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -123,7 +129,7 @@ impl Error for HeaderWriteError {}
 struct Decoder<'a> {
     bytes: &'a [u8],
     offset: usize,
-    exhausted: bool,
+    field_start_limit: Option<usize>,
 }
 
 impl<'a> Decoder<'a> {
@@ -131,7 +137,7 @@ impl<'a> Decoder<'a> {
         Self {
             bytes,
             offset,
-            exhausted: false,
+            field_start_limit: None,
         }
     }
 
@@ -149,7 +155,6 @@ impl<'a> Decoder<'a> {
             .checked_add(size)
             .filter(|&end| end <= self.bytes.len())
         else {
-            self.exhausted = true;
             return Err(error);
         };
         let value = &self.bytes[self.offset..end];
@@ -157,7 +162,20 @@ impl<'a> Decoder<'a> {
         Ok(value)
     }
 
+    fn peek_byte(&mut self) -> Result<u8, HeaderError> {
+        self.take(1).map(|byte| {
+            self.offset -= 1;
+            byte[0]
+        })
+    }
+
     fn head(&mut self, expected: u8) -> Result<u64, HeaderError> {
+        if let Some(limit) = self.field_start_limit.filter(|limit| self.offset >= *limit) {
+            return Err(HeaderError {
+                reason: MalformedReason::OutOfRange,
+                offset: limit,
+            });
+        }
         let start = self.offset;
         let first = self.take(1)?[0];
         let major = first >> 5;
@@ -347,9 +365,12 @@ impl<'a> Decoder<'a> {
         })
     }
 
-    fn opener_fields(&mut self) -> Result<(u64, u64, Option<u64>), HeaderError> {
+    fn opener_fields(
+        &mut self,
+        known_hash_only: bool,
+    ) -> Result<(u64, u64, Option<u64>), HeaderError> {
         let registry = self.positive()?;
-        let hash = self.code(if registry == REGISTRY_VERSION {
+        let hash = self.code(if known_hash_only || registry == REGISTRY_VERSION {
             BLAKE3_256
         } else {
             u64::MAX
@@ -371,7 +392,7 @@ pub fn decode_header(data: &[u8], offset: usize) -> Result<DecodedHeader<'_>, He
     if decoder.uint()? != 2 {
         return Err(generation_error);
     }
-    let (registry_version, hash_algorithm, profile) = decoder.opener_fields()?;
+    let (registry_version, hash_algorithm, profile) = decoder.opener_fields(false)?;
     let last_known = |last| {
         if registry_version > REGISTRY_VERSION {
             u64::MAX

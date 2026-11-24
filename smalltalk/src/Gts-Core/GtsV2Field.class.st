@@ -1,0 +1,268 @@
+"SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0"
+
+Class {
+	#name : #GtsV2Field,
+	#superclass : #Object,
+	#instVars : [ 'walker', 'start', 'end' ],
+	#category : #'Gts-Core'
+}
+
+{ #category : #'instance creation' }
+GtsV2Field class >> walker: aWalker from: first to: finish [
+	^ self new initializeWalker: aWalker from: first to: finish
+]
+
+{ #category : #initialization }
+GtsV2Field >> initializeWalker: aWalker from: first to: finish [
+	walker := aWalker.
+	start := first.
+	end := finish.
+	^ self
+]
+
+{ #category : #accessing }
+GtsV2Field >> start [
+	^ start
+]
+
+{ #category : #accessing }
+GtsV2Field >> end [
+	^ end
+]
+
+{ #category : #accessing }
+GtsV2Field >> size [
+	^ end - start
+]
+
+{ #category : #hashing }
+GtsV2Field >> deriveWith: context prefix: prefix from: first to: finish [
+	^ GtsBlake3 deriveWith: context prefix: prefix bytes: walker bytes from: first to: finish
+]
+
+{ #category : #parsing }
+GtsV2Field >> typedHead: major [
+	| head |
+	head := self deterministicHead.
+	head major = major ifFalse: [ GtsV2EnvelopeError signal: 'wrong_type' ].
+	^ head
+]
+
+{ #category : #parsing }
+GtsV2Field >> deterministicHead [
+	| head |
+	head := walker headAt: start limit: end.
+	self checkHead: head.
+	^ head
+]
+
+{ #category : #validation }
+GtsV2Field >> checkHead: head [
+	(head major <= 4 and: [ head isShortest not ])
+		ifTrue: [ GtsV2EnvelopeError signal: 'not_deterministic' ]
+]
+
+{ #category : #parsing }
+GtsV2Field >> uint [
+	^ (self typedHead: 0) argument
+]
+
+{ #category : #parsing }
+GtsV2Field >> signedInteger [
+	| head |
+	head := walker headAt: start limit: end.
+	self checkHead: head.
+	head major = 0 ifTrue: [ ^ head argument ].
+	head major = 1 ifTrue: [ ^ head argument negated - 1 ].
+	^ GtsV2EnvelopeError signal: 'wrong_type'
+]
+
+{ #category : #parsing }
+GtsV2Field >> locatorDistance [
+	| head |
+	head := walker headAt: start limit: end.
+	head major = 0 ifFalse: [ self typedHead: 0 ].
+	(self octetAt: 0) = 27 ifFalse: [ GtsV2EnvelopeError signal: 'not_deterministic' ].
+	^ head argument
+]
+
+{ #category : #parsing }
+GtsV2Field >> flag [
+	self typedHead: 7.
+	(walker bytes at: start) = 244 ifTrue: [ ^ false ].
+	(walker bytes at: start) = 245 ifTrue: [ ^ true ].
+	^ GtsV2EnvelopeError signal: 'wrong_type'
+]
+
+{ #category : #parsing }
+GtsV2Field >> byteBodyOfSize: expected [
+	| head |
+	head := self typedHead: 2.
+	(expected isNotNil and: [ head argument ~= expected ])
+		ifTrue: [ GtsV2EnvelopeError signal: 'wrong_length' ].
+	^ head end
+]
+
+{ #category : #accessing }
+GtsV2Field >> encodedBytes [
+	^ walker bytes copyFrom: start to: end - 1
+]
+
+{ #category : #accessing }
+GtsV2Field >> bytesStartingAt: first [
+	^ walker bytes copyFrom: first to: end - 1
+]
+
+{ #category : #testing }
+GtsV2Field >> bytesStartingAt: first beginWith: prefix [
+	end - first < prefix size ifTrue: [ ^ false ].
+	1 to: prefix size do: [ :index |
+		(walker bytes at: first + index - 1) = (prefix at: index) ifFalse: [ ^ false ] ].
+	^ true
+]
+
+{ #category : #hashing }
+GtsV2Field >> storedHashWithPrefix: prefix [
+	| head bytes |
+	head := walker headAt: start limit: end.
+	head major = 2 ifFalse: [ ^ nil ].
+	bytes := walker bytes.
+	head argument ifNotNil: [
+		^ self deriveWith: 'gts2 stored' prefix: prefix from: head end to: end ].
+	^ GtsBlake3 deriveWith: 'gts2 stored' updatingWith: [ :update |
+		| offset limit chunk |
+		update value: prefix value: 1 value: prefix size + 1.
+		offset := head end.
+		limit := end - 1.
+		[ offset < limit ] whileTrue: [
+			chunk := walker headAt: offset limit: limit.
+			offset := chunk end + chunk argument.
+			update value: bytes value: chunk end value: offset ] ]
+]
+
+{ #category : #parsing }
+GtsV2Field >> observedIdentifier [
+	| head offset limit chunk length identifier cursor bytes |
+	head := walker headAt: start limit: end.
+	head major = 2 ifFalse: [ ^ nil ].
+	bytes := walker bytes.
+	head argument ifNotNil: [
+		head argument = 32 ifFalse: [ ^ nil ].
+		^ bytes copyFrom: head end to: end - 1 ].
+	identifier := ByteArray new: 32.
+	offset := head end.
+	limit := end - 1.
+	cursor := 1.
+	[ offset < limit ] whileTrue: [
+		chunk := walker headAt: offset limit: limit.
+		length := chunk argument.
+		length > (33 - cursor) ifTrue: [ ^ nil ].
+		length > 0 ifTrue: [
+			identifier replaceFrom: cursor to: cursor + length - 1 with: bytes startingAt: chunk end ].
+		cursor := cursor + length.
+		offset := chunk end + length ].
+	^ cursor = 33 ifTrue: [ identifier ]
+]
+
+{ #category : #parsing }
+GtsV2Field >> cursor [
+	^ self cursorFrom: start
+]
+
+{ #category : #parsing }
+GtsV2Field >> cursorFrom: first [
+	^ GtsV2Fields walker: walker from: first to: end bound: end
+]
+
+{ #category : #parsing }
+GtsV2Field >> cappedAt: limit [
+	^ GtsV2Field walker: walker from: start to: (end min: limit)
+]
+
+{ #category : #parsing }
+GtsV2Field >> list [
+	| head |
+	head := self typedHead: 4.
+	^ GtsV2Fields walker: walker from: head end to: end bound: end
+]
+
+{ #category : #parsing }
+GtsV2Field >> arrayPrefix: count [
+	| head limit |
+	head := walker headAt: start limit: end.
+	head major = 4 ifFalse: [ GtsV2EnvelopeError signal: 'wrong_type' ].
+	head argument ifNotNil: [ :size |
+		size < count ifTrue: [ GtsV2EnvelopeError signal: 'wrong_length' ] ].
+	limit := head argument ifNil: [ end - 1 ] ifNotNil: [ end ].
+	^ GtsV2Fields walker: walker from: head end to: limit bound: limit
+]
+
+{ #category : #parsing }
+GtsV2Field >> fields: count [
+	^ self fields: count bound: end
+]
+
+{ #category : #parsing }
+GtsV2Field >> fields: count bound: bound [
+	| head |
+	head := self typedHead: 4.
+	head argument = count ifFalse: [ GtsV2EnvelopeError signal: 'wrong_length' ].
+	^ GtsV2Fields walker: walker from: head end to: end bound: bound
+]
+
+{ #category : #parsing }
+GtsV2Field >> optionUpTo: bound do: aBlock [
+	| head fields tag |
+	head := self typedHead: 4.
+	head argument = 0 ifTrue: [ GtsV2EnvelopeError signal: 'wrong_length' ].
+	fields := GtsV2Fields walker: walker from: head end to: end bound: bound.
+	tag := fields next uint.
+	(tag between: 1 and: 2) ifFalse: [ GtsV2EnvelopeError signal: 'unregistered_value' ].
+	tag = head argument ifFalse: [ GtsV2EnvelopeError signal: 'wrong_length' ].
+	tag = 2 ifTrue: [ aBlock value: fields next ]
+]
+
+{ #category : #validation }
+GtsV2Field >> checkGrammarUpTo: bound [
+	| offset head major bytes |
+	offset := start.
+	bytes := walker bytes.
+	[ offset < end ] whileTrue: [
+		offset >= bound ifTrue: [ GtsV2EnvelopeError signal: 'out_of_range' ].
+		head := walker headAt: offset limit: end.
+		self checkHead: head.
+		major := head major.
+		((major between: 5 and: 6) or: [
+			major = 7 and: [ ((bytes at: offset) between: 244 and: 245) not ] ])
+			ifTrue: [ GtsV2EnvelopeError signal: 'wrong_type' ].
+		offset := head end.
+		(major between: 2 and: 3) ifTrue: [
+			offset := offset + head argument.
+			major = 3 ifTrue: [
+				(GtsCborText isValidUtf8: bytes from: head end to: offset)
+					ifFalse: [ GtsV2EnvelopeError signal: 'wrong_type' ] ] ] ]
+]
+
+{ #category : #validation }
+GtsV2Field >> checkMarkHead [
+	| head first |
+	head := self typedHead: 4.
+	head argument = 0 ifTrue: [ GtsV2EnvelopeError signal: 'wrong_type' ].
+	first := walker headAt: head end limit: end.
+	first major = 0 ifFalse: [ GtsV2EnvelopeError signal: 'wrong_type' ]
+]
+
+{ #category : #comparing }
+GtsV2Field >> compare: other [
+	| left right |
+	0 to: (self size min: other size) - 1 do: [ :index |
+		left := walker bytes at: start + index.
+		right := other octetAt: index.
+		left ~= right ifTrue: [ ^ left - right ] ].
+	^ self size - other size
+]
+
+{ #category : #accessing }
+GtsV2Field >> octetAt: index [
+	^ walker bytes at: start + index
+]

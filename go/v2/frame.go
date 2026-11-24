@@ -51,7 +51,8 @@ type Frame struct {
 	StoredMatches *bool
 	Payload       Payload
 	// Malformed is the first envelope field violation or codec constraint.
-	Malformed Reason
+	Malformed             Reason
+	contentWithinCapacity bool
 }
 
 type frameFields struct {
@@ -63,6 +64,7 @@ type frameFields struct {
 	encodedPayload []byte
 	signaturesSize int
 	payloadTyped   bool
+	framingFailed  bool
 }
 
 func decodeFrame(item []byte, newer bool) frameFields {
@@ -119,6 +121,7 @@ func decodeFrame(item []byte, newer bool) frameFields {
 	}
 	f.Malformed = firstReason(typeReason, criticalReason, transparentReason, contentReason, lengthReason,
 		digestReason, storageReason, payloadReason, identifierReason, signatureReason)
+	f.framingFailed = f.Malformed != ""
 	if f.Malformed == "" {
 		f.Malformed = checkPayloadLength(f.Type, f.DecodedLength)
 	}

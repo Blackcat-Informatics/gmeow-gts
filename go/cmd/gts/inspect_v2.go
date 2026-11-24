@@ -22,7 +22,10 @@ var frameNamesV2 = [...]string{
 }
 
 func inspectFile(path string, data []byte) bool {
-	result := v2.ReadWire(data, v2.DefaultReadCapacity())
+	result := v2.InspectWire(data, v2.DefaultReadCapacity())
+	recoveryClean := reportRecoveryV2(result.PrefixGap, result.ResyncRefusal, func(offset int, message string) {
+		fmt.Printf("  byte %d: %s\n", offset, message)
+	})
 	switch result.Dispatch {
 	case v2.FirstGeneration:
 		fs := reader.ReadFileSegments(data)
@@ -42,7 +45,7 @@ func inspectFile(path string, data []byte) bool {
 	default:
 		fmt.Printf("%s: GTS generation unavailable\n", path)
 	}
-	clean := result.Dispatch == v2.SecondGeneration && result.Stop == ""
+	clean := result.Dispatch == v2.SecondGeneration && result.Stop == "" && recoveryClean
 	for ordinal, segment := range result.Segments {
 		if !printSegmentV2(ordinal, segment) {
 			clean = false
@@ -75,6 +78,9 @@ func printOpenerV2(ordinal int, segment v2.Segment) bool {
 		fmt.Printf("    canonical claim %d\n", opener.Canonical)
 	}
 	if opener.Resync != nil {
+		if segment.Scanned {
+			fmt.Printf("    resync found by scan at byte %d\n", item.Offset)
+		}
 		fmt.Printf("    resync claimed offset %d\n", opener.Resync.Offset)
 		if opener.Resync.Displaced {
 			fmt.Printf("    resync displaced to byte %d\n", item.Offset)
@@ -91,6 +97,11 @@ func printOpenerV2(ordinal int, segment v2.Segment) bool {
 
 func printSegmentV2(ordinal int, segment v2.Segment) bool {
 	clean := printOpenerV2(ordinal, segment)
+	if !reportRecoveryV2(segment.FramingGap, segment.ResyncRefusal, func(offset int, message string) {
+		fmt.Printf("    byte %d: %s\n", offset, message)
+	}) {
+		clean = false
+	}
 	counts := make(map[uint64]int)
 	frames := 0
 	for _, item := range segment.Items {
@@ -111,33 +122,52 @@ func printSegmentV2(ordinal int, segment v2.Segment) bool {
 		}
 	}
 	for _, item := range segment.Items[1:] {
-		if item.Reason != "" {
-			fmt.Printf("    %s item at byte %d: %s\n", item.Kind, item.Offset, item.Reason)
+		if reason := itemProblemV2(item); reason != "" {
+			fmt.Printf("    %s item at byte %d: %s\n", item.Kind, item.Offset, reason)
 			clean = false
 		}
-		if item.Frame != nil && !printFrameV2(item.Offset, item.Frame) {
+		if item.Frame != nil && !reportFrameProblemsV2(item.Frame, func(reason string) {
+			fmt.Printf("    frame at byte %d: %s\n", item.Offset, reason)
+		}) {
 			clean = false
 		}
 	}
 	return clean
 }
 
-func printFrameV2(offset int, frame *v2.Frame) bool {
+func reportRecoveryV2(gap *v2.FramingGap, refusal *v2.ResyncRefusal, report func(int, string)) bool {
+	if gap != nil {
+		report(gap.Offset, fmt.Sprintf("%s (%d bytes before resync)", gap.Reason, gap.Length))
+	}
+	if refusal != nil {
+		report(refusal.Offset, fmt.Sprintf("exceeds_capacity (%s, count %d)", v2.TotalDecoded, refusal.Count))
+	}
+	return gap == nil && refusal == nil
+}
+
+func itemProblemV2(item v2.Item) string {
+	if item.ClosingClaimFailure != "" {
+		return fmt.Sprintf("index_claim_failed (%s)", item.ClosingClaimFailure)
+	}
+	return string(item.Reason)
+}
+
+func reportFrameProblemsV2(frame *v2.Frame, report func(string)) bool {
 	clean := true
 	if frame.Malformed != "" {
-		fmt.Printf("    frame at byte %d: malformed envelope: %s\n", offset, frame.Malformed)
+		report(fmt.Sprintf("malformed envelope: %s", frame.Malformed))
 		clean = false
 	}
 	if frame.Link != v2.Linked {
-		fmt.Printf("    frame at byte %d: link %s\n", offset, frame.Link)
+		report(fmt.Sprintf("link %s", frame.Link))
 		clean = false
 	}
 	if frame.StoredMatches != nil && !*frame.StoredMatches {
-		fmt.Printf("    frame at byte %d: stored check mismatch\n", offset)
+		report("stored check mismatch")
 		clean = false
 	}
 	if frame.Payload.State != v2.Verified {
-		fmt.Printf("    frame at byte %d: %s payload: %s\n", offset, frame.Payload.State, frame.Payload.Reason)
+		report(fmt.Sprintf("%s payload: %s", frame.Payload.State, frame.Payload.Reason))
 		clean = false
 	}
 	return clean

@@ -30,35 +30,51 @@ fun toNQuads(graph: Graph): String {
     return if (lines.isEmpty()) "" else lines.joinToString("\n") + "\n"
 }
 
-/**
- * Render a term as its N-Quads surface form.
- *
- * [open] carries the triple terms whose rendering is still in progress. A `reifies` row may name
- * the very term that resolves through it (§7.3), so a projection MUST NOT recurse blindly: a
- * self-reaching term degrades to the same blank node an unbound triple term already produces.
- */
-private fun renderTerm(graph: Graph, termId: Int, open: List<Int> = emptyList()): String {
-    if (termId in open) return "_:unbound_triple_$termId"
-    val term = graph.terms[termId]
-    return when (term.kind) {
-        TermKind.IRI -> "<${escapeIri(term.value)}>"
-        TermKind.BNODE -> "_:${term.value.ifEmpty { "b$termId" }}"
-        TermKind.LITERAL -> renderLiteral(graph, term)
-        // Quoted triple (RDF 1.2 triple term): its own "tt" is authoritative; a legacy "tt"-less
-        // term still resolves through its reifier (§7.3). A term that states no triple at all
-        // degrades to a syntactically valid blank node.
-        TermKind.TRIPLE -> {
-            val spo = graph.tripleOf(termId)
-            if (spo != null) {
-                val inner = open + termId
-                "<<( ${renderTerm(graph, spo.s, inner)} ${renderTerm(graph, spo.p, inner)} " +
-                    "${renderTerm(graph, spo.o, inner)} )>>"
-            } else {
-                "_:unbound_triple_$termId"
+private sealed interface TermRender {
+    data class Visit(val id: Int) : TermRender
+    data class Close(val id: Int) : TermRender
+    data object Space : TermRender
+}
+
+private fun renderTerm(graph: Graph, termId: Int): String =
+    buildString {
+        val pending = ArrayDeque<TermRender>()
+        val open = mutableSetOf<Int>()
+        pending.addLast(TermRender.Visit(termId))
+        while (pending.isNotEmpty()) {
+            when (val visit = pending.removeLast()) {
+                TermRender.Space -> append(' ')
+                is TermRender.Close -> {
+                    open.remove(visit.id)
+                    append(" )>>")
+                }
+                is TermRender.Visit -> {
+                    val id = visit.id
+                    val term = graph.terms[id]
+                    when (term.kind) {
+                        TermKind.IRI -> append('<').append(escapeIri(term.value)).append('>')
+                        TermKind.BNODE -> append("_:").append(term.value.ifEmpty { "b$id" })
+                        TermKind.LITERAL -> append(renderLiteral(graph, term))
+                        TermKind.TRIPLE -> {
+                            val triple = if (id in open) null else graph.tripleOf(id)
+                            if (triple == null) {
+                                append("_:unbound_triple_").append(id)
+                            } else {
+                                open.add(id)
+                                append("<<( ")
+                                pending.addLast(TermRender.Close(id))
+                                pending.addLast(TermRender.Visit(triple.o))
+                                pending.addLast(TermRender.Space)
+                                pending.addLast(TermRender.Visit(triple.p))
+                                pending.addLast(TermRender.Space)
+                                pending.addLast(TermRender.Visit(triple.s))
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-}
 
 private fun renderLiteral(graph: Graph, term: Term): String {
     val base = "\"${escapeLiteral(term.value)}\""
