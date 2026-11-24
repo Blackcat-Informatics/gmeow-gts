@@ -48,11 +48,17 @@ class BlobImage:
 
 
 @dataclass(frozen=True, slots=True)
+class BlobOccurrence:
+    digest: _Digest
+    image: BlobImage
+
+
+@dataclass(frozen=True, slots=True)
 class ConvertedBlobs:
     declarations: tuple[BlobDeclaration, ...]
     bindings: frozenset[ResolvedBinding]
     images: dict[_Digest, BlobImage]
-    frames: dict[RecordLocation, list[BlobImage]]
+    frames: dict[RecordLocation, list[BlobOccurrence]]
 
 
 def _matches(value: Value, digest: bytes) -> bool:
@@ -212,7 +218,7 @@ class ConversionBlobs:
         declarations = []
         bindings = set()
         images = {}
-        frames: dict[RecordLocation, list[BlobImage]] = {}
+        frames: dict[RecordLocation, list[BlobOccurrence]] = {}
         stop = self._stop
         merged = []
         for digest, group in groups.items():
@@ -261,7 +267,10 @@ class ConversionBlobs:
             for item in groups[digest]:
                 location = RecordLocation(item.location.segment, item.location.position)
                 frames.setdefault(location, []).append(
-                    BlobImage(node, reference if item.body is not None else None)
+                    BlobOccurrence(
+                        digest,
+                        BlobImage(node, reference if item.body is not None else None),
+                    )
                 )
         return ConvertedBlobs(tuple(declarations), frozenset(bindings), images, frames)
 

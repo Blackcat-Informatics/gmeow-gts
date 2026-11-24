@@ -31,7 +31,11 @@ from .conversion_source import (
     read_source_items,
     source_boundaries,
 )
-from .conversion_suppression import ConversionSuppression, SuppressionSourceError
+from .conversion_suppression import (
+    ConversionSuppression,
+    SourceVisibility,
+    SuppressionSourceError,
+)
 from .dictionary import Iri, LanguageLiteral, TermPool, TypedLiteral
 from .lines import LineFold, LineResult
 from .record_fold import RecordFold, RecordLocation
@@ -69,6 +73,17 @@ class FoldedSource:
     declarations: tuple[BlobDeclaration, ...]
     values: frozenset[tuple[int, TypedValue]]
     conversion_graph: int
+    source_visibility: SourceVisibility
+
+    def visibility_stop(self) -> ConversionStop | None:
+        """Apply P9's visibility comparison once the candidate digests agree."""
+        if self.source_visibility.agrees(
+            self.lines.lines, self.records, self.conversion_graph
+        ):
+            return None
+        # The admitted term forms preserve source value equality. A mismatch
+        # within this domain has no source term entry with a shared image.
+        return ConversionStop("unrepresentable_term", 0)
 
 
 def _stop_reason(rule: int) -> ConversionReason:
@@ -355,6 +370,7 @@ class _SourceFold:
             binary.declarations,
             frozenset(self.graph.values.items()),
             self.graph.dataset,
+            self.suppression.source_visibility(self.graph, raw_lines.lines, binary),
         )
 
 
