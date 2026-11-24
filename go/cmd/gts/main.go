@@ -25,7 +25,7 @@ var usage = usageText(resolveLocale())
 const usageEN = `usage: gts <command> [args]
 
 commands:
-  info <file>...            per-segment composition ledger
+  info <file>...            show the ledger for each segment (wire checks in v2)
   fold <file>               fold to N-Quads on stdout
   verify <file>...          verify chains; ledger + diagnostics; exit 1 on any
   verify-proof <proof.json>  verify detached MMR proof JSON without the GTS file
@@ -64,7 +64,7 @@ commands:
 const usageFRCA = `utilisation: gts <command> [args]
 
 commandes:
-  info <file>...            affiche le registre de composition par segment
+  info <file>...            affiche le registre par segment (contrôles filaires en v2)
   fold <file>               plie vers N-Quads sur stdout
   verify <file>...          verifie les chaines, le registre et les diagnostics
   verify-proof <proof.json>  verifie une preuve MMR detachee sans fichier GTS
@@ -100,7 +100,7 @@ deballe une archive de profil files
 const usageZHHans = `用法: gts <command> [args]
 
 命令:
-  info <file>...            显示每个段的组合账本
+  info <file>...            显示每个段的账本（v2 显示线格式检查）
   fold <file>               将内容折叠为 N-Quads 并写到 stdout
   verify <file>...          验证链、账本和诊断；发现问题时退出 1
   verify-proof <proof.json>  在没有 GTS 文件时验证分离的 MMR 证明
