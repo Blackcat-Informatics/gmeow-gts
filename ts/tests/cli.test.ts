@@ -274,6 +274,28 @@ test("CLI info reports a malformed parity envelope as parity damage", () => {
     );
 });
 
+test("CLI info reports v2 links and payload checks independently", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const clean = run(["info", join(p1, "zstd-ok.bin")]);
+    assert.equal(clean.code, 0, clean.stderr);
+    assert.match(
+        clean.stdout,
+        /link linked, stored check matches, payload verified/,
+    );
+
+    const damaged = run([
+        "info",
+        join(p1, "link-healed.bin"),
+        join(p1, "zstd-trailing-byte.bin"),
+    ]);
+    assert.equal(damaged.code, 1);
+    assert.match(damaged.stdout, /link healed, payload verified/);
+    assert.match(
+        damaged.stdout,
+        /link linked, stored check matches, payload damaged \(decode_failed\)/,
+    );
+});
+
 test("CLI pack and unpack round-trip", () => {
     const tmp = mkdtempSync(join(tmpdir(), "gts-cli-"));
     const src = join(tmp, "src");

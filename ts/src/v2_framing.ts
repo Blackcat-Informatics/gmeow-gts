@@ -2,6 +2,16 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
 import { isUtf8 } from "node:buffer";
+import {
+    checkLink,
+    checkStored,
+    contextHash,
+    PayloadBudget,
+    type FrameBytes,
+    type FrameLink,
+    type PayloadCheck,
+    type Storage,
+} from "./v2_integrity.js";
 
 type FramingReason = "torn_tail" | "undelimitable_input";
 type EnvelopeReason =
@@ -12,7 +22,8 @@ type EnvelopeReason =
     | "unknown_item_kind"
     | "unregistered_value"
     | "forbidden_combination"
-    | "unordered_or_repeated";
+    | "unordered_or_repeated"
+    | "codec_constraint";
 
 const resyncMarker = Uint8Array.of(
     0xfc,
@@ -206,6 +217,14 @@ interface RecordEnvelope {
     registry?: bigint;
     hash?: bigint;
     frameType?: bigint;
+    openerId?: Uint8Array;
+    link?: FrameLink;
+    storedMatches?: boolean;
+    payload?: PayloadCheck;
+}
+
+interface WireRecord extends RecordEnvelope {
+    frame?: FrameBytes;
 }
 
 function typedHead(item: Uint8Array, offset: number, major: number): Head {
@@ -254,14 +273,24 @@ function opener(
         if (hash.value === 0n || (registry.value === 1n && hash.value !== 1n)) {
             throw new EnvelopeError("unregistered_value");
         }
-        checkOpenerFields(
+        const identityEnd = checkOpenerFields(
             item,
             hash.end,
             hash.value === 1n ? 32n : undefined,
             registry.value > 1n,
             resync,
         );
-        return { kind, registry: registry.value, hash: hash.value };
+        const openerId =
+            hash.value !== 1n
+                ? undefined
+                : resync
+                  ? contextHash(
+                        "gts2 header",
+                        Uint8Array.of(0x8a),
+                        item.subarray(1, identityEnd),
+                    )
+                  : contextHash("gts2 header", item);
+        return { kind, registry: registry.value, hash: hash.value, openerId };
     } catch (err) {
         if (!(err instanceof EnvelopeError)) throw err;
         return { kind, reason: err.reason };
@@ -273,24 +302,23 @@ function uintField(item: Uint8Array): bigint {
     return typedHead(item, 0, 0).value;
 }
 
-function bytesField(item: Uint8Array, length?: bigint): void {
+function bytesField(item: Uint8Array, length?: bigint): Uint8Array {
     const h = typedHead(item, 0, 2);
     if (length !== undefined && h.value !== length) {
         throw new EnvelopeError("wrong_length");
     }
+    return item.subarray(h.end);
 }
 
-function digestField(item: Uint8Array): void {
-    bytesField(item, 32n);
+function digestField(item: Uint8Array): Uint8Array {
+    return bytesField(item, 32n);
 }
 
-function flagField(item: Uint8Array, expected: boolean | undefined): void {
+function flagField(item: Uint8Array): boolean {
     typedHead(item, 0, 7);
     const octet = item[0];
     if (octet !== 0xf4 && octet !== 0xf5) throw new EnvelopeError("wrong_type");
-    if (expected !== undefined && expected !== (octet === 0xf5)) {
-        throw new EnvelopeError("forbidden_combination");
-    }
+    return octet === 0xf5;
 }
 
 function* children(
@@ -375,7 +403,7 @@ function checkOpenerFields(
     digestLength: bigint | undefined,
     newer: boolean,
     resync: boolean,
-): void {
+): number {
     const fields = children(item, offset);
     const bound = resync ? 4096 : item.length;
     // The opener's preceding arity check guarantees these fields exist.
@@ -412,13 +440,15 @@ function checkOpenerFields(
             throw new EnvelopeError("out_of_range");
         }
     });
-    if (!resync) return;
+    if (!resync) return offset;
     uintField(next());
     checkOption(next(), digest);
     const marksLimit = bound - offset;
     checkMarks(next(), marksLimit);
+    const identityEnd = offset;
     digest(next());
     if (offset > bound) throw new EnvelopeError("out_of_range");
+    return identityEnd;
 }
 
 function checkTextOption(item: Uint8Array): void {
@@ -506,12 +536,7 @@ function checkContent(type: bigint, item: Uint8Array): void {
     }
 }
 
-function checkStorage(
-    item: Uint8Array,
-    newer: boolean,
-    length: bigint,
-    parity: boolean,
-): void {
+function storageField(item: Uint8Array, newer: boolean): Storage {
     const h = typedHead(item, 0, 4);
     if (h.value === 0n) throw new EnvelopeError("wrong_length");
     const tag = typedHead(item, h.end, 0);
@@ -529,13 +554,16 @@ function checkStorage(
         if (codec.value === 0n || (!newer && codec.value !== 1n)) {
             throw new EnvelopeError("unregistered_value");
         }
-        bytesField(item.subarray(codec.end), 16n);
+        return {
+            tag: tag.value,
+            codec: codec.value,
+            encodedCodec: item.subarray(tag.end, codec.end),
+            check: bytesField(item.subarray(codec.end), 16n),
+        };
     } else if (tag.value > 2n) {
         checkGrammar(item);
     }
-    if ((tag.value === 2n && length === 0n) || (parity && tag.value !== 1n)) {
-        throw new EnvelopeError("forbidden_combination");
-    }
+    return { tag: tag.value };
 }
 
 function compareBytes(left: Uint8Array, right: Uint8Array): number {
@@ -574,58 +602,155 @@ function checkSignatures(
         throw new EnvelopeError("forbidden_combination");
 }
 
+function readField<T>(read: () => T): { value?: T; reason?: EnvelopeReason } {
+    try {
+        return { value: read() };
+    } catch (error) {
+        if (!(error instanceof EnvelopeError)) throw error;
+        return { reason: error.reason };
+    }
+}
+
+// A non-shortest or indefinite byte string can still supply observed bytes for
+// a link or stored check even when it fails the deterministic field grammar.
+function* byteChunks(item: Uint8Array): IterableIterator<Uint8Array> {
+    const h = head(item, 0);
+    if (h.major !== 2) return;
+    if (!h.indefinite) {
+        yield item.subarray(h.end);
+        return;
+    }
+    for (let offset = h.end; item[offset] !== 0xff;) {
+        const chunk = head(item, offset);
+        offset = chunk.end + Number(chunk.value);
+        yield item.subarray(chunk.end, offset);
+    }
+}
+
+function observedId(
+    item: Uint8Array,
+    typed: Uint8Array | undefined,
+): Uint8Array | undefined {
+    if (typed !== undefined) return typed;
+    const id = new Uint8Array(32);
+    let length = 0;
+    for (const chunk of byteChunks(item)) {
+        if (chunk.length > id.length - length) return;
+        id.set(chunk, length);
+        length += chunk.length;
+    }
+    if (length === id.length) return id;
+}
+
 function checkFrame(
     item: Uint8Array,
     offset: number,
     registry: bigint,
-): RecordEnvelope {
-    let frameType: bigint | undefined;
-    try {
-        const [
-            type,
-            critical,
-            transparent,
-            content,
-            length,
-            digest,
-            storage,
-            payload,
-            identifier,
-            signatures,
-        ] = children(item, offset);
-        const newer = registry > 1n;
-        frameType = uintField(type);
-        if (frameType === 0n || (!newer && frameType > 16n)) {
-            throw new EnvelopeError("unregistered_value");
-        }
-        const known = frameType <= 16n;
-        const parity = frameType === 16n;
-        flagField(critical, known ? frameType < 14n : undefined);
-        flagField(transparent, known ? parity : undefined);
-        checkContent(frameType, content);
-        const decodedLength = uintField(length);
-        digestField(digest);
-        checkStorage(storage, newer, decodedLength, parity);
-        bytesField(payload);
-        digestField(identifier);
-        checkSignatures(signatures, newer, parity);
-        if (
-            (frameType === 8n && decodedLength === 0n) ||
-            ((frameType === 12n || frameType === 14n) && decodedLength !== 0n)
-        ) {
-            throw new EnvelopeError("out_of_range");
-        }
-        return { kind: "frame", frameType };
-    } catch (err) {
-        if (!(err instanceof EnvelopeError)) throw err;
-        return { kind: "frame", frameType, reason: err.reason };
-    }
+): WireRecord {
+    const [
+        type,
+        critical,
+        transparent,
+        content,
+        length,
+        digest,
+        storage,
+        payload,
+        identifier,
+        signatures,
+    ] = children(item, offset);
+    const newer = registry > 1n;
+    const kindField = readField(() => uintField(type));
+    const frameType = kindField.value;
+    const criticalField = readField(() => flagField(critical));
+    const transparentField = readField(() => flagField(transparent));
+    const contentField = readField(() =>
+        checkContent(frameType ?? 0n, content),
+    );
+    const lengthField = readField(() => uintField(length));
+    const digestBytes = readField(() => digestField(digest));
+    const storageBytes = readField(() => storageField(storage, newer));
+    const payloadBytes = readField(() => bytesField(payload));
+    const identifierBytes = readField(() => digestField(identifier));
+    const parity = frameType === 16n;
+    const signatureField = readField(() =>
+        checkSignatures(signatures, newer, parity),
+    );
+
+    const identity =
+        (kindField.reason ??
+            criticalField.reason ??
+            transparentField.reason ??
+            contentField.reason ??
+            lengthField.reason ??
+            digestBytes.reason) === undefined
+            ? item.subarray(offset, storage.byteOffset - item.byteOffset)
+            : undefined;
+    const typeRule =
+        frameType === 0n ||
+        (!newer && frameType !== undefined && frameType > 16n)
+            ? "unregistered_value"
+            : undefined;
+    const known = frameType !== undefined && frameType > 0n && frameType <= 16n;
+    const criticalRule =
+        known && criticalField.value !== frameType < 14n
+            ? "forbidden_combination"
+            : undefined;
+    const transparentRule =
+        known && transparentField.value !== parity
+            ? "forbidden_combination"
+            : undefined;
+    const storageTag = storageBytes.value?.tag;
+    const storageRule =
+        storageTag !== undefined &&
+        ((storageTag === 2n && lengthField.value === 0n) ||
+            (parity && storageTag !== 1n))
+            ? "forbidden_combination"
+            : undefined;
+    const lengthRule =
+        lengthField.value !== undefined &&
+        ((frameType === 8n && lengthField.value === 0n) ||
+            ((frameType === 12n || frameType === 14n) &&
+                lengthField.value !== 0n))
+            ? "out_of_range"
+            : undefined;
+    const reason =
+        kindField.reason ??
+        typeRule ??
+        criticalField.reason ??
+        criticalRule ??
+        transparentField.reason ??
+        transparentRule ??
+        contentField.reason ??
+        lengthField.reason ??
+        digestBytes.reason ??
+        storageBytes.reason ??
+        storageRule ??
+        payloadBytes.reason ??
+        identifierBytes.reason ??
+        signatureField.reason ??
+        lengthRule;
+    return {
+        kind: "frame",
+        frameType,
+        reason,
+        frame: {
+            identity,
+            storedId: observedId(identifier, identifierBytes.value),
+            transparent: transparentField.value === true,
+            decodedLength: lengthField.value,
+            payloadDigest: digestBytes.value,
+            storage: storageBytes.value,
+            storedPayload: payloadBytes.value,
+            payloadChunks:
+                payload[0] >> 5 === 2 ? () => byteChunks(payload) : undefined,
+            contentSize: content.length,
+            signaturesSize: signatures.length,
+        },
+    };
 }
 
-function envelope(
-    item: Uint8Array,
-    registry: bigint | undefined,
-): RecordEnvelope {
+function envelope(item: Uint8Array, registry: bigint | undefined): WireRecord {
     const array = head(item, 0);
     const kind = recordKind(item, array);
     if (kind?.value === 1n || kind?.value === 5n)
@@ -648,9 +773,18 @@ function envelope(
     return { kind: "opaque", reason };
 }
 
-type InspectionEvent =
-    | (RecordEnvelope & { offset: number; end: number })
-    | { kind: "stop"; offset: number; reason: FramingReason };
+interface FramingStop {
+    kind: "stop";
+    offset: number;
+    reason: FramingReason | "item_limit";
+}
+
+interface ByteRange {
+    offset: number;
+    end: number;
+}
+
+type InspectionEvent = (RecordEnvelope & ByteRange) | FramingStop;
 
 export function inspectFraming(
     data: Uint8Array,
@@ -669,12 +803,17 @@ export function inspectFraming(
         : format;
 }
 
-function* records(
+function* delimitedRecords(
     data: Uint8Array,
     end: number,
-): IterableIterator<InspectionEvent> {
+): IterableIterator<(WireRecord & ByteRange) | FramingStop> {
     let registry: bigint | undefined;
+    let count = 0;
     for (let offset = 0; offset < data.length; offset = end) {
+        if (count === 2 ** 26) {
+            yield { kind: "stop", offset, reason: "item_limit" };
+            return;
+        }
         if (offset !== 0) {
             try {
                 end = itemEnd(data, offset);
@@ -688,5 +827,44 @@ function* records(
         if (record.kind === "header" || record.kind === "resync")
             registry = record.hash === 1n ? record.registry : undefined;
         yield { ...record, offset, end };
+        count++;
+    }
+}
+
+function* records(
+    data: Uint8Array,
+    end: number,
+): IterableIterator<InspectionEvent> {
+    const delimited = delimitedRecords(data, end);
+    const budget = new PayloadBudget();
+    let predecessor: Uint8Array | undefined;
+    let current = delimited.next();
+    while (!current.done) {
+        const next = delimited.next();
+        if (current.value.kind === "stop") {
+            yield current.value;
+            return;
+        }
+        const { frame, ...record } = current.value;
+        if (record.kind === "header" || record.kind === "resync")
+            predecessor = record.openerId;
+        if (frame !== undefined && predecessor !== undefined) {
+            const witness =
+                !next.done && next.value.kind !== "stop"
+                    ? next.value.frame
+                    : undefined;
+            record.link = checkLink(frame, predecessor, witness);
+            predecessor = record.link.effective ?? predecessor;
+            record.storedMatches = checkStored(frame);
+            record.payload = budget.check(frame);
+            if (
+                record.payload.state === "damaged" &&
+                record.payload.reason === "codec_constraint"
+            ) {
+                record.reason ??= "codec_constraint";
+            }
+        }
+        yield record;
+        current = next;
     }
 }
