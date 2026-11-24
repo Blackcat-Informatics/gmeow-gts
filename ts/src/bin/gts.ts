@@ -4,7 +4,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { Read, ReadFileSegments } from "../reader.js";
 import { toNQuads } from "../nquads.js";
-import { fromNQuads, NQuadsParseError } from "../from_nquads.js";
+import { fromNQuadsV2, NQuadsParseError } from "../from_nquads.js";
+import { RdfImportCapacityError } from "../v2_rdf_import.js";
 import { pack, unpack, diff, suppressedBlobDigests } from "../files.js";
 import { compactStreamable, CompactRefusedError } from "../compact.js";
 import { STREAM_NS } from "../stream.js";
@@ -360,10 +361,9 @@ function cmdFromNQ(args: string[]): number {
     }
 
     const path = positional[0];
-    let text: string;
+    let input: Uint8Array;
     try {
-        text =
-            path === "-" ? readFileSync(0, "utf8") : readFileSync(path, "utf8");
+        input = readFileSync(path === "-" ? 0 : path);
     } catch (e) {
         const source = path === "-" ? "stdin" : path;
         console.error(
@@ -374,9 +374,31 @@ function cmdFromNQ(args: string[]): number {
 
     let data: Uint8Array;
     try {
-        data = fromNQuads(text);
+        let text: string;
+        try {
+            text = new TextDecoder("utf-8", {
+                fatal: true,
+                ignoreBOM: true,
+            }).decode(input);
+        } catch (error) {
+            if (
+                error instanceof Error &&
+                "code" in error &&
+                error.code === "ERR_STRING_TOO_LONG"
+            ) {
+                throw new RdfImportCapacityError(
+                    "N-Quads input exceeds the JavaScript string limit",
+                );
+            }
+            if (!(error instanceof TypeError)) throw error;
+            throw new NQuadsParseError("input is not valid UTF-8");
+        }
+        data = fromNQuadsV2(text);
     } catch (e) {
-        if (e instanceof NQuadsParseError) {
+        if (
+            e instanceof NQuadsParseError ||
+            e instanceof RdfImportCapacityError
+        ) {
             console.error(`gts from-nq: ${e.message}`);
             return 1;
         }

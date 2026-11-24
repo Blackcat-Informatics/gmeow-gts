@@ -10,6 +10,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Writer } from "../src/writer.js";
 import { TermKind } from "../src/model.js";
+import { inspectFraming } from "../src/v2_framing.js";
+import cbor from "cbor";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../../../");
@@ -62,6 +64,52 @@ test("CLI fold emits N-Quads for a clean vector", () => {
     const r = run(["fold", join(vectorsDir, "01-minimal.gts")]);
     assert.equal(r.code, 0);
     assert.match(r.stdout, /<https:\/\/example.org\/Cat>/);
+});
+
+test("CLI from-nq writes a committed v2 segment and collapses duplicate RDF rows", () => {
+    const text = [
+        'VERSION "1.2"',
+        '<https://example.org/subject> <https://example.org/p> "value" .',
+        '<https://example.org/subject> <https://example.org/p> "value"^^<http://www.w3.org/2001/XMLSchema#string> .',
+        '<https://example.org/reifier> <http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies> <<( _:café <https://example.org/p> "δ"@EN--rtl )>> _:graph . # comment',
+    ].join("\r");
+    const result = spawnSync("node", [cli, "from-nq", "-"], { input: text });
+    assert.equal(result.status, 0, result.stderr.toString());
+    const wire = inspectFraming(result.stdout);
+    assert.equal(wire.kind, "v2");
+    const frames = [...wire.records].flatMap((record) =>
+        record.kind === "frame" ? [record] : [],
+    );
+    assert.deepEqual(
+        frames.map((frame) => frame.frameType),
+        [1n, 2n, 14n],
+    );
+    assert.ok(
+        frames.every(
+            (frame) =>
+                frame.link?.state === "linked" &&
+                frame.payload?.state === "verified",
+        ),
+    );
+    const records = cbor.decodeAllSync(result.stdout) as unknown[][];
+    assert.deepEqual(records[2][4], [2, 2]);
+});
+
+test("CLI from-nq refuses invalid UTF-8 and incomplete statements before writing", () => {
+    for (const [input, message] of [
+        [Buffer.of(0xff), /invalid UTF-8|not valid UTF-8/],
+        [
+            Buffer.from(
+                "<https://example.org/s> <https://example.org/p> <https://example.org/o>",
+            ),
+            /expected '\.'/,
+        ],
+    ] as const) {
+        const result = spawnSync("node", [cli, "from-nq", "-"], { input });
+        assert.equal(result.status, 1);
+        assert.equal(result.stdout.length, 0);
+        assert.match(result.stderr.toString(), message);
+    }
 });
 
 test("CLI localizes help and unknown-command errors", () => {

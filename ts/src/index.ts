@@ -8,6 +8,8 @@ export { Writer, digestString } from "./writer.js";
 export { V2SegmentWriter, type V2SegmentOptions } from "./v2_writer.js";
 export { toNQuads } from "./nquads.js";
 export { fromNQuads, NQuadsParseError } from "./from_nquads.js";
+export { fromNQuadsV2 } from "./from_nquads.js";
+export { RdfImportCapacityError } from "./v2_rdf_import.js";
 export { pack, unpack, diff } from "./files.js";
 export { compactStreamable, CompactRefusedError } from "./compact.js";
 export * as wire from "./wire.js";
