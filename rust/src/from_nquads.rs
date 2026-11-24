@@ -16,6 +16,9 @@ use crate::model::{
 };
 use crate::writer::Writer;
 
+mod v2_quads;
+pub(crate) use v2_quads::parse_v2_quads;
+
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 
 /// Raised when N-Quads(-star) input is malformed.
@@ -65,6 +68,7 @@ enum Node {
 struct Tokenizer<'a> {
     text: &'a str,
     pos: usize,
+    rdf12: bool,
 }
 
 fn is_bnode_char(b: u8) -> bool {
@@ -156,7 +160,11 @@ fn validate_language_tag(tag: &str, line: &str) -> Result<(), NQuadsParseError> 
 
 impl<'a> Tokenizer<'a> {
     fn new(text: &'a str) -> Self {
-        Self { text, pos: 0 }
+        Self {
+            text,
+            pos: 0,
+            rdf12: false,
+        }
     }
 
     fn skip_ws(&mut self) {
@@ -172,31 +180,36 @@ impl<'a> Tokenizer<'a> {
 
     fn node(&mut self) -> Result<Node, NQuadsParseError> {
         self.skip_ws();
+        if self.text[self.pos..].starts_with("<<(") {
+            return self.quoted_triple().map(Node::Triple);
+        }
+        self.atom().map(Node::Atom)
+    }
+
+    fn atom(&mut self) -> Result<Atom, NQuadsParseError> {
+        self.skip_ws();
         if self.pos >= self.text.len() {
             return Err(NQuadsParseError::new(format!(
                 "unexpected end of line: {:?}",
                 self.text
             )));
         }
-        if self.text[self.pos..].starts_with("<<(") {
-            return self.quoted_triple().map(Node::Triple);
-        }
         match self.peek_char() {
-            Some('<') => Ok(Node::Atom(Atom {
+            Some('<') => Ok(Atom {
                 kind: TermKind::Iri,
                 value: self.iri()?,
                 lang: None,
                 direction: None,
                 datatype: None,
-            })),
-            Some('_') => Ok(Node::Atom(Atom {
+            }),
+            Some('_') => Ok(Atom {
                 kind: TermKind::Bnode,
                 value: self.bnode()?,
                 lang: None,
                 direction: None,
                 datatype: None,
-            })),
-            Some('"') => self.literal().map(Node::Atom),
+            }),
+            Some('"') => self.literal(),
             _ => Err(NQuadsParseError::new(format!(
                 "unexpected token at {} in {:?}",
                 self.pos, self.text
@@ -218,6 +231,9 @@ impl<'a> Tokenizer<'a> {
         if self.text.as_bytes().get(self.pos) != Some(&b'<') {
             return Err(NQuadsParseError::new(format!("bad IRI in {:?}", self.text)));
         }
+        if self.rdf12 {
+            return self.rdf12_iri();
+        }
         let start = self.pos + 1;
         let rel = self.text[start..]
             .find('>')
@@ -237,6 +253,9 @@ impl<'a> Tokenizer<'a> {
             )));
         }
         self.pos += 2;
+        if self.rdf12 {
+            return self.rdf12_blank_label();
+        }
         let start = self.pos;
         while self.pos < self.text.len() && is_bnode_char(self.text.as_bytes()[self.pos]) {
             self.pos += 1;
@@ -253,7 +272,7 @@ impl<'a> Tokenizer<'a> {
         Ok(self.text[start..self.pos].to_string())
     }
 
-    fn literal(&mut self) -> Result<Atom, NQuadsParseError> {
+    fn string(&mut self) -> Result<String, NQuadsParseError> {
         if self.bump_char() != Some('"') {
             return Err(NQuadsParseError::new(format!(
                 "bad literal in {:?}",
@@ -274,7 +293,11 @@ impl<'a> Tokenizer<'a> {
                 _ => value.push(ch),
             }
         }
+        Ok(value)
+    }
 
+    fn literal(&mut self) -> Result<Atom, NQuadsParseError> {
+        let value = self.string()?;
         let mut lang = None;
         let mut direction = None;
         let mut datatype = None;
@@ -338,35 +361,13 @@ impl<'a> Tokenizer<'a> {
         match ch {
             '\\' => Ok('\\'),
             '"' => Ok('"'),
+            '\'' if self.rdf12 => Ok('\''),
             'b' => Ok('\u{0008}'),
             'f' => Ok('\u{000c}'),
             'n' => Ok('\n'),
             'r' => Ok('\r'),
             't' => Ok('\t'),
-            'u' | 'U' => {
-                let width = if ch == 'u' { 4 } else { 8 };
-                let end = self.pos + width;
-                if end > self.text.len() || !self.text.is_char_boundary(end) {
-                    return Err(NQuadsParseError::new(format!(
-                        "short or invalid unicode escape in {:?}",
-                        self.text
-                    )));
-                }
-                let raw = &self.text[self.pos..end];
-                if !raw.bytes().all(|b| b.is_ascii_hexdigit()) {
-                    return Err(NQuadsParseError::new(format!(
-                        "bad unicode escape \\{ch}{raw} in {:?}",
-                        self.text
-                    )));
-                }
-                self.pos += width;
-                let code = u32::from_str_radix(raw, 16).map_err(|e| {
-                    NQuadsParseError::new(format!("bad unicode escape \\{ch}{raw}: {e}"))
-                })?;
-                char::from_u32(code).ok_or_else(|| {
-                    NQuadsParseError::new(format!("invalid unicode scalar \\{ch}{raw}"))
-                })
-            }
+            'u' | 'U' => self.unicode_escape(ch),
             other => Err(NQuadsParseError::new(format!(
                 "unsupported escape \\{other} in {:?}",
                 self.text
@@ -374,11 +375,43 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    fn unicode_escape(&mut self, ch: char) -> Result<char, NQuadsParseError> {
+        let width = if ch == 'u' { 4 } else { 8 };
+        let end = self.pos + width;
+        if end > self.text.len() || !self.text.is_char_boundary(end) {
+            return Err(NQuadsParseError::new(format!(
+                "short or invalid unicode escape in {:?}",
+                self.text
+            )));
+        }
+        let raw = &self.text[self.pos..end];
+        if !raw.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return Err(NQuadsParseError::new(format!(
+                "bad unicode escape \\{ch}{raw} in {:?}",
+                self.text
+            )));
+        }
+        self.pos += width;
+        let code = u32::from_str_radix(raw, 16)
+            .map_err(|e| NQuadsParseError::new(format!("bad unicode escape \\{ch}{raw}: {e}")))?;
+        char::from_u32(code)
+            .ok_or_else(|| NQuadsParseError::new(format!("invalid unicode scalar \\{ch}{raw}")))
+    }
+
     fn quoted_triple(&mut self) -> Result<TripleNode, NQuadsParseError> {
         self.pos += 3;
         let s = self.node()?;
         let p = self.node()?;
         let o = self.node()?;
+        self.close_triple()?;
+        Ok(TripleNode {
+            s: Box::new(s),
+            p: Box::new(p),
+            o: Box::new(o),
+        })
+    }
+
+    fn close_triple(&mut self) -> Result<(), NQuadsParseError> {
         self.skip_ws();
         if !self.text[self.pos..].starts_with(")>>") {
             return Err(NQuadsParseError::new(format!(
@@ -387,11 +420,7 @@ impl<'a> Tokenizer<'a> {
             )));
         }
         self.pos += 3;
-        Ok(TripleNode {
-            s: Box::new(s),
-            p: Box::new(p),
-            o: Box::new(o),
-        })
+        Ok(())
     }
 }
 
@@ -410,32 +439,37 @@ enum TermKey {
 struct Interner {
     ids: HashMap<TermKey, usize>,
     terms: Vec<Term>,
+    plain_datatype: Option<&'static str>,
 }
 
 impl Interner {
-    fn new() -> Self {
+    fn new(plain_datatype: Option<&'static str>) -> Self {
         Self {
             ids: HashMap::new(),
             terms: Vec::new(),
+            plain_datatype,
         }
     }
 
     fn atom(&mut self, atom: &Atom) -> usize {
+        let datatype = atom.datatype.as_deref().or(self
+            .plain_datatype
+            .filter(|_| atom.kind == TermKind::Literal && atom.lang.is_none()));
         let key = TermKey::Atom {
             kind: atom.kind,
             value: atom.value.clone(),
             lang: atom.lang.clone(),
             direction: atom.direction.clone(),
-            datatype: atom.datatype.clone(),
+            datatype: datatype.map(str::to_owned),
         };
         if let Some(id) = self.ids.get(&key) {
             return *id;
         }
         let datatype = if atom.kind == TermKind::Literal {
-            atom.datatype.as_ref().map(|iri| {
+            datatype.map(|iri| {
                 self.atom(&Atom {
                     kind: TermKind::Iri,
-                    value: iri.clone(),
+                    value: iri.to_owned(),
                     lang: None,
                     direction: None,
                     datatype: None,
@@ -465,27 +499,28 @@ impl Interner {
                 let s = self.node(&triple.s);
                 let p = self.node(&triple.p);
                 let o = self.node(&triple.o);
-                let key = TermKey::Triple(s, p, o);
-                if let Some(id) = self.ids.get(&key) {
-                    return *id;
-                }
-                let id = self.terms.len();
-                // §7.3: a bare quoted triple is a SELF-DESCRIBING value. It
-                // states its own (s, p, o) in `"tt"`, mints no reifier and
-                // emits no `reifies` row, so it round-trips as itself.
-                self.terms.push(Term {
-                    kind: TermKind::Triple,
-                    value: None,
-                    datatype: None,
-                    lang: None,
-                    direction: None,
-                    reifier: None,
-                    triple: Some((s, p, o)),
-                });
-                self.ids.insert(key, id);
-                id
+                self.triple(s, p, o)
             }
         }
+    }
+
+    fn triple(&mut self, s: usize, p: usize, o: usize) -> usize {
+        let key = TermKey::Triple(s, p, o);
+        if let Some(id) = self.ids.get(&key) {
+            return *id;
+        }
+        let id = self.terms.len();
+        self.terms.push(Term {
+            kind: TermKind::Triple,
+            value: None,
+            datatype: None,
+            lang: None,
+            direction: None,
+            reifier: None,
+            triple: Some((s, p, o)),
+        });
+        self.ids.insert(key, id);
+        id
     }
 }
 
@@ -663,7 +698,7 @@ fn parse_text(text: &str, options: ParseOptions) -> Result<Vec<Vec<Node>>, NQuad
 }
 
 fn build_gts(statements: &[Vec<Node>]) -> Result<Vec<u8>, NQuadsParseError> {
-    let mut interner = Interner::new();
+    let mut interner = Interner::new(None);
     let mut reifiers: Vec<ReifierRow> = Vec::new();
     let mut pending_quads: Vec<Quad> = Vec::new();
 
