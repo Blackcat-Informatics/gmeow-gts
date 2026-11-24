@@ -7,17 +7,13 @@ import {
     framePayloadLengthProblem,
 } from "./v2_framing.js";
 import { contextHash, frameIdentifier } from "./v2_integrity.js";
+import { V2Range } from "./v2_range.js";
 import { mustEncode } from "./wire.js";
 
 export interface V2SegmentOptions {
     profile?: number;
     canonical?: boolean;
     lineage?: { previousHead: Uint8Array; ordinal: bigint };
-}
-
-interface RangePeak {
-    height: number;
-    digest: Uint8Array;
 }
 
 const maxUint64 = (1n << 64n) - 1n;
@@ -67,15 +63,14 @@ function byteStringHead(length: number): Uint8Array {
 /** Writes a registry version 1 segment with plain, unsigned frames. */
 export class V2SegmentWriter {
     readonly #items: Uint8Array[];
-    readonly #peaks: RangePeak[] = [];
+    readonly #range = new V2Range();
     #head: Uint8Array;
-    #leafCount = 0n;
 
     constructor(options: V2SegmentOptions = {}) {
         const header = encodeHeader(options);
         this.#items = [header];
         this.#head = contextHash("gts2 header", header);
-        this.#pushLeaf(this.#head);
+        this.#range.push(this.#head);
     }
 
     /** A copy of the current ordinary head identifier. */
@@ -128,16 +123,9 @@ export class V2SegmentWriter {
 
     /** Commit the opener and preceding ordinary frames, then advance the head. */
     commit(): Uint8Array {
-        const root = contextHash(
-            "gts2 range root",
-            mustEncode([
-                this.#leafCount,
-                this.#peaks.map((peak) => peak.digest),
-            ]),
-        );
         return this.#append(
             14,
-            mustEncode([this.#leafCount - 1n, root]),
+            mustEncode([this.#range.leafCount - 1n, this.#range.root()]),
             emptyPayload,
         );
     }
@@ -148,7 +136,7 @@ export class V2SegmentWriter {
         payload: Uint8Array,
     ): Uint8Array {
         const transparent = type === 16;
-        if (!transparent && this.#leafCount === maxUint64) {
+        if (!transparent && this.#range.leafCount === maxUint64) {
             throw new RangeError(
                 "GTS v2 segment exceeds the uint64 leaf limit",
             );
@@ -172,29 +160,10 @@ export class V2SegmentWriter {
             noSignatures,
         ]);
         if (!transparent) {
-            this.#pushLeaf(id);
+            this.#range.push(id);
             this.#head = id;
         }
         this.#items.push(item);
         return id.slice();
-    }
-
-    #pushLeaf(id: Uint8Array): void {
-        const peak = {
-            height: 0,
-            digest: contextHash("gts2 range leaf", mustEncode([id])),
-        };
-        let count = this.#peaks.length;
-        while (this.#peaks[count - 1]?.height === peak.height) {
-            const left = this.#peaks[--count];
-            peak.digest = contextHash(
-                "gts2 range node",
-                mustEncode([left.digest, peak.digest]),
-            );
-            peak.height++;
-        }
-        this.#peaks.length = count;
-        this.#peaks.push(peak);
-        this.#leafCount++;
     }
 }
