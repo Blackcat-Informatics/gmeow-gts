@@ -50,7 +50,12 @@ digests. It distinguishes damaged shards from stale parity over changed
 bytes whose items still pass verification. It reports any unprotected
 tail of a segment that carries parity. It reconstructs missing shards for
 digest validation and reports spans that exceed the stripe erasure limit
-or produce invalid shard digests. Writing a verified repair requires
+or produce invalid shard digests. Use `gts repair INPUT -o OUTPUT` to write
+a new copy with accepted repairs. The command reports the parity frame offset
+and the shard count or failure reason. It creates a copy only when at least
+one span passes rechecking. The command returns status 1 when a repair fails
+or the item walk stops before the end of the input.
+Recovery that resumes from a parity frame after framing loss requires
 additional support.
 
 `gts verify` also checks v2 commit counts and Merkle range roots for registry

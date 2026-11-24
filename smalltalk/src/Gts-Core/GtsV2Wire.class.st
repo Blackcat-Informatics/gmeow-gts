@@ -195,16 +195,22 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate [
 
 { #category : #enumerating }
 GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report [
+	self eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report repairing: nil
+]
+
+{ #category : #enumerating }
+GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report repairing: plan [
 	| pending pendingOffsets predecessor closing parity deliver flush budget refusalAfter pendingRefusal heldForParity emit finishSegment releaseHeld |
 	format = #v2 ifFalse: [ ^ self ].
 	budget := initialBudget copy.
 	closing := GtsV2ClosingChecks on: walker.
-	parity := GtsV2ParityChecks on: bytes.
+	parity := GtsV2ParityChecks on: bytes repairing: plan.
 	releaseHeld := [ heldForParity ifNotNil: [ heldForParity do: aBlock. heldForParity := nil ] ].
 	finishSegment := [
 		parity finishOpenerLink: false.
 		releaseHeld value.
-		parity unprotectedTailDo: report ].
+		parity unprotectedTailDo: report.
+		plan ifNotNil: [ plan finishSegmentWith: budget ] ].
 	emit := [ :event |
 		parity awaitsOpenerLink
 			ifTrue: [
@@ -215,10 +221,10 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report 
 				aBlock value: event ] ].
 	deliver := [ :event :next :afterLocator |
 		| effective |
-		event startsSegment ifTrue: [ finishSegment value ].
 		closing observe: event following: next afterLocator: afterLocator.
 		effective := self finalize: event following: next predecessor: predecessor.
 		parity observe: event predecessor: predecessor.
+		plan ifNotNil: [ plan observe: event ].
 		effective == predecessor ifFalse: [ predecessor := effective ifNotNil: [ effective copy ] ].
 		emit value: event.
 		event == refusalAfter ifTrue: [
@@ -238,6 +244,7 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report 
 			(pending kind = #offsets and: [ next kind = #locator ])
 				ifTrue: [ pendingOffsets := pending ]
 				ifFalse: [ deliver value: pending value: next value: nil ] ].
+		next startsSegment ifTrue: [ finishSegment value ].
 		pending := next ]
 		limitItems: budget itemLimit
 		prepareFrame: [ :event :witness |
@@ -256,6 +263,17 @@ GtsV2Wire >> eventsDo: aBlock decodedWhen: predicate unprotectedTailsDo: report 
 			pendingRefusal := refusal ].
 	flush value.
 	finishSegment value
+]
+
+{ #category : #repairing }
+GtsV2Wire >> parityRepair [
+	| plan |
+	format = #v2 ifFalse: [ GtsV2FramingError signal: 'repair requires GTS v2 input' ].
+	plan := GtsV2ParityRepair on: bytes.
+	self eventsDo: [ :event | ] decodedWhen: [ :event | false ]
+		unprotectedTailsDo: [ :offset :length | ] repairing: plan.
+	plan finish.
+	^ plan
 ]
 
 { #category : #enumerating }
