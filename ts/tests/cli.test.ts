@@ -215,6 +215,55 @@ test("CLI info prints segment ledger", () => {
     assert.match(r.stdout, /2 segment\(s\)/);
 });
 
+test("CLI info dispatches mixed inputs from their first complete item", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const r = run([
+        "info",
+        join(p1, "gen-record-three.bin"),
+        join(p1, "gen-first-generation-v-twice.bin"),
+        join(p1, "file-first-incomplete.bin"),
+        join(vectorsDir, "15-two-segment-union.gts"),
+        join(p1, "gen-record-two.bin"),
+    ]);
+    assert.equal(r.code, 1);
+    assert.match(
+        r.stderr,
+        /gen-record-three\.bin: unsupported GTS generation 3/,
+    );
+    assert.match(
+        r.stderr,
+        /gen-first-generation-v-twice\.bin: input does not identify a GTS generation/,
+    );
+    assert.match(
+        r.stdout,
+        /file-first-incomplete\.bin: framing stopped at byte 0: torn_tail/,
+    );
+    assert.match(r.stdout, /15-two-segment-union\.gts: 2 segment\(s\)/);
+    assert.match(r.stdout, /gen-record-two\.bin: GTS v2 framing ledger/);
+    assert.match(
+        r.stdout,
+        /segment 0: header bytes \[0, 11\), registry 1, hash algorithm 1/,
+    );
+});
+
+test("CLI info distinguishes opaque envelopes, torn tails, and invalid framing", () => {
+    const p1 = join(vectorsDir, "v2", "P1");
+    const r = run([
+        "info",
+        join(p1, "frame-test-element-long-form.bin"),
+        join(p1, "frame-test-length-ten.bin"),
+        join(p1, "torn-after-frames.bin"),
+        join(p1, "undelimitable-odd-map.bin"),
+    ]);
+    assert.equal(r.code, 1);
+    assert.equal(r.stderr, "");
+    assert.match(r.stdout, /opaque bytes \[11, 126\): not_deterministic/);
+    assert.match(r.stdout, /opaque bytes \[11, 124\): wrong_length/);
+    assert.match(r.stdout, /frame type 14 bytes \[239, 353\)/);
+    assert.match(r.stdout, /framing stopped at byte 353: torn_tail/);
+    assert.match(r.stdout, /framing stopped at byte 11: undelimitable_input/);
+});
+
 test("CLI pack and unpack round-trip", () => {
     const tmp = mkdtempSync(join(tmpdir(), "gts-cli-"));
     const src = join(tmp, "src");

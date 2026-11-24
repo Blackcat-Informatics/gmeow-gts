@@ -32,6 +32,7 @@ import {
 } from "../wire.js";
 import type { Graph, FileSegments } from "../reader.js";
 import { TermKind, type Quad, type Suppression } from "../model.js";
+import { printFramingInfo } from "./v2_info.js";
 
 type CliLocale = "en" | "fr-CA" | "zh-Hans";
 
@@ -309,6 +310,11 @@ function cmdInfo(paths: string[]): number {
     let problems = false;
     for (const path of paths) {
         const data = load(path);
+        const framingClean = printFramingInfo(path, data);
+        if (framingClean !== undefined) {
+            if (!framingClean) problems = true;
+            continue;
+        }
         const fs = ReadFileSegments(data);
         printLedger(path, fs);
         if (hasProblems(fs)) problems = true;
