@@ -3,7 +3,7 @@
 Class {
 	#name : #GtsV2WireFindings,
 	#superclass : #Object,
-	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut', 'frameFoldStates', 'foldStopped', 'expectedTermBase', 'termBudget' ],
+	#instVars : [ 'fileFindings', 'segmentFindings', 'frameFindings', 'segment', 'positions', 'position', 'currentItem', 'previousItem', 'inputLength', 'itemLimit', 'fileEnd', 'leftOut', 'head', 'lineageOrdinal', 'newerRegistry', 'claimChecks', 'claimSteps', 'committedCounts', 'inputs', 'signatureChecks', 'signatureResults', 'authentication', 'segmentAuthentication', 'headerIdentifier', 'segmentFrameResults', 'frames', 'anchoredCount', 'anchorLost', 'transparentPositions', 'openers', 'segmentRanges', 'segmentStart', 'segmentCut', 'frameFoldStates', 'foldStopped', 'termChecks', 'termBudget' ],
 	#category : #'Gts-Core'
 }
 
@@ -168,7 +168,7 @@ GtsV2WireFindings >> observe: event [
 		segmentCut := nil.
 		fileEnd := 4.
 		foldStopped := false.
-		expectedTermBase := 0.
+		termChecks := GtsV2TermChecks new.
 		position := 0.
 		segment := OrderedCollection new.
 		segmentFindings add: segment.
@@ -252,9 +252,10 @@ GtsV2WireFindings >> recordWireFoldStateOf: event [
 
 { #category : #private }
 GtsV2WireFindings >> recordTermsOf: event [
-	| terms reason finding refused |
-	terms := GtsV2TermsContent read: event frame content expecting: expectedTermBase newer: newerRegistry.
-	expectedTermBase := expectedTermBase + terms reservedCount.
+	| base terms reason finding refused termFindings |
+	base := termChecks nextId.
+	terms := GtsV2TermsContent read: event frame content expecting: base newer: newerRegistry.
+	termChecks reserve: terms.
 	(foldStopped or: [ event problem notNil or: [ event link = #broken or: [
 		event payload state ~= #verified ] ] ]) ifTrue: [ ^ self ].
 	reason := terms problem.
@@ -263,13 +264,18 @@ GtsV2WireFindings >> recordTermsOf: event [
 			| payload |
 			payload := GtsV2TermsPayload read: event payload decoded content: terms newer: newerRegistry.
 			refused := termBudget admitFormed: payload formedCost.
-			refused ifNil: [ payload validateChargingText: [ :length | ] ]
+			refused ifNil: [ termFindings := termChecks findingsOf: payload from: base ]
 		] on: GtsV2EnvelopeError do: [ :error | reason := error messageText ] ].
 	refused ifNotNil: [
 		self addContentFinding: (self rangedCode: 20 reason: 90 event: event count: refused) to: event.
 		claimChecks observeUnreadableTerms.
 		^ self ].
-	reason ifNil: [ ^ self ].
+	reason ifNil: [
+		frameFoldStates at: event offset put: #(1).
+		termFindings do: [ :code |
+			(frameFindings at: event offset ifAbsentPut: [ OrderedCollection new ]) add:
+				(self positionalCode: code reason: nil position: position count: nil) ].
+		^ self ].
 	finding := reason asSymbol = #unsupported_critical
 		ifTrue: [ self unsupportedCritical: 1 ]
 		ifFalse: [ self rangedCode: 7 reason: (self malformedReason: reason) event: event count: nil ].
@@ -624,6 +630,7 @@ GtsV2WireFindings >> stepOf: finding parity: parity [
 	code = 14 ifTrue: [ ^ 6 ].
 	code = 13 ifTrue: [ ^ 7 ].
 	code = 21 ifTrue: [ ^ 11 ].
+	(code between: 22 and: 25) ifTrue: [ ^ 16 ].
 	(code between: 15 and: 17) ifTrue: [ ^ 13 ].
 	(#(40 41) includes: code) ifTrue: [ ^ 20 ].
 	code = 48 ifTrue: [ ^ 21 ].

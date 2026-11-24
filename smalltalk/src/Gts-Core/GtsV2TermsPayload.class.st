@@ -115,9 +115,18 @@ GtsV2TermsPayload >> formedCost [
 
 { #category : #validation }
 GtsV2TermsPayload >> validateChargingText: charge [
-	| next |
+	self validateChargingText: charge textDo: [ :block :base :index :octets | ]
+]
+
+{ #category : #validation }
+GtsV2TermsPayload >> validateChargingText: charge textDo: observe [
+	| next base |
+	base := 0.
 	blocks do: [ :block |
-		block first <= 2 ifTrue: [ self textsOf: block second charging: charge do: [ :index :text | ] ] ].
+		block first <= 2 ifTrue: [
+			self textsOf: block second charging: charge do: [ :index :text |
+				observe value: block value: base value: index value: text ] ].
+		base := base + block second first size ].
 	self languageIndexesDo: [ :index |
 		index < languages size ifFalse: [ GtsV2EnvelopeError signal: 'out_of_range' ] ].
 	next := 0.
