@@ -18,6 +18,14 @@ func TestFoldWritesV2NQuads(t *testing.T) {
 	}
 }
 
+func TestFoldWritesV2InlineValue(t *testing.T) {
+	cmd, stdout, stderr := run(t, "fold", vector(t, "v2/P3/project__value-pair.bin"))
+	want := "<http://e/s> <http://e/p> \"7\"^^<http://www.w3.org/2001/XMLSchema#nonNegativeInteger> .\n"
+	if cmd.ProcessState.ExitCode() != 0 || stderr.Len() != 0 || stdout.String() != want {
+		t.Fatalf("fold exit %d, stdout %q, stderr %q", cmd.ProcessState.ExitCode(), stdout, stderr)
+	}
+}
+
 func TestFoldRefusesBeforeWritingV2NQuads(t *testing.T) {
 	for _, tc := range []struct {
 		file, diagnostic string
@@ -25,7 +33,7 @@ func TestFoldRefusesBeforeWritingV2NQuads(t *testing.T) {
 		{"P1/gen-record-three.bin", "unsupported GTS generation 3"},
 		{"P1/file-first-incomplete.bin", "torn_tail"},
 		{"P3/project__malformed-iri.bin", "invalid RDF IRI"},
-		{"P3/project__value-pair.bin", "unsupported_term_kind"},
+		{"P3/terms-literal-value-ref.bin", "unsupported_term_kind"},
 		{"P3/terms-front-term-zero-prefix.prefix-5-at-term-0.bin", "forbidden_combination"},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
