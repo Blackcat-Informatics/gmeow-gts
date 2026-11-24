@@ -28,7 +28,19 @@ _ERROR_FINDINGS = frozenset(
         "ill_formed_term",
         "canonical_violated",
         "parity_mismatch",
+        "repair_failed",
         "conflicting_declaration",
+    )
+)
+# Error-severity codes of the P2 finding table that admission does not check; proof
+# verification is a pending contract requirement (P9-7).
+_UNCHECKED_ERROR_CODES = frozenset(
+    (
+        "chain_break",
+        "proof_malformed",
+        "proof_failed",
+        "signature_invalid",
+        "profile_violation",
     )
 )
 _CAPACITY_REASONS = ("stored_size", "decoded_size", "total_decoded")
