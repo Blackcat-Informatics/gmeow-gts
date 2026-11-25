@@ -347,7 +347,7 @@ fn resolve_sources(sources: &[&Path]) -> Result<Vec<(std::path::PathBuf, String)
                 let relpath = to_posix_path(
                     fspath
                         .strip_prefix(src)
-                        .map_err(|_| format!("path outside source: {fspath:?}"))?,
+                        .map_err(|e| format!("path outside source: {fspath:?}: {e}"))?,
                 )?;
                 safe_archive_path(&relpath)?;
                 if !seen.insert(relpath.clone()) {
@@ -1573,7 +1573,7 @@ fn create_fifo(target: &Path, entry: &FileEntry) -> Result<(), String> {
     use std::os::unix::ffi::OsStrExt;
 
     let path = CString::new(target.as_os_str().as_bytes())
-        .map_err(|_| format!("path contains interior NUL: {target:?}"))?;
+        .map_err(|e| format!("path contains interior NUL: {target:?}: {e}"))?;
     let mode = sanitized_mode(entry.mode.unwrap_or(0o644), true);
     // SAFETY: `path` is a NUL-terminated copy of the target path and remains
     // alive for the duration of the syscall. The mode bits are sanitized.
@@ -1594,7 +1594,7 @@ fn create_device(target: &Path, entry: &FileEntry) -> Result<(), String> {
     use std::os::unix::ffi::OsStrExt;
 
     let path = CString::new(target.as_os_str().as_bytes())
-        .map_err(|_| format!("path contains interior NUL: {target:?}"))?;
+        .map_err(|e| format!("path contains interior NUL: {target:?}: {e}"))?;
     let mode = sanitized_mode(entry.mode.unwrap_or(0o644), true);
     let node_type = match entry.kind {
         FileEntryKind::CharDev => libc::S_IFCHR,
@@ -1605,12 +1605,12 @@ fn create_device(target: &Path, entry: &FileEntry) -> Result<(), String> {
         .dev_major
         .ok_or_else(|| format!("{} needs devMajor", entry.path))?
         .try_into()
-        .map_err(|_| format!("{} devMajor exceeds platform range", entry.path))?;
+        .map_err(|e| format!("{} devMajor exceeds platform range: {e}", entry.path))?;
     let minor: libc::c_uint = entry
         .dev_minor
         .ok_or_else(|| format!("{} needs devMinor", entry.path))?
         .try_into()
-        .map_err(|_| format!("{} devMinor exceeds platform range", entry.path))?;
+        .map_err(|e| format!("{} devMinor exceeds platform range: {e}", entry.path))?;
     // SAFETY: `path` is a NUL-terminated copy of the target path and remains
     // alive for the duration of the syscall. Device numbers are range-checked
     // before `makedev`, and mode bits are sanitized.
@@ -1695,7 +1695,7 @@ fn restore_owner(target: &Path, entry: &FileEntry, options: &UnpackOptions) -> R
     use std::os::unix::ffi::OsStrExt;
 
     let path = CString::new(target.as_os_str().as_bytes())
-        .map_err(|_| format!("path contains interior NUL: {target:?}"))?;
+        .map_err(|e| format!("path contains interior NUL: {target:?}: {e}"))?;
     let uid = entry
         .uid
         .map_or(!0 as libc::uid_t, |value| value as libc::uid_t);
@@ -1776,7 +1776,7 @@ pub fn diff(graph: &Graph, directory: &Path) -> Result<Vec<String>, String> {
         let relpath = to_posix_path(
             fspath
                 .strip_prefix(directory)
-                .map_err(|_| format!("path outside directory: {fspath:?}"))?,
+                .map_err(|e| format!("path outside directory: {fspath:?}: {e}"))?,
         )?;
         let data = fs::read(&fspath).map_err(|e| format!("read {fspath:?}: {e}"))?;
         disk_digests.insert(relpath, digest_string(&data));

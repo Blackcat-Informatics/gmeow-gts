@@ -140,6 +140,7 @@ pub(super) fn decode_attachment<'a>(
     attachment.attach(bytes, 0)
 }
 
+#[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
 pub(super) fn decode_pack<'a>(
     content: &[u8],
     bytes: &'a [u8],

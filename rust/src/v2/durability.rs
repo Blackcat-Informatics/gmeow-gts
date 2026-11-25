@@ -6,7 +6,7 @@
 use super::{
     frame::{COMMIT, INDEX},
     index::{index_bytes, IndexCheck, IndexPrefix},
-    range::{decode_claim, Digest, Range},
+    range::{decode_claim, Digest, Range, RangeFull},
     reader::{ItemKind, LinkState, WireFrame, WireItem},
     Decoder, HeaderError, MalformedReason,
 };
@@ -34,6 +34,7 @@ fn offsets(
     Ok(count)
 }
 
+#[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
 fn locator(data: &[u8], item: WireItem) -> Result<u64, HeaderError> {
     let mut cursor = Decoder::new(&data[..item.end], item.offset);
     cursor.record(2)?;
@@ -225,7 +226,7 @@ pub(super) fn check_prefixes(
             if last_claim.is_some_and(|last| index < last) {
                 range
                     .append(&identifier)
-                    .map_err(|_| CommitReadError::RangeFull)?;
+                    .map_err(|RangeFull| CommitReadError::RangeFull)?;
             }
             if frame.frame_type != Some(INDEX) && report.last_valid_position != Some(position) {
                 report

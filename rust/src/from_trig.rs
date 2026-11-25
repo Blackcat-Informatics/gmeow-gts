@@ -164,19 +164,17 @@ fn remove_dot_segments(path: &str) -> String {
 
 fn split_raw_path_suffix(raw: &str) -> (&str, &str) {
     let split = raw.find(['?', '#']).unwrap_or(raw.len());
-    (&raw[..split], &raw[split..])
+    raw.split_at(split)
 }
 
 fn split_base_for_path(base: &str) -> (String, &str) {
     let Some(scheme_end) = base.find(':') else {
         return (String::new(), base);
     };
-    let scheme_prefix = &base[..=scheme_end];
-    let rest = &base[scheme_end + 1..];
+    let (scheme_prefix, rest) = base.split_at(scheme_end + 1);
     if let Some(after_slashes) = rest.strip_prefix("//") {
         let authority_end = after_slashes.find('/').unwrap_or(after_slashes.len());
-        let authority = &after_slashes[..authority_end];
-        let path = &after_slashes[authority_end..];
+        let (authority, path) = after_slashes.split_at(authority_end);
         (format!("{scheme_prefix}//{authority}"), path)
     } else {
         (scheme_prefix.to_string(), rest)
@@ -205,7 +203,7 @@ fn resolve_relative_iri(base: &str, raw: &str) -> String {
 
     if raw.starts_with("//") {
         if let Some(scheme_end) = base.find(':') {
-            return format!("{}:{raw}", &base[..scheme_end]);
+            return format!("{}:{raw}", base.split_at(scheme_end).0);
         }
         return raw.to_string();
     }
@@ -220,7 +218,7 @@ fn resolve_relative_iri(base: &str, raw: &str) -> String {
         } else {
             base_path
                 .rfind('/')
-                .map(|index| &base_path[..=index])
+                .map(|index| base_path.split_at(index + 1).0)
                 .unwrap_or("")
         };
         format!("{base_dir}{raw_path}")
@@ -333,8 +331,25 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// The unread text from `pos`. Panics if `pos` is not on a character boundary.
+    #[expect(
+        clippy::string_slice,
+        reason = "pos always sits on a character boundary: it advances only past ASCII bytes or whole characters"
+    )]
+    fn rest(&self) -> &'a str {
+        &self.text[self.pos..]
+    }
+
+    /// The text in `start..end`, or a parse error when the range is not on character
+    /// boundaries of the document.
+    fn span(&self, start: usize, end: usize) -> Result<&'a str, TriGParseError> {
+        self.text.get(start..end).ok_or_else(|| {
+            TriGParseError::new(format!("invalid text span {start}..{end} in document"))
+        })
+    }
+
     fn peek_char(&self) -> Option<char> {
-        self.text[self.pos..].chars().next()
+        self.rest().chars().next()
     }
 
     fn bump_char(&mut self) -> Option<char> {
@@ -345,7 +360,7 @@ impl<'a> Parser<'a> {
 
     fn consume(&mut self, text: &str) -> bool {
         self.skip_ws_and_comments();
-        if self.text[self.pos..].starts_with(text) {
+        if self.rest().starts_with(text) {
             self.pos += text.len();
             true
         } else {
@@ -355,11 +370,13 @@ impl<'a> Parser<'a> {
 
     fn consume_keyword(&mut self, keyword: &str) -> bool {
         self.skip_ws_and_comments();
-        let rest = &self.text[self.pos..];
-        if rest.len() < keyword.len() || !rest[..keyword.len()].eq_ignore_ascii_case(keyword) {
+        let Some((head, after)) = self.rest().split_at_checked(keyword.len()) else {
+            return false;
+        };
+        if !head.eq_ignore_ascii_case(keyword) {
             return false;
         }
-        let boundary = rest[keyword.len()..]
+        let boundary = after
             .chars()
             .next()
             .map(|ch| {
@@ -432,7 +449,7 @@ impl<'a> Parser<'a> {
         let start = self.pos;
         while let Some(ch) = self.peek_char() {
             if ch == ':' {
-                let label = self.text[start..self.pos].to_string();
+                let label = self.span(start, self.pos)?.to_string();
                 self.bump_char();
                 return Ok(label);
             }
@@ -450,10 +467,10 @@ impl<'a> Parser<'a> {
 
     fn term(&mut self, graph: Option<&Node>) -> Result<Node, TriGParseError> {
         self.skip_ws_and_comments();
-        if self.text[self.pos..].starts_with("<<(") {
+        if self.rest().starts_with("<<(") {
             return self.parenthesized_quoted_triple(graph);
         }
-        if self.text[self.pos..].starts_with("<<") {
+        if self.rest().starts_with("<<") {
             return self.reifying_triple(graph);
         }
         match self.peek_char() {
@@ -543,7 +560,7 @@ impl<'a> Parser<'a> {
             XSD_INTEGER
         };
         Ok(Node::Literal {
-            value: self.text[start..self.pos].to_string(),
+            value: self.span(start, self.pos)?.to_string(),
             lang: None,
             datatype: Some(datatype.to_string()),
         })
@@ -554,8 +571,7 @@ impl<'a> Parser<'a> {
     /// `trueish`/`false:x` stay prefixed names.
     fn try_boolean_literal(&mut self) -> Option<Node> {
         for keyword in ["true", "false"] {
-            let rest = &self.text[self.pos..];
-            if let Some(after) = rest.strip_prefix(keyword) {
+            if let Some(after) = self.rest().strip_prefix(keyword) {
                 let boundary = match after.chars().next() {
                     Some(ch) => {
                         ch.is_whitespace()
@@ -635,7 +651,7 @@ impl<'a> Parser<'a> {
         while let Some(ch) = self.bump_char() {
             if ch == '>' {
                 let end = self.pos - 1;
-                let raw = &self.text[start..end];
+                let raw = self.span(start, end)?;
                 if raw.chars().any(is_forbidden_iri_char) {
                     return Err(TriGParseError::new(format!(
                         "invalid character in IRI starting at byte {}",
@@ -668,7 +684,7 @@ impl<'a> Parser<'a> {
 
     fn bnode(&mut self) -> Result<String, TriGParseError> {
         self.skip_ws_and_comments();
-        if !self.text[self.pos..].starts_with("_:") {
+        if !self.rest().starts_with("_:") {
             return Err(TriGParseError::new(format!(
                 "expected blank node at byte {}",
                 self.pos
@@ -689,7 +705,7 @@ impl<'a> Parser<'a> {
         if self.pos == start {
             return Err(TriGParseError::new("empty blank node label"));
         }
-        Ok(self.text[start..self.pos].to_string())
+        Ok(self.span(start, self.pos)?.to_string())
     }
 
     fn next_bnode(&mut self) -> Node {
@@ -717,8 +733,8 @@ impl<'a> Parser<'a> {
             if self.pos == start {
                 return Err(TriGParseError::new("empty language tag"));
             }
-            lang = Some(self.text[start..self.pos].to_string());
-        } else if self.text[self.pos..].starts_with("^^") {
+            lang = Some(self.span(start, self.pos)?.to_string());
+        } else if self.rest().starts_with("^^") {
             self.pos += 2;
             datatype = Some(self.datatype_iri()?);
         }
@@ -733,7 +749,7 @@ impl<'a> Parser<'a> {
     /// literal only (a triple-quoted string is a syntax error per the W3C suite).
     fn version_string(&mut self) -> Result<String, TriGParseError> {
         self.skip_ws_and_comments();
-        if self.text[self.pos..].starts_with("\"\"\"") || self.text[self.pos..].starts_with("'''") {
+        if self.rest().starts_with("\"\"\"") || self.rest().starts_with("'''") {
             return Err(TriGParseError::new(
                 "version directive requires a simple (non-triple-quoted) string",
             ));
@@ -760,7 +776,7 @@ impl<'a> Parser<'a> {
             Some('\'') => ('\'', "'''"),
             _ => return Err(TriGParseError::new("expected literal")),
         };
-        if self.text[self.pos..].starts_with(long) {
+        if self.rest().starts_with(long) {
             self.pos += long.len();
             return self.long_string(long);
         }
@@ -785,7 +801,7 @@ impl<'a> Parser<'a> {
     fn long_string(&mut self, closing: &str) -> Result<String, TriGParseError> {
         let mut value = String::new();
         loop {
-            if self.text[self.pos..].starts_with(closing) {
+            if self.rest().starts_with(closing) {
                 self.pos += closing.len();
                 return Ok(value);
             }
@@ -818,7 +834,7 @@ impl<'a> Parser<'a> {
                 if end > self.text.len() || !self.text.is_char_boundary(end) {
                     return Err(TriGParseError::new("short or invalid unicode escape"));
                 }
-                let raw = &self.text[self.pos..end];
+                let raw = self.span(self.pos, end)?;
                 if !raw.bytes().all(|b| b.is_ascii_hexdigit()) {
                     return Err(TriGParseError::new(format!(
                         "bad unicode escape \\{ch}{raw}"
@@ -844,7 +860,7 @@ impl<'a> Parser<'a> {
         let p = self.predicate()?;
         let o = self.quoted_component(graph)?;
         self.skip_ws_and_comments();
-        if !self.text[self.pos..].starts_with(")>>") {
+        if !self.rest().starts_with(")>>") {
             return Err(TriGParseError::new("unterminated quoted triple"));
         }
         self.pos += 3;
@@ -865,7 +881,7 @@ impl<'a> Parser<'a> {
         let reifier = if self.consume_char('~') {
             self.skip_ws_and_comments();
             // `~` with no identifier before `>>` is an anonymous reifier.
-            if self.text[self.pos..].starts_with(">>") {
+            if self.rest().starts_with(">>") {
                 self.next_bnode()
             } else {
                 self.term(graph)?
@@ -874,7 +890,7 @@ impl<'a> Parser<'a> {
             self.next_bnode()
         };
         self.skip_ws_and_comments();
-        if !self.text[self.pos..].starts_with(">>") {
+        if !self.rest().starts_with(">>") {
             return Err(TriGParseError::new("unterminated reifying triple"));
         }
         self.pos += 2;
@@ -939,7 +955,7 @@ impl<'a> Parser<'a> {
                 self.pos
             )));
         }
-        let name = &self.text[start..self.pos];
+        let name = self.span(start, self.pos)?;
         let Some((prefix, local)) = name.split_once(':') else {
             return Err(TriGParseError::new(format!(
                 "unsupported bare token {name:?}; use an IRI or prefix"
@@ -1040,7 +1056,7 @@ impl<'a> Parser<'a> {
     /// True when the upcoming subject is self-asserting (a reifying triple or a
     /// blank-node property list), so its predicate-object list may be omitted.
     fn subject_allows_empty_pol(&self) -> bool {
-        let rest = self.text[self.pos..].trim_start();
+        let rest = self.rest().trim_start();
         (rest.starts_with("<<") && !rest.starts_with("<<(")) || rest.starts_with('[')
     }
 
@@ -1063,7 +1079,7 @@ impl<'a> Parser<'a> {
             if self.consume_char(';') {
                 self.skip_ws_and_comments();
                 if matches!(self.peek_char(), Some('.' | ']' | '}'))
-                    || self.text[self.pos..].starts_with("|}")
+                    || self.rest().starts_with("|}")
                 {
                     break;
                 }
@@ -1103,7 +1119,7 @@ impl<'a> Parser<'a> {
             self.skip_ws_and_comments();
             if self.consume_char('~') {
                 self.skip_ws_and_comments();
-                let id = if self.text[self.pos..].starts_with("{|")
+                let id = if self.rest().starts_with("{|")
                     || matches!(self.peek_char(), Some('.' | ',' | ';' | ']' | '}' | '~'))
                 {
                     self.next_bnode()
@@ -1112,7 +1128,7 @@ impl<'a> Parser<'a> {
                 };
                 self.emit_statement(&id, &reifies, &triple_term, graph);
                 pending = Some(id);
-            } else if self.text[self.pos..].starts_with("{|") {
+            } else if self.rest().starts_with("{|") {
                 let reifier = match pending.take() {
                     Some(r) => r,
                     None => {
@@ -1124,7 +1140,7 @@ impl<'a> Parser<'a> {
                 self.pos += 2; // consume "{|"
                 self.predicate_object_list(&reifier, graph)?;
                 self.skip_ws_and_comments();
-                if !self.text[self.pos..].starts_with("|}") {
+                if !self.rest().starts_with("|}") {
                     return Err(TriGParseError::new(
                         "unterminated annotation block (expected `|}`)",
                     ));

@@ -236,7 +236,7 @@ fn expected_peak_heights(count: usize) -> Vec<usize> {
 }
 
 fn peak_width(height: usize) -> Result<usize, String> {
-    let shift = u32::try_from(height).map_err(|_| format!("peak height {height} is too large"))?;
+    let shift = u32::try_from(height).map_err(|e| format!("peak height {height} is too large: {e}"))?;
     1usize
         .checked_shl(shift)
         .ok_or_else(|| format!("peak height {height} is too large"))
@@ -667,7 +667,7 @@ fn string_field(entries: &[(String, Json)], key: &str) -> Result<String, String>
 fn usize_field(entries: &[(String, Json)], key: &str) -> Result<usize, String> {
     match get(entries, key)? {
         Json::Number(value) => {
-            usize::try_from(*value).map_err(|_| format!("{key:?} is too large for this platform"))
+            usize::try_from(*value).map_err(|e| format!("{key:?} is too large for this platform: {e}"))
         }
         _ => Err(format!("{key:?} must be an unsigned integer")),
     }

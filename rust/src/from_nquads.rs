@@ -167,6 +167,26 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    /// The unread text from `pos`. Panics if `pos` is not on a character boundary.
+    #[expect(
+        clippy::string_slice,
+        reason = "pos always sits on a character boundary: it advances only past ASCII bytes or whole characters"
+    )]
+    fn rest(&self) -> &'a str {
+        &self.text[self.pos..]
+    }
+
+    /// The text in `start..end`, or a parse error when the range is not on character
+    /// boundaries of the line.
+    fn span(&self, start: usize, end: usize) -> Result<&'a str, NQuadsParseError> {
+        self.text.get(start..end).ok_or_else(|| {
+            NQuadsParseError::new(format!(
+                "invalid text span {start}..{end} in {:?}",
+                self.text
+            ))
+        })
+    }
+
     fn skip_ws(&mut self) {
         while matches!(self.text.as_bytes().get(self.pos), Some(b' ' | b'\t')) {
             self.pos += 1;
@@ -180,7 +200,7 @@ impl<'a> Tokenizer<'a> {
 
     fn node(&mut self) -> Result<Node, NQuadsParseError> {
         self.skip_ws();
-        if self.text[self.pos..].starts_with("<<(") {
+        if self.rest().starts_with("<<(") {
             return self.quoted_triple().map(Node::Triple);
         }
         self.atom().map(Node::Atom)
@@ -218,7 +238,7 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn peek_char(&self) -> Option<char> {
-        self.text[self.pos..].chars().next()
+        self.rest().chars().next()
     }
 
     fn bump_char(&mut self) -> Option<char> {
@@ -235,18 +255,18 @@ impl<'a> Tokenizer<'a> {
             return self.rdf12_iri();
         }
         let start = self.pos + 1;
-        let rel = self.text[start..]
-            .find('>')
+        let (value, _) = self
+            .text
+            .get(start..)
+            .and_then(|tail| tail.split_once('>'))
             .ok_or_else(|| NQuadsParseError::new(format!("unterminated IRI in {:?}", self.text)))?;
-        let end = start + rel;
-        self.pos = end + 1;
-        let value = &self.text[start..end];
+        self.pos = start + value.len() + 1;
         validate_iri(value, self.text)?;
         Ok(value.to_string())
     }
 
     fn bnode(&mut self) -> Result<String, NQuadsParseError> {
-        if !self.text[self.pos..].starts_with("_:") {
+        if !self.rest().starts_with("_:") {
             return Err(NQuadsParseError::new(format!(
                 "bad blank node in {:?}",
                 self.text
@@ -269,7 +289,7 @@ impl<'a> Tokenizer<'a> {
                 self.text
             )));
         }
-        Ok(self.text[start..self.pos].to_string())
+        Ok(self.span(start, self.pos)?.to_string())
     }
 
     fn string(&mut self) -> Result<String, NQuadsParseError> {
@@ -313,7 +333,7 @@ impl<'a> Tokenizer<'a> {
                     self.text
                 )));
             }
-            let raw_lang = &self.text[start..self.pos];
+            let raw_lang = self.span(start, self.pos)?;
             if let Some((base, dir)) = raw_lang.rsplit_once("--") {
                 if matches!(dir, "ltr" | "rtl") && !base.is_empty() {
                     self.language_tag(base)?;
@@ -329,7 +349,7 @@ impl<'a> Tokenizer<'a> {
                 self.language_tag(raw_lang)?;
                 lang = Some(raw_lang.to_string());
             }
-        } else if self.text[self.pos..].starts_with("^^") {
+        } else if self.rest().starts_with("^^") {
             self.pos += 2;
             self.skip_ws();
             let iri = self.iri()?;
@@ -395,7 +415,7 @@ impl<'a> Tokenizer<'a> {
                 self.text
             )));
         }
-        let raw = &self.text[self.pos..end];
+        let raw = self.span(self.pos, end)?;
         if !raw.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err(NQuadsParseError::new(format!(
                 "bad unicode escape \\{ch}{raw} in {:?}",
@@ -424,7 +444,7 @@ impl<'a> Tokenizer<'a> {
 
     fn close_triple(&mut self) -> Result<(), NQuadsParseError> {
         self.skip_ws();
-        if !self.text[self.pos..].starts_with(")>>") {
+        if !self.rest().starts_with(")>>") {
             return Err(NQuadsParseError::new(format!(
                 "unterminated quoted triple in {:?}",
                 self.text

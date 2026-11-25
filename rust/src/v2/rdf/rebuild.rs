@@ -155,6 +155,10 @@ impl<'a> Rebuild<'a> {
         Ok(())
     }
 
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "ValueIssue is a fieldless Copy classification; the FromUtf8Error detail has no field to occupy"
+    )]
     pub(super) fn lexical(
         &mut self,
         reference: Reference,

@@ -557,9 +557,9 @@ fn opaque_recipient_findings(
 
 fn namespace(iri: &str) -> &str {
     if let Some(i) = iri.rfind('#') {
-        &iri[..=i]
+        iri.split_at(i + 1).0
     } else if let Some(i) = iri.rfind('/') {
-        &iri[..=i]
+        iri.split_at(i + 1).0
     } else {
         iri
     }

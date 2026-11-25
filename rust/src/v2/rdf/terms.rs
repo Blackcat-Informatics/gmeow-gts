@@ -41,6 +41,7 @@ impl<'a> FrontCoded<'a> {
         })
     }
 
+    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
     fn form(&mut self, restart: u64) -> Result<(), HeaderError> {
         let length = self
             .lengths
@@ -89,6 +90,10 @@ impl<'a> FrontCoded<'a> {
         Ok(())
     }
 
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "HeaderError is Copy and carries only a reason and offset; the Utf8Error detail has no field to occupy"
+    )]
     fn texts(self) -> impl Iterator<Item = Result<Arc<str>, HeaderError>> {
         self.formed.into_iter().map(|(offset, bytes)| {
             str::from_utf8(&bytes)
@@ -264,6 +269,7 @@ impl Languages {
         })
     }
 
+    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
     fn get(&self, id: u64, cursor: &Decoder<'_>) -> Result<Arc<str>, HeaderError> {
         let index = usize::try_from(id).map_err(|_| cursor.error(OutOfRange))?;
         let text = self

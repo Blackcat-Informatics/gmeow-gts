@@ -644,7 +644,9 @@ fn validate_quad_refs(graph: &Graph, quad: Quad) -> Result<(), EventError> {
 
 fn event_id(id: usize) -> Result<EventTermId, EventError> {
     EventTermId::try_from(id)
-        .map_err(|_| EventError::invalid_source(format!("term id {id} exceeds event id range")))
+        .map_err(|error| {
+            EventError::invalid_source(format!("term id {id} exceeds event id range: {error}"))
+        })
 }
 
 fn event_direction(direction: &str) -> Option<EventLiteralDirection> {
@@ -745,8 +747,10 @@ fn event_diagnostic(diagnostic: &Diagnostic) -> Result<EventDiagnostic, EventErr
                 .frame_index
                 .map(u64::try_from)
                 .transpose()
-                .map_err(|_| {
-                    EventError::invalid_source("diagnostic frame index exceeds event range")
+                .map_err(|error| {
+                    EventError::invalid_source(format!(
+                        "diagnostic frame index exceeds event range: {error}"
+                    ))
                 })?,
             line: None,
             column: None,

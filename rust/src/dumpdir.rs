@@ -155,12 +155,13 @@ pub fn dump_bytes(
         ))
     })?;
 
-    let result = write_dump(data, source_label, &staged, options.clone());
-    if let Err(err) = result {
-        let _ = fs::remove_dir_all(&staged);
-        return Err(err);
-    }
-    let mut report = result.expect("handled Err above");
+    let mut report = match write_dump(data, source_label, &staged, options.clone()) {
+        Ok(report) => report,
+        Err(err) => {
+            let _ = fs::remove_dir_all(&staged);
+            return Err(err);
+        }
+    };
 
     if options.force && directory.exists() {
         if directory.is_dir() {

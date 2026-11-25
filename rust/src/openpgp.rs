@@ -304,8 +304,12 @@ fn parse_ed25519_public_material(body: &[u8]) -> Result<([u8; 32], usize)> {
     // GPG encodes the Ed25519 public key as a 33-byte MPI (`0x40 || 32-byte key`);
     // a bare 32-byte MPI is also valid when the high bit is clear.
     let raw: [u8; 32] = match mpi.len() {
-        33 => mpi[1..].try_into().expect("33-1 == 32"),
-        32 => mpi[..].try_into().expect("len checked"),
+        33 => mpi[1..].try_into().map_err(|error| {
+            OpenPgpError(format!("Ed25519 public key is not 32 bytes: {error}"))
+        })?,
+        32 => mpi[..].try_into().map_err(|error| {
+            OpenPgpError(format!("Ed25519 public key is not 32 bytes: {error}"))
+        })?,
         n => {
             return Err(OpenPgpError(format!(
                 "unexpected Ed25519 public MPI length {n}"
@@ -396,7 +400,7 @@ pub fn parse_transport_key(armored: &str) -> Result<TransportKey> {
         let (raw, pub_body): ([u8; 32], Vec<u8>) = match tag {
             6 => {
                 let (raw, _) = parse_ed25519_public_material(&body)?;
-                (raw, body.clone())
+                (raw, body)
             }
             5 => {
                 let (raw, end) = parse_ed25519_public_material(&body)?;

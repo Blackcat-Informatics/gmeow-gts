@@ -1621,7 +1621,7 @@ fn read_segment_with_sink(
                     _ => ("invalid", None),
                 };
                 folder.push_signature(Signature {
-                    frame_id: computed.clone(),
+                    frame_id: computed,
                     kid: None,
                     status: status.to_string(),
                     cose,

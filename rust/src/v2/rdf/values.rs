@@ -84,6 +84,7 @@ impl<'a> InlineValue<'a> {
         }
     }
 
+    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
     fn time(cursor: &mut Decoder<'a>) -> Result<Self, HeaderError> {
         let error = cursor.error(OutOfRange);
         let seconds = i64::try_from(cursor.int()?).map_err(|_| error)?;
@@ -99,6 +100,10 @@ impl<'a> InlineValue<'a> {
             .map_err(|_| error)
     }
 
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "HeaderError is Copy and carries only a reason and offset; the time format error detail has no field to occupy"
+    )]
     fn literal(self, error: HeaderError) -> Result<(Arc<str>, &'static str), HeaderError> {
         let (lexical, datatype) = match self {
             Self::Boolean(value) => (Arc::from(if value { "true" } else { "false" }), BOOLEAN),

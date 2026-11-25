@@ -103,6 +103,10 @@ impl Ulid {
 }
 
 impl fmt::Display for Ulid {
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "fmt::Error is a fieldless unit and cannot carry the Utf8Error"
+    )]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let value = u128::from_be_bytes(self.0);
         let mut buffer = [0u8; ULID_LEN];

@@ -464,6 +464,7 @@ pub fn recipient_kid(blob: &[u8]) -> Option<String> {
 }
 
 /// Open a COSE_Encrypt0 using a content key resolved by `kid` (§9.3).
+#[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
 pub fn decrypt0(
     blob: &[u8],
     resolve: impl Fn(&str) -> Option<[u8; 32]>,
@@ -485,5 +486,5 @@ pub fn decrypt0(
                 aad: &aad,
             },
         )
-        .map_err(|_| Encrypt0Error::AuthFailed)
+        .map_err(|aes_gcm::Error| Encrypt0Error::AuthFailed)
 }

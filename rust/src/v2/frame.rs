@@ -146,6 +146,7 @@ fn valid_decoded_length(frame_type: u64, length: u64) -> bool {
 }
 
 impl<'a> Decoder<'a> {
+    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
     pub(super) fn byte_string(&mut self, expected: Option<usize>) -> Result<&'a [u8], HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
         let length = usize::try_from(self.head(2)?).map_err(|_| error)?;
@@ -155,11 +156,16 @@ impl<'a> Decoder<'a> {
         self.take(length)
     }
 
+    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
     pub(super) fn fixed<const SIZE: usize>(&mut self) -> Result<&'a [u8; SIZE], HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
         self.byte_string(Some(SIZE))?.try_into().map_err(|_| error)
     }
 
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "HeaderError is Copy and carries only a reason and offset; the Utf8Error detail has no field to occupy"
+    )]
     pub(super) fn text(&mut self) -> Result<&'a str, HeaderError> {
         let length_error = self.error(MalformedReason::WrongLength);
         let type_error = self.error(MalformedReason::WrongType);
@@ -484,6 +490,7 @@ pub fn encode_plain_frame(
         .map(|(encoded, _)| encoded)
 }
 
+#[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
 pub(super) fn encode_plain_frame_with_identifier(
     predecessor: &[u8; 32],
     frame_type: u64,

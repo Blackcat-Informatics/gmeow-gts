@@ -13,7 +13,7 @@ use ciborium::value::Value;
 use super::{
     encode_header,
     frame::{encode_plain_frame_with_identifier, FrameError, COMMIT, PARITY},
-    range::{Digest, Range},
+    range::{Digest, Range, RangeFull},
     Header, HeaderWriteError, HEADER_CONTEXT,
 };
 use crate::wire;
@@ -126,7 +126,7 @@ impl SegmentWriter {
         if frame_type != PARITY {
             self.range
                 .append(&identifier)
-                .map_err(|_| SegmentWriteError::RangeFull)?;
+                .map_err(|RangeFull| SegmentWriteError::RangeFull)?;
             self.head = identifier;
         }
         self.bytes.extend(encoded);

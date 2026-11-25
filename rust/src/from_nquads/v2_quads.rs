@@ -33,7 +33,7 @@ pub(crate) fn parse_v2_quads(text: &str) -> Result<(Vec<Term>, Vec<Quad>), NQuad
 
 impl Tokenizer<'_> {
     fn consume(&mut self, token: &str) -> bool {
-        if !self.text[self.pos..].starts_with(token) {
+        if !self.rest().starts_with(token) {
             return false;
         }
         self.pos += token.len();
@@ -168,7 +168,7 @@ impl Tokenizer<'_> {
             }
         }
         self.pos = end;
-        Ok(self.text[start..end].to_owned())
+        Ok(self.span(start, end)?.to_owned())
     }
 }
 
