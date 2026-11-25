@@ -40,7 +40,12 @@ from gts.v2.resync import (
     ResyncScanner,
     encode_resync,
 )
-from gts.v2.segment_result import HeaderOpener, frame_results, segment_results
+from gts.v2.segment_result import (
+    FrameResult,
+    HeaderOpener,
+    frame_results,
+    segment_results,
+)
 from gts.v2.signatures import HeldKey, SignatureVerifier
 from gts.v2.writer import SegmentWriter
 from test_v2_content import _PARITY_CODES, _REASONS, _VECTORS, _contents
@@ -819,6 +824,38 @@ def test_frame_with_unknown_codec_is_opaque_as_unknown_codec(name: str) -> None:
 
 
 _LINK_CODES = {"linked": 1, "healed": 2, "broken": 3}
+_SIGNATURE_REASON_CODES = {
+    "unknown_signature_algorithm": 53,
+    "key_not_held": 54,
+    "key_mismatch": 57,
+    "value_length": 58,
+    "non_canonical_scalar": 59,
+    "small_order_key": 60,
+    "small_order_nonce": 61,
+    "equation_failed": 62,
+    "composite_classical_failed": 63,
+    "composite_post_quantum_failed": 64,
+}
+_SIGNATURE_STATUS_CODES = {"valid": 1, "invalid": 2, "unverified": 3}
+
+
+def _signature_codes(frame: FrameResult) -> list[list[object]]:
+    return [
+        [
+            _SIGNATURE_STATUS_CODES[signature.outcome.status],
+            None
+            if signature.outcome.reason is None
+            else _SIGNATURE_REASON_CODES[signature.outcome.reason],
+            signature.algorithm,
+            signature.key_id,
+            signature.coverage_first,
+            signature.coverage_end,
+            signature.authenticated,
+        ]
+        for signature in frame.signatures
+    ]
+
+
 _STORED_CODES = {"matches": 1, "mismatch": 2}
 _UNCHECKED_REASON_CODES = {"unknown_codec": 1, "exceeds_capacity": 2}
 _OPAQUE_REASON_CODES = {
@@ -859,6 +896,8 @@ def _fold_code(state: FoldState) -> list[int]:
         ("chain-break-withheld-codec-constraint", ""),
         ("payload-unknown-codec", ""),
         ("parity-later-version-after-stop", ""),
+        # Two signatures on a commit, one of them authenticating.
+        ("equal-heads-different-bytes", "b3"),
     ],
 )
 def test_frame_results_give_each_frame_of_the_corpus(name: str, label: str) -> None:
@@ -876,6 +915,7 @@ def test_frame_results_give_each_frame_of_the_corpus(name: str, label: str) -> N
                 _LINK_CODES[frame.link],
                 _payload_code(frame.payload),
                 None if frame.stored is None else _STORED_CODES[frame.stored],
+                _signature_codes(frame),
                 _fold_code(frame.fold),
             ]
             for frame in frames
@@ -888,6 +928,7 @@ def test_frame_results_give_each_frame_of_the_corpus(name: str, label: str) -> N
                 record[4],
                 record[5],
                 _present(record[6]),
+                [[s[0], _present(s[1]), *s[2:]] for s in record[7]],
                 record[8],
             ]
             for record in segment[16]

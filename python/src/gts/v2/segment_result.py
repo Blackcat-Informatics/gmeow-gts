@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ._decode import WireError
-from .authentication import Authenticity
+from .authentication import Authenticity, SignatureResult
 from .canonical_check import CanonicalResult
 from .content import ContentCapacity, ContentRead
 from .file_result import FoldState, PayloadState, fold_state, payload_state
@@ -260,6 +260,7 @@ class FrameResult:
     link: Literal["linked", "healed", "broken"]
     payload: PayloadState
     stored: Literal["matches", "mismatch"] | None
+    signatures: tuple[SignatureResult, ...]
     fold: FoldState
 
 
@@ -271,6 +272,7 @@ def frame_results(read: ContentRead, segment: int) -> tuple[FrameResult, ...]:
     wire = read.wire.segments[segment]
     if opener_outcome(wire) != "readable":
         return ()
+    signed = dict(read.authentication[segment].signatures)
     results = []
     for frame in wire.frames:
         item = wire.items[frame.position]
@@ -284,6 +286,7 @@ def frame_results(read: ContentRead, segment: int) -> tuple[FrameResult, ...]:
                 frame.link.state,
                 payload_state(frame.payload),
                 None if stored is None else ("matches" if stored else "mismatch"),
+                signed.get(frame.position, ()),
                 fold_state(read, segment, frame),
             )
         )
