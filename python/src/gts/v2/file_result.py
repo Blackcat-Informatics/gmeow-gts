@@ -52,6 +52,8 @@ def payload_state(check: PayloadCheck) -> PayloadState:
             if check.reason in _CAPACITY_REASONS:
                 return UncheckedPayload("exceeds_capacity")
             raise ValueError("an unchecked payload carries no P2 reason")
+        case _:
+            raise ValueError("a payload check carries an unknown state")
 
 
 def fold_state(read: ContentRead, segment: int, frame: WireFrame) -> FoldState:

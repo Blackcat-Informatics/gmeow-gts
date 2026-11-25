@@ -573,19 +573,19 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
                 step=_step("profile_not_checked", None),
             )
         )
-    for position, item in enumerate(wire.items if judged else ()):
-        if not isinstance(item, Item) or item.kind != "opaque":
+    for position, wire_item in enumerate(wire.items if judged else ()):
+        if not isinstance(wire_item, Item) or wire_item.kind != "opaque":
             continue
-        if item.reason == "unknown_item_kind":
-            found.append(_item_kind_record(position, item.tag))
-        elif item.reason is not None:
+        if wire_item.reason == "unknown_item_kind":
+            found.append(_item_kind_record(position, wire_item.tag))
+        elif wire_item.reason is not None:
             found.append(
                 _record(
                     "malformed_value",
-                    item.reason,
+                    wire_item.reason,
                     position,
-                    item.offset,
-                    item.end - item.offset,
+                    wire_item.offset,
+                    wire_item.end - wire_item.offset,
                     4,
                 )
             )
@@ -593,14 +593,14 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
         if note.reason in _CLAIM_REASONS:
             found.append(_claim_record(note.reason, note.position))
         else:
-            item = wire.items[note.position]
+            wire_item = wire.items[note.position]
             found.append(
                 _record(
                     "malformed_value",
                     note.reason,
                     note.position,
-                    item.offset,
-                    item.end - item.offset,
+                    wire_item.offset,
+                    wire_item.end - wire_item.offset,
                     4,
                 )
             )
