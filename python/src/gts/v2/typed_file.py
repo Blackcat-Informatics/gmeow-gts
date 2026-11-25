@@ -171,7 +171,7 @@ def file_result(
         segments=segments,
         findings=framing_findings(read)
         + tuple(
-            finding_record(finding)
+            finding_record(finding, read)
             for finding in read.findings
             if finding.segment is None and finding.code not in _FRAMING_CODES
         ),

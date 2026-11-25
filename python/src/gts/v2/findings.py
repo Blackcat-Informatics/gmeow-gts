@@ -267,10 +267,54 @@ def sort_findings(records: Iterable[FindingRecord]) -> tuple[FindingRecord, ...]
     return tuple(sorted(records, key=key))
 
 
-def finding_record(finding: ContentFinding) -> FindingRecord:
+# The subject kind of a frame type (P2, `subject_kind` tag 2).
+_SUBJECT_FRAME_TYPE = 2
+# The subject kind of a profile (P2, `subject_kind` tag 4).
+_SUBJECT_PROFILE = 4
+
+
+def _subject(
+    read: ContentRead | None, segment: int | None, finding: ContentFinding
+) -> tuple[int, ...] | None:
+    """Return the typed subject of a finding whose subject this reader states.
+
+    Frame-type subjects come from the frame at the finding's position, and the
+    profile subject from the header of its segment. Other subjects (codec, item
+    kind, the profile's check) are not yet stated, so their findings carry none.
+    """
+    if read is None or segment is None:
+        return None
+    if finding.code == "unsupported_critical" or (
+        finding.code == "unknown_enumeration_value"
+        and finding.reason == "unknown_frame_type"
+    ):
+        frame = next(
+            (
+                frame
+                for frame in read.wire.segments[segment].frames
+                if frame.position == finding.position
+            ),
+            None,
+        )
+        if frame is not None and frame.frame_type is not None:
+            return (_SUBJECT_FRAME_TYPE, frame.frame_type)
+    if finding.code == "profile_not_checked":
+        opener = read.wire.segments[segment].opener.value
+        header = getattr(opener, "header", None)
+        if header is not None and header.profile is not None:
+            return (_SUBJECT_PROFILE, header.profile)
+    return None
+
+
+def finding_record(
+    finding: ContentFinding,
+    read: ContentRead | None = None,
+) -> FindingRecord:
     """Return the typed record of a finding of the content read.
 
-    Raise KeyError when the finding's code or reason is not one of registry version 1.
+    The subject is stated when `read` is given and the finding's subject is one
+    this reader states. Raise KeyError when the finding's code or reason is not one
+    of registry version 1.
     """
     return FindingRecord(
         FINDING_CODES[finding.code],
@@ -279,6 +323,7 @@ def finding_record(finding: ContentFinding) -> FindingRecord:
         finding.offset,
         finding.length,
         finding.count,
+        subject=_subject(read, finding.segment, finding),
         step=_step(finding.code, finding.reason),
     )
 
@@ -351,7 +396,7 @@ def frame_findings(
                 )
             )
     found.extend(
-        finding_record(finding)
+        finding_record(finding, read)
         for finding in read.findings
         if finding.segment == segment and finding.position == frame.position
     )
@@ -484,7 +529,7 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
         if note.reason not in ("index_offsets", "index_locator")
     )
     found.extend(
-        finding_record(finding)
+        finding_record(finding, read)
         for finding in read.findings
         if finding.segment == segment and finding.position not in frames
     )
