@@ -1320,3 +1320,16 @@ def test_resync_refusal_stands_at_the_item_that_holds_its_offset() -> None:
         if f.code == FINDING_CODES["exceeds_capacity"]
     ]
     assert found == [(3, 316, 4096, 4115)]
+
+
+def test_unknown_frame_type_finding_sorts_with_the_items_step() -> None:
+    """An envelope's unknown frame type sorts before a malformed item."""
+    raw, capacity, verifier, record = _corpus_read("frame-unknown-content-map", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    frame = file_result(read, raw, capacity).segments[0].frames[0]
+    assert [f.code for f in frame.findings[:2]] == [
+        FINDING_CODES["unknown_enumeration_value"],
+        FINDING_CODES["malformed_value"],
+    ]

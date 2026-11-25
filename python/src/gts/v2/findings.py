@@ -242,6 +242,9 @@ _CAPACITY_STEPS = {
 def _step(code: str, reason: str | None) -> int:
     if code == "exceeds_capacity":
         return _CAPACITY_STEPS.get(str(reason), 11)
+    if code == "unknown_enumeration_value" and reason == "unknown_frame_type":
+        # An envelope's frame type is judged by the items step (R4), with its envelope.
+        return 4
     if code == "missing_dependency" and reason == "chunk":
         return 11
     return _STEPS[code]
