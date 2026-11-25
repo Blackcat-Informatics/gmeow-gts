@@ -22,6 +22,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: doc-links
+        name: Relative links in tracked Markdown resolve
+        entry: python3 scripts/check_doc_links.py
+        language: system
+        pass_filenames: false
+        always_run: true
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
