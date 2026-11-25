@@ -1361,6 +1361,9 @@ def read_content(
             canonical_reports[ordinal] = ITEM_LIMIT
 
     coverage = file_coverage(wire, coverage_observations)
+    if wire.opening.decision == "empty_input":
+        # P1: an input of zero bytes gives the finding `empty_input`, with no subject.
+        findings.append(ContentFinding(None, None, "empty_input"))
     first_item = wire.opening.first_item
     if first_item is not None and isinstance(wire.opening.decision, str):
         # P2 `not_this_format` and `unsupported_generation`: the first item is the

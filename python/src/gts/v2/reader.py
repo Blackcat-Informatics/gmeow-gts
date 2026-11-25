@@ -324,6 +324,12 @@ def _damage_before(data: bytes, start: int, end: int) -> _Boundary | None:
     return None
 
 
+# The first-item findings whose subject is the whole first item (P2 codes 2, 8 and 9).
+_RETAINED_FIRST_ITEM_DECISIONS = frozenset(
+    ("not_this_format", "torn_tail", "undelimitable_input")
+)
+
+
 def _open_input(
     data: bytes, walk: _ItemWalk, scanner: ResyncScanner, *, first_and_second: bool
 ) -> _Opening:
@@ -360,7 +366,7 @@ def _open_input(
         return _Opening(
             decision,
             refusal=recovered if isinstance(recovered, ResyncRefusal) else None,
-            first_item=first if decision == "not_this_format" else None,
+            first_item=first if decision in _RETAINED_FIRST_ITEM_DECISIONS else None,
         )
 
     return _Opening(

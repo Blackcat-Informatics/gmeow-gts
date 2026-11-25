@@ -584,3 +584,53 @@ def test_rejected_first_item_is_a_segmentless_file_result(
     assert result.end == "no_commit"
     assert result.left_out == 0
     assert result.visible == CompleteVisibility(0)
+
+
+@pytest.mark.parametrize(
+    "name, size, first_and_second, code, offset, length, end, left_out",
+    [
+        ("file-first-incomplete", 3, True, "torn_tail", 0, 3, "torn", 1),
+        ("locator-short-input", 10, True, "torn_tail", 0, 10, "torn", 1),
+        (
+            "file-first-undelimitable",
+            1,
+            True,
+            "undelimitable_input",
+            0,
+            1,
+            "undelimitable",
+            0,
+        ),
+        # A second-generation reader refuses a first-generation first item of 4 bytes.
+        (
+            "gen-first-generation-second-only",
+            5,
+            False,
+            "unsupported_generation",
+            0,
+            4,
+            "no_commit",
+            0,
+        ),
+        ("file-empty", 0, True, "empty_input", None, None, "no_commit", 0),
+    ],
+)
+def test_first_item_finding_of_each_decision_is_segmentless(
+    name: str,
+    size: int,
+    first_and_second: bool,
+    code: str,
+    offset: int | None,
+    length: int | None,
+    end: str,
+    left_out: int,
+) -> None:
+    """Each rejected first item gives a segmentless file with its own finding."""
+    raw, capacity = _corpus_input(name, size)
+    read = read_content(raw, capacity, first_and_second=first_and_second)
+    result = file_result(read, len(raw))
+    assert [(f.code, f.offset, f.length) for f in result.findings] == [
+        (code, offset, length)
+    ]
+    assert result.end == end
+    assert result.left_out == left_out
