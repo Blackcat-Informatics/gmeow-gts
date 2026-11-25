@@ -518,24 +518,44 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
                     4,
                 )
             )
-    found.extend(
-        _record(
-            "malformed_value",
-            note.reason,
-            note.position,
-            wire.items[note.position].offset,
-            wire.items[note.position].end - wire.items[note.position].offset,
-            4,
-        )
-        for note in (wire.closing if judged else ())
-        if note.reason not in ("index_offsets", "index_locator")
-    )
+    for note in wire.closing if judged else ():
+        if note.reason in _CLAIM_REASONS:
+            found.append(_claim_record(note.reason, note.position))
+        else:
+            item = wire.items[note.position]
+            found.append(
+                _record(
+                    "malformed_value",
+                    note.reason,
+                    note.position,
+                    item.offset,
+                    item.end - item.offset,
+                    4,
+                )
+            )
     found.extend(
         finding_record(finding, read)
         for finding in read.findings
         if finding.segment == segment and finding.position not in frames
     )
     return sort_findings(found)
+
+
+# The closing reasons that claim the offsets or the locator of an index frame.
+_CLAIM_REASONS = ("index_offsets", "index_locator")
+
+
+def _claim_record(reason: str, position: int) -> FindingRecord:
+    """Return the finding of an index claim that fails at an item of the segment."""
+    return FindingRecord(
+        FINDING_CODES["index_claim_failed"],
+        REASON_CODES[reason],
+        position,
+        None,
+        None,
+        None,
+        step=_step("index_claim_failed", None),
+    )
 
 
 def _item_kind_record(position: int, tag: int | None) -> FindingRecord:

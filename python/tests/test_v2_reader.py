@@ -1207,3 +1207,20 @@ def test_unknown_item_kind_finding_states_the_item_tag() -> None:
     assert [(f.reason, f.subject, f.position, f.offset) for f in found] == [
         (REASON_CODES["unknown_item_kind"], (5, 9), 1, None)
     ]
+
+
+def test_failed_index_claim_is_a_finding_of_its_closing_item() -> None:
+    """A failed index claim is `index_claim_failed` at its closing item."""
+    raw, capacity, verifier, record = _corpus_read("boundary-claim-wrong", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        (finding.code, finding.reason, finding.position, finding.offset)
+        for segment in file_result(read, raw, capacity).segments
+        for finding in segment.findings
+        if finding.code == FINDING_CODES["index_claim_failed"]
+    ]
+    assert found == [
+        (FINDING_CODES["index_claim_failed"], REASON_CODES["index_offsets"], 3, None)
+    ]
