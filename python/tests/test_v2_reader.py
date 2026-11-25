@@ -16,6 +16,7 @@ from gts.v2 import (
     encode_header,
     encode_plain_frame,
     item_end,
+    read_content,
     read_wire,
 )
 from gts.v2.payload import PayloadBudget
@@ -147,6 +148,11 @@ def test_refused_first_item_keeps_its_offset_and_length(
     )
     assert opened.opening.decision == decision
     assert opened.opening.first_item == _Boundary(0, len(first))
+    # The typed file finding carries the same subject through the content read.
+    read = read_content(data)
+    assert [(f.code, f.offset, f.length) for f in read.findings] == [
+        (decision, 0, len(first))
+    ]
 
 
 def test_walked_header_has_absolute_item_boundary() -> None:

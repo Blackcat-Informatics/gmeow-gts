@@ -1272,6 +1272,19 @@ def read_content(
             canonical_reports[ordinal] = ITEM_LIMIT
 
     coverage = file_coverage(wire, coverage_observations)
+    first_item = wire.opening.first_item
+    if first_item is not None and isinstance(wire.opening.decision, str):
+        # P2 `not_this_format` and `unsupported_generation`: the first item is the
+        # finding's subject, at offset 0 with its byte length.
+        findings.append(
+            ContentFinding(
+                None,
+                None,
+                wire.opening.decision,
+                offset=first_item.offset,
+                length=first_item.end - first_item.offset,
+            )
+        )
     if not wire.segments or wire.item_limit_offset is not None:
         return ContentRead(
             wire,
