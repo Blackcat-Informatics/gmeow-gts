@@ -1377,6 +1377,21 @@ def read_content(
                 None, None, "exceeds_capacity", "item_count", 1, 0, len(data)
             )
         )
+    elif wire.item_limit_offset is not None:
+        # The item limit stops the read at the item that exceeds it; the finding
+        # counts the item that exceeds the limit and gives the bytes left.
+        limit = wire.item_limit_offset
+        findings.append(
+            ContentFinding(
+                None,
+                None,
+                "exceeds_capacity",
+                "item_count",
+                capacity.items_per_read + 1,
+                limit,
+                len(data) - limit,
+            )
+        )
     first_item = wire.opening.first_item
     if first_item is not None and isinstance(wire.opening.decision, str):
         # P2 `not_this_format` and `unsupported_generation`: the first item is the

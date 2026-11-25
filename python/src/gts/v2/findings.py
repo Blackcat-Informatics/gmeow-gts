@@ -333,6 +333,10 @@ def finding_record(
 _PAYLOAD_DAMAGE = frozenset(("decode_failed", "decoded_length", "payload_digest"))
 
 
+# The payload checks that a size limit refuses; each is an `exceeds_capacity` reason.
+_PAYLOAD_SIZE = ("stored_size", "decoded_size", "total_decoded")
+
+
 def frame_findings(
     read: ContentRead, segment: int, frame: WireFrame
 ) -> tuple[FindingRecord, ...]:
@@ -376,6 +380,18 @@ def frame_findings(
         if frame.payload.state == "damaged" and reason in _PAYLOAD_DAMAGE:
             found.append(
                 _record("damaged_frame", reason, frame.position, offset, length)
+            )
+        if frame.payload.state == "unchecked" and reason in _PAYLOAD_SIZE:
+            found.append(
+                FindingRecord(
+                    FINDING_CODES["exceeds_capacity"],
+                    REASON_CODES[str(reason)],
+                    frame.position,
+                    offset,
+                    length,
+                    frame.payload.count,
+                    step=_step("exceeds_capacity", reason),
+                )
             )
         if frame.payload.stored_matches is False:
             found.append(
@@ -502,6 +518,24 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
     frames = {frame.position for frame in wire.frames}
     # The items of a segment whose opener is not readable are delimited, not judged.
     judged = not isinstance(opener, WireError) and opener.identifier is not None
+    if (
+        judged
+        and not isinstance(opener, WireError)
+        and opener.header.profile is not None
+    ):
+        # The reader implements no profile, so every declared profile is not checked.
+        found.append(
+            FindingRecord(
+                FINDING_CODES["profile_not_checked"],
+                None,
+                None,
+                None,
+                None,
+                None,
+                subject=(_SUBJECT_PROFILE, opener.header.profile),
+                step=_step("profile_not_checked", None),
+            )
+        )
     for position, item in enumerate(wire.items if judged else ()):
         if not isinstance(item, Item) or item.kind != "opaque":
             continue

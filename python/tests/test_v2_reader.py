@@ -1224,3 +1224,68 @@ def test_failed_index_claim_is_a_finding_of_its_closing_item() -> None:
     assert found == [
         (FINDING_CODES["index_claim_failed"], REASON_CODES["index_offsets"], 3, None)
     ]
+
+
+def test_item_limit_reached_mid_file_gives_the_bytes_left() -> None:
+    """The item that exceeds the limit is refused: its count, offset and bytes left."""
+    raw, capacity, verifier, record = _corpus_read("items-over-limit", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        (f.code, f.reason, f.offset, f.length, f.count)
+        for f in file_result(read, raw, capacity).findings
+    ]
+    assert found == [
+        (
+            FINDING_CODES["exceeds_capacity"],
+            REASON_CODES["item_count"],
+            240,
+            116,
+            capacity.items_per_read + 1,
+        )
+    ]
+
+
+def test_declared_profile_the_reader_does_not_implement_is_not_checked() -> None:
+    """A segment that declares a profile the reader does not implement says so."""
+    raw, capacity, verifier, record = _corpus_read("header-profile-unknown", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        (f.code, f.subject)
+        for segment in file_result(read, raw, capacity).segments
+        for f in segment.findings
+        if f.code == FINDING_CODES["profile_not_checked"]
+    ]
+    assert found == [(FINDING_CODES["profile_not_checked"], (4, 99))]
+
+
+def test_payload_over_the_decoded_size_limit_is_refused_at_its_frame() -> None:
+    """A payload over the decoded size limit is `exceeds_capacity` at its frame."""
+    raw, capacity, verifier, record = _corpus_read("payload-exceeds-decoded", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    frames = [
+        frame
+        for segment in file_result(read, raw, capacity).segments
+        for frame in segment.frames
+    ]
+    found = [
+        (f.code, f.reason, f.position, f.offset, f.length, f.count)
+        for frame in frames
+        for f in frame.findings
+        if f.code == FINDING_CODES["exceeds_capacity"]
+    ]
+    assert found == [
+        (
+            FINDING_CODES["exceeds_capacity"],
+            REASON_CODES["decoded_size"],
+            1,
+            11,
+            133,
+            20,
+        )
+    ]
