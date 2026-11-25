@@ -4,11 +4,14 @@
 
 from dataclasses import dataclass
 
+from ._decode import WireError
 from .content import ContentFinding, ContentRead
 from .frame import FrameError
+from .items import DamagedRegion, Item
 from .reader import WireFrame
 
 _PARITY = 16
+_REGISTRY_VERSION = 1
 
 # The finding codes of registry version 1 (P2, 5.1).
 FINDING_CODES = {
@@ -263,5 +266,122 @@ def _record(
         position,
         offset,
         length,
+        None,
+    )
+
+
+def framing_findings(read: ContentRead) -> tuple[FindingRecord, ...]:
+    """Return the framing findings of the file that no segment holds (P7 1.4, item 3).
+
+    These are the `torn_tail` and `undelimitable_input` of the bytes before the first
+    opener and of the bytes that end a segment where framing is lost.
+    """
+    boundaries = []
+    prefix = read.wire.opening.damaged_prefix
+    if prefix is not None:
+        boundaries.append(prefix)
+    boundaries.extend(
+        segment.framing_failure
+        for segment in read.wire.segments
+        if segment.framing_failure is not None
+    )
+    spans = {
+        (FINDING_CODES[boundary.failure], boundary.offset, boundary.end)
+        for boundary in boundaries
+        if boundary.failure in ("torn_tail", "undelimitable_input")
+    }
+    # A region that a parity resumption passed over is undelimitable too.
+    spans.update(
+        (FINDING_CODES["undelimitable_input"], item.offset, item.end)
+        for segment in read.wire.segments
+        for item in segment.items
+        if isinstance(item, DamagedRegion)
+    )
+    return tuple(
+        FindingRecord(code, None, None, offset, end - offset, None)
+        for code, offset, end in sorted(spans, key=lambda span: (span[1], span[0]))
+    )
+
+
+_LINEAGE_REASONS = frozenset(("head", "ordinal"))
+
+
+def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ...]:
+    """Return the findings that stand in the list of a segment (P7 1.4, item 2).
+
+    These are the findings of the opener, of the lineage, of an item that is not a
+    frame, and the findings of the read that name no frame of the segment.
+    """
+    wire = read.wire.segments[segment]
+    found: list[FindingRecord] = []
+    opener = wire.opener.value
+    if not isinstance(opener, WireError):
+        if opener.header.registry_version > _REGISTRY_VERSION:
+            found.append(
+                FindingRecord(
+                    FINDING_CODES["unsupported_registry_version"],
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+            )
+        for label in read.lineages[segment].findings:
+            if label in _LINEAGE_REASONS:
+                found.append(_segment_record("lineage_mismatch", label))
+            else:
+                found.append(_segment_record(label, None))
+    else:
+        item = wire.opener.item
+        found.append(
+            _record(
+                "malformed_value", opener.reason, 0, item.offset, item.end - item.offset
+            )
+        )
+    frames = {frame.position for frame in wire.frames}
+    # The items of a segment whose opener is not readable are delimited, not judged.
+    judged = not isinstance(opener, WireError) and opener.identifier is not None
+    for position, item in enumerate(wire.items if judged else ()):
+        if (
+            isinstance(item, Item)
+            and item.kind == "opaque"
+            and item.reason not in (None, "unknown_item_kind")
+        ):
+            found.append(
+                _record(
+                    "malformed_value",
+                    item.reason,
+                    position,
+                    item.offset,
+                    item.end - item.offset,
+                )
+            )
+    found.extend(
+        _record(
+            "malformed_value",
+            note.reason,
+            note.position,
+            wire.items[note.position].offset,
+            wire.items[note.position].end - wire.items[note.position].offset,
+        )
+        for note in (wire.closing if judged else ())
+        if note.reason not in ("index_offsets", "index_locator")
+    )
+    found.extend(
+        finding_record(finding)
+        for finding in read.findings
+        if finding.segment == segment and finding.position not in frames
+    )
+    return tuple(found)
+
+
+def _segment_record(code: str, reason: str | None) -> FindingRecord:
+    return FindingRecord(
+        FINDING_CODES[code],
+        None if reason is None else REASON_CODES[reason],
+        None,
+        None,
+        None,
         None,
     )

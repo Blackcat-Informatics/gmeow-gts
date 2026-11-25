@@ -31,7 +31,13 @@ from gts.v2.file_result import (
     fold_state,
     payload_state,
 )
-from gts.v2.findings import finding_record, frame_findings
+from gts.v2.findings import (
+    FindingRecord,
+    finding_record,
+    frame_findings,
+    framing_findings,
+    segment_findings,
+)
 from gts.v2.payload import PayloadBudget
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
 from gts.v2.resync import (
@@ -1009,3 +1015,54 @@ def test_frame_findings_give_the_wire_findings_of_the_corpus(
                 for f in record[10]
             )
             assert got == want
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        # A lineage that the previous segment contradicts, and one that is absent.
+        ("concat-continuation", "joined"),
+        ("append-resync-fresh-after-pad", "framing"),
+        # An unreadable opener, and a resync mark that breaks its grammar.
+        ("gen-later-header-three", ""),
+        ("head-longer-map-or-tag", "tag-in-mark"),
+        # A region that framing could not delimit, before a resumption.
+        ("append-check-recovery-resumed", ""),
+    ],
+)
+def test_segment_and_file_findings_are_those_of_the_corpus(
+    name: str, label: str
+) -> None:
+    """The findings of a segment and of the framing of a file match the corpus."""
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    read = read_content(raw, capacity, verifier=verifier)
+    folder = _VECTORS / "P1"
+    case = next(
+        c
+        for c in json.loads((folder / f"{name}.json").read_text())["cases"]
+        if c.get("label", "") == label
+    )
+    file_findings = cbor2.loads(bytes.fromhex(case["read_result"]))[-1][2]
+
+    def fields(f: FindingRecord) -> tuple[object, ...]:
+        return (f.code, f.reason, f.position, f.offset, f.length, f.count, f.subject)
+
+    def stated(f: list[object]) -> tuple[object, ...]:
+        return (
+            f[0],
+            _present(f[1]),  # type: ignore[arg-type]
+            _present(f[3]),  # type: ignore[arg-type]
+            _present(f[4]),  # type: ignore[arg-type]
+            _present(f[5]),  # type: ignore[arg-type]
+            _present(f[6]),  # type: ignore[arg-type]
+            None if f[2] == [1] else tuple(f[2][1]),  # type: ignore[index, arg-type]
+        )
+
+    for ordinal, segment in enumerate(expected):
+        assert sorted(fields(f) for f in segment_findings(read, ordinal)) == sorted(
+            stated(f)
+            for f in segment[17]  # type: ignore[arg-type]
+        )
+    assert sorted(fields(f) for f in framing_findings(read)) == sorted(
+        stated(f) for f in file_findings if f[0] in (8, 9)
+    )
