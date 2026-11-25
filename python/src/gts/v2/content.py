@@ -722,12 +722,10 @@ def _read_segment_content(
             found.add("stopped")
         if frame.payload.state == "damaged":
             found.add("damaged")
+        elif frame.payload.reason == "unknown_codec":
+            found.add("unknown_codec")
         elif _payload_refused(frame):
-            found.add(
-                "unknown_codec"
-                if frame.payload.reason == "unknown_codec"
-                else "exceeds_capacity"
-            )
+            found.add("exceeds_capacity")
         reason: OpaqueReason | None = next(
             (r for r in _OPAQUE_PRECEDENCE if r in found), None
         )

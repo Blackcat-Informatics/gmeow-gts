@@ -37,6 +37,7 @@ from gts.v2.resync import (
     ResyncScanner,
     encode_resync,
 )
+from gts.v2.segment_result import HeaderOpener, segment_results
 from gts.v2.writer import SegmentWriter
 from test_v2_content import _PARITY_CODES, _REASONS, _VECTORS, _contents
 
@@ -655,3 +656,99 @@ def test_valid_first_generation_header_is_not_a_segmentless_result() -> None:
     read = read_content(raw, capacity)
     with pytest.raises(ValueError, match="first-generation"):
         file_result(read, len(raw))
+
+
+def _corpus_case(
+    name: str, label: str
+) -> tuple[bytes, ContentCapacity, list[list[object]]]:
+    """Return the input, capacity and segment records of case `label` of `name`."""
+    folder = _VECTORS / "P1"
+    for case in json.loads((folder / f"{name}.json").read_text())["cases"]:
+        if case.get("label", "") != label:
+            continue
+        c = case["capacity"]
+        capacity = ContentCapacity(
+            c["stored_bytes_per_frame"],
+            c["decoded_bytes_per_frame"],
+            c["decoded_bytes_per_read"],
+            c["items_per_read"],
+            c["rebuilt_bytes_per_read"],
+            c["formed_bytes_per_read"],
+            c["labelled_lines"],
+            c["labelled_bytes_per_read"],
+            c["labelling_units"],
+        )
+        result = cbor2.loads(bytes.fromhex(case["read_result"]))[-1]
+        return (folder / case["input_file"]).read_bytes(), capacity, result[1]
+    raise AssertionError(f"no case {label!r} of {name}")
+
+
+def _present(option: list[object]) -> object:
+    return None if option == [1] else option[1]
+
+
+_PAST_CODES = {"absent": 1, "matches": 2, "differs": 3, "not_checked": 4}
+_REACHED_CODES = {"walked": 1, "scanned": 2}
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        # A header opener, and a readable resync item reached by a scan.
+        ("append-after-torn-refused", "ii-after"),
+        # A past that matches, one that differs and one refused by the past count.
+        ("append-after-torn-refused", "i-after"),
+        ("head-longer-map-or-tag", "map-identifier"),
+        ("resync-past-not-checked-count", ""),
+        # Marks that are not applicable to the reader.
+        ("marks-code-zero", ""),
+        # A resync item unreadable before its offset field, and a newer hash.
+        ("opener-option-tag-first", "lineage-tag-zero-then-null"),
+        ("header-hash-newer", ""),
+    ],
+)
+def test_segment_results_give_each_opener_of_the_corpus(name: str, label: str) -> None:
+    """Each segment states its offset, length, opener and header as the corpus does."""
+    raw, capacity, expected = _corpus_case(name, label)
+    results = segment_results(read_content(raw, capacity), raw, capacity)
+    assert len(results) == len(expected)
+    for got, record in zip(results, expected, strict=True):
+        opener = got.opener
+        if isinstance(opener, HeaderOpener):
+            stated: list[object] = [1]
+        else:
+            stated = [
+                2,
+                _REACHED_CODES[opener.reached],
+                opener.displaced,
+                _PAST_CODES[opener.past],
+                opener.marks_ignored,
+            ]
+        assert [
+            got.ordinal,
+            got.offset,
+            got.length,
+            stated,
+            got.header_identifier,
+            got.registry_version,
+            got.hash_algorithm,
+            got.profile,
+        ] == [
+            record[0],
+            record[1],
+            record[2],
+            record[3],
+            _present(record[4]),  # type: ignore[arg-type]
+            _present(record[5]),  # type: ignore[arg-type]
+            _present(record[6]),  # type: ignore[arg-type]
+            _present(record[7]),  # type: ignore[arg-type]
+        ]
+
+
+@pytest.mark.parametrize("name", ["payload-unknown-codec", "frame-storage-tag-newer"])
+def test_frame_with_unknown_codec_is_opaque_as_unknown_codec(name: str) -> None:
+    """A frame of an unknown payload codec is opaque as `unknown_codec`."""
+    raw = (_VECTORS / "P1" / f"{name}.bin").read_bytes()
+    read = read_content(raw)
+    frame = read.wire.segments[0].frames[0]
+    assert fold_state(read, 0, frame) == OpaqueFold("unknown_codec")
