@@ -634,3 +634,24 @@ def test_first_item_finding_of_each_decision_is_segmentless(
     ]
     assert result.end == end
     assert result.left_out == left_out
+
+
+def test_item_limit_of_zero_refuses_the_input_as_not_read() -> None:
+    """With no item allowed, the whole input is one refused first item (P7, 1.2)."""
+    raw = b"\x00\x00\x00"
+    read = read_content(raw, ContentCapacity(items_per_read=0))
+    result = file_result(read, len(raw))
+    assert [
+        (f.code, f.reason, f.count, f.offset, f.length, f.segment, f.position)
+        for f in result.findings
+    ] == [("exceeds_capacity", "item_count", 1, 0, 3, None, None)]
+    assert result.end == "not_read"
+    assert result.left_out == 0
+
+
+def test_valid_first_generation_header_is_not_a_segmentless_result() -> None:
+    """A valid first-generation header keeps its legacy result, not a tag-2 result."""
+    raw, capacity = _corpus_input("gen-first-generation", 4)
+    read = read_content(raw, capacity)
+    with pytest.raises(ValueError, match="first-generation"):
+        file_result(read, len(raw))

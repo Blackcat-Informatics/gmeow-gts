@@ -134,6 +134,10 @@ def file_result(read: ContentRead, input_size: int) -> NoSegmentFileResult:
     Raise ValueError when the read holds a segment: the `segment_result` records
     of P7 1.1 are not yet built, so no complete file result can be stated.
     """
+    if read.wire.opening.decision == "first_generation":
+        raise ValueError(
+            "a first-generation file keeps its legacy result, which is not built here"
+        )
     if read.wire.segments:
         raise ValueError("the file result of a file with segments is not yet built")
     if any(finding.segment is not None for finding in read.findings):
