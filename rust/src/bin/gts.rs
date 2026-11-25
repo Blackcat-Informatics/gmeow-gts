@@ -160,7 +160,9 @@ fn cmd_duckdb_disabled(cmd: &str) -> ExitCode {
 
 #[cfg(not(feature = "yaml-ld"))]
 fn cmd_yaml_ld_disabled(cmd: &str) -> ExitCode {
-    stderr_line!("gts {cmd}: YAML-LD-star transforms are disabled; rebuild with `--features yaml-ld`");
+    stderr_line!(
+        "gts {cmd}: YAML-LD-star transforms are disabled; rebuild with `--features yaml-ld`"
+    );
     ExitCode::from(2)
 }
 
@@ -364,7 +366,8 @@ fn print_ledger(path: &str, fs: &FileSegments) {
     for (idx, seg) in fs.segments.iter().enumerate() {
         let head = seg
             .segment_heads
-            .first().map_or_else(|| "<none>".to_string(), |h| hex(h));
+            .first()
+            .map_or_else(|| "<none>".to_string(), |h| hex(h));
         let profile = seg
             .segment_profiles
             .first()
@@ -389,7 +392,8 @@ fn print_ledger(path: &str, fs: &FileSegments) {
             if layout.claimed {
                 let head_hex = layout
                     .head
-                    .as_deref().map_or_else(|| "<none>".to_string(), hex);
+                    .as_deref()
+                    .map_or_else(|| "<none>".to_string(), hex);
                 let tail = if layout.tail > 0 {
                     format!(", accretive tail {} frame(s)", layout.tail)
                 } else {
@@ -706,10 +710,14 @@ fn cmd_from_nq(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => if let Some(p) = it.next() { out_path = Some(p) } else {
-                stderr_line!("gts from-nq: -o requires a path\n{USAGE}");
-                return ExitCode::from(2);
-            },
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts from-nq: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            }
             other => inputs.push(other),
         }
     }
@@ -764,10 +772,14 @@ fn cmd_from_trig(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => if let Some(p) = it.next() { out_path = Some(p) } else {
-                stderr_line!("gts from-trig: -o requires a path\n{USAGE}");
-                return ExitCode::from(2);
-            },
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts from-trig: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            }
             other => inputs.push(other),
         }
     }
@@ -1309,7 +1321,9 @@ fn load_policy(path: &str) -> Result<TrustPolicy, ExitCode> {
 
 #[cfg(not(feature = "policy-config"))]
 fn load_policy(_path: &str) -> Result<TrustPolicy, ExitCode> {
-    stderr_line!("gts verify: --policy requires rebuilding gmeow-gts with `--features policy-config`");
+    stderr_line!(
+        "gts verify: --policy requires rebuilding gmeow-gts with `--features policy-config`"
+    );
     Err(ExitCode::from(2))
 }
 
@@ -1571,14 +1585,22 @@ fn cmd_extract(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => if let Some(p) = it.next() { out_path = Some(p) } else {
-                stderr_line!("gts: -o requires a path\n{USAGE}");
-                return ExitCode::from(2);
-            },
-            "--mt" => if let Some(m) = it.next() { mt = Some(m) } else {
-                stderr_line!("gts: --mt requires a media type\n{USAGE}");
-                return ExitCode::from(2);
-            },
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            }
+            "--mt" => {
+                if let Some(m) = it.next() {
+                    mt = Some(m);
+                } else {
+                    stderr_line!("gts: --mt requires a media type\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            }
             "--include-suppressed" => include_suppressed = true,
             other => positional.push(other),
         }
@@ -1650,7 +1672,9 @@ fn cmd_cat(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         if a == "-o" {
-            if let Some(p) = it.next() { out_path = Some(p) } else {
+            if let Some(p) = it.next() {
+                out_path = Some(p);
+            } else {
                 stderr_line!("gts: -o requires a path\n{USAGE}");
                 return ExitCode::from(2);
             }
@@ -1739,16 +1763,24 @@ fn cmd_compact(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => if let Some(p) = it.next() { out_path = Some(p) } else {
-                stderr_line!("gts: -o requires a path\n{USAGE}");
-                return ExitCode::from(2);
-            },
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            }
             "--streamable" => streamable = true,
             "--seal-original" => seal_original = true,
-            "--timestamp" => if let Some(t) = it.next() { timestamp = Some(t) } else {
-                stderr_line!("gts: --timestamp requires a value\n{USAGE}");
-                return ExitCode::from(2);
-            },
+            "--timestamp" => {
+                if let Some(t) = it.next() {
+                    timestamp = Some(t);
+                } else {
+                    stderr_line!("gts: --timestamp requires a value\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            }
             other => positional.push(other),
         }
     }
@@ -1803,10 +1835,14 @@ fn cmd_pack(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => if let Some(p) = it.next() { out_path = Some(p) } else {
-                stderr_line!("gts: -o requires a path\n{USAGE}");
-                return ExitCode::from(2);
-            },
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            }
             other => sources.push(other),
         }
     }
@@ -1842,10 +1878,14 @@ fn cmd_unpack(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-C" => if let Some(d) = it.next() { dest = Some(d) } else {
-                stderr_line!("gts: -C requires a directory\n{USAGE}");
-                return ExitCode::from(2);
-            },
+            "-C" => {
+                if let Some(d) = it.next() {
+                    dest = Some(d);
+                } else {
+                    stderr_line!("gts: -C requires a directory\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            }
             "--include-suppressed" => options.include_suppressed = true,
             "--allow-symlinks" => options.allow_symlinks = true,
             "--allow-special" => options.allow_special = true,
@@ -1925,10 +1965,14 @@ fn cmd_dump(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--directory" => if let Some(path) = it.next() { directory = Some(path) } else {
-                stderr_line!("gts dump: --directory requires a path\n{USAGE}");
-                return ExitCode::from(2);
-            },
+            "--directory" => {
+                if let Some(path) = it.next() {
+                    directory = Some(path);
+                } else {
+                    stderr_line!("gts dump: --directory requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                }
+            }
             "--include-suppressed" => include_suppressed = true,
             "--force" => force = true,
             "--metadata-only" => metadata_only = true,

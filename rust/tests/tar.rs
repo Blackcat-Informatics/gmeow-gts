@@ -489,10 +489,7 @@ fn cli_round_trips_tar_with_owner_pax_links_and_dedup() {
         Some("a.txt")
     );
     assert_eq!(entries["docs/a.txt"].uid, Some(1000));
-    assert_eq!(
-        entries["docs/a.txt"].user_name.as_deref(),
-        Some("alice")
-    );
+    assert_eq!(entries["docs/a.txt"].user_name.as_deref(), Some("alice"));
     assert_eq!(
         entries["docs/a.txt"].pax_records,
         vec![FilePaxRecord {
@@ -519,10 +516,7 @@ fn cli_round_trips_tar_with_owner_pax_links_and_dedup() {
     assert_eq!(tar["docs"].kind, "directory");
     assert_eq!(tar["docs/a.txt"].data, b"same payload\n");
     assert_eq!(tar["docs/b.txt"].data, b"same payload\n");
-    assert_eq!(
-        tar["docs/latest.txt"].link_target.as_deref(),
-        Some("a.txt")
-    );
+    assert_eq!(tar["docs/latest.txt"].link_target.as_deref(), Some("a.txt"));
     assert_eq!(
         tar["docs/a.txt"].pax_records,
         vec![FilePaxRecord {

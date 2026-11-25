@@ -258,7 +258,10 @@ impl<'a> Decoder<'a> {
         Ok(if negative { -1 - argument } else { argument })
     }
 
-    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     fn delta(&mut self, previous: u64) -> Result<u64, HeaderError> {
         let error = self.error(MalformedReason::OutOfRange);
         u64::try_from(i128::from(previous) + self.int()?).map_err(|_| error)
@@ -273,7 +276,10 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     fn list_len(&mut self) -> Result<usize, HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
         let count = usize::try_from(self.head(4)?).map_err(|_| error)?;
@@ -377,7 +383,10 @@ impl<'a> Decoder<'a> {
         }
     }
 
-    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     fn lineage(&mut self, known_hash: bool) -> Result<Lineage<'a>, HeaderError> {
         self.record(2)?;
         let error = self.error(MalformedReason::WrongLength);

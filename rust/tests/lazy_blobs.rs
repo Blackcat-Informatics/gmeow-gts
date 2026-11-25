@@ -302,7 +302,10 @@ fn lazy_blob_external_records_layout_iou() {
     ));
 
     let graph = read(&data, true, None);
-    assert_eq!(graph.blobs, [] as [(std::string::String, gmeow_gts::model::BlobEntry); 0]);
+    assert_eq!(
+        graph.blobs,
+        [] as [(std::string::String, gmeow_gts::model::BlobEntry); 0]
+    );
     assert!(graph.blob_meta.iter().any(|(d, _)| d == &digest));
     assert_eq!(graph.diagnostics, [] as [gmeow_gts::model::Diagnostic; 0]);
 }
@@ -368,9 +371,13 @@ fn lazy_blob_decode_failure_raises_on_access() {
         }],
     );
 
-    assert!(graph.blob_entry("a").is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
+    assert!(graph
+        .blob_entry("a")
+        .is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
     assert!(graph.blob_bytes("a").is_err());
-    assert!(graph.blob_entry("a").is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
+    assert!(graph
+        .blob_entry("a")
+        .is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
 }
 
 #[test]
@@ -406,8 +413,16 @@ fn damage_inside_a_block_with_valid_structure_fails_cleanly_on_first_read() {
 fn zstd_frame_declaring_a_window_the_decoder_refuses_is_one_opaque_node() {
     let content = b"declared window";
     let frame = |window_log: u32| {
-        let block = 1 | (u32::try_from(content.len()).expect("test content fits the block size field") << 3);
-        let mut out = vec![0x28, 0xb5, 0x2f, 0xfd, 0x00, u8::try_from((window_log - 10) << 3).expect("window descriptor fits one octet")];
+        let block = 1
+            | (u32::try_from(content.len()).expect("test content fits the block size field") << 3);
+        let mut out = vec![
+            0x28,
+            0xb5,
+            0x2f,
+            0xfd,
+            0x00,
+            u8::try_from((window_log - 10) << 3).expect("window descriptor fits one octet"),
+        ];
         out.extend(&block.to_le_bytes()[..3]);
         out.extend(content);
         out

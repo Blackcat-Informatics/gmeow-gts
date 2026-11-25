@@ -134,12 +134,7 @@ impl GraphBuilder {
     }
 
     fn literal(&mut self, value: &str, datatype: Option<&str>) -> usize {
-        self.atom(
-            TermKind::Literal,
-            value.to_string(),
-            None,
-            datatype,
-        )
+        self.atom(TermKind::Literal, value.to_string(), None, datatype)
     }
 
     fn quad_lit(&mut self, subject: usize, predicate: &str, value: &str, datatype: Option<&str>) {

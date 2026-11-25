@@ -48,7 +48,10 @@ fn offsets(
     Ok(count)
 }
 
-#[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+#[expect(
+    clippy::map_err_ignore,
+    reason = "the conversion error carries no detail, so the typed error replaces it"
+)]
 fn locator(data: &[u8], item: WireItem) -> Result<u64, HeaderError> {
     let mut cursor = Decoder::new(&data[..item.end], item.offset);
     cursor.record(2)?;

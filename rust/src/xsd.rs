@@ -121,8 +121,9 @@ pub fn validate_lexical(datatype_iri: &str, lexical: &str) -> XsdLexicalStatus {
         "token" => valid(collapse_xml_whitespace(lexical)),
         "boolean" => parse_display::<Boolean>(lexical, "boolean"),
         "decimal" => canonical_decimal(lexical).map_or_else(invalid, valid),
-        "integer" => canonical_integer(lexical)
-            .map_or_else(invalid, |canonical| valid(canonical.lexical)),
+        "integer" => {
+            canonical_integer(lexical).map_or_else(invalid, |canonical| valid(canonical.lexical))
+        }
         "nonPositiveInteger" | "negativeInteger" | "long" | "int" | "short" | "byte"
         | "nonNegativeInteger" | "unsignedLong" | "unsignedInt" | "unsignedShort"
         | "unsignedByte" | "positiveInteger" => validate_integer_family(local, lexical),
@@ -245,9 +246,21 @@ fn validate_integer_family(local: &str, lexical: &str) -> XsdLexicalStatus {
         "negativeInteger" => canonical.sign < 0,
         "nonNegativeInteger" => canonical.sign >= 0,
         "positiveInteger" => canonical.sign > 0,
-        "long" => integer_in_range(&canonical.lexical, i128::from(i64::MIN), i128::from(i64::MAX)),
-        "int" => integer_in_range(&canonical.lexical, i128::from(i32::MIN), i128::from(i32::MAX)),
-        "short" => integer_in_range(&canonical.lexical, i128::from(i16::MIN), i128::from(i16::MAX)),
+        "long" => integer_in_range(
+            &canonical.lexical,
+            i128::from(i64::MIN),
+            i128::from(i64::MAX),
+        ),
+        "int" => integer_in_range(
+            &canonical.lexical,
+            i128::from(i32::MIN),
+            i128::from(i32::MAX),
+        ),
+        "short" => integer_in_range(
+            &canonical.lexical,
+            i128::from(i16::MIN),
+            i128::from(i16::MAX),
+        ),
         "byte" => integer_in_range(&canonical.lexical, i128::from(i8::MIN), i128::from(i8::MAX)),
         "unsignedLong" => integer_in_range(&canonical.lexical, 0, i128::from(u64::MAX)),
         "unsignedInt" => integer_in_range(&canonical.lexical, 0, i128::from(u32::MAX)),
@@ -445,10 +458,7 @@ fn effective_datatype_iri(terms: &[Term], term: &Term) -> String {
 
 fn ill_typed_literal_value(item: &IllTypedLiteral) -> Value {
     Value::Map(vec![
-        (
-            "term".into(),
-            Value::Integer((item.term_id as u64).into()),
-        ),
+        ("term".into(), Value::Integer((item.term_id as u64).into())),
         ("datatype".into(), item.datatype_iri.clone().into()),
         ("lexical".into(), item.lexical.clone().into()),
         ("reason".into(), item.reason.clone().into()),

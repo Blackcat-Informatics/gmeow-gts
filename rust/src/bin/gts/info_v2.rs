@@ -85,7 +85,8 @@ fn print_stop(stop: ReadStop) {
         ReadStop::Framing(failure) => {
             stdout_line!(
                 "  framing stopped at byte {}: {:?}",
-                failure.offset, failure.reason
+                failure.offset,
+                failure.reason
             );
         }
         ReadStop::ItemLimit { offset } => stdout_line!("  item limit reached at byte {offset}"),
@@ -95,14 +96,18 @@ fn print_stop(stop: ReadStop) {
 fn print_damage(place: &str, failure: FramingFailure) {
     stdout_line!(
         "  damaged framing in {place} at byte {}, {} byte(s): {:?}",
-        failure.offset, failure.length, failure.reason
+        failure.offset,
+        failure.length,
+        failure.reason
     );
 }
 
 fn print_refusal(refusal: ResyncRefusal) {
     stdout_line!(
         "  resync candidate refused at byte {}, {} byte(s), item count {}",
-        refusal.offset, refusal.length, refusal.count
+        refusal.offset,
+        refusal.length,
+        refusal.count
     );
 }
 

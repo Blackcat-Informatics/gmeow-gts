@@ -988,11 +988,7 @@ impl BnodeLabels {
         Self { generated }
     }
 
-    fn label<'a>(
-        &'a self,
-        term: &'a GtsTerm,
-        id: usize,
-    ) -> Result<Cow<'a, str>, RdfAdapterError> {
+    fn label<'a>(&'a self, term: &'a GtsTerm, id: usize) -> Result<Cow<'a, str>, RdfAdapterError> {
         match &term.value {
             Some(value) => Ok(Cow::Borrowed(value)),
             None => self
@@ -1075,10 +1071,7 @@ impl Interner {
         let datatype_id = if literal.language.is_some() {
             None
         } else {
-            let datatype = literal
-                .datatype
-                .as_ref()
-                .map_or(XSD_STRING, Iri::as_str);
+            let datatype = literal.datatype.as_ref().map_or(XSD_STRING, Iri::as_str);
             if datatype == XSD_STRING || datatype == RDF_LANG_STRING {
                 None
             } else {

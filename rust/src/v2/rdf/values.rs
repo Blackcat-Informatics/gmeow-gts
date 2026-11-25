@@ -5,7 +5,10 @@ use std::sync::Arc;
 
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
-use crate::v2::{Decoder, HeaderError, MalformedReason::{OutOfRange, WrongLength}};
+use crate::v2::{
+    Decoder, HeaderError,
+    MalformedReason::{OutOfRange, WrongLength},
+};
 
 const BOOLEAN: &str = "http://www.w3.org/2001/XMLSchema#boolean";
 const UINT: &str = "http://www.w3.org/2001/XMLSchema#nonNegativeInteger";
@@ -84,7 +87,10 @@ impl<'a> InlineValue<'a> {
         }
     }
 
-    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     fn time(cursor: &mut Decoder<'a>) -> Result<Self, HeaderError> {
         let error = cursor.error(OutOfRange);
         let seconds = i64::try_from(cursor.int()?).map_err(|_| error)?;

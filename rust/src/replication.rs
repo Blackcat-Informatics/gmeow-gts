@@ -165,7 +165,8 @@ fn is_header_item(item: &Value) -> bool {
 
 fn item_end(items: &[(usize, Value)], torn: Option<usize>, data_len: usize, index: usize) -> usize {
     items
-        .get(index + 1).map_or_else(|| torn.unwrap_or(data_len), |(offset, _)| *offset)
+        .get(index + 1)
+        .map_or_else(|| torn.unwrap_or(data_len), |(offset, _)| *offset)
 }
 
 fn header_profile(item: &Value) -> String {
@@ -380,7 +381,8 @@ fn diagnostic_json(diagnostic: &Diagnostic) -> String {
         json_string(&diagnostic.code),
         json_string(&diagnostic.detail),
         diagnostic
-            .frame_index.map_or_else(|| "null".to_string(), |index| index.to_string())
+            .frame_index
+            .map_or_else(|| "null".to_string(), |index| index.to_string())
     )
 }
 
@@ -440,7 +442,8 @@ pub fn heads_json(inventory: &Inventory) -> String {
         json_hex(&aggregate_digest(inventory)),
         json_optional_hex(file_head),
         inventory
-            .torn.map_or_else(|| "null".to_string(), |offset| offset.to_string()),
+            .torn
+            .map_or_else(|| "null".to_string(), |offset| offset.to_string()),
         fatal_json(inventory.fatal.as_ref())
     )
 }
@@ -479,7 +482,8 @@ pub fn segments_json(inventory: &Inventory) -> String {
         segments,
         inventory.item_count,
         inventory
-            .torn.map_or_else(|| "null".to_string(), |offset| offset.to_string()),
+            .torn
+            .map_or_else(|| "null".to_string(), |offset| offset.to_string()),
         fatal_json(inventory.fatal.as_ref())
     )
 }
@@ -578,7 +582,8 @@ pub fn missing_json(result: &MissingResult) -> String {
         result.scan_required,
         result
             .detail
-            .as_deref().map_or_else(|| "null".to_string(), json_string)
+            .as_deref()
+            .map_or_else(|| "null".to_string(), json_string)
     )
 }
 

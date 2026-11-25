@@ -375,16 +375,13 @@ impl<'a> Parser<'a> {
         if !head.eq_ignore_ascii_case(keyword) {
             return false;
         }
-        let boundary = after
-            .chars()
-            .next()
-            .is_none_or(|ch| {
-                ch.is_whitespace()
-                    || matches!(
-                        ch,
-                        '{' | '}' | '[' | ']' | '(' | ')' | '<' | '_' | '"' | ';' | ',' | '.'
-                    )
-            });
+        let boundary = after.chars().next().is_none_or(|ch| {
+            ch.is_whitespace()
+                || matches!(
+                    ch,
+                    '{' | '}' | '[' | ']' | '(' | ')' | '<' | '_' | '"' | ';' | ',' | '.'
+                )
+        });
         if boundary {
             self.pos += keyword.len();
             true
@@ -1126,7 +1123,9 @@ impl<'a> Parser<'a> {
                 self.emit_statement(&id, &reifies_iri, &triple_term, graph);
                 pending = Some(id);
             } else if self.rest().starts_with("{|") {
-                let reifier = if let Some(r) = pending.take() { r } else {
+                let reifier = if let Some(r) = pending.take() {
+                    r
+                } else {
                     let r = self.next_bnode();
                     self.emit_statement(&r, &reifies_iri, &triple_term, graph);
                     r

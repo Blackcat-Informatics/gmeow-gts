@@ -401,7 +401,10 @@ fn prove_and_verify_proof_round_trip() {
     let mut bad = proof;
     let root = bad["root"].as_str().unwrap().to_string();
     let replacement = if root.starts_with('0') { "1" } else { "0" };
-    bad["root"] = serde_json::Value::String(format!("{replacement}{}", root.get(1..).expect("root is a hex string")));
+    bad["root"] = serde_json::Value::String(format!(
+        "{replacement}{}",
+        root.get(1..).expect("root is a hex string")
+    ));
     std::fs::write(&bad_path, serde_json::to_string_pretty(&bad).unwrap()).unwrap();
     let out = gts(&["verify-proof", bad_path.to_str().unwrap()]);
     assert_eq!(out.status.code(), Some(1));
@@ -1693,7 +1696,9 @@ fn extract_key_matches_frozen_stdout() {
     let case: serde_json::Value = serde_json::from_str(&raw).unwrap();
     let bytes: Vec<u8> = (0..case["gts"].as_str().unwrap().len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(case["gts"].as_str().unwrap().get(i..i + 2).unwrap(), 16).unwrap())
+        .map(|i| {
+            u8::from_str_radix(case["gts"].as_str().unwrap().get(i..i + 2).unwrap(), 16).unwrap()
+        })
         .collect();
     let tmp = std::env::temp_dir().join("gts-extract-key-test.gts");
     std::fs::write(&tmp, &bytes).unwrap();

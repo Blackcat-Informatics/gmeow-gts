@@ -149,7 +149,9 @@ fn signature_algorithm_dispatch_vectors() {
     for entry in std::fs::read_dir(&dir).expect("vectors/signed must exist") {
         let path = entry.unwrap().path();
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
-        if !name.starts_with("sigalg-") || Path::new(&name).extension().is_none_or(|ext| ext != "json") {
+        if !name.starts_with("sigalg-")
+            || Path::new(&name).extension().is_none_or(|ext| ext != "json")
+        {
             continue;
         }
         let json: serde_json::Value =

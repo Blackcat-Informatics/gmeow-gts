@@ -150,7 +150,9 @@ pub fn iter_items(data: &[u8]) -> (Vec<(usize, Value)>, Option<usize>) {
         if start == data.len() {
             break;
         }
-        if let Ok(item) = ciborium::de::from_reader::<Value, _>(&mut reader) { out.push((start, item)) } else {
+        if let Ok(item) = ciborium::de::from_reader::<Value, _>(&mut reader) {
+            out.push((start, item));
+        } else {
             // partial (EOF) or corrupt trailing item
             torn = Some(start);
             break;

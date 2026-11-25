@@ -934,12 +934,7 @@ impl RdfXmlParser {
         // rdf:Statement/subject/predicate/object quads); `rdf:annotation` /
         // `rdf:annotationNodeID` is the RDF 1.2 reifier (rdf:reifies a triple term).
         if let Some(reifier) = reifier {
-            self.insert_classic_reification(
-                reifier,
-                &subject,
-                predicate.clone(),
-                object.clone(),
-            )?;
+            self.insert_classic_reification(reifier, &subject, predicate.clone(), object.clone())?;
         }
         if let Some(annotation) = annotation {
             self.insert_reifier(annotation, subject, predicate, object)?;

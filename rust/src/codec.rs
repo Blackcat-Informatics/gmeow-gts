@@ -61,8 +61,7 @@ pub struct EncodeOptions {
 }
 
 fn zstd_level(level: Option<i32>) -> CompressionLevel {
-    level
-        .map_or(DEFAULT_ZSTD_LEVEL, CompressionLevel::Level)
+    level.map_or(DEFAULT_ZSTD_LEVEL, CompressionLevel::Level)
 }
 
 fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {

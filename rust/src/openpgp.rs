@@ -618,8 +618,8 @@ mod tests {
             body[pub_end] = 254;
         });
 
-        let err = parse_secret_signing_key(&armor, None)
-            .expect_err("encrypted secret key is rejected");
+        let err =
+            parse_secret_signing_key(&armor, None).expect_err("encrypted secret key is rejected");
         assert!(err.0.contains("encrypted secret keys are not supported"));
     }
 

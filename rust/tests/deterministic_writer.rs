@@ -242,7 +242,10 @@ fn graph_snapshot_payload_folds_like_deterministic_writer() {
         .to_bytes();
     let snapshot_graph = gmeow_gts::reader::read(&snapshot, true, None);
     let deterministic_graph = gmeow_gts::reader::read(&deterministic, true, None);
-    assert_eq!(snapshot_graph.diagnostics, [] as [gmeow_gts::model::Diagnostic; 0]);
+    assert_eq!(
+        snapshot_graph.diagnostics,
+        [] as [gmeow_gts::model::Diagnostic; 0]
+    );
     assert_eq!(to_nquads(&snapshot_graph), to_nquads(&deterministic_graph));
 }
 

@@ -362,7 +362,9 @@ impl ProfileFinding {
 #[must_use]
 pub fn signature_trust(graph: &Graph, policy: Option<&TrustPolicy>) -> Vec<SignatureTrust> {
     let default_policy;
-    let policy = if let Some(policy) = policy { policy } else {
+    let policy = if let Some(policy) = policy {
+        policy
+    } else {
         default_policy = TrustPolicy::default();
         &default_policy
     };
@@ -390,7 +392,9 @@ pub fn evaluate_profile_policy(
     segment_index: Option<usize>,
 ) -> Vec<ProfileFinding> {
     let default_policy;
-    let policy = if let Some(policy) = policy { policy } else {
+    let policy = if let Some(policy) = policy {
+        policy
+    } else {
         default_policy = TrustPolicy::default();
         &default_policy
     };

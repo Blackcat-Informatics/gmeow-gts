@@ -659,12 +659,7 @@ impl Folder<'_, '_, '_> {
     }
 
     /// Decode a blob frame's payload now, recording the blob or an opaque node on failure.
-    fn h_decoded_blob(
-        &mut self,
-        frame: &[(Value, Value)],
-        index: usize,
-        pub_meta: Option<Value>,
-    ) {
+    fn h_decoded_blob(&mut self, frame: &[(Value, Value)], index: usize, pub_meta: Option<Value>) {
         match self.payload(frame, true) {
             Ok(Value::Bytes(bytes)) => {
                 let digest = digest_str(&bytes);

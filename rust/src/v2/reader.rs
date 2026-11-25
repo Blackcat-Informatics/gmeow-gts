@@ -713,8 +713,7 @@ fn classify_boundary<'a>(
             ItemKind::Frame | ItemKind::Offsets | ItemKind::Locator => {
                 if let Some(head) = segment.head {
                     if item.kind == ItemKind::Frame {
-                        let (frame, failed) =
-                            read_frame(data, item, segment, &head, walk, budget)?;
+                        let (frame, failed) = read_frame(data, item, segment, &head, walk, budget)?;
                         classified.observed = Some(frame);
                         failed
                     } else {
@@ -777,7 +776,6 @@ fn recover_lost_item<'a>(
         None => Ok(None),
     }
 }
-
 
 /// Read whole-input wire observations, including resync at lost framing.
 ///

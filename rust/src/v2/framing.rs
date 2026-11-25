@@ -70,7 +70,10 @@ enum Open {
 }
 
 /// Establish the exclusive end of a well-formed CBOR item without decoding its values.
-#[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+#[expect(
+    clippy::map_err_ignore,
+    reason = "the conversion error carries no detail, so the typed error replaces it"
+)]
 pub(super) fn item_end(data: &[u8], mut offset: usize) -> Result<usize, FramingReason> {
     use FramingReason::{TornTail, UndelimitableInput};
     let mut open = vec![Open::Definite(1)];

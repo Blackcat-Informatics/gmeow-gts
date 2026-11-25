@@ -714,10 +714,9 @@ fn validate_quad_refs(graph: &Graph, quad: Quad) -> Result<(), EventError> {
 }
 
 fn event_id(id: usize) -> Result<EventTermId, EventError> {
-    EventTermId::try_from(id)
-        .map_err(|error| {
-            EventError::invalid_source(format!("term id {id} exceeds event id range: {error}"))
-        })
+    EventTermId::try_from(id).map_err(|error| {
+        EventError::invalid_source(format!("term id {id} exceeds event id range: {error}"))
+    })
 }
 
 fn event_direction(direction: &str) -> Option<EventLiteralDirection> {

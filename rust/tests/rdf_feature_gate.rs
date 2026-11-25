@@ -80,7 +80,6 @@ mod default_features {
             package["features"]["xsd"],
             serde_json::json!(["dep:oxsdatatypes"])
         );
-
     }
 
     /// Asserts which dependencies are optional or absent.

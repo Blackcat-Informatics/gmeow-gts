@@ -55,10 +55,7 @@ pub fn term_to_wire(t: &Term) -> Value {
     // bytes would silently read back as something other than what was authored.
     if t.kind == TermKind::Triple {
         if let Some((s, p, o)) = t.triple {
-            entries.push((
-                "tt".into(),
-                Value::Array(vec![uv(s), uv(p), uv(o)]),
-            ));
+            entries.push(("tt".into(), Value::Array(vec![uv(s), uv(p), uv(o)])));
         }
     }
     Value::Map(entries)
@@ -361,30 +358,30 @@ fn default_catalog() -> Vec<(i64, Codec)> {
 /// when a transform or encryption has no payload or raw source, or when
 /// `zstd_level` is set without a zstd transform.
 fn validate_frame_options(options: &FrameOptions) -> Result<(), WriterError> {
-        if options.payload.is_some() && options.raw.is_some() {
-            return Err(WriterError::InvalidFrame(
-                "payload and raw are mutually exclusive".to_string(),
-            ));
-        }
-        if (!options.transform.is_empty() || options.encrypt.is_some())
-            && options.payload.is_none()
-            && options.raw.is_none()
-        {
-            return Err(WriterError::InvalidFrame(
-                "transform/encrypt requires a payload or raw source".to_string(),
-            ));
-        }
-        if options.zstd_level.is_some()
-            && !options
-                .transform
-                .iter()
-                .any(|name| matches!(name.as_str(), "zstd" | "zstd-rsyncable"))
-        {
-            return Err(WriterError::InvalidFrame(
-                "zstd_level requires a zstd or zstd-rsyncable transform".to_string(),
-            ));
-        }
-        Ok(())
+    if options.payload.is_some() && options.raw.is_some() {
+        return Err(WriterError::InvalidFrame(
+            "payload and raw are mutually exclusive".to_string(),
+        ));
+    }
+    if (!options.transform.is_empty() || options.encrypt.is_some())
+        && options.payload.is_none()
+        && options.raw.is_none()
+    {
+        return Err(WriterError::InvalidFrame(
+            "transform/encrypt requires a payload or raw source".to_string(),
+        ));
+    }
+    if options.zstd_level.is_some()
+        && !options
+            .transform
+            .iter()
+            .any(|name| matches!(name.as_str(), "zstd" | "zstd-rsyncable"))
+    {
+        return Err(WriterError::InvalidFrame(
+            "zstd_level requires a zstd or zstd-rsyncable transform".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 /// Accumulate a GTS log as a CBOR Sequence.
@@ -1044,27 +1041,27 @@ impl Graph {
 ///
 /// Returns [`CodecError`] when a stored blob cannot be decoded to its bytes.
 fn add_deterministic_blobs(writer: &mut Writer, graph: &Graph) -> Result<(), CodecError> {
-        let mut blobs: Vec<(String, Vec<u8>)> = graph
-            .blobs
+    let mut blobs: Vec<(String, Vec<u8>)> = graph
+        .blobs
+        .iter()
+        .map(|(digest, entry)| Ok((digest.clone(), entry.decoded_vec()?)))
+        .collect::<Result<_, CodecError>>()?;
+    blobs.sort_by(|a, b| a.0.cmp(&b.0));
+    for (digest, data) in blobs {
+        let meta = graph
+            .blob_meta
             .iter()
-            .map(|(digest, entry)| Ok((digest.clone(), entry.decoded_vec()?)))
-            .collect::<Result<_, CodecError>>()?;
-        blobs.sort_by(|a, b| a.0.cmp(&b.0));
-        for (digest, data) in blobs {
-            let meta = graph
-                .blob_meta
-                .iter()
-                .find(|(candidate, _)| candidate == &digest)
-                .map(|(_, meta)| meta);
-            let mt = meta
-                .and_then(|value| map_text(value, "mt"))
-                .map(str::to_string);
-            let rep = meta
-                .and_then(|value| map_text(value, "rep"))
-                .map(str::to_string);
-            writer.add_blob(&data, mt.as_deref(), rep.as_deref());
-        }
-        Ok(())
+            .find(|(candidate, _)| candidate == &digest)
+            .map(|(_, meta)| meta);
+        let mt = meta
+            .and_then(|value| map_text(value, "mt"))
+            .map(str::to_string);
+        let rep = meta
+            .and_then(|value| map_text(value, "rep"))
+            .map(str::to_string);
+        writer.add_blob(&data, mt.as_deref(), rep.as_deref());
+    }
+    Ok(())
 }
 
 /// Build a row of term ids with the graph name appended when present.
@@ -1291,7 +1288,10 @@ fn remap_suppression_target(target: &Value, old_to_new: &[usize]) -> Value {
                     let remapped = ids
                         .iter()
                         .map(|id| {
-                            value_idx(id).map_or_else(|| id.clone(), |tid| Value::from(remap_id(old_to_new, tid) as u64))
+                            value_idx(id).map_or_else(
+                                || id.clone(),
+                                |tid| Value::from(remap_id(old_to_new, tid) as u64),
+                            )
                         })
                         .collect();
                     return (key.clone(), Value::Array(remapped));

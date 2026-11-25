@@ -14,7 +14,14 @@ use super::{
 };
 use super::{Direction, FrameIssue, Projector, Term};
 use crate::v2::attachments::Reference;
-use crate::v2::{Decoder, HeaderError, MalformedReason::{InconsistentCounts, OutOfRange, ForbiddenCombination, NotDeterministic, WrongType, WrongLength}, FORMED_BYTES_PER_READ};
+use crate::v2::{
+    Decoder, HeaderError,
+    MalformedReason::{
+        ForbiddenCombination, InconsistentCounts, NotDeterministic, OutOfRange, WrongLength,
+        WrongType,
+    },
+    FORMED_BYTES_PER_READ,
+};
 
 fn read_list<'a, T>(
     cursor: &mut Decoder<'a>,
@@ -41,7 +48,10 @@ impl<'a> FrontCoded<'a> {
         })
     }
 
-    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     fn form(&mut self, restart: u64) -> Result<(), HeaderError> {
         let length = self
             .lengths
@@ -269,7 +279,10 @@ impl Languages {
         })
     }
 
-    #[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     fn get(&self, id: u64, cursor: &Decoder<'_>) -> Result<Arc<str>, HeaderError> {
         let index = usize::try_from(id).map_err(|_| cursor.error(OutOfRange))?;
         let text = self

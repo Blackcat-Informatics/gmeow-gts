@@ -243,7 +243,8 @@ fn expected_peak_heights(count: usize) -> Vec<usize> {
 }
 
 fn peak_width(height: usize) -> Result<usize, String> {
-    let shift = u32::try_from(height).map_err(|e| format!("peak height {height} is too large: {e}"))?;
+    let shift =
+        u32::try_from(height).map_err(|e| format!("peak height {height} is too large: {e}"))?;
     1usize
         .checked_shl(shift)
         .ok_or_else(|| format!("peak height {height} is too large"))
@@ -384,7 +385,11 @@ impl Proof {
         out.push_str("{\n");
         let _ = writeln!(out, "  \"schema\": \"{}\",", json_escape(PROOF_SCHEMA));
         let _ = writeln!(out, "  \"hash\": \"{}\",", json_escape(HASH_ALGORITHM));
-        let _ = writeln!(out, "  \"preimage\": \"{}\",", json_escape(PREIMAGE_VERSION));
+        let _ = writeln!(
+            out,
+            "  \"preimage\": \"{}\",",
+            json_escape(PREIMAGE_VERSION)
+        );
         let _ = writeln!(out, "  \"count\": {},", self.count);
         let _ = writeln!(out, "  \"leaf_index\": {},", self.leaf_index);
         let _ = writeln!(out, "  \"frame_id\": \"{}\",", hex(&self.frame_id));
@@ -685,9 +690,8 @@ fn string_field(entries: &[(String, Json)], key: &str) -> Result<String, String>
 
 fn usize_field(entries: &[(String, Json)], key: &str) -> Result<usize, String> {
     match get(entries, key)? {
-        Json::Number(value) => {
-            usize::try_from(*value).map_err(|e| format!("{key:?} is too large for this platform: {e}"))
-        }
+        Json::Number(value) => usize::try_from(*value)
+            .map_err(|e| format!("{key:?} is too large for this platform: {e}")),
         _ => Err(format!("{key:?} must be an unsigned integer")),
     }
 }
@@ -764,8 +768,8 @@ pub fn parse_hex_32(input: &str) -> Result<Vec<u8>, String> {
             .to_digit(16)
             .ok_or_else(|| "hex value contains a non-hex character".to_string())?;
         let byte = (hi << 4) | lo;
-        let byte = u8::try_from(byte)
-            .map_err(|e| format!("hex byte {byte:#x} is out of range: {e}"))?;
+        let byte =
+            u8::try_from(byte).map_err(|e| format!("hex byte {byte:#x} is out of range: {e}"))?;
         out.push(byte);
     }
     Ok(out)

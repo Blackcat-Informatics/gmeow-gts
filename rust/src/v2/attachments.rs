@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-use super::{Decoder, HeaderError, MalformedReason::{UnregisteredValue, OutOfRange, InconsistentCounts, WrongLength}};
+use super::{
+    Decoder, HeaderError,
+    MalformedReason::{InconsistentCounts, OutOfRange, UnregisteredValue, WrongLength},
+};
 
 pub(super) const UNIT_CONTEXT: &str = "gts2 unit";
 pub(super) const CHUNK: u64 = 8;
@@ -140,7 +143,10 @@ pub(super) fn decode_attachment<'a>(
     attachment.attach(bytes, 0)
 }
 
-#[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+#[expect(
+    clippy::map_err_ignore,
+    reason = "the conversion error carries no detail, so the typed error replaces it"
+)]
 pub(super) fn decode_pack<'a>(
     content: &[u8],
     bytes: &'a [u8],

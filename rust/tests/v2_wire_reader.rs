@@ -50,7 +50,10 @@ fn dispatches_by_the_typed_generation_field() {
         let input = vector(name);
         let result = read_wire(&input, ReadCapacity::default());
         assert_eq!(result.dispatch, Some(expected), "{name}");
-        assert_eq!(result.segments, [] as [gmeow_gts::v2::reader::WireSegment<'_>; 0]);
+        assert_eq!(
+            result.segments,
+            [] as [gmeow_gts::v2::reader::WireSegment<'_>; 0]
+        );
         assert!(result.stop.is_none());
     }
     let input = [0x87, 0x18, 1, 2, 1, 1, 0x81, 1, 0x81, 1, 0x81, 1];
@@ -197,7 +200,10 @@ fn the_complete_item_before_lost_framing_keeps_its_wire_extent() {
     assert_eq!(locator.end, 311);
     assert!(before.framing_failure.is_none());
     assert_eq!(before.frames.len(), 1);
-    assert_eq!(before.closing_grammar, [] as [(usize, gmeow_gts::v2::HeaderError); 0]);
+    assert_eq!(
+        before.closing_grammar,
+        [] as [(usize, gmeow_gts::v2::HeaderError); 0]
+    );
     assert_eq!(
         before.closing_findings,
         [ClosingFinding::IndexLocator { position: 2 }]
@@ -349,7 +355,10 @@ fn malformed_or_unread_commit_content_checks_no_claims() {
         ..ReadCapacity::default()
     };
     let read = read_wire(&bytes, capacity);
-    assert_eq!(read.segments[0].commits.as_ref().unwrap().checks, [] as [gmeow_gts::v2::reader::CommitCheck; 0]);
+    assert_eq!(
+        read.segments[0].commits.as_ref().unwrap().checks,
+        [] as [gmeow_gts::v2::reader::CommitCheck; 0]
+    );
 
     let capacity = ReadCapacity {
         decoded_bytes_per_read: 0,
@@ -533,7 +542,10 @@ fn an_index_with_bad_payload_grammar_is_not_compared() {
         ..ReadCapacity::default()
     };
     let read = read_wire(&data, low);
-    assert_eq!(read.segments[0].indexes, [] as [gmeow_gts::v2::reader::IndexCheck; 0]);
+    assert_eq!(
+        read.segments[0].indexes,
+        [] as [gmeow_gts::v2::reader::IndexCheck; 0]
+    );
 }
 
 #[test]

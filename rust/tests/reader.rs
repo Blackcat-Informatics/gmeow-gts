@@ -278,7 +278,10 @@ fn unreified_triple_term_survives_a_round_trip() {
     w.add_quads(&[(0, 4, 3, None)]);
     let graph = read(&w.to_bytes(), true, None);
     assert_eq!(diagnostic_codes(&graph), Vec::<&str>::new());
-    assert_eq!(graph.reifiers, [] as [(usize, (usize, usize, usize), std::option::Option<usize>); 0]);
+    assert_eq!(
+        graph.reifiers,
+        [] as [(usize, (usize, usize, usize), std::option::Option<usize>); 0]
+    );
     assert_eq!(
         to_nquads(&graph).trim(),
         "<https://example.org/s> <https://example.org/says> \

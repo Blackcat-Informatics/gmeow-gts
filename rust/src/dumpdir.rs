@@ -252,7 +252,8 @@ fn staged_path(directory: &Path) -> PathBuf {
         .filter(|p| !p.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
     let name = directory
-        .file_name().map_or_else(|| "dump".into(), |n| n.to_string_lossy());
+        .file_name()
+        .map_or_else(|| "dump".into(), |n| n.to_string_lossy());
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| d.as_nanos());
@@ -520,12 +521,14 @@ fn write_blob_index(root: &Path, state: &DumpState) -> Result<(), DumpError> {
     let mut out = create_writer(&blob_dir.join("index.jsonl"))?;
     let suppressed = suppressed_blob_digests(&state.graph);
     for (digest, entry) in &state.graph.blobs {
-        let size = entry
-            .decoded_len().map_or_else(|err| json_string(&format!("decode error: {err:?}")), |n| n.to_string());
+        let size = entry.decoded_len().map_or_else(
+            |err| json_string(&format!("decode error: {err:?}")),
+            |n| n.to_string(),
+        );
         let mt = blob_meta_text(&state.graph, digest, "mt");
-        let paths = state
-            .materialized_paths
-            .get(digest).map_or_else(|| "[]".to_string(), |items| {
+        let paths = state.materialized_paths.get(digest).map_or_else(
+            || "[]".to_string(),
+            |items| {
                 format!(
                     "[{}]",
                     items
@@ -534,7 +537,8 @@ fn write_blob_index(root: &Path, state: &DumpState) -> Result<(), DumpError> {
                         .collect::<Vec<_>>()
                         .join(",")
                 )
-            });
+            },
+        );
         writeln!(
             out,
             "{{\"digest\":{},\"size\":{},\"media_type\":{},\"suppressed\":{},\"materialized_paths\":{}}}",
@@ -1199,8 +1203,7 @@ fn term_kind_name(kind: TermKind) -> &'static str {
 }
 
 fn frame_prefix(frame_index: Option<usize>) -> String {
-    frame_index
-        .map_or_default(|index| format!("\"frame\":{index},"))
+    frame_index.map_or_default(|index| format!("\"frame\":{index},"))
 }
 
 fn json_optional_usize(value: Option<usize>) -> String {

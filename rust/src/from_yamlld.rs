@@ -431,7 +431,9 @@ fn parse_property_values(
                     .transpose()?,
                 _ => None,
             };
-            sinks.quads.push((subject, predicate, object_id, graph_name));
+            sinks
+                .quads
+                .push((subject, predicate, object_id, graph_name));
             if let Value::Object(map) = item {
                 if let Some(blocks) = map.get(ANNOTATION) {
                     parse_annotation_blocks(

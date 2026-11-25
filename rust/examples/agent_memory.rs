@@ -10,9 +10,14 @@ use gmeow_gts::examples::agent_memory::{
     Memory, RecallOptions, RevisionOptions, StoreOptions, ToolCallOptions,
 };
 
-#[expect(clippy::print_stdout, reason = "the example reports its results on stdout")]
+#[expect(
+    clippy::print_stdout,
+    reason = "the example reports its results on stdout"
+)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (path, clear_existing) = if let Some(path) = std::env::args_os().nth(1) { (PathBuf::from(path), false) } else {
+    let (path, clear_existing) = if let Some(path) = std::env::args_os().nth(1) {
+        (PathBuf::from(path), false)
+    } else {
         let millis = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
         (
             std::env::temp_dir().join(format!(

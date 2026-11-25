@@ -317,7 +317,8 @@ fn temp_sibling_path(path: &Path, suffix: &str) -> PathBuf {
         .filter(|p| !p.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
     let name = path
-        .file_name().map_or_else(|| "export".into(), |n| n.to_string_lossy());
+        .file_name()
+        .map_or_else(|| "export".into(), |n| n.to_string_lossy());
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| d.as_nanos());

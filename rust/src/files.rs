@@ -657,8 +657,8 @@ fn resolved_files_with_metadata(sources: &[&Path]) -> Result<Vec<ResolvedFile>, 
         let mtime = meta
             .modified()
             .map_err(|e| format!("mtime {}: {e}", fspath.display()))?;
-        let modified = format_datetime(&mtime)
-            .map_err(|e| format!("datetime {}: {e}", fspath.display()))?;
+        let modified =
+            format_datetime(&mtime).map_err(|e| format!("datetime {}: {e}", fspath.display()))?;
         let media_type = guess_media_type(&fspath);
         let digest = digest_file(&fspath, size)?;
         out.push(ResolvedFile {
@@ -1036,8 +1036,8 @@ fn format_datetime(time: &std::time::SystemTime) -> Result<String, String> {
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|e| format!("mtime before unix epoch: {e}"))?;
     let secs = duration.as_secs();
-    let timestamp = i64::try_from(secs)
-        .map_err(|e| format!("invalid mtime timestamp {secs}: {e}"))?;
+    let timestamp =
+        i64::try_from(secs).map_err(|e| format!("invalid mtime timestamp {secs}: {e}"))?;
     let dt = time::OffsetDateTime::from_unix_timestamp(timestamp)
         .map_err(|e| format!("invalid mtime timestamp {secs}: {e}"))?;
     let text = dt
@@ -1548,19 +1548,19 @@ fn write_file_without_following_symlink(
         }
     }
     Err(format!(
-        "create temp file for {}: too many attempts", target.display()
+        "create temp file for {}: too many attempts",
+        target.display()
     ))
 }
 
 fn prepare_replace_target(target: &Path, archive_path: &str) -> Result<(), String> {
     match fs::symlink_metadata(target) {
         Ok(metadata) if metadata.file_type().is_symlink() => Err(format!(
-            "refusing to write through symlink for {archive_path}: {}", target.display()
+            "refusing to write through symlink for {archive_path}: {}",
+            target.display()
         )),
-        Ok(metadata) if metadata.is_file() => {
-            fs::remove_file(target)
-                .map_err(|e| format!("remove existing {}: {e}", target.display()))
-        }
+        Ok(metadata) if metadata.is_file() => fs::remove_file(target)
+            .map_err(|e| format!("remove existing {}: {e}", target.display())),
         Ok(_) => Ok(()),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(err) => Err(format!("inspect {}: {err}", target.display())),
@@ -1570,7 +1570,8 @@ fn prepare_replace_target(target: &Path, archive_path: &str) -> Result<(), Strin
 fn prepare_create_node_target(target: &Path, archive_path: &str) -> Result<(), String> {
     match fs::symlink_metadata(target) {
         Ok(metadata) if metadata.is_dir() => Err(format!(
-            "refusing to replace directory for {archive_path}: {}", target.display()
+            "refusing to replace directory for {archive_path}: {}",
+            target.display()
         )),
         Ok(_) => fs::remove_file(target)
             .map_err(|e| format!("remove existing {}: {e}", target.display())),
@@ -1634,14 +1635,13 @@ fn materialize_link(dest: &Path, target: &Path, entry: &FileEntry) -> Result<(),
                 .ok_or_else(|| format!("hardlink entry {} needs linkTarget", entry.path))?;
             let source = dest_path(dest, link_target)?;
             prepare_create_node_target(target, &entry.path)?;
-            fs::hard_link(&source, target)
-                .map_err(|e| {
-                    format!(
-                        "create hardlink {} -> {}: {e}",
-                        target.display(),
-                        source.display()
-                    )
-                })
+            fs::hard_link(&source, target).map_err(|e| {
+                format!(
+                    "create hardlink {} -> {}: {e}",
+                    target.display(),
+                    source.display()
+                )
+            })
         }
         _ => Err(format!("{} is not a link entry", entry.path)),
     }
@@ -1656,13 +1656,12 @@ fn materialize_symlink(target: &Path, entry: &FileEntry) -> Result<(), String> {
         .as_deref()
         .ok_or_else(|| format!("symlink entry {} needs linkTarget", entry.path))?;
     prepare_create_node_target(target, &entry.path)?;
-    symlink(link_target, target)
-        .map_err(|e| {
-            format!(
-                "create symlink {} -> {link_target:?}: {e}",
-                target.display()
-            )
-        })
+    symlink(link_target, target).map_err(|e| {
+        format!(
+            "create symlink {} -> {link_target:?}: {e}",
+            target.display()
+        )
+    })
 }
 
 #[cfg(not(unix))]
@@ -1698,7 +1697,10 @@ fn create_special_node_platform(_target: &Path, entry: &FileEntry) -> Result<(),
 }
 
 #[cfg(unix)]
-#[expect(unsafe_code, reason = "mkfifo creates the fifo; the call carries a SAFETY proof")]
+#[expect(
+    unsafe_code,
+    reason = "mkfifo creates the fifo; the call carries a SAFETY proof"
+)]
 fn create_fifo(target: &Path, entry: &FileEntry) -> Result<(), String> {
     use std::ffi::CString;
     use std::os::unix::ffi::OsStrExt;
@@ -1713,14 +1715,18 @@ fn create_fifo(target: &Path, entry: &FileEntry) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "create fifo {}: {}", target.display(),
+            "create fifo {}: {}",
+            target.display(),
             std::io::Error::last_os_error()
         ))
     }
 }
 
 #[cfg(all(unix, any(target_os = "linux", target_os = "android")))]
-#[expect(unsafe_code, reason = "mknod creates the device node; the call carries a SAFETY proof")]
+#[expect(
+    unsafe_code,
+    reason = "mknod creates the device node; the call carries a SAFETY proof"
+)]
 fn create_device(target: &Path, entry: &FileEntry) -> Result<(), String> {
     use std::ffi::CString;
     use std::os::unix::ffi::OsStrExt;
@@ -1757,7 +1763,8 @@ fn create_device(target: &Path, entry: &FileEntry) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "create device {}: {}", target.display(),
+            "create device {}: {}",
+            target.display(),
             std::io::Error::last_os_error()
         ))
     }
@@ -1775,13 +1782,7 @@ fn create_device(_target: &Path, entry: &FileEntry) -> Result<(), String> {
 fn create_socket(target: &Path, entry: &FileEntry) -> Result<(), String> {
     std::os::unix::net::UnixListener::bind(target)
         .map(drop)
-        .map_err(|e| {
-            format!(
-                "create socket {} for {}: {e}",
-                target.display(),
-                entry.path
-            )
-        })
+        .map_err(|e| format!("create socket {} for {}: {e}", target.display(), entry.path))
 }
 
 #[cfg(unix)]
@@ -1810,13 +1811,12 @@ fn restore_path_metadata(
 
     if let Some(modified) = &entry.modified {
         let (seconds, nanos) = parse_datetime(modified)?;
-        let timestamp = unix_system_time(seconds, nanos)
-            .ok_or_else(|| {
-                format!(
-                    "modified time out of range for {}: {modified}",
-                    target.display()
-                )
-            })?;
+        let timestamp = unix_system_time(seconds, nanos).ok_or_else(|| {
+            format!(
+                "modified time out of range for {}: {modified}",
+                target.display()
+            )
+        })?;
         let times = fs::FileTimes::new().set_modified(timestamp);
         if entry.kind == FileEntryKind::Symlink {
             fs::set_times_nofollow(target, times)
@@ -1840,9 +1840,8 @@ fn restore_owner(target: &Path, entry: &FileEntry, options: &UnpackOptions) -> R
     let id = |value: Option<u64>, what: &str| -> Result<Option<u32>, String> {
         value
             .map(|raw| {
-                u32::try_from(raw).map_err(|e| {
-                    format!("{} {what} exceeds platform range: {e}", entry.path)
-                })
+                u32::try_from(raw)
+                    .map_err(|e| format!("{} {what} exceeds platform range: {e}", entry.path))
             })
             .transpose()
     };

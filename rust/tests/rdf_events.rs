@@ -151,7 +151,8 @@ fn graph_source_drives_generic_and_erased_sinks() {
     ]));
     assert!(generic_sink
         .events
-        .iter().any(|i: &String| i == "diagnostic:SyntheticDiagnostic"));
+        .iter()
+        .any(|i: &String| i == "diagnostic:SyntheticDiagnostic"));
     assert_eq!(generic_sink.events.last(), Some(&"finish".to_string()));
 
     let mut erased_sink = RecordingSink::default();

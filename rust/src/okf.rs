@@ -227,14 +227,9 @@ fn collect_documents(
                     consumed_quads.insert(idx);
                 }
             }
-            OKF_TITLE => consume_string_field(
-                graph,
-                object,
-                &mut doc.fields,
-                "title",
-                idx,
-                consumed_quads,
-            ),
+            OKF_TITLE => {
+                consume_string_field(graph, object, &mut doc.fields, "title", idx, consumed_quads);
+            }
             OKF_DESCRIPTION => consume_string_field(
                 graph,
                 object,

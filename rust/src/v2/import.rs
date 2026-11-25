@@ -100,9 +100,9 @@ impl Error for ImportError {
             Self::Syntax(error) => Some(error),
             Self::Header(error) => Some(error),
             Self::Write(error) => Some(error),
-            Self::IncompleteTerm { .. }
-            | Self::IndexOutOfRange { .. }
-            | Self::Capacity { .. } => None,
+            Self::IncompleteTerm { .. } | Self::IndexOutOfRange { .. } | Self::Capacity { .. } => {
+                None
+            }
         }
     }
 }
