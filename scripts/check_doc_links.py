@@ -4,8 +4,8 @@
 """Fail when a tracked Markdown file links to a repository path that does not exist.
 
 Checks inline links and images (`[text](target)`, `![alt](target)`) in every
-tracked Markdown file outside `archive/`, the frozen v1 snapshot, whose links
-name the layout of its time. External URLs, `mailto:` and same-document
+tracked Markdown file outside `archive/v1/`, the frozen v1 snapshot, whose links
+name the layout of its time. The maintained `archive/README.md` index is checked. External URLs, `mailto:` and same-document
 fragments (`#...`) are not checked here; markdownlint checks fragments. Code
 blocks and code spans are ignored. Exits 1 and lists every broken link.
 """
@@ -29,9 +29,9 @@ SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 
 
 def tracked_markdown() -> list[Path]:
-    """Return every Git-tracked Markdown file outside the frozen archive."""
+    """Return every Git-tracked Markdown file outside the frozen v1 snapshot."""
     listing = subprocess.run(
-        ["git", "-C", str(ROOT), "ls-files", "-z", "--", "*.md", ":!archive/"],
+        ["git", "-C", str(ROOT), "ls-files", "-z", "--", "*.md", ":!archive/v1/"],
         check=True,
         capture_output=True,
         text=True,
