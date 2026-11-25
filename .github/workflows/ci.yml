@@ -28,6 +28,12 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked
+
       - name: Package versions and docs
         run: bash scripts/check-versions.sh
 
@@ -101,38 +107,38 @@ jobs:
       - name: Clippy (warnings are errors)
         if: runner.os == 'Linux'
         run: |
-          cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
-          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features duckdb -- -D warnings
-          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf -- -D warnings
-          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf-codecs -- -D warnings
-          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features native-store -- -D warnings
-          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features tar -- -D warnings
-          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features yaml-ld -- -D warnings
-          cargo clippy --manifest-path rust/Cargo.toml --all-targets --all-features -- -D warnings
-          cargo clippy --manifest-path rust/capi/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features duckdb --locked -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf --locked -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features rdf-codecs --locked -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features native-store --locked -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features tar --locked -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --features yaml-ld --locked -- -D warnings
+          cargo clippy --manifest-path rust/Cargo.toml --all-targets --all-features --locked -- -D warnings
+          cargo clippy --manifest-path rust/capi/Cargo.toml --all-targets --locked -- -D warnings
 
       - name: Rustdoc (warnings are errors)
         if: runner.os == 'Linux'
         env:
           RUSTDOCFLAGS: -D warnings
         run: |
-          cargo doc --manifest-path rust/Cargo.toml --no-deps
-          cargo doc --manifest-path rust/Cargo.toml --no-deps --features rdf-codecs
-          cargo doc --manifest-path rust/Cargo.toml --no-deps --features yaml-ld
-          cargo doc --manifest-path rust/capi/Cargo.toml --no-deps
+          cargo doc --locked --manifest-path rust/Cargo.toml --no-deps
+          cargo doc --locked --manifest-path rust/Cargo.toml --no-deps --features rdf-codecs
+          cargo doc --locked --manifest-path rust/Cargo.toml --no-deps --features yaml-ld
+          cargo doc --locked --manifest-path rust/capi/Cargo.toml --no-deps
 
       - name: Conformance corpus + CLI tests
         run: |
-          cargo test --manifest-path rust/Cargo.toml --no-default-features
-          cargo test --manifest-path rust/Cargo.toml
-          cargo test --manifest-path rust/Cargo.toml --features duckdb
-          cargo test --manifest-path rust/Cargo.toml --features rdf
-          cargo test --manifest-path rust/Cargo.toml --features rdf-codecs
-          cargo test --manifest-path rust/Cargo.toml --features native-store
-          cargo test --manifest-path rust/Cargo.toml --features tar
-          cargo test --manifest-path rust/Cargo.toml --features yaml-ld
-          cargo test --manifest-path rust/Cargo.toml --all-features
-          cargo test --manifest-path rust/capi/Cargo.toml
+          cargo test --manifest-path rust/Cargo.toml --no-default-features --locked
+          cargo test --manifest-path rust/Cargo.toml --locked
+          cargo test --manifest-path rust/Cargo.toml --features duckdb --locked
+          cargo test --manifest-path rust/Cargo.toml --features rdf --locked
+          cargo test --manifest-path rust/Cargo.toml --features rdf-codecs --locked
+          cargo test --manifest-path rust/Cargo.toml --features native-store --locked
+          cargo test --manifest-path rust/Cargo.toml --features tar --locked
+          cargo test --manifest-path rust/Cargo.toml --features yaml-ld --locked
+          cargo test --manifest-path rust/Cargo.toml --all-features --locked
+          cargo test --manifest-path rust/capi/Cargo.toml --locked
 
       - name: C ABI smoke test
         if: runner.os == 'Linux'
@@ -173,7 +179,7 @@ jobs:
       - name: Library builds for wasm32 (wasm-friendly claim)
         if: runner.os == 'Linux'
         run: |
-          cargo build --manifest-path rust/Cargo.toml --lib --target wasm32-unknown-unknown
+          cargo build --locked --manifest-path rust/Cargo.toml --lib --target wasm32-unknown-unknown
           cargo build --locked --manifest-path rust/Cargo.toml --lib --target wasm32-unknown-unknown --all-features
 
   # NOTE: the `downstream-gmeow-ontology` job was removed here. It appended a

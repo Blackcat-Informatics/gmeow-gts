@@ -171,11 +171,11 @@ ex:s ex:label "Cat"@en--rtl .
 
 #[test]
 fn parses_graph_keyword_and_a_predicate() {
-    let trig = r#"PREFIX ex: <https://ex/>
+    let trig = r"PREFIX ex: <https://ex/>
 GRAPH ex:g {
   ex:s a ex:Thing .
 }
-"#;
+";
     let imported = from_trig(trig).expect("TriG parses");
     let out = to_nquads(&read(&imported, true, None));
     assert_eq!(
@@ -188,10 +188,10 @@ GRAPH ex:g {
 
 #[test]
 fn prefixed_names_stop_before_quoted_triple_close() {
-    let trig = r#"@prefix ex: <https://ex/> .
+    let trig = r"@prefix ex: <https://ex/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 ex:r rdf:reifies <<( ex:s ex:p ex:o)>> .
-"#;
+";
     let imported = from_trig(trig).expect("adjacent quoted triple close parses");
     let out = to_nquads(&read(&imported, true, None));
     let expected = format!(
@@ -207,11 +207,11 @@ fn pn_local_esc_keeps_escaped_delimiters_in_local_name() {
     // is the exact shape that appears in real DBpedia IRIs
     // (`dbr:Semantic_analysis_\(linguistics\)`), so an escaped `(` must NOT terminate
     // the scan.
-    let trig = r#"@prefix ex: <https://ex/> .
+    let trig = r"@prefix ex: <https://ex/> .
 @prefix dbr: <http://dbpedia.org/resource/> .
 ex:s ex:p dbr:Semantic_analysis_\(linguistics\) , ex:o .
 ex:s ex:q dbr:a\,b\.c .
-"#;
+";
     let imported = from_trig(trig).expect("PN_LOCAL_ESC escapes parse");
     let out = to_nquads(&read(&imported, true, None));
     let lines = sorted_lines(&out);
@@ -261,12 +261,12 @@ ex:s a ex:Thing ;
 
 #[test]
 fn resolves_base_iri_relative_references() {
-    let trig = r#"@base <https://ex/dir/file?old#frag> .
+    let trig = r"@base <https://ex/dir/file?old#frag> .
 
 <child> <#frag> <../up> .
 </root> <?q> <> .
 <./same> <https://ex/p> <a/./b/../c#frag> .
-"#;
+";
     let imported = from_trig(trig).expect("relative IRIs parse");
     let out = to_nquads(&read(&imported, true, None));
     let expected = "\
@@ -280,9 +280,8 @@ fn resolves_base_iri_relative_references() {
 fn rejects_forbidden_raw_iri_characters() {
     for ch in ['{', '}', '|', '\\', '^', '`'] {
         let trig = format!("<https://ex/{ch}> <https://ex/p> <https://ex/o> .\n");
-        let err = match from_trig(&trig) {
-            Ok(_) => panic!("forbidden IRI character {ch:?} should be rejected"),
-            Err(err) => err,
+        let Err(err) = from_trig(&trig) else {
+            panic!("forbidden IRI character {ch:?} should be rejected");
         };
         assert!(
             err.to_string().contains("invalid character in IRI"),

@@ -6,12 +6,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
 CPP="${ROOT}/cpp"
-CAPI_TARGET="${CAPI}/target/debug"
+CAPI_TARGET="${ROOT}/rust/target/debug"
 CXX_BIN="${CXX:-c++}"
 # shellcheck source=/dev/null
 source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
-cargo build --manifest-path "${CAPI}/Cargo.toml"
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml"
 
 "${CXX_BIN}" -std=c++17 -Wall -Wextra -Werror \
   -I"${CPP}/include" \

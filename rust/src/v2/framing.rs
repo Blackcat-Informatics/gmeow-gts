@@ -3,16 +3,23 @@
 
 //! CBOR item boundaries and generation dispatch (P1 §§2.2–2.3, 6).
 
+/// Why the framing of a byte stream could not be established.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FramingReason {
+    /// The stream ends inside an item.
     TornTail,
+    /// The bytes cannot be split into items.
     UndelimitableInput,
 }
 
+/// A framing failure and the span of input it covers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FramingFailure {
+    /// The reason framing failed.
     pub reason: FramingReason,
+    /// The offset where framing failed.
     pub offset: usize,
+    /// The number of bytes that the failure covers.
     pub length: usize,
 }
 
@@ -63,6 +70,10 @@ enum Open {
 }
 
 /// Establish the exclusive end of a well-formed CBOR item without decoding its values.
+#[expect(
+    clippy::map_err_ignore,
+    reason = "the conversion error carries no detail, so the typed error replaces it"
+)]
 pub(super) fn item_end(data: &[u8], mut offset: usize) -> Result<usize, FramingReason> {
     use FramingReason::{TornTail, UndelimitableInput};
     let mut open = vec![Open::Definite(1)];

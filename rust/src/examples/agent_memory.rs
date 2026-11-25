@@ -46,61 +46,88 @@ const INLINE_PAYLOAD_BUDGET: usize = 4096;
 /// One recalled claim, the user-facing view of a reified statement.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Claim {
+    /// The stable identifier of the claim.
     pub id: String,
+    /// The text of the claim.
     pub text: String,
+    /// The confidence recorded for the claim, if any.
     pub confidence: Option<f64>,
+    /// The agent or source the claim is attributed to, if any.
     pub according_to: Option<String>,
+    /// The source reference recorded for the claim, if any.
     pub source: Option<String>,
+    /// The creation timestamp recorded for the claim, if any.
     pub created: Option<String>,
+    /// Whether the claim is hidden from default recall results.
     pub suppressed: bool,
 }
 
 /// One recorded tool call, represented as provenance in the same graph.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ToolCallRecord {
+    /// The stable identifier of the tool call.
     pub id: String,
+    /// The name of the tool that was called.
     pub tool: String,
+    /// The serialized arguments of the call, if recorded.
     pub arguments: Option<String>,
+    /// The serialized result of the call, if recorded.
     pub result: Option<String>,
+    /// The invocation identifier of the call, if recorded.
     pub invocation: Option<String>,
+    /// The creation timestamp recorded for the call, if any.
     pub created: Option<String>,
+    /// The identifiers of the entities the call generated.
     pub generated: Vec<String>,
 }
 
 /// Options for [`Memory::store`].
 #[derive(Clone, Copy, Debug, Default)]
 pub struct StoreOptions<'a> {
+    /// The source reference to store with the claim, if any.
     pub source: Option<&'a str>,
+    /// The confidence to store with the claim, if any.
     pub confidence: Option<f64>,
+    /// The agent or source the claim is attributed to, if any.
     pub according_to: Option<&'a str>,
 }
 
 /// Options for [`Memory::revise`].
 #[derive(Clone, Copy, Debug, Default)]
 pub struct RevisionOptions<'a> {
+    /// The reason for the revision, if any.
     pub reason: Option<&'a str>,
+    /// The identifier of the claim that supersedes the revised claim, if any.
     pub superseded_by: Option<&'a str>,
 }
 
 /// Options for [`Memory::record_tool_call`].
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ToolCallOptions<'a> {
+    /// The serialized arguments of the call, if any.
     pub arguments: Option<&'a str>,
+    /// The serialized result of the call, if any.
     pub result: Option<&'a str>,
+    /// The invocation identifier of the call, if any.
     pub invocation: Option<&'a str>,
+    /// The identifiers of the entities the call generated.
     pub generated: &'a [&'a str],
 }
 
 /// Options for [`Memory::recall`].
 #[derive(Clone, Copy, Debug)]
 pub struct RecallOptions<'a> {
+    /// The text to match against claim text.
     pub query: &'a str,
+    /// The lowest confidence a returned claim may have, if any.
     pub min_confidence: Option<f64>,
+    /// The maximum number of claims to return.
     pub limit: usize,
+    /// Whether suppressed claims are returned as well.
     pub include_suppressed: bool,
 }
 
-impl<'a> Default for RecallOptions<'a> {
+impl Default for RecallOptions<'_> {
     fn default() -> Self {
         Self {
             query: "",
@@ -114,11 +141,17 @@ impl<'a> Default for RecallOptions<'a> {
 /// Errors raised by the dependency-light example API.
 #[derive(Debug)]
 pub enum MemoryError {
+    /// An I/O failure reading or writing the backing file.
     Io(std::io::Error),
+    /// The claim text is empty.
     EmptyClaim,
+    /// The confidence is outside the accepted range.
     InvalidConfidence,
+    /// The tool name is empty.
     EmptyTool,
+    /// The invocation identifier is empty.
     EmptyInvocation,
+    /// A generated entity identifier is empty.
     EmptyGeneratedEntity,
 }
 
@@ -165,11 +198,19 @@ impl Memory {
     }
 
     /// The package path.
+    #[must_use]
     pub fn path(&self) -> &Path {
         &self.path
     }
 
     /// Append one claim as a reified RDF 1.2 statement.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::EmptyClaim`] when `text` is blank,
+    /// [`MemoryError::InvalidConfidence`] when the confidence is not finite or lies
+    /// outside `[0, 1]`, and [`MemoryError::Io`] when the package cannot be read or
+    /// appended to.
     pub fn store(&self, text: &str, options: StoreOptions<'_>) -> Result<Claim> {
         if text.trim().is_empty() {
             return Err(MemoryError::EmptyClaim);
@@ -183,7 +224,7 @@ impl Memory {
         let created = now_rfc3339();
         let file_len = self.file_len()?;
         let confidence_text = options.confidence.map(|value| value.to_string());
-        let assertion = self.digest_id(
+        let assertion = Self::digest_id(
             "assertion",
             file_len,
             [
@@ -262,6 +303,10 @@ impl Memory {
     }
 
     /// Append a value-wise suppression for a claim, optionally linking a successor.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package cannot be read or appended to.
     pub fn revise(&self, claim_id: &str, options: RevisionOptions<'_>) -> Result<()> {
         let mut writer = Writer::new(PROFILE);
         let mut terms = vec![iri(claim_id)];
@@ -287,6 +332,13 @@ impl Memory {
     }
 
     /// Append one tool-call provenance record.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::EmptyTool`] when `tool` is blank,
+    /// [`MemoryError::EmptyInvocation`] when a supplied invocation is blank,
+    /// [`MemoryError::EmptyGeneratedEntity`] when a generated entity is blank, and
+    /// [`MemoryError::Io`] when the package cannot be read or appended to.
     pub fn record_tool_call(
         &self,
         tool: &str,
@@ -308,7 +360,7 @@ impl Memory {
         let created = now_rfc3339();
         let arguments = inline_or_digest(options.arguments);
         let result = inline_or_digest(options.result);
-        let call = self.digest_id(
+        let call = Self::digest_id(
             "toolcall",
             self.file_len()?,
             [
@@ -393,6 +445,10 @@ impl Memory {
     }
 
     /// Return claims matching `options.query`, best match first.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package exists but cannot be read.
     pub fn recall(&self, options: RecallOptions<'_>) -> Result<Vec<Claim>> {
         let mut claims: Vec<Claim> = self
             .claims()?
@@ -437,6 +493,10 @@ impl Memory {
     }
 
     /// Every claim in storage order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package exists but cannot be read.
     pub fn claims(&self) -> Result<Vec<Claim>> {
         let Some(graph) = self.graph()? else {
             return Ok(Vec::new());
@@ -466,6 +526,10 @@ impl Memory {
     }
 
     /// Every recorded tool call in storage order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package exists but cannot be read.
     pub fn tool_calls(&self) -> Result<Vec<ToolCallRecord>> {
         let Some(graph) = self.graph()? else {
             return Ok(Vec::new());
@@ -517,6 +581,10 @@ impl Memory {
     }
 
     /// Reader diagnostics for the package. Empty means transport-clean.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package exists but cannot be read.
     pub fn verify(&self) -> Result<Vec<String>> {
         let Some(graph) = self.graph()? else {
             return Ok(Vec::new());
@@ -554,7 +622,6 @@ impl Memory {
     }
 
     fn digest_id<'a>(
-        &self,
         kind: &str,
         file_len: u64,
         parts: impl IntoIterator<Item = &'a str>,

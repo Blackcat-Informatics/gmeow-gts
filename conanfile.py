@@ -32,7 +32,6 @@ class GmeowGtsConan(ConanFile):
         "README.md",
         "rust/Cargo.lock",
         "rust/Cargo.toml",
-        "rust/capi/Cargo.lock",
         "rust/capi/Cargo.toml",
         "rust/capi/LICENSE-APACHE",
         "rust/capi/LICENSE-MIT",
@@ -47,7 +46,7 @@ class GmeowGtsConan(ConanFile):
     )
 
     def build(self):
-        cmd = "cargo build --manifest-path rust/capi/Cargo.toml --locked"
+        cmd = "cargo build --locked --manifest-path rust/capi/Cargo.toml"
         if self._cargo_profile() == "release":
             cmd += " --release"
         self.run(cmd)

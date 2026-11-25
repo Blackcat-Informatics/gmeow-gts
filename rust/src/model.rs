@@ -22,10 +22,13 @@ use crate::codec::{decode_chain, Codec, CodecError};
 
 /// Well-known datatype IRIs used by the literal-defaulting rule (§7.1).
 pub const XSD_STRING: &str = "http://www.w3.org/2001/XMLSchema#string";
+/// The IRI of `rdf:langString`, the datatype of language-tagged literals.
 pub const RDF_LANG_STRING: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString";
+/// The IRI of `rdf:dirLangString`, the datatype of directional language literals.
 pub const RDF_DIR_LANG_STRING: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString";
 
 /// Return whether `direction` is a valid RDF 1.2 base direction token.
+#[must_use]
 pub fn is_literal_direction(direction: &str) -> bool {
     matches!(direction, "ltr" | "rtl")
 }
@@ -33,14 +36,19 @@ pub fn is_literal_direction(direction: &str) -> bool {
 /// The kind of an RDF term, matching the wire `"k"` field (§7.1).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TermKind {
+    /// The kind code of an IRI term.
     Iri = 0,
+    /// The kind code of a literal term.
     Literal = 1,
+    /// The kind code of a blank node term.
     Bnode = 2,
+    /// The kind code of a triple term.
     Triple = 3,
 }
 
 impl TermKind {
     /// Parse the wire `"k"` value; an unknown kind defaults to IRI (§7.1).
+    #[must_use]
     pub fn from_wire(k: Option<i128>) -> TermKind {
         match k {
             Some(1) => TermKind::Literal,
@@ -80,6 +88,7 @@ pub struct Term {
 
 /// A quad of term-ids; the graph slot is `None` for the default graph.
 pub type Quad = (usize, usize, usize, Option<usize>);
+/// Three term indices in subject, predicate and object order.
 pub type Triple3 = (usize, usize, usize);
 /// A reifier row: `(reifier, (subject, predicate, object), graph?)`.
 pub type ReifierRow = (usize, Triple3, Option<usize>);
@@ -100,6 +109,7 @@ pub struct QuadTerms<'a> {
 }
 
 /// Borrowing iterator returned by [`Graph::quad_terms`].
+#[derive(Debug)]
 pub struct QuadTermsIter<'a> {
     graph: &'a Graph,
     inner: slice::Iter<'a, Quad>,
@@ -160,18 +170,18 @@ pub struct Diagnostic {
 
 /// The verification outcome for a signed frame (§9.2).
 ///
-/// `cose` retains the raw COSE_Sign1 bytes so streamable compaction (§10.1)
+/// `cose` retains the raw `COSE_Sign1` bytes so streamable compaction (§10.1)
 /// can carry the signature *detached* — forever verifiable against
 /// `frame_id` even after the frame itself is re-authored into a new chain.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Signature {
-    /// Frame id the COSE_Sign1 signature authenticates.
+    /// Frame id the `COSE_Sign1` signature authenticates.
     pub frame_id: Vec<u8>,
     /// COSE key id, when present.
     pub kid: Option<String>,
     /// `"valid"` | `"invalid"` | `"unverified"`.
     pub status: String,
-    /// Raw COSE_Sign1 bytes, retained for detached-signature transport.
+    /// Raw `COSE_Sign1` bytes, retained for detached-signature transport.
     pub cose: Option<Vec<u8>>,
 }
 
@@ -204,26 +214,35 @@ pub enum BlobEntry {
     /// callers that never ask for the bytes still get a complete folded graph,
     /// while callers that do ask receive the same codec errors the eager path
     /// would have produced.
-    Lazy { raw: Vec<u8>, chain: Vec<Codec> },
+    Lazy {
+        /// The wire bytes of the blob, before decoding.
+        raw: Vec<u8>,
+        /// The transform chain that decodes `raw`.
+        chain: Vec<Codec>,
+    },
 }
 
 impl BlobEntry {
     /// Store already-decoded blob bytes.
+    #[must_use]
     pub fn bytes(data: Vec<u8>) -> Self {
         Self::Bytes(data)
     }
 
     /// Store transformed wire bytes for deferred decoding.
+    #[must_use]
     pub fn lazy(raw: Vec<u8>, chain: Vec<Codec>) -> Self {
         Self::Lazy { raw, chain }
     }
 
     /// True when this entry still holds transformed wire bytes.
+    #[must_use]
     pub fn is_lazy(&self) -> bool {
         matches!(self, Self::Lazy { .. })
     }
 
     /// Return cached decoded bytes without forcing a lazy decode.
+    #[must_use]
     pub fn cached_bytes(&self) -> Option<&[u8]> {
         match self {
             Self::Bytes(bytes) => Some(bytes),
@@ -232,6 +251,11 @@ impl BlobEntry {
     }
 
     /// Decode and cache this entry, returning the decoded bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`CodecError`] from reversing the codec chain of a lazy
+    /// entry. The entry is left lazy when decoding fails.
     pub fn decode(&mut self) -> Result<&[u8], CodecError> {
         if let Self::Lazy { raw, chain } = self {
             let decoded = decode_chain(chain, raw)?;
@@ -244,6 +268,11 @@ impl BlobEntry {
     }
 
     /// Return decoded bytes without mutating the entry.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`CodecError`] from reversing the codec chain of a lazy
+    /// entry.
     pub fn decoded_bytes(&self) -> Result<Cow<'_, [u8]>, CodecError> {
         match self {
             Self::Bytes(bytes) => Ok(Cow::Borrowed(bytes)),
@@ -252,6 +281,11 @@ impl BlobEntry {
     }
 
     /// Return decoded bytes as an owned vector.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`CodecError`] from reversing the codec chain of a lazy
+    /// entry.
     pub fn decoded_vec(&self) -> Result<Vec<u8>, CodecError> {
         match self.decoded_bytes()? {
             Cow::Borrowed(bytes) => Ok(bytes.to_vec()),
@@ -260,6 +294,11 @@ impl BlobEntry {
     }
 
     /// Return the decoded byte length, decoding transiently if needed.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`CodecError`] from reversing the codec chain of a lazy
+    /// entry.
     pub fn decoded_len(&self) -> Result<usize, CodecError> {
         Ok(self.decoded_bytes()?.len())
     }
@@ -310,6 +349,7 @@ impl Graph {
     ///
     /// Existing direct access through [`Self::quads`] remains available for
     /// callers that need the full folded graph.
+    #[must_use]
     pub fn into_quads(self) -> vec::IntoIter<Quad> {
         self.quads.into_iter()
     }
@@ -319,6 +359,7 @@ impl Graph {
     /// Resolution happens one row at a time. Like existing index-based access,
     /// this panics if a manually constructed graph contains invalid term ids;
     /// reader-produced graphs sanitize quad term ids during the fold.
+    #[must_use]
     pub fn quad_terms(&self) -> QuadTermsIter<'_> {
         QuadTermsIter {
             graph: self,
@@ -332,6 +373,7 @@ impl Graph {
     /// triples. This accessor is the legacy single-valued view used only to
     /// resolve a `"tt"`-less triple term; see [`Graph::reifier_triples`] for
     /// the full multi-valued statement layer.
+    #[must_use]
     pub fn reifier(&self, rid: usize) -> Option<Triple3> {
         self.reifiers
             .iter()
@@ -340,6 +382,7 @@ impl Graph {
     }
 
     /// Every DISTINCT triple bound to `rid`, in file order (§7.3).
+    #[must_use]
     pub fn reifier_triples(&self, rid: usize) -> Vec<Triple3> {
         let mut out: Vec<Triple3> = Vec::new();
         for &(r, spo, _) in &self.reifiers {
@@ -361,7 +404,7 @@ impl Graph {
     /// writer, so a term that reaches itself states NO triple for this walk and
     /// resolves to `None` — the same answer an unbound triple term already
     /// gives, which every caller renders as a fresh blank node. Guarding here
-    /// rather than at each of the seven call sites (N-Quads, TriG, RDF adapter,
+    /// rather than at each of the seven call sites (N-Quads, `TriG`, RDF adapter,
     /// RDF events, the union interner, YAML-LD and the writer) means no walk can
     /// forget it: this exact shape aborted Go with `fatal error: stack overflow`
     /// and raised `RecursionError` in Python before it was guarded.
@@ -369,6 +412,7 @@ impl Graph {
     /// A `"tt"` can never participate in a cycle, because every `"tt"`
     /// component names a strictly smaller term-id (§7.2), so only the legacy
     /// reifier indirection needs the check.
+    #[must_use]
     pub fn triple_of(&self, term_id: usize) -> Option<Triple3> {
         let term = self.terms.get(term_id)?;
         if let Some(spo) = term.triple {
@@ -468,6 +512,7 @@ impl Graph {
     }
 
     /// Look up a blob entry without decoding it.
+    #[must_use]
     pub fn blob_entry(&self, digest: &str) -> Option<&BlobEntry> {
         self.blobs
             .iter()
@@ -476,6 +521,12 @@ impl Graph {
     }
 
     /// Look up a blob and decode/cache it on demand.
+    ///
+    /// Returns `Ok(None)` when no blob has `digest`.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`CodecError`] from decoding the blob's codec chain.
     pub fn blob_bytes(&mut self, digest: &str) -> Result<Option<&[u8]>, CodecError> {
         match self.blobs.iter_mut().find(|(d, _)| d == digest) {
             Some((_, entry)) => entry.decode().map(Some),
@@ -484,11 +535,19 @@ impl Graph {
     }
 
     /// Look up a blob and return decoded owned bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`CodecError`] from decoding the blob's codec chain.
     pub fn blob_bytes_cloned(&mut self, digest: &str) -> Result<Option<Vec<u8>>, CodecError> {
-        Ok(self.blob_bytes(digest)?.map(|bytes| bytes.to_vec()))
+        Ok(self.blob_bytes(digest)?.map(<[u8]>::to_vec))
     }
 
     /// Return every blob as decoded owned bytes, preserving insertion order.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first [`CodecError`] from decoding a blob's codec chain.
     pub fn decoded_blobs(&mut self) -> Result<Vec<(String, Vec<u8>)>, CodecError> {
         let mut out = Vec::with_capacity(self.blobs.len());
         for (digest, entry) in &mut self.blobs {
@@ -501,6 +560,7 @@ impl Graph {
     ///
     /// The fold sanitizes `datatype` ids, but `Graph` is constructible by
     /// callers — an out-of-range id falls back to `xsd:string`, never panics.
+    #[must_use]
     pub fn datatype_iri(&self, t: &Term) -> String {
         if let Some(dt) = t.datatype {
             return self

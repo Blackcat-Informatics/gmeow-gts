@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! Reader behaviour on well-formed and malformed input: diagnostics without panics, datatype mapping across segments and reifier degradation.
+
 use gmeow_gts::model::{Graph, Term, TermKind};
 use gmeow_gts::nquads::to_nquads;
 use gmeow_gts::reader::read;
@@ -72,7 +74,7 @@ fn multi_segment_union_preserves_literal_datatype_mapping() {
 
     let graph = read(&data, true, None);
 
-    assert!(graph.diagnostics.is_empty());
+    assert_eq!(graph.diagnostics, [] as [gmeow_gts::model::Diagnostic; 0]);
     assert_eq!(graph.quads.len(), 1);
     let object = graph.quads[0].2;
     assert_eq!(graph.terms[object].kind, TermKind::Literal);
@@ -157,7 +159,7 @@ fn indirect_self_reaching_quoted_triple_reifier_degrades() {
 
 /// §7.3: the reifier id lands in subject position, where RDF 1.2 admits only an
 /// IRI or blank node. A `k:3` reifier folded fine and then each projection
-/// improvised — the RDF adapter errored, N-Quads and TriG silently dropped the
+/// improvised — the RDF adapter errored, N-Quads and `TriG` silently dropped the
 /// row, and Go emitted a triple term as subject. Reject it once, at fold time.
 #[test]
 fn reader_rejects_quoted_triple_in_reifier_position() {
@@ -276,7 +278,10 @@ fn unreified_triple_term_survives_a_round_trip() {
     w.add_quads(&[(0, 4, 3, None)]);
     let graph = read(&w.to_bytes(), true, None);
     assert_eq!(diagnostic_codes(&graph), Vec::<&str>::new());
-    assert!(graph.reifiers.is_empty());
+    assert_eq!(
+        graph.reifiers,
+        [] as [(usize, (usize, usize, usize), std::option::Option<usize>); 0]
+    );
     assert_eq!(
         to_nquads(&graph).trim(),
         "<https://example.org/s> <https://example.org/says> \

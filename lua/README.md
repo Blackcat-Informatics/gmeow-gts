@@ -26,13 +26,13 @@ loader pointed at a compatible shared library.
 Build the shared library from the repository root:
 
 ```sh
-cargo build --manifest-path rust/capi/Cargo.toml
+cargo build --locked --manifest-path rust/capi/Cargo.toml
 ```
 
 Point the wrapper at the library with `GTS_LIBGTS`:
 
 ```sh
-export GTS_LIBGTS="$PWD/rust/capi/target/debug/libgts.so"
+export GTS_LIBGTS="$PWD/rust/target/debug/libgts.so"
 LUA_PATH="$PWD/lua/?.lua;$PWD/lua/?/init.lua;;" \
   luajit lua/tests/smoke.lua \
   vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts

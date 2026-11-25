@@ -4,8 +4,8 @@
 //! High-level embedded-key verification helpers.
 //!
 //! This module mirrors the Python `gts.verify` surface: it discovers an
-//! embedded `gts:transportKey`, resolves its OpenPGP Ed25519 public key, verifies
-//! every COSE_Sign1 frame, and returns a data result suitable for libraries and
+//! embedded `gts:transportKey`, resolves its `OpenPGP` Ed25519 public key, verifies
+//! every `COSE_Sign1` frame, and returns a data result suitable for libraries and
 //! CLIs. Trust-policy findings remain separate from cryptographic validity.
 
 use ciborium::value::Value;
@@ -25,19 +25,19 @@ use crate::reader::read;
 pub struct EmbeddedTransportKey {
     /// The key id used by COSE signatures in this file.
     pub kid: String,
-    /// ASCII-armored OpenPGP Ed25519 public-key certificate.
+    /// ASCII-armored `OpenPGP` Ed25519 public-key certificate.
     pub gpg: String,
 }
 
 /// Options for [`verify_file_with_options`].
 ///
 /// Cryptographic validity and deployment trust are intentionally separated:
-/// signatures are first checked against a resolved OpenPGP Ed25519 key, then
+/// signatures are first checked against a resolved `OpenPGP` Ed25519 key, then
 /// [`TrustPolicy`] decides whether valid signers and declared profiles are
 /// acceptable for the caller.
 #[derive(Clone, Debug)]
 pub struct VerifyOptions {
-    /// Optional out-of-band armored OpenPGP public key. When absent, the file's
+    /// Optional out-of-band armored `OpenPGP` public key. When absent, the file's
     /// embedded `gts:transportKey` is used.
     pub armored_key: Option<String>,
     /// Treat a file with no signed frames as a verification failure.
@@ -58,23 +58,27 @@ impl Default for VerifyOptions {
 
 impl VerifyOptions {
     /// Release-style defaults: embedded key lookup and signatures required.
+    #[must_use]
     pub fn strict() -> Self {
         Self::default()
     }
 
     /// Use an out-of-band trusted public key instead of embedded metadata.
+    #[must_use]
     pub fn with_armored_key(mut self, armored: impl Into<String>) -> Self {
         self.armored_key = Some(armored.into());
         self
     }
 
     /// Set whether unsigned files are accepted.
+    #[must_use]
     pub fn require_signatures(mut self, value: bool) -> Self {
         self.require_signatures = value;
         self
     }
 
     /// Apply deployment-level signer/profile trust rules.
+    #[must_use]
     pub fn trust_policy(mut self, policy: TrustPolicy) -> Self {
         self.trust_policy = policy;
         self
@@ -88,9 +92,9 @@ pub struct VerificationResult {
     /// policy errors were found under the supplied options.
     pub ok: bool,
     /// Key id used for verification, either embedded or derived from the
-    /// out-of-band OpenPGP fingerprint.
+    /// out-of-band `OpenPGP` fingerprint.
     pub kid: Option<String>,
-    /// Uppercase OpenPGP v4 fingerprint of the resolved transport key.
+    /// Uppercase `OpenPGP` v4 fingerprint of the resolved transport key.
     pub fingerprint: Option<String>,
     /// Emoji visual hash of the raw Ed25519 public key.
     pub emojihash: Option<String>,
@@ -100,7 +104,7 @@ pub struct VerificationResult {
     pub randomart: Option<String>,
     /// Number of signed frames inspected. This mirrors Python's result shape.
     pub frames: usize,
-    /// Number of COSE_Sign1 frame signatures present.
+    /// Number of `COSE_Sign1` frame signatures present.
     pub signed: usize,
     /// Number of signatures cryptographically valid under the resolved key.
     pub valid: usize,
@@ -118,7 +122,12 @@ pub struct VerificationResult {
     pub profile_findings: Vec<ProfileFinding>,
 }
 
-/// Return an OpenPGP fingerprint grouped for human comparison.
+/// Return an `OpenPGP` fingerprint grouped for human comparison.
+///
+/// Whitespace is removed and hex digits are uppercased before grouping into
+/// blocks of four. Input that is empty or contains a non-hex character is
+/// returned unchanged.
+#[must_use]
 pub fn format_fingerprint(fingerprint: &str) -> String {
     let compact: String = fingerprint.chars().filter(|c| !c.is_whitespace()).collect();
     let compact = compact.to_uppercase();
@@ -128,12 +137,13 @@ pub fn format_fingerprint(fingerprint: &str) -> String {
     compact
         .as_bytes()
         .chunks(4)
-        .map(|c| std::str::from_utf8(c).expect("hex is ascii"))
+        .map(|c| c.iter().map(|&b| char::from(b)).collect::<String>())
         .collect::<Vec<_>>()
         .join(" ")
 }
 
 /// Return the embedded `gts:transportKey` meta value if well-formed.
+#[must_use]
 pub fn extract_transport_key(graph: &Graph) -> Option<EmbeddedTransportKey> {
     let value = graph
         .meta
@@ -161,73 +171,20 @@ pub fn extract_transport_key(graph: &Graph) -> Option<EmbeddedTransportKey> {
 }
 
 /// Verify a GTS file with strict defaults: embedded key lookup and signatures required.
+#[must_use]
 pub fn verify_file(data: &[u8]) -> VerificationResult {
     verify_file_with_options(data, &VerifyOptions::strict())
 }
 
 /// Verify a GTS file's embedded signatures with explicit options.
+#[must_use]
 pub fn verify_file_with_options(data: &[u8], options: &VerifyOptions) -> VerificationResult {
-    let mut errors = Vec::new();
-
-    let (kid, public, raw_public, fingerprint, graph): (
-        String,
-        VerifyingKey,
-        [u8; 32],
-        String,
-        Option<Graph>,
-    ) = if let Some(armored) = options.armored_key.as_deref() {
-        match provider_from_armor(armored, None) {
-            Ok((kid, public, raw_public, fingerprint)) => {
-                (kid, public, raw_public, fingerprint, None)
-            }
-            Err(err) => {
-                errors.push(format!("cannot load trusted key: {err}"));
-                return VerificationResult {
-                    ok: false,
-                    errors,
-                    ..VerificationResult::default()
-                };
-            }
-        }
-    } else {
-        let first = read(data, true, None);
-        let Some(transport) = extract_transport_key(&first) else {
-            if !options.require_signatures && first.signatures.is_empty() {
-                return VerificationResult {
-                    ok: true,
-                    frames: first.signatures.len(),
-                    diagnostics: first.diagnostics,
-                    ..VerificationResult::default()
-                };
-            }
-            errors.push("no gts:transportKey found in file metadata".to_string());
-            return VerificationResult {
-                ok: false,
-                errors,
-                diagnostics: first.diagnostics,
-                frames: first.signatures.len(),
-                signed: first.signatures.len(),
-                ..VerificationResult::default()
-            };
+    let ((kid, public, raw_public, fingerprint), graph) =
+        match resolve_verification_key(data, options) {
+            Ok(resolved) => resolved,
+            Err(finished) => return *finished,
         };
-        match provider_from_armor(&transport.gpg, Some(&transport.kid)) {
-            Ok((kid, public, raw_public, fingerprint)) => {
-                (kid, public, raw_public, fingerprint, Some(first))
-            }
-            Err(err) => {
-                errors.push(format!("cannot load embedded transport key: {err}"));
-                return VerificationResult {
-                    ok: false,
-                    kid: Some(transport.kid),
-                    errors,
-                    diagnostics: first.diagnostics,
-                    frames: first.signatures.len(),
-                    signed: first.signatures.len(),
-                    ..VerificationResult::default()
-                };
-            }
-        }
-    };
+    let mut errors = Vec::new();
 
     let mut graph = graph.unwrap_or_else(|| read(data, true, None));
     verify_signatures(&mut graph.signatures, |candidate| {
@@ -287,6 +244,75 @@ pub fn verify_file_with_options(data: &[u8], options: &VerifyOptions) -> Verific
         errors,
         diagnostics: graph.diagnostics,
         profile_findings,
+    }
+}
+
+/// The trusted key of a verification run: key id, verifying key, raw public
+/// key bytes and fingerprint.
+type ResolvedKey = (String, VerifyingKey, [u8; 32], String);
+
+/// Resolve the trusted key for `data`, or return the finished result when
+/// verification ends before any signature is checked.
+///
+/// An out-of-band armored key takes precedence. Otherwise the file's embedded
+/// `gts:transportKey` supplies the key, and the first read of the file is
+/// returned alongside it so that the caller does not read the file twice.
+fn resolve_verification_key(
+    data: &[u8],
+    options: &VerifyOptions,
+) -> Result<(ResolvedKey, Option<Graph>), Box<VerificationResult>> {
+    let mut errors = Vec::new();
+    if let Some(armored) = options.armored_key.as_deref() {
+        return match provider_from_armor(armored, None) {
+            Ok((kid, public, raw_public, fingerprint)) => {
+                Ok(((kid, public, raw_public, fingerprint), None))
+            }
+            Err(err) => {
+                errors.push(format!("cannot load trusted key: {err}"));
+                Err(Box::new(VerificationResult {
+                    ok: false,
+                    errors,
+                    ..VerificationResult::default()
+                }))
+            }
+        };
+    }
+    let first = read(data, true, None);
+    let Some(transport) = extract_transport_key(&first) else {
+        if !options.require_signatures && first.signatures.is_empty() {
+            return Err(Box::new(VerificationResult {
+                ok: true,
+                frames: first.signatures.len(),
+                diagnostics: first.diagnostics,
+                ..VerificationResult::default()
+            }));
+        }
+        errors.push("no gts:transportKey found in file metadata".to_string());
+        return Err(Box::new(VerificationResult {
+            ok: false,
+            errors,
+            diagnostics: first.diagnostics,
+            frames: first.signatures.len(),
+            signed: first.signatures.len(),
+            ..VerificationResult::default()
+        }));
+    };
+    match provider_from_armor(&transport.gpg, Some(&transport.kid)) {
+        Ok((kid, public, raw_public, fingerprint)) => {
+            Ok(((kid, public, raw_public, fingerprint), Some(first)))
+        }
+        Err(err) => {
+            errors.push(format!("cannot load embedded transport key: {err}"));
+            Err(Box::new(VerificationResult {
+                ok: false,
+                kid: Some(transport.kid),
+                errors,
+                diagnostics: first.diagnostics,
+                frames: first.signatures.len(),
+                signed: first.signatures.len(),
+                ..VerificationResult::default()
+            }))
+        }
     }
 }
 

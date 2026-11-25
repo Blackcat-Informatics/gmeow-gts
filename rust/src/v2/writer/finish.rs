@@ -21,8 +21,14 @@ const INDEX: u64 = 15;
 /// A buffered segment that cannot be closed with generated parity.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SegmentFinishError {
+    /// The segment has no closing index.
     MissingClosingIndex,
-    ExistingParity { offset: usize },
+    /// The segment already holds a parity frame.
+    ExistingParity {
+        /// The offset of the existing parity frame.
+        offset: usize,
+    },
+    /// The closing frame could not be written.
     Frame(FrameError),
 }
 
@@ -69,6 +75,12 @@ impl SegmentWriter {
     /// The caller supplies the index's content and payload when appending it.
     /// This method consumes the buffered segment and requires that it holds
     /// no previously emitted parity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SegmentFinishError`] when the segment has no closing index,
+    /// when it already holds a parity frame, or when the closing frame cannot
+    /// be written.
     pub fn finish_indexed(self) -> Result<Vec<u8>, SegmentFinishError> {
         let mut output = ClosingItems {
             bytes: Vec::with_capacity(self.bytes.len()),

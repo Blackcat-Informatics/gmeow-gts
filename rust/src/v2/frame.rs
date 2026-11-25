@@ -21,7 +21,9 @@ const DIGEST_HEAD: [u8; 2] = [0x58, 0x20];
 /// The first malformed field of a frame and its absolute input offset.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FrameError {
+    /// The kind of malformation in the frame.
     pub reason: MalformedReason,
+    /// The absolute input offset of the malformed field.
     pub offset: usize,
 }
 
@@ -45,13 +47,20 @@ impl From<HeaderError> for FrameError {
 /// The storage record, including the original bytes of a future storage form.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Storage<'a> {
+    /// The frame stores its payload without a transform.
     Plain,
+    /// The frame stores its payload under a compression codec.
     Compressed {
+        /// The registry code of the compression codec.
         codec: u64,
+        /// The check bytes stored with the compressed payload.
         stored_check: &'a [u8; 16],
     },
+    /// A storage form this reader does not implement, kept as raw fields.
     Unknown {
+        /// The tag of the unknown storage form.
         tag: u64,
+        /// The encoded bytes of the unknown storage form.
         encoded: &'a [u8],
     },
 }
@@ -59,26 +68,42 @@ pub enum Storage<'a> {
 /// The signature fields in envelope order.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Signature<'a> {
+    /// The registry code of the signature algorithm.
     pub algorithm: u64,
+    /// The identifier of the signing key.
     pub key_id: &'a [u8; 32],
+    /// The signature bytes.
     pub value: &'a [u8],
 }
 
 /// A parsed frame, borrowing the original encoded fields and stored payload.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Frame<'a> {
+    /// The registry code of the frame type.
     pub frame_type: u64,
+    /// Whether a reader must refuse the frame if it does not understand it.
     pub critical: bool,
+    /// Whether the frame is transparent to readers of its content.
     pub transparent: bool,
+    /// The content field of the envelope.
     pub content: &'a [u8],
+    /// The length of the decoded payload in bytes.
     pub decoded_length: u64,
+    /// The digest that the decoded payload must have.
     pub payload_digest: &'a [u8; 32],
+    /// The storage record of the payload.
     pub storage: Storage<'a>,
+    /// The payload bytes as stored, before decoding.
     pub stored_payload: &'a [u8],
+    /// The identifier of the frame.
     pub identifier: &'a [u8; 32],
+    /// The signatures on the frame, in envelope order.
     pub signatures: Vec<Signature<'a>>,
+    /// The encoded size of the signatures in bytes.
     pub encoded_signatures_size: usize,
+    /// The encoded identity fields of the frame.
     pub identity_fields: &'a [u8],
+    /// The offset of the first byte after the frame.
     pub next_offset: usize,
 }
 
@@ -146,6 +171,10 @@ fn valid_decoded_length(frame_type: u64, length: u64) -> bool {
 }
 
 impl<'a> Decoder<'a> {
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     pub(super) fn byte_string(&mut self, expected: Option<usize>) -> Result<&'a [u8], HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
         let length = usize::try_from(self.head(2)?).map_err(|_| error)?;
@@ -155,11 +184,19 @@ impl<'a> Decoder<'a> {
         self.take(length)
     }
 
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     pub(super) fn fixed<const SIZE: usize>(&mut self) -> Result<&'a [u8; SIZE], HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
         self.byte_string(Some(SIZE))?.try_into().map_err(|_| error)
     }
 
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "HeaderError is Copy and carries only a reason and offset; the Utf8Error detail has no field to occupy"
+    )]
     pub(super) fn text(&mut self) -> Result<&'a str, HeaderError> {
         let length_error = self.error(MalformedReason::WrongLength);
         let type_error = self.error(MalformedReason::WrongType);
@@ -396,6 +433,12 @@ pub(super) struct Identity<'a> {
 ///
 /// Link decisions, payload processing, capacity, and the meaning of each
 /// content value are handled by the reader after envelope decoding.
+///
+/// # Errors
+///
+/// Returns [`FrameError`] when the envelope is malformed, or when the decoded
+/// length is not valid for the frame type. The error carries the offset of the
+/// offending field.
 pub fn decode_frame(
     data: &[u8],
     offset: usize,
@@ -474,6 +517,12 @@ pub(super) fn decode_frame_envelope(
 ///
 /// Supply the deterministic encoding of the content record and decoded bytes
 /// that satisfy the rules of the selected frame type.
+///
+/// # Errors
+///
+/// Returns [`FrameError`] when `frame_type` is not registered, when `content`
+/// does not decode exactly to its record, or when the length of `payload` is
+/// not valid for `frame_type`.
 pub fn encode_plain_frame(
     predecessor: &[u8; 32],
     frame_type: u64,
@@ -484,6 +533,10 @@ pub fn encode_plain_frame(
         .map(|(encoded, _)| encoded)
 }
 
+#[expect(
+    clippy::map_err_ignore,
+    reason = "the conversion error carries no detail, so the typed error replaces it"
+)]
 pub(super) fn encode_plain_frame_with_identifier(
     predecessor: &[u8; 32],
     frame_type: u64,

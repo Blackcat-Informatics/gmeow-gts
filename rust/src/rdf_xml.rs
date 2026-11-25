@@ -9,6 +9,7 @@
 //! native RDF 1.2 dataset model.
 
 use std::collections::{BTreeMap, HashMap};
+use std::fmt::Write as _;
 
 use quick_xml::events::{BytesRef, BytesStart, Event};
 use quick_xml::Reader;
@@ -247,10 +248,7 @@ pub(crate) fn to_rdf_xml(graph: &Graph) -> Result<String, RdfCodecError> {
     );
     for (namespace, prefix) in &namespaces {
         if prefix != "rdf" && prefix != "xsd" {
-            out.push_str(&format!(
-                " xmlns:{prefix}=\"{}\"",
-                escape_xml_attr(namespace)
-            ));
+            let _ = write!(out, " xmlns:{prefix}=\"{}\"", escape_xml_attr(namespace));
         }
     }
     // Declare RDF 1.2 so a round-trip preserves triple terms and base direction (their
@@ -258,19 +256,18 @@ pub(crate) fn to_rdf_xml(graph: &Graph) -> Result<String, RdfCodecError> {
     out.push_str(" rdf:version=\"1.2\">\n");
 
     for (key, properties) in subjects {
-        let subject = subject_nodes
-            .get(&key)
-            .expect("subject node exists for every grouped subject");
+        let Some(subject) = subject_nodes.get(&key) else {
+            return Err(RdfCodecError::new(format!(
+                "RDF/XML serializer has no node for subject key {key:?}"
+            )));
+        };
         out.push_str("  <rdf:Description");
         match subject {
             NamedOrBlankNode::Iri(iri) => {
-                out.push_str(&format!(" rdf:about=\"{}\"", escape_xml_attr(iri.as_str())));
+                let _ = write!(out, " rdf:about=\"{}\"", escape_xml_attr(iri.as_str()));
             }
             NamedOrBlankNode::BlankNode(node) => {
-                out.push_str(&format!(
-                    " rdf:nodeID=\"{}\"",
-                    escape_xml_attr(node.as_str())
-                ));
+                let _ = write!(out, " rdf:nodeID=\"{}\"", escape_xml_attr(node.as_str()));
             }
         }
         out.push_str(">\n");
@@ -545,7 +542,7 @@ impl RdfXmlParser {
             self.insert_statement(
                 subject.clone(),
                 rdf_iri(RDF_TYPE)?,
-                self.iri_ref(type_iri, &context)?.into(),
+                Self::iri_ref(type_iri, &context)?.into(),
                 None,
                 None,
             )?;
@@ -553,7 +550,7 @@ impl RdfXmlParser {
 
         for attr in element.property_attrs() {
             let predicate = attr.name.iri()?;
-            let literal = self.context_literal(&attr.value, None, &context)?;
+            let literal = Self::context_literal(&attr.value, None, &context)?;
             self.insert_statement(subject.clone(), predicate, literal.into(), None, None)?;
         }
 
@@ -573,12 +570,12 @@ impl RdfXmlParser {
         let predicate = element.name.iri()?;
         let reifier = element
             .attr_rdf(RDF_ID)
-            .map(|id| self.rdf_id_iri(id, &context).map(NamedOrBlankNode::from))
+            .map(|id| Self::rdf_id_iri(id, &context).map(NamedOrBlankNode::from))
             .transpose()?;
         // `rdf:annotation="IRI"` and `rdf:annotationNodeID="id"` both name the reifier
         // of the asserted triple; the former is an IRI, the latter a blank node.
         let annotation = match element.attr_rdf(RDF_ANNOTATION) {
-            Some(annotation) => Some(self.iri_ref(annotation, &context)?.into()),
+            Some(annotation) => Some(Self::iri_ref(annotation, &context)?.into()),
             None => match element.attr_rdf(RDF_ANNOTATION_NODE_ID) {
                 Some(node_id) => Some(BlankNode::new(node_id)?.into()),
                 None => None,
@@ -586,7 +583,7 @@ impl RdfXmlParser {
         };
 
         if let Some(resource) = element.attr_rdf(RDF_RESOURCE) {
-            let object: NamedOrBlankNode = self.iri_ref(resource, &context)?.into();
+            let object: NamedOrBlankNode = Self::iri_ref(resource, &context)?.into();
             self.insert_statement(
                 subject.clone(),
                 predicate,
@@ -610,66 +607,106 @@ impl RdfXmlParser {
             return Ok(());
         }
 
-        match element.attr_rdf(RDF_PARSE_TYPE) {
-            Some("Resource") => {
+        if self.parse_typed_property(
+            subject,
+            &predicate,
+            reifier.as_ref(),
+            annotation.as_ref(),
+            element,
+            &context,
+        )? {
+            return Ok(());
+        }
+        self.parse_property_value(subject, predicate, reifier, annotation, element, &context)
+    }
+
+    /// Handle a property element whose `rdf:parseType` selects a typed value.
+    ///
+    /// Returns `Ok(true)` when the property is fully handled. Returns `Ok(false)` when the
+    /// element has no `rdf:parseType`, so its value is parsed by `parse_property_value`.
+    fn parse_typed_property(
+        &mut self,
+        subject: &NamedOrBlankNode,
+        predicate: &Iri,
+        reifier: Option<&NamedOrBlankNode>,
+        annotation: Option<&NamedOrBlankNode>,
+        element: &Element,
+        context: &ParseContext,
+    ) -> Result<bool, RdfCodecError> {
+        let Some(parse_type) = element.attr_rdf(RDF_PARSE_TYPE) else {
+            return Ok(false);
+        };
+        match parse_type {
+            "Resource" => {
                 let object = self.fresh_bnode()?;
                 self.insert_statement(
                     subject.clone(),
-                    predicate,
+                    predicate.clone(),
                     named_or_blank_term(&object),
-                    reifier,
-                    annotation,
+                    reifier.cloned(),
+                    annotation.cloned(),
                 )?;
-                self.insert_property_attribute_statements(&object, element, &context)?;
+                self.insert_property_attribute_statements(&object, element, context)?;
                 for child in element.children.iter().filter_map(element_child) {
-                    self.parse_property_element(&object, child, &context)?;
+                    self.parse_property_element(&object, child, context)?;
                 }
-                return Ok(());
+                Ok(true)
             }
-            Some("Collection") => {
-                let head = self.parse_collection(element, &context)?;
-                return self.insert_statement(
+            "Collection" => {
+                let head = self.parse_collection(element, context)?;
+                self.insert_statement(
                     subject.clone(),
-                    predicate,
+                    predicate.clone(),
                     head,
-                    reifier,
-                    annotation,
-                );
+                    reifier.cloned(),
+                    annotation.cloned(),
+                )?;
+                Ok(true)
             }
-            Some("Literal") => {
+            "Literal" => {
                 let xml_literal = serialize_children_as_xml(element);
                 let literal = Literal::new_typed_literal(xml_literal, rdf_iri(RDF_XML_LITERAL)?);
-                return self.insert_statement(
+                self.insert_statement(
                     subject.clone(),
-                    predicate,
+                    predicate.clone(),
                     literal.into(),
-                    reifier,
-                    annotation,
-                );
+                    reifier.cloned(),
+                    annotation.cloned(),
+                )?;
+                Ok(true)
             }
-            Some("Triple") => {
+            "Triple" => {
                 // A triple term is an RDF 1.2 feature: without `rdf:version="1.2"` the
                 // whole property is ignored (W3C `rdf12-xml-tt-01`, "Ignored triple term").
                 if !context.rdf_version_12 {
-                    return Ok(());
+                    return Ok(true);
                 }
-                let triple = self.parse_triple_element(element, &context)?;
-                return self.insert_statement(
+                let triple = self.parse_triple_element(element, context)?;
+                self.insert_statement(
                     subject.clone(),
-                    predicate,
+                    predicate.clone(),
                     RdfTerm::Triple(Box::new(triple)),
-                    reifier,
-                    annotation,
-                );
+                    reifier.cloned(),
+                    annotation.cloned(),
+                )?;
+                Ok(true)
             }
-            Some(other) => {
-                return Err(RdfCodecError::new(format!(
-                    "RDF/XML parse error: unsupported rdf:parseType {other:?}"
-                )));
-            }
-            None => {}
+            other => Err(RdfCodecError::new(format!(
+                "RDF/XML parse error: unsupported rdf:parseType {other:?}"
+            ))),
         }
+    }
 
+    /// Parse the value of a property element that has no typed `rdf:parseType`.
+    fn parse_property_value(
+        &mut self,
+        subject: &NamedOrBlankNode,
+        predicate: Iri,
+        reifier: Option<NamedOrBlankNode>,
+        annotation: Option<NamedOrBlankNode>,
+        element: &Element,
+        context: &ParseContext,
+    ) -> Result<(), RdfCodecError> {
         let element_children: Vec<&Element> =
             element.children.iter().filter_map(element_child).collect();
         if let Some(datatype) = element.attr_rdf(RDF_DATATYPE) {
@@ -680,7 +717,7 @@ impl RdfXmlParser {
             }
             let literal = Literal::new_typed_literal(
                 element_text(element),
-                self.iri_ref(datatype, &context)?,
+                Self::iri_ref(datatype, context)?,
             );
             return self.insert_statement(
                 subject.clone(),
@@ -692,7 +729,7 @@ impl RdfXmlParser {
         }
 
         if element_children.len() == 1 {
-            let object = self.parse_node_element(element_children[0], &context)?;
+            let object = self.parse_node_element(element_children[0], context)?;
             return self.insert_statement(
                 subject.clone(),
                 predicate,
@@ -716,11 +753,11 @@ impl RdfXmlParser {
                 reifier,
                 annotation,
             )?;
-            self.insert_property_attribute_statements(&object, element, &context)?;
+            self.insert_property_attribute_statements(&object, element, context)?;
             return Ok(());
         }
 
-        let literal = self.context_literal(&element_text(element), None, &context)?;
+        let literal = Self::context_literal(&element_text(element), None, context)?;
         self.insert_statement(
             subject.clone(),
             predicate,
@@ -737,7 +774,7 @@ impl RdfXmlParser {
         context: &ParseContext,
     ) -> Result<(), RdfCodecError> {
         for attr in element.property_attrs() {
-            let literal = self.context_literal(&attr.value, None, context)?;
+            let literal = Self::context_literal(&attr.value, None, context)?;
             self.insert_statement(
                 subject.clone(),
                 attr.name.iri()?,
@@ -777,9 +814,10 @@ impl RdfXmlParser {
             };
             self.insert_statement(nodes[index].clone(), rdf_iri(RDF_REST)?, rest, None, None)?;
         }
-        Ok(named_or_blank_term(
-            nodes.first().expect("non-empty collection has a head node"),
-        ))
+        let head = nodes.first().ok_or_else(|| {
+            RdfCodecError::new("RDF/XML parse error: collection has no head node")
+        })?;
+        Ok(named_or_blank_term(head))
     }
 
     fn parse_triple_element(
@@ -802,7 +840,7 @@ impl RdfXmlParser {
         let type_attr = node.attr_rdf(RDF_TYPE);
         let prop_attrs: Vec<&Attribute> = node.property_attrs().collect();
         let child_props: Vec<&Element> = node.children.iter().filter_map(element_child).collect();
-        if type_attr.is_some() as usize + prop_attrs.len() + child_props.len() != 1 {
+        if usize::from(type_attr.is_some()) + prop_attrs.len() + child_props.len() != 1 {
             return Err(RdfCodecError::new(
                 "RDF/XML parse error: rdf:parseType=\"Triple\" requires exactly one predicate/object",
             ));
@@ -810,12 +848,12 @@ impl RdfXmlParser {
         let (predicate, object): (Iri, RdfTerm) = if let Some(type_iri) = type_attr {
             (
                 rdf_iri(RDF_TYPE)?,
-                self.iri_ref(type_iri, &node_ctx)?.into(),
+                Self::iri_ref(type_iri, &node_ctx)?.into(),
             )
         } else if let Some(attr) = prop_attrs.first() {
             (
                 attr.name.iri()?,
-                self.context_literal(&attr.value, None, &node_ctx)?.into(),
+                Self::context_literal(&attr.value, None, &node_ctx)?.into(),
             )
         } else {
             (
@@ -833,7 +871,7 @@ impl RdfXmlParser {
     ) -> Result<RdfTerm, RdfCodecError> {
         let context = context.for_child(property)?;
         if let Some(resource) = property.attr_rdf(RDF_RESOURCE) {
-            return Ok(self.iri_ref(resource, &context)?.into());
+            return Ok(Self::iri_ref(resource, &context)?.into());
         }
         if let Some(node_id) = property.attr_rdf(RDF_NODE_ID) {
             return Ok(BlankNode::new(node_id)?.into());
@@ -853,13 +891,12 @@ impl RdfXmlParser {
                 "RDF/XML parse error: rdf:parseType=\"Triple\" object has multiple node elements",
             ));
         }
-        Ok(self
-            .context_literal(
-                &element_text(property),
-                property.attr_rdf(RDF_DATATYPE),
-                &context,
-            )?
-            .into())
+        Ok(Self::context_literal(
+            &element_text(property),
+            property.attr_rdf(RDF_DATATYPE),
+            &context,
+        )?
+        .into())
     }
 
     fn subject_for_node(
@@ -868,10 +905,10 @@ impl RdfXmlParser {
         context: &ParseContext,
     ) -> Result<NamedOrBlankNode, RdfCodecError> {
         if let Some(about) = element.attr_rdf(RDF_ABOUT) {
-            return Ok(self.iri_ref(about, context)?.into());
+            return Ok(Self::iri_ref(about, context)?.into());
         }
         if let Some(id) = element.attr_rdf(RDF_ID) {
-            return Ok(self.rdf_id_iri(id, context)?.into());
+            return Ok(Self::rdf_id_iri(id, context)?.into());
         }
         if let Some(node_id) = element.attr_rdf(RDF_NODE_ID) {
             return Ok(BlankNode::new(node_id)?.into());
@@ -897,12 +934,7 @@ impl RdfXmlParser {
         // rdf:Statement/subject/predicate/object quads); `rdf:annotation` /
         // `rdf:annotationNodeID` is the RDF 1.2 reifier (rdf:reifies a triple term).
         if let Some(reifier) = reifier {
-            self.insert_classic_reification(
-                reifier,
-                subject.clone(),
-                predicate.clone(),
-                object.clone(),
-            )?;
+            self.insert_classic_reification(reifier, &subject, predicate.clone(), object.clone())?;
         }
         if let Some(annotation) = annotation {
             self.insert_reifier(annotation, subject, predicate, object)?;
@@ -914,7 +946,7 @@ impl RdfXmlParser {
     fn insert_classic_reification(
         &mut self,
         reifier: NamedOrBlankNode,
-        subject: NamedOrBlankNode,
+        subject: &NamedOrBlankNode,
         predicate: Iri,
         object: RdfTerm,
     ) -> Result<(), RdfCodecError> {
@@ -928,7 +960,7 @@ impl RdfXmlParser {
         self.dataset.insert(RdfQuad::new(
             reifier.clone(),
             rdf_iri(RDF_SUBJECT)?,
-            named_or_blank_term(&subject),
+            named_or_blank_term(subject),
             g.clone(),
         ));
         self.dataset.insert(RdfQuad::new(
@@ -960,7 +992,6 @@ impl RdfXmlParser {
     }
 
     fn context_literal(
-        &self,
         lexical: &str,
         datatype: Option<&str>,
         context: &ParseContext,
@@ -968,7 +999,7 @@ impl RdfXmlParser {
         if let Some(datatype) = datatype {
             return Ok(Literal::new_typed_literal(
                 lexical,
-                self.iri_ref(datatype, context)?,
+                Self::iri_ref(datatype, context)?,
             ));
         }
         if let Some(language) = &context.language {
@@ -983,7 +1014,7 @@ impl RdfXmlParser {
         Ok(Literal::new_simple_literal(lexical))
     }
 
-    fn iri_ref(&self, value: &str, context: &ParseContext) -> Result<Iri, RdfCodecError> {
+    fn iri_ref(value: &str, context: &ParseContext) -> Result<Iri, RdfCodecError> {
         let iri = if has_iri_scheme(value) {
             value.to_string()
         } else if let Some(base) = &context.base_iri {
@@ -994,7 +1025,7 @@ impl RdfXmlParser {
         Iri::new(iri).map_err(Into::into)
     }
 
-    fn rdf_id_iri(&self, value: &str, context: &ParseContext) -> Result<Iri, RdfCodecError> {
+    fn rdf_id_iri(value: &str, context: &ParseContext) -> Result<Iri, RdfCodecError> {
         if value.is_empty() {
             return Err(RdfCodecError::new("RDF/XML parse error: empty rdf:ID"));
         }
@@ -1084,40 +1115,40 @@ fn write_property(
     let name = serializer_qname(predicate.as_str(), namespaces);
     match object {
         RdfTerm::Iri(iri) => {
-            out.push_str(&format!(
-                "{indent}<{name} rdf:resource=\"{}\"/>\n",
+            let _ = writeln!(
+                out,
+                "{indent}<{name} rdf:resource=\"{}\"/>",
                 escape_xml_attr(iri.as_str())
-            ));
+            );
         }
         RdfTerm::BlankNode(node) => {
-            out.push_str(&format!(
-                "{indent}<{name} rdf:nodeID=\"{}\"/>\n",
+            let _ = writeln!(
+                out,
+                "{indent}<{name} rdf:nodeID=\"{}\"/>",
                 escape_xml_attr(node.as_str())
-            ));
+            );
         }
         RdfTerm::Literal(literal) => {
-            out.push_str(&format!("{indent}<{name}"));
+            let _ = write!(out, "{indent}<{name}");
             if let Some(language) = &literal.language {
-                out.push_str(&format!(" xml:lang=\"{}\"", escape_xml_attr(language)));
+                let _ = write!(out, " xml:lang=\"{}\"", escape_xml_attr(language));
             }
             if let Some(direction) = literal.direction {
-                out.push_str(&format!(" xmlns:its=\"{ITS_NS}\" its:dir=\"{direction}\""));
+                let _ = write!(out, " xmlns:its=\"{ITS_NS}\" its:dir=\"{direction}\"");
             }
             if let Some(datatype) = &literal.datatype {
-                out.push_str(&format!(
+                let _ = write!(
+                    out,
                     " rdf:datatype=\"{}\"",
                     escape_xml_attr(datatype.as_str())
-                ));
+                );
             }
-            out.push_str(&format!(
-                ">{}</{name}>\n",
-                escape_xml_text(&literal.lexical)
-            ));
+            let _ = writeln!(out, ">{}</{name}>", escape_xml_text(&literal.lexical));
         }
         RdfTerm::Triple(triple) => {
-            out.push_str(&format!("{indent}<{name} rdf:parseType=\"Triple\">\n"));
+            let _ = writeln!(out, "{indent}<{name} rdf:parseType=\"Triple\">");
             write_triple_node(out, &format!("{indent}  "), triple, namespaces)?;
-            out.push_str(&format!("{indent}</{name}>\n"));
+            let _ = writeln!(out, "{indent}</{name}>");
         }
     }
     Ok(())
@@ -1129,16 +1160,13 @@ fn write_triple_node(
     triple: &RdfTriple,
     namespaces: &BTreeMap<String, String>,
 ) -> Result<(), RdfCodecError> {
-    out.push_str(&format!("{indent}<rdf:Description"));
+    let _ = write!(out, "{indent}<rdf:Description");
     match &triple.subject {
         NamedOrBlankNode::Iri(iri) => {
-            out.push_str(&format!(" rdf:about=\"{}\"", escape_xml_attr(iri.as_str())));
+            let _ = write!(out, " rdf:about=\"{}\"", escape_xml_attr(iri.as_str()));
         }
         NamedOrBlankNode::BlankNode(node) => {
-            out.push_str(&format!(
-                " rdf:nodeID=\"{}\"",
-                escape_xml_attr(node.as_str())
-            ));
+            let _ = write!(out, " rdf:nodeID=\"{}\"", escape_xml_attr(node.as_str()));
         }
     }
     out.push_str(">\n");
@@ -1149,24 +1177,18 @@ fn write_triple_node(
         &triple.object,
         namespaces,
     )?;
-    out.push_str(&format!("{indent}</rdf:Description>\n"));
+    let _ = writeln!(out, "{indent}</rdf:Description>");
     Ok(())
 }
 
 fn serializer_qname(iri: &str, namespaces: &BTreeMap<String, String>) -> String {
     let (namespace, local) = split_property_iri(iri);
-    let prefix = namespaces
-        .get(namespace)
-        .map(String::as_str)
-        .unwrap_or("ns");
+    let prefix = namespaces.get(namespace).map_or("ns", String::as_str);
     format!("{prefix}:{local}")
 }
 
 fn split_property_iri(iri: &str) -> (&str, &str) {
-    let split = iri
-        .rfind(['#', '/', ':'])
-        .map(|index| index + 1)
-        .unwrap_or(0);
+    let split = iri.rfind(['#', '/', ':']).map_or(0, |index| index + 1);
     let (namespace, local) = iri.split_at(split);
     if local.is_empty() || !is_xml_name(local) {
         (iri, "property")
@@ -1213,9 +1235,9 @@ fn serialize_xml_node(node: &XmlNode, apex_ns: Option<&[(String, String)]>, out:
             if let Some(namespaces) = apex_ns {
                 for (prefix, iri) in namespaces {
                     if prefix.is_empty() {
-                        out.push_str(&format!(" xmlns=\"{}\"", escape_xml_attr(iri)));
+                        let _ = write!(out, " xmlns=\"{}\"", escape_xml_attr(iri));
                     } else {
-                        out.push_str(&format!(" xmlns:{prefix}=\"{}\"", escape_xml_attr(iri)));
+                        let _ = write!(out, " xmlns:{prefix}=\"{}\"", escape_xml_attr(iri));
                     }
                 }
             }
@@ -1309,19 +1331,18 @@ fn remove_dot_segments(path: &str) -> String {
 
 fn split_raw_path_suffix(raw: &str) -> (&str, &str) {
     let split = raw.find(['?', '#']).unwrap_or(raw.len());
-    (&raw[..split], &raw[split..])
+    raw.split_at(split)
 }
 
 fn split_base_for_path(base: &str) -> (String, &str) {
     let Some(scheme_end) = base.find(':') else {
         return (String::new(), base);
     };
-    let scheme_prefix = &base[..=scheme_end];
-    let rest = &base[scheme_end + 1..];
+    // `scheme_end` indexes the ASCII `:`, so the split after it is on a char boundary.
+    let (scheme_prefix, rest) = base.split_at(scheme_end + 1);
     if let Some(after_slashes) = rest.strip_prefix("//") {
         let authority_end = after_slashes.find('/').unwrap_or(after_slashes.len());
-        let authority = &after_slashes[..authority_end];
-        let path = &after_slashes[authority_end..];
+        let (authority, path) = after_slashes.split_at(authority_end);
         (format!("{scheme_prefix}//{authority}"), path)
     } else {
         (scheme_prefix.to_string(), rest)
@@ -1349,8 +1370,8 @@ fn resolve_relative_iri(base: &str, raw: &str) -> String {
     }
 
     if raw.starts_with("//") {
-        if let Some(scheme_end) = base.find(':') {
-            return format!("{}:{raw}", &base[..scheme_end]);
+        if let Some((scheme, _)) = base.split_once(':') {
+            return format!("{scheme}:{raw}");
         }
         return raw.to_string();
     }
@@ -1365,8 +1386,7 @@ fn resolve_relative_iri(base: &str, raw: &str) -> String {
         } else {
             base_path
                 .rfind('/')
-                .map(|index| &base_path[..=index])
-                .unwrap_or("")
+                .map_or("", |index| base_path.split_at(index + 1).0)
         };
         format!("{base_dir}{raw_path}")
     };

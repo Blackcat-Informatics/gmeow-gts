@@ -316,9 +316,8 @@ fn rejects_invalid_rdf_term_positions() {
 fn rejects_forbidden_iri_characters() {
     for ch in ['{', '}', '|', '\\', '^', '`'] {
         let nq = format!("<https://ex/{ch}> <https://ex/p> <https://ex/o> .\n");
-        let err = match from_nquads(&nq) {
-            Ok(_) => panic!("forbidden IRI character {ch:?} should be rejected"),
-            Err(err) => err,
+        let Err(err) = from_nquads(&nq) else {
+            panic!("forbidden IRI character {ch:?} should be rejected");
         };
         assert!(
             err.to_string().contains("invalid character in IRI"),

@@ -1,6 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+[workspace]
+members = ["capi"]
+# The fuzz harness is its own workspace and is built with cargo-fuzz.
+exclude = ["fuzz"]
+
 [package]
 name = "gmeow-gts"
 description = "GTS (Graph Transport Substrate) format engine: CBOR-sequence append-only RDF 1.2 log reader, folder, and verifier"
@@ -11,6 +16,9 @@ homepage = "https://blackcatinformatics.ca/projects/gts"
 repository = "https://github.com/Blackcat-Informatics/gmeow-gts"
 readme = "README.md"
 keywords = ["rdf", "rdf-12", "cbor", "knowledge-graph", "linked-data"]
+
+[lints]
+workspace = true
 
 [features]
 default = []
@@ -52,6 +60,49 @@ tar = ["dep:tar"]
 name = "gts"
 path = "src/bin/gts.rs"
 
+# Feature-gated test targets: Cargo skips them unless the feature is enabled, so
+# a default build never compiles an empty crate for them.
+
+[[test]]
+name = "native_store"
+path = "tests/native_store.rs"
+required-features = ["native-store"]
+
+[[test]]
+name = "okf_corpus"
+path = "tests/okf_corpus.rs"
+required-features = ["okf"]
+
+[[test]]
+name = "okf"
+path = "tests/okf.rs"
+required-features = ["okf"]
+
+[[test]]
+name = "rdf_codecs"
+path = "tests/rdf_codecs.rs"
+required-features = ["rdf-codecs"]
+
+[[test]]
+name = "rdf"
+path = "tests/rdf.rs"
+required-features = ["rdf"]
+
+[[test]]
+name = "tar_corpus"
+path = "tests/tar_corpus.rs"
+required-features = ["tar"]
+
+[[test]]
+name = "tar"
+path = "tests/tar.rs"
+required-features = ["tar"]
+
+[[test]]
+name = "yamlld"
+path = "tests/yamlld.rs"
+required-features = ["yaml-ld"]
+
 [dependencies]
 # emojihash + randomart visual fingerprints, published from
 # Blackcat-Informatics/visual-hashing.
@@ -75,7 +126,7 @@ oxsdatatypes = { version = "0.2.2", optional = true }
 oxiri = "0.3.1"
 oxilangtag = "0.1.6"
 serde = { version = "1", default-features = false, features = ["derive", "std"], optional = true }
-serde_json = { version = "1", optional = true }
+serde_json = { workspace = true, optional = true }
 serde_yaml = { version = "0.9", optional = true }
 tar = { version = "0.4", optional = true }
 quick-xml = { version = "0.42.0", optional = true }
@@ -89,4 +140,51 @@ getrandom = "0.4"
 libc = "0.2"
 
 [dev-dependencies]
+serde_json = { workspace = true }
+
+# Versions shared by more than one member are declared once, here.
+[workspace.dependencies]
 serde_json = "1"
+
+[workspace.lints.rust]
+# The crate calls libc for POSIX file metadata (src/files.rs); each unsafe block
+# carries a SAFETY: proof, so the lint is deny rather than forbid.
+unsafe_code = "deny"
+unreachable_pub = "deny"
+unused = { level = "deny", priority = -1 }
+dead_code = "deny"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unused_crate_dependencies = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+all ={ level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# Suppressions are scoped and reasoned: #[expect(..., reason = "...")].
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+used_underscore_binding = "deny"
+
+# Unfinished and debugging code never lands.
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+
+# No untyped panic, print or silent exit on a non-test path.
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+exit = "warn"
+mem_forget = "warn"
+unwrap_in_result = "warn"
+get_unwrap = "warn"
+string_slice = "warn"
+map_err_ignore = "warn"
+redundant_clone = "warn"
+
+# Pedantic noise with no trust value.
+module_name_repetitions = "allow"

@@ -126,7 +126,7 @@ fn rust_agent_memory_flow_is_append_only_and_verifyable() {
     assert_eq!(mem.verify().unwrap(), Vec::<String>::new());
     let bytes = std::fs::read(&path).unwrap();
     let graph = read(&bytes, true, None);
-    assert!(graph.diagnostics.is_empty());
+    assert_eq!(graph.diagnostics, [] as [gmeow_gts::model::Diagnostic; 0]);
     assert_eq!(graph.segment_heads.len(), 4);
     assert!(to_nquads(&graph).contains("wasDerivedFrom"));
 

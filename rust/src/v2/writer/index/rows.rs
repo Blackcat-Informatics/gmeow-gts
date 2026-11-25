@@ -68,7 +68,10 @@ impl IndexPrefix {
         first_row: u64,
         rows: u64,
     ) -> Result<(), HeaderError> {
-        let previous = &mut self.last_range[(frame_type - QUADS) as usize];
+        let previous = usize::try_from(frame_type - QUADS)
+            .ok()
+            .and_then(|slot| self.last_range.get_mut(slot))
+            .ok_or_else(|| cursor.error(MalformedReason::OutOfRange))?;
         let ranges = self.graphs.entry(graph).or_default();
         if let Some((prior_graph, index)) = *previous {
             if prior_graph == graph {

@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
-CAPI_TARGET="${CAPI}/target/debug"
+CAPI_TARGET="${ROOT}/rust/target/debug"
 PACKAGE="${GTS_SWIFT_PACKAGE_PATH:-${ROOT}}"
 SMOKE_TARGET="GmeowGTSSmoke"
 SWIFT_IMAGE="${SWIFT_IMAGE:-swift@sha256:4e50a9e711e8682a8c42bacfeed204568adfd6985a63b3789a165f28d296a28a}"
@@ -40,7 +40,7 @@ container_package_path() {
 }
 
 diff -u rust/capi/include/gts.h swift/Sources/CGts/include/gts.h
-cargo build --manifest-path "${CAPI}/Cargo.toml"
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml"
 
 run_smoke() {
   swift package dump-package --package-path "${PACKAGE}" >/dev/null
@@ -70,8 +70,8 @@ else
   docker run --rm \
     --user "$(id -u):$(id -g)" \
     -e HOME=/tmp/swift-home \
-    -e LIBRARY_PATH=/workspace/rust/capi/target/debug \
-    -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e LIBRARY_PATH=/workspace/rust/target/debug \
+    -e LD_LIBRARY_PATH=/workspace/rust/target/debug \
     -e GTS_SWIFT_PACKAGE_PATH="${PACKAGE_CONTAINER}" \
     -e GTS_SWIFT_SMOKE_TARGET="${SMOKE_TARGET}" \
     -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
@@ -83,9 +83,9 @@ else
     swift run \
       --package-path "${GTS_SWIFT_PACKAGE_PATH}" \
       --scratch-path /tmp/gmeow-gts-swift-build \
-      -Xlinker -L/workspace/rust/capi/target/debug \
+      -Xlinker -L/workspace/rust/target/debug \
       -Xlinker -rpath \
-      -Xlinker /workspace/rust/capi/target/debug \
+      -Xlinker /workspace/rust/target/debug \
       "${GTS_SWIFT_SMOKE_TARGET}" \
       /workspace/vectors/01-minimal.gts \
       /workspace/vectors/04-damaged-frame.gts \

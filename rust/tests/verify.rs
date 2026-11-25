@@ -48,7 +48,10 @@ fn public_key_armor(raw_public: &[u8; 32]) -> String {
     body.push(0x40);
     body.extend_from_slice(raw_public);
 
-    let mut packet = vec![0xc6, body.len() as u8]; // new-format public-key packet
+    let mut packet = vec![
+        0xc6,
+        u8::try_from(body.len()).expect("test key body fits one length octet"),
+    ]; // new-format public-key packet
     packet.extend_from_slice(&body);
     format!(
         "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n{}\n-----END PGP PUBLIC KEY BLOCK-----\n",
@@ -149,10 +152,7 @@ fn verify_with_trusted_key_uses_openpgp_fingerprint_as_kid() {
     let fingerprint = parse_transport_key(&armor).unwrap().fingerprint;
     let data = signed_file(seed, &fingerprint, &armor);
 
-    let result = verify_file_with_options(
-        &data,
-        &VerifyOptions::strict().with_armored_key(armor.clone()),
-    );
+    let result = verify_file_with_options(&data, &VerifyOptions::strict().with_armored_key(armor));
     assert!(result.ok, "{:?}", result.errors);
     assert_eq!(result.kid.as_deref(), Some(fingerprint.as_str()));
     assert_eq!(result.fingerprint.as_deref(), Some(fingerprint.as_str()));

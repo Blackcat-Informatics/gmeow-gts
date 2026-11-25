@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! The v2 frame writer and reader: identifiers, payload boundaries, stored checks and registries.
+
 use std::{fs, path::Path};
 
 use ciborium::Value;

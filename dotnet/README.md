@@ -20,14 +20,14 @@ independent GTS engine and does not add a CLI parity column.
 Build the C ABI library first:
 
 ```sh
-cargo build --manifest-path rust/capi/Cargo.toml
+cargo build --locked --manifest-path rust/capi/Cargo.toml
 ```
 
 Then build or run the .NET wrapper:
 
 ```sh
 dotnet build dotnet/Gmeow.Gts/Gmeow.Gts.csproj
-LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+LD_LIBRARY_PATH="$PWD/rust/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
   dotnet run --project dotnet/Gmeow.Gts.Smoke/Gmeow.Gts.Smoke.csproj -- \
   vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```

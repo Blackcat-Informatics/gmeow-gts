@@ -16,6 +16,12 @@ repos:
         entry: python3 scripts/check_licenses.py
         language: system
         pass_filenames: false
+      - id: rust-deny
+        name: Rust dependency policy (cargo deny check bans sources)
+        entry: cargo deny --manifest-path rust/Cargo.toml check bans sources
+        language: system
+        pass_filenames: false
+        always_run: true
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -30,8 +36,7 @@ repos:
             vectors/.*\.gts|
             vectors/v2/.*|
             ts/package-lock.json|
-            rust/Cargo.lock|
-            rust/capi/Cargo.lock
+            rust/Cargo.lock
           )$
       - id: end-of-file-fixer
         exclude: *keep-verbatim
@@ -68,7 +73,7 @@ repos:
         # identifiers of the generation-2 draft under docs/v2/; shs is the
         # abbreviation in the title of FIPS 180-4, Secure Hash Standard (SHS).
         args: ["--ignore-words-list=crate,crates,ser,derails,defaut,developpe,registre,valide,verifie,hte,otherwrite,shs"]
-        exclude: '^((archive/v1/)?docs/i18n/.*|vectors/.*|ts/package-lock.json|rust/Cargo.lock|rust/capi/Cargo.lock)$'
+        exclude: '^((archive/v1/)?docs/i18n/.*|vectors/.*|ts/package-lock.json|rust/Cargo.lock)$'
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1

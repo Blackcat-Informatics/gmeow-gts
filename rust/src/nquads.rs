@@ -9,6 +9,8 @@
 //! `<reifier> p v`). Inline blobs are externalised by the caller; this module
 //! emits the graph text only.
 
+use std::fmt::Write as _;
+
 use crate::model::{is_literal_direction, Graph, TermKind};
 
 const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
@@ -23,7 +25,9 @@ pub(crate) fn escape_literal(lex: &str) -> String {
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04X}", c as u32)),
+            c if (c as u32) < 0x20 => {
+                let _ = write!(out, "\\u{:04X}", c as u32);
+            }
             c => out.push(c),
         }
     }
@@ -55,12 +59,12 @@ pub(crate) fn render_term(g: &Graph, tid: usize) -> String {
         // Quoted triple (RDF 1.2 triple term): its own "tt" is authoritative;
         // a legacy "tt"-less term still resolves through its reifier (§7.3).
         TermKind::Triple => match g.triple_of(tid) {
-            Some((s, p, o)) => {
+            Some((subject, predicate, object)) => {
                 format!(
                     "<<( {} {} {} )>>",
-                    render_term(g, s),
-                    render_term(g, p),
-                    render_term(g, o)
+                    render_term(g, subject),
+                    render_term(g, predicate),
+                    render_term(g, object)
                 )
             }
             // degraded but syntactically valid: an unbound reifier becomes a
@@ -71,6 +75,7 @@ pub(crate) fn render_term(g: &Graph, tid: usize) -> String {
 }
 
 /// Serialise a folded [`Graph`] to N-Quads text.
+#[must_use]
 pub fn to_nquads(g: &Graph) -> String {
     let mut lines: Vec<String> = Vec::new();
     for &(s, p, o, gname) in &g.quads {

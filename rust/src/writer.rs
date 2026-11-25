@@ -31,13 +31,14 @@ fn uv(n: usize) -> Value {
 }
 
 /// Serialise a [`Term`] to its wire map (dropping absent fields).
+#[must_use]
 pub fn term_to_wire(t: &Term) -> Value {
     let mut entries: Vec<(Value, Value)> = vec![("k".into(), iv(t.kind as i64))];
     if let Some(v) = &t.value {
         entries.push(("v".into(), v.clone().into()));
     }
     if let Some(dt) = t.datatype {
-        entries.push(("dt".into(), iv(dt as i64)));
+        entries.push(("dt".into(), uv(dt)));
     }
     if let Some(l) = &t.lang {
         entries.push(("l".into(), l.clone().into()));
@@ -46,7 +47,7 @@ pub fn term_to_wire(t: &Term) -> Value {
         entries.push(("dir".into(), direction.to_string().into()));
     }
     if let Some(rf) = t.reifier {
-        entries.push(("rf".into(), iv(rf as i64)));
+        entries.push(("rf".into(), uv(rf)));
     }
     // §7.3: a triple term states its OWN (s, p, o). Authoritative on read.
     // Gated on `k:3` because `"tt"` is only defined for a triple term: emitting
@@ -54,10 +55,7 @@ pub fn term_to_wire(t: &Term) -> Value {
     // bytes would silently read back as something other than what was authored.
     if t.kind == TermKind::Triple {
         if let Some((s, p, o)) = t.triple {
-            entries.push((
-                "tt".into(),
-                Value::Array(vec![iv(s as i64), iv(p as i64), iv(o as i64)]),
-            ));
+            entries.push(("tt".into(), Value::Array(vec![uv(s), uv(p), uv(o)])));
         }
     }
     Value::Map(entries)
@@ -91,7 +89,7 @@ impl Default for WriterOptions {
     }
 }
 
-/// COSE_Encrypt0 frame-authorship options.
+/// `COSE_Encrypt0` frame-authorship options.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Encrypt0Options {
     /// Recipient key id.
@@ -119,9 +117,9 @@ pub struct FrameOptions {
     pub pub_meta: Option<Value>,
     /// Recipient metadata rows (`"to"`).
     pub recipients: Vec<Value>,
-    /// Explicit COSE_Sign1 bytes. When omitted, the writer's configured signer is used.
+    /// Explicit `COSE_Sign1` bytes. When omitted, the writer's configured signer is used.
     pub signature: Option<Vec<u8>>,
-    /// Encrypt the transformed payload as COSE_Encrypt0 and append `cose-encrypt0` to `"x"`.
+    /// Encrypt the transformed payload as `COSE_Encrypt0` and append `cose-encrypt0` to `"x"`.
     pub encrypt: Option<Encrypt0Options>,
 }
 
@@ -143,7 +141,7 @@ pub struct SnapshotSigner {
     pub secret: [u8; 32],
     /// COSE key id used in frame signatures and `gts:transportKey`.
     pub kid: String,
-    /// ASCII-armored OpenPGP Ed25519 public-key certificate embedded as transport metadata.
+    /// ASCII-armored `OpenPGP` Ed25519 public-key certificate embedded as transport metadata.
     pub public_key_armor: String,
 }
 
@@ -212,6 +210,7 @@ impl From<CodecError> for WriterError {
 }
 
 /// Choose `zstd-rsyncable` for large payloads when the base chain is exactly `["zstd"]`.
+#[must_use]
 pub fn choose_snapshot_transform(
     base_chain: &[String],
     payload_len: usize,
@@ -228,6 +227,11 @@ pub fn choose_snapshot_transform(
 ///
 /// The writer emits, in order: optional signed transport-key metadata, sorted
 /// content-addressed blob frames, then the canonical single `snapshot` frame.
+///
+/// # Errors
+///
+/// Returns [`WriterError`] when a blob or snapshot frame is rejected, when a
+/// transform name is missing from the writer catalog, or when encoding fails.
 pub fn snapshot_from_graph(
     graph: &Graph,
     profile: &str,
@@ -346,7 +350,42 @@ fn default_catalog() -> Vec<(i64, Codec)> {
     ]
 }
 
+/// Reject frame options that combine fields the frame format forbids.
+///
+/// # Errors
+///
+/// Returns [`WriterError::InvalidFrame`] when `payload` and `raw` are both set,
+/// when a transform or encryption has no payload or raw source, or when
+/// `zstd_level` is set without a zstd transform.
+fn validate_frame_options(options: &FrameOptions) -> Result<(), WriterError> {
+    if options.payload.is_some() && options.raw.is_some() {
+        return Err(WriterError::InvalidFrame(
+            "payload and raw are mutually exclusive".to_string(),
+        ));
+    }
+    if (!options.transform.is_empty() || options.encrypt.is_some())
+        && options.payload.is_none()
+        && options.raw.is_none()
+    {
+        return Err(WriterError::InvalidFrame(
+            "transform/encrypt requires a payload or raw source".to_string(),
+        ));
+    }
+    if options.zstd_level.is_some()
+        && !options
+            .transform
+            .iter()
+            .any(|name| matches!(name.as_str(), "zstd" | "zstd-rsyncable"))
+    {
+        return Err(WriterError::InvalidFrame(
+            "zstd_level requires a zstd or zstd-rsyncable transform".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 /// Accumulate a GTS log as a CBOR Sequence.
+#[derive(Debug)]
 pub struct Writer {
     name_to_id: HashMap<String, i64>,
     prev: Vec<u8>,
@@ -363,6 +402,7 @@ pub struct Writer {
 
 impl Writer {
     /// Create a writer and emit the Header (the chain genesis).
+    #[must_use]
     pub fn new(profile: &str) -> Self {
         Self::with_layout(profile, None)
     }
@@ -373,6 +413,10 @@ impl Writer {
     /// authorable graph frames in a fixed order, and relies on deterministic
     /// CBOR for every hashed frame. It does not replay reader observations such
     /// as diagnostics, signatures, opaque nodes, or segment ledgers.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CodecError`] when a stored blob cannot be decoded to its bytes.
     pub fn deterministic(graph: &Graph, profile: &str) -> Result<Self, CodecError> {
         let remap = deterministic_term_remap(graph);
         let mut writer = Self::new(profile);
@@ -440,26 +484,7 @@ impl Writer {
             writer.add_annot(&annotations);
         }
 
-        let mut blobs: Vec<(String, Vec<u8>)> = graph
-            .blobs
-            .iter()
-            .map(|(digest, entry)| Ok((digest.clone(), entry.decoded_vec()?)))
-            .collect::<Result<_, CodecError>>()?;
-        blobs.sort_by(|a, b| a.0.cmp(&b.0));
-        for (digest, data) in blobs {
-            let meta = graph
-                .blob_meta
-                .iter()
-                .find(|(candidate, _)| candidate == &digest)
-                .map(|(_, meta)| meta);
-            let mt = meta
-                .and_then(|value| map_text(value, "mt"))
-                .map(str::to_string);
-            let rep = meta
-                .and_then(|value| map_text(value, "rep"))
-                .map(str::to_string);
-            writer.add_blob(&data, mt.as_deref(), rep.as_deref());
-        }
+        add_deterministic_blobs(&mut writer, graph)?;
 
         if !graph.meta.is_empty() {
             let mut entries: Vec<(Value, Value)> = graph
@@ -491,6 +516,11 @@ impl Writer {
     /// Build a writer from a native RDF store.
     ///
     /// This constructor is available only with `--features native-store`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::native_store::NativeStoreError`] when the store cannot be converted
+    /// into a GTS writer for `profile`.
     #[cfg(feature = "native-store")]
     pub fn from_store(
         store: &crate::native_store::NativeStore,
@@ -501,6 +531,14 @@ impl Writer {
 
     /// Create a writer with a header layout-state claim (§3.3;
     /// `"streamable"` is the only value this revision defines).
+    ///
+    /// # Panics
+    ///
+    /// Panics when `layout` is `Some` and holds a value other than `"streamable"`.
+    #[expect(
+        clippy::expect_used,
+        reason = "the layout claim is a caller constant; an unsupported value is a bug"
+    )]
     pub fn with_layout(profile: &str, layout: Option<&str>) -> Self {
         let options = WriterOptions {
             layout: layout.map(str::to_string),
@@ -510,6 +548,11 @@ impl Writer {
     }
 
     /// Create a writer with explicit header options.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WriterError::InvalidFrame`] when `options.layout` is `Some` and
+    /// holds a value other than `"streamable"`.
     pub fn with_options(profile: &str, options: WriterOptions) -> Result<Self, WriterError> {
         // §5: "streamable" is the only layout this revision defines; a typo'd
         // claim would persist into the tamper-evident header.
@@ -587,10 +630,15 @@ impl Writer {
         self.signer = Some((key, kid.to_string()));
     }
 
-    /// Sign every subsequently appended frame with an unencrypted OpenPGP Ed25519 secret key.
+    /// Sign every subsequently appended frame with an unencrypted `OpenPGP` Ed25519 secret key.
     ///
     /// When `kid_override` is `None`, the COSE key id defaults to the key's
-    /// OpenPGP v4 fingerprint.
+    /// `OpenPGP` v4 fingerprint.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::openpgp::OpenPgpError`] when `armored` is not an
+    /// unencrypted armored `OpenPGP` Ed25519 secret key.
     pub fn sign_with_openpgp_secret_key(
         &mut self,
         armored: &str,
@@ -603,6 +651,7 @@ impl Writer {
     }
 
     /// The id the next appended frame must reference as `"prev"`.
+    #[must_use]
     pub fn head(&self) -> &[u8] {
         &self.prev
     }
@@ -620,6 +669,15 @@ impl Writer {
     }
 
     /// Append one frame and return its `"id"`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when [`Writer::add_frame_with_options`] rejects the frame, for
+    /// example when a transform name is not in the writer catalog.
+    #[expect(
+        clippy::expect_used,
+        reason = "typed helpers build valid options; a rejected transform is a bug"
+    )]
     pub fn add_frame(
         &mut self,
         frame_type: &str,
@@ -647,34 +705,21 @@ impl Writer {
     /// frame-id preimage used by readers and detached verifiers. The stored
     /// `prev` link always names the prior head in this writer, maintaining a
     /// single append-only segment chain.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WriterError::InvalidFrame`] when both `payload` and `raw` are
+    /// set, when a transform or encryption has neither a payload nor raw bytes,
+    /// when `zstd_level` is set without a zstd transform, or when `encrypt` is
+    /// set on a `wasm32` target. Returns [`WriterError::MissingCatalogEntry`]
+    /// when a transform or the `cose-encrypt0` codec is absent from the writer
+    /// catalog. Returns [`WriterError::Codec`] when a transform fails to encode.
     pub fn add_frame_with_options(
         &mut self,
         frame_type: &str,
         options: FrameOptions,
     ) -> Result<Vec<u8>, WriterError> {
-        if options.payload.is_some() && options.raw.is_some() {
-            return Err(WriterError::InvalidFrame(
-                "payload and raw are mutually exclusive".to_string(),
-            ));
-        }
-        if (!options.transform.is_empty() || options.encrypt.is_some())
-            && options.payload.is_none()
-            && options.raw.is_none()
-        {
-            return Err(WriterError::InvalidFrame(
-                "transform/encrypt requires a payload or raw source".to_string(),
-            ));
-        }
-        if options.zstd_level.is_some()
-            && !options
-                .transform
-                .iter()
-                .any(|name| matches!(name.as_str(), "zstd" | "zstd-rsyncable"))
-        {
-            return Err(WriterError::InvalidFrame(
-                "zstd_level requires a zstd or zstd-rsyncable transform".to_string(),
-            ));
-        }
+        validate_frame_options(&options)?;
         let mut frame: Vec<(Value, Value)> = vec![("t".into(), frame_type.into())];
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -766,7 +811,7 @@ impl Writer {
         self.types.push(frame_type.to_string());
         self.frame_ids.push(id.clone());
         self.buf.extend_from_slice(&canonical(&Value::Map(frame)));
-        self.prev = id.clone();
+        self.prev.clone_from(&id);
         Ok(id)
     }
 
@@ -781,9 +826,9 @@ impl Writer {
         let rows: Vec<Value> = quads
             .iter()
             .map(|&(s, p, o, g)| {
-                let mut row = vec![iv(s as i64), iv(p as i64), iv(o as i64)];
+                let mut row = vec![uv(s), uv(p), uv(o)];
                 if let Some(gv) = g {
-                    row.push(iv(gv as i64));
+                    row.push(uv(gv));
                 }
                 Value::Array(row)
             })
@@ -796,9 +841,9 @@ impl Writer {
         let rows: Vec<Value> = bindings
             .iter()
             .map(|&(rid, (s, p, o), g)| {
-                let mut row = vec![iv(rid as i64), iv(s as i64), iv(p as i64), iv(o as i64)];
+                let mut row = vec![uv(rid), uv(s), uv(p), uv(o)];
                 if let Some(gv) = g {
-                    row.push(iv(gv as i64));
+                    row.push(uv(gv));
                 }
                 Value::Array(row)
             })
@@ -811,9 +856,9 @@ impl Writer {
         let rows: Vec<Value> = rows
             .iter()
             .map(|&(s, p, o, g)| {
-                let mut row = vec![iv(s as i64), iv(p as i64), iv(o as i64)];
+                let mut row = vec![uv(s), uv(p), uv(o)];
                 if let Some(gv) = g {
-                    row.push(iv(gv as i64));
+                    row.push(uv(gv));
                 }
                 Value::Array(row)
             })
@@ -866,7 +911,7 @@ impl Writer {
     /// index wins (§6.2).
     fn add_index_impl(&mut self, include_mmr: bool) -> Vec<u8> {
         let mut payload: Vec<(Value, Value)> = vec![
-            ("count".into(), iv(self.types.len() as i64)),
+            ("count".into(), uv(self.types.len())),
             ("head".into(), Value::Bytes(self.prev.clone())),
         ];
         if include_mmr {
@@ -877,15 +922,15 @@ impl Writer {
         }
         if !self.offsets.is_empty() {
             // "off"/"ti" are [+ uint]-shaped — omit when empty
-            let off: Vec<Value> = self.offsets.iter().map(|&o| iv(o as i64)).collect();
+            let off: Vec<Value> = self.offsets.iter().map(|&o| uv(o)).collect();
             let mut ti: Vec<(Value, Value)> = Vec::new();
             for (pos, ftype) in self.types.iter().enumerate() {
                 match ti
                     .iter_mut()
                     .find(|(k, _)| matches!(k, Value::Text(t) if t == ftype))
                 {
-                    Some((_, Value::Array(positions))) => positions.push(iv(pos as i64)),
-                    _ => ti.push((ftype.clone().into(), Value::Array(vec![iv(pos as i64)]))),
+                    Some((_, Value::Array(positions))) => positions.push(uv(pos)),
+                    _ => ti.push((ftype.clone().into(), Value::Array(vec![uv(pos)]))),
                 }
             }
             payload.push(("off".into(), Value::Array(off)));
@@ -894,6 +939,7 @@ impl Writer {
         self.add_frame("index", Some(Value::Map(payload)), None, None, None)
     }
 
+    /// Adds an index frame and returns the bytes that encode it.
     pub fn add_index(&mut self) -> Vec<u8> {
         self.add_index_impl(false)
     }
@@ -907,6 +953,7 @@ impl Writer {
     }
 
     /// Return the complete GTS file bytes.
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         self.buf.clone()
     }
@@ -957,6 +1004,7 @@ fn nesting_depth(graph: &Graph, tid: usize, stack: &mut Vec<usize>) -> usize {
 /// original id (§7.3). Depth is what makes the result *emittable*: every
 /// component of a triple term sorts strictly before it, so the `"tt"` written
 /// into the `terms` frame never forward-references.
+#[must_use]
 pub fn deterministic_term_remap(graph: &Graph) -> TermRemap {
     let mut old_by_new: Vec<usize> = (0..graph.terms.len()).collect();
     let keys: Vec<(usize, Vec<u8>)> = old_by_new
@@ -981,9 +1029,48 @@ pub fn deterministic_term_remap(graph: &Graph) -> TermRemap {
 
 impl Graph {
     /// Build the canonical payload for a single `snapshot` frame from this graph.
+    #[must_use]
     pub fn snapshot_payload(&self) -> Value {
         snapshot_payload(self)
     }
+}
+
+/// Append the blob frames of a folded graph in digest order.
+///
+/// # Errors
+///
+/// Returns [`CodecError`] when a stored blob cannot be decoded to its bytes.
+fn add_deterministic_blobs(writer: &mut Writer, graph: &Graph) -> Result<(), CodecError> {
+    let mut blobs: Vec<(String, Vec<u8>)> = graph
+        .blobs
+        .iter()
+        .map(|(digest, entry)| Ok((digest.clone(), entry.decoded_vec()?)))
+        .collect::<Result<_, CodecError>>()?;
+    blobs.sort_by(|a, b| a.0.cmp(&b.0));
+    for (digest, data) in blobs {
+        let meta = graph
+            .blob_meta
+            .iter()
+            .find(|(candidate, _)| candidate == &digest)
+            .map(|(_, meta)| meta);
+        let mt = meta
+            .and_then(|value| map_text(value, "mt"))
+            .map(str::to_string);
+        let rep = meta
+            .and_then(|value| map_text(value, "rep"))
+            .map(str::to_string);
+        writer.add_blob(&data, mt.as_deref(), rep.as_deref());
+    }
+    Ok(())
+}
+
+/// Build a row of term ids with the graph name appended when present.
+fn graph_row(ids: &[usize], graph_name: Option<usize>) -> Value {
+    let mut row: Vec<Value> = ids.iter().map(|&id| uv(id)).collect();
+    if let Some(graph_name) = graph_name {
+        row.push(uv(graph_name));
+    }
+    Value::Array(row)
 }
 
 /// Build the canonical payload for a single `snapshot` frame from a folded graph.
@@ -1016,13 +1103,7 @@ pub fn snapshot_payload(graph: &Graph) -> Value {
             Value::Array(
                 quads
                     .iter()
-                    .map(|&(s, p, o, g)| {
-                        let mut row = vec![uv(s), uv(p), uv(o)];
-                        if let Some(graph_name) = g {
-                            row.push(uv(graph_name));
-                        }
-                        Value::Array(row)
-                    })
+                    .map(|&(s, p, o, g)| graph_row(&[s, p, o], g))
                     .collect(),
             ),
         ),
@@ -1050,13 +1131,7 @@ pub fn snapshot_payload(graph: &Graph) -> Value {
             Value::Array(
                 reifiers
                     .iter()
-                    .map(|&(rid, (s, p, o), g)| {
-                        let mut row = vec![uv(rid), uv(s), uv(p), uv(o)];
-                        if let Some(graph_name) = g {
-                            row.push(uv(graph_name));
-                        }
-                        Value::Array(row)
-                    })
+                    .map(|&(rid, (s, p, o), g)| graph_row(&[rid, s, p, o], g))
                     .collect(),
             ),
         ));
@@ -1081,13 +1156,7 @@ pub fn snapshot_payload(graph: &Graph) -> Value {
             Value::Array(
                 annotations
                     .iter()
-                    .map(|&(r, p, v, g)| {
-                        let mut row = vec![uv(r), uv(p), uv(v)];
-                        if let Some(graph_name) = g {
-                            row.push(uv(graph_name));
-                        }
-                        Value::Array(row)
-                    })
+                    .map(|&(r, p, v, g)| graph_row(&[r, p, v], g))
                     .collect(),
             ),
         ));
@@ -1133,8 +1202,7 @@ fn term_identity_value(graph: &Graph, tid: usize, stack: &mut Vec<usize>) -> Val
                 "triple".into(),
                 Value::Null,
                 term.reifier
-                    .map(|rid| Value::from(rid as u64))
-                    .unwrap_or(Value::Null),
+                    .map_or(Value::Null, |rid| Value::from(rid as u64)),
             ]),
         },
     };
@@ -1143,7 +1211,7 @@ fn term_identity_value(graph: &Graph, tid: usize, stack: &mut Vec<usize>) -> Val
 }
 
 fn text_or_null(value: Option<&str>) -> Value {
-    value.map(Value::from).unwrap_or(Value::Null)
+    value.map_or(Value::Null, Value::from)
 }
 
 fn remap_id(old_to_new: &[usize], tid: usize) -> usize {
@@ -1169,9 +1237,9 @@ fn remap_term(term: &Term, old_to_new: &[usize]) -> Term {
 }
 
 fn quad_key(quad: &Quad) -> Vec<u8> {
-    let mut row = vec![iv(quad.0 as i64), iv(quad.1 as i64), iv(quad.2 as i64)];
+    let mut row = vec![uv(quad.0), uv(quad.1), uv(quad.2)];
     if let Some(graph_name) = quad.3 {
-        row.push(iv(graph_name as i64));
+        row.push(uv(graph_name));
     }
     canonical(&Value::Array(row))
 }
@@ -1220,9 +1288,10 @@ fn remap_suppression_target(target: &Value, old_to_new: &[usize]) -> Value {
                     let remapped = ids
                         .iter()
                         .map(|id| {
-                            value_idx(id)
-                                .map(|tid| Value::from(remap_id(old_to_new, tid) as u64))
-                                .unwrap_or_else(|| id.clone())
+                            value_idx(id).map_or_else(
+                                || id.clone(),
+                                |tid| Value::from(remap_id(old_to_new, tid) as u64),
+                            )
                         })
                         .collect();
                     return (key.clone(), Value::Array(remapped));
@@ -1265,6 +1334,7 @@ fn value_idx(value: &Value) -> Option<usize> {
 }
 
 /// Pack bytes into a `blake3:<hex>` digest string.
+#[must_use]
 pub fn digest_string(data: &[u8]) -> String {
     digest_str(data)
 }

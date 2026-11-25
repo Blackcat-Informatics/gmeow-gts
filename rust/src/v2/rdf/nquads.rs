@@ -12,9 +12,13 @@ use crate::{
 /// A projected term whose text cannot be written as N-Quads.
 #[derive(Debug)]
 pub enum NQuadsExportError {
+    /// An IRI in the term is malformed.
     Iri(oxiri::IriParseError),
+    /// A language tag in the term is malformed.
     Language(oxilangtag::LanguageTagParseError),
+    /// The term at the given index cannot be written as N-Quads.
     InvalidTerm(usize),
+    /// The term at the given index pairs a language tag with a datatype.
     LanguageDatatype(usize),
 }
 
@@ -57,7 +61,13 @@ fn literal(out: &mut String, lexical: &str) {
 
 impl RdfProjection {
     /// Encode the projected quads as N-Quads. Empty named graphs are available
-    /// through [Self::empty_graphs].
+    /// through [`Self::empty_graphs`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NQuadsExportError`] when a quad refers to a term that cannot be
+    /// written as N-Quads: a malformed IRI or language tag, or a language-tagged
+    /// literal that also has a datatype.
     pub fn to_nquads(&self) -> Result<String, NQuadsExportError> {
         let mut out = String::new();
         for &(subject, predicate, object, graph) in &self.quads {

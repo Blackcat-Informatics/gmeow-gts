@@ -13,11 +13,16 @@ use super::{
     Decoder, HeaderError,
 };
 
+/// The byte and item limits that bound one read.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ReadCapacity {
+    /// The largest stored payload accepted for one frame, in bytes.
     pub stored_bytes_per_frame: u64,
+    /// The largest decoded payload accepted for one frame, in bytes.
     pub decoded_bytes_per_frame: u64,
+    /// The largest total decoded payload accepted for one read, in bytes.
     pub decoded_bytes_per_read: u64,
+    /// The largest number of items accepted for one read.
     pub items_per_read: u64,
 }
 
@@ -32,33 +37,51 @@ impl Default for ReadCapacity {
     }
 }
 
+/// Why the payload of a frame is damaged.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PayloadDamage {
+    /// The payload fields are malformed.
     MalformedFields,
+    /// The codec does not allow the stored form.
     CodecConstraint,
+    /// The stored payload could not be decoded.
     DecodeFailed,
+    /// The decoded length differs from the declared length.
     DecodedLength,
+    /// The decoded payload does not match its digest.
     PayloadDigest,
 }
 
+/// Why the payload of a frame was not checked.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PayloadRefusal {
+    /// The stored payload exceeds the per-frame stored limit, in bytes.
     StoredSize(u64),
+    /// The decoded payload exceeds the per-frame decoded limit, in bytes.
     DecodedSize(u64),
+    /// The total decoded payload exceeds the per-read limit, in bytes.
     TotalDecoded(u64),
+    /// The payload uses a codec that this reader does not implement.
     UnknownCodec,
 }
 
+/// The check state of the payload of a frame.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PayloadState<'a> {
+    /// The payload was verified; holds the decoded bytes.
     Verified(Cow<'a, [u8]>),
+    /// The payload is damaged.
     Damaged(PayloadDamage),
+    /// The payload was not checked.
     Unchecked(PayloadRefusal),
 }
 
+/// The payload check of one frame.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PayloadCheck<'a> {
+    /// Whether the stored payload matches the stored check, if it was compared.
     pub stored_matches: Option<bool>,
+    /// The check state of the payload.
     pub state: PayloadState<'a>,
 }
 
@@ -167,10 +190,10 @@ impl PayloadBudget {
 
     pub(super) fn check<'a>(
         &mut self,
-        fields: PayloadFields<'a>,
+        fields: &PayloadFields<'a>,
         stored_matches: Option<bool>,
     ) -> PayloadCheck<'a> {
-        let state = match self.admit(&fields) {
+        let state = match self.admit(fields) {
             Ok(()) => check_payload(fields),
             Err(reason) => PayloadState::Unchecked(reason),
         };
@@ -181,7 +204,7 @@ impl PayloadBudget {
     }
 }
 
-fn check_payload(fields: PayloadFields<'_>) -> PayloadState<'_> {
+fn check_payload<'a>(fields: &PayloadFields<'a>) -> PayloadState<'a> {
     use PayloadDamage::{CodecConstraint, DecodeFailed, DecodedLength, PayloadDigest};
     let decoded = match fields.storage {
         Storage::Plain if fields.stored.len() as u64 == fields.decoded_length => {
@@ -217,7 +240,7 @@ fn zstd_header(size: u64) -> Vec<u8> {
         1..=255 => header.extend([0x20, bytes[0]]),
         256..=65_791 => {
             header.push(0x60);
-            header.extend(((size - 256) as u16).to_le_bytes());
+            header.extend(&(size - 256).to_le_bytes()[..2]);
         }
         65_792..=67_108_864 => {
             header.push(0xa0);
@@ -237,7 +260,7 @@ fn zstd_header(size: u64) -> Vec<u8> {
 
 fn decompress(mut stored: &[u8], size: u64) -> Option<Vec<u8>> {
     let size = usize::try_from(size).ok()?;
-    let mut decoded = Vec::new();
+    let mut output = Vec::new();
     let mut decoder = FrameDecoder::new();
     decoder.set_max_window_size(1 << 26).ok()?;
     decoder.init(&mut stored).ok()?;
@@ -251,11 +274,11 @@ fn decompress(mut stored: &[u8], size: u64) -> Option<Vec<u8>> {
         if end > size {
             return None;
         }
-        decoded.try_reserve(available).ok()?;
-        decoded.resize(end, 0);
-        decoder.read_exact(&mut decoded[written..end]).ok()?;
+        output.try_reserve(available).ok()?;
+        output.resize(end, 0);
+        decoder.read_exact(&mut output[written..end]).ok()?;
         written = end;
     }
     decoder.verify_content_size().ok()?;
-    (written == size && stored.is_empty()).then_some(decoded)
+    (written == size && stored.is_empty()).then_some(output)
 }

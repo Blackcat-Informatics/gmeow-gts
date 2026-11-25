@@ -40,9 +40,9 @@ installed rock with `GTS_LIBGTS` set to the locally built C ABI library.
 For a focused local check with a host LuaRocks install:
 
 ```sh
-cargo build --manifest-path rust/capi/Cargo.toml
-export GTS_LIBGTS="$PWD/rust/capi/target/debug/libgts.so"
-export LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+cargo build --locked --manifest-path rust/capi/Cargo.toml
+export GTS_LIBGTS="$PWD/rust/target/debug/libgts.so"
+export LD_LIBRARY_PATH="$PWD/rust/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 rm -rf /tmp/gts-luarocks
 luarocks lint lua/gmeow-gts-1.0.0rc1-1.rockspec
 luarocks make lua/gmeow-gts-1.0.0rc1-1.rockspec --tree /tmp/gts-luarocks

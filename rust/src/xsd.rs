@@ -47,16 +47,19 @@ pub enum XsdLexicalStatus {
 
 impl XsdLexicalStatus {
     /// Return `true` only when the datatype is recognized and valid.
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         matches!(self, Self::Valid { .. })
     }
 
     /// Return `true` only when the datatype is recognized and invalid.
+    #[must_use]
     pub fn is_invalid(&self) -> bool {
         matches!(self, Self::Invalid { .. })
     }
 
     /// Borrow the canonical lexical form for valid recognized literals.
+    #[must_use]
     pub fn canonical(&self) -> Option<&str> {
         match self {
             Self::Valid { canonical } => Some(canonical),
@@ -65,6 +68,7 @@ impl XsdLexicalStatus {
     }
 
     /// Borrow the invalid reason for ill-typed recognized literals.
+    #[must_use]
     pub fn reason(&self) -> Option<&str> {
         match self {
             Self::Invalid { reason } => Some(reason),
@@ -88,6 +92,7 @@ pub struct IllTypedLiteral {
 
 impl IllTypedLiteral {
     /// Build a stable graph diagnostic for this observation.
+    #[must_use]
     pub fn diagnostic(&self) -> Diagnostic {
         Diagnostic {
             code: ILL_TYPED_LITERAL_CODE.to_string(),
@@ -115,12 +120,10 @@ pub fn validate_lexical(datatype_iri: &str, lexical: &str) -> XsdLexicalStatus {
         "normalizedString" => valid(replace_xml_whitespace(lexical)),
         "token" => valid(collapse_xml_whitespace(lexical)),
         "boolean" => parse_display::<Boolean>(lexical, "boolean"),
-        "decimal" => canonical_decimal(lexical)
-            .map(valid)
-            .unwrap_or_else(invalid),
-        "integer" => canonical_integer(lexical)
-            .map(|canonical| valid(canonical.lexical))
-            .unwrap_or_else(invalid),
+        "decimal" => canonical_decimal(lexical).map_or_else(invalid, valid),
+        "integer" => {
+            canonical_integer(lexical).map_or_else(invalid, |canonical| valid(canonical.lexical))
+        }
         "nonPositiveInteger" | "negativeInteger" | "long" | "int" | "short" | "byte"
         | "nonNegativeInteger" | "unsignedLong" | "unsignedInt" | "unsignedShort"
         | "unsignedByte" | "positiveInteger" => validate_integer_family(local, lexical),
@@ -143,6 +146,7 @@ pub fn validate_lexical(datatype_iri: &str, lexical: &str) -> XsdLexicalStatus {
 }
 
 /// Return ill-typed literal observations for recognized XSD terms in a graph.
+#[must_use]
 pub fn ill_typed_literals(graph: &Graph) -> Vec<IllTypedLiteral> {
     ill_typed_literals_in_terms(&graph.terms)
 }
@@ -208,9 +212,10 @@ where
     T: FromStr + fmt::Display,
     T::Err: fmt::Display,
 {
-    T::from_str(lexical)
-        .map(|value| valid(value.to_string()))
-        .unwrap_or_else(|err| invalid(format!("invalid xsd:{name} lexical form: {err}")))
+    T::from_str(lexical).map_or_else(
+        |err| invalid(format!("invalid xsd:{name} lexical form: {err}")),
+        |value| valid(value.to_string()),
+    )
 }
 
 fn validate_float<T>(lexical: &str, name: &str) -> XsdLexicalStatus
@@ -241,14 +246,26 @@ fn validate_integer_family(local: &str, lexical: &str) -> XsdLexicalStatus {
         "negativeInteger" => canonical.sign < 0,
         "nonNegativeInteger" => canonical.sign >= 0,
         "positiveInteger" => canonical.sign > 0,
-        "long" => integer_in_range(&canonical.lexical, i64::MIN as i128, i64::MAX as i128),
-        "int" => integer_in_range(&canonical.lexical, i32::MIN as i128, i32::MAX as i128),
-        "short" => integer_in_range(&canonical.lexical, i16::MIN as i128, i16::MAX as i128),
-        "byte" => integer_in_range(&canonical.lexical, i8::MIN as i128, i8::MAX as i128),
-        "unsignedLong" => integer_in_range(&canonical.lexical, 0, u64::MAX as i128),
-        "unsignedInt" => integer_in_range(&canonical.lexical, 0, u32::MAX as i128),
-        "unsignedShort" => integer_in_range(&canonical.lexical, 0, u16::MAX as i128),
-        "unsignedByte" => integer_in_range(&canonical.lexical, 0, u8::MAX as i128),
+        "long" => integer_in_range(
+            &canonical.lexical,
+            i128::from(i64::MIN),
+            i128::from(i64::MAX),
+        ),
+        "int" => integer_in_range(
+            &canonical.lexical,
+            i128::from(i32::MIN),
+            i128::from(i32::MAX),
+        ),
+        "short" => integer_in_range(
+            &canonical.lexical,
+            i128::from(i16::MIN),
+            i128::from(i16::MAX),
+        ),
+        "byte" => integer_in_range(&canonical.lexical, i128::from(i8::MIN), i128::from(i8::MAX)),
+        "unsignedLong" => integer_in_range(&canonical.lexical, 0, i128::from(u64::MAX)),
+        "unsignedInt" => integer_in_range(&canonical.lexical, 0, i128::from(u32::MAX)),
+        "unsignedShort" => integer_in_range(&canonical.lexical, 0, i128::from(u16::MAX)),
+        "unsignedByte" => integer_in_range(&canonical.lexical, 0, i128::from(u8::MAX)),
         _ => true,
     };
 
@@ -264,11 +281,7 @@ fn canonical_integer(lexical: &str) -> Result<CanonicalInteger, String> {
         return Err("integer lexical form is empty".to_string());
     }
 
-    let (negative, digits) = match lexical.as_bytes()[0] {
-        b'+' => (false, &lexical[1..]),
-        b'-' => (true, &lexical[1..]),
-        _ => (false, lexical),
-    };
+    let (negative, digits) = split_sign(lexical);
     if digits.is_empty() {
         return Err("integer lexical form has no digits".to_string());
     }
@@ -293,6 +306,17 @@ fn canonical_integer(lexical: &str) -> Result<CanonicalInteger, String> {
     })
 }
 
+/// Split an optional leading `+` or `-` sign from a lexical form.
+fn split_sign(lexical: &str) -> (bool, &str) {
+    if let Some(rest) = lexical.strip_prefix('+') {
+        (false, rest)
+    } else if let Some(rest) = lexical.strip_prefix('-') {
+        (true, rest)
+    } else {
+        (false, lexical)
+    }
+}
+
 fn integer_in_range(lexical: &str, min: i128, max: i128) -> bool {
     lexical
         .parse::<i128>()
@@ -304,11 +328,7 @@ fn canonical_decimal(lexical: &str) -> Result<String, String> {
         return Err("decimal lexical form is empty".to_string());
     }
 
-    let (negative, body) = match lexical.as_bytes()[0] {
-        b'+' => (false, &lexical[1..]),
-        b'-' => (true, &lexical[1..]),
-        _ => (false, lexical),
-    };
+    let (negative, body) = split_sign(lexical);
     if body.is_empty() {
         return Err("decimal lexical form has no digits".to_string());
     }
@@ -357,8 +377,8 @@ fn is_decimal_with_optional_exponent(lexical: &str) -> bool {
     if exponent_markers > 1 {
         return false;
     }
-    let (mantissa, exponent) = match lexical.find(['e', 'E']) {
-        Some(index) => (&lexical[..index], Some(&lexical[index + 1..])),
+    let (mantissa, exponent) = match lexical.split_once(['e', 'E']) {
+        Some((mantissa, exponent)) => (mantissa, Some(exponent)),
         None => (lexical, None),
     };
     if !is_decimal_mantissa(mantissa) {
@@ -371,10 +391,7 @@ fn is_decimal_mantissa(value: &str) -> bool {
     if value.is_empty() {
         return false;
     }
-    let body = match value.as_bytes()[0] {
-        b'+' | b'-' => &value[1..],
-        _ => value,
-    };
+    let (_, body) = split_sign(value);
     if body.is_empty() || body.bytes().filter(|byte| *byte == b'.').count() > 1 {
         return false;
     }
@@ -388,10 +405,7 @@ fn is_signed_digits(value: &str) -> bool {
     if value.is_empty() {
         return false;
     }
-    let digits = match value.as_bytes()[0] {
-        b'+' | b'-' => &value[1..],
-        _ => value,
-    };
+    let (_, digits) = split_sign(value);
     !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit())
 }
 
@@ -444,10 +458,7 @@ fn effective_datatype_iri(terms: &[Term], term: &Term) -> String {
 
 fn ill_typed_literal_value(item: &IllTypedLiteral) -> Value {
     Value::Map(vec![
-        (
-            "term".into(),
-            Value::Integer(u64::try_from(item.term_id).expect("usize fits u64").into()),
-        ),
+        ("term".into(), Value::Integer((item.term_id as u64).into())),
         ("datatype".into(), item.datatype_iri.clone().into()),
         ("lexical".into(), item.lexical.clone().into()),
         ("reason".into(), item.reason.clone().into()),

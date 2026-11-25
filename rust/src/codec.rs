@@ -17,6 +17,7 @@ use structured_zstd::encoding::{compress_to_vec, CompressionLevel};
 /// A catalog entry (§5, §8.5).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Codec {
+    /// The canonical name of the codec, such as `gzip`.
     pub name: String,
     /// `"encode"` | `"compress"` | `"encrypt"`.
     pub cls: String,
@@ -28,7 +29,9 @@ pub enum CodecError {
     /// A missing capability: `reason` is `"unknown-codec"` or `"missing-key"`
     /// — the frame degrades to an opaque node with that reason (§8.3).
     Unavailable {
+        /// The missing capability: `unknown-codec` or `missing-key`.
         reason: &'static str,
+        /// A description of the missing capability.
         detail: String,
     },
     /// The codec is known but the data is corrupt — the frame is damaged.
@@ -58,9 +61,7 @@ pub struct EncodeOptions {
 }
 
 fn zstd_level(level: Option<i32>) -> CompressionLevel {
-    level
-        .map(CompressionLevel::Level)
-        .unwrap_or(DEFAULT_ZSTD_LEVEL)
+    level.map_or(DEFAULT_ZSTD_LEVEL, CompressionLevel::Level)
 }
 
 fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
@@ -97,7 +98,6 @@ fn decode_one(codec: &Codec, data: &[u8]) -> Result<Vec<u8>, CodecError> {
                                     .into(),
                             )
                         })?;
-                        continue;
                     }
                     Err(e) => return Err(CodecError::Failed(format!("zstd decode failed: {e}"))),
                 }
@@ -216,6 +216,11 @@ fn walk_zstd_frames(data: &[u8]) -> Result<(), String> {
 /// frame an opaque node (§6.1, §7.6) instead of failing when the bytes are first read.
 /// Only the codec applied last on encode sees the stored bytes; for any other chain
 /// there is nothing to check. Damage inside a block is not found here.
+///
+/// # Errors
+///
+/// Returns [`CodecError::Failed`] when the last codec is `zstd` or `zstd-rsyncable`
+/// (and not `encrypt`) and `data` does not parse as a sequence of whole zstd frames.
 pub fn check_payload_structure(chain: &[Codec], data: &[u8]) -> Result<(), CodecError> {
     match chain.last() {
         Some(codec)
@@ -267,6 +272,13 @@ fn encode_one(name: &str, data: &[u8], options: EncodeOptions) -> Result<Vec<u8>
 }
 
 /// Encode `data` through codec names in array order with explicit options (§8.2).
+///
+/// # Errors
+///
+/// Returns [`CodecError::Failed`] when `options.zstd_level` is set and `chain` has no
+/// `zstd` or `zstd-rsyncable` entry, or when gzip encoding fails. Returns
+/// [`CodecError::Unavailable`] with reason `unknown-codec` for a name the writer cannot
+/// encode.
 pub fn encode_chain_with_options(
     chain: &[String],
     data: &[u8],
@@ -289,6 +301,10 @@ pub fn encode_chain_with_options(
 }
 
 /// Encode `data` through codec names in array order (§8.2).
+///
+/// # Errors
+///
+/// Returns the errors of [`encode_chain_with_options`] with default options.
 pub fn encode_chain(chain: &[String], data: &[u8]) -> Result<Vec<u8>, CodecError> {
     encode_chain_with_options(chain, data, EncodeOptions::default())
 }
@@ -297,6 +313,12 @@ pub fn encode_chain(chain: &[String], data: &[u8]) -> Result<Vec<u8>, CodecError
 ///
 /// The baseline carries no keys, so every `encrypt`-class codec degrades to
 /// `missing-key` (matching the Python reader with `keys=None`).
+///
+/// # Errors
+///
+/// Returns [`CodecError::Unavailable`] with reason `missing-key` for an `encrypt`-class
+/// codec, or with reason `unknown-codec` for a codec this reader does not implement.
+/// Returns [`CodecError::Failed`] when the data is corrupt for its codec.
 pub fn decode_chain(chain: &[Codec], data: &[u8]) -> Result<Vec<u8>, CodecError> {
     decode_chain_with_decrypt(chain, data, None)
 }
@@ -305,6 +327,12 @@ pub fn decode_chain(chain: &[Codec], data: &[u8]) -> Result<Vec<u8>, CodecError>
 pub type Decryptor<'a> = dyn Fn(&Codec, &[u8]) -> Result<Vec<u8>, CodecError> + 'a;
 
 /// Reverse a resolved codec chain, handing encrypt-class transforms to `decrypt`.
+///
+/// # Errors
+///
+/// Returns the first error from `decrypt` for an `encrypt`-class codec. Without a
+/// `decrypt` resolver, returns [`CodecError::Unavailable`] with reason `missing-key`.
+/// Other errors match [`decode_chain`].
 pub fn decode_chain_with_decrypt(
     chain: &[Codec],
     data: &[u8],

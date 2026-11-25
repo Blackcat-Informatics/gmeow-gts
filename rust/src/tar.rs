@@ -18,6 +18,7 @@ pub struct TarError {
 }
 
 impl TarError {
+    /// Create a tar error carrying a human-readable detail message.
     pub fn new(detail: impl Into<String>) -> Self {
         Self {
             detail: detail.into(),
@@ -36,20 +37,30 @@ impl std::error::Error for TarError {}
 /// Compression to apply while writing a tar stream.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TarCompression {
+    /// Write an uncompressed tar stream.
     #[default]
     None,
+    /// Gzip-compress the tar stream.
     Gzip,
+    /// Zstandard-compress the tar stream.
     Zstd,
 }
 
 /// Options for [`to_tar`].
 #[derive(Clone, Debug, Default)]
 pub struct ToTarOptions {
+    /// Compression applied to the written tar stream.
     pub compression: TarCompression,
+    /// Omit user and group names, writing only numeric owner IDs.
     pub numeric_owner: bool,
 }
 
 /// Write a deterministic tar stream from a folded files-profile graph.
+///
+/// # Errors
+///
+/// Returns [`TarError`] when a folded entry cannot be encoded as a tar entry, or when the
+/// compressed or uncompressed stream cannot be written.
 pub fn to_tar<W: Write>(
     graph: &Graph,
     mut writer: W,
@@ -79,6 +90,10 @@ pub fn to_tar<W: Write>(
 }
 
 /// Build an uncompressed tar stream from a folded files-profile graph.
+///
+/// # Errors
+///
+/// Returns [`TarError`] when a folded entry cannot be encoded as a tar entry.
 pub fn to_tar_vec(graph: &Graph, options: &ToTarOptions) -> Result<Vec<u8>, TarError> {
     let mut out = Vec::new();
     write_tar_stream(graph, &mut out, options)?;
@@ -208,23 +223,29 @@ fn append_device_entry<W: Write>(
     let mut header = base_header(entry, options)?;
     header.set_entry_type(entry_type);
     header.set_size(0);
+    let Some(major) = entry.dev_major else {
+        return Err(TarError::new(format!("{} missing devMajor", entry.path)));
+    };
+    let Ok(major) = u32::try_from(major) else {
+        return Err(TarError::new(format!(
+            "{} devMajor exceeds u32 range",
+            entry.path
+        )));
+    };
     header
-        .set_device_major(
-            entry
-                .dev_major
-                .ok_or_else(|| TarError::new(format!("{} missing devMajor", entry.path)))?
-                .try_into()
-                .map_err(|_| TarError::new(format!("{} devMajor exceeds u32 range", entry.path)))?,
-        )
+        .set_device_major(major)
         .map_err(|err| TarError::new(format!("set dev major for {}: {err}", entry.path)))?;
+    let Some(minor) = entry.dev_minor else {
+        return Err(TarError::new(format!("{} missing devMinor", entry.path)));
+    };
+    let Ok(minor) = u32::try_from(minor) else {
+        return Err(TarError::new(format!(
+            "{} devMinor exceeds u32 range",
+            entry.path
+        )));
+    };
     header
-        .set_device_minor(
-            entry
-                .dev_minor
-                .ok_or_else(|| TarError::new(format!("{} missing devMinor", entry.path)))?
-                .try_into()
-                .map_err(|_| TarError::new(format!("{} devMinor exceeds u32 range", entry.path)))?,
-        )
+        .set_device_minor(minor)
         .map_err(|err| TarError::new(format!("set dev minor for {}: {err}", entry.path)))?;
     builder
         .append_data(&mut header, &entry.path, io::empty())
@@ -288,9 +309,8 @@ fn parse_mtime(value: Option<&str>) -> Result<u64, TarError> {
             )
         })
         .map_err(|err| TarError::new(format!("parse mtime {value}: {err}")))?;
-    let timestamp = dt.unix_timestamp();
-    if timestamp < 0 {
+    let Ok(timestamp) = u64::try_from(dt.unix_timestamp()) else {
         return Err(TarError::new(format!("negative tar mtime: {value}")));
-    }
-    Ok(timestamp as u64)
+    };
+    Ok(timestamp)
 }

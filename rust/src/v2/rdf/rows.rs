@@ -97,20 +97,7 @@ impl Projector {
                 }
             }
             REIFIER_BINDINGS => {
-                let reifiers = delta_column(&mut cursor, count)?;
-                let triples = delta_column(&mut cursor, count)?;
-                cursor.end()?;
-                let predicate = self.intern(Term::Iri(Arc::from(RDF_REIFIES)));
-                for ((graph, reifier), triple) in expand_runs(&graphs).zip(reifiers).zip(triples) {
-                    let graph = self.resolve_graph(dictionary, graph, &cursor)?;
-                    let subject = self.node(dictionary, reifier, &cursor)?;
-                    let object = self.position(dictionary, triple, &cursor, |term| {
-                        matches!(term, Term::Triple(_))
-                    })?;
-                    self.projection
-                        .quads
-                        .insert((subject, predicate, object, graph));
-                }
+                self.project_reifier_bindings(dictionary, &graphs, &mut cursor, count)?;
             }
             _ => {
                 let reifiers = delta_column(&mut cursor, count)?;
@@ -151,6 +138,31 @@ impl Projector {
                         .insert((subject, predicate, object, graph));
                 }
             }
+        }
+        Ok(())
+    }
+
+    /// Project reifier-binding rows as `(reifier, rdf:reifies, triple)` quads.
+    fn project_reifier_bindings(
+        &mut self,
+        dictionary: &Dictionary,
+        graphs: &[(Option<u64>, u64)],
+        cursor: &mut Decoder<'_>,
+        count: u64,
+    ) -> Result<(), HeaderError> {
+        let reifiers = delta_column(cursor, count)?;
+        let triples = delta_column(cursor, count)?;
+        cursor.end()?;
+        let predicate = self.intern(Term::Iri(Arc::from(RDF_REIFIES)));
+        for ((graph, reifier), triple) in expand_runs(graphs).zip(reifiers).zip(triples) {
+            let graph = self.resolve_graph(dictionary, graph, cursor)?;
+            let subject = self.node(dictionary, reifier, cursor)?;
+            let object = self.position(dictionary, triple, cursor, |term| {
+                matches!(term, Term::Triple(_))
+            })?;
+            self.projection
+                .quads
+                .insert((subject, predicate, object, graph));
         }
         Ok(())
     }

@@ -13,7 +13,7 @@ use ciborium::value::Value;
 use super::{
     encode_header,
     frame::{encode_plain_frame_with_identifier, FrameError, COMMIT, PARITY},
-    range::{Digest, Range},
+    range::{Digest, Range, RangeFull},
     Header, HeaderWriteError, HEADER_CONTEXT,
 };
 use crate::wire;
@@ -25,8 +25,11 @@ pub use attachments::{AttachmentWriteError, Blob};
 /// A segment append that cannot be represented.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SegmentWriteError {
+    /// The frame could not be written.
     Frame(FrameError),
+    /// A commit frame is required before more frames can be written.
     CommitRequired,
+    /// The segment has too many frames to address.
     RangeFull,
 }
 
@@ -53,6 +56,7 @@ impl Error for SegmentWriteError {
 ///
 /// The caller prepares content records and payloads for their frame type. The
 /// writer derives the head, frame identifiers and commit count and root.
+#[derive(Debug)]
 pub struct SegmentWriter {
     bytes: Vec<u8>,
     header_len: usize,
@@ -63,6 +67,10 @@ pub struct SegmentWriter {
 
 impl SegmentWriter {
     /// Encode a header and use its identifier as the initial head and leaf.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`HeaderWriteError`] when `header` cannot be encoded.
     pub fn new(header: Header<'_>) -> Result<Self, HeaderWriteError> {
         let bytes = encode_header(header)?;
         let head = blake3::derive_key(HEADER_CONTEXT, &bytes);
@@ -76,6 +84,7 @@ impl SegmentWriter {
     }
 
     /// Return the head after the ordinary frames written so far.
+    #[must_use]
     pub fn head(&self) -> &Digest {
         &self.head
     }
@@ -83,6 +92,12 @@ impl SegmentWriter {
     /// Append one frame and return its identifier.
     ///
     /// Use [`Self::commit`] to append a commit computed from the prefix.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SegmentWriteError::CommitRequired`] when `frame_type` is the
+    /// commit type, and another [`SegmentWriteError`] when the frame cannot be
+    /// appended.
     pub fn append(
         &mut self,
         frame_type: u64,
@@ -96,6 +111,10 @@ impl SegmentWriter {
     }
 
     /// Append the commit over the opener and the preceding ordinary frames.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SegmentWriteError`] when the commit frame cannot be appended.
     pub fn commit(&mut self) -> Result<Digest, SegmentWriteError> {
         let content = wire::encode(&Value::Array(vec![
             Value::from(self.range.ordinary_count()),
@@ -105,11 +124,13 @@ impl SegmentWriter {
     }
 
     /// Return the encoded segment in item order.
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes
     }
 
     /// Take ownership of the encoded segment.
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> {
         self.bytes
     }
@@ -126,7 +147,7 @@ impl SegmentWriter {
         if frame_type != PARITY {
             self.range
                 .append(&identifier)
-                .map_err(|_| SegmentWriteError::RangeFull)?;
+                .map_err(|RangeFull| SegmentWriteError::RangeFull)?;
             self.head = identifier;
         }
         self.bytes.extend(encoded);

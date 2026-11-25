@@ -9,7 +9,7 @@ DIST="${ROOT}/dist/capi"
 
 metadata_value() {
   cargo metadata --manifest-path "${CAPI}/Cargo.toml" --no-deps --format-version 1 \
-    | python3 -c "import json,sys; print(json.load(sys.stdin)['packages'][0]['$1'])"
+    | python3 -c "import json,sys; pkgs=[p for p in json.load(sys.stdin)['packages'] if p['name']=='gmeow-gts-capi']; print(pkgs[0]['$1'])"
 }
 
 target_directory() {
@@ -52,7 +52,7 @@ case "${GTS_CAPI_ARCH:-$(uname -m)}" in
   *) arch="$(uname -m | tr '[:upper:]' '[:lower:]')" ;;
 esac
 
-cargo build --manifest-path "${CAPI}/Cargo.toml" --release --locked
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml" --release
 
 base="gmeow-gts-capi_${VERSION}_${os}_${arch}"
 stage="${DIST}/${base}"

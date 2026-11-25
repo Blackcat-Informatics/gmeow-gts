@@ -52,21 +52,13 @@ if [ "$capi_v" != "$rust_v" ]; then
   errors=1
 fi
 
-# Both Cargo LOCKFILES must already name the new version. The release workflows
-# build with --locked, so a lockfile left behind by a version bump does not fail
-# here or in CI -- it fails at PUBLISH time, after the tag is pushed, which
-# archive/v1/docs/GTS-V1-RC1-CHECKLIST.md makes a release incident rather than
-# something you can quietly redo. That is exactly how capi-v1.0.0-rc.1 failed:
-#
-#   error: cannot update the lock file .../rust/capi/Cargo.lock
-#   because --locked was passed to prevent this
-#
-# rust/capi is the easy one to miss, being a second standalone lockfile.
-for lock_dir in rust rust/capi; do
-  lock="$ROOT/$lock_dir/Cargo.lock"
-  if [ "$lock_dir" = "rust" ]; then crate="gmeow-gts"; else crate="gmeow-gts-capi"; fi
+# The Rust workspace has one lockfile, rust/Cargo.lock, which names both the engine
+# and the C ABI crate. The release workflows build with --locked, so a lockfile left
+# behind by a version bump fails at publish time; check it here instead.
+lock="$ROOT/rust/Cargo.lock"
+for crate in gmeow-gts gmeow-gts-capi; do
   if ! grep -A1 "^name = \"$crate\"$" "$lock" | grep -Fq "version = \"$rust_v\""; then
-    echo "ERROR: $lock_dir/Cargo.lock does not name $crate $rust_v; regenerate it (cargo update -p $crate)." >&2
+    echo "ERROR: rust/Cargo.lock does not name $crate $rust_v; regenerate it (cargo update -p $crate)." >&2
     errors=1
   fi
 done

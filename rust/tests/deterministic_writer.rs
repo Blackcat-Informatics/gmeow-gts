@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! Deterministic writer output: identical inputs produce identical frame types, transform identifiers and blob representations.
+
 use std::fs;
 use std::path::Path;
 
@@ -240,7 +242,10 @@ fn graph_snapshot_payload_folds_like_deterministic_writer() {
         .to_bytes();
     let snapshot_graph = gmeow_gts::reader::read(&snapshot, true, None);
     let deterministic_graph = gmeow_gts::reader::read(&deterministic, true, None);
-    assert!(snapshot_graph.diagnostics.is_empty());
+    assert_eq!(
+        snapshot_graph.diagnostics,
+        [] as [gmeow_gts::model::Diagnostic; 0]
+    );
     assert_eq!(to_nquads(&snapshot_graph), to_nquads(&deterministic_graph));
 }
 
@@ -269,7 +274,7 @@ fn snapshot_from_graph_emits_sorted_content_addressed_blobs_before_snapshot() {
 
     assert_eq!(frame_types(&bytes), vec!["blob", "blob", "snapshot"]);
     let folded = gmeow_gts::reader::read(&bytes, true, None);
-    assert!(folded.diagnostics.is_empty());
+    assert_eq!(folded.diagnostics, [] as [gmeow_gts::model::Diagnostic; 0]);
     assert_eq!(
         blob_reps(&folded),
         vec!["a-report".to_string(), "z-doc".to_string()]

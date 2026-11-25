@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-#![cfg(feature = "tar")]
+//! The tar corpus: each tar fixture yields its expected GTS outcome.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -94,13 +94,12 @@ fn string_array(value: &Value, key: &str) -> Vec<String> {
     value
         .get(key)
         .and_then(Value::as_array)
-        .map(|items| {
+        .map_or_else(Vec::new, |items| {
             items
                 .iter()
                 .map(|item| item.as_str().unwrap().to_string())
                 .collect()
         })
-        .unwrap_or_default()
 }
 
 fn from_tar_options(expectation: &Value) -> FromTarOptions {
@@ -166,7 +165,12 @@ fn assert_entry_matches(expected: &Value, actual: &FileEntry) {
         assert_eq!(actual.size, Some(size), "size for {}", actual.path);
     }
     if let Some(mode) = optional_u64(expected, "mode") {
-        assert_eq!(actual.mode, Some(mode as u32), "mode for {}", actual.path);
+        assert_eq!(
+            actual.mode,
+            Some(u32::try_from(mode).expect("fixture mode fits u32")),
+            "mode for {}",
+            actual.path
+        );
     }
     if let Some(uid) = optional_u64(expected, "uid") {
         assert_eq!(actual.uid, Some(uid), "uid for {}", actual.path);
@@ -248,7 +252,7 @@ fn assert_expected_entries(expectation: &Value, archive: &[u8]) {
     );
     for expected in expected_entries {
         let path = expected["path"].as_str().unwrap();
-        assert_entry_matches(expected, entries.get(path).unwrap());
+        assert_entry_matches(expected, &entries[path]);
     }
 }
 
@@ -332,7 +336,7 @@ fn tar_corpus_matches_pinned_expectations() {
                 let graph = read(&archive, true, None);
                 let roundtrip_tar =
                     to_tar_vec(&graph, &ToTarOptions::default()).expect("fixture exports to tar");
-                let mut roundtrip_options = options.clone();
+                let mut roundtrip_options = options;
                 roundtrip_options.source_name = Some("roundtrip.tar".to_string());
                 let roundtrip_archive =
                     from_tar_bytes(&roundtrip_tar, &roundtrip_options).expect("roundtrip imports");

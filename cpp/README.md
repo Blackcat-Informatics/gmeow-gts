@@ -20,7 +20,7 @@ independent GTS engine and does not add a CLI parity column.
 Build the C ABI library first:
 
 ```sh
-cargo build --manifest-path rust/capi/Cargo.toml
+cargo build --locked --manifest-path rust/capi/Cargo.toml
 ```
 
 Compile consumers with both wrapper include roots and link to `libgts`:
@@ -30,14 +30,14 @@ c++ -std=c++17 \
   -Icpp/include \
   -Irust/capi/include \
   your_program.cpp \
-  -Lrust/capi/target/debug -lgts
+  -Lrust/target/debug -lgts
 ```
 
 When running from an unpackaged checkout, make sure the dynamic loader can find
 the built library:
 
 ```sh
-LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ./your_program
+LD_LIBRARY_PATH="$PWD/rust/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ./your_program
 ```
 
 Packagers can use the C ABI `pkg-config` and CMake metadata in `rust/capi/`.

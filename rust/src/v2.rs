@@ -35,17 +35,24 @@ const DEFAULT_VALUE_TEXT_LIMIT: u64 = 256 << 20;
 /// A claimed previous segment head and lineage ordinal.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Lineage<'a> {
+    /// The head identifier of the predecessor segment.
     pub previous_head: &'a [u8],
+    /// The position of this segment in its lineage.
     pub ordinal: u64,
 }
 
 /// The fields of a GTS v2 header after the kind and generation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Header<'a> {
+    /// The registry version the header declares.
     pub registry_version: u64,
+    /// The registry code of the hash algorithm.
     pub hash_algorithm: u64,
+    /// The registry code of the profile, if declared.
     pub profile: Option<u64>,
+    /// The registry code of the canonical form, if declared.
     pub canonical: Option<u64>,
+    /// The lineage that this segment continues, if declared.
     pub lineage: Option<Lineage<'a>>,
 }
 
@@ -64,7 +71,9 @@ impl Default for Header<'_> {
 /// The decoded header and the first byte after it in the input.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DecodedHeader<'a> {
+    /// The decoded header.
     pub header: Header<'a>,
+    /// The offset of the first byte after the header.
     pub next_offset: usize,
     /// Computed over the encoded header. A hash from a later registry can be unavailable.
     pub identifier: Option<[u8; 32]>,
@@ -73,20 +82,30 @@ pub struct DecodedHeader<'a> {
 /// A P1 malformed-value reason for a wire field.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MalformedReason {
+    /// The item is not in deterministic CBOR form.
     NotDeterministic,
+    /// A field has a CBOR type that the format does not allow.
     WrongType,
+    /// A field has a length that the format does not allow.
     WrongLength,
+    /// A field value is outside its allowed range.
     OutOfRange,
+    /// A field names a registry value that is not registered.
     UnregisteredValue,
+    /// Two fields are set in a combination that the format forbids.
     ForbiddenCombination,
+    /// A map or array is out of order or repeats an entry.
     UnorderedOrRepeated,
+    /// Declared counts disagree with the items present.
     InconsistentCounts,
 }
 
 /// The first malformed header field and its absolute input offset.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HeaderError {
+    /// The reason the field is malformed.
     pub reason: MalformedReason,
+    /// The absolute input offset of the malformed field.
     pub offset: usize,
 }
 
@@ -101,10 +120,15 @@ impl Error for HeaderError {}
 /// A header field outside the values the writer can emit.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HeaderWriteError {
+    /// The registry version is not supported by this writer.
     RegistryVersion(u64),
+    /// The hash algorithm code is not supported by this writer.
     HashAlgorithm(u64),
+    /// The profile code is not supported by this writer.
     Profile(u64),
+    /// The canonical form code is not supported by this writer.
     CanonicalForm(u64),
+    /// The lineage is malformed or inconsistent with the header.
     Lineage,
 }
 
@@ -234,6 +258,10 @@ impl<'a> Decoder<'a> {
         Ok(if negative { -1 - argument } else { argument })
     }
 
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     fn delta(&mut self, previous: u64) -> Result<u64, HeaderError> {
         let error = self.error(MalformedReason::OutOfRange);
         u64::try_from(i128::from(previous) + self.int()?).map_err(|_| error)
@@ -248,6 +276,10 @@ impl<'a> Decoder<'a> {
         }
     }
 
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     fn list_len(&mut self) -> Result<usize, HeaderError> {
         let error = self.error(MalformedReason::WrongLength);
         let count = usize::try_from(self.head(4)?).map_err(|_| error)?;
@@ -351,6 +383,10 @@ impl<'a> Decoder<'a> {
         }
     }
 
+    #[expect(
+        clippy::map_err_ignore,
+        reason = "the conversion error carries no detail, so the typed error replaces it"
+    )]
     fn lineage(&mut self, known_hash: bool) -> Result<Lineage<'a>, HeaderError> {
         self.record(2)?;
         let error = self.error(MalformedReason::WrongLength);
@@ -384,6 +420,11 @@ impl<'a> Decoder<'a> {
 ///
 /// The first malformed field determines the error. A readable header's identifier
 /// uses the original bytes. A higher registry with an unknown hash retains its fields.
+///
+/// # Errors
+///
+/// Returns [`HeaderError`] at the first malformed field, carrying its
+/// [`MalformedReason`] and absolute input offset.
 pub fn decode_header(data: &[u8], offset: usize) -> Result<DecodedHeader<'_>, HeaderError> {
     let mut decoder = Decoder::new(data, offset);
     decoder.record(7)?;
@@ -430,6 +471,12 @@ fn option(value: Option<Value>) -> Value {
 ///
 /// Supply the lineage of the preceding segment and any canonical claim from
 /// the writer's segment construction.
+///
+/// # Errors
+///
+/// Returns [`HeaderWriteError`] when the registry version, hash algorithm,
+/// profile or canonical form is not supported, or when the lineage is not a
+/// 32-byte previous head with a non-zero ordinal.
 pub fn encode_header(header: Header<'_>) -> Result<Vec<u8>, HeaderWriteError> {
     if header.registry_version != REGISTRY_VERSION {
         return Err(HeaderWriteError::RegistryVersion(header.registry_version));

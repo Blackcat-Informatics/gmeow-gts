@@ -31,19 +31,33 @@ const PACK_BYTES: usize = 1 << 24;
 /// a declaration whose bytes are external.
 #[derive(Clone, Copy, Debug)]
 pub struct Blob<'a> {
+    /// The digest of the blob.
     pub digest: Digest,
+    /// The length of the blob in bytes.
     pub length: u64,
+    /// The bytes of the blob, if they are supplied with it.
     pub bytes: Option<&'a [u8]>,
+    /// The media types that describe the blob.
     pub media_types: &'a [&'a str],
 }
 
 /// An attachment input or segment append that cannot be represented.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AttachmentWriteError {
+    /// A value is empty.
     EmptyValue,
-    BlobLength { expected: u64, actual: u64 },
+    /// The bytes of a blob differ in length from the declared length.
+    BlobLength {
+        /// The declared length of the blob in bytes.
+        expected: u64,
+        /// The length of the supplied bytes in bytes.
+        actual: u64,
+    },
+    /// The blob digest does not match its bytes.
     BlobDigest,
+    /// The blob was already written to the segment.
     DuplicateBlob,
+    /// The frame could not be appended to the segment.
     Append(SegmentWriteError),
 }
 
@@ -89,6 +103,12 @@ impl SegmentWriter {
     /// its value references. The writer deduplicates equal values and units,
     /// orders the regions and uses plain frame storage. The caller places
     /// these regions before the terms and row frames of a canonical segment.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AttachmentWriteError`] when a value is empty, when a blob's
+    /// bytes differ from its declared length or digest, when a blob is
+    /// duplicated, or when a frame cannot be appended.
     pub fn append_attachment_regions<'a>(
         &mut self,
         values: impl IntoIterator<Item = &'a [u8]>,

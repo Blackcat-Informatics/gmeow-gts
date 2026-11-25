@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! RDF event visitation in strict and lenient modes: quads, reifiers, annotations and diagnostics in declaration order.
+
 use gmeow_gts::model::{Diagnostic, Graph, Term, TermKind};
 use gmeow_gts::rdf_events::{
     visit_dataset, EventAnnotation, EventError, EventErrorKind, EventQuad, EventReifier,
@@ -149,7 +151,8 @@ fn graph_source_drives_generic_and_erased_sinks() {
     ]));
     assert!(generic_sink
         .events
-        .contains(&"diagnostic:SyntheticDiagnostic".to_string()));
+        .iter()
+        .any(|i: &String| i == "diagnostic:SyntheticDiagnostic"));
     assert_eq!(generic_sink.events.last(), Some(&"finish".to_string()));
 
     let mut erased_sink = RecordingSink::default();

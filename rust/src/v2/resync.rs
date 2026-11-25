@@ -17,12 +17,19 @@ const PATTERN: [u8; 20] = [
 /// A resync opener and its original advisory bytes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DecodedResync<'a> {
+    /// The decoded header of the resync item.
     pub header: Header<'a>,
+    /// The offset that the resync item claims for its segment.
     pub claimed_offset: u64,
+    /// The bytes that precede the claimed offset, if any.
     pub past: Option<&'a [u8]>,
+    /// The marks of the resync item.
     pub marks: &'a [u8],
+    /// The identifier stored in the resync item.
     pub stored_identifier: &'a [u8],
+    /// The identifier computed from the item, if it is valid.
     pub identifier: Option<[u8; 32]>,
+    /// The offset of the first byte after the resync item.
     pub next_offset: usize,
 }
 
@@ -66,29 +73,29 @@ fn read_marks<'a>(cursor: &mut Decoder<'a>) -> Result<&'a [u8], HeaderError> {
     let count = cursor.head(4)?;
     let mut last: &[u8] = &[];
     for index in 0..count {
-        let mark_at = cursor.offset;
+        let entry_at = cursor.offset;
         let elements = cursor.head(4)?;
         if elements == 0 {
             return Err(HeaderError {
                 reason: WrongType,
-                offset: mark_at,
+                offset: entry_at,
             });
         }
         // The first element must be a uint by shape before count and order.
         if cursor.peek_byte()? >> 5 != 0 {
             return Err(HeaderError {
                 reason: WrongType,
-                offset: mark_at,
+                offset: entry_at,
             });
         }
         if index >= 64 {
             return Err(HeaderError {
                 reason: OutOfRange,
-                offset: mark_at,
+                offset: entry_at,
             });
         }
         // A complete item cannot be a proper prefix of another complete item.
-        let available = &cursor.bytes[mark_at..];
+        let available = &cursor.bytes[entry_at..];
         let prefix = &available[..available.len().min(last.len())];
         if !last.is_empty()
             && prefix <= last
@@ -96,13 +103,13 @@ fn read_marks<'a>(cursor: &mut Decoder<'a>) -> Result<&'a [u8], HeaderError> {
         {
             return Err(HeaderError {
                 reason: UnorderedOrRepeated,
-                offset: mark_at,
+                offset: entry_at,
             });
         }
         for _ in 0..elements {
             cursor.closed_item()?;
         }
-        last = &cursor.bytes[mark_at..cursor.offset];
+        last = &cursor.bytes[entry_at..cursor.offset];
     }
     Ok(&cursor.bytes[marks_at..cursor.offset])
 }

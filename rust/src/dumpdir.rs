@@ -26,7 +26,7 @@ use crate::wire::{digest_str, hex, iter_items, map_get, unwrap_header};
 const FILES_NS: &str = "https://w3id.org/gts/files#";
 
 /// Options for writing a directory dump.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct DumpOptions {
     /// Materialize blobs hidden by suppression directives.
     pub include_suppressed: bool,
@@ -83,6 +83,7 @@ impl DumpError {
     }
 
     /// Return the failure category.
+    #[must_use]
     pub fn kind(&self) -> DumpErrorKind {
         self.kind
     }
@@ -116,6 +117,11 @@ struct DumpState {
 }
 
 /// Dump a GTS file into a directory.
+///
+/// # Errors
+///
+/// Returns a [`DumpErrorKind::Io`] error when `archive` cannot be read. Otherwise returns
+/// the errors of [`dump_bytes`].
 pub fn dump_path(
     archive: impl AsRef<Path>,
     directory: impl AsRef<Path>,
@@ -133,6 +139,13 @@ pub fn dump_path(
 }
 
 /// Dump GTS bytes into a directory.
+///
+/// # Errors
+///
+/// Returns a [`DumpErrorKind::Io`] error when `directory` exists and `options.force` is
+/// not set, or when the staging directory cannot be created, written or moved into
+/// place. Returns a [`DumpErrorKind::Refused`] error when a blob selected for export
+/// cannot be decoded. A failed dump leaves no staged directory behind.
 pub fn dump_bytes(
     data: &[u8],
     source_label: &str,
@@ -155,12 +168,13 @@ pub fn dump_bytes(
         ))
     })?;
 
-    let result = write_dump(data, source_label, &staged, options.clone());
-    if let Err(err) = result {
-        let _ = fs::remove_dir_all(&staged);
-        return Err(err);
-    }
-    let mut report = result.expect("handled Err above");
+    let mut report = match write_dump(data, source_label, &staged, options) {
+        Ok(report) => report,
+        Err(err) => {
+            let _ = fs::remove_dir_all(&staged);
+            return Err(err);
+        }
+    };
 
     if options.force && directory.exists() {
         if directory.is_dir() {
@@ -239,12 +253,10 @@ fn staged_path(directory: &Path) -> PathBuf {
         .unwrap_or_else(|| Path::new("."));
     let name = directory
         .file_name()
-        .map(|n| n.to_string_lossy())
-        .unwrap_or_else(|| "dump".into());
+        .map_or_else(|| "dump".into(), |n| n.to_string_lossy());
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+        .map_or(0, |d| d.as_nanos());
     parent.join(format!(
         ".{name}.gts-dump.{}.{}.tmp",
         std::process::id(),
@@ -431,9 +443,7 @@ fn graph_mentions_files_profile(graph: &Graph) -> bool {
 }
 
 fn json_optional_u64(value: Option<u64>) -> String {
-    value
-        .map(|value| value.to_string())
-        .unwrap_or_else(|| "null".to_string())
+    value.map_or_else(|| "null".to_string(), |value| value.to_string())
 }
 
 fn files_xattrs_json(items: &[crate::files::FileXattr]) -> String {
@@ -511,15 +521,14 @@ fn write_blob_index(root: &Path, state: &DumpState) -> Result<(), DumpError> {
     let mut out = create_writer(&blob_dir.join("index.jsonl"))?;
     let suppressed = suppressed_blob_digests(&state.graph);
     for (digest, entry) in &state.graph.blobs {
-        let size = entry
-            .decoded_len()
-            .map(|n| n.to_string())
-            .unwrap_or_else(|err| json_string(&format!("decode error: {err:?}")));
+        let size = entry.decoded_len().map_or_else(
+            |err| json_string(&format!("decode error: {err:?}")),
+            |n| n.to_string(),
+        );
         let mt = blob_meta_text(&state.graph, digest, "mt");
-        let paths = state
-            .materialized_paths
-            .get(digest)
-            .map(|items| {
+        let paths = state.materialized_paths.get(digest).map_or_else(
+            || "[]".to_string(),
+            |items| {
                 format!(
                     "[{}]",
                     items
@@ -528,8 +537,8 @@ fn write_blob_index(root: &Path, state: &DumpState) -> Result<(), DumpError> {
                         .collect::<Vec<_>>()
                         .join(",")
                 )
-            })
-            .unwrap_or_else(|| "[]".to_string());
+            },
+        );
         writeln!(
             out,
             "{{\"digest\":{},\"size\":{},\"media_type\":{},\"suppressed\":{},\"materialized_paths\":{}}}",
@@ -820,8 +829,8 @@ fn write_opaque(path: &Path, graph: &Graph, frame_index: Option<usize>) -> Resul
             json_string(&opaque.frame_type),
             json_string(&opaque.reason),
             json_string(&opaque.sigstat),
-            opaque.pub_meta.as_ref().map(cbor_json).unwrap_or_else(|| "null".to_string()),
-            opaque.recipients.as_ref().map(|items| format!("[{}]", items.iter().map(cbor_json).collect::<Vec<_>>().join(","))).unwrap_or_else(|| "null".to_string())
+            opaque.pub_meta.as_ref().map_or_else(|| "null".to_string(), cbor_json),
+            opaque.recipients.as_ref().map_or_else(|| "null".to_string(), |items| format!("[{}]", items.iter().map(cbor_json).collect::<Vec<_>>().join(",")))
         )?;
     }
     Ok(())
@@ -1003,9 +1012,7 @@ fn append_blob_frame_row(
         } else {
             json_string(&size)
         },
-        map_get(frame, "pub")
-            .map(cbor_json)
-            .unwrap_or_else(|| "null".to_string())
+        map_get(frame, "pub").map_or_else(|| "null".to_string(), cbor_json)
     )?;
     Ok(())
 }
@@ -1075,9 +1082,7 @@ fn segment_inventory_row(segment: &SegmentInventory) -> String {
         json_string(&segment.profile),
         segment
             .head
-            .as_deref()
-            .map(|head| json_string(&hex(head)))
-            .unwrap_or_else(|| "null".to_string()),
+            .as_deref().map_or_else(|| "null".to_string(), |head| json_string(&hex(head))),
         segment.frame_count,
         segment.diagnostics.len()
     )
@@ -1111,8 +1116,7 @@ fn header_json(items: &[(usize, Value)], segment: &SegmentInventory) -> Result<S
         segment
             .frames
             .first()
-            .map(|frame| frame.start)
-            .unwrap_or(segment.end),
+            .map_or(segment.end, |frame| frame.start),
         cbor_json(&Value::Map(header.clone()))
     ))
 }
@@ -1199,22 +1203,20 @@ fn term_kind_name(kind: TermKind) -> &'static str {
 }
 
 fn frame_prefix(frame_index: Option<usize>) -> String {
-    frame_index
-        .map(|index| format!("\"frame\":{index},"))
-        .unwrap_or_default()
+    frame_index.map_or_default(|index| format!("\"frame\":{index},"))
 }
 
 fn json_optional_usize(value: Option<usize>) -> String {
-    value
-        .map(|value| value.to_string())
-        .unwrap_or_else(|| "null".to_string())
+    value.map_or_else(|| "null".to_string(), |value| value.to_string())
 }
 
 fn json_optional_string(value: Option<&str>) -> String {
-    value.map(json_string).unwrap_or_else(|| "null".to_string())
+    value.map_or_else(|| "null".to_string(), json_string)
 }
 
 fn json_string(value: &str) -> String {
+    use std::fmt::Write as _;
+
     let mut out = String::with_capacity(value.len() + 2);
     out.push('"');
     for ch in value.chars() {
@@ -1224,7 +1226,10 @@ fn json_string(value: &str) -> String {
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
-            c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c if c.is_control() => {
+                // Writing to a `String` cannot fail.
+                let _ = write!(out, "\\u{:04x}", c as u32);
+            }
             c => out.push(c),
         }
     }

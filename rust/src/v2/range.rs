@@ -33,7 +33,7 @@ fn parent(left: &Digest, right: &Digest) -> Digest {
     blake3::derive_key("gts2 range node", &wire::encode(&record))
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(super) struct Range {
     count: u64,
     peaks: Vec<(u8, Digest)>,

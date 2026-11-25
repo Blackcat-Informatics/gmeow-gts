@@ -35,15 +35,29 @@ const ROWS_PER_FRAME: usize = 16_384;
 /// N-Quads input or an imported segment that cannot be represented.
 #[derive(Debug)]
 pub enum ImportError {
+    /// The input is not valid N-Quads.
     Syntax(NQuadsParseError),
+    /// The header could not be written.
     Header(HeaderWriteError),
+    /// A frame could not be written.
     Write(SegmentWriteError),
+    /// A term is missing a required component.
     IncompleteTerm {
+        /// The index of the incomplete term.
         index: usize,
     },
+    /// A term index is too large for the signed delta encoding.
+    IndexOutOfRange {
+        /// The index that cannot be encoded.
+        index: usize,
+    },
+    /// An import limit was exceeded.
     Capacity {
+        /// The name of the exhausted resource.
         resource: &'static str,
+        /// The amount of the resource that the input requires.
         required: u64,
+        /// The maximum amount of the resource that is allowed.
         limit: u64,
     },
 }
@@ -58,6 +72,12 @@ impl fmt::Display for ImportError {
                 write!(
                     formatter,
                     "parsed N-Quads term {index} is missing required fields"
+                )
+            }
+            Self::IndexOutOfRange { index } => {
+                write!(
+                    formatter,
+                    "term index {index} exceeds the signed delta range"
                 )
             }
             Self::Capacity {
@@ -80,7 +100,9 @@ impl Error for ImportError {
             Self::Syntax(error) => Some(error),
             Self::Header(error) => Some(error),
             Self::Write(error) => Some(error),
-            Self::IncompleteTerm { .. } | Self::Capacity { .. } => None,
+            Self::IncompleteTerm { .. } | Self::IndexOutOfRange { .. } | Self::Capacity { .. } => {
+                None
+            }
         }
     }
 }
@@ -98,6 +120,12 @@ impl From<SegmentWriteError> for ImportError {
 /// triples are accepted in object position, as in the P3 term model.
 /// Literals too large for a terms frame use shared value declarations.
 /// Frames and referenced text fit the default wire and projection capacities.
+///
+/// # Errors
+///
+/// Returns [`ImportError::Syntax`] when `text` is not valid N-Quads for this
+/// profile. Returns the other [`ImportError`] variants when the header or a
+/// frame cannot be written, or when a value exceeds the default capacities.
 pub fn from_nquads(text: &str) -> Result<Vec<u8>, ImportError> {
     let (terms, quads) = parse_v2_quads(text).map_err(ImportError::Syntax)?;
     write_dataset(&terms, quads, ReadCapacity::default())
@@ -539,19 +567,22 @@ fn encode_terms(
     ))
 }
 
-fn delta_column(values: impl Iterator<Item = usize>) -> Value {
-    // Term indices come from a Vec of terms and fit in isize, so any
-    // difference between two indices fits in i64.
-    Value::Array(
-        values
-            .scan(0_i64, |prior, current| {
-                let current = current as i64;
-                let delta = current - *prior;
-                *prior = current;
-                Some(Value::from(delta))
-            })
-            .collect(),
-    )
+/// Encode indices as differences from the prior index, starting from zero.
+///
+/// # Errors
+///
+/// Returns [`ImportError::IndexOutOfRange`] when an index exceeds `i64::MAX`.
+fn delta_column(values: impl Iterator<Item = usize>) -> Result<Value, ImportError> {
+    let mut deltas = Vec::new();
+    let mut prior = 0_i64;
+    for index in values {
+        let Ok(current) = i64::try_from(index) else {
+            return Err(ImportError::IndexOutOfRange { index });
+        };
+        deltas.push(Value::from(current - prior));
+        prior = current;
+    }
+    Ok(Value::Array(deltas))
 }
 
 fn append_quads(writer: &mut ImportWriter, rows: &[Quad]) -> Result<(), ImportError> {
@@ -569,8 +600,8 @@ fn append_quads(writer: &mut ImportWriter, rows: &[Quad]) -> Result<(), ImportEr
     let payload = record([
         Value::Array(graphs.collect()),
         Value::Array(predicates.collect()),
-        delta_column(rows.iter().map(|row| row.2)),
-        delta_column(rows.iter().map(|row| row.0)),
+        delta_column(rows.iter().map(|row| row.2))?,
+        delta_column(rows.iter().map(|row| row.0))?,
     ]);
     writer.append(QUADS, &wire::encode(&content), &wire::encode(&payload), 0)
 }

@@ -238,10 +238,10 @@ fn streaming_index(
     // Fixed vocabulary block — constant ids across engines for determinism.
     let t_type = b.add(TermKind::Iri, RDF_TYPE);
     let t_int = b.add(TermKind::Iri, XSD_INTEGER);
-    let t_dt = b.add(TermKind::Iri, XSD_DATETIME);
+    let t_datetime = b.add(TermKind::Iri, XSD_DATETIME);
     let t_manifestation = b.add(TermKind::Iri, stream::MANIFESTATION);
     let t_digest = b.add(TermKind::Iri, stream::DIGEST);
-    let t_mt = b.add(TermKind::Iri, stream::MEDIA_TYPE);
+    let t_media_type = b.add(TermKind::Iri, stream::MEDIA_TYPE);
     let t_size = b.add(TermKind::Iri, stream::SIZE);
     let t_role = b.add(TermKind::Iri, stream::ROLE);
     let t_order = b.add(TermKind::Iri, stream::ORDER);
@@ -273,7 +273,7 @@ fn streaming_index(
         b.quad(m, t_digest, o);
         if let Some(mt) = mt {
             let o = b.literal(&mt, None);
-            b.quad(m, t_mt, o);
+            b.quad(m, t_media_type, o);
         }
         if let Some(size) = size {
             let o = b.literal(&size.to_string(), Some(t_int));
@@ -290,7 +290,7 @@ fn streaming_index(
     b.quad(c, t_type, t_compaction);
     let o = b.literal(stream::COMPACT_AGENT, None);
     b.quad(c, t_agent, o);
-    let o = b.literal(timestamp, Some(t_dt));
+    let o = b.literal(timestamp, Some(t_datetime));
     b.quad(c, t_timestamp, o);
     for head in &g.segment_heads {
         let o = b.literal(&format!("blake3:{}", hex(head)), None);
@@ -396,6 +396,13 @@ fn value_idx(v: &Value) -> Option<usize> {
 /// the output is byte-reproducible. `seal_original` carries the verbatim
 /// source bytes as a nested GTS blob (§12.1), role `"source"` — REQUIRED
 /// for `evidence` input.
+///
+/// # Errors
+///
+/// Returns [`CompactRefusedError`] when `data` does not verify cleanly, has a torn
+/// append, mixes segment profiles, carries a frame-addressed suppression, or is an
+/// `evidence` artifact without `seal_original`. It also returns an error when a blob
+/// cannot be decoded or its decoded length cannot be read.
 pub fn compact_streamable(
     data: &[u8],
     timestamp: &str,

@@ -21,25 +21,44 @@ use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
 use crate::model::{Graph, TermKind, Triple3};
 use crate::nquads::render_term;
 
+/// Namespace IRI of the OKF profile vocabulary.
 pub const OKF_NS: &str = "https://blackcatinformatics.ca/projects/gts/okf#";
+/// Base IRI recorded for an export that does not name one.
 pub const DEFAULT_BASE_IRI: &str = "https://blackcatinformatics.ca/projects/gts/okf/doc/";
+/// Predicate for a document's bundle-relative path.
 pub const OKF_PATH: &str = "https://blackcatinformatics.ca/projects/gts/okf#path";
+/// Predicate for a document's type.
 pub const OKF_TYPE: &str = "https://blackcatinformatics.ca/projects/gts/okf#type";
+/// Predicate for a document's title.
 pub const OKF_TITLE: &str = "https://blackcatinformatics.ca/projects/gts/okf#title";
+/// Predicate for a document's description.
 pub const OKF_DESCRIPTION: &str = "https://blackcatinformatics.ca/projects/gts/okf#description";
+/// Predicate for the resource a document describes.
 pub const OKF_RESOURCE: &str = "https://blackcatinformatics.ca/projects/gts/okf#resource";
+/// Predicate for a document tag.
 pub const OKF_TAG: &str = "https://blackcatinformatics.ca/projects/gts/okf#tag";
+/// Predicate for a document timestamp.
 pub const OKF_TIMESTAMP: &str = "https://blackcatinformatics.ca/projects/gts/okf#timestamp";
+/// Predicate for a document body.
 pub const OKF_BODY: &str = "https://blackcatinformatics.ca/projects/gts/okf#body";
+/// Predicate for the links a document contains.
 pub const OKF_LINKS: &str = "https://blackcatinformatics.ca/projects/gts/okf#links";
+/// Predicate for the text of a link.
 pub const OKF_LINK_TEXT: &str = "https://blackcatinformatics.ca/projects/gts/okf#linkText";
+/// Predicate for one occurrence of a link.
 pub const OKF_LINK_OCCURRENCE: &str =
     "https://blackcatinformatics.ca/projects/gts/okf#linkOccurrence";
+/// Predicate for a JSON-valued document field.
 pub const OKF_JSON: &str = "https://blackcatinformatics.ca/projects/gts/okf#json";
+/// RDF 1.2 `rdf:reifies` predicate IRI.
 pub const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
+/// XML Schema `boolean` datatype IRI.
 pub const XSD_BOOLEAN: &str = "http://www.w3.org/2001/XMLSchema#boolean";
+/// XML Schema `integer` datatype IRI.
 pub const XSD_INTEGER: &str = "http://www.w3.org/2001/XMLSchema#integer";
+/// XML Schema `decimal` datatype IRI.
 pub const XSD_DECIMAL: &str = "http://www.w3.org/2001/XMLSchema#decimal";
+/// XML Schema `dateTime` datatype IRI.
 pub const XSD_DATETIME: &str = "http://www.w3.org/2001/XMLSchema#dateTime";
 
 /// Options for exporting an OKF bundle directory.
@@ -64,8 +83,11 @@ impl Default for OkfExportOptions {
 /// Summary returned by [`to_okf`].
 #[derive(Clone, Debug)]
 pub struct OkfExportReport {
+    /// Directory the bundle was written to.
     pub directory: PathBuf,
+    /// Number of Markdown documents written.
     pub documents: usize,
+    /// Number of triples that no document accounts for.
     pub unmapped_triples: usize,
 }
 
@@ -107,6 +129,11 @@ struct ExportDocument {
 }
 
 /// Project an OKF-profile folded graph into a Markdown bundle directory.
+///
+/// # Errors
+///
+/// Returns [`OkfExportError`] when `directory` already exists, or when the bundle cannot
+/// be staged, written, or renamed into place.
 pub fn to_okf(
     graph: &Graph,
     directory: &Path,
@@ -143,7 +170,37 @@ fn write_okf(
     let mut docs: BTreeMap<usize, ExportDocument> = BTreeMap::new();
     let mut consumed_quads = BTreeSet::new();
     let mut link_statements = BTreeSet::new();
+    collect_documents(
+        graph,
+        options,
+        &mut docs,
+        &mut consumed_quads,
+        &mut link_statements,
+    )?;
+    let mut unmapped = collect_unmapped(graph, &consumed_quads, &link_statements);
+    let documents = write_documents(graph, directory, docs, &mut unmapped)?;
 
+    if !unmapped.is_empty() {
+        fs::write(
+            directory.join("_unmapped.nq"),
+            format!("{}\n", unmapped.join("\n")),
+        )?;
+    }
+    write_manifest(directory, options, &documents, unmapped.len())?;
+    Ok(OkfExportReport {
+        directory: directory.to_path_buf(),
+        documents: documents.len(),
+        unmapped_triples: unmapped.len(),
+    })
+}
+
+fn collect_documents(
+    graph: &Graph,
+    options: &OkfExportOptions,
+    docs: &mut BTreeMap<usize, ExportDocument>,
+    consumed_quads: &mut BTreeSet<usize>,
+    link_statements: &mut BTreeSet<Triple3>,
+) -> Result<(), OkfExportError> {
     for (idx, &(subject, predicate, object, graph_name)) in graph.quads.iter().enumerate() {
         if graph_name.is_some() {
             continue;
@@ -170,21 +227,16 @@ fn write_okf(
                     consumed_quads.insert(idx);
                 }
             }
-            OKF_TITLE => consume_string_field(
-                graph,
-                object,
-                &mut doc.fields,
-                "title",
-                idx,
-                &mut consumed_quads,
-            ),
+            OKF_TITLE => {
+                consume_string_field(graph, object, &mut doc.fields, "title", idx, consumed_quads);
+            }
             OKF_DESCRIPTION => consume_string_field(
                 graph,
                 object,
                 &mut doc.fields,
                 "description",
                 idx,
-                &mut consumed_quads,
+                consumed_quads,
             ),
             OKF_TIMESTAMP => consume_string_field(
                 graph,
@@ -192,7 +244,7 @@ fn write_okf(
                 &mut doc.fields,
                 "timestamp",
                 idx,
-                &mut consumed_quads,
+                consumed_quads,
             ),
             OKF_RESOURCE => {
                 if let Some(value) = iri_value(graph, object) {
@@ -215,10 +267,10 @@ fn write_okf(
                 consumed_quads.insert(idx);
                 link_statements.insert((subject, predicate, object));
             }
-            _ if predicate_iri.starts_with(OKF_NS) => {
-                let local = predicate_iri
-                    .strip_prefix(OKF_NS)
-                    .expect("predicate matched OKF namespace");
+            _ => {
+                let Some(local) = predicate_iri.strip_prefix(OKF_NS) else {
+                    continue;
+                };
                 if known_local(local) {
                     continue;
                 }
@@ -227,10 +279,16 @@ fn write_okf(
                     consumed_quads.insert(idx);
                 }
             }
-            _ => {}
         }
     }
+    Ok(())
+}
 
+fn collect_unmapped(
+    graph: &Graph,
+    consumed_quads: &BTreeSet<usize>,
+    link_statements: &BTreeSet<Triple3>,
+) -> Vec<String> {
     let mut unmapped = Vec::new();
     for (idx, &(subject, predicate, object, graph_name)) in graph.quads.iter().enumerate() {
         if !consumed_quads.contains(&idx) {
@@ -252,7 +310,7 @@ fn write_okf(
         }
     }
 
-    let consumed_reifiers = consumed_link_reifiers(graph, &link_statements, &mut unmapped);
+    let consumed_reifiers = consumed_link_reifiers(graph, link_statements, &mut unmapped);
     for &(reifier, (subject, predicate, object), graph_name) in &graph.reifiers {
         if !consumed_reifiers.contains(&reifier) {
             let triple = format!(
@@ -283,7 +341,15 @@ fn write_okf(
             }
         }
     }
+    unmapped
+}
 
+fn write_documents(
+    graph: &Graph,
+    directory: &Path,
+    docs: BTreeMap<usize, ExportDocument>,
+    unmapped: &mut Vec<String>,
+) -> Result<Vec<String>, OkfExportError> {
     let mut documents = Vec::new();
     for (_, mut doc) in docs {
         let Some(path) = doc.path.clone() else {
@@ -303,19 +369,7 @@ fn write_okf(
         documents.push(path);
     }
     documents.sort();
-
-    if !unmapped.is_empty() {
-        fs::write(
-            directory.join("_unmapped.nq"),
-            format!("{}\n", unmapped.join("\n")),
-        )?;
-    }
-    write_manifest(directory, options, &documents, unmapped.len())?;
-    Ok(OkfExportReport {
-        directory: directory.to_path_buf(),
-        documents: documents.len(),
-        unmapped_triples: unmapped.len(),
-    })
+    Ok(documents)
 }
 
 fn consume_string_field(
@@ -367,8 +421,9 @@ fn yaml_value(graph: &Graph, object: usize) -> Result<Option<YamlValue>, OkfExpo
     let datatype = term.datatype.and_then(|id| iri_value(graph, id));
     Ok(Some(match datatype {
         Some(XSD_BOOLEAN) => YamlValue::Bool(value == "true"),
-        Some(XSD_INTEGER) => serde_yaml::from_str(value).unwrap_or(YamlValue::String(value.into())),
-        Some(XSD_DECIMAL) => serde_yaml::from_str(value).unwrap_or(YamlValue::String(value.into())),
+        Some(XSD_INTEGER | XSD_DECIMAL) => {
+            serde_yaml::from_str(value).unwrap_or(YamlValue::String(value.into()))
+        }
         Some(OKF_JSON) => {
             let json: JsonValue = serde_json::from_str(value).map_err(|e| {
                 OkfExportError::new(format!("invalid okf:json literal {value:?}: {e}"))
@@ -432,7 +487,7 @@ fn write_document(
     }
     let mut mapping = YamlMapping::new();
     for (key, value) in all_fields {
-        mapping.insert(YamlValue::String(key.clone()), value.clone());
+        mapping.insert(YamlValue::String(key), value);
     }
     let yaml = serde_yaml::to_string(&mapping)
         .map_err(|e| OkfExportError::new(format!("cannot serialize frontmatter: {e}")))?;
@@ -481,12 +536,10 @@ fn staged_path(directory: &Path) -> PathBuf {
         .unwrap_or_else(|| Path::new("."));
     let name = directory
         .file_name()
-        .map(|n| n.to_string_lossy())
-        .unwrap_or_else(|| "okf".into());
+        .map_or_else(|| "okf".into(), |n| n.to_string_lossy());
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+        .map_or(0, |d| d.as_nanos());
     parent.join(format!(
         ".{name}.gts-okf.{}.{}.tmp",
         std::process::id(),

@@ -7,7 +7,13 @@
 //! graph structs. Every exported operation catches panics, reports structured
 //! errors through an opaque handle, and returns only caller-freeable buffers.
 
+#![expect(
+    unsafe_code,
+    reason = "C ABI wrapper: every export is an unsafe extern function over raw pointers, and each unsafe block carries a SAFETY proof"
+)]
+
 use std::ffi::{CStr, CString};
+use std::mem::ManuallyDrop;
 use std::os::raw::{c_char, c_int};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
@@ -47,13 +53,27 @@ const UNPACK_PRESERVE_SETID: u32 = 1 << 4;
 
 const VERSION: &[u8] = concat!(env!("CARGO_PKG_VERSION"), "\0").as_bytes();
 
+/// Caller-freeable byte buffer returned by the C ABI.
+///
+/// `data` is null when the buffer is empty. A non-null `data` points to `len`
+/// initialized bytes inside an allocation of `capacity` bytes. Release the
+/// buffer with `gts_buffer_free`.
 #[repr(C)]
+#[derive(Debug)]
 pub struct GtsBuffer {
+    /// Pointer to the first byte, or null when the buffer is empty.
     pub data: *mut u8,
+    /// Number of initialized bytes at `data`.
     pub len: usize,
+    /// Allocation size in bytes that backs `data`.
     pub capacity: usize,
 }
 
+/// Opaque error handle returned through a `GtsError **` output parameter.
+///
+/// Read it with `gts_error_code` and `gts_error_message`, and release it with
+/// `gts_error_free`.
+#[derive(Debug)]
 pub struct GtsError {
     code: CString,
     message: CString,
@@ -146,7 +166,7 @@ const FORMAT_CODECS: &[FormatCodec] = &[
         aliases: &["n-quads", "nq"],
         extensions: &["nq"],
         parse: parse_nquads_format,
-        serialize: serialize_nquads_format,
+        serialize: |graph| Ok(to_nquads(graph)),
     },
     FormatCodec {
         id: "ntriples",
@@ -197,10 +217,6 @@ const FORMAT_CODECS: &[FormatCodec] = &[
 
 fn parse_nquads_format(text: &str) -> Result<Vec<u8>, ApiError> {
     from_nquads(text).map_err(|err| ApiError::parse(err.to_string()))
-}
-
-fn serialize_nquads_format(graph: &Graph) -> Result<String, ApiError> {
-    Ok(to_nquads(graph))
 }
 
 fn parse_ntriples_format(text: &str) -> Result<Vec<u8>, ApiError> {
@@ -321,6 +337,9 @@ where
 
 fn clear_error_slot(error_out: *mut *mut GtsError) {
     if !error_out.is_null() {
+        // SAFETY: `error_out` is non-null, checked above. The export's caller owns the
+        // slot, and the store replaces the pointer value only; it neither reads nor
+        // frees the previous one.
         unsafe {
             *error_out = ptr::null_mut();
         }
@@ -335,14 +354,21 @@ fn write_error(error_out: *mut *mut GtsError, err: &ApiError) {
         code: cstring_lossy(err.code),
         message: cstring_lossy(&err.message),
     };
+    // SAFETY: `error_out` is non-null, checked above, and it is a writable slot the
+    // caller owns. The stored pointer comes from `Box::into_raw`, so the caller owns
+    // the handle and releases it once with `gts_error_free`.
     unsafe {
         *error_out = Box::into_raw(Box::new(error));
     }
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "INVARIANT: NUL bytes are replaced before CString::new, so it cannot fail"
+)]
 fn cstring_lossy(value: &str) -> CString {
     let sanitized = value.replace('\0', "\\0");
-    CString::new(sanitized).expect("NUL bytes were escaped")
+    CString::new(sanitized).expect("INVARIANT: NUL bytes were escaped")
 }
 
 fn require_out(out: *mut GtsBuffer) -> Result<(), ApiError> {
@@ -356,6 +382,9 @@ fn require_out(out: *mut GtsBuffer) -> Result<(), ApiError> {
 fn write_buffer(out: *mut GtsBuffer, mut data: Vec<u8>) -> Result<(), ApiError> {
     require_out(out)?;
     if data.is_empty() {
+        // SAFETY: `require_out` rejected a null `out`, so `out` is the caller's writable
+        // `GtsBuffer`. The empty value owns no allocation, and the previous contents are
+        // overwritten, not read or freed.
         unsafe {
             *out = GtsBuffer {
                 data: ptr::null_mut(),
@@ -366,12 +395,15 @@ fn write_buffer(out: *mut GtsBuffer, mut data: Vec<u8>) -> Result<(), ApiError> 
         return Ok(());
     }
     data.shrink_to_fit();
+    let mut data = ManuallyDrop::new(data);
     let buffer = GtsBuffer {
         data: data.as_mut_ptr(),
         len: data.len(),
         capacity: data.capacity(),
     };
-    std::mem::forget(data);
+    // SAFETY: `out` is the non-null writable slot that `require_out` checked. `data`,
+    // `len` and `capacity` describe the allocation that `ManuallyDrop` just leaked.
+    // The caller takes ownership of it and releases it with `gts_buffer_free`.
     unsafe {
         *out = buffer;
     }
@@ -386,6 +418,9 @@ fn input_slice<'a>(data: *const u8, len: usize) -> Result<&'a [u8], ApiError> {
             Err(ApiError::invalid_argument("input data pointer is null"))
         }
     } else {
+        // SAFETY: `data` is non-null in this branch. The export's Safety contract makes it
+        // point to `len` readable bytes, and `u8` needs no alignment beyond 1. The slice
+        // is used only during the call and is not stored.
         Ok(unsafe { slice::from_raw_parts(data, len) })
     }
 }
@@ -402,6 +437,9 @@ fn input_cstr<'a>(value: *const c_char, name: &str) -> Result<&'a str, ApiError>
             "{name} pointer is null"
         )));
     }
+    // SAFETY: `value` is non-null, checked above. The export's Safety contract makes it
+    // a NUL-terminated string readable until the call returns. The `&str` derived
+    // from it is used only within that call.
     let raw = unsafe { CStr::from_ptr(value) };
     raw.to_str()
         .map_err(|err| ApiError::invalid_argument(format!("{name} is not UTF-8: {err}")))
@@ -413,6 +451,9 @@ fn c_path<'a>(path: *const c_char, name: &str) -> Result<&'a Path, ApiError> {
             "{name} path pointer is null"
         )));
     }
+    // SAFETY: `path` is non-null, checked above. The export's Safety contract makes it
+    // a NUL-terminated string readable until the call returns. The returned `&Path`
+    // is used only within that call.
     let raw = unsafe { CStr::from_ptr(path) };
     let text = raw
         .to_str()
@@ -427,6 +468,10 @@ fn c_paths(paths: *const *const c_char, count: usize) -> Result<Vec<PathBuf>, Ap
     if paths.is_null() {
         return Err(ApiError::invalid_argument("path list pointer is null"));
     }
+    // SAFETY: `paths` is non-null and `count` is nonzero, both checked above. The
+    // export's Safety contract makes `count` pointer entries readable at `paths`. The
+    // slice is read once, and each path is copied into an owned `PathBuf`, so no
+    // borrow outlives the call.
     let raw = unsafe { slice::from_raw_parts(paths, count) };
     raw.iter()
         .enumerate()
@@ -533,8 +578,8 @@ fn verify_json(result: &VerificationResult) -> serde_json::Value {
     })
 }
 
-fn json_bytes(value: serde_json::Value) -> Result<Vec<u8>, ApiError> {
-    serde_json::to_vec(&value)
+fn json_bytes(value: &serde_json::Value) -> Result<Vec<u8>, ApiError> {
+    serde_json::to_vec(value)
         .map_err(|err| ApiError::internal(format!("JSON serialization failed: {err}")))
 }
 
@@ -567,11 +612,14 @@ fn build_metadata_json() -> serde_json::Value {
 }
 
 #[no_mangle]
+/// Return the C ABI version number. It changes only when the ABI changes.
 pub extern "C" fn gts_abi_version() -> u32 {
     ABI_VERSION
 }
 
 #[no_mangle]
+/// Return the NUL-terminated package version. The pointer is static and must
+/// not be freed.
 pub extern "C" fn gts_version() -> *const c_char {
     VERSION.as_ptr().cast()
 }
@@ -587,6 +635,11 @@ pub unsafe extern "C" fn gts_buffer_free(buffer: *mut GtsBuffer) {
     if buffer.is_null() {
         return;
     }
+    // SAFETY: `buffer` is non-null, checked above, and the export's Safety contract
+    // makes it a valid `GtsBuffer` initialized by this library. A non-empty buffer's
+    // `data`, `len` and `capacity` came from `write_buffer`'s `Vec`, so rebuilding that
+    // `Vec` drops the allocation exactly once. The fields are then reset, so a
+    // repeated free is a no-op.
     unsafe {
         let buf = &mut *buffer;
         if !buf.data.is_null() && buf.capacity > 0 {
@@ -607,6 +660,9 @@ pub unsafe extern "C" fn gts_buffer_free(buffer: *mut GtsBuffer) {
 /// parameter by this library.
 pub unsafe extern "C" fn gts_error_free(error: *mut GtsError) {
     if !error.is_null() {
+        // SAFETY: `error` is non-null, checked above, and the export's Safety contract
+        // makes it a handle from `write_error`'s `Box::into_raw`. `Box::from_raw` reclaims
+        // it, and it is dropped here once; the caller must not use it afterwards.
         unsafe {
             drop(Box::from_raw(error));
         }
@@ -625,6 +681,9 @@ pub unsafe extern "C" fn gts_error_code(error: *const GtsError) -> *const c_char
     if error.is_null() {
         ptr::null()
     } else {
+        // SAFETY: `error` is non-null in this branch, and the export's Safety contract
+        // makes it a live handle. The reference to its `CString` lasts only for `as_ptr`,
+        // and the returned pointer is valid until `gts_error_free`.
         unsafe { (*error).code.as_ptr() }
     }
 }
@@ -641,6 +700,9 @@ pub unsafe extern "C" fn gts_error_message(error: *const GtsError) -> *const c_c
     if error.is_null() {
         ptr::null()
     } else {
+        // SAFETY: `error` is non-null in this branch, and the export's Safety contract
+        // makes it a live handle. The reference to its `CString` lasts only for `as_ptr`,
+        // and the returned pointer is valid until `gts_error_free`.
         unsafe { (*error).message.as_ptr() }
     }
 }
@@ -652,13 +714,15 @@ pub unsafe extern "C" fn gts_error_message(error: *const GtsError) -> *const c_c
 ///
 /// `out` must be a valid writable buffer pointer. `error` may be null or a
 /// valid writable error-handle slot.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_build_metadata_json(
     out: *mut GtsBuffer,
     error: *mut *mut GtsError,
 ) -> c_int {
     ffi_entry(error, || {
         require_out(out)?;
-        write_buffer(out, json_bytes(build_metadata_json())?)
+        write_buffer(out, json_bytes(&build_metadata_json())?)
     })
 }
 
@@ -669,6 +733,8 @@ pub unsafe extern "C" fn gts_build_metadata_json(
 ///
 /// `out` must be a valid writable buffer pointer. `error` may be null or a
 /// valid writable error-handle slot.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_capabilities_json(
     out: *mut GtsBuffer,
     error: *mut *mut GtsError,
@@ -677,7 +743,7 @@ pub unsafe extern "C" fn gts_capabilities_json(
         require_out(out)?;
         write_buffer(
             out,
-            json_bytes(json!({
+            json_bytes(&json!({
                 "schema": "gts-capi-capabilities-v1",
                 "abi_version": ABI_VERSION,
                 "version": env!("CARGO_PKG_VERSION"),
@@ -719,10 +785,12 @@ pub unsafe extern "C" fn gts_capabilities_json(
 ///
 /// `out` must be a valid writable buffer pointer. `error` may be null or a
 /// valid writable error-handle slot.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_formats_json(out: *mut GtsBuffer, error: *mut *mut GtsError) -> c_int {
     ffi_entry(error, || {
         require_out(out)?;
-        write_buffer(out, json_bytes(format_registry_json())?)
+        write_buffer(out, json_bytes(&format_registry_json())?)
     })
 }
 
@@ -733,6 +801,9 @@ pub unsafe extern "C" fn gts_formats_json(out: *mut GtsBuffer, error: *mut *mut 
 ///
 /// `data` must point to `len` readable bytes unless `len` is zero. `out` must
 /// be writable. `error` may be null or a writable error-handle slot.
+/// Input pointers are read only during the call.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_read_json(
     data: *const u8,
     len: usize,
@@ -742,7 +813,7 @@ pub unsafe extern "C" fn gts_read_json(
     ffi_entry(error, || {
         require_out(out)?;
         let graph = read(input_slice(data, len)?, true, None);
-        write_buffer(out, json_bytes(graph_json(&graph))?)
+        write_buffer(out, json_bytes(&graph_json(&graph))?)
     })
 }
 
@@ -753,6 +824,9 @@ pub unsafe extern "C" fn gts_read_json(
 ///
 /// `data` must point to `len` readable bytes unless `len` is zero. `out` must
 /// be writable. `error` may be null or a writable error-handle slot.
+/// Input pointers are read only during the call.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_verify_json(
     data: *const u8,
     len: usize,
@@ -762,7 +836,7 @@ pub unsafe extern "C" fn gts_verify_json(
     ffi_entry(error, || {
         require_out(out)?;
         let result = verify_file(input_slice(data, len)?);
-        write_buffer(out, json_bytes(verify_json(&result))?)
+        write_buffer(out, json_bytes(&verify_json(&result))?)
     })
 }
 
@@ -773,6 +847,9 @@ pub unsafe extern "C" fn gts_verify_json(
 ///
 /// `data` must point to `len` readable bytes unless `len` is zero. `out` must
 /// be writable. `error` may be null or a writable error-handle slot.
+/// Input pointers are read only during the call.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_to_nquads(
     data: *const u8,
     len: usize,
@@ -793,6 +870,9 @@ pub unsafe extern "C" fn gts_to_nquads(
 ///
 /// `text` must point to `len` readable UTF-8 bytes unless `len` is zero. `out`
 /// must be writable. `error` may be null or a writable error-handle slot.
+/// Input pointers are read only during the call.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_from_nquads(
     text: *const c_char,
     len: usize,
@@ -818,6 +898,9 @@ pub unsafe extern "C" fn gts_from_nquads(
 /// `data` must point to `len` readable bytes unless `len` is zero. `format`
 /// must be a NUL-terminated UTF-8 C string. `out` must be writable. `error`
 /// may be null or a writable error-handle slot.
+/// Input pointers are read only during the call.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_to_format(
     data: *const u8,
     len: usize,
@@ -844,6 +927,9 @@ pub unsafe extern "C" fn gts_to_format(
 /// `format` must be a NUL-terminated UTF-8 C string. `text` must point to
 /// `len` readable UTF-8 bytes unless `len` is zero. `out` must be writable.
 /// `error` may be null or a writable error-handle slot.
+/// Input pointers are read only during the call.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_from_format(
     format: *const c_char,
     text: *const c_char,
@@ -867,6 +953,9 @@ pub unsafe extern "C" fn gts_from_format(
 ///
 /// `paths` must point to `path_count` NUL-terminated UTF-8 C string pointers.
 /// `out` must be writable. `error` may be null or a writable error-handle slot.
+/// Input pointers are read only during the call.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_files_pack(
     paths: *const *const c_char,
     path_count: usize,
@@ -888,8 +977,13 @@ pub unsafe extern "C" fn gts_files_pack(
 /// # Safety
 ///
 /// `data` must point to `len` readable bytes unless `len` is zero. `dest` must
-/// be a NUL-terminated UTF-8 path. `out` must be writable. `error` may be null
-/// or a writable error-handle slot.
+/// be a NUL-terminated UTF-8 path. `out` must be a valid, aligned, writable
+/// `GtsBuffer` pointer. A null `out` is rejected with `GTS_STATUS_INVALID_ARGUMENT`
+/// before anything is written to the destination. `error` may be null or a
+/// writable error-handle slot, which receives a handle on failure.
+/// Input pointers are read only during the call.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_files_unpack(
     data: *const u8,
     len: usize,
@@ -905,7 +999,7 @@ pub unsafe extern "C" fn gts_files_unpack(
         unpack_with_options(&graph, destination, &unpack_options(flags)).map_err(ApiError::io)?;
         write_buffer(
             out,
-            json_bytes(json!({
+            json_bytes(&json!({
                 "schema": "gts-capi-files-unpack-v1",
                 "ok": true,
                 "destination": destination.display().to_string(),
@@ -922,6 +1016,9 @@ pub unsafe extern "C" fn gts_files_unpack(
 /// `data` must point to `len` readable bytes unless `len` is zero. `directory`
 /// must be a NUL-terminated UTF-8 path. `out` must be writable. `error` may be
 /// null or a writable error-handle slot.
+/// Input pointers are read only during the call.
+/// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
+/// On failure a non-null `error` receives a handle that `gts_error_free` releases.
 pub unsafe extern "C" fn gts_files_diff_json(
     data: *const u8,
     len: usize,
@@ -936,7 +1033,7 @@ pub unsafe extern "C" fn gts_files_diff_json(
         let changes = diff(&graph, directory).map_err(ApiError::io)?;
         write_buffer(
             out,
-            json_bytes(json!({
+            json_bytes(&json!({
                 "schema": "gts-capi-files-diff-v1",
                 "clean": changes.is_empty(),
                 "changes": changes,
@@ -968,27 +1065,44 @@ mod tests {
             capacity: 0,
         };
         let mut error: *mut GtsError = ptr::null_mut();
-        let status = f(&mut buffer, &mut error);
+        let status = f(&raw mut buffer, &raw mut error);
         if status != STATUS_OK {
+            // SAFETY: `status` is not OK, and every export stores a handle in `error` on
+            // failure. The message is a NUL-terminated `CString` owned by that handle;
+            // `into_owned` copies it before the handle is freed.
             let message = unsafe {
                 CStr::from_ptr(gts_error_message(error))
                     .to_string_lossy()
                     .into_owned()
             };
+            // SAFETY: `error` is the handle stored above and has not been freed. It is
+            // released exactly once here, after the message was copied.
             unsafe {
                 gts_error_free(error);
             }
             return Err(message);
         }
-        let out = unsafe { slice::from_raw_parts(buffer.data, buffer.len).to_vec() };
+        // SAFETY: `data` is either null, which yields an empty copy, or points to `len`
+        // initialized bytes that the successful call wrote and that stay allocated until
+        // `gts_buffer_free` below. A null pointer is never passed to `from_raw_parts`.
+        let out = if buffer.data.is_null() {
+            Vec::new()
+        } else {
+            unsafe { slice::from_raw_parts(buffer.data, buffer.len).to_vec() }
+        };
+        // SAFETY: `buffer` is the local that the successful call filled in. The copy above
+        // has finished, so this call releases the library's allocation exactly once. A
+        // null `data` is a no-op for `gts_buffer_free`.
         unsafe {
-            gts_buffer_free(&mut buffer);
+            gts_buffer_free(&raw mut buffer);
         }
         Ok(out)
     }
 
     #[test]
     fn capabilities_and_build_metadata_are_reported() {
+        // SAFETY: `call_buffer` passes live, writable `out` and `err` locals, and
+        // this export reads no input pointers.
         let capabilities =
             call_buffer(|out, err| unsafe { gts_capabilities_json(out, err) }).unwrap();
         let value: serde_json::Value = serde_json::from_slice(&capabilities).unwrap();
@@ -1005,17 +1119,21 @@ mod tests {
             .any(|item| item == "to_format"));
         assert_eq!(value["features"]["format_registry"], true);
 
+        // SAFETY: `call_buffer` passes live, writable `out` and `err` locals, and
+        // this export reads no input pointers.
         let metadata =
             call_buffer(|out, err| unsafe { gts_build_metadata_json(out, err) }).unwrap();
         let value: serde_json::Value = serde_json::from_slice(&metadata).unwrap();
         assert_eq!(value["schema"], "gts-capi-build-v1");
         assert_eq!(value["abi_version"], ABI_VERSION);
         assert_eq!(value["library"], "libgts");
-        assert!(!value["target"]["arch"].as_str().unwrap().is_empty());
+        assert_ne!(value["target"]["arch"].as_str().unwrap(), "");
     }
 
     #[test]
     fn format_registry_reports_supported_codecs() {
+        // SAFETY: `call_buffer` passes live, writable `out` and `err` locals, and
+        // this export reads no input pointers.
         let formats = call_buffer(|out, err| unsafe { gts_formats_json(out, err) }).unwrap();
         let value: serde_json::Value = serde_json::from_slice(&formats).unwrap();
         assert_eq!(value["schema"], "gts-capi-format-registry-v1");
@@ -1033,6 +1151,8 @@ mod tests {
     #[test]
     fn read_verify_and_nquads_round_trip() {
         let data = fs::read(vectors().join("01-minimal.gts")).unwrap();
+        // SAFETY: `data` is the `Vec` read above. It is alive for the call, and `len`
+        // is its exact length. `call_buffer` passes live, writable `out` and `err` locals.
         let read_json =
             call_buffer(|out, err| unsafe { gts_read_json(data.as_ptr(), data.len(), out, err) })
                 .unwrap();
@@ -1040,12 +1160,16 @@ mod tests {
         assert_eq!(value["schema"], "gts-capi-read-v1");
         assert_eq!(value["clean"], true);
 
+        // SAFETY: `data` is the `Vec` read above. It is alive for the call, and `len`
+        // is its exact length. `call_buffer` passes live, writable `out` and `err` locals.
         let verify_json =
             call_buffer(|out, err| unsafe { gts_verify_json(data.as_ptr(), data.len(), out, err) })
                 .unwrap();
         let value: serde_json::Value = serde_json::from_slice(&verify_json).unwrap();
         assert_eq!(value["schema"], "gts-capi-verify-v1");
 
+        // SAFETY: `data` is the `Vec` read above. It is alive for the call, and `len`
+        // is its exact length. `call_buffer` passes live, writable `out` and `err` locals.
         let nq =
             call_buffer(|out, err| unsafe { gts_to_nquads(data.as_ptr(), data.len(), out, err) })
                 .unwrap();
@@ -1053,11 +1177,14 @@ mod tests {
             .unwrap()
             .contains("\"Cat\"@en"));
 
+        // SAFETY: `nq` is the N-Quads output above. A clone of its bytes was checked as
+        // UTF-8 by `String::from_utf8` before this call; the pointer and length describe
+        // the live `Vec`.
         let round = call_buffer(|out, err| unsafe {
             gts_from_nquads(nq.as_ptr().cast::<c_char>(), nq.len(), out, err)
         })
         .unwrap();
-        assert!(!round.is_empty());
+        assert!(!round.is_empty(), "N-Quads round trip produced no bytes");
     }
 
     #[test]
@@ -1065,12 +1192,18 @@ mod tests {
         let data = sample_default_graph_gts();
         for format in ["nquads", "ntriples", "turtle", "trig", "rdfxml", "jsonld"] {
             let format_c = CString::new(format).unwrap();
+            // SAFETY: `data` is the GTS bytes built by `sample_default_graph_gts`, alive for
+            // the call with its exact length. `format_c` is a NUL-terminated C string that
+            // lives through the loop body.
             let text = call_buffer(|out, err| unsafe {
                 gts_to_format(data.as_ptr(), data.len(), format_c.as_ptr(), out, err)
             })
             .unwrap_or_else(|err| panic!("{format} serialize failed: {err}"));
             assert!(!text.is_empty(), "{format} serialization was empty");
 
+            // SAFETY: `format_c` is the NUL-terminated format name, alive here. `text` is the
+            // serializer output, UTF-8 text from `String::into_bytes`, and the pointer and
+            // length describe that `Vec`.
             let round = call_buffer(|out, err| unsafe {
                 gts_from_format(
                     format_c.as_ptr(),
@@ -1083,6 +1216,8 @@ mod tests {
             .unwrap_or_else(|err| panic!("{format} parse failed: {err}"));
             assert!(!round.is_empty(), "{format} parse output was empty");
 
+            // SAFETY: `round` is the GTS bytes parsed above, alive for the call with its exact
+            // length. `gts_read_json` accepts any bytes, so no UTF-8 check applies.
             let read_json = call_buffer(|out, err| unsafe {
                 gts_read_json(round.as_ptr(), round.len(), out, err)
             })
@@ -1096,6 +1231,8 @@ mod tests {
     fn media_type_and_extension_dispatch_share_the_registry() {
         let data = sample_default_graph_gts();
         let media_type = CString::new("text/turtle; charset=utf-8").unwrap();
+        // SAFETY: `data` is alive with its exact length, and `media_type` is a
+        // NUL-terminated C string that outlives the call.
         let turtle = call_buffer(|out, err| unsafe {
             gts_to_format(data.as_ptr(), data.len(), media_type.as_ptr(), out, err)
         })
@@ -1103,6 +1240,9 @@ mod tests {
         assert!(String::from_utf8(turtle.clone()).unwrap().contains("Cat"));
 
         let extension = CString::new(".ttl").unwrap();
+        // SAFETY: `extension` is a NUL-terminated C string, alive here. `turtle` is the
+        // serializer output, which `String::from_utf8` checked as UTF-8 above; the pointer
+        // and length describe that `Vec`.
         let round = call_buffer(|out, err| unsafe {
             gts_from_format(
                 extension.as_ptr(),
@@ -1113,7 +1253,10 @@ mod tests {
             )
         })
         .unwrap();
-        assert!(!round.is_empty());
+        assert!(
+            !round.is_empty(),
+            "extension dispatch round trip produced no bytes"
+        );
     }
 
     #[test]
@@ -1126,24 +1269,33 @@ mod tests {
             capacity: 0,
         };
         let mut error: *mut GtsError = ptr::null_mut();
+        // SAFETY: `data` and `format` are alive with their exact lengths, and `format` is
+        // NUL-terminated. `buffer` and `error` are live locals. The format is not
+        // registered, so the export writes only the error and leaves `buffer` untouched.
         let status = unsafe {
             gts_to_format(
                 data.as_ptr(),
                 data.len(),
                 format.as_ptr(),
-                &mut buffer,
-                &mut error,
+                &raw mut buffer,
+                &raw mut error,
             )
         };
         assert_eq!(status, STATUS_INVALID_ARGUMENT);
         assert!(!error.is_null());
+        // SAFETY: `error` is non-null, asserted above, so the export returned a handle. The
+        // message is a NUL-terminated `CString` owned by the handle, read before it is
+        // freed.
         let message = unsafe { CStr::from_ptr(gts_error_message(error)) }
             .to_str()
             .unwrap();
         assert!(message.contains("unsupported RDF format"));
+        // SAFETY: `error` is the handle asserted non-null above, freed once here. `buffer`
+        // was not written by the failed call, so its null `data` makes `gts_buffer_free` a
+        // no-op.
         unsafe {
             gts_error_free(error);
-            gts_buffer_free(&mut buffer);
+            gts_buffer_free(&raw mut buffer);
         }
     }
 
@@ -1156,20 +1308,27 @@ mod tests {
             capacity: 0,
         };
         let mut error: *mut GtsError = ptr::null_mut();
+        // SAFETY: `text` is a static byte string, and its exact length is passed. It is
+        // ASCII, so it is UTF-8. `buffer` and `error` are live locals that the export
+        // writes on failure.
         let status = unsafe {
             gts_from_nquads(
                 text.as_ptr().cast::<c_char>(),
                 text.len(),
-                &mut buffer,
-                &mut error,
+                &raw mut buffer,
+                &raw mut error,
             )
         };
         assert_eq!(status, STATUS_PARSE);
         assert!(!error.is_null());
+        // SAFETY: `error` is non-null, asserted above. The code is a NUL-terminated
+        // `CString` owned by the handle, read before `gts_error_free` below.
         let code = unsafe { CStr::from_ptr(gts_error_code(error)) }
             .to_str()
             .unwrap();
         assert_eq!(code, "parse-error");
+        // SAFETY: `error` is the handle asserted non-null above. The `code` borrow ended
+        // with its assertion, and the handle is freed exactly once here.
         unsafe {
             gts_error_free(error);
         }
@@ -1182,10 +1341,15 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let dest =
-            std::env::temp_dir().join(format!("gts-capi-null-out-{}-{nonce}", std::process::id()));
+        // A unique, nonexistent destination under the checkout's scratch directory.
+        let dest = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.stage")
+            .join(format!("capi-null-out-{}-{nonce}", std::process::id()));
         let dest_c = CString::new(dest.to_str().unwrap()).unwrap();
         let mut error: *mut GtsError = ptr::null_mut();
+        // SAFETY: `data` and `dest_c` are live for the call, `data` holds `data.len()`
+        // bytes, and `dest_c` is NUL-terminated. The null `out` is the case the export
+        // rejects before it dereferences `out`, so no write to `out` occurs.
         let status = unsafe {
             gts_files_unpack(
                 data.as_ptr(),
@@ -1193,12 +1357,14 @@ mod tests {
                 dest_c.as_ptr(),
                 0,
                 ptr::null_mut(),
-                &mut error,
+                &raw mut error,
             )
         };
         assert_eq!(status, STATUS_INVALID_ARGUMENT);
         assert!(!error.is_null());
         assert!(!dest.exists());
+        // SAFETY: `error` is the handle asserted non-null above, and it is freed exactly
+        // once.
         unsafe {
             gts_error_free(error);
         }

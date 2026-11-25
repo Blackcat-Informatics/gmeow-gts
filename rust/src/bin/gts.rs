@@ -42,6 +42,10 @@ use gmeow_gts::wire::{digest_str, hex};
 #[cfg(feature = "yaml-ld")]
 use gmeow_gts::yamlld::to_yaml_ld;
 
+#[macro_use]
+#[path = "gts/output.rs"]
+mod output;
+
 #[cfg(feature = "tar")]
 #[path = "gts/tar_cli.rs"]
 mod tar_cli;
@@ -60,7 +64,7 @@ use i18n::{unknown_command_message, USAGE};
 /// pair of statements lived in 29 places. Naming it once keeps that contract
 /// in one spot and makes each call site read as the single decision it is.
 fn usage_error() -> ExitCode {
-    eprintln!("{USAGE}");
+    stderr_line!("{USAGE}");
     ExitCode::from(2)
 }
 
@@ -135,11 +139,11 @@ fn main() -> ExitCode {
         #[cfg(not(feature = "duckdb"))]
         "to-duckdb" | "to-parquet" => cmd_duckdb_disabled(cmd),
         "-h" | "--help" | "help" => {
-            println!("{USAGE}");
+            stdout_line!("{USAGE}");
             ExitCode::SUCCESS
         }
         other => {
-            eprintln!("{}", unknown_command_message(other));
+            stderr_line!("{}", unknown_command_message(other));
             ExitCode::from(2)
         }
     }
@@ -147,7 +151,7 @@ fn main() -> ExitCode {
 
 #[cfg(not(feature = "duckdb"))]
 fn cmd_duckdb_disabled(cmd: &str) -> ExitCode {
-    eprintln!(
+    stderr_line!(
         "gts {cmd}: optional DuckDB/Parquet exports are disabled; rebuild with \
          `--features duckdb` and keep the `duckdb` binary on PATH"
     );
@@ -156,13 +160,15 @@ fn cmd_duckdb_disabled(cmd: &str) -> ExitCode {
 
 #[cfg(not(feature = "yaml-ld"))]
 fn cmd_yaml_ld_disabled(cmd: &str) -> ExitCode {
-    eprintln!("gts {cmd}: YAML-LD-star transforms are disabled; rebuild with `--features yaml-ld`");
+    stderr_line!(
+        "gts {cmd}: YAML-LD-star transforms are disabled; rebuild with `--features yaml-ld`"
+    );
     ExitCode::from(2)
 }
 
 #[cfg(not(feature = "rdf-codecs"))]
 fn cmd_rdf_codecs_disabled(cmd: &str) -> ExitCode {
-    eprintln!(
+    stderr_line!(
         "gts {cmd}: RDF Turtle-family codecs are disabled; rebuild with \
          `--features rdf-codecs`"
     );
@@ -171,19 +177,19 @@ fn cmd_rdf_codecs_disabled(cmd: &str) -> ExitCode {
 
 #[cfg(not(feature = "okf"))]
 fn cmd_okf_disabled(cmd: &str) -> ExitCode {
-    eprintln!("gts {cmd}: OKF transforms are disabled; rebuild with `--features okf`");
+    stderr_line!("gts {cmd}: OKF transforms are disabled; rebuild with `--features okf`");
     ExitCode::from(2)
 }
 
 #[cfg(not(feature = "tar"))]
 fn cmd_tar_disabled(cmd: &str) -> ExitCode {
-    eprintln!("gts {cmd}: tar transforms are disabled; rebuild with `--features tar`");
+    stderr_line!("gts {cmd}: tar transforms are disabled; rebuild with `--features tar`");
     ExitCode::from(2)
 }
 
 fn load(path: &str) -> Result<Vec<u8>, ExitCode> {
     std::fs::read(path).map_err(|e| {
-        eprintln!("gts: cannot read {path}: {e}");
+        stderr_line!("gts: cannot read {path}: {e}");
         ExitCode::from(2)
     })
 }
@@ -195,7 +201,7 @@ fn cmd_prove(args: &[String]) -> ExitCode {
     let target = match parse_hex_32(frame_id) {
         Ok(id) => id,
         Err(e) => {
-            eprintln!("gts prove: invalid frame id: {e}");
+            stderr_line!("gts prove: invalid frame id: {e}");
             return ExitCode::from(2);
         }
     };
@@ -205,11 +211,11 @@ fn cmd_prove(args: &[String]) -> ExitCode {
     };
     match prove_file(&data, &target) {
         Ok(proof) => {
-            print!("{}", proof.to_json());
+            stdout_text!("{}", proof.to_json());
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("gts prove: {e}");
+            stderr_line!("gts prove: {e}");
             ExitCode::from(1)
         }
     }
@@ -222,20 +228,20 @@ fn cmd_verify_proof(args: &[String]) -> ExitCode {
     let text = match std::fs::read_to_string(path) {
         Ok(text) => text,
         Err(e) => {
-            eprintln!("gts verify-proof: cannot read {path}: {e}");
+            stderr_line!("gts verify-proof: cannot read {path}: {e}");
             return ExitCode::from(2);
         }
     };
     let proof = match Proof::from_json(&text) {
         Ok(proof) => proof,
         Err(e) => {
-            eprintln!("gts verify-proof: invalid proof JSON: {e}");
+            stderr_line!("gts verify-proof: invalid proof JSON: {e}");
             return ExitCode::from(2);
         }
     };
     match verify_proof(&proof) {
         Ok(()) => {
-            println!(
+            stdout_line!(
                 "proof ok: root {} frame {}",
                 hex(&proof.root),
                 hex(&proof.frame_id)
@@ -243,7 +249,7 @@ fn cmd_verify_proof(args: &[String]) -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("gts verify-proof: invalid proof: {e}");
+            stderr_line!("gts verify-proof: invalid proof: {e}");
             ExitCode::from(1)
         }
     }
@@ -258,7 +264,7 @@ fn cmd_heads(args: &[String]) -> ExitCode {
         Err(code) => return code,
     };
     let inventory = inventory(&data);
-    print!("{}", heads_json(&inventory));
+    stdout_text!("{}", heads_json(&inventory));
     if inventory.has_problems() {
         ExitCode::from(1)
     } else {
@@ -275,7 +281,7 @@ fn cmd_segments(args: &[String]) -> ExitCode {
         Err(code) => return code,
     };
     let inventory = inventory(&data);
-    print!("{}", segments_json(&inventory));
+    stdout_text!("{}", segments_json(&inventory));
     if inventory.has_problems() {
         ExitCode::from(1)
     } else {
@@ -292,7 +298,7 @@ fn cmd_missing(args: &[String]) -> ExitCode {
     let from_head = match parse_hex_32(from_head) {
         Ok(head) => head,
         Err(e) => {
-            eprintln!("gts missing: invalid peer head: {e}");
+            stderr_line!("gts missing: invalid peer head: {e}");
             return ExitCode::from(2);
         }
     };
@@ -302,7 +308,7 @@ fn cmd_missing(args: &[String]) -> ExitCode {
     };
     let inventory = inventory(&data);
     let result = missing(&inventory, &from_head);
-    print!("{}", missing_json(&result));
+    stdout_text!("{}", missing_json(&result));
     if result.status == MissingStatus::Error {
         ExitCode::from(1)
     } else {
@@ -319,7 +325,7 @@ fn cmd_resume(args: &[String]) -> ExitCode {
     let frame_id = match parse_hex_32(frame_id) {
         Ok(id) => id,
         Err(e) => {
-            eprintln!("gts resume: invalid frame id: {e}");
+            stderr_line!("gts resume: invalid frame id: {e}");
             return ExitCode::from(2);
         }
     };
@@ -331,13 +337,13 @@ fn cmd_resume(args: &[String]) -> ExitCode {
         Ok(tail) => {
             let mut stdout = std::io::stdout();
             if let Err(e) = std::io::Write::write_all(&mut stdout, tail) {
-                eprintln!("gts resume: cannot write stdout: {e}");
+                stderr_line!("gts resume: cannot write stdout: {e}");
                 return ExitCode::from(2);
             }
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("gts resume: {e}");
+            stderr_line!("gts resume: {e}");
             ExitCode::from(1)
         }
     }
@@ -345,7 +351,7 @@ fn cmd_resume(args: &[String]) -> ExitCode {
 
 /// Print the per-segment composition ledger (§14.1 "SHOULD report").
 fn print_ledger(path: &str, fs: &FileSegments) {
-    println!(
+    stdout_line!(
         "{path}: {} segment(s){}",
         fs.segments.len(),
         match fs.torn {
@@ -354,26 +360,24 @@ fn print_ledger(path: &str, fs: &FileSegments) {
         }
     );
     if let Some(fatal) = &fs.fatal {
-        println!("  FATAL {}: {}", fatal.code, fatal.detail);
+        stdout_line!("  FATAL {}: {}", fatal.code, fatal.detail);
         return;
     }
     for (idx, seg) in fs.segments.iter().enumerate() {
         let head = seg
             .segment_heads
             .first()
-            .map(|h| hex(h))
-            .unwrap_or_else(|| "<none>".to_string());
+            .map_or_else(|| "<none>".to_string(), |h| hex(h));
         let profile = seg
             .segment_profiles
             .first()
-            .map(String::as_str)
-            .unwrap_or("<none>");
+            .map_or("<none>", String::as_str);
         let signers = seg
             .signatures
             .iter()
             .filter(|s| s.status != "invalid")
             .count();
-        println!(
+        stdout_line!(
             "  segment {idx}: head {head} profile {profile} terms {} quads {} \
              reifies {} annot {} blobs {} suppress {} opaque {} sigs {signers}",
             seg.terms.len(),
@@ -389,24 +393,23 @@ fn print_ledger(path: &str, fs: &FileSegments) {
                 let head_hex = layout
                     .head
                     .as_deref()
-                    .map(hex)
-                    .unwrap_or_else(|| "<none>".to_string());
+                    .map_or_else(|| "<none>".to_string(), hex);
                 let tail = if layout.tail > 0 {
                     format!(", accretive tail {} frame(s)", layout.tail)
                 } else {
                     String::new()
                 };
-                println!(
+                stdout_line!(
                     "    layout: streamable through frame {} (head {head_hex}){tail}",
                     layout.covered
                 );
             }
         }
         for o in &seg.opaque {
-            println!("    opaque: {} ({})", o.frame_type, o.reason);
+            stdout_line!("    opaque: {} ({})", o.frame_type, o.reason);
         }
         for d in &seg.diagnostics {
-            println!(
+            stdout_line!(
                 "    diagnostic {}: {}{}",
                 d.code,
                 d.detail,
@@ -428,13 +431,9 @@ fn has_problems(fs: &FileSegments) -> bool {
 const PROFILE_VOCABS: &[(&str, &str)] = &[("files", "https://w3id.org/gts/files#")];
 
 fn namespace(iri: &str) -> &str {
-    if let Some(i) = iri.rfind('#') {
-        &iri[..=i]
-    } else if let Some(i) = iri.rfind('/') {
-        &iri[..=i]
-    } else {
-        iri
-    }
+    // `#` and `/` are ASCII, so the cut point is always a character boundary.
+    let cut = iri.rfind('#').or_else(|| iri.rfind('/'));
+    cut.and_then(|i| iri.get(..=i)).unwrap_or(iri)
 }
 
 fn term_iri_value(seg: &Graph, tid: usize) -> Option<&str> {
@@ -469,15 +468,15 @@ fn used_vocabs(seg: &Graph) -> HashSet<&'static str> {
 }
 
 /// Check declared-vs-computed profile requirements for one segment.
-/// Returns (message, is_error) pairs.
+/// Returns (message, `is_error`) pairs.
 fn profile_check(seg: &Graph) -> Vec<(String, bool)> {
     let mut out = Vec::new();
     let declared: HashSet<&str> = seg.segment_profiles.iter().map(String::as_str).collect();
     let used = used_vocabs(seg);
     for &(prof, vocab) in PROFILE_VOCABS {
-        let declares = declared.contains(prof);
-        let uses = used.contains(vocab);
-        if uses && !declares {
+        let is_declared = declared.contains(prof);
+        let is_used = used.contains(vocab);
+        if is_used && !is_declared {
             out.push((
                 format!(
                     "profile error: segment uses {vocab} vocabulary but does not declare '{prof}'"
@@ -485,7 +484,7 @@ fn profile_check(seg: &Graph) -> Vec<(String, bool)> {
                 true,
             ));
         }
-        if declares && !uses {
+        if is_declared && !is_used {
             out.push((
                 format!(
                     "profile warning: segment declares '{prof}' but uses no {vocab} vocabulary"
@@ -569,20 +568,20 @@ fn cmd_fold(paths: &[String]) -> ExitCode {
             .and_then(|rdf| rdf.to_nquads().map_err(|error| error.to_string()))
         {
             Ok(text) => {
-                print!("{text}");
+                stdout_text!("{text}");
                 ExitCode::SUCCESS
             }
             Err(error) => {
-                eprintln!("gts fold: {error}");
+                stderr_line!("gts fold: {error}");
                 ExitCode::from(1)
             }
         };
     }
     let g = read(&data, true, None);
     for d in &g.diagnostics {
-        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+        stderr_line!("gts: diagnostic {}: {}", d.code, d.detail);
     }
-    print!("{}", to_nquads(&g));
+    stdout_text!("{}", to_nquads(&g));
     // The (possibly partial) fold is still emitted, but any diagnostic — or
     // never reaching segmentation at all — is a nonzero exit, so
     // `gts fold … && publish` pipelines fail on damage.
@@ -602,7 +601,7 @@ fn cmd_to_trig(paths: &[String]) -> ExitCode {
     };
     let g = read(&data, true, None);
     for d in &g.diagnostics {
-        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+        stderr_line!("gts: diagnostic {}: {}", d.code, d.detail);
     }
     let trig = {
         #[cfg(feature = "rdf-codecs")]
@@ -610,7 +609,7 @@ fn cmd_to_trig(paths: &[String]) -> ExitCode {
             match gmeow_gts::rdf_codecs::to_trig(&g) {
                 Ok(text) => text,
                 Err(e) => {
-                    eprintln!("gts to-trig: {e}");
+                    stderr_line!("gts to-trig: {e}");
                     return ExitCode::from(1);
                 }
             }
@@ -620,7 +619,7 @@ fn cmd_to_trig(paths: &[String]) -> ExitCode {
             to_trig(&g)
         }
     };
-    print!("{trig}");
+    stdout_text!("{trig}");
     if !g.diagnostics.is_empty() || g.segment_heads.is_empty() {
         return ExitCode::from(1);
     }
@@ -638,12 +637,12 @@ fn cmd_to_nt(paths: &[String]) -> ExitCode {
     };
     let g = read(&data, true, None);
     for d in &g.diagnostics {
-        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+        stderr_line!("gts: diagnostic {}: {}", d.code, d.detail);
     }
     match gmeow_gts::rdf_codecs::to_ntriples(&g) {
-        Ok(text) => print!("{text}"),
+        Ok(text) => stdout_text!("{text}"),
         Err(e) => {
-            eprintln!("gts to-nt: {e}");
+            stderr_line!("gts to-nt: {e}");
             return ExitCode::from(1);
         }
     }
@@ -664,12 +663,12 @@ fn cmd_to_turtle(paths: &[String]) -> ExitCode {
     };
     let g = read(&data, true, None);
     for d in &g.diagnostics {
-        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+        stderr_line!("gts: diagnostic {}: {}", d.code, d.detail);
     }
     match gmeow_gts::rdf_codecs::to_turtle(&g) {
-        Ok(text) => print!("{text}"),
+        Ok(text) => stdout_text!("{text}"),
         Err(e) => {
-            eprintln!("gts to-turtle: {e}");
+            stderr_line!("gts to-turtle: {e}");
             return ExitCode::from(1);
         }
     }
@@ -690,12 +689,12 @@ fn cmd_to_rdfxml(paths: &[String]) -> ExitCode {
     };
     let g = read(&data, true, None);
     for d in &g.diagnostics {
-        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+        stderr_line!("gts: diagnostic {}: {}", d.code, d.detail);
     }
     match gmeow_gts::rdf_codecs::to_rdf_xml(&g) {
-        Ok(text) => print!("{text}"),
+        Ok(text) => stdout_text!("{text}"),
         Err(e) => {
-            eprintln!("gts to-rdfxml: {e}");
+            stderr_line!("gts to-rdfxml: {e}");
             return ExitCode::from(1);
         }
     }
@@ -711,13 +710,14 @@ fn cmd_from_nq(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts from-nq: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts from-nq: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
                 }
-            },
+            }
             other => inputs.push(other),
         }
     }
@@ -729,7 +729,7 @@ fn cmd_from_nq(args: &[String]) -> ExitCode {
         let mut input = String::new();
         let mut stdin = std::io::stdin();
         if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
-            eprintln!("gts from-nq: cannot read stdin: {e}");
+            stderr_line!("gts from-nq: cannot read stdin: {e}");
             return ExitCode::from(2);
         }
         input
@@ -737,7 +737,7 @@ fn cmd_from_nq(args: &[String]) -> ExitCode {
         match std::fs::read_to_string(path) {
             Ok(text) => text,
             Err(e) => {
-                eprintln!("gts from-nq: cannot read {path}: {e}");
+                stderr_line!("gts from-nq: cannot read {path}: {e}");
                 return ExitCode::from(2);
             }
         }
@@ -746,24 +746,21 @@ fn cmd_from_nq(args: &[String]) -> ExitCode {
     let bytes = match from_nquads(&text) {
         Ok(bytes) => bytes,
         Err(e) => {
-            eprintln!("gts from-nq: {e}");
+            stderr_line!("gts from-nq: {e}");
             return ExitCode::from(1);
         }
     };
 
-    match out_path {
-        Some(p) => {
-            if let Err(e) = std::fs::write(p, &bytes) {
-                eprintln!("gts from-nq: cannot write {p}: {e}");
-                return ExitCode::from(2);
-            }
+    if let Some(p) = out_path {
+        if let Err(e) = std::fs::write(p, &bytes) {
+            stderr_line!("gts from-nq: cannot write {p}: {e}");
+            return ExitCode::from(2);
         }
-        None => {
-            use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(&bytes) {
-                eprintln!("gts from-nq: cannot write stdout: {e}");
-                return ExitCode::from(2);
-            }
+    } else {
+        use std::io::Write;
+        if let Err(e) = std::io::stdout().write_all(&bytes) {
+            stderr_line!("gts from-nq: cannot write stdout: {e}");
+            return ExitCode::from(2);
         }
     }
     ExitCode::SUCCESS
@@ -775,13 +772,14 @@ fn cmd_from_trig(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts from-trig: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts from-trig: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
                 }
-            },
+            }
             other => inputs.push(other),
         }
     }
@@ -793,7 +791,7 @@ fn cmd_from_trig(args: &[String]) -> ExitCode {
         let mut input = String::new();
         let mut stdin = std::io::stdin();
         if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
-            eprintln!("gts from-trig: cannot read stdin: {e}");
+            stderr_line!("gts from-trig: cannot read stdin: {e}");
             return ExitCode::from(2);
         }
         input
@@ -801,7 +799,7 @@ fn cmd_from_trig(args: &[String]) -> ExitCode {
         match std::fs::read_to_string(path) {
             Ok(text) => text,
             Err(e) => {
-                eprintln!("gts from-trig: cannot read {path}: {e}");
+                stderr_line!("gts from-trig: cannot read {path}: {e}");
                 return ExitCode::from(2);
             }
         }
@@ -813,7 +811,7 @@ fn cmd_from_trig(args: &[String]) -> ExitCode {
             match gmeow_gts::rdf_codecs::from_trig(&text) {
                 Ok(bytes) => bytes,
                 Err(e) => {
-                    eprintln!("gts from-trig: {e}");
+                    stderr_line!("gts from-trig: {e}");
                     return ExitCode::from(1);
                 }
             }
@@ -823,26 +821,23 @@ fn cmd_from_trig(args: &[String]) -> ExitCode {
             match from_trig(&text) {
                 Ok(bytes) => bytes,
                 Err(e) => {
-                    eprintln!("gts from-trig: {e}");
+                    stderr_line!("gts from-trig: {e}");
                     return ExitCode::from(1);
                 }
             }
         }
     };
 
-    match out_path {
-        Some(p) => {
-            if let Err(e) = std::fs::write(p, &bytes) {
-                eprintln!("gts from-trig: cannot write {p}: {e}");
-                return ExitCode::from(2);
-            }
+    if let Some(p) = out_path {
+        if let Err(e) = std::fs::write(p, &bytes) {
+            stderr_line!("gts from-trig: cannot write {p}: {e}");
+            return ExitCode::from(2);
         }
-        None => {
-            use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(&bytes) {
-                eprintln!("gts from-trig: cannot write stdout: {e}");
-                return ExitCode::from(2);
-            }
+    } else {
+        use std::io::Write;
+        if let Err(e) = std::io::stdout().write_all(&bytes) {
+            stderr_line!("gts from-trig: cannot write stdout: {e}");
+            return ExitCode::from(2);
         }
     }
     ExitCode::SUCCESS
@@ -855,13 +850,13 @@ fn cmd_from_nt(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts from-nt: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                let Some(p) = it.next() else {
+                    stderr_line!("gts from-nt: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
-                }
-            },
+                };
+                out_path = Some(p);
+            }
             other => inputs.push(other),
         }
     }
@@ -873,7 +868,7 @@ fn cmd_from_nt(args: &[String]) -> ExitCode {
         let mut input = String::new();
         let mut stdin = std::io::stdin();
         if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
-            eprintln!("gts from-nt: cannot read stdin: {e}");
+            stderr_line!("gts from-nt: cannot read stdin: {e}");
             return ExitCode::from(2);
         }
         input
@@ -881,7 +876,7 @@ fn cmd_from_nt(args: &[String]) -> ExitCode {
         match std::fs::read_to_string(path) {
             Ok(text) => text,
             Err(e) => {
-                eprintln!("gts from-nt: cannot read {path}: {e}");
+                stderr_line!("gts from-nt: cannot read {path}: {e}");
                 return ExitCode::from(2);
             }
         }
@@ -890,24 +885,21 @@ fn cmd_from_nt(args: &[String]) -> ExitCode {
     let bytes = match gmeow_gts::rdf_codecs::from_ntriples(&text) {
         Ok(bytes) => bytes,
         Err(e) => {
-            eprintln!("gts from-nt: {e}");
+            stderr_line!("gts from-nt: {e}");
             return ExitCode::from(1);
         }
     };
 
-    match out_path {
-        Some(p) => {
-            if let Err(e) = std::fs::write(p, &bytes) {
-                eprintln!("gts from-nt: cannot write {p}: {e}");
-                return ExitCode::from(2);
-            }
+    if let Some(p) = out_path {
+        if let Err(e) = std::fs::write(p, &bytes) {
+            stderr_line!("gts from-nt: cannot write {p}: {e}");
+            return ExitCode::from(2);
         }
-        None => {
-            use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(&bytes) {
-                eprintln!("gts from-nt: cannot write stdout: {e}");
-                return ExitCode::from(2);
-            }
+    } else {
+        use std::io::Write;
+        if let Err(e) = std::io::stdout().write_all(&bytes) {
+            stderr_line!("gts from-nt: cannot write stdout: {e}");
+            return ExitCode::from(2);
         }
     }
     ExitCode::SUCCESS
@@ -920,13 +912,13 @@ fn cmd_from_turtle(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts from-turtle: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                let Some(p) = it.next() else {
+                    stderr_line!("gts from-turtle: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
-                }
-            },
+                };
+                out_path = Some(p);
+            }
             other => inputs.push(other),
         }
     }
@@ -938,7 +930,7 @@ fn cmd_from_turtle(args: &[String]) -> ExitCode {
         let mut input = String::new();
         let mut stdin = std::io::stdin();
         if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
-            eprintln!("gts from-turtle: cannot read stdin: {e}");
+            stderr_line!("gts from-turtle: cannot read stdin: {e}");
             return ExitCode::from(2);
         }
         input
@@ -946,7 +938,7 @@ fn cmd_from_turtle(args: &[String]) -> ExitCode {
         match std::fs::read_to_string(path) {
             Ok(text) => text,
             Err(e) => {
-                eprintln!("gts from-turtle: cannot read {path}: {e}");
+                stderr_line!("gts from-turtle: cannot read {path}: {e}");
                 return ExitCode::from(2);
             }
         }
@@ -955,24 +947,21 @@ fn cmd_from_turtle(args: &[String]) -> ExitCode {
     let bytes = match gmeow_gts::rdf_codecs::from_turtle(&text) {
         Ok(bytes) => bytes,
         Err(e) => {
-            eprintln!("gts from-turtle: {e}");
+            stderr_line!("gts from-turtle: {e}");
             return ExitCode::from(1);
         }
     };
 
-    match out_path {
-        Some(p) => {
-            if let Err(e) = std::fs::write(p, &bytes) {
-                eprintln!("gts from-turtle: cannot write {p}: {e}");
-                return ExitCode::from(2);
-            }
+    if let Some(p) = out_path {
+        if let Err(e) = std::fs::write(p, &bytes) {
+            stderr_line!("gts from-turtle: cannot write {p}: {e}");
+            return ExitCode::from(2);
         }
-        None => {
-            use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(&bytes) {
-                eprintln!("gts from-turtle: cannot write stdout: {e}");
-                return ExitCode::from(2);
-            }
+    } else {
+        use std::io::Write;
+        if let Err(e) = std::io::stdout().write_all(&bytes) {
+            stderr_line!("gts from-turtle: cannot write stdout: {e}");
+            return ExitCode::from(2);
         }
     }
     ExitCode::SUCCESS
@@ -985,13 +974,13 @@ fn cmd_from_rdfxml(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts from-rdfxml: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                let Some(p) = it.next() else {
+                    stderr_line!("gts from-rdfxml: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
-                }
-            },
+                };
+                out_path = Some(p);
+            }
             other => inputs.push(other),
         }
     }
@@ -1003,7 +992,7 @@ fn cmd_from_rdfxml(args: &[String]) -> ExitCode {
         let mut input = String::new();
         let mut stdin = std::io::stdin();
         if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
-            eprintln!("gts from-rdfxml: cannot read stdin: {e}");
+            stderr_line!("gts from-rdfxml: cannot read stdin: {e}");
             return ExitCode::from(2);
         }
         input
@@ -1011,7 +1000,7 @@ fn cmd_from_rdfxml(args: &[String]) -> ExitCode {
         match std::fs::read_to_string(path) {
             Ok(text) => text,
             Err(e) => {
-                eprintln!("gts from-rdfxml: cannot read {path}: {e}");
+                stderr_line!("gts from-rdfxml: cannot read {path}: {e}");
                 return ExitCode::from(2);
             }
         }
@@ -1020,24 +1009,21 @@ fn cmd_from_rdfxml(args: &[String]) -> ExitCode {
     let bytes = match gmeow_gts::rdf_codecs::from_rdf_xml(&text) {
         Ok(bytes) => bytes,
         Err(e) => {
-            eprintln!("gts from-rdfxml: {e}");
+            stderr_line!("gts from-rdfxml: {e}");
             return ExitCode::from(1);
         }
     };
 
-    match out_path {
-        Some(p) => {
-            if let Err(e) = std::fs::write(p, &bytes) {
-                eprintln!("gts from-rdfxml: cannot write {p}: {e}");
-                return ExitCode::from(2);
-            }
+    if let Some(p) = out_path {
+        if let Err(e) = std::fs::write(p, &bytes) {
+            stderr_line!("gts from-rdfxml: cannot write {p}: {e}");
+            return ExitCode::from(2);
         }
-        None => {
-            use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(&bytes) {
-                eprintln!("gts from-rdfxml: cannot write stdout: {e}");
-                return ExitCode::from(2);
-            }
+    } else {
+        use std::io::Write;
+        if let Err(e) = std::io::stdout().write_all(&bytes) {
+            stderr_line!("gts from-rdfxml: cannot write stdout: {e}");
+            return ExitCode::from(2);
         }
     }
     ExitCode::SUCCESS
@@ -1054,11 +1040,11 @@ fn cmd_to_yaml_ld(args: &[String]) -> ExitCode {
     };
     match to_yaml_ld(&graph) {
         Ok(text) => {
-            print!("{text}");
+            stdout_text!("{text}");
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("gts to-yaml-ld: {e}");
+            stderr_line!("gts to-yaml-ld: {e}");
             ExitCode::from(1)
         }
     }
@@ -1071,13 +1057,13 @@ fn cmd_from_yaml_ld(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts from-yaml-ld: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                let Some(p) = it.next() else {
+                    stderr_line!("gts from-yaml-ld: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
-                }
-            },
+                };
+                out_path = Some(p);
+            }
             other => inputs.push(other),
         }
     }
@@ -1089,7 +1075,7 @@ fn cmd_from_yaml_ld(args: &[String]) -> ExitCode {
         let mut input = String::new();
         let mut stdin = std::io::stdin();
         if let Err(e) = std::io::Read::read_to_string(&mut stdin, &mut input) {
-            eprintln!("gts from-yaml-ld: cannot read stdin: {e}");
+            stderr_line!("gts from-yaml-ld: cannot read stdin: {e}");
             return ExitCode::from(2);
         }
         input
@@ -1097,7 +1083,7 @@ fn cmd_from_yaml_ld(args: &[String]) -> ExitCode {
         match std::fs::read_to_string(path) {
             Ok(text) => text,
             Err(e) => {
-                eprintln!("gts from-yaml-ld: cannot read {path}: {e}");
+                stderr_line!("gts from-yaml-ld: cannot read {path}: {e}");
                 return ExitCode::from(2);
             }
         }
@@ -1106,24 +1092,21 @@ fn cmd_from_yaml_ld(args: &[String]) -> ExitCode {
     let bytes = match from_yaml_ld(&text) {
         Ok(bytes) => bytes,
         Err(e) => {
-            eprintln!("gts from-yaml-ld: {e}");
+            stderr_line!("gts from-yaml-ld: {e}");
             return ExitCode::from(1);
         }
     };
 
-    match out_path {
-        Some(p) => {
-            if let Err(e) = std::fs::write(p, &bytes) {
-                eprintln!("gts from-yaml-ld: cannot write {p}: {e}");
-                return ExitCode::from(2);
-            }
+    if let Some(p) = out_path {
+        if let Err(e) = std::fs::write(p, &bytes) {
+            stderr_line!("gts from-yaml-ld: cannot write {p}: {e}");
+            return ExitCode::from(2);
         }
-        None => {
-            use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(&bytes) {
-                eprintln!("gts from-yaml-ld: cannot write stdout: {e}");
-                return ExitCode::from(2);
-            }
+    } else {
+        use std::io::Write;
+        if let Err(e) = std::io::stdout().write_all(&bytes) {
+            stderr_line!("gts from-yaml-ld: cannot write stdout: {e}");
+            return ExitCode::from(2);
         }
     }
     ExitCode::SUCCESS
@@ -1137,21 +1120,21 @@ fn cmd_to_okf(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(arg) = it.next() {
         match arg.as_str() {
-            "--directory" => match it.next() {
-                Some(path) => directory = Some(path),
-                None => {
-                    eprintln!("gts to-okf: --directory requires a path\n{USAGE}");
+            "--directory" => {
+                let Some(path) = it.next() else {
+                    stderr_line!("gts to-okf: --directory requires a path\n{USAGE}");
                     return ExitCode::from(2);
-                }
-            },
+                };
+                directory = Some(path);
+            }
             "--inline-body" => options.inline_body = true,
-            "--base-iri" => match it.next() {
-                Some(iri) => options.base_iri = iri.clone(),
-                None => {
-                    eprintln!("gts to-okf: --base-iri requires an IRI\n{USAGE}");
+            "--base-iri" => {
+                let Some(iri) = it.next() else {
+                    stderr_line!("gts to-okf: --base-iri requires an IRI\n{USAGE}");
                     return ExitCode::from(2);
-                }
-            },
+                };
+                options.base_iri.clone_from(iri);
+            }
             other if input.is_none() => input = Some(other),
             _ => {
                 return usage_error();
@@ -1168,12 +1151,12 @@ fn cmd_to_okf(args: &[String]) -> ExitCode {
     match to_okf(&graph, std::path::Path::new(directory), &options) {
         Ok(report) => {
             if report.unmapped_triples > 0 {
-                eprintln!(
+                stderr_line!(
                     "gts to-okf: wrote {} unmapped triple(s) to _unmapped.nq",
                     report.unmapped_triples
                 );
             }
-            eprintln!(
+            stderr_line!(
                 "gts to-okf: wrote {} document(s) to {}",
                 report.documents,
                 report.directory.display()
@@ -1181,7 +1164,7 @@ fn cmd_to_okf(args: &[String]) -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("gts to-okf: {e}");
+            stderr_line!("gts to-okf: {e}");
             ExitCode::from(1)
         }
     }
@@ -1195,22 +1178,22 @@ fn cmd_from_okf(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(arg) = it.next() {
         match arg.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(path) => out_path = Some(path),
-                None => {
-                    eprintln!("gts from-okf: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                let Some(path) = it.next() else {
+                    stderr_line!("gts from-okf: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
-                }
-            },
+                };
+                out_path = Some(path);
+            }
             "--inline-body" => options.inline_body = true,
             "--strict-links" => options.strict_links = true,
-            "--base-iri" => match it.next() {
-                Some(iri) => options.base_iri = iri.clone(),
-                None => {
-                    eprintln!("gts from-okf: --base-iri requires an IRI\n{USAGE}");
+            "--base-iri" => {
+                let Some(iri) = it.next() else {
+                    stderr_line!("gts from-okf: --base-iri requires an IRI\n{USAGE}");
                     return ExitCode::from(2);
-                }
-            },
+                };
+                options.base_iri.clone_from(iri);
+            }
             other if input.is_none() => input = Some(other),
             _ => {
                 return usage_error();
@@ -1223,23 +1206,20 @@ fn cmd_from_okf(args: &[String]) -> ExitCode {
     let bytes = match from_okf_with_options(std::path::Path::new(input), &options) {
         Ok(bytes) => bytes,
         Err(e) => {
-            eprintln!("gts from-okf: {e}");
+            stderr_line!("gts from-okf: {e}");
             return ExitCode::from(1);
         }
     };
-    match out_path {
-        Some(path) => {
-            if let Err(e) = std::fs::write(path, &bytes) {
-                eprintln!("gts from-okf: cannot write {path}: {e}");
-                return ExitCode::from(2);
-            }
+    if let Some(path) = out_path {
+        if let Err(e) = std::fs::write(path, &bytes) {
+            stderr_line!("gts from-okf: cannot write {path}: {e}");
+            return ExitCode::from(2);
         }
-        None => {
-            use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(&bytes) {
-                eprintln!("gts from-okf: cannot write stdout: {e}");
-                return ExitCode::from(2);
-            }
+    } else {
+        use std::io::Write;
+        if let Err(e) = std::io::stdout().write_all(&bytes) {
+            stderr_line!("gts from-okf: cannot write stdout: {e}");
+            return ExitCode::from(2);
         }
     }
     ExitCode::SUCCESS
@@ -1249,10 +1229,10 @@ fn export_graph(path: &str) -> Result<Graph, ExitCode> {
     let data = load(path)?;
     let graph = read(&data, true, None);
     for d in &graph.diagnostics {
-        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+        stderr_line!("gts: diagnostic {}: {}", d.code, d.detail);
     }
     if !graph.diagnostics.is_empty() || graph.segment_heads.is_empty() {
-        eprintln!("gts: refusing export: input did not read cleanly");
+        stderr_line!("gts: refusing export: input did not read cleanly");
         return Err(ExitCode::from(1));
     }
     Ok(graph)
@@ -1269,7 +1249,7 @@ fn cmd_to_sqlite(args: &[String]) -> ExitCode {
     match gmeow_gts::db::to_sqlite(&graph, out) {
         Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("gts to-sqlite: {e}");
+            stderr_line!("gts to-sqlite: {e}");
             ExitCode::from(2)
         }
     }
@@ -1287,7 +1267,7 @@ fn cmd_to_duckdb(args: &[String]) -> ExitCode {
     match gmeow_gts::db::to_duckdb(&graph, out) {
         Ok(_) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("gts to-duckdb: {e}");
+            stderr_line!("gts to-duckdb: {e}");
             ExitCode::from(2)
         }
     }
@@ -1305,12 +1285,12 @@ fn cmd_to_parquet(args: &[String]) -> ExitCode {
     match gmeow_gts::db::to_parquet(&graph, out_dir) {
         Ok(paths) => {
             for path in paths {
-                println!("{}", path.display());
+                stdout_line!("{}", path.display());
             }
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("gts to-parquet: {e}");
+            stderr_line!("gts to-parquet: {e}");
             ExitCode::from(2)
         }
     }
@@ -1324,7 +1304,7 @@ fn parse_key(spec: &str) -> Option<(String, VerifyingKey)> {
     }
     let mut raw = [0u8; 32];
     for (i, byte) in raw.iter_mut().enumerate() {
-        *byte = u8::from_str_radix(&hexpub[i * 2..i * 2 + 2], 16).ok()?;
+        *byte = u8::from_str_radix(hexpub.get(i * 2..i * 2 + 2)?, 16).ok()?;
     }
     VerifyingKey::from_bytes(&raw)
         .ok()
@@ -1334,59 +1314,71 @@ fn parse_key(spec: &str) -> Option<(String, VerifyingKey)> {
 #[cfg(feature = "policy-config")]
 fn load_policy(path: &str) -> Result<TrustPolicy, ExitCode> {
     TrustPolicy::from_path(path).map_err(|e| {
-        eprintln!("gts verify: {e}");
+        stderr_line!("gts verify: {e}");
         ExitCode::from(2)
     })
 }
 
 #[cfg(not(feature = "policy-config"))]
 fn load_policy(_path: &str) -> Result<TrustPolicy, ExitCode> {
-    eprintln!("gts verify: --policy requires rebuilding gmeow-gts with `--features policy-config`");
+    stderr_line!(
+        "gts verify: --policy requires rebuilding gmeow-gts with `--features policy-config`"
+    );
     Err(ExitCode::from(2))
 }
 
-fn cmd_verify(args: &[String]) -> ExitCode {
-    let mut paths: Vec<String> = Vec::new();
-    let mut keys: std::collections::HashMap<String, VerifyingKey> =
-        std::collections::HashMap::new();
-    let mut policy: Option<TrustPolicy> = None;
+/// The parsed arguments of `verify`.
+struct VerifyArgs {
+    paths: Vec<String>,
+    keys: std::collections::HashMap<String, VerifyingKey>,
+    policy: Option<TrustPolicy>,
+}
+
+fn parse_verify_args(args: &[String]) -> Result<VerifyArgs, ExitCode> {
+    let mut parsed = VerifyArgs {
+        paths: Vec::new(),
+        keys: std::collections::HashMap::new(),
+        policy: None,
+    };
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
             "--key" => {
                 i += 1;
                 let Some(spec) = args.get(i) else {
-                    return usage_error();
+                    return Err(usage_error());
                 };
-                match parse_key(spec) {
-                    Some((kid, key)) => {
-                        keys.insert(kid, key);
-                    }
-                    None => {
-                        eprintln!("gts verify: bad --key {spec:?} (want kid:hexpubkey)");
-                        return ExitCode::from(2);
-                    }
+                if let Some((kid, key)) = parse_key(spec) {
+                    parsed.keys.insert(kid, key);
+                } else {
+                    stderr_line!("gts verify: bad --key {spec:?} (want kid:hexpubkey)");
+                    return Err(ExitCode::from(2));
                 }
             }
             "--policy" => {
                 i += 1;
                 let Some(path) = args.get(i) else {
-                    return usage_error();
+                    return Err(usage_error());
                 };
-                match load_policy(path) {
-                    Ok(loaded) => policy = Some(loaded),
-                    Err(code) => return code,
-                }
+                parsed.policy = Some(load_policy(path)?);
             }
-            other => paths.push(other.to_string()),
+            other => parsed.paths.push(other.to_string()),
         }
         i += 1;
     }
-    if paths.is_empty() {
-        return usage_error();
+    if parsed.paths.is_empty() {
+        return Err(usage_error());
     }
+    Ok(parsed)
+}
+
+fn cmd_verify(args: &[String]) -> ExitCode {
+    let parsed = match parse_verify_args(args) {
+        Ok(parsed) => parsed,
+        Err(code) => return code,
+    };
     let mut problems = false;
-    for path in &paths {
+    for path in &parsed.paths {
         let data = match load(path) {
             Ok(d) => d,
             Err(code) => return code,
@@ -1396,62 +1388,80 @@ fn cmd_verify(args: &[String]) -> ExitCode {
         if has_problems(&fs) {
             problems = true;
         }
-        // §14.1: declared-vs-computed profile requirements + layout warnings.
-        for (idx, seg) in fs.segments.iter_mut().enumerate() {
-            if let Some(policy) = policy.as_ref() {
-                if !keys.is_empty() {
-                    verify_signatures(&mut seg.signatures, |k| keys.get(k).copied());
-                }
-                for finding in evaluate_profile_policy(seg, Some(policy), Some(idx)) {
-                    eprintln!(
-                        "  segment {idx}: {}: {}: {}",
-                        finding.severity.as_str(),
-                        finding.code,
-                        finding.detail
-                    );
-                    if finding.severity == Severity::Error {
-                        problems = true;
-                    }
-                }
-            } else {
-                for (msg, is_err) in profile_check(seg) {
-                    let prefix = if is_err { "error" } else { "warning" };
-                    eprintln!("  segment {idx}: {prefix}: {msg}");
-                    if is_err {
-                        problems = true;
-                    }
-                }
-                for msg in stream_vocab_check(seg) {
-                    eprintln!("  segment {idx}: warning: {msg}");
-                }
-            }
-        }
-        // §9.2: COSE signature verification against the provided keys.
-        if !keys.is_empty() {
-            let mut g = read(&data, true, None);
-            verify_signatures(&mut g.signatures, |k| keys.get(k).copied());
-            for sig in &g.signatures {
-                let note = sig
-                    .cose
-                    .as_deref()
-                    .and_then(unsupported_algorithm)
-                    .map(|alg| format!(" (unsupported algorithm {alg})"))
-                    .unwrap_or_default();
-                println!(
-                    "  signature {}: {}{note}",
-                    sig.kid.as_deref().unwrap_or("?"),
-                    sig.status
-                );
-                if sig.status == "invalid" {
-                    problems = true;
-                }
-            }
+        verify_segments(&mut fs, parsed.policy.as_ref(), &parsed.keys, &mut problems);
+        if !parsed.keys.is_empty() {
+            verify_cose_signatures(&data, &parsed.keys, &mut problems);
         }
     }
     if problems {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
+    }
+}
+
+/// Checks each segment of a file against the trust policy, or against the
+/// built-in profile rules when no policy is given (§14.1).
+fn verify_segments(
+    fs: &mut FileSegments,
+    policy: Option<&TrustPolicy>,
+    keys: &std::collections::HashMap<String, VerifyingKey>,
+    problems: &mut bool,
+) {
+    for (idx, seg) in fs.segments.iter_mut().enumerate() {
+        if let Some(policy) = policy {
+            if !keys.is_empty() {
+                verify_signatures(&mut seg.signatures, |k| keys.get(k).copied());
+            }
+            for finding in evaluate_profile_policy(seg, Some(policy), Some(idx)) {
+                stderr_line!(
+                    "  segment {idx}: {}: {}: {}",
+                    finding.severity.as_str(),
+                    finding.code,
+                    finding.detail
+                );
+                if finding.severity == Severity::Error {
+                    *problems = true;
+                }
+            }
+        } else {
+            for (msg, is_err) in profile_check(seg) {
+                let prefix = if is_err { "error" } else { "warning" };
+                stderr_line!("  segment {idx}: {prefix}: {msg}");
+                if is_err {
+                    *problems = true;
+                }
+            }
+            for msg in stream_vocab_check(seg) {
+                stderr_line!("  segment {idx}: warning: {msg}");
+            }
+        }
+    }
+}
+
+/// Verifies the COSE signatures of a file against the provided keys and
+/// prints one line per signature (§9.2).
+fn verify_cose_signatures(
+    data: &[u8],
+    keys: &std::collections::HashMap<String, VerifyingKey>,
+    problems: &mut bool,
+) {
+    let mut g = read(data, true, None);
+    verify_signatures(&mut g.signatures, |k| keys.get(k).copied());
+    for sig in &g.signatures {
+        let note = sig
+            .cose
+            .as_deref()
+            .and_then(unsupported_algorithm)
+            .map_or_default(|alg| format!(" (unsupported algorithm {alg})"));
+        stdout_line!(
+            "  signature {}: {}{note}",
+            sig.kid.as_deref().unwrap_or("?"),
+            sig.status
+        );
+        if sig.status == "invalid" {
+            *problems = true;
+        }
     }
 }
 
@@ -1466,21 +1476,21 @@ fn cmd_extract_key(args: &[String]) -> ExitCode {
     };
     let g = read(&data, true, None);
     let Some(transport) = extract_transport_key(&g) else {
-        eprintln!("{path}: no embedded transport key");
+        stderr_line!("{path}: no embedded transport key");
         return ExitCode::from(1);
     };
     let kid = transport.kid;
     let gpg = transport.gpg;
-    println!("kid:         {kid}");
+    stdout_line!("kid:         {kid}");
     match gmeow_gts::openpgp::parse_transport_key(&gpg) {
         Ok(key) => {
-            println!("fingerprint: {}", format_fingerprint(&key.fingerprint));
-            println!("emojihash:   {}", emojihash(&key.raw_public, 11));
+            stdout_line!("fingerprint: {}", format_fingerprint(&key.fingerprint));
+            stdout_line!("emojihash:   {}", emojihash(&key.raw_public, 11));
         }
         // A malformed embedded key still prints the kid + armored block below.
-        Err(_) => println!("fingerprint: {}", format_fingerprint(&kid)),
+        Err(_) => stdout_line!("fingerprint: {}", format_fingerprint(&kid)),
     }
-    println!("{gpg}");
+    stdout_line!("{gpg}");
     ExitCode::SUCCESS
 }
 
@@ -1511,18 +1521,18 @@ fn cmd_ls(paths: &[String]) -> ExitCode {
     };
     let g = read(&data, true, None);
     for d in &g.diagnostics {
-        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+        stderr_line!("gts: diagnostic {}: {}", d.code, d.detail);
     }
     for (digest, entry) in &g.blobs {
         let mt = blob_mt(&g, digest).unwrap_or_else(|| "-".to_string());
         let size = match entry.decoded_len() {
             Ok(size) => size,
             Err(err) => {
-                eprintln!("gts: cannot decode blob {digest}: {err:?}");
+                stderr_line!("gts: cannot decode blob {digest}: {err:?}");
                 return ExitCode::from(1);
             }
         };
-        println!("{digest}  {size:>10}  {mt}");
+        stdout_line!("{digest}  {size:>10}  {mt}");
     }
     ExitCode::SUCCESS
 }
@@ -1575,20 +1585,22 @@ fn cmd_extract(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
                 }
-            },
-            "--mt" => match it.next() {
-                Some(m) => mt = Some(m),
-                None => {
-                    eprintln!("gts: --mt requires a media type\n{USAGE}");
+            }
+            "--mt" => {
+                if let Some(m) = it.next() {
+                    mt = Some(m);
+                } else {
+                    stderr_line!("gts: --mt requires a media type\n{USAGE}");
                     return ExitCode::from(2);
                 }
-            },
+            }
             "--include-suppressed" => include_suppressed = true,
             other => positional.push(other),
         }
@@ -1603,11 +1615,11 @@ fn cmd_extract(args: &[String]) -> ExitCode {
     let mut g = read(&data, true, None);
     let digest = normalize_digest(digest);
     if g.blob_entry(&digest).is_none() {
-        eprintln!("gts: no inline blob {digest} in {path}");
+        stderr_line!("gts: no inline blob {digest} in {path}");
         return ExitCode::from(1);
     }
     if !include_suppressed && suppressed_blob_digests(&g).contains(&digest) {
-        eprintln!(
+        stderr_line!(
             "gts: refusing {digest}: suppressed (§11); pass \
              --include-suppressed to extract anyway"
         );
@@ -1616,7 +1628,7 @@ fn cmd_extract(args: &[String]) -> ExitCode {
     if let Some(asserted) = mt {
         let declared = blob_mt(&g, &digest);
         if declared.as_deref() != Some(asserted) {
-            eprintln!(
+            stderr_line!(
                 "gts: refusing {digest}: declared media type {declared:?} \
                  does not match asserted {asserted:?}"
             );
@@ -1626,31 +1638,28 @@ fn cmd_extract(args: &[String]) -> ExitCode {
     let bytes = match g.blob_bytes_cloned(&digest) {
         Ok(Some(bytes)) => bytes,
         Ok(None) => {
-            eprintln!("gts: no inline blob {digest} in {path}");
+            stderr_line!("gts: no inline blob {digest} in {path}");
             return ExitCode::from(1);
         }
         Err(err) => {
-            eprintln!("gts: cannot decode blob {digest}: {err:?}");
+            stderr_line!("gts: cannot decode blob {digest}: {err:?}");
             return ExitCode::from(1);
         }
     };
     if digest_str(&bytes) != digest {
-        eprintln!("gts: integrity failure: {digest} bytes re-hash differently");
+        stderr_line!("gts: integrity failure: {digest} bytes re-hash differently");
         return ExitCode::from(1);
     }
-    match out_path {
-        Some(p) => {
-            if let Err(e) = std::fs::write(p, &bytes) {
-                eprintln!("gts: cannot write {p}: {e}");
-                return ExitCode::from(2);
-            }
+    if let Some(p) = out_path {
+        if let Err(e) = std::fs::write(p, &bytes) {
+            stderr_line!("gts: cannot write {p}: {e}");
+            return ExitCode::from(2);
         }
-        None => {
-            use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(&bytes) {
-                eprintln!("gts: cannot write stdout: {e}");
-                return ExitCode::from(2);
-            }
+    } else {
+        use std::io::Write;
+        if let Err(e) = std::io::stdout().write_all(&bytes) {
+            stderr_line!("gts: cannot write stdout: {e}");
+            return ExitCode::from(2);
         }
     }
     ExitCode::SUCCESS
@@ -1663,19 +1672,18 @@ fn cmd_cat(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         if a == "-o" {
-            match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts: -o requires a path\n{USAGE}");
-                    return ExitCode::from(2);
-                }
+            if let Some(p) = it.next() {
+                out_path = Some(p);
+            } else {
+                stderr_line!("gts: -o requires a path\n{USAGE}");
+                return ExitCode::from(2);
             }
         } else {
             inputs.push(a);
         }
     }
     if inputs.len() < 2 {
-        eprintln!("gts: cat needs at least two inputs\n{USAGE}");
+        stderr_line!("gts: cat needs at least two inputs\n{USAGE}");
         return ExitCode::from(2);
     }
 
@@ -1687,7 +1695,7 @@ fn cmd_cat(args: &[String]) -> ExitCode {
         };
         let fs = read_file_segments(&data);
         if has_problems(&fs) {
-            eprintln!("gts: refusing {path}: not a clean GTS input");
+            stderr_line!("gts: refusing {path}: not a clean GTS input");
             print_ledger(path, &fs);
             return ExitCode::from(1);
         }
@@ -1701,7 +1709,7 @@ fn cmd_cat(args: &[String]) -> ExitCode {
                 || !seg.annotations.is_empty()
                 || !seg.suppressions.is_empty();
             if !contributes {
-                eprintln!(
+                stderr_line!(
                     "gts: refusing {path}: segment {idx} folds to nothing \
                      (no quads/blobs/reifies/annot/suppress) — wiring bug?"
                 );
@@ -1715,40 +1723,34 @@ fn cmd_cat(args: &[String]) -> ExitCode {
     // frame — a composition that suppresses the whole graph is a mistake.
     let folded = read(&combined, true, None);
     if all_quads_suppressed(&folded) {
-        eprintln!(
+        stderr_line!(
             "gts: refusing composition: suppressions hide every quad in the \
              folded output"
         );
         return ExitCode::from(1);
     }
 
-    match out_path {
-        Some(p) => {
-            if let Err(e) = std::fs::write(p, &combined) {
-                eprintln!("gts: cannot write {p}: {e}");
-                return ExitCode::from(2);
-            }
+    if let Some(p) = out_path {
+        if let Err(e) = std::fs::write(p, &combined) {
+            stderr_line!("gts: cannot write {p}: {e}");
+            return ExitCode::from(2);
         }
-        None => {
-            use std::io::Write;
-            if let Err(e) = std::io::stdout().write_all(&combined) {
-                eprintln!("gts: cannot write stdout: {e}");
-                return ExitCode::from(2);
-            }
+    } else {
+        use std::io::Write;
+        if let Err(e) = std::io::stdout().write_all(&combined) {
+            stderr_line!("gts: cannot write stdout: {e}");
+            return ExitCode::from(2);
         }
     }
     ExitCode::SUCCESS
 }
 
 /// The current UTC time as `YYYY-MM-DDTHH:MM:SSZ` — the default `--timestamp`.
-fn now_utc_iso() -> String {
+fn now_utc_iso() -> Result<String, time::Error> {
     let fmt = time::format_description::parse_borrowed::<2>(
         "[year]-[month]-[day]T[hour]:[minute]:[second]Z",
-    )
-    .expect("static format string parses");
-    time::OffsetDateTime::now_utc()
-        .format(&fmt)
-        .expect("UTC time formats")
+    )?;
+    Ok(time::OffsetDateTime::now_utc().format(&fmt)?)
 }
 
 /// Rewrite a GTS file into the streamable layout state (§10.1, §14.1).
@@ -1761,22 +1763,24 @@ fn cmd_compact(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
                 }
-            },
+            }
             "--streamable" => streamable = true,
             "--seal-original" => seal_original = true,
-            "--timestamp" => match it.next() {
-                Some(t) => timestamp = Some(t),
-                None => {
-                    eprintln!("gts: --timestamp requires a value\n{USAGE}");
+            "--timestamp" => {
+                if let Some(t) = it.next() {
+                    timestamp = Some(t);
+                } else {
+                    stderr_line!("gts: --timestamp requires a value\n{USAGE}");
                     return ExitCode::from(2);
                 }
-            },
+            }
             other => positional.push(other),
         }
     }
@@ -1784,13 +1788,13 @@ fn cmd_compact(args: &[String]) -> ExitCode {
         return usage_error();
     };
     let Some(out_path) = out_path else {
-        eprintln!("gts: compact requires -o\n{USAGE}");
+        stderr_line!("gts: compact requires -o\n{USAGE}");
         return ExitCode::from(2);
     };
     if !streamable {
         // The verb is reserved for layout rewrites; a future --snapshot mode
         // (§10) would land here. Without a mode the request is ambiguous.
-        eprintln!("gts: compact requires --streamable");
+        stderr_line!("gts: compact requires --streamable");
         return ExitCode::from(2);
     }
     let data = match load(path) {
@@ -1799,17 +1803,26 @@ fn cmd_compact(args: &[String]) -> ExitCode {
     };
     // The timestamp defaults to now — pass a fixed value for reproducible
     // output (§14.1 determinism).
-    let ts = timestamp.map_or_else(now_utc_iso, str::to_string);
+    let ts = match timestamp {
+        Some(ts) => ts.to_string(),
+        None => match now_utc_iso() {
+            Ok(ts) => ts,
+            Err(e) => {
+                stderr_line!("gts compact: cannot read the current time: {e}");
+                return ExitCode::from(2);
+            }
+        },
+    };
     match gmeow_gts::compact::compact_streamable(&data, &ts, seal_original) {
         Ok(bytes) => {
             if let Err(e) = std::fs::write(out_path, &bytes) {
-                eprintln!("gts: cannot write {out_path}: {e}");
+                stderr_line!("gts: cannot write {out_path}: {e}");
                 return ExitCode::from(2);
             }
             ExitCode::SUCCESS
         }
         Err(e) => {
-            eprintln!("gts: refusing compact: {e}");
+            stderr_line!("gts: refusing compact: {e}");
             ExitCode::from(1)
         }
     }
@@ -1822,38 +1835,36 @@ fn cmd_pack(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-o" | "--out" => match it.next() {
-                Some(p) => out_path = Some(p),
-                None => {
-                    eprintln!("gts: -o requires a path\n{USAGE}");
+            "-o" | "--out" => {
+                if let Some(p) = it.next() {
+                    out_path = Some(p);
+                } else {
+                    stderr_line!("gts: -o requires a path\n{USAGE}");
                     return ExitCode::from(2);
                 }
-            },
+            }
             other => sources.push(other),
         }
     }
     if sources.is_empty() {
         return usage_error();
     }
-    let out_path = match out_path {
-        Some(p) => p,
-        None => {
-            eprintln!("gts: pack requires -o\n{USAGE}");
-            return ExitCode::from(2);
-        }
+    let Some(out_path) = out_path else {
+        stderr_line!("gts: pack requires -o\n{USAGE}");
+        return ExitCode::from(2);
     };
 
     let paths: Vec<&std::path::Path> = sources.iter().map(std::path::Path::new).collect();
     match gmeow_gts::files::pack(&paths) {
         Ok(data) => {
             if let Err(e) = std::fs::write(out_path, &data) {
-                eprintln!("gts: cannot write {out_path}: {e}");
+                stderr_line!("gts: cannot write {out_path}: {e}");
                 return ExitCode::from(2);
             }
             ExitCode::SUCCESS
         }
         Err(msg) => {
-            eprintln!("gts: refusing pack: {msg}");
+            stderr_line!("gts: refusing pack: {msg}");
             ExitCode::from(1)
         }
     }
@@ -1867,13 +1878,14 @@ fn cmd_unpack(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "-C" => match it.next() {
-                Some(d) => dest = Some(d),
-                None => {
-                    eprintln!("gts: -C requires a directory\n{USAGE}");
+            "-C" => {
+                if let Some(d) = it.next() {
+                    dest = Some(d);
+                } else {
+                    stderr_line!("gts: -C requires a directory\n{USAGE}");
                     return ExitCode::from(2);
                 }
-            },
+            }
             "--include-suppressed" => options.include_suppressed = true,
             "--allow-symlinks" => options.allow_symlinks = true,
             "--allow-special" => options.allow_special = true,
@@ -1891,17 +1903,17 @@ fn cmd_unpack(args: &[String]) -> ExitCode {
     };
     let g = read(&data, true, None);
     for d in &g.diagnostics {
-        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+        stderr_line!("gts: diagnostic {}: {}", d.code, d.detail);
     }
     if !g.diagnostics.is_empty() || g.segment_heads.is_empty() {
-        eprintln!("gts: refusing unpack: archive did not read cleanly");
+        stderr_line!("gts: refusing unpack: archive did not read cleanly");
         return ExitCode::from(1);
     }
     let dest_path = std::path::Path::new(dest.unwrap_or("."));
     match gmeow_gts::files::unpack_with_options(&g, dest_path, &options) {
         Ok(()) => ExitCode::SUCCESS,
         Err(msg) => {
-            eprintln!("gts: refusing unpack: {msg}");
+            stderr_line!("gts: refusing unpack: {msg}");
             ExitCode::from(1)
         }
     }
@@ -1918,17 +1930,17 @@ fn cmd_diff(args: &[String]) -> ExitCode {
     };
     let g = read(&data, true, None);
     for d in &g.diagnostics {
-        eprintln!("gts: diagnostic {}: {}", d.code, d.detail);
+        stderr_line!("gts: diagnostic {}: {}", d.code, d.detail);
     }
     if !g.diagnostics.is_empty() || g.segment_heads.is_empty() {
-        eprintln!("gts: refusing diff: archive did not read cleanly");
+        stderr_line!("gts: refusing diff: archive did not read cleanly");
         return ExitCode::from(1);
     }
     match gmeow_gts::files::diff(&g, std::path::Path::new(directory)) {
         Ok(lines) => {
             let has_changes = !lines.is_empty();
             for line in &lines {
-                println!("{line}");
+                stdout_line!("{line}");
             }
             if has_changes {
                 ExitCode::from(1)
@@ -1937,7 +1949,7 @@ fn cmd_diff(args: &[String]) -> ExitCode {
             }
         }
         Err(msg) => {
-            eprintln!("gts: refusing diff: {msg}");
+            stderr_line!("gts: refusing diff: {msg}");
             ExitCode::from(1)
         }
     }
@@ -1953,13 +1965,14 @@ fn cmd_dump(args: &[String]) -> ExitCode {
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
-            "--directory" => match it.next() {
-                Some(path) => directory = Some(path),
-                None => {
-                    eprintln!("gts dump: --directory requires a path\n{USAGE}");
+            "--directory" => {
+                if let Some(path) = it.next() {
+                    directory = Some(path);
+                } else {
+                    stderr_line!("gts dump: --directory requires a path\n{USAGE}");
                     return ExitCode::from(2);
                 }
-            },
+            }
             "--include-suppressed" => include_suppressed = true,
             "--force" => force = true,
             "--metadata-only" => metadata_only = true,
@@ -1970,7 +1983,7 @@ fn cmd_dump(args: &[String]) -> ExitCode {
         return usage_error();
     };
     let Some(directory) = directory else {
-        eprintln!("gts dump: --directory is required\n{USAGE}");
+        stderr_line!("gts dump: --directory is required\n{USAGE}");
         return ExitCode::from(2);
     };
     let options = gmeow_gts::dumpdir::DumpOptions {
@@ -1980,7 +1993,7 @@ fn cmd_dump(args: &[String]) -> ExitCode {
     };
     match gmeow_gts::dumpdir::dump_path(archive, directory, options) {
         Ok(report) => {
-            eprintln!(
+            stderr_line!(
                 "gts dump: wrote {} ({} materialized file(s), {} blob payload(s))",
                 report.directory.display(),
                 report.materialized_files,
@@ -1989,7 +2002,7 @@ fn cmd_dump(args: &[String]) -> ExitCode {
             if report.clean {
                 ExitCode::SUCCESS
             } else {
-                eprintln!(
+                stderr_line!(
                     "gts dump: archive had diagnostics or dump warnings ({} warning(s))",
                     report.warnings
                 );
@@ -1997,7 +2010,7 @@ fn cmd_dump(args: &[String]) -> ExitCode {
             }
         }
         Err(err) => {
-            eprintln!("gts dump: {err}");
+            stderr_line!("gts dump: {err}");
             match err.kind() {
                 gmeow_gts::dumpdir::DumpErrorKind::Refused => ExitCode::from(1),
                 gmeow_gts::dumpdir::DumpErrorKind::Io => ExitCode::from(2),

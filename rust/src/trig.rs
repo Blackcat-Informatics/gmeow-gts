@@ -3,7 +3,7 @@
 
 //! The `gts -> trig` transform.
 //!
-//! TriG is the readable Turtle-family counterpart to the N-Quads projection.
+//! `TriG` is the readable Turtle-family counterpart to the N-Quads projection.
 //! This module preserves the same folded RDF 1.2 content as
 //! [`crate::nquads::to_nquads`] while grouping named-graph quads into graph
 //! blocks.
@@ -38,11 +38,11 @@ fn render_trig_term(g: &Graph, tid: usize) -> String {
         }
         // §7.3: own "tt" first, legacy reifier indirection as fallback.
         TermKind::Triple => match g.triple_of(tid) {
-            Some((s, p, o)) => format!(
+            Some((subject, predicate, object)) => format!(
                 "<<( {} {} {} )>>",
-                render_trig_term(g, s),
-                render_trig_term(g, p),
-                render_trig_term(g, o)
+                render_trig_term(g, subject),
+                render_trig_term(g, predicate),
+                render_trig_term(g, object)
             ),
             None => render_term(g, tid),
         },
@@ -76,7 +76,8 @@ fn push_statement(
     }
 }
 
-/// Serialise a folded [`Graph`] to TriG text.
+/// Serialise a folded [`Graph`] to `TriG` text.
+#[must_use]
 pub fn to_trig(g: &Graph) -> String {
     if g.quads.is_empty() && g.reifiers.is_empty() && g.annotations.is_empty() {
         return String::new();

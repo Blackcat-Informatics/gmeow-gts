@@ -35,8 +35,8 @@ vcpkg_execute_required_process(
   LOGNAME "build-debug-${PORT}-${TARGET_TRIPLET}"
 )
 
-set(_release_target_dir "${SOURCE_PATH}/rust/capi/target/release")
-set(_debug_target_dir "${SOURCE_PATH}/rust/capi/target/debug")
+set(_release_target_dir "${SOURCE_PATH}/rust/target/release")
+set(_debug_target_dir "${SOURCE_PATH}/rust/target/debug")
 
 file(MAKE_DIRECTORY
   "${CURRENT_PACKAGES_DIR}/include/gts"
