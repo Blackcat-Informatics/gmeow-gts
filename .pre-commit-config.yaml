@@ -16,6 +16,12 @@ repos:
         entry: python3 scripts/check_licenses.py
         language: system
         pass_filenames: false
+      - id: rust-deny
+        name: Rust dependency policy (cargo deny check bans sources)
+        entry: cargo deny --manifest-path rust/Cargo.toml check bans sources
+        language: system
+        pass_filenames: false
+        always_run: true
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

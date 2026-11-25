@@ -30,6 +30,9 @@ include = [
 name = "gts"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
+[lints]
+workspace = true
+
 [dependencies]
 gmeow-gts = { version = "1.0.0-rc.1", path = "..", features = ["rdf-codecs", "yaml-ld"] }
 serde_json = "1"

@@ -16,7 +16,15 @@ default:
 test: test-rust test-go test-ts test-py test-kotlin
 
 test-rust:
-    cd rust && cargo test
+    cd rust && cargo test --workspace --locked
+
+# Declared Rust gate: format, lint, test and dependency bans for the whole
+# workspace, under the locked graph. CI runs the feature lanes separately.
+check-rust:
+    cd rust && cargo fmt --check
+    cd rust && cargo clippy --workspace --all-targets --locked -- -D warnings
+    cd rust && cargo test --workspace --locked
+    cd rust && cargo deny check bans sources
 
 test-go:
     cd go && CGO_ENABLED=0 go test ./...
@@ -34,7 +42,7 @@ test-kotlin:
 
 # Run every engine's lint + the repo-wide pre-commit hooks.
 lint: check-quality-budget
-    cd rust && cargo fmt --check && cargo clippy --all-targets -- -D warnings
+    cd rust && cargo fmt --check && cargo clippy --workspace --all-targets --locked -- -D warnings
     cd go && go vet ./... && golangci-lint run ./...
     cd ts && npm run lint
     cd python && uv run ruff check . && uv run mypy

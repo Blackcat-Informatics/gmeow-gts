@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
+
+# Dependency policy checked by `cargo deny check bans sources` in the pre-commit
+# hook and in `just check-rust`. Every skip names its reason.
+[bans]
+# A wildcard requirement makes the locked graph depend on whatever is published.
+wildcards = "deny"
+# Each duplicate version must be listed in `skip` with the reason it is kept.
+multiple-versions = "deny"
+# Two build-time proc-macro majors of syn. zerocopy-derive needs syn 2, while
+# curve25519-dalek-derive (via ed25519-dalek 3) needs syn 3; neither upstream
+# release unifies them yet.
+skip = [
+  { crate = "syn@2.0.119", reason = "zerocopy-derive requires syn 2; upstream has not moved to syn 3" },
+  { crate = "syn@3.0.4", reason = "curve25519-dalek-derive via ed25519-dalek 3 requires syn 3" },
+]
+
+[sources]
+# Only the crates.io index is a dependency source; git and path-to-registry
+# sources would bypass the locked registry graph.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

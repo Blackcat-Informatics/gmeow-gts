@@ -373,6 +373,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gmeow-gts-capi"
+version = "1.0.0-rc.1"
+dependencies = [
+ "gmeow-gts",
+ "serde_json",
+]
+
+[[package]]
 name = "half"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

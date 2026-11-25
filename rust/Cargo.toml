@@ -1,6 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+[workspace]
+members = ["capi"]
+# The fuzz harness is its own workspace and is built with cargo-fuzz.
+exclude = ["fuzz"]
+
 [package]
 name = "gmeow-gts"
 description = "GTS (Graph Transport Substrate) format engine: CBOR-sequence append-only RDF 1.2 log reader, folder, and verifier"
@@ -11,6 +16,9 @@ homepage = "https://blackcatinformatics.ca/projects/gts"
 repository = "https://github.com/Blackcat-Informatics/gmeow-gts"
 readme = "README.md"
 keywords = ["rdf", "rdf-12", "cbor", "knowledge-graph", "linked-data"]
+
+[lints]
+workspace = true
 
 [features]
 default = []
@@ -134,7 +142,7 @@ libc = "0.2"
 [dev-dependencies]
 serde_json = "1"
 
-[lints.rust]
+[workspace.lints.rust]
 # The crate calls libc for POSIX file metadata (src/files.rs); each unsafe block
 # carries a SAFETY: proof, so the lint is deny rather than forbid.
 unsafe_code = "deny"
@@ -146,8 +154,8 @@ missing_debug_implementations = "warn"
 unused_crate_dependencies = "warn"
 rust_2018_idioms = { level = "warn", priority = -1 }
 
-[lints.clippy]
-all = { level = "deny", priority = -1 }
+[workspace.lints.clippy]
+all ={ level = "deny", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 
 # Suppressions are scoped and reasoned: #[expect(..., reason = "...")].
