@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 """Typed findings of the GTS v2 read result (P2 section 5.1 and 6.1, P7 1.1)."""
 
+from collections.abc import Iterable
 from dataclasses import dataclass
+
+import cbor2
 
 from ._decode import WireError
 from .content import ContentFinding, ContentRead
@@ -173,6 +176,95 @@ class FindingRecord:
     length: int | None
     count: int | None
     subject: tuple[int, ...] | None = None
+    # The step of the P7 procedure that produced the finding (P7 1.4, ORDER).
+    step: int = 0
+
+
+# The step of the procedure of P7 section 3 that produces each finding code. A code
+# that several steps produce takes the step of its commonest producer here, and the
+# producers of the others state theirs.
+_STEPS = {
+    "empty_input": 1,
+    "not_this_format": 1,
+    "unsupported_generation": 1,
+    "undelimitable_input": 2,
+    "torn_tail": 2,
+    "read_failed": 2,
+    "unsupported_registry_version": 3,
+    "lineage_begins": 3,
+    "lineage_mismatch": 3,
+    "malformed_value": 11,
+    "unknown_enumeration_value": 11,
+    "unsupported_critical": 11,
+    "chain_break": 5,
+    "healed_link": 5,
+    "stored_check_mismatch": 6,
+    "damaged_frame": 7,
+    "parity_damaged": 8,
+    "parity_mismatch": 8,
+    "parity_unexplained": 8,
+    "parity_stale": 8,
+    "repair_failed": 9,
+    "repaired": 9,
+    "unprotected_tail": 10,
+    "declared_order_violated": 15,
+    "forward_reference": 15,
+    "position_constraint": 15,
+    "ill_formed_term": 15,
+    "opaque_term": 15,
+    "commit_count_mismatch": 13,
+    "commit_root_mismatch": 13,
+    "uncommitted_tail": 13,
+    "unreferenced_unit": 14,
+    "conflicting_declaration": 14,
+    "missing_dependency": 17,
+    "suppression_unmatched": 17,
+    "binding_unanchored": 17,
+    "labelling_refused": 18,
+    "index_claim_failed": 19,
+    "signature_invalid": 20,
+    "signature_unverified": 20,
+    "profile_violation": 21,
+    "profile_not_checked": 21,
+    "canonical_violated": 22,
+}
+_CAPACITY_STEPS = {
+    "item_count": 2,
+    "stored_size": 7,
+    "decoded_size": 7,
+    "total_decoded": 7,
+    "total_rebuilt": 14,
+    "total_formed": 11,
+}
+
+
+def _step(code: str, reason: str | None) -> int:
+    if code == "exceeds_capacity":
+        return _CAPACITY_STEPS.get(str(reason), 11)
+    if code == "missing_dependency" and reason == "chunk":
+        return 11
+    return _STEPS[code]
+
+
+def sort_findings(records: Iterable[FindingRecord]) -> tuple[FindingRecord, ...]:
+    """Sort findings by step, then position (absent first), then encoding (P7 1.4)."""
+
+    def key(record: FindingRecord) -> tuple[int, int, int, bytes]:
+        encoded = cbor2.dumps(
+            [
+                record.code,
+                [1] if record.reason is None else [2, record.reason],
+                [1] if record.subject is None else [2, list(record.subject)],
+                [1] if record.position is None else [2, record.position],
+                [1] if record.offset is None else [2, record.offset],
+                [1] if record.length is None else [2, record.length],
+                [1] if record.count is None else [2, record.count],
+            ]
+        )
+        position = record.position
+        return record.step, 0 if position is None else 1, position or 0, encoded
+
+    return tuple(sorted(records, key=key))
 
 
 def finding_record(finding: ContentFinding) -> FindingRecord:
@@ -187,6 +279,7 @@ def finding_record(finding: ContentFinding) -> FindingRecord:
         finding.offset,
         finding.length,
         finding.count,
+        step=_step(finding.code, finding.reason),
     )
 
 
@@ -220,7 +313,14 @@ def frame_findings(
             for finding in read.findings
         ):
             found.append(
-                _record("malformed_value", malformed, frame.position, offset, length)
+                _record(
+                    "malformed_value",
+                    malformed,
+                    frame.position,
+                    offset,
+                    length,
+                    7 if malformed == "codec_constraint" else 4,
+                )
             )
         if malformed is None and frame.link.state == "broken":
             found.append(_record("chain_break", None, frame.position, offset, length))
@@ -247,6 +347,7 @@ def frame_findings(
                     None,
                     None,
                     (3, signature.algorithm),
+                    step=20,
                 )
             )
     found.extend(
@@ -254,11 +355,16 @@ def frame_findings(
         for finding in read.findings
         if finding.segment == segment and finding.position == frame.position
     )
-    return tuple(found)
+    return sort_findings(found)
 
 
 def _record(
-    code: str, reason: str | None, position: int, offset: int, length: int
+    code: str,
+    reason: str | None,
+    position: int,
+    offset: int,
+    length: int,
+    step: int | None = None,
 ) -> FindingRecord:
     return FindingRecord(
         FINDING_CODES[code],
@@ -267,6 +373,7 @@ def _record(
         offset,
         length,
         None,
+        step=_step(code, reason) if step is None else step,
     )
 
 
@@ -298,7 +405,7 @@ def framing_findings(read: ContentRead) -> tuple[FindingRecord, ...]:
         if isinstance(item, DamagedRegion)
     )
     return tuple(
-        FindingRecord(code, None, None, offset, end - offset, None)
+        FindingRecord(code, None, None, offset, end - offset, None, step=2)
         for code, offset, end in sorted(spans, key=lambda span: (span[1], span[0]))
     )
 
@@ -325,6 +432,7 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
                     None,
                     None,
                     None,
+                    step=3,
                 )
             )
         for label in read.lineages[segment].findings:
@@ -336,7 +444,12 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
         item = wire.opener.item
         found.append(
             _record(
-                "malformed_value", opener.reason, 0, item.offset, item.end - item.offset
+                "malformed_value",
+                opener.reason,
+                0,
+                item.offset,
+                item.end - item.offset,
+                3,
             )
         )
     frames = {frame.position for frame in wire.frames}
@@ -355,6 +468,7 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
                     position,
                     item.offset,
                     item.end - item.offset,
+                    4,
                 )
             )
     found.extend(
@@ -364,6 +478,7 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
             note.position,
             wire.items[note.position].offset,
             wire.items[note.position].end - wire.items[note.position].offset,
+            4,
         )
         for note in (wire.closing if judged else ())
         if note.reason not in ("index_offsets", "index_locator")
@@ -373,7 +488,7 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
         for finding in read.findings
         if finding.segment == segment and finding.position not in frames
     )
-    return tuple(found)
+    return sort_findings(found)
 
 
 def _segment_record(code: str, reason: str | None) -> FindingRecord:
@@ -384,4 +499,5 @@ def _segment_record(code: str, reason: str | None) -> FindingRecord:
         None,
         None,
         None,
+        step=_step(code, reason),
     )

@@ -37,6 +37,7 @@ from gts.v2.findings import (
     frame_findings,
     framing_findings,
     segment_findings,
+    sort_findings,
 )
 from gts.v2.payload import PayloadBudget
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
@@ -1120,3 +1121,12 @@ def test_file_result_assembles_every_segment_and_frame_of_the_corpus(
     assert result.left_out == record[6]
     assert result.content_digest == _present(record[3])
     assert result.visible == CompleteVisibility(record[4][1])
+
+
+def test_findings_of_a_frame_are_sorted_by_procedure_step() -> None:
+    """Findings sort by the P7 step that produced them, not by code."""
+    records = [
+        FindingRecord(22, None, 1, None, None, None, step=15),
+        FindingRecord(17, None, 1, None, None, 1, step=13),
+    ]
+    assert [r.code for r in sort_findings(records)] == [17, 22]
