@@ -216,6 +216,8 @@ class ContentRead:
     canonical: tuple[CanonicalResult, ...] = ()
     # The P2 opaque reason of each opaque frame, keyed by (segment ordinal, position).
     opaque_reasons: dict[tuple[int, int], OpaqueReason] = field(default_factory=dict)
+    # The position of the last valid commit of each segment that has one.
+    last_commits: dict[int, int] = field(default_factory=dict)
 
     @property
     def repaired_copy(self) -> bytes | None:
@@ -1222,6 +1224,7 @@ def read_content(
     run_is_usable = False
     findings: list[ContentFinding] = []
     opaque_reasons: dict[tuple[int, int], OpaqueReason] = {}
+    last_commits: dict[int, int] = {}
     for ordinal, segment in enumerate(wire.segments):
         segment_findings_at = len(findings)
         opener = segment.opener.value
@@ -1238,6 +1241,8 @@ def read_content(
             capacity.stored_bytes_per_frame,
             findings,
         )
+        if last_commit:
+            last_commits[ordinal] = last_commit
         findings.extend(
             ContentFinding(
                 ordinal,
@@ -1394,6 +1399,7 @@ def read_content(
             coverage=coverage,
             canonical=tuple(canonical_reports),
             opaque_reasons=opaque_reasons,
+            last_commits=last_commits,
         )
 
     declarations = tuple(
@@ -1508,4 +1514,5 @@ def read_content(
         coverage,
         tuple(canonical_reports),
         opaque_reasons=opaque_reasons,
+        last_commits=last_commits,
     )

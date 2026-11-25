@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ._decode import WireError
+from .authentication import Authenticity
 from .content import ContentCapacity, ContentRead
 from .reader import WireSegment
 from .rebuild import unit_digest
@@ -42,6 +43,11 @@ class SegmentResult:
     registry_version: int | None
     hash_algorithm: int | None
     profile: int | None
+    authenticity: Authenticity
+    anchored_frames: int
+    committed_frames: int
+    authenticated_frames: int
+    transparent_frames: tuple[int, ...]
 
 
 def opener_outcome(segment: WireSegment) -> OpenerOutcome:
@@ -122,6 +128,18 @@ def _opener(
     )
 
 
+def _anchored(segment: WireSegment) -> int:
+    """Count the ordinary frames before the first detached or unlinked one."""
+    count = 0
+    for frame in segment.frames:
+        if frame.transparent:
+            continue
+        if frame.detached or frame.link.state not in ("linked", "healed"):
+            break
+        count += 1
+    return count
+
+
 def segment_results(
     read: ContentRead, data: bytes, capacity: ContentCapacity
 ) -> tuple[SegmentResult, ...]:
@@ -132,6 +150,9 @@ def segment_results(
         outcome = opener_outcome(segment)
         value = segment.opener.value
         header = None if isinstance(value, WireError) else value.header
+        readable = outcome == "readable"
+        last_commit = read.last_commits.get(ordinal, 0)
+        authentication = read.authentication[ordinal]
         results.append(
             SegmentResult(
                 ordinal,
@@ -142,6 +163,19 @@ def segment_results(
                 None if header is None else header.registry_version,
                 None if header is None else header.hash_algorithm,
                 None if header is None else header.profile,
+                authentication.authenticity,
+                _anchored(segment) if readable else 0,
+                sum(
+                    1
+                    for frame in segment.frames
+                    if not frame.transparent and frame.position <= last_commit
+                )
+                if readable
+                else 0,
+                authentication.authenticated_frames if readable else 0,
+                tuple(frame.position for frame in segment.frames if frame.transparent)
+                if readable
+                else (),
             )
         )
     return tuple(results)

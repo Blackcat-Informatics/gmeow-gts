@@ -38,6 +38,7 @@ from gts.v2.resync import (
     encode_resync,
 )
 from gts.v2.segment_result import HeaderOpener, segment_results
+from gts.v2.signatures import HeldKey, SignatureVerifier
 from gts.v2.writer import SegmentWriter
 from test_v2_content import _PARITY_CODES, _REASONS, _VECTORS, _contents
 
@@ -660,8 +661,8 @@ def test_valid_first_generation_header_is_not_a_segmentless_result() -> None:
 
 def _corpus_case(
     name: str, label: str
-) -> tuple[bytes, ContentCapacity, list[list[object]]]:
-    """Return the input, capacity and segment records of case `label` of `name`."""
+) -> tuple[bytes, ContentCapacity, SignatureVerifier, list[list[object]]]:
+    """Return the input, capacity, keys and segments of case `label` of `name`."""
     folder = _VECTORS / "P1"
     for case in json.loads((folder / f"{name}.json").read_text())["cases"]:
         if case.get("label", "") != label:
@@ -678,8 +679,17 @@ def _corpus_case(
             c["labelled_bytes_per_read"],
             c["labelling_units"],
         )
-        result = cbor2.loads(bytes.fromhex(case["read_result"]))[-1]
-        return (folder / case["input_file"]).read_bytes(), capacity, result[1]
+        record = cbor2.loads(bytes.fromhex(case["read_result"]))
+        trusted, held = record[5]
+        verifier = SignatureVerifier(
+            trusted_keys=trusted, held_keys=[HeldKey(*key) for key in held]
+        )
+        return (
+            (folder / case["input_file"]).read_bytes(),
+            capacity,
+            verifier,
+            record[-1][1],
+        )
     raise AssertionError(f"no case {label!r} of {name}")
 
 
@@ -689,6 +699,11 @@ def _present(option: list[object]) -> object:
 
 _PAST_CODES = {"absent": 1, "matches": 2, "differs": 3, "not_checked": 4}
 _REACHED_CODES = {"walked": 1, "scanned": 2}
+_AUTHENTICITY_CODES = {
+    "authenticated": 1,
+    "partly_authenticated": 2,
+    "unauthenticated": 3,
+}
 
 
 @pytest.mark.parametrize(
@@ -705,12 +720,16 @@ _REACHED_CODES = {"walked": 1, "scanned": 2}
         # A resync item unreadable before its offset field, and a newer hash.
         ("opener-option-tag-first", "lineage-tag-zero-then-null"),
         ("header-hash-newer", ""),
+        # A signed commit, a transparent frame, and frames that are not anchored.
+        ("equal-heads-different-bytes", "b3"),
+        ("link-heal-closing-items", "damaged"),
     ],
 )
 def test_segment_results_give_each_opener_of_the_corpus(name: str, label: str) -> None:
     """Each segment states its offset, length, opener and header as the corpus does."""
-    raw, capacity, expected = _corpus_case(name, label)
-    results = segment_results(read_content(raw, capacity), raw, capacity)
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    read = read_content(raw, capacity, verifier=verifier)
+    results = segment_results(read, raw, capacity)
     assert len(results) == len(expected)
     for got, record in zip(results, expected, strict=True):
         opener = got.opener
@@ -724,25 +743,34 @@ def test_segment_results_give_each_opener_of_the_corpus(name: str, label: str) -
                 _PAST_CODES[opener.past],
                 opener.marks_ignored,
             ]
-        assert [
-            got.ordinal,
-            got.offset,
-            got.length,
-            stated,
-            got.header_identifier,
-            got.registry_version,
-            got.hash_algorithm,
-            got.profile,
-        ] == [
-            record[0],
-            record[1],
-            record[2],
-            record[3],
-            _present(record[4]),  # type: ignore[arg-type]
-            _present(record[5]),  # type: ignore[arg-type]
-            _present(record[6]),  # type: ignore[arg-type]
-            _present(record[7]),  # type: ignore[arg-type]
-        ]
+        assert (
+            [
+                got.ordinal,
+                got.offset,
+                got.length,
+                stated,
+                got.header_identifier,
+                got.registry_version,
+                got.hash_algorithm,
+                got.profile,
+                _AUTHENTICITY_CODES[got.authenticity],
+                got.anchored_frames,
+                got.committed_frames,
+                got.authenticated_frames,
+                list(got.transparent_frames),
+            ]
+            == [
+                record[0],
+                record[1],
+                record[2],
+                record[3],
+                _present(record[4]),  # type: ignore[arg-type]
+                _present(record[5]),  # type: ignore[arg-type]
+                _present(record[6]),  # type: ignore[arg-type]
+                _present(record[7]),  # type: ignore[arg-type]
+                *record[9:14],
+            ]
+        )
 
 
 @pytest.mark.parametrize("name", ["payload-unknown-codec", "frame-storage-tag-newer"])
