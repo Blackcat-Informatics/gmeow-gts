@@ -63,9 +63,8 @@ class SegmentRecord:
 class FileResult:
     """The P7 `file_result` (tag `2`) of a second-generation read.
 
-    `content_digest` is `None` when it is absent. The `rebuilds` of each frame, the
-    subject of a finding that carries one other than a signature algorithm, and the
-    P7 sort order of each list of findings are not yet stated.
+    `content_digest` is `None` when it is absent. The subjects of the codec and
+    item-kind findings are not yet stated.
     """
 
     segments: tuple[SegmentRecord, ...]

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
-"""Typed opener of each segment of the GTS v2 read result (P7 1.1, P1 2.4, 2.4a)."""
+"""Typed opener, segment and frame records of the GTS v2 read result (P7 1.1)."""
 
 from dataclasses import dataclass
 from typing import Literal
@@ -13,7 +13,13 @@ from .file_result import FoldState, PayloadState, fold_state, payload_state
 from .frame import FrameError
 from .items import DamagedRegion, Item
 from .reader import WireSegment
-from .rebuild import unit_digest
+from .rebuild import (
+    IncompleteRebuild,
+    RefusedRebuild,
+    UncheckedRebuild,
+    VerifiedRebuild,
+    unit_digest,
+)
 from .resync import DecodedResync
 
 type OpenerOutcome = Literal["readable", "unreadable", "links_unavailable"]
@@ -250,8 +256,22 @@ def segment_results(
 
 
 @dataclass(frozen=True, slots=True)
+class RebuildRecord:
+    """A P7 `rebuild_result`: the member of a declaration and its `rebuild_state`.
+
+    `member` is `None` for a frame's own declaration, else the member's index in
+    the directory. `state` is the P2 `rebuild_state` label; `reason` is set only
+    for `incomplete`.
+    """
+
+    member: int | None
+    state: Literal["verified", "incomplete", "refused", "not_run"]
+    reason: Literal["chunk", "blob_length", "blob_digest"] | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class FrameResult:
-    """The first fields of a P7 `frame_result`; `None` stands for `absent`."""
+    """A P7 `frame_result`; `None` stands for `absent`."""
 
     position: int
     offset: int
@@ -262,6 +282,25 @@ class FrameResult:
     stored: Literal["matches", "mismatch"] | None
     signatures: tuple[SignatureResult, ...]
     fold: FoldState
+    rebuilds: tuple[RebuildRecord, ...]
+
+
+def _rebuild_record(
+    member: int | None,
+    outcome: VerifiedRebuild | IncompleteRebuild | RefusedRebuild | UncheckedRebuild,
+) -> RebuildRecord:
+    """Return the `rebuild_result` of one declaration that a whole-access read charged.
+
+    An `UncheckedRebuild` is the outcome of an access that does not run the
+    rebuild; a whole-access read never produces one, so it is an error here.
+    """
+    if isinstance(outcome, VerifiedRebuild):
+        return RebuildRecord(member, "verified")
+    if isinstance(outcome, IncompleteRebuild):
+        return RebuildRecord(member, "incomplete", outcome.reason)
+    if isinstance(outcome, RefusedRebuild):
+        return RebuildRecord(member, "refused")
+    raise ValueError("a whole-access read charges every rebuild it runs")
 
 
 def frame_results(read: ContentRead, segment: int) -> tuple[FrameResult, ...]:
@@ -273,10 +312,17 @@ def frame_results(read: ContentRead, segment: int) -> tuple[FrameResult, ...]:
     if opener_outcome(wire) != "readable":
         return ()
     signed = dict(read.authentication[segment].signatures)
+    blobs = read.blob_segments[segment]
+    charged = () if blobs is None else blobs.rebuilds
     results = []
     for frame in wire.frames:
         item = wire.items[frame.position]
         stored = frame.payload.stored_matches
+        rebuilds = tuple(
+            _rebuild_record(location.member, outcome)
+            for location, outcome in charged
+            if location.position == frame.position
+        )
         results.append(
             FrameResult(
                 frame.position,
@@ -288,6 +334,7 @@ def frame_results(read: ContentRead, segment: int) -> tuple[FrameResult, ...]:
                 None if stored is None else ("matches" if stored else "mismatch"),
                 signed.get(frame.position, ()),
                 fold_state(read, segment, frame),
+                rebuilds,
             )
         )
     return tuple(results)

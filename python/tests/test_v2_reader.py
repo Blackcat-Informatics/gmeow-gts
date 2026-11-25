@@ -40,6 +40,7 @@ from gts.v2.findings import (
     sort_findings,
 )
 from gts.v2.payload import PayloadBudget
+from gts.v2.read_encoding import encode_file
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
 from gts.v2.resync import (
     RESYNC_MAX,
@@ -686,10 +687,10 @@ def test_valid_first_generation_header_is_not_a_segmentless_result() -> None:
         file_result(read, raw, capacity)
 
 
-def _corpus_case(
+def _corpus_read(
     name: str, label: str
-) -> tuple[bytes, ContentCapacity, SignatureVerifier, list[list[object]]]:
-    """Return the input, capacity, keys and segments of case `label` of `name`."""
+) -> tuple[bytes, ContentCapacity, SignatureVerifier, list[object]]:
+    """Return the input, capacity, keys and `read_result` of case `label` of `name`."""
     folder = _VECTORS / "P1"
     for case in json.loads((folder / f"{name}.json").read_text())["cases"]:
         if case.get("label", "") != label:
@@ -715,9 +716,17 @@ def _corpus_case(
             (folder / case["input_file"]).read_bytes(),
             capacity,
             verifier,
-            record[-1][1],
+            record,
         )
     raise AssertionError(f"no case {label!r} of {name}")
+
+
+def _corpus_case(
+    name: str, label: str
+) -> tuple[bytes, ContentCapacity, SignatureVerifier, list[list[object]]]:
+    """Return the input, capacity, keys and segments of case `label` of `name`."""
+    raw, capacity, verifier, record = _corpus_read(name, label)
+    return raw, capacity, verifier, record[-1][1]
 
 
 def _present(option: list[object]) -> object:
@@ -1130,3 +1139,51 @@ def test_findings_of_a_frame_are_sorted_by_procedure_step() -> None:
         FindingRecord(17, None, 1, None, None, 1, step=13),
     ]
     assert [r.code for r in sort_findings(records)] == [17, 22]
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        # A stored check that matches, one that fails and a stored check that is absent.
+        ("stored-matches", ""),
+        ("stored-mismatch", ""),
+        ("stored-plain-none", ""),
+        # A resync item reached by a walk and one whose past matches.
+        ("resync-too-long", "walked"),
+        ("resync-past-matches", ""),
+        # A torn header, an undelimitable item and a decompressed payload.
+        ("torn-header", ""),
+        ("undelimitable-simple", ""),
+        ("zstd-ok", ""),
+    ],
+)
+def test_file_result_encodes_to_the_corpus_bytes(name: str, label: str) -> None:
+    """The typed file result of a whole read encodes to the corpus `file_result` bytes.
+
+    The compared cases are those whose every field the reader states. A case with a
+    finding the reader does not yet emit, or a storage level it does not check, is
+    not compared here.
+    """
+    raw, capacity, verifier, record = _corpus_read(name, label)
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    encoded = encode_file(file_result(read, raw, capacity))
+    assert cbor2.dumps(encoded, canonical=True) == cbor2.dumps(
+        record[-1], canonical=True
+    )
+
+
+def test_frame_rebuilds_encode_the_corpus_rebuilds() -> None:
+    """Each frame's `rebuilds` encodes the corpus `rebuild_result` lists."""
+    raw, capacity, verifier, record = _corpus_read(
+        "resync-isolation-value-served", "clean-450-restated"
+    )
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    encoded = encode_file(file_result(read, raw, capacity))
+    got = [[frame[9] for frame in segment[16]] for segment in encoded[1]]
+    expected = [[frame[9] for frame in segment[16]] for segment in record[-1][1]]
+    assert got == expected
+    assert any(rebuilds for segment in got for rebuilds in segment)
