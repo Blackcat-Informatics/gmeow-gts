@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! The streaming writer over every record kind.
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;

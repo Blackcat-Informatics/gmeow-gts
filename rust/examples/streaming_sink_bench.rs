@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! Benchmark of the streaming sink, one workload per record kind.
+
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -89,6 +91,11 @@ fn linux_peak_kib() -> Option<usize> {
     None
 }
 
+#[expect(
+    clippy::print_stdout,
+    clippy::print_stderr,
+    reason = "the benchmark reports its result on stdout and its usage errors on stderr"
+)]
 fn main() -> ExitCode {
     let Some(path) = env::args().nth(1) else {
         eprintln!("usage: streaming_sink_bench <file.gts>");
@@ -103,9 +110,7 @@ fn main() -> ExitCode {
     };
     let mut sink = CountingSink::default();
     let result = read_to_sink_from_reader(file, ReadOptions::new(true, None), &mut sink);
-    let peak = linux_peak_kib()
-        .map(|value| value.to_string())
-        .unwrap_or_else(|| "null".to_string());
+    let peak = linux_peak_kib().map_or_else(|| "null".to_string(), |value| value.to_string());
     println!(
         concat!(
             "{{",

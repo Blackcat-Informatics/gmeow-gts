@@ -76,22 +76,20 @@ impl Interner {
         value: String,
         lang: Option<String>,
         direction: Option<String>,
-        datatype: Option<String>,
+        datatype: Option<&str>,
     ) -> usize {
         let key = TermKey::Atom {
             kind,
             value: value.clone(),
             lang: lang.clone(),
             direction: direction.clone(),
-            datatype: datatype.clone(),
+            datatype: datatype.map(str::to_owned),
         };
         if let Some(id) = self.ids.get(&key) {
             return *id;
         }
         let datatype_id = if kind == TermKind::Literal {
-            datatype
-                .as_ref()
-                .map(|iri| self.atom(TermKind::Iri, iri.clone(), None, None, None))
+            datatype.map(|iri| self.atom(TermKind::Iri, iri.to_owned(), None, None, None))
         } else {
             None
         };
@@ -251,6 +249,11 @@ impl Context {
 }
 
 /// Parse YAML-LD-star text into a canonical GTS file.
+///
+/// # Errors
+///
+/// Returns [`YamlLdParseError`] when the text is not valid YAML or does not describe a
+/// YAML-LD-star document that can be encoded as GTS.
 pub fn from_yaml_ld(text: &str) -> Result<Vec<u8>, YamlLdParseError> {
     let value: Value = serde_yaml::from_str(text)
         .map_err(|error| YamlLdParseError::new(format!("invalid YAML-LD: {error}")))?;
@@ -258,6 +261,11 @@ pub fn from_yaml_ld(text: &str) -> Result<Vec<u8>, YamlLdParseError> {
 }
 
 /// Parse JSON-LD-star text into a canonical GTS file.
+///
+/// # Errors
+///
+/// Returns [`YamlLdParseError`] when the text is not valid JSON or does not describe a
+/// JSON-LD-star document that can be encoded as GTS.
 pub fn from_json_ld(text: &str) -> Result<Vec<u8>, YamlLdParseError> {
     let value: Value = serde_json::from_str(text)
         .map_err(|error| YamlLdParseError::new(format!("invalid JSON-LD: {error}")))?;
@@ -340,6 +348,11 @@ fn parse_node(
         (None, None) => return Err(YamlLdParseError::new("graph node is missing @id")),
     };
 
+    let mut sinks = RowSinks {
+        quads,
+        reifiers,
+        annotations,
+    };
     for (key, raw_values) in map {
         if matches!(
             key.as_str(),
@@ -361,15 +374,19 @@ fn parse_node(
             predicate,
             &scoped_context,
             interner,
-            quads,
-            reifiers,
-            annotations,
+            &mut sinks,
         )?;
     }
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
+/// Output rows collected while lowering a YAML-LD-star graph node.
+struct RowSinks<'a> {
+    quads: &'a mut Vec<Quad>,
+    reifiers: &'a mut Vec<ReifierRow>,
+    annotations: &'a mut Vec<AnnotationRow>,
+}
+
 fn parse_property_values(
     value: &Value,
     type_position: bool,
@@ -377,9 +394,7 @@ fn parse_property_values(
     predicate: usize,
     context: &Context,
     interner: &mut Interner,
-    quads: &mut Vec<Quad>,
-    reifiers: &mut Vec<ReifierRow>,
-    annotations: &mut Vec<AnnotationRow>,
+    sinks: &mut RowSinks<'_>,
 ) -> Result<(), YamlLdParseError> {
     match value {
         Value::Array(items) => {
@@ -391,9 +406,7 @@ fn parse_property_values(
                     predicate,
                     context,
                     interner,
-                    quads,
-                    reifiers,
-                    annotations,
+                    sinks,
                 )?;
             }
         }
@@ -402,15 +415,23 @@ fn parse_property_values(
                 Value::Object(map) => scoped_context(context, map),
                 _ => context.clone(),
             };
-            let object_id = parse_term(item, type_position, &active_context, interner, reifiers)?;
+            let object_id = parse_term(
+                item,
+                type_position,
+                &active_context,
+                interner,
+                sinks.reifiers,
+            )?;
             let graph_name = match item {
                 Value::Object(map) => map
                     .get(GTS_GRAPH)
-                    .map(|value| parse_term(value, false, &active_context, interner, reifiers))
+                    .map(|value| {
+                        parse_term(value, false, &active_context, interner, sinks.reifiers)
+                    })
                     .transpose()?,
                 _ => None,
             };
-            quads.push((subject, predicate, object_id, graph_name));
+            sinks.quads.push((subject, predicate, object_id, graph_name));
             if let Value::Object(map) = item {
                 if let Some(blocks) = map.get(ANNOTATION) {
                     parse_annotation_blocks(
@@ -419,8 +440,8 @@ fn parse_property_values(
                         graph_name,
                         &active_context,
                         interner,
-                        reifiers,
-                        annotations,
+                        sinks.reifiers,
+                        sinks.annotations,
                     )?;
                 }
             }
@@ -574,7 +595,7 @@ fn parse_term(
             flag.to_string(),
             None,
             None,
-            Some(XSD_BOOLEAN.to_string()),
+            Some(XSD_BOOLEAN),
         )),
         Value::Number(number) => Ok(number_literal(number, interner)),
         Value::Object(map) => {
@@ -664,7 +685,7 @@ fn parse_literal_object(
         Some(_) => return Err(YamlLdParseError::new("@type must be a string")),
         None => inferred_datatype(value),
     };
-    Ok(interner.atom(TermKind::Literal, lexical, None, None, datatype))
+    Ok(interner.atom(TermKind::Literal, lexical, None, None, datatype.as_deref()))
 }
 
 fn parse_triple(
@@ -724,7 +745,7 @@ fn number_literal(number: &Number, interner: &mut Interner) -> usize {
         number.to_string(),
         None,
         None,
-        Some(datatype.to_string()),
+        Some(datatype),
     )
 }
 

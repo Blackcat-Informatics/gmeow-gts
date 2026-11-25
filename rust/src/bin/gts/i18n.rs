@@ -227,7 +227,7 @@ optional:
   to-parquet <file> <dir>   build with --features duckdb; needs duckdb on PATH"
 );
 
-const USAGE_FR_CA: &str = r#"utilisation: gts <command> [args]
+const USAGE_FR_CA: &str = r"utilisation: gts <command> [args]
 
 commandes:
   info <file>...            affiche le registre par segment (contrôles filaires en v2)
@@ -259,9 +259,9 @@ commandes:
                             deballe une archive de profil files
   diff <archive> <dir>      compare une archive a un repertoire par digest
   dump <archive> --directory dir
-                            developpe une archive dans un repertoire d'inspection"#;
+                            developpe une archive dans un repertoire d'inspection";
 
-const USAGE_ZH_HANS: &str = r#"用法: gts <command> [args]
+const USAGE_ZH_HANS: &str = r"用法: gts <command> [args]
 
 命令:
   info <file>...            显示每个段的账本（v2 显示线格式检查）
@@ -293,7 +293,7 @@ const USAGE_ZH_HANS: &str = r#"用法: gts <command> [args]
                             解包 files 配置文件归档
   diff <archive> <dir>      按摘要比较归档和目录
   dump <archive> --directory dir
-                            将归档展开到检查目录"#;
+                            将归档展开到检查目录";
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum CliLocale {
@@ -333,7 +333,7 @@ fn usage_text(locale: CliLocale) -> &'static str {
     }
 }
 
-pub struct LocalizedUsage;
+pub(crate) struct LocalizedUsage;
 
 impl fmt::Display for LocalizedUsage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -341,9 +341,9 @@ impl fmt::Display for LocalizedUsage {
     }
 }
 
-pub static USAGE: LocalizedUsage = LocalizedUsage;
+pub(crate) static USAGE: LocalizedUsage = LocalizedUsage;
 
-pub fn unknown_command_message(command: &str) -> String {
+pub(crate) fn unknown_command_message(command: &str) -> String {
     match cli_locale() {
         CliLocale::FrenchCanada => format!("gts: commande inconnue '{command}'\n{USAGE}"),
         CliLocale::ChineseHans => format!("gts: 未知命令 '{command}'\n{USAGE}"),

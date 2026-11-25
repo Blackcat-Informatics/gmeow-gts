@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
-//! Cross-engine COSE_Encrypt0 conformance (§9.3): the Rust engine reproduces the
+//! Cross-engine `COSE_Encrypt0` conformance (§9.3): the Rust engine reproduces the
 //! frozen `vectors/encrypt0/basic.json` (a fixed-IV AES-256-GCM seal) byte-for-byte
 //! and opens it, plus a random-IV round-trip.
 
@@ -11,7 +11,7 @@ use gmeow_gts::cose::{decrypt0, encrypt0, encrypt0_with_iv, recipient_kid, Encry
 fn unhex(s: &str) -> Vec<u8> {
     (0..s.len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).expect("hex"))
+        .map(|i| u8::from_str_radix(s.get(i..i + 2).expect("hex"), 16).expect("hex"))
         .collect()
 }
 

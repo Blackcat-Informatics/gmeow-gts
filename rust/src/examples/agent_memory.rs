@@ -127,7 +127,7 @@ pub struct RecallOptions<'a> {
     pub include_suppressed: bool,
 }
 
-impl<'a> Default for RecallOptions<'a> {
+impl Default for RecallOptions<'_> {
     fn default() -> Self {
         Self {
             query: "",
@@ -198,11 +198,19 @@ impl Memory {
     }
 
     /// The package path.
+    #[must_use]
     pub fn path(&self) -> &Path {
         &self.path
     }
 
     /// Append one claim as a reified RDF 1.2 statement.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::EmptyClaim`] when `text` is blank,
+    /// [`MemoryError::InvalidConfidence`] when the confidence is not finite or lies
+    /// outside `[0, 1]`, and [`MemoryError::Io`] when the package cannot be read or
+    /// appended to.
     pub fn store(&self, text: &str, options: StoreOptions<'_>) -> Result<Claim> {
         if text.trim().is_empty() {
             return Err(MemoryError::EmptyClaim);
@@ -216,7 +224,7 @@ impl Memory {
         let created = now_rfc3339();
         let file_len = self.file_len()?;
         let confidence_text = options.confidence.map(|value| value.to_string());
-        let assertion = self.digest_id(
+        let assertion = Self::digest_id(
             "assertion",
             file_len,
             [
@@ -295,6 +303,10 @@ impl Memory {
     }
 
     /// Append a value-wise suppression for a claim, optionally linking a successor.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package cannot be read or appended to.
     pub fn revise(&self, claim_id: &str, options: RevisionOptions<'_>) -> Result<()> {
         let mut writer = Writer::new(PROFILE);
         let mut terms = vec![iri(claim_id)];
@@ -320,6 +332,13 @@ impl Memory {
     }
 
     /// Append one tool-call provenance record.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::EmptyTool`] when `tool` is blank,
+    /// [`MemoryError::EmptyInvocation`] when a supplied invocation is blank,
+    /// [`MemoryError::EmptyGeneratedEntity`] when a generated entity is blank, and
+    /// [`MemoryError::Io`] when the package cannot be read or appended to.
     pub fn record_tool_call(
         &self,
         tool: &str,
@@ -341,7 +360,7 @@ impl Memory {
         let created = now_rfc3339();
         let arguments = inline_or_digest(options.arguments);
         let result = inline_or_digest(options.result);
-        let call = self.digest_id(
+        let call = Self::digest_id(
             "toolcall",
             self.file_len()?,
             [
@@ -426,6 +445,10 @@ impl Memory {
     }
 
     /// Return claims matching `options.query`, best match first.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package exists but cannot be read.
     pub fn recall(&self, options: RecallOptions<'_>) -> Result<Vec<Claim>> {
         let mut claims: Vec<Claim> = self
             .claims()?
@@ -470,6 +493,10 @@ impl Memory {
     }
 
     /// Every claim in storage order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package exists but cannot be read.
     pub fn claims(&self) -> Result<Vec<Claim>> {
         let Some(graph) = self.graph()? else {
             return Ok(Vec::new());
@@ -499,6 +526,10 @@ impl Memory {
     }
 
     /// Every recorded tool call in storage order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package exists but cannot be read.
     pub fn tool_calls(&self) -> Result<Vec<ToolCallRecord>> {
         let Some(graph) = self.graph()? else {
             return Ok(Vec::new());
@@ -550,6 +581,10 @@ impl Memory {
     }
 
     /// Reader diagnostics for the package. Empty means transport-clean.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MemoryError::Io`] when the package exists but cannot be read.
     pub fn verify(&self) -> Result<Vec<String>> {
         let Some(graph) = self.graph()? else {
             return Ok(Vec::new());
@@ -587,7 +622,6 @@ impl Memory {
     }
 
     fn digest_id<'a>(
-        &self,
         kind: &str,
         file_len: u64,
         parts: impl IntoIterator<Item = &'a str>,

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! Example: an agent memory store built on GTS.
+
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -8,19 +10,17 @@ use gmeow_gts::examples::agent_memory::{
     Memory, RecallOptions, RevisionOptions, StoreOptions, ToolCallOptions,
 };
 
+#[expect(clippy::print_stdout, reason = "the example reports its results on stdout")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (path, clear_existing) = match std::env::args_os().nth(1) {
-        Some(path) => (PathBuf::from(path), false),
-        None => {
-            let millis = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
-            (
-                std::env::temp_dir().join(format!(
-                    "gmeow-gts-agent-memory-{}-{millis}.gts",
-                    std::process::id()
-                )),
-                true,
-            )
-        }
+    let (path, clear_existing) = if let Some(path) = std::env::args_os().nth(1) { (PathBuf::from(path), false) } else {
+        let millis = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+        (
+            std::env::temp_dir().join(format!(
+                "gmeow-gts-agent-memory-{}-{millis}.gts",
+                std::process::id()
+            )),
+            true,
+        )
     };
     if clear_existing {
         let _ = std::fs::remove_file(&path);

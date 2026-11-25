@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! Closing a v2 segment: buffered indexed segments reproduce the corpus, and finishing requires a closing index.
+
 use std::{fs, io::Read, path::Path};
 
 use ciborium::Value;
@@ -21,7 +23,7 @@ fn vector(name: &str) -> Vec<u8> {
         .join("../vectors/v2")
         .join(name);
     let bytes = fs::read(&path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
-    if name.ends_with(".zst") {
+    if Path::new(name).extension().is_some_and(|ext| ext == "zst") {
         let mut decoded = Vec::new();
         StreamingDecoder::new(bytes.as_slice())
             .read_to_end(&mut decoded)

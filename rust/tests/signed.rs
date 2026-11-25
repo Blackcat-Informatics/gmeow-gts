@@ -18,7 +18,7 @@ const LABEL: &str = "http://www.w3.org/2000/01/rdf-schema#label";
 fn unhex(s: &str) -> Vec<u8> {
     (0..s.len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).expect("hex"))
+        .map(|i| u8::from_str_radix(s.get(i..i + 2).expect("hex"), 16).expect("hex"))
         .collect()
 }
 
@@ -140,7 +140,7 @@ fn writer_signs_with_openpgp_secret_key_override_kid() {
 
 /// §9.2: readers honour the declared algorithm. An unsupported algorithm is
 /// `unverified` (never `valid`/`invalid`) with the `kid` kept, a malformed
-/// COSE_Sign1 is `invalid`, and EdDSA with a short signature is `invalid` only
+/// `COSE_Sign1` is `invalid`, and `EdDSA` with a short signature is `invalid` only
 /// once a key resolves.
 #[test]
 fn signature_algorithm_dispatch_vectors() {
@@ -149,7 +149,7 @@ fn signature_algorithm_dispatch_vectors() {
     for entry in std::fs::read_dir(&dir).expect("vectors/signed must exist") {
         let path = entry.unwrap().path();
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
-        if !name.starts_with("sigalg-") || !name.ends_with(".json") {
+        if !name.starts_with("sigalg-") || Path::new(&name).extension().is_none_or(|ext| ext != "json") {
             continue;
         }
         let json: serde_json::Value =

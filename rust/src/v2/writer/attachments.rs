@@ -103,6 +103,12 @@ impl SegmentWriter {
     /// its value references. The writer deduplicates equal values and units,
     /// orders the regions and uses plain frame storage. The caller places
     /// these regions before the terms and row frames of a canonical segment.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AttachmentWriteError`] when a value is empty, when a blob's
+    /// bytes differ from its declared length or digest, when a blob is
+    /// duplicated, or when a frame cannot be appended.
     pub fn append_attachment_regions<'a>(
         &mut self,
         values: impl IntoIterator<Item = &'a [u8]>,

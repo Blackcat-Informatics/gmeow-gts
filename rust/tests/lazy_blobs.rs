@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! Deferred blob access: blob payloads, including zstd-compressed ones, are decoded only when they are read.
+
 use ciborium::value::Value;
 use gmeow_gts::codec::Codec;
 use gmeow_gts::model::{Graph, Term, TermKind};
@@ -127,10 +129,10 @@ fn blob_deferred_until_access() {
     let graph = read(&data, true, None);
     assert_eq!(graph.terms.len(), 3);
     assert_eq!(graph.quads.len(), 1);
-    assert!(graph.diagnostics.is_empty());
+    assert_eq!(graph.diagnostics, [] as [gmeow_gts::model::Diagnostic; 0]);
     assert!(graph
         .blob_entry(&digest)
-        .is_some_and(|entry| entry.is_lazy()));
+        .is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
 }
 
 /// A file with a term and a quad frame, then one zstd blob frame whose raw bytes are `payload`.
@@ -177,7 +179,7 @@ fn blob_payload_of_concatenated_zstd_frames_decodes_to_the_end() {
     let payload: Vec<u8> = units.iter().flat_map(|unit| zstd_bytes(unit)).collect();
     let digest = digest_str(&content);
     let mut graph = read(&file_with_zstd_payload(payload, &content), true, None);
-    assert!(graph.opaque.is_empty());
+    assert_eq!(graph.opaque, [] as [gmeow_gts::model::OpaqueNode; 0]);
     assert_eq!(graph.blob_bytes(&digest).unwrap(), Some(content.as_slice()));
 }
 
@@ -189,7 +191,7 @@ fn blob_access_decompresses_and_caches() {
 
     assert!(graph
         .blob_entry(&digest)
-        .is_some_and(|entry| entry.is_lazy()));
+        .is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
     assert_eq!(graph.blob_bytes(&digest).unwrap(), Some(blob.as_slice()));
     assert!(graph
         .blob_entry(&digest)
@@ -260,7 +262,7 @@ fn lazy_blob_meta_is_eager() {
 
     assert!(graph
         .blob_entry(&digest)
-        .is_some_and(|entry| entry.is_lazy()));
+        .is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
     let meta = graph
         .blob_meta
         .iter()
@@ -300,9 +302,9 @@ fn lazy_blob_external_records_layout_iou() {
     ));
 
     let graph = read(&data, true, None);
-    assert!(graph.blobs.is_empty());
+    assert_eq!(graph.blobs, [] as [(std::string::String, gmeow_gts::model::BlobEntry); 0]);
     assert!(graph.blob_meta.iter().any(|(d, _)| d == &digest));
-    assert!(graph.diagnostics.is_empty());
+    assert_eq!(graph.diagnostics, [] as [gmeow_gts::model::Diagnostic; 0]);
 }
 
 #[test]
@@ -366,9 +368,9 @@ fn lazy_blob_decode_failure_raises_on_access() {
         }],
     );
 
-    assert!(graph.blob_entry("a").is_some_and(|entry| entry.is_lazy()));
+    assert!(graph.blob_entry("a").is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
     assert!(graph.blob_bytes("a").is_err());
-    assert!(graph.blob_entry("a").is_some_and(|entry| entry.is_lazy()));
+    assert!(graph.blob_entry("a").is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
 }
 
 #[test]
@@ -392,11 +394,11 @@ fn damage_inside_a_block_with_valid_structure_fails_cleanly_on_first_read() {
     ];
     let digest = digest_str(content);
     let mut graph = read(&file_with_zstd_payload(payload, content), true, None);
-    assert!(graph.opaque.is_empty());
-    assert!(graph.diagnostics.is_empty());
+    assert_eq!(graph.opaque, [] as [gmeow_gts::model::OpaqueNode; 0]);
+    assert_eq!(graph.diagnostics, [] as [gmeow_gts::model::Diagnostic; 0]);
     assert!(graph
         .blob_entry(&digest)
-        .is_some_and(|entry| entry.is_lazy()));
+        .is_some_and(gmeow_gts::model::BlobEntry::is_lazy));
     assert!(graph.blob_bytes(&digest).is_err());
 }
 
@@ -404,14 +406,14 @@ fn damage_inside_a_block_with_valid_structure_fails_cleanly_on_first_read() {
 fn zstd_frame_declaring_a_window_the_decoder_refuses_is_one_opaque_node() {
     let content = b"declared window";
     let frame = |window_log: u32| {
-        let block = 1 | ((content.len() as u32) << 3);
-        let mut out = vec![0x28, 0xb5, 0x2f, 0xfd, 0x00, ((window_log - 10) << 3) as u8];
+        let block = 1 | (u32::try_from(content.len()).expect("test content fits the block size field") << 3);
+        let mut out = vec![0x28, 0xb5, 0x2f, 0xfd, 0x00, u8::try_from((window_log - 10) << 3).expect("window descriptor fits one octet")];
         out.extend(&block.to_le_bytes()[..3]);
         out.extend(content);
         out
     };
     let ok = read(&file_with_zstd_payload(frame(31), content), true, None);
-    assert!(ok.opaque.is_empty());
+    assert_eq!(ok.opaque, [] as [gmeow_gts::model::OpaqueNode; 0]);
     for window_log in [32, 35, 41] {
         let graph = read(
             &file_with_zstd_payload(frame(window_log), content),

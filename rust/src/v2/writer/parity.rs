@@ -27,13 +27,14 @@ fn cauchy_products() -> &'static [[u8; 256]; DATA_COLUMNS] {
     CAUCHY_PRODUCTS.get_or_init(|| {
         let mut powers = [0; FIELD_ORDER];
         let mut logarithms = [0; 256];
-        let mut value = 1_u16;
+        let mut value = 1_u8;
         for (exponent, power) in powers.iter_mut().enumerate() {
-            *power = value as u8;
+            *power = value;
             logarithms[usize::from(value)] = exponent;
+            let overflow = value & 0x80 != 0;
             value <<= 1;
-            if value >= 256 {
-                value ^= 0x11d;
+            if overflow {
+                value ^= 0x1d;
             }
         }
         // The denominator (255 - row) XOR column is 255 XOR (row XOR column).

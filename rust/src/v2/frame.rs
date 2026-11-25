@@ -427,6 +427,12 @@ pub(super) struct Identity<'a> {
 ///
 /// Link decisions, payload processing, capacity, and the meaning of each
 /// content value are handled by the reader after envelope decoding.
+///
+/// # Errors
+///
+/// Returns [`FrameError`] when the envelope is malformed, or when the decoded
+/// length is not valid for the frame type. The error carries the offset of the
+/// offending field.
 pub fn decode_frame(
     data: &[u8],
     offset: usize,
@@ -505,6 +511,12 @@ pub(super) fn decode_frame_envelope(
 ///
 /// Supply the deterministic encoding of the content record and decoded bytes
 /// that satisfy the rules of the selected frame type.
+///
+/// # Errors
+///
+/// Returns [`FrameError`] when `frame_type` is not registered, when `content`
+/// does not decode exactly to its record, or when the length of `payload` is
+/// not valid for `frame_type`.
 pub fn encode_plain_frame(
     predecessor: &[u8; 32],
     frame_type: u64,

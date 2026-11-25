@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! The v2 wire reader: dispatch, framing tails, link repair and resync against the published vectors.
+
 use std::{fs, path::Path};
 
 use ciborium::Value;
@@ -48,7 +50,7 @@ fn dispatches_by_the_typed_generation_field() {
         let input = vector(name);
         let result = read_wire(&input, ReadCapacity::default());
         assert_eq!(result.dispatch, Some(expected), "{name}");
-        assert!(result.segments.is_empty());
+        assert_eq!(result.segments, [] as [gmeow_gts::v2::reader::WireSegment<'_>; 0]);
         assert!(result.stop.is_none());
     }
     let input = [0x87, 0x18, 1, 2, 1, 1, 0x81, 1, 0x81, 1, 0x81, 1];
@@ -195,7 +197,7 @@ fn the_complete_item_before_lost_framing_keeps_its_wire_extent() {
     assert_eq!(locator.end, 311);
     assert!(before.framing_failure.is_none());
     assert_eq!(before.frames.len(), 1);
-    assert!(before.closing_grammar.is_empty());
+    assert_eq!(before.closing_grammar, [] as [(usize, gmeow_gts::v2::HeaderError); 0]);
     assert_eq!(
         before.closing_findings,
         [ClosingFinding::IndexLocator { position: 2 }]
@@ -332,7 +334,7 @@ fn malformed_or_unread_commit_content_checks_no_claims() {
     let bytes = vector_in("P5", "commit-payload-nonempty.bin");
     let read = read_wire(&bytes, ReadCapacity::default());
     let report = read.segments[0].commits.as_ref().unwrap();
-    assert!(report.checks.is_empty());
+    assert_eq!(report.checks, [] as [gmeow_gts::v2::reader::CommitCheck; 0]);
     assert_eq!(
         report.uncommitted_tail,
         Some(UncommittedTail {
@@ -347,7 +349,7 @@ fn malformed_or_unread_commit_content_checks_no_claims() {
         ..ReadCapacity::default()
     };
     let read = read_wire(&bytes, capacity);
-    assert!(read.segments[0].commits.as_ref().unwrap().checks.is_empty());
+    assert_eq!(read.segments[0].commits.as_ref().unwrap().checks, [] as [gmeow_gts::v2::reader::CommitCheck; 0]);
 
     let capacity = ReadCapacity {
         decoded_bytes_per_read: 0,
@@ -531,7 +533,7 @@ fn an_index_with_bad_payload_grammar_is_not_compared() {
         ..ReadCapacity::default()
     };
     let read = read_wire(&data, low);
-    assert!(read.segments[0].indexes.is_empty());
+    assert_eq!(read.segments[0].indexes, [] as [gmeow_gts::v2::reader::IndexCheck; 0]);
 }
 
 #[test]

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-#![cfg(feature = "native-store")]
+//! The native in-memory RDF store: round trips of quads, named graphs and sidecar fields.
 
 use std::error::Error;
 
@@ -49,7 +49,7 @@ fn graph_to_store_preserves_named_graphs_and_sidecar() -> Result<(), Box<dyn Err
     writer.add_blob(b"payload", Some("text/plain"), None);
 
     let graph = read(&writer.to_bytes(), true, None);
-    let projected = graph_to_store_with_sidecar(graph)?;
+    let projected = graph_to_store_with_sidecar(&graph)?;
     let rows = projected.store.iter().collect::<Vec<_>>();
 
     assert_eq!(projected, projected.clone());
@@ -77,7 +77,7 @@ fn graph_into_quads_returns_gts_sidecar() -> Result<(), Box<dyn Error>> {
     writer.add_meta(Value::Map(vec![("source".into(), "synthetic".into())]));
 
     let graph = read(&writer.to_bytes(), true, None);
-    let (quads, sidecar) = graph_into_quads_with_sidecar(graph)?;
+    let (quads, sidecar) = graph_into_quads_with_sidecar(&graph)?;
 
     assert_eq!(quads.len(), 1);
     assert_eq!(quads.size_hint(), (1, Some(1)));
@@ -155,19 +155,14 @@ fn store_to_writer_roundtrips_native_quads() -> Result<(), Box<dyn Error>> {
     let subject = Iri::new("https://example.org/s")?;
     let predicate = Iri::new("https://example.org/p")?;
     let object = RdfLiteral::new_simple_literal("object");
-    let quad = RdfQuad::new(
-        subject.clone(),
-        predicate.clone(),
-        object,
-        GraphName::from(graph_name.clone()),
-    );
+    let quad = RdfQuad::new(subject, predicate, object, GraphName::from(graph_name));
     store.extend([quad.clone(), quad]);
     assert_eq!(store.len(), 1);
 
     let bytes = Writer::from_store(&store, "dist")?.to_bytes();
     assert_eq!(bytes, store_to_gts_bytes(&store, "dist")?);
     let graph = read(&bytes, true, None);
-    assert!(graph.diagnostics.is_empty());
+    assert_eq!(graph.diagnostics, Vec::new());
     let roundtripped = graph_to_store(&graph)?;
 
     assert_eq!(sorted_store(&roundtripped), sorted_store(&store));

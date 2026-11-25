@@ -23,14 +23,23 @@ const STREAM_CHUNK_SIZE: usize = 128 * 1024;
 /// Options for [`from_tar`].
 #[derive(Clone, Debug, Default)]
 pub struct FromTarOptions {
+    /// Accept symbolic and hard link entries instead of refusing them.
     pub allow_symlinks: bool,
+    /// Accept FIFO and character or block device entries instead of refusing them.
     pub allow_special: bool,
+    /// Record user and group names and numeric IDs from the tar headers.
     pub owner: bool,
     /// Optional source label used for compression detection by extension.
     pub source_name: Option<String>,
 }
 
 /// Read a tar stream, optionally decompress it, and author a files-profile-v2 GTS archive.
+///
+/// # Errors
+///
+/// Returns [`TarError`] when the stream is not a readable tar archive, uses an
+/// unsupported compression or entry type, or contains a link or special entry the
+/// options do not allow.
 pub fn from_tar<R: Read>(reader: R, options: &FromTarOptions) -> Result<Vec<u8>, TarError> {
     let mut out = Vec::new();
     from_tar_to_writer(reader, &mut out, options)?;
@@ -43,6 +52,11 @@ pub fn from_tar<R: Read>(reader: R, options: &FromTarOptions) -> Result<Vec<u8>,
 /// collected, then emitted as GTS blob frames in bounded chunks. This preserves
 /// deterministic metadata ordering without retaining whole file payloads or
 /// decompressed tar streams in memory.
+///
+/// # Errors
+///
+/// Returns [`TarError`] under the same conditions as [`from_tar`], or when the
+/// archive cannot be written to `writer`.
 pub fn from_tar_to_writer<R: Read, W: Write>(
     reader: R,
     writer: W,
@@ -81,6 +95,10 @@ pub fn from_tar_to_writer<R: Read, W: Write>(
 }
 
 /// Author a files-profile-v2 GTS archive from bytes containing tar, tar.gz, or tar.zst.
+///
+/// # Errors
+///
+/// Returns [`TarError`] under the same conditions as [`from_tar`].
 pub fn from_tar_bytes(data: &[u8], options: &FromTarOptions) -> Result<Vec<u8>, TarError> {
     from_tar(Cursor::new(data), options)
 }
@@ -103,12 +121,12 @@ fn detect_compression(data: &[u8], source_name: Option<&str>) -> Option<&'static
         return Some("zstd");
     }
     let name = source_name?.to_ascii_lowercase();
-    if name.ends_with(".tar.gz") || name.ends_with(".tgz") || name.ends_with(".gz") {
-        Some("gzip")
-    } else if name.ends_with(".tar.zst") || name.ends_with(".tzst") || name.ends_with(".zst") {
-        Some("zstd")
-    } else {
-        None
+    // The final dot-separated extension decides: `.tar.gz` ends in `.gz` and `.tar.zst`
+    // ends in `.zst`, so only the last extension is compared.
+    match name.rsplit_once('.').map(|(_, extension)| extension) {
+        Some("gz" | "tgz") => Some("gzip"),
+        Some("zst" | "tzst") => Some("zstd"),
+        _ => None,
     }
 }
 
@@ -198,7 +216,6 @@ fn read_tar_entry_metadata<R: Read>(
     }
 
     match kind {
-        FileEntryKind::File => {}
         FileEntryKind::Symlink | FileEntryKind::Hardlink => {
             let link = entry
                 .link_name()
@@ -216,7 +233,10 @@ fn read_tar_entry_metadata<R: Read>(
                 .map_err(|err| TarError::new(format!("read dev minor for {path}: {err}")))?
                 .map(u64::from);
         }
-        FileEntryKind::Directory | FileEntryKind::Fifo | FileEntryKind::Socket => {}
+        FileEntryKind::File
+        | FileEntryKind::Directory
+        | FileEntryKind::Fifo
+        | FileEntryKind::Socket => {}
     }
     Ok(out)
 }
@@ -240,7 +260,7 @@ fn create_temp_blob_file() -> Result<(PathBuf, fs::File), std::io::Error> {
         }
         match options.open(&path) {
             Ok(file) => return Ok((path, file)),
-            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {}
             Err(err) => return Err(err),
         }
     }
@@ -258,7 +278,7 @@ fn spool_file_entry<R: Read>(
         .map_err(|err| TarError::new(format!("create temporary blob for {path}: {err}")))?;
     let mut hasher = blake3::Hasher::new();
     let mut size = 0_u64;
-    let mut buf = [0_u8; STREAM_CHUNK_SIZE];
+    let mut buf = vec![0_u8; STREAM_CHUNK_SIZE];
     loop {
         let n = entry
             .read(&mut buf)
@@ -386,7 +406,9 @@ fn link_target_to_string(path: &Path) -> Result<String, TarError> {
 }
 
 fn format_mtime(seconds: u64) -> Result<String, TarError> {
-    let dt = time::OffsetDateTime::from_unix_timestamp(seconds as i64)
+    let timestamp = i64::try_from(seconds)
+        .map_err(|err| TarError::new(format!("invalid tar mtime {seconds}: {err}")))?;
+    let dt = time::OffsetDateTime::from_unix_timestamp(timestamp)
         .map_err(|err| TarError::new(format!("invalid tar mtime {seconds}: {err}")))?;
     dt.format(&time::format_description::well_known::Rfc3339)
         .map(|text| text.replace("+00:00", "Z"))

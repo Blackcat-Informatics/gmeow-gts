@@ -75,6 +75,12 @@ impl SegmentWriter {
     /// The caller supplies the index's content and payload when appending it.
     /// This method consumes the buffered segment and requires that it holds
     /// no previously emitted parity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SegmentFinishError`] when the segment has no closing index,
+    /// when it already holds a parity frame, or when the closing frame cannot
+    /// be written.
     pub fn finish_indexed(self) -> Result<Vec<u8>, SegmentFinishError> {
         let mut output = ClosingItems {
             bytes: Vec::with_capacity(self.bytes.len()),

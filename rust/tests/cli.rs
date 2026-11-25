@@ -401,7 +401,7 @@ fn prove_and_verify_proof_round_trip() {
     let mut bad = proof;
     let root = bad["root"].as_str().unwrap().to_string();
     let replacement = if root.starts_with('0') { "1" } else { "0" };
-    bad["root"] = serde_json::Value::String(format!("{replacement}{}", &root[1..]));
+    bad["root"] = serde_json::Value::String(format!("{replacement}{}", root.get(1..).expect("root is a hex string")));
     std::fs::write(&bad_path, serde_json::to_string_pretty(&bad).unwrap()).unwrap();
     let out = gts(&["verify-proof", bad_path.to_str().unwrap()]);
     assert_eq!(out.status.code(), Some(1));
@@ -490,7 +490,7 @@ fn replication_verbs_handle_streamable_unknown_and_torn_inputs() {
     assert!(out.status.success());
     let complete: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(complete["status"], "complete");
-    assert!(complete["ranges"].as_array().unwrap().is_empty());
+    assert_eq!(complete["ranges"].as_array().unwrap().len(), 0);
 
     let unknown = "0000000000000000000000000000000000000000000000000000000000000000";
     let out = gts(&[
@@ -574,6 +574,7 @@ fn pack_unpack_round_trip_bit_for_bit() {
 
 #[test]
 fn pack_deduplicates_identical_content() {
+    use gmeow_gts::reader::read;
     let tmp = tmpdir();
     let _ = std::fs::remove_dir_all(&tmp);
     let src = tmp.join("src");
@@ -589,7 +590,6 @@ fn pack_deduplicates_identical_content() {
     ]);
     assert!(out.status.success());
 
-    use gmeow_gts::reader::read;
     let data = std::fs::read(&archive).unwrap();
     let g = read(&data, true, None);
     assert_eq!(
@@ -663,7 +663,7 @@ fn files_archive_with_path(archive_path: &str) -> Vec<u8> {
         },
         gmeow_gts::model::Term {
             kind: gmeow_gts::model::TermKind::Literal,
-            value: Some(digest.clone()),
+            value: Some(digest),
             datatype: None,
             lang: None,
             direction: None,
@@ -848,7 +848,7 @@ fn diff_reports_changes() {
         tmp.join("src").to_str().unwrap(),
     ]);
     assert!(out.status.success(), "identical tree -> exit 0");
-    assert!(out.stdout.is_empty());
+    assert_eq!(out.stdout, [] as [u8; 0]);
 
     std::fs::write(tmp.join("src").join("a.txt"), "changed").unwrap();
     let out = gts(&[
@@ -1693,7 +1693,7 @@ fn extract_key_matches_frozen_stdout() {
     let case: serde_json::Value = serde_json::from_str(&raw).unwrap();
     let bytes: Vec<u8> = (0..case["gts"].as_str().unwrap().len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&case["gts"].as_str().unwrap()[i..i + 2], 16).unwrap())
+        .map(|i| u8::from_str_radix(case["gts"].as_str().unwrap().get(i..i + 2).unwrap(), 16).unwrap())
         .collect();
     let tmp = std::env::temp_dir().join("gts-extract-key-test.gts");
     std::fs::write(&tmp, &bytes).unwrap();

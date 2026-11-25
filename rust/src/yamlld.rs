@@ -131,11 +131,19 @@ pub fn to_json_ld(graph: &Graph) -> Value {
 }
 
 /// Render a folded graph as pretty JSON-LD-star.
+///
+/// # Errors
+///
+/// Returns [`serde_json::Error`] when the document cannot be serialized as JSON.
 pub fn to_json_ld_string(graph: &Graph) -> Result<String, serde_json::Error> {
     serde_json::to_string_pretty(&to_json_ld(graph))
 }
 
 /// Render a folded graph as YAML-LD-star.
+///
+/// # Errors
+///
+/// Returns [`serde_yaml::Error`] when the document cannot be serialized as YAML.
 pub fn to_yaml_ld(graph: &Graph) -> Result<String, serde_yaml::Error> {
     serde_yaml::to_string(&to_json_ld(graph))
 }
@@ -291,17 +299,17 @@ fn term_value(graph: &Graph, term: usize) -> Value {
         }
         TermKind::Triple => {
             // §7.3: own "tt" first, legacy reifier indirection as fallback.
-            let triple = graph
-                .triple_of(term)
-                .map(|(subject, predicate, object)| triple_value(graph, subject, predicate, object))
-                .unwrap_or_else(|| {
+            let triple = graph.triple_of(term).map_or_else(
+                || {
                     let mut degraded = Map::new();
                     degraded.insert(
                         "@id".to_string(),
                         Value::String(format!("_:unbound_triple_{term}")),
                     );
                     Value::Object(degraded)
-                });
+                },
+                |(subject, predicate, object)| triple_value(graph, subject, predicate, object),
+            );
             value.insert(GTS_TRIPLE.to_string(), triple);
         }
     }
@@ -329,6 +337,10 @@ fn predicate_key(graph: &Graph, predicate: usize) -> String {
     }
 }
 
+#[expect(
+    clippy::expect_used,
+    reason = "INVARIANT: a serde_json::Value always serializes to a JSON string"
+)]
 fn term_sort_key(graph: &Graph, term: usize) -> String {
     serde_json::to_string(&term_value(graph, term)).expect("serde_json::Value serializes")
 }

@@ -4,7 +4,7 @@
 //! Optional RDF 1.2 text codecs.
 //!
 //! This module is compiled only with `--features rdf-codecs`. N-Triples,
-//! Turtle, TriG, and RDF/XML use the crate's native parsers and serializers.
+//! Turtle, `TriG`, and RDF/XML use the crate's native parsers and serializers.
 //! GTS import and export stay routed through the native RDF adapter and RDF
 //! event contract.
 
@@ -39,6 +39,7 @@ impl RdfCodecError {
     }
 
     /// Human-readable error detail.
+    #[must_use]
     pub fn detail(&self) -> &str {
         &self.detail
     }
@@ -79,6 +80,11 @@ impl From<EventError> for RdfCodecError {
 }
 
 /// Parse N-Triples text into a GTS byte stream using the `dist` profile.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the text is not valid N-Triples or the imported
+/// graph cannot be encoded.
 pub fn from_ntriples(text: &str) -> Result<Vec<u8>, RdfCodecError> {
     let bytes = crate::from_nquads::from_ntriples(text)
         .map_err(|error| RdfCodecError::new(format!("RDF text syntax error: {error}")))?;
@@ -86,23 +92,42 @@ pub fn from_ntriples(text: &str) -> Result<Vec<u8>, RdfCodecError> {
 }
 
 /// Parse RDF/XML text into a GTS byte stream using the `dist` profile.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the text is not well-formed RDF/XML that maps to
+/// RDF 1.2 terms, or the imported graph cannot be encoded.
 pub fn from_rdf_xml(text: &str) -> Result<Vec<u8>, RdfCodecError> {
     crate::rdf_xml::from_rdf_xml(text, None)
 }
 
 /// Parse RDF/XML text with an explicit document base IRI.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] under the same conditions as [`from_rdf_xml`].
 pub fn from_rdf_xml_with_base_iri(text: &str, base_iri: &str) -> Result<Vec<u8>, RdfCodecError> {
     crate::rdf_xml::from_rdf_xml(text, Some(base_iri))
 }
 
 /// Parse Turtle text into a GTS byte stream using the `dist` profile.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the text is not valid Turtle or the imported graph
+/// cannot be encoded.
 pub fn from_turtle(text: &str) -> Result<Vec<u8>, RdfCodecError> {
     let bytes = crate::from_trig::from_turtle(text)
         .map_err(|error| RdfCodecError::new(format!("RDF text syntax error: {error}")))?;
     annotate_native_import(bytes)
 }
 
-/// Parse TriG text into a GTS byte stream using the `dist` profile.
+/// Parse `TriG` text into a GTS byte stream using the `dist` profile.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the text is not valid `TriG` or the imported graph
+/// cannot be encoded.
 pub fn from_trig(text: &str) -> Result<Vec<u8>, RdfCodecError> {
     let bytes = crate::from_trig::from_trig(text)
         .map_err(|error| RdfCodecError::new(format!("RDF text syntax error: {error}")))?;
@@ -125,6 +150,11 @@ fn annotate_native_import(bytes: Vec<u8>) -> Result<Vec<u8>, RdfCodecError> {
 ///
 /// N-Triples has only a default graph. This returns an error if the folded
 /// graph's RDF projection contains named-graph quads.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the RDF projection cannot be built or contains
+/// named-graph quads.
 pub fn to_ntriples(graph: &Graph) -> Result<String, RdfCodecError> {
     to_ntriples_from_source(&GraphRdfEventSource::new(graph))
 }
@@ -133,6 +163,11 @@ pub fn to_ntriples(graph: &Graph) -> Result<String, RdfCodecError> {
 ///
 /// RDF/XML is a graph format. This returns an error if the folded graph's RDF
 /// projection contains named-graph quads.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the RDF projection cannot be built or contains
+/// named-graph quads.
 pub fn to_rdf_xml(graph: &Graph) -> Result<String, RdfCodecError> {
     to_rdf_xml_from_source(&GraphRdfEventSource::new(graph))
 }
@@ -141,16 +176,30 @@ pub fn to_rdf_xml(graph: &Graph) -> Result<String, RdfCodecError> {
 ///
 /// Turtle has only a default graph. This returns an error if the folded graph's
 /// RDF projection contains named-graph quads.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the RDF projection cannot be built or contains
+/// named-graph quads.
 pub fn to_turtle(graph: &Graph) -> Result<String, RdfCodecError> {
     to_turtle_from_source(&GraphRdfEventSource::new(graph))
 }
 
-/// Serialize a folded graph to TriG through the RDF event contract.
+/// Serialize a folded graph to `TriG` through the RDF event contract.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the RDF projection cannot be built.
 pub fn to_trig(graph: &Graph) -> Result<String, RdfCodecError> {
     to_trig_from_source(&GraphRdfEventSource::new(graph))
 }
 
 /// Materialize a graph from an RDF event source.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the source fails to emit events or the events do not
+/// form a valid graph.
 pub fn graph_from_source<S: RdfEventSource>(source: &S) -> Result<Graph, RdfCodecError> {
     let mut sink = EventGraphSink::default();
     source.drive(&mut sink)?;
@@ -158,6 +207,10 @@ pub fn graph_from_source<S: RdfEventSource>(source: &S) -> Result<Graph, RdfCode
 }
 
 /// Materialize a graph from a trait-object RDF event source.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] under the same conditions as [`graph_from_source`].
 pub fn graph_from_erased_source(source: &dyn RdfEventSource) -> Result<Graph, RdfCodecError> {
     let mut sink = EventGraphSink::default();
     source.drive_erased(&mut sink)?;
@@ -165,11 +218,20 @@ pub fn graph_from_erased_source(source: &dyn RdfEventSource) -> Result<Graph, Rd
 }
 
 /// Serialize an RDF event source to N-Triples.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the source cannot be materialized or the graph has
+/// named-graph quads.
 pub fn to_ntriples_from_source<S: RdfEventSource>(source: &S) -> Result<String, RdfCodecError> {
     serialize_ntriples_graph(&graph_from_source(source)?)
 }
 
 /// Serialize a trait-object RDF event source to N-Triples.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] under the same conditions as [`to_ntriples_from_source`].
 pub fn to_ntriples_from_erased_source(
     source: &dyn RdfEventSource,
 ) -> Result<String, RdfCodecError> {
@@ -177,31 +239,58 @@ pub fn to_ntriples_from_erased_source(
 }
 
 /// Serialize an RDF event source to RDF/XML.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the source cannot be materialized or the graph cannot
+/// be serialized as RDF/XML.
 pub fn to_rdf_xml_from_source<S: RdfEventSource>(source: &S) -> Result<String, RdfCodecError> {
     serialize_rdf_xml_graph(&graph_from_source(source)?)
 }
 
 /// Serialize a trait-object RDF event source to RDF/XML.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] under the same conditions as [`to_rdf_xml_from_source`].
 pub fn to_rdf_xml_from_erased_source(source: &dyn RdfEventSource) -> Result<String, RdfCodecError> {
     serialize_rdf_xml_graph(&graph_from_erased_source(source)?)
 }
 
 /// Serialize an RDF event source to Turtle.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the source cannot be materialized or the graph has
+/// named-graph quads.
 pub fn to_turtle_from_source<S: RdfEventSource>(source: &S) -> Result<String, RdfCodecError> {
     serialize_turtle_graph(&graph_from_source(source)?)
 }
 
 /// Serialize a trait-object RDF event source to Turtle.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] under the same conditions as [`to_turtle_from_source`].
 pub fn to_turtle_from_erased_source(source: &dyn RdfEventSource) -> Result<String, RdfCodecError> {
     serialize_turtle_graph(&graph_from_erased_source(source)?)
 }
 
-/// Serialize an RDF event source to TriG.
+/// Serialize an RDF event source to `TriG`.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] when the source cannot be materialized or the graph cannot
+/// be serialized as `TriG`.
 pub fn to_trig_from_source<S: RdfEventSource>(source: &S) -> Result<String, RdfCodecError> {
     serialize_trig_graph(&graph_from_source(source)?)
 }
 
-/// Serialize a trait-object RDF event source to TriG.
+/// Serialize a trait-object RDF event source to `TriG`.
+///
+/// # Errors
+///
+/// Returns [`RdfCodecError`] under the same conditions as [`to_trig_from_source`].
 pub fn to_trig_from_erased_source(source: &dyn RdfEventSource) -> Result<String, RdfCodecError> {
     serialize_trig_graph(&graph_from_erased_source(source)?)
 }
@@ -259,6 +348,11 @@ pub struct EventGraphSink {
 
 impl EventGraphSink {
     /// Consume the sink and return the materialized graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RdfCodecError`] when a term, quad, reifier, annotation or diagnostic
+    /// references an undeclared term id, or a diagnostic frame index does not fit in `usize`.
     pub fn into_graph(self) -> Result<Graph, RdfCodecError> {
         self.try_into_graph().map_err(Into::into)
     }
@@ -526,8 +620,10 @@ fn event_diagnostic_to_model(diagnostic: EventDiagnostic) -> Result<Diagnostic, 
         .location
         .and_then(|location| location.frame_index)
         .map(|frame_index| {
-            usize::try_from(frame_index).map_err(|_| {
-                EventError::invalid_source("diagnostic frame index exceeds usize range")
+            usize::try_from(frame_index).map_err(|error| {
+                EventError::invalid_source(format!(
+                    "diagnostic frame index {frame_index} exceeds usize range: {error}"
+                ))
             })
         })
         .transpose()?;

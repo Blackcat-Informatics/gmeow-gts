@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
-use crate::v2::{Decoder, HeaderError, MalformedReason::*};
+use crate::v2::{Decoder, HeaderError, MalformedReason::{OutOfRange, WrongLength}};
 
 const BOOLEAN: &str = "http://www.w3.org/2001/XMLSchema#boolean";
 const UINT: &str = "http://www.w3.org/2001/XMLSchema#nonNegativeInteger";

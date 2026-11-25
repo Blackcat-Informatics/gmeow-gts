@@ -16,8 +16,8 @@ use gmeow_gts::wire::hex;
 use serde_json::{json, Map, Value};
 
 /// Rebuild the `.expected.json` summary shape from a folded graph.
-fn summarize(g: Graph, mode: &str) -> Value {
-    let mut nquads: Vec<String> = to_nquads(&g).lines().map(str::to_string).collect();
+fn summarize(g: &Graph, mode: &str) -> Value {
+    let mut nquads: Vec<String> = to_nquads(g).lines().map(str::to_string).collect();
     nquads.sort();
     let mut opaque_reasons: Vec<String> = g.opaque.iter().map(|o| o.reason.clone()).collect();
     opaque_reasons.sort();
@@ -28,10 +28,10 @@ fn summarize(g: Graph, mode: &str) -> Value {
         "quads": g.quads.len(),
         "segments": g.segment_heads.len(),
         "segment_heads": g.segment_heads.iter().map(|h| hex(h)).collect::<Vec<_>>(),
-        "profiles": g.segment_profiles.clone(),
+        "profiles": g.segment_profiles,
         "opaque_reasons": opaque_reasons,
         "suppressions": g.suppressions.len(),
-        "blobs": blob_summary(&g),
+        "blobs": blob_summary(g),
         "streamable": g.segment_streamable.iter().map(|info| json!({
             "claimed": info.claimed,
             "covered": info.covered,
@@ -92,7 +92,7 @@ fn manifest_top_level_vectors(dir: &Path) -> Vec<(String, String)> {
         let Some(rest) = input.strip_prefix("vectors/") else {
             continue;
         };
-        if rest.contains('/') || !rest.ends_with(".gts") {
+        if rest.contains('/') || Path::new(rest).extension().is_none_or(|ext| ext != "gts") {
             continue;
         }
 
@@ -181,7 +181,7 @@ fn corpus_matches_frozen_expectations() {
             "vector {name}: manifest mode must match expected JSON mode"
         );
         let g = read(&data, mode != "pre-segment", None);
-        let actual = summarize(g, mode);
+        let actual = summarize(&g, mode);
         assert_eq!(
             actual, expected,
             "vector {name}: Rust fold diverges from the frozen oracle expectation"

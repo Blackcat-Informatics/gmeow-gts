@@ -75,16 +75,16 @@ fn term_kind_int(kind: TermKind) -> u8 {
     }
 }
 
-fn sql_io(err: io::Error) -> DbExportError {
+fn sql_io(err: &io::Error) -> DbExportError {
     DbExportError::new(format!("cannot write SQL script: {err}"))
 }
 
 fn write_sql(writer: &mut dyn Write, bytes: &[u8]) -> Result<(), DbExportError> {
-    writer.write_all(bytes).map_err(sql_io)
+    writer.write_all(bytes).map_err(|err| sql_io(&err))
 }
 
 fn write_sql_fmt(writer: &mut dyn Write, args: fmt::Arguments<'_>) -> Result<(), DbExportError> {
-    writer.write_fmt(args).map_err(sql_io)
+    writer.write_fmt(args).map_err(|err| sql_io(&err))
 }
 
 fn write_sql_text(writer: &mut dyn Write, value: Option<&str>) -> Result<(), DbExportError> {
@@ -317,13 +317,10 @@ fn temp_sibling_path(path: &Path, suffix: &str) -> PathBuf {
         .filter(|p| !p.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
     let name = path
-        .file_name()
-        .map(|n| n.to_string_lossy())
-        .unwrap_or_else(|| "export".into());
+        .file_name().map_or_else(|| "export".into(), |n| n.to_string_lossy());
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+        .map_or(0, |d| d.as_nanos());
     parent.join(format!(
         ".{name}.{}.{}.{}",
         std::process::id(),
@@ -377,6 +374,11 @@ where
 }
 
 /// Write a folded graph to a SQLite database.
+///
+/// # Errors
+///
+/// Returns [`DbExportError`] when `sqlite3` cannot be started or fails, when the load
+/// script cannot be written to it, or when the staged database cannot replace `path`.
 pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
     export_database_file("sqlite3", out, |writer| {
@@ -385,7 +387,12 @@ pub fn to_sqlite(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExp
     Ok(out.to_path_buf())
 }
 
-/// Write a folded graph to a DuckDB database.
+/// Write a folded graph to a `DuckDB` database.
+///
+/// # Errors
+///
+/// Returns [`DbExportError`] when `duckdb` cannot be started or fails, when the load
+/// script cannot be written to it, or when the staged database cannot replace `path`.
 #[cfg(feature = "duckdb")]
 pub fn to_duckdb(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExportError> {
     let out = path.as_ref();
@@ -396,6 +403,12 @@ pub fn to_duckdb(graph: &Graph, path: impl AsRef<Path>) -> Result<PathBuf, DbExp
 }
 
 /// Write one Parquet file per non-empty relational table.
+///
+/// # Errors
+///
+/// Returns [`DbExportError`] when `out_dir` or its staging directory cannot be created,
+/// when `duckdb` cannot be started or fails while writing the Parquet files, or when a
+/// staged file cannot replace its destination in `out_dir`.
 #[cfg(feature = "duckdb")]
 pub fn to_parquet(graph: &Graph, out_dir: impl AsRef<Path>) -> Result<Vec<PathBuf>, DbExportError> {
     let target = out_dir.as_ref();
@@ -483,7 +496,7 @@ mod tests {
 
         assert!(graph
             .blob_entry(&digest)
-            .is_some_and(|entry| entry.is_lazy()));
+            .is_some_and(super::super::model::BlobEntry::is_lazy));
         let script = String::from_utf8(script).unwrap();
         assert!(script.contains(&format!(
             "INSERT INTO blobs VALUES ('{}',X'{}');",
@@ -507,7 +520,7 @@ mod tests {
         );
         assert!(graph
             .blob_entry(&digest)
-            .is_some_and(|entry| entry.is_lazy()));
+            .is_some_and(super::super::model::BlobEntry::is_lazy));
         let script = String::from_utf8_lossy(&script);
         assert!(script.contains("BEGIN TRANSACTION;\n"));
         assert!(!script.contains("COMMIT;\n"));

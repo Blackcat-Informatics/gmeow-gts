@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-#![cfg(feature = "okf")]
+//! OKF import: frontmatter, body and link mapping from Markdown bundles.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -56,7 +56,7 @@ See [Schema](schema.md).
     );
     write(
         &root.join("concepts/schema.md"),
-        r#"---
+        r"---
 type: Schema
 title: Schema
 tags:
@@ -64,7 +64,7 @@ tags:
   - alpha
 ---
 Columns live here.
-"#,
+",
     );
 }
 
@@ -87,8 +87,9 @@ fn body_after_frontmatter(path: &Path) -> Vec<u8> {
     let text = std::str::from_utf8(&bytes).unwrap();
     let mut offset = if text.starts_with("---\r\n") { 5 } else { 4 };
     loop {
-        let line_end = offset + text[offset..].find('\n').unwrap();
-        let line = text[offset..line_end].trim_end_matches('\r');
+        let rest = text.split_at(offset).1;
+        let line_end = offset + rest.find('\n').unwrap();
+        let line = rest.split_at(line_end - offset).0.trim_end_matches('\r');
         let after = line_end + 1;
         if line == "---" {
             return bytes[after..].to_vec();
@@ -145,19 +146,19 @@ fn link_extraction_handles_utf8_link_text() {
     let _ = std::fs::remove_dir_all(&root);
     write(
         &root.join("source.md"),
-        r#"---
+        r"---
 type: Concept
 ---
 See [Schéma](target.md).
-"#,
+",
     );
     write(
         &root.join("target.md"),
-        r#"---
+        r"---
 type: Concept
 ---
 Target.
-"#,
+",
     );
 
     let data = from_okf(&root).expect("UTF-8 OKF imports");
@@ -224,7 +225,7 @@ fn inline_body_profile_variant_exports_only_when_requested() {
     )
     .expect("inline OKF imports");
     let graph = read(&data, true, None);
-    assert!(graph.blobs.is_empty());
+    assert_eq!(graph.blobs, Vec::new());
     assert!(to_okf(&graph, &out, &OkfExportOptions::default()).is_err());
     to_okf(
         &graph,
@@ -247,11 +248,11 @@ fn malformed_bundle_missing_type_is_rejected() {
     let _ = std::fs::remove_dir_all(&root);
     write(
         &root.join("bad.md"),
-        r#"---
+        r"---
 title: Missing Type
 ---
 body
-"#,
+",
     );
     let err = from_okf(&root).expect_err("missing type is malformed");
     assert!(err.to_string().contains("type"));
@@ -271,12 +272,12 @@ fn frontmatterless_index_navigation_pages_are_ignored() {
     );
     write(
         &root.join("concepts/table.md"),
-        r#"---
+        r"---
 type: BigQuery Table
 title: Events
 ---
 Concept body.
-"#,
+",
     );
 
     let data = from_okf(&root).expect("frontmatterless index pages are navigation");

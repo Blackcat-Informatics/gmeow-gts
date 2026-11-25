@@ -56,21 +56,33 @@ impl From<RdfAdapterError> for NativeStoreError {
 /// the RDF graph.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GtsSidecar {
+    /// Blob metadata retained through the fold.
     pub blob_meta: Vec<(String, Value)>,
+    /// Blob payloads keyed by `blake3:<hex>` digest, insertion-ordered.
     pub blobs: Vec<(String, BlobEntry)>,
+    /// File-level shallow-merged metadata, insertion-ordered.
     pub meta: Vec<(String, Value)>,
+    /// Suppression overlays, preserved in append/fold order.
     pub suppressions: Vec<Suppression>,
+    /// Opaque frame records for unknown, encrypted, or damaged payloads.
     pub opaque: Vec<OpaqueNode>,
+    /// Signature observations retained independently of verification policy.
     pub signatures: Vec<Signature>,
+    /// Reader diagnostics collected during fold.
     pub diagnostics: Vec<Diagnostic>,
+    /// Ordered per-segment head ids, the file's composite identity.
     pub segment_heads: Vec<Vec<u8>>,
+    /// Per-segment header profiles.
     pub segment_profiles: Vec<String>,
+    /// Per-segment folded metadata.
     pub segment_meta: Vec<Vec<(String, Value)>>,
+    /// Per-segment streamable claims and their covered boundaries.
     pub segment_streamable: Vec<StreamableInfo>,
 }
 
 impl GtsSidecar {
     /// Clone the GTS-only state from a folded graph.
+    #[must_use]
     pub fn from_graph(graph: &Graph) -> Self {
         Self {
             blob_meta: graph.blob_meta.clone(),
@@ -96,21 +108,25 @@ pub struct NativeStore {
 
 impl NativeStore {
     /// Create an empty native store.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Wrap an existing native RDF dataset.
+    #[must_use]
     pub fn from_dataset(dataset: Dataset) -> Self {
         Self { dataset }
     }
 
     /// Consume the store and return its native RDF dataset.
+    #[must_use]
     pub fn into_dataset(self) -> Dataset {
         self.dataset
     }
 
     /// Borrow the underlying native RDF dataset.
+    #[must_use]
     pub fn as_dataset(&self) -> &Dataset {
         &self.dataset
     }
@@ -126,11 +142,13 @@ impl NativeStore {
     }
 
     /// Number of unique quads.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.dataset.len()
     }
 
     /// Whether the store contains no quads.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.dataset.is_empty()
     }
@@ -156,11 +174,14 @@ impl Extend<RdfQuad> for NativeStore {
 /// Native store plus the GTS-only sidecar state split out of the source graph.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StoreWithSidecar {
+    /// RDF projection of the graph.
     pub store: NativeStore,
+    /// GTS-only state split out of the graph.
     pub sidecar: GtsSidecar,
 }
 
 /// Owning iterator over native RDF quads projected from a GTS graph.
+#[derive(Debug)]
 pub struct IntoQuads {
     inner: std::vec::IntoIter<RdfQuad>,
 }
@@ -192,22 +213,34 @@ impl ExactSizeIterator for IntoQuads {
 }
 
 /// Project a folded graph into native RDF quads without materializing N-Quads text.
-pub fn graph_into_quads(graph: Graph) -> Result<IntoQuads, NativeStoreError> {
-    let quads = to_rdf_quads(&graph)?;
+///
+/// # Errors
+///
+/// Returns [`NativeStoreError`] when the graph cannot be projected to RDF quads.
+pub fn graph_into_quads(graph: &Graph) -> Result<IntoQuads, NativeStoreError> {
+    let quads = to_rdf_quads(graph)?;
     Ok(IntoQuads {
         inner: quads.into_iter(),
     })
 }
 
 /// Project a folded graph into native RDF quads and return GTS-only sidecar state.
+///
+/// # Errors
+///
+/// Returns [`NativeStoreError`] under the same conditions as [`graph_into_quads`].
 pub fn graph_into_quads_with_sidecar(
-    graph: Graph,
+    graph: &Graph,
 ) -> Result<(IntoQuads, GtsSidecar), NativeStoreError> {
-    let sidecar = GtsSidecar::from_graph(&graph);
+    let sidecar = GtsSidecar::from_graph(graph);
     Ok((graph_into_quads(graph)?, sidecar))
 }
 
 /// Project a folded graph into a new in-memory native store.
+///
+/// # Errors
+///
+/// Returns [`NativeStoreError`] when the graph cannot be projected to RDF quads.
 pub fn graph_to_store(graph: &Graph) -> Result<NativeStore, NativeStoreError> {
     let mut store = NativeStore::new();
     for quad in to_rdf_quads(graph)? {
@@ -217,10 +250,14 @@ pub fn graph_to_store(graph: &Graph) -> Result<NativeStore, NativeStoreError> {
 }
 
 /// Project a folded graph into a native store and split GTS-only state aside.
-pub fn graph_to_store_with_sidecar(graph: Graph) -> Result<StoreWithSidecar, NativeStoreError> {
-    let sidecar = GtsSidecar::from_graph(&graph);
+///
+/// # Errors
+///
+/// Returns [`NativeStoreError`] under the same conditions as [`graph_to_store`].
+pub fn graph_to_store_with_sidecar(graph: &Graph) -> Result<StoreWithSidecar, NativeStoreError> {
+    let sidecar = GtsSidecar::from_graph(graph);
     Ok(StoreWithSidecar {
-        store: graph_to_store(&graph)?,
+        store: graph_to_store(graph)?,
         sidecar,
     })
 }
@@ -230,6 +267,11 @@ pub fn graph_to_store_with_sidecar(graph: Graph) -> Result<StoreWithSidecar, Nat
 /// GTS-only sidecar state is intentionally not folded back into the pure RDF
 /// writer; callers that need signatures, blobs, suppressions, or diagnostics
 /// should keep the [`GtsSidecar`] next to the store.
+///
+/// # Errors
+///
+/// Returns [`NativeStoreError`] when the dataset cannot be converted into a GTS writer
+/// for `profile`.
 pub fn store_to_writer(store: &NativeStore, profile: &str) -> Result<Writer, NativeStoreError> {
     Ok(writer_from_rdf_dataset_with_profile(
         store.as_dataset(),
@@ -238,6 +280,10 @@ pub fn store_to_writer(store: &NativeStore, profile: &str) -> Result<Writer, Nat
 }
 
 /// Build GTS bytes from a native RDF store.
+///
+/// # Errors
+///
+/// Returns [`NativeStoreError`] under the same conditions as [`store_to_writer`].
 pub fn store_to_gts_bytes(store: &NativeStore, profile: &str) -> Result<Vec<u8>, NativeStoreError> {
     Ok(store_to_writer(store, profile)?.to_bytes())
 }

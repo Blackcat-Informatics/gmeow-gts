@@ -728,7 +728,7 @@ fn parse_text(text: &str, options: ParseOptions) -> Result<Vec<Vec<Node>>, NQuad
     Ok(statements)
 }
 
-fn build_gts(statements: &[Vec<Node>]) -> Result<Vec<u8>, NQuadsParseError> {
+fn build_gts(statements: &[Vec<Node>]) -> Vec<u8> {
     let mut interner = Interner::new(None);
     let mut reifiers: Vec<ReifierRow> = Vec::new();
     let mut pending_quads: Vec<Quad> = Vec::new();
@@ -782,10 +782,15 @@ fn build_gts(statements: &[Vec<Node>]) -> Result<Vec<u8>, NQuadsParseError> {
     if !annotations.is_empty() {
         writer.add_annot(&annotations);
     }
-    Ok(writer.to_bytes())
+    writer.to_bytes()
 }
 
 /// Parse N-Triples(-star) text into a canonical GTS file.
+///
+/// # Errors
+///
+/// Returns [`NQuadsParseError`] when a statement of `text` is not valid
+/// N-Triples(-star), including a statement with a graph name.
 pub fn from_ntriples(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
     let statements = parse_text(
         text,
@@ -794,10 +799,15 @@ pub fn from_ntriples(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
             allow_triple_subject: false,
         },
     )?;
-    build_gts(&statements)
+    Ok(build_gts(&statements))
 }
 
 /// Parse N-Quads(-star) text into a canonical GTS file.
+///
+/// # Errors
+///
+/// Returns [`NQuadsParseError`] when a statement of `text` is not valid
+/// N-Quads(-star).
 pub fn from_nquads(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
     let statements = parse_text(
         text,
@@ -806,5 +816,5 @@ pub fn from_nquads(text: &str) -> Result<Vec<u8>, NQuadsParseError> {
             allow_triple_subject: true,
         },
     )?;
-    build_gts(&statements)
+    Ok(build_gts(&statements))
 }

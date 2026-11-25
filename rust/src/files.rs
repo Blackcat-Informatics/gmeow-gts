@@ -66,6 +66,7 @@ pub enum FileEntryKind {
 
 impl FileEntryKind {
     /// Returns the canonical name of this kind, the form that `parse` accepts.
+    #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             Self::File => "file",
@@ -79,7 +80,12 @@ impl FileEntryKind {
         }
     }
 
-    /// Parses a canonical kind name and returns an error for any other value.
+    /// Parses a canonical kind name.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error that names the value when it is not one of the canonical names
+    /// returned by [`Self::as_str`].
     pub fn parse(value: &str) -> Result<Self, String> {
         match value {
             "file" => Ok(Self::File),
@@ -167,6 +173,10 @@ pub struct FileBlobSource {
 
 /// Safety policy for materializing files-profile archives.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "each flag is an independent opt-in switch of the unpack safety policy"
+)]
 pub struct UnpackOptions {
     /// Extract blobs hidden by suppression frames.
     pub include_suppressed: bool,
@@ -197,19 +207,17 @@ struct TermBuilder {
 }
 
 impl TermBuilder {
-    fn atom(&mut self, kind: TermKind, value: String, datatype: Option<String>) -> usize {
+    fn atom(&mut self, kind: TermKind, value: String, datatype: Option<&str>) -> usize {
         let key = TermKey {
             kind,
             value: value.clone(),
-            datatype: datatype.clone(),
+            datatype: datatype.map(str::to_string),
         };
         if let Some(id) = self.ids.get(&key) {
             return *id;
         }
         let datatype_id = if kind == TermKind::Literal {
-            datatype
-                .as_deref()
-                .map(|iri| self.atom(TermKind::Iri, iri.to_string(), None))
+            datatype.map(|iri| self.atom(TermKind::Iri, iri.to_string(), None))
         } else {
             None
         };
@@ -236,11 +244,7 @@ impl TermBuilder {
     }
 
     fn literal(&mut self, value: &str, datatype: Option<&str>) -> usize {
-        self.atom(
-            TermKind::Literal,
-            value.to_string(),
-            datatype.map(str::to_string),
-        )
+        self.atom(TermKind::Literal, value.to_string(), datatype)
     }
 
     fn quad_lit(&mut self, subject: usize, predicate: &str, value: &str, datatype: Option<&str>) {
@@ -323,7 +327,7 @@ fn to_posix_path(path: &Path) -> Result<String, String> {
         let s = c
             .as_os_str()
             .to_str()
-            .ok_or_else(|| format!("non-UTF-8 path component in {path:?}"))?;
+            .ok_or_else(|| format!("non-UTF-8 path component in {}", path.display()))?;
         parts.push(s.to_string());
     }
     Ok(parts.join("/"))
@@ -332,7 +336,7 @@ fn to_posix_path(path: &Path) -> Result<String, String> {
 fn walk_dir_sorted(dir: &Path) -> Result<Vec<std::path::PathBuf>, String> {
     fn recurse(out: &mut Vec<std::path::PathBuf>, dir: &Path) -> Result<(), std::io::Error> {
         let mut entries: Vec<_> = fs::read_dir(dir)?.collect::<Result<Vec<_>, _>>()?;
-        entries.sort_by_key(|a| a.file_name());
+        entries.sort_by_key(std::fs::DirEntry::file_name);
         for entry in entries {
             let path = entry.path();
             let ftype = entry.file_type()?;
@@ -351,7 +355,7 @@ fn walk_dir_sorted(dir: &Path) -> Result<Vec<std::path::PathBuf>, String> {
         Ok(())
     }
     let mut out = Vec::new();
-    recurse(&mut out, dir).map_err(|e| format!("walk {dir:?}: {e}"))?;
+    recurse(&mut out, dir).map_err(|e| format!("walk {}: {e}", dir.display()))?;
     Ok(out)
 }
 
@@ -359,7 +363,7 @@ fn resolve_sources(sources: &[&Path]) -> Result<Vec<(std::path::PathBuf, String)
     let mut entries: Vec<(std::path::PathBuf, String)> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
     for src in sources {
-        let meta = fs::symlink_metadata(src).map_err(|e| format!("{src:?}: {e}"))?;
+        let meta = fs::symlink_metadata(src).map_err(|e| format!("{}: {e}", src.display()))?;
         if meta.file_type().is_symlink() {
             return Err(format!("symlink not supported: {}", src.display()));
         }
@@ -367,7 +371,7 @@ fn resolve_sources(sources: &[&Path]) -> Result<Vec<(std::path::PathBuf, String)
             let name = src
                 .file_name()
                 .and_then(|n| n.to_str())
-                .ok_or_else(|| format!("invalid source name: {src:?}"))?
+                .ok_or_else(|| format!("invalid source name: {}", src.display()))?
                 .to_string();
             safe_archive_path(&name)?;
             if !seen.insert(name.clone()) {
@@ -380,7 +384,7 @@ fn resolve_sources(sources: &[&Path]) -> Result<Vec<(std::path::PathBuf, String)
                 let relpath = to_posix_path(
                     fspath
                         .strip_prefix(src)
-                        .map_err(|e| format!("path outside source: {fspath:?}: {e}"))?,
+                        .map_err(|e| format!("path outside source: {}: {e}", fspath.display()))?,
                 )?;
                 safe_archive_path(&relpath)?;
                 if !seen.insert(relpath.clone()) {
@@ -389,7 +393,7 @@ fn resolve_sources(sources: &[&Path]) -> Result<Vec<(std::path::PathBuf, String)
                 entries.push((fspath, relpath));
             }
         } else {
-            return Err(format!("unsupported source type: {src:?}"));
+            return Err(format!("unsupported source type: {}", src.display()));
         }
     }
     entries.sort_by(|a, b| a.1.cmp(&b.1));
@@ -399,11 +403,11 @@ fn resolve_sources(sources: &[&Path]) -> Result<Vec<(std::path::PathBuf, String)
 fn guess_media_type(path: &Path) -> String {
     match path.extension().and_then(|e| e.to_str()) {
         Some("txt") => "text/plain".to_string(),
-        Some("html") | Some("htm") => "text/html".to_string(),
+        Some("html" | "htm") => "text/html".to_string(),
         Some("json") => "application/json".to_string(),
         Some("xml") => "application/xml".to_string(),
         Some("png") => "image/png".to_string(),
-        Some("jpg") | Some("jpeg") => "image/jpeg".to_string(),
+        Some("jpg" | "jpeg") => "image/jpeg".to_string(),
         Some("gif") => "image/gif".to_string(),
         Some("webp") => "image/webp".to_string(),
         Some("pdf") => "application/pdf".to_string(),
@@ -431,18 +435,19 @@ impl Write for HashingWriter<'_> {
 
 fn write_cbor_type_len<W: Write>(writer: &mut W, major: u8, len: u64) -> std::io::Result<()> {
     let prefix = major << 5;
-    if len < 24 {
-        writer.write_all(&[prefix | len as u8])
-    } else if u8::try_from(len).is_ok() {
-        writer.write_all(&[prefix | 24, len as u8])
-    } else if u16::try_from(len).is_ok() {
-        writer.write_all(&[prefix | 25])?;
-        writer.write_all(&(len as u16).to_be_bytes())
-    } else if u32::try_from(len).is_ok() {
-        writer.write_all(&[prefix | 26])?;
-        writer.write_all(&(len as u32).to_be_bytes())
+    if let Ok(short) = u8::try_from(len) {
+        if short < 0x18 {
+            return writer.write_all(&[prefix | short]);
+        }
+        writer.write_all(&[prefix | 0x18, short])
+    } else if let Ok(medium) = u16::try_from(len) {
+        writer.write_all(&[prefix | 0x19])?;
+        writer.write_all(&medium.to_be_bytes())
+    } else if let Ok(large) = u32::try_from(len) {
+        writer.write_all(&[prefix | 0x1a])?;
+        writer.write_all(&large.to_be_bytes())
     } else {
-        writer.write_all(&[prefix | 27])?;
+        writer.write_all(&[prefix | 0x1b])?;
         writer.write_all(&len.to_be_bytes())
     }
 }
@@ -492,7 +497,7 @@ fn copy_counted_and_hash<R: Read, W: Write>(
 ) -> std::io::Result<(String, u64)> {
     let mut digest = blake3::Hasher::new();
     let mut written = 0_u64;
-    let mut buf = [0_u8; STREAM_CHUNK_SIZE];
+    let mut buf = vec![0_u8; STREAM_CHUNK_SIZE];
     loop {
         let n = reader.read(&mut buf)?;
         if n == 0 {
@@ -581,7 +586,7 @@ fn append_blob_path<W: Write>(
     let media_type = source.media_type.as_deref();
     let representation = source.representation.as_deref();
     let mut file =
-        fs::File::open(&source.path).map_err(|e| format!("read {:?}: {e}", source.path))?;
+        fs::File::open(&source.path).map_err(|e| format!("read {}: {e}", source.path.display()))?;
     let mut hasher = blake3::Hasher::new();
     let digest = {
         let mut sink = HashingWriter {
@@ -595,17 +600,17 @@ fn append_blob_path<W: Write>(
             representation,
             prev,
         )
-        .map_err(|e| format!("hash blob {:?}: {e}", source.path))?
+        .map_err(|e| format!("hash blob {}: {e}", source.path.display()))?
     };
     if digest != expected_digest {
         return Err(format!(
-            "digest mismatch for {:?}: expected {expected_digest}, read {digest}",
-            source.path
+            "digest mismatch for {}: expected {expected_digest}, read {digest}",
+            source.path.display()
         ));
     }
     let id = hasher.finalize().as_bytes().to_vec();
     file.rewind()
-        .map_err(|e| format!("seek {:?}: {e}", source.path))?;
+        .map_err(|e| format!("seek {}: {e}", source.path.display()))?;
     let meta = BlobFrameMeta {
         size: source.size,
         id: &id,
@@ -615,16 +620,16 @@ fn append_blob_path<W: Write>(
         prev,
     };
     write_blob_frame(writer, &mut file, &meta)
-        .map_err(|e| format!("write blob {:?}: {e}", source.path))?;
+        .map_err(|e| format!("write blob {}: {e}", source.path.display()))?;
     *prev = id;
     Ok(())
 }
 
 fn digest_file(path: &Path, expected_size: u64) -> Result<String, String> {
-    let mut file = fs::File::open(path).map_err(|e| format!("read {path:?}: {e}"))?;
+    let mut file = fs::File::open(path).map_err(|e| format!("read {}: {e}", path.display()))?;
     let mut sink = std::io::sink();
     let (digest, _) = copy_counted_and_hash(&mut file, &mut sink, expected_size)
-        .map_err(|e| format!("hash {path:?}: {e}"))?;
+        .map_err(|e| format!("hash {}: {e}", path.display()))?;
     Ok(digest)
 }
 
@@ -643,7 +648,7 @@ fn resolved_files_with_metadata(sources: &[&Path]) -> Result<Vec<ResolvedFile>, 
     let entries = resolve_sources(sources)?;
     let mut out = Vec::with_capacity(entries.len());
     for (fspath, relpath) in entries {
-        let meta = fs::metadata(&fspath).map_err(|e| format!("stat {fspath:?}: {e}"))?;
+        let meta = fs::metadata(&fspath).map_err(|e| format!("stat {}: {e}", fspath.display()))?;
         let size = meta.len();
         #[cfg(unix)]
         let mode = std::os::unix::fs::PermissionsExt::mode(&meta.permissions()) & 0o7777;
@@ -651,8 +656,9 @@ fn resolved_files_with_metadata(sources: &[&Path]) -> Result<Vec<ResolvedFile>, 
         let mode = 0o644_u32;
         let mtime = meta
             .modified()
-            .map_err(|e| format!("mtime {fspath:?}: {e}"))?;
-        let modified = format_datetime(&mtime).map_err(|e| format!("datetime {fspath:?}: {e}"))?;
+            .map_err(|e| format!("mtime {}: {e}", fspath.display()))?;
+        let modified = format_datetime(&mtime)
+            .map_err(|e| format!("datetime {}: {e}", fspath.display()))?;
         let media_type = guess_media_type(&fspath);
         let digest = digest_file(&fspath, size)?;
         out.push(ResolvedFile {
@@ -669,6 +675,10 @@ fn resolved_files_with_metadata(sources: &[&Path]) -> Result<Vec<ResolvedFile>, 
 }
 
 /// Pack files/directories into a deterministic GTS files-profile archive.
+///
+/// # Errors
+///
+/// Returns the errors of [`pack_to_writer`].
 pub fn pack(sources: &[&Path]) -> Result<Vec<u8>, String> {
     let mut out = Vec::new();
     pack_to_writer(sources, &mut out)?;
@@ -677,6 +687,12 @@ pub fn pack(sources: &[&Path]) -> Result<Vec<u8>, String> {
 
 /// Pack files/directories into a deterministic GTS files-profile archive without
 /// retaining regular-file payloads in memory.
+///
+/// # Errors
+///
+/// Returns an error when a source is a symlink, is neither a file nor a directory, or is
+/// duplicated; when an archive path is unsafe; when a file cannot be read, hashed or
+/// changes while it is read; or when `output` cannot be written.
 pub fn pack_to_writer<W: Write>(sources: &[&Path], mut output: W) -> Result<(), String> {
     let mut w = Writer::new("files");
 
@@ -770,6 +786,12 @@ pub fn pack_to_writer<W: Write>(sources: &[&Path], mut output: W) -> Result<(), 
 ///
 /// This helper is the Rust foundation for the tar bridge. The default
 /// [`pack`] command continues to emit v1 archives.
+///
+/// # Errors
+///
+/// Returns an error when `entries` is empty, when an archive path is unsafe or duplicated,
+/// when an entry is malformed for its kind, when file data disagrees with its digest or
+/// size, or when the writer cannot be created.
 pub fn pack_entries_v2(entries: &[FileEntry]) -> Result<Vec<u8>, String> {
     let (mut writer, blobs) = build_entries_v2_prefix(entries)?;
     for (_digest, (data, media_type)) in blobs {
@@ -783,6 +805,11 @@ pub fn pack_entries_v2(entries: &[FileEntry]) -> Result<Vec<u8>, String> {
 /// This is the bounded-memory counterpart to [`pack_entries_v2`]: metadata is
 /// still collected and sorted in memory, while regular-file payload frames are
 /// hashed and written from the supplied paths in bounded chunks.
+///
+/// # Errors
+///
+/// Returns the metadata errors of [`pack_entries_v2`]. Also returns an error when `output`
+/// cannot be written, or when a blob source does not match its digest or size.
 pub fn pack_entries_v2_with_blob_paths<W: Write>(
     entries: &[FileEntry],
     blob_sources: &BTreeMap<String, FileBlobSource>,
@@ -897,6 +924,10 @@ fn build_entries_v2_prefix(entries: &[FileEntry]) -> Result<(Writer, InlineBlobM
         }
     }
 
+    Ok((finish_v2_writer(builder)?, blobs))
+}
+
+fn finish_v2_writer(mut builder: TermBuilder) -> Result<Writer, String> {
     builder.quads.sort();
     let profile_meta = files_v2_profile_meta();
     let mut writer = Writer::with_options(
@@ -914,7 +945,7 @@ fn build_entries_v2_prefix(entries: &[FileEntry]) -> Result<(Writer, InlineBlobM
     if !builder.quads.is_empty() {
         writer.add_quads(&builder.quads);
     }
-    Ok((writer, blobs))
+    Ok(writer)
 }
 
 fn files_v2_profile_meta() -> Value {
@@ -1005,7 +1036,9 @@ fn format_datetime(time: &std::time::SystemTime) -> Result<String, String> {
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|e| format!("mtime before unix epoch: {e}"))?;
     let secs = duration.as_secs();
-    let dt = time::OffsetDateTime::from_unix_timestamp(secs as i64)
+    let timestamp = i64::try_from(secs)
+        .map_err(|e| format!("invalid mtime timestamp {secs}: {e}"))?;
+    let dt = time::OffsetDateTime::from_unix_timestamp(timestamp)
         .map_err(|e| format!("invalid mtime timestamp {secs}: {e}"))?;
     let text = dt
         .format(&time::format_description::well_known::Rfc3339)
@@ -1014,6 +1047,12 @@ fn format_datetime(time: &std::time::SystemTime) -> Result<String, String> {
 }
 
 /// Reads the file entries of a graph, keyed by archive path.
+///
+/// # Errors
+///
+/// Returns an error when the graph has no `rdf:type` or no `files:FileEntry` term, when
+/// an entry has an unknown `files:type` or a malformed integer field, when an extended
+/// attribute or PAX record node is incomplete, or when two entries share a path.
 pub fn read_entries(graph: &Graph) -> Result<BTreeMap<String, FileEntry>, String> {
     let mut type_ids: HashSet<usize> = HashSet::new();
     let mut file_entry_ids: HashSet<usize> = HashSet::new();
@@ -1104,7 +1143,11 @@ pub fn read_entries(graph: &Graph) -> Result<BTreeMap<String, FileEntry>, String
     Ok(by_path)
 }
 
-/// Reads the file entries of a graph, keyed by archive path.
+/// Reads the file entries of a graph as field maps, keyed by archive path.
+///
+/// # Errors
+///
+/// Returns the errors of [`read_entries`].
 pub fn read_file_entries(
     graph: &Graph,
 ) -> Result<BTreeMap<String, BTreeMap<String, String>>, String> {
@@ -1238,7 +1281,7 @@ fn dest_path(dest: &Path, archive_path: &str) -> Result<std::path::PathBuf, Stri
     // symlinked directory below the destination cannot redirect writes.
     let dest_canon = dest
         .canonicalize()
-        .map_err(|e| format!("resolve destination {dest:?}: {e}"))?;
+        .map_err(|e| format!("resolve destination {}: {e}", dest.display()))?;
     let target = dest_canon.join(archive_path);
 
     let mut ancestor = target
@@ -1253,7 +1296,7 @@ fn dest_path(dest: &Path, archive_path: &str) -> Result<std::path::PathBuf, Stri
     }
     let ancestor_canon = ancestor
         .canonicalize()
-        .map_err(|e| format!("resolve target ancestor {ancestor:?}: {e}"))?;
+        .map_err(|e| format!("resolve target ancestor {}: {e}", ancestor.display()))?;
     if !ancestor_canon.starts_with(&dest_canon) {
         return Err(format!("path escapes destination: {archive_path}"));
     }
@@ -1295,10 +1338,22 @@ fn suppressed_blob_digests(graph: &Graph) -> HashSet<String> {
 }
 
 fn hex(data: &[u8]) -> String {
-    data.iter().map(|b| format!("{b:02x}")).collect()
+    use std::fmt::Write as _;
+
+    let mut out = String::with_capacity(data.len() * 2);
+    for byte in data {
+        // Writing to a `String` cannot fail.
+        let _ = write!(out, "{byte:02x}");
+    }
+    out
 }
 
-/// Extract FileEntry quads from a folded graph into dest.
+/// Extract `FileEntry` quads from a folded graph into dest.
+///
+/// # Errors
+///
+/// Returns the errors of [`unpack_with_options`] with the default safety policy and the
+/// given `include_suppressed` setting.
 pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<(), String> {
     unpack_with_options(
         graph,
@@ -1310,7 +1365,14 @@ pub fn unpack(graph: &Graph, dest: &Path, include_suppressed: bool) -> Result<()
     )
 }
 
-/// Extract FileEntry quads from a folded graph into dest using an explicit safety policy.
+/// Extract `FileEntry` quads from a folded graph into dest using an explicit safety policy.
+///
+/// # Errors
+///
+/// Returns an error when the entries cannot be read (see [`read_entries`]), when a
+/// destination path would leave `dest`, when a file blob is missing or fails its digest
+/// check, when `options` refuses a symlink, hardlink or special entry, or when a file
+/// or metadata operation fails.
 pub fn unpack_with_options(
     graph: &Graph,
     dest: &Path,
@@ -1322,7 +1384,7 @@ pub fn unpack_with_options(
     } else {
         suppressed_blob_digests(graph)
     };
-    fs::create_dir_all(dest).map_err(|e| format!("create {dest:?}: {e}"))?;
+    fs::create_dir_all(dest).map_err(|e| format!("create {}: {e}", dest.display()))?;
     let blob_entries: BTreeMap<&str, &crate::model::BlobEntry> =
         graph.blobs.iter().map(|(d, e)| (d.as_str(), e)).collect();
     let mut decoded_cache: BTreeMap<String, Vec<u8>> = BTreeMap::new();
@@ -1334,7 +1396,8 @@ pub fn unpack_with_options(
 
         match entry.kind {
             FileEntryKind::Directory => {
-                fs::create_dir_all(&target).map_err(|e| format!("create dir {target:?}: {e}"))?;
+                fs::create_dir_all(&target)
+                    .map_err(|e| format!("create dir {}: {e}", target.display()))?;
                 deferred_dirs.push((target, entry));
             }
             FileEntryKind::File => {
@@ -1345,28 +1408,14 @@ pub fn unpack_with_options(
                 if suppressed.contains(digest) {
                     continue;
                 }
-                let data = if let Some(cached) = decoded_cache.get(digest) {
-                    cached.clone()
-                } else {
-                    let decoded = blob_entries
-                        .get(digest.as_str())
-                        .map(|entry| {
-                            entry
-                                .decoded_vec()
-                                .map_err(|err| format!("decode inline blob for {path}: {err:?}"))
-                        })
-                        .transpose()?
-                        .ok_or(format!("missing inline blob for {path}: {digest}"))?;
-                    decoded_cache.insert(digest.clone(), decoded.clone());
-                    decoded
-                };
+                let data = inline_blob_data(&path, digest, &blob_entries, &mut decoded_cache)?;
                 if digest_string(&data) != *digest {
                     return Err(format!("integrity failure for {path}: {digest}"));
                 }
 
                 if let Some(parent) = target.parent() {
                     fs::create_dir_all(parent)
-                        .map_err(|e| format!("create dir {parent:?}: {e}"))?;
+                        .map_err(|e| format!("create dir {}: {e}", parent.display()))?;
                 }
                 write_file_without_following_symlink(&target, &data, &path)?;
 
@@ -1403,18 +1452,7 @@ pub fn unpack_with_options(
             | FileEntryKind::CharDev
             | FileEntryKind::BlockDev
             | FileEntryKind::Socket => {
-                if !options.allow_special {
-                    return Err(format!(
-                        "refusing {} entry {path}: use --allow-special",
-                        entry.kind.as_str()
-                    ));
-                }
-                if let Some(parent) = target.parent() {
-                    fs::create_dir_all(parent)
-                        .map_err(|e| format!("create dir {parent:?}: {e}"))?;
-                }
-                create_special_node(&target, &entry)?;
-                restore_path_metadata(&target, &entry, options)?;
+                create_special_entry(&target, &path, &entry, options)?;
             }
         }
     }
@@ -1428,6 +1466,49 @@ pub fn unpack_with_options(
     Ok(())
 }
 
+/// Return the bytes of the inline blob `digest`, decoding each digest at most once.
+fn inline_blob_data(
+    path: &str,
+    digest: &str,
+    blob_entries: &BTreeMap<&str, &crate::model::BlobEntry>,
+    decoded_cache: &mut BTreeMap<String, Vec<u8>>,
+) -> Result<Vec<u8>, String> {
+    if let Some(cached) = decoded_cache.get(digest) {
+        return Ok(cached.clone());
+    }
+    let decoded = blob_entries
+        .get(digest)
+        .map(|entry| {
+            entry
+                .decoded_vec()
+                .map_err(|err| format!("decode inline blob for {path}: {err:?}"))
+        })
+        .transpose()?
+        .ok_or(format!("missing inline blob for {path}: {digest}"))?;
+    decoded_cache.insert(digest.to_string(), decoded.clone());
+    Ok(decoded)
+}
+
+/// Create a FIFO, device or socket entry at `target` when `options` allows special entries.
+fn create_special_entry(
+    target: &Path,
+    path: &str,
+    entry: &FileEntry,
+    options: &UnpackOptions,
+) -> Result<(), String> {
+    if !options.allow_special {
+        return Err(format!(
+            "refusing {} entry {path}: use --allow-special",
+            entry.kind.as_str()
+        ));
+    }
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("create dir {}: {e}", parent.display()))?;
+    }
+    create_special_node(target, entry)?;
+    restore_path_metadata(target, entry, options)
+}
+
 fn write_file_without_following_symlink(
     target: &Path,
     data: &[u8],
@@ -1435,10 +1516,10 @@ fn write_file_without_following_symlink(
 ) -> Result<(), String> {
     let parent = target
         .parent()
-        .ok_or_else(|| format!("missing parent for {target:?}"))?;
+        .ok_or_else(|| format!("missing parent for {}", target.display()))?;
     let name = target
         .file_name()
-        .ok_or_else(|| format!("missing file name for {target:?}"))?
+        .ok_or_else(|| format!("missing file name for {}", target.display()))?
         .to_string_lossy();
     for attempt in 0..100 {
         let temp = parent.join(format!(".{name}.gts-tmp-{}-{attempt}", std::process::id()));
@@ -1450,10 +1531,11 @@ fn write_file_without_following_symlink(
             Ok(mut file) => {
                 let result = (|| {
                     file.write_all(data)
-                        .map_err(|e| format!("write {temp:?}: {e}"))?;
+                        .map_err(|e| format!("write {}: {e}", temp.display()))?;
                     drop(file);
                     prepare_replace_target(target, archive_path)?;
-                    fs::rename(&temp, target).map_err(|e| format!("replace {target:?}: {e}"))?;
+                    fs::rename(&temp, target)
+                        .map_err(|e| format!("replace {}: {e}", target.display()))?;
                     Ok(())
                 })();
                 if result.is_err() {
@@ -1461,37 +1543,39 @@ fn write_file_without_following_symlink(
                 }
                 return result;
             }
-            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
-            Err(err) => return Err(format!("create temp file for {target:?}: {err}")),
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(err) => return Err(format!("create temp file for {}: {err}", target.display())),
         }
     }
     Err(format!(
-        "create temp file for {target:?}: too many attempts"
+        "create temp file for {}: too many attempts", target.display()
     ))
 }
 
 fn prepare_replace_target(target: &Path, archive_path: &str) -> Result<(), String> {
     match fs::symlink_metadata(target) {
         Ok(metadata) if metadata.file_type().is_symlink() => Err(format!(
-            "refusing to write through symlink for {archive_path}: {target:?}"
+            "refusing to write through symlink for {archive_path}: {}", target.display()
         )),
         Ok(metadata) if metadata.is_file() => {
-            fs::remove_file(target).map_err(|e| format!("remove existing {target:?}: {e}"))
+            fs::remove_file(target)
+                .map_err(|e| format!("remove existing {}: {e}", target.display()))
         }
         Ok(_) => Ok(()),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(err) => Err(format!("inspect {target:?}: {err}")),
+        Err(err) => Err(format!("inspect {}: {err}", target.display())),
     }
 }
 
 fn prepare_create_node_target(target: &Path, archive_path: &str) -> Result<(), String> {
     match fs::symlink_metadata(target) {
         Ok(metadata) if metadata.is_dir() => Err(format!(
-            "refusing to replace directory for {archive_path}: {target:?}"
+            "refusing to replace directory for {archive_path}: {}", target.display()
         )),
-        Ok(_) => fs::remove_file(target).map_err(|e| format!("remove existing {target:?}: {e}")),
+        Ok(_) => fs::remove_file(target)
+            .map_err(|e| format!("remove existing {}: {e}", target.display())),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(err) => Err(format!("inspect {target:?}: {err}")),
+        Err(err) => Err(format!("inspect {}: {err}", target.display())),
     }
 }
 
@@ -1551,7 +1635,13 @@ fn materialize_link(dest: &Path, target: &Path, entry: &FileEntry) -> Result<(),
             let source = dest_path(dest, link_target)?;
             prepare_create_node_target(target, &entry.path)?;
             fs::hard_link(&source, target)
-                .map_err(|e| format!("create hardlink {:?} -> {:?}: {e}", target, source))
+                .map_err(|e| {
+                    format!(
+                        "create hardlink {} -> {}: {e}",
+                        target.display(),
+                        source.display()
+                    )
+                })
         }
         _ => Err(format!("{} is not a link entry", entry.path)),
     }
@@ -1567,7 +1657,12 @@ fn materialize_symlink(target: &Path, entry: &FileEntry) -> Result<(), String> {
         .ok_or_else(|| format!("symlink entry {} needs linkTarget", entry.path))?;
     prepare_create_node_target(target, &entry.path)?;
     symlink(link_target, target)
-        .map_err(|e| format!("create symlink {:?} -> {:?}: {e}", target, link_target))
+        .map_err(|e| {
+            format!(
+                "create symlink {} -> {link_target:?}: {e}",
+                target.display()
+            )
+        })
 }
 
 #[cfg(not(unix))]
@@ -1609,7 +1704,7 @@ fn create_fifo(target: &Path, entry: &FileEntry) -> Result<(), String> {
     use std::os::unix::ffi::OsStrExt;
 
     let path = CString::new(target.as_os_str().as_bytes())
-        .map_err(|e| format!("path contains interior NUL: {target:?}: {e}"))?;
+        .map_err(|e| format!("path contains interior NUL: {}: {e}", target.display()))?;
     let mode = sanitized_mode(entry.mode.unwrap_or(0o644), true);
     // SAFETY: `path` is a NUL-terminated copy of the target path and remains
     // alive for the duration of the syscall. The mode bits are sanitized.
@@ -1618,7 +1713,7 @@ fn create_fifo(target: &Path, entry: &FileEntry) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "create fifo {target:?}: {}",
+            "create fifo {}: {}", target.display(),
             std::io::Error::last_os_error()
         ))
     }
@@ -1631,7 +1726,7 @@ fn create_device(target: &Path, entry: &FileEntry) -> Result<(), String> {
     use std::os::unix::ffi::OsStrExt;
 
     let path = CString::new(target.as_os_str().as_bytes())
-        .map_err(|e| format!("path contains interior NUL: {target:?}: {e}"))?;
+        .map_err(|e| format!("path contains interior NUL: {}: {e}", target.display()))?;
     let mode = sanitized_mode(entry.mode.unwrap_or(0o644), true);
     let node_type = match entry.kind {
         FileEntryKind::CharDev => libc::S_IFCHR,
@@ -1662,7 +1757,7 @@ fn create_device(target: &Path, entry: &FileEntry) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "create device {target:?}: {}",
+            "create device {}: {}", target.display(),
             std::io::Error::last_os_error()
         ))
     }
@@ -1680,7 +1775,13 @@ fn create_device(_target: &Path, entry: &FileEntry) -> Result<(), String> {
 fn create_socket(target: &Path, entry: &FileEntry) -> Result<(), String> {
     std::os::unix::net::UnixListener::bind(target)
         .map(drop)
-        .map_err(|e| format!("create socket {target:?} for {}: {e}", entry.path))
+        .map_err(|e| {
+            format!(
+                "create socket {} for {}: {e}",
+                target.display(),
+                entry.path
+            )
+        })
 }
 
 #[cfg(unix)]
@@ -1704,19 +1805,25 @@ fn restore_path_metadata(
         use std::os::unix::fs::PermissionsExt;
         let mode = sanitized_mode(mode, options.preserve_setid);
         fs::set_permissions(target, std::fs::Permissions::from_mode(mode))
-            .map_err(|e| format!("set permissions for {target:?}: {e}"))?;
+            .map_err(|e| format!("set permissions for {}: {e}", target.display()))?;
     }
 
     if let Some(modified) = &entry.modified {
         let (seconds, nanos) = parse_datetime(modified)?;
         let timestamp = unix_system_time(seconds, nanos)
-            .ok_or_else(|| format!("modified time out of range for {target:?}: {modified}"))?;
+            .ok_or_else(|| {
+                format!(
+                    "modified time out of range for {}: {modified}",
+                    target.display()
+                )
+            })?;
         let times = fs::FileTimes::new().set_modified(timestamp);
         if entry.kind == FileEntryKind::Symlink {
             fs::set_times_nofollow(target, times)
-                .map_err(|e| format!("set symlink mtime for {target:?}: {e}"))?;
+                .map_err(|e| format!("set symlink mtime for {}: {e}", target.display()))?;
         } else {
-            fs::set_times(target, times).map_err(|e| format!("set mtime for {target:?}: {e}"))?;
+            fs::set_times(target, times)
+                .map_err(|e| format!("set mtime for {}: {e}", target.display()))?;
         }
     }
     Ok(())
@@ -1747,7 +1854,7 @@ fn restore_owner(target: &Path, entry: &FileEntry, options: &UnpackOptions) -> R
     } else {
         chown(target, uid, gid)
     };
-    result.map_err(|e| format!("restore owner for {target:?}: {e}"))
+    result.map_err(|e| format!("restore owner for {}: {e}", target.display()))
 }
 
 #[cfg(not(unix))]
@@ -1786,6 +1893,12 @@ fn parse_datetime(text: &str) -> Result<(i64, u32), String> {
 }
 
 /// Compare an archive to a directory by content digest.
+///
+/// # Errors
+///
+/// Returns an error when `directory` does not exist, when its tree cannot be walked or
+/// contains a symlink, when a file cannot be read, or when the archive entries cannot be
+/// read (see [`read_entries`]).
 pub fn diff(graph: &Graph, directory: &Path) -> Result<Vec<String>, String> {
     let entries = read_entries(graph)?;
     let archive_digests: BTreeMap<String, String> = entries
@@ -1795,7 +1908,10 @@ pub fn diff(graph: &Graph, directory: &Path) -> Result<Vec<String>, String> {
         .collect();
 
     if !directory.exists() {
-        return Err(format!("diff destination does not exist: {directory:?}"));
+        return Err(format!(
+            "diff destination does not exist: {}",
+            directory.display()
+        ));
     }
 
     let mut disk_digests: BTreeMap<String, String> = BTreeMap::new();
@@ -1804,9 +1920,9 @@ pub fn diff(graph: &Graph, directory: &Path) -> Result<Vec<String>, String> {
         let relpath = to_posix_path(
             fspath
                 .strip_prefix(directory)
-                .map_err(|e| format!("path outside directory: {fspath:?}: {e}"))?,
+                .map_err(|e| format!("path outside directory: {}: {e}", fspath.display()))?,
         )?;
-        let data = fs::read(&fspath).map_err(|e| format!("read {fspath:?}: {e}"))?;
+        let data = fs::read(&fspath).map_err(|e| format!("read {}: {e}", fspath.display()))?;
         disk_digests.insert(relpath, digest_string(&data));
     }
 

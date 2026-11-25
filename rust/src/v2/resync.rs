@@ -73,29 +73,29 @@ fn read_marks<'a>(cursor: &mut Decoder<'a>) -> Result<&'a [u8], HeaderError> {
     let count = cursor.head(4)?;
     let mut last: &[u8] = &[];
     for index in 0..count {
-        let mark_at = cursor.offset;
+        let entry_at = cursor.offset;
         let elements = cursor.head(4)?;
         if elements == 0 {
             return Err(HeaderError {
                 reason: WrongType,
-                offset: mark_at,
+                offset: entry_at,
             });
         }
         // The first element must be a uint by shape before count and order.
         if cursor.peek_byte()? >> 5 != 0 {
             return Err(HeaderError {
                 reason: WrongType,
-                offset: mark_at,
+                offset: entry_at,
             });
         }
         if index >= 64 {
             return Err(HeaderError {
                 reason: OutOfRange,
-                offset: mark_at,
+                offset: entry_at,
             });
         }
         // A complete item cannot be a proper prefix of another complete item.
-        let available = &cursor.bytes[mark_at..];
+        let available = &cursor.bytes[entry_at..];
         let prefix = &available[..available.len().min(last.len())];
         if !last.is_empty()
             && prefix <= last
@@ -103,13 +103,13 @@ fn read_marks<'a>(cursor: &mut Decoder<'a>) -> Result<&'a [u8], HeaderError> {
         {
             return Err(HeaderError {
                 reason: UnorderedOrRepeated,
-                offset: mark_at,
+                offset: entry_at,
             });
         }
         for _ in 0..elements {
             cursor.closed_item()?;
         }
-        last = &cursor.bytes[mark_at..cursor.offset];
+        last = &cursor.bytes[entry_at..cursor.offset];
     }
     Ok(&cursor.bytes[marks_at..cursor.offset])
 }

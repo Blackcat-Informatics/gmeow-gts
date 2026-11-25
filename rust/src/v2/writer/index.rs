@@ -98,6 +98,12 @@ impl SegmentWriter {
     /// fold's counts and digest. The writer derives the head, root, type runs, graph ranges, per-predicate
     /// row counts, and unit locations from the encoded segment. This method
     /// leaves the segment unchanged if it cannot construct the index.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`IndexWriteError`] when the header or an ordinary frame of the
+    /// segment cannot be decoded, when a frame's fields are malformed, when a
+    /// frame is stored compressed, or when the index envelope cannot be written.
     pub fn append_index(&mut self, fold: IndexFold) -> Result<Digest, IndexWriteError> {
         let mut prefix = IndexPrefix::default();
         let mut offset = decode_header(&self.bytes, 0)

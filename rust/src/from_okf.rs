@@ -9,6 +9,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
@@ -94,21 +95,19 @@ impl GraphBuilder {
         kind: TermKind,
         value: String,
         lang: Option<String>,
-        datatype: Option<String>,
+        datatype: Option<&str>,
     ) -> usize {
         let key = TermKey::Atom {
             kind,
             value: value.clone(),
             lang: lang.clone(),
-            datatype: datatype.clone(),
+            datatype: datatype.map(str::to_owned),
         };
         if let Some(id) = self.ids.get(&key) {
             return *id;
         }
         let datatype_id = if kind == TermKind::Literal {
-            datatype
-                .as_ref()
-                .map(|iri| self.atom(TermKind::Iri, iri.clone(), None, None))
+            datatype.map(|iri| self.atom(TermKind::Iri, iri.to_owned(), None, None))
         } else {
             None
         };
@@ -139,7 +138,7 @@ impl GraphBuilder {
             TermKind::Literal,
             value.to_string(),
             None,
-            datatype.map(str::to_string),
+            datatype,
         )
     }
 
@@ -164,11 +163,20 @@ struct Document {
 }
 
 /// Import an OKF bundle directory into one canonical GTS segment.
+///
+/// # Errors
+///
+/// Returns [`OkfParseError`] under the same conditions as [`from_okf_with_options`].
 pub fn from_okf(dir: &Path) -> Result<Vec<u8>, OkfParseError> {
     from_okf_with_options(dir, &FromOkfOptions::default())
 }
 
 /// Import an OKF bundle directory with explicit options.
+///
+/// # Errors
+///
+/// Returns [`OkfParseError`] when `dir` is not a directory, a bundle entry cannot be read,
+/// the bundle contains a symlink, or a document's YAML frontmatter is missing or invalid.
 pub fn from_okf_with_options(
     dir: &Path,
     options: &FromOkfOptions,
@@ -400,33 +408,46 @@ struct MarkdownLink {
     target: String,
 }
 
+/// Borrow `text[start..end]`.
+///
+/// Panics if either offset is not a char boundary. Every caller derives its offsets from
+/// ASCII delimiters found in `text`, so the offsets are always boundaries.
+fn str_span(text: &str, start: usize, end: usize) -> &str {
+    text.split_at(end).0.split_at(start).1
+}
+
+/// Borrow `text[start..]`, with the same boundary requirement as [`str_span`].
+fn str_tail(text: &str, start: usize) -> &str {
+    text.split_at(start).1
+}
+
 fn extract_markdown_links(body: &str) -> Vec<MarkdownLink> {
     let mut links = Vec::new();
     let mut cursor = 0;
-    while let Some(open_rel) = body[cursor..].find('[') {
+    while let Some(open_rel) = str_tail(body, cursor).find('[') {
         let open = cursor + open_rel;
-        if open > 0 && body[..open].ends_with('!') {
+        if open > 0 && str_span(body, 0, open).ends_with('!') {
             cursor = open + 1;
             continue;
         }
         let text_start = open + 1;
-        let Some(close_rel) = body[text_start..].find(']') else {
+        let Some(close_rel) = str_tail(body, text_start).find(']') else {
             break;
         };
         let close = text_start + close_rel;
         let after_close = close + 1;
-        let Some(after_open_paren) = body[after_close..].strip_prefix('(') else {
+        let Some(after_open_paren) = str_tail(body, after_close).strip_prefix('(') else {
             cursor = after_close;
             continue;
         };
         let target_start = body.len() - after_open_paren.len();
-        let Some(end_rel) = body[target_start..].find(')') else {
+        let Some(end_rel) = str_tail(body, target_start).find(')') else {
             break;
         };
         let target_end = target_start + end_rel;
         links.push(MarkdownLink {
-            text: body[text_start..close].to_string(),
-            target: body[target_start..target_end].to_string(),
+            text: str_span(body, text_start, close).to_string(),
+            target: str_span(body, target_start, target_end).to_string(),
         });
         cursor = target_end + 1;
         if cursor >= body.len() {
@@ -468,7 +489,7 @@ fn markdown_files(root: &Path) -> Result<Vec<PathBuf>, OkfParseError> {
             .map_err(|e| OkfParseError::new(format!("cannot read {}: {e}", dir.display())))?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| OkfParseError::new(format!("cannot read {}: {e}", dir.display())))?;
-        entries.sort_by_key(|entry| entry.file_name());
+        entries.sort_by_key(fs::DirEntry::file_name);
         for entry in entries {
             let path = entry.path();
             let file_type = entry.file_type().map_err(|e| {
@@ -481,7 +502,7 @@ fn markdown_files(root: &Path) -> Result<Vec<PathBuf>, OkfParseError> {
                 )));
             }
             if file_type.is_dir() {
-                if path.strip_prefix(root).ok().is_some_and(|rel| {
+                if path.strip_prefix(root).is_ok_and(|rel| {
                     rel.components()
                         .next()
                         .is_some_and(|c| c.as_os_str() == ".gts-okf")
@@ -524,9 +545,9 @@ fn has_yaml_frontmatter(text: &str) -> bool {
 }
 
 fn relative_okf_path(root: &Path, path: &Path) -> Result<String, OkfParseError> {
-    let rel = path.strip_prefix(root).map_err(|_| {
+    let rel = path.strip_prefix(root).map_err(|err| {
         OkfParseError::new(format!(
-            "path {} is outside bundle root {}",
+            "path {} is outside bundle root {}: {err}",
             path.display(),
             root.display()
         ))
@@ -583,14 +604,14 @@ fn parse_markdown(bytes: &[u8], path: &str) -> Result<(YamlMapping, Vec<u8>), Ok
     let first_line_len = if text.starts_with("---\r\n") { 5 } else { 4 };
     let mut offset = first_line_len;
     while offset <= text.len() {
-        let Some(line_end_rel) = text[offset..].find('\n') else {
+        let Some(line_end_rel) = str_tail(text, offset).find('\n') else {
             break;
         };
         let line_end = offset + line_end_rel;
-        let line = text[offset..line_end].trim_end_matches('\r');
+        let line = str_span(text, offset, line_end).trim_end_matches('\r');
         let after_line = line_end + 1;
         if line == "---" {
-            let yaml_text = &text[first_line_len..offset];
+            let yaml_text = str_span(text, first_line_len, offset);
             let value: YamlValue = serde_yaml::from_str(yaml_text).map_err(|e| {
                 OkfParseError::new(format!("{path}: invalid YAML frontmatter: {e}"))
             })?;
@@ -694,9 +715,11 @@ fn percent_encode_path(path: &str) -> String {
     for byte in path.bytes() {
         match byte {
             b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' => {
-                out.push(byte as char)
+                out.push(byte as char);
             }
-            _ => out.push_str(&format!("%{byte:02X}")),
+            _ => {
+                let _ = write!(out, "%{byte:02X}");
+            }
         }
     }
     out

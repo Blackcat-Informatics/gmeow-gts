@@ -193,6 +193,7 @@ impl EventError {
     }
 
     /// Create a quoted-triple nesting-limit error.
+    #[must_use]
     pub fn triple_nesting_limit(limit: usize) -> Self {
         Self::new(
             EventErrorKind::TripleNestingLimit,
@@ -201,11 +202,13 @@ impl EventError {
     }
 
     /// Return the error category.
+    #[must_use]
     pub fn kind(&self) -> &EventErrorKind {
         &self.kind
     }
 
     /// Return human-readable detail.
+    #[must_use]
     pub fn detail(&self) -> &str {
         &self.detail
     }
@@ -235,41 +238,81 @@ pub trait RdfEventSink {
     }
 
     /// Open a new id scope.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventError`] when the sink rejects the scope. The default
+    /// implementation accepts the scope.
     fn start_scope(&mut self, _scope: EventScopeId) -> Result<(), EventError> {
         Ok(())
     }
 
     /// Declare a term id.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventError`] when the sink rejects the declaration. The default
+    /// implementation accepts the declaration.
     fn term(&mut self, _term: EventTerm) -> Result<(), EventError> {
         Ok(())
     }
 
     /// Emit a quad.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventError`] when the sink rejects the quad. The default
+    /// implementation accepts the quad.
     fn quad(&mut self, _quad: EventQuad) -> Result<(), EventError> {
         Ok(())
     }
 
     /// Bind a reifier term to a triple.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventError`] when the sink rejects the binding. The default
+    /// implementation accepts the binding.
     fn reifier(&mut self, _reifier: EventReifier) -> Result<(), EventError> {
         Ok(())
     }
 
     /// Emit an annotation row `(reifier, predicate, value, graph?)`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventError`] when the sink rejects the annotation. The default
+    /// implementation accepts the annotation.
     fn annotation(&mut self, _annotation: EventAnnotation) -> Result<(), EventError> {
         Ok(())
     }
 
     /// Emit a source diagnostic.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventError`] when the sink rejects the diagnostic. The default
+    /// implementation accepts the diagnostic.
     fn diagnostic(&mut self, _diagnostic: EventDiagnostic) -> Result<(), EventError> {
         Ok(())
     }
 
     /// Close an id scope.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventError`] when the sink rejects the close. The default
+    /// implementation accepts the close.
     fn end_scope(&mut self, _scope: EventScopeId) -> Result<(), EventError> {
         Ok(())
     }
 
     /// Finish the stream and let the sink resolve deferred references.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventError`] when the sink cannot resolve a deferred reference.
+    /// The default implementation resolves nothing and returns `Ok(())`.
     fn finish(&mut self) -> Result<(), EventError> {
         Ok(())
     }
@@ -278,11 +321,21 @@ pub trait RdfEventSink {
 /// Producer of RDF graph events.
 pub trait RdfEventSource {
     /// Drive events into a concrete sink.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`EventError`] raised by the sink or by the source while
+    /// producing events.
     fn drive<S: RdfEventSink>(&self, sink: &mut S) -> Result<(), EventError>
     where
         Self: Sized;
 
     /// Drive events into a trait-object sink.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`EventError`] raised by the sink or by the source while
+    /// producing events.
     fn drive_erased(&self, sink: &mut dyn RdfEventSink) -> Result<(), EventError>;
 }
 
@@ -332,11 +385,13 @@ pub struct GraphRdfEventSource<'a> {
 
 impl<'a> GraphRdfEventSource<'a> {
     /// Create a source using scope id `0`.
+    #[must_use]
     pub fn new(graph: &'a Graph) -> Self {
         Self::with_scope(graph, 0)
     }
 
     /// Create a source with an explicit scope id.
+    #[must_use]
     pub fn with_scope(graph: &'a Graph, scope: EventScopeId) -> Self {
         Self { graph, scope }
     }
@@ -362,11 +417,13 @@ pub struct ReaderRdfEventSource<'a> {
 
 impl<'a> ReaderRdfEventSource<'a> {
     /// Create a source using the normal `reader::read` options.
+    #[must_use]
     pub fn new(data: &'a [u8], allow_segments: bool, expected_head: Option<&'a [u8]>) -> Self {
         Self::with_options(data, ReadOptions::new(allow_segments, expected_head))
     }
 
     /// Create a source using full reader options.
+    #[must_use]
     pub fn with_options(data: &'a [u8], options: ReadOptions<'a>) -> Self {
         Self {
             data,
@@ -376,6 +433,7 @@ impl<'a> ReaderRdfEventSource<'a> {
     }
 
     /// Set the source scope id.
+    #[must_use]
     pub fn with_scope(mut self, scope: EventScopeId) -> Self {
         self.scope = scope;
         self
@@ -395,6 +453,11 @@ impl RdfEventSource for ReaderRdfEventSource<'_> {
 }
 
 /// Fold GTS bytes and drive RDF events into a sink.
+///
+/// # Errors
+///
+/// Returns [`EventError`] when the sink rejects an event, or when the folded
+/// graph is internally inconsistent or exceeds the triple nesting limit.
 pub fn read_to_rdf_events(
     data: &[u8],
     allow_segments: bool,

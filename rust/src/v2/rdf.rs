@@ -85,16 +85,19 @@ pub struct RdfProjection {
 
 impl RdfProjection {
     /// Returns the terms of the projection, in index order.
+    #[must_use]
     pub fn terms(&self) -> &[Term] {
         &self.terms
     }
 
     /// The set of (subject, predicate, object, optional graph) term indices.
+    #[must_use]
     pub fn quads(&self) -> &BTreeSet<Quad> {
         &self.quads
     }
 
     /// Graph name indices for named graphs that carry no statements.
+    #[must_use]
     pub fn empty_graphs(&self) -> &BTreeSet<usize> {
         &self.empty_graphs
     }
@@ -247,6 +250,12 @@ impl WireRead<'_> {
     /// Supports inline and value-backed literals and all four RDF row types.
     /// A suppression frame or unreadable term causes refusal. The projection
     /// returns RDF only and defaults to 256 MiB of materialized reference text.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProjectionError`] when the file is not second-generation, when
+    /// framing stopped the read, or when a segment, item or frame cannot be
+    /// projected.
     pub fn whole_rdf_projection(&self) -> Result<RdfProjection, ProjectionError> {
         self.whole_rdf_projection_with_value_limit(DEFAULT_VALUE_TEXT_LIMIT)
     }
@@ -254,6 +263,12 @@ impl WireRead<'_> {
     /// Project RDF with a caller-supplied aggregate limit on materialized
     /// reference text. Repeated use of cached lexical or hex text costs only
     /// once per representation. The P4 rebuild budget applies independently.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProjectionError`] under the conditions of
+    /// [`Self::whole_rdf_projection`], and when the materialized reference text
+    /// would exceed `value_text_bytes`.
     pub fn whole_rdf_projection_with_value_limit(
         &self,
         value_text_bytes: u64,

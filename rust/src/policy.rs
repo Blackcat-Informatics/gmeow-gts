@@ -79,6 +79,10 @@ impl TrustPolicy {
     /// Load a policy document from JSON text.
     ///
     /// Available only with `--features policy-config`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PolicyConfigError`] when the text is not a valid policy JSON document.
     #[cfg(feature = "policy-config")]
     pub fn from_json_str(text: &str) -> Result<Self, PolicyConfigError> {
         serde_json::from_str(text).map_err(PolicyConfigError::Json)
@@ -87,6 +91,10 @@ impl TrustPolicy {
     /// Serialize this policy as pretty JSON.
     ///
     /// Available only with `--features policy-config`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PolicyConfigError`] when the policy cannot be serialized as JSON.
     #[cfg(feature = "policy-config")]
     pub fn to_json_string(&self) -> Result<String, PolicyConfigError> {
         serde_json::to_string_pretty(self).map_err(PolicyConfigError::Json)
@@ -95,6 +103,10 @@ impl TrustPolicy {
     /// Load a policy document from YAML text.
     ///
     /// Available only with `--features policy-config-yaml`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PolicyConfigError`] when the text is not a valid policy YAML document.
     #[cfg(feature = "policy-config-yaml")]
     pub fn from_yaml_str(text: &str) -> Result<Self, PolicyConfigError> {
         serde_yaml::from_str(text).map_err(PolicyConfigError::Yaml)
@@ -103,6 +115,10 @@ impl TrustPolicy {
     /// Serialize this policy as YAML.
     ///
     /// Available only with `--features policy-config-yaml`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PolicyConfigError`] when the policy cannot be serialized as YAML.
     #[cfg(feature = "policy-config-yaml")]
     pub fn to_yaml_string(&self) -> Result<String, PolicyConfigError> {
         serde_yaml::to_string(self).map_err(PolicyConfigError::Yaml)
@@ -112,6 +128,11 @@ impl TrustPolicy {
     ///
     /// JSON files require `--features policy-config`; YAML files additionally
     /// require `--features policy-config-yaml`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PolicyConfigError`] when the file cannot be read, its extension is not
+    /// a supported policy format, or its content is not a valid policy document.
     #[cfg(feature = "policy-config")]
     pub fn from_path(path: impl AsRef<Path>) -> Result<Self, PolicyConfigError> {
         let path = path.as_ref();
@@ -122,7 +143,7 @@ impl TrustPolicy {
         match path
             .extension()
             .and_then(|ext| ext.to_str())
-            .map(|ext| ext.to_ascii_lowercase())
+            .map(str::to_ascii_lowercase)
             .as_deref()
         {
             Some("json") => Self::from_json_str(&text),
@@ -141,6 +162,7 @@ impl TrustPolicy {
     }
 
     /// True when `kid` is a deployment-trusted signer.
+    #[must_use]
     pub fn is_trusted(&self, kid: Option<&str>) -> bool {
         kid.is_some_and(|kid| self.trusted_signers.contains(kid))
     }
@@ -152,6 +174,7 @@ impl TrustPolicy {
     /// `pseudonymous_kid_pattern` is customized, dependency-free matching
     /// supports exact strings and anchored literal full-match patterns such as
     /// `^did:example:recipient$`.
+    #[must_use]
     pub fn is_pseudonymous_recipient(&self, kid: &str) -> bool {
         if self.pseudonymous_kid_pattern != DEFAULT_PSEUDONYMOUS_KID_PATTERN {
             return custom_pseudonymous_pattern_matches(&self.pseudonymous_kid_pattern, kid);
@@ -288,6 +311,7 @@ pub enum Severity {
 
 impl Severity {
     /// Stable lowercase rendering used by CLI diagnostics.
+    #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             Severity::Error => "error",
@@ -335,14 +359,12 @@ impl ProfileFinding {
 /// This does not verify COSE signatures. Callers should run the reader and
 /// signature verifier first, then pass the folded graph here to classify valid
 /// signatures against deployment trust anchors.
+#[must_use]
 pub fn signature_trust(graph: &Graph, policy: Option<&TrustPolicy>) -> Vec<SignatureTrust> {
     let default_policy;
-    let policy = match policy {
-        Some(policy) => policy,
-        None => {
-            default_policy = TrustPolicy::default();
-            &default_policy
-        }
+    let policy = if let Some(policy) = policy { policy } else {
+        default_policy = TrustPolicy::default();
+        &default_policy
     };
     graph
         .signatures
@@ -361,18 +383,16 @@ pub fn signature_trust(graph: &Graph, policy: Option<&TrustPolicy>) -> Vec<Signa
 /// Findings are policy-layer diagnostics. They never make a GTS byte stream
 /// unreadable, but profile-aware tools can treat [`Severity::Error`] as a
 /// publication or verification failure.
+#[must_use]
 pub fn evaluate_profile_policy(
     graph: &Graph,
     policy: Option<&TrustPolicy>,
     segment_index: Option<usize>,
 ) -> Vec<ProfileFinding> {
     let default_policy;
-    let policy = match policy {
-        Some(policy) => policy,
-        None => {
-            default_policy = TrustPolicy::default();
-            &default_policy
-        }
+    let policy = if let Some(policy) = policy { policy } else {
+        default_policy = TrustPolicy::default();
+        &default_policy
     };
     let declared: BTreeSet<String> = if graph.segment_profiles.is_empty() {
         ["generic".to_string()].into_iter().collect()
@@ -609,9 +629,9 @@ fn profile_vocab_findings(
     let mut findings = Vec::new();
     let used = used_vocabs(graph);
     for &(profile, vocab) in PROFILE_VOCABS {
-        let declares = declared.contains(profile);
-        let uses = used.contains(vocab);
-        if uses && !declares {
+        let declares_profile = declared.contains(profile);
+        let uses_vocab = used.contains(vocab);
+        if uses_vocab && !declares_profile {
             findings.push(ProfileFinding::new(
                 "ProfileVocabularyUndeclared",
                 Severity::Error,
@@ -620,7 +640,7 @@ fn profile_vocab_findings(
                 segment_index,
             ));
         }
-        if declares && !uses {
+        if declares_profile && !uses_vocab {
             findings.push(ProfileFinding::new(
                 "ProfileVocabularyUnused",
                 Severity::Warning,

@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-#![cfg(feature = "rdf-codecs")]
-
 //! RDF 1.2 text codec tests.
 
 use std::path::PathBuf;
@@ -67,15 +65,14 @@ fn canonicalize_blank_nodes(text: &str) -> Vec<String> {
         .into_iter()
         .map(|line| {
             let mut out = String::new();
-            let mut index = 0usize;
-            while index < line.len() {
-                if line[index..].starts_with("_:") {
-                    let start = index + 2;
-                    let mut end = start;
-                    while end < line.len() && is_blank_label_char(line.as_bytes()[end]) {
-                        end += 1;
-                    }
-                    let label = &line[start..end];
+            let mut rest = line.as_str();
+            while !rest.is_empty() {
+                if let Some(after) = rest.strip_prefix("_:") {
+                    let end = after
+                        .bytes()
+                        .take_while(|&byte| is_blank_label_char(byte))
+                        .count();
+                    let (label, tail) = after.split_at(end);
                     let canonical = labels.entry(label.to_string()).or_insert_with(|| {
                         let label = format!("b{next}");
                         next += 1;
@@ -83,14 +80,12 @@ fn canonicalize_blank_nodes(text: &str) -> Vec<String> {
                     });
                     out.push_str("_:");
                     out.push_str(canonical);
-                    index = end;
+                    rest = tail;
                 } else {
-                    let ch = line[index..]
-                        .chars()
-                        .next()
-                        .expect("index is inside the string");
+                    let mut chars = rest.chars();
+                    let ch = chars.next().expect("rest is non-empty");
                     out.push(ch);
-                    index += ch.len_utf8();
+                    rest = chars.as_str();
                 }
             }
             out
@@ -942,10 +937,9 @@ fn manifest_entry_tokens(manifest_text: &str) -> Vec<String> {
 
 fn angle_value_after<'a>(line: &'a str, marker: &str) -> Option<&'a str> {
     let after_marker = line.split_once(marker)?.1;
-    let start = after_marker.find('<')? + 1;
-    let rest = &after_marker[start..];
-    let end = rest.find('>')?;
-    Some(&rest[..end])
+    let (_, rest) = after_marker.split_once('<')?;
+    let (value, _) = rest.split_once('>')?;
+    Some(value)
 }
 
 fn push_w3c_manifest_case(
@@ -993,13 +987,13 @@ ex:r ex:confidence "0.9" .
 
 #[test]
 fn trig_parser_allows_comment_only_empty_structures_inside_rdf12_triples() {
-    let trig = r#"PREFIX ex: <https://ex/>
+    let trig = r"PREFIX ex: <https://ex/>
 << [
   # empty blank node subject
 ] ex:p (
   # rdf:nil object
 ) >> ex:source ex:doc .
-"#;
+";
 
     let out = nquads_from_gts(&from_trig(trig).expect("TriG imports"));
     assert!(out.contains("<http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies>"));
@@ -1010,20 +1004,20 @@ fn trig_parser_allows_comment_only_empty_structures_inside_rdf12_triples() {
 
 #[test]
 fn trig_parser_rejects_non_empty_structures_inside_rdf12_triples_after_comments() {
-    let blank_node_property_list = r#"PREFIX ex: <https://ex/>
+    let blank_node_property_list = r"PREFIX ex: <https://ex/>
 << [
   # non-empty property list
   ex:p ex:o
 ] ex:p ex:o >> ex:source ex:doc .
-"#;
+";
     assert!(from_trig(blank_node_property_list).is_err());
 
-    let collection = r#"PREFIX ex: <https://ex/>
+    let collection = r"PREFIX ex: <https://ex/>
 << ex:s ex:p (
   # non-empty collection
   ex:o
 ) >> ex:source ex:doc .
-"#;
+";
     assert!(from_trig(collection).is_err());
 }
 
@@ -1139,6 +1133,17 @@ fn gts(args: &[&str]) -> std::process::Output {
         .expect("gts binary runs")
 }
 
+/// Run the `gts` binary and assert that it succeeds, returning its output.
+fn gts_ok(args: &[&str]) -> std::process::Output {
+    let out = gts(args);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    out
+}
+
 #[test]
 fn cli_turtle_and_feature_trig_imports_roundtrip() {
     let tmp = tmpdir();
@@ -1153,23 +1158,13 @@ fn cli_turtle_and_feature_trig_imports_roundtrip() {
          <https://ex/s> <https://ex/q> \"Cat\"@en .\n",
     )
     .unwrap();
-    let out = gts(&[
+    gts_ok(&[
         "from-nt",
         nt_path.to_str().unwrap(),
         "-o",
         nt_gts.to_str().unwrap(),
     ]);
-    assert!(
-        out.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let ntriples = gts(&["to-nt", nt_gts.to_str().unwrap()]);
-    assert!(
-        ntriples.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&ntriples.stderr)
-    );
+    let ntriples = gts_ok(&["to-nt", nt_gts.to_str().unwrap()]);
     let rendered = String::from_utf8(ntriples.stdout).unwrap();
     assert!(rendered.contains("<https://ex/s> <https://ex/p> <https://ex/o> ."));
     assert!(rendered.contains("\"Cat\"@en"));
@@ -1187,23 +1182,13 @@ fn cli_turtle_and_feature_trig_imports_roundtrip() {
 </rdf:RDF>"#,
     )
     .unwrap();
-    let out = gts(&[
+    gts_ok(&[
         "from-rdfxml",
         rdfxml_path.to_str().unwrap(),
         "-o",
         rdfxml_gts.to_str().unwrap(),
     ]);
-    assert!(
-        out.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let rdfxml = gts(&["to-rdfxml", rdfxml_gts.to_str().unwrap()]);
-    assert!(
-        rdfxml.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&rdfxml.stderr)
-    );
+    let rdfxml = gts_ok(&["to-rdfxml", rdfxml_gts.to_str().unwrap()]);
     let rendered = String::from_utf8(rdfxml.stdout).unwrap();
     assert!(rendered.contains("<rdf:RDF"));
     assert!(rendered.contains("https://ex/s"));
@@ -1216,24 +1201,14 @@ fn cli_turtle_and_feature_trig_imports_roundtrip() {
     )
     .unwrap();
 
-    let out = gts(&[
+    gts_ok(&[
         "from-turtle",
         ttl_path.to_str().unwrap(),
         "-o",
         gts_path.to_str().unwrap(),
     ]);
-    assert!(
-        out.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
 
-    let turtle = gts(&["to-turtle", gts_path.to_str().unwrap()]);
-    assert!(
-        turtle.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&turtle.stderr)
-    );
+    let turtle = gts_ok(&["to-turtle", gts_path.to_str().unwrap()]);
     let rendered = String::from_utf8(turtle.stdout).unwrap();
     assert!(rendered.contains("@prefix"));
     assert!(rendered.contains("https://ex/"));
@@ -1245,23 +1220,13 @@ fn cli_turtle_and_feature_trig_imports_roundtrip() {
         "PREFIX ex: <https://ex/>\nex:g { ex:s ex:p ex:o ; ex:q ex:r . }\n",
     )
     .unwrap();
-    let out = gts(&[
+    gts_ok(&[
         "from-trig",
         trig_path.to_str().unwrap(),
         "-o",
         trig_gts.to_str().unwrap(),
     ]);
-    assert!(
-        out.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let folded = gts(&["fold", trig_gts.to_str().unwrap()]);
-    assert!(
-        folded.status.success(),
-        "stderr: {}",
-        String::from_utf8_lossy(&folded.stderr)
-    );
+    let folded = gts_ok(&["fold", trig_gts.to_str().unwrap()]);
     let folded = String::from_utf8(folded.stdout).unwrap();
     assert!(folded.contains("<https://ex/q> <https://ex/r> <https://ex/g>"));
 }

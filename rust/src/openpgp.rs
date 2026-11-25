@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-//! Minimal OpenPGP reader for Ed25519 armored public/secret keys (§9.2).
+//! Minimal `OpenPGP` reader for Ed25519 armored public/secret keys (§9.2).
 //!
 //! This mirrors the Python `gts.openpgp` reference: it parses only the
 //! unencrypted armored public-key certificates and secret-key blocks GPG emits
-//! for Ed25519 (OpenPGP algorithm 22) keys, extracting raw key material and
+//! for Ed25519 (`OpenPGP` algorithm 22) keys, extracting raw key material and
 //! computing the v4 fingerprint so GTS tooling can sign or show the embedded
 //! transport key without shelling out to `gpg`. Everything else (other
 //! algorithms, encrypted secret keys, v5/v6 packets) is rejected with a clear
@@ -14,12 +14,12 @@
 use ed25519_dalek::SigningKey;
 use sha1::{Digest, Sha1};
 
-/// OpenPGP public-key algorithm id for EdDSA (RFC 9580 §9.1).
+/// `OpenPGP` public-key algorithm id for `EdDSA` (RFC 9580 §9.1).
 const ED25519_ALGO: u8 = 22;
 /// The curve OID GPG writes for the Ed25519 signing curve (`1.3.6.1.4.1.11591.15.1`).
 const ED25519_OID: [u8; 9] = [0x2b, 0x06, 0x01, 0x04, 0x01, 0xda, 0x47, 0x0f, 0x01];
 
-/// An error parsing an armored OpenPGP key.
+/// An error parsing an armored `OpenPGP` key.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpenPgpError(pub String);
 
@@ -42,11 +42,11 @@ fn err<T>(msg: &str) -> Result<T> {
 pub struct TransportKey {
     /// The 32-byte raw Ed25519 public key (the `0x40` MPI marker stripped).
     pub raw_public: [u8; 32],
-    /// Uppercase 40-hex-character OpenPGP v4 fingerprint.
+    /// Uppercase 40-hex-character `OpenPGP` v4 fingerprint.
     pub fingerprint: String,
 }
 
-/// Signing material loaded from an unencrypted OpenPGP Ed25519 secret-key block.
+/// Signing material loaded from an unencrypted `OpenPGP` Ed25519 secret-key block.
 #[derive(Clone, Debug)]
 pub struct OpenPgpSigningKey {
     signing_key: SigningKey,
@@ -56,33 +56,38 @@ pub struct OpenPgpSigningKey {
 }
 
 impl OpenPgpSigningKey {
-    /// Ed25519 signing key extracted from the OpenPGP secret-key packet.
+    /// Ed25519 signing key extracted from the `OpenPGP` secret-key packet.
+    #[must_use]
     pub fn signing_key(&self) -> &SigningKey {
         &self.signing_key
     }
 
     /// COSE key id to use for signatures.
+    #[must_use]
     pub fn kid(&self) -> &str {
         &self.kid
     }
 
-    /// OpenPGP v4 fingerprint of the public-key material.
+    /// `OpenPGP` v4 fingerprint of the public-key material.
+    #[must_use]
     pub fn fingerprint(&self) -> &str {
         &self.fingerprint
     }
 
-    /// Raw 32-byte Ed25519 public key derived from the OpenPGP public material.
+    /// Raw 32-byte Ed25519 public key derived from the `OpenPGP` public material.
+    #[must_use]
     pub fn raw_public(&self) -> &[u8; 32] {
         &self.raw_public
     }
 
     /// Consume the wrapper and return the key material used by [`crate::writer::Writer`].
+    #[must_use]
     pub fn into_parts(self) -> (SigningKey, String) {
         (self.signing_key, self.kid)
     }
 }
 
-/// Decode the packet bytes from an ASCII-armored OpenPGP block.
+/// Decode the packet bytes from an ASCII-armored `OpenPGP` block.
 fn strip_armor(text: &str) -> Result<Vec<u8>> {
     let lines: Vec<&str> = text.lines().collect();
     let start = lines.iter().position(|l| l.starts_with("-----BEGIN PGP"));
@@ -151,13 +156,15 @@ fn b64_decode(s: &str) -> Result<Vec<u8>> {
         bits += 6;
         if bits >= 8 {
             bits -= 8;
-            out.push((acc >> bits) as u8);
+            // The accumulator keeps bits of earlier characters above the byte
+            // being emitted, so the low octet of the shifted value is taken.
+            out.push(((acc >> bits) & 0xff).to_le_bytes()[0]);
         }
     }
     Ok(out)
 }
 
-/// Read an OpenPGP multi-precision integer; returns `(big_endian_bytes, next_offset)`.
+/// Read an `OpenPGP` multi-precision integer; returns `(big_endian_bytes, next_offset)`.
 fn read_mpi(data: &[u8], offset: usize) -> Result<(Vec<u8>, usize)> {
     if offset + 2 > data.len() {
         return err("truncated MPI length");
@@ -171,7 +178,7 @@ fn read_mpi(data: &[u8], offset: usize) -> Result<(Vec<u8>, usize)> {
     Ok((data[offset + 2..end].to_vec(), end))
 }
 
-/// Parse one OpenPGP packet; returns `(tag, body, next_offset)`.
+/// Parse one `OpenPGP` packet; returns `(tag, body, next_offset)`.
 /// Supports both old- and new-format headers.
 fn next_packet(data: &[u8], mut offset: usize) -> Result<(u8, Vec<u8>, usize)> {
     if offset >= data.len() {
@@ -377,23 +384,35 @@ fn parse_ed25519_secret_material(body: &[u8]) -> Result<([u8; 32], SigningKey, u
     Ok((raw_public, signing_key, pub_end))
 }
 
-/// Compute the OpenPGP v4 fingerprint of a public-key packet body.
+/// Compute the `OpenPGP` v4 fingerprint of a public-key packet body.
 ///
 /// `SHA-1(0x99 || u16-be(len(body)) || body)`, uppercased. SHA-1 is mandated by
 /// RFC 4880 for v4 fingerprints; it is not used here as a security primitive.
-fn fingerprint(pub_key_body: &[u8]) -> String {
+fn fingerprint(pub_key_body: &[u8]) -> Result<String> {
+    let length = u16::try_from(pub_key_body.len()).map_err(|e| {
+        OpenPgpError(format!(
+            "public-key packet body of {} bytes exceeds the v4 fingerprint length field: {e}",
+            pub_key_body.len()
+        ))
+    })?;
     let mut hasher = Sha1::new();
     hasher.update([0x99]);
-    hasher.update((pub_key_body.len() as u16).to_be_bytes());
+    hasher.update(length.to_be_bytes());
     hasher.update(pub_key_body);
     let digest = hasher.finalize();
-    crate::wire::hex(&digest).to_uppercase()
+    Ok(crate::wire::hex(&digest).to_uppercase())
 }
 
-/// Parse an armored OpenPGP certificate into its raw Ed25519 key + v4 fingerprint.
+/// Parse an armored `OpenPGP` certificate into its raw Ed25519 key + v4 fingerprint.
 ///
 /// Accepts either a public-key certificate (tag 6) or an unencrypted secret-key
 /// block (tag 5); the fingerprint always covers only the public material.
+///
+/// # Errors
+///
+/// Returns [`OpenPgpError`] when the armor or packet framing is malformed, when
+/// the key material is not an Ed25519 key, when the public-key body exceeds the
+/// v4 fingerprint length field, or when no tag 5 or tag 6 packet is present.
 pub fn parse_transport_key(armored: &str) -> Result<TransportKey> {
     let data = strip_armor(armored)?;
     for (tag, body) in iter_packets(&data)? {
@@ -410,17 +429,24 @@ pub fn parse_transport_key(armored: &str) -> Result<TransportKey> {
         };
         return Ok(TransportKey {
             raw_public: raw,
-            fingerprint: fingerprint(&pub_body),
+            fingerprint: fingerprint(&pub_body)?,
         });
     }
     err("no public-key packet found")
 }
 
-/// Parse an armored unencrypted OpenPGP Ed25519 secret key into signing material.
+/// Parse an armored unencrypted `OpenPGP` Ed25519 secret key into signing material.
 ///
-/// When `kid_override` is `None`, the COSE key id defaults to the OpenPGP v4
+/// When `kid_override` is `None`, the COSE key id defaults to the `OpenPGP` v4
 /// fingerprint of the secret key's public material, matching the Python
 /// `Signer.from_gpg_secret_key` behavior.
+///
+/// # Errors
+///
+/// Returns [`OpenPgpError`] when the armor or packet framing is malformed, when
+/// the secret key material is not an unencrypted Ed25519 key, when the public
+/// material exceeds the v4 fingerprint length field, or when no tag 5 packet is
+/// present.
 pub fn parse_secret_signing_key(
     armored: &str,
     kid_override: Option<&str>,
@@ -431,7 +457,7 @@ pub fn parse_secret_signing_key(
             continue;
         }
         let (raw_public, signing_key, pub_end) = parse_ed25519_secret_material(&body)?;
-        let fingerprint = fingerprint(&body[..pub_end]);
+        let fingerprint = fingerprint(&body[..pub_end])?;
         let kid = kid_override.unwrap_or(&fingerprint).to_string();
         return Ok(OpenPgpSigningKey {
             signing_key,
@@ -488,14 +514,14 @@ mod tests {
         let mut out = vec![0xc0 | tag];
         let len = body.len();
         if len < 192 {
-            out.push(len as u8);
+            out.push(u8::try_from(len).expect("one-octet length"));
         } else if len < 8384 {
             let encoded = len - 192;
-            out.push(((encoded >> 8) as u8) + 192);
-            out.push(encoded as u8);
+            out.push(u8::try_from(encoded >> 8).expect("two-octet prefix") + 192);
+            out.push(u8::try_from(encoded & 0xff).expect("masked octet"));
         } else {
             out.push(255);
-            out.extend_from_slice(&(len as u32).to_be_bytes());
+            out.extend_from_slice(&u32::try_from(len).expect("five-octet length").to_be_bytes());
         }
         out.extend_from_slice(body);
         out
@@ -581,8 +607,7 @@ mod tests {
     #[test]
     fn secret_signing_key_rejects_public_armor() {
         let err = parse_secret_signing_key(&fixture("test_key.pub.asc"), None)
-            .err()
-            .expect("public armor is rejected as signing material");
+            .expect_err("public armor is rejected as signing material");
         assert!(err.0.contains("no secret-key packet"));
     }
 
@@ -594,8 +619,7 @@ mod tests {
         });
 
         let err = parse_secret_signing_key(&armor, None)
-            .err()
-            .expect("encrypted secret key is rejected");
+            .expect_err("encrypted secret key is rejected");
         assert!(err.0.contains("encrypted secret keys are not supported"));
     }
 
@@ -614,8 +638,7 @@ mod tests {
         });
 
         let err = parse_secret_signing_key(&armor, None)
-            .err()
-            .expect("bad secret-key checksum is rejected");
+            .expect_err("bad secret-key checksum is rejected");
         assert!(err.0.contains("checksum mismatch"));
     }
 
@@ -626,8 +649,7 @@ mod tests {
         });
 
         let err = parse_secret_signing_key(&armor, None)
-            .err()
-            .expect("unexpected secret-key trailer is rejected");
+            .expect_err("unexpected secret-key trailer is rejected");
         assert!(err.0.contains("unsupported secret-key packet structure"));
     }
 
@@ -639,8 +661,7 @@ mod tests {
         });
 
         let err = parse_secret_signing_key(&armor, None)
-            .err()
-            .expect("mismatched public and secret material is rejected");
+            .expect_err("mismatched public and secret material is rejected");
         assert!(err.0.contains("does not match public key material"));
     }
 
@@ -650,16 +671,14 @@ mod tests {
             body[5] = 1;
         });
         let err = parse_secret_signing_key(&wrong_algorithm, None)
-            .err()
-            .expect("unsupported algorithm is rejected");
+            .expect_err("unsupported algorithm is rejected");
         assert!(err.0.contains("unsupported public-key algorithm 1"));
 
         let v5 = mutated_secret_armor(|body| {
             body[0] = 5;
         });
         let err = parse_secret_signing_key(&v5, None)
-            .err()
-            .expect("unsupported OpenPGP version is rejected");
+            .expect_err("unsupported OpenPGP version is rejected");
         assert!(err.0.contains("only OpenPGP v4 public keys are supported"));
     }
 }

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! v2 header outcomes and identifiers, and refusals for truncated prefixes and unimplemented registries.
+
 use std::{fs, path::PathBuf};
 
 use ciborium::value::Value;

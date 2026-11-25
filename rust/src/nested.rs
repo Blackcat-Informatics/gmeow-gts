@@ -27,6 +27,7 @@ pub struct NestedReadResult {
 
 impl NestedReadResult {
     /// Returns the graph of the nested stream whose blob has `digest`, if one was read.
+    #[must_use]
     pub fn subgraph(&self, digest: &str) -> Option<&Graph> {
         self.subgraphs
             .iter()
@@ -40,6 +41,7 @@ impl NestedReadResult {
 /// Baseline readers treat nested GTS as ordinary blobs. Full Reader callers can
 /// use this helper to expose subgraphs by blob digest while enforcing the
 /// recursion and decoded-size budgets required by §12.1/§18.
+#[must_use]
 pub fn read_nested(data: &[u8], max_depth: usize, max_decoded_bytes: usize) -> NestedReadResult {
     let mut remaining = max_decoded_bytes;
     let mut seen = HashSet::new();

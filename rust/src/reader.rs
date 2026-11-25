@@ -206,6 +206,7 @@ impl fmt::Debug for ReadOptions<'_> {
 
 impl<'a> ReadOptions<'a> {
     /// Build options matching the legacy [`read`] signature.
+    #[must_use]
     pub fn new(allow_segments: bool, expected_head: Option<&'a [u8]>) -> Self {
         Self {
             allow_segments,
@@ -215,6 +216,7 @@ impl<'a> ReadOptions<'a> {
     }
 
     /// Add a content-key provider for decrypting `COSE_Encrypt0` frames.
+    #[must_use]
     pub fn with_content_key(mut self, resolver: &'a ContentKeyResolver<'a>) -> Self {
         self.content_key = Some(resolver);
         self
@@ -434,14 +436,14 @@ impl Folder<'_, '_, '_> {
             // its reifier (`rf == term_id`) so the term can be used directly
             // as an RDF 1.2 triple term while the following `reifies` frame
             // supplies the SPO binding.
-            let sanitize_prior = |r: Option<i128>| match r {
-                Some(d) if (0..tid).contains(&d) => Some(d as usize),
-                _ => None,
+            let sanitize_prior = |r: Option<i128>| {
+                r.filter(|d| (0..tid).contains(d))
+                    .and_then(|d| usize::try_from(d).ok())
             };
             let dt = sanitize_prior(dt_raw);
             let rf = match rf_raw {
-                Some(d) if (0..tid).contains(&d) => Some(d as usize),
-                Some(d) if kind == TermKind::Triple && d == tid => Some(d as usize),
+                Some(d) if (0..tid).contains(&d) => usize::try_from(d).ok(),
+                Some(d) if kind == TermKind::Triple && d == tid => usize::try_from(d).ok(),
                 _ => None,
             };
             // §7.3: a triple term states its OWN (s, p, o) in "tt"; every
@@ -614,36 +616,7 @@ impl Folder<'_, '_, '_> {
         };
 
         if chain.iter().any(|codec| codec.cls == "encrypt") {
-            match self.payload(frame, true) {
-                Ok(Value::Bytes(bytes)) => {
-                    let digest = digest_str(&bytes);
-                    if let Some(meta) = pub_meta {
-                        self.g.set_blob_meta(digest.clone(), meta);
-                    }
-                    self.blob_events.push((
-                        index,
-                        digest.clone(),
-                        self.described.contains(&digest),
-                    ));
-                    if self.materialize {
-                        self.g.set_blob(digest.clone(), bytes);
-                    }
-                    self.emit_blob(&digest);
-                }
-                Ok(_) => {}
-                Err(PayloadError::Unavailable { reason, detail }) => {
-                    self.opaque(frame, "blob", reason);
-                    self.diag(diag_code_for(reason), detail, Some(index));
-                }
-                Err(PayloadError::Damaged(detail)) => {
-                    self.opaque(frame, "blob", "damaged");
-                    self.diag(
-                        "DamagedFrame",
-                        format!("payload decode failed: {detail}"),
-                        Some(index),
-                    );
-                }
-            }
+            self.h_decoded_blob(frame, index, pub_meta);
             return;
         }
 
@@ -682,6 +655,16 @@ impl Folder<'_, '_, '_> {
         let Some(Value::Bytes(_)) = d else {
             return;
         };
+        self.h_decoded_blob(frame, index, pub_meta);
+    }
+
+    /// Decode a blob frame's payload now, recording the blob or an opaque node on failure.
+    fn h_decoded_blob(
+        &mut self,
+        frame: &[(Value, Value)],
+        index: usize,
+        pub_meta: Option<Value>,
+    ) {
         match self.payload(frame, true) {
             Ok(Value::Bytes(bytes)) => {
                 let digest = digest_str(&bytes);
@@ -714,9 +697,7 @@ impl Folder<'_, '_, '_> {
     fn h_meta(&mut self, payload: &Value) {
         if let Value::Map(entries) = payload {
             for (k, v) in entries {
-                let key = as_text(k)
-                    .map(str::to_string)
-                    .unwrap_or_else(|| format!("{k:?}"));
+                let key = as_text(k).map_or_else(|| format!("{k:?}"), str::to_string);
                 self.g.set_meta(key, v.clone());
             }
         }
@@ -821,9 +802,7 @@ impl Folder<'_, '_, '_> {
         }
         if let Some(Value::Map(meta)) = map_get(entries, "meta") {
             for (k, v) in meta {
-                let key = as_text(k)
-                    .map(str::to_string)
-                    .unwrap_or_else(|| format!("{k:?}"));
+                let key = as_text(k).map_or_else(|| format!("{k:?}"), str::to_string);
                 self.g.set_meta(key, v.clone());
             }
         }
@@ -945,11 +924,13 @@ fn catalog_from(header: &[(Value, Value)]) -> HashMap<i128, Codec> {
 /// segment boundary is a FATAL `SegmentBoundary` diagnostic and nothing past
 /// it is folded (§16, vector 17). `expected_head`, when given, is compared
 /// against the LAST segment's head; a mismatch records `TruncatedLog`.
+#[must_use]
 pub fn read(data: &[u8], allow_segments: bool, expected_head: Option<&[u8]>) -> Graph {
     read_with_options(data, ReadOptions::new(allow_segments, expected_head))
 }
 
 /// Read and fold a GTS file using explicit options.
+#[must_use]
 pub fn read_with_options(data: &[u8], options: ReadOptions<'_>) -> Graph {
     let (items, torn) = iter_items(data);
     if items.is_empty() {
@@ -1116,7 +1097,7 @@ impl ActiveStreamingSegment {
         let mut valid_header = false;
         match unwrap_header(raw_header) {
             Ok(entries) => {
-                header = entries.clone();
+                header.clone_from(entries);
                 valid_header = true;
                 let stored_hid: Option<Vec<u8>> = match map_get(&header, "id") {
                     Some(Value::Bytes(b)) => Some(b.clone()),
@@ -1215,17 +1196,7 @@ impl ActiveStreamingSegment {
                 _ => None,
             };
             let computed = content_id(frame);
-            if stored_id.map(|b| &b[..]) != Some(&computed[..]) {
-                folder.diag(
-                    "DamagedFrame",
-                    "frame self-hash mismatch".to_string(),
-                    Some(abs_index),
-                );
-                let ftype = text_or(map_get(frame, "t"), "").to_string();
-                folder.opaque(frame, &ftype, "damaged");
-                self.expected_prev = stored_id.cloned().unwrap_or(computed);
-                self.frame_ids.push(self.expected_prev.clone());
-            } else {
+            if stored_id.map(|b| &b[..]) == Some(&computed[..]) {
                 let prev_ok = matches!(map_get(frame, "prev"),
                     Some(Value::Bytes(b)) if *b == self.expected_prev);
                 if !prev_ok {
@@ -1235,7 +1206,7 @@ impl ActiveStreamingSegment {
                         Some(abs_index),
                     );
                 }
-                self.expected_prev = computed.clone();
+                self.expected_prev.clone_from(&computed);
                 self.frame_ids.push(self.expected_prev.clone());
                 if let Some(sig) = map_get(frame, "sig") {
                     let (status, cose) = match sig {
@@ -1250,6 +1221,16 @@ impl ActiveStreamingSegment {
                     });
                 }
                 folder.fold_frame(frame, abs_index);
+            } else {
+                folder.diag(
+                    "DamagedFrame",
+                    "frame self-hash mismatch".to_string(),
+                    Some(abs_index),
+                );
+                let ftype = text_or(map_get(frame, "t"), "").to_string();
+                folder.opaque(frame, &ftype, "damaged");
+                self.expected_prev = stored_id.cloned().unwrap_or(computed);
+                self.frame_ids.push(self.expected_prev.clone());
             }
         } else {
             folder.diag(
@@ -1364,15 +1345,7 @@ pub fn read_to_sink_from_reader<R: Read>(
                 }
                 segment.finish_into_result(&mut result, sink);
             } else if item_index != 0 {
-                push_result_diagnostic(
-                    &mut result,
-                    sink,
-                    Diagnostic {
-                        code: "DamagedFrame".to_string(),
-                        detail: "first item is not a header".to_string(),
-                        frame_index: Some(0),
-                    },
-                );
+                push_first_item_damaged(&mut result, sink);
                 return result;
             }
             current = Some(ActiveStreamingSegment::new(
@@ -1384,15 +1357,7 @@ pub fn read_to_sink_from_reader<R: Read>(
         } else if let Some(segment) = current.as_mut() {
             segment.process_frame(&item, item_index, sink, options.content_key);
         } else {
-            push_result_diagnostic(
-                &mut result,
-                sink,
-                Diagnostic {
-                    code: "DamagedFrame".to_string(),
-                    detail: "first item is not a header".to_string(),
-                    frame_index: Some(0),
-                },
-            );
+            push_first_item_damaged(&mut result, sink);
             return result;
         }
         item_index += 1;
@@ -1442,6 +1407,19 @@ pub fn read_to_sink_from_reader<R: Read>(
     result
 }
 
+/// Record a `DamagedFrame` diagnostic for a stream whose first item is not a header.
+fn push_first_item_damaged(result: &mut StreamingReadResult, sink: &mut dyn StreamingSink) {
+    push_result_diagnostic(
+        result,
+        sink,
+        Diagnostic {
+            code: "DamagedFrame".to_string(),
+            detail: "first item is not a header".to_string(),
+            frame_index: Some(0),
+        },
+    );
+}
+
 /// The per-segment view of a file — the input to composition tooling (§14.1):
 /// each segment folded independently, plus the file-level torn marker and any
 /// fatal pre-segmentation diagnostic.
@@ -1458,6 +1436,7 @@ pub struct FileSegments {
 
 /// Fold a file segment-by-segment WITHOUT unioning — the composition ledger
 /// view that `gts info`/`gts verify` report per-segment (§14.1).
+#[must_use]
 pub fn read_file_segments(data: &[u8]) -> FileSegments {
     let (items, torn) = iter_items(data);
     if items.is_empty() {
@@ -1510,6 +1489,73 @@ pub fn read_file_segments(data: &[u8]) -> FileSegments {
 /// sequence, so multi-segment diagnostics report ABSOLUTE indices.
 fn read_segment(items: &[(usize, Value)], index_offset: usize) -> Graph {
     read_segment_with_sink(items, index_offset, 0, None, None)
+}
+
+/// Fold one frame of a segment after checking its self-hash, chain link and signature.
+///
+/// `expected_prev` holds the chain id the next frame must link to and `frame_ids` collects
+/// each frame's chain id by position; both are updated for this frame.
+fn fold_segment_frame(
+    folder: &mut Folder<'_, '_, '_>,
+    raw: &Value,
+    abs_index: usize,
+    expected_prev: &mut Vec<u8>,
+    frame_ids: &mut Vec<Vec<u8>>,
+) {
+    let Value::Map(frame) = raw else {
+        folder.diag(
+            "DamagedFrame",
+            "frame is not a map".to_string(),
+            Some(abs_index),
+        );
+        frame_ids.push(Vec::new());
+        return;
+    };
+    let stored_frame_id: Option<&Vec<u8>> = match map_get(frame, "id") {
+        Some(Value::Bytes(b)) => Some(b),
+        _ => None,
+    };
+    let computed = content_id(frame);
+    if stored_frame_id.map(|b| &b[..]) != Some(&computed[..]) {
+        folder.diag(
+            "DamagedFrame",
+            "frame self-hash mismatch".to_string(),
+            Some(abs_index),
+        );
+        let ftype = text_or(map_get(frame, "t"), "").to_string();
+        folder.opaque(frame, &ftype, "damaged");
+        *expected_prev = stored_frame_id.cloned().unwrap_or(computed);
+        frame_ids.push(expected_prev.clone());
+        return;
+    }
+    let prev_ok = matches!(map_get(frame, "prev"),
+        Some(Value::Bytes(b)) if *b == *expected_prev);
+    if !prev_ok {
+        folder.diag(
+            "BrokenChain",
+            "prev does not match".to_string(),
+            Some(abs_index),
+        );
+    }
+    expected_prev.clone_from(&computed);
+    frame_ids.push(expected_prev.clone());
+    if let Some(sig) = map_get(frame, "sig") {
+        // No key provider in this baseline — a well-formed signature
+        // is recorded as "unverified" with its raw COSE bytes retained
+        // (compaction carries it detached, §10.1); a malformed one is
+        // recorded as "invalid", never silently dropped.
+        let (status, cose) = match sig {
+            Value::Bytes(b) => ("unverified", Some(b.clone())),
+            _ => ("invalid", None),
+        };
+        folder.push_signature(Signature {
+            frame_id: computed,
+            kid: None,
+            status: status.to_string(),
+            cose,
+        });
+    }
+    folder.fold_frame(frame, abs_index);
 }
 
 fn read_segment_with_sink(
@@ -1587,60 +1633,13 @@ fn read_segment_with_sink(
         };
         for (index, (_, raw)) in items[1..].iter().enumerate() {
             let abs_index = index + 1 + index_offset;
-            let Value::Map(frame) = raw else {
-                folder.diag(
-                    "DamagedFrame",
-                    "frame is not a map".to_string(),
-                    Some(abs_index),
-                );
-                frame_ids.push(Vec::new());
-                continue;
-            };
-            let stored_id: Option<&Vec<u8>> = match map_get(frame, "id") {
-                Some(Value::Bytes(b)) => Some(b),
-                _ => None,
-            };
-            let computed = content_id(frame);
-            if stored_id.map(|b| &b[..]) != Some(&computed[..]) {
-                folder.diag(
-                    "DamagedFrame",
-                    "frame self-hash mismatch".to_string(),
-                    Some(abs_index),
-                );
-                let ftype = text_or(map_get(frame, "t"), "").to_string();
-                folder.opaque(frame, &ftype, "damaged");
-                expected_prev = stored_id.cloned().unwrap_or(computed);
-                frame_ids.push(expected_prev.clone());
-                continue;
-            }
-            let prev_ok = matches!(map_get(frame, "prev"),
-                Some(Value::Bytes(b)) if *b == expected_prev);
-            if !prev_ok {
-                folder.diag(
-                    "BrokenChain",
-                    "prev does not match".to_string(),
-                    Some(abs_index),
-                );
-            }
-            expected_prev = computed.clone();
-            frame_ids.push(expected_prev.clone());
-            if let Some(sig) = map_get(frame, "sig") {
-                // No key provider in this baseline — a well-formed signature
-                // is recorded as "unverified" with its raw COSE bytes retained
-                // (compaction carries it detached, §10.1); a malformed one is
-                // recorded as "invalid", never silently dropped.
-                let (status, cose) = match sig {
-                    Value::Bytes(b) => ("unverified", Some(b.clone())),
-                    _ => ("invalid", None),
-                };
-                folder.push_signature(Signature {
-                    frame_id: computed,
-                    kid: None,
-                    status: status.to_string(),
-                    cose,
-                });
-            }
-            folder.fold_frame(frame, abs_index);
+            fold_segment_frame(
+                &mut folder,
+                raw,
+                abs_index,
+                &mut expected_prev,
+                &mut frame_ids,
+            );
         }
         (folder.index_records, folder.blob_events, folder.sink)
     };

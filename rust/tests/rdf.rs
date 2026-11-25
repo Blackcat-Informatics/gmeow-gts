@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-#![cfg(feature = "rdf")]
+//! RDF dataset import and export through the native RDF model: round trips, triple terms and strict refusals.
 
 use std::collections::HashSet;
 use std::error::Error;
@@ -19,7 +19,7 @@ const RDFS_LABEL: &str = "http://www.w3.org/2000/01/rdf-schema#label";
 const XSD_INTEGER: &str = "http://www.w3.org/2001/XMLSchema#integer";
 
 fn sorted_dataset(dataset: &Dataset) -> Vec<String> {
-    let mut lines: Vec<String> = dataset.iter().map(|quad| quad.to_string()).collect();
+    let mut lines: Vec<String> = dataset.iter().map(ToString::to_string).collect();
     lines.sort();
     lines
 }
@@ -55,7 +55,7 @@ fn native_rdf_dataset_roundtrips_through_gts() -> Result<(), Box<dyn Error>> {
 
     let bytes = from_rdf_dataset(&dataset)?;
     let folded = read(&bytes, true, None);
-    assert!(folded.diagnostics.is_empty());
+    assert_eq!(folded.diagnostics, Vec::new());
     let back = to_rdf_dataset(&folded)?;
     assert_eq!(sorted_dataset(&back), sorted_dataset(&dataset));
     Ok(())
@@ -291,7 +291,7 @@ fn native_rdf_dataset_roundtrips_directional_literals() -> Result<(), Box<dyn Er
         ..Graph::default()
     };
 
-    let dataset = to_rdf_dataset(&graph).expect("adapter preserves direction");
+    let dataset = to_rdf_dataset(&graph)?;
     let has_directional_literal = dataset.iter().any(|quad| {
         matches!(
             &quad.object,

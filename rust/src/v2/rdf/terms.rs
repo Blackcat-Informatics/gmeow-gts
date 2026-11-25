@@ -14,7 +14,7 @@ use super::{
 };
 use super::{Direction, FrameIssue, Projector, Term};
 use crate::v2::attachments::Reference;
-use crate::v2::{Decoder, HeaderError, MalformedReason::*, FORMED_BYTES_PER_READ};
+use crate::v2::{Decoder, HeaderError, MalformedReason::{InconsistentCounts, OutOfRange, ForbiddenCombination, NotDeterministic, WrongType, WrongLength}, FORMED_BYTES_PER_READ};
 
 fn read_list<'a, T>(
     cursor: &mut Decoder<'a>,
@@ -437,6 +437,20 @@ impl Projector {
         }
         languages.check(&blocks, &cursor)?;
 
+        self.push_blocks(dictionary, segment, &languages, &cursor, rebuild, blocks)?;
+        Ok(())
+    }
+
+    /// Intern the terms of each decoded block, in frame order, into `dictionary`.
+    fn push_blocks(
+        &mut self,
+        dictionary: &mut Dictionary,
+        segment: usize,
+        languages: &Languages,
+        cursor: &Decoder<'_>,
+        rebuild: &mut Rebuild<'_>,
+        blocks: Vec<(u64, Block<'_>)>,
+    ) -> Result<(), FrameIssue> {
         for (kind, block) in blocks {
             match block {
                 Block::Iri(texts) => {
@@ -447,7 +461,7 @@ impl Projector {
                 Block::Literal(texts, forms) => {
                     for (lexical, form) in texts.texts().zip(literal_forms(forms)) {
                         let lexical = lexical?;
-                        let style = self.literal_style(dictionary, &languages, &cursor, form)?;
+                        let style = self.literal_style(dictionary, languages, cursor, form)?;
                         dictionary.push(kind, self.intern(style.term(lexical)), None);
                     }
                 }
@@ -468,9 +482,9 @@ impl Projector {
                         subjects.into_iter().zip(predicates).zip(objects)
                     {
                         let triple = (
-                            self.node(dictionary, subject, &cursor)?,
-                            self.iri(dictionary, predicate, &cursor)?,
-                            resolve(dictionary, object, &cursor)?,
+                            self.node(dictionary, subject, cursor)?,
+                            self.iri(dictionary, predicate, cursor)?,
+                            resolve(dictionary, object, cursor)?,
                         );
                         let components =
                             [subject, predicate, object].map(|id| dictionary.written(id));
@@ -496,7 +510,7 @@ impl Projector {
                     }
                 }
                 Block::Reference(columns) => {
-                    self.add_references(dictionary, &languages, &cursor, rebuild, columns)?;
+                    self.add_references(dictionary, languages, cursor, rebuild, columns)?;
                 }
             }
         }

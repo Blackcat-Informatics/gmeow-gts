@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-use super::{Decoder, HeaderError, MalformedReason::*};
+use super::{Decoder, HeaderError, MalformedReason::{UnregisteredValue, OutOfRange, InconsistentCounts, WrongLength}};
 
 pub(super) const UNIT_CONTEXT: &str = "gts2 unit";
 pub(super) const CHUNK: u64 = 8;

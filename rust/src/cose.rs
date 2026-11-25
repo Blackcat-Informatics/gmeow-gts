@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
-//! COSE_Sign1 (detached payload, EdDSA/Ed25519) over a frame id — GTS-SPEC §9.2.
+//! `COSE_Sign1` (detached payload, EdDSA/Ed25519) over a frame id — GTS-SPEC §9.2.
 //!
 //! Byte-compatible with the Python reference: the detached payload is the frame
-//! `id`, the protected header is `{1: -8}` (EdDSA), and the unprotected header
+//! `id`, the protected header is `{1: -8}` (`EdDSA`), and the unprotected header
 //! carries the `kid` (label 4). Ed25519 is deterministic (RFC 8032), so the same
 //! key + id always yields the same signature — gated by `vectors/cose/*.json`.
-//! Verification dispatches on the `alg` declared in the protected header: EdDSA
+//! Verification dispatches on the `alg` declared in the protected header: `EdDSA`
 //! is checked as Ed25519, any other algorithm is left `unverified` (§9.2).
 
 use aes_gcm::aead::{Aead, KeyInit, Payload};
@@ -25,7 +25,7 @@ const ALG_A256GCM: i64 = 3;
 const TAG_SIGN1: u64 = 18;
 const TAG_ENCRYPT0: u64 = 16;
 
-/// The verification outcome for a detached COSE_Sign1.
+/// The verification outcome for a detached `COSE_Sign1`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SigStatus {
     /// Cryptographically valid under the resolved key.
@@ -54,7 +54,8 @@ fn sig_structure(protected: &[u8], frame_id: &[u8]) -> Vec<u8> {
     ]))
 }
 
-/// Produce a detached COSE_Sign1 over `frame_id` with the given Ed25519 key.
+/// Produce a detached `COSE_Sign1` over `frame_id` with the given Ed25519 key.
+#[must_use]
 pub fn sign_id(frame_id: &[u8], signing_key: &SigningKey, kid: &str) -> Vec<u8> {
     let protected = protected_header();
     let signature: Signature = signing_key.sign(&sig_structure(&protected, frame_id));
@@ -73,17 +74,17 @@ pub fn sign_id(frame_id: &[u8], signing_key: &SigningKey, kid: &str) -> Vec<u8> 
     wire::encode(&cose)
 }
 
-/// The signing algorithm a COSE_Sign1 declares in its protected header.
+/// The signing algorithm a `COSE_Sign1` declares in its protected header.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Algorithm {
-    /// EdDSA (COSE `-8`), verified as Ed25519.
+    /// `EdDSA` (COSE `-8`), verified as Ed25519.
     EdDsa,
     /// Any other declared algorithm: its integer or text identifier. This
     /// engine cannot check it, so the signature stays `unverified` (§9.2).
     Other(String),
 }
 
-/// A structurally well-formed COSE_Sign1.
+/// A structurally well-formed `COSE_Sign1`.
 struct Sign1 {
     kid: String,
     algorithm: Algorithm,
@@ -222,7 +223,7 @@ fn declared_algorithm(protected: &[u8]) -> Option<Algorithm> {
     None
 }
 
-/// Parse a COSE_Sign1, or `None` if malformed: not a four-element array, a
+/// Parse a `COSE_Sign1`, or `None` if malformed: not a four-element array, a
 /// protected header that is not a bstr holding a map declaring an `alg`, a
 /// non-bstr signature, or no `kid` in the unprotected header.
 fn parse(sig: &[u8]) -> Option<Sign1> {
@@ -254,13 +255,15 @@ fn parse(sig: &[u8]) -> Option<Sign1> {
     })
 }
 
-/// The `kid` of a COSE_Sign1 (for key lookup), or `None` if malformed.
+/// The `kid` of a `COSE_Sign1` (for key lookup), or `None` if malformed.
+#[must_use]
 pub fn signature_kid(sig: &[u8]) -> Option<String> {
     parse(sig).map(|parts| parts.kid)
 }
 
-/// The declared algorithm identifier of a well-formed COSE_Sign1 whose
-/// algorithm this engine cannot verify (anything but EdDSA), for diagnostics.
+/// The declared algorithm identifier of a well-formed `COSE_Sign1` whose
+/// algorithm this engine cannot verify (anything but `EdDSA`), for diagnostics.
+#[must_use]
 pub fn unsupported_algorithm(sig: &[u8]) -> Option<String> {
     match parse(sig)?.algorithm {
         Algorithm::EdDsa => None,
@@ -268,7 +271,7 @@ pub fn unsupported_algorithm(sig: &[u8]) -> Option<String> {
     }
 }
 
-/// Verify a parsed COSE_Sign1 over `frame_id`, dispatching on its declared algorithm.
+/// Verify a parsed `COSE_Sign1` over `frame_id`, dispatching on its declared algorithm.
 fn verify_parsed(parts: &Sign1, frame_id: &[u8], public: &VerifyingKey) -> SigStatus {
     if parts.algorithm != Algorithm::EdDsa {
         return SigStatus::Unverified;
@@ -283,11 +286,12 @@ fn verify_parsed(parts: &Sign1, frame_id: &[u8], public: &VerifyingKey) -> SigSt
     }
 }
 
-/// Verify a detached COSE_Sign1 over `frame_id` against `public`.
+/// Verify a detached `COSE_Sign1` over `frame_id` against `public`.
 ///
-/// Dispatches on the algorithm declared in the protected header (§9.2): EdDSA
+/// Dispatches on the algorithm declared in the protected header (§9.2): `EdDSA`
 /// is verified as Ed25519; any other algorithm is [`SigStatus::Unverified`].
-/// A malformed COSE_Sign1 is [`SigStatus::Invalid`].
+/// A malformed `COSE_Sign1` is [`SigStatus::Invalid`].
+#[must_use]
 pub fn verify_sig(sig: &[u8], frame_id: &[u8], public: &VerifyingKey) -> SigStatus {
     match parse(sig) {
         Some(parts) => verify_parsed(&parts, frame_id, public),
@@ -297,9 +301,9 @@ pub fn verify_sig(sig: &[u8], frame_id: &[u8], public: &VerifyingKey) -> SigStat
 
 /// Verify the COSE signatures recorded in a folded graph against keys resolved
 /// by `kid`. Updates each signature's `kid` and `status` in place: `"valid"` /
-/// `"invalid"` when an EdDSA signature's key resolves, `"unverified"` when no
+/// `"invalid"` when an `EdDSA` signature's key resolves, `"unverified"` when no
 /// key resolves or the declared algorithm is not supported, and `"invalid"`
-/// for a malformed COSE_Sign1 (§9.2).
+/// for a malformed `COSE_Sign1` (§9.2).
 pub fn verify_signatures(
     signatures: &mut [model::Signature],
     resolve: impl Fn(&str) -> Option<VerifyingKey>,
@@ -331,7 +335,7 @@ pub fn verify_signatures(
 /// Why a `decrypt0` could not return plaintext.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Encrypt0Error {
-    /// The COSE_Encrypt0 structure could not be parsed.
+    /// The `COSE_Encrypt0` structure could not be parsed.
     Malformed,
     /// No content key was resolved for the recipient `kid`.
     MissingKey,
@@ -369,11 +373,21 @@ fn enc_structure(protected: &[u8]) -> Vec<u8> {
     ]))
 }
 
-/// Seal `plaintext` as a COSE_Encrypt0 with an explicit 12-byte `iv` (§9.3).
+/// Seal `plaintext` as a `COSE_Encrypt0` with an explicit 12-byte `iv` (§9.3).
 ///
 /// Splitting the IV out keeps the transform deterministic so it can be frozen
 /// in `vectors/encrypt0/*.json`; [`encrypt0`] is the production entry point and
 /// always draws a fresh random IV.
+///
+/// # Panics
+///
+/// Panics when AES-GCM rejects `plaintext`, which happens only for inputs longer than
+/// the GCM limit of 2^36 - 32 bytes.
+#[must_use]
+#[expect(
+    clippy::expect_used,
+    reason = "AES-GCM rejects only inputs past its length limit, which is documented under # Panics"
+)]
 pub fn encrypt0_with_iv(plaintext: &[u8], kid: &str, key: &[u8; 32], iv: &[u8; 12]) -> Vec<u8> {
     let protected = encrypt0_protected();
     let aad = enc_structure(&protected);
@@ -405,18 +419,27 @@ pub fn encrypt0_with_iv(plaintext: &[u8], kid: &str, key: &[u8; 32], iv: &[u8; 1
     wire::canonical(&cose)
 }
 
-/// Seal `plaintext` as a COSE_Encrypt0 to the recipient `kid` (§9.3).
+/// Seal `plaintext` as a `COSE_Encrypt0` to the recipient `kid` (§9.3).
 ///
 /// Draws a fresh random 12-byte IV from the OS CSPRNG; only available off wasm
 /// (the deterministic [`encrypt0_with_iv`] / [`decrypt0`] paths cover wasm).
+///
+/// # Panics
+///
+/// Panics when the OS random source fails, or when [`encrypt0_with_iv`] panics.
 #[cfg(not(target_arch = "wasm32"))]
+#[must_use]
+#[expect(
+    clippy::expect_used,
+    reason = "the OS random source is a process invariant, documented under # Panics"
+)]
 pub fn encrypt0(plaintext: &[u8], kid: &str, key: &[u8; 32]) -> Vec<u8> {
     let mut iv = [0u8; 12];
     getrandom::fill(&mut iv).expect("OS CSPRNG is available");
     encrypt0_with_iv(plaintext, kid, key, &iv)
 }
 
-/// The cleartext fields of a parsed COSE_Encrypt0.
+/// The cleartext fields of a parsed `COSE_Encrypt0`.
 struct Encrypt0Parts {
     kid: String,
     protected: Vec<u8>,
@@ -424,7 +447,7 @@ struct Encrypt0Parts {
     ciphertext: Vec<u8>,
 }
 
-/// Parse a COSE_Encrypt0 into its cleartext fields, or `None` if malformed.
+/// Parse a `COSE_Encrypt0` into its cleartext fields, or `None` if malformed.
 fn parse_encrypt0(blob: &[u8]) -> Option<Encrypt0Parts> {
     let value: Value = ciborium::de::from_reader(blob).ok()?;
     let body = match value {
@@ -458,13 +481,24 @@ fn parse_encrypt0(blob: &[u8]) -> Option<Encrypt0Parts> {
     })
 }
 
-/// The recipient `kid` of a COSE_Encrypt0 (for key lookup), or `None`.
+/// The recipient `kid` of a `COSE_Encrypt0` (for key lookup), or `None`.
+#[must_use]
 pub fn recipient_kid(blob: &[u8]) -> Option<String> {
     parse_encrypt0(blob).map(|p| p.kid)
 }
 
-/// Open a COSE_Encrypt0 using a content key resolved by `kid` (§9.3).
-#[expect(clippy::map_err_ignore, reason = "the conversion error carries no detail, so the typed error replaces it")]
+/// Open a `COSE_Encrypt0` using a content key resolved by `kid` (§9.3).
+///
+/// # Errors
+///
+/// Returns [`Encrypt0Error::Malformed`] when `blob` is not a `COSE_Encrypt0` with a
+/// 12-byte IV, [`Encrypt0Error::MissingKey`] when `resolve` returns no key for the
+/// recipient `kid`, and [`Encrypt0Error::AuthFailed`] when the AES-GCM tag does not
+/// verify.
+#[expect(
+    clippy::map_err_ignore,
+    reason = "the conversion error carries no detail, so the typed error replaces it"
+)]
 pub fn decrypt0(
     blob: &[u8],
     resolve: impl Fn(&str) -> Option<[u8; 32]>,

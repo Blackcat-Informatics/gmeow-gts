@@ -21,6 +21,16 @@ pub const VERSION: u8 = 1;
 
 /// Encode a CBOR value as-is (definite lengths, shortest-form integers;
 /// map entries in their current order).
+///
+/// # Panics
+///
+/// Panics if the CBOR serializer reports an error. Writing to a `Vec<u8>`
+/// does not fail, so the serializer error is a violated invariant.
+#[must_use]
+#[expect(
+    clippy::expect_used,
+    reason = "writing a CBOR value to a Vec<u8> cannot fail; the expect records that invariant"
+)]
 pub fn encode(v: &Value) -> Vec<u8> {
     let mut out = Vec::new();
     ciborium::ser::into_writer(v, &mut out).expect("CBOR encoding to a Vec cannot fail");
@@ -49,26 +59,37 @@ pub fn deterministic(v: &Value) -> Value {
 }
 
 /// Encode an object as deterministic CBOR (RFC 8949 §4.2).
+#[must_use]
 pub fn canonical(v: &Value) -> Vec<u8> {
     encode(&deterministic(v))
 }
 
 /// The 32-byte BLAKE3-256 digest of `data`.
+#[must_use]
 pub fn blake3_256(data: &[u8]) -> Vec<u8> {
     blake3::hash(data).as_bytes().to_vec()
 }
 
 /// Lowercase hex of a byte string.
+#[must_use]
 pub fn hex(data: &[u8]) -> String {
-    data.iter().map(|b| format!("{b:02x}")).collect()
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(data.len() * 2);
+    for &byte in data {
+        out.push(char::from(DIGITS[usize::from(byte >> 4)]));
+        out.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
+    }
+    out
 }
 
 /// A `blake3:<hex>` content digest for inline blob addressing (§12).
+#[must_use]
 pub fn digest_str(data: &[u8]) -> String {
     format!("blake3:{}", hex(&blake3_256(data)))
 }
 
 /// Get a map entry by text key (first match, like Python `dict.get`).
+#[must_use]
 pub fn map_get<'a>(entries: &'a [(Value, Value)], key: &str) -> Option<&'a Value> {
     entries
         .iter()
@@ -86,11 +107,13 @@ fn hash_excluding(entries: &[(Value, Value)], excluded: &[&str]) -> Vec<u8> {
 }
 
 /// Compute a frame's `"id"` over its content (excluding `"id"`/`"sig"`).
+#[must_use]
 pub fn content_id(frame: &[(Value, Value)]) -> Vec<u8> {
     hash_excluding(frame, &["id", "sig"])
 }
 
 /// Compute the Header's genesis `"id"` (excluding only `"id"`) — §5.
+#[must_use]
 pub fn header_id(header: &[(Value, Value)]) -> Vec<u8> {
     hash_excluding(header, &["id"])
 }
@@ -117,6 +140,7 @@ impl std::io::Read for Counting<'_> {
 /// returned regardless, so a reader can fold the intact prefix. The second
 /// element is `None` for a clean end, or the byte offset of the incomplete
 /// trailing item.
+#[must_use]
 pub fn iter_items(data: &[u8]) -> (Vec<(usize, Value)>, Option<usize>) {
     let mut reader = Counting { data, pos: 0 };
     let mut out = Vec::new();
@@ -126,19 +150,21 @@ pub fn iter_items(data: &[u8]) -> (Vec<(usize, Value)>, Option<usize>) {
         if start == data.len() {
             break;
         }
-        match ciborium::de::from_reader::<Value, _>(&mut reader) {
-            Ok(item) => out.push((start, item)),
-            Err(_) => {
-                // partial (EOF) or corrupt trailing item
-                torn = Some(start);
-                break;
-            }
+        if let Ok(item) = ciborium::de::from_reader::<Value, _>(&mut reader) { out.push((start, item)) } else {
+            // partial (EOF) or corrupt trailing item
+            torn = Some(start);
+            break;
         }
     }
     (out, torn)
 }
 
 /// Return the Header map, unwrapping the optional self-describe tag (§3).
+///
+/// # Errors
+///
+/// Returns an error message when the item carries a CBOR tag other than the
+/// self-describe tag, or when the (untagged) item is not a CBOR map.
 pub fn unwrap_header(item: &Value) -> Result<&Vec<(Value, Value)>, String> {
     let inner = match item {
         Value::Tag(tag, inner) => {

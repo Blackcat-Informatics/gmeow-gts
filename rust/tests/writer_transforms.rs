@@ -188,7 +188,7 @@ fn encrypted_writer_frame_is_opaque_without_key_and_clear_with_key() {
         ReadOptions::new(false, None).with_content_key(&resolver),
     );
     assert!(clear.diagnostics.is_empty(), "{:?}", clear.diagnostics);
-    assert!(clear.opaque.is_empty());
+    assert_eq!(clear.opaque, [] as [gmeow_gts::model::OpaqueNode; 0]);
     assert_eq!(meta_bool(&clear, "private"), Some(true));
 }
 

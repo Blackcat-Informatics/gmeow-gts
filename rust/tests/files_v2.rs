@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! The v2 `files` profile: file entries survive a round trip, and v1 archives read as default file entries.
+
 use std::path::PathBuf;
 use std::process::{Command, Output};
 

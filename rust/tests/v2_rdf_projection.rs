@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! Projection of v2 content into RDF rows: nested objects, deduplication, inline typed literals and value lookup order.
+
 use std::{path::Path, process::Command};
 
 use ciborium::{cbor, Value};
@@ -439,9 +441,9 @@ fn fold_cli_exports_v2_and_continues_reading_v1() {
         "{}",
         String::from_utf8_lossy(&legacy.stderr)
     );
-    assert!(!legacy.stdout.is_empty());
+    assert_ne!(legacy.stdout, [] as [u8; 0]);
 
     let withheld = fold("v2/P3/suppress-unmatched-term.bin");
     assert!(!withheld.status.success());
-    assert!(withheld.stdout.is_empty());
+    assert_eq!(withheld.stdout, [] as [u8; 0]);
 }

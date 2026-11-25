@@ -36,6 +36,7 @@ impl RdfAdapterError {
     }
 
     /// Human-readable error detail.
+    #[must_use]
     pub fn detail(&self) -> &str {
         &self.detail
     }
@@ -60,6 +61,7 @@ pub enum BaseDirection {
 
 impl BaseDirection {
     /// Return the RDF 1.2 lexical direction string.
+    #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Ltr => "ltr",
@@ -86,6 +88,11 @@ impl Iri {
     /// This validates the minimal syntactic contract GTS needs for generated
     /// and imported rows: the value must be non-empty, contain a scheme
     /// separator, and avoid ASCII whitespace/control characters.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RdfAdapterError`] when the value is empty, has no `:`, or contains
+    /// an ASCII control or whitespace character, `<` or `>`.
     pub fn new(value: impl Into<String>) -> Result<Self, RdfAdapterError> {
         let value = value.into();
         if value.is_empty()
@@ -100,6 +107,7 @@ impl Iri {
     }
 
     /// Borrow the IRI string.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.value
     }
@@ -119,6 +127,10 @@ pub struct BlankNode {
 
 impl BlankNode {
     /// Create a blank node label.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RdfAdapterError`] when the label is not a valid blank-node identifier.
     pub fn new(label: impl Into<String>) -> Result<Self, RdfAdapterError> {
         let label = label.into();
         if !is_valid_blank_node_label(&label) {
@@ -130,6 +142,7 @@ impl BlankNode {
     }
 
     /// Borrow the blank node label.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.label
     }
@@ -185,6 +198,7 @@ pub enum GraphName {
 
 impl GraphName {
     /// Whether this graph name is the default graph.
+    #[must_use]
     pub fn is_default_graph(&self) -> bool {
         matches!(self, Self::DefaultGraph)
     }
@@ -247,6 +261,10 @@ impl Literal {
     }
 
     /// Create a language-tagged literal.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RdfAdapterError`] when `language` is not a valid language tag.
     pub fn new_language_tagged_literal(
         lexical: impl Into<String>,
         language: impl Into<String>,
@@ -262,6 +280,10 @@ impl Literal {
     }
 
     /// Create a directional language-tagged literal.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RdfAdapterError`] when `language` is not a valid language tag.
     pub fn new_directional_language_tagged_literal(
         lexical: impl Into<String>,
         language: impl Into<String>,
@@ -421,6 +443,7 @@ pub struct Dataset {
 
 impl Dataset {
     /// Create an empty dataset.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -436,11 +459,13 @@ impl Dataset {
     }
 
     /// Number of unique quads.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.quads.len()
     }
 
     /// Whether the dataset is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.quads.is_empty()
     }
@@ -467,12 +492,22 @@ pub struct ExportOptions {
 }
 
 /// Convert a folded GTS graph into a native RDF dataset in strict mode.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] when a term is malformed, references a missing term,
+/// or is an RDF 1.2 quoted triple in a position the dataset cannot represent.
 pub fn to_rdf_dataset(graph: &Graph) -> Result<Dataset, RdfAdapterError> {
     to_rdf_dataset_with_options(graph, ExportOptions::default())
 }
 
 /// Convert a folded GTS graph into a native RDF dataset, dropping only RDF 1.2
 /// quoted-triple rows that this dataset surface cannot represent.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] when a term is malformed or references a missing term.
+/// Quoted-triple rows that the dataset cannot represent are dropped, not reported.
 pub fn to_rdf_dataset_lossy(graph: &Graph) -> Result<Dataset, RdfAdapterError> {
     to_rdf_dataset_with_options(
         graph,
@@ -483,6 +518,10 @@ pub fn to_rdf_dataset_lossy(graph: &Graph) -> Result<Dataset, RdfAdapterError> {
 }
 
 /// Convert a folded GTS graph into a native RDF dataset.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] under the same conditions as [`to_rdf_quads_with_options`].
 pub fn to_rdf_dataset_with_options(
     graph: &Graph,
     options: ExportOptions,
@@ -495,11 +534,22 @@ pub fn to_rdf_dataset_with_options(
 }
 
 /// Convert a folded GTS graph into native RDF quad rows in strict mode.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] when a term is malformed, references a missing term,
+/// or is an RDF 1.2 quoted triple in a position the dataset cannot represent.
 pub fn to_rdf_quads(graph: &Graph) -> Result<Vec<RdfQuad>, RdfAdapterError> {
     to_rdf_quads_with_options(graph, ExportOptions::default())
 }
 
 /// Convert a folded GTS graph into native RDF quad rows with export options.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] when a term is malformed or references a missing term.
+/// An RDF 1.2 quoted triple in a position the dataset cannot represent is an error
+/// unless `options.allow_rdf12_lossy` is set, in which case its row is dropped.
 pub fn to_rdf_quads_with_options(
     graph: &Graph,
     options: ExportOptions,
@@ -552,16 +602,30 @@ pub fn to_rdf_quads_with_options(
 }
 
 /// Alias for callers that do not need the concrete adapter name in their API.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] under the same conditions as [`to_rdf_dataset`].
 pub fn to_dataset(graph: &Graph) -> Result<Dataset, RdfAdapterError> {
     to_rdf_dataset(graph)
 }
 
 /// Convert a native RDF dataset into a GTS file using the `dist` profile.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] under the same conditions as
+/// [`from_rdf_dataset_with_profile`].
 pub fn from_rdf_dataset(dataset: &Dataset) -> Result<Vec<u8>, RdfAdapterError> {
     from_rdf_dataset_with_profile(dataset, "dist")
 }
 
 /// Convert a native RDF dataset into a GTS file using the requested profile.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] under the same conditions as
+/// [`writer_from_rdf_dataset_with_profile`].
 pub fn from_rdf_dataset_with_profile(
     dataset: &Dataset,
     profile: &str,
@@ -570,11 +634,22 @@ pub fn from_rdf_dataset_with_profile(
 }
 
 /// Build a [`Writer`] from a native RDF dataset using the `dist` profile.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] under the same conditions as
+/// [`writer_from_rdf_dataset_with_profile`].
 pub fn writer_from_rdf_dataset(dataset: &Dataset) -> Result<Writer, RdfAdapterError> {
     writer_from_rdf_dataset_with_profile(dataset, "dist")
 }
 
 /// Build a [`Writer`] from a native RDF dataset using the requested profile.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] when a quoted triple cannot be interned into the GTS
+/// term table. Interning accepts every triple a [`Dataset`] holds, so the current
+/// conversion does not produce this error.
 pub fn writer_from_rdf_dataset_with_profile(
     dataset: &Dataset,
     profile: &str,
@@ -630,6 +705,10 @@ pub fn writer_from_rdf_dataset_with_profile(
 }
 
 /// Alias for callers that do not need the concrete adapter name in their API.
+///
+/// # Errors
+///
+/// Returns [`RdfAdapterError`] under the same conditions as [`from_rdf_dataset`].
 pub fn from_dataset(dataset: &Dataset) -> Result<Vec<u8>, RdfAdapterError> {
     from_rdf_dataset(dataset)
 }
@@ -683,7 +762,7 @@ fn named_or_blank_term(
     match term.kind {
         TermKind::Iri => Ok(Some(Iri::new(term_value(term, role, id)?)?.into())),
         TermKind::Bnode => {
-            let label = bnode_labels.label(term, id);
+            let label = bnode_labels.label(term, id)?;
             Ok(Some(BlankNode::new(label.as_ref())?.into()))
         }
         TermKind::Triple if options.allow_rdf12_lossy => Ok(None),
@@ -726,7 +805,7 @@ fn rdf_term(
     match term.kind {
         TermKind::Iri => Ok(Some(Iri::new(term_value(term, role, id)?)?.into())),
         TermKind::Bnode => {
-            let label = bnode_labels.label(term, id);
+            let label = bnode_labels.label(term, id)?;
             Ok(Some(BlankNode::new(label.as_ref())?.into()))
         }
         TermKind::Literal => Ok(Some(literal_term(graph, term, id, role)?.into())),
@@ -759,7 +838,7 @@ fn graph_name_term(
     match term.kind {
         TermKind::Iri => Ok(Some(Iri::new(term_value(term, "graph name", id)?)?.into())),
         TermKind::Bnode => {
-            let label = bnode_labels.label(term, id);
+            let label = bnode_labels.label(term, id)?;
             Ok(Some(BlankNode::new(label.as_ref())?.into()))
         }
         TermKind::Triple if options.allow_rdf12_lossy => Ok(None),
@@ -909,14 +988,20 @@ impl BnodeLabels {
         Self { generated }
     }
 
-    fn label<'a>(&'a self, term: &'a GtsTerm, id: usize) -> Cow<'a, str> {
+    fn label<'a>(
+        &'a self,
+        term: &'a GtsTerm,
+        id: usize,
+    ) -> Result<Cow<'a, str>, RdfAdapterError> {
         match &term.value {
-            Some(value) => Cow::Borrowed(value),
-            None => Cow::Borrowed(
-                self.generated
-                    .get(&id)
-                    .expect("missing blank-node labels are allocated for every graph term"),
-            ),
+            Some(value) => Ok(Cow::Borrowed(value)),
+            None => self
+                .generated
+                .get(&id)
+                .map(|label| Cow::Borrowed(label.as_str()))
+                .ok_or_else(|| {
+                    RdfAdapterError::new(format!("blank node term id {id} has no allocated label"))
+                }),
         }
     }
 }
@@ -993,8 +1078,7 @@ impl Interner {
             let datatype = literal
                 .datatype
                 .as_ref()
-                .map(|iri| iri.as_str())
-                .unwrap_or(XSD_STRING);
+                .map_or(XSD_STRING, Iri::as_str);
             if datatype == XSD_STRING || datatype == RDF_LANG_STRING {
                 None
             } else {

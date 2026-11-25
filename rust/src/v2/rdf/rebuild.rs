@@ -61,14 +61,14 @@ impl<'a> Rebuild<'a> {
                 self.unit(member);
             }
             for member in members.into_iter().filter(|member| member.kind > BLOB) {
-                self.declare(member);
+                self.declare(&member);
             }
         } else {
             let record = decode_attachment(kind, content, payload)?;
             if record.kind <= BLOB {
                 self.unit(&record);
             } else {
-                self.declare(record);
+                self.declare(&record);
             }
         }
         Ok(())
@@ -91,14 +91,14 @@ impl<'a> Rebuild<'a> {
         }
     }
 
-    fn declare(&mut self, declaration: Attachment<'a>) {
+    fn declare(&mut self, declaration: &Attachment<'a>) {
         let admitted = self.admit(declaration.reference.length);
         // Recipes participate in the budget. RDF projection exposes no blobs.
         if declaration.kind != VALUE {
             return;
         }
         let result = if admitted {
-            self.verify_value(&declaration)
+            self.verify_value(declaration)
         } else {
             Err(ValueIssue::RebuiltCapacity)
         };
@@ -182,7 +182,8 @@ impl<'a> Rebuild<'a> {
             .checked_mul(if octets { 2 } else { 1 })
             .filter(|size| *size <= self.materialized_remaining)
             .and_then(|size| isize::try_from(size).ok())
-            .ok_or(ValueIssue::MaterializedCapacity)? as usize;
+            .and_then(|size| usize::try_from(size).ok())
+            .ok_or(ValueIssue::MaterializedCapacity)?;
         let lexical: Arc<str> = if octets {
             let mut text = String::with_capacity(size);
             for part in &value.parts {

@@ -61,7 +61,13 @@ fn literal(out: &mut String, lexical: &str) {
 
 impl RdfProjection {
     /// Encode the projected quads as N-Quads. Empty named graphs are available
-    /// through [Self::empty_graphs].
+    /// through [`Self::empty_graphs`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NQuadsExportError`] when a quad refers to a term that cannot be
+    /// written as N-Quads: a malformed IRI or language tag, or a language-tagged
+    /// literal that also has a datatype.
     pub fn to_nquads(&self) -> Result<String, NQuadsExportError> {
         let mut out = String::new();
         for &(subject, predicate, object, graph) in &self.quads {

@@ -29,6 +29,16 @@ fn command_available(program: &str) -> bool {
         .is_ok_and(|out| out.status.success())
 }
 
+/// Report that a duckdb-dependent test is skipped because the `duckdb` binary is absent.
+#[cfg(feature = "duckdb")]
+#[expect(
+    clippy::print_stderr,
+    reason = "the skip notice is the only signal that a duckdb-dependent test did not run"
+)]
+fn skip_without_duckdb() {
+    eprintln!("skipping: duckdb is not installed");
+}
+
 fn gts(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_gts"))
         .args(args)
@@ -103,6 +113,7 @@ fn duckdb_query(db: &str, sql: &str) -> String {
 }
 
 #[test]
+#[expect(clippy::print_stderr, reason = "the test reports why it did not run")]
 fn to_sqlite_exports_schema_and_rows() {
     if !command_available("sqlite3") {
         eprintln!("skipping: sqlite3 is not installed");
@@ -179,6 +190,7 @@ fn to_sqlite_preserves_existing_output_when_tool_fails() {
 }
 
 #[test]
+#[expect(clippy::print_stderr, reason = "the test reports why it did not run")]
 fn to_sqlite_preserves_existing_output_when_blob_decode_fails() {
     if !command_available("sqlite3") {
         eprintln!("skipping: sqlite3 is not installed");
@@ -232,7 +244,7 @@ fn duckdb_commands_require_feature() {
 #[test]
 fn to_duckdb_exports_schema_and_rows() {
     if !command_available("duckdb") {
-        eprintln!("skipping: duckdb is not installed");
+        skip_without_duckdb();
         return;
     }
     let tmp = tmpdir();
@@ -268,7 +280,7 @@ fn to_duckdb_exports_schema_and_rows() {
 #[test]
 fn to_parquet_writes_non_empty_tables() {
     if !command_available("duckdb") {
-        eprintln!("skipping: duckdb is not installed");
+        skip_without_duckdb();
         return;
     }
     let tmp = tmpdir();
@@ -311,7 +323,7 @@ fn to_parquet_writes_non_empty_tables() {
 #[test]
 fn to_parquet_cleans_staging_dir_when_replace_fails() {
     if !command_available("duckdb") {
-        eprintln!("skipping: duckdb is not installed");
+        skip_without_duckdb();
         return;
     }
     let tmp = tmpdir();

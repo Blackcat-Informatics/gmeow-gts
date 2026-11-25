@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! Merkle mountain range proofs: fixture verification, detached proofs and reader diagnostics for bad indexes.
+
 use ciborium::value::Value;
 
 use gmeow_gts::mmr::{prove, verify_proof, Proof};

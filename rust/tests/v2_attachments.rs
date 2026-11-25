@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! Attachments in the v2 writer: blob members, shared units, pack boundaries and refusals that leave the committed prefix unchanged.
+
 use std::{fs, path::Path};
 
 use gmeow_gts::v2::{

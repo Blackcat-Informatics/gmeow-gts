@@ -52,6 +52,49 @@ tar = ["dep:tar"]
 name = "gts"
 path = "src/bin/gts.rs"
 
+# Feature-gated test targets: Cargo skips them unless the feature is enabled, so
+# a default build never compiles an empty crate for them.
+
+[[test]]
+name = "native_store"
+path = "tests/native_store.rs"
+required-features = ["native-store"]
+
+[[test]]
+name = "okf_corpus"
+path = "tests/okf_corpus.rs"
+required-features = ["okf"]
+
+[[test]]
+name = "okf"
+path = "tests/okf.rs"
+required-features = ["okf"]
+
+[[test]]
+name = "rdf_codecs"
+path = "tests/rdf_codecs.rs"
+required-features = ["rdf-codecs"]
+
+[[test]]
+name = "rdf"
+path = "tests/rdf.rs"
+required-features = ["rdf"]
+
+[[test]]
+name = "tar_corpus"
+path = "tests/tar_corpus.rs"
+required-features = ["tar"]
+
+[[test]]
+name = "tar"
+path = "tests/tar.rs"
+required-features = ["tar"]
+
+[[test]]
+name = "yamlld"
+path = "tests/yamlld.rs"
+required-features = ["yaml-ld"]
+
 [dependencies]
 # emojihash + randomart visual fingerprints, published from
 # Blackcat-Informatics/visual-hashing.

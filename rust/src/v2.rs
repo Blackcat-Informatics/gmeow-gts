@@ -411,6 +411,11 @@ impl<'a> Decoder<'a> {
 ///
 /// The first malformed field determines the error. A readable header's identifier
 /// uses the original bytes. A higher registry with an unknown hash retains its fields.
+///
+/// # Errors
+///
+/// Returns [`HeaderError`] at the first malformed field, carrying its
+/// [`MalformedReason`] and absolute input offset.
 pub fn decode_header(data: &[u8], offset: usize) -> Result<DecodedHeader<'_>, HeaderError> {
     let mut decoder = Decoder::new(data, offset);
     decoder.record(7)?;
@@ -457,6 +462,12 @@ fn option(value: Option<Value>) -> Value {
 ///
 /// Supply the lineage of the preceding segment and any canonical claim from
 /// the writer's segment construction.
+///
+/// # Errors
+///
+/// Returns [`HeaderWriteError`] when the registry version, hash algorithm,
+/// profile or canonical form is not supported, or when the lineage is not a
+/// 32-byte previous head with a non-zero ordinal.
 pub fn encode_header(header: Header<'_>) -> Result<Vec<u8>, HeaderWriteError> {
     if header.registry_version != REGISTRY_VERSION {
         return Err(HeaderWriteError::RegistryVersion(header.registry_version));

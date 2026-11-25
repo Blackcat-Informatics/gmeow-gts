@@ -67,6 +67,10 @@ pub struct SegmentWriter {
 
 impl SegmentWriter {
     /// Encode a header and use its identifier as the initial head and leaf.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`HeaderWriteError`] when `header` cannot be encoded.
     pub fn new(header: Header<'_>) -> Result<Self, HeaderWriteError> {
         let bytes = encode_header(header)?;
         let head = blake3::derive_key(HEADER_CONTEXT, &bytes);
@@ -80,6 +84,7 @@ impl SegmentWriter {
     }
 
     /// Return the head after the ordinary frames written so far.
+    #[must_use]
     pub fn head(&self) -> &Digest {
         &self.head
     }
@@ -87,6 +92,12 @@ impl SegmentWriter {
     /// Append one frame and return its identifier.
     ///
     /// Use [`Self::commit`] to append a commit computed from the prefix.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SegmentWriteError::CommitRequired`] when `frame_type` is the
+    /// commit type, and another [`SegmentWriteError`] when the frame cannot be
+    /// appended.
     pub fn append(
         &mut self,
         frame_type: u64,
@@ -100,6 +111,10 @@ impl SegmentWriter {
     }
 
     /// Append the commit over the opener and the preceding ordinary frames.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SegmentWriteError`] when the commit frame cannot be appended.
     pub fn commit(&mut self) -> Result<Digest, SegmentWriteError> {
         let content = wire::encode(&Value::Array(vec![
             Value::from(self.range.ordinary_count()),
@@ -109,11 +124,13 @@ impl SegmentWriter {
     }
 
     /// Return the encoded segment in item order.
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes
     }
 
     /// Take ownership of the encoded segment.
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> {
         self.bytes
     }

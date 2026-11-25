@@ -7,6 +7,8 @@
 //! tiny schema-local parser so the crate does not promote `serde_json` from a
 //! dev-dependency into the default runtime graph.
 
+use std::fmt::Write as _;
+
 use ciborium::value::Value;
 
 use crate::wire::{
@@ -136,8 +138,9 @@ fn build_nodes(frame_ids: &[Vec<u8>]) -> Vec<Node> {
             }
             // MMR append invariant: only the newest adjacent equal-height
             // peaks can merge, preserving append-order coverage ranges.
-            let right = peaks.pop().expect("right peak exists");
-            let left = peaks.pop().expect("left peak exists");
+            let (Some(right), Some(left)) = (peaks.pop(), peaks.pop()) else {
+                break;
+            };
             let height = left.height + 1;
             let hash = parent_hash(height, &left.hash, &right.hash);
             peaks.push(Node {
@@ -167,6 +170,7 @@ fn peak_list(nodes: &[Node]) -> Vec<MmrPeak> {
 ///
 /// The root commits to both the frame count and the ordered peak list, so
 /// adding a frame changes the root even when an earlier proof path is reused.
+#[must_use]
 pub fn root(frame_ids: &[Vec<u8>]) -> Vec<u8> {
     let nodes = build_nodes(frame_ids);
     root_hash(frame_ids.len(), &peak_list(&nodes))
@@ -202,6 +206,7 @@ fn append_path(node: &Node, target: usize, path: &mut Vec<ProofStep>) -> bool {
 /// Create a detached inclusion proof for `target_index`.
 ///
 /// Returns `None` when the target is outside the covered frame id list.
+#[must_use]
 pub fn prove(frame_ids: &[Vec<u8>], target_index: usize) -> Option<Proof> {
     if target_index >= frame_ids.len() {
         return None;
@@ -274,6 +279,14 @@ fn peak_index_for_leaf(
 ///
 /// Verification checks shape first, then recomputes the leaf-to-peak path and
 /// final root using the same domain-separated preimages as [`root`].
+///
+/// # Errors
+///
+/// Returns `Err` when `frame_id` or `root` is not 32 bytes, when `leaf_index`
+/// lies outside `count`, when `peak_index` is out of range of `peaks`, when the
+/// peak heights do not match `count`, when the leaf belongs to a different peak,
+/// when a peak or path hash is not 32 bytes, when the path heights are not
+/// consecutive, or when the path or peaks do not reconstruct the declared root.
 pub fn verify_proof(proof: &Proof) -> Result<(), String> {
     if proof.frame_id.len() != 32 {
         return Err("frame_id must be 32 bytes".to_string());
@@ -354,7 +367,9 @@ fn json_escape(text: &str) -> String {
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
-            c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c if c.is_control() => {
+                let _ = write!(out, "\\u{:04x}", c as u32);
+            }
             c => out.push(c),
         }
     }
@@ -363,38 +378,32 @@ fn json_escape(text: &str) -> String {
 
 impl Proof {
     /// Render the stable detached proof JSON form.
+    #[must_use]
     pub fn to_json(&self) -> String {
         let mut out = String::new();
         out.push_str("{\n");
-        out.push_str(&format!(
-            "  \"schema\": \"{}\",\n",
-            json_escape(PROOF_SCHEMA)
-        ));
-        out.push_str(&format!(
-            "  \"hash\": \"{}\",\n",
-            json_escape(HASH_ALGORITHM)
-        ));
-        out.push_str(&format!(
-            "  \"preimage\": \"{}\",\n",
-            json_escape(PREIMAGE_VERSION)
-        ));
-        out.push_str(&format!("  \"count\": {},\n", self.count));
-        out.push_str(&format!("  \"leaf_index\": {},\n", self.leaf_index));
-        out.push_str(&format!("  \"frame_id\": \"{}\",\n", hex(&self.frame_id)));
-        out.push_str(&format!("  \"root\": \"{}\",\n", hex(&self.root)));
-        out.push_str(&format!("  \"peak_index\": {},\n", self.peak_index));
+        let _ = writeln!(out, "  \"schema\": \"{}\",", json_escape(PROOF_SCHEMA));
+        let _ = writeln!(out, "  \"hash\": \"{}\",", json_escape(HASH_ALGORITHM));
+        let _ = writeln!(out, "  \"preimage\": \"{}\",", json_escape(PREIMAGE_VERSION));
+        let _ = writeln!(out, "  \"count\": {},", self.count);
+        let _ = writeln!(out, "  \"leaf_index\": {},", self.leaf_index);
+        let _ = writeln!(out, "  \"frame_id\": \"{}\",", hex(&self.frame_id));
+        let _ = writeln!(out, "  \"root\": \"{}\",", hex(&self.root));
+        let _ = writeln!(out, "  \"peak_index\": {},", self.peak_index);
         out.push_str("  \"peaks\": [\n");
         for (index, peak) in self.peaks.iter().enumerate() {
-            out.push_str(&format!(
-                "    {{\"height\": {}, \"hash\": \"{}\"}}{}\n",
+            let separator = if index + 1 == self.peaks.len() {
+                ""
+            } else {
+                ","
+            };
+            let _ = writeln!(
+                out,
+                "    {{\"height\": {}, \"hash\": \"{}\"}}{}",
                 peak.height,
                 hex(&peak.hash),
-                if index + 1 == self.peaks.len() {
-                    ""
-                } else {
-                    ","
-                }
-            ));
+                separator
+            );
         }
         out.push_str("  ],\n");
         out.push_str("  \"path\": [\n");
@@ -403,17 +412,19 @@ impl Proof {
                 ProofSide::Left => "left",
                 ProofSide::Right => "right",
             };
-            out.push_str(&format!(
-                "    {{\"side\": \"{}\", \"parent_height\": {}, \"hash\": \"{}\"}}{}\n",
+            let separator = if index + 1 == self.path.len() {
+                ""
+            } else {
+                ","
+            };
+            let _ = writeln!(
+                out,
+                "    {{\"side\": \"{}\", \"parent_height\": {}, \"hash\": \"{}\"}}{}",
                 side,
                 step.parent_height,
                 hex(&step.hash),
-                if index + 1 == self.path.len() {
-                    ""
-                } else {
-                    ","
-                }
-            ));
+                separator
+            );
         }
         out.push_str("  ]\n");
         out.push_str("}\n");
@@ -421,6 +432,12 @@ impl Proof {
     }
 
     /// Parse the stable detached proof JSON form.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` when `text` is not valid JSON, when the `schema`, `hash` or
+    /// `preimage` fields name an unsupported value, or when a required field is
+    /// missing or has the wrong JSON type.
     pub fn from_json(text: &str) -> Result<Self, String> {
         proof_from_json(text)
     }
@@ -626,7 +643,7 @@ impl<'a> JsonParser<'a> {
         if self.bytes.get(self.pos) == Some(&b'0') {
             self.pos += 1;
         } else {
-            while self.bytes.get(self.pos).is_some_and(|b| b.is_ascii_digit()) {
+            while self.bytes.get(self.pos).is_some_and(u8::is_ascii_digit) {
                 self.pos += 1;
             }
         }
@@ -728,6 +745,11 @@ fn proof_from_json(text: &str) -> Result<Proof, String> {
 }
 
 /// Parse a raw 32-byte hex id, accepting an optional `blake3:` prefix.
+///
+/// # Errors
+///
+/// Returns `Err` when the trimmed input (after the optional prefix) is not
+/// exactly 64 hexadecimal characters.
 pub fn parse_hex_32(input: &str) -> Result<Vec<u8>, String> {
     let raw = input.trim().strip_prefix("blake3:").unwrap_or(input.trim());
     if raw.len() != 64 {
@@ -741,7 +763,10 @@ pub fn parse_hex_32(input: &str) -> Result<Vec<u8>, String> {
         let lo = (chunk[1] as char)
             .to_digit(16)
             .ok_or_else(|| "hex value contains a non-hex character".to_string())?;
-        out.push(((hi << 4) | lo) as u8);
+        let byte = (hi << 4) | lo;
+        let byte = u8::try_from(byte)
+            .map_err(|e| format!("hex byte {byte:#x} is out of range: {e}"))?;
+        out.push(byte);
     }
     Ok(out)
 }
@@ -775,6 +800,14 @@ fn is_header_item(item: &Value) -> bool {
 
 /// Create a detached proof for `target_frame_id` from a file that carries an
 /// intact `index.mmr` covering that frame.
+///
+/// # Errors
+///
+/// Returns `Err` when `target_frame_id` is not 32 bytes, when the input is
+/// empty or ends in a torn CBOR item, when an item is not a GTS v1 segment
+/// header or frame in a valid chain (id, `prev` link or header id mismatch),
+/// when an `index` frame is inconsistent with the frames before it, or when no
+/// valid index covers `target_frame_id`.
 pub fn prove_file(data: &[u8], target_frame_id: &[u8]) -> Result<Proof, String> {
     if target_frame_id.len() != 32 {
         return Err("target frame id must be 32 bytes".to_string());
@@ -822,7 +855,7 @@ pub fn prove_file(data: &[u8], target_frame_id: &[u8]) -> Result<Proof, String> 
                 Some(Value::Bytes(prev)) if prev.as_slice() == expected_prev.as_slice() => {}
                 _ => return Err(format!("item {abs_item} prev mismatch")),
             }
-            expected_prev = computed.clone();
+            expected_prev.clone_from(&computed);
             frame_ids.push(computed);
             if map_get(frame, "t").and_then(as_text) == Some("index") {
                 let Some(Value::Map(index_payload)) = map_get(frame, "d") else {

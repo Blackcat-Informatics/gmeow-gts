@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
-#![cfg(feature = "tar")]
+//! tar import and export through the `tar` feature.
 
 use std::collections::BTreeMap;
 use std::io::{Cursor, Read, Write};
@@ -249,7 +249,7 @@ fn from_tar_to_writer_streams_large_payload_writes() {
         graph.diagnostics
     );
     let entries = read_entries(&graph).expect("files-profile-v2 entries read");
-    assert_eq!(entries.get("large.bin").unwrap().size, Some(2_097_169));
+    assert_eq!(entries["large.bin"].size, Some(2_097_169));
     assert_eq!(graph.blobs.len(), 1);
     assert_eq!(graph.blobs[0].1.decoded_len().unwrap(), 2_097_169);
 }
@@ -276,7 +276,7 @@ fn pack_to_writer_streams_large_file_payloads() {
     );
     let graph = read(&out.data, true, None);
     let entries = read_entries(&graph).expect("files-profile entries read");
-    assert_eq!(entries.get("large.bin").unwrap().size, Some(2_097_155));
+    assert_eq!(entries["large.bin"].size, Some(2_097_155));
 }
 
 #[test]
@@ -483,22 +483,18 @@ fn cli_round_trips_tar_with_owner_pax_links_and_dedup() {
 
     let graph = read(&std::fs::read(&archive).unwrap(), true, None);
     let entries = read_entries(&graph).expect("files-profile-v2 entries read");
-    assert_eq!(entries.get("docs").unwrap().kind, FileEntryKind::Directory);
+    assert_eq!(entries["docs"].kind, FileEntryKind::Directory);
     assert_eq!(
-        entries
-            .get("docs/latest.txt")
-            .unwrap()
-            .link_target
-            .as_deref(),
+        entries["docs/latest.txt"].link_target.as_deref(),
         Some("a.txt")
     );
-    assert_eq!(entries.get("docs/a.txt").unwrap().uid, Some(1000));
+    assert_eq!(entries["docs/a.txt"].uid, Some(1000));
     assert_eq!(
-        entries.get("docs/a.txt").unwrap().user_name.as_deref(),
+        entries["docs/a.txt"].user_name.as_deref(),
         Some("alice")
     );
     assert_eq!(
-        entries.get("docs/a.txt").unwrap().pax_records,
+        entries["docs/a.txt"].pax_records,
         vec![FilePaxRecord {
             key: "comment".to_string(),
             value: "kept for experts".to_string(),
@@ -520,15 +516,15 @@ fn cli_round_trips_tar_with_owner_pax_links_and_dedup() {
     );
 
     let tar = inspect_tar(&std::fs::read(&output).unwrap());
-    assert_eq!(tar.get("docs").unwrap().kind, "directory");
-    assert_eq!(tar.get("docs/a.txt").unwrap().data, b"same payload\n");
-    assert_eq!(tar.get("docs/b.txt").unwrap().data, b"same payload\n");
+    assert_eq!(tar["docs"].kind, "directory");
+    assert_eq!(tar["docs/a.txt"].data, b"same payload\n");
+    assert_eq!(tar["docs/b.txt"].data, b"same payload\n");
     assert_eq!(
-        tar.get("docs/latest.txt").unwrap().link_target.as_deref(),
+        tar["docs/latest.txt"].link_target.as_deref(),
         Some("a.txt")
     );
     assert_eq!(
-        tar.get("docs/a.txt").unwrap().pax_records,
+        tar["docs/a.txt"].pax_records,
         vec![FilePaxRecord {
             key: "comment".to_string(),
             value: "kept for experts".to_string(),
@@ -560,7 +556,7 @@ fn from_tar_and_to_tar_are_pipe_friendly() {
         String::from_utf8_lossy(&to.stderr)
     );
     let tar = inspect_tar(&to.stdout);
-    assert_eq!(tar.get("docs/a.txt").unwrap().data, b"same payload\n");
+    assert_eq!(tar["docs/a.txt"].data, b"same payload\n");
 }
 
 #[test]
@@ -681,7 +677,7 @@ fn allow_special_preserves_special_entry_metadata() {
     );
     let graph = read(&std::fs::read(&archive).unwrap(), true, None);
     let entries = read_entries(&graph).expect("entries read");
-    assert_eq!(entries.get("run/pipe").unwrap().kind, FileEntryKind::Fifo);
+    assert_eq!(entries["run/pipe"].kind, FileEntryKind::Fifo);
 }
 
 #[test]

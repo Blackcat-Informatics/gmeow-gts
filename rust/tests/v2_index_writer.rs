@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 // SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 
+//! The v2 index writer: index rows, packs, empty blobs and counts match the published vectors.
+
 use std::{fs, io::Read, path::Path};
 
 use ciborium::Value;

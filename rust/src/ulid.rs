@@ -30,6 +30,7 @@ impl UlidError {
     }
 
     /// Human-readable error detail.
+    #[must_use]
     pub fn detail(&self) -> &str {
         &self.detail
     }
@@ -52,6 +53,10 @@ impl Ulid {
     pub const MAX_TIMESTAMP_MS: u64 = (1u64 << 48) - 1;
 
     /// Construct a ULID from its timestamp and 80-bit randomness fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UlidError`] when `timestamp_ms` exceeds [`Self::MAX_TIMESTAMP_MS`].
     pub fn from_parts(
         timestamp_ms: u64,
         randomness: [u8; RANDOMNESS_BYTES],
@@ -70,6 +75,11 @@ impl Ulid {
     }
 
     /// Construct a deterministic ULID from a timestamp and 80-bit counter.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UlidError`] when `counter` exceeds the 80-bit randomness field,
+    /// or when `timestamp_ms` exceeds [`Self::MAX_TIMESTAMP_MS`].
     pub fn from_counter(timestamp_ms: u64, counter: u128) -> Result<Self, UlidError> {
         if counter > MAX_RANDOMNESS {
             return Err(UlidError::new(
@@ -83,11 +93,13 @@ impl Ulid {
     }
 
     /// Borrow the raw 16-byte ULID value.
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8; 16] {
         &self.0
     }
 
     /// Return the 48-bit timestamp field.
+    #[must_use]
     pub fn timestamp_ms(&self) -> u64 {
         let mut bytes = [0u8; 8];
         bytes[2..].copy_from_slice(&self.0[..TIMESTAMP_BYTES]);
@@ -95,6 +107,7 @@ impl Ulid {
     }
 
     /// Return the 80-bit randomness field.
+    #[must_use]
     pub fn randomness(&self) -> [u8; RANDOMNESS_BYTES] {
         let mut bytes = [0u8; RANDOMNESS_BYTES];
         bytes.copy_from_slice(&self.0[TIMESTAMP_BYTES..]);
@@ -165,11 +178,20 @@ pub struct DeterministicUlidGenerator {
 
 impl DeterministicUlidGenerator {
     /// Create a generator starting at counter zero.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UlidError`] when `timestamp_ms` exceeds [`Ulid::MAX_TIMESTAMP_MS`].
     pub fn new(timestamp_ms: u64) -> Result<Self, UlidError> {
         Self::with_counter(timestamp_ms, 0)
     }
 
     /// Create a generator starting at a caller-selected 80-bit counter.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UlidError`] when `timestamp_ms` or `next_counter` is outside the
+    /// range accepted by [`Ulid::from_counter`].
     pub fn with_counter(timestamp_ms: u64, next_counter: u128) -> Result<Self, UlidError> {
         Ulid::from_counter(timestamp_ms, next_counter)?;
         Ok(Self {
@@ -179,6 +201,11 @@ impl DeterministicUlidGenerator {
     }
 
     /// Return the next deterministic ULID in sequence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`UlidError`] when the current counter is outside the 80-bit
+    /// range, or when advancing the counter overflows `u128`.
     pub fn next_ulid(&mut self) -> Result<Ulid, UlidError> {
         let ulid = Ulid::from_counter(self.timestamp_ms, self.next_counter)?;
         self.next_counter = self
@@ -191,6 +218,10 @@ impl DeterministicUlidGenerator {
 
 /// Generate a stable blank-node label with a caller-supplied prefix.
 pub(crate) fn deterministic_label(prefix: &str, counter: u128) -> String {
+    #[expect(
+        clippy::expect_used,
+        reason = "callers pass usize-derived counters, which always fit the 80-bit field"
+    )]
     let ulid = Ulid::from_counter(0, counter)
         .expect("usize/counter-derived labels fit in 80-bit ULID field");
     format!("{prefix}{ulid}")
