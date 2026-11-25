@@ -20,7 +20,14 @@ from gts.v2 import (
     read_wire,
 )
 from gts.v2.content import ContentCapacity
-from gts.v2.file_result import OpaqueFold, UncheckedPayload, fold_state, payload_state
+from gts.v2.file_result import (
+    CompleteVisibility,
+    OpaqueFold,
+    UncheckedPayload,
+    file_result,
+    fold_state,
+    payload_state,
+)
 from gts.v2.payload import PayloadBudget
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
 from gts.v2.resync import (
@@ -532,3 +539,48 @@ def test_read_wire_matches_corpus_read_result_for_remaining_fixtures(
             ) == _parity_findings(record)
         checked += 1
     assert checked
+
+
+def _corpus_input(name: str, size: int) -> tuple[bytes, ContentCapacity]:
+    """Return the input and capacity of corpus case `name` with `size` bytes."""
+    folder = _VECTORS / "P1"
+    for case in json.loads((folder / f"{name}.json").read_text())["cases"]:
+        raw = (folder / case["input_file"]).read_bytes()
+        if len(raw) == size:
+            c = case["capacity"]
+            return raw, ContentCapacity(
+                c["stored_bytes_per_frame"],
+                c["decoded_bytes_per_frame"],
+                c["decoded_bytes_per_read"],
+                c["items_per_read"],
+                c["rebuilt_bytes_per_read"],
+                c["formed_bytes_per_read"],
+                c["labelled_lines"],
+                c["labelled_bytes_per_read"],
+                c["labelling_units"],
+            )
+    raise AssertionError(f"no case of {name} has an input of {size} bytes")
+
+
+@pytest.mark.parametrize(
+    "name, size, code, length",
+    [
+        ("file-not-this-format", 4, "not_this_format", 4),
+        ("file-not-this-format", 1, "not_this_format", 1),
+        ("gen-first-generation-two", 4, "unsupported_generation", 4),
+        # The first item is 11 bytes; the 12th byte is trailing input, not part of it.
+        ("gen-record-three", 12, "unsupported_generation", 11),
+    ],
+)
+def test_rejected_first_item_is_a_segmentless_file_result(
+    name: str, size: int, code: str, length: int
+) -> None:
+    """A rejected first item gives a segmentless file with one finding of its length."""
+    raw, capacity = _corpus_input(name, size)
+    result = file_result(read_content(raw, capacity), len(raw))
+    assert [(f.code, f.offset, f.length) for f in result.findings] == [
+        (code, 0, length)
+    ]
+    assert result.end == "no_commit"
+    assert result.left_out == 0
+    assert result.visible == CompleteVisibility(0)
