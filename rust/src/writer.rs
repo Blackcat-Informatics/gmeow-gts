@@ -347,6 +347,7 @@ fn default_catalog() -> Vec<(i64, Codec)> {
 }
 
 /// Accumulate a GTS log as a CBOR Sequence.
+#[derive(Debug)]
 pub struct Writer {
     name_to_id: HashMap<String, i64>,
     prev: Vec<u8>,
@@ -894,6 +895,7 @@ impl Writer {
         self.add_frame("index", Some(Value::Map(payload)), None, None, None)
     }
 
+    /// Adds an index frame and returns the bytes that encode it.
     pub fn add_index(&mut self) -> Vec<u8> {
         self.add_index_impl(false)
     }

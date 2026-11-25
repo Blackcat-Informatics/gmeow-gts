@@ -25,8 +25,11 @@ pub use attachments::{AttachmentWriteError, Blob};
 /// A segment append that cannot be represented.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SegmentWriteError {
+    /// The frame could not be written.
     Frame(FrameError),
+    /// A commit frame is required before more frames can be written.
     CommitRequired,
+    /// The segment has too many frames to address.
     RangeFull,
 }
 
@@ -53,6 +56,7 @@ impl Error for SegmentWriteError {
 ///
 /// The caller prepares content records and payloads for their frame type. The
 /// writer derives the head, frame identifiers and commit count and root.
+#[derive(Debug)]
 pub struct SegmentWriter {
     bytes: Vec<u8>,
     header_len: usize,

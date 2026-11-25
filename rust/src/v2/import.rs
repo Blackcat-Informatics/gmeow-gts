@@ -35,15 +35,24 @@ const ROWS_PER_FRAME: usize = 16_384;
 /// N-Quads input or an imported segment that cannot be represented.
 #[derive(Debug)]
 pub enum ImportError {
+    /// The input is not valid N-Quads.
     Syntax(NQuadsParseError),
+    /// The header could not be written.
     Header(HeaderWriteError),
+    /// A frame could not be written.
     Write(SegmentWriteError),
+    /// A term is missing a required component.
     IncompleteTerm {
+        /// The index of the incomplete term.
         index: usize,
     },
+    /// An import limit was exceeded.
     Capacity {
+        /// The name of the exhausted resource.
         resource: &'static str,
+        /// The amount of the resource that the input requires.
         required: u64,
+        /// The maximum amount of the resource that is allowed.
         limit: u64,
     },
 }

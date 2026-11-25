@@ -22,7 +22,9 @@ use crate::codec::{decode_chain, Codec, CodecError};
 
 /// Well-known datatype IRIs used by the literal-defaulting rule (§7.1).
 pub const XSD_STRING: &str = "http://www.w3.org/2001/XMLSchema#string";
+/// The IRI of `rdf:langString`, the datatype of language-tagged literals.
 pub const RDF_LANG_STRING: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString";
+/// The IRI of `rdf:dirLangString`, the datatype of directional language literals.
 pub const RDF_DIR_LANG_STRING: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString";
 
 /// Return whether `direction` is a valid RDF 1.2 base direction token.
@@ -33,9 +35,13 @@ pub fn is_literal_direction(direction: &str) -> bool {
 /// The kind of an RDF term, matching the wire `"k"` field (§7.1).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TermKind {
+    /// The kind code of an IRI term.
     Iri = 0,
+    /// The kind code of a literal term.
     Literal = 1,
+    /// The kind code of a blank node term.
     Bnode = 2,
+    /// The kind code of a triple term.
     Triple = 3,
 }
 
@@ -80,6 +86,7 @@ pub struct Term {
 
 /// A quad of term-ids; the graph slot is `None` for the default graph.
 pub type Quad = (usize, usize, usize, Option<usize>);
+/// Three term indices in subject, predicate and object order.
 pub type Triple3 = (usize, usize, usize);
 /// A reifier row: `(reifier, (subject, predicate, object), graph?)`.
 pub type ReifierRow = (usize, Triple3, Option<usize>);
@@ -100,6 +107,7 @@ pub struct QuadTerms<'a> {
 }
 
 /// Borrowing iterator returned by [`Graph::quad_terms`].
+#[derive(Debug)]
 pub struct QuadTermsIter<'a> {
     graph: &'a Graph,
     inner: slice::Iter<'a, Quad>,
@@ -204,7 +212,12 @@ pub enum BlobEntry {
     /// callers that never ask for the bytes still get a complete folded graph,
     /// while callers that do ask receive the same codec errors the eager path
     /// would have produced.
-    Lazy { raw: Vec<u8>, chain: Vec<Codec> },
+    Lazy {
+        /// The wire bytes of the blob, before decoding.
+        raw: Vec<u8>,
+        /// The transform chain that decodes `raw`.
+        chain: Vec<Codec>,
+    },
 }
 
 impl BlobEntry {

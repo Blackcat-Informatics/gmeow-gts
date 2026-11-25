@@ -47,7 +47,7 @@ pub struct TransportKey {
 }
 
 /// Signing material loaded from an unencrypted OpenPGP Ed25519 secret-key block.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct OpenPgpSigningKey {
     signing_key: SigningKey,
     kid: String,

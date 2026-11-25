@@ -29,42 +29,70 @@ pub use super::resync::DecodedResync;
 /// The first item determines which generation reads the file.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Dispatch {
+    /// The file has no items.
     Empty,
+    /// The file uses the first generation.
     FirstGeneration,
+    /// The file uses the second generation.
     SecondGeneration,
+    /// The file uses a generation that this reader does not implement.
     UnsupportedGeneration(u64),
+    /// The file is not in this format.
     NotThisFormat,
 }
 
+/// Why reading stopped before the end of the input.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ReadStop {
+    /// The framing of the input failed.
     Framing(FramingFailure),
-    ItemLimit { offset: usize },
+    /// The item limit was reached at an item.
+    ItemLimit {
+        /// The offset of the item where the limit was reached.
+        offset: usize,
+    },
 }
 
+/// The kind of an item in a segment.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ItemKind {
+    /// A header item.
     Header,
+    /// A resync item.
     Resync,
+    /// A frame item.
     Frame,
+    /// A locator item.
     Locator,
+    /// An offsets item.
     Offsets,
+    /// A malformed item, with the reason it is malformed.
     Malformed(MalformedReason),
+    /// An item with an unknown kind code.
     Unknown(u64),
+    /// An item that was not checked.
     Unchecked,
+    /// A region of the input that is damaged.
     DamagedRegion,
 }
 
+/// An item of a segment and the bytes it covers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WireItem {
+    /// The kind of the item.
     pub kind: ItemKind,
+    /// The offset of the first byte of the item.
     pub offset: usize,
+    /// The offset just after the last byte of the item.
     pub end: usize,
 }
 
+/// The opener of a segment, either a header or a resync item.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Opener<'a> {
+    /// A header opener and the result of decoding it.
     Header(Result<DecodedHeader<'a>, HeaderError>),
+    /// A resync opener and the result of decoding it.
     Resync(Result<DecodedResync<'a>, HeaderError>),
 }
 
@@ -78,64 +106,97 @@ impl Opener<'_> {
     }
 }
 
+/// Whether the link of a frame to its predecessor is intact.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LinkState {
+    /// The link matches the predecessor.
     Linked,
+    /// The link does not match, but the next frame confirms the computed identifier.
     Healed,
+    /// The link does not match and is not confirmed.
     Broken,
 }
 
+/// The link of a frame to its predecessor.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FrameLink {
+    /// The link state.
     pub state: LinkState,
+    /// The identifier computed from the frame, if it can be computed.
     pub computed_identifier: Option<[u8; 32]>,
+    /// The identifier that the link is checked against, if any.
     pub effective_identifier: Option<[u8; 32]>,
 }
 
+/// A frame of a segment as read from the wire.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WireFrame<'a> {
+    /// The position of the frame in its segment.
     pub position: usize,
+    /// The registry code of the frame type, if it can be read.
     pub frame_type: Option<u64>,
+    /// Whether the frame is transparent to readers of its content.
     pub transparent: bool,
+    /// The parsed envelope, or the error that stopped parsing it.
     pub envelope: Result<Frame<'a>, FrameError>,
+    /// The link of the frame to its predecessor.
     pub link: FrameLink,
+    /// The payload check of the frame.
     pub payload: PayloadCheck<'a>,
     /// A later frame type with well-typed flags that stops content folding.
     pub unknown_type_stops_fold: bool,
 }
 
+/// A segment of the input as read from the wire.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WireSegment<'a> {
+    /// The opener of the segment.
     pub opener: Opener<'a>,
+    /// The items of the segment, in input order.
     pub items: Vec<WireItem>,
+    /// The frames of the segment, in input order.
     pub frames: Vec<WireFrame<'a>>,
+    /// The head identifier of the segment, if one can be read.
     pub head: Option<[u8; 32]>,
     /// The declared segment boundary can fall inside its last item after recovery.
     pub end_offset: usize,
+    /// Whether the segment was scanned to its end.
     pub scanned: bool,
+    /// The framing failure that ended the segment, if any.
     pub framing_failure: Option<FramingFailure>,
+    /// The reason a resync item was refused, if any.
     pub resync_refusal: Option<ResyncRefusal>,
     /// Grammar errors observed during the framing test.
     pub closing_grammar: Vec<(usize, HeaderError)>,
     /// Closing findings after placement and claims are checked over retained items.
     pub closing_findings: Vec<ClosingFinding>,
+    /// The commit report of the segment, or the error that prevented it.
     pub commits: Result<CommitReport, CommitReadError>,
+    /// The index checks of the segment.
     pub indexes: Vec<IndexCheck>,
 }
 
+/// Why a resync item was refused.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ResyncRefusal {
+    /// The position of the refused resync item.
     pub position: usize,
+    /// The offset that the refused resync item claims.
     pub offset: usize,
+    /// The length of the refused span, in bytes.
     pub length: usize,
+    /// The number of items counted in the refused span.
     pub count: u64,
 }
 
+/// The wire-level read of a whole input.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct WireRead<'a> {
     /// Generation dispatch after checking for a resync opener in the first item.
     pub dispatch: Option<Dispatch>,
+    /// The segments of the input, in file order.
     pub segments: Vec<WireSegment<'a>>,
+    /// The reason reading stopped before the end of the input, if it did.
     pub stop: Option<ReadStop>,
     /// Framing failure before the first accepted opener.
     pub prefix_failure: Option<FramingFailure>,

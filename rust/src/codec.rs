@@ -17,6 +17,7 @@ use structured_zstd::encoding::{compress_to_vec, CompressionLevel};
 /// A catalog entry (§5, §8.5).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Codec {
+    /// The canonical name of the codec, such as `gzip`.
     pub name: String,
     /// `"encode"` | `"compress"` | `"encrypt"`.
     pub cls: String,
@@ -28,7 +29,9 @@ pub enum CodecError {
     /// A missing capability: `reason` is `"unknown-codec"` or `"missing-key"`
     /// — the frame degrades to an opaque node with that reason (§8.3).
     Unavailable {
+        /// The missing capability: `unknown-codec` or `missing-key`.
         reason: &'static str,
+        /// A description of the missing capability.
         detail: String,
     },
     /// The codec is known but the data is corrupt — the frame is damaged.

@@ -90,3 +90,46 @@ libc = "0.2"
 
 [dev-dependencies]
 serde_json = "1"
+
+[lints.rust]
+# The crate calls libc for POSIX file metadata (src/files.rs); each unsafe block
+# carries a SAFETY: proof, so the lint is deny rather than forbid.
+unsafe_code = "deny"
+unreachable_pub = "deny"
+unused = { level = "deny", priority = -1 }
+dead_code = "deny"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unused_crate_dependencies = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# Suppressions are scoped and reasoned: #[expect(..., reason = "...")].
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+used_underscore_binding = "deny"
+
+# Unfinished and debugging code never lands.
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+
+# No untyped panic, print or silent exit on a non-test path.
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+exit = "warn"
+mem_forget = "warn"
+unwrap_in_result = "warn"
+get_unwrap = "warn"
+string_slice = "warn"
+map_err_ignore = "warn"
+redundant_clone = "warn"
+
+# Pedantic noise with no trust value.
+module_name_repetitions = "allow"

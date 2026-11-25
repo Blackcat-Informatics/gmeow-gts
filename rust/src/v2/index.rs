@@ -11,29 +11,37 @@ use super::{
     Decoder, HeaderError, MalformedReason, REGISTRY_VERSION,
 };
 
+/// The outcome of checking one index frame.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct IndexCheck {
+    /// The position of the index frame.
     pub position: usize,
+    /// The result of the check.
     pub outcome: IndexOutcome,
 }
 
 /// Wire-level index results. Fold-dependent claims require a content reader.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IndexOutcome {
+    /// The index was read and its claims were checked.
     Checked(IndexWireClaims),
     /// The error offset is relative to the decoded payload.
     MalformedPayload(HeaderError),
     /// A later registry value in the payload at the given decoded offset.
     UnknownEnumeration {
+        /// The offset of the unrecognised value.
         offset: usize,
     },
 }
 
+/// The claims that an index frame makes about the frames it covers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct IndexWireClaims {
     /// Both the frame count and the claimed head match the prefix.
     pub head_matches: bool,
+    /// Whether the root of the index matches the frames it covers.
     pub root_matches: bool,
+    /// Whether the type runs of the index match the frames they cover.
     pub type_runs_match: bool,
 }
 

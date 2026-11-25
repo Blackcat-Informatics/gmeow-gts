@@ -17,12 +17,19 @@ const PATTERN: [u8; 20] = [
 /// A resync opener and its original advisory bytes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DecodedResync<'a> {
+    /// The decoded header of the resync item.
     pub header: Header<'a>,
+    /// The offset that the resync item claims for its segment.
     pub claimed_offset: u64,
+    /// The bytes that precede the claimed offset, if any.
     pub past: Option<&'a [u8]>,
+    /// The marks of the resync item.
     pub marks: &'a [u8],
+    /// The identifier stored in the resync item.
     pub stored_identifier: &'a [u8],
+    /// The identifier computed from the item, if it is valid.
     pub identifier: Option<[u8; 32]>,
+    /// The offset of the first byte after the resync item.
     pub next_offset: usize,
 }
 

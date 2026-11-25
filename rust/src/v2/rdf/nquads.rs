@@ -12,9 +12,13 @@ use crate::{
 /// A projected term whose text cannot be written as N-Quads.
 #[derive(Debug)]
 pub enum NQuadsExportError {
+    /// An IRI in the term is malformed.
     Iri(oxiri::IriParseError),
+    /// A language tag in the term is malformed.
     Language(oxilangtag::LanguageTagParseError),
+    /// The term at the given index cannot be written as N-Quads.
     InvalidTerm(usize),
+    /// The term at the given index pairs a language tag with a datatype.
     LanguageDatatype(usize),
 }
 

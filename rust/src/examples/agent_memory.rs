@@ -46,57 +46,84 @@ const INLINE_PAYLOAD_BUDGET: usize = 4096;
 /// One recalled claim, the user-facing view of a reified statement.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Claim {
+    /// The stable identifier of the claim.
     pub id: String,
+    /// The text of the claim.
     pub text: String,
+    /// The confidence recorded for the claim, if any.
     pub confidence: Option<f64>,
+    /// The agent or source the claim is attributed to, if any.
     pub according_to: Option<String>,
+    /// The source reference recorded for the claim, if any.
     pub source: Option<String>,
+    /// The creation timestamp recorded for the claim, if any.
     pub created: Option<String>,
+    /// Whether the claim is hidden from default recall results.
     pub suppressed: bool,
 }
 
 /// One recorded tool call, represented as provenance in the same graph.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ToolCallRecord {
+    /// The stable identifier of the tool call.
     pub id: String,
+    /// The name of the tool that was called.
     pub tool: String,
+    /// The serialized arguments of the call, if recorded.
     pub arguments: Option<String>,
+    /// The serialized result of the call, if recorded.
     pub result: Option<String>,
+    /// The invocation identifier of the call, if recorded.
     pub invocation: Option<String>,
+    /// The creation timestamp recorded for the call, if any.
     pub created: Option<String>,
+    /// The identifiers of the entities the call generated.
     pub generated: Vec<String>,
 }
 
 /// Options for [`Memory::store`].
 #[derive(Clone, Copy, Debug, Default)]
 pub struct StoreOptions<'a> {
+    /// The source reference to store with the claim, if any.
     pub source: Option<&'a str>,
+    /// The confidence to store with the claim, if any.
     pub confidence: Option<f64>,
+    /// The agent or source the claim is attributed to, if any.
     pub according_to: Option<&'a str>,
 }
 
 /// Options for [`Memory::revise`].
 #[derive(Clone, Copy, Debug, Default)]
 pub struct RevisionOptions<'a> {
+    /// The reason for the revision, if any.
     pub reason: Option<&'a str>,
+    /// The identifier of the claim that supersedes the revised claim, if any.
     pub superseded_by: Option<&'a str>,
 }
 
 /// Options for [`Memory::record_tool_call`].
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ToolCallOptions<'a> {
+    /// The serialized arguments of the call, if any.
     pub arguments: Option<&'a str>,
+    /// The serialized result of the call, if any.
     pub result: Option<&'a str>,
+    /// The invocation identifier of the call, if any.
     pub invocation: Option<&'a str>,
+    /// The identifiers of the entities the call generated.
     pub generated: &'a [&'a str],
 }
 
 /// Options for [`Memory::recall`].
 #[derive(Clone, Copy, Debug)]
 pub struct RecallOptions<'a> {
+    /// The text to match against claim text.
     pub query: &'a str,
+    /// The lowest confidence a returned claim may have, if any.
     pub min_confidence: Option<f64>,
+    /// The maximum number of claims to return.
     pub limit: usize,
+    /// Whether suppressed claims are returned as well.
     pub include_suppressed: bool,
 }
 
@@ -114,11 +141,17 @@ impl<'a> Default for RecallOptions<'a> {
 /// Errors raised by the dependency-light example API.
 #[derive(Debug)]
 pub enum MemoryError {
+    /// An I/O failure reading or writing the backing file.
     Io(std::io::Error),
+    /// The claim text is empty.
     EmptyClaim,
+    /// The confidence is outside the accepted range.
     InvalidConfidence,
+    /// The tool name is empty.
     EmptyTool,
+    /// The invocation identifier is empty.
     EmptyInvocation,
+    /// A generated entity identifier is empty.
     EmptyGeneratedEntity,
 }
 

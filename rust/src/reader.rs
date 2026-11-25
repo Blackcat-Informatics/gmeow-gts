@@ -12,6 +12,7 @@
 //! nodes. Callers that hold content keys can use [`read_with_options`].
 
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::io::Read;
 
 use ciborium::value::Value;
@@ -190,6 +191,17 @@ pub struct ReadOptions<'a> {
     pub expected_head: Option<&'a [u8]>,
     /// Optional content-key provider for `COSE_Encrypt0` payloads.
     pub content_key: Option<&'a ContentKeyResolver<'a>>,
+}
+
+impl fmt::Debug for ReadOptions<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // The resolver is a closure with no Debug output, so only its presence is shown.
+        f.debug_struct("ReadOptions")
+            .field("allow_segments", &self.allow_segments)
+            .field("expected_head", &self.expected_head)
+            .field("content_key", &self.content_key.map(|_| "<resolver>"))
+            .finish()
+    }
 }
 
 impl<'a> ReadOptions<'a> {
@@ -1433,6 +1445,7 @@ pub fn read_to_sink_from_reader<R: Read>(
 /// The per-segment view of a file — the input to composition tooling (§14.1):
 /// each segment folded independently, plus the file-level torn marker and any
 /// fatal pre-segmentation diagnostic.
+#[derive(Debug)]
 pub struct FileSegments {
     /// One fold per segment, in file order, each carrying its OWN diagnostics.
     pub segments: Vec<Graph>,

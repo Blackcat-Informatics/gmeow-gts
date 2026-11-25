@@ -45,18 +45,27 @@ type InlineBlobMap = BTreeMap<String, (Vec<u8>, Option<String>)>;
 /// files-profile v2 entry kind. Absence of `files:type` is read as [`Self::File`].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FileEntryKind {
+    /// A regular file.
     #[default]
     File,
+    /// A directory.
     Directory,
+    /// A symbolic link.
     Symlink,
+    /// A hard link to an earlier entry in the archive.
     Hardlink,
+    /// A named pipe.
     Fifo,
+    /// A character device.
     CharDev,
+    /// A block device.
     BlockDev,
+    /// A Unix domain socket.
     Socket,
 }
 
 impl FileEntryKind {
+    /// Returns the canonical name of this kind, the form that `parse` accepts.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::File => "file",
@@ -70,6 +79,7 @@ impl FileEntryKind {
         }
     }
 
+    /// Parses a canonical kind name and returns an error for any other value.
     pub fn parse(value: &str) -> Result<Self, String> {
         match value {
             "file" => Ok(Self::File),
@@ -88,6 +98,7 @@ impl FileEntryKind {
 /// One files-profile v2 extended attribute row.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FileXattr {
+    /// The name of the extended attribute.
     pub name: String,
     /// Base64 lexical value of the attribute bytes.
     pub value: String,
@@ -96,28 +107,46 @@ pub struct FileXattr {
 /// One verbatim PAX escape-hatch key/value row.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FilePaxRecord {
+    /// The keyword of the PAX record.
     pub key: String,
+    /// The value of the PAX record.
     pub value: String,
 }
 
 /// Typed files-profile entry used by the Rust v2 writer/reader.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FileEntry {
+    /// The path of the entry within the archive.
     pub path: String,
+    /// The kind of the entry.
     pub kind: FileEntryKind,
+    /// The digest of the content of a regular file, if recorded.
     pub digest: Option<String>,
+    /// The size of the content in bytes, if recorded.
     pub size: Option<u64>,
+    /// The permission bits of the entry, if recorded.
     pub mode: Option<u32>,
+    /// The modification time of the entry, if recorded.
     pub modified: Option<String>,
+    /// The media type of the content, if recorded.
     pub media_type: Option<String>,
+    /// The target of a link entry, if any.
     pub link_target: Option<String>,
+    /// The numeric user identifier of the owner, if recorded.
     pub uid: Option<u64>,
+    /// The numeric group identifier of the owner, if recorded.
     pub gid: Option<u64>,
+    /// The name of the owning user, if recorded.
     pub user_name: Option<String>,
+    /// The name of the owning group, if recorded.
     pub group_name: Option<String>,
+    /// The major device number of a device entry, if recorded.
     pub dev_major: Option<u64>,
+    /// The minor device number of a device entry, if recorded.
     pub dev_minor: Option<u64>,
+    /// The extended attributes of the entry, in recorded order.
     pub xattrs: Vec<FileXattr>,
+    /// The PAX records of the entry, in recorded order.
     pub pax_records: Vec<FilePaxRecord>,
     /// Optional inline payload bytes for regular-file authoring.
     pub data: Option<Vec<u8>>,
@@ -126,9 +155,13 @@ pub struct FileEntry {
 /// A regular-file blob source for bounded files-profile authoring.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FileBlobSource {
+    /// The path of the file that holds the blob bytes.
     pub path: PathBuf,
+    /// The number of bytes at the path.
     pub size: u64,
+    /// The media type of the blob, if recorded.
     pub media_type: Option<String>,
+    /// The representation of the blob, if recorded.
     pub representation: Option<String>,
 }
 
@@ -980,6 +1013,7 @@ fn format_datetime(time: &std::time::SystemTime) -> Result<String, String> {
     Ok(text.replace("+00:00", "Z"))
 }
 
+/// Reads the file entries of a graph, keyed by archive path.
 pub fn read_entries(graph: &Graph) -> Result<BTreeMap<String, FileEntry>, String> {
     let mut type_ids: HashSet<usize> = HashSet::new();
     let mut file_entry_ids: HashSet<usize> = HashSet::new();
@@ -1070,6 +1104,7 @@ pub fn read_entries(graph: &Graph) -> Result<BTreeMap<String, FileEntry>, String
     Ok(by_path)
 }
 
+/// Reads the file entries of a graph, keyed by archive path.
 pub fn read_file_entries(
     graph: &Graph,
 ) -> Result<BTreeMap<String, BTreeMap<String, String>>, String> {
@@ -1568,6 +1603,7 @@ fn create_special_node_platform(_target: &Path, entry: &FileEntry) -> Result<(),
 }
 
 #[cfg(unix)]
+#[expect(unsafe_code, reason = "mkfifo creates the fifo; the call carries a SAFETY proof")]
 fn create_fifo(target: &Path, entry: &FileEntry) -> Result<(), String> {
     use std::ffi::CString;
     use std::os::unix::ffi::OsStrExt;
@@ -1589,6 +1625,7 @@ fn create_fifo(target: &Path, entry: &FileEntry) -> Result<(), String> {
 }
 
 #[cfg(all(unix, any(target_os = "linux", target_os = "android")))]
+#[expect(unsafe_code, reason = "mknod creates the device node; the call carries a SAFETY proof")]
 fn create_device(target: &Path, entry: &FileEntry) -> Result<(), String> {
     use std::ffi::CString;
     use std::os::unix::ffi::OsStrExt;
@@ -1687,39 +1724,30 @@ fn restore_path_metadata(
 
 #[cfg(unix)]
 fn restore_owner(target: &Path, entry: &FileEntry, options: &UnpackOptions) -> Result<(), String> {
+    use std::os::unix::fs::{chown, lchown};
+
     if !options.same_owner || (entry.uid.is_none() && entry.gid.is_none()) {
         return Ok(());
     }
 
-    use std::ffi::CString;
-    use std::os::unix::ffi::OsStrExt;
-
-    let path = CString::new(target.as_os_str().as_bytes())
-        .map_err(|e| format!("path contains interior NUL: {target:?}: {e}"))?;
-    let uid = entry
-        .uid
-        .map_or(!0 as libc::uid_t, |value| value as libc::uid_t);
-    let gid = entry
-        .gid
-        .map_or(!0 as libc::gid_t, |value| value as libc::gid_t);
-    let rc = if entry.kind == FileEntryKind::Symlink {
-        // SAFETY: `path` is a NUL-terminated copy of the target path and
-        // remains alive for the duration of the syscall. `lchown` is used for
-        // symlinks so metadata restoration does not follow the link.
-        unsafe { libc::lchown(path.as_ptr(), uid, gid) }
-    } else {
-        // SAFETY: `path` is a NUL-terminated copy of the target path and
-        // remains alive for the duration of the syscall.
-        unsafe { libc::chown(path.as_ptr(), uid, gid) }
+    let id = |value: Option<u64>, what: &str| -> Result<Option<u32>, String> {
+        value
+            .map(|raw| {
+                u32::try_from(raw).map_err(|e| {
+                    format!("{} {what} exceeds platform range: {e}", entry.path)
+                })
+            })
+            .transpose()
     };
-    if rc == 0 {
-        Ok(())
+    let uid = id(entry.uid, "uid")?;
+    let gid = id(entry.gid, "gid")?;
+    // Symlinks are re-owned with `lchown` so restoration does not follow the link.
+    let result = if entry.kind == FileEntryKind::Symlink {
+        lchown(target, uid, gid)
     } else {
-        Err(format!(
-            "restore owner for {target:?}: {}",
-            std::io::Error::last_os_error()
-        ))
-    }
+        chown(target, uid, gid)
+    };
+    result.map_err(|e| format!("restore owner for {target:?}: {e}"))
 }
 
 #[cfg(not(unix))]

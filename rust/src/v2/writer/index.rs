@@ -25,19 +25,36 @@ const INDEX: u64 = 15;
 /// The labelled fold's counts and content digest, used by the closing index.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct IndexFold {
+    /// The number of lines folded into the index.
     pub lines: u64,
+    /// The number of records folded into the index.
     pub records: u64,
+    /// The number of blank nodes folded into the index.
     pub blank_nodes: u64,
+    /// The digest of the content, if one is recorded.
     pub content_digest: Option<Digest>,
 }
 
 /// An index that could not be derived from the encoded prefix or appended.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IndexWriteError {
+    /// The header of the index could not be opened.
     Opener(HeaderError),
+    /// The index envelope could not be written.
     Envelope(FrameError),
-    FrameFields { position: u64, error: HeaderError },
-    CompressedFrame { position: u64 },
+    /// The fields of a frame are malformed.
+    FrameFields {
+        /// The position of the frame.
+        position: u64,
+        /// The malformation of the frame fields.
+        error: HeaderError,
+    },
+    /// A frame is stored compressed, which the index cannot read.
+    CompressedFrame {
+        /// The position of the compressed frame.
+        position: u64,
+    },
+    /// The index frame could not be appended to the segment.
     Append(SegmentWriteError),
 }
 

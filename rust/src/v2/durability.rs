@@ -14,9 +14,23 @@ use super::{
 /// A closing item disagrees with the grammar, placement, or observed sequence.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ClosingFinding {
-    Malformed { position: usize, error: HeaderError },
-    IndexOffsets { position: usize },
-    IndexLocator { position: usize },
+    /// The header of the frame at a closing position is malformed.
+    Malformed {
+        /// The position of the malformed frame.
+        position: usize,
+        /// The malformation of the header.
+        error: HeaderError,
+    },
+    /// The index offsets recorded at a position do not hold.
+    IndexOffsets {
+        /// The position of the index frame.
+        position: usize,
+    },
+    /// The index locator recorded at a position does not hold.
+    IndexLocator {
+        /// The position of the index frame.
+        position: usize,
+    },
 }
 
 fn offsets(
@@ -135,33 +149,51 @@ pub(super) fn check_closing(
 /// The claims a commit makes about its observed prefix.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CommitCheck {
+    /// The position of the commit frame that was checked.
     pub position: usize,
     /// Number of preceding ordinary frames with effective identifiers.
     pub ordinary_position: u64,
+    /// Whether the commit's frame count matches the frames it covers.
     pub count_matches: bool,
+    /// Whether the commit's root matches the frames it covers.
     pub root_matches: bool,
+    /// Whether every claim of the commit holds.
     pub valid: bool,
 }
 
 /// Ordinary frames after the last valid commit, excluding index frames.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UncommittedTail {
+    /// The position where the uncommitted tail begins.
     pub position: usize,
+    /// The number of frames in the uncommitted tail.
     pub count: u64,
 }
 
+/// The commit checks of a segment and the frames they leave uncommitted.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct CommitReport {
+    /// The checks of each commit, in file order.
     pub checks: Vec<CommitCheck>,
+    /// The position of the last commit that holds, if any.
     pub last_valid_position: Option<usize>,
+    /// The number of frames covered by a commit that holds.
     pub committed_frames: u64,
+    /// The frames after the last commit that holds, if any.
     pub uncommitted_tail: Option<UncommittedTail>,
 }
 
 /// Failure to construct the range of an already decoded segment.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CommitReadError {
-    Content { position: usize, error: HeaderError },
+    /// The content of a commit frame is malformed.
+    Content {
+        /// The position of the malformed commit frame.
+        position: usize,
+        /// The malformation of the commit content.
+        error: HeaderError,
+    },
+    /// The segment has too many frames to commit.
     RangeFull,
 }
 

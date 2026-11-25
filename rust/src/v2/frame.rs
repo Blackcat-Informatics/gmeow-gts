@@ -21,7 +21,9 @@ const DIGEST_HEAD: [u8; 2] = [0x58, 0x20];
 /// The first malformed field of a frame and its absolute input offset.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FrameError {
+    /// The kind of malformation in the frame.
     pub reason: MalformedReason,
+    /// The absolute input offset of the malformed field.
     pub offset: usize,
 }
 
@@ -45,13 +47,20 @@ impl From<HeaderError> for FrameError {
 /// The storage record, including the original bytes of a future storage form.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Storage<'a> {
+    /// The frame stores its payload without a transform.
     Plain,
+    /// The frame stores its payload under a compression codec.
     Compressed {
+        /// The registry code of the compression codec.
         codec: u64,
+        /// The check bytes stored with the compressed payload.
         stored_check: &'a [u8; 16],
     },
+    /// A storage form this reader does not implement, kept as raw fields.
     Unknown {
+        /// The tag of the unknown storage form.
         tag: u64,
+        /// The encoded bytes of the unknown storage form.
         encoded: &'a [u8],
     },
 }
@@ -59,26 +68,42 @@ pub enum Storage<'a> {
 /// The signature fields in envelope order.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Signature<'a> {
+    /// The registry code of the signature algorithm.
     pub algorithm: u64,
+    /// The identifier of the signing key.
     pub key_id: &'a [u8; 32],
+    /// The signature bytes.
     pub value: &'a [u8],
 }
 
 /// A parsed frame, borrowing the original encoded fields and stored payload.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Frame<'a> {
+    /// The registry code of the frame type.
     pub frame_type: u64,
+    /// Whether a reader must refuse the frame if it does not understand it.
     pub critical: bool,
+    /// Whether the frame is transparent to readers of its content.
     pub transparent: bool,
+    /// The content field of the envelope.
     pub content: &'a [u8],
+    /// The length of the decoded payload in bytes.
     pub decoded_length: u64,
+    /// The digest that the decoded payload must have.
     pub payload_digest: &'a [u8; 32],
+    /// The storage record of the payload.
     pub storage: Storage<'a>,
+    /// The payload bytes as stored, before decoding.
     pub stored_payload: &'a [u8],
+    /// The identifier of the frame.
     pub identifier: &'a [u8; 32],
+    /// The signatures on the frame, in envelope order.
     pub signatures: Vec<Signature<'a>>,
+    /// The encoded size of the signatures in bytes.
     pub encoded_signatures_size: usize,
+    /// The encoded identity fields of the frame.
     pub identity_fields: &'a [u8],
+    /// The offset of the first byte after the frame.
     pub next_offset: usize,
 }
 

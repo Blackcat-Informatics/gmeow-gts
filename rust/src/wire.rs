@@ -14,7 +14,9 @@ use ciborium::value::Value;
 /// CBOR self-describe tag (RFC 8949 §3.4.6); MAY prefix the Header item (§3).
 pub const SELF_DESCRIBE_TAG: u64 = 55799;
 
+/// The magic string of the GTS wire format.
 pub const MAGIC: &str = "GTS1";
+/// The version number of the GTS wire format.
 pub const VERSION: u8 = 1;
 
 /// Encode a CBOR value as-is (definite lengths, shortest-form integers;

@@ -13,11 +13,16 @@ use super::{
     Decoder, HeaderError,
 };
 
+/// The byte and item limits that bound one read.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ReadCapacity {
+    /// The largest stored payload accepted for one frame, in bytes.
     pub stored_bytes_per_frame: u64,
+    /// The largest decoded payload accepted for one frame, in bytes.
     pub decoded_bytes_per_frame: u64,
+    /// The largest total decoded payload accepted for one read, in bytes.
     pub decoded_bytes_per_read: u64,
+    /// The largest number of items accepted for one read.
     pub items_per_read: u64,
 }
 
@@ -32,33 +37,51 @@ impl Default for ReadCapacity {
     }
 }
 
+/// Why the payload of a frame is damaged.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PayloadDamage {
+    /// The payload fields are malformed.
     MalformedFields,
+    /// The codec does not allow the stored form.
     CodecConstraint,
+    /// The stored payload could not be decoded.
     DecodeFailed,
+    /// The decoded length differs from the declared length.
     DecodedLength,
+    /// The decoded payload does not match its digest.
     PayloadDigest,
 }
 
+/// Why the payload of a frame was not checked.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PayloadRefusal {
+    /// The stored payload exceeds the per-frame stored limit, in bytes.
     StoredSize(u64),
+    /// The decoded payload exceeds the per-frame decoded limit, in bytes.
     DecodedSize(u64),
+    /// The total decoded payload exceeds the per-read limit, in bytes.
     TotalDecoded(u64),
+    /// The payload uses a codec that this reader does not implement.
     UnknownCodec,
 }
 
+/// The check state of the payload of a frame.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PayloadState<'a> {
+    /// The payload was verified; holds the decoded bytes.
     Verified(Cow<'a, [u8]>),
+    /// The payload is damaged.
     Damaged(PayloadDamage),
+    /// The payload was not checked.
     Unchecked(PayloadRefusal),
 }
 
+/// The payload check of one frame.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PayloadCheck<'a> {
+    /// Whether the stored payload matches the stored check, if it was compared.
     pub stored_matches: Option<bool>,
+    /// The check state of the payload.
     pub state: PayloadState<'a>,
 }
 

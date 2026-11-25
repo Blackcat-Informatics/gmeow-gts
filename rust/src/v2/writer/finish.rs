@@ -21,8 +21,14 @@ const INDEX: u64 = 15;
 /// A buffered segment that cannot be closed with generated parity.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SegmentFinishError {
+    /// The segment has no closing index.
     MissingClosingIndex,
-    ExistingParity { offset: usize },
+    /// The segment already holds a parity frame.
+    ExistingParity {
+        /// The offset of the existing parity frame.
+        offset: usize,
+    },
+    /// The closing frame could not be written.
     Frame(FrameError),
 }
 

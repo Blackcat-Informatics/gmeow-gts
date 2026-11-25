@@ -22,6 +22,7 @@ const LEAF_DOMAIN: &str = "gts-mmr-leaf-v1";
 const PARENT_DOMAIN: &str = "gts-mmr-parent-v1";
 const ROOT_DOMAIN: &str = "gts-mmr-root-v1";
 
+/// A peak of a Merkle mountain range, the root of one perfect subtree.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MmrPeak {
     /// Peak tree height. Height zero is a leaf.
@@ -39,6 +40,7 @@ pub enum ProofSide {
     Right,
 }
 
+/// One step of an inclusion proof: a sibling hash and the parent it forms.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProofStep {
     /// Height of the parent node created by this step.

@@ -108,9 +108,15 @@ pub enum EventLiteralDirection {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EventTermKind {
     /// IRI reference.
-    Iri { value: String },
+    Iri {
+        /// The IRI text of the term.
+        value: String,
+    },
     /// Blank node label, scoped to the active event scope.
-    BlankNode { label: String },
+    BlankNode {
+        /// The label of the blank node.
+        label: String,
+    },
     /// Literal value.
     Literal {
         /// Literal lexical value.
@@ -318,6 +324,7 @@ pub fn visit_dataset(graph: &Graph, visitor: &mut impl RdfDatasetVisitor) {
 }
 
 /// RDF event source backed by an already-folded GTS graph.
+#[derive(Debug)]
 pub struct GraphRdfEventSource<'a> {
     graph: &'a Graph,
     scope: EventScopeId,
@@ -346,6 +353,7 @@ impl RdfEventSource for GraphRdfEventSource<'_> {
 }
 
 /// RDF event source backed by GTS bytes.
+#[derive(Debug)]
 pub struct ReaderRdfEventSource<'a> {
     data: &'a [u8],
     options: ReadOptions<'a>,

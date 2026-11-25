@@ -34,27 +34,41 @@ const RDF_REIFIES: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#reifies";
 /// The direction of a GTS language literal.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Direction {
+    /// Text runs from left to right.
     Ltr,
+    /// Text runs from right to left.
     Rtl,
 }
 
 /// A term in an RDF projection. An index refers to the projection's term table.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Term {
+    /// An IRI term with its text.
     Iri(Arc<str>),
+    /// A literal term with its datatype.
     Literal {
+        /// The lexical form of the literal.
         lexical: Arc<str>,
+        /// The term index of the datatype IRI.
         datatype: usize,
     },
+    /// A language-tagged literal term.
     Language {
+        /// The lexical form of the literal.
         lexical: Arc<str>,
+        /// The language tag of the literal.
         language: Arc<str>,
+        /// The text direction of the literal, if it has one.
         direction: Option<Direction>,
     },
+    /// A blank node term.
     Blank {
+        /// The segment that scopes the blank node label.
         segment: usize,
+        /// The label of the blank node, unique within its segment.
         label: Arc<[u8]>,
     },
+    /// A triple term over three term indices.
     Triple(Triple3),
 }
 
@@ -70,6 +84,7 @@ pub struct RdfProjection {
 }
 
 impl RdfProjection {
+    /// Returns the terms of the projection, in index order.
     pub fn terms(&self) -> &[Term] {
         &self.terms
     }
@@ -85,29 +100,47 @@ impl RdfProjection {
     }
 }
 
+/// A problem found in one frame of a projection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FrameIssue {
+    /// The frame envelope is malformed.
     Envelope(FrameError),
+    /// The frame's link to its predecessor is not intact.
     Link(LinkState),
+    /// The stored check of the payload does not match.
     StoredCheck,
+    /// The payload is damaged.
     DamagedPayload(PayloadDamage),
+    /// The payload was not checked.
     UncheckedPayload(PayloadRefusal),
+    /// The frame content is malformed.
     Content(HeaderError),
+    /// The frame type is not supported by this reader.
     UnsupportedFrameType(u64),
+    /// The term kind is not supported by this reader.
     UnsupportedTermKind(u64),
+    /// A frame would exceed a capacity limit.
     FormedCapacity,
+    /// A term value is invalid.
     Value(ValueIssue),
 }
 
 /// A value reference that the RDF projection cannot represent.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ValueIssue {
+    /// The value field is absent.
     MissingValue,
+    /// The unit field is absent.
     MissingUnit,
+    /// The unit has a length that the format does not allow.
     UnitLength,
+    /// The value digest does not match the value.
     ValueDigest,
+    /// The value is not valid UTF-8.
     InvalidUtf8,
+    /// The rebuilt value exceeds a capacity limit.
     RebuiltCapacity,
+    /// The materialized value exceeds a capacity limit.
     MaterializedCapacity,
 }
 
@@ -126,19 +159,31 @@ impl From<HeaderError> for FrameIssue {
 /// The condition that prevented a complete RDF projection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectionError {
+    /// The generation of the file cannot be read.
     Generation(Option<Dispatch>),
+    /// The framing of the input failed.
     Framing(ReadStop),
+    /// A segment opener is malformed.
     Opener {
+        /// The index of the segment.
         segment: usize,
     },
+    /// An item of a segment is malformed.
     Item {
+        /// The index of the segment that holds the item.
         segment: usize,
+        /// The offset of the item in the input.
         offset: usize,
+        /// The kind of the item.
         kind: ItemKind,
     },
+    /// A frame is malformed.
     Frame {
+        /// The index of the segment that holds the frame.
         segment: usize,
+        /// The position of the frame in its segment.
         position: usize,
+        /// The problem found in the frame.
         issue: FrameIssue,
     },
 }

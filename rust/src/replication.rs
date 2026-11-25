@@ -15,6 +15,7 @@ use crate::wire::{
     blake3_256, canonical, content_id, header_id, hex, iter_items, map_get, unwrap_header,
 };
 
+/// The position of each frame in a stream, by item and segment.
 #[derive(Clone, Debug)]
 pub struct FrameInventory {
     /// Absolute CBOR sequence item index.
@@ -417,6 +418,7 @@ fn range_json(range: &ByteRange) -> String {
     )
 }
 
+/// Renders the heads of an inventory as a JSON document.
 pub fn heads_json(inventory: &Inventory) -> String {
     let segment_heads: Vec<String> = inventory
         .segments
@@ -445,6 +447,7 @@ pub fn heads_json(inventory: &Inventory) -> String {
     )
 }
 
+/// Renders the segments of an inventory as a JSON document.
 pub fn segments_json(inventory: &Inventory) -> String {
     let segments = inventory
         .segments
@@ -484,6 +487,7 @@ pub fn segments_json(inventory: &Inventory) -> String {
     )
 }
 
+/// Returns the frames of an inventory that a peer at `from_head` lacks.
 pub fn missing(inventory: &Inventory, from_head: &[u8]) -> MissingResult {
     if inventory.has_problems() {
         return MissingResult {
@@ -553,6 +557,7 @@ pub fn missing(inventory: &Inventory, from_head: &[u8]) -> MissingResult {
     }
 }
 
+/// Renders a missing-frames result as a JSON document.
 pub fn missing_json(result: &MissingResult) -> String {
     let status = match result.status {
         MissingStatus::Complete => "complete",
@@ -581,6 +586,7 @@ pub fn missing_json(result: &MissingResult) -> String {
     )
 }
 
+/// Returns the bytes after the frame identified by `frame_id`, for resuming a transfer.
 pub fn resume_after<'a>(data: &'a [u8], frame_id: &[u8]) -> Result<&'a [u8], String> {
     let inventory = inventory(data);
     if inventory.has_problems() {
