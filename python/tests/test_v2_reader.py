@@ -699,6 +699,12 @@ def _present(option: list[object]) -> object:
 
 _PAST_CODES = {"absent": 1, "matches": 2, "differs": 3, "not_checked": 4}
 _REACHED_CODES = {"walked": 1, "scanned": 2}
+_INTEGRITY_CODES = {
+    "intact": 1,
+    "intact_unchecked": 2,
+    "damaged": 3,
+    "not_checked": 4,
+}
 _AUTHENTICITY_CODES = {
     "authenticated": 1,
     "partly_authenticated": 2,
@@ -720,6 +726,10 @@ _AUTHENTICITY_CODES = {
         # A resync item unreadable before its offset field, and a newer hash.
         ("opener-option-tag-first", "lineage-tag-zero-then-null"),
         ("header-hash-newer", ""),
+        # An unchecked payload, an opaque item that is not a frame and a damaged region.
+        ("payload-unknown-codec", ""),
+        ("append-opaque-tail", "after"),
+        ("append-resync-fresh-after-pad", "framing"),
         # A signed commit, a transparent frame, and frames that are not anchored.
         ("equal-heads-different-bytes", "b3"),
         ("link-heal-closing-items", "damaged"),
@@ -753,6 +763,7 @@ def test_segment_results_give_each_opener_of_the_corpus(name: str, label: str) -
                 got.registry_version,
                 got.hash_algorithm,
                 got.profile,
+                _INTEGRITY_CODES[got.integrity],
                 _AUTHENTICITY_CODES[got.authenticity],
                 got.anchored_frames,
                 got.committed_frames,
@@ -768,7 +779,7 @@ def test_segment_results_give_each_opener_of_the_corpus(name: str, label: str) -
                 _present(record[5]),  # type: ignore[arg-type]
                 _present(record[6]),  # type: ignore[arg-type]
                 _present(record[7]),  # type: ignore[arg-type]
-                *record[9:14],
+                *record[8:14],
             ]
         )
 

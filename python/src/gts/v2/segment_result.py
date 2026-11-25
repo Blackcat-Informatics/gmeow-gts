@@ -8,11 +8,14 @@ from typing import Literal
 from ._decode import WireError
 from .authentication import Authenticity
 from .content import ContentCapacity, ContentRead
+from .frame import FrameError
+from .items import DamagedRegion, Item
 from .reader import WireSegment
 from .rebuild import unit_digest
 from .resync import DecodedResync
 
 type OpenerOutcome = Literal["readable", "unreadable", "links_unavailable"]
+type IntegrityState = Literal["intact", "intact_unchecked", "damaged", "not_checked"]
 type PastCheck = Literal["absent", "not_checked", "matches", "differs"]
 
 
@@ -43,6 +46,7 @@ class SegmentResult:
     registry_version: int | None
     hash_algorithm: int | None
     profile: int | None
+    integrity: IntegrityState
     authenticity: Authenticity
     anchored_frames: int
     committed_frames: int
@@ -128,6 +132,61 @@ def _opener(
     )
 
 
+# A closing item that fails its claim is not malformed; one that breaks its grammar is.
+_CLAIM_REASONS = frozenset(("index_offsets", "index_locator"))
+# The refusals by the total rebuilt and total formed lengths (P4, P3).
+_REFUSED_TOTALS = frozenset(("total_rebuilt", "total_formed"))
+_PARITY = 16
+_DAMAGE_FINDINGS = frozenset(("malformed_value", "damaged_frame"))
+
+
+def _damaged_item(item: Item | DamagedRegion) -> bool:
+    """Return whether an item is a damaged region or an opaque item with a defect."""
+    return isinstance(item, DamagedRegion) or (
+        item.kind == "opaque" and item.reason != "unknown_item_kind"
+    )
+
+
+def _integrity(
+    read: ContentRead, ordinal: int, segment: WireSegment, outcome: OpenerOutcome
+) -> IntegrityState:
+    """Return the P7 `integrity` of a segment (P7 1.3, INTEGRITY)."""
+    if outcome == "links_unavailable":
+        return "not_checked"
+    if outcome == "unreadable":
+        return "damaged"
+    ordinary = [frame for frame in segment.frames if not frame.transparent]
+    transparent = {frame.position for frame in segment.frames if frame.transparent}
+    if (
+        any(_damaged_item(item) for item in segment.items)
+        or any(note.reason not in _CLAIM_REASONS for note in segment.closing)
+        or any(
+            isinstance(frame.envelope, FrameError) and frame.frame_type != _PARITY
+            for frame in ordinary
+        )
+        or any(
+            frame.link.state not in ("linked", "healed")
+            or frame.payload.state == "damaged"
+            for frame in ordinary
+        )
+        or any(
+            finding.segment == ordinal
+            and finding.code in _DAMAGE_FINDINGS
+            and finding.position not in transparent
+            for finding in read.findings
+        )
+    ):
+        return "damaged"
+    if any(frame.payload.state == "unchecked" for frame in ordinary) or any(
+        finding.segment == ordinal
+        and finding.code == "exceeds_capacity"
+        and finding.reason in _REFUSED_TOTALS
+        for finding in read.findings
+    ):
+        return "intact_unchecked"
+    return "intact"
+
+
 def _anchored(segment: WireSegment) -> int:
     """Count the ordinary frames before the first detached or unlinked one."""
     count = 0
@@ -163,6 +222,7 @@ def segment_results(
                 None if header is None else header.registry_version,
                 None if header is None else header.hash_algorithm,
                 None if header is None else header.profile,
+                _integrity(read, ordinal, segment, outcome),
                 authentication.authenticity,
                 _anchored(segment) if readable else 0,
                 sum(
