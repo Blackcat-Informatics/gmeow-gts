@@ -19,6 +19,7 @@ from gts.v2 import (
     read_content,
     read_wire,
 )
+from gts.v2.file_result import UncheckedPayload, payload_state
 from gts.v2.payload import PayloadBudget
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
 from gts.v2.resync import (
@@ -28,6 +29,7 @@ from gts.v2.resync import (
     ResyncScanner,
     encode_resync,
 )
+from gts.v2.writer import SegmentWriter
 from test_v2_content import _PARITY_CODES, _REASONS
 
 P1 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P1"
@@ -152,6 +154,23 @@ def test_refused_first_item_keeps_its_offset_and_length(
     read = read_content(data)
     assert [(f.code, f.offset, f.length) for f in read.findings] == [
         (decision, 0, len(first))
+    ]
+
+
+def test_payload_beyond_stored_capacity_is_unchecked() -> None:
+    """A frame over the stored limit is unchecked for capacity, which P2 names."""
+    writer = SegmentWriter()
+    writer.append(1, [0, [[1, 1], [3, 1]] * 8, 2, 64], b"")
+    read = read_wire(
+        writer.to_bytes(),
+        items_per_read=64,
+        stored_bytes_per_frame=8,
+        decoded_bytes_per_frame=0,
+        decoded_bytes_per_read=0,
+    )
+    frames = [frame for segment in read.segments for frame in segment.frames]
+    assert [payload_state(frame.payload) for frame in frames] == [
+        UncheckedPayload("exceeds_capacity")
     ]
 
 
