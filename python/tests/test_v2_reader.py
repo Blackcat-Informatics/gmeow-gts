@@ -19,6 +19,7 @@ from gts.v2 import (
     read_content,
     read_wire,
 )
+from gts.v2.content import ContentCapacity
 from gts.v2.file_result import OpaqueFold, UncheckedPayload, fold_state, payload_state
 from gts.v2.payload import PayloadBudget
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
@@ -30,7 +31,7 @@ from gts.v2.resync import (
     encode_resync,
 )
 from gts.v2.writer import SegmentWriter
-from test_v2_content import _PARITY_CODES, _REASONS, _contents
+from test_v2_content import _PARITY_CODES, _REASONS, _VECTORS, _contents
 
 P1 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P1"
 
@@ -152,8 +153,40 @@ def test_refused_first_item_keeps_its_offset_and_length(
     assert opened.opening.first_item == _Boundary(0, len(first))
     # The typed file finding carries the same subject through the content read.
     read = read_content(data)
+    assert read.wire.segments == ()
     assert [(f.code, f.offset, f.length) for f in read.findings] == [
         (decision, 0, len(first))
+    ]
+
+
+def test_later_version_parity_after_a_stop_is_opaque_as_stopped() -> None:
+    """A later-version parity frame after an unsupported critical frame is `stopped`.
+
+    It carries no finding of its own: the stop is its reason.
+    """
+    case = json.loads(
+        (_VECTORS / "P1" / "parity-later-version-after-stop.json").read_text()
+    )["cases"][0]
+    c = case["capacity"]
+    capacity = ContentCapacity(
+        c["stored_bytes_per_frame"],
+        c["decoded_bytes_per_frame"],
+        c["decoded_bytes_per_read"],
+        c["items_per_read"],
+        c["rebuilt_bytes_per_read"],
+        c["formed_bytes_per_read"],
+        c["labelled_lines"],
+        c["labelled_bytes_per_read"],
+        c["labelling_units"],
+    )
+    raw = (_VECTORS / "P1" / case["input_file"]).read_bytes()
+    read = read_content(raw, capacity)
+    frames = {frame.position: frame for frame in read.wire.segments[0].frames}
+    assert fold_state(read, 0, frames[3]) == OpaqueFold("unsupported_critical")
+    assert fold_state(read, 0, frames[4]) == OpaqueFold("stopped")
+    assert [finding.code for finding in read.findings] == [
+        "uncommitted_tail",
+        "unsupported_critical",
     ]
 
 

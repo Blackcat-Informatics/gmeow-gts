@@ -717,12 +717,8 @@ def _read_segment_content(
         found: set[OpaqueReason] = set(applies.get(position, ()))
         if frame.link.state == "broken" and not frame.transparent:
             found.add("chain_break")
-        if (
-            stopped_at is not None
-            and position > stopped_at
-            and not frame.transparent
-            and frame.frame_type != _LAST_FRAME
-        ):
+        if stopped_at is not None and position > stopped_at:
+            # P2-30 `stopped`: an earlier frame gave `unsupported_critical`.
             found.add("stopped")
         if frame.payload.state == "damaged":
             found.add("damaged")
