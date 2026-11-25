@@ -271,6 +271,8 @@ def sort_findings(records: Iterable[FindingRecord]) -> tuple[FindingRecord, ...]
 _SUBJECT_FRAME_TYPE = 2
 # The subject kind of a profile (P2, `subject_kind` tag 4).
 _SUBJECT_PROFILE = 4
+# The subject kind of an item kind (P2, `subject_kind` tag 5).
+_SUBJECT_ITEM_KIND = 5
 
 
 def _subject(
@@ -501,11 +503,11 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
     # The items of a segment whose opener is not readable are delimited, not judged.
     judged = not isinstance(opener, WireError) and opener.identifier is not None
     for position, item in enumerate(wire.items if judged else ()):
-        if (
-            isinstance(item, Item)
-            and item.kind == "opaque"
-            and item.reason not in (None, "unknown_item_kind")
-        ):
+        if not isinstance(item, Item) or item.kind != "opaque":
+            continue
+        if item.reason == "unknown_item_kind":
+            found.append(_item_kind_record(position, item.tag))
+        elif item.reason is not None:
             found.append(
                 _record(
                     "malformed_value",
@@ -534,6 +536,25 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
         if finding.segment == segment and finding.position not in frames
     )
     return sort_findings(found)
+
+
+def _item_kind_record(position: int, tag: int | None) -> FindingRecord:
+    """Return the finding of an opaque item whose kind this reader does not know.
+
+    Its subject is the item's CBOR tag, the item kind (P2 `subject_kind` tag 5).
+    """
+    if tag is None:
+        raise ValueError("an unknown item kind carries its tag")
+    return FindingRecord(
+        FINDING_CODES["unknown_enumeration_value"],
+        REASON_CODES["unknown_item_kind"],
+        position,
+        None,
+        None,
+        None,
+        subject=(_SUBJECT_ITEM_KIND, tag),
+        step=_step("unknown_enumeration_value", "unknown_item_kind"),
+    )
 
 
 def _segment_record(code: str, reason: str | None) -> FindingRecord:

@@ -33,6 +33,9 @@ class Item:
     offset: int
     end: int
     reason: ItemReason | None = None
+    # The CBOR tag of an opaque item of an unknown kind (`unknown_item_kind`), its
+    # item-kind subject (P2 `subject_kind` tag 5).
+    tag: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,7 +99,7 @@ def _classify_item_at(
         return Item("offsets", offset, end)
     if tag == 0 or registry_version <= 1:
         return Item("opaque", offset, end, "unregistered_value")
-    return Item("opaque", offset, end, "unknown_item_kind")
+    return Item("opaque", offset, end, "unknown_item_kind", tag)
 
 
 def encode_offsets(item_lengths: Sequence[int]) -> bytes:

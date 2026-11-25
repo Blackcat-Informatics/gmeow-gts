@@ -1187,3 +1187,23 @@ def test_frame_rebuilds_encode_the_corpus_rebuilds() -> None:
     expected = [[frame[9] for frame in segment[16]] for segment in record[-1][1]]
     assert got == expected
     assert any(rebuilds for segment in got for rebuilds in segment)
+
+
+def test_unknown_item_kind_finding_states_the_item_tag() -> None:
+    """An opaque item of an unknown kind is a finding whose subject is its CBOR tag.
+
+    The finding sits at the item's position in its segment and carries no offset.
+    """
+    raw, capacity, verifier, record = _corpus_read("item-kind-newer", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        finding
+        for segment in file_result(read, raw, capacity).segments
+        for finding in segment.findings
+        if finding.code == FINDING_CODES["unknown_enumeration_value"]
+    ]
+    assert [(f.reason, f.subject, f.position, f.offset) for f in found] == [
+        (REASON_CODES["unknown_item_kind"], (5, 9), 1, None)
+    ]
