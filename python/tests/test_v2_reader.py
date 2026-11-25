@@ -1289,3 +1289,18 @@ def test_payload_over_the_decoded_size_limit_is_refused_at_its_frame() -> None:
             20,
         )
     ]
+
+
+def test_malformed_item_finding_gives_the_bytes_of_its_item() -> None:
+    """A malformed frame's finding carries the offset and length of its item."""
+    raw, capacity, verifier, record = _corpus_read("payload-ill-formed-head", "1c")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    frame = file_result(read, raw, capacity).segments[0].frames[0]
+    found = [
+        (f.code, f.position, f.offset, f.length)
+        for f in frame.findings
+        if f.code == FINDING_CODES["malformed_value"]
+    ]
+    assert found == [(FINDING_CODES["malformed_value"], 1, 11, 83)]

@@ -12,6 +12,7 @@ from .content import ContentFinding, ContentRead
 from .frame import FrameError
 from .items import DamagedRegion, Item
 from .reader import WireFrame
+from .resync import RESYNC_MAX
 
 _PARITY = 16
 _REGISTRY_VERSION = 1
@@ -318,12 +319,23 @@ def finding_record(
     this reader states. Raise KeyError when the finding's code or reason is not one
     of registry version 1.
     """
+    offset, length = finding.offset, finding.length
+    if (
+        finding.code == "malformed_value"
+        and read is not None
+        and finding.segment is not None
+        and finding.position is not None
+        and offset is None
+    ):
+        # A malformed item is reported with the bytes of the item at its position.
+        item = read.wire.segments[finding.segment].items[finding.position]
+        offset, length = item.offset, item.end - item.offset
     return FindingRecord(
         FINDING_CODES[finding.code],
         None if finding.reason is None else REASON_CODES[finding.reason],
         finding.position,
-        finding.offset,
-        finding.length,
+        offset,
+        length,
         finding.count,
         subject=_subject(read, finding.segment, finding),
         step=_step(finding.code, finding.reason),
@@ -567,6 +579,21 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
                     4,
                 )
             )
+    for refusal in wire.resync_refusals:
+        # The refusal stands at the first item the scan did not reach: the items
+        # that start before its offset are the ones before it in the segment.
+        position = sum(1 for item in wire.items if item.offset < refusal.offset)
+        found.append(
+            FindingRecord(
+                FINDING_CODES["exceeds_capacity"],
+                REASON_CODES["total_decoded"],
+                position,
+                refusal.offset,
+                RESYNC_MAX,
+                refusal.count,
+                step=_step("exceeds_capacity", "total_decoded"),
+            )
+        )
     found.extend(
         finding_record(finding, read)
         for finding in read.findings
