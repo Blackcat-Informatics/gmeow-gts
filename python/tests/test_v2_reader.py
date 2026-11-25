@@ -19,6 +19,7 @@ from gts.v2 import (
     read_content,
     read_wire,
 )
+from gts.v2.canonical_check import CanonicalResult, CheckState
 from gts.v2.content import ContentCapacity
 from gts.v2.file_result import (
     CompleteVisibility,
@@ -697,6 +698,21 @@ def _present(option: list[object]) -> object:
     return None if option == [1] else option[1]
 
 
+_UNCHECKED_CODES = {"exceeds_capacity": 2, "labelling_refused": 3, "not_claimed": 5}
+
+
+def _check_codes(result: CanonicalResult) -> list[object]:
+    """Return `[claimed, structure, labelling]` as P2 encodes them."""
+
+    def state(check: CheckState) -> list[int]:
+        if check.state == "unchecked":
+            assert check.reason is not None
+            return [2, _UNCHECKED_CODES[check.reason]]
+        return [1] if check.state == "verified" else [3]
+
+    return [result.claimed, state(result.structure), state(result.labelling)]
+
+
 _PAST_CODES = {"absent": 1, "matches": 2, "differs": 3, "not_checked": 4}
 _REACHED_CODES = {"walked": 1, "scanned": 2}
 _INTEGRITY_CODES = {
@@ -730,6 +746,9 @@ _AUTHENTICITY_CODES = {
         ("payload-unknown-codec", ""),
         ("append-opaque-tail", "after"),
         ("append-resync-fresh-after-pad", "framing"),
+        # A claimed canonical form, one that holds and one that fails.
+        ("append-after-canonical", "canonical"),
+        ("header-minimal", ""),
         # A signed commit, a transparent frame, and frames that are not anchored.
         ("equal-heads-different-bytes", "b3"),
         ("link-heal-closing-items", "damaged"),
@@ -769,6 +788,8 @@ def test_segment_results_give_each_opener_of_the_corpus(name: str, label: str) -
                 got.committed_frames,
                 got.authenticated_frames,
                 list(got.transparent_frames),
+                _check_codes(got.canonical),
+                got.content_digest,
             ]
             == [
                 record[0],
@@ -780,6 +801,8 @@ def test_segment_results_give_each_opener_of_the_corpus(name: str, label: str) -
                 _present(record[6]),  # type: ignore[arg-type]
                 _present(record[7]),  # type: ignore[arg-type]
                 *record[8:14],
+                record[14][:3],  # type: ignore[index]
+                _present(record[15]),  # type: ignore[arg-type]
             ]
         )
 

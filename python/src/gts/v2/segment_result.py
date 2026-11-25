@@ -7,6 +7,7 @@ from typing import Literal
 
 from ._decode import WireError
 from .authentication import Authenticity
+from .canonical_check import CanonicalResult
 from .content import ContentCapacity, ContentRead
 from .frame import FrameError
 from .items import DamagedRegion, Item
@@ -52,6 +53,8 @@ class SegmentResult:
     committed_frames: int
     authenticated_frames: int
     transparent_frames: tuple[int, ...]
+    canonical: CanonicalResult
+    content_digest: bytes | None
 
 
 def opener_outcome(segment: WireSegment) -> OpenerOutcome:
@@ -236,6 +239,10 @@ def segment_results(
                 tuple(frame.position for frame in segment.frames if frame.transparent)
                 if readable
                 else (),
+                read.canonical[ordinal],
+                None
+                if (report := read.own_labelling[ordinal]) is None
+                else report.content_digest,
             )
         )
     return tuple(results)
