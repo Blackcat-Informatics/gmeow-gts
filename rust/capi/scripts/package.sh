@@ -52,7 +52,7 @@ case "${GTS_CAPI_ARCH:-$(uname -m)}" in
   *) arch="$(uname -m | tr '[:upper:]' '[:lower:]')" ;;
 esac
 
-cargo build --locked --manifest-path "${CAPI}/Cargo.toml" --release --locked
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml" --release
 
 base="gmeow-gts-capi_${VERSION}_${os}_${arch}"
 stage="${DIST}/${base}"

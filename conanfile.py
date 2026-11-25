@@ -46,7 +46,7 @@ class GmeowGtsConan(ConanFile):
     )
 
     def build(self):
-        cmd = "cargo build --locked --manifest-path rust/capi/Cargo.toml --locked"
+        cmd = "cargo build --locked --manifest-path rust/capi/Cargo.toml"
         if self._cargo_profile() == "release":
             cmd += " --release"
         self.run(cmd)

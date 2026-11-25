@@ -35,4 +35,4 @@ workspace = true
 
 [dependencies]
 gmeow-gts = { version = "1.0.0-rc.1", path = "..", features = ["rdf-codecs", "yaml-ld"] }
-serde_json = "1"
+serde_json = { workspace = true }
