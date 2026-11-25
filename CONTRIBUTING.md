@@ -35,6 +35,7 @@ cd rust   && cargo test                              # unit + CLI + conformance
 cd go     && go test ./...                            # unit + conformance
 cd ts     && npm ci && npm test                       # compiles, runs against vectors/
 cd python && uv sync --extra rdf && uv run pytest     # reference + conformance
+cd kotlin && gradle test                             # JVM unit + conformance
 docker build -t gmeow-gts-smalltalk smalltalk && \
   docker run --rm -v "$PWD:/workspace" --entrypoint /bin/sh gmeow-gts-smalltalk -lc \
   'sh /workspace/smalltalk/scripts/run-tests.sh'      # Pharo bootstrap tests
