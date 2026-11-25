@@ -1,0 +1,182 @@
+# SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
+# SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
+"""Typed findings of the GTS v2 read result (P2 section 5.1 and 6.1, P7 1.1)."""
+
+from dataclasses import dataclass
+
+from .content import ContentFinding
+
+# The finding codes of registry version 1 (P2, 5.1).
+FINDING_CODES = {
+    "empty_input": 1,
+    "not_this_format": 2,
+    "unsupported_generation": 3,
+    "unsupported_registry_version": 4,
+    "unknown_enumeration_value": 5,
+    "unsupported_critical": 6,
+    "malformed_value": 7,
+    "undelimitable_input": 8,
+    "torn_tail": 9,
+    "read_failed": 10,
+    "chain_break": 11,
+    "healed_link": 12,
+    "damaged_frame": 13,
+    "stored_check_mismatch": 14,
+    "commit_count_mismatch": 15,
+    "commit_root_mismatch": 16,
+    "uncommitted_tail": 17,
+    "index_claim_failed": 18,
+    "missing_dependency": 19,
+    "exceeds_capacity": 20,
+    "declared_order_violated": 21,
+    "forward_reference": 22,
+    "position_constraint": 23,
+    "ill_formed_term": 24,
+    "opaque_term": 25,
+    "labelling_refused": 26,
+    "canonical_violated": 27,
+    "suppression_unmatched": 28,
+    "binding_unanchored": 29,
+    "parity_damaged": 30,
+    "parity_mismatch": 31,
+    "parity_unexplained": 32,
+    "parity_stale": 33,
+    "repair_failed": 34,
+    "repaired": 35,
+    "unprotected_tail": 36,
+    "proof_malformed": 37,
+    "proof_failed": 38,
+    "proof_holds": 39,
+    "signature_invalid": 40,
+    "signature_unverified": 41,
+    "lineage_begins": 42,
+    "lineage_mismatch": 43,
+    "unreferenced_unit": 44,
+    "conflicting_declaration": 45,
+    "profile_violation": 46,
+    "conversion_stopped": 47,
+    "profile_not_checked": 48,
+}
+
+# The reasons of registry version 1 (P2, 6.1).
+REASON_CODES = {
+    "unknown_codec": 1,
+    "unknown_frame_type": 2,
+    "not_deterministic": 3,
+    "wrong_type": 4,
+    "wrong_length": 5,
+    "out_of_range": 6,
+    "unregistered_value": 7,
+    "unordered_or_repeated": 8,
+    "inconsistent_counts": 9,
+    "forbidden_combination": 10,
+    "codec_constraint": 11,
+    "payload_digest": 12,
+    "decoded_length": 13,
+    "blob_length": 14,
+    "blob_digest": 15,
+    "decode_failed": 16,
+    "index_head": 17,
+    "index_root": 18,
+    "index_offsets": 19,
+    "index_digest": 20,
+    "index_members": 21,
+    "index_directory": 22,
+    "index_locator": 23,
+    "chunk": 24,
+    "term": 25,
+    "value": 26,
+    "blob": 27,
+    "frame": 28,
+    "state": 29,
+    "decoded_size": 30,
+    "stored_size": 31,
+    "refusal_width": 32,
+    "refusal_limit": 33,
+    "quad": 34,
+    "reifier": 35,
+    "graph": 36,
+    "reifier_binding": 37,
+    "annotation": 38,
+    "binding": 39,
+    "data": 40,
+    "parity": 41,
+    "too_many_erasures": 42,
+    "verify_failed": 43,
+    "count": 44,
+    "length": 45,
+    "order": 46,
+    "inclusion": 47,
+    "consistency_old_root": 48,
+    "consistency_new_root": 49,
+    "consistency_diverged": 50,
+    "range": 51,
+    "consistency": 52,
+    "unknown_signature_algorithm": 53,
+    "key_not_held": 54,
+    "head": 55,
+    "ordinal": 56,
+    "key_mismatch": 57,
+    "value_length": 58,
+    "non_canonical_scalar": 59,
+    "small_order_key": 60,
+    "small_order_nonce": 61,
+    "equation_failed": 62,
+    "composite_classical_failed": 63,
+    "composite_post_quantum_failed": 64,
+    "header": 65,
+    "frame_sequence": 66,
+    "terms": 67,
+    "rows": 68,
+    "value_region": 69,
+    "blob_region": 70,
+    "bindings": 71,
+    "suppression": 72,
+    "commit": 73,
+    "index": 74,
+    "labelling": 75,
+    "content_digest": 76,
+    "source_damaged": 77,
+    "source_not_decodable": 78,
+    "unrepresentable_term": 79,
+    "unrepresentable_frame": 80,
+    "source_not_deterministic": 81,
+    "source_exceeds_capacity": 82,
+    "content_mismatch": 83,
+    "unknown_item_kind": 84,
+    "refusal_size": 85,
+    "total_decoded": 86,
+    "item_count": 87,
+    "state_unavailable": 88,
+    "total_rebuilt": 89,
+    "total_formed": 90,
+    "refusal_weight": 91,
+    "refusal_term_node": 92,
+}
+
+
+@dataclass(frozen=True, slots=True)
+class FindingRecord:
+    """A P7 `finding`; `None` stands for `absent`. The subject is not yet stated."""
+
+    code: int
+    reason: int | None
+    position: int | None
+    offset: int | None
+    length: int | None
+    count: int | None
+
+
+def finding_record(finding: ContentFinding) -> FindingRecord:
+    """Return the typed record of a finding of the content read.
+
+    Raise KeyError when the finding's code or reason is not one of registry version 1.
+    """
+    return FindingRecord(
+        FINDING_CODES[finding.code],
+        None if finding.reason is None else REASON_CODES[finding.reason],
+        finding.position,
+        finding.offset,
+        finding.length,
+        finding.count,
+    )

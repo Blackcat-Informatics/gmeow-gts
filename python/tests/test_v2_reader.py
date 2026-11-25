@@ -31,6 +31,7 @@ from gts.v2.file_result import (
     fold_state,
     payload_state,
 )
+from gts.v2.findings import finding_record
 from gts.v2.payload import PayloadBudget
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
 from gts.v2.resync import (
@@ -933,3 +934,37 @@ def test_frame_results_give_each_frame_of_the_corpus(name: str, label: str) -> N
             ]
             for record in segment[16]
         ]
+
+
+@pytest.mark.parametrize(
+    "name, size",
+    [
+        ("file-not-this-format", 4),
+        ("gen-record-three", 12),
+        ("file-first-incomplete", 3),
+        ("file-first-undelimitable", 1),
+    ],
+)
+def test_file_findings_are_typed_records_of_the_corpus(name: str, size: int) -> None:
+    """The findings of a file with no segment encode as the corpus findings do."""
+    raw, capacity = _corpus_input(name, size)
+    folder = _VECTORS / "P1"
+    expected = next(
+        cbor2.loads(bytes.fromhex(case["read_result"]))[-1][2]
+        for case in json.loads((folder / f"{name}.json").read_text())["cases"]
+        if (folder / case["input_file"]).stat().st_size == size
+    )
+    got = [finding_record(f) for f in read_content(raw, capacity).findings]
+    assert [
+        (f.code, f.reason, f.position, f.offset, f.length, f.count) for f in got
+    ] == [
+        (
+            f[0],
+            _present(f[1]),
+            _present(f[3]),
+            _present(f[4]),
+            _present(f[5]),
+            _present(f[6]),
+        )
+        for f in expected
+    ]
