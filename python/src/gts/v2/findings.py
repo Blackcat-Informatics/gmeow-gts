@@ -277,6 +277,8 @@ _SUBJECT_FRAME_TYPE = 2
 _SUBJECT_PROFILE = 4
 # The subject kind of an item kind (P2, `subject_kind` tag 5).
 _SUBJECT_ITEM_KIND = 5
+# The subject kind of a codec (P2, `subject_kind` tag 1).
+_SUBJECT_CODEC = 1
 
 
 def _subject(
@@ -406,6 +408,23 @@ def frame_findings(
                     length,
                     frame.payload.count,
                     step=_step("exceeds_capacity", reason),
+                )
+            )
+        if frame.payload.state == "unchecked" and reason == "unknown_codec":
+            # The codec is the subject, and the payload check (R7) judges it.
+            codec = frame.payload.codec
+            if codec is None:
+                raise ValueError("an unknown codec carries its codec")
+            found.append(
+                FindingRecord(
+                    FINDING_CODES["unknown_enumeration_value"],
+                    REASON_CODES["unknown_codec"],
+                    frame.position,
+                    None,
+                    None,
+                    None,
+                    subject=(_SUBJECT_CODEC, codec),
+                    step=7,
                 )
             )
         if frame.payload.stored_matches is False:

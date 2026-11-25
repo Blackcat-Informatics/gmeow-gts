@@ -39,6 +39,8 @@ class PayloadCheck:
     reason: PayloadReason | None = None
     count: int | None = None
     decoded: bytes | memoryview | None = None
+    # The codec or storage tag of an unknown codec: the subject of its finding.
+    codec: int | None = None
 
 
 class PayloadBudget:
@@ -141,10 +143,12 @@ class PayloadBudget:
         storage = frame.storage
         decoded: bytes | memoryview
         if isinstance(storage, UnknownStorage):
-            return PayloadCheck("unchecked", stored, "unknown_codec")
+            return PayloadCheck("unchecked", stored, "unknown_codec", codec=storage.tag)
         if isinstance(storage, CompressedStorage):
             if storage.codec != ZSTD_CODEC:
-                return PayloadCheck("unchecked", stored, "unknown_codec")
+                return PayloadCheck(
+                    "unchecked", stored, "unknown_codec", codec=storage.codec
+                )
             if length == 0:
                 return PayloadCheck("damaged", stored, "codec_constraint")
             header = zstd_header(length)

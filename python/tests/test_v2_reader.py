@@ -1333,3 +1333,22 @@ def test_unknown_frame_type_finding_sorts_with_the_items_step() -> None:
         FINDING_CODES["unknown_enumeration_value"],
         FINDING_CODES["malformed_value"],
     ]
+
+
+@pytest.mark.parametrize(
+    "name, subject",
+    [("payload-unknown-codec", 2), ("frame-storage-tag-newer", 3)],
+)
+def test_unknown_codec_finding_states_the_codec(name: str, subject: int) -> None:
+    """An unknown codec is `unknown_enumeration_value` whose subject is the codec."""
+    raw, capacity, verifier, record = _corpus_read(name, "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    frame = file_result(read, raw, capacity).segments[0].frames[0]
+    found = [
+        (f.reason, f.subject, f.position)
+        for f in frame.findings
+        if f.code == FINDING_CODES["unknown_enumeration_value"]
+    ]
+    assert found == [(REASON_CODES["unknown_codec"], (1, subject), 1)]
