@@ -977,8 +977,10 @@ pub unsafe extern "C" fn gts_files_pack(
 /// # Safety
 ///
 /// `data` must point to `len` readable bytes unless `len` is zero. `dest` must
-/// be a NUL-terminated UTF-8 path. `out` must be writable. `error` may be null
-/// or a writable error-handle slot.
+/// be a NUL-terminated UTF-8 path. `out` must be a valid, aligned, writable
+/// `GtsBuffer` pointer. A null `out` is rejected with `GTS_STATUS_INVALID_ARGUMENT`
+/// before anything is written to the destination. `error` may be null or a
+/// writable error-handle slot, which receives a handle on failure.
 /// Input pointers are read only during the call.
 /// On success `out` owns a buffer that the caller releases with `gts_buffer_free`.
 /// On failure a non-null `error` receives a handle that `gts_error_free` releases.
@@ -1339,8 +1341,10 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let dest =
-            std::env::temp_dir().join(format!("gts-capi-null-out-{}-{nonce}", std::process::id()));
+        // A unique, nonexistent destination under the checkout's scratch directory.
+        let dest = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.stage")
+            .join(format!("capi-null-out-{}-{nonce}", std::process::id()));
         let dest_c = CString::new(dest.to_str().unwrap()).unwrap();
         let mut error: *mut GtsError = ptr::null_mut();
         let status = unsafe {
