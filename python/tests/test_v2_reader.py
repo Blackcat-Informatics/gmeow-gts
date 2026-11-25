@@ -19,7 +19,7 @@ from gts.v2 import (
     read_content,
     read_wire,
 )
-from gts.v2.file_result import UncheckedPayload, payload_state
+from gts.v2.file_result import OpaqueFold, UncheckedPayload, fold_state, payload_state
 from gts.v2.payload import PayloadBudget
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
 from gts.v2.resync import (
@@ -30,7 +30,7 @@ from gts.v2.resync import (
     encode_resync,
 )
 from gts.v2.writer import SegmentWriter
-from test_v2_content import _PARITY_CODES, _REASONS
+from test_v2_content import _PARITY_CODES, _REASONS, _contents
 
 P1 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P1"
 
@@ -172,6 +172,44 @@ def test_payload_beyond_stored_capacity_is_unchecked() -> None:
     assert [payload_state(frame.payload) for frame in frames] == [
         UncheckedPayload("exceeds_capacity")
     ]
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        # An unsupported critical frame stops the segment.
+        (
+            "frame-unknown-critical",
+            {
+                1: "not_content",
+                2: OpaqueFold("unsupported_critical"),
+                3: OpaqueFold("stopped"),
+                4: OpaqueFold("stopped"),
+            },
+        ),
+        (
+            "frame-unknown-noncritical",
+            {1: "not_content", 2: OpaqueFold("unknown_frame_type"), 3: "not_content"},
+        ),
+        (
+            "parity-geometry-newer",
+            {
+                1: "not_content",
+                2: "not_content",
+                3: "not_content",
+                4: OpaqueFold("unknown_frame_type"),
+            },
+        ),
+    ],
+)
+def test_fold_state_gives_the_p2_reason_of_each_opaque_frame(
+    name: str, expected: dict[int, object]
+) -> None:
+    """Each opaque frame carries the P2 reason its fold decision site gives."""
+    raw, _, capacity = next(_contents("P1", name))
+    read = read_content(raw, capacity)
+    frames = read.wire.segments[0].frames
+    assert {frame.position: fold_state(read, 0, frame) for frame in frames} == expected
 
 
 def test_walked_header_has_absolute_item_boundary() -> None:

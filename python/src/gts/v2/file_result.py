@@ -5,7 +5,9 @@
 from dataclasses import dataclass
 from typing import Literal
 
+from .content import ContentRead, OpaqueReason
 from .payload import PayloadCheck
+from .reader import WireFrame
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +18,19 @@ class UncheckedPayload:
 
 
 type PayloadState = Literal["verified", "damaged"] | UncheckedPayload
+
+
+@dataclass(frozen=True, slots=True)
+class OpaqueFold:
+    """The `fold_state` variant `opaque`, carrying its P2 reason."""
+
+    reason: OpaqueReason
+
+
+type FoldState = Literal["folded", "not_content"] | OpaqueFold
+
+# Frame types that are not content unless opaque: commit (14), index (15), parity (16).
+_NOT_CONTENT_TYPES = frozenset((14, 15, 16))
 
 # The three size reasons of a payload check are the `exceeds_capacity` reason of
 # the typed result (P2-28, and the R7 findings of P7).
@@ -37,3 +52,18 @@ def payload_state(check: PayloadCheck) -> PayloadState:
             if check.reason in _CAPACITY_REASONS:
                 return UncheckedPayload("exceeds_capacity")
             raise ValueError("an unchecked payload carries no P2 reason")
+
+
+def fold_state(read: ContentRead, segment: int, frame: WireFrame) -> FoldState:
+    """Return the P7 `fold_state` of a frame of a segment of a read.
+
+    A frame with an opaque reason is `opaque` with that reason. Otherwise a
+    commit, index or parity frame is `not_content` and every other frame is
+    `folded` (P7 section 1.3).
+    """
+    reason = read.opaque_reasons.get((segment, frame.position))
+    if reason is not None:
+        return OpaqueFold(reason)
+    if frame.frame_type in _NOT_CONTENT_TYPES:
+        return "not_content"
+    return "folded"
