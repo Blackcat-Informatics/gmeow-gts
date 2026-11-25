@@ -580,9 +580,9 @@ def segment_findings(read: ContentRead, segment: int) -> tuple[FindingRecord, ..
                 )
             )
     for refusal in wire.resync_refusals:
-        # The refusal stands at the first item the scan did not reach: the items
-        # that start before its offset are the ones before it in the segment.
-        position = sum(1 for item in wire.items if item.offset < refusal.offset)
+        # The refusal stands at the item that holds its offset, or at the next item
+        # when the offset falls between items: the items that end by it come before.
+        position = sum(1 for item in wire.items if item.end <= refusal.offset)
         found.append(
             FindingRecord(
                 FINDING_CODES["exceeds_capacity"],

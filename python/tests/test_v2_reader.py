@@ -1304,3 +1304,19 @@ def test_malformed_item_finding_gives_the_bytes_of_its_item() -> None:
         if f.code == FINDING_CODES["malformed_value"]
     ]
     assert found == [(FINDING_CODES["malformed_value"], 1, 11, 83)]
+
+
+def test_resync_refusal_stands_at_the_item_that_holds_its_offset() -> None:
+    """A refused resync scan stands at the item holding its offset."""
+    raw, capacity, verifier, record = _corpus_read(
+        "resync-refused-charge-once", "readable-segment"
+    )
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        (f.position, f.offset, f.length, f.count)
+        for f in file_result(read, raw, capacity).segments[0].findings
+        if f.code == FINDING_CODES["exceeds_capacity"]
+    ]
+    assert found == [(3, 316, 4096, 4115)]
