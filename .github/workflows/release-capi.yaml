@@ -86,7 +86,7 @@ jobs:
       - name: Verify tag matches C ABI version
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#capi-v}"
-          PKG_VERSION="$(cargo metadata --manifest-path rust/capi/Cargo.toml --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["packages"][0]["version"])')"
+          PKG_VERSION="$(cargo metadata --manifest-path rust/capi/Cargo.toml --no-deps --format-version 1 | python3 -c 'import json,sys; print(next(p["version"] for p in json.load(sys.stdin)["packages"] if p["name"] == "gmeow-gts-capi"))')"
           if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
             echo "Tag version $TAG_VERSION does not match rust/capi/Cargo.toml version $PKG_VERSION"
             exit 1
@@ -103,10 +103,16 @@ jobs:
       - name: Generate SBOM
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
-          path: rust/capi
+          # The workspace lock holds the C API crate's resolved dependencies;
+          # rust/capi has no lock file of its own.
+          path: rust
           format: spdx-json
           output-file: dist/capi/sbom-gmeow-gts-capi.spdx.json
           upload-artifact: false
+
+      - name: Verify SBOM names the C API and its dependencies
+        run: |
+          python3 -I -c 'import json,sys; names={p["name"] for p in json.load(open(sys.argv[1]))["packages"]}; missing=[n for n in ("gmeow-gts-capi","gmeow-gts","serde_json") if n not in names]; sys.exit("SBOM is missing: " + ", ".join(missing)) if missing else None' dist/capi/sbom-gmeow-gts-capi.spdx.json
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
