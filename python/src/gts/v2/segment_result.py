@@ -9,6 +9,7 @@ from ._decode import WireError
 from .authentication import Authenticity
 from .canonical_check import CanonicalResult
 from .content import ContentCapacity, ContentRead
+from .file_result import FoldState, PayloadState, fold_state, payload_state
 from .frame import FrameError
 from .items import DamagedRegion, Item
 from .reader import WireSegment
@@ -243,6 +244,47 @@ def segment_results(
                 None
                 if (report := read.own_labelling[ordinal]) is None
                 else report.content_digest,
+            )
+        )
+    return tuple(results)
+
+
+@dataclass(frozen=True, slots=True)
+class FrameResult:
+    """The first fields of a P7 `frame_result`; `None` stands for `absent`."""
+
+    position: int
+    offset: int
+    length: int
+    frame_type: int | None
+    link: Literal["linked", "healed", "broken"]
+    payload: PayloadState
+    stored: Literal["matches", "mismatch"] | None
+    fold: FoldState
+
+
+def frame_results(read: ContentRead, segment: int) -> tuple[FrameResult, ...]:
+    """Return the `frame_result` fields of each frame of a segment of a read.
+
+    A segment whose opener is not readable has no frame result.
+    """
+    wire = read.wire.segments[segment]
+    if opener_outcome(wire) != "readable":
+        return ()
+    results = []
+    for frame in wire.frames:
+        item = wire.items[frame.position]
+        stored = frame.payload.stored_matches
+        results.append(
+            FrameResult(
+                frame.position,
+                item.offset,
+                item.end - item.offset,
+                frame.frame_type,
+                frame.link.state,
+                payload_state(frame.payload),
+                None if stored is None else ("matches" if stored else "mismatch"),
+                fold_state(read, segment, frame),
             )
         )
     return tuple(results)

@@ -23,7 +23,9 @@ from gts.v2.canonical_check import CanonicalResult, CheckState
 from gts.v2.content import ContentCapacity
 from gts.v2.file_result import (
     CompleteVisibility,
+    FoldState,
     OpaqueFold,
+    PayloadState,
     UncheckedPayload,
     file_result,
     fold_state,
@@ -38,7 +40,7 @@ from gts.v2.resync import (
     ResyncScanner,
     encode_resync,
 )
-from gts.v2.segment_result import HeaderOpener, segment_results
+from gts.v2.segment_result import HeaderOpener, frame_results, segment_results
 from gts.v2.signatures import HeldKey, SignatureVerifier
 from gts.v2.writer import SegmentWriter
 from test_v2_content import _PARITY_CODES, _REASONS, _VECTORS, _contents
@@ -814,3 +816,79 @@ def test_frame_with_unknown_codec_is_opaque_as_unknown_codec(name: str) -> None:
     read = read_content(raw)
     frame = read.wire.segments[0].frames[0]
     assert fold_state(read, 0, frame) == OpaqueFold("unknown_codec")
+
+
+_LINK_CODES = {"linked": 1, "healed": 2, "broken": 3}
+_STORED_CODES = {"matches": 1, "mismatch": 2}
+_UNCHECKED_REASON_CODES = {"unknown_codec": 1, "exceeds_capacity": 2}
+_OPAQUE_REASON_CODES = {
+    "damaged": 1,
+    "malformed": 2,
+    "unknown_frame_type": 3,
+    "unsupported_critical": 4,
+    "stopped": 5,
+    "chain_break": 6,
+    "exceeds_capacity": 7,
+    "unknown_codec": 8,
+}
+
+
+def _payload_code(state: PayloadState) -> list[int]:
+    if state == "verified":
+        return [1]
+    if state == "damaged":
+        return [2]
+    return [3, _UNCHECKED_REASON_CODES[state.reason]]
+
+
+def _fold_code(state: FoldState) -> list[int]:
+    if state == "folded":
+        return [1]
+    if state == "not_content":
+        return [2]
+    return [3, _OPAQUE_REASON_CODES[state.reason]]
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        ("append-after-canonical", "canonical"),
+        # Damaged payloads whose codec constraint is malformed and not merely damaged,
+        # alone and under a broken link.
+        ("payload-output-longer", ""),
+        ("chain-break-withheld-codec-constraint", ""),
+        ("payload-unknown-codec", ""),
+        ("parity-later-version-after-stop", ""),
+    ],
+)
+def test_frame_results_give_each_frame_of_the_corpus(name: str, label: str) -> None:
+    """Each frame states its place, type, link, payload, stored check and fold."""
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    read = read_content(raw, capacity, verifier=verifier)
+    for ordinal, segment in enumerate(expected):
+        frames = frame_results(read, ordinal)
+        assert [
+            [
+                frame.position,
+                frame.offset,
+                frame.length,
+                frame.frame_type,
+                _LINK_CODES[frame.link],
+                _payload_code(frame.payload),
+                None if frame.stored is None else _STORED_CODES[frame.stored],
+                _fold_code(frame.fold),
+            ]
+            for frame in frames
+        ] == [
+            [
+                record[0],
+                record[1],
+                record[2],
+                _present(record[3]),
+                record[4],
+                record[5],
+                _present(record[6]),
+                record[8],
+            ]
+            for record in segment[16]
+        ]

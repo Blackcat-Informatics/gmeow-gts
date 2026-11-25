@@ -724,6 +724,9 @@ def _read_segment_content(
             found.add("stopped")
         if frame.payload.state == "damaged":
             found.add("damaged")
+            if frame.payload.reason == "codec_constraint" and frame.frame_type != 16:
+                # P1: a codec constraint is `malformed_value`, parity frames excepted.
+                found.add("malformed")
         elif frame.payload.reason == "unknown_codec":
             found.add("unknown_codec")
         elif _payload_refused(frame):
