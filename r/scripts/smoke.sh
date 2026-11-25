@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
-CAPI_TARGET="${CAPI}/target/debug"
+CAPI_TARGET="${ROOT}/rust/target/debug"
 R_IMAGE="${R_IMAGE:-gmeow-gts-r-smoke:4.5.1}"
 R_LIB="${R_LIB:-${TMPDIR:-/tmp}/gmeowgts-r-lib}"
 R_PKG="${R_PKG:-${TMPDIR:-/tmp}/gmeowgts-r-package}"
@@ -16,7 +16,7 @@ source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 cd "${ROOT}"
 
 diff -u rust/capi/include/gts.h r/src/gts.h
-cargo build --manifest-path "${CAPI}/Cargo.toml"
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml"
 
 run_smoke() {
   rm -rf "${R_LIB}" "${R_PKG}" "${R_CHECK}"
@@ -45,8 +45,8 @@ else
   fi
   docker build -t "${R_IMAGE}" r
   docker run --rm \
-    -e GTS_LIB_DIR=/workspace/rust/capi/target/debug \
-    -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e GTS_LIB_DIR=/workspace/rust/target/debug \
+    -e LD_LIBRARY_PATH=/workspace/rust/target/debug \
     -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
     -v "${ROOT}:/workspace" \
     -w /workspace \

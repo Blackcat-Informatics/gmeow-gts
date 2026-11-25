@@ -56,7 +56,7 @@ jobs:
           echo "GTS_RUBY_VERSION=${gem_version}" >> "$GITHUB_ENV"
 
       - name: Build C ABI library
-        run: cargo build --manifest-path rust/capi/Cargo.toml
+        run: cargo build --locked --manifest-path rust/capi/Cargo.toml
 
       - name: Ruby syntax, gem build, install, and smoke
         run: |

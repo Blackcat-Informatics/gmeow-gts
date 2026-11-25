@@ -159,4 +159,4 @@ audit:
 # Build the Rust library for wasm32 (backs the "wasm-friendly" claim).
 wasm:
     rustup target add wasm32-unknown-unknown
-    cd rust && cargo build --lib --target wasm32-unknown-unknown
+    cd rust && cargo build --locked --lib --target wasm32-unknown-unknown

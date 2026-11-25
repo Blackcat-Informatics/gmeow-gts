@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
-CAPI_TARGET="${CAPI}/target/debug"
+CAPI_TARGET="${ROOT}/rust/target/debug"
 RUBY_IMAGE="${RUBY_IMAGE:-gmeow-gts-ruby-ffi-smoke:3.4}"
 # shellcheck source=/dev/null
 source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
@@ -15,7 +15,7 @@ cd "${ROOT}"
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/gmeow-gts-ruby-smoke.XXXXXXXXXX")"
 trap 'rm -rf "${TMP}"' EXIT
 
-cargo build --manifest-path "${CAPI}/Cargo.toml"
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml"
 
 case "$(uname -s)" in
   Darwin)
@@ -75,8 +75,8 @@ else
   fi
   docker build -t "${RUBY_IMAGE}" ruby
   docker run --rm \
-    -e GTS_LIBGTS=/workspace/rust/capi/target/debug/libgts.so \
-    -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e GTS_LIBGTS=/workspace/rust/target/debug/libgts.so \
+    -e LD_LIBRARY_PATH=/workspace/rust/target/debug \
     -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
     -v "${ROOT}:/workspace" \
     -w /workspace \

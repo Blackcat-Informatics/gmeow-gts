@@ -267,7 +267,7 @@ mkdir -p \
   "${OUT}/swift"
 
 log "Build shared C ABI library"
-cargo build --manifest-path "${CAPI}/Cargo.toml"
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml"
 CAPI_TARGET="$(target_directory)/debug"
 LIB_PATH="${CAPI_TARGET}/${LIB_NAME}"
 CAPI_TARGET_CONTAINER="$(container_path "${CAPI_TARGET}")"

@@ -36,8 +36,7 @@ repos:
             vectors/.*\.gts|
             vectors/v2/.*|
             ts/package-lock.json|
-            rust/Cargo.lock|
-            rust/capi/Cargo.lock
+            rust/Cargo.lock
           )$
       - id: end-of-file-fixer
         exclude: *keep-verbatim
@@ -74,7 +73,7 @@ repos:
         # identifiers of the generation-2 draft under docs/v2/; shs is the
         # abbreviation in the title of FIPS 180-4, Secure Hash Standard (SHS).
         args: ["--ignore-words-list=crate,crates,ser,derails,defaut,developpe,registre,valide,verifie,hte,otherwrite,shs"]
-        exclude: '^((archive/v1/)?docs/i18n/.*|vectors/.*|ts/package-lock.json|rust/Cargo.lock|rust/capi/Cargo.lock)$'
+        exclude: '^((archive/v1/)?docs/i18n/.*|vectors/.*|ts/package-lock.json|rust/Cargo.lock)$'
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1

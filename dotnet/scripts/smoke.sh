@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
-CAPI_TARGET="${CAPI}/target/debug"
+CAPI_TARGET="${ROOT}/rust/target/debug"
 SMOKE_PROJECT="dotnet/Gmeow.Gts.Smoke/Gmeow.Gts.Smoke.csproj"
 DOTNET_SDK_IMAGE="${DOTNET_SDK_IMAGE:-mcr.microsoft.com/dotnet/sdk:8.0@sha256:d80fdd84f7e18eea12f8e45c52914f1353395009c95c41197178ea19944e6d48}"
 # shellcheck source=/dev/null
@@ -13,7 +13,7 @@ source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
 cd "${ROOT}"
 
-cargo build --manifest-path "${CAPI}/Cargo.toml"
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml"
 
 run_smoke() {
   dotnet run --project "${SMOKE_PROJECT}" -- \
@@ -31,7 +31,7 @@ else
     --user "$(id -u):$(id -g)" \
     -e DOTNET_CLI_HOME=/tmp/dotnet-cli \
     -e NUGET_PACKAGES=/tmp/nuget-packages \
-    -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e LD_LIBRARY_PATH=/workspace/rust/target/debug \
     -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
     -v "${ROOT}:/workspace" \
     -w /workspace \

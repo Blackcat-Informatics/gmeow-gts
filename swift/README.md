@@ -42,19 +42,19 @@ separately; no `libgts` binaries are bundled in the Swift package.
 Build the shared library from the repository root:
 
 ```sh
-cargo build --manifest-path rust/capi/Cargo.toml
+cargo build --locked --manifest-path rust/capi/Cargo.toml
 ```
 
 Then run the smoke executable with the library path available to the linker and
 dynamic loader:
 
 ```sh
-LIBRARY_PATH="$PWD/rust/capi/target/debug" \
-LD_LIBRARY_PATH="$PWD/rust/capi/target/debug" \
+LIBRARY_PATH="$PWD/rust/target/debug" \
+LD_LIBRARY_PATH="$PWD/rust/target/debug" \
 swift run --package-path . \
-  -Xlinker -L"$PWD/rust/capi/target/debug" \
+  -Xlinker -L"$PWD/rust/target/debug" \
   -Xlinker -rpath \
-  -Xlinker "$PWD/rust/capi/target/debug" \
+  -Xlinker "$PWD/rust/target/debug" \
   GmeowGTSSmoke \
   vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```

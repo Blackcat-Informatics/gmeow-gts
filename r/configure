@@ -37,10 +37,10 @@ Set GTS_LIB_DIR to the directory containing libgts, or install libgts in a
 standard system library path before installing gmeowgts.
 
 For a repository checkout, build the C ABI first:
-  cargo build --manifest-path rust/capi/Cargo.toml
+  cargo build --locked --manifest-path rust/capi/Cargo.toml
 
 Then install the R package with:
-  GTS_LIB_DIR=/absolute/path/to/rust/capi/target/debug R CMD INSTALL r
+  GTS_LIB_DIR=/absolute/path/to/rust/target/debug R CMD INSTALL r
 
 Searched the default linker path and:
   ${SEARCH_DIRS}

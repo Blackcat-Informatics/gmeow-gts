@@ -50,7 +50,7 @@ jobs:
           echo "GTS_LUAROCKS_ROCKSPEC=${rockspec}" >> "$GITHUB_ENV"
 
       - name: Build C ABI library
-        run: cargo build --manifest-path rust/capi/Cargo.toml
+        run: cargo build --locked --manifest-path rust/capi/Cargo.toml
 
       - name: LuaRocks lint, make, pack, and smoke
         run: |

@@ -17,14 +17,14 @@ format semantics come from the checked-in C ABI in `rust/capi/include/gts.h`.
 Build the shared library from the repository root:
 
 ```sh
-cargo build --manifest-path rust/capi/Cargo.toml
+cargo build --locked --manifest-path rust/capi/Cargo.toml
 ```
 
 Run the smoke test against that library:
 
 ```sh
-export GTS_LIBGTS="$PWD/rust/capi/target/debug/libgts.so"
-export LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export GTS_LIBGTS="$PWD/rust/target/debug/libgts.so"
+export LD_LIBRARY_PATH="$PWD/rust/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 GTS_WRAPPER_CLEAN_VECTOR="$PWD/vectors/01-minimal.gts" \
 GTS_WRAPPER_DAMAGED_VECTOR="$PWD/vectors/04-damaged-frame.gts" \
 GTS_WRAPPER_EMPTY_VECTOR="$PWD/vectors/28-empty-file.gts" \

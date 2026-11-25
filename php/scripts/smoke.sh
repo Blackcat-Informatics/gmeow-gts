@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
-CAPI_TARGET="${CAPI}/target/debug"
+CAPI_TARGET="${ROOT}/rust/target/debug"
 SMOKE="php/tests/smoke.php"
 COMPOSER_IMAGE="${COMPOSER_IMAGE:-composer@sha256:7725eb4545c438629ae8bde3ef0bb9a5038ef566126ad878442a69007242d267}"
 PHP_FFI_IMAGE="${PHP_FFI_IMAGE:-gmeow-gts-php-ffi-smoke:8.4}"
@@ -14,7 +14,7 @@ source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
 cd "${ROOT}"
 
-cargo build --manifest-path "${CAPI}/Cargo.toml"
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml"
 
 case "$(uname -s)" in
   Darwin)
@@ -61,8 +61,8 @@ else
   fi
   docker build -t "${PHP_FFI_IMAGE}" php
   docker run --rm \
-    -e GTS_LIBGTS=/workspace/rust/capi/target/debug/libgts.so \
-    -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e GTS_LIBGTS=/workspace/rust/target/debug/libgts.so \
+    -e LD_LIBRARY_PATH=/workspace/rust/target/debug \
     -e GTS_WRAPPER_BAD_NQUADS="${GTS_WRAPPER_BAD_NQUADS}" \
     -v "${ROOT}:/workspace" \
     -w /workspace \

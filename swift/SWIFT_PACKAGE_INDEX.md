@@ -40,13 +40,13 @@ Consumers must make the shared library visible to the linker and dynamic
 loader. From this repository, the validation path is:
 
 ```sh
-cargo build --manifest-path rust/capi/Cargo.toml
-LIBRARY_PATH="$PWD/rust/capi/target/debug" \
-LD_LIBRARY_PATH="$PWD/rust/capi/target/debug" \
+cargo build --locked --manifest-path rust/capi/Cargo.toml
+LIBRARY_PATH="$PWD/rust/target/debug" \
+LD_LIBRARY_PATH="$PWD/rust/target/debug" \
 swift run --package-path . \
-  -Xlinker -L"$PWD/rust/capi/target/debug" \
+  -Xlinker -L"$PWD/rust/target/debug" \
   -Xlinker -rpath \
-  -Xlinker "$PWD/rust/capi/target/debug" \
+  -Xlinker "$PWD/rust/target/debug" \
   GmeowGTSSmoke \
   vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```

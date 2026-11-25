@@ -17,13 +17,13 @@ checked-in C ABI in `rust/capi/include/gts.h`.
 Build the shared library from the repository root:
 
 ```sh
-cargo build --manifest-path rust/capi/Cargo.toml
+cargo build --locked --manifest-path rust/capi/Cargo.toml
 ```
 
 Install the package against that library:
 
 ```sh
-GTS_LIB_DIR="$PWD/rust/capi/target/debug" R CMD INSTALL r
+GTS_LIB_DIR="$PWD/rust/target/debug" R CMD INSTALL r
 ```
 
 When `GTS_LIB_DIR` is not set, package configuration tries the default linker
@@ -35,7 +35,7 @@ compiler output location.
 At runtime, the platform dynamic loader must also find `libgts`:
 
 ```sh
-export LD_LIBRARY_PATH="$PWD/rust/capi/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="$PWD/rust/target/debug${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 Rscript r/tests/smoke.R \
   vectors/01-minimal.gts vectors/04-damaged-frame.gts vectors/28-empty-file.gts
 ```

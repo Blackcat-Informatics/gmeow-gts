@@ -5,11 +5,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
-TARGET="${CAPI}/target/debug"
+TARGET="${ROOT}/rust/target/debug"
 # shellcheck source=/dev/null
 source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
-cargo build --manifest-path "${CAPI}/Cargo.toml"
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml"
 
 cc -std=c11 -Wall -Wextra -Werror \
   -D_GNU_SOURCE \

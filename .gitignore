@@ -1,7 +1,6 @@
 # Rust
 rust/target/
 rust/rdf-events/target/
-rust/capi/target/
 
 # Go
 go/bin/

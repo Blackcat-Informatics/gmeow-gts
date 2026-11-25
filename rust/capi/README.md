@@ -108,7 +108,7 @@ as `text/turtle; charset=utf-8`.
 ## Build
 
 ```sh
-cargo build --manifest-path rust/capi/Cargo.toml --release
+cargo build --locked --manifest-path rust/capi/Cargo.toml --release
 ```
 
 From the packaged crate root, use `cargo build --release`. The crate is

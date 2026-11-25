@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CAPI="${ROOT}/rust/capi"
-CAPI_TARGET="${CAPI}/target/debug"
+CAPI_TARGET="${ROOT}/rust/target/debug"
 JULIA_IMAGE="${JULIA_IMAGE:-gmeow-gts-julia-smoke:1.12.2}"
 JULIA_PKG="${JULIA_PKG:-${TMPDIR:-/tmp}/gmeowgts-julia-package}"
 export JULIA_NUM_THREADS="${JULIA_NUM_THREADS:-4}"
@@ -14,7 +14,7 @@ source "${ROOT}/scripts/wrapper_smoke_matrix.sh"
 
 cd "${ROOT}"
 
-cargo build --manifest-path "${CAPI}/Cargo.toml"
+cargo build --locked --manifest-path "${CAPI}/Cargo.toml"
 
 case "$(uname -s)" in
   Darwin)
@@ -48,8 +48,8 @@ else
   fi
   docker build -t "${JULIA_IMAGE}" julia
   docker run --rm \
-    -e GTS_LIBGTS=/workspace/rust/capi/target/debug/libgts.so \
-    -e LD_LIBRARY_PATH=/workspace/rust/capi/target/debug \
+    -e GTS_LIBGTS=/workspace/rust/target/debug/libgts.so \
+    -e LD_LIBRARY_PATH=/workspace/rust/target/debug \
     -e JULIA_NUM_THREADS="${JULIA_NUM_THREADS}" \
     -e GTS_WRAPPER_CLEAN_VECTOR=/workspace/vectors/01-minimal.gts \
     -e GTS_WRAPPER_DAMAGED_VECTOR=/workspace/vectors/04-damaged-frame.gts \
