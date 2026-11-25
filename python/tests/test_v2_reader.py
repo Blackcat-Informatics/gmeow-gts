@@ -31,7 +31,7 @@ from gts.v2.file_result import (
     fold_state,
     payload_state,
 )
-from gts.v2.findings import finding_record
+from gts.v2.findings import finding_record, frame_findings
 from gts.v2.payload import PayloadBudget
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
 from gts.v2.resync import (
@@ -968,3 +968,44 @@ def test_file_findings_are_typed_records_of_the_corpus(name: str, size: int) -> 
         )
         for f in expected
     ]
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        # A codec constraint is malformed, and a malformed frame has no chain break.
+        ("payload-output-longer", ""),
+        ("chain-break-withheld-codec-constraint", ""),
+        # A broken link, with the signature of a frame whose key is not held.
+        ("link-heal-closing-items", "damaged"),
+        ("append-damaged-length-head", "i-after"),
+    ],
+)
+def test_frame_findings_give_the_wire_findings_of_the_corpus(
+    name: str, label: str
+) -> None:
+    """Each frame states the findings of its link, payload and signatures."""
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    read = read_content(raw, capacity, verifier=verifier)
+    for ordinal, segment in enumerate(expected):
+        for record in segment[16]:
+            frame = next(
+                f for f in read.wire.segments[ordinal].frames if f.position == record[0]
+            )
+            got = sorted(
+                (f.code, f.reason, f.position, f.offset, f.length, f.count, f.subject)
+                for f in frame_findings(read, ordinal, frame)
+            )
+            want = sorted(
+                (
+                    f[0],
+                    _present(f[1]),
+                    _present(f[3]),
+                    _present(f[4]),
+                    _present(f[5]),
+                    _present(f[6]),
+                    None if f[2] == [1] else tuple(f[2][1]),
+                )
+                for f in record[10]
+            )
+            assert got == want

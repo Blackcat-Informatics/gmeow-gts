@@ -4,7 +4,11 @@
 
 from dataclasses import dataclass
 
-from .content import ContentFinding
+from .content import ContentFinding, ContentRead
+from .frame import FrameError
+from .reader import WireFrame
+
+_PARITY = 16
 
 # The finding codes of registry version 1 (P2, 5.1).
 FINDING_CODES = {
@@ -157,7 +161,7 @@ REASON_CODES = {
 
 @dataclass(frozen=True, slots=True)
 class FindingRecord:
-    """A P7 `finding`; `None` stands for `absent`. The subject is not yet stated."""
+    """A P7 `finding`; `None` stands for `absent`."""
 
     code: int
     reason: int | None
@@ -165,6 +169,7 @@ class FindingRecord:
     offset: int | None
     length: int | None
     count: int | None
+    subject: tuple[int, ...] | None = None
 
 
 def finding_record(finding: ContentFinding) -> FindingRecord:
@@ -179,4 +184,84 @@ def finding_record(finding: ContentFinding) -> FindingRecord:
         finding.offset,
         finding.length,
         finding.count,
+    )
+
+
+_PAYLOAD_DAMAGE = frozenset(("decode_failed", "decoded_length", "payload_digest"))
+
+
+def frame_findings(
+    read: ContentRead, segment: int, frame: WireFrame
+) -> tuple[FindingRecord, ...]:
+    """Return the findings that the wire checks give one frame, then those of the read.
+
+    The wire checks are the link, the payload, the stored check and the signatures
+    of the frame. A parity frame has its own findings and none of these.
+    """
+    item = read.wire.segments[segment].items[frame.position]
+    offset, length = item.offset, item.end - item.offset
+    found: list[FindingRecord] = []
+    if frame.frame_type != _PARITY:
+        reason = frame.payload.reason
+        malformed: str | None = None
+        if isinstance(frame.envelope, FrameError):
+            malformed = frame.envelope.reason
+        elif frame.payload.state == "damaged" and reason == "codec_constraint":
+            malformed = reason
+        # The envelope and the codec constraint are the item's `malformed_value`;
+        # a content error at the position is reported by the read itself.
+        if malformed is not None and not any(
+            finding.code == "malformed_value"
+            and finding.segment == segment
+            and finding.position == frame.position
+            for finding in read.findings
+        ):
+            found.append(
+                _record("malformed_value", malformed, frame.position, offset, length)
+            )
+        if malformed is None and frame.link.state == "broken":
+            found.append(_record("chain_break", None, frame.position, offset, length))
+        elif frame.link.state == "healed":
+            found.append(_record("healed_link", None, frame.position, offset, length))
+        if frame.payload.state == "damaged" and reason in _PAYLOAD_DAMAGE:
+            found.append(
+                _record("damaged_frame", reason, frame.position, offset, length)
+            )
+        if frame.payload.stored_matches is False:
+            found.append(
+                _record("stored_check_mismatch", None, frame.position, offset, length)
+            )
+    signatures = dict(read.authentication[segment].signatures).get(frame.position, ())
+    for signature in signatures:
+        status = signature.outcome.status
+        if status != "valid":
+            found.append(
+                FindingRecord(
+                    FINDING_CODES[f"signature_{status}"],
+                    REASON_CODES[str(signature.outcome.reason)],
+                    frame.position,
+                    None,
+                    None,
+                    None,
+                    (3, signature.algorithm),
+                )
+            )
+    found.extend(
+        finding_record(finding)
+        for finding in read.findings
+        if finding.segment == segment and finding.position == frame.position
+    )
+    return tuple(found)
+
+
+def _record(
+    code: str, reason: str | None, position: int, offset: int, length: int
+) -> FindingRecord:
+    return FindingRecord(
+        FINDING_CODES[code],
+        None if reason is None else REASON_CODES[reason],
+        position,
+        offset,
+        length,
+        None,
     )
