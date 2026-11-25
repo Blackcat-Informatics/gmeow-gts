@@ -125,6 +125,30 @@ def test_first_generation_input_defaults_to_the_legacy_decision() -> None:
     assert refused.opening.decision == "unsupported_generation"
 
 
+@pytest.mark.parametrize(
+    ("first", "decision"),
+    [
+        (cbor2.dumps(5), "not_this_format"),
+        (cbor2.dumps([1, 3]), "unsupported_generation"),
+    ],
+    ids=["not_this_format", "generation_three"],
+)
+def test_refused_first_item_keeps_its_offset_and_length(
+    first: bytes, decision: str
+) -> None:
+    """A refused generation reports the complete first item, not the whole input."""
+    data = first + b"\x00"
+    opened = read_wire(
+        data,
+        items_per_read=8,
+        stored_bytes_per_frame=0,
+        decoded_bytes_per_frame=0,
+        decoded_bytes_per_read=0,
+    )
+    assert opened.opening.decision == decision
+    assert opened.opening.first_item == _Boundary(0, len(first))
+
+
 def test_walked_header_has_absolute_item_boundary() -> None:
     header = encode_header(Header())
     data = header + b"\xff"
