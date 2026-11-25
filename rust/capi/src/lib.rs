@@ -1347,6 +1347,9 @@ mod tests {
             .join(format!("capi-null-out-{}-{nonce}", std::process::id()));
         let dest_c = CString::new(dest.to_str().unwrap()).unwrap();
         let mut error: *mut GtsError = ptr::null_mut();
+        // SAFETY: `data` and `dest_c` are live for the call, `data` holds `data.len()`
+        // bytes, and `dest_c` is NUL-terminated. The null `out` is the case the export
+        // rejects before it dereferences `out`, so no write to `out` occurs.
         let status = unsafe {
             gts_files_unpack(
                 data.as_ptr(),
