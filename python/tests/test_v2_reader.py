@@ -1352,3 +1352,18 @@ def test_unknown_codec_finding_states_the_codec(name: str, subject: int) -> None
         if f.code == FINDING_CODES["unknown_enumeration_value"]
     ]
     assert found == [(REASON_CODES["unknown_codec"], (1, subject), 1)]
+
+
+def test_file_framing_findings_sort_by_the_p7_order() -> None:
+    """The framing findings of a file sort by P7 order, not by offset alone."""
+    raw, capacity, verifier, record = _corpus_read(
+        "resync-heal-no-witness-past-region", "whole"
+    )
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [f.code for f in file_result(read, raw, capacity).findings]
+    assert found == [
+        FINDING_CODES["undelimitable_input"],
+        FINDING_CODES["torn_tail"],
+    ]

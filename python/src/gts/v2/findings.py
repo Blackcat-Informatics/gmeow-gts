@@ -242,8 +242,11 @@ _CAPACITY_STEPS = {
 def _step(code: str, reason: str | None) -> int:
     if code == "exceeds_capacity":
         return _CAPACITY_STEPS.get(str(reason), 11)
-    if code == "unknown_enumeration_value" and reason == "unknown_frame_type":
-        # An envelope's frame type is judged by the items step (R4), with its envelope.
+    if code == "unknown_enumeration_value" and reason in (
+        "unknown_frame_type",
+        "unknown_item_kind",
+    ):
+        # The items step (R4) judges an envelope's frame type and an item's kind.
         return 4
     if code == "missing_dependency" and reason == "chunk":
         return 11
@@ -501,9 +504,9 @@ def framing_findings(read: ContentRead) -> tuple[FindingRecord, ...]:
         for item in segment.items
         if isinstance(item, DamagedRegion)
     )
-    return tuple(
+    return sort_findings(
         FindingRecord(code, None, None, offset, end - offset, None, step=2)
-        for code, offset, end in sorted(spans, key=lambda span: (span[1], span[0]))
+        for code, offset, end in spans
     )
 
 
