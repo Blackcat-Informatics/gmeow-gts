@@ -1,11 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
-"""Typed frame states of the GTS v2 file result (P7 section 1.1, P2 enumerations)."""
+"""Typed payload and fold states of a frame (P7 1.3, P2 enumerations)."""
 
 from dataclasses import dataclass
 from typing import Literal
 
-from .content import ContentFinding, ContentRead, OpaqueReason
+from .content import ContentRead, OpaqueReason
 from .payload import PayloadCheck
 from .reader import WireFrame
 
@@ -67,86 +67,3 @@ def fold_state(read: ContentRead, segment: int, frame: WireFrame) -> FoldState:
     if frame.frame_type in _NOT_CONTENT_TYPES:
         return "not_content"
     return "folded"
-
-
-type FileEnd = Literal[
-    "not_read",
-    "undelimitable",
-    "torn",
-    "no_commit",
-    "after_commit",
-    "at_authenticated_commit",
-    "at_valid_commit",
-]
-
-
-@dataclass(frozen=True, slots=True)
-class CompleteVisibility:
-    """The `visible` variant `complete`, carrying its unauthenticated suppress count."""
-
-    unauthenticated_suppress: int
-
-
-@dataclass(frozen=True, slots=True)
-class NoSegmentFileResult:
-    """The P7 `file_result` (tag `2`) of a file that holds no segment.
-
-    `content_digest` is absent, since a file with no segment has none (P7, 1.2).
-    """
-
-    findings: tuple[ContentFinding, ...]
-    visible: CompleteVisibility
-    end: FileEnd
-    left_out: int
-
-
-def _file_end(findings: tuple[ContentFinding, ...], input_size: int) -> FileEnd:
-    """Return the first `end` of P7 1.2 that holds, for a file with no segment."""
-    if any(
-        finding.code == "read_failed"
-        or (finding.code == "exceeds_capacity" and finding.reason == "item_count")
-        for finding in findings
-    ):
-        return "not_read"
-    if _runs_to_end(findings, "undelimitable_input", input_size):
-        return "undelimitable"
-    if _runs_to_end(findings, "torn_tail", input_size):
-        return "torn"
-    # A file with no segment has no last segment, so no commit holds.
-    return "no_commit"
-
-
-def _runs_to_end(
-    findings: tuple[ContentFinding, ...], code: str, input_size: int
-) -> bool:
-    return any(
-        finding.code == code
-        and finding.offset is not None
-        and finding.length is not None
-        and finding.offset + finding.length == input_size
-        for finding in findings
-    )
-
-
-def file_result(read: ContentRead, input_size: int) -> NoSegmentFileResult:
-    """Return the P7 `file_result` of a read of an input of `input_size` bytes.
-
-    Raise ValueError when the read holds a segment: the `segment_result` records
-    of P7 1.1 are not yet built, so no complete file result can be stated.
-    """
-    if read.wire.opening.decision == "first_generation":
-        raise ValueError(
-            "a first-generation file keeps its legacy result, which is not built here"
-        )
-    if read.wire.segments:
-        raise ValueError("the file result of a file with segments is not yet built")
-    if any(finding.segment is not None for finding in read.findings):
-        raise ValueError("a file with no segment carries a segment finding")
-    return NoSegmentFileResult(
-        findings=read.findings,
-        visible=CompleteVisibility(0),
-        end=_file_end(read.findings, input_size),
-        # Every torn tail is left out of the fold (P7, 1.2); a file with no segment
-        # has no frame, item or damaged region to count.
-        left_out=sum(1 for finding in read.findings if finding.code == "torn_tail"),
-    )

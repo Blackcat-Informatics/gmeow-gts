@@ -22,16 +22,16 @@ from gts.v2 import (
 from gts.v2.canonical_check import CanonicalResult, CheckState
 from gts.v2.content import ContentCapacity
 from gts.v2.file_result import (
-    CompleteVisibility,
     FoldState,
     OpaqueFold,
     PayloadState,
     UncheckedPayload,
-    file_result,
     fold_state,
     payload_state,
 )
 from gts.v2.findings import (
+    FINDING_CODES,
+    REASON_CODES,
     FindingRecord,
     finding_record,
     frame_findings,
@@ -54,6 +54,7 @@ from gts.v2.segment_result import (
     segment_results,
 )
 from gts.v2.signatures import HeldKey, SignatureVerifier
+from gts.v2.typed_file import CompleteVisibility, file_result
 from gts.v2.writer import SegmentWriter
 from test_v2_content import _PARITY_CODES, _REASONS, _VECTORS, _contents
 
@@ -594,9 +595,9 @@ def test_rejected_first_item_is_a_segmentless_file_result(
 ) -> None:
     """A rejected first item gives a segmentless file with one finding of its length."""
     raw, capacity = _corpus_input(name, size)
-    result = file_result(read_content(raw, capacity), len(raw))
+    result = file_result(read_content(raw, capacity), raw, capacity)
     assert [(f.code, f.offset, f.length) for f in result.findings] == [
-        (code, 0, length)
+        (FINDING_CODES[code], 0, length)
     ]
     assert result.end == "no_commit"
     assert result.left_out == 0
@@ -645,9 +646,9 @@ def test_first_item_finding_of_each_decision_is_segmentless(
     """Each rejected first item gives a segmentless file with its own finding."""
     raw, capacity = _corpus_input(name, size)
     read = read_content(raw, capacity, first_and_second=first_and_second)
-    result = file_result(read, len(raw))
+    result = file_result(read, raw, capacity)
     assert [(f.code, f.offset, f.length) for f in result.findings] == [
-        (code, offset, length)
+        (FINDING_CODES[code], offset, length)
     ]
     assert result.end == end
     assert result.left_out == left_out
@@ -656,12 +657,22 @@ def test_first_item_finding_of_each_decision_is_segmentless(
 def test_item_limit_of_zero_refuses_the_input_as_not_read() -> None:
     """With no item allowed, the whole input is one refused first item (P7, 1.2)."""
     raw = b"\x00\x00\x00"
-    read = read_content(raw, ContentCapacity(items_per_read=0))
-    result = file_result(read, len(raw))
+    capacity = ContentCapacity(items_per_read=0)
+    read = read_content(raw, capacity)
+    result = file_result(read, raw, capacity)
     assert [
-        (f.code, f.reason, f.count, f.offset, f.length, f.segment, f.position)
+        (f.code, f.reason, f.count, f.offset, f.length, f.position)
         for f in result.findings
-    ] == [("exceeds_capacity", "item_count", 1, 0, 3, None, None)]
+    ] == [
+        (
+            FINDING_CODES["exceeds_capacity"],
+            REASON_CODES["item_count"],
+            1,
+            0,
+            3,
+            None,
+        )
+    ]
     assert result.end == "not_read"
     assert result.left_out == 0
 
@@ -671,7 +682,7 @@ def test_valid_first_generation_header_is_not_a_segmentless_result() -> None:
     raw, capacity = _corpus_input("gen-first-generation", 4)
     read = read_content(raw, capacity)
     with pytest.raises(ValueError, match="first-generation"):
-        file_result(read, len(raw))
+        file_result(read, raw, capacity)
 
 
 def _corpus_case(
@@ -1066,3 +1077,46 @@ def test_segment_and_file_findings_are_those_of_the_corpus(
     assert sorted(fields(f) for f in framing_findings(read)) == sorted(
         stated(f) for f in file_findings if f[0] in (8, 9)
     )
+
+
+_FILE_END_CODES = {
+    "at_authenticated_commit": 1,
+    "at_valid_commit": 2,
+    "after_commit": 3,
+    "no_commit": 4,
+    "torn": 5,
+    "undelimitable": 6,
+    "not_read": 7,
+}
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        ("append-after-canonical", "canonical"),
+        ("equal-heads-different-bytes", "b3"),
+        ("link-heal-closing-items", "damaged"),
+        ("append-check-recovery-resumed", ""),
+        ("concat-continuation", "joined"),
+        ("payload-unknown-codec", ""),
+    ],
+)
+def test_file_result_assembles_every_segment_and_frame_of_the_corpus(
+    name: str, label: str
+) -> None:
+    """The file result states the end, left out, digest, visibility and records."""
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    folder = _VECTORS / "P1"
+    case = next(
+        c
+        for c in json.loads((folder / f"{name}.json").read_text())["cases"]
+        if c.get("label", "") == label
+    )
+    record = cbor2.loads(bytes.fromhex(case["read_result"]))[-1]
+    result = file_result(read_content(raw, capacity, verifier=verifier), raw, capacity)
+    assert len(result.segments) == len(expected)
+    assert [len(s.frames) for s in result.segments] == [len(s[16]) for s in expected]
+    assert _FILE_END_CODES[result.end] == record[5]
+    assert result.left_out == record[6]
+    assert result.content_digest == _present(record[3])
+    assert result.visible == CompleteVisibility(record[4][1])
