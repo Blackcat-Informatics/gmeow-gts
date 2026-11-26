@@ -8,6 +8,7 @@ from pathlib import Path
 
 import cbor2
 import pytest
+import zstandard
 
 from gts.v2 import (
     FrameError,
@@ -450,6 +451,15 @@ def _parity_findings(segment: list) -> Counter:
     )
 
 
+def _packed_corpus_input(path: Path) -> bytes:
+    """Read a corpus input, expanding it when the corpus ships it packed as `.zst`."""
+    if path.exists():
+        return path.read_bytes()
+    return zstandard.ZstdDecompressor().decompress(
+        path.with_name(path.name + ".zst").read_bytes()
+    )
+
+
 @pytest.mark.parametrize(
     ("part", "name"),
     [
@@ -483,6 +493,10 @@ def _parity_findings(segment: list) -> Counter:
                 "parity-frame-type-second-form",
                 "parity-unexplained-two-stripes",
                 "range-transparent",
+                "parity-later-version",
+                "parity-above-capacity",
+                "parity-placement",
+                "tail-none",
             ]
         ),
         ("P2", "finding__parity_stale"),
@@ -510,7 +524,7 @@ def test_read_wire_matches_corpus_read_result_for_remaining_fixtures(
             continue
         report = cbor2.loads(bytes.fromhex(case["read_result"]))
         result = read_wire(
-            (folder / case["input_file"]).read_bytes(),
+            _packed_corpus_input(folder / case["input_file"]),
             items_per_read=capacity["items_per_read"],
             stored_bytes_per_frame=capacity["stored_bytes_per_frame"],
             decoded_bytes_per_frame=capacity["decoded_bytes_per_frame"],
