@@ -27,6 +27,7 @@ pub use super::{
     payload::{PayloadCheck, PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity},
 };
 
+pub use super::parity::Judgement;
 pub use super::resync::DecodedResync;
 
 /// The first item determines which generation reads the file.
@@ -146,6 +147,10 @@ pub struct WireFrame<'a> {
     pub link: FrameLink,
     /// The payload check of the frame.
     pub payload: PayloadCheck<'a>,
+    /// The stage 1 judgement of a frame of type `parity` (P5 6.6), or `None` for any other frame,
+    /// for a frame in a segment without an identifier, and for a frame that the paragraph on a
+    /// later registry version leaves to the unknown-type handling.
+    pub judgement: Option<Judgement>,
     /// A later frame type with well-typed flags that stops content folding.
     pub unknown_type_stops_fold: bool,
     /// Whether the frame is detached (P1 3.4, step 4): it is ordinary and its predecessor is the
@@ -639,6 +644,34 @@ impl<'a> LinkFields<'a> {
     }
 }
 
+/// The stage 1 judgement of an in-order frame of type `parity` (P5 6.6), or `None` for any other
+/// frame and for a segment without an identifier.
+fn judge_parity(
+    frame_type: Option<u64>,
+    segment: &WireSegment<'_>,
+    envelope: Option<&Frame<'_>>,
+    link: LinkState,
+    predecessor: &[u8; 32],
+    payload: &PayloadState<'_>,
+) -> Option<Judgement> {
+    let (version, identifier) = segment.opener.state();
+    match (frame_type, identifier) {
+        (Some(PARITY), Some(h0)) => parity::judge(
+            envelope,
+            link,
+            predecessor,
+            payload,
+            &parity::Segment {
+                h0: &h0,
+                registry: version,
+                earlier: &segment.earlier,
+            },
+            version > REGISTRY_VERSION,
+        ),
+        _ => None,
+    }
+}
+
 fn read_frame<'a>(
     data: &'a [u8],
     item: WireItem,
@@ -714,6 +747,14 @@ fn read_frame<'a>(
             Err(_) => offsets
                 .is_some_and(|raw| data[raw[1]] == 0xf5 && matches!(data[raw[2]], 0xf4 | 0xf5)),
         };
+    let judgement = judge_parity(
+        frame_type,
+        segment,
+        envelope.as_ref().ok().map(|(frame, _)| frame),
+        state,
+        predecessor,
+        &payload.state,
+    );
     let envelope =
         envelope.and_then(|(frame, length_offset)| check_type_length(frame, length_offset));
     Ok((
@@ -728,6 +769,7 @@ fn read_frame<'a>(
                 effective_identifier,
             },
             payload,
+            judgement,
             unknown_type_stops_fold,
             detached: !fields.transparent
                 && segment
