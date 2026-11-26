@@ -22,7 +22,7 @@ test-rust:
 # workspace, under the locked graph. CI runs the feature lanes separately.
 check-rust:
     cd rust && cargo fmt --check
-    cd rust && cargo clippy --workspace --all-targets --locked -- -D warnings
+    just clippy-all
     cd rust && cargo test --workspace --locked
     cd rust && cargo deny check bans sources
 
@@ -42,12 +42,23 @@ test-kotlin:
 
 # Run every engine's lint + the repo-wide pre-commit hooks.
 lint: check-quality-budget
-    cd rust && cargo fmt --check && cargo clippy --workspace --all-targets --locked -- -D warnings
+    cd rust && cargo fmt --check
+    just clippy-all
     cd go && go vet ./... && golangci-lint run ./...
     cd ts && npm run lint
     cd python && uv run ruff check . && uv run mypy
     cd kotlin && gradle detekt
     pre-commit run --all-files
+
+# Production Rust lints on library and binary targets: the census lint command,
+# also run by the commit hook.
+clippy:
+    scripts/rust-clippy.sh
+
+# Rust lints on every target of the workspace. The nested fuzz workspace has no
+# lock file, so no locked lint covers it.
+clippy-all:
+    cd rust && cargo clippy --workspace --all-targets --locked -- -D warnings
 
 # Fail if production-code quality budgets regress.
 check-quality-budget:
