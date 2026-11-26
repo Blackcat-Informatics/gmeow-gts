@@ -140,6 +140,25 @@ export class PayloadBudget {
     private total = 0n;
     private exhausted = false;
 
+    /** Whether a charge has exhausted the total of the read (the scan charges against it). */
+    get totalRefused(): boolean {
+        return this.exhausted;
+    }
+
+    /**
+     * Charges `length` decoded bytes to the total of the read. Returns the count
+     * that the total refuses, or `undefined` when the charge is admitted.
+     */
+    charge(length: bigint): bigint | undefined {
+        const total = this.total + length;
+        if (this.exhausted || total > readCapacity) {
+            this.exhausted = true;
+            return total > maxUint64 ? maxUint64 : total;
+        }
+        this.total = total;
+        return undefined;
+    }
+
     check(frame: FrameBytes, includeDecoded = false): PayloadCheck {
         const { decodedLength, payloadDigest, storage, storedPayload } = frame;
         if (
