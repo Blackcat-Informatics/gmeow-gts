@@ -25,6 +25,9 @@ internal enum class ItemKind {
     LOCATOR,
     OPAQUE,
     UNCHECKED,
+
+    /** The bytes between the first byte that cannot be delimited and the parity frame at which reading resumes. */
+    DAMAGED,
 }
 
 internal sealed interface WireEvent {
@@ -42,12 +45,26 @@ internal sealed interface WireEvent {
         val effectiveId: ByteString? = null,
         val commitClaim: CommitClaim? = null,
         val content: CborField? = null,
+        val signatureResults: List<SignatureResult>? = null,
     ) : WireEvent
 
     data class Stop(val offset: Int, val reason: StopReason) : WireEvent, WireInspection
 }
 
-internal fun inspectWire(data: ByteArray, retainDecoded: Boolean = false): WireInspection {
+/**
+ * Reads the items of a second-generation input. When [heldKeys] is given, each ordinary frame
+ * that has an effective identifier, in a segment whose opener is readable and that carries
+ * signature records, also gets one [SignatureResult] per record in `signatureResults`
+ * (P6 section 6.2); a frame without an effective identifier, a frame of a segment whose opener
+ * is not readable, a frame without signature records and a frame whose signatures element is above
+ * the per-frame stored limit (P6-31) get none. Without [heldKeys] no
+ * signature is verified.
+ */
+internal fun inspectWire(
+    data: ByteArray,
+    retainDecoded: Boolean = false,
+    heldKeys: List<HeldKey>? = null,
+): WireInspection {
     if (data.isEmpty()) return WireInspection.Empty
     val end =
         try {
@@ -61,7 +78,7 @@ internal fun inspectWire(data: ByteArray, retainDecoded: Boolean = false): WireI
         val version = nextHead(data, kind.end, end)
         return when {
             version?.major != 0 -> WireInspection.Unknown
-            version.argument == 2uL -> WireInspection.VersionTwo(items(data, end, retainDecoded))
+            version.argument == 2uL -> WireInspection.VersionTwo(items(data, end, retainDecoded, heldKeys))
             version.argument != null && version.argument > 2uL -> WireInspection.Unsupported(version.argument)
             else -> WireInspection.Unknown
         }
@@ -124,36 +141,96 @@ private fun isVersionKey(data: ByteArray, start: Int, end: Int): Boolean {
 private data class ScannedItem(
     val event: WireEvent,
     val frame: FrameEnvelope? = null,
+    val gap: Boolean = false,
 )
 
-private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean): Sequence<WireEvent> =
+/** Where the item scanner continues after a damaged region; negative when it ends there. */
+private class ScanResume {
+    var offset = -1
+}
+
+private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean, heldKeys: List<HeldKey>?): Sequence<WireEvent> =
     sequence {
-        val source = scanItems(data, firstEnd).iterator()
+        val resume = ScanResume()
+        val source = scanItems(data, firstEnd, resume).iterator()
         fun advance(): ScannedItem? = if (source.hasNext()) source.next() else null
 
         val budget = PayloadBudget()
         val closing = ClosingClaims(data)
         var predecessor: ByteArray? = null
+        var segmentOpener: ByteArray? = null
+        var segmentRegistry = 0uL
+        var spans = ParitySpans()
+        var pending: ParityCandidate? = null
+        var resumed: ParityCandidate? = null
+        var scannedAt = -1
+        var scanned: ParityCandidate? = null
+
+        // The parity frame at which reading resumes after the damaged region that starts at [gap], found once.
+        fun resumptionAfter(gap: ScannedItem?): ParityCandidate? {
+            val stop = gap?.takeIf { it.gap }?.event as? WireEvent.Stop ?: return null
+            if (scannedAt != stop.offset) {
+                scannedAt = stop.offset
+                scanned = segmentOpener?.let { ParityScan(data, it, segmentRegistry, spans, budget, retainDecoded).find(stop.offset) }
+                resume.offset = scanned?.offset ?: -1
+            }
+            return scanned
+        }
+
+        // The event a closing check sees after an item: a damaged region that reading resumes past is an item (P5 section 7.2A).
+        fun seen(following: ScannedItem?): WireEvent? {
+            val resumption = resumptionAfter(following) ?: return following?.event
+            val stop = following?.event as WireEvent.Stop
+            return WireEvent.Item(stop.offset, resumption.offset, ItemKind.DAMAGED, "undelimitable_input")
+        }
+
         var current = advance()
         var next = advance()
         while (current != null) {
             val item = current.event
             if (item !is WireEvent.Item) {
-                yield(item)
-                break
+                val candidate = pending
+                if (!current.gap || candidate == null) {
+                    yield(item)
+                    break
+                }
+                pending = null
+                resumed = candidate
+                val stop = item as WireEvent.Stop
+                // The finding of the damaged region stands (P5 section 7.2A), its length running to the resumption point.
+                closing.damage(stop.offset, candidate.offset)
+                yield(WireEvent.Item(stop.offset, candidate.offset, ItemKind.DAMAGED, "undelimitable_input"))
+                current = next
+                next = advance()
+                continue
             }
             if (item.kind == ItemKind.HEADER || item.kind == ItemKind.RESYNC) {
                 predecessor = item.effectiveId?.bytes
+                segmentOpener = predecessor
+                segmentRegistry = item.opener?.registry ?: 0uL
+                spans = ParitySpans()
             }
-            val following = next?.event
-            val afterLocator = if (item.kind == ItemKind.OFFSETS && (following as? WireEvent.Item)?.kind == ItemKind.LOCATOR) advance() else null
-            val event = closing.observe(item, following, afterLocator?.event)
+            val afterLocator = if (item.kind == ItemKind.OFFSETS && (next?.event as? WireEvent.Item)?.kind == ItemKind.LOCATOR) advance() else null
+            val event =
+                if (item.kind == ItemKind.OFFSETS || item.kind == ItemKind.LOCATOR) {
+                    closing.observe(item, seen(next), seen(afterLocator))
+                } else {
+                    closing.observe(item, next?.event, null)
+                }
             val frame = current.frame
             if (frame != null && predecessor != null) {
+                val resumption = resumed?.takeIf { it.offset == item.offset }
+                if (resumption != null) {
+                    // P1 section 3.4, step 4: at a parity frame at which reading resumes the predecessor is its `anchor`.
+                    predecessor = resumption.anchor
+                    resumed = null
+                }
                 val link = checkLink(frame, predecessor, next?.frame)
                 predecessor = link.effective ?: predecessor
                 val storedMatches = checkStored(frame.payload)
-                val payload = budget.check(frame.payload, retainDecoded)
+                // A parity frame at which reading resumes was charged to the total in the scan, and is not charged again.
+                val payload = resumption?.payload ?: budget.check(frame.payload, retainDecoded)
+                spans.remember(frame, link.state, segmentRegistry > 1uL)
                 val problem = event.problem ?: payload.reason?.takeIf { it == "codec_constraint" }
                 val claim =
                     frame.content.takeIf { event.frameType == 14uL && problem == null && frame.payload.contentSize.toULong() <= frameCapacity }
@@ -167,17 +244,35 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean): Seque
                         effectiveId = link.effective?.let(::ByteString),
                         commitClaim = claim,
                         content = frame.content.takeIf { retainDecoded },
+                        signatureResults = verifyFrameSignatures(frame, link.effective, segmentOpener, heldKeys),
                     ),
                 )
             } else {
                 yield(event)
             }
             current = next
+            if (current?.gap == true) {
+                pending = resumptionAfter(current)
+            }
             next = afterLocator ?: advance()
         }
     }
 
-private fun scanItems(data: ByteArray, firstEnd: Int): Sequence<ScannedItem> =
+private fun verifyFrameSignatures(
+    frame: FrameEnvelope,
+    frameIdentifier: ByteArray?,
+    headerIdentifier: ByteArray?,
+    heldKeys: List<HeldKey>?,
+): List<SignatureResult>? {
+    val records = frame.payload.signatures
+    val oversized = frame.payload.signaturesSize.toULong() > frameCapacity
+    if (frame.transparent || oversized || heldKeys == null || frameIdentifier == null || headerIdentifier == null || records.isEmpty()) {
+        return null
+    }
+    return records.map { verifySignature(it, frameIdentifier, headerIdentifier, heldKeys) }
+}
+
+private fun scanItems(data: ByteArray, firstEnd: Int, resume: ScanResume): Sequence<ScannedItem> =
     sequence {
         var offset = 0
         var count = 0
@@ -191,8 +286,12 @@ private fun scanItems(data: ByteArray, firstEnd: Int): Sequence<ScannedItem> =
                 try {
                     if (offset == 0) firstEnd else itemEnd(data, offset)
                 } catch (error: FramingException) {
-                    yield(ScannedItem(WireEvent.Stop(offset, error.reason)))
-                    break
+                    yield(ScannedItem(WireEvent.Stop(offset, error.reason), gap = true))
+                    if (resume.offset < 0) break
+                    // The damaged region counts as one item (P5 section 7.2A).
+                    offset = resume.offset
+                    count++
+                    continue
                 }
             val item = classify(data, offset, end, registry)
             val event = item.event as WireEvent.Item

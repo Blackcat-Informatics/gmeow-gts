@@ -10,6 +10,12 @@ internal class ClosingClaims(private val data: ByteArray) {
     private var indexOffset: Int? = null
     private var offsetsSeen = false
     private var locatorSeen = false
+    private val damaged = mutableMapOf<Int, Int>()
+
+    /** Records a damaged region of the segment, which counts as one item of its byte length (P5 section 7.2A). */
+    fun damage(offset: Int, end: Int) {
+        damaged[offset] = end
+    }
 
     fun observe(item: WireEvent.Item, next: WireEvent?, afterLocator: WireEvent?): WireEvent.Item =
         when (item.kind) {
@@ -18,6 +24,7 @@ internal class ClosingClaims(private val data: ByteArray) {
                 indexOffset = null
                 offsetsSeen = false
                 locatorSeen = false
+                damaged.clear()
                 item
             }
             ItemKind.FRAME -> {
@@ -51,6 +58,8 @@ internal class ClosingClaims(private val data: ByteArray) {
             if (holds(fields.next())) item else item.copy(closingClaimFailure = failure)
         } catch (error: EnvelopeFailure) {
             item.copy(problem = error.reason)
+        } catch (_: FramingException) {
+            item.copy(closingClaimFailure = failure)
         }
     }
 
@@ -64,7 +73,8 @@ internal class ClosingClaims(private val data: ByteArray) {
             if (observed == offset) {
                 matches = false
             } else {
-                val end = itemEnd(data, observed, offset)
+                // P5 7.2A: "For the check of an `offsets` item the damaged region is one item whose length is its number of bytes".
+                val end = damaged[observed] ?: itemEnd(data, observed, offset)
                 matches = matches && claimed == (end - observed).toULong()
                 observed = end
             }

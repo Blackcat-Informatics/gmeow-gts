@@ -60,6 +60,11 @@ private fun verifyV2Records(path: String, events: Sequence<WireEvent>): Boolean 
             }
             continue
         }
+        if (item.kind == ItemKind.DAMAGED) {
+            report("framing stopped at byte $offset: $problem")
+            checks?.observe(item)
+            continue
+        }
         val segment = checks ?: continue
         item.reportWireFailures { report("byte $offset: $it") }
         val mismatch = segment.observe(item)
