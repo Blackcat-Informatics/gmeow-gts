@@ -23,6 +23,7 @@ path = [
   "r/LICENSE",
   "julia/Project.toml",
   "rust/Cargo.lock",
+  "rust/fuzz/Cargo.lock",
   "python/uv.lock",
   "quality/quality-budget-baseline.json",
   "python/src/gts/py.typed",
