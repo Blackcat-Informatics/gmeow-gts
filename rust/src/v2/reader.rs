@@ -13,6 +13,7 @@ use super::{
         PARITY,
     },
     framing::{byte_chunks, generation, item_end, read_head, Generation},
+    parity::{self, Verdict},
     payload::{malformed_payload, PayloadBudget},
     resync::{decode_resync, Candidate, ResyncScanner, RESYNC_MAX},
     signature::{verify_signature, HeldKeys, SignatureResult},
@@ -147,6 +148,10 @@ pub struct WireFrame<'a> {
     pub payload: PayloadCheck<'a>,
     /// A later frame type with well-typed flags that stops content folding.
     pub unknown_type_stops_fold: bool,
+    /// Whether the frame is detached (P1 3.4, step 4): it is ordinary and its predecessor is the
+    /// `anchor` of the parity frame at which reading resumed, which is not the identifier of the
+    /// ordinary frame before the damaged region.
+    pub detached: bool,
     /// The outcome of each signature of the frame, in the order of its `signatures` list.
     ///
     /// The list is empty for a transparent frame, a frame without an effective identifier, a
@@ -175,6 +180,14 @@ pub struct WireSegment<'a> {
     pub framing_failure: Option<FramingFailure>,
     /// The reason a resync item was refused, if any.
     pub resync_refusal: Option<ResyncRefusal>,
+    /// The regions of undelimitable input after which reading resumed at a parity frame (P5 7.2),
+    /// in input order. Each is also a `DamagedRegion` item of the segment.
+    pub resumptions: Vec<FramingFailure>,
+    /// The parity candidate whose charge was the first that the total decoded length refused.
+    pub parity_refusal: Option<ResyncRefusal>,
+    /// The `anchor` of the parity frame at which reading resumed, until the next ordinary frame
+    /// that has an effective identifier: the predecessor of that frame.
+    anchor: Option<[u8; 32]>,
     /// Grammar errors observed during the framing test.
     pub closing_grammar: Vec<(usize, HeaderError)>,
     /// Closing findings after placement and claims are checked over retained items.
@@ -262,6 +275,9 @@ fn segment_at(opener: Opener<'_>, item: WireItem, scanned: bool) -> WireSegment<
         scanned,
         framing_failure: None,
         resync_refusal: None,
+        resumptions: Vec::new(),
+        parity_refusal: None,
+        anchor: None,
         closing_grammar: Vec::new(),
         closing_findings: Vec::new(),
         commits: Ok(CommitReport::default()),
@@ -421,6 +437,7 @@ impl<'a> ItemWalk<'a> {
         start: usize,
         lost: Boundary,
         budget: &mut PayloadBudget,
+        parity: Option<&parity::Segment<'_>>,
     ) -> Option<Candidate<'a>> {
         if lost.failure.is_none() && self.peek().is_some() {
             let end = lost.end.saturating_add(RESYNC_MAX).min(self.data.len());
@@ -431,13 +448,62 @@ impl<'a> ItemWalk<'a> {
         if self.count == self.limit {
             return None;
         }
-        let outcome = scanner.scan(start, lost.end, budget);
-        if let Some(Candidate::Accepted { value, .. }) = outcome.as_ref() {
-            self.count += 1;
-            self.held.clear();
-            self.offset = value.next_offset;
+        let outcome = match parity {
+            Some(segment) => self.scan_both(scanner, start, lost, budget, segment),
+            None => scanner.scan(start, lost.end, budget),
+        };
+        match outcome.as_ref() {
+            Some(Candidate::Accepted { value, .. }) => {
+                self.count += 1;
+                self.held.clear();
+                self.offset = value.next_offset;
+            }
+            Some(&Candidate::Parity { offset, .. }) => {
+                // An incomplete item was not counted; the damaged region counts as one item.
+                self.count += u64::from(lost.failure == Some(FramingReason::TornTail));
+                self.held.clear();
+                self.offset = offset;
+            }
+            _ => {}
         }
         outcome
+    }
+
+    /// Test the candidates of both kinds in one pass in ascending offset (P5 7.2, step 6).
+    ///
+    /// The resync candidates are tested over their own run, from `start`, and the parity
+    /// candidates from the first byte that cannot be delimited. The first candidate that passes
+    /// is returned, or the first refusal by the total decoded length.
+    fn scan_both(
+        &self,
+        scanner: &mut ResyncScanner<'a>,
+        start: usize,
+        lost: Boundary,
+        budget: &mut PayloadBudget,
+        segment: &parity::Segment<'_>,
+    ) -> Option<Candidate<'a>> {
+        let mut resync_from = start;
+        let mut parity_from = lost.offset;
+        loop {
+            let found = parity::next_prefix(self.data, parity_from);
+            let bound = found.unwrap_or(lost.end);
+            if let Some(candidate) = scanner.scan(resync_from, bound, budget) {
+                return Some(candidate);
+            }
+            resync_from = resync_from.max(bound);
+            let offset = found?;
+            match parity::test(self.data, offset, segment, budget) {
+                Verdict::Passed { anchor } => return Some(Candidate::Parity { offset, anchor }),
+                Verdict::Refused { length, count } => {
+                    return Some(Candidate::ParityRefused {
+                        offset,
+                        length,
+                        count,
+                    });
+                }
+                Verdict::Failed => parity_from = offset + 1,
+            }
+        }
     }
 
     fn item_limit(&self) -> Option<ReadStop> {
@@ -586,6 +652,10 @@ fn read_frame<'a>(
             },
             payload,
             unknown_type_stops_fold,
+            detached: !fields.transparent
+                && segment
+                    .anchor
+                    .is_some_and(|anchor| Some(anchor) != segment.head),
             signatures: Vec::new(),
         },
         malformed_grammar || state == LinkState::Broken,
@@ -657,7 +727,7 @@ fn first_segment<'a>(
             _ => return None,
         }
     }
-    match walk.recover(scanner, 0, first, budget) {
+    match walk.recover(scanner, 0, first, budget, None) {
         Some(Candidate::Accepted { offset, value }) => {
             result.dispatch = Some(Dispatch::SecondGeneration);
             result.stop = None;
@@ -677,7 +747,8 @@ fn first_segment<'a>(
                 result.resync_refusal = Some(refusal);
             }
         }
-        None => {}
+        // Without a parity context the scan makes no parity candidate.
+        Some(Candidate::Parity { .. } | Candidate::ParityRefused { .. }) | None => {}
     }
     scope
 }
@@ -778,7 +849,9 @@ fn classify_boundary<'a>(
             ItemKind::Frame | ItemKind::Offsets | ItemKind::Locator => {
                 if let Some(head) = segment.head {
                     if item.kind == ItemKind::Frame {
-                        let (frame, failed) = read_frame(data, item, segment, &head, walk, budget)?;
+                        let predecessor = segment.anchor.unwrap_or(head);
+                        let (frame, failed) =
+                            read_frame(data, item, segment, &predecessor, walk, budget)?;
                         classified.observed = Some(frame);
                         failed
                     } else {
@@ -795,11 +868,30 @@ fn classify_boundary<'a>(
     Ok((item, classified))
 }
 
-/// Recover from a lost item by scanning for the next resync opener.
+/// The `first` and `end` of each earlier parity frame of `segment` that has a span (P5 6.6,
+/// condition 6).
+fn earlier_spans(data: &[u8], segment: &WireSegment<'_>) -> Vec<(u64, u64)> {
+    let newer = segment.opener.state().0 > REGISTRY_VERSION;
+    segment
+        .frames
+        .iter()
+        .filter(|frame| frame.frame_type == Some(PARITY) && frame.link.state != LinkState::Broken)
+        .filter_map(|frame| {
+            let item = segment.items[frame.position];
+            let offsets = field_offsets(&data[..item.end], item.offset).ok()?;
+            parity::span_of(&data[offsets[3]..offsets[4]], newer)
+        })
+        .collect()
+}
+
+/// Recover from a lost item by scanning for the next resync opener or parity frame.
 ///
 /// A refused candidate is recorded on `segment` and yields `None`. An accepted
-/// candidate ends `segment` at the lost boundary and is returned so that the
-/// caller starts the next segment from it.
+/// resync candidate ends `segment` at the lost boundary and is returned so that the
+/// caller starts the next segment from it. A parity candidate that passes keeps the
+/// segment: the bytes before it become one damaged region item, the segment records its
+/// `anchor` as the predecessor of the next ordinary frame, and the candidate is returned
+/// so that the caller reads on from it.
 ///
 /// # Errors
 ///
@@ -823,10 +915,50 @@ fn recover_lost_item<'a>(
             .last()
             .map_or(boundary.offset, |item| item.offset + 1)
     };
-    match walk.recover(scanner, start, boundary, budget) {
+    let (registry, opener) = segment.opener.state();
+    let scans_parity = boundary.failure.and(opener);
+    let earlier = if scans_parity.is_some() {
+        earlier_spans(data, segment)
+    } else {
+        Vec::new()
+    };
+    let context = scans_parity.as_ref().map(|h0| parity::Segment {
+        h0,
+        registry,
+        earlier: &earlier,
+    });
+    match walk.recover(scanner, start, boundary, budget, context.as_ref()) {
         Some(candidate @ Candidate::Accepted { offset, .. }) => {
             end_at_resync(segment, data, boundary, offset)?;
             Ok(Some(candidate))
+        }
+        Some(candidate @ Candidate::Parity { offset, anchor }) => {
+            segment.resumptions.push(FramingFailure {
+                reason: FramingReason::UndelimitableInput,
+                offset: boundary.offset,
+                length: offset - boundary.offset,
+            });
+            segment.items.push(WireItem {
+                kind: ItemKind::DamagedRegion,
+                offset: boundary.offset,
+                end: offset,
+            });
+            segment.end_offset = offset;
+            segment.anchor = Some(anchor);
+            Ok(Some(candidate))
+        }
+        Some(Candidate::ParityRefused {
+            offset,
+            length,
+            count,
+        }) => {
+            segment.parity_refusal = Some(ResyncRefusal {
+                position: segment.items.len(),
+                offset,
+                length,
+                count,
+            });
+            Ok(None)
         }
         Some(Candidate::Refused { offset, count }) => {
             let position = segment.items.len() - usize::from(offset < boundary.offset);
@@ -915,6 +1047,7 @@ pub fn read_wire_with_keys<'a>(
                     segment = recovered_segment(offset, value);
                     continue;
                 }
+                Ok(Some(Candidate::Parity { .. })) => continue,
                 Ok(_) => {}
                 Err(reason) => {
                     result.stop = Some(framing_stop(
@@ -947,6 +1080,7 @@ pub fn read_wire_with_keys<'a>(
         if let Some(frame) = observed {
             if let Some(identifier) = frame.link.effective_identifier {
                 segment.head = Some(identifier);
+                segment.anchor = None;
             }
             segment.frames.push(frame);
         }

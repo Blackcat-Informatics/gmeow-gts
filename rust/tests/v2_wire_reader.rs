@@ -1307,3 +1307,52 @@ fn a_composite_with_only_one_component_key_held_is_refused() {
         }
     }
 }
+
+/// P5 7.2 step 6 and 7.2A, P1 3.4 step 4: reading resumes at the parity frame after a damaged
+/// region and the region is one item, so the frames after it are read and signed results exist.
+/// The frame that takes the `anchor` is detached unless the `anchor` is the identifier of the
+/// ordinary frame before the region.
+#[test]
+fn a_parity_frame_after_a_damaged_region_resumes_the_read_and_detaches_by_its_anchor() {
+    assert_signature_vectors(&[
+        "sig-detached-frame",
+        "sig-two-after-detached-frame",
+        "sig-commit-after-detached-frame",
+        "sig-resumed-frame-anchor-true",
+    ]);
+    for (name, detached) in [
+        ("sig-detached-frame.bin", true),
+        ("sig-resumed-frame-anchor-true.bin", false),
+    ] {
+        let input = vector_in("P6", name);
+        let read = read_wire(&input, ReadCapacity::default());
+        assert!(read.stop.is_none(), "{name}");
+        let [segment] = read.segments.as_slice() else {
+            panic!("{name}: expected one segment");
+        };
+        let [region] = segment.resumptions.as_slice() else {
+            panic!("{name}: expected one resumption");
+        };
+        assert_eq!(region.reason, FramingReason::UndelimitableInput, "{name}");
+        assert_eq!(region.length, 1, "{name}");
+        let damaged: Vec<_> = segment
+            .items
+            .iter()
+            .enumerate()
+            .filter(|(_, item)| item.kind == ItemKind::DamagedRegion)
+            .collect();
+        assert_eq!(damaged.len(), 1, "{name}");
+        assert_eq!(
+            (damaged[0].1.offset, damaged[0].0),
+            (region.offset, 2),
+            "{name}"
+        );
+        let after: Vec<_> = segment
+            .frames
+            .iter()
+            .filter(|frame| !frame.transparent && frame.position > damaged[0].0)
+            .collect();
+        assert_eq!(after.len(), 1, "{name}");
+        assert_eq!(after[0].detached, detached, "{name}");
+    }
+}
