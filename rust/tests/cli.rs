@@ -1436,6 +1436,56 @@ fn info_names_the_parity_repair_findings_of_a_span() {
     assert!(text.contains("item 4: repaired, count 1"), "{text}");
 }
 
+/// `gts repair FILE -o OUT` writes the repaired copy of a read (P5 7.1): the bytes of the repaired
+/// vector, and the file is written only when a span is repaired.
+#[test]
+fn repair_writes_the_repaired_copy_and_writes_nothing_without_a_repair() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let input = vectors().join("v2/P5/recover-no-signature.signature-00-3f.bin");
+    let out = tmp.join("repaired.gts");
+    let status = gts(&[
+        "repair",
+        input.to_str().unwrap(),
+        "-o",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(status.status.code(), Some(0));
+    let expected = vectors().join("v2/P5/recover-no-signature.signature-00-3f.repaired.bin");
+    assert_eq!(
+        std::fs::read(&out).unwrap(),
+        std::fs::read(expected).unwrap()
+    );
+
+    let base = vectors().join("v2/P5/parity-base.bin");
+    let none = tmp.join("none.gts");
+    let none_status = gts(&[
+        "repair",
+        base.to_str().unwrap(),
+        "-o",
+        none.to_str().unwrap(),
+    ]);
+    assert_eq!(none_status.status.code(), Some(1));
+    assert!(!none.exists(), "no repair writes no file");
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+/// `gts repair` refuses an output path that is its input, so it never overwrites the file it reads.
+#[test]
+fn repair_refuses_to_write_over_its_input() {
+    let input = vectors().join("v2/P5/recover-no-signature.signature-00-3f.bin");
+    let before = std::fs::read(&input).unwrap();
+    let out = gts(&[
+        "repair",
+        input.to_str().unwrap(),
+        "-o",
+        input.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(std::fs::read(&input).unwrap(), before);
+}
+
 #[test]
 fn info_reports_v2_damage_and_refuses_unknown_generations() {
     let damaged = vectors().join("v2/P1/stored-mismatch.bin");
