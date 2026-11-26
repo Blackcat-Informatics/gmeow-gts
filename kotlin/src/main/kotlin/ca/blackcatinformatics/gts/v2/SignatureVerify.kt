@@ -48,6 +48,25 @@ internal enum class SignatureStatus { VALID, INVALID, UNVERIFIED }
 internal class SignatureResult(val status: SignatureStatus, val reason: String?, val algorithm: ULong, val keyId: ByteArray)
 
 /**
+ * Verifies the signatures of every ordinary frame of a second-generation input against
+ * [heldKeys], through the segment reader ([inspectWire]): the `h0` of a frame's segment is the
+ * identifier of the opener that opens it and the subject is the frame's effective identifier.
+ * Returns the [SignatureResult] list of each frame that has one, keyed by the frame's byte
+ * offset, in the order of its `signatures` list. A frame with no effective identifier, a frame
+ * of a segment whose opener is not readable and a frame with no signature are absent. Any other
+ * input gives an empty map.
+ */
+internal fun readSignatureResults(data: ByteArray, heldKeys: List<HeldKey>): Map<Int, List<SignatureResult>> {
+    val wire = inspectWire(data, heldKeys = heldKeys) as? WireInspection.VersionTwo ?: return emptyMap()
+    return buildMap {
+        for (event in wire.events) {
+            val results = (event as? WireEvent.Item)?.signatureResults ?: continue
+            put(event.offset, results)
+        }
+    }
+}
+
+/**
  * Runs `Verify(signature, frame)` of P6 section 6.2 for one signature of one ordinary frame and
  * returns the outcome of the first step that gives one. [frameIdentifier] is the frame's
  * effective identifier and [headerIdentifier] the `h0` of the opener of its segment, both 32

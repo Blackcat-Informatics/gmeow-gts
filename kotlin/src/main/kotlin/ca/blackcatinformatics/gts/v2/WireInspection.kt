@@ -42,12 +42,25 @@ internal sealed interface WireEvent {
         val effectiveId: ByteString? = null,
         val commitClaim: CommitClaim? = null,
         val content: CborField? = null,
+        val signatureResults: List<SignatureResult>? = null,
     ) : WireEvent
 
     data class Stop(val offset: Int, val reason: StopReason) : WireEvent, WireInspection
 }
 
-internal fun inspectWire(data: ByteArray, retainDecoded: Boolean = false): WireInspection {
+/**
+ * Reads the items of a second-generation input. When [heldKeys] is given, each ordinary frame
+ * that has an effective identifier, in a segment whose opener is readable and that carries
+ * signature records, also gets one [SignatureResult] per record in `signatureResults`
+ * (P6 section 6.2); a frame without an effective identifier, a frame of a segment whose opener
+ * is not readable and a frame without signature records get none. Without [heldKeys] no
+ * signature is verified.
+ */
+internal fun inspectWire(
+    data: ByteArray,
+    retainDecoded: Boolean = false,
+    heldKeys: List<HeldKey>? = null,
+): WireInspection {
     if (data.isEmpty()) return WireInspection.Empty
     val end =
         try {
@@ -61,7 +74,7 @@ internal fun inspectWire(data: ByteArray, retainDecoded: Boolean = false): WireI
         val version = nextHead(data, kind.end, end)
         return when {
             version?.major != 0 -> WireInspection.Unknown
-            version.argument == 2uL -> WireInspection.VersionTwo(items(data, end, retainDecoded))
+            version.argument == 2uL -> WireInspection.VersionTwo(items(data, end, retainDecoded, heldKeys))
             version.argument != null && version.argument > 2uL -> WireInspection.Unsupported(version.argument)
             else -> WireInspection.Unknown
         }
@@ -126,7 +139,7 @@ private data class ScannedItem(
     val frame: FrameEnvelope? = null,
 )
 
-private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean): Sequence<WireEvent> =
+private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean, heldKeys: List<HeldKey>?): Sequence<WireEvent> =
     sequence {
         val source = scanItems(data, firstEnd).iterator()
         fun advance(): ScannedItem? = if (source.hasNext()) source.next() else null
@@ -134,6 +147,7 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean): Seque
         val budget = PayloadBudget()
         val closing = ClosingClaims(data)
         var predecessor: ByteArray? = null
+        var segmentOpener: ByteArray? = null
         var current = advance()
         var next = advance()
         while (current != null) {
@@ -144,6 +158,7 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean): Seque
             }
             if (item.kind == ItemKind.HEADER || item.kind == ItemKind.RESYNC) {
                 predecessor = item.effectiveId?.bytes
+                segmentOpener = predecessor
             }
             val following = next?.event
             val afterLocator = if (item.kind == ItemKind.OFFSETS && (following as? WireEvent.Item)?.kind == ItemKind.LOCATOR) advance() else null
@@ -167,6 +182,7 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean): Seque
                         effectiveId = link.effective?.let(::ByteString),
                         commitClaim = claim,
                         content = frame.content.takeIf { retainDecoded },
+                        signatureResults = verifyFrameSignatures(frame, link.effective, segmentOpener, heldKeys),
                     ),
                 )
             } else {
@@ -176,6 +192,17 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean): Seque
             next = afterLocator ?: advance()
         }
     }
+
+private fun verifyFrameSignatures(
+    frame: FrameEnvelope,
+    frameIdentifier: ByteArray?,
+    headerIdentifier: ByteArray?,
+    heldKeys: List<HeldKey>?,
+): List<SignatureResult>? {
+    val records = frame.payload.signatures
+    if (heldKeys == null || frameIdentifier == null || headerIdentifier == null || records.isEmpty()) return null
+    return records.map { verifySignature(it, frameIdentifier, headerIdentifier, heldKeys) }
+}
 
 private fun scanItems(data: ByteArray, firstEnd: Int): Sequence<ScannedItem> =
     sequence {

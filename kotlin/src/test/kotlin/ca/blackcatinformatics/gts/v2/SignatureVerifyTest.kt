@@ -24,8 +24,9 @@ import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Checks `Verify(signature, frame)` of P6 section 6.2 at its boundary: each signature record of a
- * P6 vector, the frame's effective identifier, the `h0` of its segment and the held keys of the
- * vector's recorded read. The expected outcomes are the signature results of that recorded read.
+ * P6 vector through the segment reader, which takes the `h0` of the opener of the segment and the
+ * effective identifier of the frame and is given the held keys of the vector's recorded read. The
+ * expected outcomes are the signature results of that recorded read.
  */
 class SignatureVerifyTest {
     private data class Outcome(val status: String, val reason: String?, val algorithm: ULong, val keyId: String)
@@ -83,37 +84,11 @@ class SignatureVerifyTest {
         }
     }
 
-    /** Verifies every signature of every ordinary frame that has an effective identifier, keyed by frame offset. */
-    private fun verifyAll(case: Case, heldKeys: List<HeldKey> = case.heldKeys): Map<Int, List<Outcome>> {
-        val version = assertIs<WireInspection.VersionTwo>(inspectWire(case.data))
-        var headerIdentifier: ByteArray? = null
-        var registry = 1uL
-        val outcomes = mutableMapOf<Int, List<Outcome>>()
-        version.events.filterIsInstance<WireEvent.Item>().forEach { item ->
-            when (item.kind) {
-                ItemKind.HEADER, ItemKind.RESYNC -> {
-                    headerIdentifier = item.effectiveId?.bytes
-                    registry = item.opener?.registry ?: registry
-                }
-                ItemKind.FRAME -> {
-                    val frameIdentifier = item.effectiveId?.bytes
-                    val h0 = headerIdentifier
-                    if (frameIdentifier != null && h0 != null) {
-                        val records = readFrame(CborField(case.data, item.offset, item.end), registry).payload.signatures
-                        if (records.isNotEmpty()) {
-                            outcomes[item.offset] =
-                                records.map { record ->
-                                    val result = verifySignature(record, frameIdentifier, h0, heldKeys)
-                                    Outcome(result.status.name.lowercase(), result.reason, result.algorithm, hex(result.keyId))
-                                }
-                        }
-                    }
-                }
-                else -> Unit
-            }
+    /** Reads the signature results of every ordinary frame through the segment reader, keyed by frame offset. */
+    private fun verifyAll(case: Case, heldKeys: List<HeldKey> = case.heldKeys): Map<Int, List<Outcome>> =
+        readSignatureResults(case.data, heldKeys).mapValues { (_, results) ->
+            results.map { Outcome(it.status.name.lowercase(), it.reason, it.algorithm, hex(it.keyId)) }
         }
-        return outcomes
-    }
 
     private fun assertVectors(vararg names: String) {
         names.flatMap(::cases).forEach { case ->
@@ -269,5 +244,35 @@ class SignatureVerifyTest {
             val scrambled = case.heldKeys.reversed() + case.heldKeys
             assertEquals(case.expected, verifyAll(case, scrambled), case.name)
         }
+    }
+
+    @Test
+    fun aFrameWithNoEffectiveIdentifierHasNoSubjectAndNoSignatureResult() {
+        // P6 6.2 precondition: a transparent frame has no effective identifier, so its signature has no subject.
+        val case = cases("sig-transparent-signature").single()
+        assertEquals(emptyMap(), case.expected, "the recorded read carries no signature result")
+        assertEquals(emptyMap(), verifyAll(case), case.name)
+    }
+
+    @Test
+    fun aSignedFrameWhoseTransparentFieldIsNotABoolIsOrdinaryAndHasAResult() {
+        // P1 3.4 and P6-3: the frame is ordinary, has an effective identifier, and so has a signature result.
+        assertVectors("parity-transparent-not-bool-signed")
+    }
+
+    @Test
+    fun aSegmentWhoseOpenerIsNotReadableGetsNoSignatureResult() {
+        // P6 6.2 precondition: without h0 there is no subject. The registry hash of the opener is zero, which no opener may carry.
+        val case = cases("sig-record-valid").single()
+        assertTrue(verifyAll(case).isNotEmpty(), "the unmodified input has signature results")
+        val data = case.data.copyOf().also { it[4] = 0 }
+        assertEquals(emptyMap(), readSignatureResults(data, case.heldKeys))
+    }
+
+    @Test
+    fun noHeldKeysArgumentMeansNoSignatureIsVerified() {
+        val case = cases("sig-record-valid").single()
+        val wire = assertIs<WireInspection.VersionTwo>(inspectWire(case.data))
+        assertTrue(wire.events.filterIsInstance<WireEvent.Item>().all { it.signatureResults == null })
     }
 }

@@ -62,7 +62,8 @@ internal fun readFrame(item: CborField, registry: ULong): FrameEnvelope {
     val identifier = fields.next()
     problems.observe { identifier.bytes(32) }
     val signatures = fields.next()
-    val records = problems.observe { readSignatures(signatures, newer, parity) } ?: emptyList()
+    val records = problems.observe { readSignatures(signatures, newer) } ?: emptyList()
+    problems.record(parity && records.isNotEmpty(), "forbidden_combination")
     problems.record(
         invalidPayloadLength(code, length),
         "out_of_range",
@@ -194,7 +195,7 @@ private fun readStorage(item: CborField, newer: Boolean): FrameStorage {
     return FrameStorage(tag)
 }
 
-private fun readSignatures(item: CborField, newer: Boolean, parity: Boolean): List<SignatureRecord> {
+private fun readSignatures(item: CborField, newer: Boolean): List<SignatureRecord> {
     val signatures = item.list()
     val records = mutableListOf<SignatureRecord>()
     var previous: CborField? = null
@@ -216,6 +217,5 @@ private fun readSignatures(item: CborField, newer: Boolean, parity: Boolean): Li
                 value.data.copyOfRange(valueStart, value.end),
             )
     }
-    if (parity && previous != null) malformed("forbidden_combination")
     return records
 }
