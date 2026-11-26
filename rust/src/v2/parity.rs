@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 use super::{
     frame::{decode_parity_candidate, frame_identifier, Frame, Storage, PARITY},
+    parity_shards::DIGEST_BYTES,
     payload::{ChargeRefusal, PayloadBudget, PayloadRefusal, PayloadState},
     reader::LinkState,
     Decoder,
@@ -15,7 +16,7 @@ use super::{
 /// The envelope bytes that begin every parity frame: the array of eleven, the item kind, the
 /// frame type, `critical` false and `transparent` true.
 const PREFIX: [u8; 5] = [0x8b, 0x02, 0x10, 0xf4, 0xf5];
-const SPAN: u64 = 1 << 22;
+pub(super) const SPAN: u64 = 1 << 22;
 const FULL_SHARD: u64 = 4096;
 const MIN_SHARD: u64 = 64;
 const COLUMNS: u64 = 64;
@@ -117,18 +118,33 @@ fn head_size(count: u64) -> u64 {
 }
 
 /// The shape of a `parity_payload` for a span of `span` bytes (P5 §6.4).
-struct Shape {
-    shards: u64,
-    parity_shards: u64,
-    parity_bytes: u64,
+pub(super) struct Shape {
+    /// The shard length `z` of the span.
+    pub(super) shard: u64,
+    /// The data shard count `N`.
+    pub(super) shards: u64,
+    /// The parity shard count `4 * D`.
+    pub(super) parity_shards: u64,
+    /// The parity byte count `4 * D * z`.
+    pub(super) parity_bytes: u64,
+}
+
+/// The lists of a `parity_payload` of one span: the data and parity shard digests, the parity
+/// bytes, and the offset where the two digest lists end.
+pub(super) struct Lists<'a> {
+    pub(super) data_digests: Vec<[u8; DIGEST_BYTES]>,
+    pub(super) parity_digests: Vec<[u8; DIGEST_BYTES]>,
+    pub(super) parity: &'a [u8],
+    pub(super) end: usize,
 }
 
 impl Shape {
-    fn of(span: u64) -> Self {
+    pub(super) fn of(span: u64) -> Self {
         let shard = shard_length(span);
         let shards = span.div_ceil(shard);
         let parity_shards = ROWS * shards.div_ceil(COLUMNS);
         Self {
+            shard,
             shards,
             parity_shards,
             parity_bytes: parity_shards * shard,
@@ -145,51 +161,68 @@ impl Shape {
             + self.parity_bytes
     }
 
-    /// The end of the two digest lists when `payload` is one deterministic `parity_payload` of
-    /// this shape.
-    fn lists_end(&self, payload: &[u8]) -> Option<usize> {
+    /// The lists of `payload` when it is one deterministic `parity_payload` of this shape.
+    pub(super) fn lists<'a>(&self, payload: &'a [u8]) -> Option<Lists<'a>> {
         let mut cursor = Decoder::new(payload, 0);
         cursor.record(3).ok()?;
+        let mut digest_lists = Vec::with_capacity(2);
         for count in [self.shards, self.parity_shards] {
             if cursor.head(4).ok()? != count {
                 return None;
             }
+            let mut list = Vec::new();
             for _ in 0..count {
-                cursor.fixed::<16>().ok()?;
+                list.push(*cursor.fixed::<DIGEST_BYTES>().ok()?);
             }
+            digest_lists.push(list);
         }
         let end = cursor.offset;
-        cursor
+        let parity = cursor
             .byte_string(Some(usize::try_from(self.parity_bytes).ok()?))
             .ok()?;
-        (cursor.offset == payload.len()).then_some(end)
+        if cursor.offset != payload.len() {
+            return None;
+        }
+        let parity_digests = digest_lists.pop()?;
+        let data_digests = digest_lists.pop()?;
+        Some(Lists {
+            data_digests,
+            parity_digests,
+            parity,
+            end,
+        })
     }
 
     /// Whether `payload` is one deterministic `parity_payload` of this shape whose table digest
     /// under `h0` is `table_digest` (P5 6.6, conditions 4 and 5).
-    fn table_matches(&self, payload: &[u8], h0: &[u8; 32], table_digest: &[u8; 32]) -> bool {
-        let Some(lists_end) = self.lists_end(payload) else {
+    pub(super) fn table_matches(
+        &self,
+        payload: &[u8],
+        h0: &[u8; 32],
+        table_digest: &[u8; 32],
+    ) -> bool {
+        let Some(lists) = self.lists(payload) else {
             return false;
         };
         let mut table = blake3::Hasher::new_derive_key("gts2 parity table");
         table.update(&[0x83, 0x58, 0x20]);
         table.update(h0);
-        table.update(&payload[1..lists_end]);
+        table.update(&payload[1..lists.end]);
         table.finalize().as_bytes() == table_digest
     }
 }
 
 /// The content record of a parity frame.
-struct Record<'a> {
-    geometry: u64,
-    first: u64,
-    end: u64,
-    anchor: &'a [u8; 32],
-    table_digest: &'a [u8; 32],
+pub(super) struct Record<'a> {
+    pub(super) geometry: u64,
+    pub(super) first: u64,
+    pub(super) end: u64,
+    pub(super) anchor: &'a [u8; 32],
+    pub(super) table_digest: &'a [u8; 32],
 }
 
 impl<'a> Record<'a> {
-    fn read(content: &'a [u8]) -> Option<Self> {
+    pub(super) fn read(content: &'a [u8]) -> Option<Self> {
         let mut cursor = Decoder::new(content, 0);
         cursor.record(5).ok()?;
         Some(Self {
@@ -202,7 +235,7 @@ impl<'a> Record<'a> {
     }
 
     /// The length of the span when the record is within condition 1 of P5 §6.6.
-    fn span(&self) -> Option<u64> {
+    pub(super) fn span(&self) -> Option<u64> {
         let length = self.end.checked_sub(self.first)?;
         (self.geometry == 1 && self.first.is_multiple_of(SPAN) && (1..=SPAN).contains(&length))
             .then_some(length)
@@ -212,9 +245,12 @@ impl<'a> Record<'a> {
 /// The stage 1 outcome of an in-order frame of type `parity` (P5 6.6, stage 1).
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Judgement {
-    /// Condition 1, 2, 3, 6 or 7 of P5 6.6 holds, or the payload check ran and failed (conditions
-    /// 4 and 5): `parity_damaged`. The frame is not used.
+    /// Condition 1, 2, 3, 6 or 7 of P5 6.6 holds, or the payload check ran and failed and the
+    /// table does not hold (conditions 4 and 5): `parity_damaged`. The frame is not used.
     Damaged,
+    /// The payload check failed, but the table holds: `parity_damaged`, and the frame is used
+    /// for repair as P5 6.6 states (its failing parity bytes are erasures).
+    DamagedUsed,
     /// The frame is damaged by none of those conditions, and its payload exceeds the reader's
     /// capacity (`exceeds_capacity`). The payload was not read, so the frame is not used.
     ExceedsCapacity,
@@ -263,20 +299,20 @@ pub(super) fn judge(
         return Some(Judgement::Damaged);
     }
     let shape = Shape::of(span);
+    let table_holds = || {
+        frame.stored_payload.len() as u64 == shape.encoded_length()
+            && shape.table_matches(frame.stored_payload, segment.h0, record.table_digest)
+    };
     Some(match payload {
-        PayloadState::Damaged(_) => Judgement::Damaged,
+        PayloadState::Damaged(_) if table_holds() => Judgement::DamagedUsed,
+        PayloadState::Verified(_)
+            if frame.decoded_length == shape.encoded_length() && table_holds() =>
+        {
+            Judgement::Verified
+        }
+        PayloadState::Damaged(_) | PayloadState::Verified(_) => Judgement::Damaged,
         PayloadState::Unchecked(PayloadRefusal::UnknownCodec) => Judgement::Unchecked,
         PayloadState::Unchecked(_) => Judgement::ExceedsCapacity,
-        PayloadState::Verified(_) => {
-            let expected = shape.encoded_length();
-            let fits =
-                frame.stored_payload.len() as u64 == expected && frame.decoded_length == expected;
-            if fits && shape.table_matches(frame.stored_payload, segment.h0, record.table_digest) {
-                Judgement::Verified
-            } else {
-                Judgement::Damaged
-            }
-        }
     })
 }
 

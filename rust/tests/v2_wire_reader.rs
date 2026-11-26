@@ -1639,37 +1639,46 @@ fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
         .any(|window| window == needle)
 }
 
+/// The `unprotected_tail` record of the damaged and above-capacity vectors: no span is used, so the
+/// tail is the 470 bytes that follow the opener at offset 11 (P5 6.7, P7 section 1).
+const TAIL_AFTER_OPENER: [u8; 18] = [
+    0x18, 0x24, 0x81, 0x01, 0x81, 0x01, 0x81, 0x01, 0x82, 0x02, 0x0b, 0x82, 0x02, 0x19, 0x01, 0xd6,
+    0x81, 0x01,
+];
+
 /// P7 section 1: a damaged parity frame encodes one `parity_damaged` finding with its position
-/// alone, and the expected result of its vector contains those bytes. A verified base frame
-/// encodes no parity finding.
+/// alone, followed by the segment's `unprotected_tail`, and the expected result of its vector
+/// contains both records. A verified base frame encodes no parity finding.
 #[test]
 fn a_damaged_parity_frame_encodes_parity_damaged_with_its_position_alone() {
     let findings = parity_findings_of("parity-damaged-each.3.bin");
     let expected = [
         0x18, 0x1e, 0x81, 0x01, 0x81, 0x01, 0x82, 0x02, 0x04, 0x81, 0x01, 0x81, 0x01, 0x81, 0x01,
     ];
-    assert_eq!(findings, vec![expected.to_vec()]);
-    let result = expected_read_result("parity-damaged-each", "parity-damaged-each.3.bin");
-    assert!(
-        contains_bytes(&result, &findings[0]),
-        "result lacks the finding"
+    assert_eq!(
+        findings,
+        vec![expected.to_vec(), TAIL_AFTER_OPENER.to_vec()]
     );
+    let result = expected_read_result("parity-damaged-each", "parity-damaged-each.3.bin");
+    for finding in &findings {
+        assert!(contains_bytes(&result, finding), "result lacks a finding");
+    }
     assert_eq!(parity_findings_of("parity-base.bin").len(), 0);
 }
 
 /// P7 section 1 and P5 6.6: a clean parity frame whose payload is above capacity encodes one
 /// `exceeds_capacity` finding with the reason `decoded_size`, its position, its item span and its
-/// decoded count, and the expected result of its vector contains those bytes.
+/// decoded count, then the segment's tail. The expected result of its vector contains both.
 #[test]
 fn a_parity_frame_above_capacity_encodes_its_size_refusal_with_its_item_span() {
     let findings = parity_findings_of("parity-above-capacity.bin");
-    assert_eq!(findings.len(), 1);
-    let result = expected_read_result("parity-above-capacity", "parity-above-capacity.bin");
-    assert!(
-        contains_bytes(&result, &findings[0]),
-        "result lacks the finding"
-    );
+    assert_eq!(findings.len(), 2);
     assert_eq!(findings[0][0], 0x14, "code 20, exceeds_capacity");
+    assert_eq!(findings[1], TAIL_AFTER_OPENER.to_vec());
+    let result = expected_read_result("parity-above-capacity", "parity-above-capacity.bin");
+    for finding in &findings {
+        assert!(contains_bytes(&result, finding), "result lacks a finding");
+    }
 }
 
 /// P5 6.6 precedence: a frame that is damaged by a condition needing no payload gives
@@ -1677,7 +1686,37 @@ fn a_parity_frame_above_capacity_encodes_its_size_refusal_with_its_item_span() {
 #[test]
 fn damage_takes_precedence_over_the_capacity_finding_for_one_frame() {
     let findings = parity_findings_of("parity-above-capacity-and-damaged.bin");
-    assert_eq!(findings.len(), 1);
+    assert_eq!(findings.len(), 2);
     assert_eq!(findings[0][0], 0x18, "code 30, parity_damaged");
     assert_eq!(findings[0][1], 0x1e);
+    assert_eq!(findings[1], TAIL_AFTER_OPENER.to_vec());
+}
+
+/// P5 6.6 stage 3 and P5 7.2: an erased data shard that no failing item explains is an unknown
+/// that is solved and never written. The vector gives one `parity_mismatch` with reason `data` and
+/// count 2, one `parity_unexplained` with count 1, and one `repaired` with count 1, all at the
+/// parity frame's position 4, and its expected result contains each record.
+#[test]
+fn an_unexplained_shard_is_reported_and_the_span_is_repaired_around_it() {
+    let findings = parity_findings_of("parity-unexplained.bin");
+    let mismatch = [
+        0x18, 0x1f, 0x82, 0x02, 0x18, 0x28, 0x81, 0x01, 0x82, 0x02, 0x04, 0x81, 0x01, 0x81, 0x01,
+        0x82, 0x02, 0x02,
+    ];
+    let unexplained = [
+        0x18, 0x20, 0x81, 0x01, 0x81, 0x01, 0x82, 0x02, 0x04, 0x81, 0x01, 0x81, 0x01, 0x82, 0x02,
+        0x01,
+    ];
+    let repaired = [
+        0x18, 0x23, 0x81, 0x01, 0x81, 0x01, 0x82, 0x02, 0x04, 0x81, 0x01, 0x81, 0x01, 0x82, 0x02,
+        0x01,
+    ];
+    assert_eq!(
+        findings,
+        vec![mismatch.to_vec(), unexplained.to_vec(), repaired.to_vec()]
+    );
+    let result = expected_read_result("parity-unexplained", "parity-unexplained.bin");
+    for finding in &findings {
+        assert!(contains_bytes(&result, finding), "result lacks a finding");
+    }
 }

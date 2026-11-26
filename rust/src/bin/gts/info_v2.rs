@@ -289,7 +289,7 @@ fn print_frame_problems(frame: &WireFrame<'_>) -> bool {
         }
     }
     match frame.judgement {
-        Some(Judgement::Damaged) => {
+        Some(Judgement::Damaged | Judgement::DamagedUsed) => {
             stdout_line!("    item {position}: parity_damaged");
             clean = false;
         }
