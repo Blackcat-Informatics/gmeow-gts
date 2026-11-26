@@ -239,6 +239,32 @@ class SignatureVerifyTest {
     }
 
     @Test
+    fun framesAfterAParityFrameAtWhichReadingResumesAreVerifiedAgainstTheAnchor() {
+        // P5 7.2 step 6 and P1 3.4 step 4: the reader resumes at the parity frame after a damaged region
+        // and takes its `anchor` as the predecessor, so the signed frame after it links and its subject is
+        // its effective identifier, whether or not the anchor is the identifier of the frame before the region.
+        assertVectors(
+            "sig-detached-frame",
+            "sig-two-after-detached-frame",
+            "sig-commit-after-detached-frame",
+            "sig-resumed-frame-anchor-true",
+        )
+    }
+
+    @Test
+    fun theParityFrameAtWhichReadingResumesIsTransparentAndCarriesNoSignatureResult() {
+        // P6-3: a transparent frame is covered by no signature, and P5 7.2 7.2A: the damaged region is one item.
+        val case = cases("sig-detached-frame").single()
+        val items = (assertIs<WireInspection.VersionTwo>(inspectWire(case.data, heldKeys = case.heldKeys)).events).toList()
+        val kinds = items.filterIsInstance<WireEvent.Item>().map { it.kind }
+        assertEquals(1, kinds.count { it == ItemKind.DAMAGED })
+        val parity = items.filterIsInstance<WireEvent.Item>().single { it.frameType == 16uL }
+        assertEquals(FrameLink.LINKED, parity.link)
+        assertEquals(null, parity.signatureResults)
+        assertTrue(items.none { it is WireEvent.Stop }, "reading resumes and reaches the end of the input")
+    }
+
+    @Test
     fun heldKeysAreASetWhateverOrderOrRepetitionTheCallerGives() {
         listOf("key-held-order", "key-mismatch-two-entries", "sig-record-valid").flatMap(::cases).forEach { case ->
             val scrambled = case.heldKeys.reversed() + case.heldKeys
