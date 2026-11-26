@@ -3,7 +3,12 @@
 
 //! Walked resync openers and charged candidates (P1 sections 2.4a and 6.7).
 
-import { BLAKE3_256, Decoder, HeaderError } from "./v2_decoder.js";
+import {
+    BLAKE3_256,
+    compareBytes as compare,
+    Decoder,
+    HeaderError,
+} from "./v2_decoder.js";
 import { contextHash, type PayloadBudget } from "./v2_integrity.js";
 
 /** The bytes a resync opener may span, and the distance a scan tests past a pattern. */
@@ -67,15 +72,6 @@ function equal(left: Uint8Array, right: Uint8Array): boolean {
         left.length === right.length &&
         left.every((byte, index) => byte === right[index])
     );
-}
-
-/** Lexicographic comparison of two byte strings. */
-function compare(left: Uint8Array, right: Uint8Array): number {
-    const common = Math.min(left.length, right.length);
-    for (let index = 0; index < common; index++) {
-        if (left[index] !== right[index]) return left[index] - right[index];
-    }
-    return left.length - right.length;
 }
 
 function decodePrefix(

@@ -13,7 +13,8 @@ export type HeaderReason =
     | "out_of_range"
     | "unregistered_value"
     | "inconsistent_counts"
-    | "unordered_or_repeated";
+    | "unordered_or_repeated"
+    | "forbidden_combination";
 
 /** The first refusal of a decoder: its reason and the offset where it stands. */
 export class HeaderError extends Error {
@@ -33,6 +34,15 @@ export const BLAKE3_256 = 1n;
 const U64_MAX = (1n << 64n) - 1n;
 
 const SHORTEST = [24n, 256n, 65536n, 4294967296n];
+
+/** Lexicographic comparison of two byte strings: negative, zero or positive. */
+export function compareBytes(left: Uint8Array, right: Uint8Array): number {
+    const common = Math.min(left.length, right.length);
+    for (let index = 0; index < common; index++) {
+        if (left[index] !== right[index]) return left[index] - right[index];
+    }
+    return left.length - right.length;
+}
 
 /** A cursor over `bytes` that reads from `offset` (the `Decoder` of the reference reader). */
 export class Decoder {
