@@ -4,6 +4,9 @@
 package ca.blackcatinformatics.gts.v2
 
 private const val SPAN_LENGTH = 4_194_304uL
+
+// The longest content record of a parity frame: an array head, three uints and two 32-byte digests.
+private const val CONTENT_WINDOW = 128
 private val parityPattern = byteArrayOf(0x8b.toByte(), 0x02, 0x10, 0xf4.toByte(), 0xf5.toByte())
 private val resyncPattern = byteArrayOf(0x8b.toByte(), 0x05, 0x02, 0x50) + "fcf3eb32a2f0267dd16a53f09bff8792".hexToByteArray()
 private val tablePrefix = byteArrayOf(0x83.toByte(), 0x58, 0x20)
@@ -78,12 +81,7 @@ internal class ParityScan(
     }
 
     private fun test(offset: Int): ParityCandidate? {
-        val end =
-            try {
-                itemEnd(data, offset)
-            } catch (_: FramingException) {
-                return null
-            }
+        val end = envelopeEnd(data, offset) ?: return null
         val frame =
             try {
                 readFrame(CborField(data, offset, end), registry)
@@ -103,6 +101,38 @@ internal class ParityScan(
         if (observation.state != PayloadState.VERIFIED || !layout.holds(payload.stored, opener, content.tableDigest)) return null
         return ParityCandidate(offset, content.anchor, observation)
     }
+}
+
+/**
+ * The end of the item at a parity candidate when its envelope has the shape of a `parity` frame
+ * (P5 section 7.2, step 6), else null. The test follows the fields in wire order and stops at the
+ * first that fails (P5-38). Each field is delimited within a window no longer than a valid parity
+ * field, and the payload is jumped by its head, so a candidate that fails costs a bounded number
+ * of heads whatever follows it: the scan over a damaged region is linear in its length.
+ */
+private fun envelopeEnd(data: ByteArray, offset: Int): Int? {
+    var position = offset + parityPattern.size
+    fun field(window: Int): Boolean =
+        try {
+            position = itemEnd(data, position, minOf(data.size, position + window))
+            true
+        } catch (_: FramingException) {
+            false
+        }
+    // content, length, digest, storage
+    if (!field(CONTENT_WINDOW) || !field(9) || !field(34) || !field(16)) return null
+    val head =
+        try {
+            readHead(data, position, data.size)
+        } catch (_: FramingException) {
+            return null
+        }
+    val size = head.argument
+    if (head.major != 2 || size == null || size > (data.size - head.end).toULong()) return null
+    position = head.end + size.toInt()
+    // identifier, then the empty signatures list of a parity frame
+    if (!field(34) || position >= data.size || data[position] != 0x80.toByte()) return null
+    return position + 1
 }
 
 private fun ByteArray.matches(offset: Int, pattern: ByteArray): Boolean =

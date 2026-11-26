@@ -174,7 +174,10 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean, heldKe
                 }
                 pending = null
                 resumed = candidate
-                yield(WireEvent.Item((item as WireEvent.Stop).offset, candidate.offset, ItemKind.DAMAGED))
+                val stop = item as WireEvent.Stop
+                // The finding of the damaged region stands (P5 section 7.2A), its length running to the resumption point.
+                closing.damage(stop.offset, candidate.offset)
+                yield(WireEvent.Item(stop.offset, candidate.offset, ItemKind.DAMAGED, stop.reason.name.lowercase()))
                 current = next
                 next = advance()
                 continue

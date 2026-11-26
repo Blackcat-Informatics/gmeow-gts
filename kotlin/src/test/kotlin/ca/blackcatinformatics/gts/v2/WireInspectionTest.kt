@@ -9,6 +9,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class WireInspectionTest {
     private fun vector(name: String): ByteArray = Path("../vectors/v2/P1/$name.bin").readBytes()
@@ -233,6 +234,58 @@ class WireInspectionTest {
         assertEquals(List(3) { "unordered_or_repeated" } + listOf(null), closing.map { it.problem })
         assertEquals(List(4) { null }, closing.map { it.closingClaimFailure })
         assertEquals(WireEvent.Stop(data.size - torn.size, StopReason.TORN_TAIL), events.last())
+    }
+
+    private fun resumedVector(): ByteArray = Path("../vectors/v2/P6/sig-detached-frame.bin").readBytes()
+
+    private fun wireItems(data: ByteArray): List<WireEvent.Item> =
+        assertIs<WireInspection.VersionTwo>(inspectWire(data)).events.toList().map { assertIs<WireEvent.Item>(it) }
+
+    private fun uint(value: Int): ByteArray =
+        when {
+            value < 24 -> byteArrayOf(value.toByte())
+            value < 256 -> byteArrayOf(0x18, value.toByte())
+            else -> byteArrayOf(0x19, (value shr 8).toByte(), value.toByte())
+        }
+
+    @Test
+    fun aDamagedRegionKeepsItsUndelimitableInputFindingWhenReadingResumes() {
+        // P5 7.2A: the `undelimitable_input` finding stands, its length running to the resumption point.
+        val damaged = wireItems(resumedVector()).single { it.kind == ItemKind.DAMAGED }
+        assertEquals("undelimitable_input", damaged.problem)
+        assertEquals(173, damaged.offset)
+        assertEquals(1, damaged.end - damaged.offset)
+    }
+
+    @Test
+    fun anOffsetsItemAfterADamagedRegionCountsTheRegionAsOneItem() {
+        // P5 7.2A: for the check of an `offsets` item the damaged region is one item of its number of bytes.
+        val data = resumedVector()
+        val lengths = wireItems(data).map { it.end - it.offset }
+        val offsets = byteArrayOf(0x82.toByte(), 0x04) + (uint(lengths.size).also { it[0] = (it[0] + 0x80).toByte() }) + lengths.flatMap { uint(it).toList() }
+        val last = wireItems(data + offsets).last()
+        assertEquals(ItemKind.OFFSETS, last.kind)
+        assertNull(last.problem)
+        assertNull(last.closingClaimFailure)
+        val wrong = byteArrayOf(0x82.toByte(), 0x04, 0x81.toByte(), 0x00)
+        assertEquals(ClosingClaimFailure.INDEX_OFFSETS, wireItems(data + wrong).last().closingClaimFailure)
+    }
+
+    @Test
+    fun aDamagedRegionOfRepeatedParityPrefixesResumesAtTheSameParityFrame() {
+        // P5 7.2 step 6 and P5-38: a candidate whose envelope fails is rejected at its first failing field, so
+        // each of the repeated prefixes costs a bounded number of heads and the scan is linear in the region.
+        val data = resumedVector()
+        val original = wireItems(data)
+        val damaged = original.single { it.kind == ItemKind.DAMAGED }
+        val prefix = "8b0210f4f5".hexToByteArray()
+        val region = byteArrayOf(0xff.toByte()) + ByteArray(2000 * prefix.size) { prefix[it % prefix.size] }
+        val widened = data.copyOfRange(0, damaged.offset) + region + data.copyOfRange(damaged.end, data.size)
+        val resumed = wireItems(widened)
+        assertEquals(original.map { it.kind }, resumed.map { it.kind })
+        val parity = original.single { it.frameType == 16uL }
+        assertEquals(parity.offset + region.size - 1, resumed.single { it.frameType == 16uL }.offset)
+        assertEquals(region.size, resumed.single { it.kind == ItemKind.DAMAGED }.let { it.end - it.offset })
     }
 
     private fun frames(name: String): List<WireEvent.Item> =
