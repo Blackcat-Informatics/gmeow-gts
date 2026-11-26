@@ -67,7 +67,7 @@ pub(super) fn inspect(path: &str, bytes: &[u8]) -> Option<bool> {
         clean = false;
     }
     if let Some(refusal) = wire.resync_refusal {
-        print_refusal(refusal);
+        print_refusal("resync", refusal);
         clean = false;
     }
     for (ordinal, segment) in wire.segments.iter().enumerate() {
@@ -102,9 +102,9 @@ fn print_damage(place: &str, failure: FramingFailure) {
     );
 }
 
-fn print_refusal(refusal: ResyncRefusal) {
+fn print_refusal(kind: &str, refusal: ResyncRefusal) {
     stdout_line!(
-        "  resync candidate refused at byte {}, {} byte(s), item count {}",
+        "  {kind} candidate refused at byte {}, {} byte(s), decoded byte total {}",
         refusal.offset,
         refusal.length,
         refusal.count
@@ -120,7 +120,11 @@ fn print_segment(ordinal: usize, segment: &WireSegment<'_>) -> bool {
         clean = false;
     }
     if let Some(refusal) = segment.resync_refusal {
-        print_refusal(refusal);
+        print_refusal("resync", refusal);
+        clean = false;
+    }
+    if let Some(refusal) = segment.parity_refusal {
+        print_refusal("parity", refusal);
         clean = false;
     }
     clean &= print_items(segment);
