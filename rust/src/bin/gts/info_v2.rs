@@ -32,8 +32,8 @@ const FRAME_NAMES: [&str; 16] = [
     "parity",
 ];
 
-pub(super) fn inspect(path: &str, bytes: &[u8]) -> Option<bool> {
-    let wire = read_wire(bytes, ReadCapacity::default());
+pub(super) fn inspect(path: &str, bytes: &[u8], capacity: ReadCapacity) -> Option<bool> {
+    let wire = read_wire(bytes, capacity);
     match wire.dispatch {
         Some(Dispatch::SecondGeneration) => {}
         Some(Dispatch::FirstGeneration) => return None,

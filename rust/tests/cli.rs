@@ -1374,6 +1374,31 @@ fn info_reports_v2_wire_frames_and_legacy_graphs() {
     assert!(text.contains(" quads 1 reifies "), "{text}");
 }
 
+/// `gts info` passes its capacity options to the reader. The P5 vector refuses a parity candidate
+/// at a total decoded length of 1739 bytes, so the report names that refusal only under the
+/// option, and a value that is not an integer is a usage error.
+#[test]
+fn info_capacity_options_reach_the_reader() {
+    let v = vectors().join("v2/P5/recover-scan-charge.bin");
+    let path = v.to_str().unwrap();
+    let default = gts(&["info", path]);
+    let limited = gts(&["info", "--decoded-bytes-per-read", "1739", path]);
+    let default_text = String::from_utf8_lossy(&default.stdout);
+    let limited_text = String::from_utf8_lossy(&limited.stdout);
+    assert!(
+        !default_text.contains("parity candidate refused"),
+        "{default_text}"
+    );
+    assert!(
+        limited_text.contains(
+            "parity candidate refused at byte 2634, 501 byte(s), decoded byte total 2086"
+        ),
+        "{limited_text}"
+    );
+    let bad = gts(&["info", "--decoded-bytes-per-read", "abc", path]);
+    assert_eq!(bad.status.code(), Some(2));
+}
+
 #[test]
 fn info_reports_v2_damage_and_refuses_unknown_generations() {
     let damaged = vectors().join("v2/P1/stored-mismatch.bin");

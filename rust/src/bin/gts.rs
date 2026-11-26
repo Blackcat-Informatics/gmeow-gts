@@ -530,7 +530,32 @@ fn stream_vocab_check(seg: &Graph) -> Vec<String> {
     }
 }
 
-fn cmd_info(paths: &[String]) -> ExitCode {
+/// Parse the leading capacity options of `gts info` and return the read capacity with the
+/// remaining arguments. Each option is `--NAME VALUE` with NAME one of `stored-bytes-per-frame`,
+/// `decoded-bytes-per-frame`, `decoded-bytes-per-read` or `items-per-read`, and VALUE a
+/// non-negative integer. Each one replaces its limit of the default capacity.
+fn parse_info_capacity(args: &[String]) -> Option<(ReadCapacity, &[String])> {
+    let mut capacity = ReadCapacity::default();
+    let mut index = 0;
+    while let Some(name) = args.get(index).and_then(|arg| arg.strip_prefix("--")) {
+        let value = args.get(index + 1)?.parse::<u64>().ok()?;
+        let limit = match name {
+            "stored-bytes-per-frame" => &mut capacity.stored_bytes_per_frame,
+            "decoded-bytes-per-frame" => &mut capacity.decoded_bytes_per_frame,
+            "decoded-bytes-per-read" => &mut capacity.decoded_bytes_per_read,
+            "items-per-read" => &mut capacity.items_per_read,
+            _ => return None,
+        };
+        *limit = value;
+        index += 2;
+    }
+    Some((capacity, &args[index..]))
+}
+
+fn cmd_info(args: &[String]) -> ExitCode {
+    let Some((capacity, paths)) = parse_info_capacity(args) else {
+        return usage_error();
+    };
     if paths.is_empty() {
         return usage_error();
     }
@@ -540,7 +565,7 @@ fn cmd_info(paths: &[String]) -> ExitCode {
             Ok(d) => d,
             Err(code) => return code,
         };
-        if let Some(inspected) = info_v2::inspect(path, &data) {
+        if let Some(inspected) = info_v2::inspect(path, &data, capacity) {
             clean &= inspected;
         } else {
             print_ledger(path, &read_file_segments(&data));
