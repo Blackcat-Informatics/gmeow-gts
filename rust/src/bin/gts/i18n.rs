@@ -78,6 +78,9 @@ commands:
                             the declared media type (never converts)
   cat -o <out> <file>...    validating composer: refuse degenerate inputs,
                             then byte-concatenate (§3.1, §14.1)
+  repair [capacity options] <file> -o <out>
+                            write the accepted parity repairs of a file to a new
+                            file; exits 1 when a repair fails or reading stops
   compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
                             rewrite into the streamable layout state: leading
                             streaming index, blobs most-significant-first,
@@ -257,6 +260,9 @@ commandes:
   extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
                             extrait un blob par digest de contenu
   cat -o <out> <file>...    compose en validant et refuse les entrees degenerees
+  repair [options de capacite] <fichier> -o <sortie>
+                            ecrit la version reparee d'un fichier dans un nouveau fichier ;
+                            sort avec 1 si une reparation echoue ou si la lecture s'arrete
   compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
                             reecrit vers l'etat de disposition diffusable
   pack <dir|file>... -o out.gts
@@ -294,6 +300,8 @@ const USAGE_ZH_HANS: &str = r"用法: gts <command> [args]
   extract <file> <digest> [-o out] [--mt TYPE] [--include-suppressed]
                             按内容摘要提取一个 blob
   cat -o <out> <file>...    验证后组合，拒绝退化输入
+  repair [容量选项] <file> -o <out>
+                            将文件的修复副本写入新文件；修复失败或读取中止时以 1 退出
   compact <file> -o <out> --streamable [--seal-original] [--timestamp ISO]
                             重写为可流式布局状态
   pack <dir|file>... -o out.gts

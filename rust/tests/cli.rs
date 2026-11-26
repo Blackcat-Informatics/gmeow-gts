@@ -1436,6 +1436,67 @@ fn info_names_the_parity_repair_findings_of_a_span() {
     assert!(text.contains("item 4: repaired, count 1"), "{text}");
 }
 
+/// `gts repair` writes the accepted repairs to a new file and reports each repair on standard
+/// error. It exits 0 when no repair failed, whether or not one was made, and 1 when one failed;
+/// a file with no accepted repair writes nothing.
+#[test]
+fn repair_writes_accepted_repairs_and_exits_1_when_one_fails() {
+    let tmp = tmpdir();
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).unwrap();
+    let repair = |name: &str, out: &std::path::Path| {
+        let input = vectors().join("v2/P5").join(name);
+        gts(&[
+            "repair",
+            input.to_str().unwrap(),
+            "-o",
+            out.to_str().unwrap(),
+        ])
+    };
+
+    let out = tmp.join("repaired.gts");
+    let repaired = repair("recover-no-signature.signature-00-3f.bin", &out);
+    assert_eq!(repaired.status.code(), Some(0));
+    let stderr = String::from_utf8(repaired.stderr).unwrap();
+    assert!(stderr.contains("gts repair: item "), "{stderr}");
+    assert!(stderr.contains(": repaired"), "{stderr}");
+    let expected = vectors().join("v2/P5/recover-no-signature.signature-00-3f.repaired.bin");
+    assert_eq!(
+        std::fs::read(&out).unwrap(),
+        std::fs::read(expected).unwrap()
+    );
+
+    let none = tmp.join("none.gts");
+    assert_eq!(repair("parity-base.bin", &none).status.code(), Some(0));
+    assert!(!none.exists(), "no repair writes no file");
+
+    let failed_out = tmp.join("failed.gts");
+    let failed = repair("parity-short-run.256-bytes.bin", &failed_out);
+    assert_eq!(failed.status.code(), Some(1));
+    let stderr = String::from_utf8(failed.stderr).unwrap();
+    assert!(stderr.contains(": repair_failed"), "{stderr}");
+    assert!(!failed_out.exists(), "a failed repair writes no file");
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+/// `gts repair` refuses an output path that exists, so it never overwrites a file, including
+/// the file it reads.
+#[test]
+fn repair_refuses_an_existing_output() {
+    let input = vectors().join("v2/P5/recover-no-signature.signature-00-3f.bin");
+    let before = std::fs::read(&input).unwrap();
+    let out = gts(&[
+        "repair",
+        input.to_str().unwrap(),
+        "-o",
+        input.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(stderr.contains("already exists"), "{stderr}");
+    assert_eq!(std::fs::read(&input).unwrap(), before);
+}
+
 #[test]
 fn info_reports_v2_damage_and_refuses_unknown_generations() {
     let damaged = vectors().join("v2/P1/stored-mismatch.bin");

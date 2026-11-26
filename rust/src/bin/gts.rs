@@ -127,6 +127,7 @@ fn main() -> ExitCode {
         "extract" => cmd_extract(&args[1..]),
         "cat" => cmd_cat(&args[1..]),
         "compact" => cmd_compact(&args[1..]),
+        "repair" => cmd_repair(&args[1..]),
         "pack" => cmd_pack(&args[1..]),
         "unpack" => cmd_unpack(&args[1..]),
         "diff" => cmd_diff(&args[1..]),
@@ -1779,6 +1780,61 @@ fn now_utc_iso() -> Result<String, time::Error> {
 }
 
 /// Rewrite a GTS file into the streamable layout state (§10.1, §14.1).
+/// `gts repair [capacity options] FILE -o OUT`: write the repaired copy of a read (P5 7.1), which is
+/// the input with the bytes of its accepted repairs written in place. A file with no accepted repair
+/// writes nothing and exits 1. The output replaces any file at its path, as the other writers do,
+/// and it must not be the input.
+fn cmd_repair(args: &[String]) -> ExitCode {
+    let Some((capacity, rest)) = parse_info_capacity(args) else {
+        return usage_error();
+    };
+    let mut out_path: Option<&str> = None;
+    let mut input: Option<&str> = None;
+    let mut it = rest.iter();
+    while let Some(arg) = it.next() {
+        match arg.as_str() {
+            "-o" | "--out" => {
+                let Some(path) = it.next() else {
+                    stderr_line!("gts repair: -o requires a path\n{USAGE}");
+                    return ExitCode::from(2);
+                };
+                out_path = Some(path);
+            }
+            path if input.is_none() && !path.starts_with('-') => input = Some(path),
+            _ => return usage_error(),
+        }
+    }
+    let (Some(input), Some(out_path)) = (input, out_path) else {
+        return usage_error();
+    };
+    if std::path::Path::new(out_path).exists() {
+        stderr_line!("gts repair: the output {out_path} already exists");
+        return ExitCode::from(1);
+    }
+    let data = match load(input) {
+        Ok(data) => data,
+        Err(code) => return code,
+    };
+    let wire = read_wire(&data, capacity);
+    let failed = info_v2::report_repair(&wire);
+    if let Some(bytes) = &wire.repaired_copy {
+        let written = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(out_path)
+            .and_then(|mut file| std::io::Write::write_all(&mut file, bytes));
+        if let Err(e) = written {
+            stderr_line!("gts repair: cannot write {out_path}: {e}");
+            return ExitCode::from(2);
+        }
+    }
+    if failed {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
 fn cmd_compact(args: &[String]) -> ExitCode {
     let mut out_path: Option<&str> = None;
     let mut streamable = false;
