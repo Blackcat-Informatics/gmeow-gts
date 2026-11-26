@@ -1,0 +1,383 @@
+{
+ "name": "snapshot/spog-public",
+ "section": "GIP queryable snapshots",
+ "status": "built and matches",
+ "note": "one public state, one snapshot of its visible projection in the order spog, and the strongest result of three subject lookups; blocks are named by their unit digest",
+ "cases": [
+  {
+   "label": "certify",
+   "note": "the construction, applied to the state that the last commit of the source names with the projection visible, the audience public and the layout [3, 16], gives this snapshot identity; a snapshot object with another identity is not certified for these inputs",
+   "source_file": "source.bin",
+   "snapshot_file": "snapshot.bin",
+   "inputs": {
+    "projection": "visible",
+    "audience": "public",
+    "page_rows": 3,
+    "fanout": 16
+   },
+   "result": {
+    "outcome": "certified",
+    "source_state": "87c9d39e2de2c6b63c9f949e4f6d3982e89aad132aea9441b1078e3ab5ad9240",
+    "dataset_digest": "4bba9ac6e7c0a39d5890eb1635ebd1816508d8c77a125702895a2ad6eaff3cd2",
+    "quad_count": 9,
+    "empty_graphs_plain": [
+     "<https://example.org/h>"
+    ],
+    "snapshot_identity": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8",
+    "snapshot_length": 1290,
+    "manifest": "8901018201582087c9d39e2de2c6b63c9f949e4f6d3982e89aad132aea9441b1078e3ab5ad92408201018101820958204bba9ac6e7c0a39d5890eb1635ebd1816508d8c77a125702895a2ad6eaff3cd28182017568747470733a2f2f6578616d706c652e6f72672f68820310818301018358206a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c69725624190319190137"
+   },
+   "blocks": [
+    {
+     "kind": "page",
+     "identity": "9b36e4e88c4b233a6b39e9659461168e6e7f4ece6b158e4b69c5561198f1661a",
+     "offset": 0,
+     "length": 253,
+     "rows": 3,
+     "lower_plain": null
+    },
+    {
+     "kind": "page",
+     "identity": "8b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d159977611",
+     "offset": 253,
+     "length": 263,
+     "rows": 3,
+     "lower_plain": [
+      "<https://example.org/b>",
+      "<https://example.org/p1>",
+      "<https://example.org/d>",
+      "<https://example.org/g>"
+     ]
+    },
+    {
+     "kind": "page",
+     "identity": "6fa8dee5c35d05f50e5b89565972a9e25f833d5ddac272438395fc2b259f5d41",
+     "offset": 516,
+     "length": 277,
+     "rows": 3,
+     "lower_plain": [
+      "<https://example.org/d>",
+      "<https://example.org/p1>",
+      "<https://example.org/a>",
+      "default"
+     ]
+    },
+    {
+     "kind": "directory",
+     "identity": "6a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c69725624",
+     "offset": 793,
+     "length": 311,
+     "rows": 9,
+     "lower_plain": null
+    },
+    {
+     "kind": "manifest",
+     "identity": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8",
+     "offset": 1104,
+     "length": 153,
+     "rows": 9,
+     "lower_plain": null
+    }
+   ],
+   "quads_plain": [
+    [
+     "<https://example.org/a>",
+     "<https://example.org/p1>",
+     "<https://example.org/b>",
+     "default"
+    ],
+    [
+     "<https://example.org/a>",
+     "<https://example.org/p2>",
+     "\"x\"^^<http://www.w3.org/2001/XMLSchema#string>",
+     "default"
+    ],
+    [
+     "<https://example.org/b>",
+     "<https://example.org/p1>",
+     "<https://example.org/c>",
+     "default"
+    ],
+    [
+     "<https://example.org/b>",
+     "<https://example.org/p1>",
+     "<https://example.org/d>",
+     "<https://example.org/g>"
+    ],
+    [
+     "<https://example.org/b>",
+     "<https://example.org/p2>",
+     "\"y\"@en",
+     "<https://example.org/g>"
+    ],
+    [
+     "<https://example.org/b>",
+     "<https://example.org/p3>",
+     "<https://example.org/e>",
+     "default"
+    ],
+    [
+     "<https://example.org/d>",
+     "<https://example.org/p1>",
+     "<https://example.org/a>",
+     "default"
+    ],
+    [
+     "<https://example.org/d>",
+     "<https://example.org/p2>",
+     "\"z\"^^<http://www.w3.org/2001/XMLSchema#string>",
+     "default"
+    ],
+    [
+     "<https://example.org/e>",
+     "<https://example.org/p1>",
+     "<https://example.org/a>",
+     "<https://example.org/g>"
+    ]
+   ]
+  },
+  {
+   "label": "hit",
+   "note": "the subject b, whose rows continue from the first page into the second: both pages decide, every match is returned once, and the result is exact",
+   "input_file": "snapshot.bin",
+   "read": {
+    "pin": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8",
+    "withheld": []
+   },
+   "query": {
+    "pattern": "820184820282017568747470733a2f2f6578616d706c652e6f72672f62810181018101",
+    "bound_plain": [
+     "<https://example.org/b>"
+    ]
+   },
+   "result": "8301848482017568747470733a2f2f6578616d706c652e6f72672f6282017668747470733a2f2f6578616d706c652e6f72672f703182017568747470733a2f2f6578616d706c652e6f72672f6381018482017568747470733a2f2f6578616d706c652e6f72672f6282017668747470733a2f2f6578616d706c652e6f72672f703182017568747470733a2f2f6578616d706c652e6f72672f64820282017568747470733a2f2f6578616d706c652e6f72672f678482017568747470733a2f2f6578616d706c652e6f72672f6282017668747470733a2f2f6578616d706c652e6f72672f7032840261790262656e820282017568747470733a2f2f6578616d706c652e6f72672f678482017568747470733a2f2f6578616d706c652e6f72672f6282017668747470733a2f2f6578616d706c652e6f72672f703382017568747470733a2f2f6578616d706c652e6f72672f658101845820370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f858206a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c6972562458209b36e4e88c4b233a6b39e9659461168e6e7f4ece6b158e4b69c5561198f1661a58208b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d159977611",
+   "rows_plain": [
+    [
+     "<https://example.org/b>",
+     "<https://example.org/p1>",
+     "<https://example.org/c>",
+     "default"
+    ],
+    [
+     "<https://example.org/b>",
+     "<https://example.org/p1>",
+     "<https://example.org/d>",
+     "<https://example.org/g>"
+    ],
+    [
+     "<https://example.org/b>",
+     "<https://example.org/p2>",
+     "\"y\"@en",
+     "<https://example.org/g>"
+    ],
+    [
+     "<https://example.org/b>",
+     "<https://example.org/p3>",
+     "<https://example.org/e>",
+     "default"
+    ]
+   ],
+   "evidence": [
+    {
+     "kind": "manifest",
+     "identity": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8"
+    },
+    {
+     "kind": "directory",
+     "identity": "6a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c69725624"
+    },
+    {
+     "kind": "page",
+     "identity": "9b36e4e88c4b233a6b39e9659461168e6e7f4ece6b158e4b69c5561198f1661a"
+    },
+    {
+     "kind": "page",
+     "identity": "8b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d159977611"
+    }
+   ],
+   "transcript": [
+    {
+     "range": [
+      1257,
+      33
+     ],
+     "http_range": "bytes=1257-1289",
+     "served": true,
+     "block": null
+    },
+    {
+     "range": [
+      1104,
+      153
+     ],
+     "http_range": "bytes=1104-1256",
+     "served": true,
+     "block": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8"
+    },
+    {
+     "range": [
+      793,
+      311
+     ],
+     "http_range": "bytes=793-1103",
+     "served": true,
+     "block": "6a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c69725624"
+    },
+    {
+     "range": [
+      0,
+      253
+     ],
+     "http_range": "bytes=0-252",
+     "served": true,
+     "block": "9b36e4e88c4b233a6b39e9659461168e6e7f4ece6b158e4b69c5561198f1661a"
+    },
+    {
+     "range": [
+      253,
+      263
+     ],
+     "http_range": "bytes=253-515",
+     "served": true,
+     "block": "8b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d159977611"
+    }
+   ]
+  },
+  {
+   "label": "absent-neighbour",
+   "note": "the subject c, which no quad holds and which sorts between the subjects b and d: the second page alone covers the interval of c and holds no match, so the result is a verified absence",
+   "input_file": "snapshot.bin",
+   "read": {
+    "pin": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8",
+    "withheld": []
+   },
+   "query": {
+    "pattern": "820184820282017568747470733a2f2f6578616d706c652e6f72672f63810181018101",
+    "bound_plain": [
+     "<https://example.org/c>"
+    ]
+   },
+   "result": "8202835820370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f858206a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c6972562458208b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d159977611",
+   "rows_plain": [],
+   "evidence": [
+    {
+     "kind": "manifest",
+     "identity": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8"
+    },
+    {
+     "kind": "directory",
+     "identity": "6a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c69725624"
+    },
+    {
+     "kind": "page",
+     "identity": "8b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d159977611"
+    }
+   ],
+   "transcript": [
+    {
+     "range": [
+      1257,
+      33
+     ],
+     "http_range": "bytes=1257-1289",
+     "served": true,
+     "block": null
+    },
+    {
+     "range": [
+      1104,
+      153
+     ],
+     "http_range": "bytes=1104-1256",
+     "served": true,
+     "block": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8"
+    },
+    {
+     "range": [
+      793,
+      311
+     ],
+     "http_range": "bytes=793-1103",
+     "served": true,
+     "block": "6a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c69725624"
+    },
+    {
+     "range": [
+      253,
+      263
+     ],
+     "http_range": "bytes=253-515",
+     "served": true,
+     "block": "8b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d159977611"
+    }
+   ]
+  },
+  {
+   "label": "absent-withheld",
+   "note": "the query of absent-neighbour with the second page withheld by the holder: no other block covers the interval of c, so the result is incomplete and names the identity of that page; it is never a verified absence",
+   "input_file": "snapshot.bin",
+   "read": {
+    "pin": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8",
+    "withheld": [
+     "8b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d159977611"
+    ]
+   },
+   "query": {
+    "pattern": "820184820282017568747470733a2f2f6578616d706c652e6f72672f63810181018101",
+    "bound_plain": [
+     "<https://example.org/c>"
+    ]
+   },
+   "result": "840380818258208b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d15997761101825820370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f858206a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c69725624",
+   "rows_plain": [],
+   "evidence": [
+    {
+     "kind": "manifest",
+     "identity": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8"
+    },
+    {
+     "kind": "directory",
+     "identity": "6a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c69725624"
+    }
+   ],
+   "transcript": [
+    {
+     "range": [
+      1257,
+      33
+     ],
+     "http_range": "bytes=1257-1289",
+     "served": true,
+     "block": null
+    },
+    {
+     "range": [
+      1104,
+      153
+     ],
+     "http_range": "bytes=1104-1256",
+     "served": true,
+     "block": "370c991306693bfc9895ae4c5cce6f6f3048dde5acf2d038331e65d3ffa7b1f8"
+    },
+    {
+     "range": [
+      793,
+      311
+     ],
+     "http_range": "bytes=793-1103",
+     "served": true,
+     "block": "6a6cc0b9ff007a56ff24cd7a28106fd19580a919dd07b39552dea49c69725624"
+    },
+    {
+     "range": [
+      253,
+      263
+     ],
+     "http_range": "bytes=253-515",
+     "served": false,
+     "block": "8b05b817c2b24171f4cff0c4f4c8f039cfde74d458ee734e482398d159977611"
+    }
+   ]
+  }
+ ]
+}

@@ -131,3 +131,14 @@ Two kinds of bytes of an input were not computed a second time, and no recorded 
 of the stale frames of `P5/parity-stale-equal` and `P5/parity-stale-geometry`, which protect data that the corpus does not
 hold and which no reader uses (`docs/v2/P5.md`, "Checking a parity frame"), and the recipient entries of
 `P7/stream-delivery-order` whose identifier is zero, which name no key and which no reader tries.
+
+## Vectors of proposals
+
+The directory `proposals/` holds the vectors of proposals under review ([governance](../../docs/GTS-GOVERNANCE.md)). They are
+not entries of this corpus: `SHA256SUMS` above does not list them, and no claim of `docs/v2/P7.md` covers them. Each proposal
+directory has its own `INDEX.md` and `SHA256SUMS`, and its descriptions use the keys above. There `built and matches` means
+that the program named in its `INDEX.md` built the value and that the value agrees with the text of the proposal. When a
+proposal is accepted, its vectors move into the directory of the part that adopts it.
+
+- [`proposals/queryable-snapshots`](proposals/queryable-snapshots/INDEX.md): certified, range-queryable snapshots of a graph
+  state ([proposal](../../docs/proposals/GIP-queryable-snapshots.md)).
