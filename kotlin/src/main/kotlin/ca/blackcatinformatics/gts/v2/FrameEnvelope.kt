@@ -21,7 +21,15 @@ internal data class FramePayload(
     val deterministicBytes: Boolean,
     val contentSize: Int,
     val signaturesSize: Int,
+    val signatures: List<SignatureRecord>,
 )
+
+/**
+ * One signature record of a frame's `signatures` list (P6 section 1): the algorithm code, the
+ * `key_id` of the public key and the signature value, each exactly as the frame carries it.
+ * Empty when the list is malformed; the frame's problem reports that.
+ */
+internal class SignatureRecord(val algorithm: ULong, val keyId: ByteArray, val value: ByteArray)
 
 internal data class FrameStorage(val tag: ULong, val codec: CborField? = null, val check: CborField? = null)
 
@@ -54,13 +62,22 @@ internal fun readFrame(item: CborField, registry: ULong): FrameEnvelope {
     val identifier = fields.next()
     problems.observe { identifier.bytes(32) }
     val signatures = fields.next()
-    problems.observe { checkSignatures(signatures, newer, parity) }
+    val records = problems.observe { readSignatures(signatures, newer, parity) } ?: emptyList()
     problems.record(
         invalidPayloadLength(code, length),
         "out_of_range",
     )
     val framePayload =
-        FramePayload(length, digest, storage, payload, deterministicBytes, content.end - content.start, signatures.end - signatures.start)
+        FramePayload(
+            length,
+            digest,
+            storage,
+            payload,
+            deterministicBytes,
+            content.end - content.start,
+            signatures.end - signatures.start,
+            records,
+        )
     return FrameEnvelope(code, problems.first, identity, transparent == true, identifier.observedIdentifier(), content, framePayload)
 }
 
@@ -177,18 +194,28 @@ private fun readStorage(item: CborField, newer: Boolean): FrameStorage {
     return FrameStorage(tag)
 }
 
-private fun checkSignatures(item: CborField, newer: Boolean, parity: Boolean) {
+private fun readSignatures(item: CborField, newer: Boolean, parity: Boolean): List<SignatureRecord> {
     val signatures = item.list()
+    val records = mutableListOf<SignatureRecord>()
     var previous: CborField? = null
     while (signatures.hasNext()) {
         val record = signatures.next()
         val fields = record.fields(3)
         val algorithm = fields.next().uint()
         if (algorithm == 0uL || (!newer && algorithm > 2uL)) malformed("unregistered_value")
-        fields.next().bytes(32)
-        fields.next().bytes()
+        val keyId = fields.next()
+        val keyIdStart = keyId.bytes(32)
+        val value = fields.next()
+        val valueStart = value.bytes()
         if (previous != null && previous.compare(record) >= 0) malformed("unordered_or_repeated")
         previous = record
+        records +=
+            SignatureRecord(
+                algorithm,
+                keyId.data.copyOfRange(keyIdStart, keyId.end),
+                value.data.copyOfRange(valueStart, value.end),
+            )
     }
     if (parity && previous != null) malformed("forbidden_combination")
+    return records
 }
