@@ -13,7 +13,7 @@ import {
     type Storage,
 } from "./v2_integrity.js";
 
-type FramingReason = "torn_tail" | "undelimitable_input";
+export type FramingReason = "torn_tail" | "undelimitable_input";
 type EnvelopeReason =
     | "wrong_type"
     | "wrong_length"
