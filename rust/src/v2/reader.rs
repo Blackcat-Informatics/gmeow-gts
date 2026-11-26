@@ -149,9 +149,10 @@ pub struct WireFrame<'a> {
     pub unknown_type_stops_fold: bool,
     /// The outcome of each signature of the frame, in the order of its `signatures` list.
     ///
-    /// The list is empty for a transparent frame, a frame without a parsed envelope or an
-    /// effective identifier, a frame whose `signatures` element exceeds the stored-bytes
-    /// capacity, and a frame in a segment whose opener has no identifier.
+    /// The list is empty for a transparent frame, a frame without an effective identifier, a
+    /// frame whose `signatures` field does not follow its grammar, a frame whose `signatures`
+    /// element exceeds the stored-bytes capacity, and a frame in a segment whose opener has no
+    /// identifier. A frame whose envelope is malformed in another field keeps its results.
     pub signatures: Vec<SignatureResult>,
 }
 

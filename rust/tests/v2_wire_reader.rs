@@ -1238,8 +1238,8 @@ fn frames_without_a_subject_or_in_grammar_carry_no_signature_result() {
     }
 }
 
-/// P6 6.2 step 2: a reader given no held keys reports every signature `key_not_held`, and a
-/// frame whose `signatures` element exceeds `stored_bytes_per_frame` has no result.
+/// P6 6.2 step 2: a reader given no held keys reports each signature of a frame within the
+/// stored-bytes capacity as `key_not_held`.
 #[test]
 fn a_read_without_keys_reports_key_not_held_within_the_stored_bytes_capacity() {
     let input = vector_in("P6", "sig-record-valid.bin");
@@ -1263,4 +1263,47 @@ fn a_read_without_keys_reports_key_not_held_within_the_stored_bytes_capacity() {
         .frames
         .iter()
         .all(|frame| frame.signatures.is_empty()));
+}
+
+/// P6 6.2 step 2 and the acceptance row of #480: a composite signature is refused when only one of
+/// its component keys is held. Each half is held under its own identifier, so the composite's
+/// identifier matches no held key and the signature is `key_not_held`, never `valid`.
+#[test]
+fn a_composite_with_only_one_component_key_held_is_refused() {
+    let case = signature_cases("composite-honest")
+        .into_iter()
+        .next()
+        .expect("composite-honest has a case");
+    let composite = case
+        .held
+        .iter()
+        .find(|key| key.algorithm == 2)
+        .expect("the composite key is held in the recorded read");
+    let (mldsa_half, ed25519_half) = composite.public_key.split_at(1952);
+    let only_ed25519 = HeldKey {
+        key_id: HeldKey::identifier(1, ed25519_half),
+        algorithm: 1,
+        public_key: ed25519_half.to_vec(),
+    };
+    let only_mldsa = HeldKey {
+        key_id: HeldKey::identifier(2, mldsa_half),
+        algorithm: 2,
+        public_key: mldsa_half.to_vec(),
+    };
+    for held in [only_ed25519, only_mldsa] {
+        let outcomes = read_outcomes(&case.input, vec![held]);
+        let composite_outcomes: Vec<_> = outcomes
+            .iter()
+            .flat_map(|(_, outcomes)| outcomes.iter())
+            .filter(|outcome| outcome.2 == 2)
+            .collect();
+        assert!(
+            !composite_outcomes.is_empty(),
+            "the composite signature has a result"
+        );
+        for outcome in composite_outcomes {
+            assert_eq!(outcome.0, SignatureStatus::Unverified);
+            assert_eq!(outcome.1, Some(SignatureReason::KeyNotHeld));
+        }
+    }
 }
