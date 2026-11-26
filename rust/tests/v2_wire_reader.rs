@@ -10,7 +10,7 @@ use gmeow_gts::{
     v2::{
         reader::{
             read_wire, read_wire_with_keys, ClosingFinding, CommitCheck, Dispatch, FramingFailure,
-            FramingReason, IndexOutcome, IndexWireClaims, ItemKind, LinkState, Opener,
+            FramingReason, IndexOutcome, IndexWireClaims, ItemKind, Judgement, LinkState, Opener,
             PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity, ReadStop, ResyncRefusal,
             UncommittedTail,
         },
@@ -1542,5 +1542,59 @@ fn an_incomplete_item_before_a_parity_frame_is_a_damaged_region_and_not_a_torn_t
     assert_ne!(
         segment.framing_failure.map(|failure| failure.reason),
         Some(FramingReason::TornTail)
+    );
+}
+
+/// The stage 1 judgement of the in-order frame at `position` in the first segment of `name`.
+fn in_order_judgement(name: &str, position: usize) -> Option<Judgement> {
+    let bytes = vector_in("P5", name);
+    let read = read_wire(&bytes, ReadCapacity::default());
+    let [segment] = read.segments.as_slice() else {
+        panic!("{name}: expected one segment");
+    };
+    segment
+        .frames
+        .iter()
+        .find(|frame| frame.position == position)
+        .and_then(|frame| frame.judgement)
+}
+
+/// P5 6.6, condition 3: an in-order parity frame whose `anchor` is not its predecessor is damaged.
+/// The base vector, which differs only in those bytes, passes stage 1 with a verified payload.
+#[test]
+fn an_in_order_parity_frame_with_a_foreign_anchor_is_damaged_and_its_base_is_verified() {
+    assert_eq!(
+        in_order_judgement("parity-base.bin", 4),
+        Some(Judgement::Verified)
+    );
+    assert_eq!(
+        in_order_judgement("parity-damaged-each.3.bin", 4),
+        Some(Judgement::Damaged)
+    );
+}
+
+/// P5 6.6, precedence and capacity: a clean parity frame whose payload is above the reader's
+/// capacity is `exceeds_capacity` and not damaged. Its table digest is not judged, because
+/// condition 5 is judged only when the payload check ran, so a wrong table does not change that.
+#[test]
+fn a_clean_above_capacity_parity_frame_is_exceeds_capacity_whatever_its_table_digest() {
+    assert_eq!(
+        in_order_judgement("parity-above-capacity.bin", 4),
+        Some(Judgement::ExceedsCapacity)
+    );
+    assert_eq!(
+        in_order_judgement("parity-above-capacity-wrong-table.bin", 4),
+        Some(Judgement::ExceedsCapacity)
+    );
+}
+
+/// P5 6.6, precedence: damage by a condition that needs no payload (here one of conditions 1, 2,
+/// 3, 6 or 7) takes precedence over the capacity report, so the frame is `parity_damaged` and
+/// not `exceeds_capacity`.
+#[test]
+fn damage_that_needs_no_payload_takes_precedence_over_exceeds_capacity() {
+    assert_eq!(
+        in_order_judgement("parity-above-capacity-and-damaged.bin", 4),
+        Some(Judgement::Damaged)
     );
 }

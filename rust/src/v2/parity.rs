@@ -6,8 +6,9 @@
 use std::collections::HashSet;
 
 use super::{
-    frame::{decode_parity_candidate, frame_identifier, PARITY},
-    payload::{ChargeRefusal, PayloadBudget},
+    frame::{decode_parity_candidate, frame_identifier, Frame, Storage, PARITY},
+    payload::{ChargeRefusal, PayloadBudget, PayloadRefusal, PayloadState},
+    reader::LinkState,
     Decoder,
 };
 
@@ -163,6 +164,19 @@ impl Shape {
             .ok()?;
         (cursor.offset == payload.len()).then_some(end)
     }
+
+    /// Whether `payload` is one deterministic `parity_payload` of this shape whose table digest
+    /// under `h0` is `table_digest` (P5 6.6, conditions 4 and 5).
+    fn table_matches(&self, payload: &[u8], h0: &[u8; 32], table_digest: &[u8; 32]) -> bool {
+        let Some(lists_end) = self.lists_end(payload) else {
+            return false;
+        };
+        let mut table = blake3::Hasher::new_derive_key("gts2 parity table");
+        table.update(&[0x83, 0x58, 0x20]);
+        table.update(h0);
+        table.update(&payload[1..lists_end]);
+        table.finalize().as_bytes() == table_digest
+    }
 }
 
 /// The content record of a parity frame.
@@ -193,6 +207,77 @@ impl<'a> Record<'a> {
         (self.geometry == 1 && self.first.is_multiple_of(SPAN) && (1..=SPAN).contains(&length))
             .then_some(length)
     }
+}
+
+/// The stage 1 outcome of an in-order frame of type `parity` (P5 6.6, stage 1).
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Judgement {
+    /// Condition 1, 2, 3, 6 or 7 of P5 6.6 holds, or the payload check ran and failed (conditions
+    /// 4 and 5): `parity_damaged`. The frame is not used.
+    Damaged,
+    /// The frame is damaged by none of those conditions, and its payload exceeds the reader's
+    /// capacity (`exceeds_capacity`). The payload was not read, so the frame is not used.
+    ExceedsCapacity,
+    /// The frame is damaged by none of those conditions, and its payload uses a codec this reader
+    /// does not implement, so the payload was not checked and nothing is verified.
+    Unchecked,
+    /// The frame passes stage 1 and its payload is verified.
+    Verified,
+}
+
+/// Judge an in-order frame of type `parity` by stage 1 of P5 6.6, in item order.
+///
+/// `envelope` is `None` when the envelope does not decode; such a frame is damaged, since the
+/// envelope is part of condition 7. The earlier frames of `segment` must not yet include `frame`.
+/// Returns `None` for a frame that the paragraph on a later registry version hands to the
+/// reader's unknown-type handling, which this function does not judge.
+pub(super) fn judge(
+    envelope: Option<&Frame<'_>>,
+    link: LinkState,
+    predecessor: &[u8; 32],
+    payload: &PayloadState<'_>,
+    segment: &Segment<'_>,
+    newer: bool,
+) -> Option<Judgement> {
+    let Some(frame) = envelope else {
+        return Some(Judgement::Damaged);
+    };
+    let clean = !frame.critical
+        && frame.transparent
+        && frame.storage == Storage::Plain
+        && frame.signatures.is_empty();
+    let Some(record) = Record::read(frame.content) else {
+        return Some(Judgement::Damaged);
+    };
+    if newer && clean && record.geometry > 1 {
+        return None;
+    }
+    let Some(span) = record.span() else {
+        return Some(Judgement::Damaged);
+    };
+    if !clean
+        || link != LinkState::Linked
+        || record.anchor != predecessor
+        || !segment.earlier.admits(record.first)
+    {
+        return Some(Judgement::Damaged);
+    }
+    let shape = Shape::of(span);
+    Some(match payload {
+        PayloadState::Damaged(_) => Judgement::Damaged,
+        PayloadState::Unchecked(PayloadRefusal::UnknownCodec) => Judgement::Unchecked,
+        PayloadState::Unchecked(_) => Judgement::ExceedsCapacity,
+        PayloadState::Verified(_) => {
+            let expected = shape.encoded_length();
+            let fits =
+                frame.stored_payload.len() as u64 == expected && frame.decoded_length == expected;
+            if fits && shape.table_matches(frame.stored_payload, segment.h0, record.table_digest) {
+                Judgement::Verified
+            } else {
+                Judgement::Damaged
+            }
+        }
+    })
 }
 
 /// Test the parity candidate at `offset` by the four parts of P5 §7.2, step 6.
@@ -238,14 +323,7 @@ pub(super) fn test(
     if !frame.check_decoded_payload(frame.stored_payload) {
         return Verdict::Failed;
     }
-    let Some(lists_end) = shape.lists_end(frame.stored_payload) else {
-        return Verdict::Failed;
-    };
-    let mut table = blake3::Hasher::new_derive_key("gts2 parity table");
-    table.update(&[0x83, 0x58, 0x20]);
-    table.update(segment.h0);
-    table.update(&frame.stored_payload[1..lists_end]);
-    if table.finalize().as_bytes() != record.table_digest {
+    if !shape.table_matches(frame.stored_payload, segment.h0, record.table_digest) {
         return Verdict::Failed;
     }
     budget.prepay(expected);
