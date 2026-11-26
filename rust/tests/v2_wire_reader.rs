@@ -1441,6 +1441,49 @@ fn an_earlier_parity_frame_in_a_later_version_segment_with_a_second_form_signatu
     );
 }
 
+/// P5 6.6, the paragraph on a later version: `storage` is as the type states when it is
+/// `stored_plain`, whatever head form encodes it. A second-form storage tag (`81 18 01` for
+/// `[1]`) is a condition 7 failure that the later-version case does not judge, so an earlier
+/// parity frame in a segment of a later version, with a `geometry` of a later version, whose
+/// envelope fails only there still has no `first`, and reading resumes at the next parity frame.
+#[test]
+fn an_earlier_parity_frame_in_a_later_version_segment_with_a_second_form_storage_tag_still_counts_as_the_later_version_case(
+) {
+    let base = vector_in(
+        "P5",
+        "parity-condition-six-first-by-case.later-version-geometry.bin",
+    );
+    let read = read_wire(&base, ReadCapacity::default());
+    let parity = read.segments[0].items[3];
+    let frame = &base[parity.offset..parity.end];
+    let found: Vec<usize> = frame
+        .windows(2)
+        .enumerate()
+        .filter(|(_, pair)| *pair == [0x81, 0x01])
+        .map(|(index, _)| parity.offset + index)
+        .collect();
+    let [storage] = found.as_slice() else {
+        panic!("P0 holds `81 01` once, its storage field: {found:?}");
+    };
+
+    let mut second_form = base[..storage + 1].to_vec();
+    second_form.push(0x18);
+    second_form.extend_from_slice(&base[storage + 1..parity.end]);
+    second_form.push(0x1c);
+    second_form.extend_from_slice(&base[parity.end..]);
+
+    let result = read_wire(&second_form, ReadCapacity::default());
+    assert!(result.stop.is_none());
+    assert_eq!(
+        result.segments[0].resumptions,
+        [FramingFailure {
+            reason: FramingReason::UndelimitableInput,
+            offset: parity.end + 1,
+            length: 1,
+        }]
+    );
+}
+
 /// P5 7.2 step 6 part 3 and P5-38: the first parity candidate that the total decoded length
 /// refuses is recorded with the position the next item would have, its offset, the length of its
 /// item and the total at the refusal, and no later candidate passes.
