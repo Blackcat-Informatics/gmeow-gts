@@ -1398,7 +1398,7 @@ fn a_signed_earlier_parity_frame_in_a_later_version_segment_still_counts_for_con
 
     let result = read_wire(&signed, ReadCapacity::default());
     let signed_end = end - 1 + signature.len();
-    assert!(result.segments[0].resumptions.is_empty());
+    assert_eq!(result.segments[0].resumptions.len(), 0);
     assert_eq!(
         result.stop,
         Some(ReadStop::Framing(FramingFailure {
@@ -1464,7 +1464,7 @@ fn the_total_decoded_length_refusing_a_parity_candidate_is_recorded_on_the_segme
             count: 2086,
         })
     );
-    assert!(segment.resumptions.is_empty());
+    assert_eq!(segment.resumptions.len(), 0);
     assert!(matches!(
         read.stop,
         Some(ReadStop::Framing(FramingFailure {
