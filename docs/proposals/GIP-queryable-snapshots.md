@@ -257,6 +257,10 @@ can hold keys with the prefix `b` below the fence. A run of equal prefixes that 
 a directory boundary, is therefore covered whole. Every deciding block is necessary: this proposal defines no other block
 set that covers the interval of a deciding block, so a reader that lacks one cannot replace it.
 
+A SHARD or PARTITION is a child subtree of a directory. Its interval comes from the fences of the certifying directory
+that names it, exactly as the interval of any other child does, so a run of equal prefixes that crosses a shard boundary is
+covered by the same rule: the neighbouring shard decides, and its absence makes the result `incomplete`.
+
 THE EVIDENCE of a query is the list of the identities of the deciding blocks that the reader obtained and verified, in the
 order of the procedure (4.9). Evidence is defined by block identity, whatever the transport.
 
@@ -269,11 +273,14 @@ The inputs of a query are the snapshot identity (the pin), the query, the access
 `[bytes_per_block, blocks_per_query]`. The steps run in this order, and the first verification failure ends the procedure
 with the outcome `failed`.
 
-1. TRAILER. Read the last 33 bytes. When they are not a trailer of 4.4, or the manifest range does not end at the first byte
+1. TRAILER. Read the last 33 bytes. When the reader cannot obtain them, the outcome is `incomplete` with no row, the pin
+   as the one missing block with the reason `withheld`, and no evidence. When they are not a trailer of 4.4, or the manifest range does not end at the first byte
    of the trailer, the outcome is `failed` with the reason `trailer` and no block.
-2. MANIFEST. Obtain the manifest range and verify it (step 4). When the reader cannot obtain it, the outcome is
-   `incomplete` with no row, the pin as the one missing block with the reason `withheld`, and no evidence. Then a `snapshot_version` other than `1`, a law, variant or
-   audience the reader does not implement, or a query of an order the manifest does not hold gives `unsupported` with the
+2. MANIFEST. Obtain the manifest range. When the reader cannot obtain it, the outcome is `incomplete` with no row, the pin
+   as the one missing block with the reason `withheld`, and no evidence. Verify its `identity` (step 4), then check only
+   that it is an array `[1, snapshot_version: uint, ...]`; a `snapshot_version` other than `1` gives `unsupported` with the
+   reason `version`, whatever the rest of its shape. Apply the full `structure` check to a manifest of version `1` only.
+   Then a law, variant or audience the reader does not implement, or a query of an order the manifest does not hold gives `unsupported` with the
    reason `version`, `projection`, `audience` or `order`; a pattern that no order of the manifest serves gives `unsupported`
    with the reason `pattern`.
 3. DESCENT. Visit the root, then each level below it. At each level, visit the deciding children of every verified directory
@@ -440,6 +447,8 @@ The following remain requirements of the capability and are not settled by this 
   keys, graph enumeration with a variable graph name, and graph inventory blocks for a `G0` larger than a manifest.
 - ATTESTATION. A portable attestation binding the certification rules, the source selector, the projection identity, the
   snapshot identity and the scope, and its validation under caller-supplied trust.
+- IMMUTABLE SHARD SETS. Identification of a set of snapshots as shards of one dataset, snapshot pinning of the set and
+  coverage of its partitions beyond the rule of 4.8.
 - TRANSPORT OUTCOMES. Changed validators during a read, truncated ranges, a stale cached block and mixed representations,
   beyond the `identity` failure and the `withheld` record that this proposal defines.
 - RECIPIENT AUDIENCES. Sealed snapshots: bootstrap and range access for recipients, a sealed inner type for derived data,
