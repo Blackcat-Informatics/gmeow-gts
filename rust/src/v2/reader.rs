@@ -9,11 +9,13 @@ use super::{
     decode_header,
     durability::{check_closing, check_closing_grammar, check_prefixes},
     frame::{
-        check_type_length, decode_frame_envelope, frame_identifier, Frame, FrameError, PARITY,
+        check_type_length, decode_frame_envelope, frame_identifier, Frame, FrameError, Signature,
+        PARITY,
     },
     framing::{byte_chunks, generation, item_end, read_head, Generation},
     payload::{malformed_payload, PayloadBudget},
     resync::{decode_resync, Candidate, ResyncScanner, RESYNC_MAX},
+    signature::{verify_signature, HeldKeys, SignatureResult},
     DecodedHeader, Decoder, HeaderError, MalformedReason, REGISTRY_VERSION,
 };
 
@@ -145,6 +147,13 @@ pub struct WireFrame<'a> {
     pub payload: PayloadCheck<'a>,
     /// A later frame type with well-typed flags that stops content folding.
     pub unknown_type_stops_fold: bool,
+    /// The outcome of each signature of the frame, in the order of its `signatures` list.
+    ///
+    /// The list is empty for a transparent frame, a frame without an effective identifier, a
+    /// frame whose `signatures` field does not follow its grammar, a frame whose `signatures`
+    /// element exceeds the stored-bytes capacity, and a frame in a segment whose opener has no
+    /// identifier. A frame whose envelope is malformed in another field keeps its results.
+    pub signatures: Vec<SignatureResult>,
 }
 
 /// A segment of the input as read from the wire.
@@ -272,10 +281,12 @@ fn recovered_segment(offset: usize, value: DecodedResync<'_>) -> WireSegment<'_>
     )
 }
 
-impl WireSegment<'_> {
-    fn with_claims(mut self, data: &[u8], stored_limit: u64) -> Self {
+impl<'a> WireSegment<'a> {
+    /// Check the claims of a finished segment and verify the signatures of its frames.
+    fn finish(mut self, data: &'a [u8], stored_limit: u64, keys: &HeldKeys) -> Self {
         let (registry, identifier) = self.opener.state();
         if let Some(identifier) = identifier {
+            self.verify_signatures(data, &identifier, stored_limit, keys);
             self.closing_findings = check_closing(data, &self.items, &self.frames);
             match check_prefixes(&identifier, &self.frames, stored_limit, registry) {
                 Ok((commits, indexes)) => {
@@ -287,6 +298,59 @@ impl WireSegment<'_> {
         }
         self
     }
+
+    /// Verify each signature of each eligible frame (P6 6.2) against `h0`.
+    ///
+    /// A frame is eligible when it is ordinary, has an effective identifier, has a `signatures`
+    /// field in grammar and has that element within `stored_limit`. Its other fields do not
+    /// matter: a frame whose envelope is malformed elsewhere has signature results too.
+    fn verify_signatures(
+        &mut self,
+        data: &'a [u8],
+        h0: &[u8; 32],
+        stored_limit: u64,
+        keys: &HeldKeys,
+    ) {
+        let newer = self.opener.state().0 > REGISTRY_VERSION;
+        for frame in &mut self.frames {
+            let Some(identifier) = frame
+                .link
+                .effective_identifier
+                .filter(|_| !frame.transparent)
+            else {
+                continue;
+            };
+            let item = self.items[frame.position];
+            let Some((records, size)) = signature_records(data, item, &frame.envelope, newer)
+            else {
+                continue;
+            };
+            if u64::try_from(size).is_ok_and(|size| size <= stored_limit) {
+                frame.signatures = records
+                    .iter()
+                    .map(|signature| verify_signature(signature, h0, &identifier, keys))
+                    .collect();
+            }
+        }
+    }
+}
+
+/// The signature records of a frame item and the encoded size of its `signatures` element.
+///
+/// Returns `None` when the element is outside the grammar of P6 section 1.
+fn signature_records<'a>(
+    data: &'a [u8],
+    item: WireItem,
+    envelope: &Result<Frame<'a>, FrameError>,
+    newer: bool,
+) -> Option<(Vec<Signature<'a>>, usize)> {
+    if let Ok(frame) = envelope {
+        return Some((frame.signatures.clone(), frame.encoded_signatures_size));
+    }
+    let item_data = &data[..item.end];
+    let offsets = field_offsets(item_data, item.offset).ok()?;
+    let records = Decoder::new(item_data, offsets[9]).signatures(newer).ok()?;
+    Some((records, offsets[10] - offsets[9]))
 }
 
 #[derive(Clone, Copy)]
@@ -522,6 +586,7 @@ fn read_frame<'a>(
             },
             payload,
             unknown_type_stops_fold,
+            signatures: Vec::new(),
         },
         malformed_grammar || state == LinkState::Broken,
     ))
@@ -789,6 +854,21 @@ fn recover_lost_item<'a>(
 /// `resync_refusal`. `stop` is set only when no candidate resumes the read.
 #[must_use]
 pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
+    read_wire_with_keys(data, capacity, &HeldKeys::default())
+}
+
+/// Read whole-input wire observations as [`read_wire`] does, verifying signatures.
+///
+/// Each signature of each eligible frame gets its outcome in [`WireFrame::signatures`],
+/// judged against `keys` by the procedure of P6 section 6.2. A frame with no effective
+/// identifier, a transparent frame and a frame of a segment whose opener has no identifier
+/// have no results.
+#[must_use]
+pub fn read_wire_with_keys<'a>(
+    data: &'a [u8],
+    capacity: ReadCapacity,
+    keys: &HeldKeys,
+) -> WireRead<'a> {
     let mut result = WireRead::default();
     let mut walk = ItemWalk::new(data, capacity.items_per_read);
     let mut scanner = ResyncScanner::new(data);
@@ -827,9 +907,11 @@ pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
                 data,
             ) {
                 Ok(Some(Candidate::Accepted { offset, value })) => {
-                    result
-                        .segments
-                        .push(segment.with_claims(data, capacity.stored_bytes_per_frame));
+                    result.segments.push(segment.finish(
+                        data,
+                        capacity.stored_bytes_per_frame,
+                        keys,
+                    ));
                     segment = recovered_segment(offset, value);
                     continue;
                 }
@@ -858,7 +940,7 @@ pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
             segment.end_offset = item.offset;
             result
                 .segments
-                .push(segment.with_claims(data, capacity.stored_bytes_per_frame));
+                .push(segment.finish(data, capacity.stored_bytes_per_frame, keys));
             segment = next;
             continue;
         }
@@ -880,6 +962,6 @@ pub fn read_wire(data: &[u8], capacity: ReadCapacity) -> WireRead<'_> {
     result.stop = result.stop.or_else(|| walk.item_limit());
     result
         .segments
-        .push(segment.with_claims(data, capacity.stored_bytes_per_frame));
+        .push(segment.finish(data, capacity.stored_bytes_per_frame, keys));
     result
 }
