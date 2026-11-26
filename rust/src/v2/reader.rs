@@ -241,6 +241,23 @@ pub struct WireRead<'a> {
     pub prefix_failure: Option<FramingFailure>,
     /// First candidate refused before the read has a segment.
     pub resync_refusal: Option<ResyncRefusal>,
+    /// The repaired copy (P5 7.1): the input with the bytes of every accepted repair written in
+    /// place, in segment order. It is `None` when no span is repaired.
+    pub repaired_copy: Option<Vec<u8>>,
+}
+
+/// Write the byte patches of every segment into a copy of `data`, in segment order (P5 7.1).
+fn repaired_copy(data: &[u8], segments: &[WireSegment<'_>]) -> Option<Vec<u8>> {
+    let mut patches = segments
+        .iter()
+        .flat_map(|segment| segment.parity_patches.iter())
+        .peekable();
+    patches.peek()?;
+    let mut output = data.to_vec();
+    for patch in patches {
+        output[patch.offset..patch.offset + patch.data.len()].copy_from_slice(&patch.data);
+    }
+    Some(output)
 }
 
 fn classify(data: &[u8], offset: usize, newer: bool) -> ItemKind {
@@ -1212,5 +1229,6 @@ pub fn read_wire_with_keys<'a>(
     result
         .segments
         .push(segment.finish(data, capacity, keys, &mut budget));
+    result.repaired_copy = repaired_copy(data, &result.segments);
     result
 }

@@ -1720,3 +1720,30 @@ fn an_unexplained_shard_is_reported_and_the_span_is_repaired_around_it() {
         assert!(contains_bytes(&result, finding), "result lacks a finding");
     }
 }
+
+/// P5 7.1: a repaired copy is the input with the bytes of the accepted repair written in place. The
+/// vector `recover-no-signature` repairs one span of its input, and the expected repaired file is
+/// the copy that the reader gives.
+#[test]
+fn a_repaired_copy_is_the_input_with_the_accepted_repair_written_in_place() {
+    let input = vector_in("P5", "recover-no-signature.signature-00-3f.bin");
+    let read = read_wire(&input, ReadCapacity::default());
+    assert_eq!(
+        read.repaired_copy,
+        Some(vector_in(
+            "P5",
+            "recover-no-signature.signature-00-3f.repaired.bin"
+        ))
+    );
+}
+
+/// P5 7.1: an input with no accepted repair has no repaired copy; the reader gives none rather
+/// than a copy equal to its input.
+#[test]
+fn an_input_with_no_accepted_repair_has_no_repaired_copy() {
+    let input = vector_in("P5", "parity-base.bin");
+    assert_eq!(
+        read_wire(&input, ReadCapacity::default()).repaired_copy,
+        None
+    );
+}
