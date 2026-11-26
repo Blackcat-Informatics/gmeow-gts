@@ -36,7 +36,7 @@ identifies the first review snapshot. Cite the commit when reporting a finding a
 
 The released packages predate v2. The repository contains **six interoperable full engines** (Rust, Python, Go, TypeScript,
 Smalltalk/Pharo, Kotlin/JVM) for the earlier format. Their test results apply to that release line.
-Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.26.6.
+Runtime support policy: Python >=3.13, Node.js >=22.16.0, and Go 1.27.4 (the Go module requires the Go 1.27 toolchain for `crypto/mldsa`).
 The [command availability matrix](docs/CLI-COMMANDS.md) lists the current engine commands.
 
 [Contributing](CONTRIBUTING.md) · [Project governance](docs/GTS-GOVERNANCE.md) · [Security reports](SECURITY.md) ·

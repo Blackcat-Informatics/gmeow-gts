@@ -16,6 +16,12 @@ Package release numbers below identify the software being released.
 
 ## [Unreleased]
 
+### Breaking changes
+
+- The Go module requires Go 1.27.4 (was 1.26.6). The Go engine uses the standard
+  `crypto/mldsa` package for the ML-DSA half of the §9.2 composite signature, which
+  the Go 1.27 toolchain provides. Consumers of the Go module must build with Go 1.27 or later.
+
 ### Fixed
 
 - Frame signatures now honour the signing algorithm declared in the COSE
