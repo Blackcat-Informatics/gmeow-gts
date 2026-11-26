@@ -39,7 +39,8 @@ internal class ParitySpans {
     fun remember(frame: FrameEnvelope, link: FrameLink, newer: Boolean) {
         if (frame.type != 16uL || link == FrameLink.BROKEN) return
         val content = readParityContent(frame.content) ?: return
-        if (newer && content.geometry > 1uL) return
+        // A frame of a later version that P5 section 6.6 sets aside has no `first`; one whose envelope is not the type's is judged.
+        if (newer && content.geometry > 1uL && frame.problem == null) return
         starts += content.first
         short = short || (content.end > content.first && content.end - content.first < SPAN_LENGTH)
     }
@@ -105,10 +106,10 @@ internal class ParityScan(
 
 /**
  * The end of the item at a parity candidate when its envelope has the shape of a `parity` frame
- * (P5 section 7.2, step 6), else null. The test follows the fields in wire order and stops at the
- * first that fails (P5-38). Each field is delimited within a window no longer than a valid parity
- * field, and the payload is jumped by its head, so a candidate that fails costs a bounded number
- * of heads whatever follows it: the scan over a damaged region is linear in its length.
+ * (P5 section 7.2, step 6), else null. The fixed-width fields are checked in wire order, and the
+ * value checks run after the envelope is delimited (P5-38). Each field is delimited within a window
+ * no longer than a valid parity field, and the payload is jumped by its head, so the envelope test
+ * of one candidate costs a bounded number of heads whatever follows it.
  */
 private fun envelopeEnd(data: ByteArray, offset: Int): Int? {
     var position = offset + parityPattern.size

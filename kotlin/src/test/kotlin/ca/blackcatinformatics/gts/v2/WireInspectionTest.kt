@@ -258,6 +258,29 @@ class WireInspectionTest {
     }
 
     @Test
+    fun aTornItemBeforeAResumptionPointIsStillUndelimitableInput() {
+        // P5 7.2A: the item at 173 announces a byte string that runs past the end of the input; with a parity frame
+        // after it the finding is `undelimitable_input`, not `torn_tail`.
+        val data = resumedVector().also { check(it[173] == 0xff.toByte()); it[173] = 0x5a }
+        val damaged = wireItems(data).single { it.kind == ItemKind.DAMAGED }
+        assertEquals("undelimitable_input", damaged.problem)
+        assertEquals(173, damaged.offset)
+        assertEquals(1, damaged.end - damaged.offset)
+    }
+
+    @Test
+    fun anOffsetsItemBeforeADamagedRegionIsMisplacedWhenReadingResumes() {
+        // P1-17: an offsets item is misplaced when an item follows it, and the damaged region is an item (P5 7.2A).
+        val data = resumedVector()
+        val offsets = "8204810b".hexToByteArray()
+        val at = 173
+        val items = wireItems(data.copyOfRange(0, at) + offsets + data.copyOfRange(at, data.size))
+        assertEquals("unordered_or_repeated", items.single { it.kind == ItemKind.OFFSETS }.problem)
+        assertEquals(ItemKind.DAMAGED, items[items.indexOfFirst { it.kind == ItemKind.OFFSETS } + 1].kind)
+        assertEquals(1, items.count { it.frameType == 16uL })
+    }
+
+    @Test
     fun anOffsetsItemAfterADamagedRegionCountsTheRegionAsOneItem() {
         // P5 7.2A: for the check of an `offsets` item the damaged region is one item of its number of bytes.
         val data = resumedVector()
@@ -273,8 +296,8 @@ class WireInspectionTest {
 
     @Test
     fun aDamagedRegionOfRepeatedParityPrefixesResumesAtTheSameParityFrame() {
-        // P5 7.2 step 6 and P5-38: a candidate whose envelope fails is rejected at its first failing field, so
-        // each of the repeated prefixes costs a bounded number of heads and the scan is linear in the region.
+        // P5 7.2 step 6 and P5-38: a region of thousands of rejected parity prefixes is passed and reading resumes at
+        // the parity frame after it. The test proves the resumption point and the region length, not the scan's cost.
         val data = resumedVector()
         val original = wireItems(data)
         val damaged = original.single { it.kind == ItemKind.DAMAGED }

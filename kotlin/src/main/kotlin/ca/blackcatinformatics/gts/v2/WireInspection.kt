@@ -56,7 +56,8 @@ internal sealed interface WireEvent {
  * that has an effective identifier, in a segment whose opener is readable and that carries
  * signature records, also gets one [SignatureResult] per record in `signatureResults`
  * (P6 section 6.2); a frame without an effective identifier, a frame of a segment whose opener
- * is not readable and a frame without signature records get none. Without [heldKeys] no
+ * is not readable, a frame without signature records and a frame whose signatures element is above
+ * the per-frame stored limit (P6-31) get none. Without [heldKeys] no
  * signature is verified.
  */
 internal fun inspectWire(
@@ -162,6 +163,27 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean, heldKe
         var spans = ParitySpans()
         var pending: ParityCandidate? = null
         var resumed: ParityCandidate? = null
+        var scannedAt = -1
+        var scanned: ParityCandidate? = null
+
+        // The parity frame at which reading resumes after the damaged region that starts at [gap], found once.
+        fun resumptionAfter(gap: ScannedItem?): ParityCandidate? {
+            val stop = gap?.takeIf { it.gap }?.event as? WireEvent.Stop ?: return null
+            if (scannedAt != stop.offset) {
+                scannedAt = stop.offset
+                scanned = segmentOpener?.let { ParityScan(data, it, segmentRegistry, spans, budget, retainDecoded).find(stop.offset) }
+                resume.offset = scanned?.offset ?: -1
+            }
+            return scanned
+        }
+
+        // The event a closing check sees after an item: a damaged region that reading resumes past is an item (P5 section 7.2A).
+        fun seen(following: ScannedItem?): WireEvent? {
+            val resumption = resumptionAfter(following) ?: return following?.event
+            val stop = following?.event as WireEvent.Stop
+            return WireEvent.Item(stop.offset, resumption.offset, ItemKind.DAMAGED, "undelimitable_input")
+        }
+
         var current = advance()
         var next = advance()
         while (current != null) {
@@ -177,7 +199,7 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean, heldKe
                 val stop = item as WireEvent.Stop
                 // The finding of the damaged region stands (P5 section 7.2A), its length running to the resumption point.
                 closing.damage(stop.offset, candidate.offset)
-                yield(WireEvent.Item(stop.offset, candidate.offset, ItemKind.DAMAGED, stop.reason.name.lowercase()))
+                yield(WireEvent.Item(stop.offset, candidate.offset, ItemKind.DAMAGED, "undelimitable_input"))
                 current = next
                 next = advance()
                 continue
@@ -188,9 +210,13 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean, heldKe
                 segmentRegistry = item.opener?.registry ?: 0uL
                 spans = ParitySpans()
             }
-            val following = next?.event
-            val afterLocator = if (item.kind == ItemKind.OFFSETS && (following as? WireEvent.Item)?.kind == ItemKind.LOCATOR) advance() else null
-            val event = closing.observe(item, following, afterLocator?.event)
+            val afterLocator = if (item.kind == ItemKind.OFFSETS && (next?.event as? WireEvent.Item)?.kind == ItemKind.LOCATOR) advance() else null
+            val event =
+                if (item.kind == ItemKind.OFFSETS || item.kind == ItemKind.LOCATOR) {
+                    closing.observe(item, seen(next), seen(afterLocator))
+                } else {
+                    closing.observe(item, next?.event, null)
+                }
             val frame = current.frame
             if (frame != null && predecessor != null) {
                 val resumption = resumed?.takeIf { it.offset == item.offset }
@@ -226,11 +252,7 @@ private fun items(data: ByteArray, firstEnd: Int, retainDecoded: Boolean, heldKe
             }
             current = next
             if (current?.gap == true) {
-                val stop = current.event as WireEvent.Stop
-                val opener = segmentOpener
-                pending =
-                    opener?.let { ParityScan(data, it, segmentRegistry, spans, budget, retainDecoded).find(stop.offset) }
-                resume.offset = pending?.offset ?: -1
+                pending = resumptionAfter(current)
             }
             next = afterLocator ?: advance()
         }
@@ -243,7 +265,8 @@ private fun verifyFrameSignatures(
     heldKeys: List<HeldKey>?,
 ): List<SignatureResult>? {
     val records = frame.payload.signatures
-    if (frame.transparent || heldKeys == null || frameIdentifier == null || headerIdentifier == null || records.isEmpty()) {
+    val oversized = frame.payload.signaturesSize.toULong() > frameCapacity
+    if (frame.transparent || oversized || heldKeys == null || frameIdentifier == null || headerIdentifier == null || records.isEmpty()) {
         return null
     }
     return records.map { verifySignature(it, frameIdentifier, headerIdentifier, heldKeys) }
