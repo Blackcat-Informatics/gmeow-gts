@@ -45,7 +45,14 @@ const resyncMarker = Uint8Array.of(
 );
 
 export class FramingError extends Error {
-    constructor(readonly reason: FramingReason) {
+    /**
+     * `examinedEnd`: the offset that the delimiting read examined up to (P1 section 6.3),
+     * so that a repair walk holds the bytes through it.
+     */
+    constructor(
+        readonly reason: FramingReason,
+        readonly examinedEnd: number,
+    ) {
         super(reason);
     }
 }
@@ -59,7 +66,7 @@ interface Head {
 }
 
 export function head(data: Uint8Array, offset: number): Head {
-    if (offset >= data.length) throw new FramingError("torn_tail");
+    if (offset >= data.length) throw new FramingError("torn_tail", offset);
     const first = data[offset];
     const major = first >> 5;
     const info = first & 31;
@@ -76,69 +83,89 @@ export function head(data: Uint8Array, offset: number): Head {
     if (info === 31 && major >= 2 && major <= 5) {
         return { major, value: 0n, end, indefinite: true, shortest: false };
     }
-    if (info > 27) throw new FramingError("undelimitable_input");
+    if (info > 27) throw new FramingError("undelimitable_input", end);
     const width = 1 << (info - 24);
-    if (width > data.length - end) throw new FramingError("torn_tail");
+    if (width > data.length - end) {
+        throw new FramingError("torn_tail", data.length);
+    }
     let value = 0n;
     for (let i = 0; i < width; i++) value = (value << 8n) | BigInt(data[end++]);
     if (major === 7 && info === 24 && value < 32n) {
-        throw new FramingError("undelimitable_input");
+        throw new FramingError("undelimitable_input", end);
     }
     const shortest = value >= [24n, 256n, 65536n, 4294967296n][info - 24];
     return { major, value, end, indefinite: false, shortest };
 }
 
-interface Container {
-    major: number;
-    remaining: bigint;
-    indefinite: boolean;
-    needsValue: boolean;
-}
+/** One open container or byte string of `itemEnd` (P1 section 6.3, `Open`). */
+type Open =
+    | { kind: "definite"; count: bigint }
+    | { kind: "array" }
+    | { kind: "map"; needsValue: boolean }
+    | { kind: "string"; major: number };
 
-// Repeat counts describe pairs for maps. Byte offsets become numbers only after
-// a byte or text length fits in the remaining input.
-function itemEnd(data: Uint8Array, offset: number): number {
-    const pending: Container[] = [
-        { major: 4, remaining: 1n, indefinite: false, needsValue: false },
-    ];
-    while (pending.length > 0) {
-        const parent = pending[pending.length - 1];
-        if (!parent.indefinite && parent.remaining === 0n) {
-            pending.pop();
-            continue;
-        }
-        if (offset === data.length) throw new FramingError("torn_tail");
-        const first = data[offset];
-        if (first === 0xff) {
-            if (!parent.indefinite || parent.needsValue) {
-                throw new FramingError("undelimitable_input");
+/**
+ * The exclusive end of a well-formed CBOR item without decoding its values. A
+ * failure carries the offset that the read examined up to (P1 section 6.3).
+ */
+export function itemEnd(data: Uint8Array, offset: number): number {
+    const open: Open[] = [{ kind: "definite", count: 1n }];
+    while (open.length > 0) {
+        const parent = open[open.length - 1];
+        if (parent.kind === "string") {
+            if (offset >= data.length) {
+                throw new FramingError("torn_tail", offset);
             }
-            pending.pop();
-            offset++;
-            continue;
+            const first = data[offset];
+            if (
+                first !== 0xff &&
+                (first >> 5 !== parent.major || (first & 31) === 31)
+            ) {
+                throw new FramingError("undelimitable_input", offset + 1);
+            }
         }
-        if (
-            parent.indefinite &&
-            (parent.major === 2 || parent.major === 3) &&
-            (first >> 5 !== parent.major || (first & 31) === 31)
-        ) {
-            throw new FramingError("undelimitable_input");
+        if (offset < data.length && data[offset] === 0xff) {
+            // The break code: a major type 7 item with no argument (`read_head`).
+            if (
+                parent.kind === "definite" ||
+                (parent.kind === "map" && parent.needsValue)
+            ) {
+                throw new FramingError("undelimitable_input", offset + 1);
+            }
+            open.pop();
+            offset += 1;
+        } else {
+            const h = head(data, offset);
+            offset = h.end;
+            if (parent.kind === "definite") parent.count -= 1n;
+            if (parent.kind === "map") parent.needsValue = !parent.needsValue;
+            if (h.major === 2 || h.major === 3) {
+                if (h.indefinite) {
+                    open.push({ kind: "string", major: h.major });
+                } else {
+                    if (h.value > BigInt(data.length - offset)) {
+                        throw new FramingError("torn_tail", offset);
+                    }
+                    offset += Number(h.value);
+                }
+            } else if (h.major === 4) {
+                if (h.indefinite) open.push({ kind: "array" });
+                else if (h.value !== 0n) {
+                    open.push({ kind: "definite", count: h.value });
+                }
+            } else if (h.major === 5) {
+                if (h.indefinite) open.push({ kind: "map", needsValue: false });
+                else if (h.value !== 0n) {
+                    open.push({ kind: "definite", count: 2n * h.value });
+                }
+            } else if (h.major === 6) {
+                open.push({ kind: "definite", count: 1n });
+            }
         }
-        const h = head(data, offset);
-        offset = h.end;
-        if (parent.major === 5) parent.needsValue = !parent.needsValue;
-        if (!parent.indefinite && !parent.needsValue) parent.remaining--;
-        if (h.indefinite || h.major === 4 || h.major === 5 || h.major === 6) {
-            pending.push({
-                major: h.major,
-                remaining: h.major === 6 ? 1n : h.value,
-                indefinite: h.indefinite,
-                needsValue: false,
-            });
-        } else if (h.major === 2 || h.major === 3) {
-            if (h.value > BigInt(data.length - offset))
-                throw new FramingError("torn_tail");
-            offset += Number(h.value);
+        while (open.length > 0) {
+            const top = open[open.length - 1];
+            if (top.kind === "definite" && top.count === 0n) open.pop();
+            else break;
         }
     }
     return offset;

@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { inspectFraming } from "../src/v2_framing.js";
+import { FramingError, inspectFraming, itemEnd } from "../src/v2_framing.js";
 import { projectRdf, rdfNQuads } from "../src/v2_rdf_projection.js";
 
 test("framing reports unsupported wire generations without rounding", () => {
@@ -238,4 +238,32 @@ test("RDF projection keeps its fold when closing grammar or claims fail", () => 
         assert.equal(damaged.kind, "v2");
         assert.equal(rdfNQuads(projectRdf(damaged)), expected);
     }
+});
+
+// Examined ends of framing failures (P1 section 6.3, `item_end_examined`): the repair walk holds the bytes
+// through them, so each value is the offset the delimiting read reached, worked out from the rule of
+// its failure site.
+
+test("a byte string longer than the input reports the end of its head as the examined end", () => {
+    // A byte string of length 5 with one byte after its head: torn, examined through the head at offset 2.
+    const data = Buffer.from([0x58, 0x05, 0x01]);
+    assert.throws(
+        () => itemEnd(data, 0),
+        (error: unknown) =>
+            error instanceof FramingError &&
+            error.reason === "torn_tail" &&
+            error.examinedEnd === 2,
+    );
+});
+
+test("a break inside a definite array reports the byte after the break as the examined end", () => {
+    // An array of one item whose item is a break: undelimitable at offset 1, examined through offset 2.
+    const data = Buffer.from([0x81, 0xff]);
+    assert.throws(
+        () => itemEnd(data, 0),
+        (error: unknown) =>
+            error instanceof FramingError &&
+            error.reason === "undelimitable_input" &&
+            error.examinedEnd === 2,
+    );
 });
