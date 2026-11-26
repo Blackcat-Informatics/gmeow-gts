@@ -9,7 +9,7 @@ use gmeow_gts::{
     v2::reader::{
         read_wire, Dispatch, FramingFailure, ItemKind, Judgement, LinkState, Opener, ParityCode,
         ParityFinding, ParityReason, PayloadState, ReadCapacity, ReadStop, ResyncRefusal,
-        WireFrame, WireSegment,
+        WireFrame, WireRead, WireSegment,
     },
     wire::hex,
 };
@@ -176,6 +176,11 @@ fn print_parity_findings(segment: &WireSegment<'_>) -> bool {
 
 /// Prints one positioned repair finding with its reason and count, when it has them.
 fn print_parity_finding(name: &str, finding: &ParityFinding) {
+    stdout_line!("    {}", parity_finding_text(name, finding));
+}
+
+/// The text of one positioned repair finding: its item, name, reason and count, when it has them.
+fn parity_finding_text(name: &str, finding: &ParityFinding) -> String {
     let place = finding
         .position
         .map_or_else(String::new, |position| format!("item {position}: "));
@@ -185,7 +190,42 @@ fn print_parity_finding(name: &str, finding: &ParityFinding) {
     let count = finding
         .count
         .map_or_else(String::new, |count| format!(", count {count}"));
-    stdout_line!("    {place}{name}{reason}{count}");
+    format!("{place}{name}{reason}{count}")
+}
+
+/// Reports on standard error the accepted and failed repairs of a read and where reading stopped
+/// before the end of the input, if it did. Returns whether a repair failed or reading stopped.
+pub(super) fn report_repair(wire: &WireRead<'_>) -> bool {
+    let mut failed = false;
+    for finding in wire
+        .segments
+        .iter()
+        .flat_map(|segment| &segment.parity_findings)
+    {
+        let name = match finding.code {
+            ParityCode::Repaired => "repaired",
+            ParityCode::RepairFailed => {
+                failed = true;
+                "repair_failed"
+            }
+            _ => continue,
+        };
+        stderr_line!("gts repair: {}", parity_finding_text(name, finding));
+    }
+    if let Some(stop) = wire.stop {
+        match stop {
+            ReadStop::Framing(failure) => stderr_line!(
+                "gts repair: reading stopped at byte {}: {:?}",
+                failure.offset,
+                failure.reason
+            ),
+            ReadStop::ItemLimit { offset } => {
+                stderr_line!("gts repair: reading stopped at byte {offset}: item limit reached");
+            }
+        }
+        failed = true;
+    }
+    failed
 }
 
 /// Prints the opener of a segment and reports whether it is well formed.

@@ -50,5 +50,5 @@ requirements.
 | `segments` | yes | yes | yes | yes | yes | yes | common |
 | `missing` | yes | yes | yes | yes | yes | yes | common |
 | `resume` | yes | yes | yes | yes | yes | yes | common |
-| `repair` | no | no | no | no | yes | no | v2 parity repair |
+| `repair` | no | yes | no | no | yes | no | v2 parity repair |
 <!-- cli-parity-matrix:end -->

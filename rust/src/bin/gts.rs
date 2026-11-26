@@ -1807,30 +1807,31 @@ fn cmd_repair(args: &[String]) -> ExitCode {
     let (Some(input), Some(out_path)) = (input, out_path) else {
         return usage_error();
     };
-    if same_file(input, out_path) {
-        stderr_line!("gts repair: the output {out_path} is the input {input}");
-        return ExitCode::from(2);
+    if std::path::Path::new(out_path).exists() {
+        stderr_line!("gts repair: the output {out_path} already exists");
+        return ExitCode::from(1);
     }
     let data = match load(input) {
         Ok(data) => data,
         Err(code) => return code,
     };
-    let Some(bytes) = read_wire(&data, capacity).repaired_copy else {
-        stderr_line!("gts repair: no span of {input} is repaired; nothing written");
-        return ExitCode::from(1);
-    };
-    if let Err(e) = std::fs::write(out_path, &bytes) {
-        stderr_line!("gts repair: cannot write {out_path}: {e}");
-        return ExitCode::from(2);
+    let wire = read_wire(&data, capacity);
+    let failed = info_v2::report_repair(&wire);
+    if let Some(bytes) = &wire.repaired_copy {
+        let written = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(out_path)
+            .and_then(|mut file| std::io::Write::write_all(&mut file, bytes));
+        if let Err(e) = written {
+            stderr_line!("gts repair: cannot write {out_path}: {e}");
+            return ExitCode::from(2);
+        }
     }
-    ExitCode::SUCCESS
-}
-
-/// Whether two paths name one existing file. A path that does not exist names no file.
-fn same_file(a: &str, b: &str) -> bool {
-    match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
-        (Ok(a), Ok(b)) => a == b,
-        _ => false,
+    if failed {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
     }
 }
 
