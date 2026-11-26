@@ -1,10 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>
 # SPDX-License-Identifier: MIT OR Apache-2.0 OR MulanPSL-2.0
 # Pre-commit linter suite — repo hygiene, run locally (`pre-commit install`)
-# and in CI (`pre-commit run --all-files`). Python lint/type-check (ruff + mypy)
-# and per-language gates (cargo fmt, golangci, eslint) run in their CI jobs;
-# this file covers cross-cutting hygiene: formatting, spelling, YAML/TOML/JSON,
-# Markdown, shell, GitHub Actions (lint + security), and secrets.
+# and in CI (`pre-commit run --all-files`). Rust formatting, production lints
+# and dependency bans run here. The other per-language gates (ruff, mypy,
+# golangci, eslint) run in their CI jobs. This file also covers cross-cutting
+# hygiene: formatting, spelling, YAML/TOML/JSON, Markdown, shell, GitHub
+# Actions (lint + security), and secrets.
 default_language_version:
   python: python3.13
 
@@ -16,6 +17,18 @@ repos:
         entry: python3 scripts/check_licenses.py
         language: system
         pass_filenames: false
+      - id: rust-fmt
+        name: Rust formatting (cargo fmt --check)
+        entry: cargo fmt --manifest-path rust/Cargo.toml --all --check
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: rust-clippy
+        name: Rust production lints (census Clippy command)
+        entry: scripts/rust-clippy.sh
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: rust-deny
         name: Rust dependency policy (cargo deny check bans sources)
         entry: cargo deny --manifest-path rust/Cargo.toml check bans sources
