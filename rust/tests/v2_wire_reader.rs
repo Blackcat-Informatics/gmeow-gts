@@ -1265,7 +1265,7 @@ fn a_read_without_keys_reports_key_not_held_within_the_stored_bytes_capacity() {
         .all(|frame| frame.signatures.is_empty()));
 }
 
-/// P6 6.2 step 2 and the acceptance row of #480: a composite signature is refused when only one of
+/// P6 6.2 step 2 and P6-26: a composite signature is refused when only one of
 /// its component keys is held. Each half is held under its own identifier, so the composite's
 /// identifier matches no held key and the signature is `key_not_held`, never `valid`.
 #[test]
