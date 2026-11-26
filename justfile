@@ -55,10 +55,11 @@ lint: check-quality-budget
 clippy:
     scripts/rust-clippy.sh
 
-# Rust lints on every target of the workspace. The nested fuzz workspace has no
-# lock file, so no locked lint covers it.
+# Rust lints on every target of the workspace and of the nested fuzz workspace,
+# both under their locked graphs.
 clippy-all:
     cd rust && cargo clippy --workspace --all-targets --locked -- -D warnings
+    cd rust/fuzz && cargo clippy --all-targets --locked -- -D warnings
 
 # Fail if production-code quality budgets regress.
 check-quality-budget:
