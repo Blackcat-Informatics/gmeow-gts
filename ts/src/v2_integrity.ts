@@ -240,7 +240,7 @@ export class PayloadBudget {
 }
 
 // The per-frame capacity admits only the three single-segment header forms.
-function zstdHeader(length: number): Uint8Array {
+export function zstdHeader(length: number): Uint8Array {
     const sizeWidth = length < 256 ? 1 : length <= 65791 ? 2 : 4;
     const descriptor = sizeWidth === 1 ? 0x20 : sizeWidth === 2 ? 0x60 : 0xa0;
     const encodedLength = sizeWidth === 2 ? length - 256 : length;
@@ -266,7 +266,7 @@ function singleZstdFrame(data: Uint8Array, offset: number): boolean {
     return false;
 }
 
-function decodeZstd(
+export function decodeZstd(
     data: Uint8Array,
     offset: number,
     length: number,
