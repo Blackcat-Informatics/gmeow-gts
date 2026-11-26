@@ -64,6 +64,9 @@ class _Opening:
     decision: _Opener | _Dispatch
     damaged_prefix: _Boundary | None = None
     refusal: ResyncRefusal | None = None
+    # The complete first item for a refused generation, so its offset and
+    # length are retained without recomputing them from the input.
+    first_item: _Boundary | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -321,6 +324,12 @@ def _damage_before(data: bytes, start: int, end: int) -> _Boundary | None:
     return None
 
 
+# The first-item findings whose subject is the whole first item (P2 codes 2, 8 and 9).
+_RETAINED_FIRST_ITEM_DECISIONS = frozenset(
+    ("not_this_format", "torn_tail", "undelimitable_input")
+)
+
+
 def _open_input(
     data: bytes, walk: _ItemWalk, scanner: ResyncScanner, *, first_and_second: bool
 ) -> _Opening:
@@ -340,11 +349,11 @@ def _open_input(
         elif generation.grammar == "first_generation":
             if generation.value == 1 and first_and_second:
                 return _Opening("first_generation")
-            return _Opening("unsupported_generation")
+            return _Opening("unsupported_generation", first_item=first)
         elif generation.value < 2:
             decision = "not_this_format"
         elif generation.value > 2:
-            return _Opening("unsupported_generation")
+            return _Opening("unsupported_generation", first_item=first)
         else:
             _, _, kind_at = _head(data, 0, 0)
             _, kind, _ = _head(data, kind_at, 0)
@@ -357,6 +366,7 @@ def _open_input(
         return _Opening(
             decision,
             refusal=recovered if isinstance(recovered, ResyncRefusal) else None,
+            first_item=first if decision in _RETAINED_FIRST_ITEM_DECISIONS else None,
         )
 
     return _Opening(

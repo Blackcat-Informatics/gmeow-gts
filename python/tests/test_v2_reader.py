@@ -16,9 +16,31 @@ from gts.v2 import (
     encode_header,
     encode_plain_frame,
     item_end,
+    read_content,
     read_wire,
 )
+from gts.v2.canonical_check import CanonicalResult, CheckState
+from gts.v2.content import ContentCapacity
+from gts.v2.file_result import (
+    FoldState,
+    OpaqueFold,
+    PayloadState,
+    UncheckedPayload,
+    fold_state,
+    payload_state,
+)
+from gts.v2.findings import (
+    FINDING_CODES,
+    REASON_CODES,
+    FindingRecord,
+    finding_record,
+    frame_findings,
+    framing_findings,
+    segment_findings,
+    sort_findings,
+)
 from gts.v2.payload import PayloadBudget
+from gts.v2.read_encoding import encode_file
 from gts.v2.reader import _Boundary, _ItemWalk, _open_input, _Opener
 from gts.v2.resync import (
     RESYNC_MAX,
@@ -27,7 +49,16 @@ from gts.v2.resync import (
     ResyncScanner,
     encode_resync,
 )
-from test_v2_content import _PARITY_CODES, _REASONS
+from gts.v2.segment_result import (
+    FrameResult,
+    HeaderOpener,
+    frame_results,
+    segment_results,
+)
+from gts.v2.signatures import HeldKey, SignatureVerifier
+from gts.v2.typed_file import CompleteVisibility, file_result
+from gts.v2.writer import SegmentWriter
+from test_v2_content import _PARITY_CODES, _REASONS, _VECTORS, _contents
 
 P1 = Path(__file__).resolve().parents[2] / "vectors" / "v2" / "P1"
 
@@ -123,6 +154,122 @@ def test_first_generation_input_defaults_to_the_legacy_decision() -> None:
         first_and_second=False,
     )
     assert refused.opening.decision == "unsupported_generation"
+
+
+@pytest.mark.parametrize(
+    ("first", "decision"),
+    [
+        (cbor2.dumps(5), "not_this_format"),
+        (cbor2.dumps([1, 3]), "unsupported_generation"),
+    ],
+    ids=["not_this_format", "generation_three"],
+)
+def test_refused_first_item_keeps_its_offset_and_length(
+    first: bytes, decision: str
+) -> None:
+    """A refused generation reports the complete first item, not the whole input."""
+    data = first + b"\x00"
+    opened = read_wire(
+        data,
+        items_per_read=8,
+        stored_bytes_per_frame=0,
+        decoded_bytes_per_frame=0,
+        decoded_bytes_per_read=0,
+    )
+    assert opened.opening.decision == decision
+    assert opened.opening.first_item == _Boundary(0, len(first))
+    # The typed file finding carries the same subject through the content read.
+    read = read_content(data)
+    assert read.wire.segments == ()
+    assert [(f.code, f.offset, f.length) for f in read.findings] == [
+        (decision, 0, len(first))
+    ]
+
+
+def test_later_version_parity_after_a_stop_is_opaque_as_stopped() -> None:
+    """A later-version parity frame after an unsupported critical frame is `stopped`.
+
+    It carries no finding of its own: the stop is its reason.
+    """
+    case = json.loads(
+        (_VECTORS / "P1" / "parity-later-version-after-stop.json").read_text()
+    )["cases"][0]
+    c = case["capacity"]
+    capacity = ContentCapacity(
+        c["stored_bytes_per_frame"],
+        c["decoded_bytes_per_frame"],
+        c["decoded_bytes_per_read"],
+        c["items_per_read"],
+        c["rebuilt_bytes_per_read"],
+        c["formed_bytes_per_read"],
+        c["labelled_lines"],
+        c["labelled_bytes_per_read"],
+        c["labelling_units"],
+    )
+    raw = (_VECTORS / "P1" / case["input_file"]).read_bytes()
+    read = read_content(raw, capacity)
+    frames = {frame.position: frame for frame in read.wire.segments[0].frames}
+    assert fold_state(read, 0, frames[3]) == OpaqueFold("unsupported_critical")
+    assert fold_state(read, 0, frames[4]) == OpaqueFold("stopped")
+    assert [finding.code for finding in read.findings] == [
+        "uncommitted_tail",
+        "unsupported_critical",
+    ]
+
+
+def test_payload_beyond_stored_capacity_is_unchecked() -> None:
+    """A frame over the stored limit is unchecked for capacity, which P2 names."""
+    writer = SegmentWriter()
+    writer.append(1, [0, [[1, 1], [3, 1]] * 8, 2, 64], b"")
+    read = read_wire(
+        writer.to_bytes(),
+        items_per_read=64,
+        stored_bytes_per_frame=8,
+        decoded_bytes_per_frame=0,
+        decoded_bytes_per_read=0,
+    )
+    frames = [frame for segment in read.segments for frame in segment.frames]
+    assert [payload_state(frame.payload) for frame in frames] == [
+        UncheckedPayload("exceeds_capacity")
+    ]
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        # An unsupported critical frame stops the segment.
+        (
+            "frame-unknown-critical",
+            {
+                1: "not_content",
+                2: OpaqueFold("unsupported_critical"),
+                3: OpaqueFold("stopped"),
+                4: OpaqueFold("stopped"),
+            },
+        ),
+        (
+            "frame-unknown-noncritical",
+            {1: "not_content", 2: OpaqueFold("unknown_frame_type"), 3: "not_content"},
+        ),
+        (
+            "parity-geometry-newer",
+            {
+                1: "not_content",
+                2: "not_content",
+                3: "not_content",
+                4: OpaqueFold("unknown_frame_type"),
+            },
+        ),
+    ],
+)
+def test_fold_state_gives_the_p2_reason_of_each_opaque_frame(
+    name: str, expected: dict[int, object]
+) -> None:
+    """Each opaque frame carries the P2 reason its fold decision site gives."""
+    raw, _, capacity = next(_contents("P1", name))
+    read = read_content(raw, capacity)
+    frames = read.wire.segments[0].frames
+    assert {frame.position: fold_state(read, 0, frame) for frame in frames} == expected
 
 
 def test_walked_header_has_absolute_item_boundary() -> None:
@@ -412,3 +559,811 @@ def test_read_wire_matches_corpus_read_result_for_remaining_fixtures(
             ) == _parity_findings(record)
         checked += 1
     assert checked
+
+
+def _corpus_input(name: str, size: int) -> tuple[bytes, ContentCapacity]:
+    """Return the input and capacity of corpus case `name` with `size` bytes."""
+    folder = _VECTORS / "P1"
+    for case in json.loads((folder / f"{name}.json").read_text())["cases"]:
+        raw = (folder / case["input_file"]).read_bytes()
+        if len(raw) == size:
+            c = case["capacity"]
+            return raw, ContentCapacity(
+                c["stored_bytes_per_frame"],
+                c["decoded_bytes_per_frame"],
+                c["decoded_bytes_per_read"],
+                c["items_per_read"],
+                c["rebuilt_bytes_per_read"],
+                c["formed_bytes_per_read"],
+                c["labelled_lines"],
+                c["labelled_bytes_per_read"],
+                c["labelling_units"],
+            )
+    raise AssertionError(f"no case of {name} has an input of {size} bytes")
+
+
+@pytest.mark.parametrize(
+    "name, size, code, length",
+    [
+        ("file-not-this-format", 4, "not_this_format", 4),
+        ("file-not-this-format", 1, "not_this_format", 1),
+        ("gen-first-generation-two", 4, "unsupported_generation", 4),
+        # The first item is 11 bytes; the 12th byte is trailing input, not part of it.
+        ("gen-record-three", 12, "unsupported_generation", 11),
+    ],
+)
+def test_rejected_first_item_is_a_segmentless_file_result(
+    name: str, size: int, code: str, length: int
+) -> None:
+    """A rejected first item gives a segmentless file with one finding of its length."""
+    raw, capacity = _corpus_input(name, size)
+    result = file_result(read_content(raw, capacity), raw, capacity)
+    assert [(f.code, f.offset, f.length) for f in result.findings] == [
+        (FINDING_CODES[code], 0, length)
+    ]
+    assert result.end == "no_commit"
+    assert result.left_out == 0
+    assert result.visible == CompleteVisibility(0)
+
+
+@pytest.mark.parametrize(
+    "name, size, first_and_second, code, offset, length, end, left_out",
+    [
+        ("file-first-incomplete", 3, True, "torn_tail", 0, 3, "torn", 1),
+        ("locator-short-input", 10, True, "torn_tail", 0, 10, "torn", 1),
+        (
+            "file-first-undelimitable",
+            1,
+            True,
+            "undelimitable_input",
+            0,
+            1,
+            "undelimitable",
+            0,
+        ),
+        # A second-generation reader refuses a first-generation first item of 4 bytes.
+        (
+            "gen-first-generation-second-only",
+            5,
+            False,
+            "unsupported_generation",
+            0,
+            4,
+            "no_commit",
+            0,
+        ),
+        ("file-empty", 0, True, "empty_input", None, None, "no_commit", 0),
+    ],
+)
+def test_first_item_finding_of_each_decision_is_segmentless(
+    name: str,
+    size: int,
+    first_and_second: bool,
+    code: str,
+    offset: int | None,
+    length: int | None,
+    end: str,
+    left_out: int,
+) -> None:
+    """Each rejected first item gives a segmentless file with its own finding."""
+    raw, capacity = _corpus_input(name, size)
+    read = read_content(raw, capacity, first_and_second=first_and_second)
+    result = file_result(read, raw, capacity)
+    assert [(f.code, f.offset, f.length) for f in result.findings] == [
+        (FINDING_CODES[code], offset, length)
+    ]
+    assert result.end == end
+    assert result.left_out == left_out
+
+
+def test_item_limit_of_zero_refuses_the_input_as_not_read() -> None:
+    """With no item allowed, the whole input is one refused first item (P7, 1.2)."""
+    raw = b"\x00\x00\x00"
+    capacity = ContentCapacity(items_per_read=0)
+    read = read_content(raw, capacity)
+    result = file_result(read, raw, capacity)
+    assert [
+        (f.code, f.reason, f.count, f.offset, f.length, f.position)
+        for f in result.findings
+    ] == [
+        (
+            FINDING_CODES["exceeds_capacity"],
+            REASON_CODES["item_count"],
+            1,
+            0,
+            3,
+            None,
+        )
+    ]
+    assert result.end == "not_read"
+    assert result.left_out == 0
+
+
+def test_valid_first_generation_header_is_not_a_segmentless_result() -> None:
+    """A valid first-generation header keeps its legacy result, not a tag-2 result."""
+    raw, capacity = _corpus_input("gen-first-generation", 4)
+    read = read_content(raw, capacity)
+    with pytest.raises(ValueError, match="first-generation"):
+        file_result(read, raw, capacity)
+
+
+def _corpus_read(
+    name: str, label: str
+) -> tuple[bytes, ContentCapacity, SignatureVerifier, list[object]]:
+    """Return the input, capacity, keys and `read_result` of case `label` of `name`."""
+    folder = _VECTORS / "P1"
+    for case in json.loads((folder / f"{name}.json").read_text())["cases"]:
+        if case.get("label", "") != label:
+            continue
+        c = case["capacity"]
+        capacity = ContentCapacity(
+            c["stored_bytes_per_frame"],
+            c["decoded_bytes_per_frame"],
+            c["decoded_bytes_per_read"],
+            c["items_per_read"],
+            c["rebuilt_bytes_per_read"],
+            c["formed_bytes_per_read"],
+            c["labelled_lines"],
+            c["labelled_bytes_per_read"],
+            c["labelling_units"],
+        )
+        record = cbor2.loads(bytes.fromhex(case["read_result"]))
+        trusted, held = record[5]
+        verifier = SignatureVerifier(
+            trusted_keys=trusted, held_keys=[HeldKey(*key) for key in held]
+        )
+        return (
+            (folder / case["input_file"]).read_bytes(),
+            capacity,
+            verifier,
+            record,
+        )
+    raise AssertionError(f"no case {label!r} of {name}")
+
+
+def _corpus_case(
+    name: str, label: str
+) -> tuple[bytes, ContentCapacity, SignatureVerifier, list[list[object]]]:
+    """Return the input, capacity, keys and segments of case `label` of `name`."""
+    raw, capacity, verifier, record = _corpus_read(name, label)
+    return raw, capacity, verifier, record[-1][1]
+
+
+def _present(option: list[object]) -> object:
+    return None if option == [1] else option[1]
+
+
+_UNCHECKED_CODES = {"exceeds_capacity": 2, "labelling_refused": 3, "not_claimed": 5}
+
+
+def _check_codes(result: CanonicalResult) -> list[object]:
+    """Return `[claimed, structure, labelling]` as P2 encodes them."""
+
+    def state(check: CheckState) -> list[int]:
+        if check.state == "unchecked":
+            assert check.reason is not None
+            return [2, _UNCHECKED_CODES[check.reason]]
+        return [1] if check.state == "verified" else [3]
+
+    return [result.claimed, state(result.structure), state(result.labelling)]
+
+
+_PAST_CODES = {"absent": 1, "matches": 2, "differs": 3, "not_checked": 4}
+_REACHED_CODES = {"walked": 1, "scanned": 2}
+_INTEGRITY_CODES = {
+    "intact": 1,
+    "intact_unchecked": 2,
+    "damaged": 3,
+    "not_checked": 4,
+}
+_AUTHENTICITY_CODES = {
+    "authenticated": 1,
+    "partly_authenticated": 2,
+    "unauthenticated": 3,
+}
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        # A header opener, and a readable resync item reached by a scan.
+        ("append-after-torn-refused", "ii-after"),
+        # A past that matches, one that differs and one refused by the past count.
+        ("append-after-torn-refused", "i-after"),
+        ("head-longer-map-or-tag", "map-identifier"),
+        ("resync-past-not-checked-count", ""),
+        # Marks that are not applicable to the reader.
+        ("marks-code-zero", ""),
+        # A resync item unreadable before its offset field, and a newer hash.
+        ("opener-option-tag-first", "lineage-tag-zero-then-null"),
+        ("header-hash-newer", ""),
+        # An unchecked payload, an opaque item that is not a frame and a damaged region.
+        ("payload-unknown-codec", ""),
+        ("append-opaque-tail", "after"),
+        ("append-resync-fresh-after-pad", "framing"),
+        # A claimed canonical form, one that holds and one that fails.
+        ("append-after-canonical", "canonical"),
+        ("header-minimal", ""),
+        # A signed commit, a transparent frame, and frames that are not anchored.
+        ("equal-heads-different-bytes", "b3"),
+        ("link-heal-closing-items", "damaged"),
+    ],
+)
+def test_segment_results_give_each_opener_of_the_corpus(name: str, label: str) -> None:
+    """Each segment states its offset, length, opener and header as the corpus does."""
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    read = read_content(raw, capacity, verifier=verifier)
+    results = segment_results(read, raw, capacity)
+    assert len(results) == len(expected)
+    for got, record in zip(results, expected, strict=True):
+        opener = got.opener
+        if isinstance(opener, HeaderOpener):
+            stated: list[object] = [1]
+        else:
+            stated = [
+                2,
+                _REACHED_CODES[opener.reached],
+                opener.displaced,
+                _PAST_CODES[opener.past],
+                opener.marks_ignored,
+            ]
+        assert (
+            [
+                got.ordinal,
+                got.offset,
+                got.length,
+                stated,
+                got.header_identifier,
+                got.registry_version,
+                got.hash_algorithm,
+                got.profile,
+                _INTEGRITY_CODES[got.integrity],
+                _AUTHENTICITY_CODES[got.authenticity],
+                got.anchored_frames,
+                got.committed_frames,
+                got.authenticated_frames,
+                list(got.transparent_frames),
+                _check_codes(got.canonical),
+                got.content_digest,
+            ]
+            == [
+                record[0],
+                record[1],
+                record[2],
+                record[3],
+                _present(record[4]),  # type: ignore[arg-type]
+                _present(record[5]),  # type: ignore[arg-type]
+                _present(record[6]),  # type: ignore[arg-type]
+                _present(record[7]),  # type: ignore[arg-type]
+                *record[8:14],
+                record[14][:3],  # type: ignore[index]
+                _present(record[15]),  # type: ignore[arg-type]
+            ]
+        )
+
+
+@pytest.mark.parametrize("name", ["payload-unknown-codec", "frame-storage-tag-newer"])
+def test_frame_with_unknown_codec_is_opaque_as_unknown_codec(name: str) -> None:
+    """A frame of an unknown payload codec is opaque as `unknown_codec`."""
+    raw = (_VECTORS / "P1" / f"{name}.bin").read_bytes()
+    read = read_content(raw)
+    frame = read.wire.segments[0].frames[0]
+    assert fold_state(read, 0, frame) == OpaqueFold("unknown_codec")
+
+
+_LINK_CODES = {"linked": 1, "healed": 2, "broken": 3}
+_SIGNATURE_REASON_CODES = {
+    "unknown_signature_algorithm": 53,
+    "key_not_held": 54,
+    "key_mismatch": 57,
+    "value_length": 58,
+    "non_canonical_scalar": 59,
+    "small_order_key": 60,
+    "small_order_nonce": 61,
+    "equation_failed": 62,
+    "composite_classical_failed": 63,
+    "composite_post_quantum_failed": 64,
+}
+_SIGNATURE_STATUS_CODES = {"valid": 1, "invalid": 2, "unverified": 3}
+
+
+def _signature_codes(frame: FrameResult) -> list[list[object]]:
+    return [
+        [
+            _SIGNATURE_STATUS_CODES[signature.outcome.status],
+            None
+            if signature.outcome.reason is None
+            else _SIGNATURE_REASON_CODES[signature.outcome.reason],
+            signature.algorithm,
+            signature.key_id,
+            signature.coverage_first,
+            signature.coverage_end,
+            signature.authenticated,
+        ]
+        for signature in frame.signatures
+    ]
+
+
+_STORED_CODES = {"matches": 1, "mismatch": 2}
+_UNCHECKED_REASON_CODES = {"unknown_codec": 1, "exceeds_capacity": 2}
+_OPAQUE_REASON_CODES = {
+    "damaged": 1,
+    "malformed": 2,
+    "unknown_frame_type": 3,
+    "unsupported_critical": 4,
+    "stopped": 5,
+    "chain_break": 6,
+    "exceeds_capacity": 7,
+    "unknown_codec": 8,
+}
+
+
+def _payload_code(state: PayloadState) -> list[int]:
+    if state == "verified":
+        return [1]
+    if state == "damaged":
+        return [2]
+    return [3, _UNCHECKED_REASON_CODES[state.reason]]
+
+
+def _fold_code(state: FoldState) -> list[int]:
+    if state == "folded":
+        return [1]
+    if state == "not_content":
+        return [2]
+    return [3, _OPAQUE_REASON_CODES[state.reason]]
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        ("append-after-canonical", "canonical"),
+        # Damaged payloads whose codec constraint is malformed and not merely damaged,
+        # alone and under a broken link.
+        ("payload-output-longer", ""),
+        ("chain-break-withheld-codec-constraint", ""),
+        ("payload-unknown-codec", ""),
+        ("parity-later-version-after-stop", ""),
+        # Two signatures on a commit, one of them authenticating.
+        ("equal-heads-different-bytes", "b3"),
+    ],
+)
+def test_frame_results_give_each_frame_of_the_corpus(name: str, label: str) -> None:
+    """Each frame states its place, type, link, payload, stored check and fold."""
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    read = read_content(raw, capacity, verifier=verifier)
+    for ordinal, segment in enumerate(expected):
+        frames = frame_results(read, ordinal)
+        assert [
+            [
+                frame.position,
+                frame.offset,
+                frame.length,
+                frame.frame_type,
+                _LINK_CODES[frame.link],
+                _payload_code(frame.payload),
+                None if frame.stored is None else _STORED_CODES[frame.stored],
+                _signature_codes(frame),
+                _fold_code(frame.fold),
+            ]
+            for frame in frames
+        ] == [
+            [
+                record[0],
+                record[1],
+                record[2],
+                _present(record[3]),
+                record[4],
+                record[5],
+                _present(record[6]),
+                [[s[0], _present(s[1]), *s[2:]] for s in record[7]],
+                record[8],
+            ]
+            for record in segment[16]
+        ]
+
+
+@pytest.mark.parametrize(
+    "name, size",
+    [
+        ("file-not-this-format", 4),
+        ("gen-record-three", 12),
+        ("file-first-incomplete", 3),
+        ("file-first-undelimitable", 1),
+    ],
+)
+def test_file_findings_are_typed_records_of_the_corpus(name: str, size: int) -> None:
+    """The findings of a file with no segment encode as the corpus findings do."""
+    raw, capacity = _corpus_input(name, size)
+    folder = _VECTORS / "P1"
+    expected = next(
+        cbor2.loads(bytes.fromhex(case["read_result"]))[-1][2]
+        for case in json.loads((folder / f"{name}.json").read_text())["cases"]
+        if (folder / case["input_file"]).stat().st_size == size
+    )
+    got = [finding_record(f) for f in read_content(raw, capacity).findings]
+    assert [
+        (f.code, f.reason, f.position, f.offset, f.length, f.count) for f in got
+    ] == [
+        (
+            f[0],
+            _present(f[1]),
+            _present(f[3]),
+            _present(f[4]),
+            _present(f[5]),
+            _present(f[6]),
+        )
+        for f in expected
+    ]
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        # A codec constraint is malformed, and a malformed frame has no chain break.
+        ("payload-output-longer", ""),
+        ("chain-break-withheld-codec-constraint", ""),
+        # A broken link, with the signature of a frame whose key is not held.
+        ("link-heal-closing-items", "damaged"),
+        ("append-damaged-length-head", "i-after"),
+    ],
+)
+def test_frame_findings_give_the_wire_findings_of_the_corpus(
+    name: str, label: str
+) -> None:
+    """Each frame states the findings of its link, payload and signatures."""
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    read = read_content(raw, capacity, verifier=verifier)
+    for ordinal, segment in enumerate(expected):
+        for record in segment[16]:
+            frame = next(
+                f for f in read.wire.segments[ordinal].frames if f.position == record[0]
+            )
+            got = sorted(
+                (f.code, f.reason, f.position, f.offset, f.length, f.count, f.subject)
+                for f in frame_findings(read, ordinal, frame)
+            )
+            want = sorted(
+                (
+                    f[0],
+                    _present(f[1]),
+                    _present(f[3]),
+                    _present(f[4]),
+                    _present(f[5]),
+                    _present(f[6]),
+                    None if f[2] == [1] else tuple(f[2][1]),
+                )
+                for f in record[10]
+            )
+            assert got == want
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        # A lineage that the previous segment contradicts, and one that is absent.
+        ("concat-continuation", "joined"),
+        ("append-resync-fresh-after-pad", "framing"),
+        # An unreadable opener, and a resync mark that breaks its grammar.
+        ("gen-later-header-three", ""),
+        ("head-longer-map-or-tag", "tag-in-mark"),
+        # A region that framing could not delimit, before a resumption.
+        ("append-check-recovery-resumed", ""),
+    ],
+)
+def test_segment_and_file_findings_are_those_of_the_corpus(
+    name: str, label: str
+) -> None:
+    """The findings of a segment and of the framing of a file match the corpus."""
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    read = read_content(raw, capacity, verifier=verifier)
+    folder = _VECTORS / "P1"
+    case = next(
+        c
+        for c in json.loads((folder / f"{name}.json").read_text())["cases"]
+        if c.get("label", "") == label
+    )
+    file_findings = cbor2.loads(bytes.fromhex(case["read_result"]))[-1][2]
+
+    def fields(f: FindingRecord) -> tuple[object, ...]:
+        return (f.code, f.reason, f.position, f.offset, f.length, f.count, f.subject)
+
+    def stated(f: list[object]) -> tuple[object, ...]:
+        return (
+            f[0],
+            _present(f[1]),  # type: ignore[arg-type]
+            _present(f[3]),  # type: ignore[arg-type]
+            _present(f[4]),  # type: ignore[arg-type]
+            _present(f[5]),  # type: ignore[arg-type]
+            _present(f[6]),  # type: ignore[arg-type]
+            None if f[2] == [1] else tuple(f[2][1]),  # type: ignore[index, arg-type]
+        )
+
+    for ordinal, segment in enumerate(expected):
+        assert sorted(fields(f) for f in segment_findings(read, ordinal)) == sorted(
+            stated(f)
+            for f in segment[17]  # type: ignore[arg-type]
+        )
+    assert sorted(fields(f) for f in framing_findings(read)) == sorted(
+        stated(f) for f in file_findings if f[0] in (8, 9)
+    )
+
+
+_FILE_END_CODES = {
+    "at_authenticated_commit": 1,
+    "at_valid_commit": 2,
+    "after_commit": 3,
+    "no_commit": 4,
+    "torn": 5,
+    "undelimitable": 6,
+    "not_read": 7,
+}
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        ("append-after-canonical", "canonical"),
+        ("equal-heads-different-bytes", "b3"),
+        ("link-heal-closing-items", "damaged"),
+        ("append-check-recovery-resumed", ""),
+        ("concat-continuation", "joined"),
+        ("payload-unknown-codec", ""),
+    ],
+)
+def test_file_result_assembles_every_segment_and_frame_of_the_corpus(
+    name: str, label: str
+) -> None:
+    """The file result states the end, left out, digest, visibility and records."""
+    raw, capacity, verifier, expected = _corpus_case(name, label)
+    folder = _VECTORS / "P1"
+    case = next(
+        c
+        for c in json.loads((folder / f"{name}.json").read_text())["cases"]
+        if c.get("label", "") == label
+    )
+    record = cbor2.loads(bytes.fromhex(case["read_result"]))[-1]
+    result = file_result(read_content(raw, capacity, verifier=verifier), raw, capacity)
+    assert len(result.segments) == len(expected)
+    assert [len(s.frames) for s in result.segments] == [len(s[16]) for s in expected]
+    assert _FILE_END_CODES[result.end] == record[5]
+    assert result.left_out == record[6]
+    assert result.content_digest == _present(record[3])
+    assert result.visible == CompleteVisibility(record[4][1])
+
+
+def test_findings_of_a_frame_are_sorted_by_procedure_step() -> None:
+    """Findings sort by the P7 step that produced them, not by code."""
+    records = [
+        FindingRecord(22, None, 1, None, None, None, step=15),
+        FindingRecord(17, None, 1, None, None, 1, step=13),
+    ]
+    assert [r.code for r in sort_findings(records)] == [17, 22]
+
+
+@pytest.mark.parametrize(
+    "name, label",
+    [
+        # A stored check that matches, one that fails and a stored check that is absent.
+        ("stored-matches", ""),
+        ("stored-mismatch", ""),
+        ("stored-plain-none", ""),
+        # A resync item reached by a walk and one whose past matches.
+        ("resync-too-long", "walked"),
+        ("resync-past-matches", ""),
+        # A torn header, an undelimitable item and a decompressed payload.
+        ("torn-header", ""),
+        ("undelimitable-simple", ""),
+        ("zstd-ok", ""),
+    ],
+)
+def test_file_result_encodes_to_the_corpus_bytes(name: str, label: str) -> None:
+    """The typed file result of a whole read encodes to the corpus `file_result` bytes.
+
+    The compared cases are those whose every field the reader states. A case with a
+    finding the reader does not yet emit, or a storage level it does not check, is
+    not compared here.
+    """
+    raw, capacity, verifier, record = _corpus_read(name, label)
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    encoded = encode_file(file_result(read, raw, capacity))
+    assert cbor2.dumps(encoded, canonical=True) == cbor2.dumps(
+        record[-1], canonical=True
+    )
+
+
+def test_frame_rebuilds_encode_the_corpus_rebuilds() -> None:
+    """Each frame's `rebuilds` encodes the corpus `rebuild_result` lists."""
+    raw, capacity, verifier, record = _corpus_read(
+        "resync-isolation-value-served", "clean-450-restated"
+    )
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    encoded = encode_file(file_result(read, raw, capacity))
+    got = [[frame[9] for frame in segment[16]] for segment in encoded[1]]
+    expected = [[frame[9] for frame in segment[16]] for segment in record[-1][1]]
+    assert got == expected
+    assert any(rebuilds for segment in got for rebuilds in segment)
+
+
+def test_unknown_item_kind_finding_states_the_item_tag() -> None:
+    """An opaque item of an unknown kind is a finding whose subject is its CBOR tag.
+
+    The finding sits at the item's position in its segment and carries no offset.
+    """
+    raw, capacity, verifier, record = _corpus_read("item-kind-newer", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        finding
+        for segment in file_result(read, raw, capacity).segments
+        for finding in segment.findings
+        if finding.code == FINDING_CODES["unknown_enumeration_value"]
+    ]
+    assert [(f.reason, f.subject, f.position, f.offset) for f in found] == [
+        (REASON_CODES["unknown_item_kind"], (5, 9), 1, None)
+    ]
+
+
+def test_failed_index_claim_is_a_finding_of_its_closing_item() -> None:
+    """A failed index claim is `index_claim_failed` at its closing item."""
+    raw, capacity, verifier, record = _corpus_read("boundary-claim-wrong", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        (finding.code, finding.reason, finding.position, finding.offset)
+        for segment in file_result(read, raw, capacity).segments
+        for finding in segment.findings
+        if finding.code == FINDING_CODES["index_claim_failed"]
+    ]
+    assert found == [
+        (FINDING_CODES["index_claim_failed"], REASON_CODES["index_offsets"], 3, None)
+    ]
+
+
+def test_item_limit_reached_mid_file_gives_the_bytes_left() -> None:
+    """The item that exceeds the limit is refused: its count, offset and bytes left."""
+    raw, capacity, verifier, record = _corpus_read("items-over-limit", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        (f.code, f.reason, f.offset, f.length, f.count)
+        for f in file_result(read, raw, capacity).findings
+    ]
+    assert found == [
+        (
+            FINDING_CODES["exceeds_capacity"],
+            REASON_CODES["item_count"],
+            240,
+            116,
+            capacity.items_per_read + 1,
+        )
+    ]
+
+
+def test_declared_profile_the_reader_does_not_implement_is_not_checked() -> None:
+    """A segment that declares a profile the reader does not implement says so."""
+    raw, capacity, verifier, record = _corpus_read("header-profile-unknown", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        (f.code, f.subject)
+        for segment in file_result(read, raw, capacity).segments
+        for f in segment.findings
+        if f.code == FINDING_CODES["profile_not_checked"]
+    ]
+    assert found == [(FINDING_CODES["profile_not_checked"], (4, 99))]
+
+
+def test_payload_over_the_decoded_size_limit_is_refused_at_its_frame() -> None:
+    """A payload over the decoded size limit is `exceeds_capacity` at its frame."""
+    raw, capacity, verifier, record = _corpus_read("payload-exceeds-decoded", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    frames = [
+        frame
+        for segment in file_result(read, raw, capacity).segments
+        for frame in segment.frames
+    ]
+    found = [
+        (f.code, f.reason, f.position, f.offset, f.length, f.count)
+        for frame in frames
+        for f in frame.findings
+        if f.code == FINDING_CODES["exceeds_capacity"]
+    ]
+    assert found == [
+        (
+            FINDING_CODES["exceeds_capacity"],
+            REASON_CODES["decoded_size"],
+            1,
+            11,
+            133,
+            20,
+        )
+    ]
+
+
+def test_malformed_item_finding_gives_the_bytes_of_its_item() -> None:
+    """A malformed frame's finding carries the offset and length of its item."""
+    raw, capacity, verifier, record = _corpus_read("payload-ill-formed-head", "1c")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    frame = file_result(read, raw, capacity).segments[0].frames[0]
+    found = [
+        (f.code, f.position, f.offset, f.length)
+        for f in frame.findings
+        if f.code == FINDING_CODES["malformed_value"]
+    ]
+    assert found == [(FINDING_CODES["malformed_value"], 1, 11, 83)]
+
+
+def test_resync_refusal_stands_at_the_item_that_holds_its_offset() -> None:
+    """A refused resync scan stands at the item holding its offset."""
+    raw, capacity, verifier, record = _corpus_read(
+        "resync-refused-charge-once", "readable-segment"
+    )
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [
+        (f.position, f.offset, f.length, f.count)
+        for f in file_result(read, raw, capacity).segments[0].findings
+        if f.code == FINDING_CODES["exceeds_capacity"]
+    ]
+    assert found == [(3, 316, 4096, 4115)]
+
+
+def test_unknown_frame_type_finding_sorts_with_the_items_step() -> None:
+    """An envelope's unknown frame type sorts before a malformed item."""
+    raw, capacity, verifier, record = _corpus_read("frame-unknown-content-map", "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    frame = file_result(read, raw, capacity).segments[0].frames[0]
+    assert [f.code for f in frame.findings[:2]] == [
+        FINDING_CODES["unknown_enumeration_value"],
+        FINDING_CODES["malformed_value"],
+    ]
+
+
+@pytest.mark.parametrize(
+    "name, subject",
+    [("payload-unknown-codec", 2), ("frame-storage-tag-newer", 3)],
+)
+def test_unknown_codec_finding_states_the_codec(name: str, subject: int) -> None:
+    """An unknown codec is `unknown_enumeration_value` whose subject is the codec."""
+    raw, capacity, verifier, record = _corpus_read(name, "")
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    frame = file_result(read, raw, capacity).segments[0].frames[0]
+    found = [
+        (f.reason, f.subject, f.position)
+        for f in frame.findings
+        if f.code == FINDING_CODES["unknown_enumeration_value"]
+    ]
+    assert found == [(REASON_CODES["unknown_codec"], (1, subject), 1)]
+
+
+def test_file_framing_findings_sort_by_the_p7_order() -> None:
+    """The framing findings of a file sort by P7 order, not by offset alone."""
+    raw, capacity, verifier, record = _corpus_read(
+        "resync-heal-no-witness-past-region", "whole"
+    )
+    read = read_content(
+        raw, capacity, verifier=verifier, first_and_second=record[0] == 2
+    )
+    found = [f.code for f in file_result(read, raw, capacity).findings]
+    assert found == [
+        FINDING_CODES["undelimitable_input"],
+        FINDING_CODES["torn_tail"],
+    ]

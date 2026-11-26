@@ -3,8 +3,8 @@
 """Whole-input graph and blob content reading for GTS v2."""
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
-from typing import cast
+from dataclasses import dataclass, field
+from typing import Literal, cast
 
 from ._content import UnknownContentCode
 from ._decode import WireError, _Decoder
@@ -81,6 +81,28 @@ from .terms import (
 )
 
 _LAST_FRAME = 16
+
+# The `opaque_reason` values of P2, in the precedence order of P2-30.
+OpaqueReason = Literal[
+    "malformed",
+    "chain_break",
+    "stopped",
+    "damaged",
+    "unsupported_critical",
+    "unknown_codec",
+    "exceeds_capacity",
+    "unknown_frame_type",
+]
+_OPAQUE_PRECEDENCE: tuple[OpaqueReason, ...] = (
+    "malformed",
+    "chain_break",
+    "stopped",
+    "damaged",
+    "unsupported_critical",
+    "unknown_codec",
+    "exceeds_capacity",
+    "unknown_frame_type",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -192,6 +214,10 @@ class ContentRead:
     own_labelling: tuple[LabellingReport | None, ...] = ()
     coverage: ReadCoverage | None = None
     canonical: tuple[CanonicalResult, ...] = ()
+    # The P2 opaque reason of each opaque frame, keyed by (segment ordinal, position).
+    opaque_reasons: dict[tuple[int, int], OpaqueReason] = field(default_factory=dict)
+    # The position of the last valid commit of each segment that has one.
+    last_commits: dict[int, int] = field(default_factory=dict)
 
     @property
     def repaired_copy(self) -> bytes | None:
@@ -263,6 +289,7 @@ class _SegmentContent:
     opaque_positions: set[int]
     index_digests: dict[int, bytes | None]
     closing_index: ClosingIndex | None
+    opaque_reasons: dict[int, OpaqueReason]
 
 
 @dataclass(frozen=True, slots=True)
@@ -436,6 +463,17 @@ def _record_content_error(
     return False
 
 
+def _error_reason(
+    error: WireError | UnknownContentCode | FormedCapacityError,
+) -> OpaqueReason:
+    """Return the opaque reason that a content error gives its frame (P2)."""
+    if isinstance(error, UnknownContentCode):
+        return "unsupported_critical"
+    if isinstance(error, FormedCapacityError):
+        return "exceeds_capacity"
+    return "malformed"
+
+
 def _blocks_state_prefix(frame: WireFrame) -> bool:
     if frame.transparent:
         return False
@@ -479,11 +517,17 @@ def _read_segment_content(
     hidden_before = 0
     first_ineligible = None
     opaque_positions: set[int] = set()
+    # The reasons each frame's own decision sites give, before the segment-level ones.
+    applies: dict[int, set[OpaqueReason]] = {}
+    stopped_at: int | None = None
     index_digests: dict[int, bytes | None] = {}
     checked_indexes: dict[int, IndexPayload] = {}
     for frame in segment.frames:
         position = frame.position
         kind = frame.frame_type
+        if isinstance(frame.envelope, FrameError):
+            # An envelope that fails its grammar is a malformed value (P1, 2.2).
+            applies.setdefault(position, set()).add("malformed")
         previous_cutoff = hidden_before
         if frame.link.state == "broken" and not frame.transparent:
             hidden_before = graph.next_id
@@ -500,6 +544,7 @@ def _read_segment_content(
         if kind == 16:
             if position in segment.parity.future_geometry:
                 opaque_positions.add(position)
+                applies.setdefault(position, set()).add("unknown_frame_type")
                 if not stopped and decoded is not None:
                     findings.append(
                         ContentFinding(
@@ -512,6 +557,7 @@ def _read_segment_content(
             continue
         opaque_positions.add(position)
         if kind is None or kind == 0:
+            applies.setdefault(position, set()).add("malformed")
             continue
         if kind == 14:
             if decoded is not None and not stopped:
@@ -532,6 +578,7 @@ def _read_segment_content(
                     )
                 except WireError as error:
                     _record_content_error(error, ordinal, position, findings)
+                    applies.setdefault(position, set()).add(_error_reason(error))
                     if first_ineligible is None:
                         first_ineligible = position
                 except UnknownContentCode:
@@ -544,6 +591,7 @@ def _read_segment_content(
                                 "unknown_frame_type",
                             )
                         )
+                    applies.setdefault(position, set()).add("unknown_frame_type")
                     if first_ineligible is None:
                         first_ineligible = position
                 else:
@@ -554,14 +602,19 @@ def _read_segment_content(
                             index_digests[position] = index.content_digest
             continue
         if kind > _LAST_FRAME:
-            if registry > 1:
-                _, critical = _raw_content_and_flags(data, segment, frame)
-                if critical is True:
-                    findings.append(
-                        ContentFinding(ordinal, position, "unsupported_critical")
-                    )
-                    stopped = True
-                elif critical is False:
+            _, critical = _raw_content_and_flags(data, segment, frame)
+            # A critical unknown type stops the fold only from registry version 2;
+            # version 1 reports it as an unknown type.
+            if registry > 1 and critical is True:
+                findings.append(
+                    ContentFinding(ordinal, position, "unsupported_critical")
+                )
+                applies.setdefault(position, set()).add("unsupported_critical")
+                stopped = True
+                stopped_at = position if stopped_at is None else stopped_at
+            else:
+                applies.setdefault(position, set()).add("unknown_frame_type")
+                if registry > 1 and critical is False:
                     findings.append(
                         ContentFinding(
                             ordinal,
@@ -582,6 +635,11 @@ def _read_segment_content(
                 stopped = _record_content_error(
                     graph_frame.error, ordinal, position, findings
                 )
+                applies.setdefault(position, set()).add(
+                    _error_reason(graph_frame.error)
+                )
+                if stopped and stopped_at is None:
+                    stopped_at = position
                 if first_ineligible is None and not frame.transparent:
                     first_ineligible = position
             rows = graph_frame.contribution
@@ -624,6 +682,9 @@ def _read_segment_content(
                 )
             except (WireError, UnknownContentCode) as error:
                 stopped = _record_content_error(error, ordinal, position, findings)
+                applies.setdefault(position, set()).add(_error_reason(error))
+                if stopped and stopped_at is None:
+                    stopped_at = position
                 if first_ineligible is None and not frame.transparent:
                     first_ineligible = position
             else:
@@ -651,6 +712,31 @@ def _read_segment_content(
             ContentFinding(ordinal, position, "index_claim_failed", reason)
             for position, reason in prefix_findings
         )
+    frames = {frame.position: frame for frame in segment.frames}
+    opaque_reasons: dict[int, OpaqueReason] = {}
+    for position in sorted(opaque_positions):
+        frame = frames[position]
+        found: set[OpaqueReason] = set(applies.get(position, ()))
+        if frame.link.state == "broken" and not frame.transparent:
+            found.add("chain_break")
+        if stopped_at is not None and position > stopped_at:
+            # P2-30 `stopped`: an earlier frame gave `unsupported_critical`.
+            found.add("stopped")
+        if frame.payload.state == "damaged":
+            found.add("damaged")
+            if frame.payload.reason == "codec_constraint" and frame.frame_type != 16:
+                # P1: a codec constraint is `malformed_value`, parity frames excepted.
+                found.add("malformed")
+        elif frame.payload.reason == "unknown_codec":
+            found.add("unknown_codec")
+        elif _payload_refused(frame):
+            found.add("exceeds_capacity")
+        reason: OpaqueReason | None = next(
+            (r for r in _OPAQUE_PRECEDENCE if r in found), None
+        )
+        if reason is None:
+            raise ValueError(f"opaque frame at position {position} gives no P2 reason")
+        opaque_reasons[position] = reason
     return _SegmentContent(
         graph_frames,
         blob_frames,
@@ -659,6 +745,7 @@ def _read_segment_content(
         opaque_positions,
         index_digests,
         closing_index,
+        opaque_reasons,
     )
 
 
@@ -1139,6 +1226,8 @@ def read_content(
     unfolded = unopened = unauthenticated = 0
     run_is_usable = False
     findings: list[ContentFinding] = []
+    opaque_reasons: dict[tuple[int, int], OpaqueReason] = {}
+    last_commits: dict[int, int] = {}
     for ordinal, segment in enumerate(wire.segments):
         segment_findings_at = len(findings)
         opener = segment.opener.value
@@ -1155,6 +1244,8 @@ def read_content(
             capacity.stored_bytes_per_frame,
             findings,
         )
+        if last_commit:
+            last_commits[ordinal] = last_commit
         findings.extend(
             ContentFinding(
                 ordinal,
@@ -1175,6 +1266,10 @@ def read_content(
             capacity.stored_bytes_per_frame,
             last_commit,
             findings,
+        )
+        opaque_reasons.update(
+            ((ordinal, position), reason)
+            for position, reason in segment_content.opaque_reasons.items()
         )
         registry = opener.header.registry_version
         authenticity = authenticate_segment(
@@ -1272,6 +1367,44 @@ def read_content(
             canonical_reports[ordinal] = ITEM_LIMIT
 
     coverage = file_coverage(wire, coverage_observations)
+    if wire.opening.decision == "empty_input":
+        # P1: an input of zero bytes gives the finding `empty_input`, with no subject.
+        findings.append(ContentFinding(None, None, "empty_input"))
+    if wire.opening.decision == "item_count":
+        # The item limit stops the read before its first item: the input is refused.
+        findings.append(
+            ContentFinding(
+                None, None, "exceeds_capacity", "item_count", 1, 0, len(data)
+            )
+        )
+    elif wire.item_limit_offset is not None:
+        # The item limit stops the read at the item that exceeds it; the finding
+        # counts the item that exceeds the limit and gives the bytes left.
+        limit = wire.item_limit_offset
+        findings.append(
+            ContentFinding(
+                None,
+                None,
+                "exceeds_capacity",
+                "item_count",
+                capacity.items_per_read + 1,
+                limit,
+                len(data) - limit,
+            )
+        )
+    first_item = wire.opening.first_item
+    if first_item is not None and isinstance(wire.opening.decision, str):
+        # P2 `not_this_format` and `unsupported_generation`: the first item is the
+        # finding's subject, at offset 0 with its byte length.
+        findings.append(
+            ContentFinding(
+                None,
+                None,
+                wire.opening.decision,
+                offset=first_item.offset,
+                length=first_item.end - first_item.offset,
+            )
+        )
     if not wire.segments or wire.item_limit_offset is not None:
         return ContentRead(
             wire,
@@ -1283,6 +1416,8 @@ def read_content(
             own_labelling=tuple(own_reports),
             coverage=coverage,
             canonical=tuple(canonical_reports),
+            opaque_reasons=opaque_reasons,
+            last_commits=last_commits,
         )
 
     declarations = tuple(
@@ -1396,4 +1531,6 @@ def read_content(
         tuple(own_reports),
         coverage,
         tuple(canonical_reports),
+        opaque_reasons=opaque_reasons,
+        last_commits=last_commits,
     )
