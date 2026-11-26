@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 
 use gmeow_gts::{
     v2::reader::{
-        read_wire, Dispatch, FramingFailure, ItemKind, LinkState, Opener, PayloadState,
+        read_wire, Dispatch, FramingFailure, ItemKind, Judgement, LinkState, Opener, PayloadState,
         ReadCapacity, ReadStop, ResyncRefusal, WireFrame, WireSegment,
     },
     wire::hex,
@@ -287,6 +287,17 @@ fn print_frame_problems(frame: &WireFrame<'_>) -> bool {
             stdout_line!("    item {position}: unchecked payload: {reason:?}");
             clean = false;
         }
+    }
+    match frame.judgement {
+        Some(Judgement::Damaged) => {
+            stdout_line!("    item {position}: parity_damaged");
+            clean = false;
+        }
+        Some(Judgement::ExceedsCapacity) => {
+            stdout_line!("    item {position}: exceeds_capacity (parity frame, not used)");
+            clean = false;
+        }
+        Some(Judgement::Unchecked | Judgement::Verified) | None => {}
     }
     clean
 }
