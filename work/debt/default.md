@@ -5127,12 +5127,10 @@ lines:
     orphans: 15
   - item: gmeow_gts::test_crate::census::checked_gate
     orphans: 9
-  - item: gmeow_gts::test_crate::census::checked_report
-    orphans: 3
   - item: gmeow_gts::test_crate::census::debt_path
     orphans: 3
   - item: gmeow_gts::test_crate::census::debt_record_is_canonical_and_the_sources_add_nothing_to_it
-    orphans: 22
+    orphans: 19
   - item: gmeow_gts::test_crate::census::ledger_is_canonical_and_declares_no_helper_or_provider
     orphans: 15
   - item: gmeow_gts::test_crate::census::ledger_path

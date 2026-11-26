@@ -6,23 +6,21 @@
 //!
 //! `scripts/rust-census.sh` captures a fresh receipt first; `RAF_CENSUS_LINT_EVIDENCE`
 //! overrides its path. A missing or stale receipt is a failure, never a skip. The
-//! census runs on native Linux only, as its publication and receipt do.
-//!
-//! The repository depends on no preferred provider, so no registry archive is sealed
-//! and the plain disk check applies.
-
-#![cfg(target_os = "linux")]
+//! receipt cases run on native Linux only, as the receipt capture does. The ledger,
+//! debt record and detector self-test checks run on every platform. The repository
+//! depends on no preferred provider, so no registry archive is sealed and the plain
+//! disk check applies.
 
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
-use raf_census::{
-    DebtChange, DebtRecord, Gate, GateReport, Ledger, ProductionLintRun, DEBT_FILE, LEDGER_FILE,
-};
+#[cfg(target_os = "linux")]
+use raf_census::{DebtChange, ProductionLintRun};
+use raf_census::{DebtRecord, Gate, Ledger, DEBT_FILE, LEDGER_FILE};
 
 type TestResult = Result<(), Box<dyn Error>>;
 
-/// The representation rules every repository census requires, whatever its ledger holds.
+#[cfg(target_os = "linux")]
 const REQUIRED_RULES: [&str; 3] = ["serde-json", "rdf-text-writer", "rdf-term-model"];
 
 /// The package directory that owns the workspace root, the ledger and the debt record.
@@ -38,8 +36,8 @@ fn debt_path() -> PathBuf {
     workspace_dir().join(DEBT_FILE)
 }
 
-/// The gate with the three representation rules required, over the receipt of the
-/// production Clippy run named by `RAF_CENSUS_LINT_EVIDENCE` or the default path.
+/// The gate over the receipt named by `RAF_CENSUS_LINT_EVIDENCE` or the default path.
+#[cfg(target_os = "linux")]
 fn checked_gate() -> Result<Gate, Box<dyn Error>> {
     let gate = Gate::workspace(workspace_dir()).require_rules(REQUIRED_RULES);
     let path = std::env::var_os("RAF_CENSUS_LINT_EVIDENCE")
@@ -48,16 +46,12 @@ fn checked_gate() -> Result<Gate, Box<dyn Error>> {
     Ok(gate.with_production_lint_run(run))
 }
 
-fn checked_report() -> Result<GateReport, Box<dyn Error>> {
-    Ok(checked_gate()?.check()?)
-}
-
-/// The receipt is accepted only when it records a passing run of the exact
-/// production command over the inputs of this checkout. A stale, failed or absent
-/// receipt is a finding of the gate, so none of those three may appear.
+/// The receipt records a passing run of the exact production command over the inputs
+/// of this checkout: no stale, failed or absent receipt finding may appear.
 #[test]
+#[cfg(target_os = "linux")]
 fn production_clippy_receipt_covers_this_snapshot_and_passed() -> TestResult {
-    let report = checked_report()?;
+    let report = checked_gate()?.check()?;
     let receipt_findings: Vec<&String> = report
         .findings()
         .iter()
@@ -74,13 +68,13 @@ fn production_clippy_receipt_covers_this_snapshot_and_passed() -> TestResult {
     Ok(())
 }
 
-/// The census of the real workspace is clean with the serde-json, rdf-text-writer
-/// and rdf-term-model rules required: no duplicated helper beyond the recorded debt,
-/// no JSON dependency written into the sources, no hand-rolled RDF text writer or
-/// term model.
+/// The census of the real workspace is clean with the serde-json, rdf-text-writer and
+/// rdf-term-model rules required: no duplicate beyond the recorded debt, no JSON
+/// dependency, no hand-rolled RDF text writer or term model.
 #[test]
+#[cfg(target_os = "linux")]
 fn workspace_census_is_clean_with_the_representation_rules_required() -> TestResult {
-    let report = checked_report()?;
+    let report = checked_gate()?.check()?;
     assert!(
         !report.census().units().is_empty(),
         "the census read no source item, so it proved nothing"
@@ -105,26 +99,23 @@ fn ledger_is_canonical_and_declares_no_helper_or_provider() -> TestResult {
     Ok(())
 }
 
-/// The debt record is canonical and the present sources hold no duplicate group,
-/// job copy or ratcheted site beyond it. The record can only shrink: a new copy is
-/// growth that the gate refuses and the debt writer cannot record.
+/// The debt record is canonical, and on Linux the present sources add no duplicate
+/// group, job copy or ratcheted site beyond it, so it can only shrink.
 #[test]
 fn debt_record_is_canonical_and_the_sources_add_nothing_to_it() -> TestResult {
     let text = std::fs::read_to_string(debt_path())?;
     let record = DebtRecord::from_turtle(&text)?;
     assert_eq!(record.to_turtle()?, text, "the record is not canonical");
-    let report = checked_report()?;
-    let growth: Vec<String> = record
-        .compare(report.debt())?
-        .into_iter()
-        .filter(DebtChange::is_growth)
-        .map(|change| format!("{change:?}"))
-        .collect();
-    assert!(
-        growth.is_empty(),
-        "debt grew beyond its record:\n{}",
-        growth.join("\n")
-    );
+    #[cfg(target_os = "linux")]
+    {
+        let report = checked_gate()?.check()?;
+        let growth: Vec<_> = record
+            .compare(report.debt())?
+            .into_iter()
+            .filter(DebtChange::is_growth)
+            .collect();
+        assert!(growth.is_empty(), "debt grew beyond its record: {growth:?}");
+    }
     Ok(())
 }
 

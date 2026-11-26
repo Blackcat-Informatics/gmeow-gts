@@ -15,8 +15,7 @@ default:
 # Run every engine's test suite.
 test: test-rust test-go test-ts test-py test-kotlin
 
-test-rust:
-    scripts/rust-census.sh
+test-rust: census-receipt
     cd rust && cargo test --workspace --locked
 
 # Declared Rust gate: format, lint, test and dependency bans for the whole
@@ -24,15 +23,28 @@ test-rust:
 check-rust:
     cd rust && cargo fmt --check
     just clippy-all
-    scripts/rust-census.sh
+    just census-receipt
     cd rust && cargo test --workspace --locked
     cd rust && cargo deny check bans sources
+
+# Capture the production Clippy receipt that the census test reads. The capture is
+# native Linux only; other platforms skip it and the receipt cases do not compile.
+[linux]
+census-receipt:
+    scripts/rust-census.sh
+
+[macos]
+census-receipt:
+    @echo "census receipt: native Linux only, not captured"
+
+[windows]
+census-receipt:
+    @echo "census receipt: native Linux only, not captured"
 
 # Census gate: capture the production Clippy receipt, then check the helper ledger
 # and debt record. Not in the commit hook; the workspace test also runs the census
 # test, so `check-rust` captures the receipt first.
-census:
-    scripts/rust-census.sh
+census: census-receipt
     cd rust && cargo test --locked --test census
 
 # Workplan gate: capability documents and changes in progress against the sources.
