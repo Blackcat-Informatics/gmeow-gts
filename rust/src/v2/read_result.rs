@@ -3,41 +3,14 @@
 
 //! The CBOR encoding of the parity findings of a read result (P7 section 1).
 
-use super::{
-    payload::{PayloadRefusal, PayloadState},
-    reader::{Judgement, WireSegment},
-};
-
-/// The code of the finding `parity_damaged` in the registry of finding codes.
-const PARITY_DAMAGED: u64 = 30;
-/// The code of the finding `exceeds_capacity` in the registry of finding codes.
-const EXCEEDS_CAPACITY: u64 = 20;
-/// The reason `decoded_size` in the registry of reason codes.
-const DECODED_SIZE: u64 = 30;
-/// The reason `stored_size` in the registry of reason codes.
-const STORED_SIZE: u64 = 31;
-/// The reason `total_decoded` in the registry of reason codes.
-const TOTAL_DECODED: u64 = 86;
+use super::reader::{ParityCode, ParityFinding, ParityReason, WireSegment};
 
 /// A parity finding that cannot be encoded from the reader's result.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ReadResultError {
-    /// The frame at `position` has no item in its segment, so it has no offset or length.
-    MissingItem {
-        /// The position of the frame in its segment.
-        position: usize,
-    },
-    /// The frame at `position` has an `exceeds_capacity` judgement whose payload was not refused
-    /// by a size limit.
-    NotSizeRefusal {
-        /// The position of the frame in its segment.
-        position: usize,
-    },
-    /// The offset or length of the item at `position` does not fit in the encoding's `u64`.
+    /// The position, offset, length or count of a finding does not fit in the encoding's `u64`.
     OutOfRange {
-        /// The position of the frame in its segment.
-        position: usize,
-        /// The failed conversion of the offset or length.
+        /// The failed conversion of the value.
         source: std::num::TryFromIntError,
     },
 }
@@ -45,18 +18,8 @@ pub enum ReadResultError {
 impl std::fmt::Display for ReadResultError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::MissingItem { position } => {
-                write!(formatter, "frame at position {position} has no item")
-            }
-            Self::NotSizeRefusal { position } => write!(
-                formatter,
-                "frame at position {position} is above capacity but not refused by a size limit"
-            ),
-            Self::OutOfRange { position, .. } => {
-                write!(
-                    formatter,
-                    "item of frame at position {position} is out of range"
-                )
+            Self::OutOfRange { .. } => {
+                write!(formatter, "a parity finding value is out of range")
             }
         }
     }
@@ -65,100 +28,72 @@ impl std::fmt::Display for ReadResultError {
 impl std::error::Error for ReadResultError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::OutOfRange { source, .. } => Some(source),
-            Self::MissingItem { .. } | Self::NotSizeRefusal { .. } => None,
+            Self::OutOfRange { source } => Some(source),
         }
     }
 }
 
-/// Encode the parity findings of `segment` in frame order, each as the seven-field record of P7
+/// Encode the parity findings of `segment` in input order, each as the seven-field record of P7
 /// section 1: `[code, reason, subject, position, offset, length, count]`, where an absent field is
 /// `[1]` and a present one is `[2, value]`.
 ///
-/// A frame whose judgement is `Damaged` gives `parity_damaged` with its position alone. A frame whose
-/// judgement is `ExceedsCapacity` gives `exceeds_capacity` with the reason and count of its size
-/// refusal and the offset and length of its item. Other judgements give no finding, and damage takes
-/// precedence over the capacity report because the reader gives a frame one judgement.
+/// The findings are those that the reader gives in [`WireSegment::parity_findings`]: a damaged
+/// frame gives `parity_damaged` with its position alone, and the other codes carry the fields
+/// their finding takes.
 ///
 /// # Errors
 ///
-/// Returns [`ReadResultError::MissingItem`] when a judged frame has no item at its position,
-/// [`ReadResultError::NotSizeRefusal`] when an `ExceedsCapacity` frame's payload was refused for
-/// another reason, and [`ReadResultError::OutOfRange`] when an offset does not fit in a `u64`.
+/// Returns [`ReadResultError::OutOfRange`] when a position, offset, length or count does not fit
+/// in a `u64`.
 pub fn parity_findings(segment: &WireSegment<'_>) -> Result<Vec<Vec<u8>>, ReadResultError> {
-    let mut findings = Vec::new();
-    for frame in &segment.frames {
-        let position = frame.position;
-        match frame.judgement {
-            Some(Judgement::Damaged) => findings.push(record(
-                PARITY_DAMAGED,
-                None,
-                Some(
-                    u64::try_from(position)
-                        .map_err(|source| ReadResultError::OutOfRange { position, source })?,
-                ),
-                None,
-                None,
-                None,
-            )),
-            Some(Judgement::ExceedsCapacity) => {
-                let item = segment
-                    .items
-                    .get(position)
-                    .ok_or(ReadResultError::MissingItem { position })?;
-                let (reason, count) = size_refusal(&frame.payload.state)
-                    .ok_or(ReadResultError::NotSizeRefusal { position })?;
-                let span = |value: usize| {
-                    u64::try_from(value)
-                        .map_err(|source| ReadResultError::OutOfRange { position, source })
-                };
-                findings.push(record(
-                    EXCEEDS_CAPACITY,
-                    Some(reason),
-                    Some(span(position)?),
-                    Some(span(item.offset)?),
-                    Some(span(item.end - item.offset)?),
-                    Some(count),
-                ));
-            }
-            Some(Judgement::Unchecked | Judgement::Verified) | None => {}
-        }
-    }
-    Ok(findings)
+    segment.parity_findings.iter().map(encode).collect()
 }
 
-/// The reason code and the count of a payload that a size limit refused.
-fn size_refusal(state: &PayloadState<'_>) -> Option<(u64, u64)> {
-    match state {
-        PayloadState::Unchecked(PayloadRefusal::StoredSize(count)) => Some((STORED_SIZE, *count)),
-        PayloadState::Unchecked(PayloadRefusal::DecodedSize(count)) => Some((DECODED_SIZE, *count)),
-        PayloadState::Unchecked(PayloadRefusal::TotalDecoded(count)) => {
-            Some((TOTAL_DECODED, *count))
-        }
-        PayloadState::Verified(_)
-        | PayloadState::Damaged(_)
-        | PayloadState::Unchecked(PayloadRefusal::UnknownCodec) => None,
-    }
-}
-
-/// The seven-field finding record; the subject is always absent for a parity finding.
-fn record(
-    code: u64,
-    reason: Option<u64>,
-    position: Option<u64>,
-    offset: Option<u64>,
-    length: Option<u64>,
-    count: Option<u64>,
-) -> Vec<u8> {
+/// The seven-field record of one finding; the subject is always absent for a parity finding.
+fn encode(finding: &ParityFinding) -> Result<Vec<u8>, ReadResultError> {
+    let number = |value: Option<usize>| {
+        value
+            .map(|value| {
+                u64::try_from(value).map_err(|source| ReadResultError::OutOfRange { source })
+            })
+            .transpose()
+    };
     let mut out = Vec::new();
-    head(0, code, &mut out);
-    optional(reason, &mut out);
+    head(0, code(finding.code), &mut out);
+    optional(finding.reason.map(reason), &mut out);
     optional(None, &mut out);
-    optional(position, &mut out);
-    optional(offset, &mut out);
-    optional(length, &mut out);
-    optional(count, &mut out);
-    out
+    optional(number(finding.position)?, &mut out);
+    optional(number(finding.offset)?, &mut out);
+    optional(number(finding.length)?, &mut out);
+    optional(finding.count, &mut out);
+    Ok(out)
+}
+
+/// The code of a finding in the registry of finding codes.
+fn code(code: ParityCode) -> u64 {
+    match code {
+        ParityCode::ExceedsCapacity => 20,
+        ParityCode::ParityDamaged => 30,
+        ParityCode::ParityMismatch => 31,
+        ParityCode::ParityUnexplained => 32,
+        ParityCode::ParityStale => 33,
+        ParityCode::RepairFailed => 34,
+        ParityCode::Repaired => 35,
+        ParityCode::UnprotectedTail => 36,
+    }
+}
+
+/// The code of a reason in the registry of reason codes.
+fn reason(reason: ParityReason) -> u64 {
+    match reason {
+        ParityReason::DecodedSize => 30,
+        ParityReason::StoredSize => 31,
+        ParityReason::TotalDecoded => 86,
+        ParityReason::Data => 40,
+        ParityReason::Parity => 41,
+        ParityReason::TooManyErasures => 42,
+        ParityReason::VerifyFailed => 43,
+    }
 }
 
 /// Append an option: `[1]` when absent, else `[2, value]`.

@@ -31,20 +31,45 @@ pub(super) struct Head {
     pub shortest: bool,
 }
 
-pub(super) fn read_head(data: &[u8], offset: usize) -> Result<Head, FramingReason> {
-    use FramingReason::{TornTail, UndelimitableInput};
-    let first = *data.get(offset).ok_or(TornTail)?;
+/// A framing failure with the offset that the delimiting read examined up to (P1 §6.3). A repair
+/// walk holds the bytes through that offset, so each failure site reports it.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct Delimit {
+    pub reason: FramingReason,
+    pub examined_end: usize,
+}
+
+impl Delimit {
+    fn torn(examined_end: usize) -> Self {
+        Self {
+            reason: FramingReason::TornTail,
+            examined_end,
+        }
+    }
+
+    fn undelimitable(examined_end: usize) -> Self {
+        Self {
+            reason: FramingReason::UndelimitableInput,
+            examined_end,
+        }
+    }
+}
+
+pub(super) fn read_head(data: &[u8], offset: usize) -> Result<Head, Delimit> {
+    let first = *data.get(offset).ok_or(Delimit::torn(offset))?;
     let major = first >> 5;
     let mut end = offset + 1;
     let (argument, shortest) = match first & 31 {
         value @ 0..=23 => (Some(u64::from(value)), true),
         width @ 24..=27 => {
             let bytes = 1 << (width - 24);
-            let body = data.get(end..end.saturating_add(bytes)).ok_or(TornTail)?;
+            let body = data
+                .get(end..end.saturating_add(bytes))
+                .ok_or(Delimit::torn(data.len()))?;
             end += bytes;
             let value = body.iter().fold(0, |n, byte| (n << 8) | u64::from(*byte));
             if major == 7 && width == 24 && value < 32 {
-                return Err(UndelimitableInput);
+                return Err(Delimit::undelimitable(end));
             }
             (
                 Some(value),
@@ -52,7 +77,7 @@ pub(super) fn read_head(data: &[u8], offset: usize) -> Result<Head, FramingReaso
             )
         }
         31 if matches!(major, 2..=5 | 7) => (None, false),
-        _ => return Err(UndelimitableInput),
+        _ => return Err(Delimit::undelimitable(end)),
     };
     Ok(Head {
         major,
@@ -70,25 +95,26 @@ enum Open {
 }
 
 /// Establish the exclusive end of a well-formed CBOR item without decoding its values.
-#[expect(
-    clippy::map_err_ignore,
-    reason = "the conversion error carries no detail, so the typed error replaces it"
-)]
-pub(super) fn item_end(data: &[u8], mut offset: usize) -> Result<usize, FramingReason> {
-    use FramingReason::{TornTail, UndelimitableInput};
+pub(super) fn item_end(data: &[u8], offset: usize) -> Result<usize, FramingReason> {
+    item_end_examined(data, offset).map_err(|failure| failure.reason)
+}
+
+/// Establish the exclusive end of an item, or the failure with the offset its read examined up
+/// to (P1 §6.3, the examined end of a framing failure).
+pub(super) fn item_end_examined(data: &[u8], mut offset: usize) -> Result<usize, Delimit> {
     let mut open = vec![Open::Definite(1)];
     while let Some(parent) = open.last_mut() {
         if let Open::String(major) = *parent {
-            let first = *data.get(offset).ok_or(TornTail)?;
+            let first = *data.get(offset).ok_or(Delimit::torn(offset))?;
             if first != 0xff && (first >> 5 != major || first & 31 == 31) {
-                return Err(UndelimitableInput);
+                return Err(Delimit::undelimitable(offset + 1));
             }
         }
         let head = read_head(data, offset)?;
         offset = head.end;
         if head.major == 7 && head.argument.is_none() {
             if matches!(parent, Open::Definite(_) | Open::Map { needs_value: true }) {
-                return Err(UndelimitableInput);
+                return Err(Delimit::undelimitable(head.end));
             }
             open.pop();
         } else {
@@ -99,10 +125,11 @@ pub(super) fn item_end(data: &[u8], mut offset: usize) -> Result<usize, FramingR
             }
             match (head.major, head.argument) {
                 (2 | 3, Some(length)) => {
-                    let length = usize::try_from(length).map_err(|_| TornTail)?;
-                    offset = offset.checked_add(length).ok_or(TornTail)?;
+                    let length =
+                        usize::try_from(length).map_err(|_overflow| Delimit::torn(head.end))?;
+                    offset = offset.checked_add(length).ok_or(Delimit::torn(head.end))?;
                     if offset > data.len() {
-                        return Err(TornTail);
+                        return Err(Delimit::torn(head.end));
                     }
                 }
                 (4, Some(length)) if length != 0 => open.push(Open::Definite(u128::from(length))),

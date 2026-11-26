@@ -14,6 +14,7 @@ use super::{
     },
     framing::{byte_chunks, generation, item_end, read_head, Generation},
     parity::{self, Verdict},
+    parity_repair,
     payload::{malformed_payload, PayloadBudget},
     resync::{decode_resync, Candidate, ResyncScanner, RESYNC_MAX},
     signature::{verify_signature, HeldKeys, SignatureResult},
@@ -28,6 +29,7 @@ pub use super::{
 };
 
 pub use super::parity::Judgement;
+pub use super::parity_repair::{ParityCode, ParityFinding, ParityReason, Patch};
 pub use super::resync::DecodedResync;
 
 /// The first item determines which generation reads the file.
@@ -101,7 +103,7 @@ pub enum Opener<'a> {
 }
 
 impl Opener<'_> {
-    fn state(&self) -> (u64, Option<[u8; 32]>) {
+    pub(super) fn state(&self) -> (u64, Option<[u8; 32]>) {
         match self {
             Self::Header(Ok(value)) => (value.header.registry_version, value.identifier),
             Self::Resync(Ok(value)) => (value.header.registry_version, value.identifier),
@@ -206,6 +208,10 @@ pub struct WireSegment<'a> {
     pub commits: Result<CommitReport, CommitReadError>,
     /// The index checks of the segment.
     pub indexes: Vec<IndexCheck>,
+    /// The findings of the parity layer, in input order (P5 6.6, 6.7 and 7.2).
+    pub parity_findings: Vec<ParityFinding>,
+    /// The byte patches of the accepted repairs, which the repaired copy writes (P5 7.1).
+    pub parity_patches: Vec<Patch>,
 }
 
 /// A resync item or a parity candidate that the total decoded length refused.
@@ -294,6 +300,8 @@ fn segment_at(opener: Opener<'_>, item: WireItem, scanned: bool) -> WireSegment<
         closing_findings: Vec::new(),
         commits: Ok(CommitReport::default()),
         indexes: Vec::new(),
+        parity_findings: Vec::new(),
+        parity_patches: Vec::new(),
     }
 }
 
@@ -330,7 +338,14 @@ impl<'a> WireSegment<'a> {
     }
 
     /// Check the claims of a finished segment and verify the signatures of its frames.
-    fn finish(mut self, data: &'a [u8], stored_limit: u64, keys: &HeldKeys) -> Self {
+    fn finish(
+        mut self,
+        data: &'a [u8],
+        capacity: ReadCapacity,
+        keys: &HeldKeys,
+        budget: &mut PayloadBudget,
+    ) -> Self {
+        let stored_limit = capacity.stored_bytes_per_frame;
         let (registry, identifier) = self.opener.state();
         if let Some(identifier) = identifier {
             self.verify_signatures(data, &identifier, stored_limit, keys);
@@ -342,6 +357,9 @@ impl<'a> WireSegment<'a> {
                 }
                 Err(error) => self.commits = Err(error),
             }
+            let verification = parity_repair::verify(data, &self, budget);
+            self.parity_findings = verification.findings;
+            self.parity_patches = verification.patches;
         }
         self
     }
@@ -544,7 +562,7 @@ impl<'a> ItemWalk<'a> {
     }
 }
 
-fn field_offsets(data: &[u8], offset: usize) -> Result<[usize; 11], FramingReason> {
+pub(super) fn field_offsets(data: &[u8], offset: usize) -> Result<[usize; 11], FramingReason> {
     let mut offsets = [offset + 2; 11];
     for index in 1..offsets.len() {
         offsets[index] = item_end(data, offsets[index - 1])?;
@@ -1137,11 +1155,9 @@ pub fn read_wire_with_keys<'a>(
                 data,
             ) {
                 Ok(Some(Candidate::Accepted { offset, value })) => {
-                    result.segments.push(segment.finish(
-                        data,
-                        capacity.stored_bytes_per_frame,
-                        keys,
-                    ));
+                    result
+                        .segments
+                        .push(segment.finish(data, capacity, keys, &mut budget));
                     segment = recovered_segment(offset, value);
                     continue;
                 }
@@ -1171,7 +1187,7 @@ pub fn read_wire_with_keys<'a>(
             segment.end_offset = item.offset;
             result
                 .segments
-                .push(segment.finish(data, capacity.stored_bytes_per_frame, keys));
+                .push(segment.finish(data, capacity, keys, &mut budget));
             segment = next;
             continue;
         }
@@ -1195,6 +1211,6 @@ pub fn read_wire_with_keys<'a>(
     result.stop = result.stop.or_else(|| walk.item_limit());
     result
         .segments
-        .push(segment.finish(data, capacity.stored_bytes_per_frame, keys));
+        .push(segment.finish(data, capacity, keys, &mut budget));
     result
 }
