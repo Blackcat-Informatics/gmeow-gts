@@ -3,8 +3,6 @@
 
 //! Importing N-Quads into the v2 wire format: dictionary identifiers, typed terms and triple-subject position rules.
 
-use std::fmt::Write;
-
 use ciborium::Value;
 use gmeow_gts::v2::{
     from_nquads,
@@ -92,7 +90,10 @@ fn imports_rdf_projection_as_v2_quads_with_typed_terms() {
 fn keeps_dictionary_ids_across_frames_and_resets_front_coding_at_restarts() {
     let mut input = String::new();
     for index in 0..4_100 {
-        writeln!(input, "<https://e/s{index}> <https://e/p> <https://e/o> .").unwrap();
+        input.push_str(
+            &"<https://e/s{index}> <https://e/p> <https://e/o> .\n"
+                .replace("{index}", &index.to_string()),
+        );
     }
     let bytes = from_nquads(&input).unwrap();
     let read = read_wire(&bytes, ReadCapacity::default());

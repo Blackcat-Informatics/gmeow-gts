@@ -50,6 +50,11 @@ jobs:
             exit 1
           fi
 
+      - name: Capture the production Clippy receipt (census gate)
+        run: |
+          cargo install --locked --version "=$(sed -n 's/^raf-census = "=\(.*\)"$/\1/p' rust/Cargo.toml)" cargo-raf-census
+          scripts/rust-census.sh
+
       - name: Verify package builds and tests
         working-directory: rust
         run: cargo test --locked

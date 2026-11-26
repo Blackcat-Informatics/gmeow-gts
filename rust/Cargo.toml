@@ -146,6 +146,11 @@ libc = "0.2"
 
 [dev-dependencies]
 serde_json = { workspace = true }
+# The census and workplan gates (tests/census.rs, tests/workplan.rs). Both stay
+# dev-only at one exact release, the version of the `cargo-raf-census` command
+# that captures the production Clippy receipt.
+raf-census = "=0.8.1"
+raf-workplan = "=0.8.1"
 
 # Versions shared by more than one member are declared once, here.
 [workspace.dependencies]

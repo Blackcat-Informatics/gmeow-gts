@@ -616,7 +616,9 @@ mod tests {
         for suffix in ["", "@en--rtl", "^^<urn:datatype>"] {
             for length in [23, 24, 255, 256] {
                 let lexical = "x".repeat(length);
-                let source = format!("<urn:s> <urn:p> \"{lexical}\"{suffix} .");
+                let source = "<urn:s> <urn:p> \"{lexical}\"{suffix} ."
+                    .replace("{lexical}", &lexical)
+                    .replace("{suffix}", suffix);
                 let (terms, _) = parse_v2_quads(&source).unwrap();
                 let term = terms
                     .iter()
@@ -635,9 +637,8 @@ mod tests {
     fn imported_literal_forms_share_a_value_and_charge_pack_frames() {
         let length = 1 << 20;
         let lexical = "a".repeat(length);
-        let source = format!(
-            "<urn:s> <urn:p> \"{lexical}\"^^<urn:datatype> .\n<urn:s> <urn:p> \"{lexical}\"@en--rtl .\n"
-        );
+        let source = "<urn:s> <urn:p> \"{lexical}\"^^<urn:datatype> .\n<urn:s> <urn:p> \"{lexical}\"@en--rtl .\n"
+            .replace("{lexical}", &lexical);
         let (terms, quads) = parse_v2_quads(&source).unwrap();
         let capacity = ReadCapacity {
             stored_bytes_per_frame: length as u64,

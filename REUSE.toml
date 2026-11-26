@@ -158,3 +158,15 @@ path = ["docs/api-parity.json", "docs/documentation-roster.json"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
 SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+# Census and workplan records: generated, byte-canonical Turtle and Markdown that cannot
+# carry an inline header without changing their bytes or regeneration output.
+[[annotations]]
+path = [
+  "rust/census-debt.ttl",
+  "rust/helpers-ledger.ttl",
+  "work/coverage/default.md",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Blackcat Informatics® Inc. <paudley@blackcatinformatics.ca>"
+SPDX-License-Identifier = "MIT OR Apache-2.0 OR MulanPSL-2.0"

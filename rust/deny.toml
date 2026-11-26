@@ -13,7 +13,7 @@ multiple-versions = "deny"
 # release unifies them yet.
 skip = [
   { crate = "syn@2.0.119", reason = "zerocopy-derive requires syn 2; upstream has not moved to syn 3" },
-  { crate = "syn@3.0.4", reason = "curve25519-dalek-derive via ed25519-dalek 3 requires syn 3" },
+  { crate = "syn@3.0.8", reason = "curve25519-dalek-derive via ed25519-dalek 3 requires syn 3" },
 ]
 
 [sources]
