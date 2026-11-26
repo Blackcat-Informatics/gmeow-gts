@@ -3,8 +3,10 @@
 
 //! The parity candidate of the resumption scan (P5 §7.2, step 6).
 
+use std::collections::HashSet;
+
 use super::{
-    frame::{decode_frame_envelope, frame_identifier, PARITY},
+    frame::{decode_parity_candidate, frame_identifier, PARITY},
     payload::{ChargeRefusal, PayloadBudget},
     Decoder,
 };
@@ -33,8 +35,47 @@ pub(super) struct Segment<'a> {
     pub h0: &'a [u8; 32],
     /// The registry version of the segment.
     pub registry: u64,
-    /// The `first` and `end` of every earlier parity frame of the segment that has a span.
-    pub earlier: &'a [(u64, u64)],
+    /// The earlier parity frames of the segment, as condition 6 of P5 6.6 compares them.
+    pub earlier: &'a Earlier,
+}
+
+/// What condition 6 of P5 6.6 keeps of the earlier parity frames of a segment: the `first` of
+/// each, and whether any has a short span. A candidate is compared with this and not with each
+/// frame, so the test of a candidate costs the same however many frames stand before it.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub(super) struct Earlier {
+    firsts: HashSet<u64>,
+    short_seen: bool,
+}
+
+impl Earlier {
+    /// Record the parity frame whose content record is `content`, read before a damaged region.
+    ///
+    /// The frame counts whatever its own state (damaged, above capacity or used). It counts
+    /// only when its content record is well typed and its link state is not `broken`, which
+    /// the caller decides. In a segment of a later registry version, a frame whose envelope
+    /// is as the type states (`clean`: `critical`, `transparent`, `storage` and `signatures`
+    /// as the type holds them, whatever else of the envelope fails) and whose `geometry` is
+    /// above `1` is a frame of unknown type that condition 6 does not see (P5 6.6, the
+    /// paragraph on a later version); a frame whose envelope is not as the type states is
+    /// damaged and counts.
+    pub(super) fn remember(&mut self, content: &[u8], newer: bool, clean: bool) {
+        let Some(record) = Record::read(content) else {
+            return;
+        };
+        if newer && clean && record.geometry > 1 {
+            return;
+        }
+        self.firsts.insert(record.first);
+        self.short_seen |= record
+            .end
+            .checked_sub(record.first)
+            .is_some_and(|length| (1..SPAN).contains(&length));
+    }
+
+    fn admits(&self, first: u64) -> bool {
+        !self.short_seen && !self.firsts.contains(&first)
+    }
 }
 
 /// The outcome of the test of one parity candidate.
@@ -154,17 +195,6 @@ impl<'a> Record<'a> {
     }
 }
 
-/// The `first` and `end` of the content record of a parity frame, when it has a span.
-pub(super) fn span_of(content: &[u8], newer: bool) -> Option<(u64, u64)> {
-    let record = Record::read(content)?;
-    (!newer || record.geometry <= 1).then_some((record.first, record.end))
-}
-
-fn is_short(first: u64, end: u64) -> bool {
-    end.checked_sub(first)
-        .is_some_and(|length| (1..SPAN).contains(&length))
-}
-
 /// Test the parity candidate at `offset` by the four parts of P5 §7.2, step 6.
 ///
 /// A candidate that passes has been charged to the total decoded length of `budget`, and its
@@ -175,7 +205,7 @@ pub(super) fn test(
     segment: &Segment<'_>,
     budget: &mut PayloadBudget,
 ) -> Verdict {
-    let Ok((frame, _)) = decode_frame_envelope(data, offset, segment.registry) else {
+    let Ok((frame, _)) = decode_parity_candidate(data, offset, segment.registry) else {
         return Verdict::Failed;
     };
     let Some(record) = Record::read(frame.content).filter(|_| frame.frame_type == PARITY) else {
@@ -184,11 +214,7 @@ pub(super) fn test(
     let Some(span) = record.span() else {
         return Verdict::Failed;
     };
-    if segment
-        .earlier
-        .iter()
-        .any(|&(first, end)| first == record.first || is_short(first, end))
-    {
+    if !segment.earlier.admits(record.first) {
         return Verdict::Failed;
     }
     let shape = Shape::of(span);

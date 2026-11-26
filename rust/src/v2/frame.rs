@@ -17,6 +17,10 @@ pub(super) const COMMIT: u64 = 14;
 pub(super) const INDEX: u64 = 15;
 pub(super) const PARITY: u64 = 16;
 const DIGEST_HEAD: [u8; 2] = [0x58, 0x20];
+/// The `storage` element `[stored_plain]`.
+const PLAIN_STORAGE: [u8; 2] = [0x81, 0x01];
+/// The empty `signatures` list.
+const NO_SIGNATURES: [u8; 1] = [0x80];
 
 /// The first malformed field of a frame and its absolute input offset.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -171,6 +175,13 @@ fn valid_decoded_length(frame_type: u64, length: u64) -> bool {
 }
 
 impl<'a> Decoder<'a> {
+    /// Whether the bytes at the cursor begin with `prefix`.
+    fn starts_with(&self, prefix: &[u8]) -> bool {
+        self.bytes
+            .get(self.offset..)
+            .is_some_and(|rest| rest.starts_with(prefix))
+    }
+
     #[expect(
         clippy::map_err_ignore,
         reason = "the conversion error carries no detail, so the typed error replaces it"
@@ -463,6 +474,29 @@ pub(super) fn decode_frame_envelope(
     offset: usize,
     registry_version: u64,
 ) -> Result<(Frame<'_>, usize), FrameError> {
+    decode_envelope(data, offset, registry_version, false)
+}
+
+/// Read the envelope of a candidate parity frame, judging each element as it is reached.
+///
+/// The envelope of a frame of type `parity` holds `stored_plain` storage and an empty
+/// `signatures` list (P5 6.5). This read refuses a frame of another type, a storage and a
+/// `signatures` list that are not those bytes, without walking the storage or the list, so the
+/// work at one offset is bounded by the frame's own head and payload lengths (P5 7.2, step 6).
+pub(super) fn decode_parity_candidate(
+    data: &[u8],
+    offset: usize,
+    registry_version: u64,
+) -> Result<(Frame<'_>, usize), FrameError> {
+    decode_envelope(data, offset, registry_version, true)
+}
+
+fn decode_envelope(
+    data: &[u8],
+    offset: usize,
+    registry_version: u64,
+    parity_only: bool,
+) -> Result<(Frame<'_>, usize), FrameError> {
     let mut decoder = Decoder::new(data, offset);
     let newer = registry_version > REGISTRY_VERSION;
     decoder.record(11)?;
@@ -482,6 +516,9 @@ pub(super) fn decode_frame_envelope(
     } = decoder.frame_identity(Some(newer))?;
 
     let error = decoder.error(MalformedReason::ForbiddenCombination);
+    if parity_only && (frame_type != PARITY || !decoder.starts_with(&PLAIN_STORAGE)) {
+        return Err(error.into());
+    }
     let storage = decoder.storage(newer, decoded_length)?;
     if frame_type == PARITY && storage != Storage::Plain {
         return Err(error.into());
@@ -489,6 +526,9 @@ pub(super) fn decode_frame_envelope(
     let stored_payload = decoder.byte_string(None)?;
     let identifier = decoder.fixed::<32>()?;
     let error = decoder.error(MalformedReason::ForbiddenCombination);
+    if parity_only && !decoder.starts_with(&NO_SIGNATURES) {
+        return Err(error.into());
+    }
     let signatures = decoder.signatures(newer)?;
     if frame_type == PARITY && !signatures.is_empty() {
         return Err(error.into());
