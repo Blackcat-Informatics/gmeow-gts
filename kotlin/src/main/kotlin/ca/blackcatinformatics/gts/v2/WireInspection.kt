@@ -200,7 +200,9 @@ private fun verifyFrameSignatures(
     heldKeys: List<HeldKey>?,
 ): List<SignatureResult>? {
     val records = frame.payload.signatures
-    if (heldKeys == null || frameIdentifier == null || headerIdentifier == null || records.isEmpty()) return null
+    if (frame.transparent || heldKeys == null || frameIdentifier == null || headerIdentifier == null || records.isEmpty()) {
+        return null
+    }
     return records.map { verifySignature(it, frameIdentifier, headerIdentifier, heldKeys) }
 }
 
