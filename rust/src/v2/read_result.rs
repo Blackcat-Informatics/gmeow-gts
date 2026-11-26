@@ -33,20 +33,53 @@ impl std::error::Error for ReadResultError {
     }
 }
 
-/// Encode the parity findings of `segment` in input order, each as the seven-field record of P7
-/// section 1: `[code, reason, subject, position, offset, length, count]`, where an absent field is
-/// `[1]` and a present one is `[2, value]`.
+/// Encode the parity findings of `segment`, each as the seven-field record of P7 section 1:
+/// `[code, reason, subject, position, offset, length, count]`, where an absent field is `[1]` and
+/// a present one is `[2, value]`.
 ///
 /// The findings are those that the reader gives in [`WireSegment::parity_findings`]: a damaged
 /// frame gives `parity_damaged` with its position alone, and the other codes carry the fields
-/// their finding takes.
+/// their finding takes. A finding with a position stands in the list of its frame, and the
+/// findings without one stand in the list of the segment; the frames' findings come first, each
+/// list in the order of P7 section 1.4: by step, then by position, then by encoding.
 ///
 /// # Errors
 ///
 /// Returns [`ReadResultError::OutOfRange`] when a position, offset, length or count does not fit
 /// in a `u64`.
 pub fn parity_findings(segment: &WireSegment<'_>) -> Result<Vec<Vec<u8>>, ReadResultError> {
-    segment.parity_findings.iter().map(encode).collect()
+    records(&segment.parity_findings)
+}
+
+/// The records of `findings` in the order of P7 section 1.4.
+fn records(findings: &[ParityFinding]) -> Result<Vec<Vec<u8>>, ReadResultError> {
+    let mut keyed = findings
+        .iter()
+        .map(|finding| {
+            let record = encode(finding)?;
+            Ok((
+                finding.position.is_none(),
+                finding.position,
+                step(finding.code),
+                record,
+            ))
+        })
+        .collect::<Result<Vec<_>, ReadResultError>>()?;
+    keyed.sort();
+    Ok(keyed.into_iter().map(|(_, _, _, record)| record).collect())
+}
+
+/// The step of the read that produces a finding (P7 section 1.4); `None` orders before a value.
+fn step(code: ParityCode) -> u8 {
+    match code {
+        ParityCode::ExceedsCapacity => 7,
+        ParityCode::ParityDamaged
+        | ParityCode::ParityMismatch
+        | ParityCode::ParityUnexplained
+        | ParityCode::ParityStale => 8,
+        ParityCode::RepairFailed | ParityCode::Repaired => 9,
+        ParityCode::UnprotectedTail => 10,
+    }
 }
 
 /// The seven-field record of one finding; the subject is always absent for a parity finding.
@@ -125,5 +158,41 @@ fn head(major: u8, argument: u64, out: &mut Vec<u8>) {
     } else {
         out.push(major | 0x1b);
         out.extend(argument.to_be_bytes());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn finding(code: ParityCode, position: Option<usize>) -> ParityFinding {
+        ParityFinding {
+            code,
+            reason: None,
+            position,
+            offset: None,
+            length: None,
+            count: None,
+        }
+    }
+
+    /// P7 section 1.4: the findings of one frame stand together by step, the frames in position
+    /// order, and the findings of the segment (no position) after them, whatever the order in
+    /// which the reader found them.
+    #[test]
+    fn findings_stand_by_frame_then_step_then_encoding() {
+        let found = [
+            finding(ParityCode::Repaired, Some(2)),
+            finding(ParityCode::ParityMismatch, Some(4)),
+            finding(ParityCode::UnprotectedTail, None),
+            finding(ParityCode::ParityMismatch, Some(2)),
+        ];
+        // A record opens with `0x18` and the code: 31, 35 and 36 are 0x1f, 0x23 and 0x24.
+        let order: Vec<u8> = records(&found)
+            .expect("encodable")
+            .iter()
+            .map(|record| record[1])
+            .collect();
+        assert_eq!(order, [0x1f, 0x23, 0x1f, 0x24]);
     }
 }
