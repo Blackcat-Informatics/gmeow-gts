@@ -1307,3 +1307,197 @@ fn a_composite_with_only_one_component_key_held_is_refused() {
         }
     }
 }
+
+/// P5 7.2 step 6 and 7.2A, P1 3.4 step 4: reading resumes at the parity frame after a damaged
+/// region and the region is one item, so the frames after it are read and signed results exist.
+/// The frame that takes the `anchor` is detached unless the `anchor` is the identifier of the
+/// ordinary frame before the region.
+#[test]
+fn a_parity_frame_after_a_damaged_region_resumes_the_read_and_detaches_by_its_anchor() {
+    assert_signature_vectors(&[
+        "sig-detached-frame",
+        "sig-two-after-detached-frame",
+        "sig-commit-after-detached-frame",
+        "sig-resumed-frame-anchor-true",
+    ]);
+    for (name, detached) in [
+        ("sig-detached-frame.bin", true),
+        ("sig-resumed-frame-anchor-true.bin", false),
+    ] {
+        let input = vector_in("P6", name);
+        let read = read_wire(&input, ReadCapacity::default());
+        assert!(read.stop.is_none(), "{name}");
+        let [segment] = read.segments.as_slice() else {
+            panic!("{name}: expected one segment");
+        };
+        let [region] = segment.resumptions.as_slice() else {
+            panic!("{name}: expected one resumption");
+        };
+        assert_eq!(region.reason, FramingReason::UndelimitableInput, "{name}");
+        assert_eq!(region.length, 1, "{name}");
+        let damaged: Vec<_> = segment
+            .items
+            .iter()
+            .enumerate()
+            .filter(|(_, item)| item.kind == ItemKind::DamagedRegion)
+            .collect();
+        assert_eq!(damaged.len(), 1, "{name}");
+        assert_eq!(
+            (damaged[0].1.offset, damaged[0].0),
+            (region.offset, 2),
+            "{name}"
+        );
+        let after: Vec<_> = segment
+            .frames
+            .iter()
+            .filter(|frame| !frame.transparent && frame.position > damaged[0].0)
+            .collect();
+        assert_eq!(after.len(), 1, "{name}");
+        assert_eq!(after[0].detached, detached, "{name}");
+    }
+}
+
+/// P5 6.6 condition 6 judges an earlier parity frame whatever its own state, and only a frame
+/// whose envelope is as the type states can be set aside as a later-version frame. The input is
+/// `H T Q P0 <undelimitable byte> P` in a segment of registry version 2, `P0` with a `geometry`
+/// of a later version and `P` a frame that passes every test but condition 6 when `P0` has a
+/// `first`. An unsigned `P0` has none, so reading resumes at `P`; a `P0` with a signature is
+/// damaged by condition 2, has the `first` of `P`, and nothing resumes.
+#[test]
+fn a_signed_earlier_parity_frame_in_a_later_version_segment_still_counts_for_condition_six() {
+    let base = vector_in(
+        "P5",
+        "parity-condition-six-first-by-case.later-version-geometry.bin",
+    );
+    let read = read_wire(&base, ReadCapacity::default());
+    let end = read.segments[0].items[3].end;
+    assert_eq!(base[end - 1], 0x80, "P0 ends with an empty signatures list");
+    // One signature record: algorithm 1, a 32-byte key identifier and an empty value.
+    let mut signature = vec![0x81, 0x83, 0x01, 0x58, 0x20];
+    signature.extend([0; 32]);
+    signature.push(0x40);
+
+    let mut unsigned = base[..end].to_vec();
+    unsigned.push(0x1c);
+    unsigned.extend_from_slice(&base[end..]);
+    let mut signed = base[..end - 1].to_vec();
+    signed.extend_from_slice(&signature);
+    signed.push(0x1c);
+    signed.extend_from_slice(&base[end..]);
+
+    let control = read_wire(&unsigned, ReadCapacity::default());
+    assert!(control.stop.is_none());
+    assert_eq!(
+        control.segments[0].resumptions,
+        [FramingFailure {
+            reason: FramingReason::UndelimitableInput,
+            offset: end,
+            length: 1,
+        }]
+    );
+
+    let result = read_wire(&signed, ReadCapacity::default());
+    let signed_end = end - 1 + signature.len();
+    assert_eq!(result.segments[0].resumptions.len(), 0);
+    assert_eq!(
+        result.stop,
+        Some(ReadStop::Framing(FramingFailure {
+            reason: FramingReason::UndelimitableInput,
+            offset: signed_end,
+            length: signed.len() - signed_end,
+        }))
+    );
+}
+
+/// P5 6.6, the paragraph on a later version, and condition 6: the later-version case has five
+/// conditions, and a second-form `signatures` head (`98 00` for the empty list) is not among them
+/// (it is a condition 7 failure that the case does not judge). So an earlier parity frame in a
+/// segment of a later version, with a `geometry` of a later version, whose envelope fails only
+/// there still has no `first` and matches no span, and reading resumes at the next parity frame.
+#[test]
+fn an_earlier_parity_frame_in_a_later_version_segment_with_a_second_form_signatures_head_still_counts_as_the_later_version_case(
+) {
+    let base = vector_in(
+        "P5",
+        "parity-condition-six-first-by-case.later-version-geometry.bin",
+    );
+    let read = read_wire(&base, ReadCapacity::default());
+    let end = read.segments[0].items[3].end;
+    assert_eq!(base[end - 1], 0x80, "P0 ends with an empty signatures list");
+
+    let mut second_form = base[..end - 1].to_vec();
+    second_form.extend_from_slice(&[0x98, 0x00, 0x1c]);
+    second_form.extend_from_slice(&base[end..]);
+
+    let result = read_wire(&second_form, ReadCapacity::default());
+    assert!(result.stop.is_none());
+    assert_eq!(
+        result.segments[0].resumptions,
+        [FramingFailure {
+            reason: FramingReason::UndelimitableInput,
+            offset: end + 1,
+            length: 1,
+        }]
+    );
+}
+
+/// P5 7.2 step 6 part 3 and P5-38: the first parity candidate that the total decoded length
+/// refuses is recorded with the position the next item would have, its offset, the length of its
+/// item and the total at the refusal, and no later candidate passes.
+#[test]
+fn the_total_decoded_length_refusing_a_parity_candidate_is_recorded_on_the_segment() {
+    let input = vector_in("P5", "recover-scan-charge.bin");
+    let capacity = ReadCapacity {
+        decoded_bytes_per_read: 1739,
+        ..ReadCapacity::default()
+    };
+    let read = read_wire(&input, capacity);
+    let [segment] = read.segments.as_slice() else {
+        panic!("expected one segment");
+    };
+    assert_eq!(
+        segment.parity_refusal,
+        Some(ResyncRefusal {
+            position: 2,
+            offset: 2634,
+            length: 501,
+            count: 2086,
+        })
+    );
+    assert_eq!(segment.resumptions.len(), 0);
+    assert!(matches!(
+        read.stop,
+        Some(ReadStop::Framing(FramingFailure {
+            reason: FramingReason::UndelimitableInput,
+            ..
+        }))
+    ));
+}
+
+/// P5 7.2A: an item that is incomplete and followed by a parity resumption point is the damaged
+/// region of an `undelimitable_input` finding, not a `torn_tail`.
+#[test]
+fn an_incomplete_item_before_a_parity_frame_is_a_damaged_region_and_not_a_torn_tail() {
+    let input = vector_in(
+        "P5",
+        "recovery-parity-in-resync-segment.incomplete-item.bin",
+    );
+    let read = read_wire(&input, ReadCapacity::default());
+    assert!(read.stop.is_none());
+    let [_, segment] = read.segments.as_slice() else {
+        panic!("expected two segments");
+    };
+    assert_eq!(
+        segment.resumptions,
+        [FramingFailure {
+            reason: FramingReason::UndelimitableInput,
+            offset: 274,
+            length: 312,
+        }]
+    );
+    assert_eq!(segment.items[1].kind, ItemKind::DamagedRegion);
+    assert_ne!(
+        segment.framing_failure.map(|failure| failure.reason),
+        Some(FramingReason::TornTail)
+    );
+}

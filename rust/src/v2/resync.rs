@@ -174,6 +174,17 @@ pub(super) enum Candidate<'a> {
         offset: usize,
         count: u64,
     },
+    /// A parity frame passes the test of P5 7.2, step 6: reading resumes at it.
+    Parity {
+        offset: usize,
+        anchor: [u8; 32],
+    },
+    /// The charge of a parity candidate is the first that the total decoded length refuses.
+    ParityRefused {
+        offset: usize,
+        length: usize,
+        count: u64,
+    },
 }
 
 pub(super) struct ResyncScanner<'a> {

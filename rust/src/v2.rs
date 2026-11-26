@@ -15,6 +15,7 @@ pub mod frame;
 mod framing;
 mod import;
 mod index;
+mod parity;
 mod payload;
 mod range;
 pub mod rdf;

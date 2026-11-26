@@ -137,10 +137,20 @@ pub(super) fn malformed_payload<'a>(
     (matches, parse())
 }
 
+/// Why the charge of a parity candidate to the total decoded length was refused.
+pub(super) enum ChargeRefusal {
+    /// The candidate is above the stored or decoded limit of one frame: no finding, no charge.
+    Frame,
+    /// The total refuses the candidate. The count is the total kept plus its length when this is
+    /// the first refusal, and `None` when the total was refused before.
+    Total(Option<u64>),
+}
+
 pub(super) struct PayloadBudget {
     capacity: ReadCapacity,
     total: u64,
     refused: bool,
+    prepaid: Option<u64>,
 }
 
 impl PayloadBudget {
@@ -149,6 +159,7 @@ impl PayloadBudget {
             capacity,
             total: 0,
             refused: false,
+            prepaid: None,
         }
     }
 
@@ -168,8 +179,35 @@ impl PayloadBudget {
                 return Err(PayloadRefusal::DecodedSize(fields.decoded_length));
             }
         }
-        self.charge(fields.decoded_length)
-            .map_err(PayloadRefusal::TotalDecoded)
+        let owed = if self.prepaid.take() == Some(fields.decoded_length) {
+            0
+        } else {
+            fields.decoded_length
+        };
+        self.charge(owed).map_err(PayloadRefusal::TotalDecoded)
+    }
+
+    /// Charge a parity candidate of the resumption scan (P5 7.2, step 6, part 3).
+    pub(super) fn charge_candidate(
+        &mut self,
+        stored: u64,
+        decoded: u64,
+    ) -> Result<(), ChargeRefusal> {
+        if self.refused {
+            return Err(ChargeRefusal::Total(None));
+        }
+        if stored > self.capacity.stored_bytes_per_frame
+            || decoded > self.capacity.decoded_bytes_per_frame
+        {
+            return Err(ChargeRefusal::Frame);
+        }
+        self.charge(decoded)
+            .map_err(|count| ChargeRefusal::Total(Some(count)))
+    }
+
+    /// Record that the next payload check of `decoded` bytes was charged by the scan.
+    pub(super) fn prepay(&mut self, decoded: u64) {
+        self.prepaid = Some(decoded);
     }
 
     pub(super) fn total_refused(&self) -> bool {
