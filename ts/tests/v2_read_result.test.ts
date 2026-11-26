@@ -7,7 +7,11 @@ import { test } from "node:test";
 import {
     decodeReadResult,
     encodeReadResult,
+    severityOf,
+    type Finding,
+    type FindingCode,
     type ReadResult,
+    type Reason,
 } from "../src/v2_read_result.js";
 
 const P7 = new URL("../../../vectors/v2/P7/", import.meta.url);
@@ -57,4 +61,58 @@ test("a label outside its enumeration is refused, never encoded as a code", () =
         },
     };
     assert.throws(() => encodeReadResult(bogus), /not in its enumeration/);
+});
+
+/** The recorded second-generation result, with `findings` put in place of its file findings. */
+function withFileFindings(findings: Finding[]): ReadResult {
+    const [{ bytes }] = recorded.filter(
+        (r) => r.name === "canonical-no-resync.json",
+    );
+    const result = decodeReadResult(bytes);
+    assert.equal(result.file.tag, "second_generation");
+    if (result.file.tag !== "second_generation") throw new Error("unreachable");
+    return { ...result, file: { ...result.file, findings } };
+}
+
+const finding = (code: FindingCode, reason: Reason | undefined): Finding => ({
+    code,
+    reason,
+    subject: undefined,
+    position: undefined,
+    offset: undefined,
+    length: undefined,
+    count: undefined,
+});
+
+test("a finding whose code lists no reason is refused with one", () => {
+    const withReason = withFileFindings([
+        finding("torn_tail", "unknown_codec"),
+    ]);
+    assert.throws(() => encodeReadResult(withReason), /takes no reason/);
+});
+
+test("a finding whose code lists reasons is refused without one, or with one it does not list", () => {
+    const absent = withFileFindings([finding("malformed_value", undefined)]);
+    assert.throws(() => encodeReadResult(absent), /no reason is not a reason/);
+    const unlisted = withFileFindings([
+        finding("malformed_value", "payload_digest"),
+    ]);
+    assert.throws(
+        () => encodeReadResult(unlisted),
+        /is not a reason of finding/,
+    );
+});
+
+test("the severity of a finding is the fixed column of its code", () => {
+    assert.equal(severityOf("empty_input"), "fatal");
+    assert.equal(severityOf("profile_not_checked"), "information");
+});
+
+test("a registry version 1 read refuses a finding code of version 2", () => {
+    const registryOne = withFileFindings([finding("seal_failed", "aead")]);
+    assert.equal(registryOne.registryVersion, 1n);
+    assert.throws(
+        () => encodeReadResult(registryOne),
+        /not in registry version 1/,
+    );
 });

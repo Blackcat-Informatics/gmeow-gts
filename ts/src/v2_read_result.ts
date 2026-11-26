@@ -89,6 +89,202 @@ export type ResyncReach = (typeof RESYNC_REACH)[number];
 export type PastState = (typeof PAST_STATE)[number];
 export type FileEnd = (typeof FILE_END)[number];
 
+/**
+ * The finding codes of P2 section 5.1 in code order, each with its severity. A
+ * finding's severity is the fixed column of its code, never a field.
+ */
+const FINDING_TABLE = {
+    empty_input: "fatal",
+    not_this_format: "fatal",
+    unsupported_generation: "fatal",
+    unsupported_registry_version: "error",
+    unknown_enumeration_value: "warning",
+    unsupported_critical: "error",
+    malformed_value: "error",
+    undelimitable_input: "fatal",
+    torn_tail: "warning",
+    read_failed: "fatal",
+    chain_break: "error",
+    healed_link: "warning",
+    damaged_frame: "error",
+    stored_check_mismatch: "warning",
+    commit_count_mismatch: "error",
+    commit_root_mismatch: "error",
+    uncommitted_tail: "information",
+    index_claim_failed: "warning",
+    missing_dependency: "warning",
+    exceeds_capacity: "warning",
+    declared_order_violated: "error",
+    forward_reference: "error",
+    position_constraint: "error",
+    ill_formed_term: "error",
+    opaque_term: "warning",
+    labelling_refused: "warning",
+    canonical_violated: "error",
+    suppression_unmatched: "information",
+    binding_unanchored: "information",
+    parity_damaged: "warning",
+    parity_mismatch: "error",
+    parity_unexplained: "warning",
+    parity_stale: "warning",
+    repair_failed: "error",
+    repaired: "information",
+    unprotected_tail: "information",
+    proof_malformed: "error",
+    proof_failed: "error",
+    proof_holds: "information",
+    signature_invalid: "error",
+    signature_unverified: "warning",
+    lineage_begins: "information",
+    lineage_mismatch: "warning",
+    unreferenced_unit: "information",
+    conflicting_declaration: "error",
+    profile_violation: "error",
+    conversion_stopped: "fatal",
+    profile_not_checked: "information",
+    // Registry version 2 (P8 section 3.4): codes 49 to 53.
+    segment_key_not_held: "warning",
+    unwrap_failed: "warning",
+    key_conflict: "error",
+    seal_failed: "error",
+    seal_scope_violated: "warning",
+} as const;
+
+/** The finding codes that registry version 1 defines (P2 section 5.1). */
+const FINDING_CODES_OF_V1 = 48;
+
+export type FindingCode = keyof typeof FINDING_TABLE;
+export type Severity = (typeof FINDING_TABLE)[FindingCode];
+const FINDING_CODES = Object.keys(FINDING_TABLE) as FindingCode[];
+
+/**
+ * The reason enumeration of P2 section 6.1, in code order, each with the
+ * finding codes it qualifies (the rows of the table, by their code numbers).
+ */
+const REASON_TABLE = {
+    unknown_codec: [5],
+    unknown_frame_type: [5],
+    not_deterministic: [7],
+    wrong_type: [7],
+    wrong_length: [7],
+    out_of_range: [7],
+    unregistered_value: [7],
+    unordered_or_repeated: [7],
+    inconsistent_counts: [7],
+    forbidden_combination: [7],
+    codec_constraint: [7],
+    payload_digest: [13],
+    decoded_length: [13],
+    blob_length: [13],
+    blob_digest: [13],
+    decode_failed: [13],
+    index_head: [18],
+    index_root: [18],
+    index_offsets: [18],
+    index_digest: [18],
+    index_members: [18],
+    index_directory: [18],
+    index_locator: [18],
+    chunk: [19],
+    term: [28],
+    value: [19],
+    blob: [19, 28],
+    frame: [19],
+    state: [19],
+    decoded_size: [20],
+    stored_size: [20],
+    refusal_width: [26],
+    refusal_limit: [26],
+    quad: [28],
+    reifier: [28],
+    graph: [28],
+    reifier_binding: [28],
+    annotation: [28],
+    binding: [28],
+    data: [31],
+    parity: [31],
+    too_many_erasures: [34],
+    verify_failed: [34],
+    count: [37],
+    length: [37],
+    order: [37],
+    inclusion: [38, 39],
+    consistency_old_root: [38],
+    consistency_new_root: [38],
+    consistency_diverged: [38],
+    range: [38, 39],
+    consistency: [39],
+    unknown_signature_algorithm: [41],
+    key_not_held: [41],
+    head: [43],
+    ordinal: [43],
+    key_mismatch: [40],
+    value_length: [40],
+    non_canonical_scalar: [40],
+    small_order_key: [40],
+    small_order_nonce: [40],
+    equation_failed: [40],
+    composite_classical_failed: [40],
+    composite_post_quantum_failed: [40],
+    header: [27],
+    frame_sequence: [27],
+    terms: [27],
+    rows: [27],
+    value_region: [27],
+    blob_region: [27],
+    bindings: [27],
+    suppression: [27],
+    commit: [27],
+    index: [27],
+    labelling: [27],
+    content_digest: [27],
+    source_damaged: [47],
+    source_not_decodable: [47],
+    unrepresentable_term: [47],
+    unrepresentable_frame: [47],
+    source_not_deterministic: [47],
+    source_exceeds_capacity: [47],
+    content_mismatch: [47],
+    unknown_item_kind: [5],
+    refusal_size: [26],
+    total_decoded: [20],
+    item_count: [20],
+    state_unavailable: [19],
+    total_rebuilt: [20],
+    total_formed: [20],
+    refusal_weight: [26],
+    refusal_term_node: [26],
+    // Registry version 2 (P8 section 3.5): reasons 93 to 98.
+    padding: [7],
+    sealed_ordinal: [7],
+    sealed_members: [18],
+    failed_openings: [20],
+    aead: [52],
+    commitment: [52],
+} as const;
+
+/** The reasons that registry version 1 defines (P2 section 6.1). */
+const REASONS_OF_V1 = 92;
+
+export type Reason = keyof typeof REASON_TABLE;
+const REASONS = Object.keys(REASON_TABLE) as Reason[];
+
+/** The reasons each finding code lists (P2 section 5.1); a code with none takes no reason. */
+const REASONS_OF_CODE = new Map<FindingCode, Reason[]>();
+for (const reason of REASONS) {
+    for (const number of REASON_TABLE[reason]) {
+        const code = FINDING_CODES[number - 1];
+        REASONS_OF_CODE.set(code, [
+            ...(REASONS_OF_CODE.get(code) ?? []),
+            reason,
+        ]);
+    }
+}
+
+/** The three reasons that a `rebuild_state` of tag `incomplete` can carry (P2 section 4.7). */
+const INCOMPLETE_REASONS = ["chunk", "blob_length", "blob_digest"] as const;
+export type IncompleteReason = (typeof INCOMPLETE_REASONS)[number];
+
 /** A digest as its bytes (P1, "Every preimage, typed"). */
 export type Digest = Uint8Array;
 
@@ -217,7 +413,7 @@ export type FoldState =
 
 export type RebuildState =
     | { state: "verified" }
-    | { state: "incomplete"; reason: bigint }
+    | { state: "incomplete"; reason: IncompleteReason }
     | { state: "refused" }
     | { state: "not_run" };
 
@@ -226,10 +422,10 @@ export interface RebuildResult {
     state: RebuildState;
 }
 
-/** `signature_result` (P6 section 6.1). The codes of `algorithm` and `reason` are kept as read. */
+/** `signature_result` (P6 section 6.1). The code of `algorithm` is kept as read. */
 export interface SignatureResult {
     status: SignatureStatus;
-    reason: bigint | undefined;
+    reason: Reason | undefined;
     algorithm: bigint;
     keyId: Digest;
     coverageFirst: bigint;
@@ -237,10 +433,10 @@ export interface SignatureResult {
     authenticated: boolean;
 }
 
-/** `finding` (P2). Its `code` and `reason` are kept as read until the findings enumeration is typed. */
+/** `finding` (P2 section 5). Its severity is that of its code (`severityOf`). */
 export interface Finding {
-    code: bigint;
-    reason: bigint | undefined;
+    code: FindingCode;
+    reason: Reason | undefined;
     subject: Subject | undefined;
     position: bigint | undefined;
     offset: bigint | undefined;
@@ -485,11 +681,69 @@ function readFold(value: Tree): FoldState {
     return refuse("fold_state", tag);
 }
 
+/** The severity of a finding code: the fixed column of P2 section 5.1, never a field of a finding. */
+export function severityOf(code: FindingCode): Severity {
+    return FINDING_TABLE[code];
+}
+
+/**
+ * P2-35: a finding carries a reason exactly when its code lists reasons, and
+ * then the reason is one of them. Throws otherwise.
+ */
+function checkReason(
+    code: FindingCode,
+    reason: Reason | undefined,
+    name: string,
+): void {
+    const listed = REASONS_OF_CODE.get(code) ?? [];
+    if (listed.length === 0) {
+        if (reason !== undefined) {
+            throw new RangeError(`${name}: finding ${code} takes no reason`);
+        }
+        return;
+    }
+    if (reason === undefined || !listed.includes(reason)) {
+        throw new RangeError(
+            `${name}: ${reason ?? "no reason"} is not a reason of finding ${code}`,
+        );
+    }
+}
+
+/**
+ * P6 section 6.2: `invalid` carries one of the eight reasons of finding code
+ * `signature_invalid`, `unverified` one of the two of `signature_unverified`,
+ * and `valid` carries no reason.
+ */
+function checkSignatureReason(
+    status: SignatureStatus,
+    reason: Reason | undefined,
+): void {
+    if (status === "valid") {
+        if (reason !== undefined) {
+            throw new RangeError("a valid signature carries no reason");
+        }
+        return;
+    }
+    checkReason(
+        status === "invalid" ? "signature_invalid" : "signature_unverified",
+        reason,
+        "signature_result",
+    );
+}
+
+function isIncompleteReason(reason: Reason): reason is IncompleteReason {
+    return (INCOMPLETE_REASONS as readonly string[]).includes(reason);
+}
+
 function readRebuildState(value: Tree): RebuildState {
     const { tag, rest } = variant(value, "rebuild_state");
     if (tag === 1n && rest.length === 0) return { state: "verified" };
     if (tag === 2n && rest.length === 1) {
-        return { state: "incomplete", reason: uint(rest[0], "rebuild reason") };
+        const reason = reasonOf(rest[0], "rebuild reason");
+        if (!isIncompleteReason(reason)) {
+            throw new RangeError(`${reason} is not a reason of rebuild_state`);
+        }
+        return { state: "incomplete", reason };
     }
     if (tag === 3n && rest.length === 0) return { state: "refused" };
     if (tag === 4n && rest.length === 0) return { state: "not_run" };
@@ -529,11 +783,18 @@ function readSubject(value: Tree): Subject {
     }
 }
 
+function reasonOf(value: Tree, name: string): Reason {
+    return enumeration(value, name, REASONS);
+}
+
 function readFinding(value: Tree): Finding {
     const f = items(value, "finding", 7);
+    const code = enumeration(f[0], "finding_code", FINDING_CODES);
+    const reason = option(f[1], "finding.reason", reasonOf);
+    checkReason(code, reason, "finding");
     return {
-        code: uint(f[0], "finding.code"),
-        reason: option(f[1], "finding.reason", uint),
+        code,
+        reason,
         subject: option(f[2], "finding.subject", readSubject),
         position: option(f[3], "finding.position", uint),
         offset: option(f[4], "finding.offset", uint),
@@ -544,9 +805,12 @@ function readFinding(value: Tree): Finding {
 
 function readSignature(value: Tree): SignatureResult {
     const f = items(value, "signature_result", 7);
+    const status = enumeration(f[0], "signature_status", SIGNATURE_STATUS);
+    const reason = option(f[1], "signature_result.reason", reasonOf);
+    checkSignatureReason(status, reason);
     return {
-        status: enumeration(f[0], "signature_status", SIGNATURE_STATUS),
-        reason: option(f[1], "signature_result.reason", uint),
+        status,
+        reason,
         algorithm: uint(f[2], "signature_result.algorithm"),
         keyId: bytes(f[3], "signature_result.key_id"),
         coverageFirst: uint(f[4], "signature_result.coverage_first"),
@@ -796,7 +1060,7 @@ function writeRebuildState(s: RebuildState): Tree {
         case "verified":
             return [1n];
         case "incomplete":
-            return [2n, s.reason];
+            return [2n, enumCode(REASONS, s.reason)];
         case "refused":
             return [3n];
         case "not_run":
@@ -824,9 +1088,10 @@ function writeSubject(s: Subject): Tree {
 }
 
 function writeFinding(f: Finding): Tree {
+    checkReason(f.code, f.reason, "finding");
     return [
-        f.code,
-        optionOf(f.reason, (r) => r),
+        enumCode(FINDING_CODES, f.code),
+        optionOf(f.reason, (r) => enumCode(REASONS, r)),
         optionOf(f.subject, writeSubject),
         optionOf(f.position, (p) => p),
         optionOf(f.offset, (o) => o),
@@ -836,9 +1101,10 @@ function writeFinding(f: Finding): Tree {
 }
 
 function writeSignature(s: SignatureResult): Tree {
+    checkSignatureReason(s.status, s.reason);
     return [
         enumCode(SIGNATURE_STATUS, s.status),
-        optionOf(s.reason, (r) => r),
+        optionOf(s.reason, (r) => enumCode(REASONS, r)),
         s.algorithm,
         s.keyId,
         s.coverageFirst,
@@ -956,10 +1222,50 @@ function normalize(value: unknown): Tree {
 }
 
 /**
+ * P2-36 and P8-5: a reader of registry version 1 reports no finding code and no
+ * reason of version 2, and a reader implements only versions 1 and 2.
+ */
+function refuseOutsideRegistry(result: ReadResult): void {
+    const version = result.registryVersion;
+    if (version !== 1n && version !== 2n) {
+        throw new RangeError(`registry version ${version} is not implemented`);
+    }
+    if (version === 2n || result.file.tag === "first_generation") return;
+    const findings: Finding[] = [...result.file.findings];
+    const reasons: (Reason | undefined)[] = [];
+    for (const segment of result.file.segments) {
+        findings.push(...segment.findings);
+        for (const frame of segment.frames) {
+            findings.push(...frame.findings);
+            reasons.push(...frame.signatures.map((s) => s.reason));
+        }
+    }
+    for (const finding of findings) {
+        if (FINDING_CODES.indexOf(finding.code) + 1 > FINDING_CODES_OF_V1) {
+            throw new RangeError(
+                `finding ${finding.code} is not in registry version 1`,
+            );
+        }
+        reasons.push(finding.reason);
+    }
+    for (const reason of reasons) {
+        if (
+            reason !== undefined &&
+            REASONS.indexOf(reason) + 1 > REASONS_OF_V1
+        ) {
+            throw new RangeError(
+                `reason ${reason} is not in registry version 1`,
+            );
+        }
+    }
+}
+
+/**
  * The deterministic encoding of a `read_result` (P7 section 1.1, P1). The
  * caller states every field; the encoding is the sole output.
  */
 export function encodeReadResult(result: ReadResult): Uint8Array {
+    refuseOutsideRegistry(result);
     return encodeCanonical(writeReadResult(result));
 }
 
