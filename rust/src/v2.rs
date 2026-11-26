@@ -19,6 +19,7 @@ mod parity;
 mod payload;
 mod range;
 pub mod rdf;
+pub mod read_result;
 pub mod reader;
 mod resync;
 pub mod signature;

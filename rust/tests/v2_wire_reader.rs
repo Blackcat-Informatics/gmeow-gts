@@ -6,6 +6,7 @@
 use std::{fs, path::Path};
 
 use ciborium::Value;
+use gmeow_gts::v2::read_result::parity_findings;
 use gmeow_gts::{
     v2::{
         reader::{
@@ -1597,4 +1598,86 @@ fn damage_that_needs_no_payload_takes_precedence_over_exceeds_capacity() {
         in_order_judgement("parity-above-capacity-and-damaged.bin", 4),
         Some(Judgement::Damaged)
     );
+}
+
+/// The `read_result` bytes of the case of P5 expectation file `name` whose input is `input`.
+fn expected_read_result(name: &str, input: &str) -> Vec<u8> {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../vectors/v2/P5")
+        .join(format!("{name}.json"));
+    let text = fs::read_to_string(&path).unwrap_or_else(|error| panic!("{error}"));
+    let json: serde_json::Value = serde_json::from_str(&text).expect("valid JSON");
+    let case = json["cases"]
+        .as_array()
+        .expect("cases")
+        .iter()
+        .find(|case| case["input_file"] == input)
+        .unwrap_or_else(|| panic!("no case for {input}"));
+    let hex = case["read_result"].as_str().expect("read_result hex");
+    hex.as_bytes()
+        .chunks(2)
+        .map(|pair| {
+            let digits = std::str::from_utf8(pair).expect("ASCII hex digits");
+            u8::from_str_radix(digits, 16).expect("hex byte")
+        })
+        .collect()
+}
+
+/// The parity findings of the single segment of a P5 vector read with the default capacity.
+fn parity_findings_of(input: &str) -> Vec<Vec<u8>> {
+    let bytes = vector_in("P5", input);
+    let read = read_wire(&bytes, ReadCapacity::default());
+    let [segment] = read.segments.as_slice() else {
+        panic!("{input}: expected one segment");
+    };
+    parity_findings(segment).expect("encodable findings")
+}
+
+fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack
+        .windows(needle.len())
+        .any(|window| window == needle)
+}
+
+/// P7 section 1: a damaged parity frame encodes one `parity_damaged` finding with its position
+/// alone, and the expected result of its vector contains those bytes. A verified base frame
+/// encodes no parity finding.
+#[test]
+fn a_damaged_parity_frame_encodes_parity_damaged_with_its_position_alone() {
+    let findings = parity_findings_of("parity-damaged-each.3.bin");
+    let expected = [
+        0x18, 0x1e, 0x81, 0x01, 0x81, 0x01, 0x82, 0x02, 0x04, 0x81, 0x01, 0x81, 0x01, 0x81, 0x01,
+    ];
+    assert_eq!(findings, vec![expected.to_vec()]);
+    let result = expected_read_result("parity-damaged-each", "parity-damaged-each.3.bin");
+    assert!(
+        contains_bytes(&result, &findings[0]),
+        "result lacks the finding"
+    );
+    assert_eq!(parity_findings_of("parity-base.bin").len(), 0);
+}
+
+/// P7 section 1 and P5 6.6: a clean parity frame whose payload is above capacity encodes one
+/// `exceeds_capacity` finding with the reason `decoded_size`, its position, its item span and its
+/// decoded count, and the expected result of its vector contains those bytes.
+#[test]
+fn a_parity_frame_above_capacity_encodes_its_size_refusal_with_its_item_span() {
+    let findings = parity_findings_of("parity-above-capacity.bin");
+    assert_eq!(findings.len(), 1);
+    let result = expected_read_result("parity-above-capacity", "parity-above-capacity.bin");
+    assert!(
+        contains_bytes(&result, &findings[0]),
+        "result lacks the finding"
+    );
+    assert_eq!(findings[0][0], 0x14, "code 20, exceeds_capacity");
+}
+
+/// P5 6.6 precedence: a frame that is damaged by a condition needing no payload gives
+/// `parity_damaged` alone, not `exceeds_capacity`, even though its payload is above capacity.
+#[test]
+fn damage_takes_precedence_over_the_capacity_finding_for_one_frame() {
+    let findings = parity_findings_of("parity-above-capacity-and-damaged.bin");
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0][0], 0x18, "code 30, parity_damaged");
+    assert_eq!(findings[0][1], 0x1e);
 }
