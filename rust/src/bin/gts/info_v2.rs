@@ -7,8 +7,9 @@ use std::collections::BTreeMap;
 
 use gmeow_gts::{
     v2::reader::{
-        read_wire, Dispatch, FramingFailure, ItemKind, Judgement, LinkState, Opener, PayloadState,
-        ReadCapacity, ReadStop, ResyncRefusal, WireFrame, WireSegment,
+        read_wire, Dispatch, FramingFailure, ItemKind, Judgement, LinkState, Opener, ParityCode,
+        ParityFinding, ParityReason, PayloadState, ReadCapacity, ReadStop, ResyncRefusal,
+        WireFrame, WireSegment,
     },
     wire::hex,
 };
@@ -131,7 +132,60 @@ fn print_segment(ordinal: usize, segment: &WireSegment<'_>) -> bool {
     for frame in &segment.frames {
         clean &= print_frame_problems(frame);
     }
+    clean &= print_parity_findings(segment);
     clean
+}
+
+/// The spec name of a parity reason (P7 section 1).
+fn parity_reason_name(reason: ParityReason) -> &'static str {
+    match reason {
+        ParityReason::DecodedSize => "decoded_size",
+        ParityReason::StoredSize => "stored_size",
+        ParityReason::TotalDecoded => "total_decoded",
+        ParityReason::Data => "data",
+        ParityReason::Parity => "parity",
+        ParityReason::TooManyErasures => "too_many_erasures",
+        ParityReason::VerifyFailed => "verify_failed",
+    }
+}
+
+/// Prints the repair findings of a segment: the findings that `print_frame_problems` does not
+/// print, which are those of the shard checks, the repair and the unprotected tail (P5 6.6, 7.2).
+/// Reports whether the segment has none.
+fn print_parity_findings(segment: &WireSegment<'_>) -> bool {
+    let mut clean = true;
+    for finding in &segment.parity_findings {
+        match finding.code {
+            // A damaged frame and an above-capacity frame are printed with their frame.
+            ParityCode::ParityDamaged | ParityCode::ExceedsCapacity => continue,
+            ParityCode::UnprotectedTail => stdout_line!(
+                "    unprotected_tail at byte {}, {} byte(s)",
+                finding.offset.unwrap_or(0),
+                finding.length.unwrap_or(0)
+            ),
+            ParityCode::ParityMismatch => print_parity_finding("parity_mismatch", finding),
+            ParityCode::ParityUnexplained => print_parity_finding("parity_unexplained", finding),
+            ParityCode::ParityStale => print_parity_finding("parity_stale", finding),
+            ParityCode::RepairFailed => print_parity_finding("repair_failed", finding),
+            ParityCode::Repaired => print_parity_finding("repaired", finding),
+        }
+        clean = false;
+    }
+    clean
+}
+
+/// Prints one positioned repair finding with its reason and count, when it has them.
+fn print_parity_finding(name: &str, finding: &ParityFinding) {
+    let place = finding
+        .position
+        .map_or_else(String::new, |position| format!("item {position}: "));
+    let reason = finding.reason.map_or_else(String::new, |reason| {
+        format!(", reason {}", parity_reason_name(reason))
+    });
+    let count = finding
+        .count
+        .map_or_else(String::new, |count| format!(", count {count}"));
+    stdout_line!("    {place}{name}{reason}{count}");
 }
 
 /// Prints the opener of a segment and reports whether it is well formed.

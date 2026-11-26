@@ -1416,6 +1416,26 @@ fn info_names_parity_damage_and_stays_silent_on_a_verified_parity_frame() {
     assert!(!base_text.contains("exceeds_capacity"), "{base_text}");
 }
 
+/// `gts info` names the repair of a parity frame (P5 6.6 stage 3, P5 7.2): the failing data shards
+/// with their reason, the shard that no failing item explains, and the span that is repaired. The
+/// vector gives these at its parity frame's position 4.
+#[test]
+fn info_names_the_parity_repair_findings_of_a_span() {
+    let input = vectors().join("v2/P5/parity-unexplained.bin");
+    let out = gts(&["info", input.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+    let text = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        text.contains("item 4: parity_mismatch, reason data, count 2"),
+        "{text}"
+    );
+    assert!(
+        text.contains("item 4: parity_unexplained, count 1"),
+        "{text}"
+    );
+    assert!(text.contains("item 4: repaired, count 1"), "{text}");
+}
+
 #[test]
 fn info_reports_v2_damage_and_refuses_unknown_generations() {
     let damaged = vectors().join("v2/P1/stored-mismatch.bin");
