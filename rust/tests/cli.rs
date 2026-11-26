@@ -1399,6 +1399,23 @@ fn info_capacity_options_reach_the_reader() {
     assert_eq!(bad.status.code(), Some(2));
 }
 
+/// `gts info` names the stage 1 judgement of a parity frame: `parity_damaged` for the frame whose
+/// anchor differs from its predecessor, and no parity finding for the base vector, whose frame
+/// is verified.
+#[test]
+fn info_names_parity_damage_and_stays_silent_on_a_verified_parity_frame() {
+    let damaged = vectors().join("v2/P5/parity-damaged-each.3.bin");
+    let base = vectors().join("v2/P5/parity-base.bin");
+    let out = gts(&["info", damaged.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+    let text = String::from_utf8_lossy(&out.stdout);
+    assert!(text.contains("item 4: parity_damaged"), "{text}");
+    let base_out = gts(&["info", base.to_str().unwrap()]);
+    let base_text = String::from_utf8_lossy(&base_out.stdout);
+    assert!(!base_text.contains("parity_damaged"), "{base_text}");
+    assert!(!base_text.contains("exceeds_capacity"), "{base_text}");
+}
+
 #[test]
 fn info_reports_v2_damage_and_refuses_unknown_generations() {
     let damaged = vectors().join("v2/P1/stored-mismatch.bin");
