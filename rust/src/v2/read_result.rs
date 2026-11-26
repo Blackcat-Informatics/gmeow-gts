@@ -69,7 +69,7 @@ fn records(findings: &[ParityFinding]) -> Result<Vec<Vec<u8>>, ReadResultError> 
     Ok(keyed.into_iter().map(|(_, _, _, record)| record).collect())
 }
 
-/// The step of the read that produces a finding (P7 section 1.4); `None` orders before a value.
+/// The step of the read that produces a finding (P7 section 1.4).
 fn step(code: ParityCode) -> u8 {
     match code {
         ParityCode::ExceedsCapacity => 7,
