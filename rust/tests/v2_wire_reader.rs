@@ -9,10 +9,12 @@ use ciborium::Value;
 use gmeow_gts::{
     v2::{
         reader::{
-            read_wire, ClosingFinding, CommitCheck, Dispatch, FramingFailure, FramingReason,
-            IndexOutcome, IndexWireClaims, ItemKind, LinkState, Opener, PayloadDamage,
-            PayloadRefusal, PayloadState, ReadCapacity, ReadStop, ResyncRefusal, UncommittedTail,
+            read_wire, read_wire_with_keys, ClosingFinding, CommitCheck, Dispatch, FramingFailure,
+            FramingReason, IndexOutcome, IndexWireClaims, ItemKind, LinkState, Opener,
+            PayloadDamage, PayloadRefusal, PayloadState, ReadCapacity, ReadStop, ResyncRefusal,
+            UncommittedTail,
         },
+        signature::{HeldKey, HeldKeys, SignatureReason, SignatureStatus},
         writer::SegmentWriter,
         Header, MalformedReason,
     },
@@ -843,4 +845,422 @@ fn a_total_decoded_refusal_latches_even_for_a_later_empty_payload() {
         commit.payload.state,
         PayloadState::Unchecked(PayloadRefusal::TotalDecoded(8))
     );
+}
+
+fn unhex(encoded: &str) -> Vec<u8> {
+    encoded
+        .as_bytes()
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|byte| {
+            u8::from_str_radix(std::str::from_utf8(byte).expect("corpus hex"), 16)
+                .expect("corpus hex byte")
+        })
+        .collect()
+}
+
+fn items(value: &Value) -> &[Value] {
+    value.as_array().expect("corpus array")
+}
+
+fn uint(value: &Value) -> u64 {
+    u64::try_from(value.as_integer().expect("corpus uint")).expect("corpus uint in range")
+}
+
+fn bytes(value: &Value) -> &[u8] {
+    value.as_bytes().expect("corpus bytes")
+}
+
+/// One signature outcome as a vector records it: status, reason, algorithm code and `key_id`.
+type Outcome = (SignatureStatus, Option<SignatureReason>, u64, Vec<u8>);
+
+/// A signature vector case: its input, the held keys of its recorded read and the recorded
+/// outcomes of each signed frame, keyed by the byte offset of the frame.
+struct SignatureCase {
+    input_file: String,
+    input: Vec<u8>,
+    held: Vec<HeldKey>,
+    expected: Vec<(usize, Vec<Outcome>)>,
+}
+
+fn recorded_status(code: u64) -> SignatureStatus {
+    match code {
+        1 => SignatureStatus::Valid,
+        2 => SignatureStatus::Invalid,
+        3 => SignatureStatus::Unverified,
+        _ => panic!("unexpected signature status {code}"),
+    }
+}
+
+fn recorded_reason(code: u64) -> SignatureReason {
+    match code {
+        53 => SignatureReason::UnknownSignatureAlgorithm,
+        54 => SignatureReason::KeyNotHeld,
+        57 => SignatureReason::KeyMismatch,
+        58 => SignatureReason::ValueLength,
+        59 => SignatureReason::NonCanonicalScalar,
+        60 => SignatureReason::SmallOrderKey,
+        61 => SignatureReason::SmallOrderNonce,
+        62 => SignatureReason::EquationFailed,
+        63 => SignatureReason::CompositeClassicalFailed,
+        64 => SignatureReason::CompositePostQuantumFailed,
+        _ => panic!("unexpected signature reason {code}"),
+    }
+}
+
+/// Read the cases of a P6 vector: the held keys come from the `inputs` of the recorded read and
+/// the expected outcomes from the frame records of its second-generation file.
+fn signature_cases(name: &str) -> Vec<SignatureCase> {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../vectors/v2/P6")
+        .join(format!("{name}.json"));
+    let description: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).expect("read vector description"))
+            .expect("vector description is JSON");
+    description["cases"]
+        .as_array()
+        .expect("vector cases")
+        .iter()
+        .map(|case| {
+            let input_file = case["input_file"].as_str().expect("input file").to_owned();
+            let recorded: Value = ciborium::from_reader(
+                unhex(case["read_result"].as_str().expect("typed read result")).as_slice(),
+            )
+            .expect("recorded read is CBOR");
+            let record = items(&recorded);
+            let held = items(&items(&record[5])[1])
+                .iter()
+                .map(|key| {
+                    let key = items(key);
+                    HeldKey {
+                        key_id: bytes(&key[0]).try_into().expect("32-byte key identifier"),
+                        algorithm: uint(&key[1]),
+                        public_key: bytes(&key[2]).to_vec(),
+                    }
+                })
+                .collect();
+            let expected = items(&items(&record[6])[1])
+                .iter()
+                .flat_map(|segment| items(&items(segment)[16]))
+                .filter(|frame| !items(&items(frame)[7]).is_empty())
+                .map(|frame| {
+                    let frame = items(frame);
+                    let outcomes = items(&frame[7])
+                        .iter()
+                        .map(|result| {
+                            let result = items(result);
+                            (
+                                recorded_status(uint(&result[0])),
+                                items(&result[1])
+                                    .get(1)
+                                    .map(|code| recorded_reason(uint(code))),
+                                uint(&result[2]),
+                                bytes(&result[3]).to_vec(),
+                            )
+                        })
+                        .collect();
+                    (
+                        usize::try_from(uint(&frame[1])).expect("frame offset"),
+                        outcomes,
+                    )
+                })
+                .collect();
+            SignatureCase {
+                input: vector_in("P6", &input_file),
+                input_file,
+                held,
+                expected,
+            }
+        })
+        .collect()
+}
+
+/// The outcomes the reader gives, keyed by frame offset, for the frames that have any.
+fn read_outcomes(input: &[u8], held: Vec<HeldKey>) -> Vec<(usize, Vec<Outcome>)> {
+    let read = read_wire_with_keys(input, ReadCapacity::default(), &HeldKeys::new(held));
+    read.segments
+        .iter()
+        .flat_map(|segment| {
+            segment
+                .frames
+                .iter()
+                .filter(|frame| !frame.signatures.is_empty())
+                .map(|frame| {
+                    let outcomes = frame
+                        .signatures
+                        .iter()
+                        .map(|result| {
+                            (
+                                result.status,
+                                result.reason,
+                                result.algorithm,
+                                result.key_id.to_vec(),
+                            )
+                        })
+                        .collect();
+                    (segment.items[frame.position].offset, outcomes)
+                })
+        })
+        .collect()
+}
+
+fn assert_signature_vectors(names: &[&str]) {
+    for name in names {
+        for case in signature_cases(name) {
+            assert!(
+                !case.expected.is_empty(),
+                "{} records a signature result",
+                case.input_file
+            );
+            assert_eq!(
+                read_outcomes(&case.input, case.held),
+                case.expected,
+                "{}",
+                case.input_file
+            );
+        }
+    }
+}
+
+/// P6 6.2 step 6: honest signatures of each algorithm are valid, including an ML-DSA half made
+/// with hedged signing, which the same verification accepts (P6 5).
+#[test]
+fn honest_signatures_of_both_algorithms_are_valid() {
+    assert_signature_vectors(&[
+        "sig-record-valid",
+        "ed25519-honest",
+        "ed25519-honest-reproduce",
+        "composite-honest",
+        "composite-hedged",
+        "cosign-two-algorithms",
+    ]);
+}
+
+/// P6 4.1 and P6-17: the first failing check of SCALAR, KEY, NONCE, EQUATION is the reason, over
+/// the whole input.
+#[test]
+fn ed25519_strict_reports_the_first_failing_check_in_policy_order() {
+    let mut names: Vec<String> = [
+        "ed25519-scalar-above-l",
+        "ed25519-scalar-equals-l",
+        "ed25519-scalar-max",
+        "ed25519-scalar-below-l",
+        "ed25519-order-scalar-key",
+        "ed25519-order-key-nonce",
+        "proc-case-5",
+        "proc-case-6",
+        "proc-case-7",
+    ]
+    .map(String::from)
+    .into();
+    for order in 1..=8 {
+        names.push(format!("ed25519-key-small-order-{order}"));
+        names.push(format!("ed25519-nonce-small-order-{order}"));
+    }
+    assert_signature_vectors(&names.iter().map(String::as_str).collect::<Vec<_>>());
+}
+
+/// P6 4.1 and P6-20: a key decodes only by the stated decoding, the equation is cofactorless, and
+/// a non-canonical or off-curve `R` never satisfies it.
+#[test]
+fn ed25519_equation_decodes_the_key_strictly_and_is_cofactorless() {
+    assert_signature_vectors(&[
+        "ed25519-key-off-curve",
+        "ed25519-key-alias",
+        "ed25519-key-non-canonical-sign",
+        "ed25519-key-non-canonical-y",
+        "ed25519-nonce-non-canonical",
+        "ed25519-nonce-off-curve",
+        "ed25519-equation-message",
+        "ed25519-mixed-order-valid",
+        "ed25519-mixed-order-cofactored-only",
+        "proc-case-8",
+        "proc-case-9",
+    ]);
+}
+
+/// P6 4.2 and P6-26: the classical half over `M'` is judged before the post-quantum half, and a
+/// composite whose both halves fail is `composite_classical_failed`.
+#[test]
+fn composite_reports_the_classical_half_over_the_representative_before_the_post_quantum_half() {
+    assert_signature_vectors(&[
+        "composite-both",
+        "composite-classical-nonce",
+        "composite-classical-scalar",
+        "composite-classical-small-order",
+        "composite-halves-two-subjects",
+        "composite-label-wrong",
+        "composite-prehash-wrong",
+        "composite-context-nonempty",
+        "proc-case-11",
+        "proc-case-13",
+    ]);
+}
+
+/// P6 4.2 and P6-53: the ML-DSA half is `ML-DSA.Verify` with the label as its context, and the
+/// four refusals of the hint decoding are `composite_post_quantum_failed`.
+#[test]
+fn composite_post_quantum_half_is_ml_dsa_verify_with_the_label_context() {
+    assert_signature_vectors(&[
+        "composite-stripped-half",
+        "composite-post-quantum",
+        "composite-mldsa-context",
+        "composite-hint-count-above-omega",
+        "composite-hint-count-decreasing",
+        "composite-hint-indices-unordered",
+        "composite-hint-padding-nonzero",
+        "proc-case-12",
+    ]);
+}
+
+/// P6 6.2 step 4 and P6-34: a key or value of the wrong length is `value_length` before any
+/// check of the algorithm, never a failure of a half.
+#[test]
+fn a_key_or_value_of_the_wrong_length_is_value_length_before_any_algorithm_check() {
+    assert_signature_vectors(&[
+        "ed25519-length-63",
+        "ed25519-length-65",
+        "composite-length-3372",
+        "composite-length-3374",
+        "composite-key-1983",
+        "composite-key-1985",
+        "key-length-short",
+        "proc-lengths-key-first",
+        "proc-length-before-policy",
+        "proc-value-length",
+        "proc-case-14",
+    ]);
+}
+
+/// P6 6.2 steps 1 to 3 and P6-33: an unknown algorithm is unverified, an absent key is
+/// `key_not_held`, and a held key that is inconsistent is `key_mismatch`, all before the lengths.
+#[test]
+fn algorithm_and_held_key_steps_come_before_the_lengths() {
+    assert_signature_vectors(&[
+        "proc-unknown-algorithm",
+        "proc-unknown-algorithm-long",
+        "reg-unknown-algorithm-version",
+        "proc-key-not-held",
+        "key-trusted-not-held",
+        "proc-key-mismatch",
+        "key-mismatch-algorithm",
+        "key-mismatch-bytes",
+        "subject-relabel-algorithm",
+        "proc-mismatch-before-length",
+        "key-mismatch-two-entries",
+    ]);
+}
+
+/// P6 2 and P6-6: the subject binds the opener of the segment and the effective identifier of the
+/// frame, so a signature moved to another frame or segment, relabelled, or made before a link was
+/// healed gives the outcome the vector records.
+#[test]
+fn the_subject_binds_the_opener_and_the_effective_identifier_of_the_frame() {
+    assert_signature_vectors(&[
+        "subject-healed-frame",
+        "subject-other-frame",
+        "subject-other-segment",
+        "subject-relabel-key",
+        "cov-healed",
+        "cov-broken-signed-frame",
+        "sig-list-independence",
+        "sig-same-key-two-values",
+    ]);
+}
+
+/// P6-3 and P6-31: a signed frame whose envelope is malformed outside its `signatures` field, a
+/// commit with malformed content and a frame whose `transparent` is not a bool are ordinary and
+/// carry results.
+#[test]
+fn a_frame_with_a_malformed_envelope_but_signatures_in_grammar_has_results() {
+    assert_signature_vectors(&[
+        "auth-commit-malformed",
+        "parity-transparent-not-bool-signed",
+        "proc-opaque-frame",
+    ]);
+}
+
+/// P6-13 and P6-37: the held keys are a set, so the order and repetition the caller gives change
+/// no outcome.
+#[test]
+fn held_keys_are_a_set_whatever_order_or_repetition_the_caller_gives() {
+    for name in [
+        "key-held-order",
+        "key-mismatch-two-entries",
+        "sig-record-valid",
+    ] {
+        for case in signature_cases(name) {
+            let mut scrambled: Vec<HeldKey> = case.held.iter().rev().cloned().collect();
+            scrambled.extend(case.held.iter().cloned());
+            assert_eq!(
+                read_outcomes(&case.input, scrambled),
+                case.expected,
+                "{}",
+                case.input_file
+            );
+        }
+    }
+}
+
+/// P6 6.2 precondition and P6-3: no result exists for a frame with a `signatures` field outside
+/// the grammar, for a transparent frame, or in a segment whose opener has no identifier.
+#[test]
+fn frames_without_a_subject_or_in_grammar_carry_no_signature_result() {
+    let names = [
+        "sig-grammar-not-array",
+        "sig-grammar-element-not-array",
+        "sig-grammar-two-fields",
+        "sig-grammar-four-fields",
+        "sig-grammar-algorithm-text",
+        "sig-grammar-algorithm-zero",
+        "sig-grammar-algorithm-unregistered",
+        "sig-grammar-key-id-text",
+        "sig-grammar-key-id-short",
+        "sig-grammar-value-text",
+        "sig-grammar-long-head",
+        "sig-list-unordered",
+        "sig-list-grammar-first",
+        "sig-duplicate-records",
+        "sig-transparent-signature",
+        "proc-no-hash",
+    ];
+    for name in names {
+        for case in signature_cases(name) {
+            assert!(case.expected.is_empty(), "{}", case.input_file);
+            assert_eq!(
+                read_outcomes(&case.input, case.held),
+                [],
+                "{}",
+                case.input_file
+            );
+        }
+    }
+}
+
+/// P6 6.2 step 2: a reader given no held keys reports every signature `key_not_held`, and a
+/// frame whose `signatures` element exceeds `stored_bytes_per_frame` has no result.
+#[test]
+fn a_read_without_keys_reports_key_not_held_within_the_stored_bytes_capacity() {
+    let input = vector_in("P6", "sig-record-valid.bin");
+    let read = read_wire(&input, ReadCapacity::default());
+    let results: Vec<_> = read.segments[0]
+        .frames
+        .iter()
+        .flat_map(|frame| frame.signatures.iter())
+        .collect();
+    assert_eq!(results.len(), 2);
+    assert!(results.iter().all(|result| {
+        result.status == SignatureStatus::Unverified
+            && result.reason == Some(SignatureReason::KeyNotHeld)
+    }));
+    let small = ReadCapacity {
+        stored_bytes_per_frame: 100,
+        ..ReadCapacity::default()
+    };
+    let read = read_wire(&input, small);
+    assert!(read.segments[0]
+        .frames
+        .iter()
+        .all(|frame| frame.signatures.is_empty()));
 }

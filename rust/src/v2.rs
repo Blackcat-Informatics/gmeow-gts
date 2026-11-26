@@ -20,6 +20,7 @@ mod range;
 pub mod rdf;
 pub mod reader;
 mod resync;
+pub mod signature;
 pub mod writer;
 
 pub use import::{from_nquads, ImportError};
