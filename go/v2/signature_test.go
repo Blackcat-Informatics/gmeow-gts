@@ -240,6 +240,7 @@ func TestFrameSignaturesMatchTheVectors(t *testing.T) {
 		{"composite-both", SignatureInvalid, ReasonCompositeClassical},
 		{"composite-classical-scalar", SignatureInvalid, ReasonCompositeClassical},
 		{"composite-classical-small-order", SignatureInvalid, ReasonCompositeClassical},
+		{"composite-ed25519-zeroed", SignatureInvalid, ReasonCompositeClassical},
 		{"composite-label-wrong", SignatureInvalid, ReasonCompositeClassical},
 		{"composite-post-quantum", SignatureInvalid, ReasonCompositePostQuantum},
 		{"composite-stripped-half", SignatureInvalid, ReasonCompositePostQuantum},

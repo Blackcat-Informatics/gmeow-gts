@@ -165,6 +165,7 @@ class SignatureVerifyTest {
             "composite-classical-nonce",
             "composite-classical-scalar",
             "composite-classical-small-order",
+            "composite-ed25519-zeroed",
             "composite-halves-two-subjects",
             "composite-label-wrong",
             "composite-prehash-wrong",

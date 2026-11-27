@@ -89,6 +89,7 @@ The derived entries `sign-ed25519-reproduce`, `sign-composite-reproduce`, `key-i
 | `composite-classical-nonce` | built and matches | the classical half altered in R |
 | `composite-classical-scalar` | built and matches | S at least L |
 | `composite-classical-small-order` | built and matches | R a small-order encoding |
+| `composite-ed25519-zeroed` | built and matches | the Ed25519 half all zero, derived by `python/scripts/gen_p6_negative_inputs.py` from `composite-honest.bin`: its 64 bytes of the value are the only change |
 | `composite-post-quantum` | built and matches | the ML-DSA half altered |
 | `composite-both` | built and matches | both halves altered |
 | `composite-stripped-half` | built and matches | the ML-DSA half all zero |

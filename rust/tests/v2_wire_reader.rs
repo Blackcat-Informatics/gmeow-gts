@@ -1090,6 +1090,7 @@ fn composite_reports_the_classical_half_over_the_representative_before_the_post_
         "composite-classical-nonce",
         "composite-classical-scalar",
         "composite-classical-small-order",
+        "composite-ed25519-zeroed",
         "composite-halves-two-subjects",
         "composite-label-wrong",
         "composite-prehash-wrong",
