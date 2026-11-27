@@ -24,6 +24,7 @@ type SegmentOptions struct {
 type SegmentWriter struct {
 	data        []byte
 	head        Digest
+	opener      Digest
 	rangePrefix prefixRange
 }
 
@@ -51,6 +52,7 @@ func NewSegmentWriter(options SegmentOptions) (*SegmentWriter, error) {
 	}
 
 	writer := &SegmentWriter{data: data, head: hash("gts2 header", data)}
+	writer.opener = writer.head
 	writer.rangePrefix.push(writer.head)
 	return writer, nil
 }
@@ -69,25 +71,33 @@ func (w *SegmentWriter) Bytes() []byte {
 // The caller constructs the payload and applies the frame type's content rules.
 // Use Commit to add a commit over the current prefix.
 func (w *SegmentWriter) Append(frameType uint64, content, payload []byte) (Digest, error) {
+	if err := checkFrame(frameType, content, payload); err != nil {
+		return Digest{}, err
+	}
+	return w.append(frameType, content, payload, nil)
+}
+
+// checkFrame applies the content and payload rules that Append and AppendSigned share.
+func checkFrame(frameType uint64, content, payload []byte) error {
 	if frameType == commitType {
-		return Digest{}, fmt.Errorf("use Commit to append a commit frame")
+		return fmt.Errorf("use Commit to append a commit frame")
 	}
 	if frameType == 0 || frameType > parityType {
-		return Digest{}, fmt.Errorf("cannot write GTS v2 frame type %d", frameType)
+		return fmt.Errorf("cannot write GTS v2 frame type %d", frameType)
 	}
 	if end, reason := itemEnd(content, 0); reason != "" || end != len(content) {
-		return Digest{}, fmt.Errorf("frame type %d requires one complete content record", frameType)
+		return fmt.Errorf("frame type %d requires one complete content record", frameType)
 	}
 	if reason := grammar(content); reason != "" {
-		return Digest{}, fmt.Errorf("frame type %d content: %s", frameType, reason)
+		return fmt.Errorf("frame type %d content: %s", frameType, reason)
 	}
 	if reason := checkContent(frameType, content); reason != "" {
-		return Digest{}, fmt.Errorf("frame type %d content: %s", frameType, reason)
+		return fmt.Errorf("frame type %d content: %s", frameType, reason)
 	}
 	if reason := checkPayloadLength(frameType, uint64(len(payload))); reason != "" {
-		return Digest{}, fmt.Errorf("frame type %d payload length: %s", frameType, reason)
+		return fmt.Errorf("frame type %d payload length: %s", frameType, reason)
 	}
-	return w.append(frameType, content, payload)
+	return nil
 }
 
 // Commit appends a commitment to the opener and all preceding ordinary
@@ -99,10 +109,13 @@ func (w *SegmentWriter) Commit() (Digest, error) {
 	root := w.rangePrefix.root()
 	content := appendHead(appendHead(nil, 4, 2), 0, w.rangePrefix.count-1)
 	content = appendByteString(content, root[:])
-	return w.append(commitType, content, nil)
+	return w.append(commitType, content, nil, nil)
 }
 
-func (w *SegmentWriter) append(frameType uint64, content, payload []byte) (Digest, error) {
+// append writes one frame. The signatures element is the list that sign returns for the
+// frame's effective identifier, or the empty list when sign is nil. The identity of the
+// frame is complete before sign runs, so nothing is written when sign fails.
+func (w *SegmentWriter) append(frameType uint64, content, payload []byte, sign func(Digest) ([]byte, error)) (Digest, error) {
 	if w.rangePrefix.count == 0 {
 		return Digest{}, fmt.Errorf("initialize the segment writer with NewSegmentWriter")
 	}
@@ -111,20 +124,27 @@ func (w *SegmentWriter) append(frameType uint64, content, payload []byte) (Diges
 		return Digest{}, fmt.Errorf("segment prefix exceeds the maximum leaf count")
 	}
 
-	w.data = append(w.data, 0x8b, 2)
-	start := len(w.data)
-	w.data = appendHead(w.data, 0, frameType)
-	w.data = append(w.data, boolByte(frameType < commitType), boolByte(transparent))
-	w.data = append(w.data, content...)
-	w.data = appendHead(w.data, 0, uint64(len(payload)))
+	identity := appendHead(nil, 0, frameType)
+	identity = append(identity, boolByte(frameType < commitType), boolByte(transparent))
+	identity = append(identity, content...)
+	identity = appendHead(identity, 0, uint64(len(payload)))
 	payloadID := hash("gts2 payload", payload)
-	w.data = appendByteString(w.data, payloadID[:])
-	id := frameID(w.head, w.data[start:])
+	identity = appendByteString(identity, payloadID[:])
+	id := frameID(w.head, identity)
 
-	w.data = append(w.data, 0x81, 1)
-	w.data = appendByteString(w.data, payload)
-	w.data = appendByteString(w.data, id[:])
-	w.data = append(w.data, 0x80)
+	signatures := []byte{0x80}
+	if sign != nil {
+		var err error
+		if signatures, err = sign(id); err != nil {
+			return Digest{}, err
+		}
+	}
+	frame := append([]byte{0x8b, 2}, identity...)
+	frame = append(frame, 0x81, 1)
+	frame = appendByteString(frame, payload)
+	frame = appendByteString(frame, id[:])
+	frame = append(frame, signatures...)
+	w.data = append(w.data, frame...)
 	if !transparent {
 		w.rangePrefix.push(id)
 		w.head = id
