@@ -301,4 +301,56 @@ class SignatureVerifyTest {
         val wire = assertIs<WireInspection.VersionTwo>(inspectWire(case.data))
         assertTrue(wire.events.filterIsInstance<WireEvent.Item>().all { it.signatureResults == null })
     }
+
+    /**
+     * The halves of two valid composite signatures over one subject, swapped: the ML-DSA half of
+     * the first with the Ed25519 half of the second. The classical half refuses the composite
+     * first (P6-26). The second signature is recorded in the engine tests of each engine, not as a
+     * corpus vector.
+     */
+    @Test
+    fun compositeHalvesOfTwoValidSignaturesDoNotCombine() {
+        val value = Path("../vectors/v2/P6/sign-composite-reproduce.value.bin").readBytes()
+        val publicKey = Path("../vectors/v2/P6/sign-composite-reproduce.public-key.bin").readBytes()
+        val held = HeldKey(2uL, parseHex(COMPOSITE_KEY_ID), publicKey)
+        val frame = ByteArray(32) { it.toByte() }
+        val opener = ByteArray(32) { (32 + it).toByte() }
+        val valid = verifySignature(SignatureRecord(2uL, held.keyId, value), frame, opener, listOf(held))
+        assertEquals(SignatureStatus.VALID, valid.status)
+        val swapped = value.copyOfRange(0, 3309) + parseHex(SECOND_ED25519_HALF)
+        val outcome = verifySignature(SignatureRecord(2uL, held.keyId, swapped), frame, opener, listOf(held))
+        assertEquals(SignatureStatus.INVALID, outcome.status)
+        assertEquals("composite_classical_failed", outcome.reason)
+    }
+
+    /**
+     * A composite is not verified from one of its halves: under the Ed25519 key of its own half
+     * alone it has no key of its identifier, and under its identifier with the Ed25519 bytes the
+     * key is inconsistent (P6-33, key-mismatch-bytes).
+     */
+    @Test
+    fun compositeHeldUnderOneComponentKeyIsNotVerified() {
+        val value = Path("../vectors/v2/P6/sign-composite-reproduce.value.bin").readBytes()
+        val keyId = parseHex(COMPOSITE_KEY_ID)
+        val frame = ByteArray(32) { it.toByte() }
+        val opener = ByteArray(32) { (32 + it).toByte() }
+        val record = SignatureRecord(2uL, keyId, value)
+        val edKey = HeldKey(1uL, parseHex(ED25519_KEY_ID), parseHex(ED25519_PUBLIC_KEY))
+        val notHeld = verifySignature(record, frame, opener, listOf(edKey))
+        assertEquals(SignatureStatus.UNVERIFIED, notHeld.status)
+        assertEquals("key_not_held", notHeld.reason)
+        val mismatch = HeldKey(2uL, keyId, parseHex(ED25519_PUBLIC_KEY))
+        val inconsistent = verifySignature(record, frame, opener, listOf(mismatch))
+        assertEquals(SignatureStatus.INVALID, inconsistent.status)
+        assertEquals("key_mismatch", inconsistent.reason)
+    }
+
+    private companion object {
+        const val COMPOSITE_KEY_ID = "84df8ff51c012ca6b492adcb07f47a642690fddb128749db3a8de31b76ac3301"
+        const val ED25519_KEY_ID = "b9022e9133a94884b0a42a97fb0a59ee47d77837824da3323b7be9af27ee1133"
+        const val ED25519_PUBLIC_KEY = "174553b456dddfc6908ecab1c101fe6ab21e2baa0617795b7d43a63482993fd5"
+        const val SECOND_ED25519_HALF =
+            "b904b9acfa7c6c9194fe0e754027fb95919fd0c604de640a0f0027de0fa877c2" +
+                "98d2a55a54cb9a46e1f0774392c725d8003e8a6894efbc14a27755155a990e02"
+    }
 }
