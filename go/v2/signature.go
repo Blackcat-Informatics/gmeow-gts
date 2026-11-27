@@ -102,13 +102,16 @@ type SignatureResult struct {
 
 // KeyIdentifier returns H_ctx("gts2 key id", E([algorithm, public_key])) (P6 section 3.2).
 func KeyIdentifier(algorithm uint64, publicKey []byte) Digest {
-	return hash("gts2 key id", cborEncode(algorithm, publicKey))
+	return hash("gts2 key id", appendBytes(appendUint(arrayHead(2), algorithm), publicKey))
 }
 
 // SubjectPreimage returns E([algorithm, key_id, h0, frame_identifier]), the
 // deterministic encoding that P6 section 2 hashes into the signed message.
 func SubjectPreimage(record SignatureRecord, h0, frame Digest) []byte {
-	return cborEncode(record.Algorithm, record.KeyID[:], h0[:], frame[:])
+	preimage := appendUint(arrayHead(4), record.Algorithm)
+	preimage = appendBytes(preimage, record.KeyID[:])
+	preimage = appendBytes(preimage, h0[:])
+	return appendBytes(preimage, frame[:])
 }
 
 // SignedMessage returns H_ctx("gts2 signature subject", E(subject)), the message
@@ -135,23 +138,20 @@ func cborHead(major byte, argument uint64) []byte {
 	}
 }
 
-// cborEncode encodes an array of unsigned integers and byte strings, the only
-// shapes the signature preimages take. Any other item is a caller error.
-func cborEncode(items ...any) []byte {
-	out := cborHead(4, uint64(len(items)))
-	for _, item := range items {
-		switch value := item.(type) {
-		case uint64:
-			out = append(out, cborHead(0, value)...)
-		case []byte:
-			out = append(out, cborHead(2, uint64(len(value)))...)
-			out = append(out, value...)
-		default:
-			// INVARIANT: every caller passes uint64 or []byte items.
-			panic("v2: unsupported item in a signature preimage")
-		}
-	}
-	return out
+// arrayHead returns the head of a definite-length CBOR array of `count` items.
+func arrayHead(count uint64) []byte {
+	return cborHead(4, count)
+}
+
+// appendUint appends an unsigned integer item to a CBOR encoding.
+func appendUint(out []byte, value uint64) []byte {
+	return append(out, cborHead(0, value)...)
+}
+
+// appendBytes appends a byte string item to a CBOR encoding.
+func appendBytes(out, value []byte) []byte {
+	out = append(out, cborHead(2, uint64(len(value)))...)
+	return append(out, value...)
 }
 
 // ed25519Strict is `Ed25519-Strict` of P6 section 4.1: the first failing check of
