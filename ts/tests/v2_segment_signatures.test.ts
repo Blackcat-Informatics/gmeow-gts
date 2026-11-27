@@ -50,6 +50,7 @@ test("each signature of a frame is verified against the held keys, with the corp
         "composite-classical-nonce.bin",
         "composite-classical-scalar.bin",
         "composite-classical-small-order.bin",
+        "composite-ed25519-zeroed.bin",
     ]) {
         assert.deepEqual(results(name), [expected(name)], name);
     }

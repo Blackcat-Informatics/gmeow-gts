@@ -322,6 +322,7 @@ GtsVerifyTest >> testV2CompositeSignaturePolicy [
 		('composite-classical-nonce' 'composite_classical_failed')
 		('composite-classical-scalar' 'composite_classical_failed')
 		('composite-classical-small-order' 'composite_classical_failed')
+		('composite-ed25519-zeroed' 'composite_classical_failed')
 		('composite-both' 'composite_classical_failed')
 		('composite-context-nonempty' 'composite_classical_failed')
 		('composite-prehash-wrong' 'composite_classical_failed')
