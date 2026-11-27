@@ -1,5 +1,13 @@
 # Vectors of P6
 
+The `read_result` of every case that records one is produced by `python/scripts/gen_p6_read_results.py`.
+That program rebuilds each record from its input file with the Python reader and keeps the record's declared
+inputs and capacity. `python/tests/test_p6_read_results.py` checks every recorded result byte for byte. Check
+the corpus with `uv run python scripts/gen_p6_read_results.py --check` from `python/`, then
+`git diff --exit-code ../vectors/v2/P6`.
+
+The derived entries `sign-ed25519-reproduce`, `sign-composite-reproduce`, `key-id-ed25519`, `key-id-composite`, `subject-ed25519`, `subject-composite` and `composite-message-representative` are produced by `go/cmd/genp6derived` rather than Python, because deterministic ML-DSA-65 signing is in the Go standard library and not in the Python toolchain used for the rest of the read results.
+
 | vector | outcome | notes |
 |---|---|---|
 | `sig-record-valid` | built and matches | a blob frame with one signature of each algorithm |
