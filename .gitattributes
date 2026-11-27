@@ -3,6 +3,8 @@
 vectors/*.gts -text -diff
 vectors/v2/**/*.bin -text -diff
 vectors/v2/**/*.zst -text -diff
+# The P6 read results and derived entries are compared byte for byte by their generators.
+vectors/v2/P6/*.json -text
 vectors/tar/*.tar -text -diff
 vectors/tar/*.tar.gz -text -diff
 vectors/tar/*.tar.zst -text -diff

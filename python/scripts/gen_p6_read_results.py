@@ -10,13 +10,16 @@ keeps the record's declared inputs (`readers`, `registry_version`, `profiles`, `
 the `file` element with the Python reader and its encoder. Trusted and held keys are
 read from `inputs`, as the signature verifier of the read takes them.
 
+The reader runs with no profiles, no marks and whole-read access. A case that declares
+anything else, or that declares a reader holding the reference encoder, is refused: the
+rebuild does not implement those inputs.
+
 Usage, from `python/`:
 
     # rewrite each recorded result that differs
     uv run python scripts/gen_p6_read_results.py
     # rewrite nothing; exit 1 if any differs
     uv run python scripts/gen_p6_read_results.py --check
-    git diff --exit-code ../vectors/v2/P6
 """
 
 from __future__ import annotations
@@ -65,13 +68,74 @@ def _capacity(case: dict) -> ContentCapacity:
     )
 
 
+_ABSENT_OPTION = [1]  # option(limits): `[1]` is absent, `[2, value]` is present
+_READ_KEYS = frozenset(
+    (
+        "profiles",
+        "trusted_keys",
+        "held_keys",
+        "sealing_input",
+        "marks",
+        "holds_reference_encoder",
+    )
+)
+
+
+def _refuse_undeclared_inputs(case: dict, record: list) -> None:
+    """Refuse a case whose read declares or records an input this rebuild does not run.
+
+    The reader runs with the record's trusted and held keys, no profiles, no marks, no
+    sealing input, whole-read access, and no reference encoder. Each declaration that
+    the case makes must say the same.
+    """
+    label = case.get("input_file")
+    readers, _, profiles, _, marks, inputs, _ = record
+    if readers not in (1, 2):
+        raise ValueError(
+            f"{label}: readers {readers} is not a generation this rebuild reads"
+        )
+    if profiles != [] or marks != _ABSENT_OPTION:
+        raise ValueError(f"{label}: the record declares profiles or marks, not rebuilt")
+    if case["capacity"].get("access") != "whole":
+        raise ValueError(f"{label}: the capacity access is not whole, not rebuilt")
+    declared = case.get("read", {})
+    unknown = set(declared) - _READ_KEYS
+    if unknown:
+        raise ValueError(f"{label}: the read declares {sorted(unknown)}, not rebuilt")
+    if declared.get("holds_reference_encoder", False):
+        raise ValueError(
+            f"{label}: the reader holds the reference encoder, not rebuilt"
+        )
+    if declared.get("profiles", []) != [] or declared.get("sealing_input", []) not in (
+        [],
+        None,
+    ):
+        raise ValueError(
+            f"{label}: the read declares profiles or a sealing input, not rebuilt"
+        )
+    if declared.get("marks") is not None:
+        raise ValueError(f"{label}: the read declares marks, not rebuilt")
+    trusted, held = inputs
+    if "trusted_keys" in declared and declared["trusted_keys"] != [
+        key.hex() for key in trusted
+    ]:
+        raise ValueError(f"{label}: the declared trusted keys differ from the record's")
+    if "held_keys" in declared and declared["held_keys"] != [
+        [key.hex(), algorithm, public.hex()] for key, algorithm, public in held
+    ]:
+        raise ValueError(f"{label}: the declared held keys differ from the record's")
+
+
 def rebuild(folder: Path, case: dict) -> str:
     """Return the hex of the read record of `case`, rebuilt from its input file."""
     record = cbor2.loads(bytes.fromhex(case["read_result"]))
+    _refuse_undeclared_inputs(case, record)
     readers, registry_version, profiles, recorded_capacity, marks, inputs, _ = record
     counts = case["capacity"]
     if list(recorded_capacity[:9]) != [counts[name] for name in _CAPACITY_ORDER]:
-        raise ValueError("the record's capacity differs from the case's capacity")
+        raise ValueError(
+            f"{case.get('input_file')}: the record's capacity differs from the case's"
+        )
     capacity = _capacity(case)
     trusted, held = inputs
     verifier = SignatureVerifier(

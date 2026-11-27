@@ -86,7 +86,9 @@ func run(args []string, log io.Writer) error {
 		return err
 	}
 	for _, name := range differing {
-		fmt.Fprintln(log, "differs:", name)
+		if _, err := fmt.Fprintln(log, "differs:", name); err != nil {
+			return err
+		}
 	}
 	if *check {
 		if len(differing) > 0 {
@@ -95,6 +97,7 @@ func run(args []string, log io.Writer) error {
 		return nil
 	}
 	for _, name := range differing {
+		//nolint:gosec // the corpus files are repository files, which are world-readable.
 		if err := os.WriteFile(filepath.Join(*dir, name), files[name], 0o644); err != nil {
 			return err
 		}
@@ -131,6 +134,8 @@ func compare(dir string, files map[string][]byte) ([]string, error) {
 	sort.Strings(names)
 	var differing []string
 	for _, name := range names {
+		//nolint:gosec // dir is the corpus directory the program was given, and name is a fixed corpus file name.
+		//nolint:gosec // dir is the corpus directory the program was given, and name is a fixed corpus file name.
 		onDisk, err := os.ReadFile(filepath.Join(dir, name))
 		if errors.Is(err, os.ErrNotExist) {
 			differing = append(differing, name)
