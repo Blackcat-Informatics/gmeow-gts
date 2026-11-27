@@ -108,3 +108,35 @@ func TestCosignAppendCommitIsWrittenByteForByte(t *testing.T) {
 		t.Fatalf("the written segment differs from the stored file:\n got % x\nwant % x", got, stored)
 	}
 }
+
+// TestCosignCapacityFilesAreWrittenByteForByte rebuilds P6/cosign-capacity-spent.bin and
+// P6/cosign-item-limit.bin. The two files hold the same bytes: two ordinary frames, then one commit
+// signed with the key of seed 01 x32. The cases differ in the limit they
+// set on the co-signer, which is recorded in their case files and not in the segment.
+func TestCosignCapacityFilesAreWrittenByteForByte(t *testing.T) {
+	cosigner := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x01}, ed25519.SeedSize))
+	for _, name := range []string{"cosign-capacity-spent.bin", "cosign-item-limit.bin"} {
+		t.Run(name, func(t *testing.T) {
+			stored := vectorBytes(t, name)
+			writer, err := NewSegmentWriter(SegmentOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			frames := storedFrames(t, stored)
+			if len(frames) != 3 {
+				t.Fatalf("got %d frames, want 3", len(frames))
+			}
+			for _, frame := range frames[:2] {
+				if _, err := writer.Append(frame.frameType, frame.content, frame.payload); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err := writer.CommitSigned(cosigner); err != nil {
+				t.Fatal(err)
+			}
+			if got := writer.Bytes(); !bytes.Equal(got, stored) {
+				t.Fatalf("the written segment differs from the stored file:\n got % x\nwant % x", got, stored)
+			}
+		})
+	}
+}
