@@ -167,4 +167,4 @@ The derived entries `sign-ed25519-reproduce`, `sign-composite-reproduce`, `key-i
 | `composite-hedged` | built and matches | a composite signature whose ML-DSA half was made with a `rnd` that is not zero: valid, as the deterministic one; and both records of the key in one list: two results |
 | `cosign-remove-signature` | built and matches | a commit that carries two signatures, and a copy from which the second was removed: one result fewer, no finding, every identifier equal |
 
-Totals: built and matches: 152; derived from the text: 3 (155 entries).
+Totals: built and matches: 153; derived from the text: 3 (156 entries).
