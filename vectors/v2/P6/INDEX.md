@@ -6,7 +6,7 @@ inputs and capacity, and refuses a case whose declarations it does not run. `pyt
 checks every recorded result byte for byte. Check the read results with
 `uv run python scripts/gen_p6_read_results.py --check` from `python/`.
 
-The derived entries `sign-ed25519-reproduce`, `sign-composite-reproduce`, `key-id-ed25519`, `key-id-composite`, `subject-ed25519`, `subject-composite` and `composite-message-representative` are rebuilt by `go/cmd/genp6derived`, because deterministic ML-DSA-65 signing is in the Go standard library and not in the Python toolchain used for the read results above. Check them with `go run ./cmd/genp6derived -check` from `go/`.
+The derived entries `sign-ed25519-reproduce`, `sign-composite-reproduce`, `key-id-ed25519`, `key-id-composite`, `subject-ed25519`, `subject-composite` and `composite-message-representative` are rebuilt by `go/cmd/genp6derived`, because deterministic ML-DSA-65 signing is in the Go standard library and not in the Python toolchain used for the read results above. Check them with `go run ./cmd/genp6derived -check` from `go/`. The input file of `key-id-ed25519` is the 32-byte public key, that of `subject-ed25519` and `subject-composite` is K, H0 and F as 96 bytes in that order, and that of `composite-message-representative` is the 32-byte message; the recorded result of each follows from the bytes of its file, and no declared input file is empty.
 
 | vector | outcome | notes |
 |---|---|---|

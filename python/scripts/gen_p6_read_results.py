@@ -194,6 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         path.write_text(
             json.dumps(document, indent=1, ensure_ascii=False) + newline,
             encoding="utf-8",
+            newline="\n",
         )
     for line in differing:
         print("rewrote:", line)
