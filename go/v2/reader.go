@@ -123,18 +123,18 @@ type WireInspection WireResult
 // ReadWire reports a first generation input for the legacy reader to process.
 // Content folding, signature verification, and parity recovery belong to
 // layers above this function.
-func ReadWire(data []byte, capacity ReadCapacity) WireResult {
-	return readWire(data, capacity, true)
+func ReadWire(data []byte, capacity ReadCapacity, keys ...HeldKey) WireResult {
+	return readWire(data, capacity, true, keys)
 }
 
 // InspectWire performs the same wire checks as ReadWire and releases each
 // decoded payload after verification. Its result carries the payload statuses
 // and encoded frame content, which borrows the input buffer.
-func InspectWire(data []byte, capacity ReadCapacity) WireInspection {
-	return WireInspection(readWire(data, capacity, false))
+func InspectWire(data []byte, capacity ReadCapacity, keys ...HeldKey) WireInspection {
+	return WireInspection(readWire(data, capacity, false, keys))
 }
 
-func readWire(data []byte, capacity ReadCapacity, retainPayload bool) WireResult {
+func readWire(data []byte, capacity ReadCapacity, retainPayload bool, keys []HeldKey) WireResult {
 	var result WireResult
 	if len(data) == 0 {
 		result.Dispatch = Empty
@@ -149,7 +149,7 @@ func readWire(data []byte, capacity ReadCapacity, retainPayload bool) WireResult
 		return result
 	}
 	for current, ok := walk.take(); ok; current, ok = walk.take() {
-		item, next, failed := segment.inspect(&walk, current, &budget, retainPayload)
+		item, next, failed := segment.inspect(&walk, current, &budget, retainPayload, keys)
 		if failed {
 			last := &segment.Items[len(segment.Items)-1]
 			start := last.Offset + 1
@@ -288,7 +288,7 @@ func classifyItem(body []byte, newer bool) Item {
 	return item
 }
 
-func (s *Segment) inspect(walk *itemWalk, current boundary, budget *payloadBudget, retainPayload bool) (Item, *Segment, bool) {
+func (s *Segment) inspect(walk *itemWalk, current boundary, budget *payloadBudget, retainPayload bool, keys []HeldKey) (Item, *Segment, bool) {
 	if current.reason != "" {
 		return Item{}, nil, true
 	}
@@ -323,6 +323,9 @@ func (s *Segment) inspect(walk *itemWalk, current boundary, budget *payloadBudge
 			fields.Payload.Decoded = nil
 		}
 		fields.contentWithinCapacity = uint64(len(fields.Content)) <= budget.capacity.StoredBytesPerFrame
+		if !fields.Transparent && fields.EffectiveID != nil && uint64(fields.signaturesSize) <= budget.capacity.StoredBytesPerFrame {
+			fields.Signatures = verifyFrame(fields.records, *s.Opener.ID, *fields.EffectiveID, keys)
+		}
 		item.Frame = &fields.Frame
 		failed = fields.framingFailed || fields.Link == Broken
 	case OffsetsItem:

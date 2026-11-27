@@ -268,3 +268,13 @@ func VerifySignature(record SignatureRecord, h0, frame Digest, keys []HeldKey) S
 	}
 	return result(SignatureValid, "")
 }
+
+// verifyFrame gives the result of each signature record of a frame, in envelope
+// order, with the opener identifier `h0` and the frame identifier `frame`.
+func verifyFrame(records []SignatureRecord, h0, frame Digest, keys []HeldKey) []SignatureResult {
+	results := make([]SignatureResult, 0, len(records))
+	for _, record := range records {
+		results = append(results, VerifySignature(record, h0, frame, keys))
+	}
+	return results
+}
