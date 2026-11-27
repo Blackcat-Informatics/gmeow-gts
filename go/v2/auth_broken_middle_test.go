@@ -5,20 +5,16 @@ package v2
 
 import (
 	"bytes"
-	"encoding/hex"
 	"testing"
 )
-
-// brokenUnitDigest is the digest that every broken-link case of the corpus stores in place of a
-// blob's unit digest. It is one fixed value, whatever the payload of the frame.
-const brokenUnitDigest = "cfe9c934ea816aec8c50db7bae45248dc74c556e21323379a476189b5f055a7e"
 
 // TestAuthBrokenMiddleIsDerivedFromAWrittenSegment rebuilds P6/auth-broken-middle.bin. The writer
 // writes the first four frames of auth-two-commits-two-signers.bin with their signatures, the
 // commit of the first frame signed by the key of seed 00..1f and the second commit by the keys of
 // seed 20..3f and seed 00..1f, then the stored index frame. F3 is then altered after the writing:
-// the unit digest in its content is replaced by brokenUnitDigest. Its identifier, and every byte
-// after it, is left as written, so the link of F3 is broken.
+// the unit digest of its payload in its content is replaced by the unit digest of the payload
+// "altered". Its identifier, and every byte after it, is left as written, so the link of F3 is
+// broken.
 func TestAuthBrokenMiddleIsDerivedFromAWrittenSegment(t *testing.T) {
 	stored := vectorBytes(t, "auth-broken-middle.bin")
 	frames := storedFrames(t, stored)
@@ -47,12 +43,9 @@ func TestAuthBrokenMiddleIsDerivedFromAWrittenSegment(t *testing.T) {
 	if _, err := writer.Append(frames[4].frameType, frames[4].content, frames[4].payload); err != nil {
 		t.Fatal(err)
 	}
-	broken, err := hex.DecodeString(brokenUnitDigest)
-	if err != nil {
-		t.Fatal(err)
-	}
 	unit := hash("gts2 unit", f3.payload)
-	written := replaceOnce(t, writer.Bytes(), append([]byte{0x58, 0x20}, unit[:]...), append([]byte{0x58, 0x20}, broken...))
+	altered := hash("gts2 unit", []byte("altered"))
+	written := replaceOnce(t, writer.Bytes(), append([]byte{0x58, 0x20}, unit[:]...), append([]byte{0x58, 0x20}, altered[:]...))
 	if !bytes.Equal(written, stored) {
 		t.Fatalf("the derived file differs from the stored one:\n got % x\nwant % x", written, stored)
 	}
