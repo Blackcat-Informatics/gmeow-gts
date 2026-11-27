@@ -78,3 +78,26 @@ func TestAppendSignedRefusesATransparentFrame(t *testing.T) {
 		t.Fatal("a refused transparent frame changed the segment")
 	}
 }
+
+// TestSignaturesOfTwoKeysAreWrittenInOneOrder: the records of two keys are written in ascending
+// bytewise order of their encodings (P6-52), whatever order the caller gives the keys.
+func TestSignaturesOfTwoKeysAreWrittenInOneOrder(t *testing.T) {
+	first := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x01}, ed25519.SeedSize))
+	second := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x02}, ed25519.SeedSize))
+	// A blob content record: [digest of its unit, [1]].
+	content := append(append([]byte{0x82, 0x58, 0x20}, bytes.Repeat([]byte{0x07}, 32)...), 0x81, 0x01)
+	payload := []byte("ab")
+	written := func(keys ...ed25519.PrivateKey) []byte {
+		writer, err := NewSegmentWriter(SegmentOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := writer.AppendSigned(9, content, payload, keys...); err != nil {
+			t.Fatal(err)
+		}
+		return writer.Bytes()
+	}
+	if forward, reverse := written(first, second), written(second, first); !bytes.Equal(forward, reverse) {
+		t.Fatalf("the signature order follows the key order:\n%x\n%x", forward, reverse)
+	}
+}
