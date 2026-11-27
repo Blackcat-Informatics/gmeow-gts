@@ -18,6 +18,23 @@ type frameSpan struct {
 	end       int
 }
 
+// byteStringBody returns the bytes of the byte string encoded in item, which holds its head and
+// its body and nothing else.
+func byteStringBody(t *testing.T, item []byte) []byte {
+	t.Helper()
+	if len(item) == 0 || item[0]>>5 != 2 {
+		t.Fatalf("payload is not a byte string")
+	}
+	headLength := map[byte]int{24: 2, 25: 3, 26: 5, 27: 9}[item[0]&0x1f]
+	if item[0]&0x1f < 24 {
+		headLength = 1
+	}
+	if headLength == 0 || len(item) < headLength {
+		t.Fatalf("payload head is not supported")
+	}
+	return item[headLength:]
+}
+
 // storedFrames returns the frames that follow the header of a corpus file, in order.
 func storedFrames(t *testing.T, data []byte) []frameSpan {
 	t.Helper()
@@ -65,7 +82,7 @@ func storedFrames(t *testing.T, data []byte) []frameSpan {
 		frames = append(frames, frameSpan{
 			frameType: frameType,
 			content:   data[contentStart:contentEnd],
-			payload:   data[payloadStart+1 : payloadEnd],
+			payload:   byteStringBody(t, data[payloadStart:payloadEnd]),
 			end:       end,
 		})
 		position = end
