@@ -6,6 +6,7 @@ package v2
 import (
 	"bytes"
 	"crypto/ed25519"
+	"strings"
 	"testing"
 )
 
@@ -70,8 +71,8 @@ func TestAppendSignedRefusesATransparentFrame(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := writer.Bytes()
-	if _, err := writer.AppendSigned(parityType, nil, nil, key); err == nil {
-		t.Fatal("a transparent frame was signed")
+	if _, err := writer.AppendSigned(parityType, nil, nil, key); err == nil || !strings.Contains(err.Error(), "P6-3") {
+		t.Fatalf("a transparent frame was not refused by P6-3: %v", err)
 	}
 	if !bytes.Equal(writer.Bytes(), before) {
 		t.Fatal("a refused transparent frame changed the segment")
