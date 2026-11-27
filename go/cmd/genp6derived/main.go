@@ -29,6 +29,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	v2 "go.blackcatinformatics.ca/gts/v2"
@@ -134,7 +135,6 @@ func compare(dir string, files map[string][]byte) ([]string, error) {
 	sort.Strings(names)
 	var differing []string
 	for _, name := range names {
-		//nolint:gosec // dir is the corpus directory the program was given, and name is a fixed corpus file name.
 		//nolint:gosec // dir is the corpus directory the program was given, and name is a fixed corpus file name.
 		onDisk, err := os.ReadFile(filepath.Join(dir, name))
 		if errors.Is(err, os.ErrNotExist) {
@@ -333,12 +333,13 @@ func build() (map[string][]byte, error) {
 	files["sign-composite-reproduce.public-key.bin"] = cp.publicKey
 	files["sign-composite-reproduce.value.bin"] = cpValue
 	files["key-id-composite.bin"] = cp.publicKey
-	// These input files carry no bytes: their inputs are stated in the entry.
-	for _, name := range []string{
-		"key-id-ed25519.bin", "subject-ed25519.bin", "subject-composite.bin", "composite-message-representative.bin",
-	} {
-		files[name] = []byte{}
-	}
+	// Each of these input files holds the bytes its result is computed from: the public
+	// key, the three 32-byte fields K, H0 and F of the subject, and the message.
+	subjectInput := slices.Concat(subjectKey[:], subjectH0[:], subjectFrame[:])
+	files["key-id-ed25519.bin"] = bytes.Clone(edPublic)
+	files["subject-ed25519.bin"] = bytes.Clone(subjectInput)
+	files["subject-composite.bin"] = bytes.Clone(subjectInput)
+	files["composite-message-representative.bin"] = bytes.Clone(representedIn)
 	return files, nil
 }
 
