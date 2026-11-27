@@ -6,8 +6,8 @@
 //! frames. A lost item (a framing failure, a malformed item, a frame whose link is broken, a
 //! closing item that breaks its grammar, an opener that cannot be read) is recovered by the
 //! next resync item that the scanner accepts (P1 section 6.7). The commit, index and parity
-//! checks, and the fields of a frame that cannot be decoded, come in later slices: such a
-//! frame stops the read.
+//! checks come in later slices. A frame whose fields do not decode is still a frame: its link
+//! and payload are read from its raw fields, and it is lost.
 
 import { FramingError, itemEnd, type FramingReason } from "./v2_framing.js";
 import { HeaderError } from "./v2_decoder.js";
@@ -17,7 +17,15 @@ import {
     type ClosingFinding,
     type ClosingItem,
 } from "./v2_closing.js";
-import { decodeFrame, FrameError, type Frame } from "./v2_frame.js";
+import {
+    asFrameError,
+    checkTypeLength,
+    decodeEnvelope,
+    FrameError,
+    type Frame,
+} from "./v2_frame.js";
+import { fieldOffsets, inspectLink, malformedPayload } from "./v2_inspect.js";
+import { Decoder } from "./v2_decoder.js";
 import { decodeHeader, REGISTRY_VERSION, type Header } from "./v2_header.js";
 import { frameIdentifier } from "./v2_integrity.js";
 import { linkOf, type FrameLink } from "./v2_link.js";
@@ -46,7 +54,13 @@ export type SegmentOpener =
 export interface WireFrame {
     /** The position of the frame's item in its segment. */
     position: number;
-    frame: Frame;
+    /** The type of the frame, absent when the item's type field cannot be read. */
+    frameType: bigint | undefined;
+    transparent: boolean;
+    /** The decoded frame, or the first malformed field (including a length invalid for its type). */
+    envelope: { frame: Frame } | { error: FrameError };
+    /** The identifier stored in the frame, read from its raw bytes when the envelope fails. */
+    stored: Uint8Array | undefined;
     link: FrameLink;
     payload: PayloadCheck;
 }
@@ -95,7 +109,6 @@ export type ReadStop =
     | { kind: "framing"; reason: string; offset: number }
     | { kind: "lost_item"; offset: number }
     | { kind: "item_limit"; offset: number }
-    | { kind: "unreadable_frame"; offset: number }
     | { kind: "unreadable_opener"; offset: number };
 
 /** The segments of an input, in order, and the reason reading stopped, if it did. */
@@ -149,39 +162,129 @@ function openerOf(
 /**
  * Whether the next item is a frame whose stored identifier equals the identifier computed
  * from `candidate` as its predecessor (P1 section 3.4): the evidence that heals a link.
+ *
+ * @throws FramingError when the next frame's elements cannot be delimited.
  */
 function followingConfirms(
     data: Uint8Array,
     walk: ItemWalk,
-    registryVersion: bigint,
     candidate: Uint8Array,
-): boolean | undefined {
+): boolean {
     const next = walk.peek();
-    if (next === undefined) return undefined;
-    if (next.failure !== undefined) return false;
     if (
-        classify(data, next.offset, registryVersion > REGISTRY_VERSION).kind !==
-        "frame"
+        next === undefined ||
+        next.failure !== undefined ||
+        data[next.offset] !== 0x8b ||
+        data[next.offset + 1] !== 0x02
     )
         return false;
+    const following = inspectLink(data, fieldOffsets(data, next.offset));
+    if (following.identity === undefined || following.stored === undefined)
+        return false;
+    const computed = frameIdentifier(candidate, following.identity);
+    return (
+        computed.length === following.stored.length &&
+        computed.every((byte, index) => byte === following.stored?.[index])
+    );
+}
+
+/**
+ * Reads the frame item at `boundary`: its envelope when it decodes, otherwise its link and
+ * payload from its raw fields. `malformed` tells whether the envelope failed before the check
+ * of the length against the type.
+ *
+ * @throws FramingError when the elements of an undecodable frame cannot be delimited.
+ */
+function observeFrame(
+    data: Uint8Array,
+    boundary: Boundary,
+    position: number,
+    predecessor: Uint8Array,
+    registryVersion: bigint,
+    walk: ItemWalk,
+    budget: PayloadBudget,
+): { wire: WireFrame; malformed: boolean } {
+    let decoded: { frame: Frame; lengthOffset: number } | undefined;
+    let failure: FrameError | undefined;
     try {
-        const following = decodeFrame(data, next.offset, registryVersion);
-        if (
-            following.identityFields === undefined ||
-            following.identifier === undefined
-        )
-            return false;
-        const computed = frameIdentifier(candidate, following.identityFields);
-        return (
-            computed.length === following.identifier.length &&
-            computed.every(
-                (byte, index) => byte === following.identifier?.[index],
-            )
+        decoded = asFrameError(() =>
+            decodeEnvelope(data, boundary.offset, registryVersion),
         );
     } catch (error) {
-        if (error instanceof FrameError) return false;
-        throw error;
+        if (!(error instanceof FrameError)) throw error;
+        failure = error;
     }
+    let frameType: bigint | undefined;
+    let fields: {
+        transparent: boolean;
+        identity: Uint8Array | undefined;
+        stored: Uint8Array | undefined;
+    };
+    let offsets: readonly number[] | undefined;
+    if (decoded !== undefined) {
+        frameType = decoded.frame.frameType;
+        fields = {
+            transparent: decoded.frame.transparent,
+            identity: decoded.frame.identityFields,
+            stored: decoded.frame.identifier,
+        };
+    } else {
+        offsets = fieldOffsets(data, boundary.offset);
+        try {
+            frameType = new Decoder(data, offsets[0]).uint();
+        } catch (error) {
+            if (!(error instanceof HeaderError)) throw error;
+        }
+        fields = inspectLink(data, offsets);
+    }
+    const link = linkOf(fields, predecessor, (candidate) =>
+        followingConfirms(data, walk, candidate),
+    );
+    let payload: PayloadCheck;
+    if (decoded !== undefined) {
+        payload = budget.check(
+            decoded.frame,
+            storedMatches(decoded.frame.storage, [decoded.frame.storedPayload]),
+        );
+    } else {
+        const raw = malformedPayload(
+            data,
+            offsets ?? fieldOffsets(data, boundary.offset),
+            registryVersion > REGISTRY_VERSION,
+        );
+        payload =
+            raw.fields === undefined
+                ? {
+                      storedMatches: raw.storedMatches,
+                      state: { kind: "damaged", damage: "malformed_fields" },
+                  }
+                : budget.check(raw.fields, raw.storedMatches);
+    }
+    let envelope: WireFrame["envelope"];
+    if (decoded === undefined) {
+        envelope = { error: failure as FrameError };
+    } else {
+        try {
+            envelope = {
+                frame: checkTypeLength(decoded.frame, decoded.lengthOffset),
+            };
+        } catch (error) {
+            if (!(error instanceof FrameError)) throw error;
+            envelope = { error };
+        }
+    }
+    return {
+        wire: {
+            position,
+            frameType,
+            transparent: fields.transparent,
+            envelope,
+            stored: fields.stored,
+            link,
+            payload,
+        },
+        malformed: decoded === undefined,
+    };
 }
 
 function emptySegment(opener: SegmentOpener): WireSegment {
@@ -209,7 +312,7 @@ function finish(segment: WireSegment, data: Uint8Array): void {
     }));
     const frames = segment.frames.map((frame) => ({
         position: frame.position,
-        frameType: frame.frame.frameType,
+        frameType: frame.frameType,
     }));
     segment.closing = checkClosing(data, items, frames);
 }
@@ -266,7 +369,7 @@ function endAtResync(
 ): void {
     const healed = healedLast(segment);
     if (healed !== undefined) {
-        const stored = healed.frame.identifier;
+        const stored = healed.stored;
         healed.link = {
             ...healed.link,
             state: "broken",
@@ -404,49 +507,31 @@ export function readWire(
         let lost = next.failure !== undefined || kind.kind === "malformed";
         let begun: SegmentOpener | undefined;
         let frame: WireFrame | undefined;
-        let unreadableFrame = false;
         if (next.failure === undefined) {
             if (kind.kind === "header" || kind.kind === "resync") {
                 begun = openerOf(data, next.offset, next.end, kind.kind);
                 lost = begun === undefined;
             } else if (kind.kind === "frame" && !blind) {
                 try {
-                    const decoded = decodeFrame(
+                    const observed = observeFrame(
                         data,
-                        next.offset,
-                        registryVersion,
-                    );
-                    const link = linkOf(
-                        {
-                            transparent: decoded.transparent,
-                            identity: decoded.identityFields,
-                            stored: decoded.identifier,
-                        },
+                        next,
+                        segment.items.length,
                         segment.head ?? new Uint8Array(32),
-                        (candidate) =>
-                            followingConfirms(
-                                data,
-                                walk,
-                                registryVersion,
-                                candidate,
-                            ),
+                        registryVersion,
+                        walk,
+                        budget,
                     );
-                    frame = {
-                        position: segment.items.length,
-                        frame: decoded,
-                        link,
-                        payload: budget.check(
-                            decoded,
-                            storedMatches(decoded.storage, [
-                                decoded.storedPayload,
-                            ]),
-                        ),
-                    };
-                    lost = link.state === "broken";
+                    frame = observed.wire;
+                    lost = observed.malformed || frame.link.state === "broken";
                 } catch (error) {
-                    if (!(error instanceof FrameError)) throw error;
-                    unreadableFrame = true;
-                    lost = true;
+                    if (!(error instanceof FramingError)) throw error;
+                    result.stop = {
+                        kind: "framing",
+                        reason: error.reason,
+                        offset: next.offset,
+                    };
+                    break;
                 }
             } else if (
                 (kind.kind === "locator" || kind.kind === "offsets") &&
@@ -486,10 +571,6 @@ export function readWire(
                 reason: next.failure,
                 offset: next.offset,
             };
-            break;
-        }
-        if (unreadableFrame) {
-            result.stop = { kind: "unreadable_frame", offset: next.offset };
             break;
         }
         if (kind.kind === "header" || kind.kind === "resync") {
