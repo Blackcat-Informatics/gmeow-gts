@@ -50,6 +50,10 @@ type Frame struct {
 	Link          Link
 	StoredMatches *bool
 	Payload       Payload
+	// Signatures holds the result of each signature of the frame, in envelope
+	// order. It is empty when the frame is transparent, has no effective
+	// identifier, or its signatures element is outside the grammar or the capacity.
+	Signatures []SignatureResult
 	// Malformed is the first envelope field violation or codec constraint.
 	Malformed             Reason
 	contentWithinCapacity bool
@@ -63,6 +67,7 @@ type frameFields struct {
 	storedPayload  []byte
 	encodedPayload []byte
 	signaturesSize int
+	records        []SignatureRecord
 	payloadTyped   bool
 	framingFailed  bool
 }
@@ -115,7 +120,8 @@ func decodeFrame(item []byte, newer bool) frameFields {
 	f.StoredID = storedID(fields[8])
 	identifierReason := checkDigest(fields[8])
 	f.signaturesSize = len(fields[9])
-	signatureReason := checkSignatures(fields[9], newer)
+	records, signatureReason := decodeSignatures(fields[9], newer)
+	f.records = records
 	if signatureReason == "" && f.Type == parityType && fields[9][0] != 0x80 {
 		signatureReason = ForbiddenCombination
 	}
@@ -272,36 +278,44 @@ func checkQualifiedName(item []byte) Reason {
 	return reason
 }
 
-func checkSignatures(item []byte, newer bool) Reason {
+// decodeSignatures reads the signature records of a frame's signatures element
+// (P6 section 1). The records are ordered and unrepeated by their encoding.
+func decodeSignatures(item []byte, newer bool) ([]SignatureRecord, Reason) {
 	h, reason := typedHead(item, 4)
 	if reason != "" {
-		return reason
+		return nil, reason
 	}
 	signatures := itemValues{remaining: item[h.end:]}
+	var records []SignatureRecord
 	var previous []byte
 	for len(signatures.remaining) != 0 {
 		encoded := signatures.next()
 		fields, reason := array(encoded, 3)
 		if reason != "" {
-			return reason
+			return nil, reason
 		}
 		algorithm, reason := uintValue(fields.next())
 		if reason != "" {
-			return reason
+			return nil, reason
 		}
 		if algorithm == 0 || (!newer && algorithm > 2) {
-			return UnregisteredValue
+			return nil, UnregisteredValue
 		}
-		if reason := checkDigest(fields.next()); reason != "" {
-			return reason
+		keyID, reason := byteValue(fields.next(), 32)
+		if reason != "" {
+			return nil, reason
 		}
-		if _, reason := byteValue(fields.next(), -1); reason != "" {
-			return reason
+		value, reason := byteValue(fields.next(), -1)
+		if reason != "" {
+			return nil, reason
 		}
 		if previous != nil && bytes.Compare(previous, encoded) >= 0 {
-			return UnorderedOrRepeated
+			return nil, UnorderedOrRepeated
 		}
 		previous = encoded
+		record := SignatureRecord{Algorithm: algorithm, Value: value}
+		copy(record.KeyID[:], keyID)
+		records = append(records, record)
 	}
-	return ""
+	return records, ""
 }

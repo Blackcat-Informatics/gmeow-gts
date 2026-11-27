@@ -208,3 +208,57 @@ func TestCompositeRefusesAKeyOfTheWrongAlgorithm(t *testing.T) {
 		t.Fatalf("got %+v, want key_mismatch", got)
 	}
 }
+
+// heldReproductionKeys are the keys of the reproduction vectors, which the frame
+// vectors named below are signed with.
+func heldReproductionKeys(t *testing.T) []HeldKey {
+	t.Helper()
+	composite := loadSignCase(t, "sign-composite-reproduce")
+	compositeKey := vectorBytes(t, composite.PublicKeyFile)
+	ed := loadSignCase(t, "sign-ed25519-reproduce")
+	edKey := mustHex(t, ed.Signer.PublicKey)
+	return []HeldKey{
+		{KeyID: KeyIdentifier(CompositeAlgorithm, compositeKey), Algorithm: CompositeAlgorithm, PublicKey: compositeKey},
+		{KeyID: KeyIdentifier(Ed25519Algorithm, edKey), Algorithm: Ed25519Algorithm, PublicKey: edKey},
+	}
+}
+
+// TestFrameSignaturesMatchTheVectors reads each frame vector through the reader with
+// the reproduction keys, and checks the status and reason of its signature against
+// the vector's recorded result. Each vector's signature is the first one of its frame.
+func TestFrameSignaturesMatchTheVectors(t *testing.T) {
+	cases := []struct {
+		name   string
+		status SignatureStatus
+		reason SignatureReason
+	}{
+		{"composite-honest", SignatureValid, ""},
+		{"composite-both", SignatureInvalid, ReasonCompositeClassical},
+		{"composite-classical-scalar", SignatureInvalid, ReasonCompositeClassical},
+		{"composite-classical-small-order", SignatureInvalid, ReasonCompositeClassical},
+		{"composite-label-wrong", SignatureInvalid, ReasonCompositeClassical},
+		{"composite-post-quantum", SignatureInvalid, ReasonCompositePostQuantum},
+		{"composite-stripped-half", SignatureInvalid, ReasonCompositePostQuantum},
+		{"ed25519-honest", SignatureValid, ""},
+	}
+	keys := heldReproductionKeys(t)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := ReadWire(vectorBytes(t, tc.name+".bin"), DefaultReadCapacity(), keys...)
+			var found *SignatureResult
+			for i := range result.Segments {
+				for _, item := range result.Segments[i].Items {
+					if item.Frame != nil && len(item.Frame.Signatures) > 0 && found == nil {
+						found = &item.Frame.Signatures[0]
+					}
+				}
+			}
+			if found == nil {
+				t.Fatal("no frame carries a signature result")
+			}
+			if found.Status != tc.status || found.Reason != tc.reason {
+				t.Fatalf("got %s %q, want %s %q", found.Status, found.Reason, tc.status, tc.reason)
+			}
+		})
+	}
+}
