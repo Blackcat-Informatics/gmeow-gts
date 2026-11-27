@@ -64,7 +64,7 @@ export function readParityRecord(
  * section 6.6: a geometry of 1, a first offset that is a multiple of the span size, and a length
  * from 1 to the span size.
  */
-function spanOf(record: ParityRecord): number | undefined {
+export function paritySpan(record: ParityRecord): number | undefined {
     if (record.end < record.first) return undefined;
     const length = record.end - record.first;
     return record.geometry === 1n &&
@@ -131,6 +131,47 @@ export function shapeOf(span: number): ParityShape {
     };
 }
 
+/** The lists of a parity payload of one span: shard digests, parity bytes and where the digests end. */
+export interface ParityLists {
+    dataDigests: Uint8Array[];
+    parityDigests: Uint8Array[];
+    parity: Uint8Array;
+    /** The offset in the payload where the two digest lists end. */
+    end: number;
+}
+
+/** The lists of `payload` when it is one deterministic parity payload of `shape`. */
+export function readLists(
+    payload: Uint8Array,
+    shape: ParityShape,
+): ParityLists | undefined {
+    try {
+        const cursor = new Decoder(payload, 0);
+        cursor.record(3);
+        const lists: Uint8Array[][] = [];
+        for (const count of [shape.shards, shape.parityShards]) {
+            if (cursor.head(4) !== BigInt(count)) return undefined;
+            const list: Uint8Array[] = [];
+            for (let index = 0; index < count; index++) {
+                list.push(cursor.byteString(DIGEST_BYTES));
+            }
+            lists.push(list);
+        }
+        const end = cursor.offset;
+        const parity = cursor.byteString(shape.parityBytes);
+        if (cursor.offset !== payload.length) return undefined;
+        return {
+            dataDigests: lists[0],
+            parityDigests: lists[1],
+            parity,
+            end,
+        };
+    } catch (error) {
+        if (error instanceof HeaderError) return undefined;
+        throw error;
+    }
+}
+
 /**
  * Whether `payload` is one deterministic parity payload of `shape` whose table digest under
  * the segment's opener identifier `h0` is `tableDigest` (P5 section 6.6, conditions 4 and 5).
@@ -141,27 +182,12 @@ function tableMatches(
     h0: Uint8Array,
     tableDigest: Uint8Array,
 ): boolean {
-    let end: number;
-    try {
-        const cursor = new Decoder(payload, 0);
-        cursor.record(3);
-        for (const count of [shape.shards, shape.parityShards]) {
-            if (cursor.head(4) !== BigInt(count)) return false;
-            for (let index = 0; index < count; index++) {
-                cursor.byteString(DIGEST_BYTES);
-            }
-        }
-        end = cursor.offset;
-        cursor.byteString(shape.parityBytes);
-        if (cursor.offset !== payload.length) return false;
-    } catch (error) {
-        if (error instanceof HeaderError) return false;
-        throw error;
-    }
+    const lists = readLists(payload, shape);
+    if (lists === undefined) return false;
     const digest = contextHashParts("gts2 parity table", [
         Uint8Array.of(0x83, 0x58, 0x20),
         h0,
-        payload.subarray(1, end),
+        payload.subarray(1, lists.end),
     ]);
     return equal(digest, tableDigest);
 }
@@ -249,7 +275,7 @@ export function judgeParity(
     const record = readParityRecord(frame.content);
     if (record === undefined) return "damaged";
     if (newer && clean && record.geometry > 1n) return undefined;
-    const span = spanOf(record);
+    const span = paritySpan(record);
     if (span === undefined) return "damaged";
     if (
         !clean ||
@@ -395,7 +421,7 @@ export function testParityCandidate(
     }
     const record = readParityRecord(frame.content);
     if (record === undefined) return { kind: "failed" };
-    const span = spanOf(record);
+    const span = paritySpan(record);
     if (span === undefined || !segment.earlier.admits(record.first)) {
         return { kind: "failed" };
     }
